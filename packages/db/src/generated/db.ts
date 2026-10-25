@@ -11,6 +11,8 @@ export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
 
+export type MomentLinkType = "anchor" | "page_top" | "text_fragment";
+
 export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
@@ -34,6 +36,26 @@ export interface ContentItemPrivateText {
   text: string;
 }
 
+export interface ContentItemSection {
+  anchor_id: string | null;
+  content_item_id: Int8;
+  heading: string | null;
+  level: number | null;
+  ordinal: number;
+  word_count: number;
+}
+
+export interface Moment {
+  content_item_id: Int8;
+  created_at: Generated<Timestamp>;
+  estimated_minutes: number;
+  id: Generated<Int8>;
+  link: string;
+  link_type: MomentLinkType;
+  ordinal: number;
+  title: string;
+}
+
 export interface SchemaMeta {
   key: string;
   value: string;
@@ -53,6 +75,8 @@ export interface Source {
 export interface DB {
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
+  content_item_section: ContentItemSection;
+  moment: Moment;
   schema_meta: SchemaMeta;
   source: Source;
 }

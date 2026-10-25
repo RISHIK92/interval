@@ -3,6 +3,7 @@
 from datetime import datetime
 from typing import Literal, TypedDict
 
+type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
 ]
@@ -25,6 +26,26 @@ class ContentItemPrivateText(TypedDict):
     content_item_id: int
     text: str
     extracted_at: datetime
+
+
+class ContentItemSection(TypedDict):
+    content_item_id: int
+    ordinal: int
+    heading: str | None
+    level: int | None
+    anchor_id: str | None
+    word_count: int
+
+
+class Moment(TypedDict):
+    id: int
+    content_item_id: int
+    ordinal: int
+    title: str
+    estimated_minutes: int
+    link: str
+    link_type: MomentLinkType
+    created_at: datetime
 
 
 class SchemaMeta(TypedDict):

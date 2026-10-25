@@ -14,7 +14,9 @@ from interval_db.generated import RightsProfile
 from interval_jobs.ingest.extract import extract_text
 from interval_jobs.ingest.feed import newest_entry
 from interval_jobs.ingest.fetch import Resolver, fetch, resolve_host
+from interval_jobs.ingest.structure import extract_sections
 from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
+from interval_jobs.segment import segment_item
 
 
 @dataclass(frozen=True)
@@ -101,6 +103,24 @@ def ingest_one(
             """,
             (item_id, text),
         )
+        # Heading structure for segmentation (ING-4): headings and counts, no text.
+        conn.execute(
+            "delete from content_item_section where content_item_id = %s", (item_id,)
+        )
+        with conn.cursor() as cur:
+            cur.executemany(
+                "insert into content_item_section "
+                "(content_item_id, ordinal, heading, level, anchor_id, word_count) "
+                "values (%s, %s, %s, %s, %s, %s)",
+                [
+                    (item_id, i, s.heading, s.level, s.anchor_id, s.word_count)
+                    for i, s in enumerate(
+                        extract_sections(article.body, article.encoding, entry.title)
+                    )
+                ],
+            )
+        # Moments always match the stored structure (owner, 2026-10-25).
+        segment_item(conn, item_id)
         return IngestResult(content_item_id=item_id, stored="full_text")
 
     if allowed(profile, "store_excerpt"):

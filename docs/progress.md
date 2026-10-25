@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S04 done, committed and pushed. ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S02.
+Status: P1-W1-S01 to S05 done, committed and pushed. ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S02.
 
 ## Bootstrap session log
 
@@ -43,7 +43,7 @@ The owner answered every open question and ADR.
 
 ## Next up
 
-1. P1-W1-S05 Skeleton: one item into moments.
+1. P1-W1-S06 Skeleton: feed shows one moment card.
 2. ADR-0005 host choice around Week 5 (blocks P1-W1-S09 and the beta deploy). A domain name is needed before Week 6.
 3. Owner data: approve the concept list (Q-P1-03, Week 3); cost budget amounts before the beta (Q-P1-23).
 
@@ -134,5 +134,34 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - FeedParserDict maps a missing `published_parsed` to `updated_parsed`.
   - Owner decisions (2026-10-25): lowering a profile deletes stored text; the feed summary is plain text capped at 300; invalid entries are skipped and logged; strict fetch rules.
   - The DNS rebinding gap in the fetch guard is documented in `fetch.py`; AWS egress rules cover it at deploy.
+- Needs ADR: none.
+
+### 2026-10-25 — P1-W1-S05
+- Done:
+  - **Migration `20261025020000_moments.sql`:**
+    - `content_item_section`: private heading structure; headings and word counts, no body text; full-text rights trigger.
+    - `moment`: a deep link, no text column.
+    - The `moment_rights` trigger requires the moments switch and full-text rights.
+    - The source purge trigger now also removes sections and moments when the profile is lowered or moments are switched off.
+    - Headings and titles are capped at 300 characters.
+  - **`ingest/structure.py`:**
+    - trafilatura XML for content and headings; a stdlib html.parser pass maps publisher ids.
+    - The id pass skips nav/aside/header/footer and matches forward only.
+    - Permalink anchors are ignored; zero-width marks and permalink glyphs are stripped.
+    - The priority is heading id, then child anchor, then section id.
+  - **`segment.py`:**
+    - Links are anchor, then text fragment (spec encoding), then page top.
+    - The intro moment links to the page top; minutes are ceil(words / 230), at least 1.
+    - Moments are upserted by ordinal, so ids stay stable, and the item row is locked.
+  - **Ingest:** the full-text branch stores sections and re-segments. There's also a `segment-item` CLI.
+  - **Tests:** 84 worker tests pass; `pnpm turbo check` passes, 21 tasks.
+- Not done: none.
+- Next: P1-W1-S06.
+- Open questions: none new.
+- Surprises:
+  - lxml ships no types, so the id pass uses stdlib html.parser and lxml was not added.
+  - trafilatura keeps the page's h1 title as a heading; a leading h1 that matches the item title is treated as the title (owner).
+  - Two headings with the same text and no id get the same text fragment. Disambiguating would need stored body text, so it's accepted and documented in segment.py.
+  - trafilatura runs twice per full-text page (text, then structure). That's acceptable for the skeleton; revisit in W3.
 - Needs ADR: none.
 

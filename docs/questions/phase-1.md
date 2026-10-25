@@ -59,7 +59,7 @@ Status: all 42 answered by the owner on 2026-10-25. Each answer appears under it
   - Section over 8 min: split at the next lower heading level; if none, keep as one moment flagged `oversized` for the admin page. Do not split mid-paragraph (it would need a text-fragment link to an arbitrary sentence).
   - Code-heavy sections: count code blocks at a lower reading speed (owner to set), never split inside a code block.
   - Reading speed: 230 words per minute for prose (assumption; owner to confirm).
-- **Answer (owner, 2026-10-25):** Defaults accepted, at 230 words per minute. Code counts at the same rate as prose.
+- **Answer (owner, 2026-10-25):** Defaults accepted, at 230 words per minute. Code counts at the same rate as prose. Added 2026-10-25 (P1-W1-S05): text before the first section heading is its own moment, linked to the top of the page; a leading h1 that repeats the item title is the page title, not a section; minutes are ceil(words / 230), at least 1; re-ingest re-segments in the same transaction.
 
 ### Q-P1-07 WebSub in Phase 1 (P2)
 - Cite: §5B ("polling and WebSub push"), ING-3, Phase 1 Week 2 ("scheduled polling"), C-18.

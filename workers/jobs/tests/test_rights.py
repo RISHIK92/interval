@@ -8,8 +8,8 @@ from interval_jobs.rights import Operation, allowed
 MATRIX: dict[RightsProfile, set[Operation]] = {
     "metadata_only": set(),
     "excerpt": {"fetch_body", "store_excerpt"},
-    "full_text_internal": {"fetch_body", "store_full_text"},
-    "full_text_display": {"fetch_body", "store_full_text"},
+    "full_text_internal": {"fetch_body", "store_full_text", "make_moments"},
+    "full_text_display": {"fetch_body", "store_full_text", "make_moments"},
 }
 
 

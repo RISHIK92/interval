@@ -1,6 +1,8 @@
 """Worker CLI.
 
-Usage: python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile P
+Usage:
+  python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile P
+  python -m interval_jobs segment-item --content-item-id ID
 """
 
 import argparse
@@ -15,6 +17,7 @@ from psycopg.conninfo import conninfo_to_dict
 
 from interval_db.generated import RightsProfile
 from interval_jobs.ingest.one import ingest_one
+from interval_jobs.segment import segment_item
 from interval_jobs.sources import upsert_source
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -50,20 +53,29 @@ def main(argv: list[str]) -> None:
         "--rights-profile", required=True, choices=get_args(RightsProfile.__value__)
     )
     one.add_argument("--homepage")
+    seg = commands.add_parser("segment-item", help="split one stored item into moments")
+    seg.add_argument("--content-item-id", type=int, required=True)
     args = parser.parse_args(argv)
 
-    with (
-        psycopg.connect(_database_url()) as conn,
-        httpx.Client(headers={"user-agent": USER_AGENT}) as http,
-    ):
-        source_id = upsert_source(
-            conn,
-            name=args.name,
-            feed_url=args.feed_url,
-            rights_profile=args.rights_profile,
-            homepage=args.homepage,
-        )
-        result = ingest_one(conn, http, source_id)
+    with psycopg.connect(_database_url()) as conn:
+        if args.command == "segment-item":
+            rows = segment_item(conn, args.content_item_id)
+            conn.commit()
+            print(
+                json.dumps(
+                    {"content_item_id": args.content_item_id, "moments": len(rows)}
+                )
+            )
+            return
+        with httpx.Client(headers={"user-agent": USER_AGENT}) as http:
+            source_id = upsert_source(
+                conn,
+                name=args.name,
+                feed_url=args.feed_url,
+                rights_profile=args.rights_profile,
+                homepage=args.homepage,
+            )
+            result = ingest_one(conn, http, source_id)
         conn.commit()
     print(
         json.dumps({"content_item_id": result.content_item_id, "stored": result.stored})

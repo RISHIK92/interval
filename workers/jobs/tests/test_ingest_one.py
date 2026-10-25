@@ -54,6 +54,16 @@ def source(conn: psycopg.Connection, profile: RightsProfile) -> int:
     )
 
 
+def section_count(conn: psycopg.Connection, source_id: int) -> int:
+    row = conn.execute(
+        "select count(*) from content_item_section s "
+        "join content_item ci on ci.id = s.content_item_id where ci.source_id = %s",
+        (source_id,),
+    ).fetchone()
+    assert row is not None
+    return row[0]
+
+
 def counts(conn: psycopg.Connection, source_id: int) -> tuple[int, int]:
     row = conn.execute(
         """
@@ -180,3 +190,21 @@ def test_lowering_the_profile_removes_text_and_reingest_still_works(
     ).fetchone()
     assert excerpt is not None
     assert (excerpt[0] is not None) is (after == "excerpt")
+
+
+@pytest.mark.parametrize(
+    ("profile", "has_sections"),
+    [("metadata_only", False), ("excerpt", False), ("full_text_internal", True)],
+)
+def test_section_structure_is_stored_only_for_full_text(
+    conn: psycopg.Connection, profile: RightsProfile, has_sections: bool
+) -> None:
+    source_id = source(conn, profile)
+    with FakeWeb().client() as http:
+        ingest_one(conn, http, source_id, public)
+        ingest_one(conn, http, source_id, public)
+    assert (section_count(conn, source_id) > 0) is has_sections
+    if has_sections:
+        assert (
+            section_count(conn, source_id) == 2
+        )  # two h2 sections; the h1 is the title
