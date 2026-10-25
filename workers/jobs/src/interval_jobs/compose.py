@@ -1,6 +1,6 @@
 """Composition root (ADR-0012): the only place that builds adapters.
 
-Every process (the CLI now, the queue consumer later) gets its ports from here, so
+Every process (the CLI and the queue consumer) gets its ports from here, so
 swapping a service means changing this file and one adapter.
 """
 
@@ -25,6 +25,7 @@ from interval_jobs.adapters.postgres import PostgresAi, PostgresStore, unit_of_w
 from interval_jobs.adapters.sqs_queue import SqsClient, SqsConsumer, SqsQueue
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.events.emitter import Emitter
+from interval_jobs.pipeline import StageServices, UnitOfWork
 from interval_jobs.ports import EventSink, JobQueue, QueueConsumer
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -149,3 +150,22 @@ def services() -> Generator[Services]:
             )
     finally:
         events.flush()
+
+
+@contextmanager
+def stage_units() -> Generator[UnitOfWork]:
+    """Units of work for the pipeline's stages, sharing one web client and extractor.
+
+    A stage's unit is only its database transaction: no event sink, AI ledger or web
+    client per delivery.
+    """
+    url = database_url()
+    with httpx.Client(headers={"user-agent": USER_AGENT}) as http:
+        fetcher, extractor = HttpxFetcher(http), TrafilaturaExtractor()
+
+        @contextmanager
+        def unit() -> Generator[StageServices]:
+            with unit_of_work(url) as store:
+                yield StageServices(store, fetcher, extractor)
+
+        yield unit

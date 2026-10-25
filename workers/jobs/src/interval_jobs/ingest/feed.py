@@ -82,7 +82,8 @@ def _to_entry(raw: dict[str, Any], feed_url: str) -> FeedEntry | None:
     )
 
 
-def newest_entry(feed: bytes, feed_url: str) -> FeedEntry:
+def valid_entries(feed: bytes, feed_url: str) -> list[FeedEntry]:
+    """Every entry with a title and an http(s) link; invalid ones are logged."""
     # A file object, never bytes or str: feedparser opens those as a path or URL.
     raw_entries = feedparser.parse(io.BytesIO(feed)).entries
     entries: list[FeedEntry] = []
@@ -94,6 +95,11 @@ def newest_entry(feed: bytes, feed_url: str) -> FeedEntry:
             entries.append(entry)
     if not entries:
         raise NoValidEntryError(f"feed {feed_url} has no valid entry")
+    return entries
+
+
+def newest_entry(feed: bytes, feed_url: str) -> FeedEntry:
+    entries = valid_entries(feed, feed_url)
 
     # Newest by publication date; `updated` only when no entry has one, since an edit
     # to an old post would otherwise make it "newest".

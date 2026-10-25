@@ -10,6 +10,7 @@ Usage: python -m interval_db.messages_codegen <messages dir> <ts out> <py out>
 import json
 import re
 import sys
+import textwrap
 from pathlib import Path
 from typing import Any
 
@@ -149,8 +150,10 @@ def render(schemas: dict[str, dict[str, Any]]) -> tuple[str, str]:
             + "\n".join(ts_fields)
             + "\n  }),"
         )
+        # Wrapped to the worker's 88-column line limit.
+        docstring = "\n    ".join(textwrap.wrap(description, 78))
         py_classes.append(
-            f'class {_class(name)}(_Message):\n    """{description}"""\n\n'
+            f'class {_class(name)}(_Message):\n    """{docstring}"""\n\n'
             + ("\n".join(py_fields) or "    pass")
         )
 

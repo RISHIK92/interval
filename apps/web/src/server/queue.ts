@@ -33,5 +33,6 @@ export function prepare<N extends MessageName>(
   ) {
     throw new Error(`delaySeconds must be 0 to ${String(MAX_DELAY_SECONDS)}`);
   }
-  return messageSchemas[name].parse(message);
+  // zod can't narrow the schema map by a generic key; the schema is the one for N.
+  return messageSchemas[name].parse(message) as Messages[N];
 }

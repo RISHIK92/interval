@@ -17,6 +17,7 @@ from interval_jobs.ports import (
     FeedEntry,
     Fetched,
     FetchError,
+    FetchInput,
     FetchKind,
     GrantResult,
     MomentRow,
@@ -96,7 +97,12 @@ class InMemorySources:
         s = self.rows.get(source_id)
         if s is None:
             return None
-        return SourceRecord(s.id, s.feed_url, s.rights_profile)
+        return SourceRecord(
+            s.id, s.feed_url, s.rights_profile, s.active, s.moments_enabled
+        )
+
+    def active_ids(self) -> list[int]:
+        return sorted(s.id for s in self.rows.values() if s.active)
 
     def upsert(
         self,
@@ -259,8 +265,24 @@ class InMemoryItems:
             for s in self.rows[item_id].sections
         ]
 
+    def for_fetch(self, item_id: int) -> FetchInput | None:
+        item = self.rows.get(item_id)
+        if item is None:
+            return None
+        source = self._sources.rows[item.source_id]
+        return FetchInput(item.canonical_url, item.title, source.rights_profile)
+
+    def has_body(self, item_id: int) -> bool:
+        item = self.rows.get(item_id)
+        return item is not None and (
+            item.full_text is not None or item.excerpt is not None
+        )
+
 
 class InMemoryMoments:
+    def exist(self, item_id: int) -> bool:
+        return any(m.item_id == item_id for m in self.rows)
+
     def __init__(self, items: InMemoryItems, sources: InMemorySources) -> None:
         self._items = items
         self._sources = sources

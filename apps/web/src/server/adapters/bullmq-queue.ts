@@ -43,7 +43,9 @@ export function bullmqQueue(
         },
         delay: delaySeconds * 1000,
         removeOnComplete: true,
-        removeOnFail: false, // the failed set is the dead-letter store
+        // The failed set is the dead-letter store, kept like the SQS DLQ: 14 days,
+        // and bounded so a message that keeps failing can't grow it forever.
+        removeOnFail: { age: 14 * 24 * 3600, count: 1000 },
       });
     },
     close: async () => {

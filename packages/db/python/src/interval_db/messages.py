@@ -31,8 +31,24 @@ class DiscoverSource(_Message):
     source_id: Annotated[int, Field(ge=1)]
 
 
-type MessageName = Literal["discover_source"]
+class FetchItem(_Message):
+    """Fetch one item's article, extract it and store what its rights profile allows
+    (ING-1 fetch, extract)."""
+
+    content_item_id: Annotated[int, Field(ge=1)]
+
+
+class SegmentItem(_Message):
+    """Split one stored item into moments and refresh the feed (ING-1 segment,
+    ING-4)."""
+
+    content_item_id: Annotated[int, Field(ge=1)]
+
+
+type MessageName = Literal["discover_source", "fetch_item", "segment_item"]
 
 MESSAGES: dict[MessageName, type[_Message]] = {
     "discover_source": DiscoverSource,
+    "fetch_item": FetchItem,
+    "segment_item": SegmentItem,
 }

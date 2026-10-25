@@ -100,7 +100,9 @@ class BullmqQueue:
             "backoff": {"type": "exponential", "delay": self._backoff_ms},
             "delay": delay_seconds * 1000,
             "removeOnComplete": True,
-            "removeOnFail": False,  # the failed set is the dead-letter store
+            # The failed set is the dead-letter store, kept like the SQS DLQ: 14 days,
+            # and bounded so a poll that keeps failing can't grow it forever.
+            "removeOnFail": {"age": 14 * 24 * 3600, "count": 1000},
         }
 
         async def add() -> None:

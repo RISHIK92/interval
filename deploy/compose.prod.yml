@@ -131,6 +131,31 @@ services:
       retries: 12
     restart: unless-stopped
 
+  # The ingestion pipeline's consumer (W2-S02b): every stage queue, always on.
+  worker:
+    <<: [*logging, *app-env]
+    build:
+      context: ..
+      dockerfile: workers/jobs/Dockerfile
+    command: ["consume"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+    # Liveness: the consumer touches this file every 30 s. Compose only reports the
+    # container unhealthy; a process that exits is restarted (restart below).
+    healthcheck:
+      test: ["CMD-SHELL", "test -n \"$(find /tmp/interval-consumer-alive -mmin -2)\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    stop_grace_period: 60s  # let in-flight stages finish
+    restart: unless-stopped
+
   # One-off worker commands: `docker compose run --rm jobs ingest-one ...`.
   jobs:
     <<: [*logging, *app-env]

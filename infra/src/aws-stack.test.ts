@@ -247,7 +247,7 @@ describe("edge", () => {
 describe("containers", () => {
   test("ARM64 tasks get secrets only through ECS secrets, never plain env", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
-    expect(tasks.length).toBe(3); // web, jobs, migrate
+    expect(tasks.length).toBe(4); // web, jobs, worker, migrate
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -383,5 +383,30 @@ describe("AI cost metrics (OPS-4, Q-P1-23)", () => {
         }),
       ],
     });
+  });
+});
+
+describe("pipeline worker (W2-S02b)", () => {
+  test("one always-on worker task consumes the queues, with a heartbeat check", () => {
+    template.hasResourceProperties("AWS::ECS::Service", {
+      DesiredCount: 1,
+      TaskDefinition: Match.objectLike({
+        Ref: Match.stringLikeRegexp("^WorkerTask"),
+      }),
+    });
+    const worker = all("AWS::ECS::TaskDefinition")
+      .flatMap(
+        ([, task]) =>
+          task.Properties["ContainerDefinitions"] as {
+            Name: string;
+            Command?: string[];
+            HealthCheck?: { Command: string[] };
+          }[],
+      )
+      .find((c) => c.Name === "worker");
+    expect(worker?.Command).toEqual(["consume"]);
+    expect(worker?.HealthCheck?.Command.join(" ")).toContain(
+      "/tmp/interval-consumer-alive",
+    );
   });
 });

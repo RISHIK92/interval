@@ -50,5 +50,12 @@ class InMemoryQueue:
                 else:
                     queue.append(pending)
 
+    def drop_pending(self, name: MessageName) -> None:
+        """Tests: as if those deliveries had all ended in the failed store."""
+        self._pending[name].clear()
+
+    def pending(self, name: MessageName) -> int:
+        return len(self._pending[name])
+
     def failed_messages(self, name: MessageName) -> list[dict[str, object]]:
         return list(self._failed[name])

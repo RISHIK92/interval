@@ -304,6 +304,48 @@ export class AwsStack extends Stack {
       queue.grantConsumeMessages(jobsTask.taskRole);
     }
 
+    // The ingestion pipeline's consumer (W2-S02b): one always-on task serving every
+    // stage queue. Same image and grants as the one-off jobs.
+    const workerTask = taskDefinition("Worker");
+    workerTask.addContainer("worker", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["consume"],
+      environment,
+      secrets,
+      logging: logging("worker"),
+      // Let in-flight stages finish, as on the VM (compose stop_grace_period).
+      stopTimeout: Duration.seconds(60),
+      // Liveness: the consumer touches this file every 30 s; ECS replaces the task
+      // when it goes stale.
+      healthCheck: {
+        command: [
+          "CMD-SHELL",
+          'test -n "$(find /tmp/interval-consumer-alive -mmin -2)"',
+        ],
+        interval: Duration.seconds(30),
+        timeout: Duration.seconds(5),
+        retries: 3,
+        startPeriod: Duration.seconds(60),
+      },
+    });
+    // No S3: stages keep fetched pages in memory.
+    eventStream.grantPutRecords(workerTask.taskRole);
+    for (const queue of queues) {
+      queue.grantSendMessages(workerTask.taskRole);
+      queue.grantConsumeMessages(workerTask.taskRole);
+    }
+    new ecs.FargateService(this, "WorkerService", {
+      cluster,
+      taskDefinition: workerTask,
+      desiredCount: 1,
+      securityGroups: [appSg],
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      circuitBreaker: { rollback: true },
+    });
+
     const migrateTask = taskDefinition("Migrate");
     migrateTask.addContainer("migrate", {
       image: image("packages/db/Dockerfile"),

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Split one stored item into moments and refresh the feed (ING-1 segment, ING-4).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["content_item_id"],
+  "properties": {
+    "content_item_id": { "type": "integer", "minimum": 1 }
+  }
+}

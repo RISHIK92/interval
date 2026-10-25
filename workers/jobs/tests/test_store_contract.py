@@ -769,3 +769,39 @@ def test_switching_moments_off_through_sync_purges_moments(
     # Same full-text profile, moments switched off in the same update.
     s.sources.sync([seed("sync-moments", moments_enabled=False, quality_score=3)])
     assert probe.moments(item) == []
+
+
+def test_active_ids_lists_only_sources_still_in_the_seed_list(
+    store: tuple[Store, Probe],
+) -> None:
+    s, _ = store
+    s.sources.sync([seed("act-a"), seed("act-b")])
+    s.sources.sync([seed("act-a")])  # act-b removed: inactive
+    feeds = {
+        record.feed_url
+        for record in (s.sources.get(i) for i in s.sources.active_ids())
+        if record is not None
+    }
+    assert "https://act-a.example.test/feed" in feeds
+    assert "https://act-b.example.test/feed" not in feeds
+
+
+# W2-S02b: what the pipeline's stages read.
+def test_what_the_fetch_and_segment_stages_read(store: tuple[Store, Probe]) -> None:
+    s, _ = store
+    source_id = s.sources.upsert(
+        name="stage-reads",
+        feed_url="https://stage-reads.example.test/feed",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    item = s.items.upsert_from_feed(source_id, entry("stage"), keep_excerpt=False)
+    fetch = s.items.for_fetch(item)
+    assert fetch is not None
+    assert fetch.rights_profile == "full_text_internal"
+    assert fetch.canonical_url == "https://contract.example.test/stage"
+    assert s.items.for_fetch(10**9) is None
+    assert s.items.has_body(item) is False
+    s.items.store_full_text(item, "body")
+    assert s.items.has_body(item) is True
+    assert s.moments.exist(item) is False

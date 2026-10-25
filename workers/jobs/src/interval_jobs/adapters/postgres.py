@@ -16,6 +16,7 @@ from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.ports import (
     DuplicateInviteCode,
     FeedEntry,
+    FetchInput,
     GrantResult,
     MomentRow,
     RevokeResult,
@@ -56,9 +57,16 @@ class PostgresSources:
     def get(self, source_id: int) -> SourceRecord | None:
         with self._conn.cursor(row_factory=class_row(SourceRecord)) as cur:
             return cur.execute(
-                "select id, feed_url, rights_profile from source where id = %s",
+                "select id, feed_url, rights_profile, active, moments_enabled "
+                "from source where id = %s",
                 (source_id,),
             ).fetchone()
+
+    def active_ids(self) -> list[int]:
+        rows = self._conn.execute(
+            "select id from source where active order by id"
+        ).fetchall()
+        return [int(r[0]) for r in rows]
 
     def upsert(
         self,
@@ -244,10 +252,39 @@ class PostgresItems:
                 (item_id,),
             ).fetchall()
 
+    def for_fetch(self, item_id: int) -> FetchInput | None:
+        with self._conn.cursor(row_factory=class_row(FetchInput)) as cur:
+            return cur.execute(
+                """
+                select ci.canonical_url, ci.title, s.rights_profile
+                from content_item ci join source s on s.id = ci.source_id
+                where ci.id = %s
+                """,
+                (item_id,),
+            ).fetchone()
+
+    def has_body(self, item_id: int) -> bool:
+        row = self._conn.execute(
+            """
+            select 1 from content_item_private_text where content_item_id = %s
+            union all
+            select 1 from content_item where id = %s and excerpt is not null
+            limit 1
+            """,
+            (item_id, item_id),
+        ).fetchone()
+        return row is not None
+
 
 class PostgresMoments:
     def __init__(self, conn: psycopg.Connection) -> None:
         self._conn = conn
+
+    def exist(self, item_id: int) -> bool:
+        row = self._conn.execute(
+            "select 1 from moment where content_item_id = %s limit 1", (item_id,)
+        ).fetchone()
+        return row is not None
 
     def replace(self, item_id: int, rows: list[MomentRow]) -> None:
         with _rights_guard(self._conn):

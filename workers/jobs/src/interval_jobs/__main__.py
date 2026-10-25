@@ -10,18 +10,28 @@ Usage:
 
 import argparse
 import json
+import signal
 import sys
+import threading
+import time
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import get_args
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
-from interval_jobs.compose import services
+from interval_jobs.compose import (
+    queue_consumer,
+    queue_for_enqueue,
+    services,
+    stage_units,
+)
+from interval_jobs.consumer import run_consumers
 from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
+from interval_jobs.pipeline import Pipeline
 from interval_jobs.segment import segment_item
 from interval_jobs.tracing import run_span, setup
 
@@ -64,14 +74,30 @@ def main(argv: list[str]) -> None:
         "load-sources", help="sync the seed list file into the sources table"
     )
     load.add_argument("--file", type=Path, default=SEED_FILE)
+    commands.add_parser(
+        "consume", help="run the ingestion pipeline's stages until stopped"
+    )
+    discover = commands.add_parser(
+        "enqueue-discover", help="queue a poll of one or every active source"
+    )
+    discover.add_argument("--source-id", type=int)
     args = parser.parse_args(argv)
     setup()
-    # OPS-2: one trace per run; W2-S02's consumer does the same per queue message.
+    if args.command == "consume":
+        # Long-running: each delivery is its own trace (consumer.py), not one span
+        # open for the life of the process.
+        _consume()
+        return
+    # OPS-2: one trace per run of a one-off command.
     with run_span(args.command):
         _run(parser, args)
 
 
 def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    if args.command == "enqueue-discover":
+        print(json.dumps({"enqueued": _enqueue_discover(args.source_id)}))
+        return
+
     if args.command == "load-sources":
         path = str(args.file)
         try:
@@ -140,6 +166,47 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
                 "stored": ingested.stored,
             }
     print(json.dumps(result))
+
+
+# The health check in deploy/compose.prod.yml reads this file's age.
+HEARTBEAT = Path("/tmp/interval-consumer-alive")
+
+
+def _consume() -> None:
+    stop = threading.Event()
+
+    def request_stop(_signal: int, _frame: object) -> None:
+        stop.set()
+
+    signal.signal(signal.SIGTERM, request_stop)
+    signal.signal(signal.SIGINT, request_stop)
+    queue = queue_for_enqueue()
+    try:
+        with stage_units() as units:
+            pipeline = Pipeline(units, queue)
+            run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
+    finally:
+        close = getattr(queue, "close", None)
+        if callable(close):
+            close()
+
+
+def _enqueue_discover(source_id: int | None) -> int:
+    if source_id is None:
+        with services() as s:
+            ids = s.store.sources.active_ids()
+    else:
+        ids = [source_id]
+    queue = queue_for_enqueue()
+    # One poll per source per minute: a repeated run within it is the same message.
+    minute = int(time.time() // 60)
+    for sid in ids:
+        queue.enqueue(
+            "discover_source",
+            {"source_id": sid},
+            idempotency_key=f"discover-{sid}-{minute}",
+        )
+    return len(ids)
 
 
 if __name__ == "__main__":

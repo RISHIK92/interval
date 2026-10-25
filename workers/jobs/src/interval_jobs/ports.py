@@ -95,6 +95,17 @@ class SourceRecord:
     id: int
     feed_url: str
     rights_profile: RightsProfile
+    active: bool  # removed from the seed file: not polled (P1-W2-S01)
+    moments_enabled: bool
+
+
+@dataclass(frozen=True)
+class FetchInput:
+    """What the fetch stage needs about an item, with its source's current profile."""
+
+    canonical_url: str
+    title: str
+    rights_profile: RightsProfile
 
 
 @dataclass(frozen=True)
@@ -129,6 +140,10 @@ class SyncResult:
 
 class Sources(Protocol):
     def get(self, source_id: int) -> SourceRecord | None: ...
+
+    def active_ids(self) -> list[int]:
+        """Sources to poll: those still in the seed list (P1-W2-S01)."""
+        ...
 
     def upsert(
         self,
@@ -176,8 +191,16 @@ class Items(Protocol):
 
     def sections(self, item_id: int) -> list[SectionRow]: ...
 
+    def for_fetch(self, item_id: int) -> FetchInput | None: ...
+
+    def has_body(self, item_id: int) -> bool:
+        """Whether the item's stored body (full text or excerpt) exists."""
+        ...
+
 
 class Moments(Protocol):
+    def exist(self, item_id: int) -> bool: ...
+
     def replace(self, item_id: int, rows: list[MomentRow]) -> None:
         """Upsert by ordinal (ids stay stable) and remove ordinals no longer present."""
         ...

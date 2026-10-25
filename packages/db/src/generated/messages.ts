@@ -6,6 +6,14 @@ export const messageSchemas = {
   discover_source: z.strictObject({
     source_id: z.number().int().min(1),
   }),
+  // Fetch one item's article, extract it and store what its rights profile allows (ING-1 fetch, extract).
+  fetch_item: z.strictObject({
+    content_item_id: z.number().int().min(1),
+  }),
+  // Split one stored item into moments and refresh the feed (ING-1 segment, ING-4).
+  segment_item: z.strictObject({
+    content_item_id: z.number().int().min(1),
+  }),
 } as const;
 
 export type MessageName = keyof typeof messageSchemas;

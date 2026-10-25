@@ -152,3 +152,44 @@ def test_a_source_that_loses_its_feed_is_deactivated(
     assert result["deactivated"] == 1
     assert result["skipped_feedless"] == 2
     assert [r.active for r in store.sources.rows.values()] == [False]
+
+
+def test_enqueue_discover_queues_every_active_source(
+    store: InMemoryStore,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from interval_jobs.adapters.memory_queue import InMemoryQueue
+
+    queue = InMemoryQueue()
+    monkeypatch.setattr(cli, "queue_for_enqueue", lambda: queue)
+    store.sources.upsert(
+        name="a", feed_url="https://a.test/f", rights_profile="excerpt", homepage=None
+    )
+    b = store.sources.upsert(
+        name="b", feed_url="https://b.test/f", rights_profile="excerpt", homepage=None
+    )
+    store.sources.rows[b].active = False
+    assert run(capsys, "enqueue-discover") == {"enqueued": 1}
+    assert queue.pending("discover_source") == 1
+    assert run(capsys, "enqueue-discover", "--source-id", str(b)) == {"enqueued": 1}
+
+
+def test_the_commands_run_through_python_dash_m() -> None:
+    # The real entry point: the command's code must exist when main() runs. Without
+    # queue settings it stops with the setup message, not a NameError.
+    import os
+    import subprocess
+    import sys
+
+    env = {k: v for k, v in os.environ.items() if k != "QUEUE_TRANSPORT"}
+    result = subprocess.run(
+        [sys.executable, "-m", "interval_jobs", "enqueue-discover", "--source-id", "1"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+        env=env,
+    )
+    assert "NameError" not in result.stderr
+    assert "QUEUE_TRANSPORT must be bullmq or sqs" in result.stderr

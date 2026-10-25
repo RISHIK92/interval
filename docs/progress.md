@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02a (queue port and message contracts) done. Next: W2-S02b (staged pipeline and consumer). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. Next: W2-S04 (polite fetcher), then W2-S05, W2-S06, W2-S03. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -645,3 +645,35 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Left for W2-S02b: ioredis's offline queue during a Valkey outage, and callers for `jobQueue()` / `queue_consumer()`.
 - Local setup: `.env` needs `QUEUE_TRANSPORT=bullmq` and `VALKEY_URL=redis://localhost:6379` (see `.env.example`), and `docker compose up -d --wait` now starts Valkey.
 - Checks overnight run as `pnpm turbo run check --concurrency=2`: the machine's load average (10–15 from other work) makes 4 flaky.
+
+### 2026-10-26 — P1-W2-S02b (staged pipeline and consumer, ING-1, LOAD-3, LOAD-5; overnight, recommended options)
+- Done:
+  - **Messages:** `fetch_item` and `segment_item` (`content_item_id`) join `discover_source`.
+  - **`pipeline.py`:**
+    - discover polls an active source and upserts every valid entry;
+    - fetch_item fetches, extracts and stores what the profile allows, keeping the page in memory only;
+    - segment_item builds moments and rebuilds the feed.
+  - **Every stage:**
+    - checks rights first (ING-2), with the DB triggers as the backstop;
+    - is idempotent (upserts, keyed follow-ups `fetch-{id}` / `segment-{id}`);
+    - runs in its own transaction and enqueues the next stage only after committing.
+  - **Discover's choices:**
+    - it fetches an item only if its allowed body isn't stored yet (full text or excerpt);
+    - it re-queues segmentation for full-text items without moments, which recovers a segment that failed;
+    - it logs a feed with no valid entries instead of retrying it every poll.
+  - **`consumer.py` / `consume`:** one thread per stage, a span per delivery (with `message_id` as the key), a liveness heartbeat, and the process exits if a stage dies. SIGTERM stops it cleanly. Each delivery opens only a DB transaction; the web client and extractor are shared.
+  - **`enqueue-discover [--source-id N]`:** one poll per active source, keyed per minute.
+  - **Deploy:** an always-on `worker` service in VM compose and an AWS `WorkerService` (desired 1, heartbeat check, 60 s stop timeout, queue and Firehose grants only).
+  - **Failed sets:** BullMQ's failed set is bounded (14 days or 1,000 jobs), like the SQS DLQ retention.
+- Review fixes:
+  - the new CLI commands were defined after `main()` ran under `python -m` (a blocker: the worker would crash-loop), now covered by a subprocess test;
+  - excerpt sources re-fetched every article on every poll;
+  - a broken feed filled the failed store on every poll;
+  - stuck items now get segmented on the next poll;
+  - per-delivery connection churn;
+  - the segment rights test made real;
+  - heartbeat comments made accurate;
+  - ECS stop timeout;
+  - the worker's S3 grant dropped;
+  - contract tests for the new store reads.
+- Not done: a schedule for `enqueue-discover` (W2-S03 adds adaptive polling and the trigger). Taking the feed advisory lock at the start of a segment, to avoid rare deadlocks between two segments (Postgres aborts one; the retry recovers).

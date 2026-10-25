@@ -11,7 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "deploy" / "compose.prod.yml"
-LONG_RUNNING = {"postgres", "valkey", "seaweedfs", "web", "caddy"}
+LONG_RUNNING = {"postgres", "valkey", "seaweedfs", "web", "caddy", "worker"}
 SECRET_KEYS = {
     "POSTGRES_PASSWORD",
     "BETTER_AUTH_SECRET",
@@ -144,7 +144,7 @@ def test_each_service_gets_only_its_env_file(config: dict[str, Any]) -> None:
 
     assert markers("postgres") == {"postgres"}
     assert markers("caddy") == {"caddy"}
-    for name in ("web", "jobs", "migrate"):
+    for name in ("web", "jobs", "worker", "migrate"):
         assert markers(name) == {"app"}
     for name in ("valkey", "seaweedfs"):
         assert markers(name) == set()
@@ -178,3 +178,15 @@ def test_valkey_keeps_queue_data_on_the_retained_volume(config: dict[str, Any]) 
 
 def test_elasticmq_and_redis_are_gone(config: dict[str, Any]) -> None:
     assert not {"elasticmq", "redis"} & set(services(config))
+
+
+# W2-S02b: the pipeline consumer runs always, after migrations, on healthy data
+# services, and is restarted when its heartbeat goes stale.
+def test_the_worker_consumes_after_migrations(config: dict[str, Any]) -> None:
+    worker = services(config)["worker"]
+    assert worker["command"] == ["consume"]
+    depends = worker["depends_on"]
+    assert depends["migrate"]["condition"] == "service_completed_successfully"
+    assert depends["postgres"]["condition"] == "service_healthy"
+    assert depends["valkey"]["condition"] == "service_healthy"
+    assert "/tmp/interval-consumer-alive" in " ".join(worker["healthcheck"]["test"])

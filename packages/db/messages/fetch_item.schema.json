@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Fetch one item's article, extract it and store what its rights profile allows (ING-1 fetch, extract).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["content_item_id"],
+  "properties": {
+    "content_item_id": { "type": "integer", "minimum": 1 }
+  }
+}
