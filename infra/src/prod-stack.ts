@@ -29,6 +29,11 @@ export const DATA_MOUNT = "/var/lib/interval/pgdata";
 const COMPOSE_VERSION = "v5.6.1";
 const COMPOSE_SHA256 =
   "42cfa75f51ad0ccf290bad37899e0038a8c10a0069e85233ecc1d53e3ff1347d";
+// The deploy builds images with BuildKit features (cache mounts); AL2023's docker package
+// has no buildx plugin. Pinned release binary + digest.
+const BUILDX_VERSION = "v0.38.1";
+const BUILDX_SHA256 =
+  "3b83b3731916ba433feccaaa689fe5bcdc81c641d92c8e6c2ea865dfa141c97a";
 
 // Changing these regenerates every secret on the next deploy, which would overwrite the
 // owner's real OpenRouter/Voyage keys and the live Postgres password. Do not edit.
