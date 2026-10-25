@@ -1,4 +1,11 @@
 {
   "extends": "@interval/config/tsconfig.base.json",
+  "compilerOptions": {
+    // The CDK app runs with Node's built-in type stripping (no build step, no tsx).
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    // aws-cdk-lib's own types (Vpc vs IVpc) are not written for this flag; infra only.
+    "exactOptionalPropertyTypes": false
+  },
   "include": ["src"]
 }

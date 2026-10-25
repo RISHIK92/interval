@@ -45,7 +45,7 @@ Read only the doc sections relevant to the task. Never load whole docs "for cont
 5. End every session with /session-end.
 
 ## Commands
-Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED). Later slices add CDK commands.
+Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED).
 - Setup once: `corepack enable` (pnpm pinned in package.json) · `brew install uv dbmate` · `cp .env.example .env`
 - Install: `pnpm install` (TS) · `uv sync --all-packages` (Python workspace: workers/jobs, packages/db/python)
 - Local services: `docker compose up -d --wait` (Postgres + pgvector, SeaweedFS for S3, ElasticMQ for SQS)
@@ -55,6 +55,7 @@ Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED). Later slices add CDK
 - Worker, ingest one feed: `scripts/with-env.sh uv run python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile metadata_only` (temporary until P1-W2-S01; full-text ingest also segments and rebuilds the feed)
 - Worker, re-split one item into moments (also rebuilds the feed): `scripts/with-env.sh uv run python -m interval_jobs segment-item --content-item-id ID`
 - Worker, recompute the precomputed feed: `scripts/with-env.sh uv run python -m interval_jobs rebuild-feed`
+- CDK synth (prod stack, no credentials needed; never deploy): `pnpm --filter @interval/infra synth`
 - All checks (needs local services up; CI runs the same in `.github/workflows/ci.yml`): `pnpm turbo check`
 - One kind: `pnpm turbo typecheck //#typecheck:py` (likewise `lint`/`//#lint:py`, `test`/`//#test:py`, `format:check`/`//#format-check:py`)
 - Format (writes): `pnpm turbo format //#format:py`

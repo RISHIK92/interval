@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S07 done, committed and pushed (Week 1 vertical path complete; CI on GitHub Actions). ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S08.
+Status: P1-W1-S01 to S08 done, committed and pushed. Beta hosting: one EC2 VM with Docker (owner, 2026-10-25; deviates from DB-1/LOAD-1, no ADR). Next: P1-W1-S09.
 
 ## Bootstrap session log
 
@@ -43,8 +43,8 @@ The owner answered every open question and ADR.
 
 ## Next up
 
-1. P1-W1-S08 CDK: environments, network, data (also adds `cdk synth` to CI).
-2. ADR-0005 host choice around Week 5 (blocks P1-W1-S09 and the beta deploy). A domain name is needed before Week 6.
+1. P1-W1-S09 Deploy the compose stack to the VM.
+2. Domain name before Week 6 (TLS on the VM). The host is settled by the 2026-10-25 VM decision.
 3. Owner data: approve the concept list (Q-P1-03, Week 3); cost budget amounts before the beta (Q-P1-23).
 
 ## First slice
@@ -53,7 +53,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 
 ## Open questions
 
-- ADR-0005: the web host and the domain name.
+- Domain name (TLS on the VM). The host was settled on 2026-10-25: one EC2 VM (no ADR, owner choice).
 - ADR-0010: in Phase 2, account linking when a GitHub sign-in's email matches an existing account.
 - Extraction library: decided after the P1-W2-S05 fixture test.
 
@@ -214,4 +214,43 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - Process slip: S07 was committed and pushed before the reviewer ran. The reviewer ran after, and its findings were fixed in a follow-up commit.
   - GitHub also runs a GitGuardian check, from an app on the owner's account rather than this repo.
 - Needs ADR: none.
+
+### 2026-10-25 — P1-W1-S08
+- Done:
+  - **CDK prod stack (`infra/src/prod-stack.ts`, ap-south-1, region-only env):**
+    - VPC with public subnets, no NAT;
+    - t4g.medium AL2023 arm64 VM: IMDSv2, encrypted root, SSM role, Elastic IP, a security group with only 80/443;
+    - a 30 GB gp3 encrypted, retained data volume, mounted at `/var/lib/interval/pgdata` by user data. The user data also installs Docker plus a pinned, checksum-verified compose plugin;
+    - four generated, retained secrets;
+    - `private-content` (versioned) and `events` buckets: blocked public access, TLS-only, encrypted, retained.
+  - The CDK app runs with Node type stripping, no build step. `pnpm --filter @interval/infra synth` works without credentials; CI runs it.
+  - **Tests:** 12 CDK assertion tests. `pnpm turbo check` passes, 21 tasks.
+- Not done: none.
+- Next: P1-W1-S09.
+- Open questions: worker queue on the VM (SQS or an ElasticMQ container), before W2-S02.
+- Surprises / owner decisions (2026-10-25):
+  - One VM runs everything in Docker instead of RDS + Fargate.
+  - No NAT; public subnets.
+  - Backups are manual.
+  - No ADR. DB-1 and LOAD-1 in docs/decisions.md still say RDS and Fargate, so the drift auditor will flag them until an ADR records the change.
+  - aws-cdk-lib's types don't support `exactOptionalPropertyTypes`, so the flag is off for infra only.
+- Needs ADR: yes, by the docs' own rules (DB-1, LOAD-1, ADR-0005). The owner chose not to write one.
+- Review fixes (before commit):
+  - **VM:**
+    - The AMI is pinned (`ami-0aa469bdf3050f74f`, AL2023 arm64, ap-south-1). Updating the OS is a deliberate stop, detach, deploy sequence, documented in S09.
+    - The deploy waits for the VM's success signal (CreationPolicy plus cfn-signal).
+    - Docker requires the data mount.
+    - The volume is formatted only when blkid confirms it's blank.
+  - **Storage and secrets:**
+    - The VM can read and put to private-content, never delete; it has no grant on `events` yet.
+    - Old versions expire after 30 days (owner); incomplete uploads after 7.
+    - Secret-generation settings are locked by a test.
+  - **CDK and CI:**
+    - The 88 recommended CDK feature flags are set.
+    - The Elastic IP is retained.
+    - IPv6 ingress was dropped, since the VPC has no IPv6.
+    - CI synth runs without notices or telemetry.
+    - Node is required to be ≥22.18, for type stripping.
+  - 21 CDK tests.
+  - Possible flake: one web test failed once under a full parallel `turbo check` and didn't reproduce in 4 more runs. The suspect is the stalled-DB 2.5 s timing assertion.
 

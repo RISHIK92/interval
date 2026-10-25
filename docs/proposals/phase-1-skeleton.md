@@ -103,6 +103,8 @@ Either way, a fixture set from real seed sources (P1-W2-S05) decides it. Needs o
 
 ## 4. Infrastructure (infra/, ARCH-4)
 
+**Changed 2026-10-25 (owner, no ADR):** for the beta, one EC2 VM runs Postgres+pgvector, the web app and the worker in Docker; no RDS, no Fargate, no NAT; manual backups. See P1-W1-S08/S09. The table below is the original plan and is superseded where it conflicts.
+
 CDK v2 in TypeScript, one app, stacks per concern. One environment, `prod`, in ap-south-1; local Docker Compose is dev (Q-P1-28). Synth-only until the Week 6 beta; the web host is still open (ADR-0005).
 
 | Stack | Contents | Decision IDs |

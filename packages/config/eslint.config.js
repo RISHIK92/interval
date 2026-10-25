@@ -3,7 +3,13 @@ import { defineConfig } from "eslint/config";
 import tseslint from "typescript-eslint";
 
 export default defineConfig(
-  { ignores: ["packages/db/src/generated/**", "src/generated/**"] },
+  {
+    ignores: [
+      "packages/db/src/generated/**",
+      "src/generated/**",
+      "**/cdk.out/**",
+    ],
+  },
   js.configs.recommended,
   tseslint.configs.strictTypeChecked,
   {

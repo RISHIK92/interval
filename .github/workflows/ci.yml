@@ -1,5 +1,5 @@
 # PR and main checks (ADR-0009). One job runs the same `pnpm turbo check` as local
-# development. No deploy job: the owner deploys. `cdk synth` joins in P1-W1-S08.
+# development, then synthesises the CDK app (ARCH-4). No deploy job: the owner deploys.
 name: CI
 
 on:
@@ -81,3 +81,8 @@ jobs:
 
       - name: Format, lint, typecheck, tests, db:check
         run: pnpm turbo check
+
+      - name: CDK synth (no credentials; ARCH-4)
+        env:
+          CDK_DISABLE_CLI_TELEMETRY: "true"
+        run: pnpm --filter @interval/infra synth

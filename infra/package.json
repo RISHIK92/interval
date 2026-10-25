@@ -7,9 +7,15 @@
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "synth": "cdk synth --quiet --no-notices"
   },
   "devDependencies": {
-    "@interval/config": "workspace:*"
+    "@interval/config": "workspace:*",
+    "aws-cdk": "2.1146.1"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.274.0",
+    "constructs": "10.8.1"
   }
 }
