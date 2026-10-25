@@ -1,0 +1,7 @@
+docs/_source/
+docs/decisions.md
+docs/product.md
+docs/wireframes/interval-blueprint-wireframes.html
+interval-sources/
+pnpm-lock.yaml
+workers/

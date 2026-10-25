@@ -1,0 +1,31 @@
+{
+  "name": "interval",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.15.0",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "check": "turbo run check",
+    "format": "turbo run format //#format:py",
+    "format:check": "prettier --check package.json turbo.json pnpm-workspace.yaml prettier.config.js",
+    "test": "turbo run test",
+    "format:py": "uv run --project workers/jobs ruff format workers/jobs",
+    "format-check:py": "uv run --locked --project workers/jobs ruff format --check workers/jobs",
+    "lint:py": "uv run --locked --project workers/jobs ruff check workers/jobs",
+    "typecheck:py": "uv run --locked --project workers/jobs pyright --project workers/jobs",
+    "test:py": "uv run --locked --project workers/jobs pytest workers/jobs"
+  },
+  "devDependencies": {
+    "@interval/config": "workspace:*",
+    "@eslint/js": "10.0.1",
+    "@types/node": "22.20.5",
+    "eslint": "10.13.0",
+    "prettier": "3.9.10",
+    "turbo": "2.11.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.0",
+    "vitest": "5.0.5"
+  }
+}

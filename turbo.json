@@ -1,0 +1,57 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "globalDependencies": ["prettier.config.js", ".prettierignore"],
+  "tasks": {
+    "transit": { "dependsOn": ["^transit"] },
+    "format": { "cache": false },
+    "format:check": { "dependsOn": ["transit"] },
+    "lint": { "dependsOn": ["transit"] },
+    "typecheck": { "dependsOn": ["transit"] },
+    "test": { "dependsOn": ["transit"] },
+    "//#format:check": {
+      "inputs": [
+        "$TURBO_ROOT$/*.json",
+        "$TURBO_ROOT$/*.js",
+        "$TURBO_ROOT$/*.yaml"
+      ]
+    },
+    "//#format:py": { "cache": false },
+    "//#format-check:py": {
+      "inputs": [
+        "$TURBO_ROOT$/workers/jobs/**",
+        "!$TURBO_ROOT$/workers/jobs/.venv/**"
+      ]
+    },
+    "//#lint:py": {
+      "inputs": [
+        "$TURBO_ROOT$/workers/jobs/**",
+        "!$TURBO_ROOT$/workers/jobs/.venv/**"
+      ]
+    },
+    "//#typecheck:py": {
+      "inputs": [
+        "$TURBO_ROOT$/workers/jobs/**",
+        "!$TURBO_ROOT$/workers/jobs/.venv/**"
+      ]
+    },
+    "//#test:py": {
+      "inputs": [
+        "$TURBO_ROOT$/workers/jobs/**",
+        "!$TURBO_ROOT$/workers/jobs/.venv/**"
+      ]
+    },
+    "check": {
+      "dependsOn": [
+        "format:check",
+        "lint",
+        "typecheck",
+        "test",
+        "//#format:check",
+        "//#format-check:py",
+        "//#lint:py",
+        "//#typecheck:py",
+        "//#test:py"
+      ]
+    }
+  }
+}

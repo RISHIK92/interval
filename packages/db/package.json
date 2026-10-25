@@ -1,0 +1,15 @@
+{
+  "name": "@interval/db",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "typecheck": "tsc",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@interval/config": "workspace:*"
+  }
+}
