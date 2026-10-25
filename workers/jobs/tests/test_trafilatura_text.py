@@ -1,6 +1,7 @@
 import pytest
 
-from interval_jobs.ingest.extract import ExtractionError, extract_text
+from interval_jobs.adapters.trafilatura_extractor import extract_text
+from interval_jobs.ports import ExtractionError
 
 from .conftest import fixture_bytes
 
@@ -22,3 +23,9 @@ def test_decodes_with_the_declared_charset() -> None:
 def test_page_without_content_raises() -> None:
     with pytest.raises(ExtractionError):
         extract_text(b"<html><body></body></html>", "utf-8")
+
+
+def test_without_a_declared_charset_the_text_is_still_extracted() -> None:
+    assert "recovery replays the log" in extract_text(
+        fixture_bytes("article.html"), None
+    )

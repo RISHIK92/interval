@@ -1,4 +1,4 @@
-import type { FeedCard } from "../server/feed";
+import type { FeedCard } from "../server/ports";
 
 // A moment is a deep link into the publisher's page, never a copy (§3.2).
 export function MomentCard({ card }: { card: FeedCard }) {

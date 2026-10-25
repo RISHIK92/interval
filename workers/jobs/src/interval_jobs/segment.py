@@ -2,45 +2,19 @@
 
 A moment is a deep link into the publisher's page, never a copy: the heading's anchor,
 else a text fragment, else the top of the page. Merge and split rules for the 2-8 minute
-target come in P1-W3-S03. The caller owns the transaction.
+target come in P1-W3-S03. Works through ports (ADR-0012); the caller owns the unit
+of work.
 """
 
 import math
-from dataclasses import dataclass
 from urllib.parse import quote
 
-import psycopg
-from psycopg.rows import class_row
-
-from interval_db.generated import MomentLinkType, RightsProfile
+from interval_db.generated import MomentLinkType
+from interval_jobs.ports import MomentRow, SectionRow, Store
 from interval_jobs.rights import allowed
 
 WORDS_PER_MINUTE = 230  # Q-P1-06; code counts at the same rate
 TITLE_MAX_CHARS = 300  # moment.title check constraint
-
-
-@dataclass(frozen=True)
-class MomentRow:
-    ordinal: int
-    title: str
-    estimated_minutes: int
-    link: str
-    link_type: MomentLinkType
-
-
-@dataclass(frozen=True)
-class _Item:
-    title: str
-    canonical_url: str
-    rights_profile: RightsProfile
-    moments_enabled: bool
-
-
-@dataclass(frozen=True)
-class SectionRow:
-    heading: str | None
-    anchor_id: str | None
-    word_count: int
 
 
 def minutes(words: int) -> int:
@@ -89,59 +63,17 @@ def plan_moments(title: str, url: str, sections: list[SectionRow]) -> list[Momen
     return rows
 
 
-def segment_item(conn: psycopg.Connection, content_item_id: int) -> list[MomentRow]:
-    with conn.cursor(row_factory=class_row(_Item)) as cur:
-        # Row lock: concurrent runs on one item take turns instead of colliding.
-        item = cur.execute(
-            """
-            select ci.title, ci.canonical_url, s.rights_profile, s.moments_enabled
-            from content_item ci join source s on s.id = ci.source_id
-            where ci.id = %s
-            for update of ci
-            """,
-            (content_item_id,),
-        ).fetchone()
+def segment_item(store: Store, content_item_id: int) -> list[MomentRow]:
+    item = store.items.for_segmentation(content_item_id)
     if item is None:
         raise LookupError(f"no content item with id {content_item_id}")
 
     rows: list[MomentRow] = []
     if item.moments_enabled and allowed(item.rights_profile, "make_moments"):
-        with conn.cursor(row_factory=class_row(SectionRow)) as cur:
-            sections = cur.execute(
-                "select heading, anchor_id, word_count from content_item_section "
-                "where content_item_id = %s order by ordinal",
-                (content_item_id,),
-            ).fetchall()
+        sections = store.items.sections(content_item_id)
         rows = plan_moments(item.title, item.canonical_url, sections)
 
-    # Upsert by ordinal so a moment keeps its id across runs (saves, history and events
-    # will reference it); ordinals no longer produced are removed.
-    with conn.cursor() as cur:
-        cur.executemany(
-            """
-            insert into moment
-              (content_item_id, ordinal, title, estimated_minutes, link, link_type)
-            values (%s, %s, %s, %s, %s, %s)
-            on conflict (content_item_id, ordinal) do update
-              set title = excluded.title,
-                  estimated_minutes = excluded.estimated_minutes,
-                  link = excluded.link,
-                  link_type = excluded.link_type
-            """,
-            [
-                (
-                    content_item_id,
-                    r.ordinal,
-                    r.title,
-                    r.estimated_minutes,
-                    r.link,
-                    r.link_type,
-                )
-                for r in rows
-            ],
-        )
-    conn.execute(
-        "delete from moment where content_item_id = %s and ordinal >= %s",
-        (content_item_id, len(rows)),
-    )
+    # Upserted by ordinal so a moment keeps its id across runs (saves, history and
+    # events will reference it); ordinals no longer produced are removed.
+    store.moments.replace(content_item_id, rows)
     return rows

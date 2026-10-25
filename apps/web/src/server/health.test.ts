@@ -1,41 +1,13 @@
-import net from "node:net";
-import { afterAll, afterEach, beforeAll, expect, test, vi } from "vitest";
-import { createDb } from "./db";
+import { afterEach, expect, test, vi } from "vitest";
 import { checkHealth } from "./health";
+import type { DatabasePing } from "./ports";
 
-const connectionString = process.env["DATABASE_URL"];
-if (connectionString === undefined) {
-  throw new Error(
-    "DATABASE_URL is not set; copy .env.example to .env and run `docker compose up -d`",
-  );
-}
-
-// Accepts TCP connections and never answers: a database that is reachable but stalled.
-const sockets = new Set<net.Socket>();
-const stalled = net.createServer((socket) => {
-  sockets.add(socket);
-});
-let stalledPort = 0;
-
-beforeAll(async () => {
-  await new Promise<void>((resolve) => stalled.listen(0, "127.0.0.1", resolve));
-  const address = stalled.address();
-  if (address === null || typeof address === "string")
-    throw new Error("no port");
-  stalledPort = address.port;
-});
-
-const up = createDb(connectionString);
-const refused = createDb("postgres://interval:interval@127.0.0.1:1/interval");
+// Health logic on fake pings (ADR-0012); the real database cases are in
+// adapters/kysely-ping.test.ts.
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.restoreAllMocks();
-});
-
-afterAll(async () => {
-  await Promise.all([up.destroy(), refused.destroy()]);
-  for (const socket of sockets) socket.destroy();
-  await new Promise((resolve) => stalled.close(resolve));
 });
 
 function captureLines(): string[] {
@@ -49,14 +21,18 @@ function captureLines(): string[] {
   return lines;
 }
 
-test("reports ok with 200 when the database answers", async () => {
-  expect(await checkHealth(up)).toEqual({ status: "ok", httpStatus: 200 });
+test("ok with 200 when the ping resolves", async () => {
+  const ping: DatabasePing = { ping: () => Promise.resolve() };
+  expect(await checkHealth(ping)).toEqual({ status: "ok", httpStatus: 200 });
 });
 
-test("reports unavailable with 503 and logs one error when the connection is refused", async () => {
+test("unavailable with 503 and one error log when the ping rejects", async () => {
   const lines = captureLines();
+  const ping: DatabasePing = {
+    ping: () => Promise.reject(new Error("refused")),
+  };
 
-  expect(await checkHealth(refused)).toEqual({
+  expect(await checkHealth(ping)).toEqual({
     status: "unavailable",
     httpStatus: 503,
   });
@@ -64,22 +40,16 @@ test("reports unavailable with 503 and logs one error when the connection is ref
   expect(JSON.parse(lines[0] ?? "")).toMatchObject({
     level: "error",
     msg: "health check: database unreachable",
-    error: { code: "ECONNREFUSED" },
+    error: { message: "refused" },
   });
 });
 
-test("answers 503 within the timeout when the database accepts but never replies", async () => {
-  const lines = captureLines();
-  const db = createDb(
-    `postgres://interval:interval@127.0.0.1:${String(stalledPort)}/interval`,
-  );
-  const started = Date.now();
+test("unavailable after the timeout when the ping never settles", async () => {
+  captureLines();
+  vi.useFakeTimers();
+  const ping: DatabasePing = { ping: () => new Promise<void>(() => undefined) };
 
-  expect(await checkHealth(db)).toEqual({
-    status: "unavailable",
-    httpStatus: 503,
-  });
-  expect(Date.now() - started).toBeLessThan(2500);
-  expect(lines).toHaveLength(1);
-  await db.destroy();
+  const result = checkHealth(ping);
+  await vi.advanceTimersByTimeAsync(2000);
+  expect(await result).toEqual({ status: "unavailable", httpStatus: 503 });
 });

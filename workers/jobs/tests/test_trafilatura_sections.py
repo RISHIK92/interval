@@ -1,4 +1,5 @@
-from interval_jobs.ingest.structure import Section, extract_sections
+from interval_jobs.adapters.trafilatura_extractor import extract_sections
+from interval_jobs.ports import Section
 
 from .conftest import fixture_bytes
 

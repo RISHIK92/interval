@@ -1,4 +1,8 @@
-"""Heading structure of an article: sections with heading, level, publisher id, words.
+"""Extractor adapter (ADR-0012): main text and heading structure via trafilatura.
+
+Provisional choice; P1-W2-S05 confirms or swaps it.
+
+Heading structure: sections with heading, level, publisher id, words.
 
 trafilatura finds the main content and keeps headings, but drops their `id`s; a second
 pass over the original page (stdlib html.parser) maps each heading to its id (proposal
@@ -14,6 +18,8 @@ from html.parser import HTMLParser
 import trafilatura
 from trafilatura.utils import decode_file
 
+from interval_jobs.ports import ExtractionError, Section
+
 _HEADING_TAGS = frozenset({"h1", "h2", "h3", "h4", "h5", "h6"})
 # trafilatura drops these regions, so their headings must not take part in id matching.
 _SKIPPED_REGIONS = frozenset({"nav", "aside", "header", "footer"})
@@ -22,14 +28,6 @@ _BLOCK_TAGS = frozenset({"p", "div", "section", "article", "ul", "ol", "pre", "t
 # Permalink glyphs that publishing tools append to headings (Sphinx, MkDocs, Hugo).
 _PERMALINK_GLYPHS = "¶#§🔗"
 HEADING_MAX_CHARS = 300
-
-
-@dataclass(frozen=True)
-class Section:
-    heading: str | None  # None for the intro
-    level: int | None
-    anchor_id: str | None
-    word_count: int
 
 
 def _strip_format_chars(text: str) -> str:
@@ -153,11 +151,13 @@ class _IdMatcher:
         return None
 
 
+def _decode(page: bytes, encoding: str | None) -> str:
+    # The declared charset, else trafilatura's detection.
+    return page.decode(encoding, errors="replace") if encoding else decode_file(page)
+
+
 def extract_sections(page: bytes, encoding: str | None, title: str) -> list[Section]:
-    # The declared charset, else trafilatura's detection (same as extract.py).
-    document = (
-        page.decode(encoding, errors="replace") if encoding else decode_file(page)
-    )
+    document = _decode(page, encoding)
     xml = trafilatura.extract(
         document, output_format="xml", include_comments=False, include_tables=False
     )
@@ -194,3 +194,20 @@ def extract_sections(page: bytes, encoding: str | None, title: str) -> list[Sect
     if heading is not None or words:
         sections.append(Section(heading, level, anchor, words))
     return sections
+
+
+def extract_text(page: bytes, encoding: str | None) -> str:
+    text = trafilatura.extract(
+        _decode(page, encoding), include_comments=False, include_tables=False
+    )
+    if not text or not text.strip():
+        raise ExtractionError("no main text found in page")
+    return text.strip()
+
+
+class TrafilaturaExtractor:
+    def text(self, html: bytes, encoding: str | None) -> str:
+        return extract_text(html, encoding)
+
+    def sections(self, html: bytes, encoding: str | None, title: str) -> list[Section]:
+        return extract_sections(html, encoding, title)

@@ -1,11 +1,12 @@
-import { db } from "../server/db";
-import { getFeed } from "../server/feed";
+import { feedReader } from "../server/container";
 import { MomentCard } from "./MomentCard";
 
 export const dynamic = "force-dynamic";
 
+const FEED_LIMIT = 50;
+
 export default async function HomePage() {
-  const cards = await getFeed(db());
+  const cards = await feedReader().list(FEED_LIMIT);
   return (
     <main>
       <h1>Interval</h1>

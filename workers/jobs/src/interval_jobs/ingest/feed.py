@@ -9,26 +9,14 @@ from typing import Any
 from urllib.parse import urljoin, urlsplit
 
 import feedparser
-from pydantic import BaseModel, ConfigDict
 
 from interval_jobs import log
+from interval_jobs.ports import FeedEntry
 from interval_jobs.rights import EXCERPT_MAX_CHARS
 
 
 class NoValidEntryError(Exception):
     pass
-
-
-class FeedEntry(BaseModel):
-    model_config = ConfigDict(frozen=True)
-
-    guid: str
-    link: str
-    title: str
-    author: str | None
-    published_at: datetime | None
-    updated_at: datetime | None
-    summary: str | None
 
 
 class _TextOnly(HTMLParser):

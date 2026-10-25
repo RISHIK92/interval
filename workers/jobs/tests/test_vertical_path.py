@@ -1,8 +1,27 @@
-"""Week 1 vertical path: feed -> ingest -> moments -> precomputed feed -> card rows."""
+"""Week 1 vertical path through the real adapters (Postgres, httpx, trafilatura):
+feed -> ingest -> moments -> precomputed feed -> card rows."""
 
 import psycopg
 
-from .support import ARTICLE_URL, ingest
+from interval_jobs.adapters.http_fetcher import HttpxFetcher
+from interval_jobs.adapters.postgres import PostgresStore
+from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
+from interval_jobs.ingest.one import ingest_one
+
+from .support import ARTICLE_URL, FEED_URL, mock_web_client, public
+
+
+def ingest(conn: psycopg.Connection, article: str) -> None:
+    store = PostgresStore(conn)
+    source_id = store.sources.upsert(
+        name="seg-test",
+        feed_url=FEED_URL,
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    conn.execute("update source set moments_enabled = true where id = %s", (source_id,))
+    with mock_web_client(article) as http:
+        ingest_one(store, HttpxFetcher(http, public), TrafilaturaExtractor(), source_id)
 
 
 def test_one_feed_becomes_moment_cards_without_source_text(

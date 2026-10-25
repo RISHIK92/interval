@@ -8,41 +8,14 @@ Usage:
 
 import argparse
 import json
-import os
 import sys
 from typing import get_args
 
-import httpx
-import psycopg
-from psycopg.conninfo import conninfo_to_dict
-
 from interval_db.generated import RightsProfile
+from interval_jobs.compose import services
 from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.one import ingest_one
 from interval_jobs.segment import segment_item
-from interval_jobs.sources import upsert_source
-
-LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
-USER_AGENT = "Interval/0.0 (personal learning platform; feed reader)"
-
-
-def _database_url() -> str:
-    url = os.environ.get("DATABASE_URL")
-    if not url:
-        sys.exit("DATABASE_URL is not set; copy .env.example to .env")
-    # CLAUDE.md: never touch a non-local database. Parse as libpq does, so `?host=` or
-    # `?hostaddr=` in the query cannot override the host in the URL.
-    params = conninfo_to_dict(url)
-    hosts = {
-        str(params.get("host") or "localhost"),
-        str(params.get("hostaddr") or "127.0.0.1"),
-    }
-    if not hosts <= LOCAL_HOSTS and os.environ.get("CI") != "true":
-        sys.exit(
-            f"Refusing to touch database host {sorted(hosts)}: "
-            "only localhost outside CI."
-        )
-    return url
 
 
 def main(argv: list[str]) -> None:
@@ -60,35 +33,26 @@ def main(argv: list[str]) -> None:
     commands.add_parser("rebuild-feed", help="recompute the precomputed feed")
     args = parser.parse_args(argv)
 
-    with psycopg.connect(_database_url()) as conn:
+    with services() as s:
         if args.command == "rebuild-feed":
-            entries = rebuild_feed(conn)
-            conn.commit()
-            print(json.dumps({"feed_entries": entries}))
-            return
-        if args.command == "segment-item":
-            rows = segment_item(conn, args.content_item_id)
-            rebuild_feed(conn)
-            conn.commit()
-            print(
-                json.dumps(
-                    {"content_item_id": args.content_item_id, "moments": len(rows)}
-                )
-            )
-            return
-        with httpx.Client(headers={"user-agent": USER_AGENT}) as http:
-            source_id = upsert_source(
-                conn,
+            result: dict[str, object] = {"feed_entries": rebuild_feed(s.store)}
+        elif args.command == "segment-item":
+            rows = segment_item(s.store, args.content_item_id)
+            rebuild_feed(s.store)
+            result = {"content_item_id": args.content_item_id, "moments": len(rows)}
+        else:
+            source_id = s.store.sources.upsert(
                 name=args.name,
                 feed_url=args.feed_url,
                 rights_profile=args.rights_profile,
                 homepage=args.homepage,
             )
-            result = ingest_one(conn, http, source_id)
-        conn.commit()
-    print(
-        json.dumps({"content_item_id": result.content_item_id, "stored": result.stored})
-    )
+            ingested = ingest_one(s.store, s.fetcher, s.extractor, source_id)
+            result = {
+                "content_item_id": ingested.content_item_id,
+                "stored": ingested.stored,
+            }
+    print(json.dumps(result))
 
 
 if __name__ == "__main__":

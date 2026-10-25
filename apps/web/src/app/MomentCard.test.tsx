@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
-import type { FeedCard } from "../server/feed";
+import type { FeedCard } from "../server/ports";
 import { MomentCard } from "./MomentCard";
 
 const card: FeedCard = {

@@ -1,6 +1,6 @@
 import { afterAll, afterEach, expect, test, vi } from "vitest";
-import { createDb } from "./db";
-import { type FeedCard, getFeed, toCard } from "./feed";
+import type { FeedCard } from "../ports";
+import { createDb, kyselyFeedReader, toCard } from "./kysely";
 
 const connectionString = process.env["DATABASE_URL"];
 if (connectionString === undefined) {
@@ -18,7 +18,7 @@ afterEach(() => {
 
 class Rollback extends Error {}
 
-test("getFeed returns cards from feed_visible in rank order", async () => {
+test("kyselyFeedReader.list returns cards from feed_visible in rank order", async () => {
   let cards: FeedCard[] = [];
   let momentIds: string[] = [];
   await expect(
@@ -76,7 +76,7 @@ test("getFeed returns cards from feed_visible in rank order", async () => {
         .insertInto("feed_entry")
         .values({ moment_id: second.id, rank: -1000 })
         .execute();
-      cards = (await getFeed(trx)).filter(
+      cards = (await kyselyFeedReader(trx).list(50)).filter(
         (c) => c.sourceName === "webfeed-test",
       );
       throw new Rollback();

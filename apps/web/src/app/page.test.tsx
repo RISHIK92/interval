@@ -1,10 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { FeedCard } from "../server/feed";
+import type { FeedCard } from "../server/ports";
 
-const getFeed = vi.fn<() => Promise<FeedCard[]>>();
-vi.mock("../server/feed", () => ({ getFeed }));
-vi.mock("../server/db", () => ({ db: () => ({}) }));
+const getFeed = vi.fn<(limit: number) => Promise<FeedCard[]>>();
+vi.mock("../server/container", () => ({
+  feedReader: () => ({ list: getFeed }),
+}));
 
 afterEach(() => {
   getFeed.mockReset();

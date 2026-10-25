@@ -1,195 +1,91 @@
-import httpx
-import psycopg
+"""Ingest logic on in-memory ports (ADR-0012). ING-1, ING-2, Q-P1-01."""
+
 import pytest
 
 from interval_db.generated import RightsProfile
+from interval_jobs.adapters.memory import InMemoryStore
+from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.ingest.one import ingest_one
-from interval_jobs.sources import upsert_source
+from interval_jobs.ports import FetchError
 
-from .conftest import fixture_bytes
-
-FEED_URL = "https://blog.example.test/feed.atom"
+from .support import ARTICLE_URL, FEED_URL, fake_web, ingest_fake
 
 
-def public(_host: str) -> list[str]:
-    return ["93.184.216.34"]
-
-
-ARTICLE_URL = "https://blog.example.test/wal"
-
-
-class FakeWeb:
-    def __init__(self, feed_status: int = 200) -> None:
-        self.requested: list[str] = []
-        self.feed_status = feed_status
-
-    def handler(self, request: httpx.Request) -> httpx.Response:
-        url = str(request.url)
-        self.requested.append(url)
-        if url == FEED_URL:
-            return httpx.Response(
-                self.feed_status,
-                headers={"content-type": "application/atom+xml"},
-                content=fixture_bytes("atom.xml"),
-            )
-        if url == ARTICLE_URL:
-            return httpx.Response(
-                200,
-                headers={"content-type": "text/html; charset=utf-8"},
-                content=fixture_bytes("article.html"),
-            )
-        return httpx.Response(404)
-
-    def client(self) -> httpx.Client:
-        return httpx.Client(transport=httpx.MockTransport(self.handler))
-
-
-def source(conn: psycopg.Connection, profile: RightsProfile) -> int:
-    return upsert_source(
-        conn,
-        name=f"test-{profile}",
-        feed_url=FEED_URL,
-        rights_profile=profile,
-        homepage=None,
+def test_metadata_only_stores_metadata_and_summary_and_never_fetches_the_article() -> (
+    None
+):
+    store = InMemoryStore()
+    source_id = store.sources.upsert(
+        name="m", feed_url=FEED_URL, rights_profile="metadata_only", homepage=None
     )
+    web = fake_web("article.html")
+    item_id = ingest_one(store, web, TrafilaturaExtractor(), source_id).content_item_id
 
-
-def section_count(conn: psycopg.Connection, source_id: int) -> int:
-    row = conn.execute(
-        "select count(*) from content_item_section s "
-        "join content_item ci on ci.id = s.content_item_id where ci.source_id = %s",
-        (source_id,),
-    ).fetchone()
-    assert row is not None
-    return row[0]
-
-
-def counts(conn: psycopg.Connection, source_id: int) -> tuple[int, int]:
-    row = conn.execute(
-        """
-        select count(distinct ci.id), count(pt.content_item_id)
-        from content_item ci
-        left join content_item_private_text pt on pt.content_item_id = ci.id
-        where ci.source_id = %s
-        """,
-        (source_id,),
-    ).fetchone()
-    assert row is not None
-    return row[0], row[1]
-
-
-def test_metadata_only_stores_metadata_and_summary_and_never_fetches_the_article(
-    conn: psycopg.Connection,
-) -> None:
-    web = FakeWeb()
-    source_id = source(conn, "metadata_only")
-    with web.client() as http:
-        ingest_one(conn, http, source_id, public)
-
-    row = conn.execute(
-        "select title, author, canonical_url, feed_summary, excerpt "
-        "from content_item where source_id = %s",
-        (source_id,),
-    ).fetchone()
-    assert row == (
+    item = store.items.rows[item_id]
+    assert (item.title, item.author, item.canonical_url, item.feed_summary) == (
         "How our write-ahead log works",
         "Alex Author",
         ARTICLE_URL,
         "A short tour of the write-ahead log.",
-        None,
     )
-    assert counts(conn, source_id) == (1, 0)
-    assert ARTICLE_URL not in web.requested
+    assert (item.excerpt, item.full_text, item.sections) == (None, None, [])
+    assert [url for url, _ in web.requested] == [FEED_URL]
 
 
-def test_excerpt_stores_at_most_300_characters_and_no_full_text(
-    conn: psycopg.Connection,
-) -> None:
-    source_id = source(conn, "excerpt")
-    with FakeWeb().client() as http:
-        ingest_one(conn, http, source_id, public)
-
-    row = conn.execute(
-        "select excerpt from content_item where source_id = %s", (source_id,)
-    ).fetchone()
-    assert row is not None
-    excerpt: str = row[0]
-    assert 0 < len(excerpt) <= 300
-    assert counts(conn, source_id) == (1, 0)
+def test_excerpt_stores_at_most_300_characters_and_no_full_text() -> None:
+    store, _, item_id = ingest_fake("article.html", profile="excerpt")
+    item = store.items.rows[item_id]
+    assert item.excerpt is not None
+    assert 0 < len(item.excerpt) <= 300
+    assert item.full_text is None
 
 
-def test_full_text_internal_stores_extracted_text_privately(
-    conn: psycopg.Connection,
-) -> None:
-    source_id = source(conn, "full_text_internal")
-    with FakeWeb().client() as http:
-        ingest_one(conn, http, source_id, public)
-
-    row = conn.execute(
-        """
-        select pt.text, ci.excerpt from content_item_private_text pt
-        join content_item ci on ci.id = pt.content_item_id where ci.source_id = %s
-        """,
-        (source_id,),
-    ).fetchone()
-    assert row is not None
-    assert "recovery replays the log" in row[0]
-    assert row[1] is None
+def test_full_text_internal_stores_extracted_text_privately() -> None:
+    store, _, item_id = ingest_fake("article.html")
+    item = store.items.rows[item_id]
+    assert item.full_text is not None
+    assert "recovery replays the log" in item.full_text
+    assert item.excerpt is None
 
 
-def test_running_twice_stores_one_item(conn: psycopg.Connection) -> None:
-    source_id = source(conn, "full_text_internal")
-    with FakeWeb().client() as http:
-        ingest_one(conn, http, source_id, public)
-        ingest_one(conn, http, source_id, public)
+def test_running_twice_stores_one_item_one_text_and_the_same_sections() -> None:
+    store, _, first = ingest_fake("article.html")
+    _, _, second = ingest_fake("article.html", store=store)
+    assert first == second
+    assert len(store.items.rows) == 1
+    item = store.items.rows[first]
+    assert item.full_text is not None
+    assert len(item.sections) == 2
 
-    assert counts(conn, source_id) == (1, 1)
 
-
-def test_feed_error_raises_and_stores_nothing(conn: psycopg.Connection) -> None:
-    source_id = source(conn, "full_text_internal")
-    with (
-        FakeWeb(feed_status=500).client() as http,
-        pytest.raises(httpx.HTTPStatusError),
-    ):
-        ingest_one(conn, http, source_id, public)
-
-    assert counts(conn, source_id) == (0, 0)
+def test_feed_error_raises_and_stores_nothing() -> None:
+    store = InMemoryStore()
+    source_id = store.sources.upsert(
+        name="e", feed_url=FEED_URL, rights_profile="full_text_internal", homepage=None
+    )
+    web = fake_web("article.html", feed_error=FetchError("HTTP 500"))
+    with pytest.raises(FetchError):
+        ingest_one(store, web, TrafilaturaExtractor(), source_id)
+    assert store.items.rows == {}
 
 
 @pytest.mark.parametrize(
-    ("before", "after", "expected"),
+    ("before", "after"),
     [
-        ("full_text_internal", "metadata_only", (1, 0)),
-        ("full_text_internal", "excerpt", (1, 0)),
-        ("excerpt", "metadata_only", (1, 0)),
+        ("full_text_internal", "metadata_only"),
+        ("full_text_internal", "excerpt"),
+        ("excerpt", "metadata_only"),
     ],
 )
-def test_lowering_the_profile_removes_text_and_reingest_still_works(
-    conn: psycopg.Connection,
-    before: RightsProfile,
-    after: RightsProfile,
-    expected: tuple[int, int],
+def test_reingest_after_lowering_the_profile_keeps_only_what_it_allows(
+    before: RightsProfile, after: RightsProfile
 ) -> None:
-    source_id = source(conn, before)
-    with FakeWeb().client() as http:
-        ingest_one(conn, http, source_id, public)
-        upsert_source(
-            conn,
-            name=f"test-{before}",
-            feed_url=FEED_URL,
-            rights_profile=after,
-            homepage=None,
-        )
-        assert counts(conn, source_id) == expected
-        ingest_one(conn, http, source_id, public)
+    store, _, item_id = ingest_fake("article.html", profile=before)
+    ingest_fake("article.html", profile=after, store=store)
 
-    assert counts(conn, source_id) == expected
-    excerpt = conn.execute(
-        "select excerpt from content_item where source_id = %s", (source_id,)
-    ).fetchone()
-    assert excerpt is not None
-    assert (excerpt[0] is not None) is (after == "excerpt")
+    item = store.items.rows[item_id]
+    assert item.full_text is None
+    assert (item.excerpt is not None) is (after == "excerpt")
 
 
 @pytest.mark.parametrize(
@@ -197,14 +93,10 @@ def test_lowering_the_profile_removes_text_and_reingest_still_works(
     [("metadata_only", False), ("excerpt", False), ("full_text_internal", True)],
 )
 def test_section_structure_is_stored_only_for_full_text(
-    conn: psycopg.Connection, profile: RightsProfile, has_sections: bool
+    profile: RightsProfile, has_sections: bool
 ) -> None:
-    source_id = source(conn, profile)
-    with FakeWeb().client() as http:
-        ingest_one(conn, http, source_id, public)
-        ingest_one(conn, http, source_id, public)
-    assert (section_count(conn, source_id) > 0) is has_sections
-    if has_sections:
-        assert (
-            section_count(conn, source_id) == 2
-        )  # two h2 sections; the h1 is the title
+    store, _, item_id = ingest_fake("article.html", profile=profile)
+    ingest_fake("article.html", profile=profile, store=store)
+    sections = store.items.rows[item_id].sections
+    assert (len(sections) == 2) is has_sections  # two h2 sections; the h1 is the title
+    assert (sections == []) is not has_sections

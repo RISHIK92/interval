@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). Next: P1-W1-S19 (ports and adapters refactor, ADR-0012), then S09 (VM compose), then S18 (AWS stack). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19 (ports and adapters) done. Next: S09 (VM compose), then S18 (AWS stack). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -263,4 +263,22 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 ### 2026-10-25 — Decisions: ports and adapters (ADR-0012), build locally then deploy (ADR-0013)
 - Business logic depends only on ports: storage, queue, cache, HTTP, models, email, and repositories for data access. Adapters per service plus in-memory fakes. Existing S04–S06 code is refactored first, in new slice P1-W1-S19.
 - All phases are built and verified locally. The first deployment happens when everything is built. This conflicts with the Week 6 real-user beta; flagged as an open question.
+
+### 2026-10-25 — P1-W1-S19 (ports and adapters, ADR-0012)
+- Done:
+  - **Worker:**
+    - `ports.py` holds the Protocols and domain types: `Store` (sources, items, moments, feed) as one unit of work, plus `Fetcher` and `Extractor`, the errors (`FetchError`, `ExtractionError`, `RightsViolation`) and `FeedEntry`.
+    - Adapters: `postgres.py` (the SQL moved from logic unchanged; trigger errors become `RightsViolation`; each guarded write runs in a savepoint; `unit_of_work` holds an explicit outer transaction), `http_fetcher.py` (httpx errors become `FetchError`), `trafilatura_extractor.py`, and `memory.py` (fakes that mirror the DB's ING-2 purge and write guards).
+    - `compose.py` is the only wiring point.
+  - **Web:** `ports.ts`, `adapters/kysely.ts`, `container.ts`; `checkHealth` is pure logic.
+  - **Enforcement:** an AST test (relative and package imports resolved) bans driver/SDK imports and adapter imports in logic. ESLint bans `kysely`, `kysely/*`, `pg`, `pg/*` and `pg-*` outside the adapters and the container.
+  - **Tests:** 127 worker tests (logic on fakes; a store contract suite run on both the fake and Postgres, covering purges, refused writes, undated and tied feed ordering, and moment id stability; unit of work commit and rollback; the local-DB guard). 25 web tests. `pnpm turbo check` passes, 21 tasks.
+- Behaviour changes (intentional):
+  - The fetcher raises `FetchError` for HTTP and transport errors instead of httpx exceptions.
+  - A refused write no longer aborts the whole transaction (savepoint).
+- Not fixed (nits):
+  - ADR-0012 sketches `ports/` and `adapters/{postgres,http,fakes}/` packages. The code uses flat modules (`ports.py`, `adapters/*.py`, `memory.py`), as in the approved plan. The decision stands; only the file layout differs. If the ADR's layout matters, a later ADR can record it.
+  - The fake raises `KeyError` for an unknown item id where Postgres may no-op. Unknown ids are a programming error in both cases.
+- Next: P1-W1-S09.
+- Needs ADR: none.
 

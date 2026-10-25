@@ -1,3 +1,5 @@
+"""Postgres feed adapter: rebuild order, the feed_visible view, triggers, locking."""
+
 import os
 import threading
 import time
@@ -7,8 +9,7 @@ import psycopg
 import pytest
 from psycopg import sql
 
-from interval_jobs.feed.precompute import rebuild_feed
-from interval_jobs.sources import upsert_source
+from interval_jobs.adapters.postgres import PostgresStore
 
 
 def add_item(
@@ -48,8 +49,7 @@ def add_item(
 
 
 def source(conn: psycopg.Connection, name: str) -> int:
-    source_id = upsert_source(
-        conn,
+    source_id = PostgresStore(conn).sources.upsert(
         name=name,
         feed_url=f"https://feed.example.test/{name}.xml",
         rights_profile="full_text_internal",
@@ -70,7 +70,7 @@ def test_newest_item_first_then_sections_in_order(conn: psycopg.Connection) -> N
     src = source(conn, "feedtest-a")
     add_item(conn, src, "old", datetime(2026, 10, 1, tzinfo=UTC), 2)
     add_item(conn, src, "new", datetime(2026, 10, 20, tzinfo=UTC), 2)
-    rebuild_feed(conn)
+    PostgresStore(conn).feed.rebuild()
 
     assert visible(conn) == [
         ("new s0", 1, 2),
@@ -83,15 +83,15 @@ def test_newest_item_first_then_sections_in_order(conn: psycopg.Connection) -> N
 def test_rebuilding_replaces_entries(conn: psycopg.Connection) -> None:
     src = source(conn, "feedtest-b")
     add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 3)
-    rebuild_feed(conn)
-    rebuild_feed(conn)
+    PostgresStore(conn).feed.rebuild()
+    PostgresStore(conn).feed.rebuild()
     assert len(visible(conn)) == 3
 
 
 def test_switching_moments_off_cascades_to_the_feed(conn: psycopg.Connection) -> None:
     src = source(conn, "feedtest-c")
     add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 2)
-    rebuild_feed(conn)
+    PostgresStore(conn).feed.rebuild()
     conn.execute("update source set moments_enabled = false where id = %s", (src,))
     # No rebuild: the purge trigger deletes the moments and feed_entry cascades.
     assert visible(conn) == []
@@ -102,7 +102,7 @@ def test_section_count_covers_moments_left_out_of_the_feed(
 ) -> None:
     src = source(conn, "feedtest-e")
     add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 3)
-    rebuild_feed(conn)
+    PostgresStore(conn).feed.rebuild()
     conn.execute(
         "delete from feed_entry where moment_id in (select id from moment where title "
         "in ('one s0', 'one s2'))"
@@ -123,7 +123,7 @@ def test_view_hides_stale_entries_when_the_source_no_longer_allows_moments(
 ) -> None:
     src = source(conn, "feedtest-d")
     add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 1)
-    rebuild_feed(conn)
+    PostgresStore(conn).feed.rebuild()
     # Skip triggers for this transaction only, to leave a stale feed entry behind.
     conn.execute("set local session_replication_role = replica")
     conn.execute(
@@ -139,12 +139,12 @@ def test_view_hides_stale_entries_when_the_source_no_longer_allows_moments(
 def test_concurrent_rebuilds_wait_for_each_other(conn: psycopg.Connection) -> None:
     url = os.environ["DATABASE_URL"]
     with psycopg.connect(url) as first, psycopg.connect(url) as second:
-        rebuild_feed(first)
+        PostgresStore(first).feed.rebuild()
         result: list[BaseException | int] = []
 
         def run_second() -> None:
             try:
-                result.append(rebuild_feed(second))
+                result.append(PostgresStore(second).feed.rebuild())
                 second.commit()
             except BaseException as error:
                 result.append(error)

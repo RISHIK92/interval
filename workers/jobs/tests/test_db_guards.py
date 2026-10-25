@@ -2,12 +2,11 @@ import psycopg
 import pytest
 
 from interval_db.generated import RightsProfile
-from interval_jobs.sources import upsert_source
+from interval_jobs.adapters.postgres import PostgresStore
 
 
 def item_for(conn: psycopg.Connection, profile: RightsProfile) -> int:
-    source_id = upsert_source(
-        conn,
+    source_id = PostgresStore(conn).sources.upsert(
         name=f"guard-{profile}",
         feed_url=f"https://guard.example.test/{profile}",
         rights_profile=profile,
@@ -132,3 +131,39 @@ def test_database_refuses_sections_the_profile_does_not_allow(
             "values (%s, 0, 'h', 2, null, 10)",
             (item_id,),
         )
+
+
+def test_lowering_the_profile_purges_private_text_and_excerpt_before_any_reingest(
+    conn: psycopg.Connection,
+) -> None:
+    store = PostgresStore(conn)
+    full = item_for(conn, "full_text_internal")
+    conn.execute(
+        "insert into content_item_private_text (content_item_id, text) "
+        "values (%s, 'x')",
+        (full,),
+    )
+    store.sources.upsert(
+        name="guard-full_text_internal",
+        feed_url="https://guard.example.test/full_text_internal",
+        rights_profile="metadata_only",
+        homepage=None,
+    )
+    row = conn.execute(
+        "select count(*) from content_item_private_text where content_item_id = %s",
+        (full,),
+    ).fetchone()
+    assert row == (0,)
+
+    excerpt = item_for(conn, "excerpt")
+    conn.execute("update content_item set excerpt = 'e' where id = %s", (excerpt,))
+    store.sources.upsert(
+        name="guard-excerpt",
+        feed_url="https://guard.example.test/excerpt",
+        rights_profile="metadata_only",
+        homepage=None,
+    )
+    row = conn.execute(
+        "select excerpt from content_item where id = %s", (excerpt,)
+    ).fetchone()
+    assert row == (None,)
