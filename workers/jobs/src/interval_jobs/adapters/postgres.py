@@ -371,8 +371,8 @@ class PostgresItems:
     def sections(self, item_id: int) -> list[SectionRow]:
         with self._conn.cursor(row_factory=class_row(SectionRow)) as cur:
             return cur.execute(
-                "select heading, anchor_id, word_count from content_item_section "
-                "where content_item_id = %s order by ordinal",
+                "select heading, anchor_id, word_count, level "
+                "from content_item_section where content_item_id = %s order by ordinal",
                 (item_id,),
             ).fetchall()
 
@@ -417,13 +417,14 @@ class PostgresMoments:
                     """
                     insert into moment
                       (content_item_id, ordinal, title, estimated_minutes,
-                       link, link_type)
-                    values (%s, %s, %s, %s, %s, %s)
+                       link, link_type, oversized)
+                    values (%s, %s, %s, %s, %s, %s, %s)
                     on conflict (content_item_id, ordinal) do update
                       set title = excluded.title,
                           estimated_minutes = excluded.estimated_minutes,
                           link = excluded.link,
-                          link_type = excluded.link_type
+                          link_type = excluded.link_type,
+                          oversized = excluded.oversized
                     """,
                     [
                         (
@@ -433,6 +434,7 @@ class PostgresMoments:
                             r.estimated_minutes,
                             r.link,
                             r.link_type,
+                            r.oversized,
                         )
                         for r in rows
                     ],

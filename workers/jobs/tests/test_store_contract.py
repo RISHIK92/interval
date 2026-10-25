@@ -55,6 +55,7 @@ class Probe(Protocol):
     def source_state(self, name: str) -> tuple[object, ...] | None: ...
     def has_item(self, item_id: int) -> bool: ...
     def primary_of(self, item_id: int) -> int | None: ...
+    def oversized(self, item_id: int) -> list[bool]: ...
     def simhash(self, item_id: int) -> int | None: ...
 
 
@@ -103,6 +104,9 @@ class MemoryProbe:
 
     def primary_of(self, item_id: int) -> int | None:
         return self.s.items.rows[item_id].duplicate_of
+
+    def oversized(self, item_id: int) -> list[bool]:
+        return [m.row.oversized for m in self.s.moments.for_item(item_id)]
 
     def simhash(self, item_id: int) -> int | None:
         return self.s.items.rows[item_id].simhash
@@ -225,6 +229,13 @@ class PostgresProbe:
             "order by ordinal",
             (item_id,),
         ).fetchall()
+
+    def oversized(self, item_id: int) -> list[bool]:
+        rows = self.conn.execute(
+            "select oversized from moment where content_item_id = %s order by ordinal",
+            (item_id,),
+        ).fetchall()
+        return [bool(r[0]) for r in rows]
 
     def primary_of(self, item_id: int) -> int | None:
         row = self.conn.execute(
@@ -349,7 +360,10 @@ def test_sections_are_replaced_and_read_in_order(store: tuple[Store, Probe]) -> 
         item, [Section("A", 2, "a", 10), Section(None, None, None, 5)]
     )
     s.items.replace_sections(item, [Section("B", 2, None, 7), Section("C", 3, "c", 9)])
-    assert s.items.sections(item) == [SectionRow("B", None, 7), SectionRow("C", "c", 9)]
+    assert s.items.sections(item) == [
+        SectionRow("B", None, 7, 2),
+        SectionRow("C", "c", 9, 3),
+    ]
 
 
 def test_segmentation_input_reflects_the_source(store: tuple[Store, Probe]) -> None:
@@ -379,6 +393,20 @@ def test_moments_replace_keeps_ids_by_ordinal_and_removes_extras(
     ids = [m[0] for m in probe.moments(item)]
     s.moments.replace(item, [moment(0, "a2"), moment(1, "b2")])
     assert probe.moments(item) == [(ids[0], 0, "a2"), (ids[1], 1, "b2")]
+
+
+def test_the_oversized_flag_is_stored_and_updated(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("g6"), keep_excerpt=False)
+    big = replace(moment(0, "big"), oversized=True)
+    s.moments.replace(item, [big, moment(1, "small")])
+    assert probe.oversized(item) == [True, False]
+    s.moments.replace(
+        item, [moment(0, "big"), replace(moment(1, "small"), oversized=True)]
+    )
+    assert probe.oversized(item) == [False, True]
 
 
 def test_feed_orders_newest_item_first_then_sections_and_rebuild_replaces(

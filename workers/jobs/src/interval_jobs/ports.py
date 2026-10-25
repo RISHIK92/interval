@@ -102,6 +102,7 @@ class SectionRow:
     heading: str | None
     anchor_id: str | None
     word_count: int
+    level: int | None  # 1-6; None for the intro or a heading of unknown level
 
 
 @dataclass(frozen=True)
@@ -111,6 +112,7 @@ class MomentRow:
     estimated_minutes: int
     link: str
     link_type: MomentLinkType
+    oversized: bool = False  # over 8 minutes with nowhere to split (Q-P1-06)
 
 
 @dataclass(frozen=True)

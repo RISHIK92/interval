@@ -372,7 +372,7 @@ class InMemoryItems:
 
     def sections(self, item_id: int) -> list[SectionRow]:
         return [
-            SectionRow(s.heading, s.anchor_id, s.word_count)
+            SectionRow(s.heading, s.anchor_id, s.word_count, s.level)
             for s in self.rows[item_id].sections
         ]
 

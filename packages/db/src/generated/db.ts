@@ -170,6 +170,7 @@ export interface Moment {
   link: string;
   link_type: MomentLinkType;
   ordinal: number;
+  oversized: Generated<boolean>;
   title: string;
 }
 

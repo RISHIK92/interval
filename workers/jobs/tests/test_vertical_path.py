@@ -29,7 +29,7 @@ def ingest(conn: psycopg.Connection, article: str) -> None:
 def test_one_feed_becomes_moment_cards_without_source_text(
     conn: psycopg.Connection,
 ) -> None:
-    ingest(conn, "article_mixed.html")
+    ingest(conn, "article_long.html")
 
     cards = conn.execute(
         """
@@ -39,24 +39,21 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         """
     ).fetchall()
 
-    assert [c[0] for c in cards] == [
-        "How our write-ahead log works",
-        "Setup",
-        "Log shipping",
-        "Plain heading",
-        "Notes",
-        "Notes",
+    title = "How our write-ahead log works"
+    assert cards == [
+        (title, 1, 3, 3, ARTICLE_URL, title, "Alex Author", "seg-test"),
+        ("Alpha", 2, 3, 3, f"{ARTICLE_URL}#alpha", title, "Alex Author", "seg-test"),
+        (
+            "Beta part",
+            3,
+            3,
+            3,
+            f"{ARTICLE_URL}#:~:text=Beta%20part",
+            title,
+            "Alex Author",
+            "seg-test",
+        ),
     ]
-    total = len(cards)
-    assert [(c[1], c[2]) for c in cards] == [(n, total) for n in range(1, total + 1)]
-    setup = cards[1]
-    assert setup[3:] == (
-        1,
-        f"{ARTICLE_URL}#setup",
-        "How our write-ahead log works",
-        "Alex Author",
-        "seg-test",
-    )
     columns = {
         row[0]
         for row in conn.execute(

@@ -258,6 +258,13 @@ Oct 23 is silent on these. They are not adopted unless confirmed.
 - LLD scoring: HTML "tests passed" (§6.5) vs Oct 23 "weighted tests passed, then time" (§6.5). Phase 5.
 - Both resolved by precedence (Oct 23). No confirmation needed.
 
+### C-34 A short intro and the 2-minute rule (found 2026-10-26, P1-W3-S03)
+- **Q-P1-06 default (accepted)**: "Section under 2 min: merge with the next sibling section (or previous, if last) until ≥ 2 min."
+- **Q-P1-06 addition (owner, 2026-10-25, P1-W1-S05)**: "text before the first section heading is its own moment, linked to the top of the page."
+- **Collision**: an intro under 2 minutes (most intros) is either its own short moment or merged into the first section; both rules can't hold.
+- **Built**: the owner's later, more specific wording wins, so the intro is always its own moment, even under 2 minutes. Headed sections follow the merge rule.
+- **Changes build**: P1-W3-S03 segmentation. Needs the owner's confirmation.
+
 ## Source file notes
 
 These are not disagreements, but they affect the verbatim copies.

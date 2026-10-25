@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. Next: Week 3. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules) done. Next: W3-S01 (concept graph), then W3-S02/S04 mechanisms, W3-S05/S06 admin. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -16,6 +16,7 @@ Dependencies added overnight (all pinned):
 - pnpm `allowBuilds: msgpackr-extract: false`: BullMQ's optional native speed-up; the JS fallback works.
 
 Needs your review (newest first):
+- W3-S03: docs/conflicts.md C-34 (a short intro vs the 2-minute merge rule); built as the intro always being its own moment.
 - W2-S03: the polling interval numbers (15 min to 24 h, start 1 h, halve on new items, ×1.5 otherwise) are overnight picks; ING-3 gives none. `purge-guests` is still not scheduled anywhere (`stack.sh run` and the timer pattern make it easy to add).
 - W2-S06: the feed shows each duplicate group's earliest copy that has moments, and a missing author never matches on metadata. Both are product behaviour the docs don't define; recommended options were picked.
 - Dan Luu's feed (https://danluu.com/atom.xml) is larger than the fetcher's 5 MB body cap (owner rule, 2026-10-25), so that source never polls. Options: raise the cap for feeds only, or drop or replace the source. Found in W2-S04.
@@ -800,3 +801,21 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not verified: the systemd units were never loaded (macOS has no systemd), and the VM stack wasn't run.
 - Needs your review: the interval numbers (15 min, 24 h, start 1 h, ×½ and ×1.5) are overnight picks; ING-3 gives none. A feed that fails on every poll never backs off: it retries at its current interval, and failures end in the failed store.
 - Process note: `npx biome` was run by mistake while linting. It fetched an unrelated old npm package named `biome` (an env-variable manager), whose only effect was an empty `~/.biome` (removed). A copy stays in `~/.npm/_npx/b040de3f3c289dd6/`.
+
+### 2026-10-26 — P1-W3-S03 (moment segmentation rules, ING-4, Q-P1-06; overnight)
+- Done:
+  - **`segment.py`:**
+    - sections nest under their nearest shallower heading;
+    - a section over 8 minutes splits at its next lower level; with nothing to split at it stays whole and is flagged `oversized` (a new `moment.oversized` column, for the W3-S05 admin page);
+    - a part under 2 minutes merges into its next sibling, or the previous one when it is last, but never past 8 minutes;
+    - the intro is always its own moment;
+    - code counts as prose and is never cut (splits happen only at headings).
+  - **Tests:** one per rule, plus the 459/460 and 1840/1841 word edges, skipped heading levels, unknown-level headings, empty headings, a huge intro, a real `<pre>` fixture, and a three-moment fixture for the vertical path and re-ingest. A contract test covers the stored oversized flag.
+- Review fixes:
+  - a short intro merged forward, against the owner's wording (a blocker, now in docs/conflicts.md C-34);
+  - merges crossed section boundaries;
+  - merges could exceed 8 minutes;
+  - the code test had no code;
+  - weakened fixture tests restored with a multi-moment fixture.
+- Real seed pages now give 2–5 moments of 3–5 minutes each. A merged moment carries its first heading's title (e.g. PlanetScale's "Reference tables" covers four short sections after it).
+- Re-segmenting rows that already exist locally reassigns moment ids by ordinal. That's harmless now (only the feed references moments), but it matters once saves reference them.

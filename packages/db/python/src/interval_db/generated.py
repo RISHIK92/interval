@@ -160,6 +160,7 @@ class Moment(TypedDict):
     link: str
     link_type: MomentLinkType
     created_at: datetime
+    oversized: bool
 
 
 class Plan(TypedDict):
