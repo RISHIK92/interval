@@ -13,6 +13,7 @@ from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.ports import (
     Completion,
+    EmbeddingPurpose,
     Embeddings,
     Message,
     TagInput,
@@ -72,7 +73,9 @@ class ScriptedLlm:
 class NoEmbeddings:
     provider: AiProvider = "voyage"
 
-    def embed(self, model: str, texts: list[str]) -> Embeddings:
+    def embed(
+        self, model: str, texts: list[str], purpose: EmbeddingPurpose
+    ) -> Embeddings:
         raise AssertionError("tagging never embeds")
 
 

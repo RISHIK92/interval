@@ -10,6 +10,7 @@ Usage:
   python -m interval_jobs load-concepts [--file F]
   python -m interval_jobs draft-concepts --topic T --model M --out F
   python -m interval_jobs eval-tagging --labels F --model M
+  python -m interval_jobs eval-embeddings --queries F --model M
 """
 
 import argparse
@@ -28,16 +29,19 @@ import httpx
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.compose import (
     ai_gateway,
+    model_job,
     queue_consumer,
     queue_for_enqueue,
     services,
     stage_units,
-    tagging,
 )
 from interval_jobs.concepts.draft import DraftError, draft_concepts
 from interval_jobs.concepts.graph import TOPICS, ConceptSeedError, parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.consumer import run_consumers
+from interval_jobs.embedding_eval import MIN_POOL, MIN_RECALL, parse_queries
+from interval_jobs.embedding_eval import EvalError as EmbeddingEvalError
+from interval_jobs.embedding_eval import run_eval as run_embedding_eval
 from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
@@ -117,6 +121,14 @@ def main(argv: list[str]) -> None:
     evaluate.add_argument("--model", required=True, help="OpenRouter model id")
     evaluate.add_argument("--min-f1", type=float, default=MIN_F1)
     evaluate.add_argument("--min-difficulty", type=float, default=MIN_DIFFICULTY)
+    vectors = commands.add_parser(
+        "eval-embeddings",
+        help="score an embedding model on owner-labelled queries (Q-P1-27)",
+    )
+    vectors.add_argument("--queries", type=Path, required=True)
+    vectors.add_argument("--model", required=True, help="Voyage model id")
+    vectors.add_argument("--min-recall", type=float, default=MIN_RECALL)
+    vectors.add_argument("--min-pool", type=int, default=MIN_POOL)
     commands.add_parser(
         "consume", help="run the ingestion pipeline's stages until stopped"
     )
@@ -218,8 +230,29 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
                 )
         except (OSError, EvalError, TaggingError, ModelError) as error:
             sys.exit(str(error))
-        print(json.dumps({"model": args.model, **asdict(report)}))
+        print(json.dumps({"model": args.model, **asdict(report)}, default=str))
         if not report.passed:
+            sys.exit(1)
+        return
+
+    if args.command == "eval-embeddings":
+        try:
+            queries = parse_queries(
+                args.queries.read_text(encoding="utf-8"), str(args.queries)
+            )
+            with services() as s, httpx.Client() as http:
+                scored = run_embedding_eval(
+                    ai_gateway(s.ai, http),
+                    args.model,
+                    s.store,
+                    queries,
+                    args.min_recall,
+                    args.min_pool,
+                )
+        except (OSError, EmbeddingEvalError, ModelError) as error:
+            sys.exit(str(error))
+        print(json.dumps({"model": args.model, **asdict(scored)}, default=str))
+        if not scored.passed:
             sys.exit(1)
         return
 
@@ -293,8 +326,12 @@ def _consume() -> None:
     signal.signal(signal.SIGINT, request_stop)
     queue = queue_for_enqueue()
     try:
-        with stage_units() as units, tagging() as tagger:
-            pipeline = Pipeline(units, queue, tagging=tagger)
+        with (
+            stage_units() as units,
+            model_job("TAGGING_MODEL") as tagging,
+            model_job("EMBEDDING_MODEL") as embedding,
+        ):
+            pipeline = Pipeline(units, queue, tagging=tagging, embedding=embedding)
             run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
     finally:
         close = getattr(queue, "close", None)

@@ -1385,3 +1385,87 @@ def test_tag_reads_respect_rights_and_saves_refuse_foreign_moments(
     change_profile(s, "full_text_internal", "excerpt")
     tag_input = s.tags.input(item)
     assert tag_input is not None and tag_input.full_text is None
+
+
+# DB-3 embeddings (P1-W3-S04): one query filters by rights, source and difficulty.
+def unit(*first: float) -> list[float]:
+    return [*first, *([0.0] * (1024 - len(first)))]
+
+
+def test_similar_moments_filter_by_rights_source_and_difficulty(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    a, b = dup_source(s, "emb-a"), dup_source(s, "emb-b")
+    for sid in (a, b):
+        probe.enable_moments(sid)
+    item_a = dup_item(s, a, "emb1", 2)
+    item_b = dup_item(s, b, "emb2", 3)
+    s.moments.replace(item_a, [moment(0, "a0"), moment(1, "a1")])
+    s.moments.replace(item_b, [moment(0, "b0")])
+    a0, a1 = (m[0] for m in probe.moments(item_a))
+    (b0,) = (m[0] for m in probe.moments(item_b))
+    assert s.embeddings.missing(item_a, "voyage-3.5") is True
+    s.embeddings.save(item_a, {a0: unit(1, 0)}, "voyage-3.5", complete=False)
+    # Part way (a budget stop): still missing, and the done moment is skipped next.
+    assert s.embeddings.missing(item_a, "voyage-3.5") is True
+    assert s.embeddings.done(item_a, "voyage-3.5") == {a0}
+    s.embeddings.save(item_a, {a1: unit(0.7, 0.7)}, "voyage-3.5", complete=True)
+    s.embeddings.save(item_b, {b0: unit(0.9, 0.1)}, "voyage-3.5", complete=True)
+    assert s.embeddings.missing(item_a, "voyage-3.5") is False
+    assert s.embeddings.missing(item_a, "voyage-3-large") is True
+    s.tags.save(
+        item_a,
+        TagResult(
+            Tags("beginner", frozenset()),
+            {a0: Tags("advanced", frozenset()), a1: Tags("beginner", frozenset())},
+        ),
+        "m",
+        1,
+    )
+    query = unit(1, 0)
+    ours = {a0, a1, b0}
+    hits = [h.moment_id for h in s.embeddings.similar(query, 50) if h.moment_id in ours]
+    assert hits == [a0, b0, a1]  # nearest first
+    by_source = s.embeddings.similar(query, 50, source_ids=[b])
+    assert [h.moment_id for h in by_source] == [b0]
+    by_level = s.embeddings.similar(query, 50, difficulties=["beginner"])
+    assert [h.moment_id for h in by_level if h.moment_id in ours] == [a1]
+    # Lowering a source's rights removes its moments, and so their vectors.
+    s.sources.upsert(
+        name="dup-emb-b",
+        feed_url="https://dup-emb-b.example.test/feed.xml",
+        rights_profile="excerpt",
+        homepage=None,
+    )
+    assert s.embeddings.similar(query, 50, source_ids=[b]) == []
+
+
+def test_saving_vectors_for_another_items_moments_is_refused(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    sid = dup_source(s, "emb-c")
+    probe.enable_moments(sid)
+    mine, theirs = dup_item(s, sid, "emb3", 2), dup_item(s, sid, "emb4", 2)
+    s.moments.replace(theirs, [moment(0, "t0")])
+    (t0,) = (m[0] for m in probe.moments(theirs))
+    with pytest.raises(ValueError, match="not item"):
+        s.embeddings.save(mine, {t0: unit(1)}, "voyage-3.5", complete=True)
+
+
+def test_a_duplicate_or_momentless_item_never_needs_embedding(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    url = "https://dup.example.test/emb-dup"
+    a, b = dup_source(s, "emb-d1"), dup_source(s, "emb-d2")
+    probe.enable_moments(a)
+    probe.enable_moments(b)
+    primary, copy = dup_item(s, a, "ed1", 1, url=url), dup_item(s, b, "ed2", 2, url=url)
+    assert s.embeddings.missing(primary, "voyage-3.5") is False  # no moments yet
+    s.moments.replace(primary, [moment(0, "p0")])
+    s.moments.replace(copy, [moment(0, "c0")])
+    s.items.link_duplicates(copy)
+    assert s.embeddings.missing(primary, "voyage-3.5") is True
+    assert s.embeddings.missing(copy, "voyage-3.5") is False

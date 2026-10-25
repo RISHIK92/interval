@@ -31,6 +31,12 @@ class DiscoverSource(_Message):
     source_id: Annotated[int, Field(ge=1)]
 
 
+class EmbedItem(_Message):
+    """Embed the moments of one item (DB-3, AI-4, P1-W3-S04)."""
+
+    content_item_id: Annotated[int, Field(ge=1)]
+
+
 class FetchItem(_Message):
     """Fetch one item's article, extract it and store what its rights profile allows
     (ING-1 fetch, extract)."""
@@ -52,10 +58,13 @@ class TagItem(_Message):
     content_item_id: Annotated[int, Field(ge=1)]
 
 
-type MessageName = Literal["discover_source", "fetch_item", "segment_item", "tag_item"]
+type MessageName = Literal[
+    "discover_source", "embed_item", "fetch_item", "segment_item", "tag_item"
+]
 
 MESSAGES: dict[MessageName, type[_Message]] = {
     "discover_source": DiscoverSource,
+    "embed_item": EmbedItem,
     "fetch_item": FetchItem,
     "segment_item": SegmentItem,
     "tag_item": TagItem,

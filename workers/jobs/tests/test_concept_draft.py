@@ -11,7 +11,7 @@ from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.concepts.draft import DraftError, draft_concepts
 from interval_jobs.concepts.graph import parse_concepts
-from interval_jobs.ports import Completion, Embeddings, Message, Usage
+from interval_jobs.ports import Completion, EmbeddingPurpose, Embeddings, Message, Usage
 
 NOW = datetime(2026, 10, 26, 12, tzinfo=UTC)
 
@@ -40,7 +40,9 @@ class ScriptedLlm:
 class NoEmbeddings:
     provider: AiProvider = "voyage"
 
-    def embed(self, model: str, texts: list[str]) -> Embeddings:
+    def embed(
+        self, model: str, texts: list[str], purpose: EmbeddingPurpose
+    ) -> Embeddings:
         raise AssertionError("drafting never embeds")
 
 

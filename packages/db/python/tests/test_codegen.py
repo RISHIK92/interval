@@ -102,9 +102,10 @@ def test_render_defines_json_alias_when_a_json_column_exists() -> None:
     assert "type JsonValue =" in out
 
 
-def test_vector_has_no_mapping_until_an_adapter_exists() -> None:
-    with pytest.raises(UnknownTypeError, match="vector"):
-        python_type(col("embedding", "vector"), enums={})
+def test_vector_maps_to_its_text_form() -> None:
+    # P1-W3-S04: pgvector is read and written as text, '[0.1,0.2]', with no adapter
+    # dependency; kysely-codegen types it as string too.
+    assert python_type(col("embedding", "vector"), enums={}) == "str"
 
 
 def test_enum_labels_are_escaped() -> None:

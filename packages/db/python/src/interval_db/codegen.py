@@ -34,6 +34,8 @@ SCALARS: dict[str, tuple[str, str | None]] = {
     "json": ("JsonValue", "JsonValue"),
     "jsonb": ("JsonValue", "JsonValue"),
     "bytea": ("bytes", None),
+    # pgvector's text form, '[0.1,0.2]', as the TS codegen also types it.
+    "vector": ("str", None),
 }
 
 IMPORTS: dict[str, str] = {

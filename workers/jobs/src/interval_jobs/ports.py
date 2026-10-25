@@ -467,6 +467,51 @@ class ItemTags(Protocol):
         ...
 
 
+@dataclass(frozen=True)
+class SimilarMoment:
+    moment_id: int
+    score: float  # cosine similarity, 1 is identical
+
+
+class MomentEmbeddings(Protocol):
+    """One vector per moment (DB-3); moments exist only under full-text rights."""
+
+    def missing(self, item_id: int, model: str) -> bool:
+        """The item has moments, isn't a duplicate, and hasn't been embedded in full
+        by this model (AI-4: once per item and model)."""
+        ...
+
+    def done(self, item_id: int, model: str) -> set[int]:
+        """Moments that already have a vector from this model."""
+        ...
+
+    def save(
+        self,
+        item_id: int,
+        vectors: dict[int, list[float]],
+        model: str,
+        *,
+        complete: bool,
+    ) -> None:
+        """Upserts by moment id (another item's moment ids are refused). `complete`
+        records that every moment with text has been embedded by this model."""
+        ...
+
+    def clear(self, item_id: int) -> None: ...
+
+    def similar(
+        self,
+        vector: list[float],
+        limit: int,
+        *,
+        source_ids: list[int] | None = None,
+        difficulties: list[Difficulty] | None = None,
+    ) -> list[SimilarMoment]:
+        """Nearest moments first, in one query filtered by rights, source and
+        difficulty (DB-3). A difficulty filter leaves out untagged moments."""
+        ...
+
+
 class FetchValidators(Protocol):
     def get(self, url: str) -> Validators | None:
         """None when none are stored or they are older than VALIDATORS_MAX_AGE."""
@@ -509,6 +554,9 @@ class Store(Protocol):
 
     @property
     def tags(self) -> ItemTags: ...
+
+    @property
+    def embeddings(self) -> MomentEmbeddings: ...
 
 
 class Fetcher(Protocol):
@@ -557,6 +605,10 @@ class Embeddings:
     cost_usd: Decimal
 
 
+# Documents are stored and searched; queries search them (Voyage's input_type).
+type EmbeddingPurpose = Literal["document", "query"]
+
+
 class ModelError(Exception):
     """A model call failed or answered with something unusable (ADR-0007)."""
 
@@ -576,7 +628,9 @@ class EmbeddingClient(Protocol):
     @property
     def provider(self) -> AiProvider: ...
 
-    def embed(self, model: str, texts: list[str]) -> Embeddings: ...
+    def embed(
+        self, model: str, texts: list[str], purpose: EmbeddingPurpose
+    ) -> Embeddings: ...
 
 
 @dataclass(frozen=True)

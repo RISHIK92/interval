@@ -59,21 +59,23 @@ def test_openrouter_failures_are_model_errors(response: httpx.Response) -> None:
 
 def test_voyage_returns_vectors_in_order_and_prices_the_tokens() -> None:
     def handle(request: httpx.Request) -> httpx.Response:
-        assert json.loads(request.content)["input"] == ["a", "b"]
+        body = json.loads(request.content)
+        assert body["input"] == ["a", "b"]
+        assert (body["input_type"], body["output_dimension"]) == ("document", 1024)
         return httpx.Response(
             200,
             json={
                 "data": [
-                    {"index": 1, "embedding": [0.2]},
-                    {"index": 0, "embedding": [0.1]},
+                    {"index": 1, "embedding": [0.2] * 1024},
+                    {"index": 0, "embedding": [0.1] * 1024},
                 ],
                 "usage": {"total_tokens": 1_000_000},
             },
         )
 
     voyage = VoyageClient(client(httpx.MockTransport(handle)), api_key="k")
-    got = voyage.embed("voyage-3.5", ["a", "b"])
-    assert got.vectors == [[0.1], [0.2]]
+    got = voyage.embed("voyage-3.5", ["a", "b"], "document")
+    assert [v[0] for v in got.vectors] == [0.1, 0.2]
     assert (got.input_tokens, got.cost_usd) == (1_000_000, Decimal("0.06"))
 
 
@@ -82,7 +84,7 @@ def test_voyage_refuses_a_model_it_has_no_price_for() -> None:
         client(httpx.MockTransport(lambda _r: httpx.Response(500))), api_key="k"
     )
     with pytest.raises(ModelError, match="price"):
-        voyage.embed("voyage-unknown", ["a"])
+        voyage.embed("voyage-unknown", ["a"], "document")
 
 
 def test_voyage_without_a_key_refuses_to_embed() -> None:
@@ -90,4 +92,14 @@ def test_voyage_without_a_key_refuses_to_embed() -> None:
         client(httpx.MockTransport(lambda _r: httpx.Response(500))), api_key=None
     )
     with pytest.raises(ModelError, match="VOYAGE_API_KEY"):
-        voyage.embed("voyage-3.5", ["a"])
+        voyage.embed("voyage-3.5", ["a"], "query")
+
+
+def test_voyage_refuses_vectors_of_the_wrong_dimension() -> None:
+    short = httpx.Response(
+        200,
+        json={"data": [{"index": 0, "embedding": [0.1]}], "usage": {"total_tokens": 1}},
+    )
+    voyage = VoyageClient(client(httpx.MockTransport(lambda _r: short)), api_key="k")
+    with pytest.raises(ModelError, match="1024"):
+        voyage.embed("voyage-3.5", ["a"], "document")

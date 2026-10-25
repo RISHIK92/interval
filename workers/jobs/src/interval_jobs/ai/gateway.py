@@ -19,6 +19,7 @@ from interval_jobs import log
 from interval_jobs.ports import (
     AiLedger,
     EmbeddingClient,
+    EmbeddingPurpose,
     LlmClient,
     Message,
     Usage,
@@ -85,11 +86,12 @@ class AiGateway:
         user_id: str | None,
         model: str,
         texts: list[str],
+        purpose: EmbeddingPurpose,
     ) -> Embedded | OverBudget:
         refused = self._over_budget(feature, user_id)
         if refused is not None:
             return refused
-        result = self._embeddings.embed(model, texts)
+        result = self._embeddings.embed(model, texts, purpose)
         usage = self._record(
             feature,
             user_id,

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Embed the moments of one item (DB-3, AI-4, P1-W3-S04).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["content_item_id"],
+  "properties": {
+    "content_item_id": { "type": "integer", "minimum": 1 }
+  }
+}

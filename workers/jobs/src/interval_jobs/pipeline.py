@@ -27,6 +27,7 @@ from pydantic import BaseModel
 
 from interval_db.messages import (
     DiscoverSource,
+    EmbedItem,
     FetchItem,
     MessageName,
     SegmentItem,
@@ -34,6 +35,7 @@ from interval_db.messages import (
 )
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
+from interval_jobs.embedding import embed_item
 from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.normalize import page_canonical, simhash
@@ -59,6 +61,7 @@ STAGES: tuple[MessageName, ...] = (
     "fetch_item",
     "segment_item",
     "tag_item",
+    "embed_item",
 )
 
 
@@ -73,9 +76,10 @@ type UnitOfWork = Callable[[], AbstractContextManager[StageServices]]
 
 
 @dataclass(frozen=True)
-class Tagging:
-    """Concept tagging (P1-W3-S02): the model the tagging eval picked, and a gateway
-    per call (its ledger connection commits on its own, OPS-4)."""
+class ModelJob:
+    """A model-backed stage (tagging P1-W3-S02, embeddings P1-W3-S04): the model its
+    eval picked, and a gateway per call (its ledger connection commits on its own,
+    OPS-4)."""
 
     model: str
     gateway: Callable[[], AbstractContextManager[AiGateway]]
@@ -92,12 +96,14 @@ class Pipeline:
         unit_of_work: UnitOfWork,
         queue: JobQueue,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
-        tagging: Tagging | None = None,
+        tagging: ModelJob | None = None,
+        embedding: ModelJob | None = None,
     ) -> None:
         self._unit = unit_of_work
         self._queue = queue
         self._clock = clock
         self._tagging = tagging
+        self._embedding = embedding
 
     def handlers(self) -> dict[MessageName, QueueHandler]:
         return {
@@ -105,6 +111,7 @@ class Pipeline:
             "fetch_item": self._stage(self._fetch),
             "segment_item": self._stage(self._segment),
             "tag_item": self._tag_stage,
+            "embed_item": self._embed_stage,
         }
 
     def _stage(
@@ -193,9 +200,11 @@ class Pipeline:
                 follow_ups.append(
                     ("segment_item", {"content_item_id": item_id}, f"segment-{item_id}")
                 )
-            # Tagging that failed or was over budget is retried on the next poll.
+            # Tagging or embedding that failed or was over budget is retried on the
+            # next poll.
             else:
                 follow_ups.extend(self._tag_if_needed(store, item_id))
+                follow_ups.extend(self._embed_if_needed(store, item_id))
         return follow_ups, answered, new_items
 
     def _fetch(self, services: StageServices, message: BaseModel) -> list[Next]:
@@ -245,8 +254,57 @@ class Pipeline:
         # and stores nothing when they don't allow moments.
         segment_item(store, item_id)
         rebuild_feed(store)
-        # Moments are tagged with the item, so tagging follows segmentation.
-        return self._tag_if_needed(store, item_id)
+        # Moments are tagged and embedded once they exist.
+        return [
+            *self._tag_if_needed(store, item_id),
+            *self._embed_if_needed(store, item_id),
+        ]
+
+    def _embed_if_needed(self, store: Store, item_id: int) -> list[Next]:
+        job = self._embedding
+        if job is None or not store.embeddings.missing(item_id, job.model):
+            return []
+        return [("embed_item", {"content_item_id": item_id}, f"embed-{item_id}")]
+
+    def _embed_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        """Like tagging: read, call the model outside any transaction, then save only
+        if the moments didn't change meanwhile."""
+        assert isinstance(message, EmbedItem)
+        item_id, job = message.content_item_id, self._embedding
+        if job is None:
+            log.info("pipeline: embeddings are off (no model)", content_item_id=item_id)
+            return
+        with self._unit() as services:
+            item = services.store.tags.input(item_id)
+            missing = services.store.embeddings.missing(item_id, job.model)
+            done = services.store.embeddings.done(item_id, job.model)
+        # Once per item and model (AI-4); duplicates aren't shown, so not embedded.
+        if item is None or not missing:
+            return
+        with job.gateway() as gateway:
+            embedded = embed_item(gateway, job.model, item, skip=done)
+        if embedded.refused is not None:
+            # LOAD-5: degrade, observably; what was paid for is kept and the next
+            # poll finishes the item.
+            log.warn(
+                "pipeline: embedding over budget",
+                content_item_id=item_id,
+                scope=embedded.refused.scope,
+            )
+        with self._unit() as services:
+            now = services.store.tags.input(item_id)
+            if now is None or now.moments != item.moments:
+                log.info(
+                    "pipeline: moments changed; vectors dropped",
+                    content_item_id=item_id,
+                )
+                return
+            services.store.embeddings.save(
+                item_id,
+                embedded.vectors,
+                job.model,
+                complete=embedded.refused is None,
+            )
 
     def _tag_if_needed(self, store: Store, item_id: int) -> list[Next]:
         if self._tagging is None or not store.tags.needs_tagging(

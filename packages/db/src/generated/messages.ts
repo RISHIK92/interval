@@ -6,6 +6,10 @@ export const messageSchemas = {
   discover_source: z.strictObject({
     source_id: z.number().int().min(1),
   }),
+  // Embed the moments of one item (DB-3, AI-4, P1-W3-S04).
+  embed_item: z.strictObject({
+    content_item_id: z.number().int().min(1),
+  }),
   // Fetch one item's article, extract it and store what its rights profile allows (ING-1 fetch, extract).
   fetch_item: z.strictObject({
     content_item_id: z.number().int().min(1),

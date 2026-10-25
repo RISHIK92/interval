@@ -17,13 +17,15 @@ from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
-from interval_jobs.pipeline import STAGES, Pipeline, StageServices, Tagging
+from interval_jobs.pipeline import STAGES, ModelJob, Pipeline, StageServices
 from interval_jobs.ports import (
     Completion,
+    EmbeddingPurpose,
     Embeddings,
     Fetched,
     FetchError,
     Message,
+    MomentRow,
     RobotsDisallowed,
     Usage,
     Validators,
@@ -64,7 +66,8 @@ class World:
         failing: str | None = None,
         blocked: str | None = None,
         extra: dict[str, Fetched] | None = None,
-        tagging: Tagging | None = None,
+        tagging: ModelJob | None = None,
+        embedding: ModelJob | None = None,
     ) -> None:
         self.store = InMemoryStore()
         self.fetcher = web(failing, blocked, extra)
@@ -80,7 +83,11 @@ class World:
 
         self.now = NOW
         self.pipeline = Pipeline(
-            unit, self.queue, clock=lambda: self.now, tagging=tagging
+            unit,
+            self.queue,
+            clock=lambda: self.now,
+            tagging=tagging,
+            embedding=embedding,
         )
 
     def discover(self, key: str = "poll-1") -> None:
@@ -376,7 +383,9 @@ class TagLlm:
 class NoEmbeddings:
     provider: AiProvider = "voyage"
 
-    def embed(self, model: str, texts: list[str]) -> Embeddings:
+    def embed(
+        self, model: str, texts: list[str], purpose: EmbeddingPurpose
+    ) -> Embeddings:
         raise AssertionError("no embeddings in tagging")
 
 
@@ -392,7 +401,7 @@ def tagged_world(
     def gateway() -> Generator[AiGateway]:
         yield AiGateway(ledger, llm, NoEmbeddings(), clock=lambda: NOW)
 
-    world = World(profile=profile, tagging=Tagging("small-model", gateway))
+    world = World(profile=profile, tagging=ModelJob("small-model", gateway))
     sync_concepts(
         world.store,
         parse_concepts(
@@ -494,3 +503,95 @@ def test_an_excerpt_item_is_tagged_after_its_fetch_from_its_excerpt() -> None:
     world.run()
     assert len(llm.calls) == 2
     assert "Excerpt:" in llm.calls[0]
+
+
+# P1-W3-S04: embeddings join after segmentation, like tagging.
+class FakeVoyage:
+    provider: AiProvider = "voyage"
+
+    def __init__(self) -> None:
+        self.texts: list[str] = []
+
+    def embed(
+        self, model: str, texts: list[str], purpose: EmbeddingPurpose
+    ) -> Embeddings:
+        self.texts.extend(texts)
+        return Embeddings([[1.0] + [0.0] * 1023 for _ in texts], 5, Decimal("0.0001"))
+
+
+class NoLlm:
+    provider: AiProvider = "openrouter"
+
+    def complete(self, model: str, messages: list[Message]) -> Completion:
+        raise AssertionError("no completions here")
+
+
+def embedding_world(
+    profile: RightsProfile = "full_text_internal",
+) -> tuple[World, FakeVoyage]:
+    voyage = FakeVoyage()
+    ledger = InMemoryAi(InMemoryStore().users)
+
+    @contextmanager
+    def gateway() -> Generator[AiGateway]:
+        yield AiGateway(ledger, NoLlm(), voyage, clock=lambda: NOW)
+
+    return World(profile=profile, embedding=ModelJob("voyage-3.5", gateway)), voyage
+
+
+def test_every_moment_of_a_full_text_item_is_embedded_once() -> None:
+    world, voyage = embedding_world()
+    world.discover("poll-1")
+    world.run()
+    embedded = len(voyage.texts)
+    assert embedded == len(world.store.moments.rows) > 0
+    assert all(
+        not world.store.embeddings.missing(i, "voyage-3.5")
+        for i in world.store.items.rows
+    )
+    world.now = NOW + timedelta(days=2)
+    world.store.validators.put(FEED_URL, None)
+    world.discover("poll-2")
+    world.run()
+    assert len(voyage.texts) == embedded  # AI-4: not again
+
+
+def test_items_without_full_text_rights_get_no_vectors() -> None:
+    world, voyage = embedding_world(profile="excerpt")
+    world.discover()
+    world.run()
+    assert voyage.texts == []
+    assert world.queue.pending("embed_item") == 0
+
+
+def test_resegmenting_redoes_the_vectors() -> None:
+    world, voyage = embedding_world()
+    world.discover()
+    world.run()
+    wal = next(i for i in world.store.items.rows.values() if i.canonical_url == WAL)
+    before = len(voyage.texts)
+    world.queue.enqueue(
+        "segment_item", {"content_item_id": wal.id}, idempotency_key="again"
+    )
+    world.run()
+    assert len(voyage.texts) > before
+    assert not world.store.embeddings.missing(wal.id, "voyage-3.5")
+
+
+def test_a_moment_with_no_text_does_not_make_every_poll_re_embed() -> None:
+    world, voyage = embedding_world()
+    world.discover("poll-1")
+    world.run()
+    wal = next(i for i in world.store.items.rows.values() if i.canonical_url == WAL)
+    rows = [m.row for m in world.store.moments.for_item(wal.id)]
+    ghost = MomentRow(len(rows), "Not in the text", 1, WAL + "#ghost", "anchor")
+    world.store.moments.replace(wal.id, [*rows, ghost])
+    world.store.embeddings.clear(wal.id)  # as after a re-segmentation
+    for poll in ("poll-2", "poll-3"):
+        world.now += timedelta(days=2)
+        world.store.validators.put(FEED_URL, None)
+        world.discover(poll)
+        world.run()
+    # Re-embedded once (poll-2), not again on poll-3.
+    assert voyage.texts.count(voyage.texts[0]) <= 2
+    assert not world.store.embeddings.missing(wal.id, "voyage-3.5")

@@ -30,7 +30,7 @@ from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.adapters.voyage import VoyageClient
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.events.emitter import Emitter
-from interval_jobs.pipeline import StageServices, Tagging, UnitOfWork
+from interval_jobs.pipeline import ModelJob, StageServices, UnitOfWork
 from interval_jobs.ports import AiLedger, EventSink, JobQueue, QueueConsumer
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -189,14 +189,14 @@ def ai_gateway(ledger: AiLedger, http: httpx.Client) -> AiGateway:
 
 
 @contextmanager
-def tagging() -> Generator[Tagging | None]:
-    """Concept tagging (P1-W3-S02) with the model the tagging eval picked
-    (ADR-0010); off until TAGGING_MODEL is set. Each call gets a short autocommit
-    ledger connection: a paid call is recorded even if its stage then fails (OPS-4).
-    """
-    model = os.environ.get("TAGGING_MODEL")
+def model_job(variable: str) -> Generator[ModelJob | None]:
+    """A model-backed stage with the model its eval picked (ADR-0010): TAGGING_MODEL
+    (P1-W3-S02) or EMBEDDING_MODEL (P1-W3-S04); off until set. Each call gets a short
+    autocommit ledger connection: a paid call is recorded even if its stage then
+    fails (OPS-4)."""
+    model = os.environ.get(variable)
     if not model:
-        log.info("tagging: off (TAGGING_MODEL is not set)")
+        log.info(f"{variable}: off (not set)")
         yield None
         return
     url = database_url()
@@ -207,4 +207,4 @@ def tagging() -> Generator[Tagging | None]:
             with psycopg.connect(url, autocommit=True) as ledger:
                 yield ai_gateway(PostgresAi(ledger), http)
 
-        yield Tagging(model, gateway)
+        yield ModelJob(model, gateway)

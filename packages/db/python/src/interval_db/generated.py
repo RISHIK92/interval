@@ -180,6 +180,12 @@ class ItemConcept(TypedDict):
     concept_id: int
 
 
+class ItemEmbedding(TypedDict):
+    content_item_id: int
+    model: str
+    embedded_at: datetime
+
+
 class ItemTagging(TypedDict):
     content_item_id: int
     difficulty: Difficulty
@@ -203,6 +209,13 @@ class Moment(TypedDict):
 class MomentConcept(TypedDict):
     moment_id: int
     concept_id: int
+
+
+class MomentEmbedding(TypedDict):
+    moment_id: int
+    model: str
+    embedding: str
+    embedded_at: datetime
 
 
 class MomentTagging(TypedDict):

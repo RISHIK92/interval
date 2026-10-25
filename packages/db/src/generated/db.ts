@@ -193,6 +193,12 @@ export interface ItemConcept {
   content_item_id: Int8;
 }
 
+export interface ItemEmbedding {
+  content_item_id: Int8;
+  embedded_at: Generated<Timestamp>;
+  model: string;
+}
+
 export interface ItemTagging {
   content_item_id: Int8;
   difficulty: Difficulty;
@@ -215,6 +221,13 @@ export interface Moment {
 
 export interface MomentConcept {
   concept_id: Int8;
+  moment_id: Int8;
+}
+
+export interface MomentEmbedding {
+  embedded_at: Generated<Timestamp>;
+  embedding: string;
+  model: string;
   moment_id: Int8;
 }
 
@@ -286,9 +299,11 @@ export interface DB {
   graph_version: GraphVersion;
   invite_code: InviteCode;
   item_concept: ItemConcept;
+  item_embedding: ItemEmbedding;
   item_tagging: ItemTagging;
   moment: Moment;
   moment_concept: MomentConcept;
+  moment_embedding: MomentEmbedding;
   moment_tagging: MomentTagging;
   plan: Plan;
   plan_capability: PlanCapability;

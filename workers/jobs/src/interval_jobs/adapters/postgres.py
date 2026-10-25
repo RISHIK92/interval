@@ -12,7 +12,7 @@ from decimal import Decimal
 import psycopg
 from psycopg.rows import class_row
 
-from interval_db.generated import BetaGroup, Capability, RightsProfile
+from interval_db.generated import BetaGroup, Capability, Difficulty, RightsProfile
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
@@ -30,6 +30,7 @@ from interval_jobs.ports import (
     Section,
     SectionRow,
     SegmentationInput,
+    SimilarMoment,
     SourceRecord,
     SourceSettings,
     SyncResult,
@@ -948,6 +949,121 @@ class PostgresItemTags:
         return item, moments
 
 
+def _vector(values: list[float]) -> str:
+    # pgvector's text form; read and written as text, no adapter (P1-W3-S04).
+    # pgvector stores float4, so nine significant digits keep every bit.
+    return "[" + ",".join(format(float(v), ".9g") for v in values) + "]"
+
+
+class PostgresEmbeddings:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def missing(self, item_id: int, model: str) -> bool:
+        row = self._conn.execute(
+            """
+            select ci.duplicate_of is null
+               and exists (select 1 from moment m where m.content_item_id = ci.id)
+               and not exists (
+                 select 1 from item_embedding ie
+                 where ie.content_item_id = ci.id and ie.model = %s
+               )
+            from content_item ci where ci.id = %s
+            """,
+            (model, item_id),
+        ).fetchone()
+        return bool(row and row[0])
+
+    def done(self, item_id: int, model: str) -> set[int]:
+        rows = self._conn.execute(
+            "select e.moment_id from moment_embedding e "
+            "join moment m on m.id = e.moment_id "
+            "where m.content_item_id = %s and e.model = %s",
+            (item_id, model),
+        ).fetchall()
+        return {int(r[0]) for r in rows}
+
+    def save(
+        self,
+        item_id: int,
+        vectors: dict[int, list[float]],
+        model: str,
+        *,
+        complete: bool,
+    ) -> None:
+        owned = {
+            int(r[0])
+            for r in self._conn.execute(
+                "select id from moment where content_item_id = %s", (item_id,)
+            ).fetchall()
+        }
+        foreign = sorted(set(vectors) - owned)
+        if foreign:
+            raise ValueError(f"moments {foreign} are not item {item_id}'s")
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                """
+                insert into moment_embedding (moment_id, model, embedding)
+                values (%s, %s, %s::vector)
+                on conflict (moment_id) do update
+                  set model = excluded.model,
+                      embedding = excluded.embedding,
+                      embedded_at = now()
+                """,
+                [(m, model, _vector(v)) for m, v in sorted(vectors.items())],
+            )
+        if complete:
+            self._conn.execute(
+                "insert into item_embedding (content_item_id, model) values (%s, %s) "
+                "on conflict do nothing",
+                (item_id, model),
+            )
+
+    def clear(self, item_id: int) -> None:
+        self._conn.execute(
+            "delete from moment_embedding where moment_id in "
+            "(select id from moment where content_item_id = %s)",
+            (item_id,),
+        )
+        self._conn.execute(
+            "delete from item_embedding where content_item_id = %s", (item_id,)
+        )
+
+    def similar(
+        self,
+        vector: list[float],
+        limit: int,
+        *,
+        source_ids: list[int] | None = None,
+        difficulties: list[Difficulty] | None = None,
+    ) -> list[SimilarMoment]:
+        # With filters, a plain HNSW scan returns at most ef_search candidates and
+        # filters them afterwards; the iterative scan keeps going until `limit` match.
+        self._conn.execute("set local hnsw.iterative_scan = strict_order")
+        rows = self._conn.execute(
+            """
+            select e.moment_id, 1 - (e.embedding <=> %(v)s::vector) as score
+            from moment_embedding e
+            join moment m on m.id = e.moment_id
+            join content_item ci on ci.id = m.content_item_id
+            join source s on s.id = ci.source_id
+            left join moment_tagging t on t.moment_id = m.id
+            where s.rights_profile in ('full_text_internal', 'full_text_display')
+              and (%(sources)s::bigint[] is null or s.id = any(%(sources)s))
+              and (%(levels)s::difficulty[] is null or t.difficulty = any(%(levels)s))
+            order by e.embedding <=> %(v)s::vector
+            limit %(limit)s
+            """,
+            {
+                "v": _vector(vector),
+                "sources": source_ids,
+                "levels": difficulties,
+                "limit": limit,
+            },
+        ).fetchall()
+        return [SimilarMoment(int(r[0]), float(r[1])) for r in rows]
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.sources = PostgresSources(conn)
@@ -960,6 +1076,7 @@ class PostgresStore:
         self.validators = PostgresValidators(conn)
         self.concepts = PostgresConcepts(conn)
         self.tags = PostgresItemTags(conn)
+        self.embeddings = PostgresEmbeddings(conn)
 
 
 @contextmanager

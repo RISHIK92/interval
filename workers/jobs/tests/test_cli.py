@@ -11,6 +11,8 @@ import pytest
 from interval_jobs import __main__ as cli
 from interval_jobs.__main__ import main
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
+from interval_jobs.concepts.graph import parse_concepts
+from interval_jobs.concepts.sync import sync_concepts
 
 
 @dataclass
@@ -234,6 +236,97 @@ def test_draft_concepts_writes_a_reviewable_file_never_the_seed_file(
         main([*args, "--file", str(other), "--out", "workers/jobs/seeds/concepts.yaml"])
     with pytest.raises(SystemExit):
         main([*args, "--count", "0", "--out", str(out)])
+
+
+def test_the_eval_commands_print_a_report_and_fail_below_the_mark(
+    store: InMemoryStore,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    from interval_jobs.ai.gateway import AiGateway
+
+    from .test_embedding_eval import QUERIES, URL, KeywordVoyage
+    from .test_tagging import ScriptedLlm
+
+    item = _item_with_moments(store, URL)
+    answer: dict[str, object] = {
+        "item": {"difficulty": "beginner", "concepts": []},
+        "moments": [
+            {"ordinal": o, "difficulty": "beginner", "concepts": []} for o in (0, 1, 2)
+        ],
+    }
+
+    def fake_gateway(ledger: object, http: object) -> AiGateway:
+        return AiGateway(InMemoryAi(store.users), ScriptedLlm(answer), KeywordVoyage())
+
+    monkeypatch.setattr(cli, "ai_gateway", fake_gateway)
+    sync_concepts(
+        store,
+        parse_concepts(
+            "version: 1\nconcepts:\n  - {slug: a, name: A, topic: backend}\n", "c.yaml"
+        ),
+    )
+    queries = tmp_path / "queries.yaml"
+    queries.write_text(QUERIES, encoding="utf-8")
+    main(
+        [
+            "eval-embeddings",
+            "--queries",
+            str(queries),
+            "--model",
+            "voyage-3.5",
+            "--min-pool",
+            "3",
+        ]
+    )
+    report = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert report["mrr"] == 1.0 and report["cost_usd"] == "0.002"
+    labels = tmp_path / "labels.yaml"
+    labels.write_text(
+        f'version: 1\nmoments:\n  - {{url: "{URL}", moment: null,'
+        " difficulty: advanced, concepts: [a]}\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit) as failed:
+        main(["eval-tagging", "--labels", str(labels), "--model", "m"])
+    assert failed.value.code == 1  # below the pass mark, after printing the report
+    assert json.loads(capsys.readouterr().out.splitlines()[-1])["passed"] is False
+    assert store.tags.version(item) is None
+
+
+def _item_with_moments(store: InMemoryStore, url: str) -> int:
+    from interval_jobs.ports import FeedEntry, MomentRow
+
+    sid = store.sources.upsert(
+        name="eval",
+        feed_url="https://e.test/f",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    store.sources.set_moments_enabled(sid, True)
+    entry = FeedEntry(
+        guid="e",
+        link=url,
+        title="T",
+        author=None,
+        published_at=None,
+        updated_at=None,
+        summary=None,
+    )
+    item = store.items.upsert_from_feed(sid, entry, keep_excerpt=False)
+    store.items.store_full_text(
+        item, "intro text\nWhy a log\nthe log comes first\nRecovery\nafter a crash"
+    )
+    store.moments.replace(
+        item,
+        [
+            MomentRow(0, "T", 1, url, "page_top"),
+            MomentRow(1, "Why a log", 1, f"{url}#a", "anchor"),
+            MomentRow(2, "Recovery", 1, f"{url}#b", "anchor"),
+        ],
+    )
+    return item
 
 
 def test_poll_due_queues_due_sources_once(

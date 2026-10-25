@@ -10,7 +10,7 @@ import pytest
 from interval_db.generated import AiProvider
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
 from interval_jobs.ai.gateway import AiGateway, Completed, Embedded, OverBudget
-from interval_jobs.ports import Completion, Embeddings, Message, Usage
+from interval_jobs.ports import Completion, EmbeddingPurpose, Embeddings, Message, Usage
 
 NOW = datetime(2026, 10, 25, 12, 0, tzinfo=UTC)
 MESSAGES: list[Message] = [{"role": "user", "content": "tag this"}]
@@ -39,7 +39,9 @@ class FakeEmbeddings:
     def __init__(self) -> None:
         self.calls = 0
 
-    def embed(self, model: str, texts: list[str]) -> Embeddings:
+    def embed(
+        self, model: str, texts: list[str], purpose: EmbeddingPurpose
+    ) -> Embeddings:
         self.calls += 1
         return Embeddings(
             vectors=[[0.1, 0.2] for _ in texts],
@@ -148,7 +150,11 @@ def test_a_failed_call_records_nothing_and_propagates(ledger: InMemoryAi) -> Non
 
 def test_embeddings_follow_the_same_budget_rules(ledger: InMemoryAi) -> None:
     result = gateway(ledger).embed(
-        feature="embeddings", user_id=None, model="voyage-x", texts=["a", "b"]
+        feature="embeddings",
+        user_id=None,
+        model="voyage-x",
+        texts=["a", "b"],
+        purpose="document",
     )
     assert isinstance(result, Embedded)
     assert len(result.vectors) == 2
@@ -156,7 +162,11 @@ def test_embeddings_follow_the_same_budget_rules(ledger: InMemoryAi) -> None:
     assert result.usage.output_tokens == 0
     spend(ledger, None, "5.00", NOW)
     assert gateway(ledger).embed(
-        feature="embeddings", user_id=None, model="voyage-x", texts=["a"]
+        feature="embeddings",
+        user_id=None,
+        model="voyage-x",
+        texts=["a"],
+        purpose="query",
     ) == OverBudget("global")
 
 

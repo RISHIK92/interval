@@ -8,10 +8,12 @@ import httpx
 from pydantic import BaseModel, ValidationError
 
 from interval_db.generated import AiProvider
-from interval_jobs.ports import Embeddings, ModelError
+from interval_jobs.ports import EmbeddingPurpose, Embeddings, ModelError
 
 URL = "https://api.voyageai.com/v1/embeddings"
 TIMEOUT_S = 60.0
+# The moment_embedding column's dimension (P1-W3-S04).
+DIMENSIONS = 1024
 # USD per million tokens. A model missing here is refused: an unpriced call would
 # slip past the cost budgets (OPS-4).
 PRICE_PER_MILLION: dict[str, Decimal] = {
@@ -44,7 +46,9 @@ class VoyageClient:
         self._http = http
         self._api_key = api_key
 
-    def embed(self, model: str, texts: list[str]) -> Embeddings:
+    def embed(
+        self, model: str, texts: list[str], purpose: EmbeddingPurpose
+    ) -> Embeddings:
         if not self._api_key:
             raise ModelError("VOYAGE_API_KEY is not set")
         price = PRICE_PER_MILLION.get(model)
@@ -53,7 +57,12 @@ class VoyageClient:
         try:
             response = self._http.post(
                 URL,
-                json={"model": model, "input": texts},
+                json={
+                    "model": model,
+                    "input": texts,
+                    "input_type": purpose,
+                    "output_dimension": DIMENSIONS,
+                },
                 headers={"authorization": f"Bearer {self._api_key}"},
                 timeout=TIMEOUT_S,
             )
@@ -66,6 +75,10 @@ class VoyageClient:
                 f"voyage {model}: {len(body.data)} vectors for {len(texts)}"
             )
         ordered = sorted(body.data, key=lambda item: item.index)
+        if any(len(item.embedding) != DIMENSIONS for item in ordered):
+            raise ModelError(
+                f"voyage {model}: vectors are not {DIMENSIONS}-dimensional"
+            )
         tokens = body.usage.total_tokens
         return Embeddings(
             vectors=[item.embedding for item in ordered],

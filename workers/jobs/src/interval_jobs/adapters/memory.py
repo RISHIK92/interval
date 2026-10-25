@@ -6,12 +6,13 @@ ING-2 triggers: forbidden writes raise RightsViolation, and lowering a profile o
 switching moments off purges what the source no longer allows.
 """
 
+import math
 import re
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
-from interval_db.generated import BetaGroup, Capability, RightsProfile
+from interval_db.generated import BetaGroup, Capability, Difficulty, RightsProfile
 from interval_jobs.concepts.graph import refuse_cycles
 from interval_jobs.normalize import near_duplicates
 from interval_jobs.polling import START_INTERVAL
@@ -32,6 +33,7 @@ from interval_jobs.ports import (
     Section,
     SectionRow,
     SegmentationInput,
+    SimilarMoment,
     SourceRecord,
     SourceSettings,
     SyncResult,
@@ -686,6 +688,11 @@ class InMemoryItemTags:
         row = self.rows.get(item_id)
         return None if row is None else row[3]
 
+    def moment_difficulty(self, item_id: int, moment_id: int) -> Difficulty | None:
+        row = self.rows.get(item_id)
+        tags = row[1].get(moment_id) if row else None
+        return tags.difficulty if tags else None
+
     def needs_tagging(self, item_id: int, prompt_version: int) -> bool:
         item = self._items.rows[item_id]
         return item.duplicate_of is None and self.version(item_id) != prompt_version
@@ -718,6 +725,91 @@ class InMemoryItemTags:
         return row[0], {ordinals[k]: v for k, v in row[1].items() if k in ordinals}
 
 
+class InMemoryEmbeddings:
+    def __init__(
+        self,
+        items: InMemoryItems,
+        sources: InMemorySources,
+        moments: InMemoryMoments,
+        tags: InMemoryItemTags,
+    ) -> None:
+        self._items = items
+        self._sources = sources
+        self._moments = moments
+        self._tags = tags
+        self.rows: dict[int, tuple[str, list[float]]] = {}  # moment id -> model, vector
+        self.complete: set[tuple[int, str]] = set()  # (item id, model)
+
+    def missing(self, item_id: int, model: str) -> bool:
+        return (
+            self._items.rows[item_id].duplicate_of is None
+            and bool(self._moments.for_item(item_id))
+            and (item_id, model) not in self.complete
+        )
+
+    def done(self, item_id: int, model: str) -> set[int]:
+        return {
+            m.id
+            for m in self._moments.for_item(item_id)
+            if self.rows.get(m.id, ("", []))[0] == model
+        }
+
+    def save(
+        self,
+        item_id: int,
+        vectors: dict[int, list[float]],
+        model: str,
+        *,
+        complete: bool,
+    ) -> None:
+        owned = {m.id for m in self._moments.for_item(item_id)}
+        foreign = sorted(set(vectors) - owned)
+        if foreign:
+            raise ValueError(f"moments {foreign} are not item {item_id}'s")
+        for moment_id, vector in vectors.items():
+            self.rows[moment_id] = (model, vector)
+        if complete:
+            self.complete.add((item_id, model))
+
+    def clear(self, item_id: int) -> None:
+        for m in self._moments.for_item(item_id):
+            self.rows.pop(m.id, None)
+        self.complete = {(i, m) for i, m in self.complete if i != item_id}
+
+    def similar(
+        self,
+        vector: list[float],
+        limit: int,
+        *,
+        source_ids: list[int] | None = None,
+        difficulties: list[Difficulty] | None = None,
+    ) -> list[SimilarMoment]:
+        # Mirrors PostgresEmbeddings.similar; vectors of purged moments are gone.
+        live = {m.id: m.item_id for m in self._moments.rows}
+        hits: list[SimilarMoment] = []
+        for moment_id, (_, other) in self.rows.items():
+            item_id = live.get(moment_id)
+            if item_id is None:
+                continue
+            source = self._sources.rows[self._items.rows[item_id].source_id]
+            if source.rights_profile not in _FULL_TEXT:
+                continue
+            if source_ids is not None and source.id not in source_ids:
+                continue
+            level = self._tags.moment_difficulty(item_id, moment_id)
+            if difficulties is not None and level not in difficulties:
+                continue
+            hits.append(SimilarMoment(moment_id, _cosine(vector, other)))
+        hits.sort(key=lambda h: -h.score)
+        return hits[:limit]
+
+
+def _cosine(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
+    norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
+    return dot / norm if norm else 0.0
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -730,6 +822,9 @@ class InMemoryStore:
         self.validators = InMemoryValidators()
         self.concepts = InMemoryConcepts()
         self.tags = InMemoryItemTags(self.items, self.moments)
+        self.embeddings = InMemoryEmbeddings(
+            self.items, self.sources, self.moments, self.tags
+        )
         self.sources.store = self
 
 

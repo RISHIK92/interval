@@ -161,7 +161,8 @@ def segment_item(store: Store, content_item_id: int) -> list[MomentRow]:
     # Upserted by ordinal so a moment keeps its id across runs (saves, history and
     # events will reference it); ordinals no longer produced are removed.
     store.moments.replace(content_item_id, rows)
-    # Moment ids are kept by ordinal, but their text may have changed: tags made for
-    # the old moments would mislead, so they are redone (P1-W3-S02).
+    # Moment ids are kept by ordinal, but their text may have changed: tags and
+    # vectors made for the old moments would mislead, so they are redone.
     store.tags.clear(content_item_id)
+    store.embeddings.clear(content_item_id)
     return rows

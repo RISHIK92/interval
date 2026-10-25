@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) and W3-S02 (tagging mechanism; eval labels and model pick pending) done. Next: W3-S04 embeddings mechanism, W3-S05/S06 admin. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. Next: W3-S05/S06 admin. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -25,6 +25,7 @@ Needs your review (newest first):
 
 Pending (needs the owner):
 - W3-S02: the tagging eval's ~30 labelled moments, its thresholds and the tagging model (`TAGGING_MODEL`); tagging is off until then.
+- W3-S04: the embeddings eval's queries over ~50 labelled moments (plus distractors), its pass mark and the Voyage model (`EMBEDDING_MODEL`); embeddings are off until then.
 
 ## Bootstrap session log
 
@@ -901,3 +902,37 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - a test for each path.
 - Pending (needs the owner): about 30 labelled moments, the thresholds (F1 0.7 and difficulty 0.6 are placeholders), the model pick and real runs, and docs/conflicts.md C-35 (metadata to a model) and C-36 (AI-3 citations for tags).
 - Follow-up: AI-4 asks for prompt caching in offline jobs, but the concept list (about 250 slugs) is resent on every call.
+
+### 2026-10-26 — P1-W3-S04 (embeddings per moment, DB-3, AI-4, OPS-4, Q-P1-27; overnight, mechanism only)
+- Done:
+  - **Migration `20261026070000_moment_embeddings.sql`:**
+    - `moment_embedding` holds `vector(1024)`: the default of voyage-3.5, 3.5-lite and 3-large, which the Voyage client pins with `output_dimension` and checks;
+    - an HNSW cosine index;
+    - the table cascades from moments, which exist only under internal full-text rights and are purged on lowering;
+    - `item_embedding` stamps an item as fully embedded by a model.
+  - **Codegen:** `vector` is its text form, `str`, as kysely's `string`. W1 deferred this decision to this slice.
+  - **Embedding purpose:** the port and gateway pass a purpose (document/query) to Voyage's `input_type`.
+  - **`embedding.py`:** cuts moments' text like tagging, embeds in batches of 32 and skips moments already done. A budget stop keeps the batches already paid for.
+  - **Pipeline `embed_item` stage:**
+    - off until `EMBEDDING_MODEL` is set;
+    - the model call runs outside any transaction, with a re-check before save;
+    - a partial pass is saved and finished on a later poll;
+    - duplicates and momentless items never count as missing;
+    - re-segmentation clears the item's vectors.
+    - The tagging config type became the shared `ModelJob`.
+  - **`similar`:** one SQL query filtered by rights, source and moment difficulty. It uses pgvector 0.8's iterative HNSW scan, so filters don't starve the result. A difficulty filter leaves out untagged moments.
+  - **`eval-embeddings --queries --model`:**
+    - owner queries name relevant moments by URL and heading, plus distractor items;
+    - the pool is every moment of those items;
+    - an eval with fewer than 50 moments, unresolved labels or colliding headings is refused;
+    - reports recall@5, MRR and cost; stores nothing.
+- Review fixes:
+  - a moment with no text made every poll re-embed and re-pay for the item (a blocker);
+  - filtered HNSW queries could return too few results;
+  - the weak eval pool and its silent misses;
+  - eval tests that couldn't fail;
+  - paid batches thrown away on a budget stop;
+  - duplicates re-queued every poll;
+  - the runbook's log text;
+  - vector text precision.
+- Pending (needs the owner): about 50 labelled moments and their queries, the pass mark (recall@5 0.6 and a 50-moment pool are placeholders), the model pick and real runs.
