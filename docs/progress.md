@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). Next: S15 (entitlements). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements) done. Next: S16 (cost budgets). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -497,3 +497,28 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - CDK's Firehose S3 destination grants `s3:DeleteObject*` to its role.
   - `astimezone()` without an argument converts to local time; a test caught a wrong-day bug.
 - Local setup: `.env` needs `EVENTS_TRANSPORT=file` and `EVENTS_DIR=.data/events`, as well as `MAIL_TRANSPORT=log` from S11 (see `.env.example`). The worker CLI also needs them now.
+
+### 2026-10-25 — P1-W1-S15 (entitlements, OPS-3, Q-P1-22, Q-P1-29)
+- Done:
+  - **Migration `20261025050000_entitlements.sql`:**
+    - a `capability` enum, the one list (the codegen gives TS `Capability` and Python `Capability`, so an unknown capability fails typecheck);
+    - `plan` (`beta`) and `plan_capability` (`feed.read`; `ai.notes.daily` = 20, a placeholder for W4-S06 and S16);
+    - `app_user.plan_id` defaulting to `beta`;
+    - `user_capability` for per-person grants (owner choice), with a trigger that refuses a capability any plan limits, because a grant carries no limit;
+    - the `user_entitlement` view: the plan's capabilities plus grants the plan doesn't give, with the plan's limit winning.
+  - **Web:**
+    - an `Entitlements` port (`can`, and `limit`, which is 0 when not granted and null for no limit, with the comparison rule written at the port), plus the `kyselyEntitlements` adapter over the view;
+    - `/` checks `feed.read`; without it, the page says so and keeps the account controls.
+  - **Worker:**
+    - a `Grants` port (Postgres and memory, in the contract suite) that matches emails case- and space-insensitively and refuses guests;
+    - `grant-capability --email E --capability C [--revoke]` prints `{"result": granted|revoked|not_granted}` and exits non-zero for an unknown account or a limited capability.
+- Review fixes:
+  - limited capabilities can no longer be granted per user (in the DB and the adapters);
+  - CLI tests for grant, revoke, an unknown email and a limited capability;
+  - mixed-case and padded emails;
+  - revoke reports whether a grant existed;
+  - the `limit()` comparison rule documented;
+  - a random test user id;
+  - the no-feed page keeps its sign-up link.
+- Noticed, not changed: `apps/web/src/server/ports.ts` hand-writes `BetaGroup`, which the DB codegen now generates (`@interval/db`). CLAUDE.md says never to hand-write a generated type. A small follow-up: import it from `@interval/db`.
+- Admin for the owner: `scripts/with-env.sh uv run python -m interval_jobs grant-capability --email <your account> --capability admin.review` (needs an account from /sign-up).

@@ -7,6 +7,8 @@ import type { ColumnType } from "kysely";
 
 export type BetaGroup = "developer" | "student";
 
+export type Capability = "admin.review" | "ai.notes.daily" | "feed.read";
+
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -29,6 +31,7 @@ export interface AppUser {
   invite_code_id: Int8;
   is_anonymous: Generated<boolean>;
   name: string;
+  plan_id: Generated<string>;
   updated_at: Generated<Timestamp>;
 }
 
@@ -137,6 +140,17 @@ export interface Moment {
   title: string;
 }
 
+export interface Plan {
+  id: string;
+  name: string;
+}
+
+export interface PlanCapability {
+  capability: Capability;
+  limit_value: number | null;
+  plan_id: string;
+}
+
 export interface SchemaMeta {
   key: string;
   value: string;
@@ -153,6 +167,18 @@ export interface Source {
   rights_profile: Generated<RightsProfile>;
 }
 
+export interface UserCapability {
+  capability: Capability;
+  granted_at: Generated<Timestamp>;
+  user_id: string;
+}
+
+export interface UserEntitlement {
+  capability: Capability | null;
+  limit_value: number | null;
+  user_id: string | null;
+}
+
 export interface DB {
   app_user: AppUser;
   auth_account: AuthAccount;
@@ -165,6 +191,10 @@ export interface DB {
   feed_visible: FeedVisible;
   invite_code: InviteCode;
   moment: Moment;
+  plan: Plan;
+  plan_capability: PlanCapability;
   schema_meta: SchemaMeta;
   source: Source;
+  user_capability: UserCapability;
+  user_entitlement: UserEntitlement;
 }

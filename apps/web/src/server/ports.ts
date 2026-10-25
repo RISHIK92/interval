@@ -1,6 +1,7 @@
 // Ports (ADR-0012): what server logic and pages depend on. Adapters implement them;
 // container.ts wires them. Nothing outside adapters/ imports kysely or pg.
 
+import type { Capability } from "@interval/db";
 import type { Envelope } from "@interval/events";
 
 // What a card may show (§3.2, ING-2): no summary or body text.
@@ -98,4 +99,14 @@ export interface Accounts {
 // DB-5: where events go. Returns the records it could not deliver, for one retry.
 export interface EventSink {
   write(batch: Envelope[]): Promise<{ failed: Envelope[] }>;
+}
+
+// OPS-3, Q-P1-22: features ask what a user may do; plans and grants live in the database.
+// Capability is the generated enum, so an unknown capability does not compile.
+export interface Entitlements {
+  can(userId: string, capability: Capability): Promise<boolean>;
+  // The plan's limit; null when the capability has no limit, 0 when it isn't granted.
+  // Compare as `limit === null || used < limit`: `used < (limit ?? 0)` would turn "no
+  // limit" into "none allowed".
+  limit(userId: string, capability: Capability): Promise<number | null>;
 }

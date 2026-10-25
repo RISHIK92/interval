@@ -14,7 +14,7 @@ import sys
 from datetime import UTC, datetime
 from typing import get_args
 
-from interval_db.generated import BetaGroup, RightsProfile
+from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.compose import services
 from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.one import ingest_one
@@ -42,7 +42,33 @@ def main(argv: list[str]) -> None:
     inv.add_argument("--count", type=int, default=1)
     inv.add_argument("--note")
     commands.add_parser("purge-guests", help="delete guests with no live session")
+    grant = commands.add_parser(
+        "grant-capability", help="give one account a capability beyond its plan"
+    )
+    grant.add_argument(
+        "--email", required=True, help="an account's email; guests can't be granted"
+    )
+    grant.add_argument(
+        "--capability", required=True, choices=get_args(Capability.__value__)
+    )
+    grant.add_argument("--revoke", action="store_true")
     args = parser.parse_args(argv)
+
+    if args.command == "grant-capability":
+        with services() as s:
+            grants = s.store.grants
+            change = (grants.revoke if args.revoke else grants.grant)(
+                args.email, args.capability
+            )
+        if change == "no_account":
+            sys.exit(f"no account with email {args.email}")
+        if change == "limited":
+            sys.exit(
+                f"{args.capability}: a plan limits it, so it comes from plans only"
+            )
+        # "revoked" removes the grant only; the user's plan may still include it.
+        print(json.dumps({"result": change, "capability": args.capability}))
+        return
 
     if args.command == "issue-invites":
         if args.uses < 1 or args.days < 1 or not 1 <= args.count <= MAX_COUNT:

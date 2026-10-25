@@ -202,3 +202,74 @@ def test_a_users_group_must_match_their_invite_codes_group(
             "values ('u2', 'n', 'u2@example.test', 'developer', %s)",
             (row[0],),
         )
+
+
+def a_user(conn: psycopg.Connection, user_id: str) -> None:
+    row = conn.execute(
+        "insert into invite_code (code, beta_group, max_uses, expires_at) "
+        "values (%s, 'student', 1, now() + interval '1 day') returning id",
+        (f"PLANCODE{user_id.upper()}",),
+    ).fetchone()
+    assert row is not None
+    conn.execute(
+        "insert into app_user (id, name, email, beta_group, invite_code_id) "
+        "values (%s, 'n', %s, 'student', %s)",
+        (user_id, f"{user_id}@example.test", row[0]),
+    )
+
+
+def entitlements(
+    conn: psycopg.Connection, user_id: str
+) -> list[tuple[str, int | None]]:
+    rows = conn.execute(
+        "select capability::text, limit_value from user_entitlement "
+        "where user_id = %s order by capability",
+        (user_id,),
+    ).fetchall()
+    return [(r[0], r[1]) for r in rows]
+
+
+# OPS-3, Q-P1-22: every user has a plan; the beta plan is the default.
+def test_a_new_user_is_on_the_beta_plan(conn: psycopg.Connection) -> None:
+    a_user(conn, "plan1")
+    row = conn.execute("select plan_id from app_user where id = 'plan1'").fetchone()
+    assert row == ("beta",)
+    assert entitlements(conn, "plan1") == [("ai.notes.daily", 20), ("feed.read", None)]
+
+
+def test_a_plan_limit_cannot_be_negative(conn: psycopg.Connection) -> None:
+    with pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(
+            "update plan_capability set limit_value = -1 "
+            "where plan_id = 'beta' and capability = 'ai.notes.daily'"
+        )
+
+
+# Q-P1-29: admin is granted per user on top of the plan; a grant never duplicates or
+# overrides a capability the plan already gives.
+def test_per_user_grants_add_to_the_plan_without_duplicating_it(
+    conn: psycopg.Connection,
+) -> None:
+    a_user(conn, "plan2")
+    conn.execute(
+        "insert into user_capability (user_id, capability) values "
+        "('plan2', 'admin.review'), ('plan2', 'feed.read')"
+    )
+    assert entitlements(conn, "plan2") == [
+        ("admin.review", None),
+        ("ai.notes.daily", 20),
+        ("feed.read", None),
+    ]
+
+
+# A grant carries no limit, so a capability some plan limits (an OPS-4 cost) can only
+# come from a plan; otherwise one grant would mean unlimited use.
+def test_a_limited_capability_cannot_be_granted_per_user(
+    conn: psycopg.Connection,
+) -> None:
+    a_user(conn, "plan3")
+    with pytest.raises(psycopg.errors.RaiseException, match="grant it through a plan"):
+        conn.execute(
+            "insert into user_capability (user_id, capability) "
+            "values ('plan3', 'ai.notes.daily')"
+        )

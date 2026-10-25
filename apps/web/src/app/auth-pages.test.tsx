@@ -20,6 +20,7 @@ vi.mock("../server/container", () => ({
   accounts: () => port,
   events: () => ({ emit }),
   feedReader: () => ({ list: () => Promise.resolve([] as FeedCard[]) }),
+  entitlements: () => ({ can: () => Promise.resolve(true) }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),

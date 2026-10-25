@@ -11,6 +11,7 @@ import {
 } from "./adapters/better-auth";
 import {
   createDb,
+  kyselyEntitlements,
   kyselyFeedReader,
   kyselyInviteCodes,
   kyselyPing,
@@ -22,6 +23,7 @@ import { createEmitter, type Emitter } from "./events";
 import type {
   Accounts,
   DatabasePing,
+  Entitlements,
   FeedReader,
   GuestSessions,
   InviteCodes,
@@ -55,6 +57,10 @@ export function feedReader(): FeedReader {
 
 export function databasePing(): DatabasePing {
   return kyselyPing(db());
+}
+
+export function entitlements(): Entitlements {
+  return kyselyEntitlements(db());
 }
 
 export function inviteCodes(): InviteCodes {

@@ -5,10 +5,14 @@ import type { Actor, FeedCard } from "../server/ports";
 const getFeed = vi.fn<(limit: number) => Promise<FeedCard[]>>();
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const emit = vi.fn();
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../server/container", () => ({
   feedReader: () => ({ list: getFeed }),
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
+  entitlements: () => ({ can }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -81,4 +85,17 @@ test("renders an empty state when the feed is empty", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue([]);
   expect(await render()).toContain("No moments yet.");
+});
+
+// OPS-3: the feed is a capability; a plan without it sees a message, not the feed.
+test("without feed.read the page says so and never reads the feed", async () => {
+  current.mockResolvedValue(guest);
+  can.mockResolvedValueOnce(false);
+  const html = await render();
+  expect(html).toContain("Your plan doesn&#x27;t include the feed.");
+  // The way out (sign up, for a guest) stays on the page.
+  expect(html).toContain('href="/sign-up"');
+  expect(can).toHaveBeenCalledWith("u1", "feed.read");
+  expect(getFeed).not.toHaveBeenCalled();
+  expect(emit).not.toHaveBeenCalled();
 });

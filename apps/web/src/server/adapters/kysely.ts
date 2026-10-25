@@ -1,9 +1,10 @@
-import type { DB, FeedVisible } from "@interval/db";
+import type { Capability, DB, FeedVisible } from "@interval/db";
 import { Kysely, PostgresDialect, sql, type Selectable } from "kysely";
 import pg from "pg";
 import { log } from "../log";
 import type {
   DatabasePing,
+  Entitlements,
   FeedCard,
   FeedReader,
   InviteCodes,
@@ -134,6 +135,25 @@ export function kyselyInviteCodes(db: Kysely<DB>): InviteCodes {
         .where("id", "=", inviteCodeId)
         .where("used_count", ">", 0)
         .execute();
+    },
+  };
+}
+
+// Reads the user_entitlement view, which merges plan and per-user grants (Q-P1-22).
+export function kyselyEntitlements(db: Kysely<DB>): Entitlements {
+  const find = (userId: string, capability: Capability) =>
+    db
+      .selectFrom("user_entitlement")
+      .select("limit_value")
+      .where("user_id", "=", userId)
+      .where("capability", "=", capability)
+      .executeTakeFirst();
+  return {
+    can: async (userId, capability) =>
+      (await find(userId, capability)) !== undefined,
+    limit: async (userId, capability) => {
+      const row = await find(userId, capability);
+      return row === undefined ? 0 : row.limit_value;
     },
   };
 }

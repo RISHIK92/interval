@@ -10,14 +10,16 @@ import re
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 
-from interval_db.generated import BetaGroup, RightsProfile
+from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.ports import (
     DuplicateInviteCode,
     FeedEntry,
     Fetched,
     FetchError,
     FetchKind,
+    GrantResult,
     MomentRow,
+    RevokeResult,
     RightsViolation,
     Section,
     SectionRow,
@@ -287,6 +289,8 @@ class StoredUser:
     id: str
     is_anonymous: bool
     session_expiries: list[datetime] = field(default_factory=list[datetime])
+    email: str = ""
+    capabilities: set[Capability] = field(default_factory=set[Capability])
 
 
 class InMemoryUsers:
@@ -304,6 +308,45 @@ class InMemoryUsers:
         return len(inactive)
 
 
+# The migration's seed: capabilities the beta plan limits (a database trigger refuses
+# granting these; the fake mirrors it).
+LIMITED_CAPABILITIES: frozenset[Capability] = frozenset({"ai.notes.daily"})
+
+
+class InMemoryGrants:
+    def __init__(self, users: InMemoryUsers) -> None:
+        self._users = users
+
+    def _account(self, email: str) -> StoredUser | None:
+        wanted = email.strip().lower()
+        return next(
+            (
+                u
+                for u in self._users.rows.values()
+                if u.email == wanted and not u.is_anonymous
+            ),
+            None,
+        )
+
+    def grant(self, email: str, capability: Capability) -> GrantResult:
+        user = self._account(email)
+        if user is None:
+            return "no_account"
+        if capability in LIMITED_CAPABILITIES:
+            return "limited"
+        user.capabilities.add(capability)
+        return "granted"
+
+    def revoke(self, email: str, capability: Capability) -> RevokeResult:
+        user = self._account(email)
+        if user is None:
+            return "no_account"
+        if capability not in user.capabilities:
+            return "not_granted"
+        user.capabilities.discard(capability)
+        return "revoked"
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -312,6 +355,7 @@ class InMemoryStore:
         self.feed = InMemoryFeed(self.items, self.moments)
         self.invites = InMemoryInvites()
         self.users = InMemoryUsers()
+        self.grants = InMemoryGrants(self.users)
         self.sources.store = self
 
 

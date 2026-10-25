@@ -11,11 +11,13 @@ from datetime import datetime
 import psycopg
 from psycopg.rows import class_row
 
-from interval_db.generated import BetaGroup, RightsProfile
+from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.ports import (
     DuplicateInviteCode,
     FeedEntry,
+    GrantResult,
     MomentRow,
+    RevokeResult,
     RightsViolation,
     Section,
     SectionRow,
@@ -293,6 +295,47 @@ class PostgresUsers:
         return cursor.rowcount
 
 
+class PostgresGrants:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def _account(self, email: str) -> str | None:
+        row = self._conn.execute(
+            "select id from app_user "
+            "where email = lower(btrim(%s)) and not is_anonymous",
+            (email,),
+        ).fetchone()
+        return None if row is None else str(row[0])
+
+    def grant(self, email: str, capability: Capability) -> GrantResult:
+        user_id = self._account(email)
+        if user_id is None:
+            return "no_account"
+        limited = self._conn.execute(
+            "select 1 from plan_capability "
+            "where capability = %s and limit_value is not null",
+            (capability,),
+        ).fetchone()
+        if limited is not None:
+            return "limited"
+        self._conn.execute(
+            "insert into user_capability (user_id, capability) values (%s, %s) "
+            "on conflict do nothing",
+            (user_id, capability),
+        )
+        return "granted"
+
+    def revoke(self, email: str, capability: Capability) -> RevokeResult:
+        user_id = self._account(email)
+        if user_id is None:
+            return "no_account"
+        removed = self._conn.execute(
+            "delete from user_capability where user_id = %s and capability = %s",
+            (user_id, capability),
+        )
+        return "revoked" if removed.rowcount > 0 else "not_granted"
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.sources = PostgresSources(conn)
@@ -301,6 +344,7 @@ class PostgresStore:
         self.feed = PostgresFeed(conn)
         self.invites = PostgresInvites(conn)
         self.users = PostgresUsers(conn)
+        self.grants = PostgresGrants(conn)
 
 
 @contextmanager

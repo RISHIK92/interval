@@ -27,6 +27,10 @@ from interval_jobs.ports import (
 )
 
 
+def email_of(user_id: str) -> str:
+    return f"{user_id}@contract.example.test"
+
+
 class Probe(Protocol):
     def enable_moments(self, source_id: int) -> None: ...
     def excerpt(self, item_id: int) -> str | None: ...
@@ -41,6 +45,7 @@ class Probe(Protocol):
         self, user_id: str, anonymous: bool, session_expires: list[datetime]
     ) -> None: ...
     def user_ids(self) -> set[str]: ...
+    def capabilities(self, user_id: str) -> set[str]: ...
 
 
 @dataclass
@@ -57,11 +62,14 @@ class MemoryProbe:
         self, user_id: str, anonymous: bool, session_expires: list[datetime]
     ) -> None:
         self.s.users.rows[user_id] = StoredUser(
-            user_id, anonymous, list(session_expires)
+            user_id, anonymous, list(session_expires), email=email_of(user_id)
         )
 
     def user_ids(self) -> set[str]:
         return set(self.s.users.rows)
+
+    def capabilities(self, user_id: str) -> set[str]:
+        return set(self.s.users.rows[user_id].capabilities)
 
     def invite(self, code: str) -> tuple[str, int, int, datetime, str | None] | None:
         row = self.s.invites.rows.get(code)
@@ -113,7 +121,7 @@ class PostgresProbe:
             "insert into app_user "
             "(id, name, email, is_anonymous, beta_group, invite_code_id) "
             "values (%s, 'n', %s, %s, 'student', %s)",
-            (user_id, f"{user_id}@contract.example.test", anonymous, code[0]),
+            (user_id, email_of(user_id), anonymous, code[0]),
         )
         for i, expires in enumerate(session_expires):
             self.conn.execute(
@@ -121,6 +129,13 @@ class PostgresProbe:
                 "values (%s, %s, %s, now(), %s)",
                 (f"{user_id}-s{i}", expires, f"{user_id}-t{i}", user_id),
             )
+
+    def capabilities(self, user_id: str) -> set[str]:
+        rows = self.conn.execute(
+            "select capability::text from user_capability where user_id = %s",
+            (user_id,),
+        ).fetchall()
+        return {r[0] for r in rows}
 
     def user_ids(self) -> set[str]:
         rows = self.conn.execute(
@@ -439,3 +454,41 @@ def test_purge_removes_only_guests_without_a_live_session(
     # A shared database can hold other session-less guests (a signed-out local one, or
     # one another test is creating), so only the fake can promise the exact count.
     assert purged == 2 if isinstance(s, InMemoryStore) else purged >= 2
+
+
+# Q-P1-29: admin is granted per person, by email, to accounts only.
+def test_capabilities_are_granted_and_revoked_by_email(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.add_user("acct-grant", False, [])
+    probe.add_user("guest-grant", True, [])
+    account = email_of("acct-grant")
+    assert s.grants.grant(account, "admin.review") == "granted"
+    # Granting twice is fine, and emails match whatever their case or spacing.
+    assert s.grants.grant(f" {account.upper()} ", "admin.review") == "granted"
+    assert probe.capabilities("acct-grant") == {"admin.review"}
+    assert s.grants.revoke(account, "admin.review") == "revoked"
+    assert probe.capabilities("acct-grant") == set()
+    assert s.grants.revoke(account, "admin.review") == "not_granted"
+
+
+def test_a_capability_a_plan_limits_cannot_be_granted(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.add_user("acct-limited", False, [])
+    assert s.grants.grant(email_of("acct-limited"), "ai.notes.daily") == "limited"
+    assert probe.capabilities("acct-limited") == set()
+
+
+def test_guests_and_unknown_emails_cannot_be_granted(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.add_user("guest-grant2", True, [])
+    assert s.grants.grant(email_of("guest-grant2"), "admin.review") == "no_account"
+    assert probe.capabilities("guest-grant2") == set()
+    nobody = "nobody@contract.example.test"
+    assert s.grants.grant(nobody, "admin.review") == "no_account"
+    assert s.grants.revoke(nobody, "admin.review") == "no_account"

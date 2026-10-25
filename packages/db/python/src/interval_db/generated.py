@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Literal, TypedDict
 
 type BetaGroup = Literal["student", "developer"]
+type Capability = Literal["feed.read", "admin.review", "ai.notes.daily"]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
@@ -21,6 +22,7 @@ class AppUser(TypedDict):
     invite_code_id: int
     created_at: datetime
     updated_at: datetime
+    plan_id: str
 
 
 class AuthAccount(TypedDict):
@@ -128,6 +130,17 @@ class Moment(TypedDict):
     created_at: datetime
 
 
+class Plan(TypedDict):
+    id: str
+    name: str
+
+
+class PlanCapability(TypedDict):
+    plan_id: str
+    capability: Capability
+    limit_value: int | None
+
+
 class SchemaMeta(TypedDict):
     key: str
     value: str
@@ -142,3 +155,15 @@ class Source(TypedDict):
     moments_enabled: bool
     paywalled: bool
     created_at: datetime
+
+
+class UserCapability(TypedDict):
+    user_id: str
+    capability: Capability
+    granted_at: datetime
+
+
+class UserEntitlement(TypedDict):
+    user_id: str | None
+    capability: Capability | None
+    limit_value: int | None

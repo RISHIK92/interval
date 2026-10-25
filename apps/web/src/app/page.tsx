@@ -1,7 +1,12 @@
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { events, feedReader, sessionReader } from "../server/container";
+import {
+  entitlements,
+  events,
+  feedReader,
+  sessionReader,
+} from "../server/container";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { MomentCard } from "./MomentCard";
@@ -14,6 +19,25 @@ export default async function HomePage() {
   // Private beta (Q-P1-24): no session, no app.
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  const account = actor.isGuest ? (
+    <p>
+      <Link href="/sign-up">Sign up to keep your progress</Link>
+    </p>
+  ) : (
+    <form action={signOutAction}>
+      <button type="submit">Sign out</button>
+    </form>
+  );
+  // OPS-3: the feed is a capability of the user's plan.
+  if (!(await entitlements().can(actor.userId, "feed.read"))) {
+    return (
+      <main>
+        <h1>Interval</h1>
+        {account}
+        <p>Your plan doesn&apos;t include the feed.</p>
+      </main>
+    );
+  }
   const cards = await feedReader().list(FEED_LIMIT);
   events().emit(
     "feed_viewed",
@@ -23,15 +47,7 @@ export default async function HomePage() {
   return (
     <main>
       <h1>Interval</h1>
-      {actor.isGuest ? (
-        <p>
-          <Link href="/sign-up">Sign up to keep your progress</Link>
-        </p>
-      ) : (
-        <form action={signOutAction}>
-          <button type="submit">Sign out</button>
-        </form>
-      )}
+      {account}
       {cards.length === 0 ? (
         <p>No moments yet.</p>
       ) : (

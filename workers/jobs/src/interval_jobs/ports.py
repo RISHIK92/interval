@@ -10,7 +10,12 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict
 
-from interval_db.generated import BetaGroup, MomentLinkType, RightsProfile
+from interval_db.generated import (
+    BetaGroup,
+    Capability,
+    MomentLinkType,
+    RightsProfile,
+)
 from interval_jobs.events.generated import Envelope
 
 type FetchKind = Literal["feed", "article"]
@@ -166,6 +171,26 @@ class Users(Protocol):
         ...
 
 
+type GrantResult = Literal["granted", "no_account", "limited"]
+type RevokeResult = Literal["revoked", "not_granted", "no_account"]
+
+
+class Grants(Protocol):
+    """Capabilities given to one person on top of their plan (OPS-3, Q-P1-29).
+
+    Emails match an account case- and space-insensitively; guests have none. A
+    capability any plan limits can't be granted ("limited"): grants carry no limit.
+    """
+
+    def grant(self, email: str, capability: Capability) -> GrantResult:
+        """Idempotent: granting twice is "granted" both times."""
+        ...
+
+    def revoke(self, email: str, capability: Capability) -> RevokeResult:
+        """Removes the grant only; the plan may still give the capability."""
+        ...
+
+
 class Store(Protocol):
     """Repositories sharing one unit of work; the composition root commits it."""
 
@@ -186,6 +211,9 @@ class Store(Protocol):
 
     @property
     def users(self) -> Users: ...
+
+    @property
+    def grants(self) -> Grants: ...
 
 
 class Fetcher(Protocol):
