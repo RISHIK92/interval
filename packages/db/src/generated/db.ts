@@ -5,13 +5,15 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "embeddings" | "notes" | "tagging";
+export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "tagging";
 
 export type AiProvider = "openrouter" | "voyage";
 
 export type BetaGroup = "developer" | "student";
 
 export type Capability = "admin.review" | "ai.budget.daily_cents" | "ai.notes.daily" | "feed.read";
+
+export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
 
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
@@ -95,6 +97,23 @@ export interface AuthVerification {
   value: string;
 }
 
+export interface Concept {
+  created_at: Generated<Timestamp>;
+  description: string | null;
+  id: Generated<Int8>;
+  merged_into: Int8 | null;
+  name: string;
+  retired_at: Timestamp | null;
+  slug: string;
+  topic: string;
+}
+
+export interface ConceptEdge {
+  from_id: Int8;
+  to_id: Int8;
+  type: ConceptEdgeType;
+}
+
 export interface ContentItem {
   author: string | null;
   canonical_url: string;
@@ -149,6 +168,11 @@ export interface FetchValidator {
   last_modified: string | null;
   updated_at: Generated<Timestamp>;
   url: string;
+}
+
+export interface GraphVersion {
+  loaded_at: Generated<Timestamp>;
+  version: number;
 }
 
 export interface InviteCode {
@@ -226,12 +250,15 @@ export interface DB {
   auth_account: AuthAccount;
   auth_session: AuthSession;
   auth_verification: AuthVerification;
+  concept: Concept;
+  concept_edge: ConceptEdge;
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;
   feed_entry: FeedEntry;
   feed_visible: FeedVisible;
   fetch_validator: FetchValidator;
+  graph_version: GraphVersion;
   invite_code: InviteCode;
   moment: Moment;
   plan: Plan;

@@ -16,6 +16,10 @@ from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
+    ConceptCycleError,
+    ConceptEdge,
+    ConceptGraph,
+    ConceptSeed,
     DuplicateInviteCode,
     FeedEntry,
     FetchInput,
@@ -659,6 +663,137 @@ class PostgresValidators:
         )
 
 
+class PostgresConcepts:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def state(self) -> ConceptGraph | None:
+        row = self._conn.execute("select max(version) from graph_version").fetchone()
+        if row is None or row[0] is None:
+            return None
+        version: int = row[0]
+        concepts = [
+            ConceptSeed(slug, name, topic, description, retired, merged_into)
+            for (
+                slug,
+                name,
+                topic,
+                description,
+                retired,
+                merged_into,
+            ) in self._conn.execute(
+                """
+                select c.slug, c.name, c.topic, c.description, c.retired_at is not null,
+                       m.slug
+                from concept c left join concept m on m.id = c.merged_into
+                order by c.slug
+                """
+            ).fetchall()
+        ]
+        edges: set[ConceptEdge] = {
+            (str(a), str(b), kind)
+            for a, b, kind in self._conn.execute(
+                """
+                select f.slug, t.slug, e.type
+                from concept_edge e
+                join concept f on f.id = e.from_id
+                join concept t on t.id = e.to_id
+                """
+            ).fetchall()
+        }
+        return ConceptGraph(version, concepts, edges)
+
+    def apply(self, graph: ConceptGraph) -> None:
+        with self._conn.cursor() as cur:
+            # One load at a time: two would race on replacing the edges.
+            cur.execute("lock table graph_version in exclusive mode")
+            cur.executemany(
+                """
+                insert into concept (slug, name, topic, description, retired_at)
+                values (%(slug)s, %(name)s, %(topic)s, %(description)s,
+                        case when %(retired)s then now() end)
+                on conflict (slug) do update
+                  set name = excluded.name,
+                      topic = excluded.topic,
+                      description = excluded.description,
+                      -- Keep the first retirement time; clear it on reactivation.
+                      retired_at = case
+                        when %(retired)s then coalesce(concept.retired_at, now())
+                      end,
+                      -- An active concept is merged into nothing (the row check).
+                      merged_into = case when %(retired)s then concept.merged_into end
+                """,
+                [
+                    {
+                        "slug": c.slug,
+                        "name": c.name,
+                        "topic": c.topic,
+                        "description": c.description,
+                        "retired": c.retired,
+                    }
+                    for c in graph.concepts
+                ],
+            )
+            cur.executemany(
+                """
+                update concept
+                set merged_into = (select id from concept where slug = %s)
+                where slug = %s and merged_into is distinct from (
+                  select id from concept where slug = %s
+                )
+                """,
+                [(c.merged_into, c.slug, c.merged_into) for c in graph.concepts],
+            )
+            cur.execute("delete from concept_edge")
+            try:
+                with self._conn.transaction():
+                    cur.executemany(
+                        """
+                        insert into concept_edge (from_id, to_id, type)
+                        select f.id, t.id, %s from concept f, concept t
+                        where f.slug = %s and t.slug = %s
+                        """,
+                        [(kind, a, b) for a, b, kind in sorted(graph.edges)],
+                    )
+            except psycopg.errors.RaiseException as error:
+                raise ConceptCycleError(str(error).splitlines()[0]) from error
+            cur.execute(
+                "insert into graph_version (version) values (%s) "
+                "on conflict (version) do nothing",
+                (graph.version,),
+            )
+
+    def get(self, slug: str) -> ConceptSeed | None:
+        row = self._conn.execute(
+            """
+            select c.slug, c.name, c.topic, c.description, c.retired_at is not null,
+                   m.slug
+            from concept c left join concept m on m.id = c.merged_into
+            where c.slug = %s
+            """,
+            (slug,),
+        ).fetchone()
+        return None if row is None else ConceptSeed(*row)
+
+    def prerequisites(self, slug: str) -> set[str]:
+        rows = self._conn.execute(
+            """
+            with recursive before(id) as (
+              select e.from_id from concept_edge e
+              join concept c on c.id = e.to_id
+              where c.slug = %s and e.type = 'prerequisite_of'
+              union
+              select e.from_id from concept_edge e join before b on e.to_id = b.id
+              where e.type = 'prerequisite_of'
+            )
+            select c.slug from concept c join before b on b.id = c.id
+            where c.retired_at is null
+            """,
+            (slug,),
+        ).fetchall()
+        return {str(r[0]) for r in rows}
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.sources = PostgresSources(conn)
@@ -669,6 +804,7 @@ class PostgresStore:
         self.users = PostgresUsers(conn)
         self.grants = PostgresGrants(conn)
         self.validators = PostgresValidators(conn)
+        self.concepts = PostgresConcepts(conn)
 
 
 @contextmanager

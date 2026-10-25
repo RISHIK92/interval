@@ -17,8 +17,13 @@ import pytest
 from interval_db.generated import RightsProfile
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore
+from interval_jobs.concepts.graph import ConceptSeedError, parse_concepts
+from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.ports import (
     AiLedger,
+    ConceptCycleError,
+    ConceptEdge,
+    ConceptGraph,
     DuplicateInviteCode,
     FeedEntry,
     MomentRow,
@@ -56,6 +61,7 @@ class Probe(Protocol):
     def has_item(self, item_id: int) -> bool: ...
     def primary_of(self, item_id: int) -> int | None: ...
     def oversized(self, item_id: int) -> list[bool]: ...
+    def reset_concepts(self) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
 
 
@@ -107,6 +113,9 @@ class MemoryProbe:
 
     def oversized(self, item_id: int) -> list[bool]:
         return [m.row.oversized for m in self.s.moments.for_item(item_id)]
+
+    def reset_concepts(self) -> None:
+        pass  # a fresh store has no graph
 
     def simhash(self, item_id: int) -> int | None:
         return self.s.items.rows[item_id].simhash
@@ -229,6 +238,11 @@ class PostgresProbe:
             "order by ordinal",
             (item_id,),
         ).fetchall()
+
+    def reset_concepts(self) -> None:
+        # A local database may hold the real graph; the test's transaction rolls this
+        # back. Truncate skips the never-deleted row trigger.
+        self.conn.execute("truncate concept_edge, graph_version, concept")
 
     def oversized(self, item_id: int) -> list[bool]:
         rows = self.conn.execute(
@@ -1166,3 +1180,133 @@ def test_known_guids_tell_new_entries_from_seen_ones(
     assert s.items.known_guids(
         sid, ["contract-dup-seen", "contract-dup-new", "contract-dup-elsewhere"]
     ) == {"contract-dup-seen"}
+
+
+# DB-2 concept graph (P1-W3-S01, Q-P1-04).
+def graph(version: int, body: str) -> ConceptGraph:
+    return parse_concepts(f"version: {version}\nconcepts:\n{body}", "c.yaml")
+
+
+CHAIN = """
+  - {slug: cg-replication, name: Replication, topic: distributed-systems}
+  - {slug: cg-lag, name: Lag, topic: distributed-systems,
+     prerequisites: [cg-replication]}
+  - {slug: cg-ryw, name: RYW, topic: distributed-systems, prerequisites: [cg-lag]}
+  - {slug: cg-quorum, name: Quorum, topic: distributed-systems, related: [cg-lag]}
+"""
+
+
+def test_a_loaded_graph_answers_recursive_prerequisites(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    result = sync_concepts(s, graph(1, CHAIN))
+    assert (result.added, result.retired) == (4, 0)
+    assert s.concepts.prerequisites("cg-ryw") == {"cg-lag", "cg-replication"}
+    assert s.concepts.prerequisites("cg-replication") == set()
+    # "related to" is not a prerequisite.
+    assert s.concepts.prerequisites("cg-quorum") == set()
+
+
+def test_loading_the_same_file_again_changes_nothing(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    assert sync_concepts(s, graph(1, CHAIN)).changed is False
+
+
+def test_a_changed_file_must_bump_its_version(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    renamed = CHAIN.replace("name: RYW", "name: Read your writes")
+    with pytest.raises(ConceptSeedError, match="version"):
+        sync_concepts(s, graph(1, renamed))
+    assert sync_concepts(s, graph(2, renamed)).updated == 1
+
+
+def test_a_concept_dropped_from_the_file_is_retired_and_stays_readable(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    without_lag = """
+  - {slug: cg-replication, name: Replication, topic: distributed-systems}
+  - {slug: cg-ryw, name: RYW, topic: distributed-systems,
+     prerequisites: [cg-replication]}
+  - {slug: cg-quorum, name: Quorum, topic: distributed-systems}
+"""
+    assert sync_concepts(s, graph(2, without_lag)).retired == 1
+    lag = s.concepts.get("cg-lag")
+    assert lag is not None and lag.retired and lag.name == "Lag"
+    assert s.concepts.prerequisites("cg-ryw") == {"cg-replication"}
+
+
+def test_a_merged_concept_points_at_its_replacement(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    body = (
+        CHAIN
+        + "  - {slug: cg-old-lag, name: Old, topic: backend, merged_into: cg-lag}\n"
+    )
+    sync_concepts(s, graph(1, body))
+    old = s.concepts.get("cg-old-lag")
+    assert old is not None and (old.retired, old.merged_into) == (True, "cg-lag")
+
+
+def test_the_store_refuses_a_prerequisite_cycle_the_parser_did_not_see(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    current = s.concepts.state()
+    assert current is not None
+    closing: set[ConceptEdge] = {("cg-ryw", "cg-replication", "prerequisite_of")}
+    looped = ConceptGraph(
+        2,
+        current.concepts,
+        current.edges | closing,
+    )
+    with pytest.raises(ConceptCycleError):
+        s.concepts.apply(looped)
+
+
+def test_a_retired_or_merged_concept_can_come_back(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    old_lag = "{slug: cg-old-lag, name: Old, topic: backend, merged_into: cg-lag}"
+    sync_concepts(s, graph(1, CHAIN + f"  - {old_lag}\n"))
+    revived = CHAIN + "  - {slug: cg-old-lag, name: Old, topic: backend}\n"
+    sync_concepts(s, graph(2, revived))
+    back = s.concepts.get("cg-old-lag")
+    assert back is not None and (back.retired, back.merged_into) == (False, None)
+
+
+def test_an_older_file_with_unchanged_content_is_a_no_op(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(3, CHAIN))
+    assert sync_concepts(s, graph(1, CHAIN)).changed is False
+
+
+def test_postgres_refuses_deleting_a_concept_and_unknown_edge_types(
+    conn: psycopg.Connection,
+) -> None:
+    # Tags and learner state reference concepts (W3-S02 on): they must never dangle.
+    PostgresProbe(conn).reset_concepts()
+    sync_concepts(PostgresStore(conn), graph(1, CHAIN))
+    with pytest.raises(psycopg.errors.RaiseException), conn.transaction():
+        conn.execute("delete from concept where slug = 'cg-lag'")
+    with pytest.raises(psycopg.errors.InvalidTextRepresentation), conn.transaction():
+        conn.execute(
+            "insert into concept_edge (from_id, to_id, type) select a.id, b.id, "
+            "'depends_on' from concept a, concept b "
+            "where a.slug = 'cg-lag' and b.slug = 'cg-ryw'"
+        )

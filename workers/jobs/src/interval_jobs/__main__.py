@@ -7,6 +7,8 @@ Usage:
   python -m interval_jobs issue-invites --group student --uses 30 --days 30 [--count N]
   python -m interval_jobs purge-guests
   python -m interval_jobs poll-due
+  python -m interval_jobs load-concepts [--file F]
+  python -m interval_jobs draft-concepts --topic T --model M --out F
 """
 
 import argparse
@@ -20,13 +22,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import get_args
 
+import httpx
+
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.compose import (
+    ai_gateway,
     queue_consumer,
     queue_for_enqueue,
     services,
     stage_units,
 )
+from interval_jobs.concepts.draft import DraftError, draft_concepts
+from interval_jobs.concepts.graph import TOPICS, ConceptSeedError, parse_concepts
+from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.consumer import run_consumers
 from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.one import ingest_one
@@ -34,12 +42,14 @@ from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.pipeline import Pipeline
 from interval_jobs.polling import enqueue_due
+from interval_jobs.ports import ConceptCycleError, ModelError
 from interval_jobs.segment import segment_item
 from interval_jobs.tracing import run_span, setup
 
 # The owner's seed list (Q-P1-02), relative to where commands run: the repo root
 # locally, /app in the worker image (which copies it to the same path).
 SEED_FILE = Path("workers/jobs/seeds/sources.yaml")
+CONCEPT_FILE = Path("workers/jobs/seeds/concepts.yaml")
 
 
 def main(argv: list[str]) -> None:
@@ -76,6 +86,19 @@ def main(argv: list[str]) -> None:
         "load-sources", help="sync the seed list file into the sources table"
     )
     load.add_argument("--file", type=Path, default=SEED_FILE)
+    concepts = commands.add_parser(
+        "load-concepts", help="sync the concept seed file into the concept graph"
+    )
+    concepts.add_argument("--file", type=Path, default=CONCEPT_FILE)
+    draft = commands.add_parser(
+        "draft-concepts",
+        help="ask a model for candidate concepts and write them to a file for review",
+    )
+    draft.add_argument("--topic", required=True, choices=sorted(TOPICS))
+    draft.add_argument("--count", type=_draft_count, default=20)
+    draft.add_argument("--model", required=True, help="OpenRouter model id")
+    draft.add_argument("--out", type=Path, required=True)
+    draft.add_argument("--file", type=Path, default=CONCEPT_FILE)
     commands.add_parser(
         "consume", help="run the ingestion pipeline's stages until stopped"
     )
@@ -121,6 +144,44 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         except SeedError as error:
             sys.exit(str(error))
         print(json.dumps({**asdict(synced), "skipped_feedless": skipped}))
+        return
+
+    if args.command == "load-concepts":
+        path = str(args.file)
+        try:
+            text = args.file.read_text(encoding="utf-8")
+        except OSError as error:
+            sys.exit(f"{path}: {error.strerror}")
+        try:
+            graph = parse_concepts(text, path)
+            with services() as s:
+                loaded = sync_concepts(s.store, graph)
+        except (ConceptSeedError, ConceptCycleError) as error:
+            sys.exit(str(error))
+        print(json.dumps({"version": graph.version, **asdict(loaded)}))
+        return
+
+    if args.command == "draft-concepts":
+        if args.out.resolve() in (args.file.resolve(), CONCEPT_FILE.resolve()):
+            sys.exit("--out must not be the seed file: drafts are reviewed first")
+        try:
+            graph = parse_concepts(
+                args.file.read_text(encoding="utf-8"), str(args.file)
+            )
+            with services() as s, httpx.Client() as http:
+                text = draft_concepts(
+                    ai_gateway(s.ai, http), graph, args.topic, args.count, args.model
+                )
+        except (
+            OSError,
+            ConceptSeedError,
+            ConceptCycleError,
+            DraftError,
+            ModelError,
+        ) as error:
+            sys.exit(str(error))
+        args.out.write_text(text, encoding="utf-8")
+        print(json.dumps({"out": str(args.out)}))
         return
 
     if args.command == "grant-capability":
@@ -200,6 +261,13 @@ def _consume() -> None:
         close = getattr(queue, "close", None)
         if callable(close):
             close()
+
+
+def _draft_count(value: str) -> int:
+    count = int(value)
+    if not 1 <= count <= 50:
+        raise argparse.ArgumentTypeError("count must be between 1 and 50")
+    return count
 
 
 def _enqueue_discover(source_id: int | None) -> int:

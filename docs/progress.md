@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules) done. Next: W3-S01 (concept graph), then W3-S02/S04 mechanisms, W3-S05/S06 admin. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules) and W3-S01 (concept graph, provisional list) done. Next: W3-S02/S04 mechanisms (evals pending), W3-S05/S06 admin. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -16,6 +16,7 @@ Dependencies added overnight (all pinned):
 - pnpm `allowBuilds: msgpackr-extract: false`: BullMQ's optional native speed-up; the JS fallback works.
 
 Needs your review (newest first):
+- W3-S01: the provisional concept list (`workers/jobs/seeds/concepts.yaml`, 72 concepts drafted overnight) and the Voyage price table in `adapters/voyage.py`.
 - W3-S03: docs/conflicts.md C-34 (a short intro vs the 2-minute merge rule); built as the intro always being its own moment.
 - W2-S03: the polling interval numbers (15 min to 24 h, start 1 h, halve on new items, ×1.5 otherwise) are overnight picks; ING-3 gives none. `purge-guests` is still not scheduled anywhere (`stack.sh run` and the timer pattern make it easy to add).
 - W2-S06: the feed shows each duplicate group's earliest copy that has moments, and a missing author never matches on metadata. Both are product behaviour the docs don't define; recommended options were picked.
@@ -819,3 +820,41 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - weakened fixture tests restored with a multi-moment fixture.
 - Real seed pages now give 2–5 moments of 3–5 minutes each. A merged moment carries its first heading's title (e.g. PlanetScale's "Reference tables" covers four short sections after it).
 - Re-segmenting rows that already exist locally reassigns moment ids by ordinal. That's harmless now (only the feed references moments), but it matters once saves reference them.
+
+### 2026-10-26 — P1-W3-S01 (concept graph, DB-2, §3.1, Q-P1-03, Q-P1-04; overnight)
+- Done:
+  - **Migration `20261026050000_concept_graph.sql`:**
+    - `concept` (slug, name, topic in the four launch topics, description, retired_at, merged_into);
+    - `concept_edge` with a three-value enum (`prerequisite_of`, `related_to`, `applied_in`);
+    - `graph_version`;
+    - triggers: concepts are never deleted, and prerequisite cycles are refused;
+    - `ai_feature` gains `concept_drafting`.
+  - **`concepts/graph.py`:** parses and validates the seed file (kebab slugs, topics, the three edge lists only, unknown references, `merged_into`, cycles, the table's length limits).
+  - **`concepts/sync.py`:**
+    - a concept dropped from the file is retired, never deleted;
+    - an unchanged file is a no-op, and any change needs a higher `version`;
+    - retired and merged concepts can come back.
+  - **`load-concepts`** CLI.
+  - **`Concepts.prerequisites`:** a recursive CTE; retired concepts are left out of the result, but a path through one still counts.
+  - **`draft-concepts --topic --model --out`:**
+    - one call through the AI gateway (ADR-0008), costed as `concept_drafting`;
+    - candidates are validated against the graph and written to a review file, never loaded, and never written over the seed file;
+    - `--model` is required, because the docs name no drafting model.
+  - **First real model clients (httpx, no SDK):** OpenRouter (cost as OpenRouter reports it) and Voyage AI (cost from a per-token price table; the key is read only when embedding). Tested against mock transports; no real calls were made.
+- Review fixes:
+  - un-merging a concept crashed Postgres (a blocker);
+  - draft failed on a non-text slug from the model;
+  - provider errors showed as tracebacks;
+  - the Voyage key was required just to draft;
+  - the parser didn't enforce the table's length limits;
+  - the delete guard and the edge enum were untested;
+  - a stale or older unchanged file;
+  - fenced YAML with prose around it;
+  - `--out`/`--count` guards;
+  - the cycle trigger now names the concept's slug;
+  - loads are serialised;
+  - tests no longer depend on the provisional list's contents.
+- "A retired concept keeps its tags readable": concepts can't be deleted (trigger, tested), and a retired one stays readable. The tag half arrives with the tag table in W3-S02.
+- Needs your review:
+  - **`workers/jobs/seeds/concepts.yaml`:** 72 provisional concepts that I drafted myself (not through `draft-concepts`), marked not owner-approved. It's loaded in the local DB only.
+  - **Voyage prices in `adapters/voyage.py`:** 3.5 $0.06, 3.5-lite $0.02, 3-large $0.18 per million tokens. Please confirm them.

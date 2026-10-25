@@ -12,10 +12,13 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
+from interval_jobs.concepts.graph import refuse_cycles
 from interval_jobs.normalize import near_duplicates
 from interval_jobs.polling import START_INTERVAL
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
+    ConceptGraph,
+    ConceptSeed,
     DuplicateInviteCode,
     FeedEntry,
     Fetched,
@@ -607,6 +610,41 @@ class InMemoryValidators:
             self.rows[url] = (validators, datetime.now(UTC))
 
 
+class InMemoryConcepts:
+    def __init__(self) -> None:
+        self.graph: ConceptGraph | None = None
+
+    def state(self) -> ConceptGraph | None:
+        return self.graph
+
+    def apply(self, graph: ConceptGraph) -> None:
+        # Mirrors the refuse_prerequisite_cycle trigger.
+        refuse_cycles("store", graph.edges)
+        versions = [graph.version] + ([self.graph.version] if self.graph else [])
+        self.graph = replace(graph, version=max(versions))
+
+    def get(self, slug: str) -> ConceptSeed | None:
+        if self.graph is None:
+            return None
+        return next((c for c in self.graph.concepts if c.slug == slug), None)
+
+    def prerequisites(self, slug: str) -> set[str]:
+        if self.graph is None:
+            return set()
+        before: dict[str, set[str]] = {}
+        for source, target, kind in self.graph.edges:
+            if kind == "prerequisite_of":
+                before.setdefault(target, set()).add(source)
+        found: set[str] = set()
+        todo = [slug]
+        while todo:
+            for source in before.get(todo.pop(), set()) - found:
+                found.add(source)
+                todo.append(source)
+        retired = {c.slug for c in self.graph.concepts if c.retired}
+        return found - retired
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -617,6 +655,7 @@ class InMemoryStore:
         self.users = InMemoryUsers()
         self.grants = InMemoryGrants(self.users)
         self.validators = InMemoryValidators()
+        self.concepts = InMemoryConcepts()
         self.sources.store = self
 
 

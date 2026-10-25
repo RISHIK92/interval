@@ -18,6 +18,7 @@ from interval_db.generated import (
     AiProvider,
     BetaGroup,
     Capability,
+    ConceptEdgeType,
     MomentLinkType,
     RightsProfile,
 )
@@ -356,6 +357,50 @@ class AiLedger(Protocol):
 VALIDATORS_MAX_AGE = timedelta(days=1)
 
 
+type ConceptEdge = tuple[str, str, ConceptEdgeType]  # (from slug, to slug, type)
+
+
+@dataclass(frozen=True)
+class ConceptSeed:
+    slug: str
+    name: str
+    topic: str
+    description: str | None
+    retired: bool
+    merged_into: str | None  # slug
+
+
+@dataclass(frozen=True)
+class ConceptGraph:
+    """A whole graph: every concept (retired ones too) and every edge, by slug."""
+
+    version: int
+    concepts: list[ConceptSeed]
+    edges: set[ConceptEdge]
+
+
+class ConceptCycleError(ValueError):
+    """A "prerequisite of" cycle (Q-P1-04): refused by the parser and the store."""
+
+
+class Concepts(Protocol):
+    def state(self) -> ConceptGraph | None:
+        """The loaded graph at its latest version; None before the first load."""
+        ...
+
+    def apply(self, graph: ConceptGraph) -> None:
+        """Makes the tables match the graph and records its version. Concepts are
+        upserted by slug, never deleted; edges are replaced."""
+        ...
+
+    def get(self, slug: str) -> ConceptSeed | None: ...
+
+    def prerequisites(self, slug: str) -> set[str]:
+        """Every concept learned before this one, transitively; retired ones left out
+        (a path through one still counts)."""
+        ...
+
+
 class FetchValidators(Protocol):
     def get(self, url: str) -> Validators | None:
         """None when none are stored or they are older than VALIDATORS_MAX_AGE."""
@@ -392,6 +437,9 @@ class Store(Protocol):
 
     @property
     def validators(self) -> FetchValidators: ...
+
+    @property
+    def concepts(self) -> Concepts: ...
 
 
 class Fetcher(Protocol):
@@ -438,6 +486,10 @@ class Embeddings:
     vectors: list[list[float]]
     input_tokens: int
     cost_usd: Decimal
+
+
+class ModelError(Exception):
+    """A model call failed or answered with something unusable (ADR-0007)."""
 
 
 class LlmClient(Protocol):

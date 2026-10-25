@@ -21,13 +21,16 @@ from interval_jobs.adapters.bullmq_queue import BullmqConsumer, BullmqQueue
 from interval_jobs.adapters.file_sink import FileEventSink
 from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSink
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
+from interval_jobs.adapters.openrouter import OpenRouterClient
 from interval_jobs.adapters.polite_fetcher import PoliteFetcher
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore, unit_of_work
 from interval_jobs.adapters.sqs_queue import SqsClient, SqsConsumer, SqsQueue
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
+from interval_jobs.adapters.voyage import VoyageClient
+from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.events.emitter import Emitter
 from interval_jobs.pipeline import StageServices, UnitOfWork
-from interval_jobs.ports import EventSink, JobQueue, QueueConsumer
+from interval_jobs.ports import AiLedger, EventSink, JobQueue, QueueConsumer
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 USER_AGENT = "Interval/0.0 (personal learning platform; feed reader)"
@@ -173,3 +176,12 @@ def stage_units() -> Generator[UnitOfWork]:
                 yield StageServices(store, fetcher, extractor)
 
         yield unit
+
+
+def ai_gateway(ledger: AiLedger, http: httpx.Client) -> AiGateway:
+    """The one way to a model (ADR-0008): OpenRouter and Voyage AI (ADR-0007)."""
+    return AiGateway(
+        ledger,
+        OpenRouterClient(http, _required("OPENROUTER_API_KEY")),
+        VoyageClient(http, os.environ.get("VOYAGE_API_KEY") or None),
+    )

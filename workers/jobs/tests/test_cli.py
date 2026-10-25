@@ -10,12 +10,16 @@ import pytest
 
 from interval_jobs import __main__ as cli
 from interval_jobs.__main__ import main
-from interval_jobs.adapters.memory import InMemoryStore, StoredUser
+from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
 
 
 @dataclass
 class FakeServices:
     store: InMemoryStore
+
+    @property
+    def ai(self) -> InMemoryAi:
+        return InMemoryAi(self.store.users)
 
 
 @pytest.fixture
@@ -173,6 +177,63 @@ def test_enqueue_discover_queues_every_active_source(
     assert run(capsys, "enqueue-discover") == {"enqueued": 1}
     assert queue.pending("discover_source") == 1
     assert run(capsys, "enqueue-discover", "--source-id", str(b)) == {"enqueued": 1}
+
+
+def test_load_concepts_syncs_the_repo_file_and_reports_counts(
+    store: InMemoryStore, capsys: pytest.CaptureFixture[str]
+) -> None:
+    first = run(capsys, "load-concepts")
+    assert first["changed"] is True
+    loaded = store.concepts.state()
+    assert loaded is not None and int(str(first["added"])) == len(loaded.concepts)
+    assert run(capsys, "load-concepts")["changed"] is False
+
+
+def test_load_concepts_reports_a_cycle_and_writes_nothing(
+    store: InMemoryStore, tmp_path: Path
+) -> None:
+    looped = tmp_path / "concepts.yaml"
+    looped.write_text(
+        "version: 1\nconcepts:\n"
+        "  - {slug: a, name: A, topic: backend, prerequisites: [b]}\n"
+        "  - {slug: b, name: B, topic: backend, prerequisites: [a]}\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(SystemExit, match="prerequisite cycle"):
+        main(["load-concepts", "--file", str(looped)])
+    assert store.concepts.state() is None
+
+
+def test_draft_concepts_writes_a_reviewable_file_never_the_seed_file(
+    store: InMemoryStore,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    tmp_path: Path,
+) -> None:
+    from interval_jobs.ai.gateway import AiGateway
+
+    from .test_concept_draft import GOOD, NoEmbeddings, ScriptedLlm
+
+    def fake_gateway(ledger: object, http: object) -> AiGateway:
+        answer = GOOD.replace("replication-lag", "hinted-handoff")
+        return AiGateway(InMemoryAi(store.users), ScriptedLlm(answer), NoEmbeddings())
+
+    monkeypatch.setattr(cli, "ai_gateway", fake_gateway)
+    out = tmp_path / "draft.yaml"
+    args = ["draft-concepts", "--topic", "distributed-systems", "--model", "m"]
+    main([*args, "--out", str(out)])
+    lines = capsys.readouterr().out.splitlines()
+    assert json.loads(lines[-1]) == {"out": str(out)}
+    assert json.loads(lines[0])["msg"] == "ai: call"  # costed through the gateway
+    assert "hinted-handoff" in out.read_text(encoding="utf-8")
+    with pytest.raises(SystemExit, match="seed file"):
+        main([*args, "--out", "workers/jobs/seeds/concepts.yaml"])
+    other = tmp_path / "other.yaml"
+    other.write_text("version: 1\nconcepts: []\n", encoding="utf-8")
+    with pytest.raises(SystemExit, match="seed file"):
+        main([*args, "--file", str(other), "--out", "workers/jobs/seeds/concepts.yaml"])
+    with pytest.raises(SystemExit):
+        main([*args, "--count", "0", "--out", str(out)])
 
 
 def test_poll_due_queues_due_sources_once(

@@ -4,12 +4,13 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal, TypedDict
 
-type AiFeature = Literal["tagging", "notes", "embeddings"]
+type AiFeature = Literal["tagging", "notes", "embeddings", "concept_drafting"]
 type AiProvider = Literal["openrouter", "voyage"]
 type BetaGroup = Literal["student", "developer"]
 type Capability = Literal[
     "feed.read", "admin.review", "ai.notes.daily", "ai.budget.daily_cents"
 ]
+type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
@@ -84,6 +85,23 @@ class AuthVerification(TypedDict):
     updated_at: datetime
 
 
+class Concept(TypedDict):
+    id: int
+    slug: str
+    name: str
+    description: str | None
+    topic: str
+    created_at: datetime
+    retired_at: datetime | None
+    merged_into: int | None
+
+
+class ConceptEdge(TypedDict):
+    from_id: int
+    to_id: int
+    type: ConceptEdgeType
+
+
 class ContentItem(TypedDict):
     id: int
     source_id: int
@@ -138,6 +156,11 @@ class FetchValidator(TypedDict):
     etag: str | None
     last_modified: str | None
     updated_at: datetime
+
+
+class GraphVersion(TypedDict):
+    version: int
+    loaded_at: datetime
 
 
 class InviteCode(TypedDict):
