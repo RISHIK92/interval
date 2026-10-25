@@ -1,0 +1,42 @@
+# Node
+node_modules/
+.next/
+dist/
+coverage/
+.turbo/
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Go
+bin/
+
+# CDK
+cdk.out/
+
+# Env files
+.env
+.env.*
+!.env.example
+
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# Owner-provided originals; the committed copies live in docs/_source/
+interval-sources/

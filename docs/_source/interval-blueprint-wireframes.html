@@ -1,0 +1,1598 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Interval Product Blueprint</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=Schibsted+Grotesk:wght@500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+<style>
+/* Layout: one long scroll. Overview with a "developer's afternoon" timeline, then screens, flows, and the full blueprint with a sticky contents rail. */
+:root{
+  --bg:#F0F2F6; --surface:#FFFFFF; --sunk:#E6EAF0; --ink:#121620; --ink2:#3A4252; --muted:#687183; --line:#D7DCE4; --line2:#B8C0CD;
+  --accent:#2E47D1; --accent-ink:#2338B0; --accent-soft:#E2E7FC;
+  --tick:#B9700C; --tick-soft:#FBEED6; --ok:#1A7A4A; --ok-soft:#DCF0E4; --bad:#BC3333; --bad-soft:#F8E0E0;
+  --f-display:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0D1016; --surface:#151A23; --sunk:#1C222D; --ink:#E8ECF2; --ink2:#C1C8D3; --muted:#8F99A9; --line:#272F3D; --line2:#3A4457;
+  --accent:#8C9EFF; --accent-ink:#AEBBFF; --accent-soft:#1E2652;
+  --tick:#F0B04F; --tick-soft:#36280F; --ok:#52C68C; --ok-soft:#12301F; --bad:#F27B7B; --bad-soft:#3A1818; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0D1016; --surface:#151A23; --sunk:#1C222D; --ink:#E8ECF2; --ink2:#C1C8D3; --muted:#8F99A9; --line:#272F3D; --line2:#3A4457;
+  --accent:#8C9EFF; --accent-ink:#AEBBFF; --accent-soft:#1E2652;
+  --tick:#F0B04F; --tick-soft:#36280F; --ok:#52C68C; --ok-soft:#12301F; --bad:#F27B7B; --bad-soft:#3A1818; color-scheme:dark}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--f-body);-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--bg)}
+.wrap{max-width:1200px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3,h4{font-family:var(--f-display);text-wrap:balance;margin:0;color:var(--ink)}
+a{color:var(--accent-ink)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+.ic{display:inline-block;vertical-align:-0.15em;flex-shrink:0}
+.eyebrow{font:500 11.5px var(--f-mono);letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+
+/* nav */
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.nav .wrap{display:flex;align-items:center;gap:18px;height:54px}
+.brand{font:800 17px var(--f-display);display:flex;align-items:center;gap:9px;letter-spacing:-.01em;color:var(--ink);text-decoration:none;flex-shrink:0}
+.mark{display:inline-flex;align-items:center;gap:3px}
+.mark i{display:block;width:6px;height:17px;border-radius:2px;background:var(--ink)}
+.mark i:nth-child(2){width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.navlinks{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.navlinks::-webkit-scrollbar{display:none}
+.navlinks a{font:500 13px var(--f-body);color:var(--muted);text-decoration:none;padding:6px 10px;border-radius:7px;white-space:nowrap}
+.navlinks a:hover{color:var(--ink)}
+.navlinks a.on{color:var(--ink);background:var(--sunk)}
+
+/* overview */
+.hero{padding-block:56px 28px}
+.hero h1{font-size:clamp(38px,6.4vw,72px);line-height:1.02;letter-spacing:-.03em;font-weight:800;max-width:15ch;margin-top:14px}
+.hero h1 em{font-style:normal;color:var(--accent-ink)}
+.lede{font-size:clamp(16px,1.9vw,19px);line-height:1.55;max-width:62ch;color:var(--ink2);margin:18px 0 0}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:20px;font:500 12.5px var(--f-mono);color:var(--muted)}
+.meta span{display:inline-flex;align-items:center;gap:6px}
+
+.day{margin-top:34px;background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px 18px}
+.day-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px 20px;flex-wrap:wrap}
+.day-h h2{font-size:17px;font-weight:700}
+.day-sum{display:flex;gap:20px;flex-wrap:wrap;font-size:13px;color:var(--ink2)}
+.day-sum b{font:700 18px var(--f-display);color:var(--ink);font-variant-numeric:tabular-nums;margin-right:4px}
+.day-scroll{overflow-x:auto;margin-top:16px}
+.day-grid{min-width:680px;display:grid;grid-template-columns:64px 1fr;row-gap:12px;align-items:start}
+.lane-l{font:500 11.5px var(--f-mono);color:var(--muted);padding-top:5px}
+.lane{position:relative;height:26px}
+.lane.you{height:62px}
+.lane .b{position:absolute;top:0;height:26px;border-radius:5px}
+.b.code{background:var(--sunk);border:1px solid var(--line)}
+.b.agent{background:repeating-linear-gradient(135deg,var(--tick-soft) 0 5px,color-mix(in srgb,var(--tick) 30%,var(--tick-soft)) 5px 7px);border:1px solid var(--tick)}
+.b.agent span{position:absolute;left:calc(100% + 7px);top:4px;white-space:nowrap;font:500 11.5px var(--f-mono);color:var(--tick)}
+.b.sess{background:var(--accent);border-radius:5px}
+.sess-l{position:absolute;top:31px;font:500 11px/1.35 var(--f-mono);color:var(--accent-ink);white-space:nowrap}
+.axis{position:relative;height:18px;border-top:1px solid var(--line);font:11px var(--f-mono);color:var(--muted)}
+.axis span{position:absolute;top:4px;transform:translateX(-50%)}
+.axis span:first-child{transform:none}
+.axis span:last-child{transform:translateX(-100%)}
+.day-note{font-size:12.5px;color:var(--muted);margin:12px 0 0}
+
+.pillars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:22px}
+.pillar{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.pillar .pi{width:34px;height:34px;border-radius:9px;background:var(--accent-soft);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;margin-bottom:4px}
+.pillar h3{font-size:16px}
+.pillar p{margin:0;font-size:13.5px;color:var(--ink2);line-height:1.5}
+@media (max-width:900px){.pillars{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:520px){.pillars{grid-template-columns:1fr}}
+
+/* sections */
+.section{padding-block:64px 8px;scroll-margin-top:60px}
+.sec-head{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.sec-head h2{font-size:clamp(26px,3.4vw,36px);letter-spacing:-.02em;font-weight:800;margin-top:8px}
+.sec-head p{margin:8px 0 0;max-width:62ch;color:var(--ink2)}
+
+.principles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:28px}
+.prin{background:var(--surface);padding:16px 18px;display:flex;gap:12px}
+.prin .ic{color:var(--accent-ink);margin-top:3px}
+.prin h3{font-size:15px}
+.prin p{margin:3px 0 0;font-size:13.5px;color:var(--ink2);line-height:1.5}
+@media (max-width:900px){.principles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.principles{grid-template-columns:1fr}}
+
+.xtabs{display:flex;gap:6px;flex-wrap:wrap}
+.xtab{font:500 13px var(--f-body);padding:8px 14px;border-radius:999px;border:1px solid var(--line2);background:var(--surface);color:var(--ink2);cursor:pointer;transition:background .15s,color .15s}
+.xtab:hover{color:var(--ink);border-color:var(--muted)}
+.xtab[aria-selected="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.xtab .cnt{font:500 11px var(--f-mono);opacity:.7;margin-left:6px}
+
+.board{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:44px 28px;justify-items:center;padding:28px 20px;background:var(--sunk);border-radius:18px;margin-top:16px}
+.board.web{grid-template-columns:minmax(0,1fr);justify-items:stretch;gap:48px}
+@media (max-width:500px){.board{padding:20px 10px}}
+.shot{width:300px;display:flex;flex-direction:column;gap:12px;scroll-margin-top:80px}
+.shot.w{width:100%;min-width:0}
+.shot-h{display:flex;align-items:baseline;gap:10px}
+.shot-n{font:600 12px var(--f-mono);color:var(--accent-ink);font-variant-numeric:tabular-nums}
+.shot-h h3{font-size:16px}
+.shot-b{display:flex;flex-direction:column;gap:8px}
+.shot.w .shot-b{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.3fr);gap:6px 28px}
+@media (max-width:760px){.shot.w .shot-b{grid-template-columns:1fr}}
+.shot-p{margin:0;font-size:13.5px;color:var(--ink2);line-height:1.5}
+.ux{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px}
+.ux li{font-size:12.5px;line-height:1.45;color:var(--ink2);padding-left:18px;position:relative}
+.ux li::before{content:"";position:absolute;left:2px;top:.5em;width:8px;height:8px;border-radius:2px;background:var(--accent-soft);border:1px solid var(--accent)}
+.ux-l{font:500 10.5px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--accent-ink)}
+.inflow{display:flex;flex-wrap:wrap;gap:6px}
+.fchip{display:inline-flex;align-items:center;gap:5px;font:500 11.5px var(--f-body);padding:4px 9px;border-radius:999px;border:1px solid var(--line2);background:var(--surface);color:var(--ink2);cursor:pointer}
+.fchip:hover{border-color:var(--accent);color:var(--accent-ink)}
+
+/* flow player */
+.player{display:grid;grid-template-columns:320px minmax(0,1fr);gap:24px;margin-top:18px;align-items:start}
+@media (max-width:900px){.player{grid-template-columns:1fr}}
+.f-desc{margin:0 0 14px;font-size:14px;color:var(--ink2)}
+.f-ref{font:500 11.5px var(--f-mono);color:var(--muted);margin:0 0 12px}
+.fsteps{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.fstep{display:flex;gap:12px;width:100%;text-align:left;padding:10px 12px;border-radius:10px;border:1px solid transparent;background:none;cursor:pointer;align-items:flex-start}
+.fstep:hover{background:var(--surface)}
+.fstep.on{background:var(--surface);border-color:var(--line2)}
+.fn{width:24px;height:24px;border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;font:600 11.5px var(--f-mono);border:1px solid var(--line2);color:var(--ink2);background:var(--surface)}
+.fstep.on .fn{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.fstep b{display:block;font:600 13.5px var(--f-display)}
+.fstep span>span{display:block;font-size:12.5px;color:var(--ink2);line-height:1.45;margin-top:2px}
+.stage{background:var(--sunk);border-radius:18px;padding:22px;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0}
+@media (max-width:500px){.stage{padding:16px 10px}}
+.stage-top{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%}
+.stage-nav{display:flex;gap:6px}
+.stage-nav button{width:36px;height:36px;border-radius:9px;border:1px solid var(--line2);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.stage-nav button:disabled{opacity:.35;cursor:default}
+.stage-cap{margin:0;width:100%;font:600 clamp(16px,2vw,19px)/1.35 var(--f-display);text-wrap:balance}
+.webscroll{overflow-x:auto;width:100%;padding-bottom:4px}
+
+/* blueprint */
+.bp{display:grid;grid-template-columns:210px minmax(0,1fr);gap:48px;margin-top:8px}
+.toc{position:sticky;top:calc(env(safe-area-inset-top,0px) + 74px);align-self:start;max-height:calc(100vh - 100px);overflow:auto}
+.toc ol{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:1px}
+.toc a{display:flex;gap:10px;font-size:13px;color:var(--ink2);text-decoration:none;padding:5px 8px;border-radius:6px;line-height:1.35}
+.toc a span{font:500 11.5px var(--f-mono);color:var(--muted);min-width:18px;padding-top:1px}
+.toc a:hover{color:var(--ink);background:var(--surface)}
+.toc a.on{color:var(--ink);background:var(--surface);font-weight:500}
+@media (max-width:980px){.bp{grid-template-columns:1fr;gap:12px}.toc{position:static;max-height:none;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}.toc ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr))}}
+.doc{min-width:0;max-width:800px}
+.doc>section{scroll-margin-top:70px;padding-top:8px;margin-bottom:56px}
+.doc h2{font-size:clamp(23px,2.8vw,28px);letter-spacing:-.015em;font-weight:800;display:flex;gap:12px;align-items:baseline}
+.doc h2 .sn{font:600 14px var(--f-mono);color:var(--accent-ink)}
+.doc h3{font-size:18px;margin-top:30px;scroll-margin-top:70px}
+.doc h4{font-size:15px;margin-top:20px}
+.doc p,.doc li{max-width:68ch;color:var(--ink2)}
+.doc p{margin:12px 0 0}
+.doc ul,.doc ol.list{margin:12px 0 0;padding-left:20px}
+.doc li{margin:5px 0}
+.doc li b,.doc p b{color:var(--ink);font-weight:600}
+.doc code{font:13px var(--f-mono);background:var(--sunk);padding:1px 5px;border-radius:4px;color:var(--ink)}
+.tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:16px 0 0}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top;color:var(--ink2)}
+tr:last-child td{border-bottom:0}
+th{font:600 11px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);background:var(--sunk)}
+td:first-child{color:var(--ink);font-weight:500}
+td.num{font-variant-numeric:tabular-nums;font-family:var(--f-mono)}
+.callout{margin:18px 0 0;padding:14px 16px;border-radius:12px;background:var(--accent-soft);color:var(--ink);font-size:14.5px;line-height:1.55;max-width:68ch}
+.callout b{color:var(--accent-ink)}
+.callout.ai{background:var(--surface);border:1px dashed var(--muted)}
+.cards2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:16px}
+@media (max-width:620px){.cards2{grid-template-columns:1fr}}
+.bcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.bcard h4{margin:0;font-size:15px;display:flex;gap:8px;align-items:center}
+.bcard h4 .ic{color:var(--accent-ink)}
+.bcard p{margin:6px 0 0;font-size:14px}
+.bcard ul{padding-left:18px;margin:6px 0 0}
+.bcard li{font-size:14px;margin:3px 0}
+
+.hub{display:grid;grid-template-columns:1fr auto 1fr;gap:14px;align-items:center;margin-top:18px}
+@media (max-width:640px){.hub{grid-template-columns:1fr}.hub .harr{transform:rotate(90deg);justify-self:center}}
+.hub-col{display:flex;flex-direction:column;gap:6px}
+.hub-col .eyebrow{margin-bottom:2px}
+.hub-col span.hi{display:flex;gap:8px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:13.5px;color:var(--ink)}
+.hub-col span.hi .ic{color:var(--muted)}
+.hub-core{background:var(--ink);color:var(--surface);border-radius:16px;padding:18px;text-align:center;display:flex;flex-direction:column;gap:8px;align-items:center;min-width:200px}
+.hub-core b{font:700 17px var(--f-display)}
+.hub-core .cc{display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
+.hub-core .cc span{font:500 11px var(--f-mono);padding:3px 7px;border-radius:5px;background:color-mix(in srgb,var(--surface) 14%,transparent)}
+.harr{color:var(--muted);display:flex;justify-content:center}
+.hub-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1.1fr) auto minmax(0,1fr);gap:12px;align-items:center;margin-top:18px}
+@media (max-width:760px){.hub-wrap{grid-template-columns:1fr}.hub-wrap .harr{transform:rotate(90deg)}}
+
+.states{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px;align-items:center}
+.states span.s{font:500 12px var(--f-mono);padding:4px 9px;border-radius:999px;border:1px solid var(--line2);background:var(--surface);color:var(--ink)}
+.states .ic{color:var(--muted)}
+
+.scorebar-b{display:flex;height:36px;border-radius:9px;overflow:hidden;margin-top:14px;font:600 12.5px var(--f-mono)}
+.scorebar-b span{display:flex;align-items:center;padding:0 12px;white-space:nowrap}
+.scorebar-b .s1{flex:60;background:var(--accent);color:var(--surface)}
+.scorebar-b .s2{flex:25;background:var(--accent-soft);color:var(--accent-ink);border-left:2px solid var(--surface)}
+.scorebar-b .s3{flex:15;background:var(--sunk);color:var(--ink2);border-left:2px solid var(--surface)}
+
+.flowlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;margin-top:16px}
+.flowcard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.flowcard h4{margin:0;font-size:15px}
+.flowcard ol{margin:0;padding-left:18px}
+.flowcard li{font-size:13.5px;margin:3px 0}
+.flowcard button{align-self:flex-start;display:inline-flex;gap:6px;align-items:center;font:600 12.5px var(--f-body);padding:6px 11px;border-radius:8px;border:1px solid var(--line2);background:var(--surface);cursor:pointer;color:var(--ink)}
+.flowcard button:hover{border-color:var(--accent);color:var(--accent-ink)}
+
+.diagram{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:16px;overflow-x:auto}
+.mermaid{margin:0;background:none;font-family:var(--f-body)}
+.decisions{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:8px;counter-reset:d}
+.decisions li{counter-increment:d;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 16px 12px 52px;position:relative;max-width:none;margin:0}
+.decisions li::before{content:counter(d);position:absolute;left:16px;top:12px;width:24px;height:24px;border-radius:50%;border:1px dashed var(--tick);color:var(--tick);font:600 12px/22px var(--f-mono);text-align:center}
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:16px}
+.metric{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.metric b{font:700 15px var(--f-display);color:var(--ink);display:block}
+.metric span{font-size:13.5px;color:var(--ink2);line-height:1.45;display:block;margin-top:3px}
+.foot{padding-block:40px 60px;color:var(--muted);font-size:13px;border-top:1px solid var(--line);margin-top:40px}
+
+/* ===== wireframe kit ===== */
+.phone,.browser,.desk{font-family:var(--f-body);font-size:13px;line-height:1.4;color:var(--ink);text-align:left}
+.phone{width:300px;height:624px;border-radius:32px;border:1px solid var(--line2);background:var(--surface);overflow:hidden;display:flex;flex-direction:column;flex-shrink:0;box-shadow:0 1px 0 var(--line),0 22px 44px -28px rgba(10,14,24,.45)}
+.sbar{display:flex;justify-content:space-between;align-items:center;font:500 11px var(--f-mono);color:var(--muted);padding:12px 22px 4px;flex-shrink:0}
+.sbar span:last-child{display:inline-flex;gap:4px}
+.scr{flex:1;min-height:0;overflow:hidden;padding:6px 14px 10px;display:flex;flex-direction:column;gap:10px}
+.scr>.tag,.scr>.chip{align-self:flex-start}
+.tabs{display:flex;border-top:1px solid var(--line);padding:6px 0 12px;flex-shrink:0;background:var(--surface)}
+.tabs span{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10.5px;color:var(--muted)}
+.tabs span.on{color:var(--accent-ink);font-weight:600}
+.t11{font-size:11px;color:var(--muted);line-height:1.35}
+.c{text-align:center}
+.t11.r{text-align:right}
+.sp{display:flex;justify-content:space-between;gap:8px}
+.up{text-transform:uppercase;letter-spacing:.06em;font-family:var(--f-mono);font-size:10px}
+.grow{flex:1}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0}
+.h-t{font:700 19px var(--f-display);letter-spacing:-.01em}
+.wm{font:800 17px var(--f-display);letter-spacing:-.01em}
+.hd-r{display:flex;align-items:center;gap:10px;color:var(--ink2)}
+.h-xl{font:700 21px/1.2 var(--f-display);letter-spacing:-.01em;display:block}
+.h-l{font:700 17px/1.25 var(--f-display);display:block}
+.h-m{font:600 15px/1.3 var(--f-display);display:block}
+.h-s{font:600 12.5px var(--f-display);display:block}
+.sub{color:var(--ink2);font-size:12.5px;margin-top:4px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;padding:4px 10px;border-radius:999px;border:1px solid var(--line2);color:var(--ink2);white-space:nowrap}
+.chip.on{background:var(--accent-soft);color:var(--accent-ink);border-color:color-mix(in srgb,var(--accent) 50%,transparent);font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips.cc{justify-content:center}
+.seg{display:flex;border:1px solid var(--line2);border-radius:8px;overflow:hidden;flex-shrink:0}
+.seg span{flex:1;text-align:center;font-size:11.5px;padding:6px 4px;color:var(--ink2);white-space:nowrap}
+.seg span+span{border-left:1px solid var(--line)}
+.seg span.on{background:var(--accent-soft);color:var(--accent-ink);font-weight:600}
+.seg.in{display:inline-flex}.seg.in span{padding:5px 12px;flex:none}
+.lab{font:500 10.5px var(--f-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.scr>.lab{margin:2px 0 -4px}
+.card{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:var(--surface);flex-shrink:0}
+.cont{background:var(--sunk);border-color:transparent}
+.cont-t{display:flex;justify-content:space-between}
+.bar{height:4px;border-radius:2px;background:var(--line);flex-shrink:0}
+.bar i{display:block;height:100%;border-radius:2px;background:var(--accent)}
+.bar i.warn{background:var(--tick)}
+.av{width:28px;height:28px;border-radius:8px;background:var(--sunk);border:1px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font:600 10.5px var(--f-mono);color:var(--ink2);flex-shrink:0}
+.av.r{border-radius:50%}
+.av.q{border-style:dashed;color:var(--muted)}
+.row-c{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.row-c b{font-weight:600;font-size:12.5px}
+.row-c>span{font-size:11px;color:var(--muted)}
+.row{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink2);flex-shrink:0}
+.row .row-c b{color:var(--ink)}
+.row-i{color:var(--ink2);display:inline-flex}
+.list{display:flex;flex-direction:column;flex-shrink:0}
+.list>.row{border-radius:0;border-top-width:0}
+.list>.row:first-child{border-radius:10px 10px 0 0;border-top-width:1px}
+.list>.row:last-child{border-radius:0 0 10px 10px}
+.list>.row:only-child{border-radius:10px}
+.li{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);color:var(--ink2)}
+.li .row-c b{color:var(--ink)}
+.list>.li:last-child{border-bottom:0}
+.tag{display:inline-flex;align-items:center;gap:3px;font:500 10.5px var(--f-body);padding:2px 7px;border-radius:5px;background:var(--accent-soft);color:var(--accent-ink);white-space:nowrap;flex-shrink:0}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.st{background:var(--sunk);color:var(--ink2)}
+.tag.du{background:var(--tick-soft);color:var(--tick)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:600 12.5px var(--f-body);padding:9px 12px;border-radius:9px;white-space:nowrap;flex-shrink:0}
+.btn.pri{background:var(--ink);color:var(--surface)}
+.btn.ghost{border:1px solid var(--line2);color:var(--ink)}
+.btn.sm{padding:5px 10px;font-size:11.5px;border-radius:7px}
+.btnrow{display:flex;gap:8px;flex-shrink:0}
+.btnrow .btn{flex:1}
+.btnrow .btn.pri{flex:2}
+.btncol{display:flex;flex-direction:column;gap:6px}
+.why{font-size:11.5px;line-height:1.45;color:var(--ink2);border:1px dashed var(--line2);border-radius:8px;padding:7px 9px}
+.why .ai{margin-right:4px}
+.ai{display:inline-flex;align-items:center;gap:3px;font:500 10px var(--f-mono);padding:1px 6px;border-radius:4px;border:1px dashed var(--muted);color:var(--ink2);white-space:nowrap;vertical-align:1px}
+.orig{display:inline-flex;align-items:center;gap:4px;font:600 10.5px var(--f-body);padding:2px 8px;border-radius:4px;background:var(--ink);color:var(--surface)}
+.acts{display:flex;justify-content:space-between;font-size:11px;color:var(--ink2)}
+.acts span{display:inline-flex;align-items:center;gap:4px}
+.acts .hl{color:var(--accent-ink);font-weight:600}
+.fc-h{display:flex;align-items:center;gap:8px}
+.fc-t{font:600 14px/1.35 var(--f-display)}
+.agent{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--tick-soft);border:1px solid color-mix(in srgb,var(--tick) 45%,transparent);flex-shrink:0}
+.agent>.ic:first-child{color:var(--tick)}
+.agent div{flex:1;display:flex;flex-direction:column;min-width:0}
+.agent b{font-size:12px}
+.agent span{font-size:11px;color:var(--ink2)}
+.agent>.ic:last-child{color:var(--muted)}
+.budget{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.streak{display:inline-flex;align-items:center;gap:2px;font:600 12px var(--f-mono);color:var(--tick)}
+.kick{font:600 10px var(--f-mono);color:var(--tick);text-transform:uppercase;letter-spacing:.05em;display:flex;gap:4px;align-items:center;margin-bottom:-4px}
+.mini{display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--ink2);background:var(--surface);flex-shrink:0}
+.mini span:nth-child(2){flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topb{display:flex;align-items:center;gap:10px;padding:6px 14px 8px;border-bottom:1px solid var(--line);flex-shrink:0}
+.topb-c{flex:1;min-width:0;text-align:center;display:flex;flex-direction:column}
+.topb-c b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topb-c span{font-size:10.5px;color:var(--muted);display:inline-flex;gap:3px;align-items:center;justify-content:center}
+.moment{display:flex;align-items:center;gap:4px;padding:8px 14px 0;flex-shrink:0}
+.moment i{flex:1;height:3px;border-radius:2px;background:var(--line)}
+.moment i.d{background:var(--ink2)}
+.moment i.a{background:var(--accent)}
+.moment span{font:500 10.5px var(--f-mono);color:var(--muted);margin-left:6px;white-space:nowrap}
+.moment.w{padding:0}
+.pub-l{font-size:10.5px;color:var(--muted);text-align:center}
+.sk{height:7px;border-radius:4px;background:var(--line);flex-shrink:0}
+.sk.hlt{background:color-mix(in srgb,var(--tick) 40%,transparent)}
+.scr.pub,.scr.read{gap:8px}
+.img{height:74px;border-radius:8px;background:var(--sunk);flex-shrink:0}
+.sheet{background:var(--sunk);border-radius:16px 16px 0 0;padding:6px 14px 14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 -10px 22px -16px rgba(0,0,0,.45);flex-shrink:0}
+.grab{width:34px;height:4px;border-radius:2px;background:var(--line2);margin:0 auto}
+.peek{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--ink2)}
+.peek-t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.done{display:flex;gap:10px;align-items:center}
+.done>.ic{color:var(--ok)}
+.done div{display:flex;flex-direction:column}
+.done b{font-size:13px}
+.search{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line2);border-radius:10px;color:var(--muted);flex-shrink:0}
+.search span{flex:1;color:var(--ink)}
+.cdot{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);color:var(--accent-ink);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}
+.cdot.lg{width:42px;height:42px;border-radius:12px}
+.srcs{display:flex;gap:10px;font-size:11px;color:var(--ink2)}
+.srcs span{display:inline-flex;gap:4px;align-items:center}
+.tl{display:flex;flex-direction:column;flex-shrink:0}
+.tl-i{display:flex;gap:10px}
+.tl-m{display:flex;flex-direction:column;align-items:center;width:18px;flex-shrink:0}
+.tl-m .dot{width:18px;height:18px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line2);color:var(--muted);background:var(--surface);flex-shrink:0}
+.tl-m i{flex:1;width:1px;background:var(--line2);min-height:8px}
+.tl-c{flex:1;padding-bottom:9px;display:flex;flex-direction:column;gap:1px}
+.tl-c b{font-size:12.5px}
+.tl-c span{font-size:11px;color:var(--muted)}
+.tl-c .btn{align-self:flex-start;margin-top:4px}
+.tl-i.done .dot{background:var(--ink);border-color:var(--ink);color:var(--surface)}
+.tl-i.cpd .dot{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);border-radius:5px}
+.tl-i.cp .dot{border-color:var(--accent);color:var(--accent-ink);border-radius:5px;border-style:dashed}
+.tl-i.cp b{color:var(--accent-ink)}
+.tl-i.now .dot{border:2px solid var(--accent);background:var(--accent-soft)}
+.tl-i.lock b{color:var(--muted);font-weight:500}
+.book{flex-direction:row;align-items:center;gap:12px}
+.cover{width:40px;height:54px;border-radius:4px;background:var(--sunk);border:1px solid var(--line2);display:flex;align-items:center;justify-content:center;color:var(--muted);flex-shrink:0}
+.minis{display:flex;gap:6px;flex-shrink:0}
+.minis span{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 0;border:1px solid var(--line2);border-radius:9px;font-size:11px;color:var(--ink2);background:var(--surface)}
+.minis span.hl{border-color:var(--accent);color:var(--accent-ink)}
+.hlrow{display:flex;align-items:center;gap:6px;color:var(--tick);flex-shrink:0}
+.hlrow>div{display:flex;flex-direction:column;gap:8px;flex:1}
+.dash{border:1px dashed var(--muted);border-radius:10px;padding:9px 10px;flex-shrink:0}
+.dash-h{display:flex;justify-content:space-between;align-items:center;gap:6px;font-size:12px}
+.dash p{margin:5px 0 0;font-size:11.5px;color:var(--ink2);line-height:1.45}
+.rfoot{padding:8px 14px 12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.tools{display:flex;justify-content:space-around;font-size:10.5px;color:var(--ink2);margin-top:4px}
+.tools span{display:flex;flex-direction:column;align-items:center;gap:2px}
+.modenote{display:flex;gap:6px;align-items:flex-start;font-size:11px;color:var(--muted);flex-shrink:0}
+.art{height:78px;border-radius:12px;background:var(--sunk);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.dia{display:flex;align-items:center;justify-content:center;gap:6px;font-size:10.5px;color:var(--ink2)}
+.bx{border:1px solid var(--line2);border-radius:6px;padding:3px 8px;background:var(--surface)}
+.bx.hl{border-color:var(--accent);color:var(--accent-ink)}
+.wave{display:flex;align-items:center;gap:2px;height:30px;flex-shrink:0}
+.wave i{flex:1;border-radius:1px;background:var(--line2)}
+.wave i.p{background:var(--accent)}
+.ctl{display:flex;align-items:center;justify-content:space-between;color:var(--ink2);padding:0 4px;flex-shrink:0}
+.play{width:46px;height:46px;border-radius:50%;background:var(--ink);color:var(--surface);display:inline-flex;align-items:center;justify-content:center}
+.review{flex-direction:row;align-items:center;gap:10px;background:var(--accent-soft);border-color:transparent}
+.review .row-c b{color:var(--accent-ink)}
+.kmap{width:100%;height:auto;flex-shrink:0}
+.kmap text{fill:var(--ink2);font:10.5px var(--f-body)}
+.ke{stroke:var(--line2);stroke-width:1}
+.kb{fill:var(--surface);stroke:var(--ink2);stroke-width:1.2}
+.kf{fill:var(--accent)}
+.kd{fill:none;stroke:var(--tick);stroke-width:1.4;stroke-dasharray:2.5 2}
+.legend{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink2);flex-shrink:0}
+.legend span{display:inline-flex;align-items:center;gap:2px}
+.note{color:var(--ink2)!important;font-size:11.5px!important;line-height:1.4}
+.prof{display:flex;gap:12px;align-items:center;flex-shrink:0}
+.prof .av{width:44px;height:44px;font-size:13px}
+.tg{width:30px;height:18px;border-radius:9px;background:var(--line2);position:relative;flex-shrink:0}
+.tg::after{content:"";position:absolute;left:2px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--surface)}
+.tg.on{background:var(--accent)}
+.tg.on::after{left:14px}
+.perm .t11{width:20px;text-align:right}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0}
+.tile{border:1px solid var(--line);border-radius:12px;padding:10px;display:flex;flex-direction:column;gap:1px}
+.tile .ic{color:var(--accent-ink);margin-bottom:5px}
+.tile b{font-size:12.5px}
+.tile span{font-size:11px;color:var(--muted)}
+.rec{background:var(--sunk);border-color:transparent}
+.scr.c{align-items:center;text-align:center}
+.scr.c>.list,.scr.c>.btnrow,.scr.c>.chips{align-self:stretch}
+.vs{display:flex;align-items:center;gap:14px;margin-top:14px}
+.vs .av{width:54px;height:54px;font-size:14px}
+.ring{position:relative;width:92px;height:92px;flex-shrink:0}
+.ring svg{width:92px;height:92px;transform:rotate(-90deg)}
+.rt{fill:none;stroke:var(--line);stroke-width:6}
+.rp{fill:none;stroke:var(--tick);stroke-width:6;stroke-linecap:round}
+.ring div{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring b{font:700 21px var(--f-display);font-variant-numeric:tabular-nums}
+.ring span{font-size:10px;color:var(--muted)}
+.score{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.score>b{font:700 21px var(--f-display);font-variant-numeric:tabular-nums}
+.score>.t11{flex:1;text-align:center}
+.qtop{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.qtop b{flex:1;font-size:13px}
+.qtop>span{display:inline-flex;gap:4px;align-items:center;font:500 12px var(--f-mono)}
+.q{font:600 14.5px/1.4 var(--f-display);flex-shrink:0}
+.q.lg{font-size:17px}
+.opts{display:flex;flex-direction:column;gap:7px;flex-shrink:0}
+.opt{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line2);border-radius:10px;font-size:12.5px}
+.opt .k{width:20px;height:20px;border-radius:5px;border:1px solid var(--line2);display:inline-flex;align-items:center;justify-content:center;font:600 10.5px var(--f-mono);color:var(--ink2);flex-shrink:0}
+.opt.sel{border-color:var(--accent);background:var(--accent-soft);color:var(--accent-ink)}
+.opt.ok{border-color:var(--ok);background:var(--ok-soft);color:var(--ok)}
+.opt.sel .k,.opt.ok .k{border-color:currentColor;color:inherit}
+.opt .rs{font-size:10.5px;font-weight:600;display:inline-flex;align-items:center;gap:3px}
+.opp{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink2);padding:7px 10px;border-radius:8px;background:var(--sunk);flex-shrink:0}
+.fb{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;line-height:1.4;padding:8px 10px;border-radius:9px;flex-shrink:0}
+.fb.ok{background:var(--ok-soft)}.fb.ok>.ic{color:var(--ok)}
+.fb.bad{background:var(--bad-soft)}.fb.bad>.ic{color:var(--bad)}
+.inp{display:flex;align-items:baseline;justify-content:space-between;padding:8px 12px;border:1.5px solid var(--accent);border-radius:10px;flex-shrink:0}
+.inp b{font:700 24px var(--f-display);font-variant-numeric:tabular-nums}
+.inp span{font-size:11.5px;color:var(--ink2);display:inline-flex;align-items:center;gap:2px;border:1px solid var(--line2);border-radius:6px;padding:2px 6px}
+.keys{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;flex-shrink:0}
+.keys span{border:1px solid var(--line);border-radius:8px;text-align:center;padding:5px 0;font:500 14px var(--f-mono)}
+.keys span.u{color:var(--accent-ink);background:var(--accent-soft);border-color:transparent}
+.run{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.okc{color:var(--ok)}.badc{color:var(--bad)}
+.res-h{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;padding-top:8px;flex-shrink:0}
+.delta{display:inline-flex;gap:4px;align-items:center;font:600 14px var(--f-mono);color:var(--ok);margin-top:2px}
+.big-ic{color:var(--ok);display:inline-flex}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex-shrink:0}
+.stats>div{background:var(--sunk);border-radius:9px;padding:8px;text-align:center;display:flex;flex-direction:column}
+.stats b{font:700 15px var(--f-display);font-variant-numeric:tabular-nums}
+.stats span{font-size:10.5px;color:var(--muted)}
+.statechg{display:flex;align-items:center;justify-content:center;gap:6px;font-size:12px;color:var(--ink2);flex-shrink:0}
+.statechg b{color:var(--ink)}
+.lb{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.list>.lb:last-child{border-bottom:0}
+.lb .n{width:18px;font:500 11px var(--f-mono);color:var(--muted)}
+.lb>b{font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:12px}
+.lb.me{border:0;padding:8px 10px;border-radius:9px;background:var(--accent-soft);color:var(--accent-ink);flex-shrink:0}
+.lb.me .n{color:var(--accent-ink)}
+.lb.me .row-c>span{color:var(--accent-ink)}
+.hand{align-items:center;text-align:center;padding:14px}
+.hand .btncol{align-self:stretch;margin-top:4px}
+.steps{display:flex;gap:6px;margin:4px 0 4px;flex-shrink:0}
+.steps span{flex:1;display:flex;flex-direction:column;gap:5px;font:500 10.5px var(--f-mono);color:var(--muted)}
+.steps span i{height:3px;border-radius:2px;background:var(--line)}
+.steps span.on{color:var(--ink)}
+.steps span.on i{background:var(--ink)}
+
+/* web */
+.browser{min-width:880px;border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:var(--surface);box-shadow:0 22px 44px -30px rgba(10,14,24,.45)}
+.bbar{display:flex;align-items:center;gap:12px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--sunk)}
+.dots{display:flex;gap:5px}
+.dots i{width:9px;height:9px;border-radius:50%;border:1px solid var(--line2)}
+.url{flex:1;font:11px var(--f-mono);color:var(--muted);background:var(--surface);border-radius:6px;padding:4px 10px;display:flex;gap:5px;align-items:center}
+.bbody{display:grid;grid-template-columns:132px minmax(0,1fr);min-height:480px}
+.side{border-right:1px solid var(--line);padding:12px 8px;display:flex;flex-direction:column;gap:2px}
+.side .wm{padding:0 8px 12px;display:flex;align-items:center;gap:6px}
+.side>span{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12px;color:var(--ink2)}
+.side>span.on{background:var(--sunk);color:var(--ink);font-weight:600}
+.side-r{background:var(--sunk);border-radius:8px;padding:8px;display:flex;flex-direction:column;margin-bottom:6px}
+.side-r b{font:700 15px var(--f-display);font-variant-numeric:tabular-nums}
+.main{padding:16px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.wtop{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.wgrid{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:14px;align-items:start}
+.col{display:flex;flex-direction:column;gap:10px;min-width:0}
+.wc{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.wc.open{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.wc.hlc{border-color:color-mix(in srgb,var(--tick) 55%,transparent);background:var(--tick-soft)}
+.wc.row0{flex-direction:row;align-items:center;gap:10px}
+.panel{background:var(--sunk);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.panel>b{font:600 13.5px/1.3 var(--f-display)}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.stats.w>div{text-align:left;padding:10px 12px}
+.stats.w b{font-size:20px}
+.dc{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:6px}
+.dc .ic.acc{color:var(--accent-ink)}
+.wq{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:14px;align-items:start}
+.kv{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11.5px;padding:5px 0;border-bottom:1px solid var(--line);color:var(--ink2)}
+.st{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;white-space:nowrap}
+.st.ok{color:var(--ok)}.st.bad{color:var(--bad)}.st.warn{color:var(--tick)}.st.na{color:var(--muted)}
+.hld{display:grid;grid-template-columns:172px minmax(0,1fr) 190px;gap:14px}
+.req{margin:4px 0 6px;padding-left:16px;font-size:11.5px;color:var(--ink2)}
+.req li{margin:2px 0}
+.scn{padding:6px 0;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.scn .kv{border:0;padding:0}
+.scn .why-l{font-size:10.5px;color:var(--ink2);line-height:1.35}
+.canvas{border:1px solid var(--line);border-radius:10px;padding:6px;background-color:var(--sunk);background-image:radial-gradient(var(--line2) 1px,transparent 1px);background-size:16px 16px}
+.canvas svg{width:100%;height:auto;display:block}
+.cn rect{fill:var(--surface);stroke:var(--line2)}
+.cn text{fill:var(--ink);font:500 10.5px var(--f-body)}
+.cn text.s{fill:var(--muted);font-size:9.5px;font-weight:400}
+.cn.sel rect{stroke:var(--accent);stroke-width:1.6;fill:var(--accent-soft)}
+.ce{stroke:var(--muted);stroke-width:1.2;fill:none}
+.cbad{fill:var(--bad)}
+.cbad-t{fill:var(--surface);font:700 10px var(--f-mono)}
+.pal{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.pal span{font-size:10.5px;border:1px solid var(--line2);border-radius:6px;padding:2px 7px;color:var(--ink2)}
+.sbar2{display:flex;gap:3px;font-size:10.5px}
+.sbar2 span{padding:4px 7px;border-radius:4px;background:var(--sunk);color:var(--ink2);white-space:nowrap}
+.sbar2 .a{background:var(--accent-soft);color:var(--accent-ink)}
+.gate{font-size:11px;color:var(--ink2);display:flex;gap:6px;align-items:flex-start;line-height:1.4}
+.gate .ic{color:var(--ok);margin-top:1px}
+.note-in{font-size:11.5px;color:var(--ink2);border:1px dashed var(--muted);border-radius:8px;padding:7px 8px;line-height:1.45}
+.lld{display:grid;grid-template-columns:172px minmax(0,1fr) 182px;gap:14px}
+.code{font:11px/1.7 var(--f-mono);color:var(--ink2);white-space:pre;margin:0;overflow:hidden}
+.code .kw{color:var(--accent-ink)}
+.code .hi{background:var(--bad-soft);display:inline-block;width:100%}
+.editor{border:1px solid var(--line);border-radius:10px;background:var(--sunk);padding:8px 10px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.ext{border:1px solid color-mix(in srgb,var(--tick) 50%,transparent);background:var(--tick-soft);border-radius:8px;padding:8px;font-size:11.5px;display:flex;flex-direction:column;gap:3px}
+.ext b{display:flex;gap:4px;align-items:center;color:var(--tick)}
+.fail{font-size:11px;color:var(--ink);background:var(--bad-soft);border-radius:8px;padding:7px 8px;line-height:1.4}
+.fail b{color:var(--bad)}
+.rub{display:flex;flex-direction:column;gap:2px;padding:6px 0;border-bottom:1px solid var(--line)}
+.rub .kv{border:0;padding:0;font-size:12px;color:var(--ink)}
+.rub span.r{font-size:11px;color:var(--muted)}
+.sline{display:flex;flex-direction:column;gap:3px}
+.sline .sp{font-size:12px}
+.lbt{display:grid;grid-template-columns:34px minmax(0,1fr) 110px 70px;font-size:12px;padding:7px 4px;border-bottom:1px solid var(--line);align-items:center;font-variant-numeric:tabular-nums}
+.lbt.h{font:600 10.5px var(--f-mono);color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.lbt .rt{text-align:right;font-family:var(--f-mono)}
+.lbt.me{background:var(--accent-soft);color:var(--accent-ink);border-radius:7px;border:0;margin-top:6px}
+.desk{min-width:760px;border:1px solid var(--line2);border-radius:12px;overflow:hidden;background:var(--sunk);box-shadow:0 22px 44px -30px rgba(10,14,24,.45)}
+.menubar{display:flex;align-items:center;gap:12px;padding:5px 12px;font-size:11px;color:var(--ink2);background:var(--surface);border-bottom:1px solid var(--line)}
+.menubar>span{display:inline-flex;gap:4px;align-items:center}
+.mb-ic{padding:2px 8px;border-radius:5px;font:600 11px var(--f-mono)}
+.mb-ic.on{background:var(--tick-soft);color:var(--tick)}
+.mb-ic.ok{background:var(--ok-soft);color:var(--ok)}
+.deskbody{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:16px;padding:18px;min-height:380px}
+.term{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.term pre{margin:8px 0 0;font:12px/1.85 var(--f-mono);color:var(--ink2);white-space:pre-wrap}
+.term pre .g{color:var(--ok)}
+.term pre .w{color:var(--tick)}
+.pop{background:var(--surface);border:1px solid var(--line2);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;box-shadow:0 18px 40px -20px rgba(0,0,0,.35);align-self:start;position:relative}
+.pop::before{content:"";position:absolute;top:-7px;right:44px;width:12px;height:12px;background:var(--surface);border-left:1px solid var(--line2);border-top:1px solid var(--line2);transform:rotate(45deg)}
+.pop .li{padding:6px 0;font-size:12px}
+.pop .li .d{font:500 10.5px var(--f-mono);color:var(--muted)}
+.pop .li.rc{background:var(--accent-soft);margin:0 -6px;padding:7px 6px;border-radius:7px;border:0;color:var(--accent-ink)}
+.pop .li.rc .d{color:var(--accent-ink)}
+.pop .ok-h{display:flex;gap:8px;align-items:center;padding:8px;border-radius:8px;background:var(--ok-soft);color:var(--ok);font-size:12px;font-weight:600}
+</style>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#top"><span class="mark"><i></i><i></i><i></i></span>Interval</a>
+    <nav class="navlinks" aria-label="Sections">
+      <a href="#top" data-sec="top">Overview</a>
+      <a href="#screens" data-sec="screens">Screens</a>
+      <a href="#flows" data-sec="flows">Flows</a>
+      <a href="#blueprint" data-sec="blueprint">Blueprint</a>
+      <a href="#bp-system" data-sec="bp-system">System</a>
+      <a href="#bp-decisions" data-sec="bp-decisions">Open decisions</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+<section id="top" class="wrap hero" style="scroll-margin-top:60px">
+  <div class="eyebrow">Interval · product blueprint and wireframes</div>
+  <h1>Learn in the minutes your <em>agent is working</em>.</h1>
+  <p class="lede">Interval turns the short gaps in a developer’s day into real learning. It finds existing technical writing, ties it to your projects and what you already know, sizes it to the time you have, and lets you prove it in quick games and system design battles.</p>
+  <div class="meta"><span><i data-lucide="calendar" class="ic" style="width:13px;height:13px"></i>22 October 2026</span><span><i data-lucide="smartphone" class="ic" style="width:13px;height:13px"></i>16 mobile screens</span><span><i data-lucide="monitor" class="ic" style="width:13px;height:13px"></i>8 web and desktop screens</span><span><i data-lucide="route" class="ic" style="width:13px;height:13px"></i>5 key flows</span><span><i data-lucide="tag" class="ic" style="width:13px;height:13px"></i>Working name</span></div>
+
+  <div class="day" aria-label="Example afternoon timeline">
+    <div class="day-h">
+      <h2>One Tuesday afternoon with Interval</h2>
+      <div class="day-sum"><span><b>33</b>min waiting on agents</span><span><b>17</b>min learning</span><span><b>6</b>sessions</span></div>
+    </div>
+    <div class="day-scroll"><div class="day-grid" id="daygrid"></div></div>
+    <p class="day-note">Every session fits inside an agent run. When the agent finishes, Interval saves your place and you go back to the code.</p>
+  </div>
+
+  <div class="pillars">
+    <div class="pillar"><span class="pi"><i data-lucide="compass" class="ic" style="width:18px;height:18px"></i></span><h3>Discover</h3><p>Relevant articles, case studies and books from trusted sources.</p></div>
+    <div class="pillar"><span class="pi"><i data-lucide="route" class="ic" style="width:18px;height:18px"></i></span><h3>Learn continuously</h3><p>Persistent paths through books and topics, sized to the time available.</p></div>
+    <div class="pillar"><span class="pi"><i data-lucide="user-round-cog" class="ic" style="width:18px;height:18px"></i></span><h3>Personalize</h3><p>Adapts to interests, level, projects, time, history and format.</p></div>
+    <div class="pillar"><span class="pi"><i data-lucide="gamepad-2" class="ic" style="width:18px;height:18px"></i></span><h3>Practice</h3><p>Quick games and design battles that test and reinforce what you learned.</p></div>
+  </div>
+</section>
+
+<section id="screens" class="section">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Wireframes</div><h2>Every screen, with what changed</h2><p>Twenty-four screens across mobile, web and the desktop companion. Each one lists the UX changes made in this revision and the flows it appears in.</p></div>
+    </div>
+    <div class="principles">
+      <div class="prin"><i data-lucide="timer" class="ic" style="width:18px;height:18px"></i><div><h3>Sized to the gap</h3><p>Cards, games and sessions state their length and whether they fit the time you picked.</p></div></div>
+      <div class="prin"><i data-lucide="book-open-check" class="ic" style="width:18px;height:18px"></i><div><h3>Every game ends in reading</h3><p>Results lead with the fix for what you missed. Rematch comes second.</p></div></div>
+      <div class="prin"><i data-lucide="badge-check" class="ic" style="width:18px;height:18px"></i><div><h3>Author first, AI labeled</h3><p>Publisher pages stay untouched. AI text sits in dashed boxes with a label, everywhere.</p></div></div>
+      <div class="prin"><i data-lucide="mouse-pointer-click" class="ic" style="width:18px;height:18px"></i><div><h3>One next step</h3><p>Each screen has a single primary action. Everything else uses quieter controls.</p></div></div>
+      <div class="prin"><i data-lucide="toggle-right" class="ic" style="width:18px;height:18px"></i><div><h3>Consent you can see</h3><p>Project context, code reading and the agent’s task topic are three separate switches.</p></div></div>
+      <div class="prin"><i data-lucide="shapes" class="ic" style="width:18px;height:18px"></i><div><h3>State without color alone</h3><p>Locks, passes, misses and concept states carry an icon, shape or word as well as color.</p></div></div>
+    </div>
+    <div class="xtabs" role="tablist" id="xtabs">
+      <button class="xtab" role="tab" data-g="learn" aria-selected="true">Mobile · learning<span class="cnt">1–9</span></button>
+      <button class="xtab" role="tab" data-g="play" aria-selected="false">Mobile · play<span class="cnt">10–16</span></button>
+      <button class="xtab" role="tab" data-g="web" aria-selected="false">Web and desktop<span class="cnt">W1–W8</span></button>
+    </div>
+    <div class="board" id="board"></div>
+  </div>
+</section>
+
+<section id="flows" class="section">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Key flows</div><h2>Walk through the product</h2><p>Five journeys from the blueprint, step by step. Use the arrows or your keyboard’s left and right keys.</p></div>
+    </div>
+    <div class="xtabs" role="tablist" id="flowpick"></div>
+    <div class="player">
+      <div id="fsteps"></div>
+      <div class="stage" id="stage" tabindex="-1"></div>
+    </div>
+  </div>
+</section>
+
+<section id="blueprint" class="section">
+  <div class="wrap">
+    <div class="sec-head">
+      <div><div class="eyebrow">Blueprint · final product</div><h2>What Interval is, and how it works</h2><p>The full product definition: vision, foundations, features, the game layer, surfaces, system design, rights and privacy, metrics and open decisions.</p></div>
+    </div>
+    <div class="bp">
+      <aside class="toc" aria-label="Blueprint contents">
+        <div class="eyebrow">Contents</div>
+        <ol id="toc">
+          <li><a href="#bp-vision"><span>1</span>Product vision</a></li>
+          <li><a href="#bp-audience"><span>2</span>Target audience</a></li>
+          <li><a href="#bp-foundations"><span>3</span>Foundations</a></li>
+          <li><a href="#bp-structure"><span>4</span>Application structure</a></li>
+          <li><a href="#bp-learning"><span>5</span>Learning features</a></li>
+          <li><a href="#bp-game"><span>6</span>Game layer</a></li>
+          <li><a href="#bp-agent"><span>7</span>Agent-waiting surfaces</a></li>
+          <li><a href="#bp-screens"><span>8</span>Screens and flows</a></li>
+          <li><a href="#bp-system"><span>9</span>System design</a></li>
+          <li><a href="#bp-rights"><span>10</span>Rights, privacy, fairness</a></li>
+          <li><a href="#bp-metrics"><span>11</span>Success metrics</a></li>
+          <li><a href="#bp-decisions"><span>12</span>Open decisions</a></li>
+        </ol>
+      </aside>
+      <article class="doc">
+
+<section id="bp-vision">
+  <h2><span class="sn">1</span>Product vision</h2>
+  <p>Interval is a personal engineering learning platform that turns the small gaps in a developer’s day into real learning. It finds existing high-quality technical content, connects it to the user’s interests, projects and current knowledge, and helps them make steady progress across many short sessions. A game layer lets them practice, prove and compete on what they’ve learned.</p>
+  <p>It’s built for people who want to learn but drift to Instagram, YouTube or random browsing when they have a few spare minutes. Above all, it’s for developers waiting on AI coding agents like Claude Code, Codex or Cursor to finish their work.</p>
+  <div class="callout"><b>Core principle.</b> Interval doesn’t generate its own knowledge library. It discovers, organizes, personalizes and connects knowledge that already exists. AI is used for discovery, ranking, relevance notes, supplementary explanations, scoring and question generation. Original authors stay the source of truth, and AI-generated material is always labeled.</div>
+  <h3>Four pillars</h3>
+  <ol class="list">
+    <li><b>Discover:</b> relevant articles, case studies and books from trusted sources.</li>
+    <li><b>Learn continuously:</b> persistent paths through books and topics, sized to the time available.</li>
+    <li><b>Personalize:</b> adapt to interests, level, projects, time, history and format.</li>
+    <li><b>Practice:</b> quick games and system design battles that test and reinforce what was learned.</li>
+  </ol>
+  <h3>Final product definition</h3>
+  <p>A personalized engineering learning platform that brings together existing technical content, ties discovery to each user’s knowledge and projects, delivers learning in time-sized moments or full articles, and reinforces it through competitive practice. It’s available on mobile, on the web, and right beside the developer’s coding agent.</p>
+  <p>The defining experience stays simple. Whenever a developer has a few spare minutes, they can find something worth learning, or a quick game that tests it, and pick up where they left off next time.</p>
+</section>
+
+<section id="bp-audience">
+  <h2><span class="sn">2</span>Target audience</h2>
+  <div class="cards2">
+    <div class="bcard"><h4><i data-lucide="terminal" class="ic" style="width:16px;height:16px"></i>Developers using AI coding agents</h4><p>Repeated short waits throughout the day.</p></div>
+    <div class="bcard"><h4><i data-lucide="server" class="ic" style="width:16px;height:16px"></i>Software engineers</h4><p>Building depth in system design, backend, infrastructure, databases and architecture.</p></div>
+    <div class="bcard"><h4><i data-lucide="graduation-cap" class="ic" style="width:16px;height:16px"></i>Computer science students</h4><p>Preparing for internships and interviews. They compete through university leaderboards and university-vs-university tournaments.</p></div>
+    <div class="bcard"><h4><i data-lucide="rss" class="ic" style="width:16px;height:16px"></i>Readers of blogs, newsletters and books</h4><p>They want those sources organized into progress.</p></div>
+    <div class="bcard"><h4><i data-lucide="smartphone" class="ic" style="width:16px;height:16px"></i>Anyone replacing low-value scrolling</h4><p>Short, rewarding sessions instead.</p></div>
+  </div>
+  <p>The first focus is developers and technical learners. The architecture stays open to other knowledge domains.</p>
+</section>
+
+<section id="bp-foundations">
+  <h2><span class="sn">3</span>Foundations</h2>
+  <p>Two foundations shape every feature in the product.</p>
+  <h3 id="bp-graph">3.1 The concept graph</h3>
+  <p>The concept graph is Interval’s core data model. Concepts are specific technical ideas such as replication lag, connection pooling, consistent hashing, B-tree indexes or leader election. They link to each other through relationships like <i>prerequisite of</i>, <i>related to</i> and <i>applied in</i>.</p>
+  <div class="hub-wrap" aria-label="Everything attaches to concepts">
+    <div class="hub-col"><div class="eyebrow">Attaches to concepts</div>
+      <span class="hi"><i data-lucide="file-text" class="ic" style="width:15px;height:15px"></i>Content and moments</span>
+      <span class="hi"><i data-lucide="folder-git-2" class="ic" style="width:15px;height:15px"></i>Projects</span>
+      <span class="hi"><i data-lucide="user" class="ic" style="width:15px;height:15px"></i>Learner state</span>
+      <span class="hi"><i data-lucide="circle-help" class="ic" style="width:15px;height:15px"></i>Game questions</span>
+    </div>
+    <div class="harr"><i data-lucide="arrow-right" class="ic" style="width:20px;height:20px"></i></div>
+    <div class="hub-core"><b>Concept graph</b><div class="cc"><span>replication lag</span><span>connection pooling</span><span>consistent hashing</span><span>B-tree indexes</span><span>leader election</span></div></div>
+    <div class="harr"><i data-lucide="arrow-right" class="ic" style="width:20px;height:20px"></i></div>
+    <div class="hub-col"><div class="eyebrow">Views of the same graph</div>
+      <span class="hi"><i data-lucide="sparkles" class="ic" style="width:15px;height:15px"></i>Recommendations and notes</span>
+      <span class="hi"><i data-lucide="git-branch" class="ic" style="width:15px;height:15px"></i>Prerequisites and checkpoints</span>
+      <span class="hi"><i data-lucide="rotate-ccw" class="ic" style="width:15px;height:15px"></i>Review queue</span>
+      <span class="hi"><i data-lucide="target" class="ic" style="width:15px;height:15px"></i>Game question selection</span>
+      <span class="hi"><i data-lucide="network" class="ic" style="width:15px;height:15px"></i>Knowledge map</span>
+    </div>
+  </div>
+  <ul>
+    <li><b>Content:</b> articles, book sections and moments are tagged with the concepts they teach.</li>
+    <li><b>Projects:</b> a user’s projects map to concepts through their technologies and challenges. FastAPI plus PostgreSQL maps to connection pooling, transaction isolation and indexing.</li>
+    <li><b>Learner state:</b> each user has a state for each concept. Reading, notes and game performance all update it.</li>
+    <li><b>Questions:</b> every game question tests one or more concepts.</li>
+  </ul>
+  <div class="states"><span class="s">unseen</span><i data-lucide="arrow-right" class="ic" style="width:14px;height:14px"></i><span class="s">explored</span><i data-lucide="arrow-right" class="ic" style="width:14px;height:14px"></i><span class="s">practiced</span><i data-lucide="arrow-right" class="ic" style="width:14px;height:14px"></i><span class="s">mastered</span><span class="t11" style="font-size:12.5px;color:var(--muted);margin-left:6px">plus <b style="color:var(--tick)">due for review</b> on a spaced schedule</span></div>
+  <p>Because of this, recommendations, “why this matters to you” notes, prerequisites, the review queue, path checkpoints, game question selection and the knowledge map are all views of the same graph rather than separate systems. Interval can tell a user exactly where the edge of their knowledge is and what to learn next.</p>
+
+  <h3 id="bp-moments">3.2 Learning moments and whole articles</h3>
+  <p>The feed offers both formats, and the user’s time budget decides which appears.</p>
+  <p>A <b>learning moment</b> is a self-contained section of an article or book, sized to fit the time available, with a clear payoff and a “continue from here” pointer. A 3-minute budget surfaces moments (“Section 2 of 4 · 3 min”). A longer budget, or opening a card directly, surfaces the full article. Progress tracks at the moment level either way, so a moment can grow into a full read, and a half-read article resumes as its next moment.</p>
+  <p>For web articles, a moment is a pointer into the publisher’s original page (a heading anchor or a scroll position) plus metadata. It is never a republished copy. Splitting content into sections uses only what the source allows: headings and structure where parsing is permitted, and full section boundaries for books and documents the user is authorized to process.</p>
+</section>
+
+<section id="bp-structure">
+  <h2><span class="sn">4</span>Application structure</h2>
+  <h3>4.1 Navigation</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Area</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>Home (For You)</td><td>Personalized feed, time-budget chips, continue cards, daily challenge</td></tr>
+      <tr><td>Explore</td><td>Search across topics, authors, publications and topic spaces</td></tr>
+      <tr><td>Paths</td><td>Books and topic sequences, sessions, checkpoints, progress</td></tr>
+      <tr><td>Play</td><td>The game layer: quick games, battles, leagues, leaderboards</td></tr>
+      <tr><td>Library</td><td>Saved items, notes, highlights, history, review queue, knowledge map, audio queue</td></tr>
+    </tbody></table></div>
+  <p>Profile and preferences open from the avatar. Audio is no longer a tab. It’s a global mini-player that stays visible across the app and expands into a full player.</p>
+  <h3>4.2 Surfaces</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Surface</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td>Mobile app</td><td>Feed, reading, paths, audio, quick games, leaderboards, battle replays and spectating</td></tr>
+      <tr><td>Web app</td><td>Everything on mobile, plus HLD and LLD battles, tournaments, and the full design canvas and code editor</td></tr>
+      <tr><td>Desktop companion</td><td>A menubar window for quick sessions and quick games while an agent runs</td></tr>
+      <tr><td>IDE extension</td><td>The same quick-session entry inside the editor</td></tr>
+      <tr><td>Coding-agent hooks</td><td>Opt-in signals for when an agent starts and finishes long tasks</td></tr>
+    </tbody></table></div>
+</section>
+
+<section id="bp-learning">
+  <h2><span class="sn">5</span>Learning features</h2>
+
+  <h3>A. Onboarding and learner profile</h3>
+  <p>Onboarding takes under a minute, in three short steps. Users pick topics, a familiarity level, a typical break length (1–3, 3–8 or 8–15 minutes), and preferred formats: read, diagrams, listen or play. Connecting GitHub is optional and imports permitted repository metadata to build project context. Students can verify their university with a college email address for leaderboards and tournaments.</p>
+  <p>The profile evolves from behavior, but explicit choices always win. Inferred interests never silently override what the user set, and users can view, edit or reset any inferred interest.</p>
+
+  <h3>B. Content discovery and sources</h3>
+  <p>Sources include technical publications like ByteByteGo, developer communities like DEV, independent and company engineering blogs, postmortems and Medium writing, Devpost project write-ups, newsletters and conference talks, and books and long-form material the user is authorized to access.</p>
+  <p>Ingestion uses RSS and Atom feeds, publisher-approved APIs and permitted crawling. The source system handles subscriptions, automatic detection of new posts, metadata (title, author, date, canonical URL, reading time, access type), duplicate detection across sites and newsletters, quality and credibility signals, freshness and broken-link checks, and paywall awareness. Users can follow, mute, unfollow and prioritize any source.</p>
+
+  <h3>C. Personalized feed</h3>
+  <p>The feed is ranked for relevance, usefulness, quality, novelty and the user’s current learning journey, not popularity alone. It mixes familiar interests with adjacent concepts just past the edge of the user’s graph.</p>
+  <ul>
+    <li>Learning moments and whole articles, each marked with whether it fits the chosen time.</li>
+    <li>Continue cards for unfinished reading and paths.</li>
+    <li>The daily challenge card.</li>
+    <li>“Test yourself” prompts after finished reading.</li>
+    <li>When agent hooks are on, a banner with the agent’s estimated time left.</li>
+  </ul>
+  <p>Every card shows why it was recommended. Save, Test 60s and <b>Why this?</b> stay on the card. More like this, Less like this, Not interested and Hide source sit in its overflow menu. Filters cover topic, author, source, difficulty, format and time.</p>
+
+  <h3>D. In-app browser</h3>
+  <p>Web articles open in a LinkedIn-style in-app browser that shows the publisher’s page untouched, with its branding and attribution intact. A back arrow returns to the feed, and <b>Open original website</b> is always available. A section rail shows where the current moment sits in the article.</p>
+  <p>A bottom sheet holds Interval’s context without altering the page. It starts as a one-line peek (the “why this matters to you” note plus Save, Note, Listen and <b>Test 60s</b>) and expands at the end of a section to offer one next step: test yourself or continue to the next section.</p>
+  <p>If a site blocks embedding, needs external sign-in, or doesn’t work in a web view, the app offers the system browser. On the web app, where most publishers block embedding, articles open in a new tab and the context panel stays on Interval’s side, with a <b>Mark section done</b> control.</p>
+
+  <h3>E. “Why this matters to you”</h3>
+  <p>Each item can carry a short, personalized note generated from the concept graph and the user’s project context. For example: “Your billing-api runs FastAPI on PostgreSQL. This is the limit you’ll hit first.” These notes are labeled as AI-generated, never rewrite the author’s content, and can include grounded explanations of unfamiliar terms.</p>
+
+  <h3>F. Books, paths and checkpoints</h3>
+  <p>Users add books and documents three ways: a supported ebook integration, a PDF upload of material they’re authorized to use, or a URL. After a book is added, Interval detects the title, author and table of contents; finds natural section boundaries and splits them into short sessions; saves position, with progress tracked by chapter, section and concept; links related articles and case studies to the book’s concepts; and supports notes, highlights and labeled AI explanations.</p>
+  <p>Paths can span books, articles and case studies on a topic. Users can pause, reorder, skip or change a path from the Edit control in the Paths header.</p>
+  <p><b>Checkpoints</b> sit between path sections and appear as their own steps on the path timeline, with the pass mark and what they unlock. A checkpoint is a 60-second quiz built from the section’s concepts. Passing it marks those concepts as practiced and unlocks the next section, and missed concepts go to the review queue. Checkpoints use the same engine as quick games.</p>
+  <p>Interval never invents chapter boundaries or claims to reproduce a book’s structure without authorized access. DRM-protected books work only through supported integrations, and a user’s subscription doesn’t grant permission to republish text.</p>
+
+  <h3>G. Audio</h3>
+  <p>Audio runs from the global mini-player, which expands into a full player. There are two modes:</p>
+  <ul>
+    <li><b>Narrate source:</b> reads eligible text aloud.</li>
+    <li><b>Smart explain:</b> an audio-first explanation with short and detailed depths, labeled as AI under the mode switch.</li>
+  </ul>
+  <p>The player supports speed control, skipping, a sleep timer, background playback, lock-screen controls, resume, a queue, and transitions between connected concepts. Explanations of diagrams and code are voice-friendly. Narrated source and AI explanation are always clearly distinguished. Full-text audio is limited to material Interval is permitted to process, such as user-uploaded files, openly licensed content and partner content.</p>
+
+  <h3>H. Project-aware recommendations</h3>
+  <p>Users add projects manually or through GitHub with explicit permission. Projects start as a simple profile of technologies and goals that maps onto the concept graph. Reading code is separate and only happens if the user explicitly enables it. Users can update or remove project context at any time.</p>
+
+  <h3>I. Library, review and knowledge map</h3>
+  <p>The library holds saved items, notes, highlights, history, collections and the audio queue. The review queue sits at the top, pulling from concepts that are due for review, missed game rounds and failed checkpoints, with a count and a time estimate. The knowledge map shows the user’s slice of the concept graph and how it grows over time, with states drawn as distinct shapes and a legend. Notes and links are exportable. Saving an item keeps its URL and attribution, not the full text.</p>
+
+  <h3>J. Search and exploration</h3>
+  <p>Search covers indexed metadata and permitted content by topic, author, publication, technology, concept and project relevance. A concept match comes first, showing the user’s state and every format that covers it. Users can follow topic spaces, ask for an explanation at a chosen difficulty level, and explore one concept across multiple sources. Answers always point back to original material rather than hiding it behind an AI summary.</p>
+
+  <h3>K. Notifications and digests</h3>
+  <p>All notifications are opt-in: daily or weekly digests that combine sources into one message, new posts from followed authors, path continuation reminders, and daily challenge and tournament reminders. Users control quiet hours, frequency and channels.</p>
+
+  <h3>L. Adaptive learning</h3>
+  <p>The system learns from meaningful signals: completion, saves, skips, replays, explicit feedback, checkpoint results and game performance. It doesn’t just count clicks. It adjusts difficulty and topic mix, avoids repeats, brings important concepts back on a spaced schedule, and measures recall and continuity rather than screen time.</p>
+</section>
+
+<section id="bp-game">
+  <h2><span class="sn">6</span>Game layer</h2>
+  <h3>6.1 Role and entry points</h3>
+  <p>Play is its own layer with its own tab. The rest of the product also leads into it:</p>
+  <ul>
+    <li><b>Feed:</b> the daily challenge card, and “test yourself (60s)” after finishing an article or moment.</li>
+    <li><b>In-app browser:</b> the Test 60s action in the article sheet.</li>
+    <li><b>Paths:</b> checkpoint quizzes between sections.</li>
+    <li><b>Desktop companion and IDE extension:</b> a quick game while an agent runs.</li>
+    <li><b>Play tab:</b> deliberate play, leagues, battles and leaderboards, with one recommended game drawn from concepts due for review.</li>
+  </ul>
+  <div class="callout">Every game ends by sending the user back to learning. Missed concepts become feed items, path resumes or review-queue entries. Results screens make the reading for a missed concept the main action. Game results update the concept graph, so practice becomes the measure of what the user actually learned.</div>
+
+  <h3>6.2 Leagues</h3>
+  <div class="tbl"><table>
+    <thead><tr><th></th><th>Human league</th><th>AI league</th></tr></thead>
+    <tbody>
+      <tr><td>AI use</td><td>None allowed</td><td>Any tools: Claude Code, Cursor, chat assistants, anything</td></tr>
+      <tr><td>What it measures</td><td>Individual knowledge and design skill</td><td>Orchestration, verification and judgment with AI</td></tr>
+      <tr><td>Ratings and leaderboards</td><td>Separate</td><td>Separate</td></tr>
+      <tr><td>Problem design</td><td>Standard scope</td><td>Larger scope, vaguer requirements, harder extension rounds and failure injection</td></tr>
+    </tbody></table></div>
+  <p>Because AI league players bring different tools, its rankings measure the person plus their tools, not the person alone. Problems are designed so that raw AI output fails without human judgment: requirements need clarifying, designs need to survive failure injection, and extension rounds change the rules mid-match. A one-line rule under the league switch says what each league measures.</p>
+
+  <h3>6.3 Quick games</h3>
+  <p>Quick games take 1 to 3 minutes and work on every surface.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Game</th><th>Format</th><th>Win condition</th></tr></thead>
+    <tbody>
+      <tr><td>Fastest finger</td><td>1v1 live, 7 rounds</td><td>First correct answer takes each round</td></tr>
+      <tr><td>60-second sprint</td><td>1v1 or solo</td><td>Most correct answers in 60 seconds</td></tr>
+      <tr><td>Solo blitz</td><td>Solo</td><td>Most correct answers in a chosen time</td></tr>
+      <tr><td>Estimation</td><td>1v1 or solo</td><td>Numeric answers scored within a tolerance (for example ±25%)</td></tr>
+      <tr><td>Daily challenge</td><td>Solo, everyone gets the same set</td><td>Score and streak</td></tr>
+    </tbody></table></div>
+  <p>Question types include multiple choice; back-of-envelope estimation such as QPS, storage or bandwidth; picking the right component for a scenario; spotting the bottleneck in a small diagram; ranking latencies; and consistency and trade-off calls. Questions are drawn from the user’s concepts and adjacent ones. In solo modes each answer gets immediate feedback, and estimation misses show the expected value.</p>
+
+  <h3>6.4 HLD battles</h3>
+  <p>HLD battles are desktop-only and last about 30 minutes. They come in three formats: live 1v1, live 4-player rooms with ranked placements, and scheduled tournaments, including university-vs-university brackets.</p>
+  <p><b>The canvas.</b> Players build designs from components: load balancers, app servers, caches, databases with replicas or shards, queues, CDNs and workers. They configure each one, choosing replication mode, failover strategy, shard key, cache policy and so on. Each problem defines requirements, such as “100M new URLs a month, 50k redirects per second, p99 under 100 ms, survive a zone outage.”</p>
+  <p><b>The simulation.</b> The engine runs the design through baseline load, peak traffic, a cold cache, a primary database failure and a zone outage. It checks capacity, the latency budget and single points of failure. Results are deterministic, so the same design always gets the same result. Each failed scenario shows a one-line reason, and the failing component is marked on the canvas.</p>
+  <h4>Scoring (hybrid)</h4>
+  <div class="scorebar-b" role="img" aria-label="Simulation 60 points, trade-off quality 25, speed 15"><span class="s1">Simulation 60</span><span class="s2">Trade-offs 25</span><span class="s3">Speed 15</span></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Component</th><th>Weight</th><th>How it’s scored</th></tr></thead>
+    <tbody>
+      <tr><td>Simulation</td><td class="num">60</td><td>Scenarios passed, latency and capacity margins</td></tr>
+      <tr><td>Trade-off quality</td><td class="num">25</td><td>AI against a fixed rubric</td></tr>
+      <tr><td>Speed</td><td class="num">15</td><td>Time to pass all scenarios</td></tr>
+    </tbody></table></div>
+  <p>The simulation acts as a gate. A design that fails the baseline scenario earns no trade-off points, so good writing can’t rescue a broken design. The battle screen states the gate and whether it has been met.</p>
+  <h4>AI rubric safeguards</h4>
+  <ul>
+    <li><b>Short, specific justifications:</b> players attach a short “why this choice” note to each decision, rather than writing one long essay.</li>
+    <li><b>Answers as data:</b> the judge treats every submission strictly as content to evaluate. Length limits apply, and anything that looks like instructions is stripped out.</li>
+    <li><b>Repeat judging:</b> each submission is scored three times, and the median counts.</li>
+    <li><b>Transparent results:</b> results show each rubric item with a one-line reason and a way to dispute it.</li>
+  </ul>
+  <p>After the match, an AI coach explains what a stronger design would have done. This feedback is labeled as AI and never affects ratings.</p>
+
+  <h3>6.5 LLD battles</h3>
+  <p>LLD battles are desktop-only and last about 45 minutes. They run live 1v1 and in scheduled tournaments.</p>
+  <p><b>Fixed interfaces.</b> Each problem specifies exact class and method signatures (for example, <code>park(vehicle) → Ticket</code>), so hidden tests can run against any submission. Code runs in a sandbox that supports multiple languages.</p>
+  <p><b>Test layers:</b> visible tests, hidden tests, concurrency tests (such as 100 parallel calls that must never hand out the same parking spot twice), and extension-round tests. Failing tests show the input that broke them.</p>
+  <p><b>Extension rounds.</b> Partway through, the requirements change (“add EV charging spots”) and new tests unlock. Extensible designs adapt quickly, while messy code breaks. This rewards good design without subjective grading.</p>
+  <p><b>Scoring:</b> tests passed, with time to reach that count as the tiebreaker. An optional AI code-quality review appears after the match and doesn’t affect ratings.</p>
+
+  <h3>6.6 Matchmaking and ratings</h3>
+  <ul>
+    <li><b>Ratings:</b> each league and mode family has its own rating, using a Glicko-style system.</li>
+    <li><b>Matching:</b> players are matched within a rating band, and the band widens over time.</li>
+    <li><b>Bot fallback:</b> if no live opponent appears within about 15 seconds, the player faces a rated bot at their level. A countdown shows when this happens, and players can skip the wait. This solves the early problem of too few live players.</li>
+    <li><b>Fairness:</b> both players get the same questions, and the server controls all timing.</li>
+    <li><b>Friend challenges:</b> players can challenge someone directly through a shareable link.</li>
+    <li><b>Seasons:</b> ratings run in seasons, with soft resets between them.</li>
+  </ul>
+
+  <h3>6.7 Leaderboards</h3>
+  <p>Leaderboards rank players globally, by country and by university. University rankings require verification through a college email address. Players can filter by league, mode and season, and see friends’ rankings. Each player sees their own rank and percentile pinned below the top of the board, and their university’s standing among universities.</p>
+
+  <h3>6.8 Question bank</h3>
+  <div class="cards2">
+    <div class="bcard"><h4><i data-lucide="sparkles" class="ic" style="width:16px;height:16px"></i>AI-generated, human-reviewed</h4><p>Generated from the concept graph and reviewed before going live. Fills the everyday pool for quick games, daily challenges and checkpoints.</p></div>
+    <div class="bcard"><h4><i data-lucide="users" class="ic" style="width:16px;height:16px"></i>Community-submitted</h4><p>Written by users, moderated, rated by players and weighted by contributor reputation. Adds variety and real-world scenarios.</p></div>
+    <div class="bcard"><h4><i data-lucide="pen-line" class="ic" style="width:16px;height:16px"></i>Hand-written</h4><p>Reserved for tournaments and ranked seasons, where leaked or low-quality questions would do the most damage. Rotated and retired after use.</p></div>
+  </div>
+  <p>Every question is tagged with concepts, difficulty and source. Difficulty is recalibrated automatically from real response data. Questions that players frequently dispute, or that behave unusually, are pulled for review.</p>
+
+  <h3>6.9 Results and the learning loop</h3>
+  <p>Results show the outcome and rating change; accuracy and average answer time; the score breakdown, plus the rubric for battles; the AI coach’s notes; and concepts to revisit. Each missed concept links to a specific article, moment or path section, labeled “opens in your feed,” and the main button opens that reading. Players can watch battle replays and spectate top matches.</p>
+
+  <h3>6.10 Fair play</h3>
+  <p><b>Human league.</b> Detection signals include pasted text, focus changes, typing patterns and sudden rating jumps. Flags go to review rather than triggering automatic bans, and penalties hit ratings rather than accounts. Time pressure and extension rounds are the main defense, and players are told honestly that detection isn’t perfect.</p>
+  <p><b>AI league.</b> There are no tool restrictions, so detection isn’t needed.</p>
+
+  <h3>6.11 Mobile and desktop split</h3>
+  <p>Mobile covers quick games, daily challenges, checkpoints, leaderboards, battle replays, spectating, tournament registration, and a handoff for battles (send a link to desktop now, or set a reminder for later). Desktop covers everything, including the HLD canvas and LLD editor.</p>
+</section>
+
+<section id="bp-agent">
+  <h2><span class="sn">7</span>Agent-waiting surfaces</h2>
+  <p>This is the use case that gives Interval its identity, and it’s part of the final product.</p>
+  <div class="cards2">
+    <div class="bcard"><h4><i data-lucide="app-window" class="ic" style="width:16px;height:16px"></i>Desktop companion</h4><p>A menubar window that shows the agent’s estimated runtime when known and offers options sorted to fit the gap: a 60-second sprint, the daily challenge, resuming a path, or a time-sized moment. When the agent finishes, it saves the user’s place and offers one button back to their code.</p></div>
+    <div class="bcard"><h4><i data-lucide="code-xml" class="ic" style="width:16px;height:16px"></i>IDE extension</h4><p>The same quick-session options inside the editor, without switching windows.</p></div>
+    <div class="bcard"><h4><i data-lucide="webhook" class="ic" style="width:16px;height:16px"></i>Coding-agent hooks</h4><p>Opt-in integrations with tools like Claude Code and Cursor that report when a long task starts and finishes. With separate explicit permission, the topic of the agent’s current task can shape what’s suggested. If the agent is working on auth, an OAuth moment might appear.</p></div>
+    <div class="bcard"><h4><i data-lucide="unplug" class="ic" style="width:16px;height:16px"></i>No dependency</h4><p>The product never depends on these signals. Everything works whenever the user simply has a few spare minutes.</p></div>
+  </div>
+</section>
+
+<section id="bp-screens">
+  <h2><span class="sn">8</span>Screens and flows</h2>
+  <p>Every screen below is drawn in the <a href="#screens">wireframes section</a>, with its UX changes listed.</p>
+  <h3>8.1 Mobile screens</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>Screen</th><th>Notes</th></tr></thead>
+    <tbody id="mtable"></tbody></table></div>
+  <h3>8.2 Web and desktop screens</h3>
+  <p>The web app has a sidebar with the same navigation. Web adds a For You screen with a side context panel, because most publishers block embedding there.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>Screen</th><th>Notes</th></tr></thead>
+    <tbody id="wtable"></tbody></table></div>
+  <h3>8.3 Key flows</h3>
+  <div class="flowlist" id="flowlist"></div>
+</section>
+
+<section id="bp-system">
+  <h2><span class="sn">9</span>System design</h2>
+  <p>Content flows in on the left, the concept graph sits in the middle, and two loops run off it: reading updates the graph through notes and progress, and games update it through results.</p>
+  <div class="diagram">
+<pre class="mermaid">
+flowchart TD
+    A[Content sources] --> B[Source connectors]
+    B --> C[Ingestion and normalization]
+    C --> D[Content and moment store]
+    D --> E[Concept tagging and search index]
+    E --> G[(Concept graph)]
+    U[User interests and projects] --> G
+    H[Reading history and feedback] --> G
+    R[Game results] --> G
+    G --> P[Personalization engine]
+    P --> F[Feed and paths]
+    F --> K[In-app browser / reader]
+    F --> L[Audio]
+    K --> N[Notes and progress]
+    L --> N
+    N --> H
+    G --> Q[Question bank]
+    Q --> M[Game service: matchmaking, rounds, ratings]
+    M --> S[Simulation engine]
+    M --> T[Test runner sandbox]
+    M --> J[AI rubric judge]
+    M --> R
+    M --> LB[Leaderboards and tournaments]
+    X[Agent hooks / companion / IDE] --> F
+    X --> M
+</pre>
+  </div>
+  <h3>Core data entities</h3>
+  <div class="cards2">
+    <div class="bcard"><h4><i data-lucide="book-open" class="ic" style="width:16px;height:16px"></i>Learning</h4><ul>
+      <li><b>User:</b> preferences, goals, settings, verified university.</li>
+      <li><b>Project:</b> technologies, goals, authorized context.</li>
+      <li><b>Source:</b> website, publication, author, feed or newsletter.</li>
+      <li><b>Content item:</b> canonical URL, metadata, permitted content, access rights.</li>
+      <li><b>Moment:</b> a section pointer within a content item, with estimated time and concepts.</li>
+      <li><b>Concept and relationship:</b> the nodes and edges of the graph.</li>
+      <li><b>Learner concept state:</b> unseen, explored, practiced, mastered or due, with a review schedule.</li>
+      <li><b>Learning path and checkpoint:</b> an ordered or adaptive sequence with gating quizzes.</li>
+      <li><b>Progress:</b> reading and listening position, completion.</li>
+      <li><b>Annotation:</b> notes, highlights, bookmarks.</li>
+      <li><b>Subscription, feedback, recommendation.</b></li>
+    </ul></div>
+    <div class="bcard"><h4><i data-lucide="gamepad-2" class="ic" style="width:16px;height:16px"></i>Games</h4><ul>
+      <li><b>Question:</b> concepts, difficulty, type, source, review status.</li>
+      <li><b>Game mode, match, round and submission.</b></li>
+      <li><b>Design submission:</b> the component graph and its configuration.</li>
+      <li><b>Simulation run:</b> per-scenario results.</li>
+      <li><b>Test run:</b> results per test layer.</li>
+      <li><b>Rubric score:</b> per item, median of three judgments.</li>
+      <li><b>League, rating, season, leaderboard entry.</b></li>
+      <li><b>Tournament and bracket.</b></li>
+      <li><b>University affiliation.</b></li>
+      <li><b>Fair-play flag.</b></li>
+    </ul></div>
+  </div>
+  <h3>Real-time and infrastructure notes</h3>
+  <ul>
+    <li><b>Live matches:</b> need a real-time connection (WebSockets) with server-controlled timers.</li>
+    <li><b>Sandboxes:</b> the simulation engine and test runner run in isolated sandboxes, with resource limits for each submission.</li>
+    <li><b>Cost controls:</b> apply to AI tagging, embeddings, audio generation, question generation and rubric judging.</li>
+  </ul>
+</section>
+
+<section id="bp-rights">
+  <h2><span class="sn">10</span>Content rights, privacy, fairness and AI boundaries</h2>
+  <div class="cards2">
+    <div class="bcard"><h4><i data-lucide="copyright" class="ic" style="width:16px;height:16px"></i>Content rights</h4><ul>
+      <li>The original publisher stays the source of truth.</li>
+      <li>A web view or moment pointer is not republication.</li>
+      <li>Full text is processed only where permitted.</li>
+      <li>Subscription access is not redistribution permission.</li>
+      <li>DRM is never bypassed.</li>
+      <li>Content-removal and licensing requests are handled through admin tools.</li>
+    </ul></div>
+    <div class="bcard"><h4><i data-lucide="tag" class="ic" style="width:16px;height:16px"></i>Labeling</h4><p>Original material, external references, AI explanations, AI notes and AI coach output are always visually distinct.</p>
+      <p style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="orig" style="font-family:var(--f-body)"><i data-lucide="book" class="ic" style="width:11px;height:11px"></i>Original text</span><span class="ai" style="font-size:11px"><i data-lucide="sparkles" class="ic" style="width:11px;height:11px"></i>AI explanation</span></p>
+      <p>A solid badge marks original text. A dashed outline and label mark AI content.</p></div>
+    <div class="bcard"><h4><i data-lucide="shield-check" class="ic" style="width:16px;height:16px"></i>Privacy</h4><ul>
+      <li>Every integration (GitHub, ebooks, agent hooks) uses fine-grained, revocable permissions.</li>
+      <li>Reading code and seeing an agent’s current task each require separate opt-in, shown as separate switches in Profile.</li>
+      <li>Users can export or delete their data and reset inferred interests.</li>
+      <li>University verification stores only the affiliation, not the email contents.</li>
+    </ul></div>
+    <div class="bcard"><h4><i data-lucide="scale" class="ic" style="width:16px;height:16px"></i>Fairness</h4><ul>
+      <li>League rules are stated clearly.</li>
+      <li>Detection in the human league leads to review before any penalty.</li>
+      <li>Players can see why they won or lost through the rubric, and dispute items.</li>
+      <li>AI scoring never exceeds its 25-point share and only applies to designs that pass the simulation gate.</li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="bp-metrics">
+  <h2><span class="sn">11</span>Success metrics</h2>
+  <p>The goal is learning that sticks, not time spent in the app.</p>
+  <div class="metric-grid">
+    <div class="metric"><b>Return rate</b><span>How often users come back, especially daily-challenge streaks and returns after agent waits.</span></div>
+    <div class="metric"><b>Continuity</b><span>Path progress, and how often moments grow into full articles.</span></div>
+    <div class="metric"><b>Recall</b><span>Checkpoint pass rates and accuracy on spaced repetition of past concepts.</span></div>
+    <div class="metric"><b>Growth</b><span>Concepts moving from explored to mastered over time.</span></div>
+    <div class="metric"><b>Loop completion</b><span>How often a missed game concept leads to reading.</span></div>
+    <div class="metric"><b>Game health</b><span>Match quality (rating gaps, bot share), battle completion rate, rate of rubric disputes.</span></div>
+    <div class="metric"><b>Publisher value</b><span>Attributed clicks to original sources.</span></div>
+  </div>
+</section>
+
+<section id="bp-decisions">
+  <h2><span class="sn">12</span>Open decisions before phasing</h2>
+  <ol class="decisions">
+    <li><b>Business model.</b> Not yet included. The options were individual plans, team plans and publisher partnerships. This decision affects licensing for audio and books.</li>
+    <li><b>Fidelity of the simulation engine.</b> How realistic the capacity and latency models need to be for competitive play, and how to calibrate them.</li>
+    <li><b>Source policy for moments.</b> Which sources allow section-level parsing, and what to do when they don’t (fall back to whole articles only).</li>
+    <li><b>University verification outside email domains.</b> Handling schools without dedicated student email.</li>
+    <li><b>LLD 4-player rooms.</b> Whether LLD also gets rooms or stays live 1v1 plus tournaments.</li>
+    <li><b>Language support for LLD.</b> Which languages are supported at launch.</li>
+    <li><b>Hook support for coding agents.</b> Which agents expose usable start and finish signals.</li>
+    <li><b>Product name.</b> “Interval” is used throughout the designs as a working name.</li>
+  </ol>
+</section>
+
+      </article>
+    </div>
+  </div>
+</section>
+
+<footer class="wrap foot">Interval · product blueprint and wireframes · 22 October 2026. Publisher names in the wireframes are placeholders.</footer>
+</main>
+
+<script>
+(function(){
+/* ---------- helpers ---------- */
+const ic=(n,s=16,c='')=>`<i data-lucide="${n}" class="ic ${c}" style="width:${s}px;height:${s}px"></i>`;
+const chip=(t,on)=>`<span class="chip${on?' on':''}">${t}</span>`;
+const seg=(a,i,c='')=>`<div class="seg ${c}">${a.map((x,j)=>`<span class="${j===i?'on':''}">${x}</span>`).join('')}</div>`;
+const lab=t=>`<div class="lab">${t}</div>`;
+const bar=(p,t='')=>`<div class="bar"><i class="${t}" style="width:${p}%"></i></div>`;
+const sk=(w,h,c='')=>`<div class="sk ${c}" style="width:${w}%;${h?`height:${h}px`:''}"></div>`;
+const skl=n=>{const w=[96,100,91,98,84,100,93];return Array.from({length:n},(_,i)=>sk(i===n-1?58:w[i%w.length])).join('')};
+const av=(t,r)=>`<span class="av${r?' r':''}">${t}</span>`;
+const aiTag=(t='AI')=>`<span class="ai">${ic('sparkles',10)}${t}</span>`;
+const origTag=t=>`<span class="orig">${t}</span>`;
+const btn=(t,k='pri',i)=>`<span class="btn ${k}">${i?ic(i,14):''}${t}</span>`;
+const tag=(t,k='')=>`<span class="tag ${k}">${t}</span>`;
+const sbar=`<div class="sbar"><span>9:41</span><span>${ic('signal',12)}${ic('wifi',12)}${ic('battery-medium',13)}</span></div>`;
+const NAV=[['home','house','Home'],['explore','compass','Explore'],['paths','route','Paths'],['play','gamepad-2','Play'],['library','library','Library']];
+const tabs=a=>`<div class="tabs">${NAV.map(n=>`<span class="${a===n[0]?'on':''}">${ic(n[1],19)}${n[2]}</span>`).join('')}</div>`;
+const mini=`<div class="mini">${ic('audio-lines',15)}<span>Connection pooling, explained</span><span class="t11">1:12</span>${ic('pause',16)}</div>`;
+const phone=(body,nav,mp,raw)=>`<div class="phone">${sbar}${raw?body:`<div class="scr">${body}</div>`}${mp?mini:''}${nav?tabs(nav):''}</div>`;
+const hd=(t,r='')=>`<div class="hd"><span class="h-t">${t}</span><span class="hd-r">${r}</span></div>`;
+const top=(l,t,s,r)=>`<div class="topb">${ic(l,19)}<div class="topb-c"><b>${t}</b><span>${s}</span></div><span class="hd-r">${r}</span></div>`;
+const closeBar=t=>`<div class="topb">${ic('x',19)}<div class="topb-c"><b>${t}</b></div><span style="width:19px"></span></div>`;
+const row=(i,t,s,r)=>`<div class="row">${i?`<span class="row-i">${ic(i,17)}</span>`:''}<div class="row-c"><b>${t}</b>${s?`<span>${s}</span>`:''}</div>${r===undefined?ic('chevron-right',15):r}</div>`;
+const diag=()=>`<div class="dia"><span class="bx">App</span>${ic('arrow-right',12)}<span class="bx hl">Pool · 5</span>${ic('arrow-right',12)}<span class="bx">Postgres</span></div>`;
+const st=s=>({ok:`<span class="st ok">${ic('circle-check',13)}Pass</span>`,bad:`<span class="st bad">${ic('circle-x',13)}Fail</span>`,warn:`<span class="st warn">${ic('triangle-alert',13)}Slow</span>`,win:`<span class="st ok">${ic('circle-check',13)}Won</span>`,lost:`<span class="st bad">${ic('circle-x',13)}Lost</span>`})[s]||`<span class="st na">${ic('circle-dashed',13)}Not run</span>`;
+const kn=(t,x,y)=>{if(t==='ma')return `<circle cx="${x}" cy="${y}" r="6" class="kf"/>`;let s=`<circle cx="${x}" cy="${y}" r="6" class="kb"/>`;if(t==='pr')s+=`<circle cx="${x}" cy="${y}" r="2.6" class="kf"/>`;if(t==='du')s+=`<circle cx="${x}" cy="${y}" r="9.5" class="kd"/>`;return s};
+const kicon=t=>`<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true">${kn(t,11,11)}</svg>`;
+const feed=(a,src,sec,min,title,why)=>`<div class="card"><div class="fc-h">${av(a)}<div class="row-c"><b>${src}</b><span>${sec} · ${min}</span></div>${tag(ic('check',11)+'Fits '+min,'ok')}</div><div class="fc-t">${title}</div><div class="why">${aiTag('Why this matters to you')}${why}</div><div class="acts"><span>${ic('bookmark',14)}Save</span><span class="hl">${ic('zap',14)}Test 60s</span><span>${ic('message-circle-question',14)}Why this?</span><span>${ic('ellipsis',15)}</span></div></div>`;
+
+/* ---------- mobile screens ---------- */
+const S={};
+S.onboard=()=>phone(`<div class="steps">${['You','Projects','Play'].map((x,i)=>`<span class="${i===0?'on':''}"><i></i>${x}</span>`).join('')}</div>
+<div><div class="h-xl">What do you want to learn?</div><div class="sub">Pick three or more. You can change these anytime.</div></div>
+<div class="chips">${[['Distributed systems',1],['Databases',1],['System design',1],['Backend',1],['AI infrastructure'],['Networking'],['DevOps'],['Security']].map(x=>chip(x[0],x[1])).join('')}</div>
+<div>${lab('Your level')}${seg(['Beginner','Intermediate','Advanced'],1)}</div>
+<div>${lab('A typical break')}${seg(['1–3 min','3–8 min','8–15 min'],1)}</div>
+<div>${lab('How you like to learn')}<div class="chips">${chip(ic('book-open',12)+'Read',1)}${chip(ic('shapes',12)+'Diagrams',1)}${chip(ic('headphones',12)+'Listen')}${chip(ic('gamepad-2',12)+'Play',1)}</div></div>
+<div class="grow"></div>
+<div class="btnrow">${btn('Skip','ghost')}${btn('Continue','pri','arrow-right')}</div>
+<div class="t11 c">Step 1 of 3 · about 40 seconds</div>`);
+
+S.home=v=>{
+  const agent=v==='after'?'':`<div class="agent">${ic('terminal',16)}<div><b>Claude Code is working</b><span>About 4 min left · these picks fit the gap</span></div>${ic('x',14)}</div>`;
+  const lead=v==='after'
+    ?`<div class="kick">${ic('rotate-ccw',11)} From this morning’s sprint</div>${feed('EB','Engineering blog','Section 1 of 3','3 min','When replicas fell 40 seconds behind','You missed read-your-writes in the sprint. This section explains it with a real incident.')}`
+    :feed('PG','Postgres Weekly','Section 2 of 4','3 min','Why your connection pool runs dry under load','Your billing-api runs FastAPI on PostgreSQL with a pool of 5. This is the limit you’ll hit first.');
+  return phone(`${hd('<span class="wm">Interval</span>',`<span class="streak">${ic('flame',13)}5</span>${ic('bell',18)}${av('AK',1)}`)}
+${agent}
+<div class="budget"><span class="t11">I have</span>${['3 min','8 min','15 min'].map((x,i)=>chip(x,i===0)).join('')}</div>
+<div class="card cont"><div class="cont-t"><span class="t11">${ic('route',12)} Continue · DDIA path</span><span class="t11">3 min</span></div><b style="font-size:13px">Replication · session 3 of 3</b>${bar(66)}</div>
+${lead}
+${v==='after'?`<div class="row">${ic('flame',17)}<div class="row-c"><b>Daily challenge</b><span>60s · Replication · 5-day streak</span></div>${btn('Play','pri sm')}</div>`:`<div class="row">${ic('flame',17)}<div class="row-c"><b>Daily challenge</b><span>60s · Replication · 5-day streak</span></div>${btn('Play','pri sm')}</div>`}`,'home',true);
+};
+
+S.article=v=>{
+  const end=v==='end';
+  const sheet=end
+    ?`<div class="sheet"><div class="grab"></div>
+<div class="done">${ic('circle-check',20)}<div><b>Section 2 of 4 done</b><span class="t11">Connection pooling · now explored</span></div></div>
+<div class="btncol">${btn('Test yourself · 60s','pri','zap')}${btn('Continue to section 3 · 4 min','ghost','arrow-down')}</div>
+<div class="acts"><span>${ic('bookmark',14)}Save</span><span>${ic('notebook-pen',14)}Note</span><span>${ic('headphones',14)}Listen</span><span>${ic('external-link',14)}Original</span></div></div>`
+    :`<div class="sheet"><div class="grab"></div>
+<div class="peek">${aiTag('Why this matters')}<span class="peek-t">A pool of 5 caps concurrent queries. Your export endpoint could queue behind it.</span>${ic('chevron-up',15)}</div>
+<div class="minis"><span>${ic('bookmark',15)}Save</span><span>${ic('notebook-pen',15)}Note</span><span>${ic('headphones',15)}Listen</span><span class="hl">${ic('zap',15)}Test 60s</span></div></div>`;
+  return phone(`${top('x','Why your connection pool runs dry',ic('lock',10)+' postgresweekly.example',ic('external-link',17))}
+<div class="moment">${[1,2,3,4].map(i=>`<i class="${i<2||(end&&i===2)?'d':i===2?'a':''}"></i>`).join('')}<span>Section 2 of 4 · 3 min</span></div>
+<div class="scr pub"><div class="pub-l">Publisher’s page, shown untouched</div>${sk(38,12)}${sk(94,10)}${sk(70,10)}<div class="img"></div>${skl(end?4:7)}</div>${sheet}`,null,false,true);
+};
+
+S.explore=()=>phone(`${hd('Explore')}
+<div class="search">${ic('search',15)}<span>replication lag</span>${ic('x',14)}</div>
+<div class="card"><div class="fc-h"><span class="cdot">${ic('git-branch',15)}</span><div class="row-c"><b>Replication lag</b><span>Concept · 14 sources · 3 formats</span></div>${tag(kicon('ex').replace('width="22" height="22"','width="13" height="13"')+'Explored','st')}</div>
+<div class="t11">Explain at your level</div>${seg(['Beginner','Intermediate','Advanced'],1)}
+<div class="srcs">${[['file-text','9 articles'],['book','3 book sections'],['mic','2 talks']].map(x=>`<span>${ic(x[0],12)}${x[1]}</span>`).join('')}</div></div>
+${lab('Your topic spaces')}
+<div class="list">${[['distributed-systems','12 new this week',1],['databases','4 new this week',1],['ai-infra','7 new this week',0]].map(x=>`<div class="li"><span class="av">#</span><div class="row-c"><b>${x[0]}</b><span>${x[1]}</span></div>${x[2]?tag(ic('check',10)+'Following','st'):btn('Follow','ghost sm')}</div>`).join('')}</div>
+${lab('Trending in your spaces')}
+<div class="list">${[['How consistent hashing spreads load','Diagram · 4 min'],['Rate limiters, four ways','Explainer · 6 min']].map(x=>`<div class="li"><div class="row-c"><b>${x[0]}</b><span>${x[1]}</span></div>${ic('bookmark',14)}</div>`).join('')}</div>`,'explore');
+
+S.paths=()=>phone(`${hd('Paths',`<span class="t11" style="color:var(--accent-ink);font-weight:600">Edit</span>${ic('plus',18)}`)}
+<div class="card book"><div class="cover">${ic('book',18)}</div><div class="row-c" style="gap:3px"><b>Designing Data-Intensive Applications</b><span>Your PDF · 8 of 18 sessions</span>${bar(44)}</div></div>
+<div class="tl">${[['done','Storage and retrieval','4 sessions'],['cpd','Checkpoint','Passed · 5 of 5'],['now','Replication','Session 3 of 3 · 3 min'],['cp','Checkpoint · 60s','Pass 4 of 5 to unlock Partitioning'],['lock','Partitioning','5 sessions · unlocks after the checkpoint'],['lock','Connect the concepts','A postmortem and your billing-api']].map((x,i,a)=>`<div class="tl-i ${x[0]}"><div class="tl-m"><span class="dot">${x[0]==='done'?ic('check',10):(x[0]==='cp'||x[0]==='cpd')?ic('flag',10):x[0]==='lock'?ic('lock',9):''}</span>${i<a.length-1?'<i></i>':''}</div><div class="tl-c"><b>${x[1]}</b><span>${x[2]}</span>${x[0]==='now'?btn('Resume','pri sm','play'):''}</div></div>`).join('')}</div>
+${lab('Add a book or document')}
+<div class="minis"><span>${ic('book-copy',16)}Ebook</span><span>${ic('file-up',16)}PDF</span><span>${ic('link',16)}URL</span></div>`,'paths');
+
+S.reader=()=>phone(`${top('arrow-left','Ch 5 · Replication','Session 3 of 3',ic('list',17)+ic('type',17))}
+<div class="scr read"><div>${origTag(ic('book',11)+'Original text · your PDF')}</div>${sk(55,11)}${skl(4)}
+<div class="hlrow"><div>${sk(100,8,'hlt')}${sk(74,8,'hlt')}</div>${ic('notebook-pen',14)}</div>${skl(2)}
+<div class="dash"><div class="dash-h"><b>${ic('sparkles',13)} Explain: replication lag</b>${aiTag('AI explanation')}</div><p>Followers copy the leader’s writes after a delay, so a read from a follower can briefly return stale data.</p></div>
+${skl(4)}</div>
+<div class="rfoot"><div class="t11 sp"><span>72% of chapter</span><span>2 min left · then the checkpoint</span></div>${bar(72)}
+<div class="tools">${[['highlighter','Highlight'],['notebook-pen','Note'],['sparkles','Explain'],['headphones','Listen']].map(x=>`<span>${ic(x[0],18)}${x[1]}</span>`).join('')}</div></div>`,null,false,true);
+
+S.listen=()=>phone(`<div class="hd">${ic('chevron-down',20)}<b style="font-size:13px">Now playing</b>${ic('list-music',18)}</div>
+${seg(['Narrate source','Smart explain'],1)}
+<div class="modenote">${aiTag('AI explanation')}<span>Not the author’s words. Switch to Narrate source to hear the original.</span></div>
+<div class="art">${diag()}</div>
+<div><b class="h-m">Connection pooling, explained</b><div class="t11">From Postgres Weekly · section 2 · 4 min</div></div>
+<div class="budget"><span class="t11">Depth</span>${chip('Short',1)}${chip('Detailed')}</div>
+<div class="wave">${Array.from({length:46},(_,i)=>`<i class="${i<13?'p':''}" style="height:${Math.round(5+Math.abs(Math.sin(i*1.7)*Math.cos(i*.6))*24)}px"></i>`).join('')}</div>
+<div class="t11 sp"><span>1:12</span><span>4:05</span></div>
+<div class="ctl"><span class="t11" style="font-weight:600;color:var(--ink2)">1.25×</span>${ic('rotate-ccw',20)}<span class="play">${ic('pause',20)}</span>${ic('rotate-cw',20)}${ic('moon',18)}</div>
+<div class="list"><div class="li" style="border:0">${ic('arrow-right-left',15)}<div class="row-c"><b>Up next · connected concept</b><span>Replication lag · DDIA path</span></div>${ic('chevron-right',14)}</div></div>`);
+
+S.library=()=>phone(`${hd('Library',ic('search',18))}
+<div class="card review"><div class="row-c"><b>3 concepts due for review</b><span>A missed round, a checkpoint and reading · about 2 min</span></div>${btn('Start','pri sm')}</div>
+${seg(['Saved','Notes','Highlights','History'],1)}
+${lab('Your knowledge map')}
+<svg class="kmap" viewBox="0 0 272 118" role="img" aria-label="Knowledge map of five concepts"><title>Knowledge map</title>
+${[[136,14,46,50],[136,14,226,50],[136,14,96,90],[46,50,96,90],[226,50,186,90]].map(l=>`<line x1="${l[0]}" y1="${l[1]}" x2="${l[2]}" y2="${l[3]}" class="ke"/>`).join('')}
+${[[136,14,'Databases','ma'],[46,50,'Indexes','pr'],[226,50,'Replication','du'],[96,90,'Pooling','pr'],[186,90,'Caching','ex']].map(n=>kn(n[3],n[0],n[1])+`<text x="${n[0]}" y="${n[1]+22}" text-anchor="middle">${n[2]}</text>`).join('')}</svg>
+<div class="legend">${[['ex','Explored'],['pr','Practiced'],['ma','Mastered'],['du','Due']].map(x=>`<span>${kicon(x[0])}${x[1]}</span>`).join('')}</div>
+${lab('Recent notes')}
+<div class="list"><div class="li"><div class="row-c"><b>Connection limits</b><span class="note">Size the pool to what the database can serve, not to request volume.</span><span>Postgres Weekly · 2 days ago</span></div></div>
+<div class="li">${ic('list-music',15)}<div class="row-c"><b>Audio queue</b><span>3 explainers saved</span></div>${ic('chevron-right',14)}</div></div>`,'library');
+
+S.profile=()=>phone(`<div class="prof">${av('AK',1)}<div class="row-c"><b class="h-m">Aisha K.</b><span>Backend engineer · Intermediate</span></div>${ic('settings',18)}</div>
+<div class="list">${[['heart','Interests','6 chosen · 3 inferred to review'],['folder-git-2','Projects','billing-api · FastAPI, PostgreSQL'],['rss','Sources','18 sources, 6 authors'],['timer','Sessions','3–8 min · diagrams and audio'],['gamepad-2','Games','Human league · State Tech verified'],['bell','Notifications','Weekly digest · quiet 10 PM–8 AM']].map(x=>`<div class="li">${ic(x[0],16)}<div class="row-c"><b>${x[1]}</b><span>${x[2]}</span></div>${ic('chevron-right',14)}</div>`).join('')}</div>
+${lab('Permissions · each one separate')}
+<div class="list">${[['Use project context for picks',1],['Read repository code',0],['Use the agent’s task topic',0]].map(x=>`<div class="li perm"><div class="row-c"><b>${x[0]}</b></div><span class="t11">${x[1]?'On':'Off'}</span><span class="tg${x[1]?' on':''}"></span></div>`).join('')}</div>
+<div class="t11">${ic('shield-check',12)} Export or delete your data, or reset inferred interests</div>`);
+
+S.hub=()=>phone(`${hd('Play',tag(ic('trophy',12)+'1,496'))}
+${seg(['Human league','AI league'],0)}
+<div class="t11">${ic('info',11)} No AI tools. Rated on your own knowledge.</div>
+<div class="card rec"><div class="t11 up">Recommended now</div><div class="fc-h"><span class="cdot">${ic('timer',16)}</span><div class="row-c"><b>60s sprint · Replication</b><span>2 concepts due for review</span></div>${btn('Play','pri sm')}</div></div>
+${lab('Quick games · 1–3 min')}
+<div class="grid2">${[['zap','Fastest finger','1v1 · 7 rounds'],['timer','60s sprint','1v1 or solo'],['target','Solo blitz','Pick your time'],['calculator','Estimation','Within ±25%']].map(x=>`<div class="tile">${ic(x[0],18)}<b>${x[1]}</b><span>${x[2]}</span></div>`).join('')}</div>
+${lab('System design battles')}
+<div class="list">${row('network','HLD battle','30 min · design canvas',tag(ic('monitor',11)+'Desktop','st'))}${row('code-xml','LLD battle','45 min · hidden tests',tag(ic('monitor',11)+'Desktop','st'))}</div>`,'play');
+
+S.match=()=>phone(`${closeBar('Fastest finger · Human league')}
+<div class="scr c">
+<div class="vs">${av('AK',1)}<span class="t11">vs</span><span class="av r q">${ic('circle-help',20)}</span></div>
+<div><b class="h-l">Finding an opponent</b><div class="t11">Rating band 1,440–1,550 · widening</div></div>
+<div class="ring"><svg viewBox="0 0 80 80" aria-hidden="true"><circle cx="40" cy="40" r="34" class="rt"/><circle cx="40" cy="40" r="34" class="rp" stroke-dasharray="213.6" stroke-dashoffset="85"/></svg><div><b>9s</b><span>then a bot</span></div></div>
+<div class="t11" style="max-width:230px">No live match in 15 seconds? You’ll play a rated bot at your level.</div>
+<div>${lab('Questions from your concepts')}<div class="chips cc">${chip('Replication',1)}${chip('Caching',1)}${chip('Indexes',1)}</div></div>
+<div class="grow"></div>
+<div class="list">${row('link','Challenge a friend','Share a link')}</div>
+<div class="btnrow">${btn('Play bot now','ghost','bot')}${btn('Cancel','ghost')}</div></div>`,null,false,true);
+
+S.ff=(v='duel')=>{
+  const C={
+    duel:{top:`<div class="score">${av('AK',1)}<b>3</b><span class="t11">Round 4 of 7</span><b>2</b>${av('RS',1)}</div>`,time:[64,'6s left'],tag:'Caching',q:'Your service handles 20k reads/s and 200 writes/s. Reads must stay under 10 ms. What do you add first?',o:['Read replicas','A write queue','An in-memory cache','Sharding'],sel:2,mode:'lock',foot:`<div class="opp">${ic('lock',13)} RS has locked in an answer</div><div class="t11 c">First correct answer takes the round</div>`},
+    test:{top:`<div class="qtop">${ic('x',18)}<b>Test yourself · 60s</b><span>2 of 4</span></div>`,time:[55,'33s left'],tag:'Connection pooling',q:'A pool has 5 connections. Each query holds one for 50 ms. Roughly how many queries per second can it serve?',o:['25','100','250','500'],sel:1,mode:'ok',why:'5 connections × 20 queries each per second = 100.',foot:`<div class="t11 c">From the section you just read · counts toward practiced</div>`},
+    cp:{top:`<div class="qtop">${ic('x',18)}<b>Replication checkpoint</b><span>4 of 5</span></div>`,time:[30,'18s left'],tag:'Replication',q:'A user edits their profile, reloads it from a follower and sees the old value. Which guarantee is missing?',o:['Monotonic reads','Read-your-writes','Eventual consistency','Quorum writes'],sel:1,mode:'ok',why:'Read-your-writes makes a user’s own updates visible to them right away.',foot:`<div class="t11 c">Pass 4 of 5 to unlock Partitioning</div>`}
+  }[v];
+  const opts=C.o.map((x,i)=>{const s=i===C.sel;const cls=s?(C.mode==='ok'?'opt ok':'opt sel'):'opt';const r=s?(C.mode==='ok'?`<span class="rs">${ic('circle-check',14)}Correct</span>`:`<span class="rs">${ic('lock',13)}Locked</span>`):'';return `<div class="${cls}"><span class="k">${'ABCD'[i]}</span><span class="row-c">${x}</span>${r}</div>`}).join('');
+  return phone(`${C.top}<div>${bar(C.time[0],'warn')}<div class="t11 r" style="margin-top:3px">${C.time[1]}</div></div>${tag(C.tag)}<div class="q">${C.q}</div><div class="opts">${opts}</div>${C.why?`<div class="fb ok">${ic('circle-check',14)}<div><b>Correct.</b> ${C.why}</div></div>`:''}<div class="grow"></div>${C.foot}`);
+};
+
+S.est=()=>phone(`<div class="qtop"><b>60s sprint · Solo</b><span>${ic('timer',13)}0:34</span>${tag('Score 7')}</div>
+${tag('Estimation')}
+<div class="q">1M daily users make 20 requests each. Average requests per second?</div>
+<div class="inp"><b>230</b><span>req/s ${ic('chevron-down',12)}</span></div>
+<div class="t11">Scores if within ±25% of the answer</div>
+<div class="keys">${['1','2','3','4','5','6','7','8','9','k','0','M'].map(k=>`<span class="${k==='k'||k==='M'?'u':''}">${k}</span>`).join('')}</div>
+<div class="btnrow">${btn(ic('delete',16),'ghost')}${btn('Submit','pri')}</div>
+<div class="fb bad">${ic('circle-x',14)}<div><b>Last one missed.</b> Replication bandwidth: you said 5 MB/s, the answer was about 1.2 MB/s.</div></div>
+<div class="run"><span class="t11" style="margin-right:4px">This run</span>${[1,1,0,1,1,1,0,1,1].map(x=>ic(x?'circle-check':'circle-x',14,x?'okc':'badc')).join('')}</div>`);
+
+S.results=(v='duel')=>{
+  if(v==='test')return phone(`<div class="res-h"><span class="big-ic">${ic('circle-check',30)}</span><b class="h-xl">4 of 4 correct</b><span class="t11">Test yourself · Connection pooling</span></div>
+<div class="statechg">${kicon('ex')}Explored ${ic('arrow-right',13)} ${kicon('pr')}<b>Practiced</b></div>
+<div class="stats">${[['100%','Accuracy'],['8.2s','Avg answer'],['41s','Time used']].map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>
+${lab('Queued next')}
+<div class="card"><div class="fc-h">${av('PG')}<div class="row-c"><b>Why your connection pool runs dry</b><span>Section 3 of 4 · 4 min · Postgres Weekly</span></div></div></div>
+<div class="grow"></div>
+<div class="btncol">${btn('Continue reading · 4 min','pri','book-open')}${btn('Back to feed','ghost')}</div>`);
+  if(v==='cp')return phone(`<div class="res-h"><span class="big-ic">${ic('flag',30)}</span><b class="h-xl">Checkpoint passed</b><span class="t11">4 of 5 · Replication</span></div>
+<div class="statechg">${kicon('pr')}<b>3 concepts now practiced</b></div>
+<div class="list">${row('lock-open','Partitioning unlocked','5 sessions · first one 4 min','')}${row('rotate-ccw','Added to review','Monotonic reads · back in 2 days','')}</div>
+<div class="grow"></div>
+<div class="btncol">${btn('Start Partitioning · 4 min','pri','play')}${btn('Review the miss now','ghost')}</div>`);
+  return phone(`<div class="res-h"><b class="h-xl">You won</b><span class="t11">5–3 · Fastest finger · Human league</span><span class="delta">${ic('trending-up',14)}+14 rating</span></div>
+<div class="stats">${[['1,510','Rating'],['83%','Accuracy'],['2.1s','Avg answer']].map(x=>`<div><b>${x[0]}</b><span>${x[1]}</span></div>`).join('')}</div>
+${lab('Close the loop')}
+<div class="card"><div class="fc-h"><div class="row-c"><b>Replication lag</b><span>Missed 2 rounds</span></div>${tag(kicon('du').replace('width="22" height="22"','width="13" height="13"')+'Due','du')}</div><div class="why">When replicas fell 40 seconds behind · Engineering blog · 8 min</div>${btn('Read the fix · 8 min','pri','book-open')}<div class="t11">${ic('corner-down-right',12)} Also added to your review queue</div></div>
+<div class="grow"></div>
+<div class="btnrow">${btn('Rematch','ghost','repeat')}${btn('Back to feed','ghost')}</div>`);
+};
+
+S.lead=()=>phone(`${hd('Leaderboards',ic('info',17))}
+${seg(['Global','Country','University'],2)}
+<div class="chips">${chip('Season 4 · 12 days left',1)}${chip('Human league')}${chip('All modes')}</div>
+<div class="t11">State Tech players</div>
+<div class="list">${[['1','RS','Riya S.','1,712'],['2','MT','Mina T.','1,688'],['3','JL','Jun L.','1,650'],['4','PD','Priya D.','1,631'],['5','SO','Sam O.','1,604']].map(x=>`<div class="lb"><span class="n">${x[0]}</span>${av(x[1],1)}<span class="row-c">${x[2]}</span><b>${x[3]}</b></div>`).join('')}</div>
+<div class="lb me"><span class="n">14</span>${av('AK',1)}<span class="row-c"><b>You</b><span>Top 7% · +38 this week</span></span><b>1,510</b></div>
+${lab('Your university')}
+<div class="list">${row('graduation-cap','State Tech · #3 of 212','Verified with college email')}</div>`,'play');
+
+S.battles=()=>phone(`${hd('Battles')}
+<div class="card hand"><span class="cdot lg">${ic('monitor',20)}</span><b style="font-size:14px">Battles run on desktop</b><span class="t11">The design canvas and code editor need a bigger screen.</span><div class="btncol">${btn('Send link to my desktop','pri','send')}${btn('Remind me at 6 PM','ghost','bell')}</div></div>
+${lab('Upcoming')}
+<div class="list">${row('calendar','Weekend HLD cup','Sat 7 PM · 128 players · uni bracket',tag(ic('check',11)+'Registered','ok'))}</div>
+${lab('Your replays')}
+<div class="list">${row('play','URL shortener · HLD','Won 82–77 · 2 days ago')}${row('play','Rate limiter · LLD','Lost 9–11 tests · last week')}</div>
+${lab('Live now')}
+<div class="list">${row('eye','Top-10 final · HLD','1.4k watching')}</div>`,'play');
+
+/* ---------- web screens ---------- */
+const WNAV=[['house','Home'],['compass','Explore'],['route','Paths'],['gamepad-2','Play'],['library','Library']];
+const browser=(url,act,body)=>`<div class="browser"><div class="bbar"><span class="dots"><i></i><i></i><i></i></span><span class="url">${ic('lock',10)} ${url}</span></div><div class="bbody"><div class="side"><span class="wm"><span class="mark" style="transform:scale(.8)"><i></i><i></i><i></i></span>Interval</span>${WNAV.map(n=>`<span class="${n[1]===act?'on':''}">${ic(n[0],15)}${n[1]}</span>`).join('')}<div class="grow"></div><div class="side-r"><span class="t11">Human league</span><b>1,496</b></div><span>${av('AK',1)} Aisha</span></div><div class="main">${body}</div></div></div>`;
+const wtop=(t,r='')=>`<div class="wtop"><b class="h-l">${t}</b><span class="hd-r">${r}</span></div>`;
+
+S.whome=v=>browser('interval.app','Home',`${wtop('For you',`<span class="t11">I have</span>${['3 min','8 min','15 min'].map((x,i)=>chip(x,i===1)).join('')}`)}
+<div class="wgrid"><div class="col">
+${v==='battle'?`<div class="wc hlc"><div class="kick">${ic('swords',11)} From your HLD battle</div><b class="fc-t">How we cut failover from 90 seconds to 4</b><span class="t11">Engineering blog · Leader election · 7 min</span><div class="why" style="background:var(--surface)">${aiTag('Why this matters to you')}Manual failover cost you the primary-failure scenario on Tuesday. This case study shows the automatic version.</div></div>`:''}
+<div class="wc open"><div class="fc-h">${av('PG')}<div class="row-c"><b>Postgres Weekly</b><span>Section 2 of 4 · 3 min</span></div>${tag(ic('external-link',11)+'Open in a new tab','st')}</div><b class="fc-t">Why your connection pool runs dry under load</b><div class="why">${aiTag('Why this matters to you')}billing-api runs FastAPI on PostgreSQL with a pool of 5. This is the limit you’ll hit first.</div>${diag()}</div>
+<div class="wc"><div class="t11">${ic('route',12)} Continue · DDIA path</div><b>Replication · session 3 of 3</b>${bar(66)}</div>
+${v==='battle'?'':`<div class="wc row0">${ic('flame',17)}<div class="row-c"><b>Daily challenge</b><span>60s · Replication · 5-day streak</span></div>${btn('Play','pri sm')}</div>`}
+</div>
+<div class="panel"><div class="t11 up">Reading now</div><b>Why your connection pool runs dry</b><span class="t11">${ic('external-link',11)} postgresweekly.example · open in another tab</span>
+<div class="moment w">${[1,2,3,4].map(i=>`<i class="${i<2?'d':i===2?'a':''}"></i>`).join('')}<span>Section 2 of 4</span></div>
+<div class="why" style="background:var(--surface)">${aiTag('Why this matters to you')}A pool of 5 caps concurrent queries. The new export endpoint could queue behind it.</div>
+<div class="minis">${[['bookmark','Save'],['notebook-pen','Note'],['headphones','Listen'],['zap','Test 60s']].map((x,i)=>`<span class="${i===3?'hl':''}">${ic(x[0],15)}${x[1]}</span>`).join('')}</div>
+${btn('Mark section done','ghost','check')}</div></div>`);
+
+S.whub=v=>browser('interval.app/play','Play',`${wtop('Play',seg(['Human league','AI league'],0,'in'))}
+<div class="stats w">${[['Human league','1,496','+38 this week'],['AI league','1,210','12 matches'],['Season 4 rank','#412','Top 6% · 12 days left']].map(m=>`<div><span>${m[0]}</span><b>${m[1]}</b><span>${m[2]}</span></div>`).join('')}</div>
+${lab('Quick games · 1 to 3 minutes · answer with keys 1–4')}
+<div class="grid4">${[['zap','Fastest finger','1v1 · 7 rounds'],['timer','60s sprint','1v1 or solo'],['target','Solo blitz','Most in a set time'],['calculator','Estimation','Within ±25%']].map(t=>`<div class="dc">${ic(t[0],18,'acc')}<b>${t[1]}</b><span class="t11">${t[2]}</span></div>`).join('')}</div>
+${lab('System design battles')}
+<div class="grid2">${[['network','HLD battle','30 min · 1v1 or 4-player rooms','Simulation 60 · AI rubric 25 · speed 15'],['code-xml','LLD battle','45 min · 1v1','Hidden tests and an extension round, then time']].map(b=>`<div class="dc"><div class="fc-h">${ic(b[0],20,'acc')}<div class="row-c"><b>${b[1]}</b><span>${b[2]}</span></div></div><span class="t11">${b[3]}</span><div style="display:flex;gap:6px;margin-top:4px">${btn('Find match','pri sm')}${btn('Practice','ghost sm')}</div></div>`).join('')}</div>
+<div class="grid2"><div class="dc" style="flex-direction:row;align-items:center;gap:10px">${ic('flame',18)}<div class="row-c"><b>Daily challenge</b><span>Replication · 5-day streak</span></div>${ic('chevron-right',15)}</div>
+<div class="dc" style="flex-direction:row;align-items:center;gap:10px;${v==='tour'?'border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)':''}">${ic('trophy',18)}<div class="row-c"><b>Weekend HLD cup</b><span>${v==='tour'?'Registered · lobby opens 6:50 PM':'Sat 7 PM · 128 players · uni bracket'}</span></div>${v==='tour'?btn('Join lobby','pri sm'):tag('Register')}</div></div>`);
+
+S.wquick=()=>browser('interval.app/play/fastest-finger','Play',`${wtop('Fastest finger',tag('Rated · Human league'))}
+<div class="wq"><div class="col"><div class="t11 sp"><span>Round 4 of 7 · Caching</span><span>6s left</span></div>${bar(64,'warn')}
+<div class="q lg">Your service handles 20k reads/s and 200 writes/s. Reads must stay under 10 ms. What do you add first?</div>
+<div class="grid2">${['Read replicas','A write queue','An in-memory cache','Sharding'].map((o,i)=>`<div class="opt${i===2?' sel':''}"><span class="k">${i+1}</span><span class="row-c">${o}</span>${i===2?`<span class="rs">${ic('lock',13)}Locked</span>`:''}</div>`).join('')}</div>
+<div class="t11">${ic('keyboard',12)} Press 1–4 to answer. The first correct answer takes the round.</div></div>
+<div class="panel"><div class="score">${av('AK',1)}<b>3</b><span class="t11">vs</span><b>2</b>${av('RS',1)}</div><div class="opp" style="background:var(--surface)">${ic('lock',13)} RS locked in</div>${lab('Rounds so far')}<div>${[['Indexes','win'],['Replication','lost'],['Queues','win']].map((r,i)=>`<div class="kv"><span>${i+1}. ${r[0]}</span>${st(r[1])}</div>`).join('')}</div></div></div>`);
+
+const canvas=()=>{
+  const node=(x,y,w,t,s,c='')=>`<g class="cn ${c}"><rect x="${x}" y="${y}" width="${w}" height="${s?36:26}" rx="5"/><text x="${x+w/2}" y="${y+(s?15:17)}" text-anchor="middle">${t}</text>${s?`<text class="s" x="${x+w/2}" y="${y+29}" text-anchor="middle">${s}</text>`:''}</g>`;
+  const ln=(a,b,c,d,dash)=>`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" class="ce" marker-end="url(#ah)"${dash?' stroke-dasharray="4 3"':''}/>`;
+  return `<svg viewBox="0 0 334 236" role="img" aria-label="Design canvas: client, load balancer, app servers, cache, queue, primary database with a replica, and a worker"><defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+${ln(65,30,93,30)}${ln(160,30,183,30)}${ln(220,48,220,70)}${ln(190,48,102,138)}${ln(222,106,222,138)}${ln(252,48,296,138)}${ln(222,174,222,190,1)}
+${node(5,17,60,'Client')}${node(95,17,65,'LB')}${node(185,12,75,'App','3 nodes')}${node(150,70,144,'Redis cache','short_code → URL')}${node(55,138,94,'Kafka','click events')}${node(170,138,104,'Postgres','primary','sel')}${node(279,138,52,'Worker')}${node(170,190,104,'Replica','async')}
+<circle cx="272" cy="140" r="8" class="cbad"/><text x="272" y="143.5" text-anchor="middle" class="cbad-t">!</text></svg>`;
+};
+S.hld=v=>browser('interval.app/play/battle/hld/url-shortener','Play',`${wtop(v==='tour'?'Weekend HLD cup · Round 2 · URL shortener':'HLD battle · Design a URL shortener',`<span class="t11" style="display:inline-flex;gap:4px;align-items:center">${ic('clock',13)} 18:42 left</span>${tag('Opponent · 3 of 5 scenarios','st')}`)}
+<div class="hld">
+<div class="col" style="gap:6px"><b class="h-s">Requirements</b><ul class="req">${['100M new URLs a month','50k redirects/s','p99 under 100 ms','Survive a zone outage'].map(r=>`<li>${r}</li>`).join('')}</ul>
+<b class="h-s">Scenarios</b><div>${[['Baseline load','ok',''],['Peak 3× traffic','ok',''],['Cold cache','warn','p99 reaches 140 ms for 2 min'],['Primary DB fails','bad','Manual failover: 90 s of failed writes'],['Zone outage','','Runs once the others pass']].map(s=>`<div class="scn"><div class="kv"><span>${s[0]}</span>${st(s[1])}</div>${s[2]?`<span class="why-l">${s[2]}</span>`:''}</div>`).join('')}</div></div>
+<div class="col"><div class="canvas">${canvas()}</div>
+<div class="pal"><span class="t11">Drag in</span>${['LB','App','Cache','DB','Queue','CDN','Worker'].map(c=>`<span>${c}</span>`).join('')}</div>
+<div class="sbar2"><span class="a" style="flex:60">Simulation 60</span><span style="flex:25">AI rubric 25</span><span style="flex:15">Speed 15</span></div>
+<div class="gate">${ic('circle-check',13)}<span>Baseline passed, so your trade-off notes now count toward the rubric.</span></div></div>
+<div class="col" style="gap:4px"><b class="h-s">Postgres · primary</b>
+<div class="kv"><span>Replication</span><b>Async</b></div><div class="kv"><span>Failover</span><b style="color:var(--bad)">Manual</b></div><div class="kv"><span>Shard key</span><b>short_code</b></div>
+<div class="sp" style="align-items:center;margin-top:8px"><b style="font-size:12px">Why this choice</b>${aiTag('Scored by AI rubric')}</div>
+<div class="note-in">Async keeps writes fast. Redirects tolerate a little staleness.<div class="t11" style="margin-top:4px">58 / 280 characters</div></div>
+<div style="margin-top:8px">${btn('Run simulation','pri','play')}</div></div></div>`);
+
+S.lld=()=>browser('interval.app/play/battle/lld/parking-lot','Play',`${wtop('LLD battle · Parking lot',`<span class="t11" style="display:inline-flex;gap:4px;align-items:center">${ic('clock',13)} 31:05 left</span>${tag('Opponent · 9 of 14 tests','st')}`)}
+<div class="lld">
+<div class="col" style="gap:6px"><b class="h-s">Interface</b><div class="code" style="white-space:normal">park(vehicle) → Ticket<br>unpark(ticket) → Fee<br>available(type) → int</div>
+<b class="h-s">Rules</b><ul class="req">${['Small, medium, large spots','Fee by hour and size','Thread-safe'].map(r=>`<li>${r}</li>`).join('')}</ul>
+<div class="ext"><b>${ic('zap',13)} Extension round · live</b><span>Add EV charging spots. Charging adds a per-kWh fee.</span><span class="t11">2 new tests unlocked · 12 min left in round</span></div></div>
+<div class="editor"><div class="sp"><span class="t11">parking_lot.py</span><span class="t11" style="display:inline-flex;gap:3px;align-items:center">Python ${ic('chevron-down',11)}</span></div><pre class="code"><span class="kw">class</span> ParkingLot:
+  <span class="kw">def</span> __init__(self, floors):
+    self._lock = Lock()
+    self._spots = SpotIndex(floors)
+
+  <span class="kw">def</span> park(self, vehicle):
+<span class="hi">    spot = self._spots.find(vehicle.size)</span>
+    <span class="kw">with</span> self._lock:
+      <span class="kw">if</span> spot <span class="kw">is</span> None:
+        <span class="kw">raise</span> LotFull()
+      <span class="kw">return</span> Ticket(spot, now())
+
+  <span class="kw">def</span> unpark(self, ticket):
+    fee = self._pricing.fee(ticket)
+    self._spots.free(ticket.spot)
+    <span class="kw">return</span> fee</pre></div>
+<div class="col" style="gap:4px"><b class="h-s">Tests</b>${[['Visible','6/6','ok'],['Hidden','4/6','warn'],['Concurrency','0/1','bad'],['EV extension','0/2','']].map(t=>`<div class="kv"><span>${t[0]}</span><span style="display:flex;gap:6px;align-items:center;font-family:var(--f-mono)">${t[1]} ${st(t[2])}</span></div>`).join('')}
+<div class="fail" style="margin-top:8px"><b>Concurrency failed.</b> 100 parallel park() calls gave spot F2-14 to two cars. The lookup runs outside the lock (line 7).</div>
+<div style="display:flex;gap:6px;margin-top:8px">${btn('Run tests','ghost sm')}${btn('Submit','pri sm')}</div><span class="t11" style="margin-top:6px">Score: tests passed, then time</span></div></div>`);
+
+S.wres=()=>browser('interval.app/play/results/8241','Play',`${wtop('You won · 82 to 77',`${tag(ic('trending-up',12)+'+18 rating','ok')}<span class="t11">URL shortener · HLD · Human league</span>`)}
+<div class="grid2" style="gap:16px;align-items:start"><div class="col">
+${[['Simulation',54,60],['Trade-off quality',19,25],['Speed',9,15]].map(s=>`<div class="sline"><div class="sp"><span>${s[0]}</span><b style="font-family:var(--f-mono)">${s[1]} / ${s[2]}</b></div>${bar(Math.round(s[1]/s[2]*100))}</div>`).join('')}
+${lab('Rubric · scored 3 times, median shown')}
+<div>${[['Justified replication mode','ok','Async replication tied to how stale a redirect can be.'],['Named a failover strategy','bad','No automatic failover, so losing the primary stops writes.'],['Explained cache invalidation','ok','TTL plus delete-on-update for edited links.'],['Sized the shard key','ok','short_code spreads writes evenly across shards.']].map(r=>`<div class="rub"><div class="kv"><span>${r[0]}</span>${st(r[1])}</div><span class="r">${r[2]}</span></div>`).join('')}</div>
+<span class="t11">${ic('flag',12)} Think an item is wrong? <span style="color:var(--accent-ink);font-weight:600">Dispute it</span></span></div>
+<div class="col"><div class="note-in" style="padding:10px"><div class="sp" style="align-items:center"><b style="font-size:12.5px;color:var(--ink)">${ic('sparkles',13)} Coach</b>${aiTag('AI · does not affect rating')}</div><div style="margin-top:6px">Manual failover cost you the primary-failure scenario. Automatic leader election would have kept redirects and writes up.</div></div>
+${lab('Concepts to revisit · opens in your feed')}
+${[['Leader election','How we cut failover from 90 seconds to 4 · 7 min','pri'],['Replication lag','DDIA ch. 5 · resume your path','ghost']].map(c=>`<div class="dc"><div class="fc-h"><div class="row-c"><b>${c[0]}</b><span>${c[1]}</span></div>${btn('Read',c[2]+' sm','book-open')}</div></div>`).join('')}
+<div style="display:flex;gap:6px;flex-wrap:wrap">${btn('Watch replay','ghost sm','play')}${btn('Rematch','ghost sm','repeat')}${btn('Back to feed','ghost sm')}</div></div></div>`);
+
+S.wlead=v=>{
+  const uni=v==='uni';
+  const rows=uni
+    ?[['1','Northgate University','312','1,584'],['2','Lakeshore Institute','198','1,571'],['3','State Tech','244','1,562'],['4','Riverside College','156','1,540'],['5','Coastal University','287','1,533']]
+    :[['1','Riya S. · State Tech','HLD','1,712'],['2','Mina T. · Lisbon','Fastest finger','1,688'],['3','Jun L. · Seoul','LLD','1,650'],['4','Priya D. · State Tech','Estimation','1,631'],['5','Sam O. · Lagos','HLD','1,604']];
+  return browser('interval.app/play/leaderboards','Play',`${wtop('Leaderboards',seg(['Human league','AI league'],0,'in'))}
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${seg(['Global','Country','University'],uni?2:0,'in')}${chip('Season 4 · 12 days left',1)}${chip('All modes')}</div>
+<div class="wq"><div><div class="lbt h"><span>#</span><span>${uni?'University':'Player'}</span><span>${uni?'Verified players':'Best mode'}</span><span class="rt">${uni?'Avg rating':'Rating'}</span></div>
+${rows.map(r=>`<div class="lbt${uni&&r[0]==='3'?' me':''}"><span class="t11">${r[0]}</span><span>${r[1]}${uni&&r[0]==='3'?' · yours':''}</span><span class="t11">${r[2]}</span><span class="rt">${r[3]}</span></div>`).join('')}
+${uni?'':`<div class="lbt me"><span>412</span><span>You · Top 6%</span><span>Fastest finger</span><span class="rt">1,496</span></div>`}</div>
+<div class="col"><div class="panel"><span class="t11">Your university</span><b>State Tech</b><span class="t11">#3 of 212 · ${ic('graduation-cap',12)} verified</span></div>
+${uni?`<div class="panel"><span class="t11">Weekend HLD cup</span><b>State Tech went 3–1</b><span class="t11">Up 2 places · your match won 82–77</span></div>`:`<div class="panel"><span class="t11">Your country</span><b>#58</b><span class="t11">Top 4%</span></div>`}</div></div>`);
+};
+
+S.comp=v=>{
+  const done=v==='done';
+  return `<div class="desk"><div class="menubar"><span>${ic('terminal',12)} Terminal</span><span class="grow"></span><span class="mb-ic ${done?'ok':'on'}">${ic(done?'circle-check':'timer',12)}${done?'Agent done':'Interval · 3:48'}</span><span>${ic('wifi',12)}</span><span class="t11">2:23 PM</span></div>
+<div class="deskbody"><div class="term"><div class="t11">claude · billing-api</div><pre>› implement billing export endpoint
+  Reading src/billing/*.py
+  Writing export_service.py
+${done?`  Running tests (9 of 9)
+  <span class="g">✓ 9 passed</span>
+  Export endpoint ready for review
+› _`:`  Running tests (2 of 9)
+  <span class="w">⋯ working · about 4 min left</span>`}</pre></div>
+${done?`<div class="pop"><div class="ok-h">${ic('circle-check',16)}Agent finished · tests passed</div>
+<div class="t11 up">Your place is saved</div>
+<div class="list"><div class="li">${ic('timer',15)}<div class="row-c"><b>60s sprint · Caching</b><span>7 correct · 25 s left</span></div></div><div class="li">${ic('rotate-ccw',15)}<div class="row-c"><b>Replication lag</b><span>Added to your feed and review queue</span></div></div></div>
+<div class="btncol">${btn('Back to terminal','pri','terminal')}${btn('Finish sprint · 25 s','ghost')}</div></div>`
+:`<div class="pop"><div class="sp" style="align-items:center"><b class="h-s">Agent is working</b>${tag('About 4 min','du')}</div><span class="t11">Picks that fit the gap</span>
+<div class="list">${[['timer','60s sprint · Caching','1 min',1],['flame','Daily challenge','1 min'],['route','Resume DDIA · Replication','3 min'],['file-text','Connection pools · section 2','3 min']].map(r=>`<div class="li${r[3]?' rc':''}">${ic(r[0],15)}<div class="row-c"><b>${r[1]}</b></div><span class="d">${r[2]}</span></div>`).join('')}</div>
+<div class="li perm" style="border:0;padding-top:2px"><div class="row-c"><b style="font-size:11.5px">Nudge me when the agent finishes</b></div><span class="tg on"></span></div></div>`}</div></div>`;
+};
+
+/* ---------- metadata ---------- */
+const SCREENS=[
+ {id:'onboard',num:'01',name:'Onboarding',g:'learn',kind:'m',p:'Topics, level, break length and formats in under a minute.',ux:['Split into three short steps (You, Projects, Play) with a step bar and a time estimate.','GitHub and university verification moved to their own optional steps, each with Skip.','Formats carry icons, so Play reads as a first-class way to learn.']},
+ {id:'home',num:'02',name:'For You feed',g:'learn',kind:'m',p:'Time chips decide what the feed shows: continue cards, moments and the daily challenge.',ux:['With agent hooks on, a banner shows the agent’s time left, and the feed fits that gap.','Every card says whether it fits the chosen time.','Save, Test 60s and Why this? stay on the card; tuning controls move to the overflow menu.']},
+ {id:'article',num:'03',name:'In-app browser',g:'learn',kind:'m',p:'The publisher’s page, untouched. Interval’s context lives in a sheet below it.',ux:['The sheet opens as a one-line peek, so it never covers the author’s page.','A section rail shows where the moment sits inside the article.','At the end of a section the sheet offers one next step: test or continue.']},
+ {id:'explore',num:'04',name:'Explore',g:'learn',kind:'m',p:'Search by concept, follow topic spaces, see what’s trending in them.',ux:['Search returns a concept card first, with your state and every format that covers it.','The level toggle sits on the concept card, where it changes the explanation.','Each topic space shows whether you follow it.']},
+ {id:'paths',num:'05',name:'Learning paths',g:'learn',kind:'m',p:'Books and topics split into sessions, with checkpoints between sections.',ux:['Checkpoints are their own steps on the timeline, with the pass mark and what they unlock.','Locked sections say what unlocks them.','Edit (pause, reorder, skip) sits in the header instead of a hidden menu.']},
+ {id:'reader',num:'06',name:'Book reader',g:'learn',kind:'m',p:'Original text badged. AI help sits in dashed boxes, apart from the text.',ux:['The Original text badge stays pinned while you scroll.','The footer shows time left in the session and what comes next.']},
+ {id:'listen',num:'07',name:'Audio player',g:'learn',kind:'m',p:'Expands from the mini-player. Two modes, labeled as original or AI.',ux:['A line under the mode switch says when you are hearing AI, not the author.','Up next follows the concept graph to a connected concept.']},
+ {id:'library',num:'08',name:'Library',g:'learn',kind:'m',p:'Review queue first, then notes, highlights, history and the knowledge map.',ux:['The review queue is the top card, with a count, where items came from and a time estimate.','Knowledge-map states use shape and fill with a legend, not color alone.']},
+ {id:'profile',num:'09',name:'Profile',g:'learn',kind:'m',p:'Interests, projects, sources, sessions, games and privacy.',ux:['Project context, code reading and agent task topic are three separate switches, each labeled On or Off.','Inferred interests show a count to review, so explicit choices always win.']},
+ {id:'hub',num:'10',name:'Play hub',g:'play',kind:'m',p:'League switch, a recommended game, quick games and desktop battles.',ux:['A one-line rule under the league switch says what the league measures.','One recommended game, chosen from concepts due for review, sits above the grid.']},
+ {id:'match',num:'11',name:'Matchmaking',g:'play',kind:'m',p:'Rating band, concepts in play, and the bot fallback.',ux:['A countdown ring shows when the rated bot takes over.','Play bot now skips the wait.']},
+ {id:'ff',num:'12',name:'Fastest finger',g:'play',kind:'m',p:'Live 1v1. Same questions for both players, timed by the server.',ux:['Locked answers and the opponent’s status use an icon and a word, not color alone.','The same question card powers Test 60s and checkpoints, with instant feedback in solo modes.']},
+ {id:'est',num:'13',name:'Estimation sprint',g:'play',kind:'m',p:'Numeric answers with unit keys, scored within a tolerance.',ux:['After a miss, the screen shows the expected value, so the miss teaches something.','Unit keys (k, M) and a unit picker keep entry fast on a phone.']},
+ {id:'results',num:'14',name:'Results',g:'play',kind:'m',p:'Outcome and rating, then the missed concept with one button to read the fix.',ux:['The main button opens the reading that fixes the missed concept; Rematch is secondary.','The screen says the concept also went to the review queue.']},
+ {id:'lead',num:'15',name:'Leaderboards',g:'play',kind:'m',p:'Global, country and university boards with season and mode filters.',ux:['Your own row is pinned below the top five, with rank and percentile.','Filters are chips in one row, so the season stays visible.']},
+ {id:'battles',num:'16',name:'Battles on mobile',g:'play',kind:'m',p:'Desktop handoff, tournaments, replays and spectating.',ux:['Handoff offers a link now or a reminder for later.','Registration status shows on the tournament row.']},
+ {id:'whome',num:'W1',name:'Web · For You',g:'web',kind:'w',p:'The web feed. Articles open in a new tab while Interval keeps the context panel.',ux:['New screen: most publishers block embedding on the web, so a context panel stays beside the feed for the article open in another tab.','Mark section done records progress when the publisher page can’t report it.']},
+ {id:'whub',num:'W2',name:'Web · Play hub',g:'web',kind:'w',p:'Ratings, quick games, battles, the daily challenge and tournaments.',ux:['The tournament card shows registration state and when the lobby opens.','The quick-games heading tells you answers use keys 1–4.']},
+ {id:'wquick',num:'W3',name:'Web · Quick game',g:'web',kind:'w',p:'Fastest finger on the web, answered with keys 1–4.',ux:['Round history shows which concepts you won or lost as the match goes.']},
+ {id:'hld',num:'W4',name:'HLD battle',g:'web',kind:'w',p:'Requirements, scenarios, canvas, component settings and trade-off notes.',ux:['Each failed or slow scenario says why in one line.','The simulation gate is stated on screen: notes count only once Baseline passes.','The failing component carries a marker on the canvas, and the note shows its length limit.']},
+ {id:'lld',num:'W5',name:'LLD battle',g:'web',kind:'w',p:'Interface spec, editor, test layers and the extension round.',ux:['The extension banner shows the new rule, the tests it adds and the time left.','A failing test shows the input that broke it and highlights the line.']},
+ {id:'wres',num:'W6',name:'Web · Results',g:'web',kind:'w',p:'Score split, rubric with reasons, AI coach and concepts to revisit.',ux:['Each rubric item shows its one-line reason, with a way to dispute it.','Coach output sits in a dashed AI box marked as not affecting rating.']},
+ {id:'wlead',num:'W7',name:'Web · Leaderboards',g:'web',kind:'w',p:'Players and universities, by league, season and mode.',ux:['The University tab ranks schools by average rating, with yours highlighted and its latest tournament result.']},
+ {id:'comp',num:'W8',name:'Desktop companion',g:'web',kind:'w',p:'A menubar window beside the coding agent. Options sized to the time left.',ux:['Suggestions are sorted to fit the agent’s estimated time, with one marked as the best fit.','When the agent finishes, one button returns you to the terminal and your place is saved.']}
+];
+const byId=Object.fromEntries(SCREENS.map(s=>[s.id,s]));
+
+const FLOWS=[
+ {id:'agent',name:'Agent-waiting session',ref:'Blueprint §7 and §8.3',desc:'The use case that gives Interval its identity: a coding agent starts a long task, and the wait becomes a short session.',steps:[['comp','run','The agent starts a long task. The companion offers picks that fit about four minutes.'],['est',null,'They play a 60-second sprint and miss a question about replication.'],['comp','done','The agent finishes. Interval saves their place and offers one button back to the terminal.'],['home','after','Next time they open Interval, the feed leads with the replication concept they missed.']]},
+ {id:'learn',name:'Learning session',ref:'Blueprint §3.2, §5D and §8.3',desc:'Three minutes free: a moment from a Postgres article, tied to the user’s own project, then a quick test.',steps:[['home',null,'They pick 3 min. The feed shows a moment that fits, with a note tied to billing-api.'],['article',null,'The moment opens on the publisher’s own page. Interval’s sheet stays collapsed.'],['article','end','At the end of the section, the sheet offers a 60-second test or the next section.'],['ff','test','They take Test 60s. Each answer gets instant feedback.'],['results','test','Connection pooling moves to practiced, and the next section is queued.']]},
+ {id:'cp',name:'Path checkpoint',ref:'Blueprint §5F and §8.3',desc:'Finishing the Replication section of a book path, then passing the checkpoint that unlocks Partitioning.',steps:[['paths',null,'They resume the last Replication session from the path.'],['reader',null,'The reader shows time left and that the checkpoint comes next.'],['ff','cp','The 60-second checkpoint uses the same engine as quick games.'],['results','cp','A pass unlocks Partitioning. The missed concept goes to review.'],['library',null,'The missed concept waits at the top of the library’s review queue.']]},
+ {id:'battle',name:'HLD battle',ref:'Blueprint §6.4 and §8.3',desc:'A 30-minute system design battle on desktop, from the Play hub to the concept that comes back in the feed.',steps:[['whub',null,'From the Play hub on desktop, they choose an HLD battle in the Human league.'],['hld',null,'They design, run the simulation, read why scenarios fail, and refine.'],['wres',null,'Results show the score split, the rubric with reasons, and coach notes.'],['whome','battle','Leader election, the concept they missed, now leads their feed.']]},
+ {id:'tour',name:'University tournament',ref:'Blueprint §6.4, §6.7 and §8.3',desc:'Registering on the phone, playing on desktop, and seeing results roll into university standings.',steps:[['battles',null,'They register for the Weekend HLD cup on mobile and set a reminder.'],['whub','tour','On desktop, the Play hub shows they are registered and when the lobby opens.'],['hld','tour','They play their bracket match on the design canvas.'],['wlead','uni','Results feed into university standings.']]}
+];
+const FL=Object.fromEntries(FLOWS.map(f=>[f.id,f]));
+const refs={};FLOWS.forEach(f=>f.steps.forEach((s,i)=>{(refs[s[0]]=refs[s[0]]||[]).push([f.id,i])}));
+
+/* ---------- rendering ---------- */
+const icons=()=>{try{window.lucide&&window.lucide.createIcons({attrs:{'stroke-width':1.75}})}catch(e){}};
+const shot=(id,v)=>{const s=byId[id];const h=S[id](v);return s.kind==='m'?h:`<div class="webscroll">${h}</div>`};
+const board=document.getElementById('board');
+let group='learn';
+function renderBoard(){
+  board.className='board'+(group==='web'?' web':'');
+  board.innerHTML=SCREENS.filter(s=>s.g===group).map(s=>{
+    const r=(refs[s.id]||[]).map(x=>`<button class="fchip" data-flow="${x[0]}" data-step="${x[1]}">${ic('play',11)}${FL[x[0]].name} · step ${x[1]+1}</button>`).join('');
+    const notes=`<div class="shot-b"><div style="display:flex;flex-direction:column;gap:8px"><p class="shot-p">${s.p}</p>${r?`<div class="inflow">${r}</div>`:''}</div><div style="display:flex;flex-direction:column;gap:6px"><div class="ux-l">Changed in this revision</div><ul class="ux">${s.ux.map(u=>`<li>${u}</li>`).join('')}</ul></div></div>`;
+    return s.kind==='m'
+      ?`<article class="shot" id="scr-${s.id}"><header class="shot-h"><span class="shot-n">${s.num}</span><h3>${s.name}</h3></header>${shot(s.id)}${notes}</article>`
+      :`<article class="shot w" id="scr-${s.id}"><header class="shot-h"><span class="shot-n">${s.num}</span><h3>${s.name}</h3></header>${notes}${shot(s.id)}</article>`;
+  }).join('');
+  document.querySelectorAll('#xtabs .xtab').forEach(b=>b.setAttribute('aria-selected',b.dataset.g===group?'true':'false'));
+  icons();
+}
+document.getElementById('xtabs').addEventListener('click',e=>{const b=e.target.closest('.xtab');if(!b)return;group=b.dataset.g;renderBoard();try{localStorage.setItem('iv-group',group)}catch(_){}});
+
+let fl='learn',fs=0;
+const pick=document.getElementById('flowpick'),stepsEl=document.getElementById('fsteps'),stage=document.getElementById('stage');
+function renderFlow(){
+  pick.innerHTML=FLOWS.map(f=>`<button class="xtab" role="tab" aria-selected="${f.id===fl}" data-f="${f.id}">${f.name}<span class="cnt">${f.steps.length} steps</span></button>`).join('');
+  const F=FL[fl];
+  stepsEl.innerHTML=`<p class="f-desc">${F.desc}</p><p class="f-ref">${F.ref}</p><ol class="fsteps">${F.steps.map((s,i)=>`<li><button class="fstep${i===fs?' on':''}" data-i="${i}" aria-current="${i===fs?'step':'false'}"><span class="fn">${i+1}</span><span><b>${byId[s[0]].num} · ${byId[s[0]].name}</b><span>${s[2]}</span></span></button></li>`).join('')}</ol>`;
+  const s=F.steps[fs];
+  stage.innerHTML=`<div class="stage-top"><span class="eyebrow">Step ${fs+1} of ${F.steps.length} · ${byId[s[0]].kind==='m'?'Mobile':'Web and desktop'}</span><div class="stage-nav"><button data-nav="-1" ${fs===0?'disabled':''} aria-label="Previous step">${ic('arrow-left',16)}</button><button data-nav="1" ${fs===F.steps.length-1?'disabled':''} aria-label="Next step">${ic('arrow-right',16)}</button></div></div><p class="stage-cap">${s[2]}</p>${shot(s[0],s[1])}`;
+  icons();
+}
+pick.addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(!b)return;fl=b.dataset.f;fs=0;renderFlow()});
+stepsEl.addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(!b)return;fs=+b.dataset.i;renderFlow()});
+stage.addEventListener('click',e=>{const b=e.target.closest('[data-nav]');if(!b||b.disabled)return;fs=Math.max(0,Math.min(FL[fl].steps.length-1,fs+ +b.dataset.nav));renderFlow()});
+document.getElementById('flows').addEventListener('keydown',e=>{if(e.key!=='ArrowRight'&&e.key!=='ArrowLeft')return;if(e.target.closest('input,textarea'))return;const d=e.key==='ArrowRight'?1:-1;const n=fs+d;if(n<0||n>=FL[fl].steps.length)return;fs=n;renderFlow();e.preventDefault()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-flow]');if(!b)return;fl=b.dataset.flow;fs=+(b.dataset.step||0);renderFlow();document.getElementById('flows').scrollIntoView({behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'})});
+
+/* tables + flow cards in blueprint */
+document.getElementById('mtable').innerHTML=SCREENS.filter(s=>s.kind==='m').map(s=>`<tr><td class="num">${+s.num}</td><td>${s.name}</td><td>${s.p}</td></tr>`).join('');
+document.getElementById('wtable').innerHTML=SCREENS.filter(s=>s.kind==='w').map(s=>`<tr><td class="num">${s.num}</td><td>${s.name}</td><td>${s.p}</td></tr>`).join('');
+document.getElementById('flowlist').innerHTML=FLOWS.map(f=>`<div class="flowcard"><h4>${f.name}</h4><ol>${f.steps.map(s=>`<li>${s[2]}</li>`).join('')}</ol><button data-flow="${f.id}" data-step="0">${ic('play',13)}Walk through it</button></div>`).join('');
+
+/* afternoon timeline */
+(function(){
+  const pct=m=>(m/180*100).toFixed(3)+'%';
+  const agent=[[22,31,'Claude Code · 9 min'],[58,62,'Cursor · 4 min'],[95,109,'Codex · 14 min'],[150,156,'Claude Code · 6 min']];
+  const code=[[0,22],[31,58],[62,95],[109,150],[156,180]];
+  const sess=[[23,27,'3-min moment','+ 60s sprint'],[58.5,61.5,'Resume DDIA',''],[96,104,'8-min article','+ daily challenge'],[105,106,'',''],[151,152,'Test 60s','']];
+  document.getElementById('daygrid').innerHTML=`<div class="lane-l">Agent</div><div class="lane">${agent.map(a=>`<div class="b agent" style="left:${pct(a[0])};width:${pct(a[1]-a[0])}"><span>${a[2]}</span></div>`).join('')}</div>
+<div class="lane-l">You</div><div class="lane you">${code.map(c=>`<div class="b code" style="left:${pct(c[0])};width:${pct(c[1]-c[0])}"></div>`).join('')}${sess.map(s=>`<div class="b sess" style="left:${pct(s[0])};width:${pct(s[1]-s[0])}"></div>${s[2]?`<div class="sess-l" style="left:${pct(s[0])}">${s[2]}${s[3]?'<br>'+s[3]:''}</div>`:''}`).join('')}</div>
+<div></div><div class="axis"><span style="left:0">2 PM</span><span style="left:33.33%">3 PM</span><span style="left:66.67%">4 PM</span><span style="left:100%">5 PM</span></div>
+<div></div><div style="display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--ink2)"><span style="display:inline-flex;gap:6px;align-items:center"><i style="width:14px;height:10px;border-radius:2px;background:var(--sunk);border:1px solid var(--line)"></i>Coding</span><span style="display:inline-flex;gap:6px;align-items:center"><i style="width:14px;height:10px;border-radius:2px;border:1px solid var(--tick);background:var(--tick-soft)"></i>Agent running</span><span style="display:inline-flex;gap:6px;align-items:center"><i style="width:14px;height:10px;border-radius:2px;background:var(--accent)"></i>Interval session</span></div>`;
+})();
+
+/* nav + toc highlighting */
+const navLinks=[...document.querySelectorAll('.navlinks a')];
+const tocLinks=[...document.querySelectorAll('#toc a')];
+const watch=['top','screens','flows','blueprint','bp-system','bp-decisions'].map(id=>document.getElementById(id));
+const bpSecs=tocLinks.map(a=>document.getElementById(a.getAttribute('href').slice(1)));
+function onScroll(){
+  const y=window.scrollY+120;
+  let cur='top';watch.forEach(el=>{if(el&&el.getBoundingClientRect().top+window.scrollY<=y)cur=el.id});
+  if(cur==='bp-system'||cur==='bp-decisions'){}else if(cur.startsWith('bp'))cur='blueprint';
+  navLinks.forEach(a=>a.classList.toggle('on',a.dataset.sec===cur));
+  let t=null;bpSecs.forEach((el,i)=>{if(el&&el.getBoundingClientRect().top+window.scrollY<=y)t=i});
+  tocLinks.forEach((a,i)=>a.classList.toggle('on',i===t));
+}
+let tick=false;window.addEventListener('scroll',()=>{if(!tick){tick=true;requestAnimationFrame(()=>{onScroll();tick=false})}},{passive:true});
+
+try{const g=localStorage.getItem('iv-group');if(g&&['learn','play','web'].includes(g))group=g}catch(_){}
+renderBoard();renderFlow();icons();onScroll();
+})();
+</script>
+
+<!--claude-mermaid-runtime-begin:3477-->
+<style>.mermaid-diagram{margin-block:4px}.mermaid-diagram svg{display:block;margin:0 auto;max-width:100%;height:auto}</style>
+<script src="/_runtime/mermaid-11.16.1.min.js"></script>
+<script>(function(){
+var CFG={"palettes":{"light":{"surface":"#f4efe4","text":"#42392e","line":"#8a7f6d","border":"#7a6c52","bg":"#fffdf8"},"dark":{"surface":"#262b34","text":"#f2f3f5","line":"#a8adb8","border":"#9aa4b8","bg":"#1f232b"}}};
+if(typeof mermaid==='undefined')return;
+var pres=Array.prototype.slice.call(document.querySelectorAll('pre.mermaid')).filter(function(p){if(p.hasAttribute('data-claude-mermaid-claimed'))return false;p.setAttribute('data-claude-mermaid-claimed','1');return true;});
+if(!pres.length)return;
+var mq=window.matchMedia?window.matchMedia('(prefers-color-scheme: dark)'):null;
+var root=document.documentElement;
+var items=pres.map(function(pre){
+var mount=document.createElement('div');mount.className='mermaid-diagram';
+return {pre:pre,mount:mount,src:pre.textContent||''};
+});
+var seq=0;
+var renderGen=0;
+var lastKey='';
+function pageBg(fallback){
+var els=[document.body,document.documentElement];
+for(var i=0;i<els.length;i++){
+var c=els[i]&&getComputedStyle(els[i]).backgroundColor;
+if(c&&c!=='transparent'&&c!=='rgba(0, 0, 0, 0)')return c;
+}
+return fallback;
+}
+function render(){
+var theme=root.getAttribute('data-theme');
+var dark=theme==='dark'||(!!(mq&&mq.matches)&&theme!=='light');
+var pal=dark?CFG.palettes.dark:CFG.palettes.light;
+var bg=pageBg(pal.bg);
+var key=(dark?'d':'l')+'|'+bg;
+if(key===lastKey)return;
+lastKey=key;
+var gen=++renderGen;
+var font=getComputedStyle(document.body).fontFamily||'sans-serif';
+var nat={useMaxWidth:false};
+mermaid.initialize({
+startOnLoad:false,securityLevel:'strict',theme:'base',
+flowchart:nat,sequence:nat,er:nat,state:nat,class:nat,pie:nat,
+gantt:nat,journey:nat,timeline:nat,gitGraph:nat,mindmap:nat,xyChart:nat,
+quadrantChart:nat,sankey:nat,c4:nat,requirement:nat,block:nat,
+packet:nat,kanban:nat,architecture:nat,radar:nat,
+themeVariables:{background:bg,mainBkg:pal.surface,primaryColor:pal.surface,
+primaryTextColor:pal.text,lineColor:pal.line,primaryBorderColor:pal.border,
+nodeBorder:pal.border,clusterBorder:pal.border,edgeLabelBackground:bg,
+clusterBkg:'rgba(127,127,127,0.07)',titleColor:pal.text,
+darkMode:dark,rowOdd:bg,rowEven:'rgba(127,127,127,0.07)',
+attributeBackgroundColorOdd:bg,attributeBackgroundColorEven:'rgba(127,127,127,0.07)',
+fontSize:'16px',fontFamily:font},
+themeCSS:'.node rect, .node circle, .node polygon, .node path, .cluster rect { stroke-width: 2px; }'
+});
+items.forEach(function(it){
+var id='claude-mermaid-'+seq++;
+mermaid.render(id,it.src).then(function(r){
+if(gen!==renderGen)return;
+var prev=it.pre.previousElementSibling;
+if(prev&&prev.className==='mermaid-diagram'&&prev!==it.mount)return;
+it.mount.innerHTML=r.svg;
+if(!it.mount.parentNode)it.pre.parentNode.insertBefore(it.mount,it.pre);
+it.pre.style.display='none';
+},function(){
+var scratch=document.getElementById(id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+scratch=document.getElementById('d'+id);
+if(scratch)scratch.parentNode.removeChild(scratch);
+if(gen!==renderGen)return;
+if(it.mount.parentNode)it.mount.parentNode.removeChild(it.mount);
+it.pre.style.display='';
+});
+});
+}
+render();
+if(mq&&mq.addEventListener)mq.addEventListener('change',render);
+if(typeof MutationObserver!=='undefined')new MutationObserver(render).observe(root,{attributes:true,attributeFilter:['data-theme']});
+})();</script>
+<!--claude-mermaid-runtime-end-->
+
+</body></html>
