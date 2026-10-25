@@ -1,5 +1,7 @@
+import { context, INVALID_SPAN_CONTEXT, trace } from "@opentelemetry/api";
 import { afterEach, expect, test, vi } from "vitest";
 import { log } from "./log";
+import { recordSpans } from "./otel-test-setup";
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -89,4 +91,31 @@ test("fields cannot overwrite level, msg or time", () => {
     level: "info",
     msg: "real",
   });
+});
+
+// OPS-2: a log line written inside a span can be joined to its trace.
+test("inside a span a line carries its trace and span ids; outside it has none", () => {
+  recordSpans();
+  const lines = captureLines();
+  let ids = { traceId: "", spanId: "" };
+  trace.getTracer("test").startActiveSpan("work", (span) => {
+    ids = span.spanContext();
+    log.info("inside");
+    span.end();
+  });
+  log.info("outside");
+  const [inside, outside] = lines.map(
+    (l) => JSON.parse(l) as Record<string, unknown>,
+  );
+  expect(inside).toMatchObject({ trace_id: ids.traceId, span_id: ids.spanId });
+  expect(outside?.["trace_id"]).toBeUndefined();
+});
+
+test("an invalid span context adds no ids", () => {
+  const lines = captureLines();
+  const invalid = trace.wrapSpanContext(INVALID_SPAN_CONTEXT);
+  context.with(trace.setSpan(context.active(), invalid), () => {
+    log.info("inside an invalid span");
+  });
+  expect(JSON.parse(lines[0] ?? "")).not.toHaveProperty("trace_id");
 });

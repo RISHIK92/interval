@@ -11,9 +11,14 @@ export async function register(): Promise<void> {
     log.error("startup: invalid environment", { error });
     process.exit(1);
   }
-  // Imported here, not at the top: the container is Node-only and Next also bundles this
-  // file for the Edge runtime.
-  const { events } = await import("./server/container");
+  // Imported here, not at the top: these are Node-only and Next also bundles this file
+  // for the Edge runtime.
+  const [{ registerOTel }, { tracingOptions }, { events }] = await Promise.all([
+    import("@vercel/otel"),
+    import("./server/tracing"),
+    import("./server/container"),
+  ]);
+  registerOTel(tracingOptions(process.env["OTEL_TRACES_EXPORTER"]));
   // Best effort when a container stops (ECS or compose): Next's own SIGTERM handler
   // closes the server and exits without waiting for this, so events buffered in the last
   // second or so can still be lost. Acceptable for analytics (S14 plan, risks).

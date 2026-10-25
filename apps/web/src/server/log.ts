@@ -1,3 +1,5 @@
+import { isSpanContextValid, trace } from "@opentelemetry/api";
+
 type Level = "info" | "warn" | "error";
 type Fields = Record<string, unknown>;
 
@@ -29,12 +31,23 @@ function replacer(): (key: string, value: unknown) => unknown {
   };
 }
 
+// OPS-2: lines written inside a span carry its ids, so logs and traces join up.
+function traceFields(): Fields {
+  const context = trace.getActiveSpan()?.spanContext();
+  return context === undefined || !isSpanContextValid(context)
+    ? {}
+    : { trace_id: context.traceId, span_id: context.spanId };
+}
+
 function write(level: Level, msg: string, fields: Fields): void {
   const time = new Date().toISOString();
   let line: string;
   try {
     // Reserved keys last, so a field cannot overwrite them.
-    line = JSON.stringify({ ...fields, time, level, msg }, replacer());
+    line = JSON.stringify(
+      { ...fields, ...traceFields(), time, level, msg },
+      replacer(),
+    );
   } catch (error) {
     // A logger must never throw: fall back to a line without the fields.
     line = JSON.stringify({

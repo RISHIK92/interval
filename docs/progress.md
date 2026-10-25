@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements) and S16 (cost budgets) done; Week 1 is complete apart from S12 (deferred) and S17 (OpenTelemetry). Next: S17, then Week 2 (W2-S01 sources and seed list). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). Next: Week 2, W2-S01 (sources and seed list). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -362,6 +362,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Events (from S14):**
   - VM container logs don't reach CloudWatch, so the `events: emit failed` metric filter exists only in AWS mode. Ship VM logs (CloudWatch agent or the awslogs driver) or add a VM-side counter.
   - The SIGTERM flush is best effort: Next exits without waiting, so about a second of buffered events can be lost on a stop. Owning shutdown (`NEXT_MANUAL_SIG_HANDLE`) is the fix if that matters.
+- **Tracing (from S17):** add the ADOT sidecar's OTLP span processor to `apps/web/src/server/tracing.ts` and the worker's `tracing.setup()`. Override `@vercel/otel`'s `cloud.provider: vercel` resource attribute with the real platform. Flush the tracer provider on SIGTERM if spans from the last few seconds matter.
 - **Auth email (from S11):** build the SES adapter for the `Mailer` port (new dependency `@aws-sdk/client-sesv2`, ask first) and set `MAIL_TRANSPORT=ses` on the VM (with the domain) and the AWS web task. Until then the web app refuses to start on any non-localhost `BETTER_AUTH_URL`, by design. Also: SES production access and a verified sending domain (owner tasks, Q-P1-33).
 
 ### 2026-10-25 — P1-W1-S13 (invite codes, Q-P1-24)
@@ -544,3 +545,23 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - tests for no limit, a zero budget, the global budget not blocking users, and spend just under the budget.
 - Naming: the ledger method is `spent_usd(user_id, day)` (the plan said `spent_today_usd`).
 - Owner action before the beta: set the per-user (`plan_capability` `ai.budget.daily_cents`) and global (`ai_budget`) dollar limits.
+
+### 2026-10-26 — P1-W1-S17 (OpenTelemetry tracing, OPS-2)
+- Done:
+  - **Web:**
+    - `instrumentation.ts` registers `@vercel/otel` 2.1.3 (plus its 7 OTel peers, owner-approved) with options from `server/tracing.ts`: no inbound propagation, and span export only for `OTEL_TRACES_EXPORTER=console`;
+    - `/api/health` runs in a `health.check` span with `request_id`, taken from `x-request-id` when it is at most 128 plain characters, else a new UUID;
+    - `server/log.ts` adds `trace_id` and `span_id` from a valid active span.
+  - **Worker:**
+    - `interval_jobs/tracing.py` installs the provider once (service `interval-jobs`; console spans go to stderr);
+    - `run_span(name, message_id)` is a true root span, and every CLI command runs in one;
+    - a `sys.exit(message)` failure marks the span ERROR;
+    - `log.py` adds trace ids.
+    - W2-S02's consumer passes the real queue message id.
+  - **Env:** `.env.example` documents `OTEL_TRACES_EXPORTER` (unset prints nothing).
+- Review fixes:
+  - `@vercel/otel` exported to localhost:4318 over OTLP by default even with nothing configured, a blocker against "unset exports nothing". Explicit `spanProcessors` fix it.
+  - It also trusted any caller's `traceparent`; `propagators: []` fixes that.
+  - `x-request-id` validation; failed worker runs marked as errors; console spans on stderr; invalid span contexts skipped; a subprocess test of the real console setup.
+- Not changed: the `cloud.provider: vercel` resource attribute and the SIGTERM tracer flush (both in the pre-deploy list).
+- Local: `OTEL_TRACES_EXPORTER=console` before a command (or in `.env`) prints spans; `rebuild-feed` showed its root span with trace id and `message_id`.

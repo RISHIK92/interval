@@ -7,6 +7,8 @@ dependencies = [
     "feedparser==6.0.14",
     "httpx==0.28.1",
     "interval-db",
+    "opentelemetry-api==1.45.1",
+    "opentelemetry-sdk==1.45.1",
     "psycopg[binary]==3.3.6",
     "pydantic==2.14.1",
     "trafilatura==2.3.1",

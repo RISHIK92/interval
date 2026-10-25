@@ -20,6 +20,7 @@ from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.one import ingest_one
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.segment import segment_item
+from interval_jobs.tracing import run_span, setup
 
 
 def main(argv: list[str]) -> None:
@@ -53,7 +54,13 @@ def main(argv: list[str]) -> None:
     )
     grant.add_argument("--revoke", action="store_true")
     args = parser.parse_args(argv)
+    setup()
+    # OPS-2: one trace per run; W2-S02's consumer does the same per queue message.
+    with run_span(args.command):
+        _run(parser, args)
 
+
+def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.command == "grant-capability":
         with services() as s:
             grants = s.store.grants
