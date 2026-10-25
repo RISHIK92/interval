@@ -17,7 +17,9 @@ Read only the doc sections relevant to the task. Never load whole docs "for cont
 - Nothing implemented twice across languages.
 - Schema: plain SQL migrations in packages/db with generated TS and Python types (ADR-0002). Never hand-write a type the codegen produces.
 - Every model call (LLM or embedding) goes through the Python worker's ai/gateway.py (ADR-0008, ADR-0007). TypeScript never imports a model SDK.
-- Deployables are added only in the phase that needs them (ARCH-1). No Redis before Phase 3 (CACHE-1).
+- Deployables are added only in the phase that needs them (ARCH-1). Two deployment modes, full AWS and single VM, from the same code; every backing service comes from env (ADR-0011, which also brings Redis into Phase 1).
+- Business logic depends only on ports (interfaces); services and data access live in adapters with in-memory fakes for tests (ADR-0012). Logic never imports a driver or SDK.
+- Build and verify everything locally; no deployment until all phases are built (ADR-0013).
 
 ## Domain invariants (never violate)
 - A source's rights profile gates every processing step (ING-2). No full text stored, processed, or displayed beyond what the profile allows.

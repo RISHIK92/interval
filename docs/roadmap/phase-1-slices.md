@@ -78,20 +78,36 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - Q: Q-P1-28.
 
 ### P1-W1-S08 CDK: prod network, VM, storage, secrets
-- IDs: ARCH-4, DB-3, DB-6, OPS-1 (Secrets Manager). Deviates from DB-1 (RDS) and LOAD-1 (Fargate): owner decision 2026-10-25, no ADR by owner choice.
+- IDs: ARCH-4, DB-3, DB-6, OPS-1 (Secrets Manager), ADR-0011 (VM mode; the full-AWS mode is P1-W1-S18).
 - Needs: S01
 - Goal: `cdk synth` produces the prod stack in ap-south-1 (Q-P1-28): a VPC with public subnets only (no NAT), one t4g.medium Amazon Linux 2023 VM that runs everything in Docker (Postgres+pgvector, web, worker), a separate retained 30 GB encrypted data volume for Postgres, an Elastic IP, SSM Session Manager access (no SSH), generated secrets in Secrets Manager, and private encrypted S3 buckets (`private-content`, `events`).
 - Acceptance: CDK assertion tests: only 80/443 open, no key pair, IMDSv2, encrypted volumes, data volume retained, buckets block public access and enforce TLS, secrets generated and never in the template, no RDS/ECS/NAT. Synth only; no deploy until the beta. Adds the `cdk synth` step to CI (moved from S07). Backups are manual (owner).
 - Out of scope: the compose stack on the VM (S09).
 - Q: Q-P1-28.
 
-### P1-W1-S09 Deploy the compose stack to the VM
-- IDs: ARCH-1, CACHE-4, ADR-0005 (host settled by the 2026-10-25 VM decision; the ADR is not updated by owner choice)
-- Needs: S08, S03
-- Goal: a production compose file runs Postgres+pgvector (data on the mounted volume), the web image and the worker on the VM; env comes from Secrets Manager at start; a reverse proxy serves 80/443 (TLS once a domain exists); migrations run as a one-off container before the app starts (ADR-0002).
-- Acceptance: tests for the compose file (no published Postgres port, health checks, restart policies); a documented deploy and manual backup/restore runbook. Open: worker queue on the VM (SQS vs ElasticMQ container) to be decided before W2-S02.
-- Out of scope: Firehose (S14), alarms (W6-S05), automated backups (owner: manual).
+### P1-W1-S19 Ports and adapters refactor
+- IDs: ADR-0012, ADR-0011
+- Needs: S04, S05, S06
+- Goal: move today's ingest, segmentation, feed and health code behind ports (repositories for data access; Fetcher for outbound HTTP) with Postgres/httpx adapters and in-memory fakes; business logic imports no driver or SDK; one composition point per process (CLI, web).
+- Acceptance: logic tests run against fakes with no database; Postgres adapter tests (including the ING-2 triggers) still pass against the real DB; an import check fails CI if logic modules import psycopg, httpx, boto3 or kysely; every existing behaviour test still passes.
+- Out of scope: new behaviour; storage/queue/cache ports (added by the slices that first use them).
 - Q: none.
+
+### P1-W1-S09 VM mode: one compose file runs everything
+- IDs: ADR-0011 (VM mode), ARCH-1, ADR-0002 (migrations), OPS-1
+- Needs: S08, S03
+- Goal: `deploy/compose.prod.yml` runs Postgres+pgvector (on the mounted data volume), Redis, ElasticMQ, the web app, a migration container, Caddy (80/443, HTTPS once a domain is set) and one-off jobs; SeaweedFS behind a compose profile for VM-only file storage (default: the S3 buckets). Secrets from Secrets Manager into a RAM-only env file; deploy script builds images on the VM from git; systemd brings the stack back after reboot; runbook for deploy, manual backup/restore, domain, VM replacement.
+- Acceptance: tests on the rendered compose config (only Caddy publishes ports; data path on the volume; health checks and restart policies; pinned images) and on the env writer; a local smoke run of the stack answers `/api/health`.
+- Out of scope: the always-on worker consumer (W2-S02), automated backups (owner: manual).
+- Q: none.
+
+### P1-W1-S18 AWS mode: full managed-services stack
+- IDs: ADR-0011 (AWS mode), DB-1, LOAD-1, LOAD-3, CACHE-2, CACHE-4, DB-6, OPS-1
+- Needs: S08, S09
+- Goal: CDK stack `interval-prod-aws` (synth only): VPC with private subnets, RDS Postgres 17 (pgvector), ElastiCache Redis, SQS with DLQs, ECR, Fargate web service behind an ALB and CloudFront, Fargate worker, a one-off migration task (ADR-0002), S3 buckets and secrets. Same env contract as the VM mode.
+- Acceptance: CDK assertion tests: data services in private subnets and reachable only from the app security groups, RDS and ElastiCache encrypted, every queue has a DLQ, CloudFront caches `/_next/static/*`, no secrets in plain env. CI synths both stacks.
+- Out of scope: deploy, alarms (W6-S05).
+- Q: sizes (RDS class, ElastiCache node, Fargate CPU/memory) before the first deploy.
 
 ### P1-W1-S10 Guest sessions
 - IDs: §5A (guest-first), ADR-0004

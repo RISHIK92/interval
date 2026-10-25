@@ -1,9 +1,9 @@
 # 0005. Web and API hosting in Phase 1
 
-- Status: PROPOSED
+- Status: SUPERSEDED (owner, 2026-10-25)
 - Date: 2026-10-25
 - Supersedes: none
-- Superseded by: none
+- Superseded by: ADR-0011
 
 ## Owner input (2026-10-25)
 

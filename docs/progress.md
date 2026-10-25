@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Beta hosting: one EC2 VM with Docker (owner, 2026-10-25; deviates from DB-1/LOAD-1, no ADR). Next: P1-W1-S09.
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). Next: P1-W1-S19 (ports and adapters refactor, ADR-0012), then S09 (VM compose), then S18 (AWS stack). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -53,7 +53,8 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 
 ## Open questions
 
-- Domain name (TLS on the VM). The host was settled on 2026-10-25: one EC2 VM (no ADR, owner choice).
+- ADR-0013: the Week 6 beta (about 60 real users) and Phase 1's usage measures need a deployment. Is there a small real-user beta before everything is built, or does all user validation wait for the final deploy?
+- Domain name (TLS). Hosting is settled by ADR-0011: two modes. Which mode the beta deploys to is picked at deploy time.
 - ADR-0010: in Phase 2, account linking when a GitHub sign-in's email matches an existing account.
 - Extraction library: decided after the P1-W2-S05 fixture test.
 
@@ -253,4 +254,13 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
     - Node is required to be ≥22.18, for type stripping.
   - 21 CDK tests.
   - Possible flake: one web test failed once under a full parallel `turbo check` and didn't reproduce in 4 more runs. The suspect is the stalled-DB 2.5 s timing assertion.
+
+### 2026-10-25 — Decision: two deployment modes (ADR-0011, ACCEPTED)
+- Owner: support full AWS (Fargate, RDS, ElastiCache, S3, SQS) and a single VM (one compose file with Postgres, Redis, ElasticMQ, web, worker, Caddy, optional SeaweedFS) from the same code; build both now. Redis is in Phase 1, overriding CACHE-1. VM file storage is a switch, defaulting to real S3. ADR-0005 is superseded.
+- This replaces the "VM only, no ADR" note under S08: DB-1/LOAD-1 are no longer deviations, because the AWS mode keeps them and the VM mode is an ADR-backed alternative.
+- Slices: S09 is now the VM compose stack; new P1-W1-S18 is the full-AWS CDK stack.
+
+### 2026-10-25 — Decisions: ports and adapters (ADR-0012), build locally then deploy (ADR-0013)
+- Business logic depends only on ports: storage, queue, cache, HTTP, models, email, and repositories for data access. Adapters per service plus in-memory fakes. Existing S04–S06 code is refactored first, in new slice P1-W1-S19.
+- All phases are built and verified locally. The first deployment happens when everything is built. This conflicts with the Week 6 real-user beta; flagged as an open question.
 
