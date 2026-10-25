@@ -28,6 +28,7 @@ from interval_jobs.ports import (
     SourceSettings,
     Store,
     Usage,
+    Validators,
 )
 
 
@@ -805,3 +806,15 @@ def test_what_the_fetch_and_segment_stages_read(store: tuple[Store, Probe]) -> N
     s.items.store_full_text(item, "body")
     assert s.items.has_body(item) is True
     assert s.moments.exist(item) is False
+
+
+def test_fetch_validators_are_kept_per_url(store: tuple[Store, Probe]) -> None:
+    s, _ = store
+    url = "https://validators.example.test/feed"
+    assert s.validators.get(url) is None
+    s.validators.put(url, Validators('"v1"', None))
+    assert s.validators.get(url) == Validators('"v1"', None)
+    s.validators.put(url, Validators(None, "Mon, 26 Oct 2026 01:00:00 GMT"))
+    assert s.validators.get(url) == Validators(None, "Mon, 26 Oct 2026 01:00:00 GMT")
+    s.validators.put(url, None)  # the server stopped sending them
+    assert s.validators.get(url) is None

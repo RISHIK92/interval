@@ -13,6 +13,7 @@ from decimal import Decimal
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.ports import (
+    VALIDATORS_MAX_AGE,
     DuplicateInviteCode,
     FeedEntry,
     Fetched,
@@ -30,6 +31,7 @@ from interval_jobs.ports import (
     SourceSettings,
     SyncResult,
     Usage,
+    Validators,
 )
 
 _FULL_TEXT: frozenset[RightsProfile] = frozenset(
@@ -469,6 +471,23 @@ class InMemoryAi:
         self.rows.append(replace(usage, cost_usd=cost))
 
 
+class InMemoryValidators:
+    def __init__(self) -> None:
+        self.rows: dict[str, tuple[Validators, datetime]] = {}  # with when stored
+
+    def get(self, url: str) -> Validators | None:
+        row = self.rows.get(url)
+        if row is None or datetime.now(UTC) - row[1] > VALIDATORS_MAX_AGE:
+            return None
+        return row[0]
+
+    def put(self, url: str, validators: Validators | None) -> None:
+        if validators is None:
+            self.rows.pop(url, None)
+        else:
+            self.rows[url] = (validators, datetime.now(UTC))
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -478,6 +497,7 @@ class InMemoryStore:
         self.invites = InMemoryInvites()
         self.users = InMemoryUsers()
         self.grants = InMemoryGrants(self.users)
+        self.validators = InMemoryValidators()
         self.sources.store = self
 
 
@@ -495,4 +515,13 @@ class FakeFetcher:
             raise FetchError(f"no fake page for {url}")
         if isinstance(page, FetchError):
             raise page
+        return page
+
+    def fetch_if_changed(
+        self, url: str, kind: FetchKind, known: Validators | None
+    ) -> Fetched | None:
+        page = self.fetch(url, kind)
+        # A server answers 304 when the validators the client sends still match.
+        if known is not None and known == page.validators:
+            return None
         return page

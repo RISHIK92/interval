@@ -8,6 +8,8 @@ Every stage:
   duplicate changes nothing;
 - runs in its own unit of work and enqueues the next stage only after it commits, so a
   later stage never sees uncommitted rows.
+Discover keeps the feed's validators (conditional requests) only once its follow-ups are
+queued: kept any earlier, a retry would get a 304 and the new entries would be lost.
 A stage that raises is retried; after the third failure the message goes to the failed
 store (the queue's job). Normalize and classify join in W2-S06 and W3-S02.
 """
@@ -28,7 +30,9 @@ from interval_jobs.ports import (
     Fetcher,
     JobQueue,
     QueueHandler,
+    RobotsDisallowed,
     Store,
+    Validators,
 )
 from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
 from interval_jobs.segment import segment_item
@@ -46,6 +50,8 @@ class StageServices:
 
 type UnitOfWork = Callable[[], AbstractContextManager[StageServices]]
 type Next = tuple[MessageName, dict[str, object], str]
+# The feed URL and what it answered with; None when nothing is to be kept.
+type Answered = tuple[str, Validators | None] | None
 
 
 class Pipeline:
@@ -55,7 +61,7 @@ class Pipeline:
 
     def handlers(self) -> dict[MessageName, QueueHandler]:
         return {
-            "discover_source": self._stage(self._discover),
+            "discover_source": self._discover_stage,
             "fetch_item": self._stage(self._fetch),
             "segment_item": self._stage(self._segment),
         }
@@ -66,27 +72,48 @@ class Pipeline:
         def handle(message: BaseModel, delivery: Delivery) -> None:
             with self._unit() as services:
                 follow_ups = work(services, message)
-            # After the commit: the next stage must see this stage's rows.
-            for name, payload, key in follow_ups:
-                self._queue.enqueue(name, payload, idempotency_key=key)
+            self._enqueue(follow_ups)
 
         return handle
 
-    def _discover(self, services: StageServices, message: BaseModel) -> list[Next]:
+    def _enqueue(self, follow_ups: list[Next]) -> None:
+        # After the commit: the next stage must see this stage's rows.
+        for name, payload, key in follow_ups:
+            self._queue.enqueue(name, payload, idempotency_key=key)
+
+    def _discover_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        with self._unit() as services:
+            follow_ups, answered = self._discover(services, message)
+        self._enqueue(follow_ups)
+        if answered is not None:
+            with self._unit() as services:
+                services.store.validators.put(*answered)
+
+    def _discover(
+        self, services: StageServices, message: BaseModel
+    ) -> tuple[list[Next], Answered]:
         assert isinstance(message, DiscoverSource)
         store = services.store
         source = store.sources.get(message.source_id)
         if source is None or not source.active:
             log.info("pipeline: source skipped", source_id=message.source_id)
-            return []
-        feed = services.fetcher.fetch(source.feed_url, "feed")
+            return [], None
+        known = store.validators.get(source.feed_url)
+        try:
+            feed = services.fetcher.fetch_if_changed(source.feed_url, "feed", known)
+        except RobotsDisallowed:
+            log.info("pipeline: robots.txt disallows the feed", source_id=source.id)
+            return [], None
+        if feed is None:
+            return [], None  # 304: nothing new since the last poll
+        answered: Answered = (source.feed_url, feed.validators)
         try:
             entries = valid_entries(feed.body, feed.url)
         except NoValidEntryError:
             # Permanent until the publisher fixes it: retrying (and filling the
             # failed store on every poll) wouldn't help.
             log.warn("pipeline: feed has no valid entry", source_id=source.id)
-            return []
+            return [], answered
         profile = source.rights_profile
         keep_excerpt = allowed(profile, "store_excerpt")
         segments = source.moments_enabled and allowed(profile, "make_moments")
@@ -105,7 +132,7 @@ class Pipeline:
                 follow_ups.append(
                     ("segment_item", {"content_item_id": item_id}, f"segment-{item_id}")
                 )
-        return follow_ups
+        return follow_ups, answered
 
     def _fetch(self, services: StageServices, message: BaseModel) -> list[Next]:
         assert isinstance(message, FetchItem)
@@ -115,7 +142,14 @@ class Pipeline:
             log.info("pipeline: fetch skipped by rights", content_item_id=item_id)
             return []
         # The page stays in memory: only what the profile allows is stored (ING-2).
-        article = services.fetcher.fetch(item.canonical_url, "article")
+        try:
+            article = services.fetcher.fetch(item.canonical_url, "article")
+        except RobotsDisallowed:
+            # The publisher's choice, not a failure: no retry, nothing stored.
+            log.info(
+                "pipeline: robots.txt disallows the article", content_item_id=item_id
+            )
+            return []
         text = services.extractor.text(article.body, article.encoding)
         if allowed(item.rights_profile, "store_full_text"):
             store.items.store_full_text(item_id, text)

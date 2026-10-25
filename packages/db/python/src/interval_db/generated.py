@@ -131,6 +131,13 @@ class FeedVisible(TypedDict):
     source_name: str | None
 
 
+class FetchValidator(TypedDict):
+    url: str
+    etag: str | None
+    last_modified: str | None
+    updated_at: datetime
+
+
 class InviteCode(TypedDict):
     id: int
     code: str

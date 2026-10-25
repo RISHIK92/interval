@@ -21,6 +21,7 @@ from interval_jobs.adapters.bullmq_queue import BullmqConsumer, BullmqQueue
 from interval_jobs.adapters.file_sink import FileEventSink
 from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSink
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
+from interval_jobs.adapters.polite_fetcher import PoliteFetcher
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore, unit_of_work
 from interval_jobs.adapters.sqs_queue import SqsClient, SqsConsumer, SqsQueue
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
@@ -119,7 +120,7 @@ def queue_consumer() -> QueueConsumer:
 @dataclass(frozen=True)
 class Services:
     store: PostgresStore
-    fetcher: HttpxFetcher
+    fetcher: PoliteFetcher
     extractor: TrafilaturaExtractor
     events: Emitter
     ai: PostgresAi
@@ -143,7 +144,7 @@ def services() -> Generator[Services]:
         ):
             yield Services(
                 store,
-                HttpxFetcher(http),
+                PoliteFetcher(HttpxFetcher(http)),
                 TrafilaturaExtractor(),
                 events,
                 PostgresAi(ledger),
@@ -161,7 +162,10 @@ def stage_units() -> Generator[UnitOfWork]:
     """
     url = database_url()
     with httpx.Client(headers={"user-agent": USER_AGENT}) as http:
-        fetcher, extractor = HttpxFetcher(http), TrafilaturaExtractor()
+        # One polite fetcher per process: robots.txt and per-domain spacing are shared
+        # by every stage thread (ING-1).
+        fetcher = PoliteFetcher(HttpxFetcher(http))
+        extractor = TrafilaturaExtractor()
 
         @contextmanager
         def unit() -> Generator[StageServices]:

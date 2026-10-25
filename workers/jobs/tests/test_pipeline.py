@@ -2,33 +2,43 @@
 stage retryable and idempotent, failures to the failed store, rights checked first."""
 
 import threading
-from collections.abc import Generator
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
+from datetime import timedelta
 
 import pytest
 
 from interval_db.generated import RightsProfile
+from interval_db.messages import MessageName
 from interval_jobs.adapters.memory import FakeFetcher, InMemoryStore
 from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.pipeline import STAGES, Pipeline, StageServices
-from interval_jobs.ports import Fetched, FetchError
+from interval_jobs.ports import (
+    Fetched,
+    FetchError,
+    RobotsDisallowed,
+    Validators,
+)
 
 from .conftest import fixture_bytes
 
 FEED_URL = "https://pipe.example.test/feed.atom"
 OLDER = "https://blog.example.test/older-queues"
 WAL = "https://blog.example.test/wal"
+ETAG = Validators('"feed-v1"', None)
 
 
-def web(failing: str | None = None) -> FakeFetcher:
+def web(failing: str | None = None, blocked: str | None = None) -> FakeFetcher:
     pages: dict[str, Fetched | FetchError] = {
-        FEED_URL: Fetched(FEED_URL, fixture_bytes("atom.xml"), "utf-8"),
+        FEED_URL: Fetched(FEED_URL, fixture_bytes("atom.xml"), "utf-8", ETAG),
         OLDER: Fetched(OLDER, fixture_bytes("article_v2.html"), "utf-8"),
         WAL: Fetched(WAL, fixture_bytes("article.html"), "utf-8"),
     }
     if failing is not None:
         pages[failing] = FetchError("HTTP 503")
+    if blocked is not None:
+        pages[blocked] = RobotsDisallowed("robots.txt disallows it")
     return FakeFetcher(pages)
 
 
@@ -38,9 +48,10 @@ class World:
         profile: RightsProfile = "full_text_internal",
         moments: bool = True,
         failing: str | None = None,
+        blocked: str | None = None,
     ) -> None:
         self.store = InMemoryStore()
-        self.fetcher = web(failing)
+        self.fetcher = web(failing, blocked)
         self.queue = InMemoryQueue()
         self.source_id = self.store.sources.upsert(
             name="pipe", feed_url=FEED_URL, rights_profile=profile, homepage=None
@@ -139,7 +150,7 @@ def test_a_stale_segment_makes_no_moments_once_moments_are_off() -> None:
     assert world.store.moments.rows == []
 
 
-def test_an_item_whose_segmenting_failed_is_segmented_on_the_next_poll() -> None:
+def test_an_item_whose_segmenting_failed_is_segmented_on_the_next_full_poll() -> None:
     world = World()
     world.discover("poll-1")
     # Fetch only: segmentation never ran (as if it had landed in the failed store).
@@ -148,7 +159,12 @@ def test_an_item_whose_segmenting_failed_is_segmented_on_the_next_poll() -> None
         world.queue.consume(name, handlers[name], threading.Event())
     world.queue.drop_pending("segment_item")
     assert world.store.moments.rows == []
-    world.discover("poll-2")
+    world.discover("poll-2")  # same day: the feed answers 304
+    world.run()
+    assert world.store.moments.rows == []
+    validators, stored = world.store.validators.rows[FEED_URL]
+    world.store.validators.rows[FEED_URL] = (validators, stored - timedelta(days=2))
+    world.discover("poll-3")  # a day on: a full fetch re-queues the segment
     world.run()
     assert world.store.moments.rows
 
@@ -186,3 +202,44 @@ def test_a_stage_failing_three_times_lands_in_the_failed_store() -> None:
     wal = next(i for i in world.store.items.rows.values() if i.canonical_url == WAL)
     assert wal.full_text
     assert world.requested().count(OLDER) == 3
+
+
+def test_an_unchanged_feed_costs_one_request_and_does_nothing() -> None:
+    world = World()
+    world.discover("poll-1")
+    world.run()
+    before = len(world.fetcher.requested)
+    world.discover("poll-2")  # the fake answers 304 to the stored ETag
+    world.run()
+    assert world.fetcher.requested[before:] == [(FEED_URL, "feed")]
+
+
+def test_a_discover_retried_after_a_failed_enqueue_still_queues_the_items() -> None:
+    world = World()
+    enqueue = world.queue.enqueue
+    failures = [RuntimeError("queue unavailable")]
+
+    def flaky(
+        name: MessageName,
+        message: Mapping[str, object],
+        idempotency_key: str,
+        delay_seconds: int = 0,
+    ) -> None:
+        if name == "fetch_item" and failures:
+            raise failures.pop()
+        enqueue(name, message, idempotency_key, delay_seconds)
+
+    world.queue.enqueue = flaky  # type: ignore[method-assign]
+    world.discover()
+    world.run()
+    # The retry fetched the feed again instead of being told "304, nothing new".
+    assert all(i.full_text for i in world.store.items.rows.values())
+    assert world.store.validators.get(FEED_URL) == ETAG
+
+
+def test_an_article_robots_disallows_is_skipped_not_retried() -> None:
+    world = World(blocked=OLDER)
+    world.discover()
+    world.run()
+    assert world.queue.failed_messages("fetch_item") == []
+    assert world.requested().count(OLDER) == 1

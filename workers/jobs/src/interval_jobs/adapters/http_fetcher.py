@@ -11,19 +11,31 @@ covered); the AWS deployment adds network-level egress rules.
 import ipaddress
 import socket
 from collections.abc import Callable
+from typing import Literal
 from urllib.parse import urljoin, urlsplit
 
 import httpx
 
-from interval_jobs.ports import Fetched, FetchError, FetchKind
+from interval_jobs.ports import (
+    Fetched,
+    FetchError,
+    FetchKind,
+    FetchStatusError,
+    Validators,
+)
 
 type Resolver = Callable[[str], list[str]]
+# Called with each URL just before it is requested, redirect hops included.
+type OnHop = Callable[[str], None]
+# robots.txt is the polite fetcher's own request, not something the pipeline asks for.
+type RequestKind = FetchKind | Literal["robots"]
 
 MAX_BYTES = 5 * 1024 * 1024
 MAX_REDIRECTS = 5
 TIMEOUT_S = 10.0
 
-CONTENT_TYPES: dict[FetchKind, frozenset[str]] = {
+# None: any type (robots.txt is often served without text/plain).
+CONTENT_TYPES: dict[RequestKind, frozenset[str] | None] = {
     "feed": frozenset(
         {
             "application/rss+xml",
@@ -34,7 +46,12 @@ CONTENT_TYPES: dict[FetchKind, frozenset[str]] = {
         }
     ),
     "article": frozenset({"text/html", "application/xhtml+xml"}),
+    "robots": None,
 }
+
+
+class UnexpectedContentType(FetchError):
+    """The response isn't the media type the caller asked for."""
 
 
 def resolve_host(host: str) -> list[str]:
@@ -65,19 +82,47 @@ class HttpxFetcher:
         self._resolve = resolve
 
     def fetch(self, url: str, kind: FetchKind) -> Fetched:
+        fetched = self.request(url, kind, {})
+        if fetched is None:
+            raise FetchError(f"{kind} {url}: 304 without a conditional request")
+        return fetched
+
+    def request(
+        self,
+        url: str,
+        kind: RequestKind,
+        headers: dict[str, str],
+        on_hop: OnHop | None = None,
+    ) -> Fetched | None:
+        """One guarded GET with extra headers; None for 304 Not Modified."""
         # The port promises FetchError for every failure, so callers never see httpx.
         try:
-            return _fetch(self._http, url, kind, self._resolve)
+            return _fetch(self._http, url, kind, self._resolve, headers, on_hop)
+        except httpx.HTTPStatusError as error:
+            raise FetchStatusError(
+                f"{kind} {url}: {error}", error.response.status_code
+            ) from error
         except httpx.HTTPError as error:
             raise FetchError(f"{kind} {url}: {error}") from error
 
 
-def _fetch(http: httpx.Client, url: str, kind: FetchKind, resolve: Resolver) -> Fetched:
+def _fetch(
+    http: httpx.Client,
+    url: str,
+    kind: RequestKind,
+    resolve: Resolver,
+    headers: dict[str, str],
+    on_hop: OnHop | None,
+) -> Fetched | None:
     for _ in range(MAX_REDIRECTS + 1):
         _check_url(url, resolve)
+        if on_hop is not None:
+            on_hop(url)
         with http.stream(
-            "GET", url, timeout=TIMEOUT_S, follow_redirects=False
+            "GET", url, timeout=TIMEOUT_S, follow_redirects=False, headers=headers
         ) as response:
+            if response.status_code == 304:
+                return None
             if response.is_redirect:
                 location = response.headers.get("location")
                 if not location:
@@ -86,8 +131,9 @@ def _fetch(http: httpx.Client, url: str, kind: FetchKind, resolve: Resolver) -> 
                 continue
             response.raise_for_status()
             media_type = response.headers.get("content-type", "").split(";")[0].strip()
-            if media_type.lower() not in CONTENT_TYPES[kind]:
-                raise FetchError(
+            expected = CONTENT_TYPES[kind]
+            if expected is not None and media_type.lower() not in expected:
+                raise UnexpectedContentType(
                     f"unexpected content type {media_type!r} for {kind} {url}"
                 )
             body = bytearray()
@@ -96,6 +142,14 @@ def _fetch(http: httpx.Client, url: str, kind: FetchKind, resolve: Resolver) -> 
                 if len(body) > MAX_BYTES:
                     raise FetchError(f"{kind} {url} is larger than {MAX_BYTES} bytes")
             return Fetched(
-                url=url, body=bytes(body), encoding=response.charset_encoding
+                url=url,
+                body=bytes(body),
+                encoding=response.charset_encoding,
+                validators=_validators(response.headers),
             )
     raise FetchError(f"more than {MAX_REDIRECTS} redirects from {url}")
+
+
+def _validators(headers: httpx.Headers) -> Validators | None:
+    etag, last_modified = headers.get("etag"), headers.get("last-modified")
+    return Validators(etag, last_modified) if etag or last_modified else None

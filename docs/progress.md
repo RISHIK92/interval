@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. Next: W2-S04 (polite fetcher), then W2-S05, W2-S06, W2-S03. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher) done. Next: W2-S05, W2-S06, W2-S03. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -16,7 +16,7 @@ Dependencies added overnight (all pinned):
 - pnpm `allowBuilds: msgpackr-extract: false`: BullMQ's optional native speed-up; the JS fallback works.
 
 Needs your review (newest first):
-- (none yet)
+- Dan Luu's feed (https://danluu.com/atom.xml) is larger than the fetcher's 5 MB body cap (owner rule, 2026-10-25), so that source never polls. Options: raise the cap for feeds only, or drop or replace the source. Found in W2-S04.
 
 Pending (needs the owner):
 - (none yet)
@@ -677,3 +677,36 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the worker's S3 grant dropped;
   - contract tests for the new store reads.
 - Not done: a schedule for `enqueue-discover` (W2-S03 adds adaptive polling and the trigger). Taking the feed advisory lock at the start of a segment, to avoid rare deadlocks between two segments (Postgres aborts one; the retry recovers).
+
+### 2026-10-26 — P1-W2-S04 (polite fetcher, ING-1; overnight, recommended options)
+- Done:
+  - **`PoliteFetcher`** (one per worker process, shared by the stage threads) wraps the guarded `HttpxFetcher`:
+    - robots.txt is read once a day per origin and checked on every hop, redirects included;
+    - each host gets one request a second, or its Crawl-delay (capped at 60 s, logged);
+    - the wait slot is reserved under a lock and the sleep happens outside it, so one slow host never stalls the others;
+    - the user agent starts with `Interval/`.
+  - **robots.txt rules** (`adapters/robots.py`) follow RFC 9309: longest match wins, allow wins a tie, `*` and `$` wildcards, an `Interval` group beats `*`, fractional Crawl-delay. The stdlib parser gets all of these wrong.
+  - **robots.txt edge cases:**
+    - a 4xx means everything is allowed;
+    - a 429 or 5xx raises, so the message retries later;
+    - an HTML page served at /robots.txt means allow and log;
+    - any other content type is parsed.
+  - **Conditional requests:**
+    - a new `fetch_validator` table, under `store.validators`;
+    - discover sends `If-None-Match` / `If-Modified-Since`, and a 304 does nothing;
+    - validators are saved only after the follow-ups are queued, so a retry never gets a 304 for entries it hasn't queued;
+    - a 200 with no validators forgets the old ones;
+    - stored validators expire after a day, so each source gets one full poll a day that re-queues stalled items (a failed fetch or segment).
+  - **Robots refusals:** a disallowed feed or article is logged and skipped, not retried.
+- Review fixes:
+  - validators were saved before the follow-ups (a blocker: lost entries);
+  - sleeping under the global lock;
+  - redirect hops skipped robots and spacing;
+  - non-text/plain robots files were ignored;
+  - a 429 counted as "no robots.txt";
+  - the stdlib robots parser;
+  - a long-lived side DB connection with no reconnect (validators now use the stage's transaction);
+  - an `assert` in a request path;
+  - stale validators kept.
+- Verified live: martinfowler.com's feed answered 200 with an ETag, then 304.
+- Not covered by a test: the Postgres validator expiry (`updated_at > now() - 1 day`). The pipeline test covers the same rule on the in-memory store.

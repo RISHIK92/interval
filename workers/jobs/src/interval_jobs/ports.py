@@ -6,7 +6,7 @@ never imports a driver or SDK, so a service is swapped by replacing one adapter.
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from threading import Event
 from typing import Literal, Protocol, TypedDict
@@ -29,6 +29,18 @@ type FetchKind = Literal["feed", "article"]
 
 class FetchError(Exception):
     """The fetch was refused or failed (scheme, address, size, type, HTTP status)."""
+
+
+class FetchStatusError(FetchError):
+    """The server answered with an error status."""
+
+    def __init__(self, message: str, status: int) -> None:
+        super().__init__(message)
+        self.status = status
+
+
+class RobotsDisallowed(FetchError):
+    """robots.txt disallows the URL for Interval (ING-1): skip it, don't retry."""
 
 
 class ExtractionError(Exception):
@@ -58,10 +70,21 @@ class FeedEntry(BaseModel):
 
 
 @dataclass(frozen=True)
+class Validators:
+    """The ETag / Last-Modified a URL last answered with (ING-1 conditional requests).
+    At least one is set."""
+
+    etag: str | None
+    last_modified: str | None
+
+
+@dataclass(frozen=True)
 class Fetched:
     url: str  # final URL after redirects
     body: bytes
     encoding: str | None
+    # What the next conditional request sends (ING-1); None when the server sent none.
+    validators: Validators | None = None
 
 
 @dataclass(frozen=True)
@@ -286,6 +309,21 @@ class AiLedger(Protocol):
     def record(self, usage: Usage) -> None: ...
 
 
+# Validators older than this are not sent: one full fetch a day lets discover re-queue
+# items whose later stages failed, even when the feed itself hasn't changed.
+VALIDATORS_MAX_AGE = timedelta(days=1)
+
+
+class FetchValidators(Protocol):
+    def get(self, url: str) -> Validators | None:
+        """None when none are stored or they are older than VALIDATORS_MAX_AGE."""
+        ...
+
+    def put(self, url: str, validators: Validators | None) -> None:
+        """None forgets the URL's validators (the server stopped sending them)."""
+        ...
+
+
 class Store(Protocol):
     """Repositories sharing one unit of work; the composition root commits it."""
 
@@ -310,9 +348,18 @@ class Store(Protocol):
     @property
     def grants(self) -> Grants: ...
 
+    @property
+    def validators(self) -> FetchValidators: ...
+
 
 class Fetcher(Protocol):
     def fetch(self, url: str, kind: FetchKind) -> Fetched: ...
+
+    def fetch_if_changed(
+        self, url: str, kind: FetchKind, known: Validators | None
+    ) -> Fetched | None:
+        """None when the server says nothing changed since `known` (a 304)."""
+        ...
 
 
 class Extractor(Protocol):

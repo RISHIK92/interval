@@ -4,6 +4,7 @@ feed -> ingest -> moments -> precomputed feed -> card rows."""
 import psycopg
 
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
+from interval_jobs.adapters.polite_fetcher import PoliteFetcher
 from interval_jobs.adapters.postgres import PostgresStore
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.ingest.one import ingest_one
@@ -21,7 +22,8 @@ def ingest(conn: psycopg.Connection, article: str) -> None:
     )
     conn.execute("update source set moments_enabled = true where id = %s", (source_id,))
     with mock_web_client(article) as http:
-        ingest_one(store, HttpxFetcher(http, public), TrafilaturaExtractor(), source_id)
+        fetcher = PoliteFetcher(HttpxFetcher(http, public), sleep=lambda _s: None)
+        ingest_one(store, fetcher, TrafilaturaExtractor(), source_id)
 
 
 def test_one_feed_becomes_moment_cards_without_source_text(

@@ -14,6 +14,7 @@ from psycopg.rows import class_row
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.ports import (
+    VALIDATORS_MAX_AGE,
     DuplicateInviteCode,
     FeedEntry,
     FetchInput,
@@ -28,6 +29,7 @@ from interval_jobs.ports import (
     SourceSettings,
     SyncResult,
     Usage,
+    Validators,
 )
 
 
@@ -494,6 +496,37 @@ class PostgresAi:
         )
 
 
+class PostgresValidators:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def get(self, url: str) -> Validators | None:
+        row = self._conn.execute(
+            """
+            select etag, last_modified from fetch_validator
+            where url = %s and updated_at > now() - %s
+            """,
+            (url, VALIDATORS_MAX_AGE),
+        ).fetchone()
+        return None if row is None else Validators(row[0], row[1])
+
+    def put(self, url: str, validators: Validators | None) -> None:
+        if validators is None:
+            self._conn.execute("delete from fetch_validator where url = %s", (url,))
+            return
+        self._conn.execute(
+            """
+            insert into fetch_validator (url, etag, last_modified)
+            values (%s, %s, %s)
+            on conflict (url) do update
+              set etag = excluded.etag,
+                  last_modified = excluded.last_modified,
+                  updated_at = now()
+            """,
+            (url, validators.etag, validators.last_modified),
+        )
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.sources = PostgresSources(conn)
@@ -503,6 +536,7 @@ class PostgresStore:
         self.invites = PostgresInvites(conn)
         self.users = PostgresUsers(conn)
         self.grants = PostgresGrants(conn)
+        self.validators = PostgresValidators(conn)
 
 
 @contextmanager

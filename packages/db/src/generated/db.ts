@@ -142,6 +142,13 @@ export interface FeedVisible {
   source_name: string | null;
 }
 
+export interface FetchValidator {
+  etag: string | null;
+  last_modified: string | null;
+  updated_at: Generated<Timestamp>;
+  url: string;
+}
+
 export interface InviteCode {
   beta_group: BetaGroup;
   code: string;
@@ -218,6 +225,7 @@ export interface DB {
   content_item_section: ContentItemSection;
   feed_entry: FeedEntry;
   feed_visible: FeedVisible;
+  fetch_validator: FetchValidator;
   invite_code: InviteCode;
   moment: Moment;
   plan: Plan;
