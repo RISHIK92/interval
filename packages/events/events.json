@@ -1,0 +1,84 @@
+{
+  "$comment": "The one list of analytics events (DB-5, Q-P1-20). Edit here, then run `pnpm events:codegen`. A slice that starts emitting an event defines its props first; changing props after first emission bumps that event's version.",
+  "envelope": {
+    "beta_group": ["student", "developer"],
+    "source": ["web", "jobs"]
+  },
+  "events": {
+    "session_started": {
+      "version": 1,
+      "description": "A visit began: the first request after 30 minutes without activity (Q-P1-21 return metric).",
+      "props": {}
+    },
+    "onboarding_completed": {
+      "version": 1,
+      "description": "Onboarding finished (W4-S01).",
+      "props": {}
+    },
+    "feed_viewed": {
+      "version": 1,
+      "description": "The feed page was rendered.",
+      "props": { "card_count": "count" }
+    },
+    "card_impression": {
+      "version": 1,
+      "description": "A card was shown (W4).",
+      "props": {}
+    },
+    "card_opened": {
+      "version": 1,
+      "description": "A card was opened (Q-P1-21 \"opened\").",
+      "props": {}
+    },
+    "section_finished": {
+      "version": 1,
+      "description": "A moment's section was finished (Q-P1-21 \"finished\").",
+      "props": { "method": ["return_prompt", "mark_done"] }
+    },
+    "article_finished": {
+      "version": 1,
+      "description": "A whole-article card was finished.",
+      "props": {}
+    },
+    "continue_clicked": {
+      "version": 1,
+      "description": "A continue card was clicked (W5-S03).",
+      "props": {}
+    },
+    "item_saved": {
+      "version": 1,
+      "description": "An item was saved (W5-S04).",
+      "props": {}
+    },
+    "feedback_given": {
+      "version": 1,
+      "description": "Feedback on a card; its kind is defined by W4-S07.",
+      "props": {}
+    },
+    "source_hidden": {
+      "version": 1,
+      "description": "A source was hidden (W4-S07).",
+      "props": {}
+    },
+    "signup_completed": {
+      "version": 1,
+      "description": "A guest became an account (S11).",
+      "props": {}
+    },
+    "guest_merged": {
+      "version": 1,
+      "description": "A guest's activity was merged into an account (S12).",
+      "props": {}
+    },
+    "pwa_installed": {
+      "version": 1,
+      "description": "The app was installed as a PWA (W5-S06).",
+      "props": {}
+    },
+    "outbound_click": {
+      "version": 1,
+      "description": "A link to a publisher's page was followed.",
+      "props": {}
+    }
+  }
+}

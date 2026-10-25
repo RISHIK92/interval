@@ -3,6 +3,7 @@ name = "interval-jobs"
 version = "0.0.0"
 requires-python = ">=3.13,<3.14"
 dependencies = [
+    "boto3==1.43.111",
     "feedparser==6.0.14",
     "httpx==0.28.1",
     "interval-db",

@@ -9,6 +9,7 @@ import {
 } from "../../server/container";
 import { startGuest } from "../../server/guest";
 import { type FormState, textField } from "../form";
+import { startVisit } from "../visit";
 
 // Q-P1-24: the only way in during the private beta. Better Auth's nextCookies plugin
 // sets the session cookie on this action's response.
@@ -24,5 +25,6 @@ export async function join(
     requestHeaders,
   );
   if (!result.ok) return { message: result.message };
+  await startVisit(result.actor);
   redirect("/");
 }

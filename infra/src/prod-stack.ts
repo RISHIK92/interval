@@ -10,7 +10,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import type { Construct } from "constructs";
-import { createBuckets } from "./storage.ts";
+import { createBuckets, createEventStream } from "./storage.ts";
 
 // Beta hosting (owner, 2026-10-25): one VM runs Postgres+pgvector, the web app and the
 // worker in Docker. This replaces RDS (DB-1) and Fargate (LOAD-1) for the beta; no ADR
@@ -23,6 +23,8 @@ import { createBuckets } from "./storage.ts";
 export const AMI_ID = "ami-0aa469bdf3050f74f"; // al2023 arm64, ap-south-1, looked up 2026-10-25
 
 const DATA_DEVICE = "/dev/sdf";
+// deploy/bin/write-env.sh hard-codes this name for the VM.
+const EVENTS_STREAM = "interval-prod-events";
 export const DATA_MOUNT = "/var/lib/interval/pgdata";
 // Amazon Linux 2023 does not package the compose plugin; pinned release binary + digest
 // (verified against the release's checksums.txt).
@@ -101,7 +103,6 @@ export class ProdStack extends Stack {
       machineImage: ec2.MachineImage.genericLinux({ "ap-south-1": AMI_ID }),
       securityGroup: web,
       role,
-      requireImdsv2: true,
       userData,
       blockDevices: [
         {
@@ -123,6 +124,14 @@ export class ProdStack extends Stack {
     // First boot only: cloud-init runs user data once per instance, so later edits here
     // apply only to a new instance. CloudFormation waits for the success signal, so a
     // failed step fails the deploy instead of leaving a half-built VM.
+    // IMDSv2 only, with hop limit 2: the containers reach the instance role (Firehose,
+    // S3) through Docker's bridge network, one hop further than the host. Set here
+    // rather than with requireImdsv2, whose launch template leaves the AMI's default.
+    instance.instance.metadataOptions = {
+      httpEndpoint: "enabled",
+      httpTokens: "required",
+      httpPutResponseHopLimit: 2,
+    };
     instance.instance.cfnOptions.creationPolicy = {
       resourceSignal: { count: 1, timeout: Duration.minutes(15).toIsoString() },
     };
@@ -170,6 +179,8 @@ export class ProdStack extends Stack {
     // The VM may read and add objects but never delete, so old versions stay recoverable.
     privateContent.grantRead(role);
     privateContent.grantPut(role);
+    // DB-5: write-env.sh names this stream; the VM may only put records to it.
+    createEventStream(this, events, EVENTS_STREAM).grantPutRecords(role);
 
     for (const name of SECRET_NAMES) {
       const secret = new secretsmanager.Secret(

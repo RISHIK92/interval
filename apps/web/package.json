@@ -20,7 +20,9 @@
     "eslint-config-next": "16.4.3"
   },
   "dependencies": {
+    "@aws-sdk/client-firehose": "3.1149.0",
     "@interval/db": "workspace:*",
+    "@interval/events": "workspace:*",
     "better-auth": "1.7.12",
     "kysely": "0.29.7",
     "next": "16.4.3",

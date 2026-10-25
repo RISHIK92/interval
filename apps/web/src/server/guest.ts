@@ -1,9 +1,15 @@
 import { redeemInvite } from "./invites";
 import { log } from "./log";
-import { GuestNotRemoved, type GuestSessions, type InviteCodes } from "./ports";
+import {
+  type Actor,
+  GuestNotRemoved,
+  type GuestSessions,
+  type InviteCodes,
+} from "./ports";
 
 export type GuestStart =
-  { ok: true; setCookies: string[] } | { ok: false; message: string };
+  | { ok: true; setCookies: string[]; actor: Actor }
+  | { ok: false; message: string };
 
 // Unknown and expired share a message, so a guess cannot tell the two apart.
 const INVALID = "That invite code isn't valid.";
@@ -24,8 +30,8 @@ export async function startGuest(
     };
   }
   try {
-    const { setCookies } = await deps.guests.start(redemption, headers);
-    return { ok: true, setCookies };
+    const { setCookies, actor } = await deps.guests.start(redemption, headers);
+    return { ok: true, setCookies, actor };
   } catch (error) {
     if (error instanceof GuestNotRemoved) {
       log.error("guest: creation failed after redeem; a guest holds the use", {

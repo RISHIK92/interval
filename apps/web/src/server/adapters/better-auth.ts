@@ -169,7 +169,14 @@ export function guestSessions(auth: Auth): GuestSessions {
         const result = await pendingGuest.run(pending, () =>
           auth.api.signInAnonymous({ headers, returnHeaders: true }),
         );
-        return { setCookies: result.headers.getSetCookie() };
+        return {
+          setCookies: result.headers.getSetCookie(),
+          actor: {
+            userId: result.response.user.id,
+            isGuest: true,
+            betaGroup: redemption.betaGroup,
+          },
+        };
       } catch (error) {
         if (pending.userId !== undefined) {
           await removeHalfMadeGuest(auth, pending.userId, error);
@@ -281,7 +288,15 @@ export function accounts(auth: Auth, db: Kysely<DB>): Accounts {
           headers,
           returnHeaders: true,
         });
-        return { setCookies: result.headers.getSetCookie() };
+        const { user } = result.response;
+        return {
+          setCookies: result.headers.getSetCookie(),
+          actor: {
+            userId: user.id,
+            isGuest: user.isAnonymous === true,
+            betaGroup: betaGroup.parse(user.betaGroup),
+          },
+        };
       } catch (error) {
         if (error instanceof APIError && error.statusCode === 401) return null;
         throw error;

@@ -30,6 +30,7 @@ export default defineConfig(
                 "better-auth",
                 "better-auth/*",
                 "@better-auth/*",
+                "@aws-sdk/*",
               ],
               message:
                 "Use a port; drivers live in src/server/adapters (ADR-0012).",

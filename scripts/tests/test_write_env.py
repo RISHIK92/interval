@@ -84,6 +84,8 @@ def test_writes_three_env_files_each_with_only_its_keys_and_mode_600(
         "BETTER_AUTH_SECRET": "authSecret456",
         "BETTER_AUTH_URL": "http://localhost",
         "MAIL_TRANSPORT": "log",
+        "EVENTS_TRANSPORT": "file",
+        "EVENTS_DIR": "/tmp/interval-events",
         "OPENROUTER_API_KEY": "orKey789",
         "VOYAGE_API_KEY": "voyageKey000",
     }
@@ -108,6 +110,12 @@ def test_site_address_and_local_s3_come_from_etc(tmp_path: Path) -> None:
     assert parse(out / "app.env")["S3_ENDPOINT"] == "http://seaweedfs:8333"
     # Mail is logged only without a domain; a public site needs a real transport.
     assert "MAIL_TRANSPORT" not in parse(out / "app.env")
+    # DB-5: the VM sends events to its Firehose stream (infra/src/prod-stack.ts).
+    app = parse(out / "app.env")
+    assert app["EVENTS_TRANSPORT"] == "firehose"
+    assert app["EVENTS_STREAM"] == "interval-prod-events"
+    assert app["AWS_REGION"] == "ap-south-1"
+    assert "EVENTS_DIR" not in app
 
 
 def test_without_a_domain_better_auth_uses_the_local_port(tmp_path: Path) -> None:

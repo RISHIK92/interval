@@ -4,12 +4,19 @@ import type { Actor, FeedCard } from "../server/ports";
 
 const getFeed = vi.fn<(limit: number) => Promise<FeedCard[]>>();
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
+const emit = vi.fn();
 vi.mock("../server/container", () => ({
   feedReader: () => ({ list: getFeed }),
   sessionReader: () => ({ current }),
+  events: () => ({ emit }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
+  cookies: () =>
+    Promise.resolve({
+      get: (name: string) =>
+        name === "iv_visit" ? { name, value: "visit-9.1790000000" } : undefined,
+    }),
 }));
 const redirect = vi.fn((url: string) => {
   throw new Error(`redirect:${url}`);
@@ -21,6 +28,7 @@ const guest: Actor = { userId: "u1", isGuest: true, betaGroup: "student" };
 afterEach(() => {
   getFeed.mockReset();
   current.mockReset();
+  emit.mockReset();
 });
 
 const card: FeedCard = {
@@ -56,6 +64,17 @@ test("renders one card per feed entry", async () => {
   expect(html.match(/<article/g)).toHaveLength(2);
   expect(html).toContain('href="https://webfeed.example.test/post"');
   expect(html).toContain("Example Engineering");
+});
+
+test("viewing the feed emits feed_viewed with the card count and the visit", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue([card, { ...card, momentId: "2" }]);
+  await render();
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "feed_viewed",
+    { card_count: 2 },
+    { userId: "u1", isGuest: true, betaGroup: "student", sessionId: "visit-9" },
+  );
 });
 
 test("renders an empty state when the feed is empty", async () => {

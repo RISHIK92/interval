@@ -14,16 +14,16 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function deps(
-  redemption: Redemption,
-  start?: () => Promise<{ setCookies: string[] }>,
-) {
+const GUEST = { userId: "g1", isGuest: true, betaGroup: "student" } as const;
+
+function deps(redemption: Redemption, start?: GuestSessions["start"]) {
   const redeem = vi.fn<(code: string) => Promise<Redemption>>(() =>
     Promise.resolve(redemption),
   );
   const release = vi.fn<(id: string) => Promise<void>>(() => Promise.resolve());
   const startFn = vi.fn<GuestSessions["start"]>(
-    start ?? (() => Promise.resolve({ setCookies: ["session=abc"] })),
+    start ??
+      (() => Promise.resolve({ setCookies: ["session=abc"], actor: GUEST })),
   );
   const codes: InviteCodes = { redeem, release };
   const guests: GuestSessions = { start: startFn };
@@ -39,6 +39,7 @@ describe("startGuest", () => {
     expect(await startGuest(d.deps, "ABCDE-FGHJK", headers)).toEqual({
       ok: true,
       setCookies: ["session=abc"],
+      actor: GUEST,
     });
     expect(d.start).toHaveBeenCalledWith(valid, headers);
   });

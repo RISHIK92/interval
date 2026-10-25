@@ -1,3 +1,4 @@
+import { FirehoseClient } from "@aws-sdk/client-firehose";
 import type { DB } from "@interval/db";
 import type { Kysely } from "kysely";
 import { env } from "../env";
@@ -14,7 +15,10 @@ import {
   kyselyInviteCodes,
   kyselyPing,
 } from "./adapters/kysely";
+import { fileSink } from "./adapters/file-sink";
+import { firehoseSink } from "./adapters/firehose-sink";
 import { logMailer } from "./adapters/log-mailer";
+import { createEmitter, type Emitter } from "./events";
 import type {
   Accounts,
   DatabasePing,
@@ -67,4 +71,27 @@ export function sessionReader(): SessionReader {
 
 export function accounts(): Accounts {
   return betterAuthAccounts(auth(), db());
+}
+
+// One emitter per process, so its buffer batches events across requests (DB-5) and the
+// SIGTERM flush sees them all. Kept on globalThis because Next may load this module more
+// than once (proxy, instrumentation and app bundles).
+const EMITTER = Symbol.for("interval.events");
+const processGlobals = globalThis as { [EMITTER]?: Emitter };
+
+export function events(): Emitter {
+  let emitter = processGlobals[EMITTER];
+  if (emitter === undefined) {
+    const config = env();
+    emitter = createEmitter(
+      config.EVENTS_TRANSPORT === "firehose"
+        ? firehoseSink(
+            new FirehoseClient({ region: config.AWS_REGION }),
+            config.EVENTS_STREAM,
+          )
+        : fileSink(config.EVENTS_DIR),
+    );
+    processGlobals[EMITTER] = emitter;
+  }
+  return emitter;
 }

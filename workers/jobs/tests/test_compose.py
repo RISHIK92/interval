@@ -119,3 +119,42 @@ def test_other_runtime_values_do_not_open_the_guard(
     monkeypatch.delenv("CI", raising=False)
     with pytest.raises(SystemExit, match="Refusing"):
         database_url()
+
+
+def test_the_file_event_transport_writes_to_events_dir(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: object
+) -> None:
+    from pathlib import Path
+
+    from interval_jobs.adapters.file_sink import FileEventSink
+    from interval_jobs.compose import event_sink
+
+    assert isinstance(tmp_path, Path)
+    monkeypatch.setenv("EVENTS_TRANSPORT", "file")
+    monkeypatch.setenv("EVENTS_DIR", str(tmp_path))
+    assert isinstance(event_sink(), FileEventSink)
+
+
+def test_the_firehose_event_transport_needs_a_stream_and_a_region(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from interval_jobs.adapters.firehose_sink import FirehoseEventSink
+    from interval_jobs.compose import event_sink
+
+    monkeypatch.setenv("EVENTS_TRANSPORT", "firehose")
+    monkeypatch.delenv("EVENTS_STREAM", raising=False)
+    with pytest.raises(SystemExit, match="EVENTS_STREAM"):
+        event_sink()
+    monkeypatch.setenv("EVENTS_STREAM", "interval-events")
+    monkeypatch.setenv("AWS_REGION", "ap-south-1")
+    assert isinstance(event_sink(), FirehoseEventSink)
+
+
+def test_an_unknown_event_transport_stops_the_worker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from interval_jobs.compose import event_sink
+
+    monkeypatch.setenv("EVENTS_TRANSPORT", "kafka")
+    with pytest.raises(SystemExit, match="EVENTS_TRANSPORT"):
+        event_sink()

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { Accounts } from "./ports";
+import type { Accounts, Actor } from "./ports";
 
 type FormResult = { ok: true } | { ok: false; message: string };
 
@@ -18,7 +18,7 @@ const SIGN_UP_REFUSED = {
 } as const;
 const BAD_TOKEN = "That reset link is invalid or has expired.";
 
-const refused = (message: string): FormResult => ({ ok: false, message });
+const refused = (message: string) => ({ ok: false as const, message });
 
 export async function signUp(
   accounts: Accounts,
@@ -43,7 +43,7 @@ export async function signIn(
   accounts: Accounts,
   headers: Headers,
   raw: { email: string; password: string },
-): Promise<FormResult> {
+): Promise<{ ok: true; actor: Actor } | { ok: false; message: string }> {
   const parsedEmail = email.safeParse(raw.email);
   if (!parsedEmail.success || raw.password.length > 128) return refused(WRONG);
   const session = await accounts.signIn(
@@ -51,7 +51,9 @@ export async function signIn(
     parsedEmail.data,
     raw.password,
   );
-  return session === null ? refused(WRONG) : { ok: true };
+  return session === null
+    ? { ok: false, message: WRONG }
+    : { ok: true, actor: session.actor };
 }
 
 // The page says the same thing whatever happens here, so a malformed email is dropped.

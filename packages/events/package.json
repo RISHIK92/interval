@@ -1,0 +1,22 @@
+{
+  "name": "@interval/events",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "events:codegen": "scripts/codegen.sh",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc",
+    "test": "scripts/check.sh && vitest run"
+  },
+  "devDependencies": {
+    "@interval/config": "workspace:*"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "exports": {
+    ".": "./src/generated.ts"
+  }
+}

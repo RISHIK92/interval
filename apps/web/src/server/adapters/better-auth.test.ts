@@ -66,13 +66,15 @@ function cookieHeader(setCookies: string[]): Headers {
 }
 
 async function newGuest(): Promise<{ headers: Headers; userId: string }> {
-  const { setCookies } = await guests.start(
+  const started = await guests.start(
     { ok: true, inviteCodeId: codeId, betaGroup: "student" },
     new Headers(),
   );
-  const headers = cookieHeader(setCookies);
+  const headers = cookieHeader(started.setCookies);
   const actor = await sessions.current(headers);
   if (actor === null) throw new Error("no session after start");
+  // start() reports the guest it made, so callers need no second lookup.
+  expect(started.actor).toEqual(actor);
   return { headers, userId: actor.userId };
 }
 

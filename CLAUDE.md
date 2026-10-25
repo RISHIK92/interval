@@ -52,13 +52,14 @@ Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED).
 - Install: `pnpm install` (TS) · `uv sync --all-packages` (Python workspace: workers/jobs, packages/db/python)
 - Local services: `docker compose up -d --wait` (Postgres + pgvector, SeaweedFS for S3, ElasticMQ for SQS)
 - Migrate + regenerate types: `pnpm db:migrate` · stale-types check: `pnpm db:check`
+- Event list (DB-5, Q-P1-20): edit `packages/events/events.json`, then `pnpm events:codegen` (TS + Python types; `pnpm check` fails while they are stale). Local events land in `.data/events/<UTC day>.jsonl`
 - Web dev server (port 3100, matches `BETTER_AUTH_URL`): `pnpm --filter @interval/web dev` · build: `pnpm turbo build`
-- Web image: `docker build -f apps/web/Dockerfile -t interval-web .` · run: `docker run -p 127.0.0.1:3100:3000 -e DATABASE_URL='postgres://interval:interval@host.docker.internal:5432/interval?sslmode=disable' -e BETTER_AUTH_SECRET="$(openssl rand -base64 32)" -e BETTER_AUTH_URL=http://localhost:3100 -e MAIL_TRANSPORT=log interval-web`
+- Web image: `docker build -f apps/web/Dockerfile -t interval-web .` · run: `docker run -p 127.0.0.1:3100:3000 -e DATABASE_URL='postgres://interval:interval@host.docker.internal:5432/interval?sslmode=disable' -e BETTER_AUTH_SECRET="$(openssl rand -base64 32)" -e BETTER_AUTH_URL=http://localhost:3100 -e MAIL_TRANSPORT=log -e EVENTS_TRANSPORT=file -e EVENTS_DIR=/tmp/interval-events interval-web`
 - Worker, ingest one feed: `scripts/with-env.sh uv run python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile metadata_only` (temporary until P1-W2-S01; full-text ingest also segments and rebuilds the feed)
 - Worker, re-split one item into moments (also rebuilds the feed): `scripts/with-env.sh uv run python -m interval_jobs segment-item --content-item-id ID`
 - Worker, recompute the precomputed feed: `scripts/with-env.sh uv run python -m interval_jobs rebuild-feed`
 - CDK synth (both stacks, VM `interval-prod` and AWS `interval-prod-aws`; no credentials; never deploy): `pnpm --filter @interval/infra synth`
 - VM mode stack (local smoke run, ADR-0013): see `deploy/compose.prod.yml` and docs/runbooks/vm.md; set `ENV_DIR`, `PGDATA_DIR`, `HTTP_PORT=8080` to run it locally
-- All checks (needs local services up; CI runs the same in `.github/workflows/ci.yml`): `pnpm turbo check`
+- All checks (needs local services up; CI runs the same in `.github/workflows/ci.yml`): `pnpm check` (turbo with `--concurrency=4`: the DB-backed suites share one Postgres and starve each other when everything runs at once)
 - One kind: `pnpm turbo typecheck //#typecheck:py` (likewise `lint`/`//#lint:py`, `test`/`//#test:py`, `format:check`/`//#format-check:py`)
 - Format (writes): `pnpm turbo format //#format:py`

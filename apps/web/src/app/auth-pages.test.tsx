@@ -12,13 +12,24 @@ const port = {
   requestReset: vi.fn<Accounts["requestReset"]>(() => Promise.resolve()),
   resetPassword: vi.fn<Accounts["resetPassword"]>(),
 };
+const emit = vi.fn();
+const setCookie = vi.fn();
+const deleteCookie = vi.fn();
 vi.mock("../server/container", () => ({
   sessionReader: () => ({ current }),
   accounts: () => port,
+  events: () => ({ emit }),
   feedReader: () => ({ list: () => Promise.resolve([] as FeedCard[]) }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
+  cookies: () =>
+    Promise.resolve({
+      get: (name: string) =>
+        name === "iv_visit" ? { name, value: "visit-9.1790000000" } : undefined,
+      set: setCookie,
+      delete: deleteCookie,
+    }),
 }));
 const redirect = vi.fn((url: string) => {
   throw new Error(`redirect:${url}`);
@@ -92,14 +103,28 @@ describe("sign-up", () => {
       email: "ada@example.test",
       password: PASSWORD,
     };
+    current.mockResolvedValue(guest);
     port.signUp.mockResolvedValueOnce({ ok: true, setCookies: [] });
     await expect(signUpAction(null, form(fields))).rejects.toThrow(
       "redirect:/",
     );
+    // The guest's row became the account: same user id, now not a guest.
+    expect(emit).toHaveBeenCalledExactlyOnceWith(
+      "signup_completed",
+      {},
+      {
+        userId: "g1",
+        isGuest: false,
+        betaGroup: "student",
+        sessionId: "visit-9",
+      },
+    );
+    emit.mockClear();
     port.signUp.mockResolvedValueOnce({ ok: false, reason: "email_taken" });
     expect(await signUpAction(null, form(fields))).toEqual({
       message: "An account with that email already exists. Sign in instead.",
     });
+    expect(emit).not.toHaveBeenCalled();
   });
 });
 
@@ -129,10 +154,22 @@ describe("sign-in", () => {
   test("the right password goes home; a wrong one shows the generic message", async () => {
     const { signInAction } = await import("./sign-in/actions");
     const fields = { email: "ada@example.test", password: PASSWORD };
-    port.signIn.mockResolvedValueOnce({ setCookies: [] });
+    port.signIn.mockResolvedValueOnce({ setCookies: [], actor: account });
     await expect(signInAction(null, form(fields))).rejects.toThrow(
       "redirect:/",
     );
+    // A sign-in starts a new visit for the user now on this browser.
+    const [name, value] = setCookie.mock.calls[0] as [string, string];
+    expect(name).toBe("iv_visit");
+    expect(emit).toHaveBeenCalledExactlyOnceWith(
+      "session_started",
+      {},
+      {
+        ...account,
+        sessionId: value.split(".")[0],
+      },
+    );
+    emit.mockClear();
     port.signIn.mockResolvedValueOnce(null);
     expect(await signInAction(null, form(fields))).toEqual({
       message: "Email or password is incorrect.",
@@ -189,6 +226,8 @@ describe("sign-out", () => {
     current.mockResolvedValue(account);
     await expect(signOutAction()).rejects.toThrow("redirect:/sign-in");
     expect(port.signOut).toHaveBeenCalledOnce();
+    // Whoever uses this browser next starts their own visit.
+    expect(deleteCookie).toHaveBeenCalledWith("iv_visit");
   });
 
   test("a guest is never signed out", async () => {

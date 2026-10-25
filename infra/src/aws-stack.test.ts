@@ -2,6 +2,10 @@ import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { beforeAll, describe, expect, test } from "vitest";
 import { AwsStack } from "./aws-stack.ts";
+import {
+  expectEventStream,
+  firehoseActionsFor,
+} from "./events-stream.test-helpers.ts";
 
 type Resource = {
   Properties: Record<string, unknown>;
@@ -240,5 +244,51 @@ describe("containers", () => {
 
   test("no secret value is written into the template", () => {
     expect(json).not.toMatch(/"SecretString"/);
+  });
+});
+
+describe("events (DB-5, AWS mode)", () => {
+  test("one Firehose stream writes date-partitioned events to the Events bucket", () => {
+    expectEventStream(template, "interval-prod-aws-events");
+  });
+
+  test("web and jobs may only put records to the stream; migrate gets nothing", () => {
+    for (const role of ["WebTaskTaskRole", "JobsTaskTaskRole"]) {
+      expect(firehoseActionsFor(template, role)).toEqual([
+        "firehose:PutRecord",
+        "firehose:PutRecordBatch",
+      ]);
+    }
+    expect(firehoseActionsFor(template, "MigrateTaskTaskRole")).toEqual([]);
+  });
+
+  test("web and jobs send events to the stream", () => {
+    const containers = all("AWS::ECS::TaskDefinition").flatMap(
+      ([, task]) =>
+        task.Properties["ContainerDefinitions"] as {
+          Name: string;
+          Environment?: { Name: string; Value: unknown }[];
+        }[],
+    );
+    for (const name of ["web", "jobs"]) {
+      const env = containers.find((c) => c.Name === name)?.Environment ?? [];
+      const value = (key: string) => env.find((e) => e.Name === key)?.Value;
+      expect(value("EVENTS_TRANSPORT")).toBe("firehose");
+      expect(value("EVENTS_STREAM")).toBeDefined();
+      expect(value("AWS_REGION")).toBe("ap-south-1");
+    }
+  });
+
+  test("dropped events become a CloudWatch metric", () => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "events: emit failed" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Events",
+          MetricName: "EmitFailures",
+          MetricValue: "$.count",
+        }),
+      ],
+    });
   });
 });

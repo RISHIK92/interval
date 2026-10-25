@@ -19,7 +19,7 @@ import * as rds from "aws-cdk-lib/aws-rds";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import type { Construct } from "constructs";
-import { createBuckets } from "./storage.ts";
+import { createBuckets, createEventStream } from "./storage.ts";
 
 // Full-AWS deployment mode (ADR-0011): Fargate, RDS, ElastiCache (Valkey), SQS, S3,
 // behind CloudFront. Same env contract as the VM mode, so the apps do not change.
@@ -148,6 +148,11 @@ export class AwsStack extends Stack {
       throw new Error("queues missing");
 
     const { privateContent, events } = createBuckets(this);
+    const eventStream = createEventStream(
+      this,
+      events,
+      "interval-prod-aws-events",
+    );
 
     const appSecret = (name: string): secretsmanager.Secret =>
       new secretsmanager.Secret(this, name.replaceAll("/", "-"), {
@@ -166,6 +171,17 @@ export class AwsStack extends Stack {
       retention: logs.RetentionDays.ONE_MONTH,
       removalPolicy: RemovalPolicy.DESTROY,
     });
+    // DB-5: the emitters log each drop with a count; this sums them into a metric.
+    logGroup.addMetricFilter("EventEmitFailures", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "events: emit failed",
+      ),
+      metricNamespace: "Interval/Events",
+      metricName: "EmitFailures",
+      metricValue: "$.count",
+    });
 
     const environment = {
       NODE_ENV: "production",
@@ -176,6 +192,10 @@ export class AwsStack extends Stack {
       SQS_FEED_URL: feed.queueUrl,
       PRIVATE_CONTENT_BUCKET: privateContent.bucketName,
       EVENTS_BUCKET: events.bucketName,
+      // DB-5: both apps send events through Firehose.
+      EVENTS_TRANSPORT: "firehose",
+      EVENTS_STREAM: eventStream.deliveryStreamName,
+      AWS_REGION: Stack.of(this).region,
       // Lets the worker CLI's local-only database guard accept the RDS host here.
       INTERVAL_RUNTIME: "aws",
     };
@@ -214,6 +234,7 @@ export class AwsStack extends Stack {
     });
     privateContent.grantRead(webTask.taskRole);
     privateContent.grantPut(webTask.taskRole);
+    eventStream.grantPutRecords(webTask.taskRole);
 
     const web = new ecs.FargateService(this, "WebService", {
       cluster,
@@ -242,6 +263,7 @@ export class AwsStack extends Stack {
     });
     privateContent.grantRead(jobsTask.taskRole);
     privateContent.grantPut(jobsTask.taskRole);
+    eventStream.grantPutRecords(jobsTask.taskRole);
     for (const queue of queues) {
       queue.grantSendMessages(jobsTask.taskRole);
       queue.grantConsumeMessages(jobsTask.taskRole);

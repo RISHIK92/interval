@@ -4,7 +4,8 @@
 # around the value; anything else stops with the line number.
 set -euo pipefail
 
-env_file="$(cd "$(dirname "$0")/.." && pwd)/.env"
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+env_file="$repo_root/.env"
 if [ -f "$env_file" ]; then
   n=0
   while IFS= read -r line || [ -n "$line" ]; do
@@ -30,6 +31,12 @@ if [ -f "$env_file" ]; then
       export "$name=$value"
     fi
   done < "$env_file"
+fi
+
+# Web runs from apps/web and the worker from the root; a relative events folder means the
+# same place for both.
+if [ -n "${EVENTS_DIR:-}" ] && [ "${EVENTS_DIR#/}" = "$EVENTS_DIR" ]; then
+  export EVENTS_DIR="$repo_root/$EVENTS_DIR"
 fi
 
 exec "$@"

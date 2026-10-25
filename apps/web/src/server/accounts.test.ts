@@ -9,6 +9,12 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
+const ACCOUNT = {
+  userId: "a1",
+  isGuest: false,
+  betaGroup: "student",
+} as const;
+
 function fake(
   opts: { signUp?: SignUpResult; signIn?: boolean; reset?: boolean } = {},
 ) {
@@ -17,7 +23,9 @@ function fake(
       Promise.resolve(opts.signUp ?? { ok: true, setCookies: [] }),
     ),
     signIn: vi.fn<Accounts["signIn"]>(() =>
-      Promise.resolve(opts.signIn === false ? null : { setCookies: [] }),
+      Promise.resolve(
+        opts.signIn === false ? null : { setCookies: [], actor: ACCOUNT },
+      ),
     ),
     signOut: vi.fn<Accounts["signOut"]>(() => Promise.resolve()),
     requestReset: vi.fn<Accounts["requestReset"]>(() => Promise.resolve()),
@@ -104,6 +112,7 @@ describe("signIn", () => {
       }),
     ).toEqual({
       ok: true,
+      actor: ACCOUNT,
     });
     expect(port.signIn).toHaveBeenCalledWith(
       headers,

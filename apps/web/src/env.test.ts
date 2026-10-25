@@ -7,6 +7,8 @@ const valid = {
   BETTER_AUTH_SECRET: "x".repeat(32),
   BETTER_AUTH_URL: "http://localhost:3100",
   MAIL_TRANSPORT: "log",
+  EVENTS_TRANSPORT: "file",
+  EVENTS_DIR: "/tmp/interval-events",
 };
 
 describe("parseEnv", () => {
@@ -56,6 +58,28 @@ describe("parseEnv", () => {
       );
     },
   );
+
+  // DB-5: Firehose when deployed, a local file in development.
+  test("the file event transport needs a directory", () => {
+    expect(() => parseEnv({ ...valid, EVENTS_DIR: undefined })).toThrow(
+      /EVENTS_DIR/,
+    );
+  });
+
+  test("the Firehose event transport needs a stream and a region", () => {
+    const firehose = {
+      ...valid,
+      EVENTS_TRANSPORT: "firehose",
+      EVENTS_DIR: undefined,
+    };
+    expect(() => parseEnv(firehose)).toThrow(/EVENTS_STREAM/);
+    expect(() => parseEnv({ ...firehose, EVENTS_STREAM: "s" })).toThrow(
+      /AWS_REGION/,
+    );
+    expect(
+      parseEnv({ ...firehose, EVENTS_STREAM: "s", AWS_REGION: "ap-south-1" }),
+    ).toMatchObject({ EVENTS_TRANSPORT: "firehose", EVENTS_STREAM: "s" });
+  });
 
   test("returns typed values for a valid environment", () => {
     expect(parseEnv(valid)).toEqual(valid);

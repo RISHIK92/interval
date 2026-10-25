@@ -120,7 +120,11 @@ async function signedIn(
   password: string,
 ): Promise<Headers | null> {
   const result = await port.signIn(new Headers(), address, password);
-  return result === null ? null : cookieHeader(result.setCookies);
+  if (result === null) return null;
+  const headers = cookieHeader(result.setCookies);
+  // signIn() reports the account it signed in, so callers need no second lookup.
+  expect(result.actor).toEqual(await sessions.current(headers));
+  return headers;
 }
 
 test("sign-up turns the guest into the account: same user, code and group", async () => {

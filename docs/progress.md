@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions) and S11 (accounts) done. Next: P1-W1-S12 (guest-to-account merge). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). Next: the queue ADR (BullMQ on Valkey for local and VM, SQS in AWS, ElasticMQ retired), then S15 (entitlements). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -359,6 +359,9 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `dropInvalidHeaderFields`;
   - RETAIN on `interval/aws/postgres`;
   - a stronger no-plaintext-secret test.
+- **Events (from S14):**
+  - VM container logs don't reach CloudWatch, so the `events: emit failed` metric filter exists only in AWS mode. Ship VM logs (CloudWatch agent or the awslogs driver) or add a VM-side counter.
+  - The SIGTERM flush is best effort: Next exits without waiting, so about a second of buffered events can be lost on a stop. Owning shutdown (`NEXT_MANUAL_SIG_HANDLE`) is the fix if that matters.
 - **Auth email (from S11):** build the SES adapter for the `Mailer` port (new dependency `@aws-sdk/client-sesv2`, ask first) and set `MAIL_TRANSPORT=ses` on the VM (with the domain) and the AWS web task. Until then the web app refuses to start on any non-localhost `BETTER_AUTH_URL`, by design. Also: SES production access and a verified sending domain (owner tasks, Q-P1-33).
 
 ### 2026-10-25 — P1-W1-S13 (invite codes, Q-P1-24)
@@ -434,3 +437,60 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - with `onLinkAccount` unset, nothing records which account a guest signed in to, so a guest who signs in to an existing account before S12 is left unlinked. S12 should set `onLinkAccount` and merge there (owner's merge rules, Q-P1-11).
   - Form helpers: `FormState` and `textField` live in `app/form.ts`; `AuthForm` renders the account forms.
 - Local setup: `.env` needs `MAIL_TRANSPORT=log` (see `.env.example`). The reset link appears in the dev server log as `mail: logged instead of sent`.
+
+### 2026-10-25 — Decisions: S12 deferred; queues move to BullMQ on Valkey (ADR pending)
+- **S12 (merge) deferred until after W5-S04:** its rules need saves, history, progress, choices and events that later slices create. Sign-up already keeps the guest's user id (Q-P1-11's new-account rule).
+- **Queues (owner):**
+  - Valkey holds real-time state and BullMQ queues;
+  - BullMQ TypeScript enqueues from the API, and BullMQ Python consumes after a maturity check;
+  - local dev and the VM use BullMQ on Valkey; full AWS uses SQS, behind one queue port;
+  - ElasticMQ is retired.
+  - This changes LOAD-3 and ADR-0011, so it needs a new ADR (next, with the BullMQ-Python check). The build lands in W2-S02.
+
+### 2026-10-25 — P1-W1-S14 (event tracking, DB-5, LOAD-5, Q-P1-20, Q-P1-21)
+- Done:
+  - **One event list:** `packages/events/events.json` holds the 15 Q-P1-20 names. An in-repo generator (`pnpm events:codegen`) writes zod schemas (`@interval/events`) and pydantic models (`interval_jobs.events.generated`). `scripts/check.sh` fails the check when either is stale.
+  - **Envelope:** Q-P1-20's fields plus `source` (web or jobs). `occurred_at` is UTC with milliseconds from both emitters, and the Python models are strict like zod. A test keeps the spec's beta groups equal to the DB enum.
+  - **Emitters (web and worker):**
+    - `emit` never throws or waits;
+    - buffered, written at 100 events or after 1 s (the worker flushes at the end of each unit of work);
+    - rejected records are retried once, then dropped and logged as `events: emit failed {count, names, reason}`;
+    - invalid props are logged the same way.
+    - The web emitter is one per process (`globalThis`), and SIGTERM flushes it (best effort).
+  - **Sinks:** Firehose (`@aws-sdk/client-firehose`, `boto3`) in both deploy modes, and JSON lines in `.data/events/<UTC day>.jsonl` locally. `with-env.sh` resolves a relative `EVENTS_DIR` against the repo root.
+  - **Visits and `session_started`:**
+    - `src/proxy.ts` tracks visits (a new one after 30 minutes idle) with the `iv_visit` cookie, using one session lookup per visit and skipping API routes, static files and prefetches.
+    - Join and sign-in start the visit themselves (`app/visit.ts`), because their redirect renders through an internal request whose cookies never reach the browser. Starting there would double-count. Sign-out clears the visit.
+    - Secure follows `BETTER_AUTH_URL`.
+  - **Also emitted:** `signup_completed` (sign-up, as the account) and `feed_viewed {card_count}` (`/`).
+  - **Infra:**
+    - one Firehose stream per stack into the Events bucket (`events/dt=YYYY-MM-DD/`, errors under `errors/`, 5 minutes or 5 MB);
+    - the stream's role is closed to CDK grants, with write-only S3 actions, its own error log group, the account as external ID, and an explicit DependsOn;
+    - web and jobs (AWS) and the VM role may only put records;
+    - an AWS metric filter, `Interval/Events EmitFailures`;
+    - `write-env.sh` sends VM events to Firehose (or a file in the no-domain smoke run);
+    - the VM's IMDS hop limit is set to 2 for containers.
+  - **Tooling:** `pnpm check` runs turbo with `--concurrency=4` locally and in CI (owner choice). The DB-backed suites share one Postgres and starved each other with everything at once on this machine.
+  - **Docker image:** the web image now includes the generated events module. It builds, and it serves `/api/health` with the documented `docker run` command.
+- Review fixes:
+  - the Docker build (a blocker);
+  - double-counted visits on join and sign-in (a blocker);
+  - the visit not tied to a user (sign-in starts and sign-out ends visits);
+  - Secure from the public origin;
+  - the prefetch exclusion;
+  - a failed session lookup no longer breaks a page;
+  - the IMDS hop limit;
+  - the Firehose external ID;
+  - matching occurred_at format and strictness;
+  - the missing-responses case in both sinks;
+  - the CLAUDE.md `docker run` command;
+  - tests for the waitUntil flush and the 30-minute boundary.
+- Not changed (reasons):
+  - The Python `emit` takes props as a mapping, not per-event typed props: validation still rejects wrong props at runtime, and no worker event exists yet.
+  - `grantPutRecords` also grants PutRecord: CDK's grant is the pair, and it's harmless.
+  - The no-domain VM writes events to `/tmp/interval-events`: a writable path inside the container, since the smoke run has no AWS credentials.
+- Surprises:
+  - Next renders a redirect from a server action through an internal request that runs the proxy and drops its `Set-Cookie`.
+  - CDK's Firehose S3 destination grants `s3:DeleteObject*` to its role.
+  - `astimezone()` without an argument converts to local time; a test caught a wrong-day bug.
+- Local setup: `.env` needs `EVENTS_TRANSPORT=file` and `EVENTS_DIR=.data/events`, as well as `MAIL_TRANSPORT=log` from S11 (see `.env.example`). The worker CLI also needs them now.

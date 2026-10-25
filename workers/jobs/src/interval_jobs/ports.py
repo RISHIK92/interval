@@ -11,6 +11,7 @@ from typing import Literal, Protocol
 from pydantic import BaseModel, ConfigDict
 
 from interval_db.generated import BetaGroup, MomentLinkType, RightsProfile
+from interval_jobs.events.generated import Envelope
 
 type FetchKind = Literal["feed", "article"]
 
@@ -197,3 +198,11 @@ class Extractor(Protocol):
     def sections(
         self, html: bytes, encoding: str | None, title: str
     ) -> list[Section]: ...
+
+
+class EventSink(Protocol):
+    """Where events go (DB-5): Firehose when deployed, a file in development."""
+
+    def write(self, batch: list[Envelope]) -> list[Envelope]:
+        """Returns the events it could not deliver, for one retry."""
+        ...

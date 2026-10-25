@@ -2,6 +2,10 @@ import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { beforeAll, describe, expect, test } from "vitest";
 import { DATA_MOUNT, ProdStack } from "./prod-stack.ts";
+import {
+  expectEventStream,
+  firehoseActionsFor,
+} from "./events-stream.test-helpers.ts";
 
 let template: Template;
 let json: string;
@@ -52,8 +56,14 @@ describe("instance", () => {
         }),
       ]),
     });
-    template.hasResourceProperties("AWS::EC2::LaunchTemplate", {
-      LaunchTemplateData: { MetadataOptions: { HttpTokens: "required" } },
+    // IMDSv2 only. Hop limit 2: the containers reach the instance role (Firehose, S3)
+    // through Docker's bridge network, one hop further than the host.
+    template.hasResourceProperties("AWS::EC2::Instance", {
+      MetadataOptions: {
+        HttpEndpoint: "enabled",
+        HttpTokens: "required",
+        HttpPutResponseHopLimit: 2,
+      },
     });
   });
 
@@ -303,5 +313,18 @@ describe("storage lifecycle and secret stability", () => {
           .GenerateSecretString,
       ).toEqual({ PasswordLength: 48, ExcludePunctuation: true });
     }
+  });
+});
+
+describe("events (DB-5, VM mode)", () => {
+  test("one Firehose stream writes date-partitioned events to the Events bucket", () => {
+    expectEventStream(template, "interval-prod-events");
+  });
+
+  test("the VM may only put records to the stream", () => {
+    expect(firehoseActionsFor(template, "InstanceRole")).toEqual([
+      "firehose:PutRecord",
+      "firehose:PutRecordBatch",
+    ]);
   });
 });

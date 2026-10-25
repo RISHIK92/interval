@@ -1,4 +1,4 @@
-# PR and main checks (ADR-0009). One job runs the same `pnpm turbo check` as local
+# PR and main checks (ADR-0009). One job runs the same `pnpm check` as local
 # development, then synthesises the CDK app (ARCH-4). No deploy job: the owner deploys.
 name: CI
 
@@ -80,7 +80,7 @@ jobs:
           fi
 
       - name: Format, lint, typecheck, tests, db:check
-        run: pnpm turbo check
+        run: pnpm check
 
       - name: CDK synth (no credentials; ARCH-4)
         env:

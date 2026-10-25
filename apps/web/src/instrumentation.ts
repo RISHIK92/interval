@@ -3,7 +3,7 @@ import { log } from "./server/log";
 
 // Next calls register() once at server start. Next only logs a register() error and keeps
 // serving, so a bad environment exits here instead: the container must not start half-configured.
-export function register(): void {
+export async function register(): Promise<void> {
   if (process.env["NEXT_RUNTIME"] !== "nodejs") return;
   try {
     env();
@@ -11,4 +11,13 @@ export function register(): void {
     log.error("startup: invalid environment", { error });
     process.exit(1);
   }
+  // Imported here, not at the top: the container is Node-only and Next also bundles this
+  // file for the Edge runtime.
+  const { events } = await import("./server/container");
+  // Best effort when a container stops (ECS or compose): Next's own SIGTERM handler
+  // closes the server and exits without waiting for this, so events buffered in the last
+  // second or so can still be lost. Acceptable for analytics (S14 plan, risks).
+  process.once("SIGTERM", () => {
+    void events().flush();
+  });
 }

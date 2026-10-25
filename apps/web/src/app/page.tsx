@@ -1,7 +1,8 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { feedReader, sessionReader } from "../server/container";
+import { events, feedReader, sessionReader } from "../server/container";
+import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { MomentCard } from "./MomentCard";
 
@@ -14,6 +15,11 @@ export default async function HomePage() {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
   const cards = await feedReader().list(FEED_LIMIT);
+  events().emit(
+    "feed_viewed",
+    { card_count: cards.length },
+    { ...actor, sessionId: visitId(await cookies()) },
+  );
   return (
     <main>
       <h1>Interval</h1>

@@ -23,6 +23,9 @@ __pycache__/
 # CDK
 cdk.out/
 
+# Local event files (EVENTS_DIR)
+.data/
+
 # Env files
 .env
 .env.*

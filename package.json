@@ -7,9 +7,10 @@
     "node": ">=22.18 <23"
   },
   "scripts": {
-    "check": "turbo run check",
+    "check": "turbo run check --concurrency=4",
     "db:migrate": "pnpm --filter @interval/db db:migrate",
     "db:check": "pnpm --filter @interval/db db:check",
+    "events:codegen": "pnpm --filter @interval/events events:codegen",
     "format": "turbo run format //#format:py",
     "format:check": "prettier --check package.json turbo.json pnpm-workspace.yaml prettier.config.js",
     "test": "turbo run test",

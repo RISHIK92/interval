@@ -1,6 +1,8 @@
 // Ports (ADR-0012): what server logic and pages depend on. Adapters implement them;
 // container.ts wires them. Nothing outside adapters/ imports kysely or pg.
 
+import type { Envelope } from "@interval/events";
+
 // What a card may show (§3.2, ING-2): no summary or body text.
 export type FeedCard = {
   momentId: string;
@@ -48,13 +50,13 @@ export class GuestNotRemoved extends Error {
 }
 
 export interface GuestSessions {
-  // Creates a guest (anonymous user) in the redemption's beta group and returns the
-  // Set-Cookie values for its session. If it throws anything but GuestNotRemoved, no
+  // Creates a guest (anonymous user) in the redemption's beta group and returns it with
+  // the Set-Cookie values for its session. If it throws anything but GuestNotRemoved, no
   // user was left behind.
   start(
     redemption: Extract<Redemption, { ok: true }>,
     headers: Headers,
-  ): Promise<{ setCookies: string[] }>;
+  ): Promise<{ setCookies: string[]; actor: Actor }>;
 }
 
 export interface SessionReader {
@@ -85,10 +87,15 @@ export interface Accounts {
     headers: Headers,
     email: string,
     password: string,
-  ): Promise<{ setCookies: string[] } | null>;
+  ): Promise<{ setCookies: string[]; actor: Actor } | null>;
   signOut(headers: Headers): Promise<void>;
   // Mails a reset link if the account exists; returns the same either way.
   requestReset(email: string): Promise<void>;
   // False for an unknown, used or expired token.
   resetPassword(token: string, newPassword: string): Promise<boolean>;
+}
+
+// DB-5: where events go. Returns the records it could not deliver, for one retry.
+export interface EventSink {
+  write(batch: Envelope[]): Promise<{ failed: Envelope[] }>;
 }

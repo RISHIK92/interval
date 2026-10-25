@@ -10,12 +10,15 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/
 COPY packages/config/package.json packages/config/
 COPY packages/db/package.json packages/db/
+COPY packages/events/package.json packages/events/
 COPY infra/package.json infra/
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --filter @interval/web...
 COPY packages/config packages/config
 # Only the TS side of packages/db; its Python and migrations do not affect the web build.
 COPY packages/db/src packages/db/src
+# Only the generated TS of packages/events; events.json and the generator are build-time.
+COPY packages/events/src/generated.ts packages/events/src/generated.ts
 COPY apps/web apps/web
 RUN pnpm --filter @interval/web build
 

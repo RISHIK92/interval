@@ -45,6 +45,16 @@ fi
 # to start until a real transport exists (pre-deploy list).
 mail_transport_line=""
 if [ "$site_address" = ":80" ]; then mail_transport_line="MAIL_TRANSPORT=log"; fi
+# DB-5: events go to the VM's Firehose stream (named in infra/src/prod-stack.ts). The local
+# smoke run has no domain and no AWS credentials, so it keeps them in a file instead.
+if [ "$site_address" = ":80" ]; then
+  events_lines="EVENTS_TRANSPORT=file
+EVENTS_DIR=/tmp/interval-events"
+else
+  events_lines="EVENTS_TRANSPORT=firehose
+EVENTS_STREAM=interval-prod-events
+AWS_REGION=${REGION}"
+fi
 s3_endpoint=""
 if files_on_vm; then s3_endpoint="http://seaweedfs:8333"; fi
 
@@ -63,6 +73,7 @@ S3_ENDPOINT=${s3_endpoint}
 BETTER_AUTH_SECRET=${better_auth}
 BETTER_AUTH_URL=${public_url}
 ${mail_transport_line}
+${events_lines}
 OPENROUTER_API_KEY=${openrouter}
 VOYAGE_API_KEY=${voyage}
 ENV

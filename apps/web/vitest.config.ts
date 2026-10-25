@@ -1,3 +1,5 @@
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 
 // tsconfig keeps `jsx: preserve` for Next; tests compile JSX themselves.
@@ -12,6 +14,8 @@ export default defineConfig({
       BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-0123",
       BETTER_AUTH_URL: "http://localhost:3100",
       MAIL_TRANSPORT: "log",
+      EVENTS_TRANSPORT: "file",
+      EVENTS_DIR: path.join(tmpdir(), "interval-test-events"),
     },
   },
 });

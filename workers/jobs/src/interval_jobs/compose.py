@@ -9,13 +9,20 @@ import sys
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from pathlib import Path
+from typing import cast
 
+import boto3  # pyright: ignore[reportMissingTypeStubs]
 import httpx
 from psycopg.conninfo import conninfo_to_dict
 
+from interval_jobs.adapters.file_sink import FileEventSink
+from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSink
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
 from interval_jobs.adapters.postgres import PostgresStore, unit_of_work
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
+from interval_jobs.events.emitter import Emitter
+from interval_jobs.ports import EventSink
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 USER_AGENT = "Interval/0.0 (personal learning platform; feed reader)"
@@ -48,18 +55,51 @@ def database_url() -> str:
     return url
 
 
+def _required(name: str) -> str:
+    value = os.environ.get(name)
+    if not value:
+        sys.exit(f"{name} is not set; see .env.example")
+    return value
+
+
+def event_sink() -> EventSink:
+    """DB-5: Firehose when deployed (both modes), a JSON-lines file in development."""
+    transport = os.environ.get("EVENTS_TRANSPORT")
+    if transport == "file":
+        return FileEventSink(Path(_required("EVENTS_DIR")))
+    if transport == "firehose":
+        stream = _required("EVENTS_STREAM")
+        # boto3 is untyped; the adapter's protocol names the one call it makes.
+        client = cast(
+            FirehoseClient,
+            boto3.client(  # pyright: ignore[reportUnknownMemberType]
+                "firehose", region_name=_required("AWS_REGION")
+            ),
+        )
+        return FirehoseEventSink(client, stream)
+    sys.exit("EVENTS_TRANSPORT must be file or firehose; see .env.example")
+
+
 @dataclass(frozen=True)
 class Services:
     store: PostgresStore
     fetcher: HttpxFetcher
     extractor: TrafilaturaExtractor
+    events: Emitter
 
 
 @contextmanager
 def services() -> Generator[Services]:
-    """One unit of work plus the web and parsing adapters; commits on success."""
-    with (
-        unit_of_work(database_url()) as store,
-        httpx.Client(headers={"user-agent": USER_AGENT}) as http,
-    ):
-        yield Services(store, HttpxFetcher(http), TrafilaturaExtractor())
+    """One unit of work plus the web and parsing adapters; commits on success.
+
+    Events are flushed when the unit of work ends, whether or not it succeeded.
+    """
+    events = Emitter(event_sink())
+    try:
+        with (
+            unit_of_work(database_url()) as store,
+            httpx.Client(headers={"user-agent": USER_AGENT}) as http,
+        ):
+            yield Services(store, HttpxFetcher(http), TrafilaturaExtractor(), events)
+    finally:
+        events.flush()

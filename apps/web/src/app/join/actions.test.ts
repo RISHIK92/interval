@@ -10,13 +10,17 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const redeem = vi.fn<(code: string) => Promise<Redemption>>();
 const start = vi.fn<GuestSessions["start"]>();
 const codes: InviteCodes = { redeem, release: () => Promise.resolve() };
+const emit = vi.fn();
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   inviteCodes: () => codes,
   guestSessions: () => ({ start }),
+  events: () => ({ emit }),
 }));
+const setCookie = vi.fn();
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
+  cookies: () => Promise.resolve({ set: setCookie }),
 }));
 const redirect = vi.fn((url: string) => {
   throw new Error(`redirect:${url}`);
@@ -55,9 +59,26 @@ test("a valid code starts a guest and goes home", async () => {
     inviteCodeId: "4",
     betaGroup: "developer",
   });
-  start.mockResolvedValue({ setCookies: [] });
+  const guest = {
+    userId: "g1",
+    isGuest: true,
+    betaGroup: "developer",
+  } as const;
+  start.mockResolvedValue({ setCookies: [], actor: guest });
   await expect(join(form("ABCDE-FGHJK"))).rejects.toThrow("redirect:/");
   expect(start).toHaveBeenCalledOnce();
+  // The visit starts here, not in the proxy (app/visit.ts explains why).
+  const [name, value] = setCookie.mock.calls[0] as [string, string];
+  expect(name).toBe("iv_visit");
+  const visitId = value.split(".")[0];
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "session_started",
+    {},
+    {
+      ...guest,
+      sessionId: visitId,
+    },
+  );
 });
 
 test("a refused code returns its message and stays on the page", async () => {
