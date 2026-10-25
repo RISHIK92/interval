@@ -4,9 +4,11 @@ Adapters in `interval_jobs.adapters` implement these; `compose.py` wires them. L
 never imports a driver or SDK, so a service is swapped by replacing one adapter.
 """
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal
+from threading import Event
 from typing import Literal, Protocol, TypedDict
 
 from pydantic import BaseModel, ConfigDict
@@ -19,6 +21,7 @@ from interval_db.generated import (
     MomentLinkType,
     RightsProfile,
 )
+from interval_db.messages import MessageName
 from interval_jobs.events.generated import Envelope
 
 type FetchKind = Literal["feed", "article"]
@@ -341,3 +344,44 @@ class EmbeddingClient(Protocol):
     def provider(self) -> AiProvider: ...
 
     def embed(self, model: str, texts: list[str]) -> Embeddings: ...
+
+
+@dataclass(frozen=True)
+class Delivery:
+    attempt: int  # 1 for the first delivery
+    # The enqueuer's key (LOAD-5). SQS can deliver a message twice, and two enqueues
+    # with one key can both arrive, so handlers dedupe on it.
+    idempotency_key: str
+
+
+class QueueHandler(Protocol):
+    """Handles one delivery. Raising means "retry"; after the last attempt the message
+    goes to the failed store. Deliveries are at least once, so handlers are idempotent
+    (LOAD-5)."""
+
+    def __call__(self, message: BaseModel, delivery: Delivery) -> None: ...
+
+
+class JobQueue(Protocol):
+    """Enqueue side of the queue port (ADR-0014): BullMQ on Valkey or SQS.
+
+    Only what both engines support: no priorities and at most 900 s of delay. The
+    idempotency key travels with the message; BullMQ also drops a second enqueue while
+    the first is pending, but SQS can't, so consumers dedupe.
+    """
+
+    def enqueue(
+        self,
+        name: MessageName,
+        message: Mapping[str, object],
+        idempotency_key: str,
+        delay_seconds: int = 0,
+    ) -> None:
+        """Validates the message against its schema (packages/db/messages) first."""
+        ...
+
+
+class QueueConsumer(Protocol):
+    def consume(self, name: MessageName, handler: QueueHandler, stop: Event) -> None:
+        """Delivers messages of one queue to the handler until `stop` is set."""
+        ...

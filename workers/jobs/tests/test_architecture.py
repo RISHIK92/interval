@@ -6,7 +6,16 @@ from pathlib import Path
 PACKAGE = Path(__file__).resolve().parents[1] / "src" / "interval_jobs"
 # Composition and the CLI wire adapters together, so they may import them.
 WIRING = {PACKAGE / "compose.py", PACKAGE / "__main__.py"}
-FORBIDDEN = {"psycopg", "httpx", "boto3", "botocore", "trafilatura", "lxml", "redis"}
+FORBIDDEN = {
+    "psycopg",
+    "httpx",
+    "boto3",
+    "botocore",
+    "trafilatura",
+    "lxml",
+    "redis",
+    "bullmq",
+}
 
 
 def imported_modules(source: str, package: list[str]) -> set[str]:

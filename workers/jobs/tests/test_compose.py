@@ -197,3 +197,45 @@ def test_ai_usage_is_kept_when_the_unit_of_work_fails(
     finally:
         with psycopg.connect(URL) as conn:
             conn.execute("delete from ai_usage where model = %s", (model,))
+
+
+# ADR-0014: BullMQ on Valkey locally and on the VM, SQS in the full-AWS mode.
+def test_the_bullmq_transport_needs_valkey(monkeypatch: pytest.MonkeyPatch) -> None:
+    from interval_jobs.adapters.bullmq_queue import BullmqConsumer, BullmqQueue
+    from interval_jobs.compose import queue_consumer, queue_for_enqueue
+
+    monkeypatch.setenv("QUEUE_TRANSPORT", "bullmq")
+    monkeypatch.delenv("VALKEY_URL", raising=False)
+    with pytest.raises(SystemExit, match="VALKEY_URL"):
+        queue_consumer()
+    monkeypatch.setenv("VALKEY_URL", "redis://localhost:6379")
+    assert isinstance(queue_consumer(), BullmqConsumer)
+    queue = queue_for_enqueue()
+    assert isinstance(queue, BullmqQueue)
+    queue.close()
+
+
+def test_the_sqs_transport_needs_a_prefix_and_region(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from interval_jobs.adapters.sqs_queue import SqsConsumer, SqsQueue
+    from interval_jobs.compose import queue_consumer, queue_for_enqueue
+
+    monkeypatch.setenv("QUEUE_TRANSPORT", "sqs")
+    monkeypatch.delenv("SQS_QUEUE_URL_PREFIX", raising=False)
+    with pytest.raises(SystemExit, match="SQS_QUEUE_URL_PREFIX"):
+        queue_for_enqueue()
+    monkeypatch.setenv("SQS_QUEUE_URL_PREFIX", "https://sqs.example/123/interval-")
+    monkeypatch.setenv("AWS_REGION", "ap-south-1")
+    assert isinstance(queue_for_enqueue(), SqsQueue)
+    assert isinstance(queue_consumer(), SqsConsumer)
+
+
+def test_an_unknown_queue_transport_stops_the_worker(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from interval_jobs.compose import queue_consumer
+
+    monkeypatch.setenv("QUEUE_TRANSPORT", "elasticmq")
+    with pytest.raises(SystemExit, match="QUEUE_TRANSPORT"):
+        queue_consumer()

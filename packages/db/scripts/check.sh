@@ -30,11 +30,14 @@ trap 'exit 143' TERM
 dbmate --url "$check_url" create >/dev/null
 tmp="$(mktemp -d)"
 
-"$db_dir/scripts/codegen.sh" "$check_url" "$tmp/db.ts" "$tmp/generated.py" >/dev/null
+"$db_dir/scripts/codegen.sh" "$check_url" "$tmp/db.ts" "$tmp/generated.py" \
+  "$tmp/messages.ts" "$tmp/messages.py" >/dev/null
 
 status=0
 diff -u "$db_dir/src/generated/db.ts" "$tmp/db.ts" || status=1
 diff -u "$db_dir/python/src/interval_db/generated.py" "$tmp/generated.py" || status=1
+diff -u "$db_dir/src/generated/messages.ts" "$tmp/messages.ts" || status=1
+diff -u "$db_dir/python/src/interval_db/messages.py" "$tmp/messages.py" || status=1
 if [ "$status" -ne 0 ]; then
   echo "Generated types are stale. Run \`pnpm db:migrate\` and commit the result." >&2
 fi

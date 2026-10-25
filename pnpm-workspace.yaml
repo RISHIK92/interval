@@ -7,5 +7,8 @@ engineStrict: true
 
 # Build scripts we skip on purpose (pnpm fails on unreviewed ones).
 # unrs-resolver (via eslint-config-next) ships prebuilt binaries.
+# msgpackr-extract (via bullmq) ships prebuilt binaries too, and msgpackr falls back to
+# plain JS without it.
 allowBuilds:
   unrs-resolver: false
+  msgpackr-extract: false

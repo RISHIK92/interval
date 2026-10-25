@@ -2,6 +2,7 @@
 // container.ts wires them. Nothing outside adapters/ imports kysely or pg.
 
 import type { Capability } from "@interval/db";
+import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 
 // What a card may show (§3.2, ING-2): no summary or body text.
@@ -109,4 +110,14 @@ export interface Entitlements {
   // Compare as `limit === null || used < limit`: `used < (limit ?? 0)` would turn "no
   // limit" into "none allowed".
   limit(userId: string, capability: Capability): Promise<number | null>;
+}
+
+// ADR-0014: the enqueue side of the queue port (BullMQ on Valkey, or SQS). Messages are
+// the schemas in packages/db/messages; the worker consumes them.
+export interface JobQueue {
+  enqueue<N extends MessageName>(
+    name: N,
+    message: Messages[N],
+    options: { idempotencyKey: string; delaySeconds?: number },
+  ): Promise<void>;
 }

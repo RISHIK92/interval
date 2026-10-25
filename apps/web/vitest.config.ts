@@ -14,6 +14,9 @@ export default defineConfig({
       BETTER_AUTH_SECRET: "test-secret-test-secret-test-secret-0123",
       BETTER_AUTH_URL: "http://localhost:3100",
       MAIL_TRANSPORT: "log",
+      QUEUE_TRANSPORT: "bullmq",
+      // The local Valkey from docker-compose.yml, unless one is already given (CI).
+      VALKEY_URL: process.env["VALKEY_URL"] ?? "redis://localhost:6379",
       EVENTS_TRANSPORT: "file",
       EVENTS_DIR: path.join(tmpdir(), "interval-test-events"),
     },

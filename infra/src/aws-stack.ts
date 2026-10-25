@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import path from "node:path";
 import {
   CfnOutput,
@@ -45,6 +46,14 @@ const withDatabaseUrl = (program: string): string[] => [
   `export DATABASE_URL="postgres://${DB_USER}:$DB_PASSWORD@$DB_HOST:$DB_PORT/interval?sslmode=verify-full&sslrootcert=/certs/rds-global-bundle.pem" && exec ${program}`,
   "interval",
 ];
+
+// The queue messages (ADR-0010): one SQS queue each.
+const MESSAGE_NAMES = readdirSync(
+  path.join(import.meta.dirname, "../../packages/db/messages"),
+)
+  .filter((file) => file.endsWith(".schema.json"))
+  .map((file) => file.replace(".schema.json", ""))
+  .sort();
 
 export class AwsStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
@@ -124,9 +133,13 @@ export class AwsStack extends Stack {
       securityGroupIds: [dataSg.securityGroupId],
     });
 
-    // Proposal section 9: separate queues so a backfill cannot starve feed recomputes.
-    const queues = (["ingest", "feed"] as const).map((name) => {
+    // ADR-0014: one queue per message schema (ADR-0010), named so the apps can build
+    // its URL from SQS_QUEUE_URL_PREFIX plus the message name. Separate queues also keep
+    // a backfill from starving feed recomputes (proposal section 9).
+    const queuePrefix = `${this.stackName}-`;
+    const queues = MESSAGE_NAMES.map((name) => {
       const dlq = new sqs.Queue(this, `${name}-dlq`, {
+        queueName: `${queuePrefix}${name}-dlq`,
         encryption: sqs.QueueEncryption.SQS_MANAGED,
         retentionPeriod: Duration.days(14),
       });
@@ -139,13 +152,16 @@ export class AwsStack extends Stack {
         alarmDescription: `Messages in the ${name} dead-letter queue`,
       });
       return new sqs.Queue(this, name, {
+        queueName: `${queuePrefix}${name}`,
         encryption: sqs.QueueEncryption.SQS_MANAGED,
-        deadLetterQueue: { queue: dlq, maxReceiveCount: 5 },
+        // A stage may run for minutes (fetch, extract); it must not be redelivered
+        // while still running.
+        visibilityTimeout: Duration.minutes(5),
+        // 3 deliveries, then the DLQ: the port's ATTEMPTS (ADR-0014).
+        deadLetterQueue: { queue: dlq, maxReceiveCount: 3 },
       });
     });
-    const [ingest, feed] = queues;
-    if (ingest === undefined || feed === undefined)
-      throw new Error("queues missing");
+    const queueUrlPrefix = `https://sqs.${this.region}.${this.urlSuffix}/${this.account}/${queuePrefix}`;
 
     const { privateContent, events } = createBuckets(this);
     const eventStream = createEventStream(
@@ -204,9 +220,9 @@ export class AwsStack extends Stack {
       NODE_ENV: "production",
       DB_HOST: db.instanceEndpoint.hostname,
       DB_PORT: db.instanceEndpoint.port.toString(),
-      REDIS_URL: `rediss://${cache.attrPrimaryEndPointAddress}:6379`,
-      SQS_INGEST_URL: ingest.queueUrl,
-      SQS_FEED_URL: feed.queueUrl,
+      VALKEY_URL: `rediss://${cache.attrPrimaryEndPointAddress}:6379`,
+      QUEUE_TRANSPORT: "sqs",
+      SQS_QUEUE_URL_PREFIX: queueUrlPrefix,
       PRIVATE_CONTENT_BUCKET: privateContent.bucketName,
       EVENTS_BUCKET: events.bucketName,
       // DB-5: both apps send events through Firehose.
@@ -252,6 +268,8 @@ export class AwsStack extends Stack {
     privateContent.grantRead(webTask.taskRole);
     privateContent.grantPut(webTask.taskRole);
     eventStream.grantPutRecords(webTask.taskRole);
+    // ADR-0014: the web app enqueues; only the worker consumes.
+    for (const queue of queues) queue.grantSendMessages(webTask.taskRole);
 
     const web = new ecs.FargateService(this, "WebService", {
       cluster,
@@ -366,8 +384,7 @@ export class AwsStack extends Stack {
     new CfnOutput(this, "AppSubnets", {
       value: vpc.privateSubnets.map((s) => s.subnetId).join(","),
     });
-    new CfnOutput(this, "IngestQueueUrl", { value: ingest.queueUrl });
-    new CfnOutput(this, "FeedQueueUrl", { value: feed.queueUrl });
+    new CfnOutput(this, "QueueUrlPrefix", { value: queueUrlPrefix });
     new CfnOutput(this, "DbEndpoint", { value: db.instanceEndpoint.hostname });
   }
 }

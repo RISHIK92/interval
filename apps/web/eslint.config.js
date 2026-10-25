@@ -31,6 +31,8 @@ export default defineConfig(
                 "better-auth/*",
                 "@better-auth/*",
                 "@aws-sdk/*",
+                "bullmq",
+                "ioredis",
               ],
               message:
                 "Use a port; drivers live in src/server/adapters (ADR-0012).",

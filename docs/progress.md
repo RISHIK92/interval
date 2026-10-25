@@ -1,6 +1,25 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) done. Next: W2-S02 (staged pipeline on the queue port, ADR-0014). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02a (queue port and message contracts) done. Next: W2-S02b (staged pipeline and consumer). Everything is built locally; deploy once all is built (ADR-0013).
+
+## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
+Owner permissions (answered before sleeping):
+- Pick the recommended answer for every decision; a slice that truly needs the owner goes to the pending list below, and non-dependent slices continue.
+- New dependencies are allowed if pinned exactly, at least 2 weeks old, and listed here with a reason.
+- Decisions that need an ADR: write it as PROPOSED, build on the recommendation, flag it here.
+- Live fetching: a handful of polite requests to the 10 accepted seed sources only.
+- Phase 2: when Phase 1 runs out of buildable slices, draft docs/roadmap/phase-2-slices.md and build what the docs define.
+- Concept list: drafted and used provisionally, flagged here. Model evals: mechanisms only; labels and real runs wait. No real model calls.
+
+Dependencies added overnight (all pinned):
+- `ioredis` 6.0.0 (apps/web): BullMQ 6 needs a Redis client beside it (owner-chosen before sleeping).
+- pnpm `allowBuilds: msgpackr-extract: false`: BullMQ's optional native speed-up; the JS fallback works.
+
+Needs your review (newest first):
+- (none yet)
+
+Pending (needs the owner):
+- (none yet)
 
 ## Bootstrap session log
 
@@ -591,3 +610,38 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the memory fake enforces unique feed URLs;
   - a narrowed port type (`feed_url: str`).
 - Local DB: loaded twice, with 10 added and then 10 unchanged.
+
+### 2026-10-26 — P1-W2-S02a (queue port and message contracts, ADR-0014, ADR-0010 item 1)
+- W2-S02 was split in two (owner choice). This part is the queue foundation; W2-S02b adds the stages and the consumer process.
+- Done:
+  - **Message contracts:** `packages/db/messages/<name>.schema.json` (first: `discover_source`). A JSON Schema subset generates zod (`@interval/db/messages`) and pydantic (`interval_db.messages`) through `pnpm db:migrate`; `db:check` covers both. The subset is enforced: top-level keywords, snake_case names, one type, a non-empty enum, a one-line description, and http(s)-only URLs.
+  - **Queue port in both languages:**
+    - enqueue validates the message, the key (BullMQ-safe: 1–200 chars, no `:`, not all digits) and the delay (at most 900 s);
+    - 3 attempts, then the failed store;
+    - every delivery carries its idempotency key, so handlers dedupe: BullMQ drops a pending duplicate, SQS can't, and the memory fake mirrors SQS;
+    - a key whose job failed can be enqueued again.
+  - **Adapters:**
+    - Python: memory, BullMQ (a private asyncio loop for enqueue, `asyncio.to_thread` for handlers, failures and worker errors logged, a dead worker loop raises) and SQS (one message per receive, the key read back);
+    - TS: BullMQ and SQS enqueue;
+    - one contract suite on memory and on real Valkey; a test that a Node-enqueued job is consumed by Python.
+  - **Infra:**
+    - local `docker-compose.yml`: Valkey replaces ElasticMQ;
+    - VM compose: Valkey (AOF everysec on the retained volume, `deploy.sh` creates `valkey/`) replaces Redis and ElasticMQ;
+    - `write-env.sh`: `QUEUE_TRANSPORT=bullmq` and `VALKEY_URL`;
+    - AWS stack: one queue plus DLQ per message schema (`maxReceiveCount` 3, visibility 5 minutes), `SQS_QUEUE_URL_PREFIX`, `VALKEY_URL`; web may send, jobs may send and consume;
+    - CI: a Valkey service, and `VALKEY_URL` in the turbo env.
+  - **Env:** `QUEUE_TRANSPORT`, `VALKEY_URL`, `SQS_QUEUE_URL_PREFIX` (`REDIS_URL` renamed).
+- Review fixes:
+  - idempotency keys reach handlers (a blocker);
+  - SQS receives one message at a time (a blocker: a batch's timeouts would expire and redeliver);
+  - failed keys no longer block re-enqueue;
+  - keys validated;
+  - BullMQ worker events logged, and a dead loop detected;
+  - the codegen subset fully enforced, URLs http(s) only;
+  - optional fields dumped without null;
+  - the cross-language test;
+  - `bullmq` added to the architecture rule;
+  - IAM grant tests.
+- Left for W2-S02b: ioredis's offline queue during a Valkey outage, and callers for `jobQueue()` / `queue_consumer()`.
+- Local setup: `.env` needs `QUEUE_TRANSPORT=bullmq` and `VALKEY_URL=redis://localhost:6379` (see `.env.example`), and `docker compose up -d --wait` now starts Valkey.
+- Checks overnight run as `pnpm turbo run check --concurrency=2`: the machine's load average (10–15 from other work) makes 4 flaky.

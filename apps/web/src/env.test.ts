@@ -9,6 +9,8 @@ const valid = {
   MAIL_TRANSPORT: "log",
   EVENTS_TRANSPORT: "file",
   EVENTS_DIR: "/tmp/interval-events",
+  QUEUE_TRANSPORT: "bullmq",
+  VALKEY_URL: "redis://localhost:6379",
 };
 
 describe("parseEnv", () => {
@@ -79,6 +81,29 @@ describe("parseEnv", () => {
     expect(
       parseEnv({ ...firehose, EVENTS_STREAM: "s", AWS_REGION: "ap-south-1" }),
     ).toMatchObject({ EVENTS_TRANSPORT: "firehose", EVENTS_STREAM: "s" });
+  });
+
+  // ADR-0014: BullMQ on Valkey locally and on the VM, SQS in the full-AWS mode.
+  test("the BullMQ queue needs a Valkey URL", () => {
+    expect(() => parseEnv({ ...valid, VALKEY_URL: undefined })).toThrow(
+      /VALKEY_URL/,
+    );
+    expect(() => parseEnv({ ...valid, VALKEY_URL: "http://x" })).toThrow(
+      /VALKEY_URL/,
+    );
+  });
+
+  test("the SQS queue needs a URL prefix and a region", () => {
+    const sqs = { ...valid, QUEUE_TRANSPORT: "sqs", VALKEY_URL: undefined };
+    expect(() => parseEnv(sqs)).toThrow(/SQS_QUEUE_URL_PREFIX/);
+    expect(
+      parseEnv({
+        ...sqs,
+        SQS_QUEUE_URL_PREFIX:
+          "https://sqs.ap-south-1.amazonaws.com/1/interval-",
+        AWS_REGION: "ap-south-1",
+      }),
+    ).toMatchObject({ QUEUE_TRANSPORT: "sqs" });
   });
 
   test("returns typed values for a valid environment", () => {

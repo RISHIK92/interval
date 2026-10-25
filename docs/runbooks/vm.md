@@ -1,12 +1,12 @@
 # Runbook: VM deployment mode (ADR-0011)
 
 One EC2 VM (CDK stack `interval-prod`, infra/src/prod-stack.ts) runs everything from
-`deploy/compose.prod.yml`: Postgres+pgvector, Redis, ElasticMQ, the web app, Caddy, and
+`deploy/compose.prod.yml`: Postgres+pgvector, Valkey (queues, ADR-0014), the web app, Caddy, and
 optional SeaweedFS. Per ADR-0013 nothing is deployed until every phase is built; this
 runbook is for that deploy and after. The owner runs every step; Claude never deploys.
 
 Everything that must survive replacing the VM lives on the retained data volume mounted
-at `/var/lib/interval/pgdata`: Postgres data (`data/`), VM-local files (`files/`) and
+at `/var/lib/interval/pgdata`: Postgres data (`data/`), Valkey's queue data (`valkey/`, AOF every second, ADR-0014), VM-local files (`files/`) and
 settings (`etc/`). The root disk holds only the code checkout and Docker state.
 
 Never paste the output of `docker inspect` or `docker compose config`: both print secrets.

@@ -11,7 +11,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "deploy" / "compose.prod.yml"
-LONG_RUNNING = {"postgres", "redis", "elasticmq", "seaweedfs", "web", "caddy"}
+LONG_RUNNING = {"postgres", "valkey", "seaweedfs", "web", "caddy"}
 SECRET_KEYS = {
     "POSTGRES_PASSWORD",
     "BETTER_AUTH_SECRET",
@@ -106,7 +106,7 @@ def test_web_waits_for_migrations_and_healthy_data_services(
     depends = services(config)["web"]["depends_on"]
     assert depends["migrate"]["condition"] == "service_completed_successfully"
     assert depends["postgres"]["condition"] == "service_healthy"
-    assert depends["redis"]["condition"] == "service_healthy"
+    assert depends["valkey"]["condition"] == "service_healthy"
     migrate = services(config)["migrate"]
     assert migrate["depends_on"]["postgres"]["condition"] == "service_healthy"
     assert migrate.get("restart", "no") == "no"
@@ -146,7 +146,7 @@ def test_each_service_gets_only_its_env_file(config: dict[str, Any]) -> None:
     assert markers("caddy") == {"caddy"}
     for name in ("web", "jobs", "migrate"):
         assert markers(name) == {"app"}
-    for name in ("redis", "elasticmq", "seaweedfs"):
+    for name in ("valkey", "seaweedfs"):
         assert markers(name) == set()
 
 
@@ -156,3 +156,25 @@ def test_the_worker_image_carries_the_seed_file() -> None:
     dockerfile = (ROOT / "workers" / "jobs" / "Dockerfile").read_text(encoding="utf-8")
     assert "COPY workers/jobs/seeds workers/jobs/seeds" in dockerfile
     assert "WORKDIR /app" in dockerfile
+
+
+# ADR-0014: BullMQ queues live in Valkey, so its data must survive a restart and a
+# replaced VM: AOF every second, on the retained data volume, never auto-created.
+def test_valkey_keeps_queue_data_on_the_retained_volume(config: dict[str, Any]) -> None:
+    valkey = services(config)["valkey"]
+    assert valkey["command"] == [
+        "valkey-server",
+        "--appendonly",
+        "yes",
+        "--appendfsync",
+        "everysec",
+    ]
+    [volume] = valkey["volumes"]
+    assert volume["type"] == "bind"
+    assert volume["source"] == "/var/lib/interval/pgdata/valkey"
+    assert volume["target"] == "/data"
+    assert volume.get("bind", {}).get("create_host_path", False) is False
+
+
+def test_elasticmq_and_redis_are_gone(config: dict[str, Any]) -> None:
+    assert not {"elasticmq", "redis"} & set(services(config))

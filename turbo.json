@@ -24,7 +24,7 @@
     "test": {
       "dependsOn": ["transit", "@interval/db#db:apply"],
       "cache": false,
-      "env": ["DATABASE_URL", "CI"]
+      "env": ["DATABASE_URL", "VALKEY_URL", "CI"]
     },
     "//#format:check": {
       "inputs": [
@@ -69,7 +69,7 @@
     "//#test:py": {
       "dependsOn": ["@interval/db#db:apply"],
       "cache": false,
-      "env": ["DATABASE_URL", "CI"]
+      "env": ["DATABASE_URL", "VALKEY_URL", "CI"]
     },
     "check": {
       "dependsOn": [

@@ -1,3 +1,5 @@
+import { readdirSync } from "node:fs";
+import path from "node:path";
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
 import { beforeAll, describe, expect, test } from "vitest";
@@ -104,24 +106,90 @@ describe("cache", () => {
   });
 });
 
-describe("queues", () => {
-  test("ingest and feed redrive to DLQs after 5 receives, and DLQ depth alarms", () => {
-    const withRedrive = all("AWS::SQS::Queue").filter(
-      ([, q]) => q.Properties["RedrivePolicy"],
-    );
-    expect(withRedrive).toHaveLength(2);
-    for (const [, queue] of withRedrive) {
-      expect(queue.Properties["RedrivePolicy"]).toMatchObject({
-        maxReceiveCount: 5,
+describe("queues (ADR-0014)", () => {
+  // One queue per message schema in packages/db/messages, so a new message gets its
+  // queue without touching infra.
+  const names = readdirSync(
+    path.join(import.meta.dirname, "../../packages/db/messages"),
+  )
+    .filter((file) => file.endsWith(".schema.json"))
+    .map((file) => file.replace(".schema.json", ""));
+
+  test("each message has a queue that redrives to its DLQ after 3 receives", () => {
+    expect(names).toContain("discover_source");
+    template.resourceCountIs("AWS::SQS::Queue", names.length * 2);
+    for (const name of names) {
+      template.hasResourceProperties("AWS::SQS::Queue", {
+        QueueName: `interval-prod-aws-${name}`,
+        SqsManagedSseEnabled: true,
+        RedrivePolicy: Match.objectLike({ maxReceiveCount: 3 }),
       });
-      expect(queue.Properties["SqsManagedSseEnabled"]).toBe(true);
+      template.hasResourceProperties("AWS::SQS::Queue", {
+        QueueName: `interval-prod-aws-${name}-dlq`,
+        MessageRetentionPeriod: 14 * 24 * 3600,
+      });
     }
-    template.resourceCountIs("AWS::SQS::Queue", 4);
     const alarms = all("AWS::CloudWatch::Alarm").filter(
       ([, a]) =>
         a.Properties["MetricName"] === "ApproximateNumberOfMessagesVisible",
     );
-    expect(alarms).toHaveLength(2);
+    expect(alarms).toHaveLength(names.length);
+  });
+
+  test("web may only send; jobs may send and consume; migrate gets nothing", () => {
+    const sqsActions = (rolePrefix: string): Set<string> => {
+      const actions = new Set<string>();
+      for (const [, policy] of all("AWS::IAM::Policy")) {
+        const props = policy.Properties as {
+          Roles: { Ref: string }[];
+          PolicyDocument: { Statement: { Action: string | string[] }[] };
+        };
+        if (!props.Roles.some((r) => r.Ref.startsWith(rolePrefix))) continue;
+        for (const statement of props.PolicyDocument.Statement) {
+          for (const action of [statement.Action].flat()) {
+            if (action.startsWith("sqs:")) actions.add(action);
+          }
+        }
+      }
+      return actions;
+    };
+    const web = sqsActions("WebTaskTaskRole");
+    expect(web.has("sqs:SendMessage")).toBe(true);
+    expect(web.has("sqs:ReceiveMessage")).toBe(false);
+    expect(web.has("sqs:DeleteMessage")).toBe(false);
+    const jobs = sqsActions("JobsTaskTaskRole");
+    for (const action of [
+      "sqs:SendMessage",
+      "sqs:ReceiveMessage",
+      "sqs:DeleteMessage",
+    ]) {
+      expect(jobs.has(action)).toBe(true);
+    }
+    expect(sqsActions("MigrateTaskTaskRole").size).toBe(0);
+  });
+
+  test("web and jobs reach the queues through the prefix; Valkey via VALKEY_URL", () => {
+    const containers = all("AWS::ECS::TaskDefinition").flatMap(
+      ([, task]) =>
+        task.Properties["ContainerDefinitions"] as {
+          Name: string;
+          Environment?: { Name: string; Value: unknown }[];
+        }[],
+    );
+    for (const name of ["web", "jobs"]) {
+      const env = containers.find((c) => c.Name === name)?.Environment ?? [];
+      const keys = env.map((e) => e.Name);
+      expect(keys).toEqual(
+        expect.arrayContaining([
+          "QUEUE_TRANSPORT",
+          "SQS_QUEUE_URL_PREFIX",
+          "VALKEY_URL",
+        ]),
+      );
+      expect(keys).not.toContain("REDIS_URL");
+      expect(keys).not.toContain("SQS_INGEST_URL");
+      expect(env.find((e) => e.Name === "QUEUE_TRANSPORT")?.Value).toBe("sqs");
+    }
   });
 });
 

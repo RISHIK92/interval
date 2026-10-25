@@ -67,8 +67,8 @@ cat > "$tmp/app.env" <<ENV
 NODE_ENV=production
 DATABASE_URL=postgres://interval:${postgres_password}@postgres:5432/interval?sslmode=disable
 ALLOWED_DB_HOSTS=postgres
-REDIS_URL=redis://redis:6379
-SQS_ENDPOINT=http://elasticmq:9324
+QUEUE_TRANSPORT=bullmq
+VALKEY_URL=redis://valkey:6379
 S3_ENDPOINT=${s3_endpoint}
 BETTER_AUTH_SECRET=${better_auth}
 BETTER_AUTH_URL=${public_url}

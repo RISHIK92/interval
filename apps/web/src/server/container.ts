@@ -1,4 +1,5 @@
 import { FirehoseClient } from "@aws-sdk/client-firehose";
+import { SQSClient } from "@aws-sdk/client-sqs";
 import type { DB } from "@interval/db";
 import type { Kysely } from "kysely";
 import { env } from "../env";
@@ -16,9 +17,11 @@ import {
   kyselyInviteCodes,
   kyselyPing,
 } from "./adapters/kysely";
+import { bullmqQueue } from "./adapters/bullmq-queue";
 import { fileSink } from "./adapters/file-sink";
 import { firehoseSink } from "./adapters/firehose-sink";
 import { logMailer } from "./adapters/log-mailer";
+import { sqsQueue } from "./adapters/sqs-queue";
 import { createEmitter, type Emitter } from "./events";
 import type {
   Accounts,
@@ -27,6 +30,7 @@ import type {
   FeedReader,
   GuestSessions,
   InviteCodes,
+  JobQueue,
   SessionReader,
 } from "./ports";
 
@@ -100,4 +104,21 @@ export function events(): Emitter {
     processGlobals[EMITTER] = emitter;
   }
   return emitter;
+}
+
+let queue: JobQueue | undefined;
+
+// ADR-0014: one connection per process, reused by every enqueue.
+export function jobQueue(): JobQueue {
+  if (queue === undefined) {
+    const config = env();
+    queue =
+      config.QUEUE_TRANSPORT === "bullmq"
+        ? bullmqQueue(config.VALKEY_URL)
+        : sqsQueue(
+            new SQSClient({ region: config.AWS_REGION }),
+            config.SQS_QUEUE_URL_PREFIX,
+          );
+  }
+  return queue;
 }

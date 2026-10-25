@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "db:migrate": "../../scripts/with-env.sh sh -c 'scripts/codegen.sh \"$DATABASE_URL\" src/generated/db.ts python/src/interval_db/generated.py'",
+    "db:migrate": "../../scripts/with-env.sh sh -c 'scripts/codegen.sh \"$DATABASE_URL\" src/generated/db.ts python/src/interval_db/generated.py src/generated/messages.ts python/src/interval_db/messages.py'",
     "db:apply": "../../scripts/with-env.sh scripts/apply.sh",
     "db:check": "../../scripts/with-env.sh scripts/check.sh",
     "format": "prettier --write .",
@@ -19,9 +19,11 @@
   },
   "dependencies": {
     "kysely": "0.29.7",
-    "pg": "8.23.1"
+    "pg": "8.23.1",
+    "zod": "4.6.7"
   },
   "exports": {
-    ".": "./src/generated/db.ts"
+    ".": "./src/generated/db.ts",
+    "./messages": "./src/generated/messages.ts"
   }
 }

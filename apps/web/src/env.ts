@@ -14,6 +14,19 @@ const events = z.discriminatedUnion("EVENTS_TRANSPORT", [
   }),
 ]);
 
+// ADR-0014: BullMQ on Valkey (local, VM) or SQS (full AWS), one queue per message.
+const queue = z.discriminatedUnion("QUEUE_TRANSPORT", [
+  z.object({
+    QUEUE_TRANSPORT: z.literal("bullmq"),
+    VALKEY_URL: z.url({ protocol: /^rediss?$/ }),
+  }),
+  z.object({
+    QUEUE_TRANSPORT: z.literal("sqs"),
+    SQS_QUEUE_URL_PREFIX: z.url({ protocol: /^https$/ }),
+    AWS_REGION: z.string().min(1),
+  }),
+]);
+
 const schema = z
   .object({
     DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
@@ -26,6 +39,7 @@ const schema = z
     MAIL_TRANSPORT: z.enum(["log"]),
   })
   .and(events)
+  .and(queue)
   .refine(
     // Logged mail carries reset links, so only a local site may use it.
     (e) =>

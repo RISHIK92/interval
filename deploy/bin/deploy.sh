@@ -35,6 +35,7 @@ fi
 # Postgres data and VM-local files must be on the dedicated volume, never the root disk.
 mountpoint -q "$DATA_MOUNT" || { echo "$DATA_MOUNT is not mounted" >&2; exit 1; }
 install -d -o 999 -g 999 -m 700 "$DATA_MOUNT/data"   # postgres uid in the image
+install -d -o 999 -g 1000 -m 700 "$DATA_MOUNT/valkey" # valkey uid/gid in the image (ADR-0014)
 install -d -m 700 "$DATA_MOUNT/files" "$INTERVAL_ETC"
 
 "$APP_DIR/deploy/bin/write-env.sh"

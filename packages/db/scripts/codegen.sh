@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
-# Migrates the database at $1, then writes generated TS types to $2 and Python types to $3 (ADR-0002).
+# Migrates the database at $1, then writes generated TS types to $2 and Python types to $3
+# (ADR-0002), and the queue message types to $4 (TS) and $5 (Python) (ADR-0010).
 set -euo pipefail
 
 url="$1"
 ts_out="$2"
 py_out="$3"
+ts_messages_out="$4"
+py_messages_out="$5"
 db_dir="$(cd "$(dirname "$0")/.." && pwd)"
 repo_root="$(cd "$db_dir/../.." && pwd)"
 . "$db_dir/scripts/require-local-db.sh"
@@ -15,5 +18,7 @@ dbmate --url "$url" --migrations-dir "$db_dir/migrations" --no-dump-schema up
 "$db_dir/node_modules/.bin/kysely-codegen" --dialect postgres --url "$url" \
   --include-pattern 'public.*' --exclude-pattern 'public.schema_migrations' --out-file "$ts_out"
 uv run --locked --project "$repo_root" python -m interval_db.codegen "$url" "$py_out"
-uv run --locked --project "$repo_root" ruff check --quiet --fix --select I "$py_out"
-uv run --locked --project "$repo_root" ruff format --quiet "$py_out"
+uv run --locked --project "$repo_root" python -m interval_db.messages_codegen \
+  "$db_dir/messages" "$ts_messages_out" "$py_messages_out"
+uv run --locked --project "$repo_root" ruff check --quiet --fix --select I "$py_out" "$py_messages_out"
+uv run --locked --project "$repo_root" ruff format --quiet "$py_out" "$py_messages_out"

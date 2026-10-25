@@ -17,13 +17,15 @@ import httpx
 import psycopg
 from psycopg.conninfo import conninfo_to_dict
 
+from interval_jobs.adapters.bullmq_queue import BullmqConsumer, BullmqQueue
 from interval_jobs.adapters.file_sink import FileEventSink
 from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSink
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore, unit_of_work
+from interval_jobs.adapters.sqs_queue import SqsClient, SqsConsumer, SqsQueue
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.events.emitter import Emitter
-from interval_jobs.ports import EventSink
+from interval_jobs.ports import EventSink, JobQueue, QueueConsumer
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 USER_AGENT = "Interval/0.0 (personal learning platform; feed reader)"
@@ -79,6 +81,38 @@ def event_sink() -> EventSink:
         )
         return FirehoseEventSink(client, stream)
     sys.exit("EVENTS_TRANSPORT must be file or firehose; see .env.example")
+
+
+def _sqs_client() -> SqsClient:
+    # boto3 is untyped; the adapter's protocol names the calls it makes.
+    return cast(
+        SqsClient,
+        boto3.client(  # pyright: ignore[reportUnknownMemberType]
+            "sqs", region_name=_required("AWS_REGION")
+        ),
+    )
+
+
+def _queue_transport() -> str:
+    transport = os.environ.get("QUEUE_TRANSPORT")
+    if transport not in ("bullmq", "sqs"):
+        sys.exit("QUEUE_TRANSPORT must be bullmq or sqs; see .env.example")
+    return transport
+
+
+def queue_for_enqueue() -> JobQueue:
+    """ADR-0014: BullMQ on Valkey (local, VM) or SQS (full AWS)."""
+    if _queue_transport() == "bullmq":
+        return BullmqQueue(_required("VALKEY_URL"))
+    prefix = _required("SQS_QUEUE_URL_PREFIX")
+    return SqsQueue(_sqs_client(), prefix)
+
+
+def queue_consumer() -> QueueConsumer:
+    if _queue_transport() == "bullmq":
+        return BullmqConsumer(_required("VALKEY_URL"))
+    prefix = _required("SQS_QUEUE_URL_PREFIX")
+    return SqsConsumer(_sqs_client(), prefix)
 
 
 @dataclass(frozen=True)
