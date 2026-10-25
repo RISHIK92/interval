@@ -7,5 +7,5 @@
     // aws-cdk-lib's own types (Vpc vs IVpc) are not written for this flag; infra only.
     "exactOptionalPropertyTypes": false
   },
-  "include": ["src"]
+  "include": ["src", "vitest.config.ts"]
 }
