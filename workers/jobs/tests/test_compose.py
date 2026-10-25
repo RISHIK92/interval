@@ -99,3 +99,23 @@ def test_allowlist_ignores_domains_and_addresses(
     monkeypatch.delenv("CI", raising=False)
     with pytest.raises(SystemExit, match="Refusing"):
         database_url()
+
+
+def test_aws_runtime_accepts_the_rds_host(monkeypatch: pytest.MonkeyPatch) -> None:
+    url = (
+        "postgres://interval:pw@interval.abc.ap-south-1.rds.amazonaws.com:5432/interval"
+    )
+    monkeypatch.setenv("DATABASE_URL", url)
+    monkeypatch.setenv("INTERVAL_RUNTIME", "aws")
+    monkeypatch.delenv("CI", raising=False)
+    assert database_url() == url
+
+
+def test_other_runtime_values_do_not_open_the_guard(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgres://u:p@db.example.com/x")
+    monkeypatch.setenv("INTERVAL_RUNTIME", "vm")
+    monkeypatch.delenv("CI", raising=False)
+    with pytest.raises(SystemExit, match="Refusing"):
+        database_url()

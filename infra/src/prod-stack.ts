@@ -8,9 +8,9 @@ import {
 } from "aws-cdk-lib";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
-import * as s3 from "aws-cdk-lib/aws-s3";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import type { Construct } from "constructs";
+import { createBuckets } from "./storage.ts";
 
 // Beta hosting (owner, 2026-10-25): one VM runs Postgres+pgvector, the web app and the
 // worker in Docker. This replaces RDS (DB-1) and Fargate (LOAD-1) for the beta; no ADR
@@ -48,8 +48,6 @@ export const SECRET_NAMES = [
   "interval/prod/openrouter",
   "interval/prod/voyage",
 ];
-
-const NONCURRENT_VERSION_DAYS = 30; // owner, 2026-10-25
 
 export class ProdStack extends Stack {
   constructor(scope: Construct, id: string, props: StackProps) {
@@ -168,28 +166,10 @@ export class ProdStack extends Stack {
       instanceId: instance.instanceId,
     });
 
-    const bucketProps: s3.BucketProps = {
-      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
-      encryption: s3.BucketEncryption.S3_MANAGED,
-      enforceSSL: true,
-      removalPolicy: RemovalPolicy.RETAIN,
-    };
-    // DB-6: private encrypted files. Versioned, since files are not reproducible; the VM
-    // may read and add objects but never delete, so old versions stay recoverable.
-    const privateContent = new s3.Bucket(this, "PrivateContent", {
-      ...bucketProps,
-      versioned: true,
-      lifecycleRules: [
-        {
-          noncurrentVersionExpiration: Duration.days(NONCURRENT_VERSION_DAYS),
-          abortIncompleteMultipartUploadAfter: Duration.days(7),
-        },
-      ],
-    });
+    const { privateContent, events } = createBuckets(this);
+    // The VM may read and add objects but never delete, so old versions stay recoverable.
     privateContent.grantRead(role);
     privateContent.grantPut(role);
-    // DB-5: events from Firehose, queried by Athena. No VM grant until a caller exists.
-    const events = new s3.Bucket(this, "Events", bucketProps);
 
     for (const name of SECRET_NAMES) {
       const secret = new secretsmanager.Secret(

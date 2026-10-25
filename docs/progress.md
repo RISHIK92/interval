@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19 and S09 (VM compose mode) done. Next: S18 (AWS stack). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode) and S18 (AWS mode) done. Next: P1-W1-S10 (guest sessions). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -315,4 +315,28 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not fixed (nits):
   - Docker doesn't restart an unhealthy (not exited) web container; documented in the runbook.
   - The atomic-rename path in write-env.sh is exercised only on success.
+
+### 2026-10-25 — P1-W1-S18 (AWS mode, ADR-0011)
+- Done:
+  - **CDK stack `interval-prod-aws`** (infra/src/aws-stack.ts):
+    - **Network:** a VPC with public, private-with-egress and isolated subnets, 1 NAT and an S3 gateway endpoint.
+    - **Database:** RDS PostgreSQL 17.9 db.t4g.small, single-AZ, encrypted, private, deletion protection, 7-day backups, snapshot on removal. Credentials are generated and URL-safe.
+    - **Cache:** ElastiCache Valkey 8.0 cache.t4g.micro, encrypted at rest and in transit.
+    - **Queues:** SQS `ingest` and `feed` with DLQs (maxReceiveCount 5), plus DLQ-depth alarms.
+    - **Web:** a Fargate web service (ARM64, 0.5 vCPU / 1 GB, 1–3 tasks on CPU 60%, circuit-breaker rollback, minimum healthy 100%) behind an ALB. The ALB returns 403 unless CloudFront's secret `X-Origin-Verify` header is present (a Secrets Manager dynamic reference).
+    - **CloudFront:** HTTPS redirect, no caching except `/_next/static/*` (CACHE-4).
+    - **One-off tasks:** migrate (new `packages/db/Dockerfile`, dbmate plus migrations) and jobs.
+    - **Secrets and storage:** `interval/aws/*` secrets, and the shared bucket code (infra/src/storage.ts); the VM stack's template is byte-identical to before.
+  - **Database connection:** the tasks build `DATABASE_URL` from DB_HOST, DB_PORT and the DB_PASSWORD secret, with `sslmode=verify-full`. The RDS CA bundle is baked into the web, jobs and migrate images at a pinned digest.
+  - **CLI guard:** the worker CLI accepts the RDS host when `INTERVAL_RUNTIME=aws`, which only the task definitions set.
+  - **Docs:** `docs/runbooks/aws.md`. `cdk synth --all` runs in CI.
+  - **Tests:** 33 infra tests. The jobs image's DATABASE_URL wrapper was run against the local DB.
+- Surprises:
+  - The pg driver treats `sslmode=require` as verify-full, so without the RDS CA the web app could never connect. The CA bundle was added now rather than deferred.
+  - CloudFormation validation reads `${VAR}` in container commands as its own syntax, so the commands use `$VAR`.
+  - `ADD --chmod` also applies to the created directory, so `RUN chmod 755 /certs` follows it.
+- Implementation choices (reversible):
+  - The `interval/aws/*` secret names, so both stacks can share an account.
+  - The secret origin header instead of the CloudFront prefix list, so no account lookup is needed at synth.
+- Not done (out of scope): custom domain/ACM, WAF, SNS targets for alarms, the worker service (W2-S02), Multi-AZ.
 

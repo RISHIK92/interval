@@ -15,6 +15,10 @@ RUN uv sync --locked --no-dev --no-install-workspace --package interval-jobs
 COPY workers/jobs/src workers/jobs/src
 COPY packages/db/python/src packages/db/python/src
 RUN uv sync --locked --no-dev --no-editable --package interval-jobs
+# Amazon RDS CA bundle (pinned digest) for verify-full TLS in the AWS mode (ADR-0011).
+ADD --checksum=sha256:90a6f1a7978a1b1b096dca6c57511ca48d3b8cf052f8e704baf358f34ea2f21b --chmod=644 https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /certs/rds-global-bundle.pem
+# ADD's --chmod also applies to the directory it creates; make it traversable.
+RUN chmod 755 /certs
 RUN useradd --system --uid 10001 jobs
 USER jobs
 ENTRYPOINT ["/app/.venv/bin/python", "-m", "interval_jobs"]

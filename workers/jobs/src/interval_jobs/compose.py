@@ -37,7 +37,10 @@ def database_url() -> str:
         str(params.get("host") or "localhost"),
         str(params.get("hostaddr") or "127.0.0.1"),
     }
-    if not hosts <= allowed and os.environ.get("CI") != "true":
+    # The guard protects developer machines. Deployed tasks set INTERVAL_RUNTIME=aws
+    # (infra/src/aws-stack.ts), where the database is RDS by design.
+    deployed = os.environ.get("INTERVAL_RUNTIME") == "aws"
+    if not hosts <= allowed and os.environ.get("CI") != "true" and not deployed:
         sys.exit(
             f"Refusing to touch database host {sorted(hosts)}: "
             "only localhost (or ALLOWED_DB_HOSTS) outside CI."

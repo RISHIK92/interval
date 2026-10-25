@@ -57,7 +57,7 @@ Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED).
 - Worker, ingest one feed: `scripts/with-env.sh uv run python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile metadata_only` (temporary until P1-W2-S01; full-text ingest also segments and rebuilds the feed)
 - Worker, re-split one item into moments (also rebuilds the feed): `scripts/with-env.sh uv run python -m interval_jobs segment-item --content-item-id ID`
 - Worker, recompute the precomputed feed: `scripts/with-env.sh uv run python -m interval_jobs rebuild-feed`
-- CDK synth (prod stack, no credentials needed; never deploy): `pnpm --filter @interval/infra synth`
+- CDK synth (both stacks, VM `interval-prod` and AWS `interval-prod-aws`; no credentials; never deploy): `pnpm --filter @interval/infra synth`
 - VM mode stack (local smoke run, ADR-0013): see `deploy/compose.prod.yml` and docs/runbooks/vm.md; set `ENV_DIR`, `PGDATA_DIR`, `HTTP_PORT=8080` to run it locally
 - All checks (needs local services up; CI runs the same in `.github/workflows/ci.yml`): `pnpm turbo check`
 - One kind: `pnpm turbo typecheck //#typecheck:py` (likewise `lint`/`//#lint:py`, `test`/`//#test:py`, `format:check`/`//#format-check:py`)

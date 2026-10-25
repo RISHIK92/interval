@@ -28,6 +28,10 @@ COPY --from=build /repo/apps/web/.next/standalone ./
 COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
 # Code stays root-owned and read-only to the app; only Next's cache directory is writable.
 RUN mkdir -p apps/web/.next/cache && chown node:node apps/web/.next/cache
+# Amazon RDS CA bundle (pinned digest) for verify-full TLS in the AWS mode (ADR-0011).
+ADD --checksum=sha256:90a6f1a7978a1b1b096dca6c57511ca48d3b8cf052f8e704baf358f34ea2f21b --chmod=644 https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /certs/rds-global-bundle.pem
+# ADD's --chmod also applies to the directory it creates; make it traversable.
+RUN chmod 755 /certs
 USER node
 EXPOSE 3000
 CMD ["node", "apps/web/server.js"]

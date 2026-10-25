@@ -8,7 +8,7 @@
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc",
     "test": "vitest run",
-    "synth": "cdk synth --quiet --no-notices"
+    "synth": "cdk synth --all --quiet --no-notices"
   },
   "devDependencies": {
     "@interval/config": "workspace:*",
