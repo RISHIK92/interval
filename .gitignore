@@ -18,7 +18,7 @@ __pycache__/
 .mypy_cache/
 
 # Go
-bin/
+/bin/
 
 # CDK
 cdk.out/

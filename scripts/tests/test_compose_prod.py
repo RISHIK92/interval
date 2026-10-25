@@ -78,7 +78,8 @@ def test_data_lives_on_the_mounted_volume_and_never_on_the_root_disk(
     assert len(data) == 1
     assert data[0]["source"].endswith(source)
     # A missing directory (volume not mounted) must fail the start, not be created.
-    assert data[0]["bind"]["create_host_path"] is False
+    # Older compose versions omit a false value; true is always printed.
+    assert data[0].get("bind", {}).get("create_host_path", False) is False
 
 
 def test_project_name_differs_from_the_dev_stack(config: dict[str, Any]) -> None:
