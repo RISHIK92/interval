@@ -269,3 +269,54 @@ def test_an_empty_heading_leads_into_the_next_section() -> None:
 def test_a_huge_intro_is_one_oversized_moment_at_the_top() -> None:
     intro = SectionRow(None, None, 2000, None)
     assert plan(intro, h("A", 600)) == [("Title", 9, True), ("A", 3, False)]
+
+
+# P1-W3-S05: an admin's boundaries replace the 2-8 minute rules for that item.
+def test_admin_boundaries_start_moments_exactly_at_their_headings() -> None:
+    intro = SectionRow(None, None, 100, None)
+    sections = [intro, h("A", 300), h("A1", 300, 3), h("B", 2000), h("C", 50)]
+    moments = plan_moments("Title", URL, sections, boundaries=["a1", "  C "])
+    assert [(m.title, m.estimated_minutes, m.oversized) for m in moments] == [
+        ("Title", 1, False),  # the intro stays its own moment
+        ("A", 2, False),  # headings before the first boundary keep their own start
+        ("A1", 10, True),  # A1 + B, 2300 words, over 8 minutes: still flagged
+        ("C", 1, False),  # a short moment the admin asked for
+    ]
+
+
+def test_boundaries_naming_no_heading_fall_back_to_the_rules_and_say_so(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    sections = [h("A", 600), h("B", 600)]
+    assert plan_moments("T", URL, sections, boundaries=["gone"]) == plan_moments(
+        "T", URL, sections
+    )
+    assert "segment: admin boundaries not in the item" in capsys.readouterr().out
+
+
+def test_a_repeated_heading_starts_a_moment_at_every_occurrence() -> None:
+    # Boundaries are kept by heading text (they must survive re-ingestion), so two
+    # "Example" sections can't be told apart: a known limit.
+    sections = [h("A", 600), h("Example", 300), h("B", 600), h("Example", 300)]
+    assert [m.title for m in plan_moments("T", URL, sections, ["Example"])] == [
+        "A",
+        "Example",
+        "Example",
+    ]
+
+
+def test_segmenting_uses_the_stored_boundaries() -> None:
+    store, _, item_id = ingest_fake("article_long.html")
+    store.items.boundary_overrides[item_id] = ["Beta part"]
+    segment_item(store, item_id)
+    assert [m[1] for m in moments(store, item_id)] == [
+        "How our write-ahead log works",
+        "Alpha",
+        "Beta part",
+    ]
+    store.items.boundary_overrides[item_id] = ["Alpha"]
+    segment_item(store, item_id)
+    assert [(m[1], m[2]) for m in moments(store, item_id)] == [
+        ("How our write-ahead log works", 3),
+        ("Alpha", 6),
+    ]

@@ -14,6 +14,10 @@ The 2-8 minute rules (Q-P1-06, P1-W3-S03):
 - the intro (text before the first heading) is always its own moment, linked to the top
   of the page, however short (owner, 2026-10-25; the tension with the 2-minute rule is
   in docs/conflicts.md).
+An admin's boundaries (ING-6, P1-W3-S05) replace the merge and split rules for that
+item: a moment starts at the first heading and at each heading the admin named, and
+runs to the next one. The intro stays its own moment; over 8 minutes is still flagged.
+
 "Under 2 minutes" is under 460 words: a 231-459 word part shows as 2 minutes (minutes
 round up) yet still merges.
 """
@@ -23,6 +27,8 @@ from dataclasses import dataclass, field
 from urllib.parse import quote
 
 from interval_db.generated import MomentLinkType
+from interval_jobs import log
+from interval_jobs.headings import heading_key
 from interval_jobs.ports import MomentRow, SectionRow, Store
 from interval_jobs.rights import allowed
 
@@ -117,14 +123,50 @@ def _merge_short(units: list[list[SectionRow]]) -> list[list[SectionRow]]:
             return merged  # nothing short can merge without passing 8 minutes
 
 
-def plan_moments(title: str, url: str, sections: list[SectionRow]) -> list[MomentRow]:
+def _by_boundaries(
+    sections: list[SectionRow], boundaries: list[str]
+) -> list[list[SectionRow]] | None:
+    """Groups starting at the admin's headings; None when none of them is here.
+
+    Headings are matched by text, so when an item has two sections with the same
+    heading, naming it starts a moment at both (a known limit, docs/progress.md).
+    """
+    wanted = {heading_key(b) for b in boundaries}
+    present = {heading_key(s.heading) for s in sections if s.heading}
+    stale = sorted(wanted - present)
+    if stale:
+        # The publisher renamed or removed a section since the admin chose it.
+        log.warn("segment: admin boundaries not in the item", headings=stale)
+    if not wanted & present:
+        return None
+    intro = [[s] for s in sections if s.heading is None]
+    groups: list[list[SectionRow]] = []
+    for section in sections:
+        if section.heading is None:
+            continue
+        if not groups or heading_key(section.heading) in wanted:
+            groups.append([section])
+        else:
+            groups[-1].append(section)
+    return intro + groups
+
+
+def plan_moments(
+    title: str,
+    url: str,
+    sections: list[SectionRow],
+    boundaries: list[str] | None = None,
+) -> list[MomentRow]:
     if not any(s.heading and s.word_count for s in sections):
         return []  # no headings with content: whole article only (Q-P1-06)
-    roots = _tree(sections)
-    intro = [[r.section] for r in roots if r.section.heading is None]
-    headed = [u for r in roots if r.section.heading is not None for u in _units(r)]
+    units = _by_boundaries(sections, boundaries) if boundaries else None
+    if units is None:
+        roots = _tree(sections)
+        intro = [[r.section] for r in roots if r.section.heading is None]
+        headed = [u for r in roots if r.section.heading is not None for u in _units(r)]
+        units = intro + _merge_short(headed)
     rows: list[MomentRow] = []
-    for unit in intro + _merge_short(headed):
+    for unit in units:
         words = _words(unit)
         if words == 0:
             continue  # e.g. the page title heading with nothing under it
@@ -156,7 +198,8 @@ def segment_item(store: Store, content_item_id: int) -> list[MomentRow]:
     rows: list[MomentRow] = []
     if item.moments_enabled and allowed(item.rights_profile, "make_moments"):
         sections = store.items.sections(content_item_id)
-        rows = plan_moments(item.title, item.canonical_url, sections)
+        boundaries = store.items.boundary_override(content_item_id)
+        rows = plan_moments(item.title, item.canonical_url, sections, boundaries)
 
     # Upserted by ordinal so a moment keeps its id across runs (saves, history and
     # events will reference it); ordinals no longer produced are removed.

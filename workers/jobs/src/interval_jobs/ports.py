@@ -258,6 +258,10 @@ class Items(Protocol):
 
     def sections(self, item_id: int) -> list[SectionRow]: ...
 
+    def boundary_override(self, item_id: int) -> list[str] | None:
+        """Headings an admin chose for moments to start at (ING-6, P1-W3-S05)."""
+        ...
+
     def for_fetch(self, item_id: int) -> FetchInput | None: ...
 
     def has_body(self, item_id: int) -> bool:

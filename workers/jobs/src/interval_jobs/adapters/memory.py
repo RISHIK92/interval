@@ -282,6 +282,7 @@ class InMemoryItems:
     def __init__(self, sources: InMemorySources) -> None:
         self._sources = sources
         self.rows: dict[int, StoredItem] = {}
+        self.boundary_overrides: dict[int, list[str]] = {}  # written by the web app
 
     def upsert_from_feed(
         self, source_id: int, entry: FeedEntry, keep_excerpt: bool
@@ -387,6 +388,9 @@ class InMemoryItems:
             SectionRow(s.heading, s.anchor_id, s.word_count, s.level)
             for s in self.rows[item_id].sections
         ]
+
+    def boundary_override(self, item_id: int) -> list[str] | None:
+        return self.boundary_overrides.get(item_id)
 
     def for_fetch(self, item_id: int) -> FetchInput | None:
         item = self.rows.get(item_id)
@@ -660,6 +664,8 @@ class InMemoryItemTags:
         self._moments = moments
         # item id -> (item tags, moment tags by moment id, model, prompt version)
         self.rows: dict[int, tuple[Tags, dict[int, Tags], str, int]] = {}
+        # (item id, moment heading) -> level; the web admin page writes these
+        self.overrides: dict[tuple[int, str], Difficulty] = {}
 
     def input(self, item_id: int) -> TagInput | None:
         item = self._items.rows.get(item_id)
@@ -689,6 +695,12 @@ class InMemoryItemTags:
         return None if row is None else row[3]
 
     def moment_difficulty(self, item_id: int, moment_id: int) -> Difficulty | None:
+        # An admin's correction wins over the model's level (P1-W3-S05).
+        moment = next(m for m in self._moments.for_item(item_id) if m.id == moment_id)
+        if moment.row.link_type != "page_top":
+            corrected = self.overrides.get((item_id, moment.row.title))
+            if corrected is not None:
+                return corrected
         row = self.rows.get(item_id)
         tags = row[1].get(moment_id) if row else None
         return tags.difficulty if tags else None

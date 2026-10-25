@@ -219,6 +219,13 @@ export interface Moment {
   title: string;
 }
 
+export interface MomentBoundaryOverride {
+  content_item_id: Int8;
+  headings: string[];
+  updated_at: Generated<Timestamp>;
+  updated_by: string;
+}
+
 export interface MomentConcept {
   concept_id: Int8;
   moment_id: Int8;
@@ -269,6 +276,15 @@ export interface Source {
   topics: Generated<string[]>;
 }
 
+export interface TagOverride {
+  concepts: string[];
+  content_item_id: Int8;
+  difficulty: Difficulty;
+  heading: string;
+  updated_at: Generated<Timestamp>;
+  updated_by: string;
+}
+
 export interface UserCapability {
   capability: Capability;
   granted_at: Generated<Timestamp>;
@@ -302,6 +318,7 @@ export interface DB {
   item_embedding: ItemEmbedding;
   item_tagging: ItemTagging;
   moment: Moment;
+  moment_boundary_override: MomentBoundaryOverride;
   moment_concept: MomentConcept;
   moment_embedding: MomentEmbedding;
   moment_tagging: MomentTagging;
@@ -309,6 +326,7 @@ export interface DB {
   plan_capability: PlanCapability;
   schema_meta: SchemaMeta;
   source: Source;
+  tag_override: TagOverride;
   user_capability: UserCapability;
   user_entitlement: UserEntitlement;
 }

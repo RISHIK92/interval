@@ -1,7 +1,7 @@
 // Ports (ADR-0012): what server logic and pages depend on. Adapters implement them;
 // container.ts wires them. Nothing outside adapters/ imports kysely or pg.
 
-import type { Capability } from "@interval/db";
+import type { Capability, Difficulty } from "@interval/db";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 
@@ -119,5 +119,64 @@ export interface JobQueue {
     name: N,
     message: Messages[N],
     options: { idempotencyKey: string; delaySeconds?: number },
+  ): Promise<void>;
+}
+
+// ING-6, Q-P1-29: what the admin review page reads and writes (P1-W3-S05). Section
+// headings and counts only; never body text (Q-P1-01).
+export type ReviewTags = { difficulty: Difficulty; concepts: string[] };
+
+export type ReviewItem = {
+  id: string;
+  title: string;
+  url: string;
+  sourceName: string;
+  // Section headings in page order; null for the intro.
+  sections: {
+    heading: string | null;
+    level: number | null;
+    wordCount: number;
+  }[];
+  // heading is null for the intro moment, which starts at the top of the page.
+  moments: {
+    ordinal: number;
+    title: string;
+    heading: string | null;
+    estimatedMinutes: number;
+    oversized: boolean;
+  }[];
+  // The model's tags (AI-3); moment tags by ordinal.
+  modelTags: { item: ReviewTags | null; moments: Map<number, ReviewTags> };
+  // The admin's corrections, kept apart and keyed by heading so they survive
+  // re-ingestion: boundaries are the headings moments start at; tag overrides are by
+  // heading, "" for the item itself.
+  boundaries: string[] | null;
+  tagOverrides: Map<string, ReviewTags>;
+};
+
+export type ReviewListing = {
+  id: string;
+  title: string;
+  sourceName: string;
+  momentCount: number;
+};
+
+export interface AdminReview {
+  recent(limit: number): Promise<ReviewListing[]>;
+  item(id: string): Promise<ReviewItem | null>;
+  // Slugs of the concepts that may be tagged (not retired).
+  activeConcepts(): Promise<string[]>;
+  // null clears the override, so the 2-8 minute rules apply again.
+  setBoundaries(
+    itemId: string,
+    headings: string[] | null,
+    by: string,
+  ): Promise<void>;
+  // heading "" is the item itself; null clears the override.
+  setTags(
+    itemId: string,
+    heading: string,
+    tags: ReviewTags | null,
+    by: string,
   ): Promise<void>;
 }

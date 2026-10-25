@@ -64,6 +64,8 @@ class Probe(Protocol):
     def primary_of(self, item_id: int) -> int | None: ...
     def oversized(self, item_id: int) -> list[bool]: ...
     def reset_concepts(self) -> None: ...
+    def set_boundaries(self, item_id: int, headings: list[str]) -> None: ...
+    def override_level(self, item_id: int, heading: str, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
 
 
@@ -118,6 +120,13 @@ class MemoryProbe:
 
     def reset_concepts(self) -> None:
         pass  # a fresh store has no graph
+
+    def set_boundaries(self, item_id: int, headings: list[str]) -> None:
+        self.s.items.boundary_overrides[item_id] = headings
+
+    def override_level(self, item_id: int, heading: str, level: str) -> None:
+        assert level in ("beginner", "intermediate", "advanced")
+        self.s.tags.overrides[(item_id, heading)] = level
 
     def simhash(self, item_id: int) -> int | None:
         return self.s.items.rows[item_id].simhash
@@ -240,6 +249,21 @@ class PostgresProbe:
             "order by ordinal",
             (item_id,),
         ).fetchall()
+
+    def override_level(self, item_id: int, heading: str, level: str) -> None:
+        self.conn.execute(
+            "insert into tag_override (content_item_id, heading, difficulty, "
+            "concepts, updated_by) values (%s, %s, %s, '{}', 'contract-test')",
+            (item_id, heading, level),
+        )
+
+    def set_boundaries(self, item_id: int, headings: list[str]) -> None:
+        # The web admin page writes these (P1-W3-S05).
+        self.conn.execute(
+            "insert into moment_boundary_override (content_item_id, headings, "
+            "updated_by) values (%s, %s, 'contract-test')",
+            (item_id, headings),
+        )
 
     def reset_concepts(self) -> None:
         # A local database may hold the real graph; the test's transaction rolls this
@@ -1401,7 +1425,8 @@ def test_similar_moments_filter_by_rights_source_and_difficulty(
         probe.enable_moments(sid)
     item_a = dup_item(s, a, "emb1", 2)
     item_b = dup_item(s, b, "emb2", 3)
-    s.moments.replace(item_a, [moment(0, "a0"), moment(1, "a1")])
+    a1_row = replace(moment(1, "a1"), link_type="anchor")  # starts at heading "a1"
+    s.moments.replace(item_a, [moment(0, "a0"), a1_row])
     s.moments.replace(item_b, [moment(0, "b0")])
     a0, a1 = (m[0] for m in probe.moments(item_a))
     (b0,) = (m[0] for m in probe.moments(item_b))
@@ -1431,6 +1456,10 @@ def test_similar_moments_filter_by_rights_source_and_difficulty(
     assert [h.moment_id for h in by_source] == [b0]
     by_level = s.embeddings.similar(query, 50, difficulties=["beginner"])
     assert [h.moment_id for h in by_level if h.moment_id in ours] == [a1]
+    # An admin's correction of a1's level wins (P1-W3-S05).
+    probe.override_level(item_a, "a1", "advanced")
+    by_level = s.embeddings.similar(query, 50, difficulties=["beginner"])
+    assert [h.moment_id for h in by_level if h.moment_id in ours] == []
     # Lowering a source's rights removes its moments, and so their vectors.
     s.sources.upsert(
         name="dup-emb-b",
@@ -1469,3 +1498,41 @@ def test_a_duplicate_or_momentless_item_never_needs_embedding(
     s.items.link_duplicates(copy)
     assert s.embeddings.missing(primary, "voyage-3.5") is True
     assert s.embeddings.missing(copy, "voyage-3.5") is False
+
+
+# ING-6 admin review (P1-W3-S05): segmentation reads the admin's boundaries.
+def test_the_boundary_override_is_read_for_segmentation(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    item = s.items.upsert_from_feed(source(s), entry("bounds"), keep_excerpt=False)
+    assert s.items.boundary_override(item) is None
+    probe.set_boundaries(item, ["Setup", "Recovery"])
+    assert s.items.boundary_override(item) == ["Setup", "Recovery"]
+
+
+def test_re_ingesting_leaves_the_admins_overrides_alone(
+    conn: psycopg.Connection,
+) -> None:
+    # P1-W3-S05: tags and moments are redone on re-ingestion; overrides are not.
+    s = PostgresStore(conn)
+    sid = source(s)
+    PostgresProbe(conn).enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("survive"), keep_excerpt=False)
+    s.moments.replace(item, [moment(0, "intro"), moment(1, "Setup")])
+    conn.execute(
+        "insert into tag_override (content_item_id, heading, difficulty, concepts, "
+        "updated_by) values (%s, 'Setup', 'advanced', '{}', 'admin')",
+        (item,),
+    )
+    PostgresProbe(conn).set_boundaries(item, ["Setup"])
+    s.tags.clear(item)
+    s.embeddings.clear(item)
+    s.moments.replace(item, [moment(0, "intro")])
+    s.items.upsert_from_feed(sid, entry("survive"), keep_excerpt=False)
+    rows = conn.execute(
+        "select (select count(*) from tag_override where content_item_id = %s), "
+        "(select count(*) from moment_boundary_override where content_item_id = %s)",
+        (item, item),
+    ).fetchone()
+    assert rows == (1, 1)

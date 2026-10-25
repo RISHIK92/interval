@@ -385,6 +385,13 @@ class PostgresItems:
                 (item_id,),
             ).fetchall()
 
+    def boundary_override(self, item_id: int) -> list[str] | None:
+        row = self._conn.execute(
+            "select headings from moment_boundary_override where content_item_id = %s",
+            (item_id,),
+        ).fetchone()
+        return None if row is None else [str(h) for h in row[0]]
+
     def for_fetch(self, item_id: int) -> FetchInput | None:
         with self._conn.cursor(row_factory=class_row(FetchInput)) as cur:
             return cur.execute(
@@ -1048,9 +1055,16 @@ class PostgresEmbeddings:
             join content_item ci on ci.id = m.content_item_id
             join source s on s.id = ci.source_id
             left join moment_tagging t on t.moment_id = m.id
+            -- An admin's correction wins over the model's level (P1-W3-S05).
+            left join tag_override o
+              on o.content_item_id = m.content_item_id
+             and o.heading = m.title and m.link_type <> 'page_top'
             where s.rights_profile in ('full_text_internal', 'full_text_display')
               and (%(sources)s::bigint[] is null or s.id = any(%(sources)s))
-              and (%(levels)s::difficulty[] is null or t.difficulty = any(%(levels)s))
+              and (
+                %(levels)s::difficulty[] is null
+                or coalesce(o.difficulty, t.difficulty) = any(%(levels)s)
+              )
             order by e.embedding <=> %(v)s::vector
             limit %(limit)s
             """,

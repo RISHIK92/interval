@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. Next: W3-S05/S06 admin. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) done. Next: W3-S06 (per-source switches), then Week 4. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -936,3 +936,29 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the runbook's log text;
   - vector text precision.
 - Pending (needs the owner): about 50 labelled moments and their queries, the pass mark (recall@5 0.6 and a 50-moment pool are placeholders), the model pick and real runs.
+
+### 2026-10-26 — P1-W3-S05 (admin review page, ING-6, Q-P1-29; overnight)
+- Done:
+  - **Migration `20261026080000_review_overrides.sql`:** `moment_boundary_override` (the headings moments start at) and `tag_override` (the level and concept slugs for the item, keyed by heading `''`, or for a moment by its heading). Both are keyed by heading text, never by moment id, kept apart from the model's tags (AI-3), and survive re-ingestion, re-segmentation and re-tagging (tested).
+  - **Worker:**
+    - segmentation honours the boundaries: a moment starts at the first heading and at each named one, the intro stays its own moment, and over 8 minutes is still flagged;
+    - stored boundaries that are no longer in the item are logged;
+    - `similar()` filters on the corrected level when there is one.
+  - **Web:**
+    - an `AdminReview` port with a Kysely adapter;
+    - `server/admin-review.ts` validates: the item's own headings, the active concept graph, three levels, at most 5 distinct concepts;
+    - `/admin/items` lists recent items, and `/admin/items/[id]` shows an item's moments (with oversized marks), the model's tags, corrections, boundaries, stale boundaries and orphaned corrections;
+    - plain server-action forms; saving boundaries re-queues `segment_item`.
+  - **Access:** `requireAdmin()` turns a missing session or a missing `admin.review` into a 404 on both pages and both actions. Item ids are checked before any redirect; errors come back as codes shown with fixed text.
+- Review fixes:
+  - corrections were ignored by the existing similarity filter;
+  - stale boundaries fell back silently;
+  - the page mislabelled which boundaries applied;
+  - orphaned tag corrections were invisible;
+  - an attacker-written message could appear in the alert;
+  - item ids were unchecked;
+  - repeated concepts counted against the limit of five.
+- Known limits (need the owner):
+  - **Repeated headings:** an item with two sections under the same heading can't tell them apart. A boundary starts a moment at both, and they share one tag correction (pinned by a test).
+  - **The intro moment:** it can't have its own tag correction; the item-level one covers it.
+  - **Not yet applied:** tag corrections aren't read by ranking until W4. W4's ranking must prefer them over the model's tags.

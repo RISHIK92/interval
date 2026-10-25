@@ -206,6 +206,13 @@ class Moment(TypedDict):
     oversized: bool
 
 
+class MomentBoundaryOverride(TypedDict):
+    content_item_id: int
+    headings: list[str]
+    updated_by: str
+    updated_at: datetime
+
+
 class MomentConcept(TypedDict):
     moment_id: int
     concept_id: int
@@ -254,6 +261,15 @@ class Source(TypedDict):
     poll_interval_seconds: int
     next_poll_at: datetime
     polled_at: datetime | None
+
+
+class TagOverride(TypedDict):
+    content_item_id: int
+    heading: str
+    difficulty: Difficulty
+    concepts: list[str]
+    updated_by: str
+    updated_at: datetime
 
 
 class UserCapability(TypedDict):
