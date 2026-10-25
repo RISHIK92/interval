@@ -26,6 +26,8 @@ from interval_jobs.ports import (
     SectionRow,
     SegmentationInput,
     SourceRecord,
+    SourceSettings,
+    SyncResult,
     Usage,
 )
 
@@ -42,6 +44,10 @@ class _Source:
     rights_profile: RightsProfile
     homepage: str | None
     moments_enabled: bool = False
+    paywalled: bool = False
+    quality_score: int | None = None
+    topics: tuple[str, ...] = ()
+    active: bool = True
 
 
 @dataclass
@@ -64,6 +70,21 @@ class StoredMoment:
     id: int
     item_id: int
     row: MomentRow
+
+
+def _settings_of(row: _Source) -> SourceSettings | None:
+    if not row.active:
+        return None  # an inactive row always changes: it comes back on
+    return SourceSettings(
+        name=row.name,
+        homepage=row.homepage,
+        feed_url=row.feed_url,
+        rights_profile=row.rights_profile,
+        moments_enabled=row.moments_enabled,
+        paywalled=row.paywalled,
+        quality_score=row.quality_score,
+        topics=row.topics,
+    )
 
 
 class InMemorySources:
@@ -92,13 +113,57 @@ class InMemorySources:
                     rights_profile,
                     homepage,
                 )
+                s.active = True
                 self._purge(s)
                 return s.id
+        if any(s.feed_url == feed_url for s in self.rows.values()):
+            raise ValueError(f"feed_url {feed_url} is taken (unique, like Postgres)")
         source_id = len(self.rows) + 1
         self.rows[source_id] = _Source(
             source_id, name, feed_url, rights_profile, homepage
         )
         return source_id
+
+    def sync(self, seeds: list[SourceSettings]) -> SyncResult:
+        added = updated = unchanged = 0
+        for seed in seeds:
+            row = next((r for r in self.rows.values() if r.name == seed.name), None)
+            row = row or next(
+                (r for r in self.rows.values() if r.feed_url == seed.feed_url), None
+            )
+            if row is None:
+                source_id = len(self.rows) + 1
+                self.rows[source_id] = _Source(
+                    id=source_id,
+                    name=seed.name,
+                    feed_url=seed.feed_url,
+                    rights_profile=seed.rights_profile,
+                    homepage=seed.homepage,
+                )
+                row = self.rows[source_id]
+                added += 1
+            elif _settings_of(row) == seed:
+                unchanged += 1
+                continue
+            else:
+                updated += 1
+            row.name = seed.name
+            row.feed_url = seed.feed_url
+            row.rights_profile = seed.rights_profile
+            row.homepage = seed.homepage
+            row.moments_enabled = seed.moments_enabled
+            row.paywalled = seed.paywalled
+            row.quality_score = seed.quality_score
+            row.topics = seed.topics
+            row.active = True
+            self._purge(row)
+        listed = {seed.name for seed in seeds}
+        deactivated = 0
+        for row in self.rows.values():
+            if row.active and row.name not in listed:
+                row.active = False
+                deactivated += 1
+        return SyncResult(added, updated, unchanged, deactivated)
 
     def set_moments_enabled(self, source_id: int, enabled: bool) -> None:
         self.rows[source_id].moments_enabled = enabled

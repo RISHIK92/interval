@@ -178,6 +178,9 @@ class Source(TypedDict):
     moments_enabled: bool
     paywalled: bool
     created_at: datetime
+    quality_score: int | None
+    topics: list[str]
+    active: bool
 
 
 class UserCapability(TypedDict):

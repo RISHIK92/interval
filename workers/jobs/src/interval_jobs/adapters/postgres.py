@@ -24,6 +24,8 @@ from interval_jobs.ports import (
     SectionRow,
     SegmentationInput,
     SourceRecord,
+    SourceSettings,
+    SyncResult,
     Usage,
 )
 
@@ -73,7 +75,8 @@ class PostgresSources:
             on conflict (name) do update
               set feed_url = excluded.feed_url,
                   rights_profile = excluded.rights_profile,
-                  homepage = excluded.homepage
+                  homepage = excluded.homepage,
+                  active = true
             returning id
             """,
             (name, feed_url, rights_profile, homepage),
@@ -82,6 +85,62 @@ class PostgresSources:
             raise RuntimeError("upsert returned no row")
         source_id: int = row[0]
         return source_id
+
+    def sync(self, seeds: list[SourceSettings]) -> SyncResult:
+        added = updated = unchanged = 0
+        for seed in seeds:
+            # By name, or else by feed: a rename, or a row ingest-one made.
+            row = self._conn.execute(
+                f"select id, name, {_SETTINGS_READ}, active from source "
+                "where name = %s or feed_url = %s "
+                "order by (name = %s) desc limit 1",
+                (seed.name, seed.feed_url, seed.name),
+            ).fetchone()
+            values = _settings_values(seed)
+            if row is None:
+                self._conn.execute(
+                    f"insert into source (name, {_SETTINGS_WRITE}) "
+                    "values (%s, %s, %s, %s, %s, %s, %s, %s)",
+                    (seed.name, *values),
+                )
+                added += 1
+                continue
+            current = (row[1], *row[2:8], list(row[8]))
+            if row[9] and current == (seed.name, *values):
+                unchanged += 1
+                continue
+            # One update, so the purge triggers see profile and switch together.
+            self._conn.execute(
+                f"update source set (name, {_SETTINGS_WRITE}, active) = "
+                "(%s, %s, %s, %s, %s, %s, %s, %s, true) where id = %s",
+                (seed.name, *values, row[0]),
+            )
+            updated += 1
+        deactivated = self._conn.execute(
+            "update source set active = false where active and name <> all(%s)",
+            ([seed.name for seed in seeds],),
+        ).rowcount
+        return SyncResult(added, updated, unchanged, deactivated)
+
+
+_SETTINGS_WRITE = (
+    "feed_url, rights_profile, homepage, moments_enabled, paywalled, "
+    "quality_score, topics"
+)
+# The same columns read back for comparison: the enum as text.
+_SETTINGS_READ = _SETTINGS_WRITE.replace("rights_profile", "rights_profile::text")
+
+
+def _settings_values(seed: SourceSettings) -> tuple[object, ...]:
+    return (
+        seed.feed_url,
+        seed.rights_profile,
+        seed.homepage,
+        seed.moments_enabled,
+        seed.paywalled,
+        seed.quality_score,
+        list(seed.topics),
+    )
 
 
 class PostgresItems:

@@ -11,16 +11,23 @@ Usage:
 import argparse
 import json
 import sys
+from dataclasses import asdict
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import get_args
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.compose import services
 from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.one import ingest_one
+from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.segment import segment_item
 from interval_jobs.tracing import run_span, setup
+
+# The owner's seed list (Q-P1-02), relative to where commands run: the repo root
+# locally, /app in the worker image (which copies it to the same path).
+SEED_FILE = Path("workers/jobs/seeds/sources.yaml")
 
 
 def main(argv: list[str]) -> None:
@@ -53,6 +60,10 @@ def main(argv: list[str]) -> None:
         "--capability", required=True, choices=get_args(Capability.__value__)
     )
     grant.add_argument("--revoke", action="store_true")
+    load = commands.add_parser(
+        "load-sources", help="sync the seed list file into the sources table"
+    )
+    load.add_argument("--file", type=Path, default=SEED_FILE)
     args = parser.parse_args(argv)
     setup()
     # OPS-2: one trace per run; W2-S02's consumer does the same per queue message.
@@ -61,6 +72,20 @@ def main(argv: list[str]) -> None:
 
 
 def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    if args.command == "load-sources":
+        path = str(args.file)
+        try:
+            text = args.file.read_text(encoding="utf-8")
+        except OSError as error:
+            sys.exit(f"{path}: {error.strerror}")
+        try:
+            with services() as s:
+                synced, skipped = load_seeds(s.store.sources, text, path)
+        except SeedError as error:
+            sys.exit(str(error))
+        print(json.dumps({**asdict(synced), "skipped_feedless": skipped}))
+        return
+
     if args.command == "grant-capability":
         with services() as s:
             grants = s.store.grants

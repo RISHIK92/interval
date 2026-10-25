@@ -1,0 +1,88 @@
+# Seed sources (Q-P1-02, ING-6). The owner edits this file; `load-sources` syncs it into
+# the source table. Fields per source:
+#   name (required, the key), homepage, feed_url (sources without one are skipped in
+#   Phase 1), rights_profile (required: metadata_only | excerpt | full_text_internal |
+#   full_text_display, ING-2), moments_enabled (full_text_* only), paywalled,
+#   quality_score (optional, 1-5, Q-P1-37), topics (kebab-case).
+# Removing a source disables it (no more polling); its items stay in the feed.
+# The first 10 were accepted in docs/proposals/seed-sources.md (2026-10-25).
+
+- name: The Cloudflare Blog
+  homepage: https://blog.cloudflare.com/
+  feed_url: https://blog.cloudflare.com/rss/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, distributed-systems]
+
+- name: Netflix TechBlog
+  homepage: https://netflixtechblog.com/
+  feed_url: https://netflixtechblog.com/feed
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design, distributed-systems]
+
+- name: Martin Fowler
+  homepage: https://martinfowler.com/
+  feed_url: https://martinfowler.com/feed.atom
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design, backend]
+
+- name: Julia Evans
+  homepage: https://jvns.ca/
+  feed_url: https://jvns.ca/atom.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend]
+
+- name: Dan Luu
+  homepage: https://danluu.com/
+  feed_url: https://danluu.com/atom.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design]
+
+- name: AWS Architecture Blog
+  homepage: https://aws.amazon.com/blogs/architecture/
+  feed_url: https://aws.amazon.com/blogs/architecture/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design, distributed-systems]
+
+- name: The GitHub Blog, Engineering
+  homepage: https://github.blog/engineering/
+  feed_url: https://github.blog/engineering/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, databases]
+
+- name: Brendan Gregg
+  homepage: https://www.brendangregg.com/blog/
+  feed_url: https://www.brendangregg.com/blog/rss.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend]
+
+- name: Marc Brooker
+  homepage: https://brooker.co.za/blog/
+  feed_url: https://brooker.co.za/blog/rss.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [distributed-systems, databases]
+
+- name: PlanetScale Blog
+  homepage: https://planetscale.com/blog
+  feed_url: https://planetscale.com/blog/feed.atom
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases]

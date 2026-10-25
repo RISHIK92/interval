@@ -102,6 +102,28 @@ class SegmentationInput:
     moments_enabled: bool
 
 
+@dataclass(frozen=True)
+class SourceSettings:
+    """A source's settings from the seed list (Q-P1-02); only sources with a feed."""
+
+    name: str
+    homepage: str | None
+    feed_url: str
+    rights_profile: RightsProfile
+    moments_enabled: bool
+    paywalled: bool
+    quality_score: int | None
+    topics: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class SyncResult:
+    added: int
+    updated: int
+    unchanged: int
+    deactivated: int
+
+
 class Sources(Protocol):
     def get(self, source_id: int) -> SourceRecord | None: ...
 
@@ -113,7 +135,18 @@ class Sources(Protocol):
         rights_profile: RightsProfile,
         homepage: str | None,
     ) -> int:
-        """Lowering a profile removes stored text and moments it no longer allows."""
+        """Lowering a profile removes stored text and moments it no longer allows.
+        The source is active afterwards (ingest-one uses it on purpose)."""
+        ...
+
+    def sync(self, seeds: list[SourceSettings]) -> SyncResult:
+        """Makes the table match the seed list, leaving identical rows untouched.
+
+        A source is found by name, or else by feed URL (a rename, or a row made by
+        ingest-one: same feed, same source, owner choice 2026-10-26); it is updated and
+        active again. A new one is added. Every source not listed is deactivated,
+        never deleted, so its items stay.
+        """
         ...
 
 

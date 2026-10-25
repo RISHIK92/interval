@@ -6,7 +6,7 @@ inspects its state (internal fields for the fake, SQL for Postgres).
 """
 
 from collections.abc import Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from typing import Protocol
@@ -25,6 +25,7 @@ from interval_jobs.ports import (
     RightsViolation,
     Section,
     SectionRow,
+    SourceSettings,
     Store,
     Usage,
 )
@@ -50,6 +51,8 @@ class Probe(Protocol):
     def user_ids(self) -> set[str]: ...
     def capabilities(self, user_id: str) -> set[str]: ...
     def delete_user(self, user_id: str) -> None: ...
+    def source_state(self, name: str) -> tuple[object, ...] | None: ...
+    def has_item(self, item_id: int) -> bool: ...
 
 
 @dataclass
@@ -77,6 +80,23 @@ class MemoryProbe:
 
     def delete_user(self, user_id: str) -> None:
         del self.s.users.rows[user_id]
+
+    def source_state(self, name: str) -> tuple[object, ...] | None:
+        row = next((r for r in self.s.sources.rows.values() if r.name == name), None)
+        if row is None:
+            return None
+        return (
+            row.active,
+            row.feed_url,
+            row.rights_profile,
+            row.moments_enabled,
+            row.paywalled,
+            row.quality_score,
+            tuple(row.topics),
+        )
+
+    def has_item(self, item_id: int) -> bool:
+        return item_id in self.s.items.rows
 
     def invite(self, code: str) -> tuple[str, int, int, datetime, str | None] | None:
         row = self.s.invites.rows.get(code)
@@ -139,6 +159,20 @@ class PostgresProbe:
 
     def delete_user(self, user_id: str) -> None:
         self.conn.execute("delete from app_user where id = %s", (user_id,))
+
+    def source_state(self, name: str) -> tuple[object, ...] | None:
+        row = self.conn.execute(
+            "select active, feed_url, rights_profile::text, moments_enabled, "
+            "paywalled, quality_score, topics from source where name = %s",
+            (name,),
+        ).fetchone()
+        return None if row is None else (*row[:6], tuple(row[6]))
+
+    def has_item(self, item_id: int) -> bool:
+        row = self.conn.execute(
+            "select 1 from content_item where id = %s", (item_id,)
+        ).fetchone()
+        return row is not None
 
     def capabilities(self, user_id: str) -> set[str]:
         rows = self.conn.execute(
@@ -563,3 +597,175 @@ def test_ai_budgets_come_from_the_plan_and_the_global_row(
     assert ai.daily_budget_cents(None) == 500
     # No plan grants an unknown user anything, so no AI either.
     assert ai.daily_budget_cents("nobody") == 0
+
+
+def seed(
+    name: str,
+    *,
+    rights_profile: RightsProfile = "full_text_internal",
+    moments_enabled: bool = True,
+    paywalled: bool = False,
+    quality_score: int | None = None,
+    topics: tuple[str, ...] = ("backend",),
+) -> SourceSettings:
+    return SourceSettings(
+        name=name,
+        homepage=None,
+        feed_url=f"https://{name}.example.test/feed",
+        rights_profile=rights_profile,
+        moments_enabled=moments_enabled,
+        paywalled=paywalled,
+        quality_score=quality_score,
+        topics=topics,
+    )
+
+
+# P1-W2-S01: the seed file is the truth for which sources exist and how they're set.
+def test_syncing_the_seed_list_is_idempotent(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    seeds = [seed("sync-a", quality_score=4), seed("sync-b", paywalled=True)]
+    first = s.sources.sync(seeds)
+    assert (first.added, first.updated, first.unchanged) == (2, 0, 0)
+    assert probe.source_state("sync-a") == (
+        True,
+        "https://sync-a.example.test/feed",
+        "full_text_internal",
+        True,
+        False,
+        4,
+        ("backend",),
+    )
+    again = s.sources.sync(seeds)
+    assert (again.added, again.updated, again.unchanged, again.deactivated) == (
+        0,
+        0,
+        2,
+        0,
+    )
+
+
+def test_a_source_removed_from_the_list_is_deactivated_and_keeps_its_items(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    s.sources.sync([seed("sync-keep"), seed("sync-drop")])
+    source_id = s.sources.upsert(
+        name="sync-drop",
+        feed_url="https://sync-drop.example.test/feed",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    item = s.items.upsert_from_feed(
+        source_id, entry("dropped-item"), keep_excerpt=False
+    )
+    result = s.sources.sync([seed("sync-keep")])
+    assert result.deactivated >= 1
+    state = probe.source_state("sync-drop")
+    assert state is not None and state[0] is False
+    assert probe.has_item(item)
+    # Back in the file, back on.
+    s.sources.sync([seed("sync-keep"), seed("sync-drop")])
+    state = probe.source_state("sync-drop")
+    assert state is not None and state[0] is True
+
+
+def test_a_changed_seed_updates_its_source(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    s.sources.sync([seed("sync-edit")])
+    result = s.sources.sync(
+        [seed("sync-edit", quality_score=2, topics=("databases",), paywalled=True)]
+    )
+    assert (result.added, result.updated) == (0, 1)
+    state = probe.source_state("sync-edit")
+    assert state is not None
+    assert state[4:] == (True, 2, ("databases",))
+
+
+def test_lowering_a_profile_through_sync_purges_stored_text(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    s.sources.sync([seed("sync-lower")])
+    source_id = s.sources.upsert(
+        name="sync-lower",
+        feed_url="https://sync-lower.example.test/feed",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    item = s.items.upsert_from_feed(source_id, entry("lower-item"), keep_excerpt=False)
+    s.items.store_full_text(item, "body")
+    s.sources.sync(
+        [seed("sync-lower", rights_profile="metadata_only", moments_enabled=False)]
+    )
+    assert probe.full_text(item) is None
+
+
+def test_a_renamed_source_with_the_same_feed_keeps_its_row(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    s.sources.sync([seed("sync-old")])
+    source_id = s.sources.upsert(
+        name="sync-old",
+        feed_url="https://sync-old.example.test/feed",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    item = s.items.upsert_from_feed(
+        source_id, entry("renamed-item"), keep_excerpt=False
+    )
+    renamed = replace(seed("sync-new"), feed_url="https://sync-old.example.test/feed")
+    result = s.sources.sync([renamed])
+    assert (result.added, result.updated) == (0, 1)
+    assert probe.source_state("sync-old") is None
+    state = probe.source_state("sync-new")
+    assert state is not None and state[0] is True
+    assert probe.has_item(item)
+
+
+def test_a_source_ingest_one_made_is_adopted_by_its_feed(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    s.sources.upsert(
+        name="adhoc-name",
+        feed_url="https://adopted.example.test/feed",
+        rights_profile="metadata_only",
+        homepage=None,
+    )
+    adopted = replace(seed("adopted"), feed_url="https://adopted.example.test/feed")
+    assert s.sources.sync([adopted]).updated == 1
+    assert probe.source_state("adhoc-name") is None
+
+
+def test_upsert_reactivates_a_source(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    s.sources.sync([seed("sync-off")])
+    s.sources.sync([seed("sync-other")])
+    s.sources.upsert(
+        name="sync-off",
+        feed_url="https://sync-off.example.test/feed",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    state = probe.source_state("sync-off")
+    assert state is not None and state[0] is True
+
+
+def test_switching_moments_off_through_sync_purges_moments(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    s.sources.sync([seed("sync-moments")])
+    source_id = s.sources.upsert(
+        name="sync-moments",
+        feed_url="https://sync-moments.example.test/feed",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    probe.enable_moments(source_id)
+    item = s.items.upsert_from_feed(source_id, entry("moment-item"), keep_excerpt=False)
+    s.moments.replace(item, [moment(0, "m0")])
+    # Same full-text profile, moments switched off in the same update.
+    s.sources.sync([seed("sync-moments", moments_enabled=False, quality_score=3)])
+    assert probe.moments(item) == []

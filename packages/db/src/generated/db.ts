@@ -181,6 +181,7 @@ export interface SchemaMeta {
 }
 
 export interface Source {
+  active: Generated<boolean>;
   created_at: Generated<Timestamp>;
   feed_url: string;
   homepage: string | null;
@@ -188,7 +189,9 @@ export interface Source {
   moments_enabled: Generated<boolean>;
   name: string;
   paywalled: Generated<boolean>;
+  quality_score: number | null;
   rights_profile: Generated<RightsProfile>;
+  topics: Generated<string[]>;
 }
 
 export interface UserCapability {

@@ -13,6 +13,8 @@ COPY packages/db/python/pyproject.toml packages/db/python/
 # Dependencies first, so a code change does not reinstall them.
 RUN uv sync --locked --no-dev --no-install-workspace --package interval-jobs
 COPY workers/jobs/src workers/jobs/src
+# load-sources reads workers/jobs/seeds/sources.yaml relative to WORKDIR (Q-P1-02).
+COPY workers/jobs/seeds workers/jobs/seeds
 COPY packages/db/python/src packages/db/python/src
 RUN uv sync --locked --no-dev --no-editable --package interval-jobs
 # Amazon RDS CA bundle (pinned digest) for verify-full TLS in the AWS mode (ADR-0011).

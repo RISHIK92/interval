@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). Next: Week 2, W2-S01 (sources and seed list). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) done. Next: W2-S02 (staged pipeline on the queue port, ADR-0014). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -565,3 +565,29 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `x-request-id` validation; failed worker runs marked as errors; console spans on stderr; invalid span contexts skipped; a subprocess test of the real console setup.
 - Not changed: the `cloud.provider: vercel` resource attribute and the SIGTERM tracer flush (both in the pre-deploy list).
 - Local: `OTEL_TRACES_EXPORTER=console` before a command (or in `.env`) prints spans; `rebuild-feed` showed its root span with trace id and `message_id`.
+
+### 2026-10-26 — P1-W2-S01 (sources and seed list, ING-2, ING-6, Q-P1-01/02/09/37)
+- Done:
+  - **Migration `20261026000000_source_seed_fields.sql`:** `source.quality_score` (optional 1–5), `topics text[]` and `active`.
+  - **`workers/jobs/seeds/sources.yaml`:** the 10 accepted sources (no quality scores yet; owner adds them when wanted).
+  - **Parser (`ingest/seeds.py`, PyYAML plus types-PyYAML, owner-approved):** reads the node tree and rejects every problem with its line:
+    - unknown or duplicate keys;
+    - wrong types;
+    - booleans other than true/false (YAML 1.1's yes/on would otherwise read wrong);
+    - a profile outside the enum;
+    - moments on a profile without full text (ING-2);
+    - a score outside plain 1–5;
+    - topics that aren't distinct kebab-case strings;
+    - duplicate names or feeds;
+    - invalid characters;
+    - an empty file (which would deactivate everything).
+  - **`Sources.sync(SourceSettings)`, idempotent:** finds a source by name, or else by feed URL (owner choice: same feed = same source, so renames and `ingest-one` rows are adopted). It adds, updates and reactivates, and deactivates every unlisted source, never deleting it. A feedless entry is skipped, and an existing row with its name is deactivated and logged (owner choice). `upsert` now reactivates too.
+  - **CLI:** `load-sources [--file]` defaults to `workers/jobs/seeds/sources.yaml` relative to the working directory, which works locally from the repo root and in the worker image, which now copies the seeds. It prints counts plus `skipped_feedless`, and exits with `path:line: message` for a bad file or `path: reason` for an unreadable one.
+- Review fixes:
+  - renames and ingest-one rows no longer crash on the unique feed URL (a blocker);
+  - the worker image couldn't find the seed file (a blocker);
+  - `yes`/`on` booleans were read as false (a blocker);
+  - empty file, odd ints, duplicate keys, control characters, non-string or duplicate topics and missing files are all handled;
+  - the memory fake enforces unique feed URLs;
+  - a narrowed port type (`feed_url: str`).
+- Local DB: loaded twice, with 10 added and then 10 unchanged.

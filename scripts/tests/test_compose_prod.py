@@ -148,3 +148,11 @@ def test_each_service_gets_only_its_env_file(config: dict[str, Any]) -> None:
         assert markers(name) == {"app"}
     for name in ("redis", "elasticmq", "seaweedfs"):
         assert markers(name) == set()
+
+
+def test_the_worker_image_carries_the_seed_file() -> None:
+    # load-sources reads workers/jobs/seeds/sources.yaml relative to the working
+    # directory, which is /app in the image (P1-W2-S01).
+    dockerfile = (ROOT / "workers" / "jobs" / "Dockerfile").read_text(encoding="utf-8")
+    assert "COPY workers/jobs/seeds workers/jobs/seeds" in dockerfile
+    assert "WORKDIR /app" in dockerfile
