@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher) done. Next: W2-S05, W2-S06, W2-S03. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher) and W2-S05 (heading-preserving extraction) done. Next: W2-S06, W2-S03. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -710,3 +710,25 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - stale validators kept.
 - Verified live: martinfowler.com's feed answered 200 with an ETag, then 304.
 - Not covered by a test: the Postgres validator expiry (`updated_at > now() - 1 day`). The pipeline test covers the same rule on the in-memory store.
+
+### 2026-10-26 — P1-W2-S05 (heading-preserving extraction, ING-1, ING-2; overnight, recommended options)
+- Done:
+  - **Real-page fixtures:** pages from six seed sources (Cloudflare, Marc Brooker, GitHub, PlanetScale, Julia Evans, Martin Fowler), fetched politely 2026-10-26.
+    - The repo is public, so `tests/fixtures/real/reduce.py` strips their prose. It keeps markup and heading text, scrambles every other text node and descriptive attribute letter by letter (same counts), and drops scripts and meta.
+    - Each reduced page was checked by hand to extract exactly like its original (sections, levels, ids, word counts). A scan confirmed that no non-heading prose survives.
+  - **`test_real_pages.py`:** the expected heading trees were read off each page's markup.
+  - **Extractor fixes the fixtures exposed:**
+    - heading text wholly inside a permalink was dropped, so ids were lost (jvns.ca, planetscale.com);
+    - related-post teaser cards became sections (github.blog): a heading whose whole text links to another page is now dropped with its text;
+    - a `<details>` summary became a section (martinfowler.com): it now counts as text;
+    - empty trailing headings ("Tags:", "Written by") are trimmed.
+    - Each rule has a small synthetic test, including the negative cases.
+  - **Library settled (Second decision session):** trafilatura in default mode. Its precision mode drops every heading that is wholly a link.
+  - **Rights:** excerpt sources store no sections; a pipeline test pins it.
+- Review fixes:
+  - the teaser rule first dropped any heading with an off-page link (a blocker: inline links, absolute self-permalinks, share icons);
+  - alt and aria-label prose leaked into the fixtures;
+  - unclosed headings in the reducer;
+  - permalink glyphs in the link-text fallback;
+  - a stale docstring.
+- Known limit: a last section that holds only a table is trimmed, because tables aren't counted. The extractor's docstring explains why.

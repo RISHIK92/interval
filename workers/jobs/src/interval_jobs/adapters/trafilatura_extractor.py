@@ -1,8 +1,17 @@
 """Extractor adapter (ADR-0012): main text and heading structure via trafilatura.
 
-Provisional choice; P1-W2-S05 confirms or swaps it.
+Heading structure: sections with heading, level, publisher id, words. Checked against
+pages from six seed sources (tests/test_real_pages.py, P1-W2-S05), which settled the
+library: trafilatura's default mode plus the rules below. Its precision mode drops every
+heading that is wholly a link, a common permalink style.
 
-Heading structure: sections with heading, level, publisher id, words.
+Rules on top of trafilatura, from those pages:
+- a heading whose whole text is a link to another page is a teaser card (related
+  posts), so it and its text are dropped; a link with a fragment is a permalink;
+- trafilatura heads that aren't h1-h6 (a `<details>` summary) are text, not sections;
+- empty headings at the end (tag lists, "Written by") are dropped. A last section that
+  holds only a table is dropped with them (tables aren't counted); the pages showed
+  debris there far more often than table-only endings.
 
 trafilatura finds the main content and keeps headings, but drops their `id`s; a second
 pass over the original page (stdlib html.parser) maps each heading to its id (proposal
@@ -54,20 +63,35 @@ def _words(text: str) -> int:
 class _OpenHeading:
     anchor: str | None
     text: list[str] = field(default_factory=list[str])
-    in_permalink: bool = False
+    link_text: list[str] = field(default_factory=list[str])  # inside permalinks
+    out_text: list[str] = field(default_factory=list[str])  # inside off-page links
+    link: str | None = None  # "permalink" or "out" while inside an <a>
+
+
+@dataclass(frozen=True)
+class _PublisherHeading:
+    text: str  # normalised
+    anchor: str | None
+    teaser: bool  # its whole text links to another page
+
+
+def _is_teaser(heading: _OpenHeading) -> bool:
+    out = _norm(clean_heading("".join(heading.out_text)))
+    return bool(out) and out == _norm(clean_heading("".join(heading.text)))
 
 
 class _HeadingIds(HTMLParser):
-    """Collects (normalised heading text, id) in document order.
+    """Collects the page's headings in document order.
 
     The id is the heading's own `id`, else an `id`/`name` on an anchor inside it, else
     the `id` of the `<section>` it opens. Headings inside nav/aside/header/footer are
-    skipped, and permalink anchors (`<a href="#...">`) do not count as heading text.
+    skipped. Permalink anchors (`<a href="#...">`) are not heading text, unless they
+    hold all of it (`<h2 id=x><a href="#x">Title</a></h2>`).
     """
 
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
-        self.found: list[tuple[str, str | None]] = []
+        self.found: list[_PublisherHeading] = []
         self._sections: list[str | None] = []
         self._section_fresh = False
         self._skip_depth = 0
@@ -78,7 +102,12 @@ class _HeadingIds(HTMLParser):
         if self._open is None:
             return
         anchor = self._open.anchor or self._section_id
-        self.found.append((_norm("".join(self._open.text)), anchor or None))
+        text = "".join(self._open.text)
+        if not clean_heading(text):
+            text = clean_heading("".join(self._open.link_text))
+        self.found.append(
+            _PublisherHeading(_norm(text), anchor or None, _is_teaser(self._open))
+        )
         self._open = None
         self._section_fresh = False
 
@@ -103,7 +132,11 @@ class _HeadingIds(HTMLParser):
         if tag == "a" and self._open is not None:
             if self._open.anchor is None:
                 self._open.anchor = values.get("id") or values.get("name")
-            self._open.in_permalink = (values.get("href") or "").startswith("#")
+            href = values.get("href") or ""
+            if "#" in href:
+                self._open.link = "permalink"
+            elif href:
+                self._open.link = "out"
             return
         if tag not in ("span", "code", "em", "strong", "b", "i"):
             self._section_fresh = False
@@ -114,20 +147,26 @@ class _HeadingIds(HTMLParser):
         elif tag == "section" and self._sections:
             self._sections.pop()
         elif tag == "a" and self._open is not None:
-            self._open.in_permalink = False
+            self._open.link = None
         elif tag in _HEADING_TAGS:
             self._close_heading()
 
     def handle_data(self, data: str) -> None:
-        if self._open is not None and not self._open.in_permalink:
-            self._open.text.append(data)
+        if self._open is None:
+            return
+        if self._open.link == "permalink":
+            self._open.link_text.append(data)
+            return
+        self._open.text.append(data)
+        if self._open.link == "out":
+            self._open.out_text.append(data)
 
     def close(self) -> None:
         super().close()
         self._close_heading()
 
 
-def _publisher_ids(document: str) -> list[tuple[str, str | None]]:
+def _publisher_headings(document: str) -> list[_PublisherHeading]:
     parser = _HeadingIds()
     parser.feed(document)
     parser.close()
@@ -137,17 +176,16 @@ def _publisher_ids(document: str) -> list[tuple[str, str | None]]:
 class _IdMatcher:
     """Matches extracted headings to publisher headings, moving forward only."""
 
-    def __init__(self, candidates: list[tuple[str, str | None]]) -> None:
+    def __init__(self, candidates: list[_PublisherHeading]) -> None:
         self._candidates = candidates
         self._next = 0
 
-    def take(self, heading: str) -> str | None:
+    def take(self, heading: str) -> _PublisherHeading | None:
         key = _norm(heading)
         for index in range(self._next, len(self._candidates)):
-            text, anchor = self._candidates[index]
-            if text == key:
+            if self._candidates[index].text == key:
                 self._next = index + 1
-                return anchor
+                return self._candidates[index]
         return None
 
 
@@ -167,32 +205,39 @@ def extract_sections(page: bytes, encoding: str | None, title: str) -> list[Sect
     if main is None:
         return []
 
-    ids = _IdMatcher(_publisher_ids(document))
+    publisher = _IdMatcher(_publisher_headings(document))
     sections: list[Section] = []
     heading: str | None = None
     level: int | None = None
     anchor: str | None = None
     words = 0
+    in_teaser = False  # a teaser card's text isn't the article's
     for position, block in enumerate(main):
-        if block.tag == "head":
-            text = clean_heading("".join(block.itertext()))
-            # A leading h1 that repeats the item title is the page title: the text
-            # under it is the intro (owner, 2026-10-25).
-            is_title = block.get("rend") == "h1" and _norm(text) == _norm(title)
-            if position == 0 and is_title:
-                ids.take(text)
-                continue
-            if heading is not None or words:
-                sections.append(Section(heading, level, anchor, words))
-            heading = text
-            match = re.fullmatch(r"h([1-6])", block.get("rend") or "")
-            level = int(match.group(1)) if match else None
-            anchor = ids.take(text)
-            words = 0
-        else:
-            words += _words("".join(block.itertext()))
+        match = re.fullmatch(r"h([1-6])", block.get("rend") or "")
+        if block.tag != "head" or match is None:
+            if not in_teaser:
+                words += _words("".join(block.itertext()))
+            continue
+        text = clean_heading("".join(block.itertext()))
+        # A leading h1 that repeats the item title is the page title: the text
+        # under it is the intro (owner, 2026-10-25).
+        is_title = match.group(1) == "1" and _norm(text) == _norm(title)
+        if position == 0 and is_title:
+            publisher.take(text)
+            continue
+        found = publisher.take(text)
+        in_teaser = found is not None and found.teaser
+        if in_teaser:
+            continue
+        if heading is not None or words:
+            sections.append(Section(heading, level, anchor, words))
+        heading, level = text, int(match.group(1))
+        anchor = found.anchor if found is not None else None
+        words = 0
     if heading is not None or words:
         sections.append(Section(heading, level, anchor, words))
+    while sections and sections[-1].heading is not None and not sections[-1].word_count:
+        sections.pop()
     return sections
 
 

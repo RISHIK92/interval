@@ -120,6 +120,8 @@ def test_excerpt_sources_fetch_each_article_once() -> None:
     world.discover("poll-2")
     world.run()
     assert all(i.excerpt for i in world.store.items.rows.values())
+    # Headings are extracted only under full-text rights (P1-W2-S05).
+    assert all(i.sections == [] for i in world.store.items.rows.values())
     assert world.requested().count(WAL) == 1
 
 

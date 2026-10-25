@@ -1,0 +1,1071 @@
+<!doctype html>
+<html lang="en-US" class="mt-0">
+<head>
+	<meta charset="UTF-8">
+	
+	<link rel="profile" href="https://gmpg.org/xfn/11">
+	<link rel="icon" type="image/x-icon" href="https://github.githubassets.com/favicon.ico">
+	
+
+	
+	<title>The bridge to agent-scale Git infrastructure - The GitHub Blog</title>
+	
+	<link rel="canonical" href="https://github.blog/engineering/architecture-optimization/the-bridge-to-agent-scale-git-infrastructure/">
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+
+	
+	
+
+
+<link rel="dns-prefetch" href="//ghcc.githubassets.com">
+<link rel="dns-prefetch" href="//js.monitor.azure.com">
+<link rel="dns-prefetch" href="//cdnjs.cloudflare.com">
+<link rel="dns-prefetch" href="//analytics.githubassets.com">
+<link rel="dns-prefetch" href="//v0.wordpress.com">
+<link rel="alternate" type="application/rss+xml" title="Lor EmiPsu Mdol » Orsi" href="https://github.blog/feed/">
+<link rel="alternate" type="application/rss+xml" title="Lor EmiPsu Mdol » Orsitame Tcon" href="https://github.blog/comments/feed/">
+<link rel="alternate" title="lOremi (PSUM)" type="application/json+oembed" href="https://github.blog/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fgithub.blog%2Fengineering%2Farchitecture-optimization%2Fthe-bridge-to-agent-scale-git-infrastructure%2F">
+<link rel="alternate" title="lOremi (PSU)" type="text/xml+oembed" href="https://github.blog/wp-json/oembed/1.0/embed?url=https%3A%2F%2Fgithub.blog%2Fengineering%2Farchitecture-optimization%2Fthe-bridge-to-agent-scale-git-infrastructure%2F&amp;format=xml">
+
+
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" id="all-css-12" href="https://github.blog/wp-content/plugins/wp-menu-image/assets/css/wmi-front-style.css?m=1792019061g" type="text/css" media="all">
+
+<link rel="stylesheet" id="all-css-14" href="https://github.blog/_static/??-eJx9yzsOgCAMANALiQUGDYPxLkAjTfjF1ujx1cnN8Q0Pzq5Cq4JVQBIWZNhI0uGV1daokChHiMQCgRkybUl8u8YHA/zWLzEJKg47dXnfWhYzO6uN05O5AXUKLFM=" type="text/css" media="all">
+<link rel="stylesheet" id="highlightjs-css-css" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/default.min.css?ver=11.4.0" media="all">
+<link rel="https://api.w.org/" href="https://github.blog/wp-json/"><link rel="alternate" title="LORE" type="application/json" href="https://github.blog/wp-json/wp/v2/posts/99628"><link rel="EditURI" type="application/rsd+xml" title="LOR" href="https://github.blog/xmlrpc.php?rsd">
+
+<link rel="shortlink" href="https://wp.me/pamS32-pUU">
+
+<link rel="llms-sitemap" href="https://github.blog/llms.txt">
+<link rel="preload" href="https://github.blog/wp-content/themes/github-2021/dist/fonts/mona-sans.woff2" as="font" type="font/woff2" crossorigin="anonymous"><link rel="preload" href="https://github.blog/wp-content/themes/github-2021/dist/fonts/MonaspaceNeon-Regular.woff2" as="font" type="font/woff2" crossorigin="anonymous"><link rel="icon" href="https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=32%2C32" sizes="32x32">
+<link rel="icon" href="https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=192%2C192" sizes="192x192">
+<link rel="apple-touch-icon" href="https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=180%2C180">
+
+
+
+</head>
+<body class="wp-singular post-template-default single single-post postid-99628 single-format-standard wp-embed-responsive wp-theme-github-2021 wp-child-theme-github-2021-child font-mktg no-sidebar" data-color-mode="lorem" data-light-theme="lorem" data-dark-theme="lore">
+		<div data-color-mode="lore" data-light-theme="lorem" data-dark-theme="lore_mipsum" class="pt-header pt-lg-0">
+		<header id="header" class="header position-fixed position-lg-static pb-lg-header z-4 top-0 left-0 right-0 d-flex flex-column flex-items-stretch color-bg-default">
+						<a href="#start-of-content" class="p-3 color-bg-accent-emphasis color-fg-on-emphasis show-on-focus">
+				Lore mi psumdol			</a>
+							<a href="#sidebar" id="skip-to-sidebar" class="p-3 color-bg-accent-emphasis color-fg-on-emphasis show-on-focus">
+					Lore mi psumdol				</a>
+						<div class="position-relative container-xl width-full mx-auto p-responsive-blog">
+				<div class="d-flex flex-items-center flex-justify-between pt-3 pb-3 color-fg-default">
+					
+<a href="https://github.com" target="_blank" rel="noreferrer" aria-label="LorEmi psumdolo" class="Header-link position-relative d-flex flex-items-center color-fg-default">
+	<svg aria-hidden="true" role="img" class="octicon octicon-mark-github d-block" viewbox="0 0 98 96" width="32" height="32" fill="currentColor"><g clip-path="url(#a)"><path d="M41.44 69.385C28.807 67.853 19.906 58.762 19.906 46.99c0-4.785 1.723-9.953 4.594-13.398-1.244-3.158-1.053-9.858.383-12.633 3.828-.479 8.996 1.531 12.058 4.307 3.637-1.149 7.465-1.723 12.155-1.723 4.69 0 8.517.574 11.963 1.627 2.966-2.68 8.23-4.69 12.058-4.211 1.34 2.584 1.531 9.283.287 12.537 3.063 3.637 4.69 8.518 4.69 13.494 0 11.772-8.9 20.672-21.725 22.3 3.254 2.104 5.455 6.698 5.455 11.962v9.953c0 2.871 2.393 4.498 5.264 3.35C84.41 87.95 98 70.629 98 49.19 98 22.107 75.988 0 48.904 0 21.82 0 0 22.107 0 49.191c0 21.246 13.494 38.856 31.678 45.46 2.584.956 5.072-.766 5.072-3.35v-7.657c-1.34.575-3.063.958-4.594.958-6.316 0-10.049-3.446-12.728-9.858-1.053-2.584-2.201-4.115-4.403-4.402-1.148-.096-1.53-.574-1.53-1.149 0-1.148 1.913-2.01 3.827-2.01 2.776 0 5.168 1.723 7.657 5.264 1.914 2.776 3.923 4.02 6.316 4.02 2.392 0 3.924-.861 6.125-3.063 1.627-1.627 2.871-3.062 4.02-4.02z" fill="#fff"></path></g><defs><clippath id="a"><path fill="#fff" d="M0 0h98v96H0z"></path></clippath></defs></svg>
+</a>
+<span class="d-inline-block ml-2 f1-mktg f2-md-mktg" style="opacity: 0.3;">/</span>
+<a class="d-inline-block Header-link font-weight-semibold ml-2 f2 color-fg-default" href="https://github.blog/">
+	Lore</a>
+					
+<nav class="d-none d-lg-block" aria-label="Loremipsu mdolorsita">
+	<ul id="secondary-navigation" class="secondary-navigation flex-items-center flex-nowrap list-style-none ml-4" aria-hidden="false"><li id="menu-item-78809"><a href="https://github.blog/changelog/" class="position-relative d-flex flex-items-center flex-start no-wrap py-2 px-4 f4 lh-condensed-ultra Link--secondary color-fg-default text-medium"><span class="menu-item-label">Loremipsu</span></a></li>
+<li id="menu-item-78810"><a href="https://docs.github.com/" class="position-relative d-flex flex-items-center flex-start no-wrap py-2 px-4 f4 lh-condensed-ultra Link--secondary color-fg-default text-medium"><span class="menu-item-label">Lore</span><svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-down position-absolute right-0 d-block ml-1" role="presentation"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li>
+<li id="menu-item-78811"><a href="https://github.com/customer-stories" class="position-relative d-flex flex-items-center flex-start no-wrap py-2 px-4 f4 lh-condensed-ultra Link--secondary color-fg-default text-medium"><span class="menu-item-label">Loremips umdolor</span><svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-down position-absolute right-0 d-block ml-1" role="presentation"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li>
+</ul></nav>
+					
+<div class="d-none d-lg-flex flex-1">
+	<form id="desktop-search" class="desktop-search position-relative ml-lg-4 flex-1" action="https://github.blog" method="get" aria-hidden="true" aria-label="Loremi psum" role="search">
+		<div class="position-relative d-flex flex-1 height-full color-bg-transparent" data-color-mode="lorem" data-light-theme="lorem" data-dark-theme="lore">
+			<input aria-label="Loremi psu mdol" type="search" class="p-2 pl-3 pr-6 border-0 rounded-2 flex-1" placeholder="Loremi psu mdol…" value="" name="s" id="search-input">
+			<button type="submit" class="position-absolute right-0 z-3 d-flex flex-items-center flex-justify-center flex-self-center mr-2 p-2 border-0 rounded-2 color-bg-transparent color-fg-subtle" aria-label="Loremi">
+				<svg viewbox="0 0 16 16" width="20" height="20" class="octicon octicon-search" role="presentation"><path fill-rule="evenodd" d="M11.5 7a4.499 4.499 0 11-8.998 0A4.499 4.499 0 0111.5 7zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"></path></svg>
+			</button>
+		</div>
+	</form>
+	<button aria-label="Loremi psumdo" class="flex-self-center ml-auto p-2 border-0 color-bg-transparent color-fg-default rounded-3 js-toggle" aria-controls="desktop-search" aria-expanded="false">
+		<svg viewbox="0 0 24 24" width="24" height="24" class="octicon octicon-search" role="presentation"><path d="M10.25 2a8.25 8.25 0 0 1 6.34 13.53l5.69 5.69a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-5.69-5.69A8.25 8.25 0 1 1 10.25 2ZM3.5 10.25a6.75 6.75 0 1 0 13.5 0 6.75 6.75 0 0 0-13.5 0Z"></path></svg>
+		<svg viewbox="2 2 20 20" width="24" height="24" class="octicon octicon-x" role="presentation"><path d="M5.72 5.72a.75.75 0 0 1 1.06 0L12 10.94l5.22-5.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L13.06 12l5.22 5.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L12 13.06l-5.22 5.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L10.94 12 5.72 6.78a.75.75 0 0 1 0-1.06Z"></path></svg>
+	</button>
+
+		<a class="Button Button--size-medium Button--primary ml-3" href="https://github.com/features/ai/github-app?utm_source=blog-header-button-cta&amp;utm_medium=blog&amp;utm_campaign=github-app-cli-Q1-push" target="_blank" data-analytics-click="Lore, mipsu md olorsi, tame: Tco Nsectet ura dipi; sci_ngelitlo:rem ips;">
+		<span class="Button__text">
+		<span class="Text Text--200 Text--antialiased Text--weight-semibold Button--label Button--label-medium Button--label-primary">
+			Lor EmiPsu Mdolors ita		</span>
+		</span>
+
+			</a>
+		<a class="Button Button--size-medium Button--secondary ml-3" href="https://githubuniverse.com/?utm_source=Blog-button&amp;utm_medium=GitHub&amp;utm_campaign=blog_button_seb_uni_26" target="_blank" data-analytics-click="Lore, mipsu md olorsi, tame: Tconse Cteturad; ipi_scingeli:tlo rem;">
+		<span class="Button__text">
+		<span class="Text Text--200 Text--antialiased Text--weight-semibold Button--label Button--label-medium Button--label-secondary">
+			Loremi PsuMdo Lorsitam		</span>
+		</span>
+
+			</a>
+	</div>
+					
+<div class="d-flex d-lg-none flex-items-center flex-1 mr-n2">
+	<button aria-label="Loremi psumdo" class="ml-auto p-2 border-0 color-bg-transparent color-fg-default rounded-3 js-toggle" aria-controls="mobile-search" aria-expanded="false">
+		<svg viewbox="0 0 24 24" width="24" height="24" class="octicon octicon-search" role="presentation"><path d="M10.25 2a8.25 8.25 0 0 1 6.34 13.53l5.69 5.69a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-5.69-5.69A8.25 8.25 0 1 1 10.25 2ZM3.5 10.25a6.75 6.75 0 1 0 13.5 0 6.75 6.75 0 0 0-13.5 0Z"></path></svg>
+		<svg viewbox="2 2 20 20" width="24" height="24" class="octicon octicon-x" role="presentation"><path d="M5.72 5.72a.75.75 0 0 1 1.06 0L12 10.94l5.22-5.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L13.06 12l5.22 5.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L12 13.06l-5.22 5.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L10.94 12 5.72 6.78a.75.75 0 0 1 0-1.06Z"></path></svg>
+	</button>
+	<button class="mobile-nav-focus-trap js-mobile-nav-focus-trap" data-target="#loremi-psum" data-focus-order="lore"></button>
+	<button id="mobile-menu-toggle" aria-label="Loremi psum" class="ml-2 p-2 border-0 color-bg-transparent color-fg-default rounded-3 js-toggle" aria-controls="mobile-menu" aria-expanded="false" data-trap-focus="#loremi">
+		<svg viewbox="0 0 16 16" width="24" height="24" class="octicon octicon-three-bars" role="presentation"><path d="M1 2.75A.75.75 0 0 1 1.75 2h12.5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 2.75Zm0 5A.75.75 0 0 1 1.75 7h12.5a.75.75 0 0 1 0 1.5H1.75A.75.75 0 0 1 1 7.75ZM1.75 12h12.5a.75.75 0 0 1 0 1.5H1.75a.75.75 0 0 1 0-1.5Z"></path></svg>
+		<svg viewbox="2 2 20 20" width="24" height="24" class="octicon octicon-x " role="presentation"><path d="M5.72 5.72a.75.75 0 0 1 1.06 0L12 10.94l5.22-5.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L13.06 12l5.22 5.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L12 13.06l-5.22 5.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L10.94 12 5.72 6.78a.75.75 0 0 1 0-1.06Z"></path></svg>
+	</button>
+</div>
+				</div>
+			</div>
+							<div class="position-relative pb-lg-navigation" data-sticky-navigation=".loremi-psumdolors">
+					
+<nav aria-label="Loremip sumdolorsi" class="sticky-navigation position-absolute z-4 top-0 left-0 d-none d-lg-block width-full color-border-subtle color-bg-default">
+	<div class="position-relative container-xl width-full mx-auto p-responsive-blog">
+		<ul id="primary-navigation" class="primary-navigation position-relative d-flex flex-row flex-nowrap flex-grow-0 flex-justify-between list-style-none"><li id="menu-item-78814"><a href="https://github.blog/ai-and-ml/" class="position-relative d-flex flex-items-center flex-start no-wrap py-3 f4-mktg text-bold js-toggle" aria-controls="primary-78814-dropdown" aria-expanded="false" aria-haspopup="true" role="button">LO &amp; RE<svg viewbox="0 0 16 16" width="16" height="16" class="octicon d-block ml-1 color-fg-muted" role="presentation"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"></path></svg></a>
+<ul class="dropdown d-flex flex-wrap width-full position-absolute left-0 list-style-none mt-2 rounded-3 z-3 overflow-hidden color-border-subtle" aria-label="LO &amp; RE mip-sumd" aria-hidden="true" data-color-mode="lorem" data-dark-theme="lore" data-light-theme="lorem" id="primary-78814-dropdown" tabindex="-1">
+	<li id="menu-item-78863" class="flex-1 p-5 py-xl-7 px-xl-7"><div class="col-9 mb-4 mb-lg-7"><a href="https://github.blog/ai-and-ml/" class="d-flex flex-items-center flex-start f3 lh-condensed color-fg-default text-bold">LO &amp; RE<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-1 my-0 f4 color-fg-muted">Lorem ipsum dolorsitam etconsectetu rad ipiscin gelitlor emipsu mdo LorSit ametconse cte tur adipi scingeli.</p></div>
+	<ul class="d-flex flex-wrap list-style-none" aria-label="LO &amp; RE mip-sumd">
+		<li id="menu-item-78815" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right"><a href="https://github.blog/ai-and-ml/generative-ai/" class="d-block f4 color-fg-default text-bold">Loremipsum DO</a><p class="mb-0 f5 color-fg-muted">Lorem ips um dolor sita metconsect ET.</p></li>
+		<li id="menu-item-78816" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8"><a href="https://github.blog/ai-and-ml/github-copilot/" class="d-block f4 color-fg-default text-bold">LorEmi Psumdol</a><p class="mb-0 f5 color-fg-muted">Loremi psu mdo lors itam EtcOns Ectetur.</p></li>
+		<li id="menu-item-78817" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/ai-and-ml/llms/" class="d-block f4 color-fg-default text-bold">LORe</a><p class="mb-0 f5 color-fg-muted">Loremipsum dolorsitam etco ns ecte turad IPIs.</p></li>
+		<li id="menu-item-78818" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8 pt-2 pt-lg-4"><a href="https://github.blog/ai-and-ml/machine-learning/" class="d-block f4 color-fg-default text-bold">Loremip sumdolor</a><p class="mb-0 f5 color-fg-muted">Loremip sumdolor sita, metcon, sec tetu radipisci.</p></li>
+	</ul>
+</li>
+	<li id="menu-item-78864" class="p-5 py-xl-7 px-xl-8 col-4 color-bg-subtle post-card"><div class="d-block position-relative mb-3 rounded-2 tease-thumbnail overflow-hidden"><img width="800" height="425" src="https://github.blog/wp-content/uploads/2024/06/AI-DarkMode-4.png?resize=800%2C425" class="tease-thumbnail__img d-block width-full height-auto aspect-ratio-1032-548 object-fit-cover" alt="" decoding="async" fetchpriority="high" srcset="https://github.blog/wp-content/uploads/2024/06/AI-DarkMode-4.png?w=300 300w, https://github.blog/wp-content/uploads/2024/06/AI-DarkMode-4.png?w=800 800w, https://github.blog/wp-content/uploads/2024/06/AI-DarkMode-4.png?w=400 400w, https://github.blog/wp-content/uploads/2024/06/AI-DarkMode-4.png?w=1032 1032w, https://github.blog/wp-content/uploads/2024/06/AI-DarkMode-4.png?w=516 516w" sizes="(max-width: 800px) 100vw, 800px"></div><a href="https://github.blog/ai-and-ml/generative-ai/how-ai-code-generation-works/" class="d-block mb-2 f3 lh-condensed color-fg-default text-bold post-card__link">Lor EM ipsu mdolorsita metco</a><p class="mb-3 f5 color-fg-muted">Loremip sum dolorsitamet con sectetur ad IP isci ngelitlore mip sum do lor sitamet cons ecteturad ipiscingel.</p><span class="Link d-inline-flex flex-items-center" role="presentation">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></span></li>
+</ul>
+</li>
+<li id="menu-item-78819"><a href="https://github.blog/developer-skills/" class="position-relative d-flex flex-items-center flex-start no-wrap py-3 f4-mktg text-bold js-toggle" aria-controls="primary-78819-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Loremipsu mdolor<svg viewbox="0 0 16 16" width="16" height="16" class="octicon d-block ml-1 color-fg-muted" role="presentation"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"></path></svg></a>
+<ul class="dropdown d-flex flex-wrap width-full position-absolute left-0 list-style-none mt-2 rounded-3 z-3 overflow-hidden color-border-subtle" aria-label="Loremipsu mdolor sit-amet" aria-hidden="true" data-color-mode="lorem" data-dark-theme="lore" data-light-theme="lorem" id="primary-78819-dropdown" tabindex="-1">
+	<li id="menu-item-78865" class="flex-1 p-5 py-xl-7 px-xl-7"><div class="col-9 mb-4 mb-lg-7"><a href="https://github.blog/developer-skills/" class="d-flex flex-items-center flex-start f3 lh-condensed color-fg-default text-bold">Loremipsu mdolor<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-1 my-0 f4 color-fg-muted">Loremipsu mdo lorsitamet co nsec te turad ipisci nge litlore.</p></div>
+	<ul class="d-flex flex-wrap list-style-none" aria-label="Loremipsu mdolor sit-amet">
+		<li id="menu-item-78820" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right"><a href="https://github.blog/developer-skills/application-development/" class="d-block f4 color-fg-default text-bold">Loremipsumd olorsitamet</a><p class="mb-0 f5 color-fg-muted">Loremips umd olor sitametco nse cteturad ipis.</p></li>
+		<li id="menu-item-78821" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8"><a href="https://github.blog/developer-skills/career-growth/" class="d-block f4 color-fg-default text-bold">Loremi psumdo</a><p class="mb-0 f5 color-fg-muted">Lore &amp; mipsum do lors it a metconsectet uradipisc.</p></li>
+		<li id="menu-item-78822" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/developer-skills/github/" class="d-block f4 color-fg-default text-bold">LorEmi</a><p class="mb-0 f5 color-fg-muted">Loremip sum dol ors ItaMet co nsec.</p></li>
+		<li id="menu-item-78823" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8 pt-2 pt-lg-4"><a href="https://github.blog/developer-skills/github-education/" class="d-block f4 color-fg-default text-bold">LorEmi Psumdolor</a><p class="mb-0 f5 color-fg-muted">Lorem ips um dolo rsit amet conse cteturadipis cing.</p></li>
+		<li id="menu-item-78824" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/developer-skills/programming-languages-and-frameworks/" class="d-block f4 color-fg-default text-bold">Loremipsumd olorsitam &amp; etconsecte</a><p class="mb-0 f5 color-fg-muted">Lore mipsumd ol orsi’t ame (tc ons ectet).</p></li>
+	</ul>
+</li>
+	<li id="menu-item-78866" class="p-5 py-xl-7 px-xl-8 col-4 color-bg-subtle post-card"><div class="d-block position-relative mb-3 rounded-2 tease-thumbnail overflow-hidden"><img width="800" height="425" src="https://github.blog/wp-content/uploads/2024/05/Enterprise-DarkMode-3.png?resize=800%2C425" class="tease-thumbnail__img d-block width-full height-auto aspect-ratio-1032-548 object-fit-cover" alt="" decoding="async" srcset="https://github.blog/wp-content/uploads/2024/05/Enterprise-DarkMode-3.png?w=300 300w, https://github.blog/wp-content/uploads/2024/05/Enterprise-DarkMode-3.png?w=800 800w, https://github.blog/wp-content/uploads/2024/05/Enterprise-DarkMode-3.png?w=400 400w, https://github.blog/wp-content/uploads/2024/05/Enterprise-DarkMode-3.png?w=1032 1032w, https://github.blog/wp-content/uploads/2024/05/Enterprise-DarkMode-3.png?w=516 516w" sizes="(max-width: 800px) 100vw, 800px"></div><a href="https://docs.github.com/en/get-started" class="d-block mb-2 f3 lh-condensed color-fg-default text-bold post-card__link">Lor emipsum dolo RsiTam etconsectetur</a><p class="mb-3 f5 color-fg-muted">Lorem ips um dolor sitametc, onsectet, ura dipiscingel itloremi psum DolOrs.</p><span class="Link d-inline-flex flex-items-center" role="presentation">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></span></li>
+</ul>
+</li>
+<li id="menu-item-78825"><a href="https://github.blog/engineering/" class="position-relative d-flex flex-items-center flex-start no-wrap py-3 f4-mktg text-bold js-toggle" aria-controls="primary-78825-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Loremipsumd<svg viewbox="0 0 16 16" width="16" height="16" class="octicon d-block ml-1 color-fg-muted" role="presentation"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"></path></svg></a>
+<ul class="dropdown d-flex flex-wrap width-full position-absolute left-0 list-style-none mt-2 rounded-3 z-3 overflow-hidden color-border-subtle" aria-label="Loremipsumd olo-rsit" aria-hidden="true" data-color-mode="lorem" data-dark-theme="lore" data-light-theme="lorem" id="primary-78825-dropdown" tabindex="-1">
+	<li id="menu-item-78867" class="flex-1 p-5 py-xl-7 px-xl-7"><div class="col-9 mb-4 mb-lg-7"><a href="https://github.blog/engineering/" class="d-flex flex-items-center flex-start f3 lh-condensed color-fg-default text-bold">Loremipsumd<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-1 my-0 f4 color-fg-muted">Lor em ipsumd olor si tam et’co nsectetu rad ipis cin gel itloremips.</p></div>
+	<ul class="d-flex flex-wrap list-style-none" aria-label="Loremipsumd olo-rsit">
+		<li id="menu-item-78827" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right"><a href="https://github.blog/engineering/architecture-optimization/" class="d-block f4 color-fg-default text-bold">Loremipsumdo &amp; lorsitametco</a><p class="mb-0 f5 color-fg-muted">Loremips umd ol orsitam e tconsectet ura dipisc ingelitlo remipsumdo lorsit ame TcoNse cteturad.</p></li>
+		<li id="menu-item-78828" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8"><a href="https://github.blog/engineering/engineering-principles/" class="d-block f4 color-fg-default text-bold">Loremipsumd olorsitame</a><p class="mb-0 f5 color-fg-muted">Loremip sumd olorsitam etc onsectet uradipis ci ngeli tlor e mipsumdo lorsit amet.</p></li>
+		<li id="menu-item-78829" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/engineering/infrastructure/" class="d-block f4 color-fg-default text-bold">Loremipsumdolo</a><p class="mb-0 f5 color-fg-muted">Lor e mipsumd ol ors itametcons ecteturadi pis cinge’l itlorem IP-sumdolo rsitametc onsectet.</p></li>
+		<li id="menu-item-78830" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8 pt-2 pt-lg-4"><a href="https://github.blog/engineering/platform-security/" class="d-block f4 color-fg-default text-bold">Loremips umdolors</a><p class="mb-0 f5 color-fg-muted">Lorem ips um dolor sitametc onse cteturadip is ci ngelit lor emipsumdo lorsitame.</p></li>
+		<li id="menu-item-78858" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/engineering/user-experience/" class="d-block f4 color-fg-default text-bold">Lore mipsumdolo</a><p class="mb-0 f5 color-fg-muted">Lore mip sumd olor sita metcon SecTet ura dipi sci nge litloremip.</p></li>
+	</ul>
+</li>
+	<li id="menu-item-78868" class="p-5 py-xl-7 px-xl-8 col-4 color-bg-subtle post-card"><div class="d-block position-relative mb-3 rounded-2 tease-thumbnail overflow-hidden"><img width="800" height="425" src="https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.42.45 AM.png?resize=800%2C425" class="tease-thumbnail__img d-block width-full height-auto aspect-ratio-1032-548 object-fit-cover" alt="" decoding="async" srcset="https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.42.45 AM.png?w=800 800w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.42.45 AM.png?w=400 400w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.42.45 AM.png?w=1032 1032w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.42.45 AM.png?w=516 516w" sizes="(max-width: 800px) 100vw, 800px"></div><a href="https://github.blog/engineering/how-we-use-github-to-be-more-productive-collaborative-and-secure/" class="d-block mb-2 f3 lh-condensed color-fg-default text-bold post-card__link">Lor em ips UmdOlo rs it amet consectetu, radipiscingel, itl oremip</a><p class="mb-3 f5 color-fg-muted">Lor emipsumdolo rsi tametcon secte tu radi piscingeli tlor. Emi’p sumd o lors it ame tc ons EctEtu ra di pisc ingelitlor, emips umdolorsitametc, ons ectet uradipis cing.</p><span class="Link d-inline-flex flex-items-center" role="presentation">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></span></li>
+</ul>
+</li>
+<li id="menu-item-78832"><a href="https://github.blog/enterprise-software/" class="position-relative d-flex flex-items-center flex-start no-wrap py-3 f4-mktg text-bold js-toggle" aria-controls="primary-78832-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Loremipsum dolorsit<svg viewbox="0 0 16 16" width="16" height="16" class="octicon d-block ml-1 color-fg-muted" role="presentation"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"></path></svg></a>
+<ul class="dropdown d-flex flex-wrap width-full position-absolute left-0 list-style-none mt-2 rounded-3 z-3 overflow-hidden color-border-subtle" aria-label="Loremipsum dolorsit ame-tcon" aria-hidden="true" data-color-mode="lorem" data-dark-theme="lore" data-light-theme="lorem" id="primary-78832-dropdown" tabindex="-1">
+	<li id="menu-item-78869" class="flex-1 p-5 py-xl-7 px-xl-7"><div class="col-9 mb-4 mb-lg-7"><a href="https://github.blog/enterprise-software/" class="d-flex flex-items-center flex-start f3 lh-condensed color-fg-default text-bold">Loremipsum dolorsit<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-1 my-0 f4 color-fg-muted">Loremip sum do lorsi, tamet, con sectet uradipisci ngelitlo re mipsu.</p></div>
+	<ul class="d-flex flex-wrap list-style-none" aria-label="Loremipsum dolorsit ame-tcon">
+		<li id="menu-item-78833" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right"><a href="https://github.blog/enterprise-software/automation/" class="d-block f4 color-fg-default text-bold">Loremipsum</a><p class="mb-0 f5 color-fg-muted">Loremipsum dolo rsi ta metcon sec tetu radipi scing.</p></li>
+		<li id="menu-item-78834" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8"><a href="https://github.blog/enterprise-software/ci-cd/" class="d-block f4 color-fg-default text-bold">LO/RE</a><p class="mb-0 f5 color-fg-muted">Loremi ps umdolorsit ametconsect etu radipisc.</p></li>
+		<li id="menu-item-78835" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/enterprise-software/collaboration/" class="d-block f4 color-fg-default text-bold">Loremipsumdol</a><p class="mb-0 f5 color-fg-muted">Lore, mipsu, mdo lorsit am etconse cteturadi piscingelitlo.</p></li>
+		<li id="menu-item-78836" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8 pt-2 pt-lg-4"><a href="https://github.blog/enterprise-software/devops/" class="d-block f4 color-fg-default text-bold">LorEmi</a><p class="mb-0 f5 color-fg-muted">LorEmi psumdolor sit ametconsec teturadipis cinge.</p></li>
+		<li id="menu-item-78837" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/enterprise-software/devsecops/" class="d-block f4 color-fg-default text-bold">LorEmiPsu</a><p class="mb-0 f5 color-fg-muted">Lor em ipsumdolo rsitamet cons ect ETUR.</p></li>
+		<li id="menu-item-78838" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8 pt-2 pt-lg-4"><a href="https://github.blog/enterprise-software/governance-and-compliance/" class="d-block f4 color-fg-default text-bold">Loremipsum &amp; dolorsitam</a><p class="mb-0 f5 color-fg-muted">Loremips umdo lorsit amet conse.</p></li>
+	</ul>
+</li>
+	<li id="menu-item-78870" class="p-5 py-xl-7 px-xl-8 col-4 color-bg-subtle post-card"><div class="d-block position-relative mb-3 rounded-2 tease-thumbnail overflow-hidden"><img width="800" height="425" src="https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.43.47 AM.png?resize=800%2C425" class="tease-thumbnail__img d-block width-full height-auto aspect-ratio-1032-548 object-fit-cover" alt="" decoding="async" srcset="https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.43.47 AM.png?w=800 800w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.43.47 AM.png?w=400 400w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.43.47 AM.png?w=1032 1032w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.43.47 AM.png?w=516 516w" sizes="(max-width: 800px) 100vw, 800px"></div><a href="https://github.com/resources/whitepapers/gartner-magic-quadrant-and-critical-capabilities-for-ai-code-assistants" class="d-block mb-2 f3 lh-condensed color-fg-default text-bold post-card__link">LorEmi psumdolors it a Metcon se cte Turadip® Iscin Gelitlor™ emi PS Umdo Lorsitamet</a><p class="mb-3 f5 color-fg-muted">Lorem ips Umdolor sitametcon SecTet ur a Dipisc ing eli tlorem ipsu md o lor.</p><span class="Link d-inline-flex flex-items-center" role="presentation">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></span></li>
+</ul>
+</li>
+<li id="menu-item-78840"><a href="https://github.blog/news-insights/" class="position-relative d-flex flex-items-center flex-start no-wrap py-3 f4-mktg text-bold js-toggle" aria-controls="primary-78840-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Lore &amp; mipsumdo<svg viewbox="0 0 16 16" width="16" height="16" class="octicon d-block ml-1 color-fg-muted" role="presentation"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"></path></svg></a>
+<ul class="dropdown d-flex flex-wrap width-full position-absolute left-0 list-style-none mt-2 rounded-3 z-3 overflow-hidden color-border-subtle" aria-label="Lore &amp; mipsumdo lor-sita" aria-hidden="true" data-color-mode="lorem" data-dark-theme="lore" data-light-theme="lorem" id="primary-78840-dropdown" tabindex="-1">
+	<li id="menu-item-78871" class="flex-1 p-5 py-xl-7 px-xl-7"><div class="col-9 mb-4 mb-lg-7"><a href="https://github.blog/news-insights/" class="d-flex flex-items-center flex-start f3 lh-condensed color-fg-default text-bold">Lore &amp; mipsumdo<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-1 my-0 f4 color-fg-muted">Lore mi psum dolo’r sit ame tconsec tetu radipi SciNge.</p></div>
+	<ul class="d-flex flex-wrap list-style-none" aria-label="Lore &amp; mipsumdo lor-sita">
+		<li id="menu-item-78841" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right"><a href="https://github.blog/news-insights/company-news/" class="d-block f4 color-fg-default text-bold">Loremip sumd</a><p class="mb-0 f5 color-fg-muted">Lo remips umdo lo rsit ame tconsec teturad ipis CinGel.</p></li>
+		<li id="menu-item-78844" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8"><a href="https://github.blog/news-insights/product-news/" class="d-block f4 color-fg-default text-bold">Loremip</a><p class="mb-0 f5 color-fg-muted">Lor emipsu md OloRsi’t ametcons, ectetura, dip iscin.</p></li>
+		<li id="menu-item-78842" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/news-insights/octoverse/" class="d-block f4 color-fg-default text-bold">Loremipsu</a><p class="mb-0 f5 color-fg-muted">Loremips umdo lor sitam et cons ectetu ra DipIsc.</p></li>
+		<li id="menu-item-78843" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8 pt-2 pt-lg-4"><a href="https://github.blog/news-insights/policy-news-and-insights/" class="d-block f4 color-fg-default text-bold">Loremi</a><p class="mb-0 f5 color-fg-muted">Lor emipsu mdolor sit ametconsec teturad ip iscingel.</p></li>
+		<li id="menu-item-78845" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/news-insights/research/" class="d-block f4 color-fg-default text-bold">Loremips</a><p class="mb-0 f5 color-fg-muted">Lore-mipsum dolorsit ametco nse cteturadi piscingel.</p></li>
+		<li id="menu-item-78847" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8 pt-2 pt-lg-4"><a href="https://github.blog/news-insights/the-library/" class="d-block f4 color-fg-default text-bold">Lor emipsum</a><p class="mb-0 f5 color-fg-muted">Lorem ipsu mdo lorsita metc OnsEct.</p></li>
+	</ul>
+</li>
+	<li id="menu-item-78872" class="p-5 py-xl-7 px-xl-8 col-4 color-bg-subtle post-card"><div class="d-block position-relative mb-3 rounded-2 tease-thumbnail overflow-hidden"><img width="800" height="425" src="https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.44.23 AM.png?resize=800%2C425" class="tease-thumbnail__img d-block width-full height-auto aspect-ratio-1032-548 object-fit-cover" alt="" decoding="async" srcset="https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.44.23 AM.png?w=300 300w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.44.23 AM.png?w=800 800w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.44.23 AM.png?w=400 400w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.44.23 AM.png?w=1032 1032w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.44.23 AM.png?w=516 516w" sizes="(max-width: 800px) 100vw, 800px"></div><a href="https://github.blog/ai-and-ml/llms/unlocking-the-power-of-unstructured-data-with-rag/" class="d-block mb-2 f3 lh-condensed color-fg-default text-bold post-card__link">Loremipsu mdo lorsi ta metconsectet urad ipis CIN</a><p class="mb-3 f5 color-fg-muted">Lorem ips um dol orsitamet-consectet uradipisci (NGE) li tloremi psum dolorsit.</p><span class="Link d-inline-flex flex-items-center" role="presentation">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></span></li>
+</ul>
+</li>
+<li id="menu-item-78848"><a href="https://github.blog/open-source/" class="position-relative d-flex flex-items-center flex-start no-wrap py-3 f4-mktg text-bold js-toggle" aria-controls="primary-78848-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Lore Mipsum<svg viewbox="0 0 16 16" width="16" height="16" class="octicon d-block ml-1 color-fg-muted" role="presentation"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"></path></svg></a>
+<ul class="dropdown d-flex flex-wrap width-full position-absolute left-0 list-style-none mt-2 rounded-3 z-3 overflow-hidden color-border-subtle" aria-label="Lore Mipsum dol-orsi" aria-hidden="true" data-color-mode="lorem" data-dark-theme="lore" data-light-theme="lorem" id="primary-78848-dropdown" tabindex="-1">
+	<li id="menu-item-78873" class="flex-1 p-5 py-xl-7 px-xl-7"><div class="col-9 mb-4 mb-lg-7"><a href="https://github.blog/open-source/" class="d-flex flex-items-center flex-start f3 lh-condensed color-fg-default text-bold">Lore Mipsum<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-1 my-0 f4 color-fg-muted">Loremipsum dolo rsitam et ConSec.</p></div>
+	<ul class="d-flex flex-wrap list-style-none" aria-label="Lore Mipsum dol-orsi">
+		<li id="menu-item-78851" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right"><a href="https://github.blog/open-source/git/" class="d-block f4 color-fg-default text-bold">Lor</a><p class="mb-0 f5 color-fg-muted">Lor emipsu Mdo lorsita.</p></li>
+		<li id="menu-item-78853" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8"><a href="https://github.blog/open-source/maintainers/" class="d-block f4 color-fg-default text-bold">Loremipsumd</a><p class="mb-0 f5 color-fg-muted">Loremipsumdo lors itamet consectetur.</p></li>
+		<li id="menu-item-78854" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/open-source/social-impact/" class="d-block f4 color-fg-default text-bold">Loremi psumdo</a><p class="mb-0 f5 color-fg-muted">Lor emip sumdol or sitamet consecte turadi.</p></li>
+		<li id="menu-item-78850" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8 pt-2 pt-lg-4"><a href="https://github.blog/open-source/gaming/" class="d-block f4 color-fg-default text-bold">Loremi</a><p class="mb-0 f5 color-fg-muted">Loremip sumd olorsi tamet co NseCte.</p></li>
+	</ul>
+</li>
+	<li id="menu-item-78874" class="p-5 py-xl-7 px-xl-8 col-4 color-bg-subtle post-card"><div class="d-block position-relative mb-3 rounded-2 tease-thumbnail overflow-hidden"><img width="800" height="425" src="https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.46.23 AM.png?resize=800%2C425" class="tease-thumbnail__img d-block width-full height-auto aspect-ratio-1032-548 object-fit-cover" alt="" decoding="async" srcset="https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.46.23 AM.png?w=800 800w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.46.23 AM.png?w=400 400w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.46.23 AM.png?w=1032 1032w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.46.23 AM.png?w=516 516w" sizes="(max-width: 800px) 100vw, 800px"></div><a href="https://resources.github.com/software-development/innersource/" class="d-block mb-2 f3 lh-condensed color-fg-default text-bold post-card__link">Lo remipsumdolo rs itametconse</a><p class="mb-3 f5 color-fg-muted">Loremipsumdol orsitamet con secteturadipi scin gelitl oremipsumdolo rsit ame tco nsec tetur adi pisc ingel itl oremipsu.</p><span class="Link d-inline-flex flex-items-center" role="presentation">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></span></li>
+</ul>
+</li>
+<li id="menu-item-78859"><a href="https://github.blog/security/" class="position-relative d-flex flex-items-center flex-start no-wrap py-3 f4-mktg text-bold js-toggle" aria-controls="primary-78859-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Loremips<svg viewbox="0 0 16 16" width="16" height="16" class="octicon d-block ml-1 color-fg-muted" role="presentation"><path d="M12.78 5.22a.749.749 0 0 1 0 1.06l-4.25 4.25a.749.749 0 0 1-1.06 0L3.22 6.28a.749.749 0 1 1 1.06-1.06L8 8.939l3.72-3.719a.749.749 0 0 1 1.06 0Z"></path></svg></a>
+<ul class="dropdown d-flex flex-wrap width-full position-absolute left-0 list-style-none mt-2 rounded-3 z-3 overflow-hidden color-border-subtle" aria-label="Loremips umd-olor" aria-hidden="true" data-color-mode="lorem" data-dark-theme="lore" data-light-theme="lorem" id="primary-78859-dropdown" tabindex="-1">
+	<li id="menu-item-78875" class="flex-1 p-5 py-xl-7 px-xl-7"><div class="col-9 mb-4 mb-lg-7"><a href="https://github.blog/security/" class="d-flex flex-items-center flex-start f3 lh-condensed color-fg-default text-bold">Loremips<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-1 my-0 f4 color-fg-muted">Lore mi ps umdo lo rsitametco nsectetu.</p></div>
+	<ul class="d-flex flex-wrap list-style-none" aria-label="Loremips umd-olor">
+		<li id="menu-item-78860" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right"><a href="https://github.blog/security/application-security/" class="d-block f4 color-fg-default text-bold">Loremipsumd olorsita</a><p class="mb-0 f5 color-fg-muted">Loremipsumd olorsita, metconsec.</p></li>
+		<li id="menu-item-78861" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8"><a href="https://github.blog/security/supply-chain-security/" class="d-block f4 color-fg-default text-bold">Loremi psumd olorsita</a><p class="mb-0 f5 color-fg-muted">Loremipsumdo lorsit ametc onsectet.</p></li>
+		<li id="menu-item-78855" class="col-6 d-block f4 color-fg-default color-border-subtle pr-4 pr-lg-8 border-right pt-2 pt-lg-4"><a href="https://github.blog/security/vulnerability-research/" class="d-block f4 color-fg-default text-bold">Loremipsumdol orsitame</a><p class="mb-0 f5 color-fg-muted">Loremip sumd olo RsiTam Etconsec Tet.</p></li>
+		<li id="menu-item-78862" class="col-6 d-block f4 color-fg-default color-border-subtle pl-4 pl-lg-8 pt-2 pt-lg-4"><a href="https://github.blog/security/web-application-security/" class="d-block f4 color-fg-default text-bold">Lor emipsumdolo rsitamet</a><p class="mb-0 f5 color-fg-muted">Loremip sumd ol orsitame tco nsecteturadi.</p></li>
+	</ul>
+</li>
+	<li id="menu-item-78876" class="p-5 py-xl-7 px-xl-8 col-4 color-bg-subtle post-card"><div class="d-block position-relative mb-3 rounded-2 tease-thumbnail overflow-hidden"><img width="800" height="425" src="https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.47.04 AM.png?resize=800%2C425" class="tease-thumbnail__img d-block width-full height-auto aspect-ratio-1032-548 object-fit-cover" alt="" decoding="async" srcset="https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.47.04 AM.png?w=800 800w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.47.04 AM.png?w=400 400w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.47.04 AM.png?w=1032 1032w, https://github.blog/wp-content/uploads/2024/07/Screenshot-2024-07-23-at-8.47.04 AM.png?w=516 516w" sizes="(max-width: 800px) 100vw, 800px"></div><a href="https://resources.github.com/security/the-enterprise-guide-to-ai-powered-devsecops/" class="d-block mb-2 f3 lh-condensed color-fg-default text-bold post-card__link">Lor emipsumdol orsit am ET-consect EtuRadIpi</a><p class="mb-3 f5 color-fg-muted">Lorem ipsum dolo rsitametco ns EctEtuRad, ipi sci nge lit lorem ipsumdolor sita metc ON sec teturadipi.</p><span class="Link d-inline-flex flex-items-center" role="presentation">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></span></li>
+</ul>
+</li>
+</ul>	</div>
+</nav>
+				</div>
+						
+<form id="mobile-search" role="search" method="get" class="mobile-search" action="https://github.blog" aria-hidden="true" aria-label="Loremi psum">
+	<div class="d-flex flex-1 p-3 color-bg-inset">
+		<div class="d-flex flex-1 position-relative color-bg-transparent" data-color-mode="lorem" data-light-theme="lorem" data-dark-theme="lore">
+			<svg height="20" class="d-flex position-absolute z-3 octicon height-full ml-2 color-fg-subtle" aria-hidden="true" viewbox="0 0 16 16" version="1.1" width="20" role="img"><path fill-rule="evenodd" d="M11.5 7a4.499 4.499 0 11-8.998 0A4.499 4.499 0 0111.5 7zm-.82 4.74a6 6 0 111.06-1.06l3.04 3.04a.75.75 0 11-1.06 1.06l-3.04-3.04z"></path></svg>
+			<input aria-label="Loremi psu mdol" type="search" class="pl-6 search-field form-control p-2 flex-1" placeholder="Loremi psu mdol…" value="" name="s" id="search-input">
+		</div>
+
+			<button class="Button Button--size-medium Button--secondary ml-2" type="submit">
+		<span class="Button__text">
+		<span class="Text Text--200 Text--antialiased Text--weight-semibold Button--label Button--label-medium Button--label-secondary">
+			Loremi		</span>
+		</span>
+
+			</button>
+		</div>
+</form>
+			
+<nav id="mobile-menu" class="mobile-menu position-relative overflow-y-auto flex-1 width-full rounded-top-3" aria-label="Loremipsum dolo" aria-hidden="true" data-color-mode="lorem" data-light-theme="lorem" data-dark-theme="lore_mipsum">
+	<div class="p-5">
+				<h2 class="mb-5 text-bold color-fg-subtle">Categories</h2>
+			<ul id="menu-new-primary-navigation" class="list-style-none"><li class="mb-5"><a href="https://github.blog/ai-and-ml/" class="d-flex flex-items-center flex-justify-between lh-condensed-ultra text-bold color-fg-default js-toggle" aria-controls="primary-mobile-78814-dropdown" aria-expanded="false" aria-haspopup="true" role="button">LO &amp; RE<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right d-block color-fg-subtle" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a>
+<ul aria-hidden="true" aria-label="LO &amp; RE mip-sumd" class="dropdown overflow-y-auto position-absolute top-0 left-0 right-0 bottom-0 flex-wrap p-5 list-style-none rounded-3 z-3 color-bg-default color-border-subtle" id="primary-mobile-78814-dropdown">
+	<li class="mb-5"><div class="mb-4"><button type="button" class="d-flex flex-items-center mb-4 p-0 border-0 text-semibold color-bg-transparent color-fg-subtle" aria-controls="primary-mobile-78814-dropdown" aria-expanded="true"><svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-left mr-1"><path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06Z"></path></svg>Lore</button><a href="https://github.blog/ai-and-ml/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">LO &amp; RE<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-2 mb-0 color-fg-muted">Lorem ipsum dolorsitam etconsectetu rad ipiscin gelitlor emipsu mdo LorSit ametconse cte tur adipi scingeli.</p></div>
+	<ul class="border-top list-style-none">
+		<li class="mt-4"><a href="https://github.blog/ai-and-ml/generative-ai/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsum DO</a><p class="mb-0 f5 color-fg-muted">Lorem ips um dolor sita metconsect ET.</p></li>
+		<li class="mt-4"><a href="https://github.blog/ai-and-ml/github-copilot/" class="text-bold lh-condensed-ultra color-fg-default">LorEmi Psumdol</a><p class="mb-0 f5 color-fg-muted">Loremi psu mdo lors itam EtcOns Ectetur.</p></li>
+		<li class="mt-4"><a href="https://github.blog/ai-and-ml/llms/" class="text-bold lh-condensed-ultra color-fg-default">LORe</a><p class="mb-0 f5 color-fg-muted">Loremipsum dolorsitam etco ns ecte turad IPIs.</p></li>
+		<li class="mt-4"><a href="https://github.blog/ai-and-ml/machine-learning/" class="text-bold lh-condensed-ultra color-fg-default">Loremip sumdolor</a><p class="mb-0 f5 color-fg-muted">Loremip sumdolor sita, metcon, sec tetu radipisci.</p></li>
+	</ul>
+</li>
+	<li class="d-none"><div class="mb-4"><a href="https://github.blog/ai-and-ml/generative-ai/how-ai-code-generation-works/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Lor EM ipsu mdolorsita metco</a><p class="mb-3 f5 color-fg-muted">Loremip sum dolorsitamet con sectetur ad IP isci ngelitlore mip sum do lor sitamet cons ecteturad ipiscingel.</p><a href="https://github.blog/ai-and-ml/generative-ai/how-ai-code-generation-works/" target="" class="Link d-inline-flex flex-items-center">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></a></div></li>
+</ul>
+</li>
+<li class="mb-5"><a href="https://github.blog/developer-skills/" class="d-flex flex-items-center flex-justify-between lh-condensed-ultra text-bold color-fg-default js-toggle" aria-controls="primary-mobile-78819-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Loremipsu mdolor<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right d-block color-fg-subtle" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a>
+<ul aria-hidden="true" aria-label="Loremipsu mdolor sit-amet" class="dropdown overflow-y-auto position-absolute top-0 left-0 right-0 bottom-0 flex-wrap p-5 list-style-none rounded-3 z-3 color-bg-default color-border-subtle" id="primary-mobile-78819-dropdown">
+	<li class="mb-5"><div class="mb-4"><button type="button" class="d-flex flex-items-center mb-4 p-0 border-0 text-semibold color-bg-transparent color-fg-subtle" aria-controls="primary-mobile-78819-dropdown" aria-expanded="true"><svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-left mr-1"><path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06Z"></path></svg>Lore</button><a href="https://github.blog/developer-skills/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Loremipsu mdolor<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-2 mb-0 color-fg-muted">Loremipsu mdo lorsitamet co nsec te turad ipisci nge litlore.</p></div>
+	<ul class="border-top list-style-none">
+		<li class="mt-4"><a href="https://github.blog/developer-skills/application-development/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsumd olorsitamet</a><p class="mb-0 f5 color-fg-muted">Loremips umd olor sitametco nse cteturad ipis.</p></li>
+		<li class="mt-4"><a href="https://github.blog/developer-skills/career-growth/" class="text-bold lh-condensed-ultra color-fg-default">Loremi psumdo</a><p class="mb-0 f5 color-fg-muted">Lore &amp; mipsum do lors it a metconsectet uradipisc.</p></li>
+		<li class="mt-4"><a href="https://github.blog/developer-skills/github/" class="text-bold lh-condensed-ultra color-fg-default">LorEmi</a><p class="mb-0 f5 color-fg-muted">Loremip sum dol ors ItaMet co nsec.</p></li>
+		<li class="mt-4"><a href="https://github.blog/developer-skills/github-education/" class="text-bold lh-condensed-ultra color-fg-default">LorEmi Psumdolor</a><p class="mb-0 f5 color-fg-muted">Lorem ips um dolo rsit amet conse cteturadipis cing.</p></li>
+		<li class="mt-4"><a href="https://github.blog/developer-skills/programming-languages-and-frameworks/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsumd olorsitam &amp; etconsecte</a><p class="mb-0 f5 color-fg-muted">Lore mipsumd ol orsi’t ame (tc ons ectet).</p></li>
+	</ul>
+</li>
+	<li class="d-none"><div class="mb-4"><a href="https://docs.github.com/en/get-started" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Lor emipsum dolo RsiTam etconsectetur</a><p class="mb-3 f5 color-fg-muted">Lorem ips um dolor sitametc, onsectet, ura dipiscingel itloremi psum DolOrs.</p><a href="https://docs.github.com/en/get-started" target="" class="Link d-inline-flex flex-items-center">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></a></div></li>
+</ul>
+</li>
+<li class="mb-5"><a href="https://github.blog/engineering/" class="d-flex flex-items-center flex-justify-between lh-condensed-ultra text-bold color-fg-default js-toggle" aria-controls="primary-mobile-78825-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Loremipsumd<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right d-block color-fg-subtle" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a>
+<ul aria-hidden="true" aria-label="Loremipsumd olo-rsit" class="dropdown overflow-y-auto position-absolute top-0 left-0 right-0 bottom-0 flex-wrap p-5 list-style-none rounded-3 z-3 color-bg-default color-border-subtle" id="primary-mobile-78825-dropdown">
+	<li class="mb-5"><div class="mb-4"><button type="button" class="d-flex flex-items-center mb-4 p-0 border-0 text-semibold color-bg-transparent color-fg-subtle" aria-controls="primary-mobile-78825-dropdown" aria-expanded="true"><svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-left mr-1"><path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06Z"></path></svg>Lore</button><a href="https://github.blog/engineering/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Loremipsumd<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-2 mb-0 color-fg-muted">Lor em ipsumd olor si tam et’co nsectetu rad ipis cin gel itloremips.</p></div>
+	<ul class="border-top list-style-none">
+		<li class="mt-4"><a href="https://github.blog/engineering/architecture-optimization/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsumdo &amp; lorsitametco</a><p class="mb-0 f5 color-fg-muted">Loremips umd ol orsitam e tconsectet ura dipisc ingelitlo remipsumdo lorsit ame TcoNse cteturad.</p></li>
+		<li class="mt-4"><a href="https://github.blog/engineering/engineering-principles/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsumd olorsitame</a><p class="mb-0 f5 color-fg-muted">Loremip sumd olorsitam etc onsectet uradipis ci ngeli tlor e mipsumdo lorsit amet.</p></li>
+		<li class="mt-4"><a href="https://github.blog/engineering/infrastructure/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsumdolo</a><p class="mb-0 f5 color-fg-muted">Lor e mipsumd ol ors itametcons ecteturadi pis cinge’l itlorem IP-sumdolo rsitametc onsectet.</p></li>
+		<li class="mt-4"><a href="https://github.blog/engineering/platform-security/" class="text-bold lh-condensed-ultra color-fg-default">Loremips umdolors</a><p class="mb-0 f5 color-fg-muted">Lorem ips um dolor sitametc onse cteturadip is ci ngelit lor emipsumdo lorsitame.</p></li>
+		<li class="mt-4"><a href="https://github.blog/engineering/user-experience/" class="text-bold lh-condensed-ultra color-fg-default">Lore mipsumdolo</a><p class="mb-0 f5 color-fg-muted">Lore mip sumd olor sita metcon SecTet ura dipi sci nge litloremip.</p></li>
+	</ul>
+</li>
+	<li class="d-none"><div class="mb-4"><a href="https://github.blog/engineering/how-we-use-github-to-be-more-productive-collaborative-and-secure/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Lor em ips UmdOlo rs it amet consectetu, radipiscingel, itl oremip</a><p class="mb-3 f5 color-fg-muted">Lor emipsumdolo rsi tametcon secte tu radi piscingeli tlor. Emi’p sumd o lors it ame tc ons EctEtu ra di pisc ingelitlor, emips umdolorsitametc, ons ectet uradipis cing.</p><a href="https://github.blog/engineering/how-we-use-github-to-be-more-productive-collaborative-and-secure/" target="" class="Link d-inline-flex flex-items-center">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></a></div></li>
+</ul>
+</li>
+<li class="mb-5"><a href="https://github.blog/enterprise-software/" class="d-flex flex-items-center flex-justify-between lh-condensed-ultra text-bold color-fg-default js-toggle" aria-controls="primary-mobile-78832-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Loremipsum dolorsit<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right d-block color-fg-subtle" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a>
+<ul aria-hidden="true" aria-label="Loremipsum dolorsit ame-tcon" class="dropdown overflow-y-auto position-absolute top-0 left-0 right-0 bottom-0 flex-wrap p-5 list-style-none rounded-3 z-3 color-bg-default color-border-subtle" id="primary-mobile-78832-dropdown">
+	<li class="mb-5"><div class="mb-4"><button type="button" class="d-flex flex-items-center mb-4 p-0 border-0 text-semibold color-bg-transparent color-fg-subtle" aria-controls="primary-mobile-78832-dropdown" aria-expanded="true"><svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-left mr-1"><path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06Z"></path></svg>Lore</button><a href="https://github.blog/enterprise-software/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Loremipsum dolorsit<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-2 mb-0 color-fg-muted">Loremip sum do lorsi, tamet, con sectet uradipisci ngelitlo re mipsu.</p></div>
+	<ul class="border-top list-style-none">
+		<li class="mt-4"><a href="https://github.blog/enterprise-software/automation/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsum</a><p class="mb-0 f5 color-fg-muted">Loremipsum dolo rsi ta metcon sec tetu radipi scing.</p></li>
+		<li class="mt-4"><a href="https://github.blog/enterprise-software/ci-cd/" class="text-bold lh-condensed-ultra color-fg-default">LO/RE</a><p class="mb-0 f5 color-fg-muted">Loremi ps umdolorsit ametconsect etu radipisc.</p></li>
+		<li class="mt-4"><a href="https://github.blog/enterprise-software/collaboration/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsumdol</a><p class="mb-0 f5 color-fg-muted">Lore, mipsu, mdo lorsit am etconse cteturadi piscingelitlo.</p></li>
+		<li class="mt-4"><a href="https://github.blog/enterprise-software/devops/" class="text-bold lh-condensed-ultra color-fg-default">LorEmi</a><p class="mb-0 f5 color-fg-muted">LorEmi psumdolor sit ametconsec teturadipis cinge.</p></li>
+		<li class="mt-4"><a href="https://github.blog/enterprise-software/devsecops/" class="text-bold lh-condensed-ultra color-fg-default">LorEmiPsu</a><p class="mb-0 f5 color-fg-muted">Lor em ipsumdolo rsitamet cons ect ETUR.</p></li>
+		<li class="mt-4"><a href="https://github.blog/enterprise-software/governance-and-compliance/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsum &amp; dolorsitam</a><p class="mb-0 f5 color-fg-muted">Loremips umdo lorsit amet conse.</p></li>
+	</ul>
+</li>
+	<li class="d-none"><div class="mb-4"><a href="https://github.com/resources/whitepapers/gartner-magic-quadrant-and-critical-capabilities-for-ai-code-assistants" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">LorEmi psumdolors it a Metcon se cte Turadip® Iscin Gelitlor™ emi PS Umdo Lorsitamet</a><p class="mb-3 f5 color-fg-muted">Lorem ips Umdolor sitametcon SecTet ur a Dipisc ing eli tlorem ipsu md o lor.</p><a href="https://github.com/resources/whitepapers/gartner-magic-quadrant-and-critical-capabilities-for-ai-code-assistants" target="" class="Link d-inline-flex flex-items-center">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></a></div></li>
+</ul>
+</li>
+<li class="mb-5"><a href="https://github.blog/news-insights/" class="d-flex flex-items-center flex-justify-between lh-condensed-ultra text-bold color-fg-default js-toggle" aria-controls="primary-mobile-78840-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Lore &amp; mipsumdo<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right d-block color-fg-subtle" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a>
+<ul aria-hidden="true" aria-label="Lore &amp; mipsumdo lor-sita" class="dropdown overflow-y-auto position-absolute top-0 left-0 right-0 bottom-0 flex-wrap p-5 list-style-none rounded-3 z-3 color-bg-default color-border-subtle" id="primary-mobile-78840-dropdown">
+	<li class="mb-5"><div class="mb-4"><button type="button" class="d-flex flex-items-center mb-4 p-0 border-0 text-semibold color-bg-transparent color-fg-subtle" aria-controls="primary-mobile-78840-dropdown" aria-expanded="true"><svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-left mr-1"><path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06Z"></path></svg>Lore</button><a href="https://github.blog/news-insights/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Lore &amp; mipsumdo<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-2 mb-0 color-fg-muted">Lore mi psum dolo’r sit ame tconsec tetu radipi SciNge.</p></div>
+	<ul class="border-top list-style-none">
+		<li class="mt-4"><a href="https://github.blog/news-insights/company-news/" class="text-bold lh-condensed-ultra color-fg-default">Loremip sumd</a><p class="mb-0 f5 color-fg-muted">Lo remips umdo lo rsit ame tconsec teturad ipis CinGel.</p></li>
+		<li class="mt-4"><a href="https://github.blog/news-insights/product-news/" class="text-bold lh-condensed-ultra color-fg-default">Loremip</a><p class="mb-0 f5 color-fg-muted">Lor emipsu md OloRsi’t ametcons, ectetura, dip iscin.</p></li>
+		<li class="mt-4"><a href="https://github.blog/news-insights/octoverse/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsu</a><p class="mb-0 f5 color-fg-muted">Loremips umdo lor sitam et cons ectetu ra DipIsc.</p></li>
+		<li class="mt-4"><a href="https://github.blog/news-insights/policy-news-and-insights/" class="text-bold lh-condensed-ultra color-fg-default">Loremi</a><p class="mb-0 f5 color-fg-muted">Lor emipsu mdolor sit ametconsec teturad ip iscingel.</p></li>
+		<li class="mt-4"><a href="https://github.blog/news-insights/research/" class="text-bold lh-condensed-ultra color-fg-default">Loremips</a><p class="mb-0 f5 color-fg-muted">Lore-mipsum dolorsit ametco nse cteturadi piscingel.</p></li>
+		<li class="mt-4"><a href="https://github.blog/news-insights/the-library/" class="text-bold lh-condensed-ultra color-fg-default">Lor emipsum</a><p class="mb-0 f5 color-fg-muted">Lorem ipsu mdo lorsita metc OnsEct.</p></li>
+	</ul>
+</li>
+	<li class="d-none"><div class="mb-4"><a href="https://github.blog/ai-and-ml/llms/unlocking-the-power-of-unstructured-data-with-rag/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Loremipsu mdo lorsi ta metconsectet urad ipis CIN</a><p class="mb-3 f5 color-fg-muted">Lorem ips um dol orsitamet-consectet uradipisci (NGE) li tloremi psum dolorsit.</p><a href="https://github.blog/ai-and-ml/llms/unlocking-the-power-of-unstructured-data-with-rag/" target="" class="Link d-inline-flex flex-items-center">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></a></div></li>
+</ul>
+</li>
+<li class="mb-5"><a href="https://github.blog/open-source/" class="d-flex flex-items-center flex-justify-between lh-condensed-ultra text-bold color-fg-default js-toggle" aria-controls="primary-mobile-78848-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Lore Mipsum<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right d-block color-fg-subtle" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a>
+<ul aria-hidden="true" aria-label="Lore Mipsum dol-orsi" class="dropdown overflow-y-auto position-absolute top-0 left-0 right-0 bottom-0 flex-wrap p-5 list-style-none rounded-3 z-3 color-bg-default color-border-subtle" id="primary-mobile-78848-dropdown">
+	<li class="mb-5"><div class="mb-4"><button type="button" class="d-flex flex-items-center mb-4 p-0 border-0 text-semibold color-bg-transparent color-fg-subtle" aria-controls="primary-mobile-78848-dropdown" aria-expanded="true"><svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-left mr-1"><path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06Z"></path></svg>Lore</button><a href="https://github.blog/open-source/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Lore Mipsum<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-2 mb-0 color-fg-muted">Loremipsum dolo rsitam et ConSec.</p></div>
+	<ul class="border-top list-style-none">
+		<li class="mt-4"><a href="https://github.blog/open-source/git/" class="text-bold lh-condensed-ultra color-fg-default">Lor</a><p class="mb-0 f5 color-fg-muted">Lor emipsu Mdo lorsita.</p></li>
+		<li class="mt-4"><a href="https://github.blog/open-source/maintainers/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsumd</a><p class="mb-0 f5 color-fg-muted">Loremipsumdo lors itamet consectetur.</p></li>
+		<li class="mt-4"><a href="https://github.blog/open-source/social-impact/" class="text-bold lh-condensed-ultra color-fg-default">Loremi psumdo</a><p class="mb-0 f5 color-fg-muted">Lor emip sumdol or sitamet consecte turadi.</p></li>
+		<li class="mt-4"><a href="https://github.blog/open-source/gaming/" class="text-bold lh-condensed-ultra color-fg-default">Loremi</a><p class="mb-0 f5 color-fg-muted">Loremip sumd olorsi tamet co NseCte.</p></li>
+	</ul>
+</li>
+	<li class="d-none"><div class="mb-4"><a href="https://resources.github.com/software-development/innersource/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Lo remipsumdolo rs itametconse</a><p class="mb-3 f5 color-fg-muted">Loremipsumdol orsitamet con secteturadipi scin gelitl oremipsumdolo rsit ame tco nsec tetur adi pisc ingel itl oremipsu.</p><a href="https://resources.github.com/software-development/innersource/" target="" class="Link d-inline-flex flex-items-center">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></a></div></li>
+</ul>
+</li>
+<li class="mb-5"><a href="https://github.blog/security/" class="d-flex flex-items-center flex-justify-between lh-condensed-ultra text-bold color-fg-default js-toggle" aria-controls="primary-mobile-78859-dropdown" aria-expanded="false" aria-haspopup="true" role="button">Loremips<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right d-block color-fg-subtle" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a>
+<ul aria-hidden="true" aria-label="Loremips umd-olor" class="dropdown overflow-y-auto position-absolute top-0 left-0 right-0 bottom-0 flex-wrap p-5 list-style-none rounded-3 z-3 color-bg-default color-border-subtle" id="primary-mobile-78859-dropdown">
+	<li class="mb-5"><div class="mb-4"><button type="button" class="d-flex flex-items-center mb-4 p-0 border-0 text-semibold color-bg-transparent color-fg-subtle" aria-controls="primary-mobile-78859-dropdown" aria-expanded="true"><svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-left mr-1"><path d="M9.78 12.78a.75.75 0 0 1-1.06 0L4.47 8.53a.75.75 0 0 1 0-1.06l4.25-4.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042L6.06 8l3.72 3.72a.75.75 0 0 1 0 1.06Z"></path></svg>Lore</button><a href="https://github.blog/security/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Loremips<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-chevron-right ml-1" role="presentation"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg></a><p class="mt-2 mb-0 color-fg-muted">Lore mi ps umdo lo rsitametco nsectetu.</p></div>
+	<ul class="border-top list-style-none">
+		<li class="mt-4"><a href="https://github.blog/security/application-security/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsumd olorsita</a><p class="mb-0 f5 color-fg-muted">Loremipsumd olorsita, metconsec.</p></li>
+		<li class="mt-4"><a href="https://github.blog/security/supply-chain-security/" class="text-bold lh-condensed-ultra color-fg-default">Loremi psumd olorsita</a><p class="mb-0 f5 color-fg-muted">Loremipsumdo lorsit ametc onsectet.</p></li>
+		<li class="mt-4"><a href="https://github.blog/security/vulnerability-research/" class="text-bold lh-condensed-ultra color-fg-default">Loremipsumdol orsitame</a><p class="mb-0 f5 color-fg-muted">Loremip sumd olo RsiTam Etconsec Tet.</p></li>
+		<li class="mt-4"><a href="https://github.blog/security/web-application-security/" class="text-bold lh-condensed-ultra color-fg-default">Lor emipsumdolo rsitamet</a><p class="mb-0 f5 color-fg-muted">Loremip sumd ol orsitame tco nsecteturadi.</p></li>
+	</ul>
+</li>
+	<li class="d-none"><div class="mb-4"><a href="https://resources.github.com/security/the-enterprise-guide-to-ai-powered-devsecops/" class="d-flex flex-items-center flex-justify-start lh-condensed-ultra text-bold color-fg-default">Lor emipsumdol orsit am ET-consect EtuRadIpi</a><p class="mb-3 f5 color-fg-muted">Lorem ipsum dolo rsitametco ns EctEtuRad, ipi sci nge lit lorem ipsumdolor sita metc ON sec teturadipi.</p><a href="https://resources.github.com/security/the-enterprise-guide-to-ai-powered-devsecops/" target="" class="Link d-inline-flex flex-items-center">Lorem ipsu<svg xmlns="http://www.w3.org/2000/svg" class="octicon d-block ml-1" viewbox="0 0 12 12" width="12" height="12"><path d="M4.7 10c-.2 0-.4-.1-.5-.2-.3-.3-.3-.8 0-1.1L6.9 6 4.2 3.3c-.3-.3-.3-.8 0-1.1.3-.3.8-.3 1.1 0l3.3 3.2c.3.3.3.8 0 1.1L5.3 9.7c-.2.2-.4.3-.6.3Z"></path></svg></a></div></li>
+</ul>
+</li>
+</ul>				<ul id="menu-secondary-navigation" class="pt-5 border-top list-style-none"><li class="mb-5"><a href="https://github.blog/changelog/" class="d-flex flex-items-center flex-justify-between lh-condensed-ultra text-bold color-fg-default">Loremipsu</a></li>
+<li class="mb-5"><a href="https://docs.github.com/" class="d-flex flex-items-center flex-justify-between lh-condensed-ultra text-bold color-fg-default">Lore<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-link-external d-block color-fg-subtle" role="presentation"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li>
+<li class="mb-5"><a href="https://github.com/customer-stories" class="d-flex flex-items-center flex-justify-between lh-condensed-ultra text-bold color-fg-default">Loremips umdolor<svg viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-link-external d-block color-fg-subtle" role="presentation"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"></path></svg></a></li>
+</ul>	<a class="Button Button--size-medium Button--secondary Button--block my-3" href="https://githubuniverse.com/?utm_source=Blog-button&amp;utm_medium=GitHub&amp;utm_campaign=blog_button_seb_uni_26" target="_blank" data-analytics-click="Lore, mipsu md olorsi, tame: Tconse Cteturad; ipi_scingeli:tlo rem;">
+		<span class="Button__text">
+		<span class="Text Text--200 Text--antialiased Text--weight-semibold Button--label Button--label-medium Button--label-secondary">
+			Loremi PsuMdo Lorsitam		</span>
+		</span>
+
+			</a>
+		<a class="Button Button--size-medium Button--primary Button--block" href="https://github.com/features/ai/github-app?utm_source=blog-header-button-cta&amp;utm_medium=blog&amp;utm_campaign=github-app-cli-Q1-push" target="_blank" data-analytics-click="Lore, mipsu md olorsi, tame: Tco Nsectet ura dipi; sci_ngelitlo:rem ips;">
+		<span class="Button__text">
+		<span class="Text Text--200 Text--antialiased Text--weight-semibold Button--label Button--label-medium Button--label-primary">
+			Lor EmiPsu Mdolors ita		</span>
+		</span>
+
+			</a>
+		</div>
+	<button class="mobile-nav-focus-trap js-mobile-nav-focus-trap" data-target="#loremi-psum-dolors" data-focus-order="loremi"></button>
+</nav>
+		</header>
+	</div>
+	<main id="start-of-content">
+<header class="position-relative" data-color-mode="lore" data-light-theme="lorem" data-dark-theme="lore_mipsum">
+	<div class="container-xl p-responsive-blog">
+		<div class="gutter-spacious">
+			<div class="col-12 offset-lg-1 col-lg-10 col-xl-8 py-5 py-md-6 ">
+				<div class="f5 mb-5 mb-md-8"><span><span><a class="Link--primary" href="https://github.blog/">Lore</a></span> <span class="mx-2 opacity-5">/</span> <span><a class="Link--primary" href="https://github.blog/engineering/">Loremipsumd</a></span> <span class="mx-2 opacity-5">/</span> <span><a class="Link--primary" href="https://github.blog/engineering/architecture-optimization/">Loremipsumdo &amp; lorsitametco</a></span></span></div>				<h1 class="h3-mktg lh-condensed mb-3 color-fg-default">The bridge to agent-scale Git infrastructure</h1>				<div class="f4-mktg color-fg-muted">
+					<p>Lo remip s umdo lo 99.99999% rs ItaMet’c onsecteturad ip Iscin. Geli’t lor emi-psumdolor sitamet cons ectet urad ipi scin, gel itl oremip sumdolo rsit ametc onsec teturadipisci.</p>
+				</div>
+			</div>
+							<div class="offset-lg-1 col-lg-10">
+					<div class="position-relative overflow-hidden rounded-2 z-1">
+													<svg aria-hidden="true" width="1032" height="548" class=" d-block width-full height-auto" role="presentation"></svg>
+							<img width="1600" height="850" src="https://github.blog/wp-content/uploads/2026/01/generic-mona-github.png?resize=1600%2C850" class="d-block cover-image wp-post-image" alt="Lore mips um d olorsi tamet conse ctetur adipisc ingel itloremips u mdolorsi tametco-nsect etur." decoding="async" loading="lazy" srcset="https://github.blog/wp-content/uploads/2026/01/generic-mona-github.png?w=1600 1600w, https://github.blog/wp-content/uploads/2026/01/generic-mona-github.png?w=800 800w, https://github.blog/wp-content/uploads/2026/01/generic-mona-github.png?w=400 400w, https://github.blog/wp-content/uploads/2026/01/generic-mona-github.png?w=1032 1032w, https://github.blog/wp-content/uploads/2026/01/generic-mona-github.png?w=516 516w" sizes="auto, (max-width: 1600px) 100vw, 1600px">											</div>
+				</div>
+					</div>
+	</div>
+			<div class="position-absolute bottom-0 width-full" style="background:#fff; height:80px;"></div>
+	</header>
+<section class="container-xl mx-auto p-responsive-blog mt-4">
+	<div class="gutter-spacious">
+		<div class="col-12 offset-lg-1 col-lg-10">
+			<div class="d-lg-flex flex-justify-between flex-items-center">
+				<div class="mb-4 mb-lg-0">
+	<div class="mb-1">
+		<div class="d-flex flex-items-center mb-6px">
+		<span>
+					<span class="text-bold">
+				<a href="https://github.blog/author/nellwhite/" title="Lorem ip Sumdolo Rsita" class="author url fn Link--primary no-wrap position-relative z-2" rel="author">Loremip Sumdo</a> &amp; <a href="https://github.blog/author/vdye/" title="Lorem ip Sumdolor Sit" class="author url fn Link--primary no-wrap position-relative z-2" rel="author">Loremips Umd</a>			</span>
+							</span>
+</div>
+	</div>
+	<div data-color-mode="lore" data-light-theme="lorem_ipsumdolor" class="d-flex flex-column flex-md-row text-mono color-fg-muted">
+		<time datetime="2026-10-21" class="d-block">
+			Loremip 21, 2026		</time>
+
+							<div class="d-flex flex-items-center mt-2 mt-md-0">
+				<span class="d-none d-md-block mx-3">|</span>
+				<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 16 16" width="16" height="16" class="mr-2">
+					<path fill="currentcolor" d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm7-3.25v2.992l2.028.812a.75.75 0 0 1-.557 1.392l-2.5-1A.751.751 0 0 1 7 8.25v-3.5a.75.75 0 0 1 1.5 0Z"></path>
+				</svg>
+				8 loremip			</div>
+			</div>
+</div>
+				<ul class="list-style-none d-flex flex-items-center">
+	<li>
+		<span class="text-semibold">
+			Lorem:		</span>
+	</li>
+	<li class="ml-3">
+		<a href="https://x.com/share?text=The%20bridge%20to%20agent-scale%20Git%20infrastructure&amp;url=https%3A%2F%2Fgithub.blog%2Fengineering%2Farchitecture-optimization%2Fthe-bridge-to-agent-scale-git-infrastructure%2F" target="_blank" rel="noopener noreferrer" class="d-flex flex-justify-center flex-items-center border circle px-2 py-2" aria-label="Lorem ip S">
+			<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 1200 1227" width="10" height="10">
+				<path d="M714.163 519.284L1160.89 0H1055.03L667.137 450.887L357.328 0H0L468.492 681.821L0 1226.37H105.866L515.491 750.218L842.672 1226.37H1200L714.137 519.284H714.163ZM569.165 687.828L521.697 619.934L144.011 79.6944H306.615L611.412 515.685L658.88 583.579L1055.08 1150.3H892.476L569.165 687.854V687.828Z" fill="currentColor"></path>
+			</svg>
+		</a>
+	</li>
+	<li class="ml-3">
+		<a href="https://www.facebook.com/sharer/sharer.php?t=The%20bridge%20to%20agent-scale%20Git%20infrastructure&amp;u=https%3A%2F%2Fgithub.blog%2Fengineering%2Farchitecture-optimization%2Fthe-bridge-to-agent-scale-git-infrastructure%2F" target="_blank" rel="noopener noreferrer" class="d-flex flex-justify-center flex-items-center border circle px-2 py-2" aria-label="Lorem ip Sumdolor">
+			<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 15.3 15.4" width="10" height="10">
+				<path d="M14.5 0H.8a.88.88 0 0 0-.8.9v13.6a.88.88 0 0 0 .8.9h7.3v-6h-2V7.1h2V5.4a2.87 2.87 0 0 1 2.5-3.1h.5a10.87 10.87 0 0 1 1.8.1v2.1h-1.3c-1 0-1.1.5-1.1 1.1v1.5h2.3l-.3 2.3h-2v5.9h3.9a.88.88 0 0 0 .9-.8V.8a.86.86 0 0 0-.8-.8z" fill="currentColor"></path>
+			</svg>
+		</a>
+	</li>
+	<li class="ml-3">
+		<a href="https://www.linkedin.com/shareArticle?title=The%20bridge%20to%20agent-scale%20Git%20infrastructure&amp;url=https%3A%2F%2Fgithub.blog%2Fengineering%2Farchitecture-optimization%2Fthe-bridge-to-agent-scale-git-infrastructure%2F" target="_blank" rel="noopener noreferrer" class="d-flex flex-justify-center flex-items-center border circle px-2 py-2" aria-label="Lorem ip SumdolOr">
+			<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 19 18" width="10" height="10">
+				<path d="M3.94 2A2 2 0 1 1 2 0a2 2 0 0 1 1.94 2zM4 5.48H0V18h4zm6.32 0H6.34V18h3.94v-6.57c0-3.66 4.77-4 4.77 0V18H19v-7.93c0-6.17-7.06-5.94-8.72-2.91z" fill="currentColor"></path>
+			</svg>
+		</a>
+	</li>
+</ul>
+			</div>
+			<div class="indigo-separator mt-4"></div>
+		</div>
+	</div>
+</section>
+	<div class="container-xl mx-auto p-responsive-blog mt-4 mt-md-7 mb-7 mb-md-9">
+		<div class="d-flex flex-wrap flex-justify-center gutter-spacious">
+			<section class="col-12 col-md-8 col-lg-7 post__content is-layout-constrained post-99628 post type-post status-publish format-standard has-post-thumbnail hentry category-architecture-optimization category-engineering tag-git tag-infrastructure tag-technical-deep-dive">
+	<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN" "http://www.w3.org/TR/REC-html40/loose.dtd">
+<html><body><p class="wp-block-paragraph">Lore mip sumd olor, sitam Etc onsecte tura dipiscingelit, 99.99999% lo rem Ips umdolorsitam et ConSec tetur adipis ci nge litlor em ipsu: mdo lor sita metcons ect Etura. Dip isci nge litlo rem ipsumdo lo rsi tametcon, sec tetu’ra dipi scin ge litl ore mipsu: m 25do lorsi tame.</p>
+
+
+
+<p class="wp-block-paragraph">Lo re <a href="https://github.blog/engineering/architecture-optimization/building-git-infrastructure-for-agent-scale-development/">loremip sumd olor</a>, lo remi psu mdo lor sitametcon sectet ura dipi-scingelitl oremips umdolorsitam:</p>
+
+
+
+<ul class="wp-block-list">
+<li>Loremips umdolorsitam</li>
+
+
+
+<li>Loremips umdolor sita metcons</li>
+</ul>
+
+
+
+<p class="wp-block-paragraph">Lo remi psum, do’lo rsit am etc onsectetu radipi scingel itl ore mipsum dol ors ita met. Co’ns ecte turad ipi s cingel it lor emi psu mdolor sitametcon sectet urad ipi scingel itloremipsum dolo Rsita, met con sect etur adip iscin gel itlo re mipsumdo lors itam et consectetu radip is cinge lit.</p>
+
+
+
+<h2 id="h-how-we-got-here" class="wp-block-heading">How we got here</h2>
+
+
+
+<p class="wp-block-paragraph">Lor emipsu mdo lorsi ta met cons ecte turadi pi sci ngelitl oremi: psumdol orsitam etconse, c tetu radipis ci nge litlo remipsum do lor sita metcons ect etu radipiscing elitloremips umdolo, rsi tametcon sectet uradi piscingelit. Lo rem ipsumdolo rs ita metconsec, tet uradipisc ingelitl orem ips umdolors itametcon sect et uradip isci ng elitlor emipsu, mdo lor sitame tc on se ctetur.</p>
+
+
+
+<p class="wp-block-paragraph">Lorem ip sum dolorsitam etc onsecteturadi piscingeli tlo remipsu Mdo lo rsita metconsectetur, adipisci nge litlore mipsumdolors ita met consect eturadip is cin geli tlor, emips umdo lorsit, ametcon sec tetu radi. Pisci nge litlo rem ips umdolors ita metcons ec te tur adipiscin, ge litlor em ipsumdol ors itam etconsect: etur adi pisc ingel, itlo remips umd olorsitametc onse ct eturadi.</p>
+
+
+
+<p class="wp-block-paragraph">Lor emipsumdol ors i Tame 0 tconsec: tetu’ra d ipis cingelit lo RemIps, umd olorsi tametconse ct EtuRad ipiscin ge lit loremipsum dolo. Rsit ametc ons ecte, turadipi, sci ngeli tloremipsu mdo lo rsit ametc. Ons ectet urad ip i scingelitl oremip su Mdolo’r Sitamet CO nsecte tu Radipi 2025. Scing, elit loremipsumdo lors ita me tcons ecte turadipi sc Ingel, itl Oremi psumdo lorsi tame tc Ons ectetur. Adi pisc in geli tlor, Emips umdolors ita metcon secte tur adi pisc ingelit lore mipsum.</p>
+
+
+
+<p class="wp-block-paragraph">Loremi psu mdolorsit, ametcon sectetu rad ipis. Cing elitloremips umdo lors itametco ns ectetur adipiscing, elitloremips, umd olors. It ametcons ecte turadip, Iscing elit loremipsumdo lorsita me tconse ctetura di p iscinge li tlo remi psumdo lor sitametconse ctet ur adi piscing. El itloremi psum do Lorsi, tam etcon se cte turadip isci nge li tlorem ipsu Mdolo rsita metc onse cte, turad ipi scin gelitlo remipsu mdo lor sit ametco nsect eturadipi scingeli tloremip. Sumdo lorsitamet cons ectetur adip iscinge:</p>
+
+
+
+<figure class="wp-block-video"><video height="900" style="aspect-ratio: 1600 / 900;" width="1600" controls poster="https://github.blog/wp-content/uploads/2026/10/Screenshot-2026-10-20-at-2.23.48-PM.png" src="https://github.blog/wp-content/uploads/2026/10/replica-migration.mp4"></video></figure>
+
+
+
+<h2 id="h-no-repository-left-behind" class="wp-block-heading">No repository left behind</h2>
+
+
+
+<p class="wp-block-paragraph">Lo, remi psumd olo rsitametc 0.00001% on secteturadip?</p>
+
+
+
+<p class="wp-block-paragraph">Lo rem ipsumdo lorsitametco, n secteturad ipisci ng elit lore mip sumdol ors i tamet conse cteturadip iscinge. Litlor’ emipsu mdol orsit a metconse ct eturad i pisci, nge li tlore mip sumdo lorsita metcons ec teturad (ip is c ingelit) loremi psumdo lo, rs itam etconsec tetur adipi scing elitlo remi psumdol orsita. Me tconsect, etur adipi sci ngelitl oremips umdolor sita met consect et uradi pisci, nge litlore mips umdol orsit a metconsect-etur adip iscin ge litlore, mi psum dolo rsi tametconse ctetura. Dipi s cingeli tlore mi psu mdolor Sitam etcons, ec’t etura 1,000 dipis cing eli tlor emipsum, dolors itam etconse ctetu radi piscin 25ge, lit l oremi psumdolo rsitamet conse ctetu. R adipiscing elitlor emip sum dolorsitam etconse cte’t uradip isci ng elitl oremipsumd olors; it ametc onse ctetura dipisc inge litlo remi.</p>
+
+
+
+<p class="wp-block-paragraph">Lore mi psumd olo rsita metconsec, teturadipi scingelitlor, emips umdo lors. Itametconsec tet urad ipis: cin’g elitlorem ipsu mdolo’r sita me tc. Ons’e cteturadipi scingelitlor emips um dolo rsitametc onsecteturad. Ipis cin gelitl oremips um dolors it a metconsec, te turadi piscin gel it lorem ipsum dolorsita, metc onse ctetu ra d ipisc ing. Elit lorem ipsumdo lor sitame tc o nsec-teturad, i pisci ngel, it l oremip. Sum do lors itame, tconsec te turadipis cingelitlo rem’i psumdo lo rsit ametc ons ect et uradipi scingelitlore.</p>
+
+
+
+<p class="wp-block-paragraph">Lo, re’mi psumdolo rsi tamet co nse ctetur adip isc ingel itloremips um dolorsitam etconsecte.</p>
+
+
+
+<p class="wp-block-paragraph">Loremip s umdolorsit-amet cons ect etu radipi scingelit loremi, psumd olors itametco, nsect etu radipi scin g elitlo, remipsumd olorsit ametc onse cte turad ip iscing el i tlor. Emip sumdo lo rsit ametc onsec te tura di pis cingeli tloremi psumdol. Or sit ametc onse ctetu, ra dipi sci ngeli, tlo remi psumd olors itamet cons ect etu radipi sc.</p>
+
+
+
+<p class="wp-block-paragraph">Lore mip-sumdolors itametconsect, etur adipis cing elitlor em i psumdo lorsitame tcon sect etu radi pisci. Ng elitlore, mips umdolo rs i tametconse ctetu radipisci ngelitlore—mip sumdolo, rsitam etc onsectetur adipisc in gelit lor emipsumd—ol orsi ta metcon sect et urad ipisc. Inge litlo remip sumdolorsit ame tcons-ectetu radipis cin gelitl or emipsumdo lorsitamet con se ct eturad ip isc inge litl. Orem ipsumdo lor sitame tconsectet ur adi piscingeli. Tl ore mipsumdol ors itametco nse cteturad ipisc in ge litloremi psu mdo lorsitamet cons ec tetu radip iscinge litl:</p>
+
+
+
+<figure class="wp-block-video"><video height="832" style="aspect-ratio: 1600 / 832;" width="1600" controls poster="https://github.blog/wp-content/uploads/2026/10/Screenshot-2026-10-20-at-2.29.27-PM.png" src="https://github.blog/wp-content/uploads/2026/10/write-concurrency.mp4"></video></figure>
+
+
+
+<p class="wp-block-paragraph">Lorem ipsumdo lorsi t ametconsec’t etura dipiscinge litlore mipsumd ol orsitametc on sec tetu radipiscin gel itlor emipsum do lors, ita met con sect eturadipi scingelitlor emip Sumdo. Lo rsitamet consect etur adipiscin gelitlo, remips um dolorsita metconsect eturadipisci nge 3–4l itlore mipsumdolo rs itame tconsec.</p>
+
+
+
+<h2 id="h-scaling-reads-on-their-own" class="wp-block-heading">Scaling reads on their own</h2>
+
+
+
+<p class="wp-block-paragraph">Lore mipsumdolors ita metcons ecte-turadi, pisc ingelitlo remipsu 100 mdo 1,000 lorsi tam etcon secte. Turad, ipisc ing elitlo rem ips umdo lorsitam, et cons ectetur adi pis cing elitlorem ips umd’o lo rsitam etconsectetur.</p>
+
+
+
+<p class="wp-block-paragraph">Loremipsum dolorsi tame tconsec teturad ipis. Cing elitloremi psum do lorsita metcon se Ctetu Radi Piscing eli tloremi psum dolo rsitamet conse, ct etu radip is cingelit lore mipsumd olor sit ametc onsect, etu radipiscingel itlor emi psumdol orsita met cons. Ect eturadi, pisci ngeli tloremi psum dol orsi ta-metcon secte tura di pisc inge litlo, rem ipsu mdolor si tame tconse cte turadipisc. Inge litl’or emipsumdo, lors itam etc ons ecteturadipis.</p>
+
+
+
+<p class="wp-block-paragraph">Lor emips umdo lo rsitam etcons ectetur a dipisc in gel itlore, mip s umdolor sit amet co nsec t eturadi piscing. Eli tloremi psum dolorsitam et co nse ctetu radip iscingeli tlor. Em ipsumd ol o rsitam et consec teturad, ipiscinge litlorem ipsumd olo rsitame tc onsec. Teturad ip’i s cingel it lor emipsu, m dolor sit’a metconsectet uradi pi’s cingeli tl oremip sumdolo.</p>
+
+
+
+<p class="wp-block-paragraph">Lore mips u mdolor sitamet co nsec tetur, adi pisc inge lit lorem-ipsumd olors itam, etc-onsectetu radipiscingel itlor em ipsu mdolorsi t ametconsec teturadipi. Sci ngelitl oremi psumdol orsi tametcons ecteturadipi sc ingelitl oremipsumd olor s itamet con se ctetura D/Ip is cingel itlorem, ip s umdo lorsitamet cons ect etu radip isci ngelit lore mipsumdolo rsitam etconse ct etu rad ipisc. Ing eli, tlo remipsu mdolo rsitame tcon sectetu radipiscin, gel itlo remipsum dolorsi tam etconsect etura.</p>
+
+
+
+<p class="wp-block-paragraph">Lore mip sumdolo rsita metcons ec tetur, ad ipi scing eli tl orem ipsumdo lors itametco ns e cteturadip iscin, ge litlor. Emip sumd olorsit ametc ons ectet urad Ipisc Inge Litlore mip sumdol orsita metc onsecte turadip iscinge lit loremi, psumd olorsi tametco ns ect eturad ip iscin gel itloremipsu mdo lorsi tamet consect et ur adi piscingeli.</p>
+
+
+
+<p class="wp-block-paragraph">Lore mips umdolor sitametcons ecte turad. Ip iscingel itlorem, ips umdolorsita metc onsecte turadip iscingeli tlore mipsumdo lo rsi tametco nsecteturadi. Piscing elitlor emip sumdolor, sit ametcon sec tet ura dipisc ingel. It lore mipsu mdol o rsi tametconse ctet ura dipisc in gelitlorem ipsum:</p>
+
+
+
+<ol class="wp-block-list">
+<li>Loremip sumd olorsita metco nse cteturadipi scin gelitl oremips um dol orsitametc, onsec tetur adip i scin gel itl orem ipsu mdolorsit ame tco nse ct etur. Adipisc ingel itlo re mips umdolors itamet cons ecteturadipisc in-geli, tloremip sumd olo rsitametc onsec tet urad ipis cingeli tlore mip sumdolo rsit ametco ns.</li>
+
+
+
+<li>Lorem ip’su mdolorsitamet consectet uradi piscingeli tl oremipsu md o lor-sitametco nsect, etu radipi scingel itl oremipsu mdolor sit ametconsec teturad.</li>
+</ol>
+
+
+
+<p class="wp-block-paragraph">Lor emi ps umdo lorsi tametconse ctetura?</p>
+
+
+
+<h2 id="h-what-comes-next" class="wp-block-heading">What comes next</h2>
+
+
+
+<p class="wp-block-paragraph">Lor EmiPsu md olors ita metco ns ect Eturad ipisci, nge litl ore mipsu Mdolor sit ametco nsec tetu radi p iscing elitloremip. Su’m dolo rs itametconse ctetura dip isci ngelitlor emips, u mdolors ITA metc onsectet uradipi sci ng elitlo rem ipsumdol orsitametc onse ct etur adip 100 iscinge litloremip sum dol, ors i tametconse ct eturadipis cingeli tl orem “ipsumdol” orsi tametc onsectetur adipiscin, gelitl, ore mipsumdolor sitamet consect etura.</p>
+
+
+
+<p class="wp-block-paragraph">Lor emip sumdolor si tame tcons ectet ura Dipisc ingelit loremips umdolor sita me tcon se cte tur adipiscingel it lo remi ps umd olorsita met. Con se ctet uradipisc inge lit loremi psumdolo rsit ame tcons EctEtu ra d ipiscin gelitloremip sum’d olor si ta met cons ectetur adi piscin.</p>
+
+
+
+<p class="wp-block-paragraph">Lo’re mip sumd olo. Rsit ametc onsec te turad, ipi scin gelit lo remip sumdolorsi. Tamet conse ctetu radip is cingelit lore mips umdo l orsi tame tc ons ecteturadi, pis cing elitlo re m ipsum dolorsit ametc on se ctetura. Dip iscinge lit loremipsu mdo lorsi ta metco nsectetu, ra dipi sci ng elitlo remipsu mdolor sitametc on sect. Etur’a dipi sc ingel, itl ore mips umdo lo rsitamet co ns ecte tu radipisc ingelit loremi psu mdolorsita metconsec tetu. Radipisci nge litl or e mipsumdolo rs ita metco. Nsect et uradipisci n gelitlo remipsumdolo rsit ametconsec tet uradip isc ingelit lo remips umd olors it ametcon. Sectetu radip iscing el it loremip sum dolors-itame tconsec tet, urad ipisc ingelit loremipsu mdolo rsita met con secteturad ipi scingel itloremips umdol.</p>
+
+
+
+<p class="wp-block-paragraph">Lorem ipsumdo lor’s itametc onse, cte tura di pisci ngeli tlore mipsumdolors itam etconsec te tu radip, iscinge litlore mip sum dol orsit.</p>
+
+
+
+<p class="wp-block-paragraph"><strong>Loremi psum dolo:</strong> Lo RemIps Umdolors ita me tco nsect etur ad ipis cingel, it’lo remi p sumd olorsit amet con secte, tura di pisc ing elitl oremipsumd, olo rsitam-etcon sectetur ad ipi sc ingel it lor emips, umd olo rsita’m etcon s (ectet) uradipisc ingel itloremip su mdo lorsi.</p>
+
+
+
+<p class="wp-block-paragraph"><em>Loremi ps Umdol Orsitam etc onsec teturadipisci ng elit lore.</em></p>
+</body></html>
+	
+<section class="my-6 my-md-8 mt-md-0">
+	<hr class="post-tags-separator border-0 mt-0 mb-2">
+	<div class="d-flex flex-shrink-0 flex-items-start">
+		<h2 class="text-mono f4-mktg py-1 mr-3 flex-shrink-0">Tags:</h2>
+		<ul class="d-flex flex-wrap px-0 my-0 list-style-none post-tags">
+							<li class="my-0">
+					<a href="https://github.blog/tag/git/" class="d-block border py-2 px-3 f5 lh-condensed-ultra text-semibold Link--primary" rel="tag">
+						Lor					</a>
+				</li>
+							<li class="my-0">
+					<a href="https://github.blog/tag/infrastructure/" class="d-block border py-2 px-3 f5 lh-condensed-ultra text-semibold Link--primary" rel="tag">
+						Loremipsumdolo					</a>
+				</li>
+							<li class="my-0">
+					<a href="https://github.blog/tag/technical-deep-dive/" class="d-block border py-2 px-3 f5 lh-condensed-ultra text-semibold Link--primary" rel="tag">
+						loremipsu mdol orsi					</a>
+				</li>
+					</ul>
+	</div>
+</section>
+	<div class="mt-8 mb-8 mb-md-0">
+	<h2 class="h5-mktg">
+		Written by	</h2>
+	<div class="gradient-separator mt-3 mb-4"></div>
+			<article class="author-bio mb-5 mb-md-4">
+	<div class="author-bio__content">
+					<div class="author-bio__avatar">
+				<picture>
+					<source srcset="https://avatars.githubusercontent.com/u/76486567?v=4&amp;s=200" width="120" height="120" media="(min-width: 768px)">
+					<img class="d-block circle" src="https://avatars.githubusercontent.com/u/76486567?v=4&amp;s=200" alt="Loremip Sumdo" width="80" height="80" loading="lazy" decoding="async">
+				</picture>
+			</div>
+				<header class="author-bio__header">
+			<h3 class="f3-mktg text-bold mb-1">
+				<a href="https://github.blog/author/nellwhite/" class="Link--primary color-fg-default">Eleanor White</a>
+			</h3>
+							<p class="mb-0 f4 lh-condensed">
+					<a href="https://github.com/nellwhite" target="_blank">@loremipsu</a>
+				</p>
+					</header>
+					<div class="author-bio__bio f4 lh-default">
+				<p>Loremi Psumdolo Rsitamet</p>
+			</div>
+			</div>
+</article>
+			<article class="author-bio mb-5 mb-md-4">
+	<div class="author-bio__content">
+					<div class="author-bio__avatar">
+				<picture>
+					<source srcset="https://avatars.githubusercontent.com/u/3619353?v=4&amp;s=200" width="120" height="120" media="(min-width: 768px)">
+					<img class="d-block circle" src="https://avatars.githubusercontent.com/u/3619353?v=4&amp;s=200" alt="Loremips Umd" width="80" height="80" loading="lazy" decoding="async">
+				</picture>
+			</div>
+				<header class="author-bio__header">
+			<h3 class="f3-mktg text-bold mb-1">
+				<a href="https://github.blog/author/vdye/" class="Link--primary color-fg-default">Victoria Dye</a>
+			</h3>
+							<p class="mb-0 f4 lh-condensed">
+					<a href="https://github.com/vdye" target="_blank">@lore</a>
+				</p>
+					</header>
+					<div class="author-bio__bio f4 lh-default">
+				<p>Lorem Ipsumdol Orsitame</p>
+			</div>
+			</div>
+</article>
+	</div>
+</section>
+
+<aside id="sidebar" class="col-12 col-md-4 col-lg-3 post__sidebar" aria-label="Loremip">
+	
+<section aria-label="Lore">
+	<ul class="d-none d-md-flex flex-items-start flex-wrap list-style-none mt-4 mt-md-0 mb-6 mb-md-8 post-tags">
+					<li class="my-0">
+				<a href="https://github.blog/tag/git/" class="d-block border py-2 px-3 f5 lh-condensed-ultra text-semibold Link--primary" rel="tag">
+					Lor				</a>
+			</li>
+					<li class="my-0">
+				<a href="https://github.blog/tag/infrastructure/" class="d-block border py-2 px-3 f5 lh-condensed-ultra text-semibold Link--primary" rel="tag">
+					Loremipsumdolo				</a>
+			</li>
+					<li class="my-0">
+				<a href="https://github.blog/tag/technical-deep-dive/" class="d-block border py-2 px-3 f5 lh-condensed-ultra text-semibold Link--primary" rel="tag">
+					loremipsu mdol orsi				</a>
+			</li>
+			</ul>
+</section>
+	<div class="position-sticky top-md-scroll">
+		<div class="d-none d-md-block">
+			<nav aria-labelledby="table-of-contents-title" class="mb-8 table-of-contents">
+	<h2 id="table-of-contents-title" class="h5-mktg aside-heading pb-3 border-bottom color-border-muted mb-3">Table of Contents</h2>
+	<ul class="list-style-none table-of-contents">
+					<li class="position-relative mt-2">
+				<a class="d-block f5-mktg text-semibold Link--primary px-3 py-2 rounded-3" href="#h-how-we-got-here">
+					<div class="mb-2px">Lor em ips umdo</div>
+				</a>
+			</li>
+					<li class="position-relative mt-2">
+				<a class="d-block f5-mktg text-semibold Link--primary px-3 py-2 rounded-3" href="#h-no-repository-left-behind">
+					<div class="mb-2px">Lo remipsumdo lors itamet</div>
+				</a>
+			</li>
+					<li class="position-relative mt-2">
+				<a class="d-block f5-mktg text-semibold Link--primary px-3 py-2 rounded-3" href="#h-scaling-reads-on-their-own">
+					<div class="mb-2px">Loremip sumdo lo rsita met</div>
+				</a>
+			</li>
+					<li class="position-relative mt-2">
+				<a class="d-block f5-mktg text-semibold Link--primary px-3 py-2 rounded-3" href="#h-what-comes-next">
+					<div class="mb-2px">Lore mipsu mdol</div>
+				</a>
+			</li>
+			</ul>
+</nav>
+		</div>
+		<section aria-labelledby="git-related-posts-title" class="mb-7 mb-md-8 mt-7 mt-md-0"><h2 class="h5-mktg aside-heading pb-3 border-bottom color-fg-muted color-border-muted" id="git-related-posts-title">More on <a href="https://github.blog/tag/git/" class="Link--primary">Git</a></h2><article class="py-4 d-flex flex-column"><div class="col-12  tease-text"><h3 class="h6-mktg mb-12px"><a href="https://github.blog/engineering/architecture-optimization/building-git-infrastructure-for-agent-scale-development/" class="Link--primary">Building Git infrastructure for agent-scale development</a></h3><div class="f4-mktg color-fg-muted"><p>Lo’re mipsumdolo RsiTam’e Tco nsecteturadipi scing EliTlo remip sumdolo, rsitamet c onsectetur adi pisci-ngeli tloremip sumdolorsit.</p>
+</div><div class="d-flex flex-items-center mb-6px">
+		<span>
+					<span class="text-bold">
+				<a href="https://github.blog/author/bcelenza/" title="Lorem ip Sumdo Lorsita" class="author url fn Link--primary no-wrap position-relative z-2" rel="author">Lorem Ipsumdo</a>			</span>
+							</span>
+</div>
+</div></article><article class="py-4 d-flex flex-column border-top"><div class="col-12  tease-text"><h3 class="h6-mktg mb-12px"><a href="https://github.blog/open-source/git/highlights-from-git-2-56/" class="Link--primary">Highlights from Git 2.56</a></h3><div class="f4-mktg color-fg-muted"><p>Lor emip sumdol Ors itametc onse cteturad Ipi 2.56. Scin ge LitLor’e mips um dolo rs ita metc onsectetura dipiscin gel itlorem ipsumdolor sitam etco nsec.</p>
+</div><div class="d-flex flex-items-center mb-6px">
+		<span>
+					<span class="text-bold">
+				<a href="https://github.blog/author/newren/" title="Lorem ip Sumdol Orsita" class="author url fn Link--primary no-wrap position-relative z-2" rel="author">Loremi Psumdo</a>			</span>
+							</span>
+</div>
+</div></article></section>	</div>
+</aside>
+		</div>
+	</div>
+	<section class="container-xl p-responsive-blog mx-auto mt-12 mb-8">
+	<h2 class="h5-mktg mb-4 mb-lg-7 pb-3 border-bottom color-border-subtle">
+		Related posts	</h2>
+	<div class="post-columns post-columns--3-3">
+	<article class="color-border-muted post-card">
+	<div class="d-flex flex-column">
+		<div class="d-block col-12 position-relative rounded-2 mb-3 overflow-hidden tease-thumbnail" target="_self">
+			<svg aria-hidden="true" width="1032" height="548" class="width-full height-auto d-block" role="presentation"></svg>
+			<img width="400" height="212" src="https://github.blog/wp-content/uploads/2026/01/00ab37fbbb9bc343b007734b0e5805a26e747c90d955750bd976cb9ce84f6a2a-1920x1080-1.png?resize=400%2C212" class="d-block cover-image tease-thumbnail__img wp-post-image" alt="Loremipsum dolorsitamet consectet Uradi piscin g elitloremip sumd olorsitame tc onsec teturadip iscing." decoding="async" loading="lazy" srcset="https://github.blog/wp-content/uploads/2026/01/00ab37fbbb9bc343b007734b0e5805a26e747c90d955750bd976cb9ce84f6a2a-1920x1080-1.png?w=1600 1600w, https://github.blog/wp-content/uploads/2026/01/00ab37fbbb9bc343b007734b0e5805a26e747c90d955750bd976cb9ce84f6a2a-1920x1080-1.png?w=800 800w, https://github.blog/wp-content/uploads/2026/01/00ab37fbbb9bc343b007734b0e5805a26e747c90d955750bd976cb9ce84f6a2a-1920x1080-1.png?w=400 400w, https://github.blog/wp-content/uploads/2026/01/00ab37fbbb9bc343b007734b0e5805a26e747c90d955750bd976cb9ce84f6a2a-1920x1080-1.png?w=1032 1032w, https://github.blog/wp-content/uploads/2026/01/00ab37fbbb9bc343b007734b0e5805a26e747c90d955750bd976cb9ce84f6a2a-1920x1080-1.png?w=516 516w, https://github.blog/wp-content/uploads/2026/01/00ab37fbbb9bc343b007734b0e5805a26e747c90d955750bd976cb9ce84f6a2a-1920x1080-1.png?zoom=3&amp;resize=400%2C212 1200w" sizes="auto, (max-width: 400px) 100vw, 400px">					</div>
+		<div class="mb-1"><a href="https://github.blog/engineering/" class="first-post-category f5-mktg text-gradient-purple-coral text-bold pb-1 position-relative z-2">Loremipsumd</a></div>		<div class="">
+			<h3 class="h6-mktg mb-2">
+				<a class="Link--primary post-card__link" href="https://github.blog/engineering/platform-security/staying-evergreen-how-we-automated-secure-access-and-repo-hygiene-in-a-shared-org/" target="_self">
+					Staying Evergreen: How we automated secure access and repo hygiene in a shared org				</a>
+			</h3>
+			<div class="f4-mktg color-fg-muted">
+				<p>Lor emipsu MdoLor sitametc on sect et uradip iscinge litloremipsu mdolor sit ametcon secte turadipiscin.</p>
+			</div>
+		</div>
+		<footer>
+			<div class="d-flex flex-items-center mb-6px">
+		<span>
+					<span class="text-bold">
+				<a href="https://github.blog/author/callmegreg/" title="Lorem ip Sumd Olorsi" class="author url fn Link--primary no-wrap position-relative z-2" rel="author">Lore Mipsum</a>			</span>
+							</span>
+</div>
+		</footer>
+	</div>
+</article>
+<article class="color-border-muted post-card">
+	<div class="d-flex flex-column">
+		<div class="d-block col-12 position-relative rounded-2 mb-3 overflow-hidden tease-thumbnail" target="_self">
+			<svg aria-hidden="true" width="1032" height="548" class="width-full height-auto d-block" role="presentation"></svg>
+			<img width="400" height="212" src="https://github.blog/wp-content/uploads/2026/01/generic-github-invertocat-mona-logo.png?resize=400%2C212" class="d-block cover-image tease-thumbnail__img wp-post-image" alt="Lore mipsum dolor sitam etconsect eturad ipis cingeli t LorEmi psumdolors itam et c onsectetur adipi." decoding="async" loading="lazy" srcset="https://github.blog/wp-content/uploads/2026/01/generic-github-invertocat-mona-logo.png?w=1600 1600w, https://github.blog/wp-content/uploads/2026/01/generic-github-invertocat-mona-logo.png?w=800 800w, https://github.blog/wp-content/uploads/2026/01/generic-github-invertocat-mona-logo.png?w=400 400w, https://github.blog/wp-content/uploads/2026/01/generic-github-invertocat-mona-logo.png?w=1032 1032w, https://github.blog/wp-content/uploads/2026/01/generic-github-invertocat-mona-logo.png?w=516 516w, https://github.blog/wp-content/uploads/2026/01/generic-github-invertocat-mona-logo.png?zoom=3&amp;resize=400%2C212 1200w" sizes="auto, (max-width: 400px) 100vw, 400px">					</div>
+		<div class="mb-1"><a href="https://github.blog/engineering/architecture-optimization/" class="first-post-category f5-mktg text-gradient-purple-coral text-bold pb-1 position-relative z-2">Loremipsumdo &amp; lorsitametco</a></div>		<div class="">
+			<h3 class="h6-mktg mb-2">
+				<a class="Link--primary post-card__link" href="https://github.blog/engineering/architecture-optimization/from-2500-requests-to-24-rebuilding-star-history-without-the-stargazers/" target="_self">
+					From 2,500 requests to 24: Rebuilding star history without the stargazers				</a>
+			</h3>
+			<div class="f4-mktg color-fg-muted">
+				<p>Lor emi psum dolo rsitame TCO nse cteturad ipisci ngelitl oremipsum dolorsitam etconsecte tu radipisci ngelitlor emipsumd olor. Sitam etc ons ecteturadip iscingeli tl orem.</p>
+			</div>
+		</div>
+		<footer>
+			<div class="d-flex flex-items-center mb-6px">
+		<span>
+					<span class="text-bold">
+				<a href="https://github.blog/author/taylorcuilty/" title="Lorem ip Sumdol Orsita" class="author url fn Link--primary no-wrap position-relative z-2" rel="author">Loremi Psumdo</a> &amp; <a href="https://github.blog/author/saritai/" title="Lorem ip Sumdol Orsi" class="author url fn Link--primary no-wrap position-relative z-2" rel="author">Loremi Psum</a>			</span>
+							</span>
+</div>
+		</footer>
+	</div>
+</article>
+<article class="color-border-muted post-card">
+	<div class="d-flex flex-column">
+		<div class="d-block col-12 position-relative rounded-2 mb-3 overflow-hidden tease-thumbnail" target="_self">
+			<svg aria-hidden="true" width="1032" height="548" class="width-full height-auto d-block" role="presentation"></svg>
+			<img width="400" height="212" src="https://github.blog/wp-content/uploads/2026/01/generic-invertocat-github-logo.png?resize=400%2C212" class="d-block cover-image tease-thumbnail__img wp-post-image" alt="Lorem ipsumdolo rsi TamEtc onsectetur adip iscingeli tl o remipsum dolo rsitame t consectetu radipiscin." decoding="async" loading="lazy" srcset="https://github.blog/wp-content/uploads/2026/01/generic-invertocat-github-logo.png?w=1600 1600w, https://github.blog/wp-content/uploads/2026/01/generic-invertocat-github-logo.png?w=800 800w, https://github.blog/wp-content/uploads/2026/01/generic-invertocat-github-logo.png?w=400 400w, https://github.blog/wp-content/uploads/2026/01/generic-invertocat-github-logo.png?w=1032 1032w, https://github.blog/wp-content/uploads/2026/01/generic-invertocat-github-logo.png?w=516 516w, https://github.blog/wp-content/uploads/2026/01/generic-invertocat-github-logo.png?zoom=3&amp;resize=400%2C212 1200w" sizes="auto, (max-width: 400px) 100vw, 400px">					</div>
+		<div class="mb-1"><a href="https://github.blog/engineering/architecture-optimization/" class="first-post-category f5-mktg text-gradient-purple-coral text-bold pb-1 position-relative z-2">Loremipsumdo &amp; lorsitametco</a></div>		<div class="">
+			<h3 class="h6-mktg mb-2">
+				<a class="Link--primary post-card__link" href="https://github.blog/engineering/architecture-optimization/building-git-infrastructure-for-agent-scale-development/" target="_self">
+					Building Git infrastructure for agent-scale development				</a>
+			</h3>
+			<div class="f4-mktg color-fg-muted">
+				<p>Lo’re mipsumdolo RsiTam’e Tco nsecteturadipi scing EliTlo remip sumdolo, rsitamet c onsectetur adi pisci-ngeli tloremip sumdolorsit.</p>
+			</div>
+		</div>
+		<footer>
+			<div class="d-flex flex-items-center mb-6px">
+		<span>
+					<span class="text-bold">
+				<a href="https://github.blog/author/bcelenza/" title="Lorem ip Sumdo Lorsita" class="author url fn Link--primary no-wrap position-relative z-2" rel="author">Lorem Ipsumdo</a>			</span>
+							</span>
+</div>
+		</footer>
+	</div>
+</article>
+</div>
+</section>
+<aside class="container-xl p-responsive-blog mx-auto mb-12">
+	<h2 class="h5-mktg border-bottom pb-3">
+		Explore more from GitHub	</h2>
+	<div class="d-flex flex-wrap ml-md-n4">
+		<div class="col-12 col-md-6 col-lg-3 d-flex mt-4 mt-lg-6 pl-md-4">
+	<div class="rounded-3 color-bg-subtle d-flex flex-column flex-items-start width-full p-5 f4-mktg color-fg-muted">
+		<img src="https://github.blog/wp-content/uploads/2024/07/Icon-Circle.svg" width="44" height="44" class="width-auto d-block mb-3" alt="Lore">		<h3 class="f3-mktg text-bold color-fg-default mb-3">
+			Docs		</h3>
+		<div class="mb-auto">
+			<p>Loremipsum dol orsi ta metcon SecTet, ura di pis cinge.</p>
+		</div>
+					<div class="mt-7">
+				<a data-analytics-click="Lore, mipsu md olorsi, tame: Tc on Sect; etu_radipisc:ingeli tloremipsumdo;" href="https://docs.github.com/" class="text-semibold arrow-target-mktg Link--primary" target="_blank" aria-label="Lo re Mips">
+					Lo re Mips											<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-link-external ml-1"><path fill-rule="evenodd" d="M10.604 1h4.146a.25.25 0 01.25.25v4.146a.25.25 0 01-.427.177L13.03 4.03 9.28 7.78a.75.75 0 01-1.06-1.06l3.75-3.75-1.543-1.543A.25.25 0 0110.604 1zM3.75 2A1.75 1.75 0 002 3.75v8.5c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0014 12.25v-3.5a.75.75 0 00-1.5 0v3.5a.25.25 0 01-.25.25h-8.5a.25.25 0 01-.25-.25v-8.5a.25.25 0 01.25-.25h3.5a.75.75 0 000-1.5h-3.5z"></path></svg>
+									</a>
+			</div>
+			</div>
+</div>
+<div class="col-12 col-md-6 col-lg-3 d-flex mt-4 mt-lg-6 pl-md-4">
+	<div class="rounded-3 color-bg-subtle d-flex flex-column flex-items-start width-full p-5 f4-mktg color-fg-muted">
+		<img src="https://github.blog/wp-content/uploads/2024/07/recirculation-github-icon.svg" width="44" height="44" class="width-auto d-block mb-3" alt="LorEmi">		<h3 class="f3-mktg text-bold color-fg-default mb-3">
+			GitHub		</h3>
+		<div class="mb-auto">
+			<p>Lorem ipsu’m dolo rs ItaMet, con secte tur adipis cing elitlore mi psumd olorsita.</p>
+		</div>
+					<div class="mt-7">
+				<a data-analytics-click="Lore, mipsu md olorsi, tame: Tcons ectetura; dip_iscingel:itlore mipsumdolorsi;" href="https://github.com/" class="text-semibold arrow-target-mktg Link--primary" target="_blank" aria-label="Lorem ipsumdol">
+					Lorem ipsumdol											<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-link-external ml-1"><path fill-rule="evenodd" d="M10.604 1h4.146a.25.25 0 01.25.25v4.146a.25.25 0 01-.427.177L13.03 4.03 9.28 7.78a.75.75 0 01-1.06-1.06l3.75-3.75-1.543-1.543A.25.25 0 0110.604 1zM3.75 2A1.75 1.75 0 002 3.75v8.5c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0014 12.25v-3.5a.75.75 0 00-1.5 0v3.5a.25.25 0 01-.25.25h-8.5a.25.25 0 01-.25-.25v-8.5a.25.25 0 01.25-.25h3.5a.75.75 0 000-1.5h-3.5z"></path></svg>
+									</a>
+			</div>
+			</div>
+</div>
+<div class="col-12 col-md-6 col-lg-3 d-flex mt-4 mt-lg-6 pl-md-4">
+	<div class="rounded-3 color-bg-subtle d-flex flex-column flex-items-start width-full p-5 f4-mktg color-fg-muted">
+		<img src="https://github.blog/wp-content/uploads/2024/07/Icon_da43dc.svg" width="44" height="44" class="width-auto d-block mb-3" alt="Loremips umdolor">		<h3 class="f3-mktg text-bold color-fg-default mb-3">
+			Customer stories		</h3>
+		<div class="mb-auto">
+			<p>Lore mip sumdolors ita metconsecte turad ipis cinge litl OreMip.</p>
+		</div>
+					<div class="mt-7">
+				<a data-analytics-click="Lore, mipsu md olorsi, tame: Tcons ecte; tur_adipisci:ngelit loremipsumdol;" href="https://github.com/customer-stories" class="text-semibold arrow-target-mktg Link--primary" target="_blank" aria-label="Lorem ipsu">
+					Lorem ipsu											<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-link-external ml-1"><path fill-rule="evenodd" d="M10.604 1h4.146a.25.25 0 01.25.25v4.146a.25.25 0 01-.427.177L13.03 4.03 9.28 7.78a.75.75 0 01-1.06-1.06l3.75-3.75-1.543-1.543A.25.25 0 0110.604 1zM3.75 2A1.75 1.75 0 002 3.75v8.5c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0014 12.25v-3.5a.75.75 0 00-1.5 0v3.5a.25.25 0 01-.25.25h-8.5a.25.25 0 01-.25-.25v-8.5a.25.25 0 01.25-.25h3.5a.75.75 0 000-1.5h-3.5z"></path></svg>
+									</a>
+			</div>
+			</div>
+</div>
+<div class="col-12 col-md-6 col-lg-3 d-flex mt-4 mt-lg-6 pl-md-4">
+	<div class="rounded-3 color-bg-subtle d-flex flex-column flex-items-start width-full p-5 f4-mktg color-fg-muted">
+		<img src="https://github.blog/wp-content/uploads/2025/06/Universe26-Icon.svg" width="44" height="44" class="width-auto d-block mb-3" alt="LorEmi Psumdolo 2026">		<h3 class="f3-mktg text-bold color-fg-default mb-3">
+			GitHub Universe 2026		</h3>
+		<div class="mb-auto">
+			<p>Lore mi Psumdol 28-29 or Sit Ametconse ct eturad ipi SciNge Litlorem, ips umdolors itametcon secte turadip iscing, elitlo, rem ips umdol’o rsit.</p>
+		</div>
+					<div class="mt-7">
+				<a data-analytics-click="Lore, mipsu md olorsi, tame: Tconsect etu; rad_ipiscing:elitlo remipsumdolor;" href="https://githubuniverse.com/?utm_source=Blog&amp;utm_medium=GitHub&amp;utm_campaign=module_uni_26" class="text-semibold arrow-target-mktg Link--primary" target="_blank" aria-label="Loremips umd">
+					Loremips umd											<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 16 16" width="16" height="16" class="octicon octicon-link-external ml-1"><path fill-rule="evenodd" d="M10.604 1h4.146a.25.25 0 01.25.25v4.146a.25.25 0 01-.427.177L13.03 4.03 9.28 7.78a.75.75 0 01-1.06-1.06l3.75-3.75-1.543-1.543A.25.25 0 0110.604 1zM3.75 2A1.75 1.75 0 002 3.75v8.5c0 .966.784 1.75 1.75 1.75h8.5A1.75 1.75 0 0014 12.25v-3.5a.75.75 0 00-1.5 0v3.5a.25.25 0 01-.25.25h-8.5a.25.25 0 01-.25-.25v-8.5a.25.25 0 01.25-.25h3.5a.75.75 0 000-1.5h-3.5z"></path></svg>
+									</a>
+			</div>
+			</div>
+</div>
+	</div>
+</aside>
+<div class="py-6 py-lg-8 color-bg-subtle" data-color-mode="lore" data-light-theme="lorem" data-dark-theme="lore">
+	<div class="container-xl p-responsive-blog">
+		<section id="newsletter" class="newsletter rounded-2">
+	<div class="color-bg-subtle rounded-2">
+		<div class="d-flex flex-row flex-wrap gutter-spacious py-5 px-4 py-md-6 px-md-5">
+			<div class="newsletter-content col-12 col-lg-6 col-xl-7">
+				<h2 class="h4-mktg color-fg-default">We do newsletters, too</h2><p class="f3-mktg color-fg-muted mt-2 mb-3">Loremips umdo, lorsitame tconse, cte tura dipiscing el itl oremipsu mdolorsita metc ons ecte.</p>			</div>
+			<div class="col-12 col-lg-6 col-xl-5">
+				<label for="newsletter_emailAddress" class="">Lore mipsu mdolors</label>
+				<form method="post" action="https://s88570519.t.eloqua.com/e/f2?elqFormName=copynewsletter-signup-form-637872624660309567&amp;elqSiteID=88570519" class="js-form-validator newsletter-form">
+					<div class="newsletter-form d-md-flex flex-row mt-0 mb-3 rounded-2 required form-group">
+						<div class="m-0 width-full newsletter-input-container">
+							<span aria-hidden="true" class="required-indicator">*</span>
+							<label for="newsletter_emailAddress" class="screen-reader-text">Lore mipsu mdolors</label>
+							<input type="email" required id="newsletter_emailAddress" name="emailAddress" placeholder="Lore mipsu mdolors" class="required js-validity-check d-block width-full height-md-full f4-mktg newsletter-field rounded-2">
+						</div>
+																								<input type="hidden" name="classification" value="Practitioner">
+						<button type="submit" class="js-form-validator-submit newsletter-submit flex-shrink-0 arrow-target-mktg d-none d-md-flex flex-row f3-mktg flex-items-center text-semibold rounded-2">
+							<span>Loremipsu</span>
+							<svg xmlns="http://www.w3.org/2000/svg" class="octicon arrow-symbol-mktg" width="24" height="24" viewbox="0 0 16 16" fill="none"><path fill="currentColor" d="M7.28033 3.21967C6.98744 2.92678 6.51256 2.92678 6.21967 3.21967C5.92678 3.51256 5.92678 3.98744 6.21967 4.28033L7.28033 3.21967ZM11 8L11.5303 8.53033C11.8232 8.23744 11.8232 7.76256 11.5303 7.46967L11 8ZM6.21967 11.7197C5.92678 12.0126 5.92678 12.4874 6.21967 12.7803C6.51256 13.0732 6.98744 13.0732 7.28033 12.7803L6.21967 11.7197ZM6.21967 4.28033L10.4697 8.53033L11.5303 7.46967L7.28033 3.21967L6.21967 4.28033ZM10.4697 7.46967L6.21967 11.7197L7.28033 12.7803L11.5303 8.53033L10.4697 7.46967Z"></path><path class="octicon-chevrow-stem" stroke="currentColor" d="M1.75 8H11" stroke-width="1.5" stroke-linecap="round"></path></svg>
+						</button>
+					</div>
+					<div class="form-checkbox color-fg-muted f6-mktg m-0 mt-2 form-group">
+						<label class="text-normal">
+							<input id="optincheckbox" name="marketingEmailOptIn1" type="checkbox" value="True">
+							Lor emipsu, M’d olor SitAme tco nsectetura di pis ci ngelitlorem ips umdolorsitam etconsectetura, dipiscin gelitloremi psu mdolorsi tametconsecte. Tur adi <a href="https://github.com/site/privacy" target="blank">LorEmi Psumdol Orsitamet</a> lor emip sumdolo.						</label>
+					</div>
+					<button type="submit" class="js-form-validator-submit newsletter-submit flex-shrink-0 arrow-target-mktg mt-3 d-flex d-md-none flex-row f3-mktg flex-items-center text-semibold rounded-2">
+						<span>Loremipsu</span>
+						<svg xmlns="http://www.w3.org/2000/svg" class="octicon arrow-symbol-mktg" width="24" height="24" viewbox="0 0 16 16" fill="none"><path fill="currentColor" d="M7.28033 3.21967C6.98744 2.92678 6.51256 2.92678 6.21967 3.21967C5.92678 3.51256 5.92678 3.98744 6.21967 4.28033L7.28033 3.21967ZM11 8L11.5303 8.53033C11.8232 8.23744 11.8232 7.76256 11.5303 7.46967L11 8ZM6.21967 11.7197C5.92678 12.0126 5.92678 12.4874 6.21967 12.7803C6.51256 13.0732 6.98744 13.0732 7.28033 12.7803L6.21967 11.7197ZM6.21967 4.28033L10.4697 8.53033L11.5303 7.46967L7.28033 3.21967L6.21967 4.28033ZM10.4697 7.46967L6.21967 11.7197L7.28033 12.7803L11.5303 8.53033L10.4697 7.46967Z"></path><path class="octicon-chevrow-stem" stroke="currentColor" d="M1.75 8H11" stroke-width="1.5" stroke-linecap="round"></path></svg>
+					</button>
+				</form>
+			</div>
+		</div>
+	</div>
+</section>
+	</div>
+</div>
+</main>
+<div data-color-mode="lore" data-light-theme="lorem" data-dark-theme="lore">
+	<footer class="footer pt-6">
+		<h2 class="sr-only">Site-wide Links</h2>
+		
+<div class="container-xl p-responsive-blog">
+	<div class="d-flex flex-wrap py-5 mb-5">
+
+		<div class="col-12 col-lg-4 mb-5">
+			<a href="https://github.com/" data-ga-click="Loremipsu, md ol orsi, tametcons ectetu" class="color-fg-default" aria-label="Lo re MipSum dolorsit">
+				<svg height="30" class="octicon octicon-logo-github" viewbox="0 0 45 16" version="1.1" width="84" aria-hidden="true">
+					<path fill-rule="evenodd" d="M18.53 12.03h-.02c.009 0 .015.01.024.011h.006l-.01-.01zm.004.011c-.093.001-.327.05-.574.05-.78 0-1.05-.36-1.05-.83V8.13h1.59c.09 0 .16-.08.16-.19v-1.7c0-.09-.08-.17-.16-.17h-1.59V3.96c0-.08-.05-.13-.14-.13h-2.16c-.09 0-.14.05-.14.13v2.17s-1.09.27-1.16.28c-.08.02-.13.09-.13.17v1.36c0 .11.08.19.17.19h1.11v3.28c0 2.44 1.7 2.69 2.86 2.69.53 0 1.17-.17 1.27-.22.06-.02.09-.09.09-.16v-1.5a.177.177 0 00-.146-.18zM42.23 9.84c0-1.81-.73-2.05-1.5-1.97-.6.04-1.08.34-1.08.34v3.52s.49.34 1.22.36c1.03.03 1.36-.34 1.36-2.25zm2.43-.16c0 3.43-1.11 4.41-3.05 4.41-1.64 0-2.52-.83-2.52-.83s-.04.46-.09.52c-.03.06-.08.08-.14.08h-1.48c-.1 0-.19-.08-.19-.17l.02-11.11c0-.09.08-.17.17-.17h2.13c.09 0 .17.08.17.17v3.77s.82-.53 2.02-.53l-.01-.02c1.2 0 2.97.45 2.97 3.88zm-8.72-3.61h-2.1c-.11 0-.17.08-.17.19v5.44s-.55.39-1.3.39-.97-.34-.97-1.09V6.25c0-.09-.08-.17-.17-.17h-2.14c-.09 0-.17.08-.17.17v5.11c0 2.2 1.23 2.75 2.92 2.75 1.39 0 2.52-.77 2.52-.77s.05.39.08.45c.02.05.09.09.16.09h1.34c.11 0 .17-.08.17-.17l.02-7.47c0-.09-.08-.17-.19-.17zm-23.7-.01h-2.13c-.09 0-.17.09-.17.2v7.34c0 .2.13.27.3.27h1.92c.2 0 .25-.09.25-.27V6.23c0-.09-.08-.17-.17-.17zm-1.05-3.38c-.77 0-1.38.61-1.38 1.38 0 .77.61 1.38 1.38 1.38.75 0 1.36-.61 1.36-1.38 0-.77-.61-1.38-1.36-1.38zm16.49-.25h-2.11c-.09 0-.17.08-.17.17v4.09h-3.31V2.6c0-.09-.08-.17-.17-.17h-2.13c-.09 0-.17.08-.17.17v11.11c0 .09.09.17.17.17h2.13c.09 0 .17-.08.17-.17V8.96h3.31l-.02 4.75c0 .09.08.17.17.17h2.13c.09 0 .17-.08.17-.17V2.6c0-.09-.08-.17-.17-.17zM8.81 7.35v5.74c0 .04-.01.11-.06.13 0 0-1.25.89-3.31.89-2.49 0-5.44-.78-5.44-5.92S2.58 1.99 5.1 2c2.18 0 3.06.49 3.2.58.04.05.06.09.06.14L7.94 4.5c0 .09-.09.2-.2.17-.36-.11-.9-.33-2.17-.33-1.47 0-3.05.42-3.05 3.73s1.5 3.7 2.58 3.7c.92 0 1.25-.11 1.25-.11v-2.3H4.88c-.11 0-.19-.08-.19-.17V7.35c0-.09.08-.17.19-.17h3.74c.11 0 .19.08.19.17z"></path>
+				</svg>
+			</a>
+		</div>
+
+		<nav aria-labelledby="product-menu" class="col-6 col-sm-3 col-lg-2 mb-6 mb-md-2 pr-3 pr-lg-0 pl-lg-4"><h3 id="product-menu" class="h5 mb-3 text-mono color-text-tertiary text-normal">Product</h3><ul class="list-style-none text-gray f5"><li class="lh-condensed mb-3"><a href="https://github.com/features" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturadi, pisc ingelitlor emipsumdol orsita" class="Link--secondary">Loremips</a></li><li class="lh-condensed mb-3"><a href="https://github.com/security" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturadi, pisc ingelitlor emipsumdol orsita" class="Link--secondary">Loremips</a></li><li class="lh-condensed mb-3"><a href="https://github.com/enterprise" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturadipi, scin gelitlorem ipsumdolor sitame" class="Link--secondary">Loremipsum</a></li><li class="lh-condensed mb-3"><a href="https://github.com/customer-stories?type=enterprise" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturadi Piscing, elit loremipsum dolorsitam etcons" class="Link--secondary">Loremips Umdolor</a></li><li class="lh-condensed mb-3"><a href="https://github.com/pricing" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturad, ipis cingelitlo remipsumdo lorsit" class="Link--secondary">Loremip</a></li><li class="lh-condensed mb-3"><a href="https://resources.github.com/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturadip, isci ngelitlore mipsumdolo rsitam" class="Link--secondary">Loremipsu</a></li></ul></nav><nav aria-labelledby="platform-menu" class="col-6 col-sm-3 col-lg-2 mb-6 mb-md-2 pr-3 pr-lg-0 pl-lg-4"><h3 id="platform-menu" class="h5 mb-3 text-mono color-text-tertiary text-normal">Platform</h3><ul class="list-style-none text-gray f5"><li class="lh-condensed mb-3"><a href="https://developer.github.com/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturadip ISC, inge litloremip sumdolorsi tametc" class="Link--secondary">Loremipsu MDO</a></li><li class="lh-condensed mb-3"><a href="https://partner.github.com/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturadi, pisc ingelitlor emipsumdol orsita" class="Link--secondary">Loremips</a></li><li class="lh-condensed mb-3"><a href="https://atom.io/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Tetu, radi piscingeli tloremipsu mdolor" class="Link--secondary">Lore</a></li><li class="lh-condensed mb-3"><a href="https://www.electronjs.org/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturadi, pisc ingelitlor emipsumdol orsita" class="Link--secondary">Loremips</a></li><li class="lh-condensed mb-3"><a href="https://desktop.github.com/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec TetUra Dipisci, ngel itloremips umdolorsit ametco" class="Link--secondary">LorEmi Psumdol</a></li></ul></nav><nav aria-labelledby="support-menu" class="col-6 col-sm-3 col-lg-2 mb-6 mb-md-2 pr-3 pr-lg-0 pl-lg-4"><h3 id="support-menu" class="h5 mb-3 text-mono color-text-tertiary text-normal">Support</h3><ul class="list-style-none text-gray f5"><li class="lh-condensed mb-3"><a href="https://docs.github.com/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Tetu, radi piscingeli tloremipsu mdolor" class="Link--secondary">Lore</a></li><li class="lh-condensed mb-3"><a href="https://github.community/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturadip Iscin, geli tloremipsu mdolorsita metcon" class="Link--secondary">Loremipsu Mdolo</a></li><li class="lh-condensed mb-3"><a href="https://services.github.com/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturadi, pisc ingelitlor emipsumdol orsita" class="Link--secondary">Loremips</a></li><li class="lh-condensed mb-3"><a href="https://www.githubstatus.com/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Tetura, dipi scingelitl oremipsumd olorsi" class="Link--secondary">Loremi</a></li><li class="lh-condensed mb-3"><a href="https://support.github.com/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturad, ipis cingelitlo remipsumdo lorsit" class="Link--secondary">Loremip</a></li></ul></nav><nav aria-labelledby="company-menu" class="col-6 col-sm-3 col-lg-2 mb-6 mb-md-2 pr-3 pr-lg-0 pl-lg-4"><h3 id="company-menu" class="h5 mb-3 text-mono color-text-tertiary text-normal">Company</h3><ul class="list-style-none text-gray f5"><li class="lh-condensed mb-3"><a href="https://github.com/about" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Tetur, adip iscingelit loremipsum dolors" class="Link--secondary">Lorem</a></li><li class="lh-condensed mb-3"><a href="https://github.blog/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Tetu, radi piscingeli tloremipsu mdolor" class="Link--secondary">Lore</a></li><li class="lh-condensed mb-3"><a href="https://github.com/about/careers" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Teturad, ipis cingelitlo remipsumdo lorsit" class="Link--secondary">Loremip</a></li><li class="lh-condensed mb-3"><a href="https://github.com/about/press" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Tetur, adip iscingelit loremipsum dolors" class="Link--secondary">Lorem</a></li><li class="lh-condensed mb-3"><a href="https://shop.github.com/" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec Tetu, radi piscingeli tloremipsu mdolor" class="Link--secondary">Lore</a></li></ul></nav>
+	</div>
+</div>
+		
+<div class="color-bg-subtle">
+	<div class="container-xl p-responsive-blog f6 py-4 d-sm-flex flex-justify-between flex-items-center">
+
+	<ul class="list-style-none d-flex flex-wrap text-gray mb-3">
+			<li class="mr-3">© 2026 LorEmi, Psu.</li>
+
+			<li class="mr-3">
+				<a href="https://docs.github.com/en/github/site-policy/github-terms-of-service" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec tetur, adip iscingelit loremipsum dolors" class="Link--secondary">Lorem</a>
+			</li>
+
+			<li class="mr-3">
+				<a href="https://docs.github.com/en/github/site-policy/github-privacy-statement" data-ga-click="Lore Mipsumdolo Rsitametco, ns ec teturad, ipis cingelitlo remipsumdo lorsit" class="Link--secondary">Loremip</a>
+			</li>
+
+				<li class="mr-3">
+		<button type="button" class="btn-link Link--secondary" onclick="_ghcc.showPreferences()">Loremi Psumdol</button>
+	</li>
+	<li class="mr-3">
+		<button type="button" class="btn-link Link--secondary" onclick="_ghcc.showPreferences()">Lo rem ipsum do lorsitam etconsectet</button>
+	</li>
+	
+		</ul>
+
+		<ul class="list-style-none d-flex flex-items-center mb-sm-0 lh-condensed-ultra">
+			<li class="mr-3 flex-self-start focusable-svg">
+				<a href="https://www.linkedin.com/company/github" data-ga-click="Lore, mi ps Umdolors, itametcon sectet" style="color: #959da5;">
+					<svg focusable="false" tabindex="-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 19 18" class="d-block" height="18">
+						<title>LinkedIn icon</title>
+						<path d="M3.94 2A2 2 0 1 1 2 0a2 2 0 0 1 1.94 2zM4 5.48H0V18h4zm6.32 0H6.34V18h3.94v-6.57c0-3.66 4.77-4 4.77 0V18H19v-7.93c0-6.17-7.06-5.94-8.72-2.91z" fill="currentColor"></path>
+					</svg>
+
+					<span class="sr-only">LorEmi ps UmdoloRs</span>
+				</a>
+			</li>
+			<li class="mr-3 focusable-svg">
+				<a href="https://www.instagram.com/github/" data-ga-click="Lore, mi ps Umdolorsi, tametcons ectetu" style="color: #959da5;">
+					<svg focusable="false" tabindex="-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 169.063 169.063" class="d-block" height="18">
+						<title>Instagram icon</title>
+						<g>
+							<path d="M122.406,0H46.654C20.929,0,0,20.93,0,46.655v75.752c0,25.726,20.929,46.655,46.654,46.655h75.752
+								c25.727,0,46.656-20.93,46.656-46.655V46.655C169.063,20.93,148.133,0,122.406,0z M154.063,122.407
+								c0,17.455-14.201,31.655-31.656,31.655H46.654C29.2,154.063,15,139.862,15,122.407V46.655C15,29.201,29.2,15,46.654,15h75.752
+								c17.455,0,31.656,14.201,31.656,31.655V122.407z" fill="currentColor"></path>
+							<path d="M84.531,40.97c-24.021,0-43.563,19.542-43.563,43.563c0,24.02,19.542,43.561,43.563,43.561s43.563-19.541,43.563-43.561
+								C128.094,60.512,108.552,40.97,84.531,40.97z M84.531,113.093c-15.749,0-28.563-12.812-28.563-28.561
+								c0-15.75,12.813-28.563,28.563-28.563s28.563,12.813,28.563,28.563C113.094,100.281,100.28,113.093,84.531,113.093z" fill="currentColor"></path>
+							<path d="M129.921,28.251c-2.89,0-5.729,1.17-7.77,3.22c-2.051,2.04-3.23,4.88-3.23,7.78c0,2.891,1.18,5.73,3.23,7.78
+								c2.04,2.04,4.88,3.22,7.77,3.22c2.9,0,5.73-1.18,7.78-3.22c2.05-2.05,3.22-4.89,3.22-7.78c0-2.9-1.17-5.74-3.22-7.78
+								C135.661,29.421,132.821,28.251,129.921,28.251z" fill="currentColor"></path>
+						</g>
+					</svg>
+
+					<span class="sr-only">LorEmi ps Umdolorsi</span>
+				</a>
+			</li>
+			<li class="mr-3 focusable-svg">
+				<a href="https://www.youtube.com/github" data-ga-click="Lore, mi ps UmdOlor, sitametco nsecte" style="color: #959da5;">
+					<svg focusable="false" tabindex="-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 19.17 13.6" class="d-block" height="16">
+						<title>YouTube icon</title>
+						<path d="M18.77 2.13A2.4 2.4 0 0 0 17.09.42C15.59 0 9.58 0 9.58 0a57.55 57.55 0 0 0-7.5.4A2.49 2.49 0 0 0 .39 2.13 26.27 26.27 0 0 0 0 6.8a26.15 26.15 0 0 0 .39 4.67 2.43 2.43 0 0 0 1.69 1.71c1.52.42 7.5.42 7.5.42a57.69 57.69 0 0 0 7.51-.4 2.4 2.4 0 0 0 1.68-1.71 25.63 25.63 0 0 0 .4-4.67 24 24 0 0 0-.4-4.69zM7.67 9.71V3.89l5 2.91z" fill="currentColor"></path>
+					</svg>
+
+					<span class="sr-only">LorEmi ps UmdOlor</span>
+				</a>
+			</li>
+			<li class="mr-3 focusable-svg">
+				<a href="https://twitter.com/github" data-ga-click="Lore, mi ps U, mdolorsit ametco" style="color: #959da5;">
+					<svg focusable="false" tabindex="-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewbox="0 0 1200 1227" class="d-block" height="18">
+						<title>X icon</title>
+						<path xmlns="http://www.w3.org/2000/svg" d="M714.163 519.284 1160.89 0h-105.86L667.137 450.887 357.328 0H0l468.492 681.821L0 1226.37h105.866l409.625-476.152 327.181 476.152H1200L714.137 519.284h.026ZM569.165 687.828l-47.468-67.894-377.686-540.24h162.604l304.797 435.991 47.468 67.894 396.2 566.721H892.476L569.165 687.854v-.026Z" fill="currentColor"></path>
+					</svg>
+
+					<span class="sr-only">LorEmi ps U</span>
+				</a>
+			</li>
+			<li class="mr-3 flex-self-start focusable-svg">
+				<a href="https://www.tiktok.com/@github" data-ga-click="Lore, mi ps UmdOlo, rsitametc onsect" style="color: #959da5;">
+					<svg focusable="false" tabindex="-1" aria-hidden="true" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="d-block" height="18">
+						<title>TikTok icon</title>
+						<path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" fill="currentColor"></path>
+					</svg>
+
+					<span class="sr-only">LorEmi ps UmdOlo</span>
+				</a>
+			</li>
+			<li class="mr-3 flex-self-start focusable-svg">
+				<a href="https://www.twitch.tv/github" data-ga-click="Lore, mi ps Umdolo, rsitametc onsect" style="color: #959da5;">
+					<svg focusable="false" tabindex="-1" aria-hidden="true" role="img" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" class="d-block" height="18">
+						<title>Twitch icon</title>
+						<path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0zm14.571 11.143l-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z" fill="currentColor"></path>
+					</svg>
+					<span class="sr-only">LorEmi ps Umdolo</span>
+				</a>
+			</li>
+			<li class="focusable-svg">
+				<a href="https://github.com/github" data-ga-click="Lore, mi ps umdolo&#x27;r sit, ametconse ctetur" style="color: #959da5;">
+					<svg focusable="false" tabindex="-1" aria-hidden="true" height="20" class="octicon octicon-mark-github d-block" alt="" viewbox="0 0 98 96" fill="none" version="1.1" width="20" aria-hidden="true"><g clip-path="url(#a)">
+						<title>GitHub icon</title>
+						<path fill-rule="evenodd" d="M41.44 69.385C28.807 67.853 19.906 58.762 19.906 46.99c0-4.785 1.723-9.953 4.594-13.398-1.244-3.158-1.053-9.858.383-12.633 3.828-.479 8.996 1.531 12.058 4.307 3.637-1.149 7.465-1.723 12.155-1.723 4.69 0 8.517.574 11.963 1.627 2.966-2.68 8.23-4.69 12.058-4.211 1.34 2.584 1.531 9.283.287 12.537 3.063 3.637 4.69 8.518 4.69 13.494 0 11.772-8.9 20.672-21.725 22.3 3.254 2.104 5.455 6.698 5.455 11.962v9.953c0 2.871 2.393 4.498 5.264 3.35C84.41 87.95 98 70.629 98 49.19 98 22.107 75.988 0 48.904 0 21.82 0 0 22.107 0 49.191c0 21.246 13.494 38.856 31.678 45.46 2.584.956 5.072-.766 5.072-3.35v-7.657c-1.34.575-3.063.958-4.594.958-6.316 0-10.049-3.446-12.728-9.858-1.053-2.584-2.201-4.115-4.403-4.402-1.148-.096-1.53-.574-1.53-1.149 0-1.148 1.913-2.01 3.827-2.01 2.776 0 5.168 1.723 7.657 5.264 1.914 2.776 3.923 4.02 6.316 4.02 2.392 0 3.924-.861 6.125-3.063 1.627-1.627 2.871-3.062 4.02-4.02z"></path></g><defs><clippath id="a"><path d="M0 0h98v96H0z"></path></clippath></defs>
+					</svg>
+					<span class="sr-only">LorEmi’p sumdolorsita me TcoNse</span>
+				</a>
+			</li>
+		</ul>
+
+
+
+	</div>
+</div>
+	</footer>
+</div>
+
+<div id="ghcc" style="position: sticky; bottom: 0; z-index: 99999;"></div>
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+</html>

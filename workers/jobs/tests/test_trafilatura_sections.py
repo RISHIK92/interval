@@ -89,3 +89,68 @@ def test_long_headings_are_capped() -> None:
     (section,) = extract_sections(page + b"</article>", "utf-8", "t")
     assert section.heading is not None
     assert len(section.heading) <= 300
+
+
+# Rules from the real-page fixtures (P1-W2-S05), each pinned on a small page.
+PAGE_URL = "https://blog.example.test/posts/wal"
+
+
+def page(*headings: str, tail: str = "") -> bytes:
+    prose = " ".join(
+        f"Sentence {i} about write-ahead logging and recovery." for i in range(12)
+    )
+    body = "".join(f"{h}<p>{prose}</p>" for h in headings)
+    return (
+        f"<html><head><title>{TITLE}</title></head><body><article>"
+        f"<h1>{TITLE}</h1><p>{prose}</p>{body}{tail}</article></body></html>"
+    ).encode()
+
+
+def tree(html: bytes) -> list[tuple[str | None, str | None]]:
+    return [(s.heading, s.anchor_id) for s in extract_sections(html, "utf-8", TITLE)]
+
+
+def test_a_heading_wholly_inside_its_permalink_keeps_its_id() -> None:
+    html = page('<h2 id="a"><a href="#a">Alpha</a> <a href="#a">¶</a></h2>')
+    assert tree(html) == [(None, None), ("Alpha", "a")]
+
+
+def test_an_absolute_self_permalink_is_not_a_teaser() -> None:
+    html = page(f'<h2 id="a"><a href="{PAGE_URL}#a">Alpha</a></h2>')
+    assert tree(html) == [(None, None), ("Alpha", "a")]
+
+
+def test_a_heading_with_an_inline_external_link_is_kept() -> None:
+    html = page(
+        '<h2 id="a">Using <a href="https://www.postgresql.org/docs/">pg_dump</a></h2>',
+        '<h2 id="b">Alpha <a href="https://twitter.com/intent/tweet"></a></h2>',
+    )
+    assert tree(html) == [(None, None), ("Using pg_dump", "a"), ("Alpha", "b")]
+
+
+def test_a_heading_that_is_a_link_to_another_page_is_a_teaser() -> None:
+    teaser = '<h3><a href="https://blog.example.test/posts/other">Other post</a></h3>'
+    html = page(
+        '<h2 id="a">Alpha</h2>',
+        tail=f"<h2>Related posts</h2>{teaser}<p>Short blurb.</p>",
+    )
+    assert tree(html) == [(None, None), ("Alpha", "a")]
+
+
+def test_a_details_summary_is_text_not_a_section() -> None:
+    html = page(
+        '<h2 id="a">Alpha</h2>',
+        tail="<details><summary>Significant Revisions</summary>"
+        "<p>15 October: published</p></details>",
+    )
+    assert tree(html) == [(None, None), ("Alpha", "a")]
+
+
+def test_an_empty_section_in_the_middle_is_kept() -> None:
+    html = page('<h2 id="a">Alpha</h2><h3 id="b">Beta</h3>')
+    sections = extract_sections(html, "utf-8", TITLE)
+    assert [(s.heading, s.word_count > 0) for s in sections] == [
+        (None, True),
+        ("Alpha", False),
+        ("Beta", True),
+    ]
