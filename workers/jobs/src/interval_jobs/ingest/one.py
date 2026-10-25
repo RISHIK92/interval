@@ -11,6 +11,7 @@ import psycopg
 from psycopg.rows import class_row
 
 from interval_db.generated import RightsProfile
+from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.extract import extract_text
 from interval_jobs.ingest.feed import newest_entry
 from interval_jobs.ingest.fetch import Resolver, fetch, resolve_host
@@ -121,6 +122,7 @@ def ingest_one(
             )
         # Moments always match the stored structure (owner, 2026-10-25).
         segment_item(conn, item_id)
+        rebuild_feed(conn)
         return IngestResult(content_item_id=item_id, stored="full_text")
 
     if allowed(profile, "store_excerpt"):

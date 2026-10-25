@@ -37,6 +37,25 @@ class ContentItemSection(TypedDict):
     word_count: int
 
 
+class FeedEntry(TypedDict):
+    moment_id: int
+    rank: int
+    computed_at: datetime
+
+
+class FeedVisible(TypedDict):
+    rank: int | None
+    moment_id: int | None
+    section_title: str | None
+    section_number: int | None
+    section_count: int | None
+    estimated_minutes: int | None
+    link: str | None
+    article_title: str | None
+    author: str | None
+    source_name: str | None
+
+
 class Moment(TypedDict):
     id: int
     content_item_id: int

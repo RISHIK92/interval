@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S05 done, committed and pushed. ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S02.
+Status: P1-W1-S01 to S06 done, committed and pushed (Week 1 vertical path complete). ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S02.
 
 ## Bootstrap session log
 
@@ -43,7 +43,7 @@ The owner answered every open question and ADR.
 
 ## Next up
 
-1. P1-W1-S06 Skeleton: feed shows one moment card.
+1. P1-W1-S07 CI pipeline (GitHub remote exists).
 2. ADR-0005 host choice around Week 5 (blocks P1-W1-S09 and the beta deploy). A domain name is needed before Week 6.
 3. Owner data: approve the concept list (Q-P1-03, Week 3); cost budget amounts before the beta (Q-P1-23).
 
@@ -163,5 +163,33 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - trafilatura keeps the page's h1 title as a heading; a leading h1 that matches the item title is treated as the title (owner).
   - Two headings with the same text and no id get the same text fragment. Disambiguating would need stored body text, so it's accepted and documented in segment.py.
   - trafilatura runs twice per full-text page (text, then structure). That's acceptable for the skeleton; revisit in W3.
+- Needs ADR: none.
+
+### 2026-10-25 — P1-W1-S06
+- Done:
+  - **Migration `20261025030000_feed.sql`:**
+    - `feed_entry` (global precomputed feed, CACHE-1).
+    - View `feed_visible` with an allowlist of columns: rank, moment id, section title, section number and count, minutes, link, article title, author, source.
+    - `section_count` counts all of the item's moments.
+    - The view repeats the moment gate.
+    - `moment.link` must be http(s).
+  - **Worker:** `feed/precompute.py` `rebuild_feed` (advisory lock; newest item first, then sections), called after segmentation; `rebuild-feed` CLI.
+  - **Web:**
+    - `server/feed.ts`: `getFeed` and `toCard`; a broken row is dropped and logged with only its id and the missing column names.
+    - `app/MomentCard.tsx`: section title, "Section N of M · X min", article title, source · author, "Read on site" (new tab, `rel=noopener noreferrer`).
+    - `app/page.tsx` reads the feed; an empty state when there are no cards.
+  - **Tests:** 93 worker and 22 web tests:
+    - an end-to-end vertical path with a mock web;
+    - a partial feed count;
+    - stale entries for each gate;
+    - concurrent rebuilds;
+    - the exact view columns.
+  - `pnpm turbo check` passes, 21 tasks.
+- Not done: none.
+- Next: P1-W1-S07.
+- Open questions: none new.
+- Surprises:
+  - Vitest 5 compiles with oxc, so JSX is configured in `apps/web/vitest.config.ts`.
+  - `next build` warns that `instrumentation.ts` and `log.ts` use Node APIs that the Edge runtime lacks. It comes from S03 and is not fixed here; the fix is to move the env check into a Node-only module imported from `register()` under the `NEXT_RUNTIME === "nodejs"` check.
 - Needs ADR: none.
 

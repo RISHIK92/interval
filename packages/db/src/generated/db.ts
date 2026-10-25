@@ -45,6 +45,25 @@ export interface ContentItemSection {
   word_count: number;
 }
 
+export interface FeedEntry {
+  computed_at: Generated<Timestamp>;
+  moment_id: Int8;
+  rank: number;
+}
+
+export interface FeedVisible {
+  article_title: string | null;
+  author: string | null;
+  estimated_minutes: number | null;
+  link: string | null;
+  moment_id: Int8 | null;
+  rank: number | null;
+  section_count: number | null;
+  section_number: number | null;
+  section_title: string | null;
+  source_name: string | null;
+}
+
 export interface Moment {
   content_item_id: Int8;
   created_at: Generated<Timestamp>;
@@ -76,6 +95,8 @@ export interface DB {
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;
+  feed_entry: FeedEntry;
+  feed_visible: FeedVisible;
   moment: Moment;
   schema_meta: SchemaMeta;
   source: Source;

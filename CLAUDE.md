@@ -52,8 +52,9 @@ Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED). Later slices add CDK
 - Migrate + regenerate types: `pnpm db:migrate` · stale-types check: `pnpm db:check`
 - Web dev server: `pnpm --filter @interval/web dev` · build: `pnpm turbo build`
 - Web image: `docker build -f apps/web/Dockerfile -t interval-web .` · run: `docker run -p 127.0.0.1:3100:3000 -e DATABASE_URL='postgres://interval:interval@host.docker.internal:5432/interval?sslmode=disable' interval-web`
-- Worker, ingest one feed: `scripts/with-env.sh uv run python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile metadata_only` (temporary until P1-W2-S01; full-text ingest also segments)
-- Worker, re-split one item into moments: `scripts/with-env.sh uv run python -m interval_jobs segment-item --content-item-id ID`
+- Worker, ingest one feed: `scripts/with-env.sh uv run python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile metadata_only` (temporary until P1-W2-S01; full-text ingest also segments and rebuilds the feed)
+- Worker, re-split one item into moments (also rebuilds the feed): `scripts/with-env.sh uv run python -m interval_jobs segment-item --content-item-id ID`
+- Worker, recompute the precomputed feed: `scripts/with-env.sh uv run python -m interval_jobs rebuild-feed`
 - All checks (needs local services up; mirrors CI): `pnpm turbo check`
 - One kind: `pnpm turbo typecheck //#typecheck:py` (likewise `lint`/`//#lint:py`, `test`/`//#test:py`, `format:check`/`//#format-check:py`)
 - Format (writes): `pnpm turbo format //#format:py`
