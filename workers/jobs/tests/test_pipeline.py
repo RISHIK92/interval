@@ -29,11 +29,16 @@ WAL = "https://blog.example.test/wal"
 ETAG = Validators('"feed-v1"', None)
 
 
-def web(failing: str | None = None, blocked: str | None = None) -> FakeFetcher:
+def web(
+    failing: str | None = None,
+    blocked: str | None = None,
+    extra: dict[str, Fetched] | None = None,
+) -> FakeFetcher:
     pages: dict[str, Fetched | FetchError] = {
         FEED_URL: Fetched(FEED_URL, fixture_bytes("atom.xml"), "utf-8", ETAG),
         OLDER: Fetched(OLDER, fixture_bytes("article_v2.html"), "utf-8"),
         WAL: Fetched(WAL, fixture_bytes("article.html"), "utf-8"),
+        **(extra or {}),
     }
     if failing is not None:
         pages[failing] = FetchError("HTTP 503")
@@ -49,9 +54,10 @@ class World:
         moments: bool = True,
         failing: str | None = None,
         blocked: str | None = None,
+        extra: dict[str, Fetched] | None = None,
     ) -> None:
         self.store = InMemoryStore()
-        self.fetcher = web(failing, blocked)
+        self.fetcher = web(failing, blocked, extra)
         self.queue = InMemoryQueue()
         self.source_id = self.store.sources.upsert(
             name="pipe", feed_url=FEED_URL, rights_profile=profile, homepage=None
@@ -245,3 +251,38 @@ def test_an_article_robots_disallows_is_skipped_not_retried() -> None:
     world.run()
     assert world.queue.failed_messages("fetch_item") == []
     assert world.requested().count(OLDER) == 1
+
+
+def test_the_same_article_from_two_sources_shows_once_in_the_feed() -> None:
+    mirror = "https://mirror.example.test/feed.atom"
+    world = World(extra={mirror: Fetched(mirror, fixture_bytes("atom.xml"), "utf-8")})
+    other = world.store.sources.upsert(
+        name="mirror",
+        feed_url=mirror,
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    world.store.sources.set_moments_enabled(other, True)
+    world.discover()
+    world.queue.enqueue("discover_source", {"source_id": other}, idempotency_key="m-1")
+    world.run()
+    items = list(world.store.items.rows.values())
+    assert len(items) == 4
+    primaries = [i for i in items if i.duplicate_of is None]
+    assert sorted(i.canonical_url for i in primaries) == [OLDER, WAL]
+    shown = {
+        m.item_id for m in world.store.moments.rows if m.id in world.store.feed.entries
+    }
+    assert shown == {i.id for i in primaries}
+
+
+def test_the_fetch_refines_the_canonical_url_and_fingerprints_full_text() -> None:
+    page = fixture_bytes("article.html").replace(
+        b"<head>", b'<head><link rel="canonical" href="/wal-final?utm_source=x">'
+    )
+    world = World(extra={WAL: Fetched(WAL + "?ref=feed", page, "utf-8")})
+    world.discover()
+    world.run()
+    wal = next(i for i in world.store.items.rows.values() if i.guid.endswith(":wal"))
+    assert wal.canonical_url == "https://blog.example.test/wal-final"
+    assert wal.simhash is not None

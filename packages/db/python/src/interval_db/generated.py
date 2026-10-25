@@ -95,6 +95,8 @@ class ContentItem(TypedDict):
     feed_summary: str | None
     excerpt: str | None
     fetched_at: datetime
+    duplicate_of: int | None
+    simhash: int | None
 
 
 class ContentItemPrivateText(TypedDict):

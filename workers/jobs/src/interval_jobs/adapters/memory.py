@@ -12,6 +12,7 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
+from interval_jobs.normalize import near_duplicates
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
     DuplicateInviteCode,
@@ -66,6 +67,52 @@ class StoredItem:
     excerpt: str | None = None
     full_text: str | None = None
     sections: list[Section] = field(default_factory=list[Section])
+    duplicate_of: int | None = None
+    simhash: int | None = None
+
+
+def _title_key(title: str) -> str:
+    # Mirrors the SQL item_title_key: ASCII whitespace only, as Postgres's \s.
+    return re.sub(r"[ \t\n\r\f\v]+", " ", title).strip(" ").lower()
+
+
+def _same_metadata(a: StoredItem, b: StoredItem) -> bool:
+    def title(item: StoredItem) -> str:
+        return _title_key(item.title)
+
+    def day(item: StoredItem) -> date | None:
+        return item.published_at.astimezone(UTC).date() if item.published_at else None
+
+    return (
+        title(a) == title(b)
+        and a.author is not None
+        and b.author is not None
+        and a.author.lower() == b.author.lower()
+        and day(a) is not None
+        and day(a) == day(b)
+    )
+
+
+def _publication_order(item: StoredItem) -> tuple[bool, float, int]:
+    published = item.published_at.timestamp() if item.published_at else 0.0
+    return (item.published_at is None, published, item.id)
+
+
+def _earlier(a: StoredItem, b: StoredItem) -> bool:
+    return _publication_order(a) < _publication_order(b)
+
+
+def _duplicates(a: StoredItem, b: StoredItem, both_full_text: bool) -> bool:
+    # Mirrors PostgresItems.link_duplicates.
+    if a.id == b.id or a.canonical_url == b.canonical_url:
+        return True
+    if both_full_text:
+        return (
+            a.simhash is not None
+            and b.simhash is not None
+            and near_duplicates(a.simhash, b.simhash)
+        )
+    return _same_metadata(a, b)
 
 
 @dataclass
@@ -184,7 +231,7 @@ class InMemorySources:
         items = [i for i in self.store.items.rows.values() if i.source_id == source.id]
         for item in items:
             if source.rights_profile not in _FULL_TEXT:
-                item.full_text, item.sections = None, []
+                item.full_text, item.sections, item.simhash = None, [], None
             if source.rights_profile != "excerpt":
                 item.excerpt = None
         if not source.moments_enabled or source.rights_profile not in _FULL_TEXT:
@@ -205,7 +252,7 @@ class InMemoryItems:
     ) -> int:
         for item in self.rows.values():
             if item.source_id == source_id and item.guid == entry.guid:
-                item.canonical_url, item.title = entry.link, entry.title
+                item.title = entry.title
                 item.author, item.published_at = entry.author, entry.published_at
                 item.feed_summary = entry.summary
                 if not keep_excerpt:
@@ -223,6 +270,33 @@ class InMemoryItems:
             feed_summary=entry.summary,
         )
         return item_id
+
+    def set_canonical(self, item_id: int, url: str) -> None:
+        self.rows[item_id].canonical_url = url
+
+    def set_simhash(self, item_id: int, simhash: int) -> None:
+        self._require_full_text(item_id)
+        self.rows[item_id].simhash = simhash
+
+    def hold_duplicate_lock(self) -> None:
+        pass  # one thread at a time in tests
+
+    def link_duplicates(self, item_id: int) -> int:
+        me = self.rows[item_id]
+        mine = self._profile(item_id) in _FULL_TEXT
+        matches = {
+            i.id
+            for i in self.rows.values()
+            if _duplicates(me, i, mine and self._profile(i.id) in _FULL_TEXT)
+        }
+        roots = matches | {
+            p for i in matches if (p := self.rows[i].duplicate_of) is not None
+        }
+        group = roots | {i.id for i in self.rows.values() if i.duplicate_of in roots}
+        primary = min((self.rows[i] for i in group), key=_publication_order).id
+        for i in group:
+            self.rows[i].duplicate_of = None if i == primary else primary
+        return primary
 
     def _profile(self, item_id: int) -> RightsProfile:
         return self._sources.rows[self.rows[item_id].source_id].rights_profile
@@ -331,7 +405,17 @@ class InMemoryFeed:
             published = item.published_at.timestamp() if item.published_at else 0.0
             return (item.published_at is None, -published, -item.id, m.row.ordinal)
 
-        self.entries = [m.id for m in sorted(self._moments.rows, key=key)]
+        # Per duplicate group, the earliest copy that has moments (as in Postgres).
+        shown: dict[int, StoredItem] = {}
+        for m in self._moments.rows:
+            item = self._items.rows[m.item_id]
+            group = item.duplicate_of or item.id
+            current = shown.get(group)
+            if current is None or _earlier(item, current):
+                shown[group] = item
+        ids = {item.id for item in shown.values()}
+        kept = [m for m in self._moments.rows if m.item_id in ids]
+        self.entries = [m.id for m in sorted(kept, key=key)]
         return len(self.entries)
 
     def drop_missing(self) -> None:

@@ -98,12 +98,14 @@ export interface AuthVerification {
 export interface ContentItem {
   author: string | null;
   canonical_url: string;
+  duplicate_of: Int8 | null;
   excerpt: string | null;
   feed_summary: string | null;
   fetched_at: Generated<Timestamp>;
   guid: string;
   id: Generated<Int8>;
   published_at: Timestamp | null;
+  simhash: Int8 | null;
   source_id: Int8;
   title: string;
 }

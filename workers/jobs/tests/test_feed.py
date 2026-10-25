@@ -2,7 +2,12 @@ from datetime import UTC, datetime
 
 import pytest
 
-from interval_jobs.ingest.feed import NoValidEntryError, newest_entry, plain_summary
+from interval_jobs.ingest.feed import (
+    NoValidEntryError,
+    newest_entry,
+    plain_summary,
+    valid_entries,
+)
 
 from .conftest import fixture_bytes
 
@@ -68,3 +73,24 @@ def test_feed_without_valid_entries_raises() -> None:
 def test_bytes_that_look_like_a_path_are_not_opened() -> None:
     with pytest.raises(NoValidEntryError):
         newest_entry(b"/etc/hosts", FEED)
+
+
+def test_entry_links_lose_tracking_params_but_guids_stay_as_published() -> None:
+    feed = b"""<rss version="2.0"><channel><title>t</title><item><title>Post</title>
+<link>https://blog.example.test/p?utm_source=rss&amp;utm_medium=feed#more</link>
+</item></channel></rss>"""
+    (entry,) = valid_entries(feed, "https://blog.example.test/rss")
+    assert entry.link == "https://blog.example.test/p"
+    # The guid keys the item, so it stays the link as published (Q-P1-08).
+    assert (
+        entry.guid == "https://blog.example.test/p?utm_source=rss&utm_medium=feed#more"
+    )
+
+
+def test_an_entry_with_a_malformed_link_is_skipped_not_fatal() -> None:
+    feed = b"""<rss version="2.0"><channel><title>t</title>
+<item><title>Bad</title><link>https://blog.example.test:99999/p</link></item>
+<item><title>Good</title><link>https://blog.example.test/ok</link></item>
+</channel></rss>"""
+    entries = valid_entries(feed, "https://blog.example.test/rss")
+    assert [e.title for e in entries] == ["Good"]

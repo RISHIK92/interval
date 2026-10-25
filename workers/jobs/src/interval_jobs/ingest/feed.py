@@ -11,6 +11,7 @@ from urllib.parse import urljoin, urlsplit
 import feedparser
 
 from interval_jobs import log
+from interval_jobs.normalize import clean_url
 from interval_jobs.ports import FeedEntry
 from interval_jobs.rights import EXCERPT_MAX_CHARS
 
@@ -71,9 +72,14 @@ def _to_entry(raw: dict[str, Any], feed_url: str) -> FeedEntry | None:
     absolute = urljoin(feed_url, link)
     if urlsplit(absolute).scheme not in ("http", "https"):
         return None
+    try:
+        link = clean_url(absolute)
+    except ValueError:
+        return None
     return FeedEntry(
+        # The guid keys the item, so it stays as published; the link is normalized.
         guid=_text(raw, "id") or absolute,
-        link=absolute,
+        link=link,
         title=title,
         author=_text(raw, "author"),
         published_at=_time(raw, "published_parsed"),

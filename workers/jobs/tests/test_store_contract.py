@@ -54,6 +54,8 @@ class Probe(Protocol):
     def delete_user(self, user_id: str) -> None: ...
     def source_state(self, name: str) -> tuple[object, ...] | None: ...
     def has_item(self, item_id: int) -> bool: ...
+    def primary_of(self, item_id: int) -> int | None: ...
+    def simhash(self, item_id: int) -> int | None: ...
 
 
 @dataclass
@@ -98,6 +100,12 @@ class MemoryProbe:
 
     def has_item(self, item_id: int) -> bool:
         return item_id in self.s.items.rows
+
+    def primary_of(self, item_id: int) -> int | None:
+        return self.s.items.rows[item_id].duplicate_of
+
+    def simhash(self, item_id: int) -> int | None:
+        return self.s.items.rows[item_id].simhash
 
     def invite(self, code: str) -> tuple[str, int, int, datetime, str | None] | None:
         row = self.s.invites.rows.get(code)
@@ -217,6 +225,20 @@ class PostgresProbe:
             "order by ordinal",
             (item_id,),
         ).fetchall()
+
+    def primary_of(self, item_id: int) -> int | None:
+        row = self.conn.execute(
+            "select duplicate_of from content_item where id = %s", (item_id,)
+        ).fetchone()
+        assert row is not None
+        return row[0]
+
+    def simhash(self, item_id: int) -> int | None:
+        row = self.conn.execute(
+            "select simhash from content_item where id = %s", (item_id,)
+        ).fetchone()
+        assert row is not None
+        return row[0]
 
     def feed_titles(self) -> list[str]:
         rows = self.conn.execute(
@@ -818,3 +840,249 @@ def test_fetch_validators_are_kept_per_url(store: tuple[Store, Probe]) -> None:
     assert s.validators.get(url) == Validators(None, "Mon, 26 Oct 2026 01:00:00 GMT")
     s.validators.put(url, None)  # the server stopped sending them
     assert s.validators.get(url) is None
+
+
+# ING-1 normalize (Q-P1-08): duplicates link to the earliest-published item.
+def dup_source(
+    s: Store, name: str, profile: RightsProfile = "full_text_internal"
+) -> int:
+    return s.sources.upsert(
+        name=f"dup-{name}",
+        feed_url=f"https://dup-{name}.example.test/feed.xml",
+        rights_profile=profile,
+        homepage=None,
+    )
+
+
+def dup_item(
+    s: Store,
+    source_id: int,
+    guid: str,
+    day: int,
+    url: str | None = None,
+    title: str | None = None,
+    author: str | None = None,
+) -> int:
+    return s.items.upsert_from_feed(
+        source_id,
+        FeedEntry(
+            guid=f"contract-dup-{guid}",
+            link=url or f"https://dup.example.test/{guid}",
+            title=title or f"Unique title {guid}",
+            author=author,
+            published_at=datetime(2099, 11, day, tzinfo=UTC),
+            updated_at=None,
+            summary=None,
+        ),
+        keep_excerpt=False,
+    )
+
+
+A_HASH = 0x0F0F_0F0F_0F0F_0F0F
+NEAR_A = A_HASH ^ 0b101  # two bits away
+FAR_FROM_A = A_HASH ^ 0xFFFF
+
+
+def test_the_same_canonical_url_on_two_sources_is_one_article(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    first = dup_item(
+        s, dup_source(s, "a"), "x1", 2, url="https://dup.example.test/same"
+    )
+    later = dup_item(
+        s, dup_source(s, "b"), "x2", 5, url="https://dup.example.test/same"
+    )
+    assert s.items.link_duplicates(later) == first
+    assert (probe.primary_of(first), probe.primary_of(later)) == (None, first)
+
+
+def test_near_simhashes_link_and_far_ones_do_not(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    a = dup_item(s, dup_source(s, "a"), "s1", 2)
+    near = dup_item(s, dup_source(s, "b"), "s2", 3)
+    far = dup_item(s, dup_source(s, "c"), "s3", 4)
+    for item, value in ((a, A_HASH), (near, NEAR_A), (far, FAR_FROM_A)):
+        s.items.store_full_text(item, "body")
+        s.items.set_simhash(item, value)
+        s.items.link_duplicates(item)
+    assert (probe.primary_of(near), probe.primary_of(far)) == (a, None)
+
+
+def test_without_body_text_title_author_and_date_decide(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    a = dup_source(s, "a", "metadata_only")
+    b = dup_source(s, "b", "metadata_only")
+    first = dup_item(s, a, "m1", 2, title="Queues  In Depth", author="Ann")
+    same = dup_item(s, b, "m2", 2, title="queues in depth", author="Ann")
+    other_day = dup_item(s, b, "m3", 9, title="Queues in depth", author="Ann")
+    for item in (first, same, other_day):
+        s.items.link_duplicates(item)
+    assert (probe.primary_of(same), probe.primary_of(other_day)) == (first, None)
+
+
+def test_two_bodies_far_apart_are_not_duplicates_despite_matching_metadata(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    a = dup_item(s, dup_source(s, "a"), "f1", 2, title="Weekly notes", author="Bo")
+    b = dup_item(s, dup_source(s, "b"), "f2", 2, title="Weekly notes", author="Bo")
+    for item, value in ((a, A_HASH), (b, FAR_FROM_A)):
+        s.items.store_full_text(item, "body")
+        s.items.set_simhash(item, value)
+        s.items.link_duplicates(item)
+    assert probe.primary_of(b) is None
+
+
+def test_an_earlier_newcomer_becomes_the_primary(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    url = "https://dup.example.test/backfilled"
+    later = dup_item(s, dup_source(s, "a"), "e1", 20, url=url)
+    middle = dup_item(s, dup_source(s, "b"), "e2", 10, url=url)
+    s.items.link_duplicates(middle)
+    earliest = dup_item(s, dup_source(s, "c"), "e3", 1, url=url)
+    assert s.items.link_duplicates(earliest) == earliest
+    assert [probe.primary_of(i) for i in (earliest, middle, later)] == [
+        None,
+        earliest,
+        earliest,
+    ]
+
+
+def test_a_simhash_needs_full_text_rights_and_goes_when_they_do(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    excerpt = dup_item(s, dup_source(s, "ex", "excerpt"), "r1", 2)
+    with pytest.raises(RightsViolation):
+        s.items.set_simhash(excerpt, A_HASH)
+    sid = dup_source(s, "lowered")
+    item = dup_item(s, sid, "r2", 2)
+    s.items.store_full_text(item, "body")
+    s.items.set_simhash(item, A_HASH)
+    s.sources.upsert(
+        name="dup-lowered",
+        feed_url="https://dup-lowered.example.test/feed.xml",
+        rights_profile="metadata_only",
+        homepage=None,
+    )
+    assert probe.simhash(item) is None
+
+
+def test_a_poll_keeps_the_canonical_url_the_fetch_found(
+    store: tuple[Store, Probe],
+) -> None:
+    s, _ = store
+    sid = dup_source(s, "a")
+    item = dup_item(s, sid, "c1", 2, url="https://dup.example.test/c1?page=1")
+    s.items.set_canonical(item, "https://dup.example.test/c1")
+    dup_item(s, sid, "c1", 2, url="https://dup.example.test/c1?page=1")  # next poll
+    fetch = s.items.for_fetch(item)
+    assert fetch is not None
+    assert fetch.canonical_url == "https://dup.example.test/c1"
+
+
+def test_the_feed_shows_only_the_primary(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    url = "https://dup.example.test/feed-dup"
+    a, b = dup_source(s, "a"), dup_source(s, "b")
+    probe.enable_moments(a)
+    probe.enable_moments(b)
+    primary = dup_item(s, a, "d1", 2, url=url)
+    copy = dup_item(s, b, "d2", 3, url=url)
+    s.moments.replace(primary, [moment(0, "dup-primary")])
+    s.moments.replace(copy, [moment(0, "dup-copy")])
+    s.items.link_duplicates(copy)
+    s.feed.rebuild()
+    titles = probe.feed_titles()
+    assert "dup-primary" in titles
+    assert "dup-copy" not in titles
+
+
+def test_a_missing_author_or_date_never_matches_on_metadata(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    a = dup_source(s, "a", "metadata_only")
+    b = dup_source(s, "b", "metadata_only")
+    first = dup_item(s, a, "n1", 2, title="Weekly links")
+    unnamed = dup_item(s, b, "n2", 2, title="Weekly links")
+    one_named = dup_item(s, b, "n3", 2, title="Weekly links", author="Cy")
+    for item in (first, unnamed, one_named):
+        s.items.link_duplicates(item)
+    assert (probe.primary_of(unnamed), probe.primary_of(one_named)) == (None, None)
+    undated_a = s.items.upsert_from_feed(a, undated_entry("u1"), keep_excerpt=False)
+    undated_b = s.items.upsert_from_feed(b, undated_entry("u2"), keep_excerpt=False)
+    s.items.link_duplicates(undated_b)
+    assert (probe.primary_of(undated_a), probe.primary_of(undated_b)) == (None, None)
+
+
+def undated_entry(guid: str) -> FeedEntry:
+    return FeedEntry(
+        guid=f"contract-dup-{guid}",
+        link=f"https://dup.example.test/{guid}",
+        title="Undated post",
+        author="Di",
+        published_at=None,
+        updated_at=None,
+        summary=None,
+    )
+
+
+def test_titles_match_across_ascii_spacing_and_case_in_every_store(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    a = dup_source(s, "a", "metadata_only")
+    b = dup_source(s, "b", "metadata_only")
+    nbsp = dup_item(s, a, "w1", 2, title="Queues\u00a0in depth", author="Ann")
+    spaced = dup_item(s, a, "w2", 2, title="Queues in depth", author="Ann")
+    tabbed = dup_item(s, b, "w3", 2, title="  queues\tin  DEPTH ", author="ann")
+    for item in (nbsp, spaced, tabbed):
+        s.items.link_duplicates(item)
+    # A no-break space is not whitespace to Postgres; the fake must agree.
+    assert probe.primary_of(nbsp) is None
+    assert probe.primary_of(tabbed) == spaced
+
+
+def test_an_item_bridging_two_groups_merges_them(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    x_url, y_url = "https://dup.example.test/gx", "https://dup.example.test/gy"
+    x1 = dup_item(s, dup_source(s, "a"), "g1", 1, url=x_url)
+    x2 = dup_item(s, dup_source(s, "b"), "g2", 5, url=x_url)
+    y1 = dup_item(
+        s, dup_source(s, "c"), "g3", 3, url=y_url, title="Bridge", author="Ed"
+    )
+    y2 = dup_item(s, dup_source(s, "d"), "g4", 6, url=y_url)
+    s.items.link_duplicates(x2)
+    s.items.link_duplicates(y2)
+    assert probe.primary_of(y2) == y1
+    # A metadata-only listing with x's link and y1's title, author and day.
+    listing = dup_source(s, "e", "metadata_only")
+    bridge = dup_item(s, listing, "g5", 3, url=x_url, title="Bridge", author="Ed")
+    assert s.items.link_duplicates(bridge) == x1
+    assert [probe.primary_of(i) for i in (x1, x2, y1, y2, bridge)] == [
+        None,
+        x1,
+        x1,
+        x1,
+        x1,
+    ]
+
+
+def test_the_feed_keeps_the_earliest_copy_that_has_moments(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    url = "https://dup.example.test/syndicated"
+    listing = dup_item(s, dup_source(s, "listing", "metadata_only"), "k1", 1, url=url)
+    original_source = dup_source(s, "original")
+    probe.enable_moments(original_source)
+    original = dup_item(s, original_source, "k2", 2, url=url)
+    s.moments.replace(original, [moment(0, "dup-original")])
+    s.items.link_duplicates(original)
+    s.feed.rebuild()
+    assert probe.primary_of(original) == listing
+    assert "dup-original" in probe.feed_titles()

@@ -197,7 +197,29 @@ class Items(Protocol):
     def upsert_from_feed(
         self, source_id: int, entry: FeedEntry, keep_excerpt: bool
     ) -> int:
-        """Insert or update by (source, guid); drops the excerpt unless kept."""
+        """Insert or update by (source, guid); drops the excerpt unless kept. An update
+        keeps the canonical URL, which the fetch stage may have refined."""
+        ...
+
+    def set_canonical(self, item_id: int, url: str) -> None: ...
+
+    def set_simhash(self, item_id: int, simhash: int) -> None:
+        """Derived from body text, so full-text rights only."""
+        ...
+
+    def hold_duplicate_lock(self) -> None:
+        """Taken first in a stage that links duplicates, before any row lock, so two
+        stages regrouping overlapping items can't deadlock."""
+        ...
+
+    def link_duplicates(self, item_id: int) -> int:
+        """Links the item and everything it duplicates (Q-P1-08) to the earliest
+        published of them, and returns that primary. Duplicates: the same canonical
+        URL; or, between two full-text sources, SimHashes within MAX_SIMHASH_DISTANCE;
+        or, when either source can't process bodies, the same title, author and UTC
+        publication day (a missing author or date never matches). Keyed on rights,
+        not on whether a SimHash exists yet, so a link made before the fetch never has
+        to be undone."""
         ...
 
     def set_excerpt(self, item_id: int, excerpt: str) -> None: ...

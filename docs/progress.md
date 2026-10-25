@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher) and W2-S05 (heading-preserving extraction) done. Next: W2-S06, W2-S03. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) and W2-S06 (canonical URLs and duplicates) done. Next: W2-S03. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -16,6 +16,7 @@ Dependencies added overnight (all pinned):
 - pnpm `allowBuilds: msgpackr-extract: false`: BullMQ's optional native speed-up; the JS fallback works.
 
 Needs your review (newest first):
+- W2-S06: the feed shows each duplicate group's earliest copy that has moments, and a missing author never matches on metadata. Both are product behaviour the docs don't define; recommended options were picked.
 - Dan Luu's feed (https://danluu.com/atom.xml) is larger than the fetcher's 5 MB body cap (owner rule, 2026-10-25), so that source never polls. Options: raise the cap for feeds only, or drop or replace the source. Found in W2-S04.
 
 Pending (needs the owner):
@@ -732,3 +733,37 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - permalink glyphs in the link-text fallback;
   - a stale docstring.
 - Known limit: a last section that holds only a table is trimmed, because tables aren't counted. The extractor's docstring explains why.
+
+### 2026-10-26 — P1-W2-S06 (canonical URLs and duplicate detection, ING-1 normalize, Q-P1-08; overnight, recommended options)
+- Done:
+  - **`normalize.py`:**
+    - `clean_url` strips tracking parameters (utm_*, fbclid, gclid and the like), the fragment and the default port, and lowercases the host. It keeps the query's own order and encoding.
+    - `page_canonical` uses a same-site `<link rel=canonical>` (www and bare host count as one site), else the final URL after redirects. A cross-site canonical, a homepage canonical or a malformed one is ignored.
+    - SimHash: 64-bit over word 3-shingles, matching at distance ≤ 3. Text under 20 shingles (paywall stubs, failed extractions) gets none.
+  - **Where it runs:**
+    - feed links are cleaned in the parser, while the guid stays as published because it keys the item;
+    - a later poll no longer overwrites the canonical URL the fetch refined;
+    - fetch stores the SimHash under full-text rights only (a DB trigger plus a purge when a profile is lowered).
+  - **`items.link_duplicates`:**
+    - matches on the same canonical URL; on SimHash between two full-text sources; and on title, author and UTC day when either source can't process bodies;
+    - is keyed on rights, so a link made at discover never needs undoing;
+    - merges groups that an item bridges, and makes the earliest published the primary;
+    - is serialised by an advisory lock taken at the start of the discover and fetch stages;
+    - runs indexed lookups, one per rule (a canonical URL index and a title-key/day expression index).
+  - **Migration `20261026020000_duplicates.sql`:** `duplicate_of`, `simhash`, the SimHash rights trigger, the purge update and `item_title_key()`.
+- Review fixes:
+  - the feed could hide an original behind a metadata-only listing (a blocker; see below);
+  - empty or short texts all looked like one article;
+  - IPv6 hosts and malformed ports (one bad feed link failed a whole poll);
+  - a full table scan per feed entry;
+  - an advisory-lock ordering deadlock;
+  - NBSP title handling differed between the fake and Postgres;
+  - missing contract cases (null author or date, group bridging, relinking a child);
+  - a pipeline test for the refined canonical URL and SimHash.
+- Decided overnight, needs your review (the docs are silent):
+  - **The feed shows each duplicate group's earliest copy that has moments.** It is not necessarily the primary: the primary may be a metadata-only listing with no moments, which would otherwise hide the original.
+  - **A missing author never matches on metadata.** Generic titles such as "Weekly links" from unrelated sites on the same day would otherwise merge.
+- Known limits:
+  - links are never undone if an item's text later changes;
+  - hash-routed URLs (`/#!/post`) collapse to one URL (a `shortcut:` comment);
+  - rows created before this migration keep their uncleaned canonical URLs (local DB only).

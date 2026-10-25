@@ -13,6 +13,7 @@ import psycopg
 from psycopg.rows import class_row
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
+from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
     DuplicateInviteCode,
@@ -50,6 +51,9 @@ def _rights_guard(conn: psycopg.Connection) -> Generator[None]:
 # Serialises feed rebuilds: two concurrent delete+insert runs would collide on the
 # primary key (LOAD-5: jobs may run more than once and side by side).
 FEED_LOCK_KEY = 0x1E_ED_F0_0D
+# Serialises duplicate linking: two stages regrouping overlapping items at once could
+# each pick a different primary.
+DUPLICATES_LOCK_KEY = 0xD0_B1_E5
 
 
 class PostgresSources:
@@ -167,8 +171,7 @@ class PostgresItems:
                published_at, feed_summary)
             values (%s, %s, %s, %s, %s, %s, %s)
             on conflict (source_id, guid) do update
-              set canonical_url = excluded.canonical_url,
-                  title = excluded.title,
+              set title = excluded.title,
                   author = excluded.author,
                   published_at = excluded.published_at,
                   feed_summary = excluded.feed_summary,
@@ -191,6 +194,86 @@ class PostgresItems:
             raise RuntimeError("upsert returned no row")
         item_id: int = row[0]
         return item_id
+
+    def set_canonical(self, item_id: int, url: str) -> None:
+        self._conn.execute(
+            "update content_item set canonical_url = %s where id = %s", (url, item_id)
+        )
+
+    def set_simhash(self, item_id: int, simhash: int) -> None:
+        with _rights_guard(self._conn):
+            self._conn.execute(
+                "update content_item set simhash = %s where id = %s", (simhash, item_id)
+            )
+
+    def hold_duplicate_lock(self) -> None:
+        self._conn.execute("select pg_advisory_xact_lock(%s)", (DUPLICATES_LOCK_KEY,))
+
+    def link_duplicates(self, item_id: int) -> int:
+        self.hold_duplicate_lock()
+        row = self._conn.execute(
+            """
+            with me as (
+              select ci.id, ci.canonical_url, ci.simhash, lower(ci.author) as author,
+                     item_title_key(ci.title) as title_key,
+                     (ci.published_at at time zone 'UTC')::date as day,
+                     s.rights_profile in ('full_text_internal', 'full_text_display')
+                       as full_text
+              from content_item ci join source s on s.id = ci.source_id
+              where ci.id = %(id)s
+            ),
+            -- One indexed lookup per rule rather than an OR over every item.
+            matches as (
+              select id from me
+              union
+              select ci.id from content_item ci, me
+              where ci.canonical_url = me.canonical_url
+              union
+              -- The rights trigger and purge keep simhash on full-text items only.
+              select ci.id from content_item ci, me
+              where me.full_text and ci.simhash is not null
+                and bit_count((ci.simhash # me.simhash)::bit(64)) <= %(distance)s
+              union
+              select ci.id from content_item ci
+              join source s on s.id = ci.source_id, me
+              where item_title_key(ci.title) = me.title_key
+                and (ci.published_at at time zone 'UTC')::date = me.day
+                and lower(ci.author) = me.author
+                and not (
+                  me.full_text
+                  and s.rights_profile in ('full_text_internal', 'full_text_display')
+                )
+            ),
+            roots as (
+              select id from matches
+              union
+              select duplicate_of from content_item
+              where id in (select id from matches) and duplicate_of is not null
+            ),
+            grp as (
+              select id from roots
+              union
+              select id from content_item where duplicate_of in (select id from roots)
+            ),
+            chosen as (
+              select id from content_item where id in (select id from grp)
+              order by published_at nulls last, id limit 1
+            ),
+            relinked as (
+              update content_item ci
+              set duplicate_of = nullif(chosen.id, ci.id)
+              from chosen
+              where ci.id in (select id from grp)
+                and ci.duplicate_of is distinct from nullif(chosen.id, ci.id)
+            )
+            select id from chosen
+            """,
+            {"id": item_id, "distance": MAX_SIMHASH_DISTANCE},
+        ).fetchone()
+        if row is None:
+            raise RuntimeError(f"content item {item_id} not found")
+        primary: int = row[0]
+        return primary
 
     def set_excerpt(self, item_id: int, excerpt: str) -> None:
         with _rights_guard(self._conn):
@@ -339,6 +422,14 @@ class PostgresFeed:
                    )
             from moment m
             join content_item ci on ci.id = m.content_item_id
+            where ci.id in (
+              -- Per duplicate group, the earliest copy that has moments: the primary
+              -- may be a metadata-only listing with none (owner review, 2026-10-26).
+              select distinct on (coalesce(c.duplicate_of, c.id)) c.id
+              from content_item c
+              where exists (select 1 from moment x where x.content_item_id = c.id)
+              order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
+            )
             """
         )
         return cursor.rowcount

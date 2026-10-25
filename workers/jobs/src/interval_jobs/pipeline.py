@@ -11,7 +11,11 @@ Every stage:
 Discover keeps the feed's validators (conditional requests) only once its follow-ups are
 queued: kept any earlier, a retry would get a 304 and the new entries would be lost.
 A stage that raises is retried; after the third failure the message goes to the failed
-store (the queue's job). Normalize and classify join in W2-S06 and W3-S02.
+store (the queue's job). Classify joins in W3-S02.
+
+Normalize (Q-P1-08) runs inside discover and fetch: feed links arrive cleaned of
+tracking parameters, fetch refines the canonical URL from the page and fingerprints
+full text, and both link duplicates to the earliest-published item.
 """
 
 from collections.abc import Callable
@@ -24,6 +28,7 @@ from interval_db.messages import DiscoverSource, FetchItem, MessageName, Segment
 from interval_jobs import log
 from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
+from interval_jobs.normalize import page_canonical, simhash
 from interval_jobs.ports import (
     Delivery,
     Extractor,
@@ -98,6 +103,7 @@ class Pipeline:
         if source is None or not source.active:
             log.info("pipeline: source skipped", source_id=message.source_id)
             return [], None
+        store.items.hold_duplicate_lock()
         known = store.validators.get(source.feed_url)
         try:
             feed = services.fetcher.fetch_if_changed(source.feed_url, "feed", known)
@@ -120,6 +126,7 @@ class Pipeline:
         follow_ups: list[Next] = []
         for entry in entries:
             item_id = store.items.upsert_from_feed(source.id, entry, keep_excerpt)
+            store.items.link_duplicates(item_id)
             if not allowed(profile, "fetch_body"):
                 continue
             # Fetch once: not again when what the profile keeps is already stored.
@@ -141,6 +148,7 @@ class Pipeline:
         if item is None or not allowed(item.rights_profile, "fetch_body"):
             log.info("pipeline: fetch skipped by rights", content_item_id=item_id)
             return []
+        store.items.hold_duplicate_lock()
         # The page stays in memory: only what the profile allows is stored (ING-2).
         try:
             article = services.fetcher.fetch(item.canonical_url, "article")
@@ -151,18 +159,26 @@ class Pipeline:
             )
             return []
         text = services.extractor.text(article.body, article.encoding)
+        store.items.set_canonical(
+            item_id, page_canonical(article.body, article.encoding, article.url)
+        )
+        follow_ups: list[Next] = []
         if allowed(item.rights_profile, "store_full_text"):
             store.items.store_full_text(item_id, text)
             store.items.replace_sections(
                 item_id,
                 services.extractor.sections(article.body, article.encoding, item.title),
             )
-            return [
+            fingerprint = simhash(text)
+            if fingerprint is not None:
+                store.items.set_simhash(item_id, fingerprint)
+            follow_ups.append(
                 ("segment_item", {"content_item_id": item_id}, f"segment-{item_id}")
-            ]
-        if allowed(item.rights_profile, "store_excerpt"):
+            )
+        elif allowed(item.rights_profile, "store_excerpt"):
             store.items.set_excerpt(item_id, text[:EXCERPT_MAX_CHARS])
-        return []
+        store.items.link_duplicates(item_id)
+        return follow_ups
 
     def _segment(self, services: StageServices, message: BaseModel) -> list[Next]:
         assert isinstance(message, SegmentItem)
