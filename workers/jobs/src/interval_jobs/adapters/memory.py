@@ -8,7 +8,8 @@ switching moments off purges what the source no longer allows.
 
 import re
 from dataclasses import dataclass, field, replace
-from datetime import datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.ports import (
@@ -25,6 +26,7 @@ from interval_jobs.ports import (
     SectionRow,
     SegmentationInput,
     SourceRecord,
+    Usage,
 )
 
 _FULL_TEXT: frozenset[RightsProfile] = frozenset(
@@ -310,7 +312,9 @@ class InMemoryUsers:
 
 # The migration's seed: capabilities the beta plan limits (a database trigger refuses
 # granting these; the fake mirrors it).
-LIMITED_CAPABILITIES: frozenset[Capability] = frozenset({"ai.notes.daily"})
+LIMITED_CAPABILITIES: frozenset[Capability] = frozenset(
+    {"ai.notes.daily", "ai.budget.daily_cents"}
+)
 
 
 class InMemoryGrants:
@@ -345,6 +349,37 @@ class InMemoryGrants:
             return "not_granted"
         user.capabilities.discard(capability)
         return "revoked"
+
+
+# The migrations' seeds: the beta plan's per-user budget and the global offline budget.
+BETA_DAILY_BUDGET_CENTS = 50
+GLOBAL_DAILY_BUDGET_CENTS = 500
+
+
+class InMemoryAi:
+    def __init__(self, users: InMemoryUsers) -> None:
+        self._users = users
+        self.rows: list[Usage] = []
+
+    def daily_budget_cents(self, user_id: str | None) -> int | None:
+        if user_id is None:
+            return GLOBAL_DAILY_BUDGET_CENTS
+        return BETA_DAILY_BUDGET_CENTS if user_id in self._users.rows else 0
+
+    def spent_usd(self, user_id: str | None, day: date) -> Decimal:
+        return sum(
+            (
+                u.cost_usd
+                for u in self.rows
+                if u.user_id == user_id and u.occurred_at.astimezone(UTC).date() == day
+            ),
+            Decimal(0),
+        )
+
+    def record(self, usage: Usage) -> None:
+        # Postgres stores numeric(12, 6); round the same way so both sum alike.
+        cost = usage.cost_usd.quantize(Decimal("0.000001"))
+        self.rows.append(replace(usage, cost_usd=cost))
 
 
 class InMemoryStore:

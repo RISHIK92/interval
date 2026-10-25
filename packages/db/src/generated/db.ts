@@ -5,9 +5,13 @@
 
 import type { ColumnType } from "kysely";
 
+export type AiFeature = "embeddings" | "notes" | "tagging";
+
+export type AiProvider = "openrouter" | "voyage";
+
 export type BetaGroup = "developer" | "student";
 
-export type Capability = "admin.review" | "ai.notes.daily" | "feed.read";
+export type Capability = "admin.review" | "ai.budget.daily_cents" | "ai.notes.daily" | "feed.read";
 
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
@@ -17,9 +21,29 @@ export type Int8 = ColumnType<string, bigint | number | string, bigint | number 
 
 export type MomentLinkType = "anchor" | "page_top" | "text_fragment";
 
+export type Numeric = ColumnType<string, number | string, number | string>;
+
 export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+
+export interface AiBudget {
+  daily_cents: number;
+  scope: string;
+}
+
+export interface AiUsage {
+  cost_usd: Numeric;
+  feature: AiFeature;
+  id: Generated<Int8>;
+  input_tokens: number;
+  is_offline: boolean;
+  model: string;
+  occurred_at: Generated<Timestamp>;
+  output_tokens: number;
+  provider: AiProvider;
+  user_id: string | null;
+}
 
 export interface AppUser {
   beta_group: BetaGroup;
@@ -180,6 +204,8 @@ export interface UserEntitlement {
 }
 
 export interface DB {
+  ai_budget: AiBudget;
+  ai_usage: AiUsage;
   app_user: AppUser;
   auth_account: AuthAccount;
   auth_session: AuthSession;

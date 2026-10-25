@@ -182,6 +182,23 @@ export class AwsStack extends Stack {
       metricName: "EmitFailures",
       metricValue: "$.count",
     });
+    // OPS-4: the AI gateway logs each call's cost and each refusal (Q-P1-23).
+    logGroup.addMetricFilter("AiCost", {
+      filterPattern: logs.FilterPattern.stringValue("$.msg", "=", "ai: call"),
+      metricNamespace: "Interval/AI",
+      metricName: "CostMicroUsd",
+      metricValue: "$.cost_micro_usd",
+    });
+    logGroup.addMetricFilter("AiOverBudget", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "ai: over budget",
+      ),
+      metricNamespace: "Interval/AI",
+      metricName: "OverBudget",
+      metricValue: "1",
+    });
 
     const environment = {
       NODE_ENV: "production",

@@ -5,12 +5,15 @@ never imports a driver or SDK, so a service is swapped by replacing one adapter.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Literal, Protocol
+from datetime import date, datetime
+from decimal import Decimal
+from typing import Literal, Protocol, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
 from interval_db.generated import (
+    AiFeature,
+    AiProvider,
     BetaGroup,
     Capability,
     MomentLinkType,
@@ -191,6 +194,39 @@ class Grants(Protocol):
         ...
 
 
+@dataclass(frozen=True)
+class Usage:
+    """One model call's cost (OPS-4); user_id is None for offline jobs."""
+
+    user_id: str | None
+    feature: AiFeature
+    provider: AiProvider
+    model: str
+    input_tokens: int
+    output_tokens: int
+    cost_usd: Decimal
+    occurred_at: datetime
+
+
+class AiLedger(Protocol):
+    """Budgets and spend for the AI gateway (Q-P1-23).
+
+    Not part of the Store: usage is recorded on its own connection and committed at
+    once, because the provider has charged even if the job later fails and rolls back.
+    """
+
+    def daily_budget_cents(self, user_id: str | None) -> int | None:
+        """A user's plan budget (0 if none granted), or the global budget for None.
+        None means no limit."""
+        ...
+
+    def spent_usd(self, user_id: str | None, day: date) -> Decimal:
+        """Spend on a UTC day: one user's calls, or the offline calls for None."""
+        ...
+
+    def record(self, usage: Usage) -> None: ...
+
+
 class Store(Protocol):
     """Repositories sharing one unit of work; the composition root commits it."""
 
@@ -234,3 +270,41 @@ class EventSink(Protocol):
     def write(self, batch: list[Envelope]) -> list[Envelope]:
         """Returns the events it could not deliver, for one retry."""
         ...
+
+
+class Message(TypedDict):
+    role: Literal["system", "user", "assistant"]
+    content: str
+
+
+@dataclass(frozen=True)
+class Completion:
+    text: str
+    input_tokens: int
+    output_tokens: int
+    cost_usd: Decimal  # as the provider reports it
+
+
+@dataclass(frozen=True)
+class Embeddings:
+    vectors: list[list[float]]
+    input_tokens: int
+    cost_usd: Decimal
+
+
+class LlmClient(Protocol):
+    """Large-model calls (ADR-0007: OpenRouter). Only ai/gateway.py uses this."""
+
+    @property
+    def provider(self) -> AiProvider: ...
+
+    def complete(self, model: str, messages: list[Message]) -> Completion: ...
+
+
+class EmbeddingClient(Protocol):
+    """Embeddings (ADR-0007: Voyage AI). Only ai/gateway.py uses this."""
+
+    @property
+    def provider(self) -> AiProvider: ...
+
+    def embed(self, model: str, texts: list[str]) -> Embeddings: ...

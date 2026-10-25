@@ -292,3 +292,28 @@ describe("events (DB-5, AWS mode)", () => {
     });
   });
 });
+
+describe("AI cost metrics (OPS-4, Q-P1-23)", () => {
+  test("the gateway's call and over-budget log lines become metrics", () => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "ai: call" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/AI",
+          MetricName: "CostMicroUsd",
+          MetricValue: "$.cost_micro_usd",
+        }),
+      ],
+    });
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "ai: over budget" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/AI",
+          MetricName: "OverBudget",
+          MetricValue: "1",
+        }),
+      ],
+    });
+  });
+});

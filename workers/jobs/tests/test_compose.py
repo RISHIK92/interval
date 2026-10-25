@@ -158,3 +158,42 @@ def test_an_unknown_event_transport_stops_the_worker(
     monkeypatch.setenv("EVENTS_TRANSPORT", "kafka")
     with pytest.raises(SystemExit, match="EVENTS_TRANSPORT"):
         event_sink()
+
+
+# OPS-4: a model call is paid for when it returns. Its usage row must survive the job
+# failing afterwards, or a job that keeps failing and retrying never reaches its budget.
+def test_ai_usage_is_kept_when_the_unit_of_work_fails(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: object
+) -> None:
+    from datetime import UTC, datetime
+    from decimal import Decimal
+
+    from interval_jobs.compose import services
+    from interval_jobs.ports import Usage
+
+    monkeypatch.setenv("EVENTS_TRANSPORT", "file")
+    monkeypatch.setenv("EVENTS_DIR", str(tmp_path))
+    model = "uow-test-model"
+    try:
+        with pytest.raises(RuntimeError), services() as s:
+            s.ai.record(
+                Usage(
+                    user_id=None,
+                    feature="tagging",
+                    provider="openrouter",
+                    model=model,
+                    input_tokens=1,
+                    output_tokens=1,
+                    cost_usd=Decimal("0.01"),
+                    occurred_at=datetime(2099, 1, 1, tzinfo=UTC),
+                )
+            )
+            raise RuntimeError("the job failed after the model call")
+        with psycopg.connect(URL) as conn:
+            row = conn.execute(
+                "select count(*) from ai_usage where model = %s", (model,)
+            ).fetchone()
+        assert row == (1,)
+    finally:
+        with psycopg.connect(URL) as conn:
+            conn.execute("delete from ai_usage where model = %s", (model,))

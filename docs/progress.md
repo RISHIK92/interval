@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements) done. Next: S16 (cost budgets). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements) and S16 (cost budgets) done; Week 1 is complete apart from S12 (deferred) and S17 (OpenTelemetry). Next: S17, then Week 2 (W2-S01 sources and seed list). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -522,3 +522,25 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the no-feed page keeps its sign-up link.
 - Noticed, not changed: `apps/web/src/server/ports.ts` hand-writes `BetaGroup`, which the DB codegen now generates (`@interval/db`). CLAUDE.md says never to hand-write a generated type. A small follow-up: import it from `@interval/db`.
 - Admin for the owner: `scripts/with-env.sh uv run python -m interval_jobs grant-capability --email <your account> --capability admin.review` (needs an account from /sign-up).
+
+### 2026-10-25 — P1-W1-S16 (cost budgets, OPS-4, LOAD-6, LOAD-5, Q-P1-23, ADR-0010 item 6)
+- Done:
+  - **Migrations:**
+    - `20261025060000_ai_budget_capability.sql` adds `ai.budget.daily_cents` to the capability enum (`if not exists`, because Postgres can't drop an enum value on rollback);
+    - `20261025060100_ai_usage.sql` seeds the beta plan budget at 50 cents a day and adds `ai_budget` (global, 500 cents a day), the `ai_feature` and `ai_provider` enums, and the `ai_usage` ledger. Each row is flagged `is_offline` at insert, so a deleted user's spend never counts against the global budget.
+    - All values are placeholders: the owner sets them before the beta. The entitlement trigger stops anyone raising the budget for one user.
+  - **Worker:**
+    - `ai/gateway.py` (`AiGateway.complete` and `.embed`) checks today's UTC spend against the budget before a call, refuses with `OverBudget("user" | "global")` (logged as `ai: over budget`), and otherwise calls the client, records one `Usage` and logs `ai: call {cost_micro_usd}`.
+    - Ports: `LlmClient` and `EmbeddingClient` (no real OpenRouter or Voyage adapters yet; W3-S02 adds them), plus `AiLedger` with Postgres and memory adapters in the contract suite.
+    - The ledger isn't part of the Store. `services()` gives it its own autocommit connection, so a paid call's usage row survives a job that fails afterwards.
+  - **AWS:** metric filters for `Interval/AI CostMicroUsd` (sum) and `Interval/AI OverBudget`.
+- Review fixes:
+  - usage committed on its own connection (a failing, retrying job used to lose its cost records and never reach the budget);
+  - deleted users' spend kept out of offline spend;
+  - index-friendly spend queries;
+  - the enum migration made re-runnable;
+  - micro-dollar log values (no float exponent notation);
+  - the fake rounds like `numeric(12, 6)`;
+  - tests for no limit, a zero budget, the global budget not blocking users, and spend just under the budget.
+- Naming: the ledger method is `spent_usd(user_id, day)` (the plan said `spent_today_usd`).
+- Owner action before the beta: set the per-user (`plan_capability` `ai.budget.daily_cents`) and global (`ai_budget`) dollar limits.

@@ -234,7 +234,11 @@ def test_a_new_user_is_on_the_beta_plan(conn: psycopg.Connection) -> None:
     a_user(conn, "plan1")
     row = conn.execute("select plan_id from app_user where id = 'plan1'").fetchone()
     assert row == ("beta",)
-    assert entitlements(conn, "plan1") == [("ai.notes.daily", 20), ("feed.read", None)]
+    assert entitlements(conn, "plan1") == [
+        ("ai.budget.daily_cents", 50),
+        ("ai.notes.daily", 20),
+        ("feed.read", None),
+    ]
 
 
 def test_a_plan_limit_cannot_be_negative(conn: psycopg.Connection) -> None:
@@ -257,6 +261,7 @@ def test_per_user_grants_add_to_the_plan_without_duplicating_it(
     )
     assert entitlements(conn, "plan2") == [
         ("admin.review", None),
+        ("ai.budget.daily_cents", 50),
         ("ai.notes.daily", 20),
         ("feed.read", None),
     ]
@@ -272,4 +277,43 @@ def test_a_limited_capability_cannot_be_granted_per_user(
         conn.execute(
             "insert into user_capability (user_id, capability) "
             "values ('plan3', 'ai.notes.daily')"
+        )
+
+
+# OPS-4, Q-P1-23: placeholder budgets until the owner sets real ones before the beta.
+def test_placeholder_budgets_are_50_cents_per_user_and_5_dollars_global(
+    conn: psycopg.Connection,
+) -> None:
+    a_user(conn, "budget1")
+    row = conn.execute(
+        "select limit_value from user_entitlement "
+        "where user_id = 'budget1' and capability = 'ai.budget.daily_cents'"
+    ).fetchone()
+    assert row == (50,)
+    assert conn.execute("select daily_cents from ai_budget").fetchall() == [(500,)]
+
+
+@pytest.mark.parametrize(
+    ("column", "value"),
+    [("cost_usd", -0.01), ("input_tokens", -1), ("output_tokens", -1)],
+)
+def test_a_usage_row_cannot_be_negative(
+    conn: psycopg.Connection, column: str, value: float
+) -> None:
+    values = {"cost_usd": 0, "input_tokens": 0, "output_tokens": 0, column: value}
+    with pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(
+            "insert into ai_usage (is_offline, feature, provider, model, "
+            "input_tokens, output_tokens, cost_usd) "
+            "values (true, 'tagging', 'openrouter', 'm', %s, %s, %s)",
+            (values["input_tokens"], values["output_tokens"], values["cost_usd"]),
+        )
+
+
+def test_the_budget_cannot_be_raised_for_one_user(conn: psycopg.Connection) -> None:
+    a_user(conn, "budget2")
+    with pytest.raises(psycopg.errors.RaiseException, match="grant it through a plan"):
+        conn.execute(
+            "insert into user_capability (user_id, capability) "
+            "values ('budget2', 'ai.budget.daily_cents')"
         )

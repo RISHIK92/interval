@@ -14,12 +14,13 @@ from typing import cast
 
 import boto3  # pyright: ignore[reportMissingTypeStubs]
 import httpx
+import psycopg
 from psycopg.conninfo import conninfo_to_dict
 
 from interval_jobs.adapters.file_sink import FileEventSink
 from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSink
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
-from interval_jobs.adapters.postgres import PostgresStore, unit_of_work
+from interval_jobs.adapters.postgres import PostgresAi, PostgresStore, unit_of_work
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.events.emitter import Emitter
 from interval_jobs.ports import EventSink
@@ -86,20 +87,31 @@ class Services:
     fetcher: HttpxFetcher
     extractor: TrafilaturaExtractor
     events: Emitter
+    ai: PostgresAi
 
 
 @contextmanager
 def services() -> Generator[Services]:
     """One unit of work plus the web and parsing adapters; commits on success.
 
-    Events are flushed when the unit of work ends, whether or not it succeeded.
+    Events are flushed when the unit of work ends, whether or not it succeeded. The AI
+    ledger has its own autocommit connection: a model call is paid for when it returns,
+    so its usage row must outlive a job that fails afterwards (OPS-4).
     """
+    url = database_url()
     events = Emitter(event_sink())
     try:
         with (
-            unit_of_work(database_url()) as store,
+            unit_of_work(url) as store,
+            psycopg.connect(url, autocommit=True) as ledger,
             httpx.Client(headers={"user-agent": USER_AGENT}) as http,
         ):
-            yield Services(store, HttpxFetcher(http), TrafilaturaExtractor(), events)
+            yield Services(
+                store,
+                HttpxFetcher(http),
+                TrafilaturaExtractor(),
+                events,
+                PostgresAi(ledger),
+            )
     finally:
         events.flush()

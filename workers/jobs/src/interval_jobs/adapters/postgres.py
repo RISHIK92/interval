@@ -6,7 +6,8 @@ it back on error. The database's own triggers still guard ING-2 behind these que
 
 from collections.abc import Generator
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import UTC, date, datetime, time, timedelta
+from decimal import Decimal
 
 import psycopg
 from psycopg.rows import class_row
@@ -23,6 +24,7 @@ from interval_jobs.ports import (
     SectionRow,
     SegmentationInput,
     SourceRecord,
+    Usage,
 )
 
 
@@ -334,6 +336,66 @@ class PostgresGrants:
             (user_id, capability),
         )
         return "revoked" if removed.rowcount > 0 else "not_granted"
+
+
+class PostgresAi:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def daily_budget_cents(self, user_id: str | None) -> int | None:
+        if user_id is None:
+            row = self._conn.execute(
+                "select daily_cents from ai_budget where scope = 'global'"
+            ).fetchone()
+            if row is None:
+                raise RuntimeError("ai_budget has no global row (see migrations)")
+            return int(row[0])
+        row = self._conn.execute(
+            "select limit_value from user_entitlement "
+            "where user_id = %s and capability = 'ai.budget.daily_cents'",
+            (user_id,),
+        ).fetchone()
+        if row is None:
+            return 0  # no plan grants it: no AI for this user
+        return None if row[0] is None else int(row[0])
+
+    def spent_usd(self, user_id: str | None, day: date) -> Decimal:
+        start = datetime.combine(day, time(), tzinfo=UTC)
+        end = start + timedelta(days=1)
+        # Two queries, so each one matches its own index (ai_usage_user_day and
+        # ai_usage_offline_day).
+        if user_id is None:
+            row = self._conn.execute(
+                "select coalesce(sum(cost_usd), 0) from ai_usage "
+                "where is_offline and occurred_at >= %s and occurred_at < %s",
+                (start, end),
+            ).fetchone()
+        else:
+            row = self._conn.execute(
+                "select coalesce(sum(cost_usd), 0) from ai_usage "
+                "where user_id = %s and occurred_at >= %s and occurred_at < %s",
+                (user_id, start, end),
+            ).fetchone()
+        assert row is not None  # an aggregate always returns one row
+        return Decimal(row[0])
+
+    def record(self, usage: Usage) -> None:
+        self._conn.execute(
+            "insert into ai_usage (occurred_at, user_id, is_offline, feature, "
+            "provider, model, input_tokens, output_tokens, cost_usd) "
+            "values (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            (
+                usage.occurred_at,
+                usage.user_id,
+                usage.user_id is None,
+                usage.feature,
+                usage.provider,
+                usage.model,
+                usage.input_tokens,
+                usage.output_tokens,
+                usage.cost_usd,
+            ),
+        )
 
 
 class PostgresStore:

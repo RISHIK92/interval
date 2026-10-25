@@ -7,16 +7,18 @@ inspects its state (internal fields for the fake, SQL for Postgres).
 
 from collections.abc import Iterator
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from typing import Protocol
 
 import psycopg
 import pytest
 
 from interval_db.generated import RightsProfile
-from interval_jobs.adapters.memory import InMemoryStore, StoredUser
-from interval_jobs.adapters.postgres import PostgresStore
+from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
+from interval_jobs.adapters.postgres import PostgresAi, PostgresStore
 from interval_jobs.ports import (
+    AiLedger,
     DuplicateInviteCode,
     FeedEntry,
     MomentRow,
@@ -24,6 +26,7 @@ from interval_jobs.ports import (
     Section,
     SectionRow,
     Store,
+    Usage,
 )
 
 
@@ -46,6 +49,7 @@ class Probe(Protocol):
     ) -> None: ...
     def user_ids(self) -> set[str]: ...
     def capabilities(self, user_id: str) -> set[str]: ...
+    def delete_user(self, user_id: str) -> None: ...
 
 
 @dataclass
@@ -70,6 +74,9 @@ class MemoryProbe:
 
     def capabilities(self, user_id: str) -> set[str]:
         return set(self.s.users.rows[user_id].capabilities)
+
+    def delete_user(self, user_id: str) -> None:
+        del self.s.users.rows[user_id]
 
     def invite(self, code: str) -> tuple[str, int, int, datetime, str | None] | None:
         row = self.s.invites.rows.get(code)
@@ -129,6 +136,9 @@ class PostgresProbe:
                 "values (%s, %s, %s, now(), %s)",
                 (f"{user_id}-s{i}", expires, f"{user_id}-t{i}", user_id),
             )
+
+    def delete_user(self, user_id: str) -> None:
+        self.conn.execute("delete from app_user where id = %s", (user_id,))
 
     def capabilities(self, user_id: str) -> set[str]:
         rows = self.conn.execute(
@@ -190,6 +200,17 @@ def store(request: pytest.FixtureRequest) -> Iterator[tuple[Store, Probe]]:
         return
     conn: psycopg.Connection = request.getfixturevalue("conn")
     yield PostgresStore(conn), PostgresProbe(conn)
+
+
+# The AI ledger isn't part of the Store: it commits on its own connection (OPS-4).
+@pytest.fixture(params=["memory", "postgres"])
+def ledger(request: pytest.FixtureRequest) -> Iterator[tuple[AiLedger, Probe]]:
+    if request.param == "memory":
+        memory = InMemoryStore()
+        yield InMemoryAi(memory.users), MemoryProbe(memory)
+        return
+    conn: psycopg.Connection = request.getfixturevalue("conn")
+    yield PostgresAi(conn), PostgresProbe(conn)
 
 
 def entry(guid: str, published: datetime | None = None, title: str = "T") -> FeedEntry:
@@ -492,3 +513,53 @@ def test_guests_and_unknown_emails_cannot_be_granted(
     nobody = "nobody@contract.example.test"
     assert s.grants.grant(nobody, "admin.review") == "no_account"
     assert s.grants.revoke(nobody, "admin.review") == "no_account"
+
+
+def usage(user_id: str | None, cost: str, at: datetime) -> Usage:
+    return Usage(
+        user_id=user_id,
+        feature="tagging",
+        provider="openrouter",
+        model="test-model",
+        input_tokens=10,
+        output_tokens=5,
+        cost_usd=Decimal(cost),
+        occurred_at=at,
+    )
+
+
+# OPS-4, Q-P1-23: spend per user and offline spend, per UTC day.
+def test_ai_spend_is_summed_per_user_and_per_utc_day(
+    ledger: tuple[AiLedger, Probe],
+) -> None:
+    ai, probe = ledger
+    probe.add_user("ai-user", False, [])
+    # A day far ahead, so rows other runs commit can't land in it.
+    day = date(2099, 1, 2)
+    ai.record(usage("ai-user", "0.10", datetime(2099, 1, 2, 0, 5, tzinfo=UTC)))
+    ai.record(usage("ai-user", "0.05", datetime(2099, 1, 1, 23, 59, tzinfo=UTC)))
+    ai.record(usage(None, "1.25", datetime(2099, 1, 2, 12, 0, tzinfo=UTC)))
+    assert ai.spent_usd("ai-user", day) == Decimal("0.10")
+    assert ai.spent_usd(None, day) == Decimal("1.25")
+    assert ai.spent_usd("ai-user", date(2099, 1, 3)) == Decimal("0")
+
+
+def test_a_deleted_users_spend_never_counts_as_offline_spend(
+    ledger: tuple[AiLedger, Probe],
+) -> None:
+    ai, probe = ledger
+    probe.add_user("ai-gone", False, [])
+    ai.record(usage("ai-gone", "0.40", datetime(2099, 1, 4, 9, 0, tzinfo=UTC)))
+    probe.delete_user("ai-gone")
+    assert ai.spent_usd(None, date(2099, 1, 4)) == Decimal("0")
+
+
+def test_ai_budgets_come_from_the_plan_and_the_global_row(
+    ledger: tuple[AiLedger, Probe],
+) -> None:
+    ai, probe = ledger
+    probe.add_user("ai-user2", False, [])
+    assert ai.daily_budget_cents("ai-user2") == 50
+    assert ai.daily_budget_cents(None) == 500
+    # No plan grants an unknown user anything, so no AI either.
+    assert ai.daily_budget_cents("nobody") == 0
