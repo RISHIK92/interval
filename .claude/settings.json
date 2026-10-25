@@ -13,13 +13,12 @@
       "Read(./**/.env.production)",
       "Read(./.env.test)",
       "Read(./**/.env.test)",
-      "Bash(git push:*)",
-      "Bash(git commit:*)",
       "Bash(git reset --hard:*)",
       "Bash(cdk deploy:*)",
       "Bash(npx cdk deploy:*)",
       "Bash(aws:*)",
-      "Bash(rm -rf:*)"
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)"
     ]
   },
   "hooks": {

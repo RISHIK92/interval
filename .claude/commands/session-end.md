@@ -19,4 +19,4 @@ description: Record the session in docs/progress.md and show git status
 3. If a new open question came up, add it to docs/questions/phase-N.md with a citation.
 4. Run `git status` and show the output.
 
-Do not commit or stage anything.
+Commit and push per CLAUDE.md rule 4 only when a slice finished this session; otherwise do not commit.

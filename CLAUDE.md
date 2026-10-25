@@ -41,7 +41,7 @@ Read only the doc sections relevant to the task. Never load whole docs "for cont
 1. Plan mode first. A plan lists: files to touch, decision IDs implemented, tests to write, risks, open questions. Wait for approval.
 2. One slice per session (docs/roadmap/phase-N-slices.md). Use /slice. Stay in scope; list anything else you noticed instead of fixing it.
 3. Write failing tests → implement → run the reviewer subagent → fix → summarize the diff file by file, flagging uncertainty.
-4. Never commit, push, deploy, or migrate a non-local DB. I do those.
+4. When a slice is done and verified, commit it (author `Claude <noreply@anthropic.com>`, no co-author line) and push `main`. Never force-push, deploy, or migrate a non-local DB. I do those.
 5. End every session with /session-end.
 
 ## Commands

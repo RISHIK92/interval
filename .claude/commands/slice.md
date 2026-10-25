@@ -26,4 +26,4 @@ Slice: $ARGUMENTS
    5. Summarize the diff file by file: what changed and why, the decision ID it serves, and anything you are unsure of.
 8. List anything you noticed outside the slice. Do not fix it.
 
-Never commit, push, deploy, or migrate a non-local database.
+When the slice is done and verified, commit it (author Claude, no co-author line) and push `main` (CLAUDE.md rule 4). Never force-push, deploy, or migrate a non-local database.
