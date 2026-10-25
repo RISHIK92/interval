@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S07 done, committed and pushed (Week 1 vertical path complete; CI on GitHub Actions). ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S02.
+Status: P1-W1-S01 to S07 done, committed and pushed (Week 1 vertical path complete; CI on GitHub Actions). ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S08.
 
 ## Bootstrap session log
 
@@ -66,7 +66,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - both .claude hooks run the real tools and exit 2 on errors;
   - a change in packages/config forces the dependent tasks to re-run instead of coming from cache.
 - Not done: none.
-- Next: P1-W1-S02.
+- Next: P1-W1-S08.
 - Open questions: none new.
 - Surprises: TypeScript 7.0 is the latest, but typescript-eslint 8.72 supports only TS below 6.1. The owner chose TS 6.0.3. The latest pnpm is 12.x, not the 10.x in the plan; the owner chose 12.15. uv 0.13.5 is installed via brew.
 - Owner choices for S02 (2026-10-25): dbmate for migrations, an in-repo Python type generator, pg as the TS driver. Recorded in the proposal tables.
@@ -191,5 +191,27 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Surprises:
   - Vitest 5 compiles with oxc, so JSX is configured in `apps/web/vitest.config.ts`.
   - `next build` warns that `instrumentation.ts` and `log.ts` use Node APIs that the Edge runtime lacks. It comes from S03 and is not fixed here; the fix is to move the env check into a Node-only module imported from `register()` under the `NEXT_RUNTIME === "nodejs"` check.
+- Needs ADR: none.
+
+### 2026-10-25 — P1-W1-S07
+- Done:
+  - **Workflow `.github/workflows/ci.yml` (ADR-0009):**
+    - one job on PRs and on pushes to main, with a Postgres+pgvector service;
+    - checks that no merged migration changed (`scripts/check-migrations-immutable.sh`, ADR-0002), then runs `pnpm turbo check`;
+    - actions pinned by SHA, dbmate by sha256, `persist-credentials: false`, the pnpm store cached;
+    - runs on main are never cancelled, so every push's migration range is checked.
+  - **The migration check:** fails on a missing base, and on a push whose base isn't an ancestor (force-push). It compares from the merge base (three-dot).
+  - **Tests:** 8 pytest cases in `scripts/tests`. `scripts/` is now linted, format-checked and type-checked.
+  - **Verified on GitHub:**
+    - the push to main is green;
+    - throwaway PR #1 (an `any`) failed at `@interval/web#lint`;
+    - throwaway PR #2 (clean) passed;
+    - both are closed and their branches deleted.
+- Not done: `cdk synth` (moved to S08, owner).
+- Next: P1-W1-S08.
+- Open questions: none new.
+- Surprises:
+  - Process slip: S07 was committed and pushed before the reviewer ran. The reviewer ran after, and its findings were fixed in a follow-up commit.
+  - GitHub also runs a GitGuardian check, from an app on the owner's account rather than this repo.
 - Needs ADR: none.
 

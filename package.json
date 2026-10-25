@@ -13,9 +13,9 @@
     "format": "turbo run format //#format:py",
     "format:check": "prettier --check package.json turbo.json pnpm-workspace.yaml prettier.config.js",
     "test": "turbo run test",
-    "format:py": "uv run ruff format workers/jobs packages/db/python",
-    "format-check:py": "uv run --locked ruff format --check workers/jobs packages/db/python",
-    "lint:py": "uv run --locked ruff check workers/jobs packages/db/python",
+    "format:py": "uv run ruff format workers/jobs packages/db/python scripts",
+    "format-check:py": "uv run --locked ruff format --check workers/jobs packages/db/python scripts",
+    "lint:py": "uv run --locked ruff check workers/jobs packages/db/python scripts",
     "typecheck:py": "uv run --locked pyright",
     "test:py": "scripts/with-env.sh uv run --locked pytest"
   },
