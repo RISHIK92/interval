@@ -1,7 +1,7 @@
 // Ports (ADR-0012): what server logic and pages depend on. Adapters implement them;
 // container.ts wires them. Nothing outside adapters/ imports kysely or pg.
 
-import type { Capability, Difficulty } from "@interval/db";
+import type { BreakLength, Capability, Difficulty, Topic } from "@interval/db";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 
@@ -201,4 +201,37 @@ export interface AdminSources {
   setMomentsSwitchedOff(id: string, off: boolean, by: string): Promise<void>;
   // Items whose stored full text can be segmented again when moments come back.
   fullTextItemIds(id: string): Promise<string[]>;
+}
+
+// §5A, PER-1, C-21, P1-W4-S01: the explicit layer. Feedback and inference never write
+// it; only the user does (onboarding now, profile settings in W4-S08). The types are
+// the generated enums; these lists are their values in display order.
+export const TOPICS = [
+  "system-design",
+  "databases",
+  "distributed-systems",
+  "backend",
+] as const satisfies readonly Topic[];
+export const LEVELS = [
+  "beginner",
+  "intermediate",
+  "advanced",
+] as const satisfies readonly Difficulty[];
+export const BREAK_LENGTHS = [
+  "1-3",
+  "3-8",
+  "8-15",
+] as const satisfies readonly BreakLength[];
+
+export type Preferences = {
+  topics: Topic[];
+  level: Difficulty;
+  breakLength: BreakLength;
+};
+
+export interface PreferencesStore {
+  get(userId: string): Promise<Preferences | null>;
+  // Onboarding happens once: false when the user already had preferences, which
+  // are then left as they were (a resubmit can't overwrite them).
+  createIfAbsent(userId: string, preferences: Preferences): Promise<boolean>;
 }

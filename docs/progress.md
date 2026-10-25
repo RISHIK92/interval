@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. Next: Week 4. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding) done. Next: W4-S02 (candidates), S03 (scoring), S04 (precomputed feed). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -985,3 +985,29 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - tests for each page state and the action's refusals;
   - the seed-and-switch interplay.
 - Gap (needs the owner): §3.2's "falls back to whole articles" can't happen yet, because the feed has no whole-article cards. A switched-off source drops out of the feed until those cards exist (W4/W5 ranking and budgets).
+
+### 2026-10-26 — P1-W4-S01 (guest-first onboarding, §5A, PER-1, PER-3, C-21; overnight)
+- Done:
+  - **Migration `20261026100000_user_preferences.sql`:**
+    - `topic` (the four launch topics) and `break_length` (`1-3`, `3-8`, `8-15`) enums;
+    - `user_preferences` (topics: 1 to 4; level; break length) cascades from `app_user`, so the guest purge takes it with the user.
+  - **Web:**
+    - a `PreferencesStore` port with a Kysely adapter;
+    - the types come from codegen, and the lists in ports.ts are `satisfies` the generated enums;
+    - `/onboarding` is one screen with three fields (C-21) and needs at least one topic;
+    - choices are created once: a resubmit changes nothing and emits nothing;
+    - `onboarding_completed` is emitted on first completion;
+    - the home page sends anyone without preferences to `/onboarding`, and a returning user skips it.
+  - **"Sees a feed immediately":** the user lands on the existing global feed. It becomes personal in W4-S02..S04.
+- Review fixes:
+  - a missing container mock broke the home tests (a blocker);
+  - resubmits overwrote choices and double-counted the event;
+  - hand-written topic and break lists (now enums with generated types);
+  - inexact redirect assertions;
+  - a repeated level list;
+  - tests for an unknown topic and the cascade;
+  - display labels.
+- Notes for later slices:
+  - **W1-S12 (merge):** preferences are one row per user, so a guest-to-account merge is whole-row. Q-P1-11's "fill only fields the account never set" would be per field; decide whole-row vs per field when S12 is built.
+  - **`concept.topic`** still checks the topic list as text; moving it to the `topic` enum is a follow-up.
+  - **Readers of `topic[]`:** they must select it as `text[]`, because node-pg (and psycopg) don't parse arrays of unregistered enum types.

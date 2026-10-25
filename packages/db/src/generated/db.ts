@@ -9,7 +9,17 @@ export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "tagging";
 
 export type AiProvider = "openrouter" | "voyage";
 
+export type ArrayType<T> = ArrayTypeImpl<T> extends (infer U)[]
+  ? U[]
+  : ArrayTypeImpl<T>;
+
+export type ArrayTypeImpl<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S[], I[], U[]>
+  : T[];
+
 export type BetaGroup = "developer" | "student";
+
+export type BreakLength = "1-3" | "3-8" | "8-15";
 
 export type Capability = "admin.review" | "ai.budget.daily_cents" | "ai.notes.daily" | "feed.read";
 
@@ -30,6 +40,8 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+
+export type Topic = "backend" | "databases" | "distributed-systems" | "system-design";
 
 export interface AiBudget {
   daily_cents: number;
@@ -301,6 +313,15 @@ export interface UserEntitlement {
   user_id: string | null;
 }
 
+export interface UserPreferences {
+  break_length: BreakLength;
+  level: Difficulty;
+  onboarded_at: Generated<Timestamp>;
+  topics: ArrayType<Topic>;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface DB {
   ai_budget: AiBudget;
   ai_usage: AiUsage;
@@ -333,4 +354,5 @@ export interface DB {
   tag_override: TagOverride;
   user_capability: UserCapability;
   user_entitlement: UserEntitlement;
+  user_preferences: UserPreferences;
 }

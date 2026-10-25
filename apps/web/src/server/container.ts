@@ -20,6 +20,7 @@ import {
 import { bullmqQueue } from "./adapters/bullmq-queue";
 import { kyselyAdminReview } from "./adapters/kysely-admin-review";
 import { kyselyAdminSources } from "./adapters/kysely-admin-sources";
+import { kyselyPreferences } from "./adapters/kysely-preferences";
 import { fileSink } from "./adapters/file-sink";
 import { firehoseSink } from "./adapters/firehose-sink";
 import { logMailer } from "./adapters/log-mailer";
@@ -35,6 +36,7 @@ import type {
   GuestSessions,
   InviteCodes,
   JobQueue,
+  PreferencesStore,
   SessionReader,
 } from "./ports";
 
@@ -57,6 +59,10 @@ export function auth(): Auth {
     mailer: logMailer(),
   });
   return authInstance;
+}
+
+export function preferences(): PreferencesStore {
+  return kyselyPreferences(db());
 }
 
 export function adminSources(): AdminSources {

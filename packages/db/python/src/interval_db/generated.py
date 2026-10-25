@@ -7,6 +7,7 @@ from typing import Literal, TypedDict
 type AiFeature = Literal["tagging", "notes", "embeddings", "concept_drafting"]
 type AiProvider = Literal["openrouter", "voyage"]
 type BetaGroup = Literal["student", "developer"]
+type BreakLength = Literal["1-3", "3-8", "8-15"]
 type Capability = Literal[
     "feed.read", "admin.review", "ai.notes.daily", "ai.budget.daily_cents"
 ]
@@ -16,6 +17,7 @@ type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
 ]
+type Topic = Literal["system-design", "databases", "distributed-systems", "backend"]
 
 
 class AiBudget(TypedDict):
@@ -286,3 +288,12 @@ class UserEntitlement(TypedDict):
     user_id: str | None
     capability: Capability | None
     limit_value: int | None
+
+
+class UserPreferences(TypedDict):
+    user_id: str
+    topics: list[Topic]
+    level: Difficulty
+    break_length: BreakLength
+    onboarded_at: datetime
+    updated_at: datetime

@@ -8,7 +8,15 @@ const emit = vi.fn();
 const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
   () => Promise.resolve(true),
 );
+const getPreferences = vi.fn<(userId: string) => Promise<object | null>>(() =>
+  Promise.resolve({
+    topics: ["backend"],
+    level: "beginner",
+    breakLength: "3-8",
+  }),
+);
 vi.mock("../server/container", () => ({
+  preferences: () => ({ get: getPreferences }),
   feedReader: () => ({ list: getFeed }),
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
@@ -98,4 +106,11 @@ test("without feed.read the page says so and never reads the feed", async () => 
   expect(can).toHaveBeenCalledWith("u1", "feed.read");
   expect(getFeed).not.toHaveBeenCalled();
   expect(emit).not.toHaveBeenCalled();
+});
+
+test("a user who hasn't onboarded is sent to /onboarding first", async () => {
+  current.mockResolvedValue(guest);
+  getPreferences.mockResolvedValueOnce(null);
+  await expect(render()).rejects.toThrow("redirect:/onboarding");
+  expect(getFeed).not.toHaveBeenCalled();
 });

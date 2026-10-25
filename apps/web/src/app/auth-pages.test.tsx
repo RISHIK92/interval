@@ -21,6 +21,15 @@ vi.mock("../server/container", () => ({
   events: () => ({ emit }),
   feedReader: () => ({ list: () => Promise.resolve([] as FeedCard[]) }),
   entitlements: () => ({ can: () => Promise.resolve(true) }),
+  // Onboarded (P1-W4-S01), so the home page renders.
+  preferences: () => ({
+    get: () =>
+      Promise.resolve({
+        topics: ["backend"],
+        level: "beginner",
+        breakLength: "3-8",
+      }),
+  }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
