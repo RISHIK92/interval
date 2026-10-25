@@ -175,6 +175,23 @@ def test_enqueue_discover_queues_every_active_source(
     assert run(capsys, "enqueue-discover", "--source-id", str(b)) == {"enqueued": 1}
 
 
+def test_poll_due_queues_due_sources_once(
+    store: InMemoryStore,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from interval_jobs.adapters.memory_queue import InMemoryQueue
+
+    queue = InMemoryQueue()
+    monkeypatch.setattr(cli, "queue_for_enqueue", lambda: queue)
+    store.sources.upsert(
+        name="a", feed_url="https://a.test/f", rights_profile="excerpt", homepage=None
+    )
+    assert run(capsys, "poll-due") == {"enqueued": 1}
+    assert run(capsys, "poll-due") == {"enqueued": 0}  # claimed until its next turn
+    assert queue.pending("discover_source") == 1
+
+
 def test_the_commands_run_through_python_dash_m() -> None:
     # The real entry point: the command's code must exist when main() runs. Without
     # queue settings it stops with the setup message, not a NameError.

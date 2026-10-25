@@ -190,6 +190,9 @@ class Source(TypedDict):
     quality_score: int | None
     topics: list[str]
     active: bool
+    poll_interval_seconds: int
+    next_poll_at: datetime
+    polled_at: datetime | None
 
 
 class UserCapability(TypedDict):

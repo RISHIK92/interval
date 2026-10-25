@@ -120,6 +120,8 @@ class SourceRecord:
     rights_profile: RightsProfile
     active: bool  # removed from the seed file: not polled (P1-W2-S01)
     moments_enabled: bool
+    poll_interval: timedelta  # ING-3, adapted after every poll
+    polled_at: datetime | None  # when it last adapted
 
 
 @dataclass(frozen=True)
@@ -168,6 +170,17 @@ class Sources(Protocol):
         """Sources to poll: those still in the seed list (P1-W2-S01)."""
         ...
 
+    def claim_due(self, now: datetime) -> list[int]:
+        """Active sources whose next poll is due, in id order; each one's next poll
+        moves one interval on, so a second claim before then doesn't return it."""
+        ...
+
+    def record_poll(
+        self, source_id: int, interval: timedelta, polled_at: datetime
+    ) -> None:
+        """The adapted interval; the next poll is due one interval after polled_at."""
+        ...
+
     def upsert(
         self,
         *,
@@ -199,6 +212,11 @@ class Items(Protocol):
     ) -> int:
         """Insert or update by (source, guid); drops the excerpt unless kept. An update
         keeps the canonical URL, which the fetch stage may have refined."""
+        ...
+
+    def known_guids(self, source_id: int, guids: list[str]) -> set[str]:
+        """Which of these feed entries the source already has (ING-3 counts the rest
+        as new)."""
         ...
 
     def set_canonical(self, item_id: int, url: str) -> None: ...

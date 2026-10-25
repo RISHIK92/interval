@@ -42,9 +42,16 @@ install -d -m 700 "$DATA_MOUNT/files" "$INTERVAL_ETC"
 "$APP_DIR/deploy/bin/stack.sh" build
 "$APP_DIR/deploy/bin/stack.sh" up
 
-install -m 644 "$APP_DIR/deploy/systemd/interval.service" /etc/systemd/system/interval.service
+for unit in interval.service interval-poll.service interval-poll.timer; do
+  install -m 644 "$APP_DIR/deploy/systemd/$unit" "/etc/systemd/system/$unit"
+done
 systemctl daemon-reload
 systemctl enable interval.service
+# Active in systemd's eyes (a no-op once the stack is up), so the poll timer's
+# Requisite holds from the first deploy.
+systemctl start interval.service
+# ING-3: polls due sources every 5 minutes, as EventBridge Scheduler does in AWS mode.
+systemctl enable --now interval-poll.timer
 docker image prune -f >/dev/null
 
 echo "Deployed $(git -C "$APP_DIR" rev-parse --short HEAD)"

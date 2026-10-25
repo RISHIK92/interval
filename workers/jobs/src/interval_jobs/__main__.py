@@ -6,6 +6,7 @@ Usage:
   python -m interval_jobs rebuild-feed
   python -m interval_jobs issue-invites --group student --uses 30 --days 30 [--count N]
   python -m interval_jobs purge-guests
+  python -m interval_jobs poll-due
 """
 
 import argparse
@@ -32,6 +33,7 @@ from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.pipeline import Pipeline
+from interval_jobs.polling import enqueue_due
 from interval_jobs.segment import segment_item
 from interval_jobs.tracing import run_span, setup
 
@@ -81,6 +83,9 @@ def main(argv: list[str]) -> None:
         "enqueue-discover", help="queue a poll of one or every active source"
     )
     discover.add_argument("--source-id", type=int)
+    commands.add_parser(
+        "poll-due", help="queue a poll of every source whose turn has come (ING-3)"
+    )
     args = parser.parse_args(argv)
     setup()
     if args.command == "consume":
@@ -94,6 +99,12 @@ def main(argv: list[str]) -> None:
 
 
 def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    if args.command == "poll-due":
+        with services() as s:
+            enqueued = enqueue_due(s.store, queue_for_enqueue(), datetime.now(UTC))
+        print(json.dumps({"enqueued": enqueued}))
+        return
+
     if args.command == "enqueue-discover":
         print(json.dumps({"enqueued": _enqueue_discover(args.source_id)}))
         return

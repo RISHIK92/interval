@@ -4,7 +4,7 @@ stage retryable and idempotent, failures to the failed store, rights checked fir
 import threading
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -27,6 +27,7 @@ FEED_URL = "https://pipe.example.test/feed.atom"
 OLDER = "https://blog.example.test/older-queues"
 WAL = "https://blog.example.test/wal"
 ETAG = Validators('"feed-v1"', None)
+NOW = datetime(2026, 10, 26, 12, tzinfo=UTC)
 
 
 def web(
@@ -68,7 +69,8 @@ class World:
         def unit() -> Generator[StageServices]:
             yield StageServices(self.store, self.fetcher, TrafilaturaExtractor())
 
-        self.pipeline = Pipeline(unit, self.queue)
+        self.now = NOW
+        self.pipeline = Pipeline(unit, self.queue, clock=lambda: self.now)
 
     def discover(self, key: str = "poll-1") -> None:
         self.queue.enqueue(
@@ -286,3 +288,57 @@ def test_the_fetch_refines_the_canonical_url_and_fingerprints_full_text() -> Non
     wal = next(i for i in world.store.items.rows.values() if i.guid.endswith(":wal"))
     assert wal.canonical_url == "https://blog.example.test/wal-final"
     assert wal.simhash is not None
+
+
+def test_each_poll_reschedules_the_source_by_what_it_found() -> None:
+    world = World()
+    world.discover("poll-1")  # two new items: poll sooner
+    world.run()
+    record = world.store.sources.get(world.source_id)
+    assert record is not None and record.poll_interval == timedelta(minutes=30)
+    assert world.source_id not in world.store.sources.claim_due(
+        NOW + timedelta(minutes=29)
+    )
+    world.now = NOW + timedelta(minutes=30)
+    world.discover("poll-2")  # unchanged feed (304): back off
+    world.run()
+    record = world.store.sources.get(world.source_id)
+    assert record is not None and record.poll_interval == timedelta(minutes=45)
+
+
+def test_a_redelivered_discover_adapts_the_interval_only_once() -> None:
+    world = World()
+    world.discover("poll-1")
+    world.run()
+    world.discover("poll-1-again")  # a redelivery, or an operator's enqueue-discover
+    world.run()
+    record = world.store.sources.get(world.source_id)
+    assert record is not None and record.poll_interval == timedelta(minutes=30)
+
+
+def test_one_new_entry_among_known_ones_still_speeds_polling_up() -> None:
+    world = World()
+    world.discover("poll-1")
+    world.run()
+    newest = next(i for i in world.store.items.rows.values() if i.canonical_url == WAL)
+    del world.store.items.rows[newest.id]  # as if the feed had just published it
+    world.now = NOW + timedelta(minutes=30)
+    world.discover("poll-2")
+    world.store.validators.put(FEED_URL, None)  # no 304: the feed changed
+    world.run()
+    record = world.store.sources.get(world.source_id)
+    assert record is not None and record.poll_interval == timedelta(minutes=15)
+
+
+def test_a_discover_that_fails_keeps_the_turn_poll_due_claimed() -> None:
+    world = World(failing=FEED_URL)
+    claimed = world.store.sources.claim_due(NOW)
+    assert world.source_id in claimed
+    world.discover()
+    world.run()
+    record = world.store.sources.get(world.source_id)
+    assert record is not None and record.poll_interval == timedelta(hours=1)
+    assert world.source_id not in world.store.sources.claim_due(
+        NOW + timedelta(minutes=59)
+    )
+    assert world.source_id in world.store.sources.claim_due(NOW + timedelta(hours=1))

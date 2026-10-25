@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) and W2-S06 (canonical URLs and duplicates) done. Next: W2-S03. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. Next: Week 3. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -16,6 +16,7 @@ Dependencies added overnight (all pinned):
 - pnpm `allowBuilds: msgpackr-extract: false`: BullMQ's optional native speed-up; the JS fallback works.
 
 Needs your review (newest first):
+- W2-S03: the polling interval numbers (15 min to 24 h, start 1 h, halve on new items, ×1.5 otherwise) are overnight picks; ING-3 gives none. `purge-guests` is still not scheduled anywhere (`stack.sh run` and the timer pattern make it easy to add).
 - W2-S06: the feed shows each duplicate group's earliest copy that has moments, and a missing author never matches on metadata. Both are product behaviour the docs don't define; recommended options were picked.
 - Dan Luu's feed (https://danluu.com/atom.xml) is larger than the fetcher's 5 MB body cap (owner rule, 2026-10-25), so that source never polls. Options: raise the cap for feeds only, or drop or replace the source. Found in W2-S04.
 
@@ -767,3 +768,35 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - links are never undone if an item's text later changes;
   - hash-routed URLs (`/#!/post`) collapse to one URL (a `shortcut:` comment);
   - rows created before this migration keep their uncleaned canonical URLs (local DB only).
+
+### 2026-10-26 — P1-W2-S03 (adaptive polling schedule, ING-3, ADR-0011; overnight, recommended options)
+- Done:
+  - **`polling.py`:** `next_interval` halves the interval after a poll with new items and lengthens it by half after one without (a 304 included). It is bounded to 15 min–24 h and starts at 1 h, in whole seconds.
+  - **`enqueue_due`:** claims due active sources (`for update skip locked`; each one's next turn moves one interval on) and queues a discover for each, in one unit of work.
+  - **Discover:**
+    - counts new entries through `items.known_guids` and records the adapted interval;
+    - adapts at most once per 15 minutes (`source.polled_at`), so retries, duplicate deliveries and a manual `enqueue-discover` don't back a source off;
+    - a discover that raises keeps the claimed turn.
+  - **Migration `20261026030000_poll_schedule.sql`:** `poll_interval_seconds` (with a check), `next_poll_at` and `polled_at`.
+  - **CLI `poll-due`.**
+  - **AWS:**
+    - EventBridge Scheduler at `rate(5 minutes)` runs a PollDue Fargate task in the app subnets;
+    - the task's role has DB_PASSWORD only, SQS send and Firehose put;
+    - no retries and a 5-minute max event age (the next run catches up);
+    - the scheduler role may run only that task.
+  - **VM:**
+    - `interval-poll.timer` (2 min after boot, then every 5 min) runs `interval-poll.service`;
+    - the service has `Requisite=interval.service`, so a stopped stack is never restarted, and a 4-minute start timeout;
+    - `stack.sh run COMMAND` runs a one-off command in the jobs image and skips while a deploy holds the lock;
+    - `deploy.sh` installs both units, starts the stack unit and runs `enable --now` on the timer.
+- Review fixes:
+  - the reschedule wasn't idempotent (a redelivery backed the source off);
+  - `Requires=` would restart a stack stopped on purpose;
+  - a oneshot with no start timeout;
+  - the scheduler's default day-long retries;
+  - fractional seconds;
+  - the deploy lock;
+  - tests for the scheduler's network and role, a failing discover, and one new entry among known ones.
+- Not verified: the systemd units were never loaded (macOS has no systemd), and the VM stack wasn't run.
+- Needs your review: the interval numbers (15 min, 24 h, start 1 h, ×½ and ×1.5) are overnight picks; ING-3 gives none. A feed that fails on every poll never backs off: it retries at its current interval, and failures end in the failed store.
+- Process note: `npx biome` was run by mistake while linting. It fetched an unrelated old npm package named `biome` (an env-variable manager), whose only effect was an empty `~/.biome` (removed). A copy stays in `~/.npm/_npx/b040de3f3c289dd6/`.

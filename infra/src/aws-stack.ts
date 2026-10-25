@@ -17,6 +17,8 @@ import * as elasticache from "aws-cdk-lib/aws-elasticache";
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as rds from "aws-cdk-lib/aws-rds";
+import * as scheduler from "aws-cdk-lib/aws-scheduler";
+import * as targets from "aws-cdk-lib/aws-scheduler-targets";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import type { Construct } from "constructs";
@@ -303,6 +305,34 @@ export class AwsStack extends Stack {
       queue.grantSendMessages(jobsTask.taskRole);
       queue.grantConsumeMessages(jobsTask.taskRole);
     }
+
+    // ING-3 (W2-S03): EventBridge Scheduler runs `poll-due` every 5 minutes. A task
+    // definition of its own carries the command, so the schedule needs no overrides,
+    // and its role may only send to the queues.
+    const pollDueTask = taskDefinition("PollDue");
+    pollDueTask.addContainer("poll-due", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["poll-due"],
+      environment,
+      secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
+      logging: logging("poll-due"),
+    });
+    eventStream.grantPutRecords(pollDueTask.taskRole);
+    for (const queue of queues) queue.grantSendMessages(pollDueTask.taskRole);
+    new scheduler.Schedule(this, "PollDueSchedule", {
+      schedule: scheduler.ScheduleExpression.rate(Duration.minutes(5)),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: pollDueTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // The next run 5 minutes on picks up whatever a failed one missed.
+        retryAttempts: 0,
+        maxEventAge: Duration.minutes(5),
+      }),
+    });
 
     // The ingestion pipeline's consumer (W2-S02b): one always-on task serving every
     // stage queue. Same image and grants as the one-off jobs.

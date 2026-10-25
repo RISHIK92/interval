@@ -21,6 +21,7 @@ full text, and both link duplicates to the earliest-published item.
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
@@ -29,6 +30,7 @@ from interval_jobs import log
 from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.normalize import page_canonical, simhash
+from interval_jobs.polling import MIN_INTERVAL, next_interval
 from interval_jobs.ports import (
     Delivery,
     Extractor,
@@ -36,6 +38,7 @@ from interval_jobs.ports import (
     JobQueue,
     QueueHandler,
     RobotsDisallowed,
+    SourceRecord,
     Store,
     Validators,
 )
@@ -60,9 +63,15 @@ type Answered = tuple[str, Validators | None] | None
 
 
 class Pipeline:
-    def __init__(self, unit_of_work: UnitOfWork, queue: JobQueue) -> None:
+    def __init__(
+        self,
+        unit_of_work: UnitOfWork,
+        queue: JobQueue,
+        clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+    ) -> None:
         self._unit = unit_of_work
         self._queue = queue
+        self._clock = clock
 
     def handlers(self) -> dict[MessageName, QueueHandler]:
         return {
@@ -104,14 +113,29 @@ class Pipeline:
             log.info("pipeline: source skipped", source_id=message.source_id)
             return [], None
         store.items.hold_duplicate_lock()
+        follow_ups, answered, new_items = self._poll(services, source)
+        # ING-3: a poll that raised keeps the turn poll-due claimed, one interval on.
+        # Adapt once per turn: a retry, a duplicate delivery or a manual
+        # enqueue-discover soon after would otherwise find nothing new and back off.
+        now = self._clock()
+        if source.polled_at is None or now - source.polled_at >= MIN_INTERVAL:
+            interval = next_interval(source.poll_interval, new_items)
+            store.sources.record_poll(source.id, interval, now)
+        return follow_ups, answered
+
+    def _poll(
+        self, services: StageServices, source: SourceRecord
+    ) -> tuple[list[Next], Answered, int]:
+        """The follow-ups, the validators to keep, and how many entries were new."""
+        store = services.store
         known = store.validators.get(source.feed_url)
         try:
             feed = services.fetcher.fetch_if_changed(source.feed_url, "feed", known)
         except RobotsDisallowed:
             log.info("pipeline: robots.txt disallows the feed", source_id=source.id)
-            return [], None
+            return [], None, 0
         if feed is None:
-            return [], None  # 304: nothing new since the last poll
+            return [], None, 0  # 304: nothing new since the last poll
         answered: Answered = (source.feed_url, feed.validators)
         try:
             entries = valid_entries(feed.body, feed.url)
@@ -119,7 +143,9 @@ class Pipeline:
             # Permanent until the publisher fixes it: retrying (and filling the
             # failed store on every poll) wouldn't help.
             log.warn("pipeline: feed has no valid entry", source_id=source.id)
-            return [], answered
+            return [], answered, 0
+        seen = store.items.known_guids(source.id, [e.guid for e in entries])
+        new_items = sum(1 for e in entries if e.guid not in seen)
         profile = source.rights_profile
         keep_excerpt = allowed(profile, "store_excerpt")
         segments = source.moments_enabled and allowed(profile, "make_moments")
@@ -139,7 +165,7 @@ class Pipeline:
                 follow_ups.append(
                     ("segment_item", {"content_item_id": item_id}, f"segment-{item_id}")
                 )
-        return follow_ups, answered
+        return follow_ups, answered, new_items
 
     def _fetch(self, services: StageServices, message: BaseModel) -> list[Next]:
         assert isinstance(message, FetchItem)

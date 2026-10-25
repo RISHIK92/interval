@@ -1,0 +1,11 @@
+# VM mode (ADR-0011), ING-3: every 5 minutes, starting 2 minutes after boot so the stack
+# is up first. A missed run needs no catch-up: poll-due finds every source still due.
+[Unit]
+Description=Interval poll-due every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

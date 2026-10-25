@@ -190,3 +190,32 @@ def test_the_worker_consumes_after_migrations(config: dict[str, Any]) -> None:
     assert depends["postgres"]["condition"] == "service_healthy"
     assert depends["valkey"]["condition"] == "service_healthy"
     assert "/tmp/interval-consumer-alive" in " ".join(worker["healthcheck"]["test"])
+
+
+# ING-3 (P1-W2-S03): on the VM a systemd timer plays EventBridge Scheduler's part.
+SYSTEMD = ROOT / "deploy" / "systemd"
+
+
+def test_a_systemd_timer_runs_poll_due_every_five_minutes() -> None:
+    timer = (SYSTEMD / "interval-poll.timer").read_text()
+    service = (SYSTEMD / "interval-poll.service").read_text()
+    assert "OnUnitActiveSec=5min" in timer
+    assert "OnBootSec=" in timer
+    assert re.search(r"^ExecStart=.*stack\.sh run poll-due$", service, re.MULTILINE)
+    # Only while the stack is up, and never starting a stack stopped on purpose.
+    assert "Requisite=interval.service" in service
+    assert re.search(r"^TimeoutStartSec=", service, re.MULTILINE)
+
+
+def test_deploy_installs_and_starts_the_poll_timer() -> None:
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert "interval-poll.timer" in deploy
+    assert re.search(r"systemctl enable --now interval-poll\.timer", deploy)
+    assert "systemctl start interval.service" in deploy
+
+
+def test_one_off_jobs_run_in_the_jobs_image_unless_a_deploy_is_running() -> None:
+    stack = (ROOT / "deploy" / "bin" / "stack.sh").read_text()
+    run_branch = stack.split("run)", 1)[1]
+    assert "flock -n 9" in run_branch
+    assert 'compose --profile jobs run --rm --no-deps jobs "$@"' in run_branch

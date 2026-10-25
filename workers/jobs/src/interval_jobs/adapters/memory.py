@@ -8,11 +8,12 @@ switching moments off purges what the source no longer allows.
 
 import re
 from dataclasses import dataclass, field, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.normalize import near_duplicates
+from interval_jobs.polling import START_INTERVAL
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
     DuplicateInviteCode,
@@ -52,6 +53,10 @@ class _Source:
     quality_score: int | None = None
     topics: tuple[str, ...] = ()
     active: bool = True
+    poll_interval: timedelta = START_INTERVAL
+    # Due at once (Postgres: now() at insert; tests claim at or after it).
+    next_poll_at: datetime = datetime(1970, 1, 1, tzinfo=UTC)
+    polled_at: datetime | None = None
 
 
 @dataclass
@@ -147,11 +152,33 @@ class InMemorySources:
         if s is None:
             return None
         return SourceRecord(
-            s.id, s.feed_url, s.rights_profile, s.active, s.moments_enabled
+            s.id,
+            s.feed_url,
+            s.rights_profile,
+            s.active,
+            s.moments_enabled,
+            s.poll_interval,
+            s.polled_at,
         )
 
     def active_ids(self) -> list[int]:
         return sorted(s.id for s in self.rows.values() if s.active)
+
+    def claim_due(self, now: datetime) -> list[int]:
+        due = sorted(
+            s.id for s in self.rows.values() if s.active and s.next_poll_at <= now
+        )
+        for source_id in due:
+            source = self.rows[source_id]
+            source.next_poll_at = now + source.poll_interval
+        return due
+
+    def record_poll(
+        self, source_id: int, interval: timedelta, polled_at: datetime
+    ) -> None:
+        source = self.rows[source_id]
+        source.poll_interval, source.polled_at = interval, polled_at
+        source.next_poll_at = polled_at + interval
 
     def upsert(
         self,
@@ -270,6 +297,14 @@ class InMemoryItems:
             feed_summary=entry.summary,
         )
         return item_id
+
+    def known_guids(self, source_id: int, guids: list[str]) -> set[str]:
+        wanted = set(guids)
+        return {
+            i.guid
+            for i in self.rows.values()
+            if i.source_id == source_id and i.guid in wanted
+        }
 
     def set_canonical(self, item_id: int, url: str) -> None:
         self.rows[item_id].canonical_url = url

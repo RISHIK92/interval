@@ -63,7 +63,9 @@ class PostgresSources:
     def get(self, source_id: int) -> SourceRecord | None:
         with self._conn.cursor(row_factory=class_row(SourceRecord)) as cur:
             return cur.execute(
-                "select id, feed_url, rights_profile, active, moments_enabled "
+                "select id, feed_url, rights_profile, active, moments_enabled, "
+                "make_interval(secs => poll_interval_seconds) as poll_interval, "
+                "polled_at "
                 "from source where id = %s",
                 (source_id,),
             ).fetchone()
@@ -73,6 +75,36 @@ class PostgresSources:
             "select id from source where active order by id"
         ).fetchall()
         return [int(r[0]) for r in rows]
+
+    def claim_due(self, now: datetime) -> list[int]:
+        rows = self._conn.execute(
+            """
+            update source
+            set next_poll_at = %(now)s + make_interval(secs => poll_interval_seconds)
+            where id in (
+              select id from source
+              where active and next_poll_at <= %(now)s
+              for update skip locked
+            )
+            returning id
+            """,
+            {"now": now},
+        ).fetchall()
+        return sorted(int(r[0]) for r in rows)
+
+    def record_poll(
+        self, source_id: int, interval: timedelta, polled_at: datetime
+    ) -> None:
+        self._conn.execute(
+            "update source set poll_interval_seconds = %s, polled_at = %s, "
+            "next_poll_at = %s where id = %s",
+            (
+                round(interval.total_seconds()),
+                polled_at,
+                polled_at + interval,
+                source_id,
+            ),
+        )
 
     def upsert(
         self,
@@ -194,6 +226,13 @@ class PostgresItems:
             raise RuntimeError("upsert returned no row")
         item_id: int = row[0]
         return item_id
+
+    def known_guids(self, source_id: int, guids: list[str]) -> set[str]:
+        rows = self._conn.execute(
+            "select guid from content_item where source_id = %s and guid = any(%s)",
+            (source_id, guids),
+        ).fetchall()
+        return {str(r[0]) for r in rows}
 
     def set_canonical(self, item_id: int, url: str) -> None:
         self._conn.execute(

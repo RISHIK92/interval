@@ -1,0 +1,15 @@
+# VM mode (ADR-0011), ING-3: queue a poll of every source whose turn has come. Started
+# by interval-poll.timer; the AWS stack runs the same command from EventBridge Scheduler.
+[Unit]
+Description=Interval poll-due
+# Requisite, not Requires: a stack stopped for maintenance skips polls instead of
+# being started again by the timer.
+Requisite=interval.service
+After=interval.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/interval
+ExecStart=/opt/interval/deploy/bin/stack.sh run poll-due
+# A oneshot has no start timeout by default: a hung poll would stop the timer for good.
+TimeoutStartSec=4min

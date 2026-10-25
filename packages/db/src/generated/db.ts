@@ -197,7 +197,10 @@ export interface Source {
   id: Generated<Int8>;
   moments_enabled: Generated<boolean>;
   name: string;
+  next_poll_at: Generated<Timestamp>;
   paywalled: Generated<boolean>;
+  poll_interval_seconds: Generated<number>;
+  polled_at: Timestamp | null;
   quality_score: number | null;
   rights_profile: Generated<RightsProfile>;
   topics: Generated<string[]>;

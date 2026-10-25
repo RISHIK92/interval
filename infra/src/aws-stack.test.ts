@@ -247,7 +247,7 @@ describe("edge", () => {
 describe("containers", () => {
   test("ARM64 tasks get secrets only through ECS secrets, never plain env", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
-    expect(tasks.length).toBe(4); // web, jobs, worker, migrate
+    expect(tasks.length).toBe(5); // web, jobs, worker, migrate, poll-due
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -408,5 +408,99 @@ describe("pipeline worker (W2-S02b)", () => {
     expect(worker?.HealthCheck?.Command.join(" ")).toContain(
       "/tmp/interval-consumer-alive",
     );
+  });
+});
+
+describe("adaptive polling (W2-S03, ING-3)", () => {
+  test("EventBridge Scheduler runs poll-due every 5 minutes as a Fargate task", () => {
+    template.hasResourceProperties("AWS::Scheduler::Schedule", {
+      ScheduleExpression: "rate(5 minutes)",
+      FlexibleTimeWindow: { Mode: "OFF" },
+      Target: Match.objectLike({
+        EcsParameters: Match.objectLike({
+          LaunchType: "FARGATE",
+          TaskDefinitionArn: { Ref: Match.stringLikeRegexp("^PollDueTask") },
+        }),
+      }),
+    });
+    const container = all("AWS::ECS::TaskDefinition")
+      .flatMap(
+        ([, task]) =>
+          task.Properties["ContainerDefinitions"] as {
+            Name: string;
+            Command?: string[];
+          }[],
+      )
+      .find((c) => c.Name === "poll-due");
+    expect(container?.Command).toEqual(["poll-due"]);
+  });
+
+  test("poll-due may send to the queues but never consume them", () => {
+    const actions = new Set<string>();
+    for (const [, policy] of all("AWS::IAM::Policy")) {
+      const props = policy.Properties as {
+        Roles: { Ref: string }[];
+        PolicyDocument: { Statement: { Action: string | string[] }[] };
+      };
+      if (!props.Roles.some((r) => r.Ref.startsWith("PollDueTaskTaskRole"))) {
+        continue;
+      }
+      for (const statement of props.PolicyDocument.Statement) {
+        for (const action of [statement.Action].flat()) actions.add(action);
+      }
+    }
+    expect(actions.has("sqs:SendMessage")).toBe(true);
+    expect(actions.has("sqs:ReceiveMessage")).toBe(false);
+    expect([...actions].some((a) => a.startsWith("s3:"))).toBe(false);
+  });
+
+  test("the schedule runs in the app subnets, never retries, and may run only poll-due", () => {
+    const [, schedule] = only("AWS::Scheduler::Schedule");
+    const target = schedule.Properties["Target"] as {
+      RetryPolicy: {
+        MaximumRetryAttempts: number;
+        MaximumEventAgeInSeconds: number;
+      };
+      EcsParameters: {
+        NetworkConfiguration: {
+          AwsvpcConfiguration: {
+            AssignPublicIp?: string;
+            SecurityGroups: unknown[];
+          };
+        };
+      };
+    };
+    expect(target.RetryPolicy).toEqual({
+      MaximumRetryAttempts: 0,
+      MaximumEventAgeInSeconds: 300,
+    });
+    const network =
+      target.EcsParameters.NetworkConfiguration.AwsvpcConfiguration;
+    expect(network.AssignPublicIp ?? "DISABLED").toBe("DISABLED");
+    expect(JSON.stringify(network.SecurityGroups)).toContain("AppSg");
+    const runTask = all("AWS::IAM::Policy").flatMap(([, policy]) =>
+      (
+        policy.Properties["PolicyDocument"] as {
+          Statement: { Action: string | string[]; Resource: unknown }[];
+        }
+      ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
+    );
+    expect(runTask).toHaveLength(1);
+    expect(JSON.stringify(runTask[0]?.Resource)).toContain("PollDueTask");
+  });
+
+  test("poll-due gets the database password and no other secret", () => {
+    const container = all("AWS::ECS::TaskDefinition")
+      .flatMap(
+        ([, task]) =>
+          task.Properties["ContainerDefinitions"] as {
+            Name: string;
+            Secrets?: { Name: string }[];
+          }[],
+      )
+      .find((c) => c.Name === "poll-due");
+    expect((container?.Secrets ?? []).map((x) => x.Name)).toEqual([
+      "DB_PASSWORD",
+    ]);
   });
 });

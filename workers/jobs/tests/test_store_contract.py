@@ -7,7 +7,7 @@ inspects its state (internal fields for the fake, SQL for Postgres).
 
 from collections.abc import Iterator
 from dataclasses import dataclass, replace
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Protocol
 
@@ -1086,3 +1086,55 @@ def test_the_feed_keeps_the_earliest_copy_that_has_moments(
     s.feed.rebuild()
     assert probe.primary_of(original) == listing
     assert "dup-original" in probe.feed_titles()
+
+
+# ING-3 adaptive polling (P1-W2-S03).
+def test_claiming_due_sources_pushes_each_to_its_next_turn(
+    store: tuple[Store, Probe],
+) -> None:
+    s, _ = store
+    now = datetime(2099, 1, 1, 12, tzinfo=UTC)
+    due = dup_source(s, "due")
+    later = dup_source(s, "later")
+    # Polled an hour ago at a 2-hour interval: due an hour from now.
+    s.sources.record_poll(later, timedelta(hours=2), now - timedelta(hours=1))
+    claimed = s.sources.claim_due(now)
+    assert due in claimed and later not in claimed
+    assert due not in s.sources.claim_due(now + timedelta(minutes=5))
+    record = s.sources.get(due)
+    assert record is not None
+    # Claimed for one interval (an hour): a lost discover is polled again after it,
+    # and the source scheduled for that hour comes due with it.
+    assert record.poll_interval == timedelta(hours=1)
+    again = s.sources.claim_due(now + record.poll_interval)
+    assert due in again and later in again
+
+
+def test_a_new_source_is_due_at_once_with_the_starting_interval(
+    store: tuple[Store, Probe],
+) -> None:
+    s, _ = store
+    sid = dup_source(s, "new")
+    record = s.sources.get(sid)
+    assert record is not None and record.poll_interval == timedelta(hours=1)
+    assert sid in s.sources.claim_due(datetime(2099, 1, 1, tzinfo=UTC))
+
+
+def test_an_inactive_source_is_never_claimed(store: tuple[Store, Probe]) -> None:
+    s, _ = store
+    sid = dup_source(s, "kept")
+    s.sources.sync([])  # removed from the seed list
+    assert sid not in s.sources.claim_due(datetime(2099, 1, 1, tzinfo=UTC))
+
+
+def test_known_guids_tell_new_entries_from_seen_ones(
+    store: tuple[Store, Probe],
+) -> None:
+    s, _ = store
+    sid = dup_source(s, "guids")
+    dup_item(s, sid, "seen", 2)
+    other = dup_source(s, "other")
+    dup_item(s, other, "elsewhere", 2)
+    assert s.items.known_guids(
+        sid, ["contract-dup-seen", "contract-dup-new", "contract-dup-elsewhere"]
+    ) == {"contract-dup-seen"}
