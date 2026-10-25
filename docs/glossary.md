@@ -108,3 +108,4 @@ The source text gives the level names only. What each permits step by step is op
 **Whole article.** The full-article feed format, surfaced by longer time budgets. §3.2. See C-23.
 
 **Why-this-matters note.** A "short, labeled" note "generated from the ranking signal and the user's project context". It never rewrites the author's content. §5E, REC-5. See C-24.
+
