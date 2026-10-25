@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S06 done, committed and pushed (Week 1 vertical path complete). ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S02.
+Status: P1-W1-S01 to S07 done, committed and pushed (Week 1 vertical path complete; CI on GitHub Actions). ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S02.
 
 ## Bootstrap session log
 
@@ -43,7 +43,7 @@ The owner answered every open question and ADR.
 
 ## Next up
 
-1. P1-W1-S07 CI pipeline (GitHub remote exists).
+1. P1-W1-S08 CDK: environments, network, data (also adds `cdk synth` to CI).
 2. ADR-0005 host choice around Week 5 (blocks P1-W1-S09 and the beta deploy). A domain name is needed before Week 6.
 3. Owner data: approve the concept list (Q-P1-03, Week 3); cost budget amounts before the beta (Q-P1-23).
 

@@ -20,11 +20,11 @@ known-first-party = ["interval_db", "interval_jobs"]
 [tool.pyright]
 typeCheckingMode = "strict"
 pythonVersion = "3.13"
-include = ["workers/jobs/src", "workers/jobs/tests", "packages/db/python/src", "packages/db/python/tests"]
+include = ["workers/jobs/src", "workers/jobs/tests", "packages/db/python/src", "packages/db/python/tests", "scripts/tests"]
 venvPath = "."
 stubPath = "typings"
 venv = ".venv"
 
 [tool.pytest.ini_options]
-testpaths = ["workers/jobs/tests", "packages/db/python/tests"]
+testpaths = ["workers/jobs/tests", "packages/db/python/tests", "scripts/tests"]
 addopts = ["--import-mode=importlib"]

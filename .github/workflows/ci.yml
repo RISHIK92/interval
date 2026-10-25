@@ -1,0 +1,77 @@
+# PR and main checks (ADR-0009). One job runs the same `pnpm turbo check` as local
+# development. No deploy job: the owner deploys. `cdk synth` joins in P1-W1-S08.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg17-trixie
+        env:
+          POSTGRES_USER: interval
+          POSTGRES_PASSWORD: interval
+          POSTGRES_DB: interval
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U interval -d interval"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 15
+    env:
+      CI: "true"
+      DATABASE_URL: postgres://interval:interval@localhost:5432/interval?sslmode=disable
+      DBMATE_VERSION: v2.37.0
+      DBMATE_SHA256: f855e99a0f0a81322014bf686b1cb820d2b4d8074e4eadafd64b851b80ecb15a
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # the migration check diffs against the base commit
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install TS dependencies
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+
+      - name: Install Python dependencies
+        run: uv sync --all-packages --locked
+
+      - name: Install dbmate
+        run: |
+          curl -fsSL -o /usr/local/bin/dbmate \
+            "https://github.com/amacneil/dbmate/releases/download/${DBMATE_VERSION}/dbmate-linux-amd64"
+          echo "${DBMATE_SHA256}  /usr/local/bin/dbmate" | sha256sum --check
+          chmod +x /usr/local/bin/dbmate
+
+      - name: Merged migrations are unchanged (ADR-0002)
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            echo "No base commit (new branch); skipping."
+          else
+            scripts/check-migrations-immutable.sh "$BASE"
+          fi
+
+      - name: Format, lint, typecheck, tests, db:check
+        run: pnpm turbo check

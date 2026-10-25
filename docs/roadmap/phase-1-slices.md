@@ -72,7 +72,7 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 ### P1-W1-S07 CI pipeline
 - IDs: ARCH-4 (synth), Phase 1 Week 1 "CI/CD"
 - Needs: S01, S02, ADR-0009; a GitHub remote (owner)
-- Goal: every PR runs format check, lint, typecheck, tests, the migration/codegen check, and `cdk synth`.
+- Goal: every PR runs format check, lint, typecheck, tests, the migration/codegen check, and `cdk synth`. Synth step moves to P1-W1-S08, where the CDK app is created (owner, 2026-10-25).
 - Acceptance: a PR with a lint error fails; a clean PR passes. CI runs Postgres with pgvector as a service.
 - Out of scope: deploy jobs (the owner deploys).
 - Q: Q-P1-28.
@@ -81,7 +81,7 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - IDs: ARCH-4, DB-1, DB-3, DB-6, OPS-1 (Secrets Manager)
 - Needs: S01
 - Goal: `cdk synth` produces a prod stack in ap-south-1 (Q-P1-28) for VPC, RDS Postgres (pgvector-capable version) with generated credentials in Secrets Manager, and private encrypted S3 buckets.
-- Acceptance: CDK assertion tests: RDS not public, storage encrypted, S3 blocks public access and enforces TLS, secrets not in plain env vars. Synth only; no deploy until the beta (ADR-0005).
+- Acceptance: CDK assertion tests: RDS not public, storage encrypted, S3 blocks public access and enforces TLS, secrets not in plain env vars. Synth only; no deploy until the beta (ADR-0005). Adds the `cdk synth` step and CDK assertion tests to `.github/workflows/ci.yml` (moved from S07).
 - Out of scope: app services.
 - Q: Q-P1-28.
 
