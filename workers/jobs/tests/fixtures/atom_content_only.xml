@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom"><title>A</title><id>a</id><updated>2026-10-20T09:00:00Z</updated>
+  <entry>
+    <title>Only atom content</title>
+    <link href="https://a.example.test/only"/>
+    <id>tag:a,2026:only</id>
+    <published>2026-10-20T09:00:00Z</published>
+    <content type="html">&lt;p&gt;FULL ATOM BODY&lt;/p&gt;</content>
+  </entry>
+</feed>

@@ -61,10 +61,16 @@ def test_array_column_maps_to_list_of_element_type() -> None:
     assert python_type(col("c", "_int4", data_type="ARRAY"), enums={}) == "list[int]"
 
 
-def test_enum_column_maps_to_literal_of_labels_in_order() -> None:
-    enums = {"level": ["beginner", "advanced"]}
-    expected = 'Literal["beginner", "advanced"]'
-    assert python_type(col("c", "level"), enums=enums) == expected
+def test_enum_column_maps_to_its_named_alias() -> None:
+    assert python_type(col("c", "rights_profile"), enums={"rights_profile": ["a"]}) == (
+        "RightsProfile"
+    )
+
+
+def test_render_defines_enum_alias_with_labels_in_order() -> None:
+    out = render([col("c", "level")], enums={"level": ["beginner", "advanced"]})
+    assert 'type Level = Literal["beginner", "advanced"]' in out
+    assert "    c: Level" in out
 
 
 def test_unknown_type_fails_with_its_name() -> None:
@@ -102,14 +108,14 @@ def test_vector_has_no_mapping_until_an_adapter_exists() -> None:
 
 
 def test_enum_labels_are_escaped() -> None:
-    enums = {"tone": ['say "hi"']}
-    assert python_type(col("c", "tone"), enums=enums) == 'Literal["say \\"hi\\""]'
+    out = render([col("c", "tone")], enums={"tone": ['say "hi"']})
+    assert 'type Tone = Literal["say \\"hi\\""]' in out
 
 
 def test_array_of_enum_maps_to_list_of_literal() -> None:
     enums = {"level": ["beginner"]}
     column = col("c", "_level", data_type="ARRAY")
-    assert python_type(column, enums=enums) == 'list[Literal["beginner"]]'
+    assert python_type(column, enums=enums) == "list[Level]"
 
 
 def test_enum_label_that_matches_an_import_name_does_not_import_it() -> None:
@@ -139,3 +145,12 @@ def test_tables_with_colliding_class_names_fail() -> None:
 
 def test_empty_schema_renders_no_imports() -> None:
     assert "import" not in render([], enums={})
+
+
+def test_enum_alias_that_collides_with_a_table_class_fails() -> None:
+    columns = [
+        col("c", "level", table="t"),
+        col("c", "text", data_type="text", table="level"),
+    ]
+    with pytest.raises(InvalidNameError, match="collides"):
+        render(columns, enums={"level": ["a"]})

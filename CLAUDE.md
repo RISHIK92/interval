@@ -45,13 +45,14 @@ Read only the doc sections relevant to the task. Never load whole docs "for cont
 5. End every session with /session-end.
 
 ## Commands
-Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED). Later slices add worker and CDK commands.
+Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED). Later slices add CDK commands.
 - Setup once: `corepack enable` (pnpm pinned in package.json) · `brew install uv dbmate` · `cp .env.example .env`
 - Install: `pnpm install` (TS) · `uv sync --all-packages` (Python workspace: workers/jobs, packages/db/python)
 - Local services: `docker compose up -d --wait` (Postgres + pgvector, SeaweedFS for S3, ElasticMQ for SQS)
 - Migrate + regenerate types: `pnpm db:migrate` · stale-types check: `pnpm db:check`
 - Web dev server: `pnpm --filter @interval/web dev` · build: `pnpm turbo build`
 - Web image: `docker build -f apps/web/Dockerfile -t interval-web .` · run: `docker run -p 127.0.0.1:3100:3000 -e DATABASE_URL='postgres://interval:interval@host.docker.internal:5432/interval?sslmode=disable' interval-web`
+- Worker, ingest one feed: `scripts/with-env.sh uv run python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile metadata_only` (temporary until P1-W2-S01)
 - All checks (needs local services up; mirrors CI): `pnpm turbo check`
 - One kind: `pnpm turbo typecheck //#typecheck:py` (likewise `lint`/`//#lint:py`, `test`/`//#test:py`, `format:check`/`//#format-check:py`)
 - Format (writes): `pnpm turbo format //#format:py`

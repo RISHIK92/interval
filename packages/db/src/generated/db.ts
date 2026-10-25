@@ -3,11 +3,56 @@
  * Please do not edit it manually.
  */
 
+import type { ColumnType } from "kysely";
+
+export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
+  ? ColumnType<S, I | undefined, U>
+  : ColumnType<T, T | undefined, T>;
+
+export type Int8 = ColumnType<string, bigint | number | string, bigint | number | string>;
+
+export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
+
+export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+
+export interface ContentItem {
+  author: string | null;
+  canonical_url: string;
+  excerpt: string | null;
+  feed_summary: string | null;
+  fetched_at: Generated<Timestamp>;
+  guid: string;
+  id: Generated<Int8>;
+  published_at: Timestamp | null;
+  source_id: Int8;
+  title: string;
+}
+
+export interface ContentItemPrivateText {
+  content_item_id: Int8;
+  extracted_at: Generated<Timestamp>;
+  text: string;
+}
+
 export interface SchemaMeta {
   key: string;
   value: string;
 }
 
+export interface Source {
+  created_at: Generated<Timestamp>;
+  feed_url: string;
+  homepage: string | null;
+  id: Generated<Int8>;
+  moments_enabled: Generated<boolean>;
+  name: string;
+  paywalled: Generated<boolean>;
+  rights_profile: Generated<RightsProfile>;
+}
+
 export interface DB {
+  content_item: ContentItem;
+  content_item_private_text: ContentItemPrivateText;
   schema_meta: SchemaMeta;
+  source: Source;
 }

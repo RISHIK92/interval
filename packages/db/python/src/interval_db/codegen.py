@@ -54,6 +54,9 @@ JSON_ALIASES = (
 
 RESERVED_CLASS_NAMES = frozenset({"JsonScalar", "JsonValue", *IMPORTS})
 
+# Marks an enum in the set of names an annotation needs.
+ENUM_PREFIX = "enum:"
+
 
 class UnknownTypeError(Exception):
     pass
@@ -86,8 +89,8 @@ def _resolve(column: Column, enums: dict[str, list[str]]) -> tuple[str, set[str]
         inner, names = _resolve(element, enums)
         base = f"list[{inner}]"
     elif column.udt_name in enums:
-        labels = ", ".join(json.dumps(label) for label in enums[column.udt_name])
-        base, names = f"Literal[{labels}]", {"Literal"}
+        # Enums become named aliases (`type X = Literal[...]`), like kysely-codegen.
+        base, names = class_name(column.udt_name), {ENUM_PREFIX + column.udt_name}
     elif column.udt_name in SCALARS:
         base, needed = SCALARS[column.udt_name]
         names: set[str] = {needed} if needed else set()
@@ -120,13 +123,17 @@ def render(columns: list[Column], *, enums: dict[str, list[str]]) -> str:
     classes: list[str] = []
     used: set[str] = set()
     seen_classes: dict[str, str] = {}
-    for table in sorted(by_table):
-        name = class_name(table)
-        _check_identifier(name, f"table {table}")
+
+    def claim(name: str, owner: str) -> None:
+        _check_identifier(name, owner)
         if name in RESERVED_CLASS_NAMES or name in seen_classes:
             other = seen_classes.get(name, "a generated name")
-            raise InvalidNameError(f"table {table}: class {name} collides with {other}")
-        seen_classes[name] = f"table {table}"
+            raise InvalidNameError(f"{owner}: name {name} collides with {other}")
+        seen_classes[name] = owner
+
+    for table in sorted(by_table):
+        name = class_name(table)
+        claim(name, f"table {table}")
         used.add("TypedDict")
 
         lines = [f"class {name}(TypedDict):"]
@@ -137,12 +144,24 @@ def render(columns: list[Column], *, enums: dict[str, list[str]]) -> str:
             lines.append(f"    {c.name}: {annotation}")
         classes.append("\n".join(lines) + "\n")
 
+    aliases: list[str] = []
+    for enum in sorted(
+        n.removeprefix(ENUM_PREFIX) for n in used if n.startswith(ENUM_PREFIX)
+    ):
+        name = class_name(enum)
+        claim(name, f"enum {enum}")
+        labels = ", ".join(json.dumps(label) for label in enums[enum])
+        aliases.append(f"type {name} = Literal[{labels}]")
+        used.add("Literal")
+
     blocks = [DOCSTRING]
     imports = sorted(line for name, line in IMPORTS.items() if name in used)
     if imports:
         blocks.append("\n".join(imports))
     if "JsonValue" in used:
         blocks.append(JSON_ALIASES)
+    if aliases:
+        blocks.append("\n".join(aliases))
     head = "\n\n".join(blocks) + "\n"
     return head + "\n\n" + "\n\n".join(classes) if classes else head
 

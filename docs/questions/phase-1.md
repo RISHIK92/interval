@@ -17,7 +17,7 @@ Status: all 42 answered by the owner on 2026-10-25. Each answer appears under it
   - excerpt: as above, plus store up to N characters (owner to set N) for tagging and display. No moments.
   - full text for internal processing: fetch and extract body; store extracted text privately for tagging, segmentation and embeddings; never display body text; section titles and "Section 2 of 4" positions may be shown on cards (§3.2); moments allowed.
   - full text for display (partners): as above, plus display.
-- **Answer (owner, 2026-10-25):** Owner sets the profile per source in the seed file. New sources default to metadata only. Permission matrix accepted as stated. Excerpt cap: 300 characters.
+- **Answer (owner, 2026-10-25):** Owner sets the profile per source in the seed file. New sources default to metadata only. Permission matrix accepted as stated. Excerpt cap: 300 characters. Added 2026-10-25 (P1-W1-S04 review): the feed summary is stored as plain text capped at 300 characters, and never taken from full content; lowering a profile deletes stored text the new profile forbids; an excerpt is stored only under the `excerpt` profile.
   The seed list file records `rights_profile` and `moments_enabled` per source.
 
 ### Q-P1-02 Seed list: contents and format (P0)

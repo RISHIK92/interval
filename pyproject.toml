@@ -22,6 +22,7 @@ typeCheckingMode = "strict"
 pythonVersion = "3.13"
 include = ["workers/jobs/src", "workers/jobs/tests", "packages/db/python/src", "packages/db/python/tests"]
 venvPath = "."
+stubPath = "typings"
 venv = ".venv"
 
 [tool.pytest.ini_options]

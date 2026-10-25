@@ -3,6 +3,13 @@
 # CLAUDE.md: never migrate a non-local database.
 require_local_db() {
   local rest host
+  # libpq lets ?host= / ?hostaddr= override the URL's host; refuse them outright.
+  case "$1" in
+    *[?\&]host=* | *[?\&]hostaddr=*)
+      echo "Refusing DATABASE_URL with host or hostaddr query parameters." >&2
+      exit 1
+      ;;
+  esac
   rest="${1#*://}"
   rest="${rest#*@}"
   case "$rest" in

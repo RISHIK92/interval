@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Example Engineering</title>
+  <link href="https://blog.example.test/"/>
+  <updated>2026-10-20T09:00:00Z</updated>
+  <id>https://blog.example.test/</id>
+  <entry>
+    <title>Older post about queues</title>
+    <link href="https://blog.example.test/older-queues"/>
+    <id>tag:blog.example.test,2026:older</id>
+    <published>2026-10-01T09:00:00Z</published>
+    <updated>2026-10-01T09:00:00Z</updated>
+    <author><name>Sam Writer</name></author>
+    <summary>An older summary.</summary>
+  </entry>
+  <entry>
+    <title>How our write-ahead log works</title>
+    <link href="https://blog.example.test/wal"/>
+    <id>tag:blog.example.test,2026:wal</id>
+    <published>2026-10-20T09:00:00Z</published>
+    <updated>2026-10-20T09:00:00Z</updated>
+    <author><name>Alex Author</name></author>
+    <summary>A short tour of the write-ahead log.</summary>
+    <content type="html">&lt;p&gt;FULL BODY FROM FEED CONTENT&lt;/p&gt;</content>
+  </entry>
+</feed>

@@ -2,7 +2,17 @@
 name = "interval-jobs"
 version = "0.0.0"
 requires-python = ">=3.13,<3.14"
-dependencies = []
+dependencies = [
+    "feedparser==6.0.14",
+    "httpx==0.28.1",
+    "interval-db",
+    "psycopg[binary]==3.3.6",
+    "pydantic==2.14.1",
+    "trafilatura==2.3.1",
+]
+
+[tool.uv.sources]
+interval-db = { workspace = true }
 
 [build-system]
 requires = ["uv_build>=0.13,<0.14"]

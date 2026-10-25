@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Example RSS</title>
+    <link>https://rss.example.test/</link>
+    <description>Synthetic test feed</description>
+    <item>
+      <title>Caching at the edge</title>
+      <link>https://rss.example.test/edge-caching</link>
+      <pubDate>Mon, 19 Oct 2026 08:00:00 GMT</pubDate>
+      <description>Why we cache at the edge.</description>
+      <content:encoded><![CDATA[<p>FULL BODY FROM CONTENT ENCODED</p>]]></content:encoded>
+    </item>
+  </channel>
+</rss>

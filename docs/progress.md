@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 committed; P1-W1-S02 and S03 done (not committed). ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S02.
+Status: P1-W1-S01 to S04 done, committed and pushed. ADRs decided except ADR-0005 (host, around Week 5). Next: P1-W1-S02.
 
 ## Bootstrap session log
 
@@ -43,7 +43,7 @@ The owner answered every open question and ADR.
 
 ## Next up
 
-1. P1-W1-S04 Skeleton: ingest one source.
+1. P1-W1-S05 Skeleton: one item into moments.
 2. ADR-0005 host choice around Week 5 (blocks P1-W1-S09 and the beta deploy). A domain name is needed before Week 6.
 3. Owner data: approve the concept list (Q-P1-03, Week 3); cost budget amounts before the beta (Q-P1-23).
 
@@ -110,5 +110,29 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - Host port 3000 is used by another local app, so the image was tested on 3100.
   - Next's startup banner is plain text; consider it in S17 / CloudWatch parsing.
   - Added P1-W1-S17 (OpenTelemetry), because no slice covered OPS-2 tracing.
+- Needs ADR: none.
+
+### 2026-10-25 — P1-W1-S04
+- Done:
+  - **Migration `20261025010000_sources_and_items.sql`:** `rights_profile` enum, `source`, `content_item` (`feed_summary` and `excerpt` capped at 300), and `content_item_private_text`.
+  - **DB triggers:** private text only under full_text profiles; an excerpt only under `excerpt`; lowering a profile deletes text the new profile forbids.
+  - **Worker:**
+    - `rights.py` holds the only copy of the Q-P1-01 matrix.
+    - `ingest/fetch.py` is the guarded fetch: http(s) only, every redirect hop to public addresses only, a 5 MB cap, content-type checks.
+    - `ingest/feed.py` picks the newest valid entry by published date, resolves relative links, keeps http(s) only, skips invalid entries with a JSON warning, and stores the summary as plain text (≤300) and never from content.
+    - `ingest/extract.py` uses trafilatura (provisional) with the declared charset.
+    - `ingest/one.py`: upserts are idempotent, and text the current profile forbids is cleared.
+    - `__main__.py`: CLI `ingest-one`, refusing non-local DBs, including `?host=` overrides.
+  - **Codegen:** emits named enum aliases (`RightsProfile`) in TS and Python.
+  - **Tests:** 49 worker tests (rights matrix, feed, extract, fetch, ingest acceptance, profile downgrades, DB guards) plus 36 codegen tests. `pnpm turbo check` passes, 21 tasks.
+- Not done: none.
+- Next: P1-W1-S05.
+- Open questions: none new. Owner answers from the S04 review are in Q-P1-01 and below.
+- Surprises:
+  - The review found that feedparser copies `content:encoded` into `summary` when an entry has no summary, so metadata-only sources could have stored full posts. Fixed and tested.
+  - feedparser opens bytes or str input as a path or URL, so it's given a file object.
+  - FeedParserDict maps a missing `published_parsed` to `updated_parsed`.
+  - Owner decisions (2026-10-25): lowering a profile deletes stored text; the feed summary is plain text capped at 300; invalid entries are skipped and logged; strict fetch rules.
+  - The DNS rebinding gap in the fetch guard is documented in `fetch.py`; AWS egress rules cover it at deploy.
 - Needs ADR: none.
 
