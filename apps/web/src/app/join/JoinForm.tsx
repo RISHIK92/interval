@@ -1,12 +1,13 @@
 "use client";
 
 import { useActionState } from "react";
-import { join, type JoinState } from "./actions";
+import type { FormState } from "../form";
+import { join } from "./actions";
 
 // The code from an invite link only pre-fills the form: a use is spent on submit, never
 // on a GET, so link previews and prefetching cannot burn it.
 export function JoinForm({ code }: { code: string }) {
-  const [state, action, pending] = useActionState<JoinState, FormData>(
+  const [state, action, pending] = useActionState<FormState, FormData>(
     join,
     null,
   );

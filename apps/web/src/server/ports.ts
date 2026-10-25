@@ -60,3 +60,35 @@ export interface GuestSessions {
 export interface SessionReader {
   current(headers: Headers): Promise<Actor | null>;
 }
+
+export type Mail = { to: string; subject: string; text: string };
+
+export interface Mailer {
+  send(mail: Mail): Promise<void>;
+}
+
+export type SignUpResult =
+  | { ok: true; setCookies: string[] }
+  | { ok: false; reason: "not_a_guest" | "email_taken" };
+
+// Email-and-password accounts (ADR-0004). Inputs arrive validated and normalised.
+// Sign-up and sign-in return the new session's Set-Cookie values, like GuestSessions.
+export interface Accounts {
+  // Turns the current guest into the account, keeping its user id, code and group
+  // (Q-P1-11, Q-P1-24), and replaces the guest's session with a new one.
+  signUp(
+    headers: Headers,
+    input: { name: string; email: string; password: string },
+  ): Promise<SignUpResult>;
+  // Null for an unknown email or a wrong password: the caller cannot tell which.
+  signIn(
+    headers: Headers,
+    email: string,
+    password: string,
+  ): Promise<{ setCookies: string[] } | null>;
+  signOut(headers: Headers): Promise<void>;
+  // Mails a reset link if the account exists; returns the same either way.
+  requestReset(email: string): Promise<void>;
+  // False for an unknown, used or expired token.
+  resetPassword(token: string, newPassword: string): Promise<boolean>;
+}

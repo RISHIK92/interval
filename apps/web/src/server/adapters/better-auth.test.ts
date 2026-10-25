@@ -18,7 +18,8 @@ if (connectionString === undefined) throw new Error("DATABASE_URL is not set");
 const db = createDb(connectionString);
 const SECRET = "test-secret-test-secret-test-secret-0123";
 const BASE_URL = "http://localhost:3100";
-const auth = createAuth({ db, secret: SECRET, baseURL: BASE_URL });
+const mailer = { send: () => Promise.resolve() };
+const auth = createAuth({ db, secret: SECRET, baseURL: BASE_URL, mailer });
 const guests = guestSessions(auth);
 const sessions = sessionReader(auth);
 const PREFIX = "TESTAUTH";
@@ -150,6 +151,7 @@ function failing(writes: { kind: "insert" | "delete"; table: string }[]) {
       db: db.withPlugin(plugin),
       secret: SECRET,
       baseURL: BASE_URL,
+      mailer,
     }),
   );
 }

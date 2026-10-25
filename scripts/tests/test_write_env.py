@@ -83,6 +83,7 @@ def test_writes_three_env_files_each_with_only_its_keys_and_mode_600(
         "S3_ENDPOINT": "",
         "BETTER_AUTH_SECRET": "authSecret456",
         "BETTER_AUTH_URL": "http://localhost",
+        "MAIL_TRANSPORT": "log",
         "OPENROUTER_API_KEY": "orKey789",
         "VOYAGE_API_KEY": "voyageKey000",
     }
@@ -105,6 +106,8 @@ def test_site_address_and_local_s3_come_from_etc(tmp_path: Path) -> None:
     assert parse(out / "caddy.env")["SITE_ADDRESS"] == "interval.example.com"
     assert parse(out / "app.env")["BETTER_AUTH_URL"] == "https://interval.example.com"
     assert parse(out / "app.env")["S3_ENDPOINT"] == "http://seaweedfs:8333"
+    # Mail is logged only without a domain; a public site needs a real transport.
+    assert "MAIL_TRANSPORT" not in parse(out / "app.env")
 
 
 def test_without_a_domain_better_auth_uses_the_local_port(tmp_path: Path) -> None:

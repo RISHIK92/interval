@@ -3,6 +3,7 @@ import type { Kysely } from "kysely";
 import { env } from "../env";
 import {
   type Auth,
+  accounts as betterAuthAccounts,
   createAuth,
   guestSessions as betterAuthGuests,
   sessionReader as betterAuthSessions,
@@ -13,7 +14,9 @@ import {
   kyselyInviteCodes,
   kyselyPing,
 } from "./adapters/kysely";
+import { logMailer } from "./adapters/log-mailer";
 import type {
+  Accounts,
   DatabasePing,
   FeedReader,
   GuestSessions,
@@ -36,6 +39,8 @@ export function auth(): Auth {
     db: db(),
     secret: env().BETTER_AUTH_SECRET,
     baseURL: env().BETTER_AUTH_URL,
+    // MAIL_TRANSPORT has one value until the SES adapter exists (pre-deploy list).
+    mailer: logMailer(),
   });
   return authInstance;
 }
@@ -58,4 +63,8 @@ export function guestSessions(): GuestSessions {
 
 export function sessionReader(): SessionReader {
   return betterAuthSessions(auth());
+}
+
+export function accounts(): Accounts {
+  return betterAuthAccounts(auth(), db());
 }

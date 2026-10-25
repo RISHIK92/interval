@@ -1,15 +1,18 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { DB } from "@interval/db";
-import { betterAuth } from "better-auth";
+import { APIError, betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { anonymous } from "better-auth/plugins";
 import type { Kysely } from "kysely";
+import { DatabaseError } from "pg";
 import { z } from "zod";
 import { log } from "../log";
 import {
   GuestNotRemoved,
+  type Accounts,
   type Actor,
   type GuestSessions,
+  type Mailer,
   type Redemption,
   type SessionReader,
 } from "../ports";
@@ -38,11 +41,37 @@ export function createAuth(opts: {
   db: Kysely<DB>;
   secret: string;
   baseURL: string;
+  mailer: Mailer;
 }) {
   return betterAuth({
     secret: opts.secret,
     baseURL: opts.baseURL,
     database: { db: opts.db, type: "postgres" },
+    // ADR-0004, owner choices 2026-10-25: 8 to 128 characters, no email verification
+    // in Phase 1, a reset link valid for an hour that signs out every other session.
+    emailAndPassword: {
+      enabled: true,
+      // Accounts are made only by upgrading a guest (Accounts.signUp), never through
+      // the public endpoint, which would skip the invite code.
+      disableSignUp: true,
+      minPasswordLength: 8,
+      maxPasswordLength: 128,
+      resetPasswordTokenExpiresIn: 60 * 60,
+      revokeSessionsOnPasswordReset: true,
+      // A failed send must answer like an unknown email (Better Auth then replies the
+      // same either way), and the failure goes to our log, never the link.
+      sendResetPassword: async ({ user, url }) => {
+        try {
+          await opts.mailer.send({
+            to: user.email,
+            subject: "Reset your Interval password",
+            text: `Open this link within an hour to choose a new password:\n${url}\n\nIf you didn't ask for this, ignore this email.`,
+          });
+        } catch (error) {
+          log.error("account: reset mail failed", { userId: user.id, error });
+        }
+      },
+    },
     user: {
       modelName: "app_user",
       fields: { emailVerified: "email_verified", ...timestamps },
@@ -120,6 +149,9 @@ export function createAuth(opts: {
     plugins: [
       anonymous({
         schema: { user: { fields: { isAnonymous: "is_anonymous" } } },
+        // A guest who signs in to an existing account is kept for the merge (S12),
+        // and nobody deletes a guest through the API.
+        disableDeleteAnonymousUser: true,
       }),
       // Lets Better Auth set cookies from Next server actions; keep last.
       nextCookies(),
@@ -163,6 +195,119 @@ async function removeHalfMadeGuest(
     });
   }
 }
+
+const RESET_PATH = "/reset-password";
+
+function isEmailTaken(error: unknown): boolean {
+  return (
+    error instanceof DatabaseError &&
+    error.code === "23505" &&
+    error.constraint === "app_user_email_key"
+  );
+}
+
+export function accounts(auth: Auth, db: Kysely<DB>): Accounts {
+  return {
+    signUp: async (headers, input) => {
+      const current = await auth.api.getSession({ headers });
+      if (current?.user.isAnonymous !== true) {
+        return { ok: false, reason: "not_a_guest" };
+      }
+      const userId = current.user.id;
+      const context = await auth.$context;
+      const hash = await context.password.hash(input.password);
+      try {
+        // One transaction: the row turns into the account and gets its password
+        // together, or neither happens. Same user id (Q-P1-11).
+        await db.transaction().execute(async (trx) => {
+          const upgraded = await trx
+            .updateTable("app_user")
+            .set({
+              name: input.name,
+              email: input.email,
+              is_anonymous: false,
+              updated_at: new Date(),
+            })
+            .where("id", "=", userId)
+            .where("is_anonymous", "=", true)
+            .executeTakeFirst();
+          if (upgraded.numUpdatedRows !== 1n) throw new NotAGuest();
+          const id = context.generateId({ model: "account" });
+          if (id === false) throw new Error("Better Auth gave no account id");
+          await trx
+            .insertInto("auth_account")
+            .values({
+              id,
+              account_id: userId,
+              provider_id: "credential",
+              user_id: userId,
+              password: hash,
+              updated_at: new Date(),
+            })
+            .execute();
+        });
+      } catch (error) {
+        if (error instanceof NotAGuest)
+          return { ok: false, reason: "not_a_guest" };
+        if (isEmailTaken(error)) return { ok: false, reason: "email_taken" };
+        throw error;
+      }
+      // A new session for the new privilege; the guest's token must not carry over.
+      // Without the cookie, so the anonymous plugin sees a plain sign-in; the rest of
+      // the request (user agent, address) is recorded on the session as usual.
+      const fresh = new Headers(headers);
+      fresh.delete("cookie");
+      try {
+        const signedIn = await auth.api.signInEmail({
+          body: { email: input.email, password: input.password },
+          headers: fresh,
+          returnHeaders: true,
+        });
+        await context.internalAdapter.deleteSession(current.session.token);
+        return { ok: true, setCookies: signedIn.headers.getSetCookie() };
+      } catch (error) {
+        // The account exists now; the owner can sign in with the new password.
+        log.error("account: upgraded but session rotation failed", {
+          userId,
+          error,
+        });
+        throw error;
+      }
+    },
+    signIn: async (headers, email, password) => {
+      try {
+        const result = await auth.api.signInEmail({
+          body: { email, password },
+          headers,
+          returnHeaders: true,
+        });
+        return { setCookies: result.headers.getSetCookie() };
+      } catch (error) {
+        if (error instanceof APIError && error.statusCode === 401) return null;
+        throw error;
+      }
+    },
+    signOut: async (headers) => {
+      await auth.api.signOut({ headers });
+    },
+    requestReset: async (email) => {
+      await auth.api.requestPasswordReset({
+        body: { email, redirectTo: RESET_PATH },
+      });
+    },
+    resetPassword: async (token, newPassword) => {
+      try {
+        await auth.api.resetPassword({ body: { token, newPassword } });
+        return true;
+      } catch (error) {
+        if (error instanceof APIError && error.statusCode === 400) return false;
+        throw error;
+      }
+    },
+  };
+}
+
+class NotAGuest extends Error {}
 
 export function sessionReader(auth: Auth): SessionReader {
   return {

@@ -5,7 +5,8 @@ const valid = {
   DATABASE_URL: "postgres://user:s3cret@localhost:5432/interval",
   NODE_ENV: "production",
   BETTER_AUTH_SECRET: "x".repeat(32),
-  BETTER_AUTH_URL: "https://interval.example.com",
+  BETTER_AUTH_URL: "http://localhost:3100",
+  MAIL_TRANSPORT: "log",
 };
 
 describe("parseEnv", () => {
@@ -30,6 +31,31 @@ describe("parseEnv", () => {
       /BETTER_AUTH_SECRET/,
     );
   });
+
+  test("requires a mail transport", () => {
+    expect(() => parseEnv({ ...valid, MAIL_TRANSPORT: undefined })).toThrow(
+      /MAIL_TRANSPORT/,
+    );
+  });
+
+  // Logged mail carries reset links, so it is for local sites only (Q-P1-33).
+  test.each(["https://interval.rishiklabs.tech", "http://10.0.0.5:8080"])(
+    "refuses the log mail transport for the public site %s",
+    (url) => {
+      expect(() => parseEnv({ ...valid, BETTER_AUTH_URL: url })).toThrow(
+        /MAIL_TRANSPORT/,
+      );
+    },
+  );
+
+  test.each(["http://localhost:8080", "http://127.0.0.1:3100"])(
+    "allows the log mail transport for the local site %s",
+    (url) => {
+      expect(parseEnv({ ...valid, BETTER_AUTH_URL: url }).MAIL_TRANSPORT).toBe(
+        "log",
+      );
+    },
+  );
 
   test("returns typed values for a valid environment", () => {
     expect(parseEnv(valid)).toEqual(valid);

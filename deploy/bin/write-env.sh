@@ -41,6 +41,10 @@ elif [ "$http_port" = "80" ]; then
 else
   public_url="http://localhost:$http_port"
 fi
+# Auth email is logged only on a local site (Q-P1-33); with a domain the web app refuses
+# to start until a real transport exists (pre-deploy list).
+mail_transport_line=""
+if [ "$site_address" = ":80" ]; then mail_transport_line="MAIL_TRANSPORT=log"; fi
 s3_endpoint=""
 if files_on_vm; then s3_endpoint="http://seaweedfs:8333"; fi
 
@@ -58,6 +62,7 @@ SQS_ENDPOINT=http://elasticmq:9324
 S3_ENDPOINT=${s3_endpoint}
 BETTER_AUTH_SECRET=${better_auth}
 BETTER_AUTH_URL=${public_url}
+${mail_transport_line}
 OPENROUTER_API_KEY=${openrouter}
 VOYAGE_API_KEY=${voyage}
 ENV

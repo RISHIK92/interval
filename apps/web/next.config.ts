@@ -6,6 +6,8 @@ const config: NextConfig = {
   // The monorepo root, so standalone output traces workspace packages too.
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
   transpilePackages: ["@interval/db"],
+  // CLAUDE.md is the one place for agent rules (owner, 2026-10-25).
+  agentRules: false,
 };
 
 export default config;

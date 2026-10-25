@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes) and S10 (guest sessions) done. Next: P1-W1-S11 (accounts). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions) and S11 (accounts) done. Next: P1-W1-S12 (guest-to-account merge). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -359,6 +359,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `dropInvalidHeaderFields`;
   - RETAIN on `interval/aws/postgres`;
   - a stronger no-plaintext-secret test.
+- **Auth email (from S11):** build the SES adapter for the `Mailer` port (new dependency `@aws-sdk/client-sesv2`, ask first) and set `MAIL_TRANSPORT=ses` on the VM (with the domain) and the AWS web task. Until then the web app refuses to start on any non-localhost `BETTER_AUTH_URL`, by design. Also: SES production access and a verified sending domain (owner tasks, Q-P1-33).
 
 ### 2026-10-25 — P1-W1-S13 (invite codes, Q-P1-24)
 - Done:
@@ -402,3 +403,34 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `GuestSessions.start` returns Set-Cookie values that only the adapter test reads (the server action gets its cookie from `nextCookies`). It stays so callers outside a server action can forward them.
   - `purge-guests` has no schedule yet.
 - Local setup: `.env` needs `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL=http://localhost:3100` (see `.env.example`). The VM's domain is `interval.rishiklabs.tech` (docs/runbooks/vm.md).
+
+### 2026-10-25 — P1-W1-S11 (accounts, ADR-0004, Q-P1-33)
+- Done:
+  - **Sign-up upgrades the guest in place** (owner choice; Q-P1-11's new-account rule): same `user_id`, code and group (Q-P1-24).
+    - One transaction sets name, email and `is_anonymous = false` (guarded by `is_anonymous = true`, so a second concurrent sign-up gets `not_a_guest`) and adds the `credential` account with Better Auth's own scrypt hash.
+    - Then a fresh session replaces the guest's, recorded with the request's user agent.
+    - A taken email (`app_user_email_key`) changes nothing.
+  - **Only guests sign up;** Better Auth's public `/api/auth/sign-up/email` is closed (`disableSignUp`). The reviewer checked the other `/api/auth/*` routes: none creates an account without a code.
+  - **Sign-in, sign-out and reset:**
+    - sign-in gives one message for a wrong password and an unknown email;
+    - sign-out is for accounts only (guests see "Sign up to keep your progress");
+    - a password reset link is valid for 1 hour, works once, and signs out every other session;
+    - a reset request answers the same for unknown emails and when the mail fails.
+  - **Passwords** are 8–128 characters, with no email verification in Phase 1.
+  - **Mail:** a `Mailer` port with a log adapter (Q-P1-33). `MAIL_TRANSPORT=log` is accepted only when `BETTER_AUTH_URL` is localhost or 127.0.0.1, because the logged mail carries the reset link. `.env.example`, `write-env.sh` (local smoke run only) and CLAUDE.md's `docker run` command set it.
+  - **Pages:** `/sign-up`, `/sign-in` (open to guests, so a guest can sign in to an existing account), `/forgot-password` and `/reset-password`, plus a sign-out button on `/`. One shared `AuthForm`, and `/join` now uses the same `FormState`/`textField`.
+  - **Anonymous plugin:** `disableDeleteAnonymousUser`, so a guest who signs in to an existing account is kept, and the delete endpoint is closed.
+  - **Also:** `agentRules: false` in `next.config.ts` (owner choice), so Next stops writing `apps/web/AGENTS.md`.
+- Review fixes:
+  - a log line when the account is created but session rotation fails;
+  - reset mail failures logged and answered like any other request;
+  - tests for concurrent sign-ups, an expired reset token, the other-sessions check and the hash format;
+  - stderr included in the no-password-in-logs tests;
+  - the email-taken check limited to its constraint;
+  - dead exports removed.
+- Surprises: on a heavily loaded machine (load average 13–18) DB-backed web tests hit vitest's 5 s timeout and pg's 2 s connect timeout during `turbo check`. The web test timeout is now 15 s, and two full checks then passed under load 18.
+- Process: the page and action tests were written right after the pages, not before. Every other test came first.
+- **For S12:**
+  - with `onLinkAccount` unset, nothing records which account a guest signed in to, so a guest who signs in to an existing account before S12 is left unlinked. S12 should set `onLinkAccount` and merge there (owner's merge rules, Q-P1-11).
+  - Form helpers: `FormState` and `textField` live in `app/form.ts`; `AuthForm` renders the account forms.
+- Local setup: `.env` needs `MAIL_TRANSPORT=log` (see `.env.example`). The reset link appears in the dev server log as `mail: logged instead of sent`.
