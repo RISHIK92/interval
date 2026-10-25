@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19 (ports and adapters) done. Next: S09 (VM compose), then S18 (AWS stack). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19 and S09 (VM compose mode) done. Next: S18 (AWS stack). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -281,4 +281,38 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - The fake raises `KeyError` for an unknown item id where Postgres may no-op. Unknown ids are a programming error in both cases.
 - Next: P1-W1-S09.
 - Needs ADR: none.
+
+### 2026-10-25 — P1-W1-S09 (VM mode, ADR-0011)
+- Done:
+  - **`deploy/compose.prod.yml`:** Postgres+pgvector on the mounted volume (the bind fails if the volume is missing), Redis 8.8.3, ElasticMQ, SeaweedFS under the `local-s3` profile, a dbmate migrate container, web, Caddy 2.11.7 (the only published ports) and one-off jobs under the `jobs` profile. All images are pinned, every long-running service has a health check and `restart: unless-stopped`, and each service gets only its own env file.
+  - **`deploy/bin/write-env.sh`:** Secrets Manager values go into 600-mode `app.env`, `postgres.env` and `caddy.env` in `/run` (tmpfs), written atomically. Docker also keeps container env in its root-only state on the encrypted root disk.
+  - **Scripts and unit:** `deploy/bin/deploy.sh` (lock, mount check, git checkout of the remote ref, build, migrate, up, systemd) and `deploy/bin/stack.sh up|down|build`, shared with `deploy/systemd/interval.service`.
+  - **Images and VM:** `workers/jobs/Dockerfile` (uv, non-root). The VM's user data installs git.
+  - **Runbook:** `docs/runbooks/vm.md` covers first deploy, update, jobs, domain/HTTPS, local S3, manual backup and restore, and VM replacement.
+  - **Tests:** 10 compose-config tests (the rendered config, run with `docker compose config`) and 6 env-writer tests; infra 22.
+  - **Local smoke run:** every service is healthy; `/api/health` and the home page return 200 through Caddy; migrations apply; `jobs rebuild-feed` works over the compose network; SeaweedFS is healthy under its profile.
+- Surprises:
+  - The CLI's local-DB guard refused the compose host `postgres`, so there is now an explicit `ALLOWED_DB_HOSTS` allowlist, which `write-env.sh` sets on the VM.
+  - `localhost` resolves to IPv6 inside the alpine containers, so health checks use 127.0.0.1.
+  - `up` with the jobs profile starts the jobs container, so jobs is build-only.
+- Next: P1-W1-S18 (AWS mode).
+- Review fixes (before commit):
+  - **Deploys:**
+    - Deploy resolves branch names to the remote branch, which fixes stale redeploys of `main`.
+    - Deploys hold a lock and continue with the new checkout's script.
+  - **Secrets:** values must match `[A-Za-z0-9_-]+`, so a `$`, ` #`, newline, empty value or `None` is refused before anything is written.
+  - **Stack operations:**
+    - `stack.sh down` also stops profiled services.
+    - Switching back to S3 stops SeaweedFS.
+    - The compose project is renamed `interval-vm`, so it doesn't collide with dev.
+  - **Data volume:** SeaweedFS data and the settings (`etc/`) moved onto the retained data volume.
+  - **Containers:** log rotation (`local` driver), Postgres `shm_size` and stop grace period, and HTTP/3 over UDP.
+  - **VM:** the user data installs a checksummed buildx (AL2023 lacks it).
+  - **Jobs image:** the Dockerfile now installs dependencies before copying code, and keeps no uv cache.
+  - **Local-DB guard:** `ALLOWED_DB_HOSTS` accepts only service names, never domains or IP addresses.
+  - **Runbook:** rewritten.
+  - **Tests:** 204 Python, 22 infra. Smoke run green again with local-s3.
+- Not fixed (nits):
+  - Docker doesn't restart an unhealthy (not exited) web container; documented in the runbook.
+  - The atomic-rename path in write-env.sh is exercised only on success.
 

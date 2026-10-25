@@ -68,3 +68,34 @@ def test_database_url_accepts_localhost(monkeypatch: pytest.MonkeyPatch) -> None
     monkeypatch.setenv("DATABASE_URL", "postgres://u:p@localhost:5432/db")
     monkeypatch.delenv("CI", raising=False)
     assert database_url() == "postgres://u:p@localhost:5432/db"
+
+
+def test_database_url_accepts_an_explicitly_allowed_host(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgres://u:p@postgres:5432/interval")
+    monkeypatch.setenv("ALLOWED_DB_HOSTS", "postgres")
+    monkeypatch.delenv("CI", raising=False)
+    assert database_url() == "postgres://u:p@postgres:5432/interval"
+
+
+def test_allowed_hosts_do_not_open_other_hosts(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgres://u:p@db.example.com:5432/interval")
+    monkeypatch.setenv("ALLOWED_DB_HOSTS", "postgres")
+    monkeypatch.delenv("CI", raising=False)
+    with pytest.raises(SystemExit, match="Refusing"):
+        database_url()
+
+
+@pytest.mark.parametrize("entry", ["db.example.com", "10.0.0.5", "::1x:2"])
+def test_allowlist_ignores_domains_and_addresses(
+    monkeypatch: pytest.MonkeyPatch, entry: str
+) -> None:
+    monkeypatch.setenv(
+        "DATABASE_URL",
+        f"postgres://u:p@[{entry}]/x" if ":" in entry else f"postgres://u:p@{entry}/x",
+    )
+    monkeypatch.setenv("ALLOWED_DB_HOSTS", entry)
+    monkeypatch.delenv("CI", raising=False)
+    with pytest.raises(SystemExit, match="Refusing"):
+        database_url()

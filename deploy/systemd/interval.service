@@ -1,0 +1,20 @@
+# VM mode (ADR-0011): bring the compose stack back after a reboot. Secrets are rewritten
+# into /run (tmpfs) first, because /run is empty after boot.
+[Unit]
+Description=Interval compose stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+RequiresMountsFor=/var/lib/interval/pgdata
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/interval
+ExecStartPre=/opt/interval/deploy/bin/write-env.sh
+ExecStart=/opt/interval/deploy/bin/stack.sh up
+ExecStop=/opt/interval/deploy/bin/stack.sh down
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

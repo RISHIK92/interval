@@ -26,16 +26,21 @@ def database_url() -> str:
     if not url:
         sys.exit("DATABASE_URL is not set; copy .env.example to .env")
     # CLAUDE.md: never touch a non-local database. Parse as libpq does, so `?host=` or
-    # `?hostaddr=` in the query cannot override the host in the URL.
+    # `?hostaddr=` in the query cannot override the host in the URL. On the VM the
+    # database is the compose service `postgres`; write-env.sh lists it explicitly. Only
+    # compose-style service names count: entries with a dot or colon (a domain or an IP
+    # address) are ignored, so the allowlist can never open a remote host.
+    entries = (e.strip() for e in os.environ.get("ALLOWED_DB_HOSTS", "").split(","))
+    allowed = LOCAL_HOSTS | {e for e in entries if e and "." not in e and ":" not in e}
     params = conninfo_to_dict(url)
     hosts = {
         str(params.get("host") or "localhost"),
         str(params.get("hostaddr") or "127.0.0.1"),
     }
-    if not hosts <= LOCAL_HOSTS and os.environ.get("CI") != "true":
+    if not hosts <= allowed and os.environ.get("CI") != "true":
         sys.exit(
             f"Refusing to touch database host {sorted(hosts)}: "
-            "only localhost outside CI."
+            "only localhost (or ALLOWED_DB_HOSTS) outside CI."
         )
     return url
 

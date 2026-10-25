@@ -1,0 +1,6 @@
+# SITE_ADDRESS is ":80" until a domain points at the VM; a domain name enables
+# automatic HTTPS (deploy/bin/write-env.sh, docs/runbooks/vm.md).
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+	reverse_proxy web:3000
+}

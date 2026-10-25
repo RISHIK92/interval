@@ -1,0 +1,153 @@
+# VM deployment mode (ADR-0011): one compose file runs the whole stack on the VM.
+# Secrets arrive only through env files in /run (tmpfs) written by deploy/bin/write-env.sh,
+# one per need: app.env (web, jobs, migrate), postgres.env, caddy.env.
+# Only Caddy publishes ports. Redis here, Valkey on AWS: avoid Redis 8-only commands.
+# A project name distinct from the dev docker-compose.yml (project `interval`).
+name: interval-vm
+
+x-logging: &logging
+  logging:
+    driver: local  # rotated: the VM's root disk is 20 GB
+
+x-app-env: &app-env
+  env_file: ${ENV_DIR:-/run/interval}/app.env
+
+services:
+  postgres:
+    <<: *logging
+    image: pgvector/pgvector:0.8.7-pg17-trixie
+    shm_size: 256mb  # parallel queries and pgvector index builds
+    stop_grace_period: 60s  # let a checkpoint finish instead of SIGKILL
+    env_file: ${ENV_DIR:-/run/interval}/postgres.env
+    environment:
+      POSTGRES_USER: interval
+      POSTGRES_DB: interval
+    volumes:
+      # A subdirectory that exists only on the mounted data volume: if the volume is
+      # missing, the bind fails instead of Postgres initialising an empty database.
+      - type: bind
+        source: ${PGDATA_DIR:-/var/lib/interval/pgdata/data}
+        target: /var/lib/postgresql/data
+        bind: { create_host_path: false }
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U interval -d interval"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    <<: *logging
+    image: redis:8.8.3-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # SQS-compatible queue (ADR-0011); queues are created with the consumer (W2-S02).
+  elasticmq:
+    <<: *logging
+    image: softwaremill/elasticmq-native:1.7.1
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- 'http://127.0.0.1:9324/?Action=ListQueues' >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # Optional: keep files on the VM instead of S3 (`--profile local-s3`).
+  seaweedfs:
+    <<: *logging
+    image: chrislusf/seaweedfs:4.50
+    profiles: ["local-s3"]
+    command: ["server", "-s3", "-dir=/data"]
+    volumes:
+      # On the retained data volume, like Postgres; missing directory means no start.
+      - type: bind
+        source: ${FILES_DIR:-/var/lib/interval/pgdata/files}
+        target: /data
+        bind: { create_host_path: false }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:9333/cluster/status >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # Migrations run to completion before the app starts (ADR-0002).
+  migrate:
+    <<: [*logging, *app-env]
+    image: ghcr.io/amacneil/dbmate:2.37.0
+    command: ["--migrations-dir", "/migrations", "--no-dump-schema", "--wait", "up"]
+    volumes:
+      - ../packages/db/migrations:/migrations:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  web:
+    <<: [*logging, *app-env]
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  caddy:
+    <<: *logging
+    image: caddy:2.11.7-alpine
+    env_file: ${ENV_DIR:-/run/interval}/caddy.env
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+      - "${HTTPS_PORT:-443}:443/udp"  # HTTP/3
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:2019/config/ >/dev/null"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
+
+  # One-off worker commands: `docker compose run --rm jobs ingest-one ...`.
+  jobs:
+    <<: [*logging, *app-env]
+    build:
+      context: ..
+      dockerfile: workers/jobs/Dockerfile
+    profiles: ["jobs"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  redis-data:
+  caddy-data:
+  caddy-config:

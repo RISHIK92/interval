@@ -239,6 +239,12 @@ describe("user data", () => {
     expect(script).not.toMatch(/mkfs[^;]*-f\b/);
   });
 
+  test("installs git and a checksummed buildx, which the deploy needs", () => {
+    const script = userDataScript();
+    expect(script).toContain("dnf install -y docker git");
+    expect(script).toMatch(/docker-buildx[^;]*sha256sum --check/);
+  });
+
   test("Docker only starts with the data volume mounted", () => {
     const script = userDataScript();
     expect(script).toContain(`RequiresMountsFor=${DATA_MOUNT}`);

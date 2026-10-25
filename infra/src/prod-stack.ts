@@ -126,11 +126,14 @@ export class ProdStack extends Stack {
     userData.addSignalOnExitCommand(instance);
     userData.addCommands(
       "set -euo pipefail",
-      "dnf install -y docker",
+      "dnf install -y docker git",
       "mkdir -p /usr/local/lib/docker/cli-plugins",
       `curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-aarch64`,
       `echo "${COMPOSE_SHA256}  /usr/local/lib/docker/cli-plugins/docker-compose" | sha256sum --check`,
       "chmod +x /usr/local/lib/docker/cli-plugins/docker-compose",
+      `curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-arm64`,
+      `echo "${BUILDX_SHA256}  /usr/local/lib/docker/cli-plugins/docker-buildx" | sha256sum --check`,
+      "chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx",
       // Nitro exposes EBS as NVMe; the volume id without the dash is the device serial.
       `VOLUME_ID="${data.volumeId}"`,
       'SERIAL="${VOLUME_ID//-/}"',
