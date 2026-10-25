@@ -266,6 +266,10 @@ export interface Source {
   homepage: string | null;
   id: Generated<Int8>;
   moments_enabled: Generated<boolean>;
+  moments_seeded: Generated<boolean>;
+  moments_switched_at: Timestamp | null;
+  moments_switched_by: string | null;
+  moments_switched_off: Generated<boolean>;
   name: string;
   next_poll_at: Generated<Timestamp>;
   paywalled: Generated<boolean>;

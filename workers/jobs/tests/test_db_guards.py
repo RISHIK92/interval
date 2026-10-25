@@ -51,7 +51,8 @@ FULL_TEXT = "guard-full_text_internal"
 
 def enable_moments(conn: psycopg.Connection, enabled: bool) -> None:
     conn.execute(
-        "update source set moments_enabled = %s where name = %s", (enabled, FULL_TEXT)
+        "update source set moments_seeded = %s, moments_enabled = %s where name = %s",
+        (enabled, enabled, FULL_TEXT),
     )
 
 
@@ -80,8 +81,8 @@ def test_database_refuses_moments_without_the_switch_and_full_text_rights(
 ) -> None:
     item_id = item_for(conn, profile)
     conn.execute(
-        "update source set moments_enabled = %s where name = %s",
-        (moments_enabled, f"guard-{profile}"),
+        "update source set moments_seeded = %s, moments_enabled = %s where name = %s",
+        (moments_enabled, moments_enabled, f"guard-{profile}"),
     )
     with pytest.raises(psycopg.errors.RaiseException, match="does not allow moments"):
         add_moment(conn, item_id)

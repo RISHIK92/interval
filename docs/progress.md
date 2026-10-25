@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) done. Next: W3-S06 (per-source switches), then Week 4. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. Next: Week 4. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -962,3 +962,26 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - **Repeated headings:** an item with two sections under the same heading can't tell them apart. A boundary starts a moment at both, and they share one tag correction (pinned by a test).
   - **The intro moment:** it can't have its own tag correction; the item-level one covers it.
   - **Not yet applied:** tag corrections aren't read by ranking until W4. W4's ranking must prefer them over the model's tags.
+
+### 2026-10-26 — P1-W3-S06 (per-source moments switch, §3.2, ING-2, ADR-0006 C-28; overnight)
+- Done:
+  - **Migration `20261026090000_source_moments_switch.sql`:**
+    - `moments_seeded` (the seed file's value) and `moments_switched_off` (the admin's switch, with by/at);
+    - a check constraint keeps `moments_enabled = moments_seeded and not moments_switched_off`. It isn't a generated column, because the purge trigger fires on updates of `moments_enabled`.
+  - **Seed loader:** writes `moments_seeded` and computes `moments_enabled`, so reloads keep the switch.
+  - **`/admin/sources`** (behind `admin.review`, a 404 otherwise):
+    - lists each source's rights and moments state;
+    - switching off is one update that the purge trigger turns into removing the source's moments, and with them its feed entries;
+    - switching back on re-segments the source's full-text items where the seed allows, then the worker re-tags and re-embeds them;
+    - a double submit does nothing;
+    - sources no longer in the seed file get no switch.
+  - Disabling a source stays in the seed file (C-28).
+- Review fixes:
+  - the switch rule was only in comments (now a constraint; the test helpers write both columns);
+  - the "whole articles" wording;
+  - an unvalidated switch value;
+  - duplicate re-queues on double submit;
+  - recovery documented;
+  - tests for each page state and the action's refusals;
+  - the seed-and-switch interplay.
+- Gap (needs the owner): §3.2's "falls back to whole articles" can't happen yet, because the feed has no whole-article cards. A switched-off source drops out of the feed until those cards exist (W4/W5 ranking and budgets).

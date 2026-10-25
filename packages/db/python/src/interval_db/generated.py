@@ -261,6 +261,10 @@ class Source(TypedDict):
     poll_interval_seconds: int
     next_poll_at: datetime
     polled_at: datetime | None
+    moments_seeded: bool
+    moments_switched_off: bool
+    moments_switched_by: str | None
+    moments_switched_at: datetime | None
 
 
 class TagOverride(TypedDict):

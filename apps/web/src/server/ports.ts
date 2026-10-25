@@ -180,3 +180,25 @@ export interface AdminReview {
     by: string,
   ): Promise<void>;
 }
+
+// §3.2, P1-W3-S06: the per-source moments switch. The seed file owns every other
+// setting, including whether a source is polled at all (ADR-0006 C-28).
+export type SourceSwitch = {
+  id: string;
+  name: string;
+  rightsProfile: string;
+  active: boolean;
+  // What the seed file says, whether an admin switched moments off, and the result.
+  momentsSeeded: boolean;
+  momentsSwitchedOff: boolean;
+  momentsEnabled: boolean;
+};
+
+export interface AdminSources {
+  list(): Promise<SourceSwitch[]>;
+  get(id: string): Promise<SourceSwitch | null>;
+  // Switching off removes the source's moments at once (the database's purge trigger).
+  setMomentsSwitchedOff(id: string, off: boolean, by: string): Promise<void>;
+  // Items whose stored full text can be segmented again when moments come back.
+  fullTextItemIds(id: string): Promise<string[]>;
+}

@@ -65,6 +65,7 @@ class Probe(Protocol):
     def oversized(self, item_id: int) -> list[bool]: ...
     def reset_concepts(self) -> None: ...
     def set_boundaries(self, item_id: int, headings: list[str]) -> None: ...
+    def switch_moments_off(self, source_id: int, off: bool) -> None: ...
     def override_level(self, item_id: int, heading: str, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
 
@@ -124,6 +125,9 @@ class MemoryProbe:
     def set_boundaries(self, item_id: int, headings: list[str]) -> None:
         self.s.items.boundary_overrides[item_id] = headings
 
+    def switch_moments_off(self, source_id: int, off: bool) -> None:
+        self.s.sources.switch_moments_off(source_id, off)
+
     def override_level(self, item_id: int, heading: str, level: str) -> None:
         assert level in ("beginner", "intermediate", "advanced")
         self.s.tags.overrides[(item_id, heading)] = level
@@ -159,12 +163,16 @@ class PostgresProbe:
 
     def enable_moments(self, source_id: int) -> None:
         self.conn.execute(
-            "update source set moments_enabled = true where id = %s", (source_id,)
+            "update source set moments_seeded = true, moments_enabled = true "
+            "where id = %s",
+            (source_id,),
         )
 
     def disable_moments(self, source_id: int) -> None:
         self.conn.execute(
-            "update source set moments_enabled = false where id = %s", (source_id,)
+            "update source set moments_seeded = false, moments_enabled = false "
+            "where id = %s",
+            (source_id,),
         )
 
     def add_user(
@@ -255,6 +263,14 @@ class PostgresProbe:
             "insert into tag_override (content_item_id, heading, difficulty, "
             "concepts, updated_by) values (%s, %s, %s, '{}', 'contract-test')",
             (item_id, heading, level),
+        )
+
+    def switch_moments_off(self, source_id: int, off: bool) -> None:
+        # What the web admin page runs (P1-W3-S06).
+        self.conn.execute(
+            "update source set moments_switched_off = %s, "
+            "moments_enabled = moments_seeded and not %s where id = %s",
+            (off, off, source_id),
         )
 
     def set_boundaries(self, item_id: int, headings: list[str]) -> None:
@@ -1536,3 +1552,53 @@ def test_re_ingesting_leaves_the_admins_overrides_alone(
         (item, item),
     ).fetchone()
     assert rows == (1, 1)
+
+
+# P1-W3-S06: an admin's moments switch survives a seed reload.
+def test_an_admins_moments_switch_survives_seed_reloads(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    s.sources.sync([seed("switched")])
+    sid = s.sources.upsert(
+        name="switched",
+        feed_url="https://switched.example.test/feed",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    item = s.items.upsert_from_feed(sid, entry("switched-item"), keep_excerpt=False)
+    s.moments.replace(item, [moment(0, "sw0")])
+    s.feed.rebuild()
+    assert "sw0" in probe.feed_titles()
+    probe.switch_moments_off(sid, True)
+    assert probe.moments(item) == []  # purged: gone from the feed at once
+    assert "sw0" not in probe.feed_titles()
+    s.sources.sync([seed("switched")])  # unchanged file
+    s.sources.sync([seed("switched", quality_score=4)])  # a changed one
+    record = s.sources.get(sid)
+    assert record is not None and record.moments_enabled is False
+    probe.switch_moments_off(sid, False)  # back to what the seed file says
+    record = s.sources.get(sid)
+    assert record is not None and record.moments_enabled is True
+
+
+def test_the_seed_file_and_the_admin_switch_both_have_to_allow_moments(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    s.sources.sync([seed("both")])
+    sid = s.sources.upsert(
+        name="both",
+        feed_url="https://both.example.test/feed",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    probe.switch_moments_off(sid, True)
+    s.sources.sync([seed("both", moments_enabled=False)])
+    s.sources.sync([seed("both", moments_enabled=True)])  # seed back on: still off
+    record = s.sources.get(sid)
+    assert record is not None and record.moments_enabled is False
+    probe.switch_moments_off(sid, False)
+    s.sources.sync([seed("both", moments_enabled=False)])  # now the seed says off
+    record = s.sources.get(sid)
+    assert record is not None and record.moments_enabled is False

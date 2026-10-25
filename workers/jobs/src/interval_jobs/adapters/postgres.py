@@ -154,9 +154,9 @@ class PostgresSources:
             values = _settings_values(seed)
             if row is None:
                 self._conn.execute(
-                    f"insert into source (name, {_SETTINGS_WRITE}) "
-                    "values (%s, %s, %s, %s, %s, %s, %s, %s)",
-                    (seed.name, *values),
+                    f"insert into source (name, {_SETTINGS_WRITE}, moments_enabled) "
+                    "values (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (seed.name, *values, seed.moments_enabled),
                 )
                 added += 1
                 continue
@@ -164,11 +164,13 @@ class PostgresSources:
             if row[9] and current == (seed.name, *values):
                 unchanged += 1
                 continue
-            # One update, so the purge triggers see profile and switch together.
+            # One update, so the purge triggers see profile and switch together. An
+            # admin's moments switch (P1-W3-S06) outlives the reload.
             self._conn.execute(
-                f"update source set (name, {_SETTINGS_WRITE}, active) = "
-                "(%s, %s, %s, %s, %s, %s, %s, %s, true) where id = %s",
-                (seed.name, *values, row[0]),
+                f"update source set (name, {_SETTINGS_WRITE}, active, "
+                "moments_enabled) = (%s, %s, %s, %s, %s, %s, %s, %s, true, "
+                "%s and not moments_switched_off) where id = %s",
+                (seed.name, *values, seed.moments_enabled, row[0]),
             )
             updated += 1
         deactivated = self._conn.execute(
@@ -178,8 +180,10 @@ class PostgresSources:
         return SyncResult(added, updated, unchanged, deactivated)
 
 
+# The seed file's own settings; moments_enabled itself is moments_seeded unless an
+# admin switched moments off (P1-W3-S06).
 _SETTINGS_WRITE = (
-    "feed_url, rights_profile, homepage, moments_enabled, paywalled, "
+    "feed_url, rights_profile, homepage, moments_seeded, paywalled, "
     "quality_score, topics"
 )
 # The same columns read back for comparison: the enum as text.

@@ -19,6 +19,7 @@ import {
 } from "./adapters/kysely";
 import { bullmqQueue } from "./adapters/bullmq-queue";
 import { kyselyAdminReview } from "./adapters/kysely-admin-review";
+import { kyselyAdminSources } from "./adapters/kysely-admin-sources";
 import { fileSink } from "./adapters/file-sink";
 import { firehoseSink } from "./adapters/firehose-sink";
 import { logMailer } from "./adapters/log-mailer";
@@ -27,6 +28,7 @@ import { createEmitter, type Emitter } from "./events";
 import type {
   Accounts,
   AdminReview,
+  AdminSources,
   DatabasePing,
   Entitlements,
   FeedReader,
@@ -55,6 +57,10 @@ export function auth(): Auth {
     mailer: logMailer(),
   });
   return authInstance;
+}
+
+export function adminSources(): AdminSources {
+  return kyselyAdminSources(db());
 }
 
 export function adminReview(): AdminReview {

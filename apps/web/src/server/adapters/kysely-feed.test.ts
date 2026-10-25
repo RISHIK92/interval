@@ -29,6 +29,7 @@ test("kyselyFeedReader.list returns cards from feed_visible in rank order", asyn
           name: "webfeed-test",
           feed_url: "https://webfeed.example.test/feed.xml",
           rights_profile: "full_text_internal",
+          moments_seeded: true,
           moments_enabled: true,
         })
         .returning("id")

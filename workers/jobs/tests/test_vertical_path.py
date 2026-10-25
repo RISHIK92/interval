@@ -20,7 +20,10 @@ def ingest(conn: psycopg.Connection, article: str) -> None:
         rights_profile="full_text_internal",
         homepage=None,
     )
-    conn.execute("update source set moments_enabled = true where id = %s", (source_id,))
+    conn.execute(
+        "update source set moments_seeded = true, moments_enabled = true where id = %s",
+        (source_id,),
+    )
     with mock_web_client(article) as http:
         fetcher = PoliteFetcher(HttpxFetcher(http, public), sleep=lambda _s: None)
         ingest_one(store, fetcher, TrafilaturaExtractor(), source_id)

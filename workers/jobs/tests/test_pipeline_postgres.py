@@ -23,7 +23,10 @@ def test_the_pipeline_runs_end_to_end_on_postgres(conn: psycopg.Connection) -> N
         rights_profile="full_text_internal",
         homepage=None,
     )
-    conn.execute("update source set moments_enabled = true where id = %s", (source_id,))
+    conn.execute(
+        "update source set moments_seeded = true, moments_enabled = true where id = %s",
+        (source_id,),
+    )
     queue = InMemoryQueue()
     fetcher = web()
 

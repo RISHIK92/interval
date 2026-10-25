@@ -55,7 +55,10 @@ def source(conn: psycopg.Connection, name: str) -> int:
         rights_profile="full_text_internal",
         homepage=None,
     )
-    conn.execute("update source set moments_enabled = true where id = %s", (source_id,))
+    conn.execute(
+        "update source set moments_seeded = true, moments_enabled = true where id = %s",
+        (source_id,),
+    )
     return source_id
 
 
@@ -92,7 +95,11 @@ def test_switching_moments_off_cascades_to_the_feed(conn: psycopg.Connection) ->
     src = source(conn, "feedtest-c")
     add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 2)
     PostgresStore(conn).feed.rebuild()
-    conn.execute("update source set moments_enabled = false where id = %s", (src,))
+    conn.execute(
+        "update source set moments_seeded = false, moments_enabled = false "
+        "where id = %s",
+        (src,),
+    )
     # No rebuild: the purge trigger deletes the moments and feed_entry cascades.
     assert visible(conn) == []
 
@@ -111,15 +118,16 @@ def test_section_count_covers_moments_left_out_of_the_feed(
 
 
 @pytest.mark.parametrize(
-    ("column", "value"),
+    "change",
     [
-        ("moments_enabled", False),
-        ("rights_profile", "excerpt"),
-        ("rights_profile", "metadata_only"),
+        # The admin switch: moments_enabled follows it (P1-W3-S06).
+        {"moments_switched_off": True, "moments_enabled": False},
+        {"rights_profile": "excerpt"},
+        {"rights_profile": "metadata_only"},
     ],
 )
 def test_view_hides_stale_entries_when_the_source_no_longer_allows_moments(
-    conn: psycopg.Connection, column: str, value: object
+    conn: psycopg.Connection, change: dict[str, object]
 ) -> None:
     src = source(conn, "feedtest-d")
     add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 1)
@@ -127,10 +135,12 @@ def test_view_hides_stale_entries_when_the_source_no_longer_allows_moments(
     # Skip triggers for this transaction only, to leave a stale feed entry behind.
     conn.execute("set local session_replication_role = replica")
     conn.execute(
-        sql.SQL("update source set {} = %s where id = %s").format(
-            sql.Identifier(column)
+        sql.SQL("update source set {} where id = %s").format(
+            sql.SQL(", ").join(
+                sql.SQL("{} = %s").format(sql.Identifier(column)) for column in change
+            )
         ),
-        (value, src),
+        (*change.values(), src),
     )
     conn.execute("set local session_replication_role = origin")
     assert visible(conn) == []

@@ -34,6 +34,7 @@ async function seed(trx: Transaction<DB>): Promise<string> {
       name: `review-${tag}`,
       feed_url: `https://review-${tag}.example.test/feed`,
       rights_profile: "full_text_internal",
+      moments_seeded: true,
       moments_enabled: true,
     })
     .returning("id")

@@ -62,6 +62,8 @@ class _Source:
     quality_score: int | None = None
     topics: tuple[str, ...] = ()
     active: bool = True
+    moments_seeded: bool = False
+    moments_switched_off: bool = False  # an admin's switch (P1-W3-S06)
     poll_interval: timedelta = START_INTERVAL
     # Due at once (Postgres: now() at insert; tests claim at or after it).
     next_poll_at: datetime = datetime(1970, 1, 1, tzinfo=UTC)
@@ -144,7 +146,7 @@ def _settings_of(row: _Source) -> SourceSettings | None:
         homepage=row.homepage,
         feed_url=row.feed_url,
         rights_profile=row.rights_profile,
-        moments_enabled=row.moments_enabled,
+        moments_enabled=row.moments_seeded,
         paywalled=row.paywalled,
         quality_score=row.quality_score,
         topics=row.topics,
@@ -242,7 +244,8 @@ class InMemorySources:
             row.feed_url = seed.feed_url
             row.rights_profile = seed.rights_profile
             row.homepage = seed.homepage
-            row.moments_enabled = seed.moments_enabled
+            row.moments_seeded = seed.moments_enabled
+            row.moments_enabled = seed.moments_enabled and not row.moments_switched_off
             row.paywalled = seed.paywalled
             row.quality_score = seed.quality_score
             row.topics = seed.topics
@@ -256,8 +259,19 @@ class InMemorySources:
                 deactivated += 1
         return SyncResult(added, updated, unchanged, deactivated)
 
+    def switch_moments_off(self, source_id: int, off: bool) -> None:
+        """What the web admin page does (P1-W3-S06); not part of the worker's port."""
+        source = self.rows[source_id]
+        source.moments_switched_off = off
+        source.moments_enabled = source.moments_seeded and not off
+        self._purge(source)
+
     def set_moments_enabled(self, source_id: int, enabled: bool) -> None:
-        self.rows[source_id].moments_enabled = enabled
+        # As the seed file would (the switch rule holds: P1-W3-S06).
+        self.rows[source_id].moments_seeded = enabled
+        self.rows[source_id].moments_enabled = enabled and not (
+            self.rows[source_id].moments_switched_off
+        )
         self._purge(self.rows[source_id])
 
     def _purge(self, source: _Source) -> None:

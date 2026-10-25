@@ -15,10 +15,29 @@ const review = {
   setTags: vi.fn<AdminReview["setTags"]>(() => Promise.resolve()),
 };
 const enqueue = vi.fn(() => Promise.resolve());
+const sources = {
+  list: vi.fn(() =>
+    Promise.resolve([
+      {
+        id: "3",
+        name: "Blog",
+        rightsProfile: "full_text_internal",
+        active: true,
+        momentsSeeded: true,
+        momentsSwitchedOff: false,
+        momentsEnabled: true,
+      },
+    ]),
+  ),
+  get: vi.fn(),
+  setMomentsSwitchedOff: vi.fn(() => Promise.resolve()),
+  fullTextItemIds: vi.fn(() => Promise.resolve([])),
+};
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
   adminReview: () => review,
+  adminSources: () => sources,
   jobQueue: () => ({ enqueue }),
 }));
 vi.mock("next/headers", () => ({
@@ -183,5 +202,94 @@ describe("for an admin", () => {
       /redirect:\/admin\/items\/7\?error=/,
     );
     expect(review.setTags).not.toHaveBeenCalled();
+  });
+});
+
+describe("sources (P1-W3-S06)", () => {
+  async function sourcesPage(): Promise<string> {
+    const { default: Page } = await import("./sources/page");
+    return renderToStaticMarkup(
+      await Page({ searchParams: Promise.resolve({}) }),
+    );
+  }
+
+  test("are a 404 without admin.review, page and action alike", async () => {
+    current.mockResolvedValue(admin);
+    can.mockResolvedValue(false);
+    await expect(sourcesPage()).rejects.toThrow("notFound");
+    const { switchMomentsAction } = await import("./sources/actions");
+    const form = new FormData();
+    form.set("sourceId", "3");
+    form.set("switch", "off");
+    await expect(switchMomentsAction(form)).rejects.toThrow("notFound");
+    expect(sources.setMomentsSwitchedOff).not.toHaveBeenCalled();
+  });
+
+  test.each([
+    ["no source id", { switch: "off" }],
+    ["a malformed id", { sourceId: "3/../x", switch: "off" }],
+    ["an unknown switch", { sourceId: "3", switch: "maybe" }],
+  ])("the action refuses %s", async (_case, fields) => {
+    current.mockResolvedValue(admin);
+    can.mockResolvedValue(true);
+    const { switchMomentsAction } = await import("./sources/actions");
+    const form = new FormData();
+    for (const [key, value] of Object.entries(fields)) form.set(key, value);
+    await expect(switchMomentsAction(form)).rejects.toThrow("notFound");
+    expect(sources.setMomentsSwitchedOff).not.toHaveBeenCalled();
+  });
+
+  test("the page says why moments are off and offers the switch only where it works", async () => {
+    current.mockResolvedValue(admin);
+    can.mockResolvedValue(true);
+    const base = {
+      rightsProfile: "full_text_internal",
+      active: true,
+      momentsSeeded: true,
+      momentsSwitchedOff: false,
+      momentsEnabled: true,
+    };
+    sources.list.mockResolvedValueOnce([
+      { ...base, id: "1", name: "On" },
+      {
+        ...base,
+        id: "2",
+        name: "Switched",
+        momentsSwitchedOff: true,
+        momentsEnabled: false,
+      },
+      {
+        ...base,
+        id: "3",
+        name: "Seeded off",
+        momentsSeeded: false,
+        momentsEnabled: false,
+      },
+      { ...base, id: "4", name: "Gone", active: false },
+    ]);
+    const html = await sourcesPage();
+    expect(html).toContain("switched off here");
+    expect(html).toContain("off in the seed file");
+    expect(html).toContain("Switch moments back on");
+    expect(html.match(/<form/g)).toHaveLength(2); // "On" and "Switched" only
+  });
+
+  test("an admin switches a source's moments off", async () => {
+    current.mockResolvedValue(admin);
+    can.mockResolvedValue(true);
+    expect(await sourcesPage()).toContain("Switch moments off");
+    sources.get.mockResolvedValue((await sources.list())[0]);
+    const { switchMomentsAction } = await import("./sources/actions");
+    const form = new FormData();
+    form.set("sourceId", "3");
+    form.set("switch", "off");
+    await expect(switchMomentsAction(form)).rejects.toThrow(
+      "redirect:/admin/sources?saved=1",
+    );
+    expect(sources.setMomentsSwitchedOff).toHaveBeenCalledWith(
+      "3",
+      true,
+      "admin-1",
+    );
   });
 });
