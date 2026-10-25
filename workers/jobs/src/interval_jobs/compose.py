@@ -17,6 +17,7 @@ import httpx
 import psycopg
 from psycopg.conninfo import conninfo_to_dict
 
+from interval_jobs import log
 from interval_jobs.adapters.bullmq_queue import BullmqConsumer, BullmqQueue
 from interval_jobs.adapters.file_sink import FileEventSink
 from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSink
@@ -29,7 +30,7 @@ from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.adapters.voyage import VoyageClient
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.events.emitter import Emitter
-from interval_jobs.pipeline import StageServices, UnitOfWork
+from interval_jobs.pipeline import StageServices, Tagging, UnitOfWork
 from interval_jobs.ports import AiLedger, EventSink, JobQueue, QueueConsumer
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -185,3 +186,25 @@ def ai_gateway(ledger: AiLedger, http: httpx.Client) -> AiGateway:
         OpenRouterClient(http, _required("OPENROUTER_API_KEY")),
         VoyageClient(http, os.environ.get("VOYAGE_API_KEY") or None),
     )
+
+
+@contextmanager
+def tagging() -> Generator[Tagging | None]:
+    """Concept tagging (P1-W3-S02) with the model the tagging eval picked
+    (ADR-0010); off until TAGGING_MODEL is set. Each call gets a short autocommit
+    ledger connection: a paid call is recorded even if its stage then fails (OPS-4).
+    """
+    model = os.environ.get("TAGGING_MODEL")
+    if not model:
+        log.info("tagging: off (TAGGING_MODEL is not set)")
+        yield None
+        return
+    url = database_url()
+    with httpx.Client() as http:
+
+        @contextmanager
+        def gateway() -> Generator[AiGateway]:
+            with psycopg.connect(url, autocommit=True) as ledger:
+                yield ai_gateway(PostgresAi(ledger), http)
+
+        yield Tagging(model, gateway)

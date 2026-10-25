@@ -15,6 +15,8 @@ export type Capability = "admin.review" | "ai.budget.daily_cents" | "ai.notes.da
 
 export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
 
+export type Difficulty = "advanced" | "beginner" | "intermediate";
+
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -186,6 +188,19 @@ export interface InviteCode {
   used_count: Generated<number>;
 }
 
+export interface ItemConcept {
+  concept_id: Int8;
+  content_item_id: Int8;
+}
+
+export interface ItemTagging {
+  content_item_id: Int8;
+  difficulty: Difficulty;
+  model: string;
+  prompt_version: number;
+  tagged_at: Generated<Timestamp>;
+}
+
 export interface Moment {
   content_item_id: Int8;
   created_at: Generated<Timestamp>;
@@ -196,6 +211,16 @@ export interface Moment {
   ordinal: number;
   oversized: Generated<boolean>;
   title: string;
+}
+
+export interface MomentConcept {
+  concept_id: Int8;
+  moment_id: Int8;
+}
+
+export interface MomentTagging {
+  difficulty: Difficulty;
+  moment_id: Int8;
 }
 
 export interface Plan {
@@ -260,7 +285,11 @@ export interface DB {
   fetch_validator: FetchValidator;
   graph_version: GraphVersion;
   invite_code: InviteCode;
+  item_concept: ItemConcept;
+  item_tagging: ItemTagging;
   moment: Moment;
+  moment_concept: MomentConcept;
+  moment_tagging: MomentTagging;
   plan: Plan;
   plan_capability: PlanCapability;
   schema_meta: SchemaMeta;

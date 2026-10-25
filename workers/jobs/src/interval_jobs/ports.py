@@ -19,6 +19,7 @@ from interval_db.generated import (
     BetaGroup,
     Capability,
     ConceptEdgeType,
+    Difficulty,
     MomentLinkType,
     RightsProfile,
 )
@@ -401,6 +402,71 @@ class Concepts(Protocol):
         ...
 
 
+@dataclass(frozen=True)
+class TagMoment:
+    id: int
+    ordinal: int
+    heading: str | None  # None: the intro, at the top of the page
+
+
+@dataclass(frozen=True)
+class TagInput:
+    """What tagging reads about one item (P1-W3-S02)."""
+
+    title: str
+    summary: str | None
+    full_text: str | None  # only under the source's current full-text rights (ING-2)
+    excerpt: str | None  # only under the excerpt profile ("for tagging", Q-P1-01)
+    moments: list[TagMoment]
+    tagged_version: int | None  # prompt version it was last tagged with
+    duplicate: bool  # tag the primary only (AI-4: once per item)
+
+
+@dataclass(frozen=True)
+class Tags:
+    difficulty: Difficulty  # Q-P1-10
+    concepts: frozenset[str]  # slugs
+
+
+@dataclass(frozen=True)
+class TagResult:
+    item: Tags
+    moments: dict[int, Tags]  # by moment id
+
+
+class ItemTags(Protocol):
+    """AI output, stored apart from source text with its model and prompt (AI-3)."""
+
+    def input(self, item_id: int) -> TagInput | None: ...
+
+    def version(self, item_id: int) -> int | None:
+        """The prompt version the item was tagged with; None if never."""
+        ...
+
+    def needs_tagging(self, item_id: int, prompt_version: int) -> bool:
+        """Not yet tagged at this prompt version, and not a duplicate (AI-4)."""
+        ...
+
+    def clear(self, item_id: int) -> None:
+        """Drops the item's tags: its moments changed, so they are redone."""
+        ...
+
+    def find(self, canonical_url: str) -> int | None:
+        """The primary item at this canonical URL (eval labels name items by URL)."""
+        ...
+
+    def save(
+        self, item_id: int, result: TagResult, model: str, prompt_version: int
+    ) -> None:
+        """Replaces the item's and its moments' tags. Moment ids that aren't the
+        item's are refused."""
+        ...
+
+    def for_item(self, item_id: int) -> tuple[Tags | None, dict[int, Tags]]:
+        """The item's tags and its moments' tags by ordinal; retired concepts too."""
+        ...
+
+
 class FetchValidators(Protocol):
     def get(self, url: str) -> Validators | None:
         """None when none are stored or they are older than VALIDATORS_MAX_AGE."""
@@ -440,6 +506,9 @@ class Store(Protocol):
 
     @property
     def concepts(self) -> Concepts: ...
+
+    @property
+    def tags(self) -> ItemTags: ...
 
 
 class Fetcher(Protocol):

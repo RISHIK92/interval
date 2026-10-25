@@ -39,6 +39,9 @@ Docker restarts containers that exit, but not ones that are merely unhealthy. Ch
 ## Run a job
 `docker compose -f /opt/interval/deploy/compose.prod.yml run --rm jobs ingest-one --name ... --feed-url ... --rights-profile ...`
 
+## Turn on concept tagging (P1-W3-S02)
+Tagging is off until the tagging eval has picked a model (ADR-0010). Run `eval-tagging` against owner-labelled moments first. Then add `TAGGING_MODEL=<openrouter model id>` to the app env written by `deploy/bin/write-env.sh` and redeploy; the worker logs "tagging: off" until it is set. Polls then queue tagging for every untagged item, within the AI budgets (OPS-4).
+
 ## Set the domain (HTTPS)
 The VM's domain is `interval.rishiklabs.tech` (owner, 2026-10-25). Set it before first use: sign-in calls from the browser are refused from any origin other than `BETTER_AUTH_URL`, which comes from this file.
 

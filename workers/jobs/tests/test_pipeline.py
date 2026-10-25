@@ -5,19 +5,27 @@ import threading
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 
 import pytest
 
-from interval_db.generated import RightsProfile
+from interval_db.generated import AiProvider, RightsProfile
 from interval_db.messages import MessageName
-from interval_jobs.adapters.memory import FakeFetcher, InMemoryStore
+from interval_jobs.adapters.memory import FakeFetcher, InMemoryAi, InMemoryStore
 from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
-from interval_jobs.pipeline import STAGES, Pipeline, StageServices
+from interval_jobs.ai.gateway import AiGateway
+from interval_jobs.concepts.graph import parse_concepts
+from interval_jobs.concepts.sync import sync_concepts
+from interval_jobs.pipeline import STAGES, Pipeline, StageServices, Tagging
 from interval_jobs.ports import (
+    Completion,
+    Embeddings,
     Fetched,
     FetchError,
+    Message,
     RobotsDisallowed,
+    Usage,
     Validators,
 )
 
@@ -56,6 +64,7 @@ class World:
         failing: str | None = None,
         blocked: str | None = None,
         extra: dict[str, Fetched] | None = None,
+        tagging: Tagging | None = None,
     ) -> None:
         self.store = InMemoryStore()
         self.fetcher = web(failing, blocked, extra)
@@ -70,7 +79,9 @@ class World:
             yield StageServices(self.store, self.fetcher, TrafilaturaExtractor())
 
         self.now = NOW
-        self.pipeline = Pipeline(unit, self.queue, clock=lambda: self.now)
+        self.pipeline = Pipeline(
+            unit, self.queue, clock=lambda: self.now, tagging=tagging
+        )
 
     def discover(self, key: str = "poll-1") -> None:
         self.queue.enqueue(
@@ -342,3 +353,144 @@ def test_a_discover_that_fails_keeps_the_turn_poll_due_claimed() -> None:
         NOW + timedelta(minutes=59)
     )
     assert world.source_id in world.store.sources.claim_due(NOW + timedelta(hours=1))
+
+
+# P1-W3-S02: tagging joins the pipeline after segmentation (or the fetch, or discover).
+TAG_ANSWER = (
+    '{"item": {"difficulty": "intermediate", "concepts": ["write-ahead-log"]},'
+    ' "moments": [{"ordinal": 0, "difficulty": "beginner", "concepts": []}]}'
+)
+
+
+class TagLlm:
+    provider: AiProvider = "openrouter"
+
+    def __init__(self) -> None:
+        self.calls: list[str] = []
+
+    def complete(self, model: str, messages: list[Message]) -> Completion:
+        self.calls.append(messages[-1]["content"])
+        return Completion(TAG_ANSWER, 800, 60, Decimal("0.001"))
+
+
+class NoEmbeddings:
+    provider: AiProvider = "voyage"
+
+    def embed(self, model: str, texts: list[str]) -> Embeddings:
+        raise AssertionError("no embeddings in tagging")
+
+
+def tagged_world(
+    profile: RightsProfile = "full_text_internal", spent: Decimal = Decimal(0)
+) -> tuple[World, TagLlm, InMemoryAi]:
+    llm = TagLlm()
+    ledger = InMemoryAi(InMemoryStore().users)
+    if spent:
+        ledger.record(Usage(None, "tagging", "openrouter", "m", 0, 0, spent, NOW))
+
+    @contextmanager
+    def gateway() -> Generator[AiGateway]:
+        yield AiGateway(ledger, llm, NoEmbeddings(), clock=lambda: NOW)
+
+    world = World(profile=profile, tagging=Tagging("small-model", gateway))
+    sync_concepts(
+        world.store,
+        parse_concepts(
+            "version: 1\nconcepts:\n"
+            "  - {slug: write-ahead-log, name: WAL, topic: databases}\n",
+            "c.yaml",
+        ),
+    )
+    return world, llm, ledger
+
+
+def test_each_item_is_tagged_once_with_its_moments() -> None:
+    world, llm, _ = tagged_world()
+    world.discover("poll-1")
+    world.run()
+    for item_id in world.store.items.rows:
+        tags, _ = world.store.tags.for_item(item_id)
+        assert tags is not None and tags.concepts == frozenset({"write-ahead-log"})
+    assert len(llm.calls) == 2  # one per item
+    world.now = NOW + timedelta(days=2)  # a later full poll
+    world.discover("poll-2")
+    world.run()
+    assert len(llm.calls) == 2  # AI-4: never again at this prompt version
+
+
+def test_without_a_tagging_model_nothing_is_queued_or_tagged() -> None:
+    world = World()
+    world.discover()
+    world.run()
+    assert world.queue.pending("tag_item") == 0
+    assert all(world.store.tags.version(i) is None for i in world.store.items.rows)
+
+
+def test_a_metadata_only_item_is_tagged_from_its_title_and_summary() -> None:
+    world, llm, _ = tagged_world(profile="metadata_only")
+    world.discover()
+    world.run()
+    assert len(llm.calls) == 2
+    assert "<moment" not in llm.calls[0]
+
+
+def test_over_budget_tagging_degrades_and_is_retried_by_a_later_poll(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    world, llm, ledger = tagged_world(spent=Decimal(1000))
+    world.discover("poll-1")
+    world.run()
+    assert llm.calls == []
+    assert world.queue.failed_messages("tag_item") == []
+    assert "pipeline: tagging over budget" in capsys.readouterr().out
+    ledger.rows.clear()  # the next day's budget
+    world.now = NOW + timedelta(days=2)
+    world.store.validators.put(FEED_URL, None)  # the daily full poll: no 304
+    world.discover("poll-2")
+    world.run()
+    assert len(llm.calls) == 2
+
+
+def test_resegmenting_an_item_redoes_its_tags() -> None:
+    world, llm, _ = tagged_world()
+    world.discover()
+    world.run()
+    wal = next(i for i in world.store.items.rows.values() if i.canonical_url == WAL)
+    assert world.store.tags.version(wal.id) is not None
+    world.queue.enqueue(
+        "segment_item", {"content_item_id": wal.id}, idempotency_key="again"
+    )
+    world.run()
+    assert world.store.tags.version(wal.id) is not None
+    assert len(llm.calls) == 3  # the re-segmented item was tagged again
+
+
+def test_a_duplicate_item_is_never_tagged() -> None:
+    world, llm, _ = tagged_world(profile="metadata_only")
+    mirror_url = "https://mirror.example.test/feed.atom"
+    mirror = world.store.sources.upsert(
+        name="mirror",
+        feed_url=mirror_url,
+        rights_profile="metadata_only",
+        homepage=None,
+    )
+    world.fetcher = FakeFetcher(
+        {
+            FEED_URL: Fetched(FEED_URL, fixture_bytes("atom.xml"), "utf-8"),
+            mirror_url: Fetched(mirror_url, fixture_bytes("atom.xml"), "utf-8"),
+        }
+    )
+    world.discover()
+    world.queue.enqueue("discover_source", {"source_id": mirror}, idempotency_key="m")
+    world.run()
+    assert len(llm.calls) == 2  # the two primaries; their copies are skipped
+    copies = [i for i in world.store.items.rows.values() if i.duplicate_of]
+    assert copies and all(world.store.tags.version(i.id) is None for i in copies)
+
+
+def test_an_excerpt_item_is_tagged_after_its_fetch_from_its_excerpt() -> None:
+    world, llm, _ = tagged_world(profile="excerpt")
+    world.discover()
+    world.run()
+    assert len(llm.calls) == 2
+    assert "Excerpt:" in llm.calls[0]

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Tag one item and its moments with concepts and difficulty (AI-2, AI-4, P1-W3-S02).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["content_item_id"],
+  "properties": {
+    "content_item_id": { "type": "integer", "minimum": 1 }
+  }
+}

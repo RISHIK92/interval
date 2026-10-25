@@ -265,6 +265,17 @@ Oct 23 is silent on these. They are not adopted unless confirmed.
 - **Built**: the owner's later, more specific wording wins, so the intro is always its own moment, even under 2 minutes. Headed sections follow the merge rule.
 - **Changes build**: P1-W3-S03 segmentation. Needs the owner's confirmation.
 
+### C-35 Metadata sent to a third-party model (found 2026-10-26, P1-W3-S02)
+- **Q-P1-01 matrix**: metadata only stores title, author, date, URL and the feed summary "as published"; no body fetch, no moments, no embeddings of body text. It says nothing about sending metadata to a model.
+- **P1-W3-S02**: "each item and moment gets concept tags". Q-P1-39 ranks metadata-only items "by metadata-only signals".
+- **Built**: metadata-only items are tagged from their title and feed summary, and excerpt items also from their stored excerpt (the matrix stores it "for tagging"). Body text goes to the model only under full-text rights.
+- **Changes build**: P1-W3-S02 tagging. Needs the owner's one-line confirmation that title and summary may go to OpenRouter.
+
+### C-36 What "cites its source passages" means for tags (found 2026-10-26, P1-W3-S02)
+- **AI-3**: "Every output cites its source passages and is stored separately from source text."
+- **Built**: moment tags are stored per moment, and a moment is a deep link to its passage. Item tags cite the item. The model sees at most 4,000 characters per moment, and which characters it saw is not recorded.
+- **Open**: whether a per-moment tag is citation enough for tags, or AI-3 applies only to generated text (notes, explainers). Needs the owner.
+
 ## Source file notes
 
 These are not disagreements, but they affect the verbatim copies.

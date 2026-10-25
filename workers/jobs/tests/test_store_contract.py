@@ -32,6 +32,8 @@ from interval_jobs.ports import (
     SectionRow,
     SourceSettings,
     Store,
+    TagResult,
+    Tags,
     Usage,
     Validators,
 )
@@ -242,7 +244,7 @@ class PostgresProbe:
     def reset_concepts(self) -> None:
         # A local database may hold the real graph; the test's transaction rolls this
         # back. Truncate skips the never-deleted row trigger.
-        self.conn.execute("truncate concept_edge, graph_version, concept")
+        self.conn.execute("truncate concept_edge, graph_version, concept cascade")
 
     def oversized(self, item_id: int) -> list[bool]:
         rows = self.conn.execute(
@@ -1310,3 +1312,76 @@ def test_postgres_refuses_deleting_a_concept_and_unknown_edge_types(
             "'depends_on' from concept a, concept b "
             "where a.slug = 'cg-lag' and b.slug = 'cg-ryw'"
         )
+
+
+# AI-3 tags (P1-W3-S02): stored apart from source text, readable after a retirement.
+def test_tags_are_saved_replaced_and_survive_retiring_their_concept(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("tags"), keep_excerpt=False)
+    s.items.store_full_text(item, "Intro\nLag\nbody")
+    s.moments.replace(item, [moment(0, "intro"), moment(1, "Lag")])
+    tag_input = s.tags.input(item)
+    assert tag_input is not None and tag_input.full_text == "Intro\nLag\nbody"
+    assert [m.ordinal for m in tag_input.moments] == [0, 1]
+    second = tag_input.moments[1].id
+    result = TagResult(
+        Tags("intermediate", frozenset({"cg-lag", "cg-replication"})),
+        {second: Tags("advanced", frozenset({"cg-lag"}))},
+    )
+    s.tags.save(item, result, "small-model", 1)
+    assert s.tags.version(item) == 1
+    assert s.tags.for_item(item) == (result.item, {1: result.moments[second]})
+    # Retire cg-lag: its tags still read back (tags never dangle, Q-P1-04).
+    without_lag = (
+        CHAIN.replace(
+            "  - {slug: cg-lag, name: Lag, topic: distributed-systems,\n"
+            "     prerequisites: [cg-replication]}\n",
+            "",
+        )
+        .replace("prerequisites: [cg-lag]", "prerequisites: [cg-replication]")
+        .replace(", related: [cg-lag]", "")
+    )
+    sync_concepts(s, graph(2, without_lag))
+    assert s.tags.for_item(item)[0] == result.item
+    # A new prompt version replaces the tags.
+    again = TagResult(Tags("beginner", frozenset({"cg-replication"})), {})
+    s.tags.save(item, again, "small-model", 2)
+    assert s.tags.for_item(item) == (again.item, {})
+    assert s.tags.version(item) == 2
+
+
+def test_tag_reads_respect_rights_and_saves_refuse_foreign_moments(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("rights"), keep_excerpt=False)
+    other = s.items.upsert_from_feed(sid, entry("rights-other"), keep_excerpt=False)
+    s.items.store_full_text(item, "body")
+    s.moments.replace(other, [moment(0, "theirs")])
+    assert s.tags.find("https://contract.example.test/rights") == item
+    assert s.tags.needs_tagging(item, 1) is True
+    theirs = probe.moments(other)[0][0]
+    foreign = TagResult(
+        Tags("beginner", frozenset()), {theirs: Tags("beginner", frozenset())}
+    )
+    with pytest.raises(ValueError, match="not item"):
+        s.tags.save(item, foreign, "m", 1)
+    s.tags.save(item, TagResult(Tags("beginner", frozenset()), {}), "m", 1)
+    assert s.tags.needs_tagging(item, 1) is False
+    assert s.tags.needs_tagging(item, 2) is True
+    s.tags.clear(item)
+    assert s.tags.version(item) is None
+    # Lowered to excerpt: the stored body is purged and never read for tagging.
+    change_profile(s, "full_text_internal", "excerpt")
+    tag_input = s.tags.input(item)
+    assert tag_input is not None and tag_input.full_text is None

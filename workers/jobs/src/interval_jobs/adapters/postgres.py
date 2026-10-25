@@ -33,6 +33,10 @@ from interval_jobs.ports import (
     SourceRecord,
     SourceSettings,
     SyncResult,
+    TagInput,
+    TagMoment,
+    TagResult,
+    Tags,
     Usage,
     Validators,
 )
@@ -794,6 +798,156 @@ class PostgresConcepts:
         return {str(r[0]) for r in rows}
 
 
+class PostgresItemTags:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def input(self, item_id: int) -> TagInput | None:
+        row = self._conn.execute(
+            """
+            select ci.title, ci.feed_summary,
+                   -- ING-2: body text only under the source's current rights.
+                   case when s.rights_profile in
+                     ('full_text_internal', 'full_text_display') then pt.text end,
+                   case when s.rights_profile = 'excerpt' then ci.excerpt end,
+                   it.prompt_version, ci.duplicate_of is not null
+            from content_item ci
+            join source s on s.id = ci.source_id
+            left join content_item_private_text pt on pt.content_item_id = ci.id
+            left join item_tagging it on it.content_item_id = ci.id
+            where ci.id = %s
+            """,
+            (item_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        title, summary, text, excerpt, version, duplicate = row
+        moments = [
+            TagMoment(int(m_id), int(ordinal), None if kind == "page_top" else title_)
+            for m_id, ordinal, title_, kind in self._conn.execute(
+                "select id, ordinal, title, link_type from moment "
+                "where content_item_id = %s order by ordinal",
+                (item_id,),
+            ).fetchall()
+        ]
+        return TagInput(
+            title, summary, text, excerpt, moments, version, bool(duplicate)
+        )
+
+    def version(self, item_id: int) -> int | None:
+        row = self._conn.execute(
+            "select prompt_version from item_tagging where content_item_id = %s",
+            (item_id,),
+        ).fetchone()
+        return None if row is None else int(row[0])
+
+    def needs_tagging(self, item_id: int, prompt_version: int) -> bool:
+        row = self._conn.execute(
+            """
+            select ci.duplicate_of is null
+               and it.prompt_version is distinct from %s
+            from content_item ci
+            left join item_tagging it on it.content_item_id = ci.id
+            where ci.id = %s
+            """,
+            (prompt_version, item_id),
+        ).fetchone()
+        return bool(row and row[0])
+
+    def clear(self, item_id: int) -> None:
+        self._conn.execute(
+            "delete from moment_tagging where moment_id in "
+            "(select id from moment where content_item_id = %s)",
+            (item_id,),
+        )
+        self._conn.execute(
+            "delete from item_tagging where content_item_id = %s", (item_id,)
+        )
+
+    def find(self, canonical_url: str) -> int | None:
+        row = self._conn.execute(
+            "select id from content_item where canonical_url = %s "
+            "order by duplicate_of is not null, id limit 1",
+            (canonical_url,),
+        ).fetchone()
+        return None if row is None else int(row[0])
+
+    def save(
+        self, item_id: int, result: TagResult, model: str, prompt_version: int
+    ) -> None:
+        conn = self._conn
+        owned = {
+            int(r[0])
+            for r in conn.execute(
+                "select id from moment where content_item_id = %s", (item_id,)
+            ).fetchall()
+        }
+        foreign = sorted(set(result.moments) - owned)
+        if foreign:
+            raise ValueError(f"moments {foreign} are not item {item_id}'s")
+        conn.execute("delete from item_tagging where content_item_id = %s", (item_id,))
+        conn.execute(
+            "delete from moment_tagging where moment_id in "
+            "(select id from moment where content_item_id = %s)",
+            (item_id,),
+        )
+        conn.execute(
+            "insert into item_tagging "
+            "(content_item_id, difficulty, model, prompt_version) "
+            "values (%s, %s, %s, %s)",
+            (item_id, result.item.difficulty, model, prompt_version),
+        )
+        conn.execute(
+            "insert into item_concept (content_item_id, concept_id) "
+            "select %s, id from concept where slug = any(%s)",
+            (item_id, sorted(result.item.concepts)),
+        )
+        for moment_id, tags in result.moments.items():
+            conn.execute(
+                "insert into moment_tagging (moment_id, difficulty) values (%s, %s)",
+                (moment_id, tags.difficulty),
+            )
+            conn.execute(
+                "insert into moment_concept (moment_id, concept_id) "
+                "select %s, id from concept where slug = any(%s)",
+                (moment_id, sorted(tags.concepts)),
+            )
+
+    def for_item(self, item_id: int) -> tuple[Tags | None, dict[int, Tags]]:
+        row = self._conn.execute(
+            """
+            select it.difficulty,
+                   coalesce(array_agg(c.slug) filter (where c.slug is not null), '{}')
+            from item_tagging it
+            left join item_concept ic on ic.content_item_id = it.content_item_id
+            left join concept c on c.id = ic.concept_id
+            where it.content_item_id = %s
+            group by it.difficulty
+            """,
+            (item_id,),
+        ).fetchone()
+        item = None if row is None else Tags(row[0], frozenset(row[1]))
+        moments = {
+            int(ordinal): Tags(difficulty, frozenset(slugs))
+            for ordinal, difficulty, slugs in self._conn.execute(
+                """
+                select m.ordinal, mt.difficulty,
+                       coalesce(
+                         array_agg(c.slug) filter (where c.slug is not null), '{}'
+                       )
+                from moment m
+                join moment_tagging mt on mt.moment_id = m.id
+                left join moment_concept mc on mc.moment_id = m.id
+                left join concept c on c.id = mc.concept_id
+                where m.content_item_id = %s
+                group by m.ordinal, mt.difficulty
+                """,
+                (item_id,),
+            ).fetchall()
+        }
+        return item, moments
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.sources = PostgresSources(conn)
@@ -805,6 +959,7 @@ class PostgresStore:
         self.grants = PostgresGrants(conn)
         self.validators = PostgresValidators(conn)
         self.concepts = PostgresConcepts(conn)
+        self.tags = PostgresItemTags(conn)
 
 
 @contextmanager

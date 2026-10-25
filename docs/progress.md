@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules) and W3-S01 (concept graph, provisional list) done. Next: W3-S02/S04 mechanisms (evals pending), W3-S05/S06 admin. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) and W3-S02 (tagging mechanism; eval labels and model pick pending) done. Next: W3-S04 embeddings mechanism, W3-S05/S06 admin. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -16,6 +16,7 @@ Dependencies added overnight (all pinned):
 - pnpm `allowBuilds: msgpackr-extract: false`: BullMQ's optional native speed-up; the JS fallback works.
 
 Needs your review (newest first):
+- W3-S02: docs/conflicts.md C-35 (title and summary of metadata-only items go to the tagging model) and C-36 (what AI-3's citations mean for tags).
 - W3-S01: the provisional concept list (`workers/jobs/seeds/concepts.yaml`, 72 concepts drafted overnight) and the Voyage price table in `adapters/voyage.py`.
 - W3-S03: docs/conflicts.md C-34 (a short intro vs the 2-minute merge rule); built as the intro always being its own moment.
 - W2-S03: the polling interval numbers (15 min to 24 h, start 1 h, halve on new items, ×1.5 otherwise) are overnight picks; ING-3 gives none. `purge-guests` is still not scheduled anywhere (`stack.sh run` and the timer pattern make it easy to add).
@@ -23,7 +24,7 @@ Needs your review (newest first):
 - Dan Luu's feed (https://danluu.com/atom.xml) is larger than the fetcher's 5 MB body cap (owner rule, 2026-10-25), so that source never polls. Options: raise the cap for feeds only, or drop or replace the source. Found in W2-S04.
 
 Pending (needs the owner):
-- (none yet)
+- W3-S02: the tagging eval's ~30 labelled moments, its thresholds and the tagging model (`TAGGING_MODEL`); tagging is off until then.
 
 ## Bootstrap session log
 
@@ -858,3 +859,45 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Needs your review:
   - **`workers/jobs/seeds/concepts.yaml`:** 72 provisional concepts that I drafted myself (not through `draft-concepts`), marked not owner-approved. It's loaded in the local DB only.
   - **Voyage prices in `adapters/voyage.py`:** 3.5 $0.06, 3.5-lite $0.02, 3-large $0.18 per million tokens. Please confirm them.
+
+### 2026-10-26 — P1-W3-S02 (concept tagging and difficulty, AI-2..AI-5, OPS-4, Q-P1-10; overnight, mechanism only)
+- Done:
+  - **Migration `20261026060000_tagging.sql`:**
+    - a `difficulty` enum;
+    - `item_tagging` (model and prompt version), `item_concept`, `moment_tagging`, `moment_concept`;
+    - every tag references a concept that can never be deleted, so retired concepts' tags stay readable (W3-S01's deferred half, tested).
+  - **`tagging.py`:**
+    - one gateway call per item with the small tagging model;
+    - full-text items send each moment's text, cut in memory at its heading line (cleaned like the extractor's headings); excerpt items send the excerpt; every item sends title and summary;
+    - moments whose heading isn't found are left out and logged;
+    - per-call tag names, so article text can't close a section early;
+    - 4,000 characters per moment and 24,000 per call;
+    - JSON answers are validated: slugs outside the graph are dropped and logged, at most 5 are kept, and a skipped moment or a malformed answer raises, so the stage retries.
+  - **Pipeline `tag_item` stage:**
+    - reads in one unit of work, calls the model with no transaction open, then saves in a second unit only if the moments didn't change meanwhile;
+    - once per item and prompt version (AI-4); duplicates are never tagged;
+    - over budget, it degrades with a log line and the next poll re-queues the item;
+    - tag messages are queued after segmentation, after an excerpt fetch, at discover for metadata-only items, and by discover's recovery path;
+    - re-segmentation clears the item's tags, so they are redone.
+  - **Off by default:** tagging is off until `TAGGING_MODEL` is set (ADR-0010: the eval picks the model). No tag messages are queued while it's off.
+  - **`eval-tagging --labels --model`:**
+    - labels name moments by canonical URL and heading;
+    - scores micro precision/recall/F1 and difficulty accuracy, with the run's cost (ADR-0010: accuracy and cost);
+    - stores nothing;
+    - exits 1 below the thresholds.
+- Review fixes:
+  - permalink-glyph headings were never matched (a blocker);
+  - empty moments were sent (a blocker);
+  - stale tags after re-segmentation (a blocker);
+  - the model call ran inside an open transaction;
+  - `save` accepted another item's moments;
+  - skipped moments were accepted;
+  - the excerpt was unused;
+  - the rights gate in the tag read;
+  - eval labels were keyed by local ids;
+  - eval cost was missing;
+  - a JSON `true` ordinal;
+  - the per-call cap;
+  - a test for each path.
+- Pending (needs the owner): about 30 labelled moments, the thresholds (F1 0.7 and difficulty 0.6 are placeholders), the model pick and real runs, and docs/conflicts.md C-35 (metadata to a model) and C-36 (AI-3 citations for tags).
+- Follow-up: AI-4 asks for prompt caching in offline jobs, but the concept list (about 250 slugs) is resent on every call.

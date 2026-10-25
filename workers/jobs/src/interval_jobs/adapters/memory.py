@@ -35,6 +35,10 @@ from interval_jobs.ports import (
     SourceRecord,
     SourceSettings,
     SyncResult,
+    TagInput,
+    TagMoment,
+    TagResult,
+    Tags,
     Usage,
     Validators,
 )
@@ -335,6 +339,9 @@ class InMemoryItems:
         for i in group:
             self.rows[i].duplicate_of = None if i == primary else primary
         return primary
+
+    def profile(self, item_id: int) -> RightsProfile:
+        return self._profile(item_id)
 
     def _profile(self, item_id: int) -> RightsProfile:
         return self._sources.rows[self.rows[item_id].source_id].rights_profile
@@ -645,6 +652,72 @@ class InMemoryConcepts:
         return found - retired
 
 
+class InMemoryItemTags:
+    def __init__(self, items: InMemoryItems, moments: InMemoryMoments) -> None:
+        self._items = items
+        self._moments = moments
+        # item id -> (item tags, moment tags by moment id, model, prompt version)
+        self.rows: dict[int, tuple[Tags, dict[int, Tags], str, int]] = {}
+
+    def input(self, item_id: int) -> TagInput | None:
+        item = self._items.rows.get(item_id)
+        if item is None:
+            return None
+        moments = [
+            TagMoment(
+                m.id,
+                m.row.ordinal,
+                None if m.row.link_type == "page_top" else m.row.title,
+            )
+            for m in self._moments.for_item(item_id)
+        ]
+        profile = self._items.profile(item_id)
+        return TagInput(
+            item.title,
+            item.feed_summary,
+            item.full_text if profile in _FULL_TEXT else None,
+            item.excerpt if profile == "excerpt" else None,
+            moments,
+            self.version(item_id),
+            item.duplicate_of is not None,
+        )
+
+    def version(self, item_id: int) -> int | None:
+        row = self.rows.get(item_id)
+        return None if row is None else row[3]
+
+    def needs_tagging(self, item_id: int, prompt_version: int) -> bool:
+        item = self._items.rows[item_id]
+        return item.duplicate_of is None and self.version(item_id) != prompt_version
+
+    def clear(self, item_id: int) -> None:
+        self.rows.pop(item_id, None)
+
+    def find(self, canonical_url: str) -> int | None:
+        matches = sorted(
+            (i.duplicate_of is not None, i.id)
+            for i in self._items.rows.values()
+            if i.canonical_url == canonical_url
+        )
+        return matches[0][1] if matches else None
+
+    def save(
+        self, item_id: int, result: TagResult, model: str, prompt_version: int
+    ) -> None:
+        live = {m.id for m in self._moments.for_item(item_id)}
+        foreign = sorted(set(result.moments) - live)
+        if foreign:
+            raise ValueError(f"moments {foreign} are not item {item_id}'s")
+        self.rows[item_id] = (result.item, dict(result.moments), model, prompt_version)
+
+    def for_item(self, item_id: int) -> tuple[Tags | None, dict[int, Tags]]:
+        row = self.rows.get(item_id)
+        if row is None:
+            return None, {}
+        ordinals = {m.id: m.row.ordinal for m in self._moments.for_item(item_id)}
+        return row[0], {ordinals[k]: v for k, v in row[1].items() if k in ordinals}
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -656,6 +729,7 @@ class InMemoryStore:
         self.grants = InMemoryGrants(self.users)
         self.validators = InMemoryValidators()
         self.concepts = InMemoryConcepts()
+        self.tags = InMemoryItemTags(self.items, self.moments)
         self.sources.store = self
 
 

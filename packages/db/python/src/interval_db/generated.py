@@ -11,6 +11,7 @@ type Capability = Literal[
     "feed.read", "admin.review", "ai.notes.daily", "ai.budget.daily_cents"
 ]
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
+type Difficulty = Literal["beginner", "intermediate", "advanced"]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
@@ -174,6 +175,19 @@ class InviteCode(TypedDict):
     created_at: datetime
 
 
+class ItemConcept(TypedDict):
+    content_item_id: int
+    concept_id: int
+
+
+class ItemTagging(TypedDict):
+    content_item_id: int
+    difficulty: Difficulty
+    model: str
+    prompt_version: int
+    tagged_at: datetime
+
+
 class Moment(TypedDict):
     id: int
     content_item_id: int
@@ -184,6 +198,16 @@ class Moment(TypedDict):
     link_type: MomentLinkType
     created_at: datetime
     oversized: bool
+
+
+class MomentConcept(TypedDict):
+    moment_id: int
+    concept_id: int
+
+
+class MomentTagging(TypedDict):
+    moment_id: int
+    difficulty: Difficulty
 
 
 class Plan(TypedDict):

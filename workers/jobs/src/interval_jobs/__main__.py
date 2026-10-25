@@ -9,6 +9,7 @@ Usage:
   python -m interval_jobs poll-due
   python -m interval_jobs load-concepts [--file F]
   python -m interval_jobs draft-concepts --topic T --model M --out F
+  python -m interval_jobs eval-tagging --labels F --model M
 """
 
 import argparse
@@ -31,6 +32,7 @@ from interval_jobs.compose import (
     queue_for_enqueue,
     services,
     stage_units,
+    tagging,
 )
 from interval_jobs.concepts.draft import DraftError, draft_concepts
 from interval_jobs.concepts.graph import TOPICS, ConceptSeedError, parse_concepts
@@ -44,6 +46,14 @@ from interval_jobs.pipeline import Pipeline
 from interval_jobs.polling import enqueue_due
 from interval_jobs.ports import ConceptCycleError, ModelError
 from interval_jobs.segment import segment_item
+from interval_jobs.tagging import TaggingError
+from interval_jobs.tagging_eval import (
+    MIN_DIFFICULTY,
+    MIN_F1,
+    EvalError,
+    parse_labels,
+    run_eval,
+)
 from interval_jobs.tracing import run_span, setup
 
 # The owner's seed list (Q-P1-02), relative to where commands run: the repo root
@@ -99,6 +109,14 @@ def main(argv: list[str]) -> None:
     draft.add_argument("--model", required=True, help="OpenRouter model id")
     draft.add_argument("--out", type=Path, required=True)
     draft.add_argument("--file", type=Path, default=CONCEPT_FILE)
+    evaluate = commands.add_parser(
+        "eval-tagging",
+        help="score a tagging model against owner-labelled moments (AI-5)",
+    )
+    evaluate.add_argument("--labels", type=Path, required=True)
+    evaluate.add_argument("--model", required=True, help="OpenRouter model id")
+    evaluate.add_argument("--min-f1", type=float, default=MIN_F1)
+    evaluate.add_argument("--min-difficulty", type=float, default=MIN_DIFFICULTY)
     commands.add_parser(
         "consume", help="run the ingestion pipeline's stages until stopped"
     )
@@ -184,6 +202,27 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         print(json.dumps({"out": str(args.out)}))
         return
 
+    if args.command == "eval-tagging":
+        try:
+            labels = parse_labels(
+                args.labels.read_text(encoding="utf-8"), str(args.labels)
+            )
+            with services() as s, httpx.Client() as http:
+                report = run_eval(
+                    ai_gateway(s.ai, http),
+                    args.model,
+                    s.store,
+                    labels,
+                    args.min_f1,
+                    args.min_difficulty,
+                )
+        except (OSError, EvalError, TaggingError, ModelError) as error:
+            sys.exit(str(error))
+        print(json.dumps({"model": args.model, **asdict(report)}))
+        if not report.passed:
+            sys.exit(1)
+        return
+
     if args.command == "grant-capability":
         with services() as s:
             grants = s.store.grants
@@ -254,8 +293,8 @@ def _consume() -> None:
     signal.signal(signal.SIGINT, request_stop)
     queue = queue_for_enqueue()
     try:
-        with stage_units() as units:
-            pipeline = Pipeline(units, queue)
+        with stage_units() as units, tagging() as tagger:
+            pipeline = Pipeline(units, queue, tagging=tagger)
             run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
     finally:
         close = getattr(queue, "close", None)

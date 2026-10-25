@@ -45,10 +45,18 @@ class SegmentItem(_Message):
     content_item_id: Annotated[int, Field(ge=1)]
 
 
-type MessageName = Literal["discover_source", "fetch_item", "segment_item"]
+class TagItem(_Message):
+    """Tag one item and its moments with concepts and difficulty (AI-2, AI-4,
+    P1-W3-S02)."""
+
+    content_item_id: Annotated[int, Field(ge=1)]
+
+
+type MessageName = Literal["discover_source", "fetch_item", "segment_item", "tag_item"]
 
 MESSAGES: dict[MessageName, type[_Message]] = {
     "discover_source": DiscoverSource,
     "fetch_item": FetchItem,
     "segment_item": SegmentItem,
+    "tag_item": TagItem,
 }

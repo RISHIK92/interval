@@ -14,6 +14,10 @@ export const messageSchemas = {
   segment_item: z.strictObject({
     content_item_id: z.number().int().min(1),
   }),
+  // Tag one item and its moments with concepts and difficulty (AI-2, AI-4, P1-W3-S02).
+  tag_item: z.strictObject({
+    content_item_id: z.number().int().min(1),
+  }),
 } as const;
 
 export type MessageName = keyof typeof messageSchemas;

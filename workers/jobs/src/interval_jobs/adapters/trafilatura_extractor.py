@@ -19,7 +19,6 @@ section 3, option 1). Only headings and counts leave this module, never body tex
 """
 
 import re
-import unicodedata
 import xml.etree.ElementTree as ElementTree
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
@@ -27,6 +26,8 @@ from html.parser import HTMLParser
 import trafilatura
 from trafilatura.utils import decode_file
 
+from interval_jobs.headings import clean_heading
+from interval_jobs.headings import heading_key as _norm
 from interval_jobs.ports import ExtractionError, Section
 
 _HEADING_TAGS = frozenset({"h1", "h2", "h3", "h4", "h5", "h6"})
@@ -34,25 +35,6 @@ _HEADING_TAGS = frozenset({"h1", "h2", "h3", "h4", "h5", "h6"})
 _SKIPPED_REGIONS = frozenset({"nav", "aside", "header", "footer"})
 # A block start inside an open heading means the heading was never closed.
 _BLOCK_TAGS = frozenset({"p", "div", "section", "article", "ul", "ol", "pre", "table"})
-# Permalink glyphs that publishing tools append to headings (Sphinx, MkDocs, Hugo).
-_PERMALINK_GLYPHS = "¶#§🔗"
-HEADING_MAX_CHARS = 300
-
-
-def _strip_format_chars(text: str) -> str:
-    # Zero-width spaces and similar (Unicode category Cf) differ between parsers.
-    return "".join(ch for ch in text if unicodedata.category(ch) != "Cf")
-
-
-def _norm(text: str) -> str:
-    return " ".join(_strip_format_chars(text).split()).casefold()
-
-
-def clean_heading(text: str) -> str:
-    cleaned = (
-        " ".join(_strip_format_chars(text).split()).rstrip(_PERMALINK_GLYPHS).strip()
-    )
-    return cleaned[:HEADING_MAX_CHARS]
 
 
 def _words(text: str) -> int:

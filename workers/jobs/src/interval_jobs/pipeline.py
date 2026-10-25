@@ -25,8 +25,15 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel
 
-from interval_db.messages import DiscoverSource, FetchItem, MessageName, SegmentItem
+from interval_db.messages import (
+    DiscoverSource,
+    FetchItem,
+    MessageName,
+    SegmentItem,
+    TagItem,
+)
 from interval_jobs import log
+from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.normalize import page_canonical, simhash
@@ -44,9 +51,15 @@ from interval_jobs.ports import (
 )
 from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
 from interval_jobs.segment import segment_item
+from interval_jobs.tagging import PROMPT_VERSION, active_concepts, tag_item
 
 # The order a message moves through; the consumer serves all of them.
-STAGES: tuple[MessageName, ...] = ("discover_source", "fetch_item", "segment_item")
+STAGES: tuple[MessageName, ...] = (
+    "discover_source",
+    "fetch_item",
+    "segment_item",
+    "tag_item",
+)
 
 
 @dataclass(frozen=True)
@@ -57,6 +70,17 @@ class StageServices:
 
 
 type UnitOfWork = Callable[[], AbstractContextManager[StageServices]]
+
+
+@dataclass(frozen=True)
+class Tagging:
+    """Concept tagging (P1-W3-S02): the model the tagging eval picked, and a gateway
+    per call (its ledger connection commits on its own, OPS-4)."""
+
+    model: str
+    gateway: Callable[[], AbstractContextManager[AiGateway]]
+
+
 type Next = tuple[MessageName, dict[str, object], str]
 # The feed URL and what it answered with; None when nothing is to be kept.
 type Answered = tuple[str, Validators | None] | None
@@ -68,16 +92,19 @@ class Pipeline:
         unit_of_work: UnitOfWork,
         queue: JobQueue,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        tagging: Tagging | None = None,
     ) -> None:
         self._unit = unit_of_work
         self._queue = queue
         self._clock = clock
+        self._tagging = tagging
 
     def handlers(self) -> dict[MessageName, QueueHandler]:
         return {
             "discover_source": self._discover_stage,
             "fetch_item": self._stage(self._fetch),
             "segment_item": self._stage(self._segment),
+            "tag_item": self._tag_stage,
         }
 
     def _stage(
@@ -154,6 +181,7 @@ class Pipeline:
             item_id = store.items.upsert_from_feed(source.id, entry, keep_excerpt)
             store.items.link_duplicates(item_id)
             if not allowed(profile, "fetch_body"):
+                follow_ups.extend(self._tag_if_needed(store, item_id))
                 continue
             # Fetch once: not again when what the profile keeps is already stored.
             if not store.items.has_body(item_id):
@@ -165,6 +193,9 @@ class Pipeline:
                 follow_ups.append(
                     ("segment_item", {"content_item_id": item_id}, f"segment-{item_id}")
                 )
+            # Tagging that failed or was over budget is retried on the next poll.
+            else:
+                follow_ups.extend(self._tag_if_needed(store, item_id))
         return follow_ups, answered, new_items
 
     def _fetch(self, services: StageServices, message: BaseModel) -> list[Next]:
@@ -203,6 +234,7 @@ class Pipeline:
             )
         elif allowed(item.rights_profile, "store_excerpt"):
             store.items.set_excerpt(item_id, text[:EXCERPT_MAX_CHARS])
+            follow_ups.extend(self._tag_if_needed(store, item_id))
         store.items.link_duplicates(item_id)
         return follow_ups
 
@@ -213,4 +245,54 @@ class Pipeline:
         # and stores nothing when they don't allow moments.
         segment_item(store, item_id)
         rebuild_feed(store)
-        return []
+        # Moments are tagged with the item, so tagging follows segmentation.
+        return self._tag_if_needed(store, item_id)
+
+    def _tag_if_needed(self, store: Store, item_id: int) -> list[Next]:
+        if self._tagging is None or not store.tags.needs_tagging(
+            item_id, PROMPT_VERSION
+        ):
+            return []
+        key = f"tag-{item_id}-v{PROMPT_VERSION}"
+        return [("tag_item", {"content_item_id": item_id}, key)]
+
+    def _tag_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        """Read, then call the model with no transaction open, then save in a second
+        unit of work only if the item's moments didn't change meanwhile."""
+        assert isinstance(message, TagItem)
+        item_id = message.content_item_id
+        if self._tagging is None:
+            log.info("pipeline: tagging is off (no model)", content_item_id=item_id)
+            return
+        with self._unit() as services:
+            item = services.store.tags.input(item_id)
+            graph = services.store.concepts.state()
+        # Once per item (AI-4): not again at this prompt version, not for duplicates.
+        if item is None or item.duplicate or item.tagged_version == PROMPT_VERSION:
+            return
+        if not active_concepts(graph):
+            log.warn(
+                "pipeline: no concept graph loaded; not tagged", content_item_id=item_id
+            )
+            return
+        with self._tagging.gateway() as gateway:
+            tagged = tag_item(gateway, self._tagging.model, item, graph)
+        if isinstance(tagged, OverBudget):
+            # LOAD-5: degrade, observably; the next poll queues it again.
+            log.warn(
+                "pipeline: tagging over budget",
+                content_item_id=item_id,
+                scope=tagged.scope,
+            )
+            return
+        with self._unit() as services:
+            now = services.store.tags.input(item_id)
+            if now is None or now.moments != item.moments:
+                # Re-segmented while the model ran: segmentation queues a fresh pass.
+                log.info(
+                    "pipeline: moments changed; tags dropped", content_item_id=item_id
+                )
+                return
+            services.store.tags.save(
+                item_id, tagged.result, self._tagging.model, PROMPT_VERSION
+            )
