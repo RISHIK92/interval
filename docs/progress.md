@@ -43,9 +43,9 @@ The owner answered every open question and ADR.
 
 ## Next up
 
-1. P1-W1-S09 Deploy the compose stack to the VM.
-2. Domain name before Week 6 (TLS on the VM). The host is settled by the 2026-10-25 VM decision.
-3. Owner data: approve the concept list (Q-P1-03, Week 3); cost budget amounts before the beta (Q-P1-23).
+1. Feature slices first (owner, 2026-10-25): P1-W1-S13 (invite codes), then S10 (guest sessions), S11, S12, S14–S17, then Week 2.
+2. Deployment details wait until all phases are built (ADR-0013). See "Pre-deploy list" below.
+3. Owner data: approve the concept list (Q-P1-03, Week 3); cost budget amounts before the beta (Q-P1-23); a domain name before any deploy.
 
 ## First slice
 
@@ -339,4 +339,24 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - The `interval/aws/*` secret names, so both stacks can share an account.
   - The secret origin header instead of the CloudFront prefix list, so no account lookup is needed at synth.
 - Not done (out of scope): custom domain/ACM, WAF, SNS targets for alarms, the worker service (W2-S02), Multi-AZ.
+
+## Pre-deploy list (from the S18 review; parked by the owner until deployment, ADR-0013)
+- **CloudFront to ALB:** traffic crosses the internet over HTTP. Make the ALB internal behind a CloudFront VPC origin (drops the origin-verify header and the 0.0.0.0/0 ingress).
+- **Secrets per task:** web gets DB_PASSWORD and BETTER_AUTH_SECRET; jobs gets DB_PASSWORD and the model keys; migrate gets DB_PASSWORD only. Same split for the execution-role grants.
+- **One env contract** for both modes: queue and bucket names (VM app.env vs the AWS task env) must match before W2-S02 uses them.
+- **Mode flag:** `INTERVAL_RUNTIME=aws` is a mode flag (ADR-0011 says code never branches on mode). Rename it to `ALLOW_REMOTE_DB`, set only on the jobs task.
+- **RDS CA bundle:** commit it to the repo and COPY it before the code layers, instead of downloading it at build time with a pinned digest that breaks when AWS updates the bundle.
+- **AWS runbook:**
+  - migrations run after `cdk deploy`;
+  - a failed first create needs deletion protection turned off;
+  - how to rotate origin-verify;
+  - the step-4 wording.
+- **Missing infra tests:** jobs entrypoint `$0` placeholder; per-task secret scoping; no `s3:Delete*` on task roles; ALB and app SG rules; isolated subnets for data services.
+- **Nits:**
+  - target group deregistration delay of about 30 s;
+  - the `ALL_VIEWER_AND_CLOUDFRONT_2022` request policy (Secure cookies in the auth slice);
+  - `PRICE_CLASS_200`;
+  - `dropInvalidHeaderFields`;
+  - RETAIN on `interval/aws/postgres`;
+  - a stronger no-plaintext-secret test.
 
