@@ -35,3 +35,4 @@ An ADR records one decision that the blueprint does not settle, or changes one i
 | [0011](0011-two-deployment-modes.md) | Two deployment modes: full AWS and single VM | ACCEPTED | P1-W1-S09, P1-W1-S18 |
 | [0012](0012-ports-and-adapters.md) | Ports and adapters: business logic never depends on a concrete service | ACCEPTED | P1-W1-S19, all later slices |
 | [0013](0013-build-locally-deploy-at-the-end.md) | Build every phase locally; deploy once everything is built | ACCEPTED | all deploys |
+| [0014](0014-queues-bullmq-on-valkey-sqs-in-aws.md) | Queues: BullMQ on Valkey for local and VM, SQS in full AWS; retire ElasticMQ | ACCEPTED | P1-W2-S02 |

@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). Next: the queue ADR (BullMQ on Valkey for local and VM, SQS in AWS, ElasticMQ retired), then S15 (entitlements). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). Next: S15 (entitlements). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -445,7 +445,10 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - BullMQ TypeScript enqueues from the API, and BullMQ Python consumes after a maturity check;
   - local dev and the VM use BullMQ on Valkey; full AWS uses SQS, behind one queue port;
   - ElasticMQ is retired.
-  - This changes LOAD-3 and ADR-0011, so it needs a new ADR (next, with the BullMQ-Python check). The build lands in W2-S02.
+  - This changes LOAD-3 and ADR-0011, so it needs a new ADR.
+  - **ADR-0014 ACCEPTED (owner, 2026-10-25):** Option A. The BullMQ-Python check found every feature W2-S02 to W2-S04 need: retries, backoff, the failed set as DLQ, deduplication, delays and rate limits. It is still labelled experimental and is asyncio-only, so it gets an exact pin and a shared consumer contract suite.
+  - Answers: AOF every second on the retained volume; `asyncio.to_thread` for the sync stages; no other real-time state in Phase 1.
+  - W2-S02 becomes "Staged pipeline on the queue port" and builds the port, the four adapters, Valkey in local dev and on the VM, and the ElasticMQ removal.
 
 ### 2026-10-25 — P1-W1-S14 (event tracking, DB-5, LOAD-5, Q-P1-20, Q-P1-21)
 - Done:
