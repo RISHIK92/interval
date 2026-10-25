@@ -8,7 +8,7 @@ function fake(result: Redemption) {
   const redeem = vi.fn<(code: string) => Promise<Redemption>>(() =>
     Promise.resolve(result),
   );
-  const codes: InviteCodes = { redeem };
+  const codes: InviteCodes = { redeem, release: () => Promise.resolve() };
   return { codes, redeem };
 }
 

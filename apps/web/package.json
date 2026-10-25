@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "../../scripts/with-env.sh next dev",
+    "dev": "../../scripts/with-env.sh next dev --port 3100",
     "build": "next build",
     "start": "next start",
     "format": "prettier --write .",

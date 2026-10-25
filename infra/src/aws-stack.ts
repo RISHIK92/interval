@@ -204,7 +204,7 @@ export class AwsStack extends Stack {
       ecs.LogDrivers.awsLogs({ logGroup, streamPrefix: prefix });
 
     const webTask = taskDefinition("Web");
-    webTask.addContainer("web", {
+    const webContainer = webTask.addContainer("web", {
       image: image("apps/web/Dockerfile"),
       command: withDatabaseUrl("node apps/web/server.js"),
       environment,
@@ -306,6 +306,12 @@ export class AwsStack extends Stack {
         },
       },
     });
+
+    // Better Auth's public origin (ADR-0004); known only once the distribution exists.
+    webContainer.addEnvironment(
+      "BETTER_AUTH_URL",
+      `https://${distribution.distributionDomainName}`,
+    );
 
     new CfnOutput(this, "SiteDomain", {
       value: distribution.distributionDomainName,

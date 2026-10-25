@@ -123,6 +123,19 @@ test("a shared code allows exactly its number of uses", async () => {
   });
 });
 
+test("release gives one use back and never goes below zero", async () => {
+  await rolledBack(async (trx) => {
+    const codes = kyselyInviteCodes(trx);
+    const code = await insert(trx, { uses: 2 });
+    const redeemed = await codes.redeem(code);
+    if (!redeemed.ok) throw new Error("expected a redeem");
+    await codes.release(redeemed.inviteCodeId);
+    expect(await usedCount(trx, code)).toBe(0);
+    await codes.release(redeemed.inviteCodeId);
+    expect(await usedCount(trx, code)).toBe(0);
+  });
+});
+
 test("concurrent redeems of the last use let exactly one through", async () => {
   const code = await insert(db, { uses: 2, used: 1, prefix: SHARED_PREFIX });
   const codes = kyselyInviteCodes(db);

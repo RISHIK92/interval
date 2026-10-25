@@ -4,6 +4,8 @@ import { parseEnv } from "./env";
 const valid = {
   DATABASE_URL: "postgres://user:s3cret@localhost:5432/interval",
   NODE_ENV: "production",
+  BETTER_AUTH_SECRET: "x".repeat(32),
+  BETTER_AUTH_URL: "https://interval.example.com",
 };
 
 describe("parseEnv", () => {
@@ -21,6 +23,12 @@ describe("parseEnv", () => {
     expect(() =>
       parseEnv({ ...valid, DATABASE_URL: "https://example.com/db" }),
     ).toThrow(/DATABASE_URL/);
+  });
+
+  test("rejects a short Better Auth secret", () => {
+    expect(() => parseEnv({ ...valid, BETTER_AUTH_SECRET: "short" })).toThrow(
+      /BETTER_AUTH_SECRET/,
+    );
   });
 
   test("returns typed values for a valid environment", () => {

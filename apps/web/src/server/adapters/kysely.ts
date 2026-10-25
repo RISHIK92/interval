@@ -127,5 +127,13 @@ export function kyselyInviteCodes(db: Kysely<DB>): InviteCodes {
       if (found.expired) return { ok: false, reason: "expired" };
       return { ok: false, reason: "used_up" };
     },
+    release: async (inviteCodeId) => {
+      await db
+        .updateTable("invite_code")
+        .set((eb) => ({ used_count: eb("used_count", "-", 1) }))
+        .where("id", "=", inviteCodeId)
+        .where("used_count", ">", 0)
+        .execute();
+    },
   };
 }

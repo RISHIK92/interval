@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode) and S18 (AWS mode) done. Next: P1-W1-S10 (guest sessions). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes) and S10 (guest sessions) done. Next: P1-W1-S11 (accounts). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Bootstrap session log
 
@@ -377,5 +377,28 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - The redeem must run in the same transaction as user creation (port comment). Check whether Better Auth's `databaseHooks.user.create.before` runs inside the adapter transaction.
   - Decide whether the HTTP route shows distinct failure reasons, and add rate limiting and logging of failures by reason (never the code).
   - `better-auth` is pinned at 1.7.12 because the migration matches that schema. Re-check `getAuthTables()` before bumping it.
-- Open question: when a guest signs up, does the account reuse the guest's code or need a second one? Asked of the owner.
+- Answered (owner): when a guest signs up, the account reuses the guest's code and group; no second use (Q-P1-24).
 
+### 2026-10-25 — P1-W1-S10 (guest sessions, Q-P1-12, Q-P1-24)
+- Done:
+  - **Join flow:** `/join?code=…` pre-fills a form and `/join` accepts a typed code. The server action spends a use only on submit, never on GET. A visitor who already has a session is sent to `/`, and `/` without a session goes to `/join`.
+  - **Better Auth adapter (`adapters/better-auth.ts`):**
+    - anonymous plugin and `nextCookies` on our snake_case tables;
+    - sessions last 30 days and slide (`updateAge` 1 day);
+    - a `user.create.before` hook stamps the group and code from an AsyncLocalStorage redemption and refuses any user created outside the join flow;
+    - `betaGroup` is parsed with zod when a session is read.
+  - **Redeem, then release (owner choice):** if guest creation fails, the use is given back. Better Auth commits the user before its session, so a `create.after` hook records the user id. On failure the adapter deletes that user first. If the delete also fails, it throws `GuestNotRemoved` and the use stays spent, so a code never admits more people than its limit.
+  - **Worker:** `purge-guests` CLI and a `Users` port (Postgres and memory, in the contract suite). It deletes anonymous users with no session still valid at `now`: guests idle for 30 days and guests who signed out.
+  - **Env:** `BETTER_AUTH_SECRET` (at least 32 characters) and `BETTER_AUTH_URL` are validated at startup, and a missing one stops the container. They are in `.env.example` and in both deploy modes: the VM `write-env.sh` sets `https://<site-address>`, or `http://localhost:$HTTP_PORT` in the local smoke run, and the AWS web task gets them from Secrets Manager plus the distribution URL, with an infra test.
+  - **Dev server:** pinned to port 3100 (owner choice; port 3000 was taken locally) to match `BETTER_AUTH_URL`.
+- Review fixes: the half-made-guest leak, the purge contract test's isolation, a stale port comment, the refusal test now asserts `FAILED_TO_CREATE_USER` and that no row was written, tests for the join action and page, `@better-auth/*` in the import restriction, purge wording, and the docker run command in CLAUDE.md.
+- Surprises:
+  - The purge contract test used a 2099 `now`, so its delete matched and locked every real guest in the shared dev DB, including guests the web tests were creating at the same time. That gave an intermittent `3 == 2` failure and stalled DB tests (one 5 s timeout in the invites concurrency test, which I could not reproduce afterwards). The fix is a timeline in the year 2000, and only the fake promises an exact count.
+  - `pg` returns `numeric` as a string.
+- Open, carried forward:
+  - **Cookie refresh:** the session cookie's Max-Age isn't refreshed when only server components render; the DB expiry does slide. Revisit with a `proxy.ts` or a client call when it matters.
+  - **No rate limit** on the join action yet (Better Auth's limiter covers `/api/auth/*` only).
+  - **For S11:** the anonymous plugin's defaults expose `/api/auth/delete-anonymous-user` and delete the anonymous user when an account is linked. That conflicts with "the account reuses the guest's code" (Q-P1-24) and with S12's merge. Set `disableDeleteAnonymousUser` and `onLinkAccount` there.
+  - `GuestSessions.start` returns Set-Cookie values that only the adapter test reads (the server action gets its cookie from `nextCookies`). It stays so callers outside a server action can forward them.
+  - `purge-guests` has no schedule yet.
+- Local setup: `.env` needs `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL=http://localhost:3100` (see `.env.example`). The VM's domain is `interval.rishiklabs.tech` (docs/runbooks/vm.md).

@@ -9,14 +9,28 @@ export default defineConfig(
   // ADR-0012: drivers and SDKs only in adapters and the composition root.
   {
     files: ["src/**/*.{ts,tsx}"],
-    ignores: ["src/server/adapters/**", "src/server/container.ts"],
+    // The Better Auth route handler is framework wiring, like the container.
+    ignores: [
+      "src/server/adapters/**",
+      "src/server/container.ts",
+      "src/app/api/auth/**",
+    ],
     rules: {
       "no-restricted-imports": [
         "error",
         {
           patterns: [
             {
-              group: ["kysely", "kysely/*", "pg", "pg/*", "pg-*"],
+              group: [
+                "kysely",
+                "kysely/*",
+                "pg",
+                "pg/*",
+                "pg-*",
+                "better-auth",
+                "better-auth/*",
+                "@better-auth/*",
+              ],
               message:
                 "Use a port; drivers live in src/server/adapters (ADR-0012).",
             },

@@ -5,11 +5,13 @@ Usage:
   python -m interval_jobs segment-item --content-item-id ID
   python -m interval_jobs rebuild-feed
   python -m interval_jobs issue-invites --group student --uses 30 --days 30 [--count N]
+  python -m interval_jobs purge-guests
 """
 
 import argparse
 import json
 import sys
+from datetime import UTC, datetime
 from typing import get_args
 
 from interval_db.generated import BetaGroup, RightsProfile
@@ -39,6 +41,7 @@ def main(argv: list[str]) -> None:
     inv.add_argument("--days", type=int, required=True, help="valid for this many days")
     inv.add_argument("--count", type=int, default=1)
     inv.add_argument("--note")
+    commands.add_parser("purge-guests", help="delete guests with no live session")
     args = parser.parse_args(argv)
 
     if args.command == "issue-invites":
@@ -56,9 +59,12 @@ def main(argv: list[str]) -> None:
         print("\n".join(display(code) for code in codes))
         return
 
+    result: dict[str, object]
     with services() as s:
-        if args.command == "rebuild-feed":
-            result: dict[str, object] = {"feed_entries": rebuild_feed(s.store)}
+        if args.command == "purge-guests":
+            result = {"purged": s.store.users.purge_inactive_guests(datetime.now(UTC))}
+        elif args.command == "rebuild-feed":
+            result = {"feed_entries": rebuild_feed(s.store)}
         elif args.command == "segment-item":
             rows = segment_item(s.store, args.content_item_id)
             rebuild_feed(s.store)

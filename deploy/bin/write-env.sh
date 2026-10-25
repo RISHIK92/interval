@@ -31,6 +31,16 @@ voyage="$(secret interval/prod/voyage)"
 
 site_address="$(read_setting site-address)"
 site_address="${site_address:-:80}"
+# Better Auth's public origin. The VM serves its domain (docs/runbooks/vm.md); only the
+# local smoke run has none, and it serves on HTTP_PORT.
+http_port="${HTTP_PORT:-80}"
+if [ "$site_address" != ":80" ]; then
+  public_url="https://$site_address"
+elif [ "$http_port" = "80" ]; then
+  public_url="http://localhost"
+else
+  public_url="http://localhost:$http_port"
+fi
 s3_endpoint=""
 if files_on_vm; then s3_endpoint="http://seaweedfs:8333"; fi
 
@@ -47,6 +57,7 @@ REDIS_URL=redis://redis:6379
 SQS_ENDPOINT=http://elasticmq:9324
 S3_ENDPOINT=${s3_endpoint}
 BETTER_AUTH_SECRET=${better_auth}
+BETTER_AUTH_URL=${public_url}
 OPENROUTER_API_KEY=${openrouter}
 VOYAGE_API_KEY=${voyage}
 ENV

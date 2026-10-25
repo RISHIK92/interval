@@ -44,7 +44,7 @@ esac
 
 
 def run(
-    tmp: Path, aws: Path, etc: Path | None = None
+    tmp: Path, aws: Path, etc: Path | None = None, http_port: str | None = None
 ) -> subprocess.CompletedProcess[str]:
     env = {
         "PATH": os.environ["PATH"],
@@ -52,6 +52,8 @@ def run(
         "ENV_DIR": str(tmp / "out"),
         "INTERVAL_ETC": str(etc or tmp / "etc"),
     }
+    if http_port is not None:
+        env["HTTP_PORT"] = http_port
     return subprocess.run(
         [str(SCRIPT)], env=env, capture_output=True, text=True, check=False
     )
@@ -80,6 +82,7 @@ def test_writes_three_env_files_each_with_only_its_keys_and_mode_600(
         "SQS_ENDPOINT": "http://elasticmq:9324",
         "S3_ENDPOINT": "",
         "BETTER_AUTH_SECRET": "authSecret456",
+        "BETTER_AUTH_URL": "http://localhost",
         "OPENROUTER_API_KEY": "orKey789",
         "VOYAGE_API_KEY": "voyageKey000",
     }
@@ -100,7 +103,17 @@ def test_site_address_and_local_s3_come_from_etc(tmp_path: Path) -> None:
     assert run(tmp_path, fake_aws(tmp_path), etc).returncode == 0
     out = tmp_path / "out"
     assert parse(out / "caddy.env")["SITE_ADDRESS"] == "interval.example.com"
+    assert parse(out / "app.env")["BETTER_AUTH_URL"] == "https://interval.example.com"
     assert parse(out / "app.env")["S3_ENDPOINT"] == "http://seaweedfs:8333"
+
+
+def test_without_a_domain_better_auth_uses_the_local_port(tmp_path: Path) -> None:
+    # The local smoke run (ADR-0013) serves on HTTP_PORT; Better Auth refuses browser
+    # requests from any other origin.
+    assert run(tmp_path, fake_aws(tmp_path), http_port="8080").returncode == 0
+    assert parse(tmp_path / "out" / "app.env")["BETTER_AUTH_URL"] == (
+        "http://localhost:8080"
+    )
 
 
 @pytest.mark.parametrize("failing", sorted(SECRETS))

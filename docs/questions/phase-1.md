@@ -171,7 +171,7 @@ Status: all 42 answered by the owner on 2026-10-25. Each answer appears under it
 - Why it matters: is the product invite-only, and is a guest in a group?
 - Blocks: P1-W1-S13.
 - Suggested default: `invite_code(code, beta_group, max_uses, used_count, expires_at)`; groups `student` and `developer`. Invite code required at sign-up in the private beta; guests can use the app but are not in a group until they sign up with a code. Tension: a guest without a code can never sign up, so §5A's "Signing up keeps their saves and history" fails for them. Owner to decide whether guest access itself needs a code during the private beta. `beta_group` is on the user row and copied into every event.
-- **Answer (owner, 2026-10-25):** An invite code is required for any access during the private beta, including guest mode. The code sets the group (student or developer).
+- **Answer (owner, 2026-10-25):** An invite code is required for any access during the private beta, including guest mode. The code sets the group (student or developer). Added 2026-10-25: when a guest signs up, the account reuses the guest's code and group; no second use is consumed.
 
 ### Q-P1-25 What counts as "lands on the right section" (P1)
 - Cite: Phase 1 Week 6 ("a script that checks deep links land on the right section"), §3.2.

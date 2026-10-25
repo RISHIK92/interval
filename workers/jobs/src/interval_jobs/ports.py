@@ -158,6 +158,13 @@ class Invites(Protocol):
         ...
 
 
+class Users(Protocol):
+    def purge_inactive_guests(self, now: datetime) -> int:
+        """Deletes anonymous users with no session still valid at `now` (Q-P1-12):
+        guests idle for 30 days (sessions slide) and guests who signed out."""
+        ...
+
+
 class Store(Protocol):
     """Repositories sharing one unit of work; the composition root commits it."""
 
@@ -175,6 +182,9 @@ class Store(Protocol):
 
     @property
     def invites(self) -> Invites: ...
+
+    @property
+    def users(self) -> Users: ...
 
 
 class Fetcher(Protocol):

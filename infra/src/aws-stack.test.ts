@@ -197,6 +197,25 @@ describe("containers", () => {
     }
   });
 
+  test("the web container gets both Better Auth settings, or it exits at startup", () => {
+    const web = all("AWS::ECS::TaskDefinition")
+      .flatMap(
+        ([, task]) =>
+          task.Properties["ContainerDefinitions"] as {
+            Name: string;
+            Environment?: { Name: string }[];
+            Secrets?: { Name: string }[];
+          }[],
+      )
+      .find((c) => c.Name === "web");
+    expect((web?.Environment ?? []).map((e) => e.Name)).toContain(
+      "BETTER_AUTH_URL",
+    );
+    expect((web?.Secrets ?? []).map((s) => s.Name)).toContain(
+      "BETTER_AUTH_SECRET",
+    );
+  });
+
   test("the web service checks /api/health and scales 1 to 3", () => {
     template.hasResourceProperties("AWS::ElasticLoadBalancingV2::TargetGroup", {
       HealthCheckPath: "/api/health",

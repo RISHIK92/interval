@@ -52,8 +52,8 @@ Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED).
 - Install: `pnpm install` (TS) · `uv sync --all-packages` (Python workspace: workers/jobs, packages/db/python)
 - Local services: `docker compose up -d --wait` (Postgres + pgvector, SeaweedFS for S3, ElasticMQ for SQS)
 - Migrate + regenerate types: `pnpm db:migrate` · stale-types check: `pnpm db:check`
-- Web dev server: `pnpm --filter @interval/web dev` · build: `pnpm turbo build`
-- Web image: `docker build -f apps/web/Dockerfile -t interval-web .` · run: `docker run -p 127.0.0.1:3100:3000 -e DATABASE_URL='postgres://interval:interval@host.docker.internal:5432/interval?sslmode=disable' interval-web`
+- Web dev server (port 3100, matches `BETTER_AUTH_URL`): `pnpm --filter @interval/web dev` · build: `pnpm turbo build`
+- Web image: `docker build -f apps/web/Dockerfile -t interval-web .` · run: `docker run -p 127.0.0.1:3100:3000 -e DATABASE_URL='postgres://interval:interval@host.docker.internal:5432/interval?sslmode=disable' -e BETTER_AUTH_SECRET="$(openssl rand -base64 32)" -e BETTER_AUTH_URL=http://localhost:3100 interval-web`
 - Worker, ingest one feed: `scripts/with-env.sh uv run python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile metadata_only` (temporary until P1-W2-S01; full-text ingest also segments and rebuilds the feed)
 - Worker, re-split one item into moments (also rebuilds the feed): `scripts/with-env.sh uv run python -m interval_jobs segment-item --content-item-id ID`
 - Worker, recompute the precomputed feed: `scripts/with-env.sh uv run python -m interval_jobs rebuild-feed`

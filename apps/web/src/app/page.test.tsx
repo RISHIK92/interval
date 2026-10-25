@@ -1,14 +1,26 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { FeedCard } from "../server/ports";
+import type { Actor, FeedCard } from "../server/ports";
 
 const getFeed = vi.fn<(limit: number) => Promise<FeedCard[]>>();
+const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 vi.mock("../server/container", () => ({
   feedReader: () => ({ list: getFeed }),
+  sessionReader: () => ({ current }),
 }));
+vi.mock("next/headers", () => ({
+  headers: () => Promise.resolve(new Headers()),
+}));
+const redirect = vi.fn((url: string) => {
+  throw new Error(`redirect:${url}`);
+});
+vi.mock("next/navigation", () => ({ redirect }));
+
+const guest: Actor = { userId: "u1", isGuest: true, betaGroup: "student" };
 
 afterEach(() => {
   getFeed.mockReset();
+  current.mockReset();
 });
 
 const card: FeedCard = {
@@ -28,7 +40,14 @@ async function render(): Promise<string> {
   return renderToStaticMarkup(await HomePage());
 }
 
+test("without a session the visitor is sent to /join", async () => {
+  current.mockResolvedValue(null);
+  await expect(render()).rejects.toThrow("redirect:/join");
+  expect(getFeed).not.toHaveBeenCalled();
+});
+
 test("renders one card per feed entry", async () => {
+  current.mockResolvedValue(guest);
   getFeed.mockResolvedValue([
     card,
     { ...card, momentId: "2", sectionNumber: 2 },
@@ -40,6 +59,7 @@ test("renders one card per feed entry", async () => {
 });
 
 test("renders an empty state when the feed is empty", async () => {
+  current.mockResolvedValue(guest);
   getFeed.mockResolvedValue([]);
   expect(await render()).toContain("No moments yet.");
 });

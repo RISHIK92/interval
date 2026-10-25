@@ -3,6 +3,10 @@ import { z } from "zod";
 const schema = z.object({
   DATABASE_URL: z.url({ protocol: /^postgres(ql)?$/ }),
   NODE_ENV: z.enum(["development", "test", "production"]),
+  // Better Auth (ADR-0004): signs session cookies; at least 32 random characters.
+  BETTER_AUTH_SECRET: z.string().min(32),
+  // The public origin, e.g. https://interval.example.com.
+  BETTER_AUTH_URL: z.url({ protocol: /^https?$/ }),
 });
 
 export type Env = z.infer<typeof schema>;

@@ -282,6 +282,28 @@ class InMemoryInvites:
         return normalised
 
 
+@dataclass
+class StoredUser:
+    id: str
+    is_anonymous: bool
+    session_expiries: list[datetime] = field(default_factory=list[datetime])
+
+
+class InMemoryUsers:
+    def __init__(self) -> None:
+        self.rows: dict[str, StoredUser] = {}
+
+    def purge_inactive_guests(self, now: datetime) -> int:
+        inactive = [
+            u.id
+            for u in self.rows.values()
+            if u.is_anonymous and not any(e > now for e in u.session_expiries)
+        ]
+        for user_id in inactive:
+            del self.rows[user_id]
+        return len(inactive)
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -289,6 +311,7 @@ class InMemoryStore:
         self.moments = InMemoryMoments(self.items, self.sources)
         self.feed = InMemoryFeed(self.items, self.moments)
         self.invites = InMemoryInvites()
+        self.users = InMemoryUsers()
         self.sources.store = self
 
 

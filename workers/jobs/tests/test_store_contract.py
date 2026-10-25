@@ -14,7 +14,7 @@ import psycopg
 import pytest
 
 from interval_db.generated import RightsProfile
-from interval_jobs.adapters.memory import InMemoryStore
+from interval_jobs.adapters.memory import InMemoryStore, StoredUser
 from interval_jobs.adapters.postgres import PostgresStore
 from interval_jobs.ports import (
     DuplicateInviteCode,
@@ -37,6 +37,10 @@ class Probe(Protocol):
     def invite(
         self, code: str
     ) -> tuple[str, int, int, datetime, str | None] | None: ...
+    def add_user(
+        self, user_id: str, anonymous: bool, session_expires: list[datetime]
+    ) -> None: ...
+    def user_ids(self) -> set[str]: ...
 
 
 @dataclass
@@ -48,6 +52,16 @@ class MemoryProbe:
 
     def disable_moments(self, source_id: int) -> None:
         self.s.sources.set_moments_enabled(source_id, False)
+
+    def add_user(
+        self, user_id: str, anonymous: bool, session_expires: list[datetime]
+    ) -> None:
+        self.s.users.rows[user_id] = StoredUser(
+            user_id, anonymous, list(session_expires)
+        )
+
+    def user_ids(self) -> set[str]:
+        return set(self.s.users.rows)
 
     def invite(self, code: str) -> tuple[str, int, int, datetime, str | None] | None:
         row = self.s.invites.rows.get(code)
@@ -84,6 +98,35 @@ class PostgresProbe:
         self.conn.execute(
             "update source set moments_enabled = false where id = %s", (source_id,)
         )
+
+    def add_user(
+        self, user_id: str, anonymous: bool, session_expires: list[datetime]
+    ) -> None:
+        code = self.conn.execute(
+            "insert into invite_code (code, beta_group, max_uses, expires_at) "
+            "values (%s, 'student', 10, now() + interval '1 day') "
+            "on conflict (code) do update set max_uses = 10 returning id",
+            ("CONTRACTUSERS",),
+        ).fetchone()
+        assert code is not None
+        self.conn.execute(
+            "insert into app_user "
+            "(id, name, email, is_anonymous, beta_group, invite_code_id) "
+            "values (%s, 'n', %s, %s, 'student', %s)",
+            (user_id, f"{user_id}@contract.example.test", anonymous, code[0]),
+        )
+        for i, expires in enumerate(session_expires):
+            self.conn.execute(
+                "insert into auth_session (id, expires_at, token, updated_at, user_id) "
+                "values (%s, %s, %s, now(), %s)",
+                (f"{user_id}-s{i}", expires, f"{user_id}-t{i}", user_id),
+            )
+
+    def user_ids(self) -> set[str]:
+        rows = self.conn.execute(
+            "select id from app_user where email like '%%@contract.example.test'"
+        ).fetchall()
+        return {r[0] for r in rows}
 
     def invite(self, code: str) -> tuple[str, int, int, datetime, str | None] | None:
         row = self.conn.execute(
@@ -374,3 +417,25 @@ def test_issuing_a_duplicate_code_is_refused(store: tuple[Store, Probe]) -> None
             note=None,
             codes=["dupcode123"],
         )
+
+
+def test_purge_removes_only_guests_without_a_live_session(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    # A past `now`: every real guest in a shared database has a session expiring after
+    # it, so the purge neither counts nor locks rows other tests are using.
+    now = datetime(2000, 6, 1, tzinfo=UTC)
+    probe.add_user("guest-stale", True, [datetime(2000, 5, 1, tzinfo=UTC)])
+    probe.add_user("guest-none", True, [])
+    probe.add_user(
+        "guest-live",
+        True,
+        [datetime(2000, 5, 1, tzinfo=UTC), datetime(2000, 6, 2, tzinfo=UTC)],
+    )
+    probe.add_user("account-stale", False, [datetime(2000, 5, 1, tzinfo=UTC)])
+    purged = s.users.purge_inactive_guests(now)
+    assert probe.user_ids() == {"guest-live", "account-stale"}
+    # A shared database can hold other session-less guests (a signed-out local one, or
+    # one another test is creating), so only the fake can promise the exact count.
+    assert purged == 2 if isinstance(s, InMemoryStore) else purged >= 2

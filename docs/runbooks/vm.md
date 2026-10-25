@@ -39,11 +39,13 @@ Docker restarts containers that exit, but not ones that are merely unhealthy. Ch
 ## Run a job
 `docker compose -f /opt/interval/deploy/compose.prod.yml run --rm jobs ingest-one --name ... --feed-url ... --rights-profile ...`
 
-## Set a domain (HTTPS)
+## Set the domain (HTTPS)
+The VM's domain is `interval.rishiklabs.tech` (owner, 2026-10-25). Set it before first use: sign-in calls from the browser are refused from any origin other than `BETTER_AUTH_URL`, which comes from this file.
+
 1. Point a DNS A record at the Elastic IP and wait until it resolves.
-2. `echo interval.example.com > /var/lib/interval/pgdata/etc/site-address`
+2. `echo interval.rishiklabs.tech > /var/lib/interval/pgdata/etc/site-address`
 3. `systemctl restart interval`. Caddy requests a Let's Encrypt certificate at startup.
-4. Check: `curl https://interval.example.com/api/health`. The bare IP no longer matches the site.
+4. Check: `curl https://interval.rishiklabs.tech/api/health`. The bare IP no longer matches the site.
 
 ## Keep files on the VM instead of S3
 `echo local-s3 > /var/lib/interval/pgdata/etc/files-backend`, then run deploy.sh again. SeaweedFS starts with its data in `/var/lib/interval/pgdata/files`, and apps get `S3_ENDPOINT=http://seaweedfs:8333`. Remove the file and deploy again to go back to S3 (SeaweedFS is stopped). These files are **not** in the database backup below; back them up separately.

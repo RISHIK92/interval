@@ -274,6 +274,25 @@ class PostgresInvites:
         return stored
 
 
+class PostgresUsers:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def purge_inactive_guests(self, now: datetime) -> int:
+        cursor = self._conn.execute(
+            """
+            delete from app_user u
+            where u.is_anonymous
+              and not exists (
+                select 1 from auth_session s
+                where s.user_id = u.id and s.expires_at > %s
+              )
+            """,
+            (now,),
+        )
+        return cursor.rowcount
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.sources = PostgresSources(conn)
@@ -281,6 +300,7 @@ class PostgresStore:
         self.moments = PostgresMoments(conn)
         self.feed = PostgresFeed(conn)
         self.invites = PostgresInvites(conn)
+        self.users = PostgresUsers(conn)
 
 
 @contextmanager
