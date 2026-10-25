@@ -6,12 +6,14 @@ it back on error. The database's own triggers still guard ING-2 behind these que
 
 from collections.abc import Generator
 from contextlib import contextmanager
+from datetime import datetime
 
 import psycopg
 from psycopg.rows import class_row
 
-from interval_db.generated import RightsProfile
+from interval_db.generated import BetaGroup, RightsProfile
 from interval_jobs.ports import (
+    DuplicateInviteCode,
     FeedEntry,
     MomentRow,
     RightsViolation,
@@ -240,12 +242,45 @@ class PostgresFeed:
         return cursor.rowcount
 
 
+class PostgresInvites:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def issue(
+        self,
+        *,
+        beta_group: BetaGroup,
+        max_uses: int,
+        expires_at: datetime,
+        note: str | None,
+        codes: list[str],
+    ) -> list[str]:
+        stored: list[str] = []
+        try:
+            with self._conn.transaction():
+                for code in codes:
+                    row = self._conn.execute(
+                        "insert into invite_code "
+                        "(code, beta_group, max_uses, expires_at, note) "
+                        "values (normalize_invite_code(%s), %s, %s, %s, %s) "
+                        "returning code",
+                        (code, beta_group, max_uses, expires_at, note),
+                    ).fetchone()
+                    if row is None:
+                        raise RuntimeError("insert returned no row")
+                    stored.append(str(row[0]))
+        except psycopg.errors.UniqueViolation as error:
+            raise DuplicateInviteCode(str(error).splitlines()[0]) from error
+        return stored
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)
         self.moments = PostgresMoments(conn)
         self.feed = PostgresFeed(conn)
+        self.invites = PostgresInvites(conn)
 
 
 @contextmanager

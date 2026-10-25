@@ -43,7 +43,7 @@ The owner answered every open question and ADR.
 
 ## Next up
 
-1. Feature slices first (owner, 2026-10-25): P1-W1-S13 (invite codes), then S10 (guest sessions), S11, S12, S14–S17, then Week 2.
+1. Feature slices first (owner, 2026-10-25): S13 done; next S10 (guest sessions), then S11, S12, S14–S17, then Week 2.
 2. Deployment details wait until all phases are built (ADR-0013). See "Pre-deploy list" below.
 3. Owner data: approve the concept list (Q-P1-03, Week 3); cost budget amounts before the beta (Q-P1-23); a domain name before any deploy.
 
@@ -359,4 +359,23 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `dropInvalidHeaderFields`;
   - RETAIN on `interval/aws/postgres`;
   - a stronger no-plaintext-secret test.
+
+### 2026-10-25 — P1-W1-S13 (invite codes, Q-P1-24)
+- Done:
+  - **Migration `20261025040000_auth_and_invites.sql`:**
+    - `beta_group` enum and `invite_code` (personal or shared, expiry, at least 10 characters, normalised);
+    - `normalize_invite_code()`, the one normaliser for both languages;
+    - the Better Auth 1.7.12 tables (`app_user`, `auth_session`, `auth_account`, `auth_verification`, snake_case), checked field by field against `getAuthTables()`;
+    - `app_user` carries a NOT NULL `beta_group` and `invite_code_id`, with a composite FK so the user's group always equals the code's group.
+  - **Web:** an `InviteCodes` port. The Kysely redeem is one conditional update (concurrent last use: exactly one wins); failures say unknown, expired or used_up and never consume a use. `redeemInvite` validates input (ASCII letters, digits, space and dash, 4–64 characters).
+  - **Worker:** `issue-invites` CLI (`--group --uses --days [--count] [--note]`), codes like `WFL2T-39CKL` (alphabet without 0/O/1/I), an `Invites` port with Postgres and in-memory adapters and contract tests.
+  - **Tests:** the TS adapter tests now roll back, and only the concurrency case commits and sweeps. The Python `conn` fixture uses `transaction(force_rollback=True)`.
+- Surprises:
+  - A nested `transaction()` as a test's first statement committed rows into the dev DB (two codes). They were cleaned up and the fixture is fixed.
+  - Postgres `\s` doesn't match NBSP, so input is limited to ASCII.
+- Notes for S10/S11:
+  - The redeem must run in the same transaction as user creation (port comment). Check whether Better Auth's `databaseHooks.user.create.before` runs inside the adapter transaction.
+  - Decide whether the HTTP route shows distinct failure reasons, and add rate limiting and logging of failures by reason (never the code).
+  - `better-auth` is pinned at 1.7.12 because the migration matches that schema. Re-check `getAuthTables()` before bumping it.
+- Open question: when a guest signs up, does the account reuse the guest's code or need a second one? Asked of the owner.
 

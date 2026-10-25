@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@interval/db": "workspace:*",
+    "better-auth": "1.7.12",
     "kysely": "0.29.7",
     "next": "16.4.3",
     "pg": "8.23.1",

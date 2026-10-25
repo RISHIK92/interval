@@ -3,10 +3,60 @@
 from datetime import datetime
 from typing import Literal, TypedDict
 
+type BetaGroup = Literal["student", "developer"]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
 ]
+
+
+class AppUser(TypedDict):
+    id: str
+    name: str
+    email: str
+    email_verified: bool
+    image: str | None
+    is_anonymous: bool
+    beta_group: BetaGroup
+    invite_code_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class AuthAccount(TypedDict):
+    id: str
+    account_id: str
+    provider_id: str
+    user_id: str
+    access_token: str | None
+    refresh_token: str | None
+    id_token: str | None
+    access_token_expires_at: datetime | None
+    refresh_token_expires_at: datetime | None
+    scope: str | None
+    password: str | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AuthSession(TypedDict):
+    id: str
+    expires_at: datetime
+    token: str
+    created_at: datetime
+    updated_at: datetime
+    ip_address: str | None
+    user_agent: str | None
+    user_id: str
+
+
+class AuthVerification(TypedDict):
+    id: str
+    identifier: str
+    value: str
+    expires_at: datetime
+    created_at: datetime
+    updated_at: datetime
 
 
 class ContentItem(TypedDict):
@@ -54,6 +104,17 @@ class FeedVisible(TypedDict):
     article_title: str | None
     author: str | None
     source_name: str | None
+
+
+class InviteCode(TypedDict):
+    id: int
+    code: str
+    beta_group: BetaGroup
+    max_uses: int
+    used_count: int
+    expires_at: datetime
+    note: str | None
+    created_at: datetime
 
 
 class Moment(TypedDict):

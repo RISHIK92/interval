@@ -6,11 +6,13 @@ ING-2 triggers: forbidden writes raise RightsViolation, and lowering a profile o
 switching moments off purges what the source no longer allows.
 """
 
+import re
 from dataclasses import dataclass, field, replace
 from datetime import datetime
 
-from interval_db.generated import RightsProfile
+from interval_db.generated import BetaGroup, RightsProfile
 from interval_jobs.ports import (
+    DuplicateInviteCode,
     FeedEntry,
     Fetched,
     FetchError,
@@ -245,12 +247,48 @@ class InMemoryFeed:
         self.entries = [i for i in self.entries if i in live]
 
 
+@dataclass
+class StoredInvite:
+    code: str
+    beta_group: BetaGroup
+    max_uses: int
+    expires_at: datetime
+    note: str | None
+    used_count: int = 0
+
+
+class InMemoryInvites:
+    def __init__(self) -> None:
+        self.rows: dict[str, StoredInvite] = {}
+
+    def issue(
+        self,
+        *,
+        beta_group: BetaGroup,
+        max_uses: int,
+        expires_at: datetime,
+        note: str | None,
+        codes: list[str],
+    ) -> list[str]:
+        # Mirrors normalize_invite_code() in SQL (Postgres \\s is ASCII whitespace)
+        # and its length check; all or nothing, like the transaction.
+        normalised = [re.sub(r"[ \t\n\r\f\v-]", "", c).upper() for c in codes]
+        if any(len(c) < 10 for c in normalised):
+            raise ValueError("invite codes have at least 10 characters")
+        if len(set(normalised)) != len(normalised) or set(normalised) & set(self.rows):
+            raise DuplicateInviteCode("invite code already exists")
+        for code in normalised:
+            self.rows[code] = StoredInvite(code, beta_group, max_uses, expires_at, note)
+        return normalised
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
         self.items = InMemoryItems(self.sources)
         self.moments = InMemoryMoments(self.items, self.sources)
         self.feed = InMemoryFeed(self.items, self.moments)
+        self.invites = InMemoryInvites()
         self.sources.store = self
 
 

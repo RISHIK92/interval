@@ -17,6 +17,7 @@ from interval_db.generated import RightsProfile
 from interval_jobs.adapters.memory import InMemoryStore
 from interval_jobs.adapters.postgres import PostgresStore
 from interval_jobs.ports import (
+    DuplicateInviteCode,
     FeedEntry,
     MomentRow,
     RightsViolation,
@@ -33,6 +34,9 @@ class Probe(Protocol):
     def moments(self, item_id: int) -> list[tuple[int, int, str]]: ...
     def feed_titles(self) -> list[str]: ...
     def disable_moments(self, source_id: int) -> None: ...
+    def invite(
+        self, code: str
+    ) -> tuple[str, int, int, datetime, str | None] | None: ...
 
 
 @dataclass
@@ -44,6 +48,12 @@ class MemoryProbe:
 
     def disable_moments(self, source_id: int) -> None:
         self.s.sources.set_moments_enabled(source_id, False)
+
+    def invite(self, code: str) -> tuple[str, int, int, datetime, str | None] | None:
+        row = self.s.invites.rows.get(code)
+        if row is None:
+            return None
+        return (row.beta_group, row.max_uses, row.used_count, row.expires_at, row.note)
 
     def excerpt(self, item_id: int) -> str | None:
         return self.s.items.rows[item_id].excerpt
@@ -74,6 +84,14 @@ class PostgresProbe:
         self.conn.execute(
             "update source set moments_enabled = false where id = %s", (source_id,)
         )
+
+    def invite(self, code: str) -> tuple[str, int, int, datetime, str | None] | None:
+        row = self.conn.execute(
+            "select beta_group::text, max_uses, used_count, expires_at, note "
+            "from invite_code where code = %s",
+            (code,),
+        ).fetchone()
+        return None if row is None else (row[0], row[1], row[2], row[3], row[4])
 
     def excerpt(self, item_id: int) -> str | None:
         row = self.conn.execute(
@@ -321,3 +339,38 @@ def test_writes_the_profile_forbids_are_refused(store: tuple[Store, Probe]) -> N
     ):
         with pytest.raises(RightsViolation):
             write()
+
+
+def test_issued_invites_are_stored_normalised_with_their_settings(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    expires = datetime(2099, 1, 1, tzinfo=UTC)
+    s.invites.issue(
+        beta_group="developer",
+        max_uses=3,
+        expires_at=expires,
+        note="contract",
+        codes=["contract-ab cd"],
+    )
+    assert probe.invite("CONTRACTABCD") == ("developer", 3, 0, expires, "contract")
+
+
+def test_issuing_a_duplicate_code_is_refused(store: tuple[Store, Probe]) -> None:
+    s, _ = store
+    expires = datetime(2099, 1, 1, tzinfo=UTC)
+    s.invites.issue(
+        beta_group="student",
+        max_uses=1,
+        expires_at=expires,
+        note=None,
+        codes=["DUPCODE123"],
+    )
+    with pytest.raises(DuplicateInviteCode):
+        s.invites.issue(
+            beta_group="student",
+            max_uses=1,
+            expires_at=expires,
+            note=None,
+            codes=["dupcode123"],
+        )

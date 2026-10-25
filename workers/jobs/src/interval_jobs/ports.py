@@ -10,7 +10,7 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, ConfigDict
 
-from interval_db.generated import MomentLinkType, RightsProfile
+from interval_db.generated import BetaGroup, MomentLinkType, RightsProfile
 
 type FetchKind = Literal["feed", "article"]
 
@@ -21,6 +21,10 @@ class FetchError(Exception):
 
 class ExtractionError(Exception):
     """No main text could be extracted from a page."""
+
+
+class DuplicateInviteCode(Exception):
+    """An invite code with the same normalised value already exists."""
 
 
 class RightsViolation(Exception):
@@ -140,6 +144,20 @@ class Feed(Protocol):
         ...
 
 
+class Invites(Protocol):
+    def issue(
+        self,
+        *,
+        beta_group: BetaGroup,
+        max_uses: int,
+        expires_at: datetime,
+        note: str | None,
+        codes: list[str],
+    ) -> list[str]:
+        """Stores the codes normalised (one transaction); raises DuplicateInviteCode."""
+        ...
+
+
 class Store(Protocol):
     """Repositories sharing one unit of work; the composition root commits it."""
 
@@ -154,6 +172,9 @@ class Store(Protocol):
 
     @property
     def feed(self) -> Feed: ...
+
+    @property
+    def invites(self) -> Invites: ...
 
 
 class Fetcher(Protocol):

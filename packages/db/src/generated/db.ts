@@ -5,6 +5,8 @@
 
 import type { ColumnType } from "kysely";
 
+export type BetaGroup = "developer" | "student";
+
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -16,6 +18,55 @@ export type MomentLinkType = "anchor" | "page_top" | "text_fragment";
 export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
+
+export interface AppUser {
+  beta_group: BetaGroup;
+  created_at: Generated<Timestamp>;
+  email: string;
+  email_verified: Generated<boolean>;
+  id: string;
+  image: string | null;
+  invite_code_id: Int8;
+  is_anonymous: Generated<boolean>;
+  name: string;
+  updated_at: Generated<Timestamp>;
+}
+
+export interface AuthAccount {
+  access_token: string | null;
+  access_token_expires_at: Timestamp | null;
+  account_id: string;
+  created_at: Generated<Timestamp>;
+  id: string;
+  id_token: string | null;
+  password: string | null;
+  provider_id: string;
+  refresh_token: string | null;
+  refresh_token_expires_at: Timestamp | null;
+  scope: string | null;
+  updated_at: Timestamp;
+  user_id: string;
+}
+
+export interface AuthSession {
+  created_at: Generated<Timestamp>;
+  expires_at: Timestamp;
+  id: string;
+  ip_address: string | null;
+  token: string;
+  updated_at: Timestamp;
+  user_agent: string | null;
+  user_id: string;
+}
+
+export interface AuthVerification {
+  created_at: Generated<Timestamp>;
+  expires_at: Timestamp;
+  id: string;
+  identifier: string;
+  updated_at: Generated<Timestamp>;
+  value: string;
+}
 
 export interface ContentItem {
   author: string | null;
@@ -64,6 +115,17 @@ export interface FeedVisible {
   source_name: string | null;
 }
 
+export interface InviteCode {
+  beta_group: BetaGroup;
+  code: string;
+  created_at: Generated<Timestamp>;
+  expires_at: Timestamp;
+  id: Generated<Int8>;
+  max_uses: number;
+  note: string | null;
+  used_count: Generated<number>;
+}
+
 export interface Moment {
   content_item_id: Int8;
   created_at: Generated<Timestamp>;
@@ -92,11 +154,16 @@ export interface Source {
 }
 
 export interface DB {
+  app_user: AppUser;
+  auth_account: AuthAccount;
+  auth_session: AuthSession;
+  auth_verification: AuthVerification;
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;
   feed_entry: FeedEntry;
   feed_visible: FeedVisible;
+  invite_code: InviteCode;
   moment: Moment;
   schema_meta: SchemaMeta;
   source: Source;

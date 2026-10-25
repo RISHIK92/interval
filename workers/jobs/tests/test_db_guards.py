@@ -167,3 +167,38 @@ def test_lowering_the_profile_purges_private_text_and_excerpt_before_any_reinges
         "select excerpt from content_item where id = %s", (excerpt,)
     ).fetchone()
     assert row == (None,)
+
+
+def test_a_user_needs_a_beta_group_and_an_invite_code(conn: psycopg.Connection) -> None:
+    with pytest.raises(psycopg.errors.NotNullViolation):
+        conn.execute(
+            "insert into app_user (id, name, email) "
+            "values ('u1', 'n', 'u1@example.test')"
+        )
+
+
+def test_an_invite_code_cannot_be_used_more_than_its_limit(
+    conn: psycopg.Connection,
+) -> None:
+    with pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(
+            "insert into invite_code "
+            "(code, beta_group, max_uses, used_count, expires_at) "
+            "values ('LIMITCODE12', 'student', 1, 2, now() + interval '1 day')"
+        )
+
+
+def test_a_users_group_must_match_their_invite_codes_group(
+    conn: psycopg.Connection,
+) -> None:
+    row = conn.execute(
+        "insert into invite_code (code, beta_group, max_uses, expires_at) "
+        "values ('GROUPCODE12', 'student', 1, now() + interval '1 day') returning id"
+    ).fetchone()
+    assert row is not None
+    with pytest.raises(psycopg.errors.ForeignKeyViolation):
+        conn.execute(
+            "insert into app_user (id, name, email, beta_group, invite_code_id) "
+            "values ('u2', 'n', 'u2@example.test', 'developer', %s)",
+            (row[0],),
+        )

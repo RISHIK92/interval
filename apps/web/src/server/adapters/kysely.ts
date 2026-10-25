@@ -2,7 +2,13 @@ import type { DB, FeedVisible } from "@interval/db";
 import { Kysely, PostgresDialect, sql, type Selectable } from "kysely";
 import pg from "pg";
 import { log } from "../log";
-import type { DatabasePing, FeedCard, FeedReader } from "../ports";
+import type {
+  DatabasePing,
+  FeedCard,
+  FeedReader,
+  InviteCodes,
+  Redemption,
+} from "../ports";
 
 // Postgres adapters (ADR-0012) for the server ports.
 
@@ -88,6 +94,38 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .limit(limit)
         .execute();
       return rows.map(toCard).filter((card) => card !== null);
+    },
+  };
+}
+
+// Pass a Transaction to redeem inside the caller's unit of work (see the port).
+export function kyselyInviteCodes(db: Kysely<DB>): InviteCodes {
+  return {
+    redeem: async (code): Promise<Redemption> => {
+      // One conditional update: concurrent redeems of the last use cannot both succeed.
+      const used = await db
+        .updateTable("invite_code")
+        .set((eb) => ({ used_count: eb("used_count", "+", 1) }))
+        .where("code", "=", sql<string>`normalize_invite_code(${code})`)
+        .whereRef("used_count", "<", "max_uses")
+        .where("expires_at", ">", sql<Date>`now()`)
+        .returning(["id", "beta_group"])
+        .executeTakeFirst();
+      if (used !== undefined) {
+        return { ok: true, inviteCodeId: used.id, betaGroup: used.beta_group };
+      }
+      const found = await db
+        .selectFrom("invite_code")
+        .select([
+          "used_count",
+          "max_uses",
+          sql<boolean>`expires_at <= now()`.as("expired"),
+        ])
+        .where("code", "=", sql<string>`normalize_invite_code(${code})`)
+        .executeTakeFirst();
+      if (found === undefined) return { ok: false, reason: "unknown" };
+      if (found.expired) return { ok: false, reason: "expired" };
+      return { ok: false, reason: "used_up" };
     },
   };
 }

@@ -16,7 +16,10 @@ def fixture_bytes(name: str) -> bytes:
 def conn() -> Iterator[psycopg.Connection]:
     url = os.environ.get("DATABASE_URL")
     assert url, "DATABASE_URL is not set; copy .env.example to .env"
-    # Each test runs in a transaction that is rolled back, leaving the dev DB unchanged.
-    with psycopg.connect(url) as connection:
+    # Each test runs inside an explicit outer transaction that is always rolled back, so
+    # nested `transaction()` blocks in adapters become savepoints and never commit.
+    with (
+        psycopg.connect(url) as connection,
+        connection.transaction(force_rollback=True),
+    ):
         yield connection
-        connection.rollback()
