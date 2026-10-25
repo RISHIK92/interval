@@ -4,3 +4,8 @@ packages:
   - infra
 
 engineStrict: true
+
+# Build scripts we skip on purpose (pnpm fails on unreviewed ones).
+# unrs-resolver (via eslint-config-next) ships prebuilt binaries.
+allowBuilds:
+  unrs-resolver: false

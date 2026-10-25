@@ -24,18 +24,26 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 ### P1-W1-S02 Local Postgres, migrations and generated types
 - IDs: DB-1, DB-3 (pgvector extension), ADR-0002
 - Needs: S01, ADR-0002
-- Goal: one command starts Postgres with pgvector, MinIO and ElasticMQ locally (Q-P1-26), applies migrations, and regenerates TS and Python types; CI-style check fails if generated files are stale.
+- Goal: one command starts Postgres with pgvector, SeaweedFS (replaced MinIO) and ElasticMQ locally (Q-P1-26), applies migrations, and regenerates TS and Python types; CI-style check fails if generated files are stale.
 - Acceptance: migration 0001 enables `vector` and creates a `schema_meta` table. Generated TS and Python modules exist and are committed. Editing a migration without regenerating fails the check script. Tests in TS and Python connect and read `schema_meta`.
 - Out of scope: domain tables, AWS.
 - Q: Q-P1-26.
 
 ### P1-W1-S03 Next.js shell
-- IDs: ARCH-1, LOAD-1, OPS-2 (structured logs)
+- IDs: ARCH-1, LOAD-1, OPS-2 (structured logs only; tracing is P1-W1-S17)
 - Needs: S01
 - Goal: the web app serves a home page and `GET /api/health` (checks DB), runs from a standalone container image, and refuses to start with missing env vars.
 - Acceptance: health route test (DB up → 200, DB down → 503). Env validation test. `docker build` produces an image that serves `/api/health` locally. Logs are JSON lines.
 - Out of scope: auth, navigation beyond a placeholder, styling system.
 - Q: Q-P1-19.
+
+### P1-W1-S17 OpenTelemetry tracing
+- IDs: OPS-2 ("Monitoring with CloudWatch and OpenTelemetry"); owner choice 2026-10-25: OTel in Phase 1
+- Needs: S03, S04
+- Goal: traces from the web app (Next.js instrumentation) and the Python worker, one trace per request or message; console exporter locally; ADOT sidecar to X-Ray at the beta (proposal section 6).
+- Acceptance: a health request and one worker message each produce a span with `request_id` / `message_id`; log lines carry the trace id.
+- Out of scope: dashboards and alarms (W6), the ADOT sidecar itself (beta deploy).
+- Q: none. Added 2026-10-25 because no slice covered OPS-2 tracing; S03 covers structured logs only.
 
 ### P1-W1-S04 Skeleton: ingest one source
 - IDs: ING-1 (fetch, store), ING-2 (profile column, gate on store)

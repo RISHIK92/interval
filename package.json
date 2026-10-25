@@ -2,20 +2,22 @@
   "name": "interval",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@12.15.0",
+  "packageManager": "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
   "engines": {
     "node": "22.x"
   },
   "scripts": {
     "check": "turbo run check",
+    "db:migrate": "pnpm --filter @interval/db db:migrate",
+    "db:check": "pnpm --filter @interval/db db:check",
     "format": "turbo run format //#format:py",
     "format:check": "prettier --check package.json turbo.json pnpm-workspace.yaml prettier.config.js",
     "test": "turbo run test",
-    "format:py": "uv run --project workers/jobs ruff format workers/jobs",
-    "format-check:py": "uv run --locked --project workers/jobs ruff format --check workers/jobs",
-    "lint:py": "uv run --locked --project workers/jobs ruff check workers/jobs",
-    "typecheck:py": "uv run --locked --project workers/jobs pyright --project workers/jobs",
-    "test:py": "uv run --locked --project workers/jobs pytest workers/jobs"
+    "format:py": "uv run ruff format workers/jobs packages/db/python",
+    "format-check:py": "uv run --locked ruff format --check workers/jobs packages/db/python",
+    "lint:py": "uv run --locked ruff check workers/jobs packages/db/python",
+    "typecheck:py": "uv run --locked pyright",
+    "test:py": "scripts/with-env.sh uv run --locked pytest"
   },
   "devDependencies": {
     "@interval/config": "workspace:*",

@@ -1,0 +1,29 @@
+[tool.uv.workspace]
+members = ["workers/jobs", "packages/db/python"]
+
+[dependency-groups]
+dev = [
+    "pyright==1.1.414",
+    "pytest==9.1.1",
+    "ruff==0.17.2",
+]
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "ANN", "RUF"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["interval_db", "interval_jobs"]
+
+[tool.pyright]
+typeCheckingMode = "strict"
+pythonVersion = "3.13"
+include = ["workers/jobs/src", "workers/jobs/tests", "packages/db/python/src", "packages/db/python/tests"]
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["workers/jobs/tests", "packages/db/python/tests"]
+addopts = ["--import-mode=importlib"]

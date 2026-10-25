@@ -1,13 +1,31 @@
 {
   "$schema": "https://turborepo.com/schema.json",
-  "globalDependencies": ["prettier.config.js", ".prettierignore"],
+  "globalDependencies": ["prettier.config.js", ".prettierignore", ".env"],
   "tasks": {
-    "transit": { "dependsOn": ["^transit"] },
-    "format": { "cache": false },
-    "format:check": { "dependsOn": ["transit"] },
-    "lint": { "dependsOn": ["transit"] },
-    "typecheck": { "dependsOn": ["transit"] },
-    "test": { "dependsOn": ["transit"] },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "transit": {
+      "dependsOn": ["^transit"]
+    },
+    "format": {
+      "cache": false
+    },
+    "format:check": {
+      "dependsOn": ["transit"]
+    },
+    "lint": {
+      "dependsOn": ["transit"]
+    },
+    "typecheck": {
+      "dependsOn": ["transit"]
+    },
+    "test": {
+      "dependsOn": ["transit", "@interval/db#db:apply"],
+      "cache": false,
+      "env": ["DATABASE_URL", "CI"]
+    },
     "//#format:check": {
       "inputs": [
         "$TURBO_ROOT$/*.json",
@@ -15,30 +33,40 @@
         "$TURBO_ROOT$/*.yaml"
       ]
     },
-    "//#format:py": { "cache": false },
+    "//#format:py": {
+      "cache": false
+    },
     "//#format-check:py": {
       "inputs": [
+        "$TURBO_ROOT$/pyproject.toml",
+        "$TURBO_ROOT$/uv.lock",
         "$TURBO_ROOT$/workers/jobs/**",
-        "!$TURBO_ROOT$/workers/jobs/.venv/**"
+        "$TURBO_ROOT$/packages/db/python/**",
+        "!$TURBO_ROOT$/**/.venv/**"
       ]
     },
     "//#lint:py": {
       "inputs": [
+        "$TURBO_ROOT$/pyproject.toml",
+        "$TURBO_ROOT$/uv.lock",
         "$TURBO_ROOT$/workers/jobs/**",
-        "!$TURBO_ROOT$/workers/jobs/.venv/**"
+        "$TURBO_ROOT$/packages/db/python/**",
+        "!$TURBO_ROOT$/**/.venv/**"
       ]
     },
     "//#typecheck:py": {
       "inputs": [
+        "$TURBO_ROOT$/pyproject.toml",
+        "$TURBO_ROOT$/uv.lock",
         "$TURBO_ROOT$/workers/jobs/**",
-        "!$TURBO_ROOT$/workers/jobs/.venv/**"
+        "$TURBO_ROOT$/packages/db/python/**",
+        "!$TURBO_ROOT$/**/.venv/**"
       ]
     },
     "//#test:py": {
-      "inputs": [
-        "$TURBO_ROOT$/workers/jobs/**",
-        "!$TURBO_ROOT$/workers/jobs/.venv/**"
-      ]
+      "dependsOn": ["@interval/db#db:apply"],
+      "cache": false,
+      "env": ["DATABASE_URL", "CI"]
     },
     "check": {
       "dependsOn": [
@@ -50,8 +78,17 @@
         "//#format-check:py",
         "//#lint:py",
         "//#typecheck:py",
-        "//#test:py"
+        "//#test:py",
+        "db:check"
       ]
+    },
+    "db:check": {
+      "cache": false,
+      "env": ["DATABASE_URL", "CI"]
+    },
+    "db:apply": {
+      "cache": false,
+      "env": ["DATABASE_URL", "CI"]
     }
   }
 }

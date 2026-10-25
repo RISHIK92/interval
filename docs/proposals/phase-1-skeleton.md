@@ -14,11 +14,12 @@ Per ADR-0003 (option B, full monorepo now) and ADR-0008 (`workers/jobs`):
 
 ```
 apps/web/                 Next.js full-stack app (ARCH-1), @interval/web
-packages/db/              SQL migrations + generated TS and Python types (ADR-0002), @interval/db
+packages/db/              SQL migrations + generated TS and Python types (ADR-0002), @interval/db; packages/db/python is the `interval-db` uv project
 packages/config/          shared tsconfig, eslint and prettier config
-workers/jobs/             Python worker: ingestion, ranking, all model calls (ARCH-2, ADR-0008); uv project outside the pnpm workspace
+workers/jobs/             Python worker: ingestion, ranking, all model calls (ARCH-2, ADR-0008); outside the pnpm workspace
+pyproject.toml            uv workspace root: members workers/jobs and packages/db/python; one uv.lock and .venv (owner, 2026-10-25)
 infra/                    CDK app in TypeScript (ARCH-4), @interval/infra
-docker-compose.yml        Postgres + pgvector, MinIO (S3), ElasticMQ (SQS) (Q-P1-26)
+docker-compose.yml        Postgres 17 + pgvector, SeaweedFS (S3), ElasticMQ (SQS) (Q-P1-26; SeaweedFS replaced MinIO 2026-10-25)
 pnpm-workspace.yaml       apps/*, packages/*, infra
 turbo.json                tasks: format, lint, typecheck, test, db:check, synth; Python tasks shell out to uv
 ```
@@ -59,7 +60,7 @@ Module map inside each unit: section 9.
 | HTTP | httpx | Timeouts, conditional requests, HTTP/2. |
 | robots.txt | `urllib.robotparser` (stdlib) | Prefer stdlib (CLAUDE.md). |
 | Feeds | feedparser | Handles RSS and Atom variants (C-18). |
-| AWS SDK | boto3 | SQS (ElasticMQ locally), S3 (MinIO locally), Firehose. |
+| AWS SDK | boto3 | SQS (ElasticMQ locally), S3 (SeaweedFS locally), Firehose. |
 | Model clients | OpenRouter (OpenAI-compatible HTTP API via httpx) and the Voyage AI Python client, used only from `ai/gateway.py` | ADR-0007, ADR-0008. |
 
 Layout:
@@ -171,7 +172,7 @@ Per ADR-0003 option B and ADR-0002 option C.
 ```markdown
 ## Commands
 - Install: `pnpm install` (TS) · `uv sync --project workers/jobs` (Python)
-- Local services: `docker compose up -d` (Postgres + pgvector, MinIO, ElasticMQ)
+- Local services: `docker compose up -d` (Postgres + pgvector, SeaweedFS, ElasticMQ)
 - Migrate + regenerate types: `pnpm db:migrate` · check: `pnpm db:check`
 - Dev server: `pnpm --filter @interval/web dev`
 - Worker: `uv run --project workers/jobs python -m interval_jobs run-consumer`

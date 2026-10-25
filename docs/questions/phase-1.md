@@ -183,7 +183,7 @@ Status: all 42 answered by the owner on 2026-10-25. Each answer appears under it
 - Cite: Phase 1 stack (RDS pgvector, S3, SQS, EventBridge, Firehose, managed auth).
 - Blocks: P1-W1-S02.
 - Suggested default: Docker Compose with Postgres + pgvector. S3, SQS: an emulator (LocalStack or MinIO + ElasticMQ, needs approval as dependencies) or interfaces with in-memory fakes in tests. EventBridge: run the scheduled job by CLI command locally. Firehose: write events to a local JSONL file behind the same interface. Cognito: a dev auth mode that issues local sessions only when `NODE_ENV=development`.
-- **Answer (owner, 2026-10-25):** Docker Compose with Postgres + pgvector, MinIO (S3) and ElasticMQ (SQS). Firehose writes to a local JSONL file. EventBridge jobs run by CLI.
+- **Answer (owner, 2026-10-25):** Docker Compose with Postgres + pgvector, MinIO (S3) and ElasticMQ (SQS). Firehose writes to a local JSONL file. EventBridge jobs run by CLI. Changed 2026-10-25 (owner): SeaweedFS replaces MinIO, because MinIO's Docker images are no longer published.
 
 ### Q-P1-27 LLM and embedding providers (P0 for Week 3)
 - Cite: AI-2 ("Bedrock or Anthropic's API"), DB-3, AI-4, AI-5.

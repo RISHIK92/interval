@@ -1,0 +1,14 @@
+**/node_modules
+**/.next
+**/.turbo
+**/.venv
+**/*.tsbuildinfo
+**/next-env.d.ts
+.git
+**/.env
+**/.env.*
+!**/.env.example
+cdk.out
+docs
+interval-sources
+workers

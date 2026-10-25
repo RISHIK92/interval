@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.7-pg17-trixie
+    environment:
+      POSTGRES_USER: interval
+      POSTGRES_PASSWORD: interval
+      POSTGRES_DB: interval
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U interval -d interval"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  # S3 stand-in (Q-P1-26). Replaces MinIO, whose images are no longer published.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.50
+    command: server -s3 -dir=/data
+    ports:
+      - "127.0.0.1:8333:8333"
+    volumes:
+      - seaweedfs-data:/data
+
+  # SQS stand-in (Q-P1-26).
+  elasticmq:
+    image: softwaremill/elasticmq-native:1.7.1
+    ports:
+      - "127.0.0.1:9324:9324"
+
+volumes:
+  postgres-data:
+  seaweedfs-data:

@@ -3,13 +3,25 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "db:migrate": "../../scripts/with-env.sh sh -c 'scripts/codegen.sh \"$DATABASE_URL\" src/generated/db.ts python/src/interval_db/generated.py'",
+    "db:apply": "../../scripts/with-env.sh scripts/apply.sh",
+    "db:check": "../../scripts/with-env.sh scripts/check.sh",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc",
-    "test": "vitest run"
+    "test": "../../scripts/with-env.sh vitest run"
   },
   "devDependencies": {
-    "@interval/config": "workspace:*"
+    "@interval/config": "workspace:*",
+    "@types/pg": "8.23.1",
+    "kysely-codegen": "0.20.0"
+  },
+  "dependencies": {
+    "kysely": "0.29.7",
+    "pg": "8.23.1"
+  },
+  "exports": {
+    ".": "./src/generated/db.ts"
   }
 }
