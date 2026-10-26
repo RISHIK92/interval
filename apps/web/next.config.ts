@@ -8,6 +8,9 @@ const config: NextConfig = {
   transpilePackages: ["@interval/db", "@interval/events"],
   // CLAUDE.md is the one place for agent rules (owner, 2026-10-25).
   agentRules: false,
+  // Development only: testing on a phone through an ngrok HTTPS tunnel (owner,
+  // 2026-10-26). Next blocks dev requests from origins not listed here.
+  allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.app"],
 };
 
 export default config;
