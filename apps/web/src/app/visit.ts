@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { READING_COOKIE } from "../server/reading";
 import { env } from "../env";
 import { events } from "../server/container";
 import type { Actor } from "../server/ports";
@@ -25,5 +26,8 @@ export async function startVisit(actor: Actor): Promise<void> {
 
 // After sign-out the browser may be used by someone else; their visit starts fresh.
 export async function endVisit(): Promise<void> {
-  (await cookies()).delete(VISIT_COOKIE);
+  const jar = await cookies();
+  jar.delete(VISIT_COOKIE);
+  // What they were reading isn't the next person's (P1-W5-S02).
+  jar.delete(READING_COOKIE);
 }

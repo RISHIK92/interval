@@ -42,7 +42,7 @@
     "article_finished": {
       "version": 1,
       "description": "A whole-article card was finished.",
-      "props": {}
+      "props": { "method": ["return_prompt", "mark_done"] }
     },
     "continue_clicked": {
       "version": 1,

@@ -242,6 +242,8 @@ describe("sign-out", () => {
     expect(port.signOut).toHaveBeenCalledOnce();
     // Whoever uses this browser next starts their own visit.
     expect(deleteCookie).toHaveBeenCalledWith("iv_visit");
+    // And whatever they were reading (P1-W5-S02).
+    expect(deleteCookie).toHaveBeenCalledWith("iv_reading");
   });
 
   test("a guest is never signed out", async () => {

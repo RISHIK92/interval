@@ -6,16 +6,21 @@ import {
   events,
   feedback,
   feedReader,
+  progress,
   preferences,
   sessionReader,
 } from "../server/container";
 import { CHIP_COOKIE, chipFor, chipLabel, CHIPS } from "../server/chips";
 import { loadFeed } from "../server/feed";
+import { outHref } from "../server/outbound";
+import { parseReading, READING_COOKIE } from "../server/reading";
 import { BIGINT_ID } from "../server/ports";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { ArticleCard } from "./ArticleCard";
 import { CardControls, UndoNotInterested } from "./CardControls";
+import { NowReading } from "./NowReading";
+import { ReturnPrompt } from "./ReturnPrompt";
 import { MomentCard } from "./MomentCard";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +72,23 @@ export default async function HomePage({
     (await feedback().notInterested(actor.userId, undo))
       ? undo
       : null;
+  // The card opened last (C-22), checked against what exists: the cookie is only ids.
+  const reading = parseReading(jar.get(READING_COOKIE)?.value);
+  const readingTitles =
+    reading === null
+      ? null
+      : await progress().describe(reading.itemId, reading.momentId);
+  // After Yes or Mark done on a section: the next section, or the end (owner).
+  const finished = parseReading(
+    typeof params["finished"] === "string" ? params["finished"] : undefined,
+  );
+  // Only for a section that exists and may be shown: a forged param says nothing.
+  const next =
+    finished === null || finished.momentId === null
+      ? undefined
+      : (await progress().describe(finished.itemId, finished.momentId)) === null
+        ? undefined
+        : await progress().nextMoment(finished.itemId, finished.momentId);
   // The stored feed (CACHE-1); a first visit may wait for it, then a starter (ADR-0008).
   const { cards } = await loadFeed(
     { feed: feedReader() },
@@ -105,6 +127,34 @@ export default async function HomePage({
           ))}
         </ul>
       </nav>
+      {/* The panel steps aside while the prompt asks (owner, 2026-10-26). */}
+      <ReturnPrompt chip={chip}>
+        {reading === null || readingTitles === null ? null : (
+          <NowReading reading={reading} titles={readingTitles} chip={chip} />
+        )}
+      </ReturnPrompt>
+      {finished === null || next === undefined ? null : next === null ? (
+        <p role="status">That was the last section.</p>
+      ) : (
+        <p role="status">
+          Continue:{" "}
+          <a
+            href={outHref({
+              itemId: finished.itemId,
+              momentId: next.momentId,
+              chip,
+              from: "continue",
+              target: "section",
+            })}
+            data-item={finished.itemId}
+            data-moment={next.momentId}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {next.title}
+          </a>
+        </p>
+      )}
       {undoable === null ? null : (
         <UndoNotInterested itemId={undoable} chip={chip} />
       )}

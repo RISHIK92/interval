@@ -78,6 +78,35 @@ export interface OutboundLinks {
   ): Promise<OutboundLink | null>;
 }
 
+// Finishing sections and articles (§5D, C-22, Q-P1-35, P1-W5-S02). Each finish
+// returns whether it changed anything: the first is kept, and only it counts.
+export type FinishMethod = "return_prompt" | "mark_done";
+export interface Progress {
+  // The moment must belong to the item, as the panel and prompt name it.
+  finishMoment(
+    userId: string,
+    itemId: string,
+    momentId: string,
+    method: FinishMethod,
+  ): Promise<boolean>;
+  finishArticle(
+    userId: string,
+    itemId: string,
+    method: FinishMethod,
+  ): Promise<boolean>;
+  // For the Now reading panel; null for ids that name nothing (a moment of another
+  // article included) and for a section whose source no longer allows moments (ING-2).
+  describe(
+    itemId: string,
+    momentId: string | null,
+  ): Promise<{ articleTitle: string; sectionTitle: string | null } | null>;
+  // The section after this one, by order; null after the last.
+  nextMoment(
+    itemId: string,
+    momentId: string,
+  ): Promise<{ momentId: string; title: string } | null>;
+}
+
 // A row id as forms carry it (a content item or a source): a positive bigint.
 export const BIGINT_ID = /^[1-9][0-9]{0,18}$/;
 

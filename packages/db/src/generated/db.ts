@@ -29,6 +29,8 @@ export type Difficulty = "advanced" | "beginner" | "intermediate";
 
 export type FeedbackKind = "less_like_this" | "more_like_this" | "not_interested";
 
+export type FinishMethod = "mark_done" | "return_prompt";
+
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -346,6 +348,13 @@ export interface TagOverride {
   updated_by: string;
 }
 
+export interface UserArticleFinished {
+  content_item_id: Int8;
+  finished_at: Generated<Timestamp>;
+  method: FinishMethod;
+  user_id: string;
+}
+
 export interface UserAvoidedConcept {
   name: string | null;
   slug: string | null;
@@ -409,6 +418,13 @@ export interface UserInferredReset {
   user_id: string;
 }
 
+export interface UserMomentFinished {
+  finished_at: Generated<Timestamp>;
+  method: FinishMethod;
+  moment_id: Int8;
+  user_id: string;
+}
+
 export interface UserPreferences {
   break_length: BreakLength;
   level: Difficulty;
@@ -458,6 +474,7 @@ export interface DB {
   starter_feed_entry: StarterFeedEntry;
   starter_feed_visible: StarterFeedVisible;
   tag_override: TagOverride;
+  user_article_finished: UserArticleFinished;
   user_avoided_concept: UserAvoidedConcept;
   user_capability: UserCapability;
   user_entitlement: UserEntitlement;
@@ -466,6 +483,7 @@ export interface DB {
   user_feed_visible: UserFeedVisible;
   user_hidden_source: UserHiddenSource;
   user_inferred_reset: UserInferredReset;
+  user_moment_finished: UserMomentFinished;
   user_preferences: UserPreferences;
   user_save: UserSave;
 }

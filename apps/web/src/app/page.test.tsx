@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, FeedCard, FeedReader } from "../server/ports";
+import type { Actor, FeedCard, FeedReader, Progress } from "../server/ports";
 
 const getFeed = vi.fn<FeedReader["read"]>();
 const feedOf = (cards: FeedCard[]) => ({ computed: true, cards });
@@ -23,12 +23,16 @@ const notInterested = vi.fn<
 vi.mock("../server/container", () => ({
   preferences: () => ({ get: getPreferences }),
   feedback: () => ({ notInterested }),
+  progress: () => ({ describe: describe_, nextMoment }),
   feedReader: () => ({ read: getFeed, starter: vi.fn() }),
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
   entitlements: () => ({ can }),
 }));
 let chipCookie: string | undefined;
+let readingCookie: string | undefined;
+const describe_ = vi.fn<Progress["describe"]>(() => Promise.resolve(null));
+const nextMoment = vi.fn<Progress["nextMoment"]>(() => Promise.resolve(null));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
   cookies: () =>
@@ -37,6 +41,9 @@ vi.mock("next/headers", () => ({
         if (name === "iv_visit") return { name, value: "visit-9.1790000000" };
         if (name === "iv_chip" && chipCookie !== undefined) {
           return { name, value: chipCookie };
+        }
+        if (name === "iv_reading" && readingCookie !== undefined) {
+          return { name, value: readingCookie };
         }
         return undefined;
       },
@@ -51,6 +58,9 @@ const guest: Actor = { userId: "u1", isGuest: true, betaGroup: "student" };
 
 afterEach(() => {
   chipCookie = undefined;
+  readingCookie = undefined;
+  describe_.mockClear();
+  nextMoment.mockClear();
   getFeed.mockReset();
   current.mockReset();
   emit.mockReset();
@@ -236,4 +246,91 @@ test("the header links to the Profile page", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(feedOf([]));
   expect(await render()).toContain('href="/profile"');
+});
+
+// P1-W5-S02: the Now reading panel (C-22) and what comes after a finish.
+test("Now reading offers Mark section done and Dismiss for the open card", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  readingCookie = "10.1";
+  describe_.mockResolvedValueOnce({
+    articleTitle: "Consensus in practice",
+    sectionTitle: "Why consensus",
+  });
+  const html = await render();
+  expect(describe_).toHaveBeenCalledWith("10", "1");
+  expect(html).toContain("Now reading: Why consensus — Consensus in practice");
+  expect(html).toContain("Mark section done");
+  expect(html).toMatch(/<button[^>]*value="dismiss"/);
+});
+
+test("a whole article's panel says Mark article done", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  readingCookie = "20.";
+  describe_.mockResolvedValueOnce({
+    articleTitle: "A whole read",
+    sectionTitle: null,
+  });
+  const html = await render();
+  expect(describe_).toHaveBeenCalledWith("20", null);
+  expect(html).toContain("Now reading: A whole read");
+  expect(html).toContain("Mark article done");
+});
+
+test("a reading cookie that names nothing real shows no panel", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  readingCookie = "10.1";
+  expect(await render()).not.toContain("Now reading");
+  readingCookie = "garbage";
+  describe_.mockClear();
+  expect(await render()).not.toContain("Now reading");
+  expect(describe_).not.toHaveBeenCalled();
+});
+
+test("after a section is finished the next one is offered, or the end is said", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  describe_.mockResolvedValue({
+    articleTitle: "Consensus in practice",
+    sectionTitle: "Why consensus",
+  });
+  nextMoment.mockResolvedValueOnce({
+    momentId: "2",
+    title: "Raft in practice",
+  });
+  const html = await render({ finished: "10.1" });
+  expect(nextMoment).toHaveBeenCalledWith("10", "1");
+  expect(html).toContain("Continue: ");
+  // Owner, 2026-10-26: a Continue open counts as continue_clicked, not a feed card.
+  expect(html).toContain(
+    'href="/out?item=10&amp;moment=2&amp;chip=3-8&amp;from=continue&amp;target=section"',
+  );
+  nextMoment.mockResolvedValueOnce(null);
+  expect(await render({ finished: "10.1" })).toContain(
+    "That was the last section.",
+  );
+  describe_.mockReset();
+  describe_.mockResolvedValue(null);
+});
+
+test("a finished param naming nothing real, or a whole article, says nothing more", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  const unknown = await render({ finished: "10.999" });
+  expect(unknown).not.toContain("Continue:");
+  expect(unknown).not.toContain("last section");
+  nextMoment.mockClear();
+  const article = await render({ finished: "10." });
+  expect(article).not.toContain("Continue:");
+  expect(article).not.toContain("last section");
+  expect(nextMoment).not.toHaveBeenCalled();
+});
+
+test("card links carry what the return prompt asks about", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  const html = await render();
+  expect(html).toMatch(/<a[^>]*data-item="10"[^>]*data-moment="1"/);
 });

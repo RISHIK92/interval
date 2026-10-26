@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) done. Next: W5-S02 (return prompt and Mark section done). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) and W5-S02 (return prompt and Mark done) done. Next: W5-S03 (progress and continue cards). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -1277,3 +1277,31 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - an open-redirect test;
   - comments on the GET side effect (a cross-site link could count an open; analytics only) and the purge trigger.
 - Checked in Chrome: a card's "Read on site" opened the publisher with `?utm_source=interval#:~:text=…`, and both events landed in `.data/events` with their props.
+
+### 2026-10-26 — P1-W5-S02 (return prompt and Mark section done, §5D, C-22, Q-P1-32, Q-P1-35)
+- Owner choices:
+  - finishes are stored now;
+  - the context panel is a "Now reading" box at the top of the feed;
+  - Yes records the finish, then offers the next section;
+  - **review follow-ups (2026-10-26):** a Continue open counts as `continue_clicked`, not a feed card, and the panel steps aside while the prompt asks.
+- Done:
+  - **Migration `20261026200000_finishes.sql`:** `user_moment_finished` and `user_article_finished` (`finish_method`; the first finish is kept).
+  - **Events:** `article_finished {method}` (never emitted before).
+  - **Web:**
+    - `/out` remembers the open in a session cookie `iv_reading`: the moment only if the reader really reached it;
+    - `finishAction`: finish or dismiss, actor from the session, the moment tied to its item, events only on change, clears the cookie;
+    - `NowReading`: Mark section/article done and Dismiss;
+    - `ReturnPrompt`: a client component; a pure `promptState` reducer decides when to ask (once per open, after the tab was left). Its Yes posts the same action; No closes it. The panel shows only while it isn't asking;
+    - the Continue line after a section is finished, through `/out` as `continue_clicked`.
+  - **Progress port** (Kysely): finishes, `describe` and `nextMoment`, gated by the source's rights (ING-2).
+  - **Sign-out** clears `iv_reading`.
+- Review fixes:
+  - rights gating of section titles;
+  - the cookie on a fallback open;
+  - a forged `finished` param showing "last section";
+  - a moment finished under another item;
+  - sign-out leaking the panel;
+  - the prompt staying after Yes on an unchanged URL;
+  - `alertdialog` with focus on Yes;
+  - Continue counting as a feed card (owner).
+- Checked in Chrome: open → Now reading panel → Mark section done → the row and `section_finished {method: mark_done}` stored, the panel cleared, "That was the last section." shown. The client prompt itself was not driven in the browser: the extension can't switch tabs to fire `visibilitychange`; its logic is covered by the reducer tests.

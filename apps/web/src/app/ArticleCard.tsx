@@ -33,9 +33,10 @@ export function ArticleCard({
         href={outHref({
           itemId: card.itemId,
           chip,
-          position,
+          from: { position },
           target: "original",
         })}
+        data-item={card.itemId}
         target="_blank"
         rel="noopener noreferrer"
       >

@@ -14,7 +14,12 @@ export function MomentCard({
   chip: Chip;
   position: number;
 }) {
-  const out = { itemId: card.itemId, momentId: card.momentId, chip, position };
+  const out = {
+    itemId: card.itemId,
+    momentId: card.momentId,
+    chip,
+    from: { position },
+  };
   const attribution = card.author
     ? `${card.sourceName} · ${card.author}`
     : card.sourceName;
@@ -30,6 +35,8 @@ export function MomentCard({
       <p>{attribution}</p>
       <a
         href={outHref({ ...out, target: "section" })}
+        data-item={card.itemId}
+        data-moment={card.momentId}
         target="_blank"
         rel="noopener noreferrer"
       >

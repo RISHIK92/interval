@@ -59,7 +59,7 @@ class _Model(BaseModel):
 
 
 class ArticleFinishedProps(_Model):
-    pass
+    method: Literal["return_prompt", "mark_done"]
 
 
 class CardImpressionProps(_Model):

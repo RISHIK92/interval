@@ -14,6 +14,7 @@ type Capability = Literal[
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type Difficulty = Literal["beginner", "intermediate", "advanced"]
 type FeedbackKind = Literal["more_like_this", "less_like_this", "not_interested"]
+type FinishMethod = Literal["return_prompt", "mark_done"]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
@@ -322,6 +323,13 @@ class TagOverride(TypedDict):
     updated_at: datetime
 
 
+class UserArticleFinished(TypedDict):
+    user_id: str
+    content_item_id: int
+    method: FinishMethod
+    finished_at: datetime
+
+
 class UserAvoidedConcept(TypedDict):
     user_id: str | None
     slug: str | None
@@ -383,6 +391,13 @@ class UserHiddenSource(TypedDict):
 class UserInferredReset(TypedDict):
     user_id: str
     reset_at: datetime
+
+
+class UserMomentFinished(TypedDict):
+    user_id: str
+    moment_id: int
+    method: FinishMethod
+    finished_at: datetime
 
 
 class UserPreferences(TypedDict):

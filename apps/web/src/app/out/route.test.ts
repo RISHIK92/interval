@@ -10,12 +10,17 @@ vi.mock("../../server/container", () => ({
   outboundLinks: () => ({ resolve }),
   events: () => ({ emit }),
 }));
+const setCookie = vi.fn();
 vi.mock("next/headers", () => ({
   cookies: () =>
     Promise.resolve({
       get: (name: string) =>
         name === "iv_visit" ? { name, value: "visit-1.1790000000" } : undefined,
+      set: setCookie,
     }),
+}));
+vi.mock("../../env", () => ({
+  env: () => ({ BETTER_AUTH_URL: "http://localhost:3100" }),
 }));
 
 const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
@@ -173,4 +178,69 @@ test("without a session the reader still reaches the publisher, unrecorded", asy
     "https://pub.test/post?utm_source=interval",
   );
   expect(emit).not.toHaveBeenCalled();
+});
+
+// P1-W5-S02: the feed's "Now reading" panel knows what was opened.
+test("an open is remembered for the session's Now reading panel", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post#raft",
+    linkType: "anchor",
+  });
+  await open("item=5&moment=9&chip=3-8&pos=1&target=section");
+  const [name, value, options] = setCookie.mock.calls[0] as [
+    string,
+    string,
+    Record<string, unknown>,
+  ];
+  expect([name, value]).toEqual(["iv_reading", "5.9"]);
+  expect(options).toMatchObject({ httpOnly: true, sameSite: "lax", path: "/" });
+  expect(options["maxAge"]).toBeUndefined();
+  setCookie.mockClear();
+  await open("item=5&chip=3-8&pos=1&target=original");
+  expect(setCookie.mock.calls[0]?.[1]).toBe("5.");
+});
+
+test("without a session nothing is remembered", async () => {
+  current.mockResolvedValue(null);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post",
+    linkType: "article",
+  });
+  await open("item=5&chip=3-8&pos=1&target=original");
+  expect(setCookie).not.toHaveBeenCalled();
+});
+
+test("an open that fell back to the article page is remembered as the article", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post",
+    linkType: "article",
+  });
+  await open("item=5&moment=9&chip=3-8&pos=1&target=section");
+  expect(setCookie.mock.calls[0]?.[1]).toBe("5.");
+});
+
+// Owner, 2026-10-26: Continue after a finish counts as continue_clicked, not a card.
+test("a Continue link counts as continue_clicked, not as a feed card", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post#raft",
+    linkType: "anchor",
+  });
+  const response = await open(
+    "item=5&moment=9&chip=3-8&from=continue&target=section",
+  );
+  expect(response.headers.get("location")).toBe(
+    "https://pub.test/post?utm_source=interval#raft",
+  );
+  expect(emit).toHaveBeenCalledWith("continue_clicked", {}, context);
+  expect(emit).toHaveBeenCalledWith(
+    "outbound_click",
+    { link_type: "anchor", target: "section" },
+    context,
+  );
+  expect(emit.mock.calls.map((c) => c[0] as string)).not.toContain(
+    "card_opened",
+  );
 });

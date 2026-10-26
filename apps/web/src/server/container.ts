@@ -22,6 +22,7 @@ import { kyselyAdminReview } from "./adapters/kysely-admin-review";
 import { kyselyAdminSources } from "./adapters/kysely-admin-sources";
 import { kyselyFeedback } from "./adapters/kysely-feedback";
 import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
+import { kyselyProgress } from "./adapters/kysely-progress";
 import { kyselyPreferences } from "./adapters/kysely-preferences";
 import { fileSink } from "./adapters/file-sink";
 import { firehoseSink } from "./adapters/firehose-sink";
@@ -41,6 +42,7 @@ import type {
   JobQueue,
   OutboundLinks,
   PreferencesStore,
+  Progress,
   SessionReader,
 } from "./ports";
 
@@ -75,6 +77,10 @@ export function feedback(): Feedback {
 
 export function outboundLinks(): OutboundLinks {
   return kyselyOutboundLinks(db());
+}
+
+export function progress(): Progress {
+  return kyselyProgress(db());
 }
 
 export function adminSources(): AdminSources {

@@ -41,7 +41,9 @@ export const EVENT_VERSIONS = {
 } as const satisfies Record<EventName, number>;
 
 export const propsSchemas = {
-  article_finished: z.strictObject({}),
+  article_finished: z.strictObject({
+    method: z.enum(["return_prompt", "mark_done"]),
+  }),
   card_impression: z.strictObject({}),
   card_opened: z.strictObject({
     kind: z.enum(["moment", "article"]),
