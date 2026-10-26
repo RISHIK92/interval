@@ -17,11 +17,13 @@ from interval_db.generated import (
     AiFeature,
     AiProvider,
     BetaGroup,
+    BreakLength,
     Capability,
     ConceptEdgeType,
     Difficulty,
     MomentLinkType,
     RightsProfile,
+    Topic,
 )
 from interval_db.messages import MessageName
 from interval_jobs.events.generated import Envelope
@@ -474,6 +476,8 @@ class ItemTags(Protocol):
 @dataclass(frozen=True)
 class SimilarMoment:
     moment_id: int
+    item_id: int
+    source_id: int
     score: float  # cosine similarity, 1 is identical
 
 
@@ -503,6 +507,10 @@ class MomentEmbeddings(Protocol):
 
     def clear(self, item_id: int) -> None: ...
 
+    def vectors_of_item(self, item_id: int, model: str) -> list[list[float]]:
+        """The item's moment vectors from this model (ranking's anchors)."""
+        ...
+
     def similar(
         self,
         vector: list[float],
@@ -510,9 +518,60 @@ class MomentEmbeddings(Protocol):
         *,
         source_ids: list[int] | None = None,
         difficulties: list[Difficulty] | None = None,
+        model: str | None = None,
+        exclude_sources: set[int] | None = None,
+        exclude_items: set[int] | None = None,
     ) -> list[SimilarMoment]:
         """Nearest moments first, in one query filtered by rights, source and
-        difficulty (DB-3). A difficulty filter leaves out untagged moments."""
+        difficulty (DB-3). A difficulty filter leaves out untagged moments; `model`
+        keeps to one model's vectors, which are the only ones comparable. Only the copy
+        of a duplicate group the feed shows, from active sources, is returned."""
+        ...
+
+
+@dataclass(frozen=True)
+class UserPreferences:
+    """The explicit layer (PER-1), written by the web app's onboarding (P1-W4-S01)."""
+
+    topics: list[Topic]
+    level: Difficulty
+    break_length: BreakLength
+
+
+@dataclass(frozen=True)
+class CandidateMoment:
+    moment_id: int
+    item_id: int
+    source_id: int
+
+
+class RankingInputs(Protocol):
+    """What ranking reads (REC-1, Q-P1-15): a user's choices and feedback, which the
+    web app writes, and the moments that match them."""
+
+    def preferences(self, user_id: str) -> UserPreferences | None: ...
+
+    def hidden_sources(self, user_id: str) -> set[int]: ...
+
+    def not_interested(self, user_id: str) -> set[int]:
+        """Item ids the user said Not interested to: never shown again."""
+        ...
+
+    def liked_items(self, user_id: str, limit: int) -> list[int]:
+        """Items the user said More like this to, newest first."""
+        ...
+
+    def topic_moments(
+        self,
+        topics: list[Topic],
+        limit: int,
+        *,
+        exclude_sources: set[int],
+        exclude_items: set[int],
+    ) -> list[CandidateMoment]:
+        """Moments whose item's concepts (an admin's correction first, else the model's
+        tags) or source's seed topics match, newest first. Only the copy of a duplicate
+        group the feed shows, from active sources."""
         ...
 
 
@@ -561,6 +620,9 @@ class Store(Protocol):
 
     @property
     def embeddings(self) -> MomentEmbeddings: ...
+
+    @property
+    def ranking(self) -> RankingInputs: ...
 
 
 class Fetcher(Protocol):

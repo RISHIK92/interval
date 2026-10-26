@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding) done. Next: W4-S02 (candidates), S03 (scoring), S04 (precomputed feed). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding) and W4-S02 (candidates) done. Next: W4-S03 (scoring), S04 (precomputed feed). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -16,6 +16,7 @@ Dependencies added overnight (all pinned):
 - pnpm `allowBuilds: msgpackr-extract: false`: BullMQ's optional native speed-up; the JS fallback works.
 
 Needs your review (newest first):
+- W4-S02: continue items deferred to W5-S03; More like this used as the similarity anchor until saves and finishes exist; items without moments can't be candidates yet (W4-S05's whole-article chip needs an item-level path).
 - W3-S02: docs/conflicts.md C-35 (title and summary of metadata-only items go to the tagging model) and C-36 (what AI-3's citations mean for tags).
 - W3-S01: the provisional concept list (`workers/jobs/seeds/concepts.yaml`, 72 concepts drafted overnight) and the Voyage price table in `adapters/voyage.py`.
 - W3-S03: docs/conflicts.md C-34 (a short intro vs the 2-minute merge rule); built as the intro always being its own moment.
@@ -1011,3 +1012,25 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - **W1-S12 (merge):** preferences are one row per user, so a guest-to-account merge is whole-row. Q-P1-11's "fill only fields the account never set" would be per field; decide whole-row vs per field when S12 is built.
   - **`concept.topic`** still checks the topic list as text; moving it to the `topic` enum is a follow-up.
   - **Readers of `topic[]`:** they must select it as `text[]`, because node-pg (and psycopg) don't parse arrays of unregistered enum types.
+
+### 2026-10-26 — P1-W4-S02 (candidate generation, REC-1, Q-P1-13/14/15, ADR-0008; overnight)
+- Done:
+  - **Migration `20261026110000_feedback.sql`:** `user_hidden_source` and `item_feedback` (more_like_this, less_like_this, not_interested). The feedback controls (W4-S07) write them; candidates read them now.
+  - **`ranking/candidates.py`:**
+    - topic match: moments whose item's concepts (the admin's correction first, else the model's tags) or source's seed topics match the user's topics;
+    - embedding similarity: moments near those of items the user marked More like this, from the same model only;
+    - hidden sources and Not interested items are excluded in the queries, before their limits;
+    - only the copy of a duplicate group the feed shows, from active sources, is offered.
+  - **`RankingInputs` port** (Postgres and memory): preferences, hidden sources, Not interested and liked items, topic moments. `similar()` gains model and exclusion filters and returns item and source ids.
+- Review fixes:
+  - candidates kept primaries only, against the owner's "earliest copy with moments" rule (a blocker);
+  - exclusions applied after the similarity limit;
+  - inactive sources and duplicate copies leaked through similarity;
+  - tests for the similarity path's exclusions and the SQL edge cases;
+  - an ordering mismatch between the memory fake and Postgres;
+  - the feedback key's open semantics noted for W4-S07.
+- Also fixed: the compose config tests ran `docker` without `HOME`, so after a local Docker (OrbStack) change the CLI couldn't find its compose plugin. They now pass `HOME` through. Under heavy machine load (averages near 30) the AWS stack test's 60 s setup can time out; it passes at normal load.
+- Needs your review (decided overnight):
+  - **Deferred:** continue items need W5-S03's progress data, so that generator, and leaving finished items out, moved to W5-S03 (noted on that slice).
+  - **Similarity anchors:** Q-P1-13 names saved and finished items, which don't exist yet. More like this stands in, and saves and finishes join when they exist.
+  - **Whole articles:** metadata-only, excerpt, moments-off and headingless items have no moments, so they can never be candidates. W4-S05's 8–15 chip shows whole articles, so ranking needs an item-level path there.

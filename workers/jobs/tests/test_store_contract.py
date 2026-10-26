@@ -9,12 +9,13 @@ from collections.abc import Iterator
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
-from typing import Protocol
+from typing import Protocol, get_args
+from uuid import uuid4
 
 import psycopg
 import pytest
 
-from interval_db.generated import RightsProfile
+from interval_db.generated import RightsProfile, Topic
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore
 from interval_jobs.concepts.graph import ConceptSeedError, parse_concepts
@@ -35,6 +36,7 @@ from interval_jobs.ports import (
     TagResult,
     Tags,
     Usage,
+    UserPreferences,
     Validators,
 )
 
@@ -66,6 +68,11 @@ class Probe(Protocol):
     def reset_concepts(self) -> None: ...
     def set_boundaries(self, item_id: int, headings: list[str]) -> None: ...
     def switch_moments_off(self, source_id: int, off: bool) -> None: ...
+    # What the web app writes about a user (P1-W4-S01, W4-S07).
+    def set_preferences(self, user_id: str, topics: list[str]) -> None: ...
+    def give_feedback(self, user_id: str, item_id: int, kind: str) -> None: ...
+    def hide_source(self, user_id: str, source_id: int) -> None: ...
+    def correct_concepts(self, item_id: int, slugs: list[str]) -> None: ...
     def override_level(self, item_id: int, heading: str, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
 
@@ -127,6 +134,20 @@ class MemoryProbe:
 
     def switch_moments_off(self, source_id: int, off: bool) -> None:
         self.s.sources.switch_moments_off(source_id, off)
+
+    def set_preferences(self, user_id: str, topics: list[str]) -> None:
+        self.s.ranking.preferences_by_user[user_id] = UserPreferences(
+            [t for t in get_args(Topic.__value__) if t in topics], "beginner", "3-8"
+        )
+
+    def give_feedback(self, user_id: str, item_id: int, kind: str) -> None:
+        self.s.ranking.feedback.append((user_id, item_id, kind))
+
+    def hide_source(self, user_id: str, source_id: int) -> None:
+        self.s.ranking.hidden.add((user_id, source_id))
+
+    def correct_concepts(self, item_id: int, slugs: list[str]) -> None:
+        self.s.tags.item_concept_overrides[item_id] = frozenset(slugs)
 
     def override_level(self, item_id: int, heading: str, level: str) -> None:
         assert level in ("beginner", "intermediate", "advanced")
@@ -263,6 +284,33 @@ class PostgresProbe:
             "insert into tag_override (content_item_id, heading, difficulty, "
             "concepts, updated_by) values (%s, %s, %s, '{}', 'contract-test')",
             (item_id, heading, level),
+        )
+
+    def set_preferences(self, user_id: str, topics: list[str]) -> None:
+        self.conn.execute(
+            "insert into user_preferences (user_id, topics, level, break_length) "
+            "values (%s, %s::topic[], 'beginner', '3-8')",
+            (user_id, topics),
+        )
+
+    def give_feedback(self, user_id: str, item_id: int, kind: str) -> None:
+        self.conn.execute(
+            "insert into item_feedback (user_id, content_item_id, kind) "
+            "values (%s, %s, %s)",
+            (user_id, item_id, kind),
+        )
+
+    def hide_source(self, user_id: str, source_id: int) -> None:
+        self.conn.execute(
+            "insert into user_hidden_source (user_id, source_id) values (%s, %s)",
+            (user_id, source_id),
+        )
+
+    def correct_concepts(self, item_id: int, slugs: list[str]) -> None:
+        self.conn.execute(
+            "insert into tag_override (content_item_id, heading, difficulty, concepts, "
+            "updated_by) values (%s, '', 'beginner', %s, 'contract-test')",
+            (item_id, slugs),
         )
 
     def switch_moments_off(self, source_id: int, off: bool) -> None:
@@ -1468,6 +1516,10 @@ def test_similar_moments_filter_by_rights_source_and_difficulty(
     ours = {a0, a1, b0}
     hits = [h.moment_id for h in s.embeddings.similar(query, 50) if h.moment_id in ours]
     assert hits == [a0, b0, a1]  # nearest first
+    # Vectors from another model aren't comparable, so they never match (P1-W4-S02).
+    other = s.embeddings.similar(query, 50, model="voyage-3-large")
+    assert not [h for h in other if h.moment_id in ours]
+    assert s.embeddings.vectors_of_item(item_b, "voyage-3.5")[0][:2] == [0.9, 0.1]
     by_source = s.embeddings.similar(query, 50, source_ids=[b])
     assert [h.moment_id for h in by_source] == [b0]
     by_level = s.embeddings.similar(query, 50, difficulties=["beginner"])
@@ -1602,3 +1654,107 @@ def test_the_seed_file_and_the_admin_switch_both_have_to_allow_moments(
     s.sources.sync([seed("both", moments_enabled=False)])  # now the seed says off
     record = s.sources.get(sid)
     assert record is not None and record.moments_enabled is False
+
+
+# REC-1 (P1-W4-S02): what ranking reads about a user.
+def test_readers_return_preferences_feedback_and_topic_moments(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(
+        s,
+        parse_concepts(
+            "version: 1\nconcepts:\n"
+            "  - {slug: rd-raft, name: Raft, topic: distributed-systems}\n"
+            "  - {slug: rd-index, name: Index, topic: databases}\n",
+            "c.yaml",
+        ),
+    )
+    user = f"readers-{uuid4().hex[:8]}"
+    probe.add_user(user, False, [])
+    assert s.ranking.preferences(user) is None
+    probe.set_preferences(user, ["databases", "backend"])
+    prefs = s.ranking.preferences(user)
+    assert prefs is not None and prefs.topics == ["databases", "backend"]
+
+    plain = dup_source(s, "rd-plain")  # seed topics: none
+    probe.enable_moments(plain)
+    by_tag = dup_item(s, plain, "rd1", 3)
+    by_correction = dup_item(s, plain, "rd2", 2)
+    off_topic = dup_item(s, plain, "rd3", 1)
+    for item in (by_tag, by_correction, off_topic):
+        s.moments.replace(item, [moment(0, f"rd-{item}")])
+    s.tags.save(
+        by_tag, TagResult(Tags("beginner", frozenset({"rd-index"})), {}), "m", 1
+    )
+    s.tags.save(
+        by_correction, TagResult(Tags("beginner", frozenset({"rd-raft"})), {}), "m", 1
+    )
+    probe.correct_concepts(by_correction, ["rd-index"])  # the admin wins
+    s.tags.save(
+        off_topic, TagResult(Tags("beginner", frozenset({"rd-raft"})), {}), "m", 1
+    )
+    mine = {by_tag, by_correction, off_topic}
+    rows = s.ranking.topic_moments(
+        ["databases"], 1000, exclude_sources=set(), exclude_items=set()
+    )
+    assert [r.item_id for r in rows if r.item_id in mine] == [by_tag, by_correction]
+
+    probe.give_feedback(user, by_tag, "not_interested")
+    probe.give_feedback(user, by_correction, "more_like_this")
+    probe.hide_source(user, plain)
+    assert s.ranking.not_interested(user) == {by_tag}
+    assert s.ranking.liked_items(user, 5) == [by_correction]
+    assert s.ranking.hidden_sources(user) == {plain}
+    rows = s.ranking.topic_moments(
+        ["databases"], 1000, exclude_sources={plain}, exclude_items=set()
+    )
+    assert not [r for r in rows if r.item_id in mine]
+
+
+def test_topic_moments_offer_the_shown_copy_of_active_sources_in_order(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(
+        s,
+        parse_concepts(
+            "version: 1\nconcepts:\n  - {slug: tm-idx, name: I, topic: databases}\n",
+            "c.yaml",
+        ),
+    )
+    url = "https://dup.example.test/tm-shared"
+    listing = dup_item(s, dup_source(s, "tm-list", "metadata_only"), "tm1", 1, url=url)
+    full = dup_source(s, "tm-full")
+    probe.enable_moments(full)
+    original = dup_item(s, full, "tm2", 2, url=url)
+    s.items.link_duplicates(original)
+    newer = dup_item(s, full, "tm3", 5)
+    emptied = dup_item(s, full, "tm4", 4)
+    for item in (original, newer, emptied):
+        s.moments.replace(item, [moment(0, f"tm-{item}a"), moment(1, f"tm-{item}b")])
+        s.tags.save(
+            item, TagResult(Tags("beginner", frozenset({"tm-idx"})), {}), "m", 1
+        )
+    probe.correct_concepts(emptied, [])  # an admin removed every concept: no match
+
+    def offered(limit: int = 1000) -> list[tuple[int, int]]:
+        rows = s.ranking.topic_moments(
+            ["databases"], limit, exclude_sources=set(), exclude_items=set()
+        )
+        mine = {original, newer, emptied, listing}
+        return [(r.item_id, r.moment_id) for r in rows if r.item_id in mine]
+
+    got = offered()
+    # The original (a full-text duplicate of an earlier metadata-only listing) is
+    # offered; the listing has no moments. Newest item first, then reading order.
+    assert [item for item, _ in got] == [newer, newer, original, original]
+    assert got[0][1] < got[1][1]
+    assert (
+        s.ranking.topic_moments([], 10, exclude_sources=set(), exclude_items=set())
+        == []
+    )
+    s.sources.sync([seed("other-only")])  # tm-full leaves the seed list: inactive
+    assert offered() == []

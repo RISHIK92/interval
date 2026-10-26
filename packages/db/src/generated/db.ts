@@ -27,6 +27,8 @@ export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
 
 export type Difficulty = "advanced" | "beginner" | "intermediate";
 
+export type FeedbackKind = "less_like_this" | "more_like_this" | "not_interested";
+
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -211,6 +213,13 @@ export interface ItemEmbedding {
   model: string;
 }
 
+export interface ItemFeedback {
+  content_item_id: Int8;
+  given_at: Generated<Timestamp>;
+  kind: FeedbackKind;
+  user_id: string;
+}
+
 export interface ItemTagging {
   content_item_id: Int8;
   difficulty: Difficulty;
@@ -313,6 +322,12 @@ export interface UserEntitlement {
   user_id: string | null;
 }
 
+export interface UserHiddenSource {
+  hidden_at: Generated<Timestamp>;
+  source_id: Int8;
+  user_id: string;
+}
+
 export interface UserPreferences {
   break_length: BreakLength;
   level: Difficulty;
@@ -341,6 +356,7 @@ export interface DB {
   invite_code: InviteCode;
   item_concept: ItemConcept;
   item_embedding: ItemEmbedding;
+  item_feedback: ItemFeedback;
   item_tagging: ItemTagging;
   moment: Moment;
   moment_boundary_override: MomentBoundaryOverride;
@@ -354,5 +370,6 @@ export interface DB {
   tag_override: TagOverride;
   user_capability: UserCapability;
   user_entitlement: UserEntitlement;
+  user_hidden_source: UserHiddenSource;
   user_preferences: UserPreferences;
 }

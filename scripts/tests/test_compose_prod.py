@@ -41,7 +41,12 @@ def config(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
             "--format",
             "json",
         ],
-        env={"ENV_DIR": str(env_dir), "PATH": os.environ["PATH"]},
+        # HOME: the docker CLI finds its compose plugin under ~/.docker/cli-plugins.
+        env={
+            "ENV_DIR": str(env_dir),
+            "PATH": os.environ["PATH"],
+            "HOME": os.environ["HOME"],
+        },
         capture_output=True,
         text=True,
         check=True,

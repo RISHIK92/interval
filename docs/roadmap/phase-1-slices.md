@@ -361,6 +361,7 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - IDs: §3.2, §5C
 - Needs: W5-S02
 - Goal: moment progress is tracked per user, half-read articles produce continue cards, and finishing every moment marks the article finished.
+- Carried over from W4-S02 (2026-10-26, overnight): the continue-items candidate generator (REC-1) and leaving finished items out of candidates, both needing this slice's progress data.
 - Acceptance: tests: continue card points at the next unfinished moment; `article_finished` emitted once.
 - Out of scope: mastery (Phase 2).
 - Q: Q-P1-05, Q-P1-35, Q-P1-40.

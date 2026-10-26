@@ -12,12 +12,19 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
-from interval_db.generated import BetaGroup, Capability, Difficulty, RightsProfile
+from interval_db.generated import (
+    BetaGroup,
+    Capability,
+    Difficulty,
+    RightsProfile,
+    Topic,
+)
 from interval_jobs.concepts.graph import refuse_cycles
 from interval_jobs.normalize import near_duplicates
 from interval_jobs.polling import START_INTERVAL
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
+    CandidateMoment,
     ConceptGraph,
     ConceptSeed,
     DuplicateInviteCode,
@@ -42,6 +49,7 @@ from interval_jobs.ports import (
     TagResult,
     Tags,
     Usage,
+    UserPreferences,
     Validators,
 )
 
@@ -678,8 +686,10 @@ class InMemoryItemTags:
         self._moments = moments
         # item id -> (item tags, moment tags by moment id, model, prompt version)
         self.rows: dict[int, tuple[Tags, dict[int, Tags], str, int]] = {}
-        # (item id, moment heading) -> level; the web admin page writes these
+        # The web admin page writes these: (item id, moment heading) -> level, and an
+        # item's corrected concepts
         self.overrides: dict[tuple[int, str], Difficulty] = {}
+        self.item_concept_overrides: dict[int, frozenset[str]] = {}
 
     def input(self, item_id: int) -> TagInput | None:
         item = self._items.rows.get(item_id)
@@ -765,6 +775,7 @@ class InMemoryEmbeddings:
         self._tags = tags
         self.rows: dict[int, tuple[str, list[float]]] = {}  # moment id -> model, vector
         self.complete: set[tuple[int, str]] = set()  # (item id, model)
+        self.store: InMemoryStore | None = None  # set by InMemoryStore
 
     def missing(self, item_id: int, model: str) -> bool:
         return (
@@ -797,6 +808,14 @@ class InMemoryEmbeddings:
         if complete:
             self.complete.add((item_id, model))
 
+    def vectors_of_item(self, item_id: int, model: str) -> list[list[float]]:
+        return [
+            vector
+            for m in self._moments.for_item(item_id)
+            for their_model, vector in [self.rows.get(m.id, ("", []))]
+            if their_model == model
+        ]
+
     def clear(self, item_id: int) -> None:
         for m in self._moments.for_item(item_id):
             self.rows.pop(m.id, None)
@@ -809,23 +828,34 @@ class InMemoryEmbeddings:
         *,
         source_ids: list[int] | None = None,
         difficulties: list[Difficulty] | None = None,
+        model: str | None = None,
+        exclude_sources: set[int] | None = None,
+        exclude_items: set[int] | None = None,
     ) -> list[SimilarMoment]:
         # Mirrors PostgresEmbeddings.similar; vectors of purged moments are gone.
         live = {m.id: m.item_id for m in self._moments.rows}
+        shown = shown_items(self.store) if self.store is not None else None
         hits: list[SimilarMoment] = []
-        for moment_id, (_, other) in self.rows.items():
+        for moment_id, (their_model, other) in self.rows.items():
             item_id = live.get(moment_id)
-            if item_id is None:
+            if item_id is None or (model is not None and their_model != model):
                 continue
             source = self._sources.rows[self._items.rows[item_id].source_id]
-            if source.rights_profile not in _FULL_TEXT:
+            if source.rights_profile not in _FULL_TEXT or not source.active:
+                continue
+            if shown is not None and item_id not in shown:
+                continue
+            if item_id in (exclude_items or set()) or source.id in (
+                exclude_sources or set()
+            ):
                 continue
             if source_ids is not None and source.id not in source_ids:
                 continue
             level = self._tags.moment_difficulty(item_id, moment_id)
             if difficulties is not None and level not in difficulties:
                 continue
-            hits.append(SimilarMoment(moment_id, _cosine(vector, other)))
+            score = _cosine(vector, other)
+            hits.append(SimilarMoment(moment_id, item_id, source.id, score))
         hits.sort(key=lambda h: -h.score)
         return hits[:limit]
 
@@ -834,6 +864,91 @@ def _cosine(a: list[float], b: list[float]) -> float:
     dot = sum(x * y for x, y in zip(a, b, strict=True))
     norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
     return dot / norm if norm else 0.0
+
+
+def shown_items(store: "InMemoryStore") -> set[int]:
+    """Per duplicate group, the earliest copy that has moments: what the feed shows
+    (owner review, 2026-10-26), and so what ranking may offer. Mirrors the SQL."""
+    with_moments = {m.item_id for m in store.moments.rows}
+    best: dict[int, StoredItem] = {}
+    for item_id in with_moments:
+        item = store.items.rows[item_id]
+        group = item.duplicate_of or item.id
+        current = best.get(group)
+        if current is None or _earlier(item, current):
+            best[group] = item
+    return {item.id for item in best.values()}
+
+
+class InMemoryRankingInputs:
+    """What ranking reads about a user (P1-W4-S02); the web app writes it in
+    production, tests set it here."""
+
+    def __init__(self, store: "InMemoryStore") -> None:
+        self._store = store
+        self.preferences_by_user: dict[str, UserPreferences] = {}
+        self.hidden: set[tuple[str, int]] = set()  # (user, source id)
+        # (user, item id, kind), oldest first: the order Postgres reads by given_at
+        self.feedback: list[tuple[str, int, str]] = []
+
+    def preferences(self, user_id: str) -> UserPreferences | None:
+        return self.preferences_by_user.get(user_id)
+
+    def hidden_sources(self, user_id: str) -> set[int]:
+        return {source for (user, source) in self.hidden if user == user_id}
+
+    def not_interested(self, user_id: str) -> set[int]:
+        return {
+            item
+            for user, item, kind in self.feedback
+            if user == user_id and kind == "not_interested"
+        }
+
+    def liked_items(self, user_id: str, limit: int) -> list[int]:
+        liked = [
+            item
+            for user, item, kind in reversed(self.feedback)
+            if user == user_id and kind == "more_like_this"
+        ]
+        return liked[:limit]
+
+    def topic_moments(
+        self,
+        topics: list[Topic],
+        limit: int,
+        *,
+        exclude_sources: set[int],
+        exclude_items: set[int],
+    ) -> list[CandidateMoment]:
+        # Mirrors PostgresRankingInputs.topic_moments.
+        store = self._store
+        graph = store.concepts.state()
+        topic_of = {c.slug: c.topic for c in graph.concepts} if graph else {}
+        wanted = set(topics)
+        shown = shown_items(store)
+        found: list[tuple[bool, float, int, int, CandidateMoment]] = []
+        for moment in store.moments.rows:
+            item = store.items.rows[moment.item_id]
+            source = store.sources.rows[item.source_id]
+            if item.id not in shown or not source.active:
+                continue
+            if source.id in exclude_sources or item.id in exclude_items:
+                continue
+            corrected = store.tags.item_concept_overrides.get(item.id)
+            tags, _ = store.tags.for_item(item.id)
+            concepts = (
+                corrected
+                if corrected is not None
+                else (tags.concepts if tags else frozenset[str]())
+            )
+            by_concept = any(topic_of.get(c) in wanted for c in concepts)
+            if not (wanted & set(source.topics) or by_concept):
+                continue
+            published = item.published_at.timestamp() if item.published_at else 0.0
+            row = CandidateMoment(moment.id, item.id, source.id)
+            undated = item.published_at is None
+            found.append((undated, -published, -item.id, moment.row.ordinal, row))
+        return [f[4] for f in sorted(found, key=lambda f: f[:4])][:limit]
 
 
 class InMemoryStore:
@@ -851,6 +966,8 @@ class InMemoryStore:
         self.embeddings = InMemoryEmbeddings(
             self.items, self.sources, self.moments, self.tags
         )
+        self.embeddings.store = self
+        self.ranking = InMemoryRankingInputs(self)
         self.sources.store = self
 
 

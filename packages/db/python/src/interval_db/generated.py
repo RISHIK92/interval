@@ -13,6 +13,7 @@ type Capability = Literal[
 ]
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type Difficulty = Literal["beginner", "intermediate", "advanced"]
+type FeedbackKind = Literal["more_like_this", "less_like_this", "not_interested"]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
@@ -188,6 +189,13 @@ class ItemEmbedding(TypedDict):
     embedded_at: datetime
 
 
+class ItemFeedback(TypedDict):
+    user_id: str
+    content_item_id: int
+    kind: FeedbackKind
+    given_at: datetime
+
+
 class ItemTagging(TypedDict):
     content_item_id: int
     difficulty: Difficulty
@@ -288,6 +296,12 @@ class UserEntitlement(TypedDict):
     user_id: str | None
     capability: Capability | None
     limit_value: int | None
+
+
+class UserHiddenSource(TypedDict):
+    user_id: str
+    source_id: int
+    hidden_at: datetime
 
 
 class UserPreferences(TypedDict):

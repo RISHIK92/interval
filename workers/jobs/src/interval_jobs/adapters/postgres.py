@@ -8,14 +8,24 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
+from typing import cast
 
 import psycopg
 from psycopg.rows import class_row
 
-from interval_db.generated import BetaGroup, Capability, Difficulty, RightsProfile
+from interval_db.generated import (
+    BetaGroup,
+    BreakLength,
+    Capability,
+    Difficulty,
+    RightsProfile,
+    Topic,
+)
+from interval_jobs.concepts.graph import TOPICS
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
+    CandidateMoment,
     ConceptCycleError,
     ConceptEdge,
     ConceptGraph,
@@ -39,6 +49,7 @@ from interval_jobs.ports import (
     TagResult,
     Tags,
     Usage,
+    UserPreferences,
     Validators,
 )
 
@@ -1047,13 +1058,25 @@ class PostgresEmbeddings:
         *,
         source_ids: list[int] | None = None,
         difficulties: list[Difficulty] | None = None,
+        model: str | None = None,
+        exclude_sources: set[int] | None = None,
+        exclude_items: set[int] | None = None,
     ) -> list[SimilarMoment]:
         # With filters, a plain HNSW scan returns at most ef_search candidates and
         # filters them afterwards; the iterative scan keeps going until `limit` match.
         self._conn.execute("set local hnsw.iterative_scan = strict_order")
         rows = self._conn.execute(
             """
-            select e.moment_id, 1 - (e.embedding <=> %(v)s::vector) as score
+            with shown_item as (
+              -- Per duplicate group, the earliest copy that has moments: the one the
+              -- feed shows (owner review, 2026-10-26).
+              select distinct on (coalesce(c.duplicate_of, c.id)) c.id
+              from content_item c
+              where exists (select 1 from moment x where x.content_item_id = c.id)
+              order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
+            )
+            select e.moment_id, m.content_item_id, ci.source_id,
+                   1 - (e.embedding <=> %(v)s::vector) as score
             from moment_embedding e
             join moment m on m.id = e.moment_id
             join content_item ci on ci.id = m.content_item_id
@@ -1065,6 +1088,9 @@ class PostgresEmbeddings:
              and o.heading = m.title and m.link_type <> 'page_top'
             where s.rights_profile in ('full_text_internal', 'full_text_display')
               and (%(sources)s::bigint[] is null or s.id = any(%(sources)s))
+              and (%(model)s::text is null or e.model = %(model)s)
+              and s.active and ci.id in (select id from shown_item)
+              and s.id <> all(%(no_sources)s) and ci.id <> all(%(no_items)s)
               and (
                 %(levels)s::difficulty[] is null
                 or coalesce(o.difficulty, t.difficulty) = any(%(levels)s)
@@ -1077,9 +1103,127 @@ class PostgresEmbeddings:
                 "sources": source_ids,
                 "levels": difficulties,
                 "limit": limit,
+                "model": model,
+                "no_sources": sorted(exclude_sources or set()),
+                "no_items": sorted(exclude_items or set()),
             },
         ).fetchall()
-        return [SimilarMoment(int(r[0]), float(r[1])) for r in rows]
+        return [
+            SimilarMoment(int(r[0]), int(r[1]), int(r[2]), float(r[3])) for r in rows
+        ]
+
+    def vectors_of_item(self, item_id: int, model: str) -> list[list[float]]:
+        rows = self._conn.execute(
+            "select e.embedding::text from moment_embedding e "
+            "join moment m on m.id = e.moment_id "
+            "where m.content_item_id = %s and e.model = %s order by m.ordinal",
+            (item_id, model),
+        ).fetchall()
+        return [[float(x) for x in str(r[0]).strip("[]").split(",")] for r in rows]
+
+
+class PostgresRankingInputs:
+    """What the web app writes about a user, read for ranking (P1-W4-S02)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def preferences(self, user_id: str) -> UserPreferences | None:
+        # psycopg doesn't parse arrays of an unregistered enum type: read as text[].
+        row = self._conn.execute(
+            "select topics::text[], level, break_length::text "
+            "from user_preferences where user_id = %s",
+            (user_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        # The column's enum types guarantee these values.
+        unknown = sorted(set(row[0]) - TOPICS)
+        if unknown:
+            raise ValueError(
+                f"user_preferences holds topics the worker lacks: {unknown}"
+            )
+        return UserPreferences(
+            topics=[cast(Topic, t) for t in row[0]],
+            level=row[1],
+            break_length=cast(BreakLength, row[2]),
+        )
+
+    def hidden_sources(self, user_id: str) -> set[int]:
+        rows = self._conn.execute(
+            "select source_id from user_hidden_source where user_id = %s", (user_id,)
+        ).fetchall()
+        return {int(r[0]) for r in rows}
+
+    def not_interested(self, user_id: str) -> set[int]:
+        rows = self._conn.execute(
+            "select content_item_id from item_feedback "
+            "where user_id = %s and kind = 'not_interested'",
+            (user_id,),
+        ).fetchall()
+        return {int(r[0]) for r in rows}
+
+    def liked_items(self, user_id: str, limit: int) -> list[int]:
+        rows = self._conn.execute(
+            "select content_item_id from item_feedback "
+            "where user_id = %s and kind = 'more_like_this' "
+            "order by given_at desc limit %s",
+            (user_id, limit),
+        ).fetchall()
+        return [int(r[0]) for r in rows]
+
+    def topic_moments(
+        self,
+        topics: list[Topic],
+        limit: int,
+        *,
+        exclude_sources: set[int],
+        exclude_items: set[int],
+    ) -> list[CandidateMoment]:
+        rows = self._conn.execute(
+            """
+            with shown_item as (
+              -- Per duplicate group, the earliest copy that has moments: the one the
+              -- feed shows (owner review, 2026-10-26).
+              select distinct on (coalesce(c.duplicate_of, c.id)) c.id
+              from content_item c
+              where exists (select 1 from moment x where x.content_item_id = c.id)
+              order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
+            )
+            select m.id, ci.id, s.id
+            from moment m
+            join content_item ci on ci.id = m.content_item_id
+            join source s on s.id = ci.source_id
+            left join tag_override o
+              on o.content_item_id = ci.id and o.heading = ''
+            where ci.id in (select id from shown_item) and s.active
+              and s.id <> all(%(sources)s) and ci.id <> all(%(items)s)
+              and (
+                s.topics && %(topics)s::text[]
+                or exists (
+                  select 1 from concept c
+                  where c.topic = any(%(topics)s)
+                    and (
+                      -- An admin's correction replaces the model's tags (P1-W3-S05).
+                      (o.content_item_id is not null and c.slug = any(o.concepts))
+                      or (o.content_item_id is null and c.id in (
+                        select concept_id from item_concept
+                        where content_item_id = ci.id
+                      ))
+                    )
+                )
+              )
+            order by ci.published_at desc nulls last, ci.id desc, m.ordinal
+            limit %(limit)s
+            """,
+            {
+                "topics": list(topics),
+                "sources": sorted(exclude_sources),
+                "items": sorted(exclude_items),
+                "limit": limit,
+            },
+        ).fetchall()
+        return [CandidateMoment(int(r[0]), int(r[1]), int(r[2])) for r in rows]
 
 
 class PostgresStore:
@@ -1095,6 +1239,7 @@ class PostgresStore:
         self.concepts = PostgresConcepts(conn)
         self.tags = PostgresItemTags(conn)
         self.embeddings = PostgresEmbeddings(conn)
+        self.ranking = PostgresRankingInputs(conn)
 
 
 @contextmanager
