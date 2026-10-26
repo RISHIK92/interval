@@ -16,6 +16,7 @@ const getPreferences = vi.fn<(userId: string) => Promise<object | null>>(() =>
     level: "beginner",
     breakLength: "3-8",
     onboardedAt: new Date("2026-01-01T00:00:00Z"),
+    firstName: null,
   }),
 );
 const notInterested = vi.fn<
@@ -84,6 +85,7 @@ const card: FeedCard = {
   note: null,
   saved: false,
   frameable: false,
+  topic: null,
 };
 
 async function render(
@@ -205,6 +207,7 @@ test("the 8–15 chip renders whole-article cards next to moments", async () => 
         note: null,
         saved: false,
         frameable: false,
+        topic: null,
       },
       card,
     ]),
@@ -265,9 +268,9 @@ test("the header links to the Profile page", async () => {
   );
 });
 
-// Design screen 2: the first card leads; the rest are rows under one heading. Not
-// "Also fits in …": an 8–15 feed holds whole articles longer than the break.
-test("the first card is the hero and the rest sit under More for your break", async () => {
+// ADR-0019: one full-size card at a time in a sideways row, so each title gets read;
+// no "More for your …" list.
+test("every card is full size in one sideways feed", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(
     feedOf([
@@ -276,17 +279,50 @@ test("the first card is the hero and the rest sit under More for your break", as
     ]),
   );
   const html = await render();
-  const [lead, also] = html.split("More for your 3–8 min break");
-  expect(also).toBeDefined();
-  expect(lead).toContain("Why consensus");
-  expect(lead).not.toContain(">Raft<");
-  expect(also).toContain(">Raft<");
-  expect(also).not.toContain("Why consensus");
-  // Only the hero's controls are full size.
-  expect(lead).toContain("size-11");
-  expect(also).toContain("size-9");
+  expect(html).not.toContain("More for your");
+  const feed = html.slice(html.indexOf('aria-label="Your feed"'));
+  expect(feed).toMatch(/^aria-label="Your feed"[^>]*tabindex="0"/i);
+  expect(feed).toMatch(/snap-x/);
+  expect(feed.match(/<li /g)).toHaveLength(2);
+  expect(feed).toContain("Why consensus");
+  expect(feed).toContain(">Raft<");
+  // Both cards have the full-size controls.
+  expect(feed.match(/size-11/g)?.length).toBeGreaterThanOrEqual(2);
+  expect(feed).not.toContain("size-9");
+});
+
+// ADR-0019: the design's right column, greyed until its features exist.
+test("the wide layout's column shows four coming-later panels", async () => {
+  current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(feedOf([card]));
-  expect(await render()).not.toContain("More for your");
+  const html = await render();
+  const column = html.slice(html.indexOf('aria-label="Coming later"'));
+  for (const name of [
+    "Streak",
+    "Your path",
+    "Review queue",
+    "Tonight’s battle",
+  ]) {
+    expect(column).toContain(name);
+  }
+  expect(column.match(/Coming later/g)?.length).toBeGreaterThanOrEqual(4);
+});
+
+// ADR-0019: the server says a plain hello by first name; the device picks the line.
+test("the heading greets by first name before the device picks a line", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  getPreferences.mockResolvedValueOnce({
+    goals: ["system-design-interviews"],
+    topics: ["backend"],
+    level: "beginner",
+    breakLength: "3-8",
+    onboardedAt: new Date("2026-01-01T00:00:00Z"),
+    firstName: "Ada",
+  });
+  const html = await render();
+  expect(html).toContain("How long is this break?");
+  expect(html).toMatch(/<h1[^>]*>Hey, Ada\.<\/h1>/);
 });
 
 // P1-W5-S02: the Now reading panel (C-22) and what comes after a finish.

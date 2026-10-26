@@ -11,20 +11,17 @@ export function ArticleCard({
   card,
   chip,
   position,
-  hero,
   controls,
 }: {
   card: ArticleFeedCard;
   chip: Chip;
   position: number;
-  hero: boolean;
   controls: ReactNode;
 }) {
   const minutes = card.estimatedMinutes;
   const length = minutes === null ? "Length unknown" : `${String(minutes)} min`;
   return (
     <FeedCardLayout
-      hero={hero}
       title={card.articleTitle}
       attribution={
         card.author ? `${card.sourceName} · ${card.author}` : card.sourceName
@@ -54,6 +51,7 @@ export function ArticleCard({
         inApp: card.frameable,
       }}
       originalHref={null}
+      topic={card.topic}
       controls={controls}
     />
   );

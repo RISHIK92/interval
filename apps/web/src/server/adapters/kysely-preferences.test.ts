@@ -75,6 +75,36 @@ test("onboarding's choices are kept once; a second create changes nothing", asyn
   });
 });
 
+// ADR-0019: Home greets the user by first name; a blank name greets no one.
+test("the account's first name comes with the preferences", async () => {
+  await withUser(async (trx, userId) => {
+    const store = kyselyPreferences(trx);
+    await store.createIfAbsent(userId, {
+      goals: ["system-design-interviews"],
+      topics: ["databases"],
+      level: "beginner",
+      breakLength: "1-3",
+    });
+    const named = async (name: string) => {
+      await trx
+        .updateTable("app_user")
+        .set({ name })
+        .where("id", "=", userId)
+        .execute();
+      return (await store.get(userId))?.firstName;
+    };
+    expect(await named("  Ada  Lovelace ")).toBe("Ada");
+    expect(await named("   ")).toBeNull();
+    // Better Auth names every guest "Anonymous".
+    await trx
+      .updateTable("app_user")
+      .set({ is_anonymous: true })
+      .where("id", "=", userId)
+      .execute();
+    expect(await named("Anonymous")).toBeNull();
+  });
+});
+
 test("the guest purge takes the preferences with the user", async () => {
   await withUser(async (trx, userId) => {
     const store = kyselyPreferences(trx);

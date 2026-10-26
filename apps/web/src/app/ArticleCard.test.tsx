@@ -14,6 +14,7 @@ const card: ArticleFeedCard = {
   note: null,
   saved: false,
   frameable: false,
+  topic: null,
 };
 
 function textOf(html: string): string {
@@ -26,7 +27,7 @@ function textOf(html: string): string {
 
 test("an article that fits says so, and links to the publisher's page", () => {
   const html = renderToStaticMarkup(
-    <ArticleCard card={card} chip="8-15" position={1} hero controls={null} />,
+    <ArticleCard card={card} chip="8-15" position={1} controls={null} />,
   );
   expect(textOf(html)).toBe(
     "Example Engineering · Rae Writer / Consensus in practice / " +
@@ -44,7 +45,6 @@ test("a longer article shows its length and never claims to fit", () => {
       card={{ ...card, estimatedMinutes: 22 }}
       chip="8-15"
       position={1}
-      hero
       controls={null}
     />,
   );
@@ -58,7 +58,6 @@ test("an article with no countable text says its length is unknown", () => {
       card={{ ...card, estimatedMinutes: null, author: null }}
       chip="8-15"
       position={1}
-      hero
       controls={null}
     />,
   );
@@ -77,7 +76,6 @@ test("shows its note like a moment card does", () => {
       }}
       chip="8-15"
       position={1}
-      hero
       controls={null}
     />,
   );
@@ -93,7 +91,6 @@ test("a frameable article opens in the in-app reader without a new tab", () => {
       card={{ ...card, frameable: true }}
       chip="8-15"
       position={2}
-      hero
       controls={null}
     />,
   );

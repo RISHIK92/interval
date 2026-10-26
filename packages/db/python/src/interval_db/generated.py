@@ -332,6 +332,7 @@ class StarterFeedVisible(TypedDict):
     note_text: str | None
     note_ai: bool | None
     frameable: bool | None
+    source_topic: Topic | None
 
 
 class TagOverride(TypedDict):
@@ -413,6 +414,7 @@ class UserFeedVisible(TypedDict):
     note_text: str | None
     note_ai: bool | None
     frameable: bool | None
+    source_topic: Topic | None
 
 
 class UserHiddenSource(TypedDict):

@@ -1,9 +1,9 @@
 import type { Chip } from "../server/chips";
 import { feedbackAction } from "./feedback/actions";
 
-// Round icon buttons (design screen 2): larger beside the hero's pill, compact on a row.
+// Round icon buttons beside the card's pill (design screen 2).
 const ROUND =
-  "flex shrink-0 cursor-pointer items-center justify-center rounded-full border border-hairline bg-page text-ink";
+  "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-hairline bg-page text-ink";
 const MENU_ITEM =
   "w-full rounded-xl px-3 py-2 text-left hover:bg-well focus-visible:bg-well";
 
@@ -14,15 +14,12 @@ export function CardControls({
   title,
   saved,
   chip,
-  compact,
 }: {
   itemId: string;
   title: string;
   saved: boolean;
   chip: Chip;
-  compact: boolean;
 }) {
-  const size = compact ? "size-9" : "size-11";
   // Every card has these buttons: the title tells them apart for a screen reader. The
   // Save button is only an icon, so its label is its whole name.
   return (
@@ -38,7 +35,7 @@ export function CardControls({
         name="control"
         value={saved ? "unsave" : "save"}
         aria-label={saved ? `Saved: unsave ${title}` : `Save ${title}`}
-        className={`${ROUND} ${size}`}
+        className={ROUND}
       >
         <svg
           aria-hidden="true"
@@ -54,12 +51,14 @@ export function CardControls({
       </button>
       <details className="relative">
         <summary
-          className={`${ROUND} ${size} list-none [&::-webkit-details-marker]:hidden`}
+          className={`${ROUND} list-none [&::-webkit-details-marker]:hidden`}
         >
           <span aria-hidden="true">…</span>
           <span className="sr-only">More options</span>
         </summary>
-        <div className="absolute top-full right-0 z-20 mt-2 flex w-52 flex-col rounded-2xl border border-hairline bg-page p-1 shadow-card">
+        {/* To the left of the button, rising from its foot: inside the card, where the
+          sideways feed row can't clip it (ADR-0019). */}
+        <div className="absolute right-full bottom-0 z-20 mr-2 flex w-52 flex-col rounded-2xl border border-hairline bg-page p-1 shadow-card">
           <button
             type="submit"
             name="control"

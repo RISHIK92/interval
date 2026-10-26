@@ -110,7 +110,7 @@ export default async function LibraryPage() {
     library().history(actor.userId, LIMIT),
   ]);
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[52rem] lg:pt-10 lg:pl-64">
       <div className="flex items-center justify-between">
         <h1 className="text-display">Library</h1>
         <Link href="/profile" className="text-sm font-semibold text-ink-muted">

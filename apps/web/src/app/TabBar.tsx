@@ -1,9 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-// The design's five tabs (owner, 2026-10-26; ADR-0017, which would amend ADR-0006
-// C-06). Home and Library work; Explore, Paths and Play arrive with their phases and
-// show disabled until then. Profile is reached from the header (Q-P1-19).
+// The design's five tabs (ADR-0017). Home and Library work; Explore, Paths and Play
+// arrive with their phases and show disabled until then. On wide screens the bar is
+// the design's sidebar (ADR-0019): the wordmark, Leagues (web only, disabled) and the
+// profile at the bottom; on phones Profile is reached from the header (Q-P1-19).
 type Current = "home" | "library";
 
 const icon = (path: ReactNode) => (
@@ -39,6 +40,15 @@ const ICONS = {
     </>,
   ),
   play: icon(<path d="M13 3L5 14h6l-1 7 8-11h-6z" />),
+  leagues: icon(
+    <path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M9 20h6M10 17h4" />,
+  ),
+  profile: icon(
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </>,
+  ),
   library: icon(
     <>
       <path d="M5 4v16M9 4v16" />
@@ -47,7 +57,9 @@ const ICONS = {
   ),
 };
 
-const TAB = "flex flex-1 flex-col items-center gap-1 py-2 text-xs";
+// A tab under an icon on phones; an icon and its name in a row in the sidebar.
+const TAB =
+  "flex flex-1 flex-col items-center gap-1 py-2 text-xs lg:flex-none lg:flex-row lg:gap-3 lg:rounded-xl lg:px-3 lg:py-2.5 lg:text-base";
 
 function Live(props: {
   href: string;
@@ -59,7 +71,7 @@ function Live(props: {
     <Link
       href={props.href}
       aria-current={props.current ? "page" : undefined}
-      className={`${TAB} ${props.current ? "font-semibold text-ink" : "text-ink-muted"}`}
+      className={`${TAB} ${props.current ? "font-semibold text-ink lg:bg-well" : "text-ink-muted"}`}
     >
       {props.icon}
       {props.name}
@@ -67,11 +79,11 @@ function Live(props: {
   );
 }
 
-function Later(props: { name: string; icon: ReactNode }) {
+function Later(props: { name: string; icon: ReactNode; wideOnly?: boolean }) {
   return (
     <span
       aria-disabled="true"
-      className={`${TAB} cursor-not-allowed text-ink-muted opacity-40`}
+      className={`${TAB} ${props.wideOnly === true ? "hidden lg:flex " : ""}cursor-not-allowed text-ink-muted opacity-40`}
     >
       {props.icon}
       {props.name}
@@ -84,8 +96,18 @@ export function TabBar({ current }: { current: Current }) {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-10 flex border-t border-hairline bg-page pb-[env(safe-area-inset-bottom)]"
+      className="fixed inset-x-0 bottom-0 z-10 flex border-t border-hairline bg-page pb-[env(safe-area-inset-bottom)] lg:inset-y-0 lg:right-auto lg:w-60 lg:flex-col lg:gap-1 lg:border-t-0 lg:border-r lg:px-3 lg:py-6"
     >
+      <span className="mb-6 hidden items-center gap-2 px-3 text-title lg:flex">
+        <span
+          aria-hidden="true"
+          className="flex size-8 items-center justify-center rounded-lg bg-ink text-page"
+        >
+          I
+          <span className="size-1.5 rounded-full bg-go" />
+        </span>
+        Interval
+      </span>
       <Live
         href="/"
         name="Home"
@@ -95,12 +117,20 @@ export function TabBar({ current }: { current: Current }) {
       <Later name="Explore" icon={ICONS.explore} />
       <Later name="Paths" icon={ICONS.paths} />
       <Later name="Play" icon={ICONS.play} />
+      <Later name="Leagues" icon={ICONS.leagues} wideOnly />
       <Live
         href="/library"
         name="Library"
         current={current === "library"}
         icon={ICONS.library}
       />
+      <Link
+        href="/profile"
+        className="mt-auto hidden items-center gap-3 rounded-xl px-3 py-2.5 text-ink-muted hover:bg-well lg:flex"
+      >
+        {ICONS.profile}
+        Profile and settings
+      </Link>
     </nav>
   );
 }

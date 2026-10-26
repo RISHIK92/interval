@@ -198,6 +198,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
           note: null,
           saved: false,
           frameable: false,
+          topic: null,
         },
       ],
     });
@@ -252,6 +253,7 @@ test("a whole article reads as an article card, before or after moments", async 
       note: null,
       saved: false,
       frameable: false,
+      topic: null,
     });
     expect(cards.map((c) => c.kind)).toEqual(["article", "moment"]);
   });
@@ -365,6 +367,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     note_ai: false,
     saved: false,
     frameable: false,
+    source_topic: null,
   });
 
   expect(card).toBeNull();
@@ -385,6 +388,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
       note_ai: true,
       saved: false,
       frameable: false,
+      source_topic: null,
     }),
   ).toEqual({
     kind: "article",
@@ -396,6 +400,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     note: { text: "New this week.", ai: true },
     saved: false,
     frameable: false,
+    topic: null,
   });
   expect(lines).toHaveLength(1);
   const logged = JSON.parse(lines[0] ?? "") as Record<string, unknown>;
@@ -607,6 +612,40 @@ test("cards say whether their page can be framed, unknown reading as no", async 
       .where("id", "=", itemId)
       .execute();
     expect(await framed()).toBe(true);
+  });
+});
+
+// ADR-0019: a card's picture comes from its source's first topic Interval knows.
+test("cards carry their source's first known topic, or none", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const [first] = momentIds;
+    if (first === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_feed_entry")
+      .values({
+        user_id: userId,
+        chip: "3-8",
+        content_item_id: itemId,
+        moment_id: first,
+        rank: 1,
+        top_signal: "quality",
+      })
+      .execute();
+    await trx
+      .insertInto("user_feed_state")
+      .values({ user_id: userId, computed_at: new Date() })
+      .execute();
+    const topic = async (topics: string[]) => {
+      await trx
+        .updateTable("source")
+        .set({ topics })
+        .where("name", "=", "webfeed-test")
+        .execute();
+      return (await kyselyFeedReader(trx).read(userId, "3-8", 50)).cards[0]
+        ?.topic;
+    };
+    expect(await topic([])).toBeNull();
+    expect(await topic(["frontend", "databases", "backend"])).toBe("databases");
   });
 });
 

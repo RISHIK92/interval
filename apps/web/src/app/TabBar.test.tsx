@@ -24,11 +24,30 @@ test.each(["home", "library"] as const)(
   },
 );
 
-test("Explore, Paths and Play are not links, and say they're coming later", () => {
+test("Explore, Paths, Play and Leagues are not links, and say they're coming later", () => {
   const html = renderToStaticMarkup(<TabBar current="home" />);
-  expect(html.match(/aria-disabled="true"/g)).toHaveLength(3);
-  expect(html.match(/<a /g)).toHaveLength(2);
-  for (const name of ["Explore", "Paths", "Play"]) {
+  expect(html.match(/aria-disabled="true"/g)).toHaveLength(4);
+  for (const name of ["Explore", "Paths", "Play", "Leagues"]) {
     expect(html).toContain(`${name}<span class="sr-only">Coming later</span>`);
   }
+});
+
+// ADR-0019: on wide screens the bar is the design's sidebar, with the wordmark,
+// Leagues (web only) and the profile at the bottom; phones keep five tabs.
+test("Leagues, the wordmark and the profile show only in the wide sidebar", () => {
+  const html = renderToStaticMarkup(<TabBar current="home" />);
+  // Hidden on phones, shown in the sidebar: the class has both.
+  const wide = String.raw`class="(?=[^"]*\bhidden\b)(?=[^"]*lg:flex)[^"]*"`;
+  // Anchored on the Leagues item itself: its span, its icon, its name.
+  expect(html).toMatch(
+    new RegExp(`<span aria-disabled="true" ${wide}><svg[^]*?</svg>Leagues<`),
+  );
+  expect(html).toMatch(new RegExp(`<span[^>]*${wide}[^>]*>.*?Interval`));
+  expect(html).toMatch(
+    new RegExp(
+      `<a(?=[^>]*href="/profile")[^>]*${wide}[^>]*>.*?Profile and settings`,
+    ),
+  );
+  // Home, Library and the profile are the only links.
+  expect(html.match(/<a /g)).toHaveLength(3);
 });

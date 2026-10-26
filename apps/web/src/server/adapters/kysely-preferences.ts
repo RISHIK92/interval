@@ -8,6 +8,7 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
     async get(userId) {
       const row = await db
         .selectFrom("user_preferences")
+        .innerJoin("app_user", "app_user.id", "user_preferences.user_id")
         .select([
           // node-pg doesn't parse arrays of an enum type it doesn't know (topic[]):
           // read them as text[] and keep the values the enum allows.
@@ -16,6 +17,8 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
           "level",
           "break_length",
           "onboarded_at",
+          "app_user.name",
+          "app_user.is_anonymous",
         ])
         .where("user_id", "=", userId)
         .executeTakeFirst();
@@ -28,6 +31,10 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
         level: row.level,
         breakLength: row.break_length,
         onboardedAt: row.onboarded_at,
+        // A guest is named "Anonymous" by Better Auth: no name to greet.
+        firstName: row.is_anonymous
+          ? null
+          : row.name.trim().split(/\s+/)[0] || null,
       };
     },
 

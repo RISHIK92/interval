@@ -364,6 +364,7 @@ export interface StarterFeedVisible {
   section_number: number | null;
   section_title: string | null;
   source_name: string | null;
+  source_topic: Topic | null;
   topic: string | null;
 }
 
@@ -445,6 +446,7 @@ export interface UserFeedVisible {
   section_number: number | null;
   section_title: string | null;
   source_name: string | null;
+  source_topic: Topic | null;
   user_id: string | null;
 }
 

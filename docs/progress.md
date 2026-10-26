@@ -1764,3 +1764,15 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `docs/product.md` §5D still says "Read on site".
 - Not tested: ReaderFrame's timer phases (no DOM test library).
 - Follow-up (owner answers, 2026-10-26): an in-app reader open sets the Now reading cookie (in the proxy, only for the `/read` shapes the page accepts); Next section counts as an open of that section from the same card (`card_opened` in_app from a feed card, `continue_clicked` from a Continue card, nothing after Save). `product.md` §5D "Read on site" left as is. Reviewer: the cookie was set for malformed `/read` links, now fixed. Note: each Next section adds an open to the finished-rate denominator.
+
+### 2026-10-26 — Web Home redesign (ADR-0019, accepted)
+
+- Owner choices: match "Web · Home" of the owner's design file; the feed moves sideways, one full-size card at a time, with only a ~10px sliver of the next card as the hint (no dots, arrows or words); the right column shows greyed "Coming later" panels; Leagues in the web sidebar, disabled; a nerdy, meme-y greeting.
+- Done:
+  - `TabBar`: bottom bar on phones (five tabs), a sidebar at `lg` (wordmark, Leagues disabled and web only, Profile and settings at the bottom); Library makes room for it;
+  - Home: "How long is this break?" plus the greeting, chips beside it at `lg`; a scroll-snapped feed region ("Your feed", keyboard scrollable); `ComingLater` column (Streak, Your path, Review queue, Tonight's battle);
+  - cards: one shape for all, topic picture (`TopicArt`) from the source's first known topic (migration `20261027030000_feed_topic.sql`, view column `source_topic`); the "…" menu opens to the left of its button so the row can't clip it; the compact row layout is gone;
+  - greeting: `greetings.ts` (18 lines, by part of day, weekday, chip, first Continue card, first name), picked on the device in `Greeting.tsx`; `PreferencesStore.get` returns `firstName` (none for a guest).
+- Review fixes: guests were greeted "Anonymous" (now no name); the menu could clip on short cards; a Leagues test that couldn't fail; ADR wording matched to the code; per-card "Card n of N" labels dropped; `aria-disabled` off the static panels; "Review queue" per the glossary.
+- Checked in Chrome: 1440 and 390 wide, dark mode, arrow-key scrolling, the menu on a card without a picture.
+- Not done: a plain mouse wheel doesn't scroll the row sideways (trackpad, shift+wheel and arrow keys do); the sidebar shows a person icon, not the user's initials.

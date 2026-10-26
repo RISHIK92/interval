@@ -10,13 +10,11 @@ export function MomentCard({
   card,
   chip,
   position,
-  hero,
   controls,
 }: {
   card: MomentFeedCard;
   chip: Chip;
   position: number;
-  hero: boolean;
   controls: ReactNode;
 }) {
   const out = {
@@ -27,22 +25,15 @@ export function MomentCard({
   };
   return (
     <FeedCardLayout
-      hero={hero}
       title={card.sectionTitle}
       attribution={
         card.author ? `${card.sourceName} · ${card.author}` : card.sourceName
       }
       context={
         // A section at the top of its article carries the article's title: say it once.
-        hero
-          ? card.articleTitle === card.sectionTitle
-            ? null
-            : card.articleTitle
-          : `${card.articleTitle === card.sectionTitle ? "" : `${card.articleTitle} · `}Section ${String(card.sectionNumber)} of ${String(card.sectionCount)}`
+        card.articleTitle === card.sectionTitle ? null : card.articleTitle
       }
-      section={
-        hero ? { number: card.sectionNumber, count: card.sectionCount } : null
-      }
+      section={{ number: card.sectionNumber, count: card.sectionCount }}
       length={`${String(card.estimatedMinutes)} min reading`}
       fits={`Fits your ${chipLabel(chip)} break`}
       note={card.note}
@@ -57,6 +48,7 @@ export function MomentCard({
         inApp: card.frameable,
       }}
       originalHref={outHref({ ...out, target: "original" })}
+      topic={card.topic}
       controls={controls}
     />
   );

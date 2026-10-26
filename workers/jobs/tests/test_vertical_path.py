@@ -105,6 +105,8 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         "note_ai",
         # ADR-0018: whether the in-app reader may frame the page; no source text.
         "frameable",
+        # ADR-0019: the source's topic, for the card's picture; no source text.
+        "source_topic",
     }
     for view, keys in (
         ("user_feed_visible", {"user_id", "chip"}),

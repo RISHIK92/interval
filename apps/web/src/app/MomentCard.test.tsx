@@ -17,6 +17,7 @@ const card: MomentFeedCard = {
   note: null,
   saved: false,
   frameable: false,
+  topic: null,
 };
 
 function textOf(html: string): string {
@@ -29,7 +30,7 @@ function textOf(html: string): string {
 
 test("links to the publisher's section in a new tab without leaking the opener", () => {
   const html = renderToStaticMarkup(
-    <MomentCard card={card} chip="3-8" position={4} hero controls={null} />,
+    <MomentCard card={card} chip="3-8" position={4} controls={null} />,
   );
   // Through /out, which records the open (P1-W5-S01); the URL is looked up there.
   expect(html).toContain(
@@ -42,9 +43,9 @@ test("links to the publisher's section in a new tab without leaking the opener",
   expect(html).toContain('rel="noopener noreferrer"');
 });
 
-test("as the hero, renders only the card fields: attribution, title, article, position, length and fit", () => {
+test("renders only the card fields: attribution, title, article, position, length and fit", () => {
   const html = renderToStaticMarkup(
-    <MomentCard card={card} chip="3-8" position={1} hero controls={null} />,
+    <MomentCard card={card} chip="3-8" position={1} controls={null} />,
   );
   expect(textOf(html)).toBe(
     "Example Engineering · Rae Writer / Raft in one page / Consensus in practice / " +
@@ -58,31 +59,12 @@ test("as the hero, renders only the card fields: attribution, title, article, po
   expect(html.match(/bg-track/g)).toHaveLength(2);
 });
 
-// Rows sit under "Also fits in …", so they don't repeat the fit.
-test("as a row, keeps the same links and fields without the fit", () => {
-  const html = renderToStaticMarkup(
-    <MomentCard
-      card={card}
-      chip="3-8"
-      position={2}
-      hero={false}
-      controls={<button type="button">Menu</button>}
-    />,
-  );
-  expect(textOf(html)).toBe(
-    "Raft in one page / 3 min reading · Example Engineering · Rae Writer / " +
-      "Consensus in practice · Section 2 of 4 / Read article / Open original website / Menu",
-  );
-  expect(html).toMatch(/<a[^>]*data-item="70"[^>]*data-moment="7"/);
-});
-
 test("omits the author when unknown", () => {
   const html = renderToStaticMarkup(
     <MomentCard
       card={{ ...card, author: null }}
       chip="1-3"
       position={1}
-      hero
       controls={null}
     />,
   );
@@ -96,7 +78,6 @@ test("shows the card's note, with an AI label only when a model wrote it", () =>
       card={{ ...card, note: { text: "New this week.", ai: false } }}
       chip="3-8"
       position={1}
-      hero
       controls={null}
     />,
   );
@@ -107,7 +88,6 @@ test("shows the card's note, with an AI label only when a model wrote it", () =>
       card={{ ...card, note: { text: "Fresh, on your topic.", ai: true } }}
       chip="3-8"
       position={1}
-      hero
       controls={null}
     />,
   );
@@ -124,7 +104,6 @@ test("a one-section moment shows no progress bar", () => {
       card={{ ...card, sectionNumber: 1, sectionCount: 1 }}
       chip="3-8"
       position={1}
-      hero
       controls={null}
     />,
   );
@@ -140,7 +119,6 @@ test("a frameable section opens in the in-app reader; Open original still leaves
       card={{ ...card, frameable: true }}
       chip="3-8"
       position={4}
-      hero
       controls={null}
     />,
   );

@@ -10,7 +10,13 @@ import {
   preferences,
   sessionReader,
 } from "../server/container";
-import { CHIP_COOKIE, chipFor, chipLabel, CHIPS } from "../server/chips";
+import {
+  type Chip,
+  CHIP_COOKIE,
+  chipFor,
+  chipLabel,
+  CHIPS,
+} from "../server/chips";
 import { loadFeed } from "../server/feed";
 import { outHref } from "../server/outbound";
 import { parseReading, READING_COOKIE } from "../server/reading";
@@ -19,7 +25,9 @@ import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { ArticleCard } from "./ArticleCard";
 import { CardControls, UndoNotInterested } from "./CardControls";
+import { ComingLater } from "./ComingLater";
 import { ContinueReading } from "./ContinueReading";
+import { Greeting } from "./Greeting";
 import { NowReading } from "./NowReading";
 import { ReturnPrompt } from "./ReturnPrompt";
 import { TabBar } from "./TabBar";
@@ -54,17 +62,23 @@ export default async function HomePage({
       </button>
     </form>
   );
-  // No name or initials to show yet, so the avatar is a person glyph.
-  const header = (
+  // ADR-0019: a greeting line picked on the device; the profile moves to the sidebar on
+  // wide screens.
+  const header = (chip: Chip, continuing: string | null) => (
     <header className="flex items-start justify-between gap-4">
       <div>
-        <h1 className="text-display">Your next few minutes</h1>
+        <p className="text-sm text-ink-muted">How long is this break?</p>
+        <Greeting
+          firstName={chosen.firstName}
+          chip={chip}
+          continuing={continuing}
+        />
         {account}
       </div>
       <Link
         href="/profile"
         aria-label="Profile"
-        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-well text-ink"
+        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-well text-ink lg:hidden"
       >
         <svg
           aria-hidden="true"
@@ -85,7 +99,7 @@ export default async function HomePage({
   if (!(await entitlements().can(actor.userId, "feed.read"))) {
     return (
       <main className="mx-auto max-w-xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-        {header}
+        {header(chosen.breakLength, null)}
         <Card className="mt-6 p-8 text-center text-ink-muted">
           <p>Your plan doesn&apos;t include the feed.</p>
         </Card>
@@ -145,17 +159,13 @@ export default async function HomePage({
     { card_count: cards.length },
     { ...actor, sessionId: visitId(jar) },
   );
-  const [first, ...rest] = cards;
-  // The first card is the hero; the rest are compact rows (design screen 2).
   const renderCard = (card: FeedCard, index: number) => {
-    const hero = index === 0;
     const controls = (
       <CardControls
         itemId={card.itemId}
         title={card.kind === "moment" ? card.sectionTitle : card.articleTitle}
         saved={card.saved}
         chip={chip}
-        compact={!hero}
       />
     );
     return card.kind === "moment" ? (
@@ -163,7 +173,6 @@ export default async function HomePage({
         card={card}
         chip={chip}
         position={index + 1}
-        hero={hero}
         controls={controls}
       />
     ) : (
@@ -171,98 +180,107 @@ export default async function HomePage({
         card={card}
         chip={chip}
         position={index + 1}
-        hero={hero}
         controls={controls}
       />
     );
   };
   return (
-    <main className="mx-auto max-w-xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-      {header}
-      <TabBar current="home" />
-      <nav aria-label="Break length" className="my-4">
-        {/* The design's segmented chips: a well, the chosen one lifted. */}
-        <ul className="flex gap-1 rounded-2xl bg-well p-1">
-          {CHIPS.map((option) => (
-            <li key={option} className="flex-1">
-              <Link
-                href={`/?chip=${option}`}
-                aria-current={option === chip ? "true" : undefined}
-                className={`block rounded-xl py-2 text-center ${option === chip ? "bg-lift shadow-card" : "text-ink-muted"}`}
-              >
-                {option === chip ? (
-                  <strong>{chipLabel(option)}</strong>
-                ) : (
-                  chipLabel(option)
-                )}
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
-      {/* The panel steps aside while the prompt asks (owner, 2026-10-26). */}
-      <ReturnPrompt chip={chip} initialAsk={ask}>
-        {reading === null || readingTitles === null ? null : (
-          <NowReading reading={reading} titles={readingTitles} chip={chip} />
-        )}
-      </ReturnPrompt>
-      {finished === null || next === undefined ? null : next === null ? (
-        <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
-          That was the last section.
-        </p>
-      ) : (
-        <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
-          Continue:{" "}
-          <a
-            href={outHref({
-              itemId: finished.itemId,
-              momentId: next.momentId,
-              from: "continue",
-              target: "section",
-            })}
-            data-item={finished.itemId}
-            data-moment={next.momentId}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-semibold text-select"
+    <div className="mx-auto max-w-xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:grid lg:max-w-none lg:grid-cols-[minmax(0,42rem)_18rem] lg:justify-center lg:gap-8 lg:pt-10 lg:pr-8 lg:pb-10 lg:pl-68">
+      <main className="min-w-0">
+        <div className="lg:flex lg:items-end lg:justify-between lg:gap-6">
+          {header(chip, continuing[0]?.sectionTitle ?? null)}
+          <nav
+            aria-label="Break length"
+            className="my-4 lg:my-0 lg:w-72 lg:shrink-0"
           >
-            {next.title}
-          </a>
-        </p>
-      )}
-      <ContinueReading cards={continuing} chip={chip} />
-      {undoable === null ? null : (
-        <UndoNotInterested itemId={undoable} chip={chip} />
-      )}
-      {first === undefined ? (
-        <Card className="p-8 text-center text-ink-muted">
-          <p>No moments yet.</p>
-        </Card>
-      ) : (
-        <>
-          {renderCard(first, 0)}
-          {rest.length === 0 ? null : (
-            <section aria-labelledby="also-fits" className="mt-6">
-              <h2 id="also-fits" className="text-section">
-                {`More for your ${chipLabel(chip)} break`}
-              </h2>
-              <ul className="divide-y divide-hairline">
-                {rest.map((card, index) => (
-                  <li
-                    key={
-                      card.kind === "moment"
-                        ? `m${card.momentId}`
-                        : `a${card.itemId}`
-                    }
+            {/* The design's segmented chips: a well, the chosen one lifted. */}
+            <ul className="flex gap-1 rounded-2xl bg-well p-1">
+              {CHIPS.map((option) => (
+                <li key={option} className="flex-1">
+                  <Link
+                    href={`/?chip=${option}`}
+                    aria-current={option === chip ? "true" : undefined}
+                    className={`block rounded-xl py-2 text-center ${option === chip ? "bg-lift shadow-card" : "text-ink-muted"}`}
                   >
-                    {renderCard(card, index + 1)}
-                  </li>
-                ))}
-              </ul>
-            </section>
+                    {option === chip ? (
+                      <strong>{chipLabel(option)}</strong>
+                    ) : (
+                      chipLabel(option)
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
+        {/* The panel steps aside while the prompt asks (owner, 2026-10-26). */}
+        <ReturnPrompt chip={chip} initialAsk={ask}>
+          {reading === null || readingTitles === null ? null : (
+            <NowReading reading={reading} titles={readingTitles} chip={chip} />
           )}
-        </>
-      )}
-    </main>
+        </ReturnPrompt>
+        {finished === null || next === undefined ? null : next === null ? (
+          <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
+            That was the last section.
+          </p>
+        ) : (
+          <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
+            Continue:{" "}
+            <a
+              href={outHref({
+                itemId: finished.itemId,
+                momentId: next.momentId,
+                from: "continue",
+                target: "section",
+              })}
+              data-item={finished.itemId}
+              data-moment={next.momentId}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-select"
+            >
+              {next.title}
+            </a>
+          </p>
+        )}
+        <ContinueReading cards={continuing} chip={chip} />
+        {undoable === null ? null : (
+          <UndoNotInterested itemId={undoable} chip={chip} />
+        )}
+        {cards.length === 0 ? (
+          <Card className="mt-6 p-8 text-center text-ink-muted">
+            <p>No moments yet.</p>
+          </Card>
+        ) : (
+          // ADR-0019: one full-size card at a time, sideways; only a sliver of the next
+          // card's edge says there is more. Arrow keys scroll it once it has focus. The
+          // vertical padding, taken back by the negative margin, keeps card shadows from
+          // being clipped by the scroller.
+          <div
+            role="region"
+            aria-label="Your feed"
+            tabIndex={0}
+            className="-my-3 mt-3 snap-x snap-mandatory overflow-x-auto overscroll-x-contain py-3 [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-select [&::-webkit-scrollbar]:hidden"
+          >
+            <ul className="flex gap-2">
+              {cards.map((card, index) => (
+                <li
+                  key={
+                    card.kind === "moment"
+                      ? `m${card.momentId}`
+                      : `a${card.itemId}`
+                  }
+                  className="w-[calc(100%-18px)] shrink-0 snap-start last:w-full"
+                >
+                  {renderCard(card, index)}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </main>
+      <ComingLater />
+      <TabBar current="home" />
+    </div>
   );
 }

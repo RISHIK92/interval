@@ -25,6 +25,7 @@ type CardBase = {
   // ADR-0018: the publisher's page allows Interval's in-app reader to frame it
   // (false while unknown).
   frameable: boolean;
+  topic: Topic | null; // its source's first known topic, for the picture (ADR-0019)
 };
 export type MomentFeedCard = CardBase & {
   kind: "moment";
@@ -490,7 +491,12 @@ export type Preferences = {
 
 export interface PreferencesStore {
   // With when onboarding saved them: a first feed is only waited for just after.
-  get(userId: string): Promise<(Preferences & { onboardedAt: Date }) | null>;
+  // The account's first name rides along for Home's greeting (ADR-0019).
+  get(
+    userId: string,
+  ): Promise<
+    (Preferences & { onboardedAt: Date; firstName: string | null }) | null
+  >;
   // Onboarding happens once: false when the user already had preferences, which
   // are then left as they were (a resubmit can't overwrite them).
   createIfAbsent(userId: string, preferences: Preferences): Promise<boolean>;
