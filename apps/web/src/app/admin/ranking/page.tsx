@@ -1,7 +1,10 @@
 import { CHIPS, parseChip } from "../../../server/chips";
 import { rankingInspection } from "../../../server/container";
 import type { RankingSetting, ScoreBreakdown } from "../../../server/ports";
+import { Card } from "../../ui/Card";
+import { FIELD } from "../../ui/field";
 import { requireAdmin } from "../guard";
+import { ACT, ADMIN_MAIN, TABLE } from "../style";
 import { saveRankingSettingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -58,95 +61,125 @@ export default async function RankingPage(props: {
     s.key.startsWith("weight."),
   );
   return (
-    <main>
-      <h1>Ranking</h1>
-      {params.saved === "1" ? (
-        <p role="status">Saved. Your feed recomputes shortly.</p>
-      ) : params.saved === "same" ? (
-        <p role="status">No change: that was already the value.</p>
+    <main className={ADMIN_MAIN}>
+      <h1 className="text-title">Ranking</h1>
+      {params.saved === "1" || params.saved === "same" ? (
+        <Card className="px-4 py-3 text-sm">
+          <p role="status">
+            {params.saved === "1"
+              ? "Saved. Your feed recomputes shortly."
+              : "No change: that was already the value."}
+          </p>
+        </Card>
       ) : null}
       {params.error !== undefined && params.error in ERRORS ? (
-        <p role="alert">{ERRORS[params.error]}</p>
+        <Card className="px-4 py-3 text-sm">
+          <p role="alert" className="text-wrong">
+            {ERRORS[params.error]}
+          </p>
+        </Card>
       ) : null}
       <nav aria-label="Break length">
-        <ul>
+        <ul className="flex gap-1 text-sm">
           {CHIPS.map((c) => (
             <li key={c}>
               {c === chip ? (
-                <strong>{c} min</strong>
+                <strong className="block rounded-xl bg-ink px-3 py-1.5 text-page">
+                  {c} min
+                </strong>
               ) : (
-                <a href={`/admin/ranking?chip=${c}`}>{c} min</a>
+                <a
+                  href={`/admin/ranking?chip=${c}`}
+                  className="block rounded-xl border border-hairline px-3 py-1.5"
+                >
+                  {c} min
+                </a>
               )}
             </li>
           ))}
         </ul>
       </nav>
-      <h2>Your feed, {chip} min</h2>
+      <h2 className="text-section">Your feed, {chip} min</h2>
       {entries.length === 0 ? (
-        <p>No entries yet.</p>
+        <p className="text-sm text-ink-muted">No entries yet.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Entry</th>
-              <th>Top signal</th>
-              {weights.map((w) => (
-                <th key={w.key}>{w.key.slice("weight.".length)}</th>
-              ))}
-              <th>Penalty</th>
-              {/* Rank comes after diversity (MMR) and exploration, so scores
+        // Scrolls within itself so the header row stays in view.
+        <div className="max-h-[70vh] overflow-auto rounded-xl border border-hairline">
+          <table className={TABLE}>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Entry</th>
+                <th>Top signal</th>
+                {weights.map((w) => (
+                  <th key={w.key}>{w.key.slice("weight.".length)}</th>
+                ))}
+                <th>Penalty</th>
+                {/* Rank comes after diversity (MMR) and exploration, so scores
                   don't fall steadily down the table. */}
-              <th>Score (before diversity)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {entries.map((entry) => (
-              <tr key={entry.rank}>
-                <td>{entry.rank}</td>
-                <td>
-                  {entry.sectionTitle ?? entry.articleTitle}
-                  {entry.sectionTitle === null ? " (whole article)" : ""}
-                  {" — "}
-                  {entry.sourceName}
-                  {entry.explored
-                    ? ` (explored: ${entry.explored.kind} ${entry.explored.arm})`
-                    : ""}
-                </td>
-                <td>{entry.topSignal}</td>
-                {entry.breakdown === null ? (
-                  <td colSpan={weights.length + 2}>
-                    No breakdown yet: computed before inspection existed.
-                  </td>
-                ) : (
-                  <BreakdownCells
-                    breakdown={entry.breakdown}
-                    signals={weights.map((w) => w.key.slice("weight.".length))}
-                  />
-                )}
+                <th>Score (before diversity)</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {entries.map((entry) => (
+                <tr key={entry.rank}>
+                  <td>{entry.rank}</td>
+                  <td>
+                    {entry.sectionTitle ?? entry.articleTitle}
+                    {entry.sectionTitle === null ? " (whole article)" : ""}
+                    {" — "}
+                    {entry.sourceName}
+                    {entry.explored
+                      ? ` (explored: ${entry.explored.kind} ${entry.explored.arm})`
+                      : ""}
+                  </td>
+                  <td>{entry.topSignal}</td>
+                  {entry.breakdown === null ? (
+                    <td colSpan={weights.length + 2}>
+                      No breakdown yet: computed before inspection existed.
+                    </td>
+                  ) : (
+                    <BreakdownCells
+                      breakdown={entry.breakdown}
+                      signals={weights.map((w) =>
+                        w.key.slice("weight.".length),
+                      )}
+                    />
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-      <h2>Settings</h2>
-      {settings.map((setting) => (
-        <form key={setting.key} action={saveRankingSettingAction}>
-          <input type="hidden" name="key" value={setting.key} />
-          <input type="hidden" name="chip" value={chip} />
-          <label>
-            {setting.key} ({setting.note}){" "}
-            <input
-              type="number"
-              name="value"
-              step="any"
-              required
-              defaultValue={setting.value}
-            />
-          </label>{" "}
-          <button type="submit">Save</button>
-        </form>
-      ))}
+      <h2 className="text-section">Settings</h2>
+      <div className="divide-y divide-hairline border-y border-hairline">
+        {settings.map((setting) => (
+          <form
+            key={setting.key}
+            action={saveRankingSettingAction}
+            className="flex items-end gap-3 py-3 text-sm"
+          >
+            <input type="hidden" name="key" value={setting.key} />
+            <input type="hidden" name="chip" value={chip} />
+            <label className="flex-1">
+              <span className="font-semibold">{setting.key}</span>{" "}
+              <span className="text-ink-muted">({setting.note})</span>
+              <input
+                type="number"
+                name="value"
+                step="any"
+                required
+                defaultValue={setting.value}
+                className={`${FIELD} max-w-48 tabular-nums`}
+              />
+            </label>
+            <button type="submit" className={ACT}>
+              Save
+            </button>
+          </form>
+        ))}
+      </div>
     </main>
   );
 }

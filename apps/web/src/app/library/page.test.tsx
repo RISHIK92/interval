@@ -39,6 +39,9 @@ async function page(): Promise<string> {
   return renderToStaticMarkup(await LibraryPage());
 }
 
+// The words a reader sees, whatever elements carry them.
+const text = (html: string) => html.replace(/<[^>]+>/g, "");
+
 test("empty states say so", async () => {
   current.mockResolvedValue(guest);
   const html = await page();
@@ -82,14 +85,14 @@ test("saves and finished articles are listed with their links", async () => {
     },
   ]);
   const html = await page();
-  expect(html).toContain("Raft in practice · Example Engineering");
+  expect(text(html)).toContain("Raft in practice · Example Engineering");
   expect(html).toContain(
     'href="/out?item=7&amp;from=library&amp;target=original"',
   );
   expect(html).toMatch(/<input[^>]*name="itemId"[^>]*value="7"/);
   expect(html).toContain("Unsave");
-  expect(html).toContain("Consensus in practice · Other Blog");
-  expect(html).toContain("<p>Finished</p>");
+  expect(text(html)).toContain("Consensus in practice · Other Blog");
+  expect(html).toMatch(/<p[^>]*>Finished<\/p>/);
   expect(html).not.toContain("4 of 4 sections");
   expect(html).toContain("2 of 4 sections");
   expect(html).toContain(
@@ -125,12 +128,37 @@ test("an item whose link broke stays, marked, with no link to follow", async () 
     },
   ]);
   const html = await page();
-  expect(html).toContain("Gone post · Example Engineering");
-  expect(html).toContain("Gone too · Other Blog");
+  expect(text(html)).toContain("Gone post · Example Engineering");
+  expect(text(html)).toContain("Gone too · Other Blog");
   expect(html.match(/Link broken/g)).toHaveLength(2);
   expect(html).not.toContain("/out?item=7");
   expect(html).not.toContain("/out?item=8");
   expect(html).toContain("Unsave"); // it can still be removed
+});
+
+// Highlights, notes and audio arrive in later phases (owner, 2026-10-26).
+test("the shelf counts saves; highlights, notes and audio are disabled for later", async () => {
+  current.mockResolvedValue(guest);
+  saves.mockResolvedValueOnce([
+    {
+      itemId: "7",
+      articleTitle: "Raft in practice",
+      sourceName: "Example Engineering",
+      savedAt: new Date(),
+      linkBroken: false,
+    },
+  ]);
+  const html = await page();
+  const tile = (label: string) =>
+    new RegExp(`<div role="group" aria-label="${label}"[^>]*>.*?</div>`).exec(
+      html,
+    )?.[0] ?? "";
+  expect(text(tile("Saved"))).toBe("Saved1");
+  expect(tile("Saved")).not.toContain("aria-disabled");
+  for (const label of ["Highlights", "Notes", "Audio"]) {
+    expect(tile(label)).toContain('aria-disabled="true"');
+    expect(text(tile(label))).toContain("Coming later");
+  }
 });
 
 test("the Library tab is marked current", async () => {

@@ -1,5 +1,7 @@
 import { adminSources } from "../../../server/container";
+import { Card } from "../../ui/Card";
 import { requireAdmin } from "../guard";
+import { ADMIN_MAIN, SECONDARY, TABLE } from "../style";
 import { switchMomentsAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -13,13 +15,21 @@ export default async function SourcesPage(props: {
   const { saved, error } = await props.searchParams;
   const sources = await adminSources().list();
   return (
-    <main>
-      <h1>Sources</h1>
-      {saved ? <p role="status">Saved.</p> : null}
-      {error === "no-source" ? (
-        <p role="alert">That source no longer exists.</p>
+    <main className={ADMIN_MAIN}>
+      <h1 className="text-title">Sources</h1>
+      {saved ? (
+        <Card className="px-4 py-3 text-sm">
+          <p role="status">Saved.</p>
+        </Card>
       ) : null}
-      <table>
+      {error === "no-source" ? (
+        <Card className="px-4 py-3 text-sm">
+          <p role="alert" className="text-wrong">
+            That source no longer exists.
+          </p>
+        </Card>
+      ) : null}
+      <table className={TABLE}>
         <thead>
           <tr>
             <th>Source</th>
@@ -32,7 +42,7 @@ export default async function SourcesPage(props: {
           {sources.map((source) => (
             <tr key={source.id}>
               <td>
-                {source.name}
+                <span className="font-semibold">{source.name}</span>
                 {source.active ? "" : " (not in the seed file)"}
               </td>
               <td>{source.rightsProfile}</td>
@@ -49,6 +59,7 @@ export default async function SourcesPage(props: {
                     <input type="hidden" name="sourceId" value={source.id} />
                     <button
                       type="submit"
+                      className={SECONDARY}
                       name="switch"
                       value={source.momentsSwitchedOff ? "on" : "off"}
                     >

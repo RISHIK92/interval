@@ -230,7 +230,10 @@ test("every card offers Save and the four other controls", async () => {
   ]) {
     expect(html).toMatch(new RegExp(`<button[^>]*value="${control}"[^>]*>`));
   }
-  expect(html).toContain("<details>");
+  // The overflow menu stays a native disclosure: no client script.
+  expect(html).toMatch(
+    /<details[^>]*><summary[^>]*>.*More options.*<\/summary>/,
+  );
   expect(html).toContain('aria-label="Save Why consensus"');
 });
 
@@ -240,7 +243,9 @@ test("after Not interested the page offers Undo for that item only", async () =>
   notInterested.mockResolvedValueOnce(true);
   const html = await render({ undo: "77" });
   expect(notInterested).toHaveBeenCalledWith("u1", "77");
-  expect(html).toContain('value="undo_not_interested" name="control"');
+  expect(html).toMatch(
+    /<button[^>]*value="undo_not_interested"[^>]*name="control"[^>]*>Undo</,
+  );
   expect(html).toContain('name="itemId" value="77"');
   notInterested.mockResolvedValueOnce(false);
   expect(await render({ undo: "78" })).not.toContain("undo_not_interested");
@@ -253,7 +258,33 @@ test("after Not interested the page offers Undo for that item only", async () =>
 test("the header links to the Profile page", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(feedOf([]));
-  expect(await render()).toContain('href="/profile"');
+  expect(await render()).toMatch(
+    /<a[^>]*href="\/profile"[^>]*aria-label="Profile"|<a[^>]*aria-label="Profile"[^>]*href="\/profile"/,
+  );
+});
+
+// Design screen 2: the first card leads; the rest are rows under one heading. Not
+// "Also fits in …": an 8–15 feed holds whole articles longer than the break.
+test("the first card is the hero and the rest sit under More for your break", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(
+    feedOf([
+      card,
+      { ...card, momentId: "2", sectionNumber: 2, sectionTitle: "Raft" },
+    ]),
+  );
+  const html = await render();
+  const [lead, also] = html.split("More for your 3–8 min break");
+  expect(also).toBeDefined();
+  expect(lead).toContain("Why consensus");
+  expect(lead).not.toContain(">Raft<");
+  expect(also).toContain(">Raft<");
+  expect(also).not.toContain("Why consensus");
+  // Only the hero's controls are full size.
+  expect(lead).toContain("size-11");
+  expect(also).toContain("size-9");
+  getFeed.mockResolvedValue(feedOf([card]));
+  expect(await render()).not.toContain("More for your");
 });
 
 // P1-W5-S02: the Now reading panel (C-22) and what comes after a finish.
@@ -267,7 +298,8 @@ test("Now reading offers Mark section done and Dismiss for the open card", async
   });
   const html = await render();
   expect(describe_).toHaveBeenCalledWith("10", "1");
-  expect(html).toContain("Now reading: Why consensus — Consensus in practice");
+  expect(html).toContain("Now reading");
+  expect(html).toContain("Why consensus — Consensus in practice");
   expect(html).toContain("Mark section done");
   expect(html).toMatch(/<button[^>]*value="dismiss"/);
 });
@@ -282,7 +314,7 @@ test("a whole article's panel says Mark article done", async () => {
   });
   const html = await render();
   expect(describe_).toHaveBeenCalledWith("20", null);
-  expect(html).toContain("Now reading: A whole read");
+  expect(html).toMatch(/Now reading<\/p><p[^>]*>A whole read<\/p>/);
   expect(html).toContain("Mark article done");
 });
 
@@ -360,7 +392,8 @@ test("continue cards point at the next section and can be dismissed", async () =
   const html = await render({ chip: "1-3" });
   expect(continueCards).toHaveBeenCalledWith("u1", expect.any(Date), 3);
   expect(html).toContain("Continue reading");
-  expect(html).toContain("Raft — Consensus in practice · Section 2 of 3");
+  expect(html).toContain('aria-label="Continue: Raft — Consensus in practice"');
+  expect(html).toContain("Section 2 of 3");
   expect(html).toContain(
     'href="/out?item=30&amp;moment=31&amp;from=continue&amp;target=section"',
   );
@@ -372,12 +405,13 @@ test("a saved card's button says Saved and unsaves", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(feedOf([{ ...card, saved: true }]));
   const html = await render();
-  expect(html).toMatch(/<button[^>]*value="unsave"[^>]*>Saved ✓<\/button>/);
-  // The visible words lead the accessible name (WCAG 2.5.3).
-  expect(html).toContain('aria-label="Saved: unsave Why consensus"');
+  // An icon button: its label is its whole name, and says it is saved.
+  expect(html).toMatch(
+    /<button[^>]*value="unsave" aria-label="Saved: unsave Why consensus"/,
+  );
   getFeed.mockResolvedValue(feedOf([card]));
   expect(await render()).toMatch(
-    /<button[^>]*value="save"[^>]*>Save<\/button>/,
+    /<button[^>]*value="save" aria-label="Save Why consensus"/,
   );
 });
 

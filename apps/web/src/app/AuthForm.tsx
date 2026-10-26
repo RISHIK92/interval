@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 import type { FormState } from "./form";
+import { Button } from "./ui/Button";
+import { FIELD } from "./ui/field";
 
 type Field = {
   name: string;
@@ -24,7 +26,7 @@ export function AuthForm({
 }) {
   const [state, formAction, pending] = useActionState(action, null);
   return (
-    <form action={formAction}>
+    <form action={formAction} className="mt-6 flex flex-col gap-4">
       {fields.map((field) =>
         field.type === "hidden" ? (
           <input
@@ -34,23 +36,27 @@ export function AuthForm({
             value={field.defaultValue ?? ""}
           />
         ) : (
-          <p key={field.name}>
-            <label htmlFor={field.name}>{field.label}</label>
+          <label key={field.name} className="text-section">
+            {field.label}
             <input
-              id={field.name}
               name={field.name}
               type={field.type}
               autoComplete={field.autoComplete}
               defaultValue={field.defaultValue}
               required
+              className={FIELD}
             />
-          </p>
+          </label>
         ),
       )}
-      <button type="submit" disabled={pending}>
+      <Button type="submit" disabled={pending}>
         {submit}
-      </button>
-      {state === null ? null : <p role="alert">{state.message}</p>}
+      </Button>
+      {state === null ? null : (
+        <p role="alert" className="text-wrong">
+          {state.message}
+        </p>
+      )}
     </form>
   );
 }

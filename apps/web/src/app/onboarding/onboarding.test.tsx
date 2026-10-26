@@ -55,13 +55,51 @@ function form(fields: Record<string, string | string[]>): FormData {
   return data;
 }
 
-test("a new account gets one screen with the four fields", async () => {
+// The fieldset of each step, in order, with whether it is the one showing.
+function steps(html: string): { shown: boolean; html: string }[] {
+  return [...html.matchAll(/<fieldset([^>]*)>([\s\S]*?)<\/fieldset>/g)].map(
+    ([, attrs = "", inner = ""]) => ({
+      shown: !/\bhidden=""/.test(attrs),
+      html: inner,
+    }),
+  );
+}
+
+test("a new account gets four steps of one form, every field posted together", async () => {
   current.mockResolvedValue(guest);
   get.mockResolvedValue(null);
   const html = await page();
-  expect(html.match(/name="topic"/g)).toHaveLength(4);
-  expect(html.match(/name="level"/g)).toHaveLength(3);
-  expect(html.match(/name="breakLength"/g)).toHaveLength(3);
+  // One form holds every step, so the four answers post at once.
+  expect(html.match(/<form/g)).toHaveLength(1);
+  const form = html.slice(html.indexOf("<form"), html.indexOf("</form>"));
+  expect(form.match(/name="goal"/g)).toHaveLength(4);
+  expect(form.match(/name="topic"/g)).toHaveLength(4);
+  expect(form.match(/name="level"/g)).toHaveLength(3);
+  expect(form.match(/name="breakLength"/g)).toHaveLength(3);
+  const all = steps(html);
+  expect(all).toHaveLength(4);
+  expect(all.map((step) => step.shown)).toEqual([true, false, false, false]);
+  expect(all[0]?.html).toContain('name="goal"');
+  expect(all[3]?.html).toContain('name="breakLength"');
+});
+
+// ADR-0016: the account exists before onboarding starts.
+test("the first step says the account was created", async () => {
+  current.mockResolvedValue(guest);
+  get.mockResolvedValue(null);
+  expect(await page()).toContain("Account created");
+});
+
+test("a server refusal opens the step it names, with its message", async () => {
+  current.mockResolvedValue(guest);
+  get.mockResolvedValue(null);
+  const shown = steps(await page({ missing: "topic" })).filter(
+    (step) => step.shown,
+  );
+  expect(shown).toHaveLength(1);
+  expect(shown[0]?.html).toContain('name="topic"');
+  expect(shown[0]?.html).toMatch(/role="alert"[^>]*>Pick at least one topic\./);
+  expect(await page({ missing: "constructor" })).not.toContain('role="alert"');
 });
 
 test("a returning guest skips onboarding", async () => {

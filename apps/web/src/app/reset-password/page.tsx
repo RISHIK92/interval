@@ -14,18 +14,22 @@ export default async function ResetPasswordPage({
   const { token } = await searchParams;
   if (typeof token !== "string" || token === "") {
     return (
-      <main>
-        <h1>Reset your password</h1>
-        <p role="alert">That reset link is invalid or has expired.</p>
-        <p>
-          <Link href="/forgot-password">Send a new link</Link>
+      <main className="mx-auto max-w-md px-4 pt-10 pb-12">
+        <h1 className="text-display">Reset your password</h1>
+        <p role="alert" className="mt-2 text-wrong">
+          That reset link is invalid or has expired.
+        </p>
+        <p className="mt-6">
+          <Link href="/forgot-password" className="font-semibold underline">
+            Send a new link
+          </Link>
         </p>
       </main>
     );
   }
   return (
-    <main>
-      <h1>Choose a new password</h1>
+    <main className="mx-auto max-w-md px-4 pt-10 pb-12">
+      <h1 className="text-display">Choose a new password</h1>
       <AuthForm
         action={resetPasswordAction}
         submit="Set password"

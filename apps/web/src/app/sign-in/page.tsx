@@ -17,10 +17,10 @@ export default async function SignInPage({
   if (actor !== null && !actor.isGuest) redirect("/");
   const { reset } = await searchParams;
   return (
-    <main>
-      <h1>Sign in</h1>
+    <main className="mx-auto max-w-md px-4 pt-10 pb-12">
+      <h1 className="text-display">Sign in</h1>
       {reset === "1" ? (
-        <p role="status">
+        <p role="status" className="mt-2 text-go-text">
           Your password was changed. Sign in with the new one.
         </p>
       ) : null}
@@ -42,11 +42,16 @@ export default async function SignInPage({
           },
         ]}
       />
-      <p>
-        <Link href="/forgot-password">Forgot your password?</Link>
+      <p className="mt-6">
+        <Link href="/forgot-password" className="font-semibold underline">
+          Forgot your password?
+        </Link>
       </p>
-      <p>
-        New here? <Link href="/join">Join with an invite code</Link>
+      <p className="mt-2">
+        New here?{" "}
+        <Link href="/join" className="font-semibold underline">
+          Join with an invite code
+        </Link>
       </p>
     </main>
   );

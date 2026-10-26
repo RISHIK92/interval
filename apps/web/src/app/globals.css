@@ -34,6 +34,28 @@
   --shadow: light-dark(rgba(16, 18, 23, 0.07), transparent);
   /* A chosen segment: lifted white in light, a raised grey in dark (no shadows). */
   --lift: light-dark(#ffffff, #2a2e36);
+  /* Topic families (design system): tint, top face, left face, right face, lines.
+     Backend has no family in the design yet: it borrows Review's purple. */
+  --distributed-systems-tint: light-dark(#e9eeff, #161f3d);
+  --distributed-systems-top: light-dark(#a9beff, #9db4ff);
+  --distributed-systems-left: light-dark(#5b86ff, #5b82f5);
+  --distributed-systems-right: light-dark(#3462e8, #3557c4);
+  --distributed-systems-line: light-dark(#2448c2, #b4c6ff);
+  --databases-tint: light-dark(#def6f1, #0d2b27);
+  --databases-top: light-dark(#8fe3d3, #86e0cf);
+  --databases-left: light-dark(#1db9a1, #19a890);
+  --databases-right: light-dark(#0e957f, #0c7867);
+  --databases-line: light-dark(#0a7a69, #9be8d9);
+  --system-design-tint: light-dark(#fff0e0, #33200e);
+  --system-design-top: light-dark(#ffcb99, #ffc896);
+  --system-design-left: light-dark(#ff9440, #ee8430);
+  --system-design-right: light-dark(#e2711a, #b85f15);
+  --system-design-line: light-dark(#b5560b, #ffcfa3);
+  --backend-tint: light-dark(#f1ebff, #241b42);
+  --backend-top: light-dark(#cdb8ff, #cab5ff);
+  --backend-left: light-dark(#9468f7, #8457f0);
+  --backend-right: light-dark(#7444e0, #5f36c4);
+  --backend-line: light-dark(#5b32c2, #d4c2ff);
 }
 
 [data-theme="light"] {

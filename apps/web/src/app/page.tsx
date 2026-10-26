@@ -14,7 +14,7 @@ import { CHIP_COOKIE, chipFor, chipLabel, CHIPS } from "../server/chips";
 import { loadFeed } from "../server/feed";
 import { outHref } from "../server/outbound";
 import { parseReading, READING_COOKIE } from "../server/reading";
-import { BIGINT_ID } from "../server/ports";
+import { BIGINT_ID, type FeedCard } from "../server/ports";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { ArticleCard } from "./ArticleCard";
@@ -24,6 +24,7 @@ import { NowReading } from "./NowReading";
 import { ReturnPrompt } from "./ReturnPrompt";
 import { TabBar } from "./TabBar";
 import { MomentCard } from "./MomentCard";
+import { Card } from "./ui/Card";
 
 export const dynamic = "force-dynamic";
 
@@ -41,24 +42,53 @@ export default async function HomePage({
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
   const account = actor.isGuest ? (
-    <p>
-      <Link href="/sign-up">Sign up to keep your progress</Link>
+    <p className="text-sm text-ink-muted">
+      <Link href="/sign-up" className="underline underline-offset-2">
+        Sign up to keep your progress
+      </Link>
     </p>
   ) : (
-    <form action={signOutAction}>
-      <button type="submit">Sign out</button>
+    <form action={signOutAction} className="text-sm text-ink-muted">
+      <button type="submit" className="underline underline-offset-2">
+        Sign out
+      </button>
     </form>
+  );
+  // No name or initials to show yet, so the avatar is a person glyph.
+  const header = (
+    <header className="flex items-start justify-between gap-4">
+      <div>
+        <h1 className="text-display">Your next few minutes</h1>
+        {account}
+      </div>
+      <Link
+        href="/profile"
+        aria-label="Profile"
+        className="flex size-11 shrink-0 items-center justify-center rounded-full bg-well text-ink"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="size-6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        >
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21a8 8 0 0 1 16 0" />
+        </svg>
+      </Link>
+    </header>
   );
   // OPS-3: the feed is a capability of the user's plan.
   if (!(await entitlements().can(actor.userId, "feed.read"))) {
     return (
-      <main>
-        <h1>Interval</h1>
-        <p>
-          <Link href="/profile">Profile</Link>
-        </p>
-        {account}
-        <p>Your plan doesn&apos;t include the feed.</p>
+      <main className="mx-auto max-w-xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+        {header}
+        <Card className="mt-6 p-8 text-center text-ink-muted">
+          <p>Your plan doesn&apos;t include the feed.</p>
+        </Card>
       </main>
     );
   }
@@ -110,13 +140,40 @@ export default async function HomePage({
     { card_count: cards.length },
     { ...actor, sessionId: visitId(jar) },
   );
+  const [first, ...rest] = cards;
+  // The first card is the hero; the rest are compact rows (design screen 2).
+  const renderCard = (card: FeedCard, index: number) => {
+    const hero = index === 0;
+    const controls = (
+      <CardControls
+        itemId={card.itemId}
+        title={card.kind === "moment" ? card.sectionTitle : card.articleTitle}
+        saved={card.saved}
+        chip={chip}
+        compact={!hero}
+      />
+    );
+    return card.kind === "moment" ? (
+      <MomentCard
+        card={card}
+        chip={chip}
+        position={index + 1}
+        hero={hero}
+        controls={controls}
+      />
+    ) : (
+      <ArticleCard
+        card={card}
+        chip={chip}
+        position={index + 1}
+        hero={hero}
+        controls={controls}
+      />
+    );
+  };
   return (
     <main className="mx-auto max-w-xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
-      <h1 className="text-display">Interval</h1>
-      <p>
-        <Link href="/profile">Profile</Link>
-      </p>
-      {account}
+      {header}
       <TabBar current="home" />
       <nav aria-label="Break length" className="my-4">
         {/* The design's segmented chips: a well, the chosen one lifted. */}
@@ -145,9 +202,11 @@ export default async function HomePage({
         )}
       </ReturnPrompt>
       {finished === null || next === undefined ? null : next === null ? (
-        <p role="status">That was the last section.</p>
+        <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
+          That was the last section.
+        </p>
       ) : (
-        <p role="status">
+        <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
           Continue:{" "}
           <a
             href={outHref({
@@ -160,6 +219,7 @@ export default async function HomePage({
             data-moment={next.momentId}
             target="_blank"
             rel="noopener noreferrer"
+            className="font-semibold text-select"
           >
             {next.title}
           </a>
@@ -169,30 +229,34 @@ export default async function HomePage({
       {undoable === null ? null : (
         <UndoNotInterested itemId={undoable} chip={chip} />
       )}
-      {cards.length === 0 ? (
-        <p>No moments yet.</p>
+      {first === undefined ? (
+        <Card className="p-8 text-center text-ink-muted">
+          <p>No moments yet.</p>
+        </Card>
       ) : (
-        cards.map((card, index) => (
-          <section
-            key={
-              card.kind === "moment" ? `m${card.momentId}` : `a${card.itemId}`
-            }
-          >
-            {card.kind === "moment" ? (
-              <MomentCard card={card} chip={chip} position={index + 1} />
-            ) : (
-              <ArticleCard card={card} chip={chip} position={index + 1} />
-            )}
-            <CardControls
-              itemId={card.itemId}
-              title={
-                card.kind === "moment" ? card.sectionTitle : card.articleTitle
-              }
-              saved={card.saved}
-              chip={chip}
-            />
-          </section>
-        ))
+        <>
+          {renderCard(first, 0)}
+          {rest.length === 0 ? null : (
+            <section aria-labelledby="also-fits" className="mt-6">
+              <h2 id="also-fits" className="text-section">
+                {`More for your ${chipLabel(chip)} break`}
+              </h2>
+              <ul className="divide-y divide-hairline">
+                {rest.map((card, index) => (
+                  <li
+                    key={
+                      card.kind === "moment"
+                        ? `m${card.momentId}`
+                        : `a${card.itemId}`
+                    }
+                  >
+                    {renderCard(card, index + 1)}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
       )}
     </main>
   );

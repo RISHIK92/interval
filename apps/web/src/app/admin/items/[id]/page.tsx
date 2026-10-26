@@ -2,7 +2,10 @@ import { notFound } from "next/navigation";
 import { adminReview } from "../../../../server/container";
 import type { SaveError } from "../../../../server/admin-review";
 import type { ReviewTags } from "../../../../server/ports";
+import { Card } from "../../../ui/Card";
+import { FIELD } from "../../../ui/field";
 import { requireAdmin } from "../../guard";
+import { ACT, ADMIN_MAIN, SECONDARY } from "../../style";
 import { saveBoundariesAction, saveTagsAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -42,16 +45,20 @@ function TagForm(props: {
 }) {
   const current = props.override ?? props.model;
   return (
-    <form action={saveTagsAction}>
+    <form
+      action={saveTagsAction}
+      className="mt-2 flex flex-wrap items-end gap-3 text-sm"
+    >
       <input type="hidden" name="itemId" value={props.itemId} />
       <input type="hidden" name="heading" value={props.heading} />
-      <p>
+      <p className="w-full text-ink-muted">
         Model: {describe(props.model)}
         {props.override ? ` · Override: ${describe(props.override)}` : ""}
       </p>
       <label>
         Level{" "}
         <select
+          className={FIELD}
           name="difficulty"
           defaultValue={current?.difficulty ?? "intermediate"}
         >
@@ -62,19 +69,20 @@ function TagForm(props: {
           ))}
         </select>
       </label>{" "}
-      <label>
+      <label className="min-w-64 flex-1">
         Concepts (slugs, comma-separated){" "}
         <input
+          className={FIELD}
           name="concepts"
           list="concepts"
           defaultValue={current?.concepts.join(", ") ?? ""}
         />
       </label>{" "}
-      <button type="submit" name="intent" value="save">
+      <button type="submit" name="intent" value="save" className={ACT}>
         Save
       </button>
       {props.override ? (
-        <button type="submit" name="intent" value="clear">
+        <button type="submit" name="intent" value="clear" className={SECONDARY}>
           Clear override
         </button>
       ) : null}
@@ -118,25 +126,36 @@ export default async function ReviewItemPage(props: {
     ([heading]) => heading !== "" && !momentHeadings.has(heading),
   );
   return (
-    <main>
-      <h1>{item.title}</h1>
-      <p>
-        {item.sourceName} · <a href={item.url}>{item.url}</a>
-      </p>
-      {saved ? <p role="status">Saved.</p> : null}
+    <main className={ADMIN_MAIN}>
+      <div>
+        <h1 className="text-title">{item.title}</h1>
+        <p className="text-sm text-ink-muted">
+          {item.sourceName} ·{" "}
+          <a href={item.url} className="text-select">
+            {item.url}
+          </a>
+        </p>
+      </div>
+      {saved ? (
+        <Card className="px-4 py-3 text-sm">
+          <p role="status">Saved.</p>
+        </Card>
+      ) : null}
       {isSaveError(error) ? (
-        <div role="alert">
-          <p>{ERRORS[error]}</p>
-          {list(detail).length > 0 ? (
-            <ul>
-              {list(detail).map((value) => (
-                <li key={value}>
-                  <code>{value}</code>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
+        <Card className="px-4 py-3 text-sm text-wrong">
+          <div role="alert">
+            <p>{ERRORS[error]}</p>
+            {list(detail).length > 0 ? (
+              <ul>
+                {list(detail).map((value) => (
+                  <li key={value}>
+                    <code>{value}</code>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        </Card>
       ) : null}
       <datalist id="concepts">
         {concepts.map((slug) => (
@@ -144,90 +163,113 @@ export default async function ReviewItemPage(props: {
         ))}
       </datalist>
 
-      <h2>Moments</h2>
-      <ol start={0}>
-        {item.moments.map((moment) => (
-          <li key={moment.ordinal}>
-            {moment.title} · {moment.estimatedMinutes} min
-            {moment.oversized ? " · oversized" : ""}
-            {moment.heading !== null ? (
-              <TagForm
-                itemId={item.id}
-                heading={moment.heading}
-                model={item.modelTags.moments.get(moment.ordinal)}
-                override={item.tagOverrides.get(moment.heading)}
-              />
-            ) : null}
-          </li>
-        ))}
-      </ol>
+      <section>
+        <h2 className="mb-2 text-section">Moments</h2>
+        <ol
+          start={0}
+          className="divide-y divide-hairline border-y border-hairline text-sm tabular-nums"
+        >
+          {item.moments.map((moment) => (
+            <li key={moment.ordinal} className="py-3">
+              {moment.title} · {moment.estimatedMinutes} min
+              {moment.oversized ? " · oversized" : ""}
+              {moment.heading !== null ? (
+                <TagForm
+                  itemId={item.id}
+                  heading={moment.heading}
+                  model={item.modelTags.moments.get(moment.ordinal)}
+                  override={item.tagOverrides.get(moment.heading)}
+                />
+              ) : null}
+            </li>
+          ))}
+        </ol>
+      </section>
 
-      <h2>Item tags</h2>
-      <TagForm
-        itemId={item.id}
-        heading=""
-        model={item.modelTags.item}
-        override={item.tagOverrides.get("")}
-      />
+      <section>
+        <h2 className="text-section">Item tags</h2>
+        <TagForm
+          itemId={item.id}
+          heading=""
+          model={item.modelTags.item}
+          override={item.tagOverrides.get("")}
+        />
+      </section>
 
       {orphans.length > 0 ? (
-        <>
-          <h2>Corrections for headings that no longer start a moment</h2>
-          <ul>
+        <section>
+          <h2 className="mb-2 text-section">
+            Corrections for headings that no longer start a moment
+          </h2>
+          <ul className="divide-y divide-hairline border-y border-hairline text-sm">
             {orphans.map(([heading, tags]) => (
-              <li key={heading}>
+              <li
+                key={heading}
+                className="flex items-center justify-between gap-3 py-3"
+              >
                 {heading}: {describe(tags)}
                 <form action={saveTagsAction}>
                   <input type="hidden" name="itemId" value={item.id} />
                   <input type="hidden" name="heading" value={heading} />
-                  <button type="submit" name="intent" value="clear">
+                  <button
+                    type="submit"
+                    name="intent"
+                    value="clear"
+                    className={SECONDARY}
+                  >
                     Clear override
                   </button>
                 </form>
               </li>
             ))}
           </ul>
-        </>
+        </section>
       ) : null}
 
-      <h2>Section boundaries</h2>
-      <p>
-        {applied
-          ? "Moments start at the ticked headings."
-          : "Moments follow the 2-8 minute rules. Tick headings to choose the starts yourself."}
-      </p>
-      {stale.length > 0 ? (
-        <p>
-          Saved boundaries this item no longer has:{" "}
-          {stale.map((h) => (
-            <code key={h}>{h} </code>
-          ))}
+      <section className="flex flex-col gap-2 text-sm">
+        <h2 className="text-section">Section boundaries</h2>
+        <p className="text-ink-muted">
+          {applied
+            ? "Moments start at the ticked headings."
+            : "Moments follow the 2-8 minute rules. Tick headings to choose the starts yourself."}
         </p>
-      ) : null}
-      <form action={saveBoundariesAction}>
-        <input type="hidden" name="itemId" value={item.id} />
-        <ul>
-          {item.sections.map((section, index) =>
-            section.heading === null ? (
-              <li key={index}>Intro · {section.wordCount} words</li>
-            ) : (
-              <li key={index}>
-                <label>
-                  <input
-                    type="checkbox"
-                    name="boundary"
-                    value={section.heading}
-                    defaultChecked={boundaries.has(section.heading)}
-                  />{" "}
-                  {"  ".repeat(Math.max(0, (section.level ?? 2) - 2))}
-                  {section.heading} · {section.wordCount} words
-                </label>
-              </li>
-            ),
-          )}
-        </ul>
-        <button type="submit">Save boundaries and re-segment</button>
-      </form>
+        {stale.length > 0 ? (
+          <p>
+            Saved boundaries this item no longer has:{" "}
+            {stale.map((h) => (
+              <code key={h}>{h} </code>
+            ))}
+          </p>
+        ) : null}
+        <form action={saveBoundariesAction} className="flex flex-col gap-3">
+          <input type="hidden" name="itemId" value={item.id} />
+          <ul className="divide-y divide-hairline border-y border-hairline tabular-nums">
+            {item.sections.map((section, index) =>
+              section.heading === null ? (
+                <li key={index} className="py-2 text-ink-muted">
+                  Intro · {section.wordCount} words
+                </li>
+              ) : (
+                <li key={index} className="py-2">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      name="boundary"
+                      value={section.heading}
+                      defaultChecked={boundaries.has(section.heading)}
+                    />{" "}
+                    {"  ".repeat(Math.max(0, (section.level ?? 2) - 2))}
+                    {section.heading} · {section.wordCount} words
+                  </label>
+                </li>
+              ),
+            )}
+          </ul>
+          <button type="submit" className={`${ACT} self-start`}>
+            Save boundaries and re-segment
+          </button>
+        </form>
+      </section>
     </main>
   );
 }

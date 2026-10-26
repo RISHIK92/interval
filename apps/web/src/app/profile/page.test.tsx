@@ -83,6 +83,27 @@ test("hidden sources and inferred interests are listed with their actions", asyn
   expect(html).toContain("Inferred interests reset.");
 });
 
+// ADR-0015: the goals read as they were picked; the way back is the feed.
+test("the user's goals are listed by their labels, with a way back to the feed", async () => {
+  current.mockResolvedValue(guest);
+  get.mockResolvedValue({
+    goals: ["system-design-interviews", "stay-sharp"],
+    topics: ["databases"],
+    level: "advanced",
+    breakLength: "8-15",
+  });
+  const html = await page();
+  const goals = /<section aria-label="Your goals">(.*?)<\/section>/.exec(
+    html,
+  )?.[1];
+  expect(goals).toContain("Pass system design interviews");
+  expect(goals).toContain("Stay sharp, nothing formal");
+  expect(goals).not.toContain("Finally finish that book");
+  expect(html).toMatch(
+    /<a[^>]*href="\/"[^>]*aria-label="Back to your feed"|<a[^>]*aria-label="Back to your feed"[^>]*href="\/"/,
+  );
+});
+
 test("no session goes to /join; not onboarded goes to /onboarding", async () => {
   current.mockResolvedValue(null);
   await expect(page()).rejects.toThrow("redirect:/join");
@@ -104,8 +125,8 @@ test("notices come from fixed text, never from the query string", async () => {
   expect(odd).not.toContain('role="status"');
   expect(odd).not.toContain('role="alert"');
   expect(odd).not.toContain("&lt;b&gt;x");
-  expect(await page({ missing: "topic" })).toContain(
-    '<p role="alert">Pick at least one topic.</p>',
+  expect(await page({ missing: "topic" })).toMatch(
+    /<p role="alert"[^>]*>Pick at least one topic\.<\/p>/,
   );
 });
 

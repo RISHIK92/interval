@@ -3,10 +3,8 @@
 import { useActionState } from "react";
 import type { FormState } from "../form";
 import { Button } from "../ui/Button";
+import { FIELD } from "../ui/field";
 import { join } from "./actions";
-
-const FIELD =
-  "mt-1 w-full rounded-xl border border-hairline bg-page px-3 py-2.5";
 
 // Account first (ADR-0016): the invite code and the account together. The code from an
 // invite link only pre-fills the form: a use is spent on submit, never on a GET, so

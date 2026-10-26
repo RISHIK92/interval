@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. W6-S01 (ranking inspection), W6-S02 (deep-link check), W6-S03 (weekly link health) and W6-S04 (Athena metric queries) and W6-S05 (dashboards and alarms) done: Phase 1 is built apart from W1-S12 (guest merge, deferred). Design pass started (owner, 2026-10-26): designs in docs/wireframes/, ADR-0015 (goals), ADR-0016 (account first, so W1-S12 merge is no longer needed) and ADR-0017 (five tabs) accepted; foundation and account-first join done. Goals (ADR-0015) done. Next: screen restyles (onboarding, Home, Library, return prompt, Profile, admin). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. W6-S01 (ranking inspection), W6-S02 (deep-link check), W6-S03 (weekly link health) and W6-S04 (Athena metric queries) and W6-S05 (dashboards and alarms) done: Phase 1 is built apart from W1-S12 (guest merge, deferred). Design pass started (owner, 2026-10-26): designs in docs/wireframes/, ADR-0015 (goals), ADR-0016 (account first, so W1-S12 merge is no longer needed) and ADR-0017 (five tabs) accepted; foundation and account-first join done. Goals (ADR-0015) and the screen restyles done. Next: owner review of the restyled screens; feed-card topic pictures (needs topics in the feed view); W3-S02 model pick so tagging (and goal matching) runs. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 
@@ -641,6 +641,33 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - every feed entry carries `goal_match`;
   - /admin/ranking shows the goal_match column at 0.80, and the setting can be edited.
 - **For the owner:** no local item has concept tags yet (tagging waits for the W3-S02 model pick), so no card gets a goal lift or a goal note in local data until tagging runs.
+
+### 2026-10-26 — Design pass 4: screen restyles (all Phase 1 screens)
+- **Owner choices:** onboarding in four steps as drawn; every Phase 1 screen in one pass.
+- **Shared pieces:**
+  - topic-family colour tokens (`--<topic>-tint/top/left/right/line`). Backend has no family in the design, so it borrows Review's purple; this is flagged for the owner.
+  - `ui/Card`, `ui/field.ts`, and `ui/TopicArt` (isometric topic drawings).
+- **Built** by three parallel agents, then reviewed and checked here:
+  - **Onboarding** (`OnboardingSteps` client stepper inside the one form):
+    - progress segments, back button and "Account created" badge;
+    - goal, topic, level and break option cards with topic-tinted tiles, the chosen state in blue, coming-soon goals dimmed;
+    - Continue unlocks when the step is answered, and a server refusal opens its step.
+  - **`ChoicesFields`** is split into four groups; Profile still renders all four.
+  - **Sign-in, forgot and reset password, and offline** match the join page.
+  - **Home:**
+    - header with the Profile avatar link; the first card is the hero (Card, section progress, black "Read on site" pill, round Save and "…" menu);
+    - the rest are rows under "More for your <chip> break". Not "Also fits in…", because an 8–15 feed holds whole articles longer than the break;
+    - Continue reading as cards; Now reading as a slim card; the return prompt as a bottom sheet.
+  - **Library:** "Everything you kept" tiles, with Highlights, Notes and Audio disabled "Coming later"; Saved and Finished as cards with section progress.
+  - **Profile:** back link, "Your goals" card (labels shared with onboarding), the Appearance segmented control, and the choices, hidden sources and inferred interests as cards.
+  - **Admin:** a dense table layout (`admin/style.ts`).
+- **Tests:** markup-pinned assertions are now behaviour checks; new tests cover the stepper's steps and badge, the hero versus rows, the disabled Library tiles, and Profile's goals. `pnpm check` is green.
+- **Checked in Chrome** on the owner's account, during onboarding, with nothing submitted: step 1 matches the design; choosing a goal enables Continue; step 2 shows the back arrow and 50%; the chosen state is blue.
+- **Not checked yet** (needs an onboarded account): Home, Library and Profile visually, in light and dark.
+- **Open:**
+  - feed cards show no topic picture, because cards don't carry a topic (needs the feed view to expose it);
+  - Profile has no sign-out (Home has one);
+  - the popover and return-sheet positions have not been checked on a phone.
 
 ## Pre-deploy list (from the S18 review; parked by the owner until deployment, ADR-0013)
 

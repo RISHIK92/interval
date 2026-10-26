@@ -13,9 +13,11 @@ export default async function SignUpPage() {
   if (actor === null) redirect("/join");
   if (!actor.isGuest) redirect("/");
   return (
-    <main>
-      <h1>Create your account</h1>
-      <p>Keep your progress and use Interval on any device.</p>
+    <main className="mx-auto max-w-md px-4 pt-10 pb-12">
+      <h1 className="text-display">Create your account</h1>
+      <p className="mt-2 text-ink-muted">
+        Keep your progress and use Interval on any device.
+      </p>
       <AuthForm
         action={signUpAction}
         submit="Create account"
@@ -35,8 +37,11 @@ export default async function SignUpPage() {
           },
         ]}
       />
-      <p>
-        Already have an account? <Link href="/sign-in">Sign in</Link>
+      <p className="mt-6">
+        Already have an account?{" "}
+        <Link href="/sign-in" className="font-semibold underline">
+          Sign in
+        </Link>
       </p>
     </main>
   );

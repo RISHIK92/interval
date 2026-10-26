@@ -28,7 +28,7 @@ function textOf(html: string): string {
 
 test("links to the publisher's section in a new tab without leaking the opener", () => {
   const html = renderToStaticMarkup(
-    <MomentCard card={card} chip="3-8" position={4} />,
+    <MomentCard card={card} chip="3-8" position={4} hero controls={null} />,
   );
   // Through /out, which records the open (P1-W5-S01); the URL is looked up there.
   expect(html).toContain(
@@ -41,24 +41,49 @@ test("links to the publisher's section in a new tab without leaking the opener",
   expect(html).toContain('rel="noopener noreferrer"');
 });
 
-test("renders only the card fields: title, position, fit, article and attribution", () => {
+test("as the hero, renders only the card fields: attribution, title, article, position, length and fit", () => {
   const html = renderToStaticMarkup(
-    <MomentCard card={card} chip="3-8" position={1} />,
+    <MomentCard card={card} chip="3-8" position={1} hero controls={null} />,
   );
   expect(textOf(html)).toBe(
-    "Raft in one page / Section 2 of 4 · 3 min / Fits your 3–8 min break / " +
-      "Consensus in practice / Example Engineering · Rae Writer / Read on site / " +
+    "Example Engineering · Rae Writer / Raft in one page / Consensus in practice / " +
+      "Section 2 of 4 / 3 min reading / Fits your 3–8 min break / Read on site / " +
       "Open original website",
   );
+  // One progress segment per section, filled up to this one (design screen 2).
+  expect(html.match(/bg-go/g)).toHaveLength(2);
+  expect(html.match(/bg-track/g)).toHaveLength(2);
+});
+
+// Rows sit under "Also fits in …", so they don't repeat the fit.
+test("as a row, keeps the same links and fields without the fit", () => {
+  const html = renderToStaticMarkup(
+    <MomentCard
+      card={card}
+      chip="3-8"
+      position={2}
+      hero={false}
+      controls={<button type="button">Menu</button>}
+    />,
+  );
+  expect(textOf(html)).toBe(
+    "Raft in one page / 3 min reading · Example Engineering · Rae Writer / " +
+      "Consensus in practice · Section 2 of 4 / Read on site / Open original website / Menu",
+  );
+  expect(html).toMatch(/<a[^>]*data-item="70"[^>]*data-moment="7"/);
 });
 
 test("omits the author when unknown", () => {
   const html = renderToStaticMarkup(
-    <MomentCard card={{ ...card, author: null }} chip="1-3" position={1} />,
+    <MomentCard
+      card={{ ...card, author: null }}
+      chip="1-3"
+      position={1}
+      hero
+      controls={null}
+    />,
   );
-  expect(textOf(html)).toContain(
-    " / Example Engineering / Read on site / Open original website",
-  );
+  expect(textOf(html)).toContain("Example Engineering / Raft in one page");
 });
 
 // P1-W4-S06: why this matters, labelled AI only once a model wrote it (AI-3, owner).
@@ -68,6 +93,8 @@ test("shows the card's note, with an AI label only when a model wrote it", () =>
       card={{ ...card, note: { text: "New this week.", ai: false } }}
       chip="3-8"
       position={1}
+      hero
+      controls={null}
     />,
   );
   expect(textOf(template)).toContain("Why this matters: New this week.");
@@ -77,6 +104,8 @@ test("shows the card's note, with an AI label only when a model wrote it", () =>
       card={{ ...card, note: { text: "Fresh, on your topic.", ai: true } }}
       chip="3-8"
       position={1}
+      hero
+      controls={null}
     />,
   );
   // In the dashed AI box, with its tag (AI-1).
