@@ -14,6 +14,7 @@ import {
 import { queueRecompute } from "../../server/recompute";
 import { BIGINT_ID } from "../../server/ports";
 import { visitId } from "../../server/visits";
+import { sameSitePath, textField } from "../form";
 
 // The card controls (§5C, Q-P1-15, ADR-0006 C-20, P1-W4-S07).
 const Control = z.object({
@@ -73,9 +74,13 @@ export async function feedbackAction(form: FormData): Promise<void> {
       "feed: recompute after feedback not queued",
     );
   }
+  // `back`: the in-app reader's Save stays in the reader (ADR-0018).
   redirect(
-    control === "not_interested"
-      ? `/?chip=${chip}&undo=${itemId}`
-      : `/?chip=${chip}`,
+    sameSitePath(
+      textField(form, "back"),
+      control === "not_interested"
+        ? `/?chip=${chip}&undo=${itemId}`
+        : `/?chip=${chip}`,
+    ),
   );
 }

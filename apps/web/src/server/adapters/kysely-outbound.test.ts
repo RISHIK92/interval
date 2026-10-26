@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DB } from "@interval/db";
-import type { Transaction } from "kysely";
+import { sql, type Transaction } from "kysely";
 import { afterAll, expect, test } from "vitest";
 import { createDb } from "./kysely";
 import { kyselyOutboundLinks } from "./kysely-outbound";
@@ -124,5 +124,124 @@ test("an item that doesn't exist resolves to nothing", async () => {
     expect(
       await kyselyOutboundLinks(trx).resolve("999999999999", null),
     ).toBeNull();
+  });
+});
+
+// ADR-0018: what the in-app reader shows around the framed page.
+async function readerUser(trx: Transaction<DB>): Promise<string> {
+  const code = await trx
+    .insertInto("invite_code")
+    .values({
+      code: `OUT${randomUUID().replaceAll("-", "").slice(0, 10).toUpperCase()}`,
+      beta_group: "student",
+      max_uses: 1,
+      expires_at: sql<Date>`now() + interval '1 day'`,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  const id = randomUUID();
+  await trx
+    .insertInto("app_user")
+    .values({
+      id,
+      name: "n",
+      email: `${id}@example.test`,
+      beta_group: "student",
+      invite_code_id: code.id,
+    })
+    .execute();
+  return id;
+}
+
+test("the reader gets the link, titles, the user's note and save, and the next section", async () => {
+  await inRollback(async (trx, { itemId, momentId }) => {
+    const userId = await readerUser(trx);
+    await trx
+      .updateTable("content_item")
+      .set({ frameable: true })
+      .where("id", "=", itemId)
+      .execute();
+    const next = await trx
+      .insertInto("moment")
+      .values({
+        content_item_id: itemId,
+        ordinal: 1,
+        title: "Paxos",
+        estimated_minutes: 4,
+        link: "https://out.example.test/post#paxos",
+        link_type: "anchor",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const note = await trx
+      .insertInto("feed_note")
+      .values({
+        content_item_id: itemId,
+        signal: "topic_match",
+        level: "beginner",
+        variant: "v1",
+        text: "Leaders get elected this way.",
+        model: "notes-model",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("user_feed_entry")
+      .values({
+        user_id: userId,
+        chip: "3-8",
+        content_item_id: itemId,
+        moment_id: momentId,
+        rank: 1,
+        top_signal: "topic_match",
+        note_id: note.id,
+      })
+      .execute();
+    await trx
+      .insertInto("user_save")
+      .values({ user_id: userId, content_item_id: itemId })
+      .execute();
+    const links = kyselyOutboundLinks(trx);
+    const source = await trx
+      .selectFrom("source as s")
+      .innerJoin("content_item as c", "c.source_id", "s.id")
+      .select("s.name")
+      .where("c.id", "=", itemId)
+      .executeTakeFirstOrThrow();
+    expect(await links.reader(userId, itemId, momentId)).toEqual({
+      link: { url: "https://out.example.test/post#raft", linkType: "anchor" },
+      frameable: true,
+      articleTitle: "Post",
+      sectionTitle: "Raft",
+      sourceName: source.name,
+      note: { text: "Leaders get elected this way.", ai: true },
+      saved: true,
+      nextMomentId: next.id,
+    });
+    // The last section has no next; its feed entry has no note here.
+    expect(await links.reader(userId, itemId, next.id)).toMatchObject({
+      sectionTitle: "Paxos",
+      note: null,
+      nextMomentId: null,
+    });
+    // The whole article: no section, so no next either.
+    expect(await links.reader(userId, itemId, null)).toMatchObject({
+      link: { url: "https://out.example.test/post", linkType: "article" },
+      sectionTitle: null,
+      nextMomentId: null,
+    });
+  });
+});
+
+test("the reader says unknown frameability is not frameable, and nothing for no item", async () => {
+  await inRollback(async (trx, { itemId }) => {
+    const userId = await readerUser(trx);
+    const links = kyselyOutboundLinks(trx);
+    expect(await links.reader(userId, itemId, null)).toMatchObject({
+      frameable: false,
+      note: null,
+      saved: false,
+    });
+    expect(await links.reader(userId, "999999999999", null)).toBeNull();
   });
 });

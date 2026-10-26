@@ -48,11 +48,13 @@ test("as the hero, renders only the card fields: attribution, title, article, po
   );
   expect(textOf(html)).toBe(
     "Example Engineering · Rae Writer / Raft in one page / Consensus in practice / " +
-      "Section 2 of 4 / 3 min reading / Fits your 3–8 min break / Read on site / " +
+      "Section 2 of 4 / 3 min reading / Fits your 3–8 min break / Read article / " +
       "Open original website",
   );
-  // One progress segment per section, filled up to this one (design screen 2).
-  expect(html.match(/bg-go/g)).toHaveLength(2);
+  // One progress segment per section (design screen 2): finished ones green, this one
+  // light green and gently pulsing, the rest empty (owner, 2026-10-26).
+  expect(html.match(/bg-go[\s"]/g)).toHaveLength(1);
+  expect(html.match(/bg-go-soft motion-safe:animate-glow/g)).toHaveLength(1);
   expect(html.match(/bg-track/g)).toHaveLength(2);
 });
 
@@ -69,7 +71,7 @@ test("as a row, keeps the same links and fields without the fit", () => {
   );
   expect(textOf(html)).toBe(
     "Raft in one page / 3 min reading · Example Engineering · Rae Writer / " +
-      "Consensus in practice · Section 2 of 4 / Read on site / Open original website / Menu",
+      "Consensus in practice · Section 2 of 4 / Read article / Open original website / Menu",
   );
   expect(html).toMatch(/<a[^>]*data-item="70"[^>]*data-moment="7"/);
 });
@@ -128,4 +130,26 @@ test("a one-section moment shows no progress bar", () => {
   );
   expect(html).toContain("Section 1 of 1");
   expect(html).not.toContain("bg-go");
+});
+
+// ADR-0018: a page that allows framing opens in Interval's reader, in this tab, with
+// no data-item: the reader asks on close, not the tab's visibility.
+test("a frameable section opens in the in-app reader; Open original still leaves", () => {
+  const html = renderToStaticMarkup(
+    <MomentCard
+      card={{ ...card, frameable: true }}
+      chip="3-8"
+      position={4}
+      hero
+      controls={null}
+    />,
+  );
+  expect(html).toMatch(
+    // Marked for the Back prompt (ADR-0018), not for the tab-visibility one.
+    /<a href="\/read\/70\?moment=7&amp;chip=3-8&amp;pos=4" data-read-item="70" data-read-moment="7" class="[^"]*">Read article<\/a>/,
+  );
+  expect(html).not.toContain("data-item");
+  expect(html).toContain(
+    'href="/out?item=70&amp;moment=7&amp;chip=3-8&amp;pos=4&amp;target=original" target="_blank"',
+  );
 });

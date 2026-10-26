@@ -6,8 +6,9 @@ import { WhyNote } from "./WhyNote";
 
 // The two shapes of a feed card on Home (design screen 2): the first card is the hero,
 // the rest are compact rows. Both are deep links to the publisher, never copies (§3.2).
-// A row sits under "Also fits in …", so only the hero says it fits. `read` carries
-// data-item (and data-moment) so the return prompt can ask about it.
+// A row sits under "Also fits in …", so only the hero says it fits. A `read` link to
+// the browser carries data-item (and data-moment) so the return prompt can ask about
+// it; one into the in-app reader (ADR-0018) stays in this tab and asks on close.
 export function FeedCardLayout({
   hero,
   title,
@@ -29,22 +30,38 @@ export function FeedCardLayout({
   length: string;
   fits: string | null;
   note: FeedCard["note"];
-  read: { href: string; label: string; item: string; moment?: string };
+  read: {
+    href: string;
+    label: string;
+    item: string;
+    moment?: string;
+    inApp: boolean;
+  };
   originalHref: string | null;
   controls: ReactNode;
 }) {
-  const readLink = (className: string) => (
-    <a
-      href={read.href}
-      data-item={read.item}
-      data-moment={read.moment}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={className}
-    >
-      {read.label}
-    </a>
-  );
+  const readLink = (className: string) =>
+    read.inApp ? (
+      <a
+        href={read.href}
+        data-read-item={read.item}
+        data-read-moment={read.moment}
+        className={className}
+      >
+        {read.label}
+      </a>
+    ) : (
+      <a
+        href={read.href}
+        data-item={read.item}
+        data-moment={read.moment}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={className}
+      >
+        {read.label}
+      </a>
+    );
   const original =
     originalHref === null ? null : (
       <a

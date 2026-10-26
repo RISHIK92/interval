@@ -13,13 +13,21 @@ export type PromptEvent =
   | { type: "opened"; open: Opened }
   | { type: "hidden" }
   | { type: "visible" }
-  | { type: "closed" };
+  | { type: "closed" }
+  // Back from the in-app reader (ADR-0018): ask about what it showed.
+  | { type: "returned"; open: Opened };
 
 export const initialPrompt: PromptState = {
   open: null,
   left: false,
   prompt: null,
 };
+
+// ADR-0018: closing the in-app reader comes back to the feed asking about what it
+// showed, once (the feed's link carries it).
+export function askingAbout(ask: Opened | null): PromptState {
+  return { ...initialPrompt, prompt: ask };
+}
 
 export function promptState(
   state: PromptState,
@@ -37,5 +45,7 @@ export function promptState(
         : state;
     case "closed":
       return { ...state, prompt: null };
+    case "returned":
+      return { open: null, left: false, prompt: event.open };
   }
 }

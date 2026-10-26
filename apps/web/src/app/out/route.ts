@@ -1,13 +1,9 @@
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { CHIPS } from "../../server/chips";
-import {
-  events,
-  outboundLinks,
-  progress,
-  sessionReader,
-} from "../../server/container";
+import { events, outboundLinks, sessionReader } from "../../server/container";
 import { log } from "../../server/log";
+import { attributed, countOpen } from "../../server/opens";
 import { BIGINT_ID } from "../../server/ports";
 import { formatReading, READING_COOKIE } from "../../server/reading";
 import { visitCookieOptions, visitId } from "../../server/visits";
@@ -23,7 +19,9 @@ const Open = z.object({
   // sent with them is ignored (owner, 2026-10-26).
   chip: z.enum(CHIPS).optional(),
   pos: z.coerce.number().int().min(1).max(200).optional(),
-  from: z.enum(["continue", "library"]).optional(),
+  // "reader": Open in browser from inside the in-app reader, after a move there
+  // (ADR-0018); it records the section and the outbound click only.
+  from: z.enum(["continue", "library", "reader"]).optional(),
   target: z.enum(["section", "original"]),
 });
 
@@ -33,24 +31,7 @@ function home(): Response {
   return new Response(null, { status: 302, headers: { location: "/" } });
 }
 
-// The publisher's page with utm_source=interval added (§8): appended as is, never
-// re-encoding the publisher's own query, and before the fragment, so a section link
-// still lands on its section. Null unless it is an http(s) URL: links come from feeds.
-function attributed(stored: string): string | null {
-  let url: URL;
-  try {
-    url = new URL(stored);
-  } catch {
-    return null;
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
-  const hash = stored.indexOf("#");
-  const base = hash === -1 ? stored : stored.slice(0, hash);
-  const fragment = hash === -1 ? "" : stored.slice(hash);
-  return `${base}${base.includes("?") ? "&" : "?"}utm_source=interval${fragment}`;
-}
-
-// "Read on site" and "Open original website" (§3.2, §5D, P1-W5-S01): record the open,
+// "Read article" and "Open original website" (§3.2, §5D, P1-W5-S01): record the open,
 // then send the reader to the publisher, attributed (§8). Works without scripts. A GET:
 // another site could send a signed-in reader here and count an open, in the analytics
 // and, for an explored entry, once in its arm's shown count (exploration only).
@@ -98,35 +79,14 @@ export async function GET(request: Request): Promise<Response> {
         }),
         session,
       );
-    // A section the reader reached counts as read for continue cards (P1-W5-S03).
-    if (moment !== undefined && link.linkType !== "article") {
-      await progress().recordOpen(actor.userId, item, moment);
-    }
-    if (card !== null) {
-      // A feed card placed by exploration counts toward its arm (P1-W5-S03).
-      await progress().countExploreOpen(
-        actor.userId,
-        card.chip,
-        item,
-        moment ?? null,
-      );
-      events().emit(
-        "card_opened",
-        {
-          kind: moment === undefined ? "article" : "moment",
-          chip: card.chip,
-          position: card.pos,
-          // The ids, to match this open to a finish (P1-W6-S04). A link that landed
-          // on the article is an article open: the article is what the reader can
-          // finish, as the reading cookie says (owner, 2026-10-26).
-          item_id: item,
-          moment_id: link.linkType === "article" ? null : (moment ?? null),
-        },
-        context,
-      );
-    } else if (from === "continue") {
-      events().emit("continue_clicked", {}, context);
-    }
+    await countOpen(context, {
+      itemId: item,
+      momentId: moment,
+      link,
+      card,
+      from,
+      surface: "browser",
+    });
     events().emit(
       "outbound_click",
       { link_type: link.linkType, target },

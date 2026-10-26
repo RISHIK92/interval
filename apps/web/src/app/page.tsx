@@ -121,6 +121,11 @@ export default async function HomePage({
       : (await progress().describe(finished.itemId, finished.momentId)) === null
         ? undefined
         : await progress().nextMoment(finished.itemId, finished.momentId);
+  // Back from the in-app reader (ADR-0018): ask about what it showed. Ids only, in the
+  // reading cookie's form; a finish of ids that name nothing writes nothing.
+  const ask = parseReading(
+    typeof params["ask"] === "string" ? params["ask"] : undefined,
+  );
   // Read live: a finish shows its continue card at once (owner, 2026-10-26).
   const continuing = await progress().continueCards(
     actor.userId,
@@ -196,7 +201,7 @@ export default async function HomePage({
         </ul>
       </nav>
       {/* The panel steps aside while the prompt asks (owner, 2026-10-26). */}
-      <ReturnPrompt chip={chip}>
+      <ReturnPrompt chip={chip} initialAsk={ask}>
         {reading === null || readingTitles === null ? null : (
           <NowReading reading={reading} titles={readingTitles} chip={chip} />
         )}

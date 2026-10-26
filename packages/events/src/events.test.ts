@@ -67,6 +67,38 @@ describe("the envelope", () => {
     expect(envelopeSchema.parse(event)).toEqual(event);
   });
 
+  // ADR-0018: an open says where it opened, Interval's reader or the browser.
+  test("card_opened v3 carries its surface", () => {
+    const props = {
+      kind: "moment",
+      chip: "3-8",
+      position: 1,
+      item_id: "5",
+      moment_id: "9",
+    };
+    const event = { ...base, name: "card_opened", version: 3 };
+    for (const surface of ["in_app", "browser"]) {
+      expect(
+        envelopeSchema.safeParse({ ...event, props: { ...props, surface } })
+          .success,
+      ).toBe(true);
+    }
+    expect(envelopeSchema.safeParse({ ...event, props }).success).toBe(false);
+    expect(
+      envelopeSchema.safeParse({
+        ...event,
+        props: { ...props, surface: "app" },
+      }).success,
+    ).toBe(false);
+    expect(
+      envelopeSchema.safeParse({
+        ...event,
+        version: 2,
+        props: { ...props, surface: "browser" },
+      }).success,
+    ).toBe(false);
+  });
+
   test.each([
     [
       "props from another event",

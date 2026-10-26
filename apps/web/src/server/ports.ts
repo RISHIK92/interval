@@ -76,11 +76,30 @@ export type OutboundLink = {
   url: string;
   linkType: "anchor" | "text_fragment" | "page_top" | "article";
 };
+// What the in-app reader shows around the publisher's framed page (ADR-0018): titles,
+// the user's note and save, never the page's text (§3.2, ING-2).
+export type ReaderPage = {
+  link: OutboundLink; // as resolve() gives it
+  frameable: boolean; // false while unknown
+  articleTitle: string;
+  sectionTitle: string | null; // null when the link is the article's page
+  sourceName: string;
+  // The note on this entry in the user's feed, if it has one.
+  note: FeedCard["note"];
+  saved: boolean;
+  nextMomentId: string | null; // the section after the one reached, by order
+};
 export interface OutboundLinks {
   resolve(
     itemId: string,
     momentId: string | null,
   ): Promise<OutboundLink | null>;
+  // Null when resolve() finds nothing.
+  reader(
+    userId: string,
+    itemId: string,
+    momentId: string | null,
+  ): Promise<ReaderPage | null>;
 }
 
 // Finishing sections and articles (§5D, C-22, Q-P1-35, P1-W5-S02). Each finish

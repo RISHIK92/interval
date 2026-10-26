@@ -11,6 +11,16 @@ const config: NextConfig = {
   // Development only: testing on a phone through an ngrok HTTPS tunnel (owner,
   // 2026-10-26). Next blocks dev requests from origins not listed here.
   allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.app"],
+  // ADR-0018: the in-app reader frames publishers' pages over https only.
+  headers: () =>
+    Promise.resolve([
+      {
+        source: "/read/:item",
+        headers: [
+          { key: "Content-Security-Policy", value: "frame-src https:" },
+        ],
+      },
+    ]),
 };
 
 export default config;

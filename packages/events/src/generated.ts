@@ -24,7 +24,7 @@ export type EventName = (typeof EVENT_NAMES)[number];
 export const EVENT_VERSIONS = {
   article_finished: 2,
   card_impression: 1,
-  card_opened: 2,
+  card_opened: 3,
   continue_clicked: 1,
   feed_viewed: 1,
   feedback_given: 1,
@@ -55,6 +55,7 @@ export const propsSchemas = {
       .string()
       .regex(/^[1-9][0-9]{0,18}$/)
       .nullable(),
+    surface: z.enum(["in_app", "browser"]),
   }),
   continue_clicked: z.strictObject({}),
   feed_viewed: z.strictObject({ card_count: z.number().int().nonnegative() }),
@@ -111,7 +112,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("card_opened"),
-    version: z.literal(2),
+    version: z.literal(3),
     props: propsSchemas.card_opened,
   }),
   z.strictObject({

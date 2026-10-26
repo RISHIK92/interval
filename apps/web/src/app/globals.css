@@ -28,6 +28,7 @@
   --ink-muted: light-dark(#666c78, #8f95a1);
   --go: light-dark(#12a150, #35d07f);
   --go-text: light-dark(#0b7a3e, #35d07f);
+  --go-soft: light-dark(#9fe3bb, #1d6b42);
   --select: light-dark(#3462e8, #7b9cff);
   --live: light-dark(#e5404a, #ff6b72);
   --wrong: light-dark(#c62f38, #ff7b82);
@@ -75,6 +76,7 @@
   --color-ink-muted: var(--ink-muted);
   --color-go: var(--go);
   --color-go-text: var(--go-text);
+  --color-go-soft: var(--go-soft);
   --color-select: var(--select);
   --color-live: var(--live);
   --color-wrong: var(--wrong);
@@ -82,6 +84,13 @@
   --shadow-card: 0 1px 3px var(--shadow), 0 4px 16px var(--shadow);
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --animate-glow: glow 2.4s ease-in-out infinite;
+
+  @keyframes glow {
+    50% {
+      opacity: 0.55;
+    }
+  }
 }
 
 /* Type: Outfit, tight on headings, tabular numbers. */

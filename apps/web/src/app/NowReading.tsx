@@ -16,7 +16,7 @@ export function NowReading({
   chip: Chip;
 }) {
   const name =
-    titles.sectionTitle === null
+    titles.sectionTitle === null || titles.sectionTitle === titles.articleTitle
       ? titles.articleTitle
       : `${titles.sectionTitle} — ${titles.articleTitle}`;
   return (

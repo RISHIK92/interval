@@ -36,6 +36,9 @@ vi.mock("next/headers", () => ({
         name === "iv_visit" ? { name, value: "visit-1.1790000000" } : undefined,
     }),
 }));
+vi.mock("../../env", () => ({
+  env: () => ({ BETTER_AUTH_URL: "http://localhost:3100" }),
+}));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new Error(`redirect:${url}`);
@@ -184,3 +187,26 @@ test("an unsave that changes nothing queues nothing", async () => {
   await expect(press("unsave")).rejects.toThrow("redirect:/?chip=3-8");
   expect(enqueue).not.toHaveBeenCalled();
 });
+
+// ADR-0018: Save in the in-app reader goes back to the reader, only ever on this site.
+test("back is honoured when it is a path on this site", async () => {
+  const { feedbackAction } = await import("./actions");
+  current.mockResolvedValue(guest);
+  const back = "/read/42?moment=9&chip=3-8&from=reader";
+  await expect(
+    feedbackAction(form({ control: "save", itemId: "42", chip: "3-8", back })),
+  ).rejects.toThrow(`redirect:${back}`);
+  expect(port.save).toHaveBeenCalledExactlyOnceWith("g1", "42");
+});
+
+test.each(["https://evil.test/read/42", "//evil.test", "/\\evil.test"])(
+  "back %j off the site is ignored",
+  async (back) => {
+    const { feedbackAction } = await import("./actions");
+    current.mockResolvedValue(guest);
+    const error = await feedbackAction(
+      form({ control: "save", itemId: "42", chip: "3-8", back }),
+    ).catch((caught: unknown) => caught);
+    expect(error).toEqual(new Error("redirect:/?chip=3-8"));
+  },
+);

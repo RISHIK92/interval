@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { type Chip, chipLabel, chipLimit } from "../server/chips";
 import type { ArticleFeedCard } from "../server/ports";
-import { outHref } from "../server/outbound";
+import { outHref, readHref } from "../server/outbound";
 import { FeedCardLayout } from "./FeedCardLayout";
 
 // A whole article, offered by the 8–15 chip (§3.2, Q-P1-16): a link to the publisher's
@@ -39,15 +39,19 @@ export function ArticleCard({
       }
       note={card.note}
       read={{
-        href: outHref({
-          itemId: card.itemId,
-          chip,
-          from: { position },
-          target: "original",
-        }),
+        // ADR-0018: in Interval's reader when the publisher allows framing.
+        href: card.frameable
+          ? readHref({ itemId: card.itemId, chip, from: { position } })
+          : outHref({
+              itemId: card.itemId,
+              chip,
+              from: { position },
+              target: "original",
+            }),
         // Still the publisher's page, from the top (owner, 2026-10-26).
         label: "Read article",
         item: card.itemId,
+        inApp: card.frameable,
       }}
       originalHref={null}
       controls={controls}

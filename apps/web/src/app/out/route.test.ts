@@ -90,6 +90,7 @@ describe("each link type lands where it points, attributed", () => {
         // The ids match an open to its finish (P1-W6-S04).
         item_id: "5",
         moment_id: linkType === "article" ? null : "9",
+        surface: "browser", // ADR-0018: /out opens the publisher's page in the browser
       },
       context,
     );
@@ -115,7 +116,14 @@ test("Open original website goes to the page itself, not the section", async () 
   expect(emit).toHaveBeenCalledWith(
     "card_opened",
     // Landed on the article, so it's matched to the article's finish (owner).
-    { kind: "moment", chip: "3-8", position: 1, item_id: "5", moment_id: null },
+    {
+      kind: "moment",
+      chip: "3-8",
+      position: 1,
+      item_id: "5",
+      moment_id: null,
+      surface: "browser",
+    },
     context,
   );
   expect(emit).toHaveBeenCalledWith(
@@ -371,4 +379,24 @@ test("a Library open doesn't feed the Now reading panel", async () => {
   });
   await open("item=5&from=library&target=original");
   expect(setCookie).not.toHaveBeenCalled();
+});
+
+// ADR-0018: Open in browser after moving inside the in-app reader (Next section).
+test("a reader link records the section and the outbound click only", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post#raft",
+    linkType: "anchor",
+  });
+  const response = await open(
+    "item=5&moment=9&chip=3-8&from=reader&target=section",
+  );
+  expect(response.headers.get("location")).toBe(
+    "https://pub.test/post?utm_source=interval#raft",
+  );
+  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
+  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
+    "outbound_click",
+  ]);
+  expect(countExploreOpen).not.toHaveBeenCalled();
 });

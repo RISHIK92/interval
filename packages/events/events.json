@@ -26,14 +26,15 @@
       "props": {}
     },
     "card_opened": {
-      "version": 2,
-      "description": "A card was opened (Q-P1-21 \"opened\"). v2 adds the ids, to match opens to finishes (P1-W6-S04).",
+      "version": 3,
+      "description": "A card was opened (Q-P1-21 \"opened\"). v2 adds the ids, to match opens to finishes (P1-W6-S04). v3 adds where it opened: Interval's in-app reader or the browser (ADR-0018).",
       "props": {
         "kind": ["moment", "article"],
         "chip": ["1-3", "3-8", "8-15"],
         "position": "count",
         "item_id": "id",
-        "moment_id": "id?"
+        "moment_id": "id?",
+        "surface": ["in_app", "browser"]
       }
     },
     "section_finished": {

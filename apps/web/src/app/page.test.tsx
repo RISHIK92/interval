@@ -306,6 +306,20 @@ test("Now reading offers Mark section done and Dismiss for the open card", async
   expect(html).toMatch(/<button[^>]*value="dismiss"/);
 });
 
+// A section titled like its article (the AWS posts) names it once.
+test("Now reading doesn't repeat a section title that matches the article", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  readingCookie = "10.1";
+  describe_.mockResolvedValueOnce({
+    articleTitle: "Origin Range Requests",
+    sectionTitle: "Origin Range Requests",
+  });
+  expect(await render()).toMatch(
+    /Now reading<\/p><p[^>]*>Origin Range Requests<\/p>/,
+  );
+});
+
 test("a whole article's panel says Mark article done", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(feedOf([]));
@@ -424,4 +438,53 @@ test("the Home tab is marked current", async () => {
   const html = await render();
   expect(html).toMatch(/<a aria-current="page"[^>]*href="\/">.*?Home<\/a>/);
   expect(html).toMatch(/href="\/library">.*?Library<\/a>/);
+});
+
+// ADR-0018: closing the in-app reader comes back asking about what it showed.
+test("ask= opens the prompt for that card; a bad one is ignored", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  const section = await render({ ask: "10.1" });
+  expect(section).toContain("Finished this section?");
+  expect(section).toContain('name="itemId" value="10"');
+  expect(section).toContain('name="momentId" value="1"');
+  expect(section).toContain('name="method" value="return_prompt"');
+  const article = await render({ ask: "20." });
+  expect(article).toContain("Finished this article?");
+  expect(article).not.toContain('name="momentId"');
+  for (const ask of ["10.x", "0.1", "javascript:1", ""]) {
+    expect(await render({ ask })).not.toContain("Finished this");
+  }
+  expect(await render({ ask: ["10.1", "11.1"] })).not.toContain(
+    "Finished this",
+  );
+});
+
+test("a frameable card opens in the in-app reader, in this tab", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([{ ...card, frameable: true }]));
+  continueCards.mockResolvedValueOnce([
+    {
+      itemId: "30",
+      momentId: "31",
+      sectionTitle: "Raft",
+      sectionNumber: 2,
+      sectionCount: 3,
+      articleTitle: "Consensus in practice",
+      frameable: true,
+    },
+  ]);
+  const html = await render();
+  expect(html).toMatch(
+    /<a href="\/read\/10\?moment=1&amp;chip=3-8&amp;pos=1" data-read-item="10" data-read-moment="1" class="[^"]*">Read article<\/a>/,
+  );
+  // Continue too, without data-item: the visibility prompt mustn't arm for it; the
+  // reader marker asks on Back instead.
+  expect(html).toMatch(
+    /<a href="\/read\/30\?moment=31&amp;chip=3-8&amp;from=continue" data-read-item="30" data-read-moment="31" aria-label="Continue: Raft — Consensus in practice" class="[^"]*">Continue<\/a>/,
+  );
+  // Open original website still leaves for the browser.
+  expect(html).toContain(
+    'href="/out?item=10&amp;moment=1&amp;chip=3-8&amp;pos=1&amp;target=original" target="_blank"',
+  );
 });

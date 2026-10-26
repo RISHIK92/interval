@@ -11,7 +11,7 @@ export function outHref(
     target: "section" | "original";
   } & (
     | { from: { position: number }; chip: Chip }
-    | { from: "continue" | "library"; chip?: never }
+    | { from: "continue" | "library" | "reader"; chip?: never }
   ),
 ): string {
   const query = new URLSearchParams({ item: link.itemId });
@@ -24,4 +24,24 @@ export function outHref(
   }
   query.set("target", link.target);
   return `/out?${query.toString()}`;
+}
+
+// ADR-0018: a link into Interval's in-app reader, for a page that allows framing. /read
+// records the open as /out does; the chip takes the reader back to the same feed.
+// "reader" is a move inside the reader (Next section, or back after Save).
+export function readHref(link: {
+  itemId: string;
+  momentId?: string;
+  chip: Chip;
+  from: { position: number } | "continue" | "reader";
+}): string {
+  const query = new URLSearchParams();
+  if (link.momentId !== undefined) query.set("moment", link.momentId);
+  query.set("chip", link.chip);
+  if (typeof link.from === "string") {
+    query.set("from", link.from);
+  } else {
+    query.set("pos", String(link.from.position));
+  }
+  return `/read/${link.itemId}?${query.toString()}`;
 }

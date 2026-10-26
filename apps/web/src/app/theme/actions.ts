@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { env } from "../../env";
 import { parseTheme, THEME_COOKIE } from "../../server/theme";
 import { visitCookieOptions } from "../../server/visits";
-import { textField } from "../form";
+import { sameSitePath, textField } from "../form";
 
 const YEAR_SECONDS = 365 * 24 * 60 * 60;
 
@@ -16,11 +16,5 @@ export async function setThemeAction(form: FormData): Promise<void> {
     ...visitCookieOptions(env().BETTER_AUTH_URL),
     maxAge: YEAR_SECONDS,
   });
-  // Parsed as the browser will (it drops tabs and newlines), and kept only if it stays
-  // on this site.
-  const base = new URL(env().BETTER_AUTH_URL);
-  const back = new URL(textField(form, "back") || "/", base);
-  redirect(
-    back.origin === base.origin ? `${back.pathname}${back.search}` : "/",
-  );
+  redirect(sameSitePath(textField(form, "back"), "/"));
 }

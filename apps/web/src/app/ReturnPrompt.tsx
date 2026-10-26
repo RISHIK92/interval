@@ -3,23 +3,104 @@
 import { type ReactNode, useEffect, useReducer } from "react";
 import type { Chip } from "../server/chips";
 import { finishAction } from "./finish/actions";
-import { initialPrompt, promptState } from "./promptState";
+import { askingAbout, type Opened, promptState } from "./promptState";
 import { Button } from "./ui/Button";
 import { Card } from "./ui/Card";
 
+const READER_OPEN = "iv_reader_open";
+
+// Session storage can be missing or refuse (private modes): the Back prompt is then
+// skipped, never an error for the reader.
+function rememberReaderOpen(open: Opened): void {
+  try {
+    sessionStorage.setItem(READER_OPEN, JSON.stringify(open));
+  } catch (error) {
+    // No storage: × still asks; only the Back gesture won't.
+    console.warn("reader: open not remembered for Back", error);
+  }
+}
+
+function takeReaderOpen(): Opened | null {
+  try {
+    const raw = sessionStorage.getItem(READER_OPEN);
+    sessionStorage.removeItem(READER_OPEN);
+    if (raw === null) return null;
+    const value: unknown = JSON.parse(raw);
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      "itemId" in value &&
+      typeof value.itemId === "string" &&
+      "momentId" in value &&
+      (value.momentId === null || typeof value.momentId === "string")
+    ) {
+      return { itemId: value.itemId, momentId: value.momentId };
+    }
+    return null;
+  } catch (error) {
+    console.warn("reader: remembered open unreadable", error);
+    return null;
+  }
+}
+
 // The return prompt (§5D, Q-P1-32): back on this tab after opening a card, ask once.
 // Card links mark themselves with data-item (and data-moment for a section).
-// `children` (the Now reading panel) shows whenever the prompt doesn't.
+// `children` (the Now reading panel) shows whenever the prompt doesn't. `initialAsk`:
+// the in-app reader just closed (ADR-0018), so the prompt opens at once for it.
 export function ReturnPrompt({
   chip,
+  initialAsk,
   children,
 }: {
   chip: Chip;
+  initialAsk: Opened | null;
   children: ReactNode;
 }) {
-  const [state, dispatch] = useReducer(promptState, initialPrompt);
+  const [state, dispatch] = useReducer(promptState, initialAsk, askingAbout);
+  useEffect(() => {
+    // An in-app open is remembered for this tab (ADR-0018). Coming back with the
+    // browser's Back asks about it once; arriving any other way (×, which asks
+    // through `ask=`; Mark done; a fresh visit) only forgets it.
+    const back = (persisted: boolean) => {
+      const remembered = takeReaderOpen();
+      const navigation = performance.getEntriesByType("navigation")[0];
+      const viaBack =
+        persisted ||
+        (navigation instanceof PerformanceNavigationTiming &&
+          navigation.type === "back_forward");
+      if (remembered !== null && viaBack && initialAsk === null) {
+        dispatch({ type: "returned", open: remembered });
+      }
+    };
+    back(false);
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) back(true);
+    };
+    window.addEventListener("pageshow", onPageShow);
+    if (initialAsk !== null) {
+      // Asked once: a reload or Back to this page doesn't ask again.
+      const url = new URL(window.location.href);
+      url.searchParams.delete("ask");
+      window.history.replaceState(window.history.state, "", url);
+    }
+    return () => {
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [initialAsk]);
   useEffect(() => {
     const onClick = (event: MouseEvent) => {
+      const reader =
+        event.target instanceof Element
+          ? event.target.closest<HTMLElement>("a[data-read-item]")
+          : null;
+      const readItem = reader?.dataset["readItem"];
+      if (readItem !== undefined) {
+        rememberReaderOpen({
+          itemId: readItem,
+          momentId: reader?.dataset["readMoment"] ?? null,
+        });
+        return;
+      }
       const link =
         event.target instanceof Element
           ? event.target.closest<HTMLElement>("a[data-item]")

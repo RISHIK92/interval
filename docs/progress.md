@@ -1745,3 +1745,21 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the nav landmark is named "Main".
 - Checked in Chrome: /library lists the earlier finished article as "Finished" with its link, and the empty Saved state.
 - Ops note: the local Docker containers had stopped mid-session (every DB test failed together); `docker compose up -d --wait` brought them back with data intact.
+
+### 2026-10-26 — In-app reader, slice 2: `/read/[item]` with the bottom overlay (ADR-0018)
+
+- Done:
+  - `/read/[item]`: the publisher's page in a sandboxed frame; a header with ×, the domain pill and an arrow to the browser; the overlay below the frame (Why this matters, Save, Mark done, Next section, disabled Highlight / Listen / Test me);
+  - a not-frameable item redirects to the same `/out` URL;
+  - after 6 s without a load, a card offers "Open on <site>";
+  - shared open bookkeeping in `server/opens.ts`; `card_opened` v3 carries `surface` (`in_app` from `/read`, `browser` from `/out`); the reader's arrow goes through `/out?from=reader`, which records `outbound_click` only;
+  - frameable feed and Continue cards open the reader in the same tab; × and Back ask "Did you finish?" (`ask=` on close, a sessionStorage marker for Back);
+  - `feedbackAction` honours a same-site `back` path.
+- Owner UI changes: "Read article" replaces "Read on site"; smaller round buttons in the reader; the arrow without "Open" text; a section titled like its article shows one title (cards, reader, Now reading); the section bar shows finished sections green and the current one light green with a slow pulse (none under reduced motion).
+- Review fixes: no double `card_opened` from the reader's arrow; the frame mounts after hydration so its load isn't missed; Back from the reader asks.
+- Checked in Chrome: the reader loads a Cloudflare post, header and overlay; Now reading shows one title; the bars pulse on the current section.
+- Open for the owner:
+  - should an in-app open set the reading cookie (Now reading after "No")?
+  - should Next section emit an event?
+  - `docs/product.md` §5D still says "Read on site".
+- Not tested: ReaderFrame's timer phases (no DOM test library).

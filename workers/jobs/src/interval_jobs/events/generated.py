@@ -37,7 +37,7 @@ type Source = Literal["web", "jobs"]
 EVENT_VERSIONS: dict[EventName, int] = {
     "article_finished": 2,
     "card_impression": 1,
-    "card_opened": 2,
+    "card_opened": 3,
     "continue_clicked": 1,
     "feed_viewed": 1,
     "feedback_given": 1,
@@ -73,6 +73,7 @@ class CardOpenedProps(_Model):
     position: int = Field(ge=0, strict=True)
     item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
     moment_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    surface: Literal["in_app", "browser"]
 
 
 class ContinueClickedProps(_Model):
@@ -160,7 +161,7 @@ class CardImpressionEvent(_EnvelopeBase):
 
 class CardOpenedEvent(_EnvelopeBase):
     name: Literal["card_opened"]
-    version: Literal[2]
+    version: Literal[3]
     props: CardOpenedProps
 
 

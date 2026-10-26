@@ -85,3 +85,19 @@ test("shows its note like a moment card does", () => {
     /<div class="[^"]*border-dashed[^"]*">Why this matters: Pitched at your beginner level\. <span[^>]*>AI<\/span><\/div>/,
   );
 });
+
+// ADR-0018: a page that allows framing opens in Interval's reader, in this tab.
+test("a frameable article opens in the in-app reader without a new tab", () => {
+  const html = renderToStaticMarkup(
+    <ArticleCard
+      card={{ ...card, frameable: true }}
+      chip="8-15"
+      position={2}
+      hero
+      controls={null}
+    />,
+  );
+  expect(html).toContain('href="/read/5?chip=8-15&amp;pos=2"');
+  expect(html).not.toContain("target=");
+  expect(html).not.toContain("data-item");
+});
