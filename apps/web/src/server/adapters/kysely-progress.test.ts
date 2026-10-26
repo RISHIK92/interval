@@ -198,3 +198,191 @@ test("sections of a source that no longer allows moments are not named (ING-2)",
     });
   });
 });
+
+// P1-W5-S03: progress, article completion and continue cards (Q-P1-35, Q-P1-40).
+test("an article is finished when its last section is, once", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro, raft, paxos] = momentIds;
+    if (intro === undefined || raft === undefined || paxos === undefined) {
+      throw new Error("seed");
+    }
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    await progress.finishMoment(userId, itemId, raft, "mark_done");
+    expect(
+      await progress.finishArticleIfComplete(userId, itemId, "mark_done"),
+    ).toBe(false);
+    await progress.finishMoment(userId, itemId, paxos, "return_prompt");
+    expect(
+      await progress.finishArticleIfComplete(userId, itemId, "return_prompt"),
+    ).toBe(true);
+    expect(
+      await progress.finishArticleIfComplete(userId, itemId, "return_prompt"),
+    ).toBe(false);
+  });
+});
+
+test("a half-read article gives a continue card at its next unfinished section", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro, raft] = momentIds;
+    if (intro === undefined || raft === undefined) throw new Error("seed");
+    const now = new Date();
+    expect(await progress.continueCards(userId, now, 3)).toEqual([]);
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    expect(await progress.continueCards(userId, now, 3)).toEqual([
+      {
+        itemId,
+        momentId: raft,
+        sectionTitle: "Raft",
+        sectionNumber: 2,
+        sectionCount: 3,
+        articleTitle: "Consensus in practice",
+      },
+    ]);
+    // Dismissed: gone for that article.
+    await progress.dismissContinue(userId, itemId);
+    expect(await progress.continueCards(userId, now, 3)).toEqual([]);
+  });
+});
+
+test("no continue card once the article is finished or after 30 days", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro] = momentIds;
+    if (intro === undefined) throw new Error("seed");
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    const later = new Date(Date.now() + 31 * 86_400_000);
+    expect(await progress.continueCards(userId, later, 3)).toEqual([]);
+    await progress.finishArticle(userId, itemId, "mark_done");
+    expect(await progress.continueCards(userId, new Date(), 3)).toEqual([]);
+  });
+});
+
+test("no continue card for a source that no longer allows moments", async () => {
+  await inRollback(async (trx, { userId, itemId, sourceId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro] = momentIds;
+    if (intro === undefined) throw new Error("seed");
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    await sql`set local session_replication_role = replica`.execute(trx);
+    await trx
+      .updateTable("source")
+      .set({ moments_enabled: false, moments_switched_off: true })
+      .where("id", "=", sourceId)
+      .execute();
+    await sql`set local session_replication_role = origin`.execute(trx);
+    expect(await progress.continueCards(userId, new Date(), 3)).toEqual([]);
+  });
+});
+
+// Owner, 2026-10-26: opening a section counts as reading it for continue cards.
+test("opening a section, without finishing it, offers the next one", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro, raft, paxos] = momentIds;
+    if (intro === undefined || raft === undefined || paxos === undefined) {
+      throw new Error("seed");
+    }
+    await progress.recordOpen(userId, itemId, intro);
+    await progress.recordOpen(userId, itemId, intro); // a second open changes nothing
+    const [card] = await progress.continueCards(userId, new Date(), 3);
+    expect(card?.momentId).toBe(raft);
+    // Opened is not finished: the article doesn't complete on opens.
+    await progress.recordOpen(userId, itemId, raft);
+    await progress.recordOpen(userId, itemId, paxos);
+    expect(await progress.continueCards(userId, new Date(), 3)).toEqual([]);
+    expect(
+      await progress.finishArticleIfComplete(userId, itemId, "mark_done"),
+    ).toBe(false);
+    // A moment named under another article is not recorded.
+    await trx
+      .deleteFrom("user_moment_opened")
+      .where("user_id", "=", userId)
+      .execute();
+    await progress.recordOpen(userId, "999999999999", intro);
+    const opened = await trx
+      .selectFrom("user_moment_opened")
+      .select("moment_id")
+      .where("user_id", "=", userId)
+      .execute();
+    expect(opened).toEqual([]);
+  });
+});
+
+test("continue cards: most recent read first, up to the limit; a later read reorders", async () => {
+  await inRollback(async (trx, { userId, itemId, sourceId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro] = momentIds;
+    if (intro === undefined) throw new Error("seed");
+    const other = await trx
+      .insertInto("content_item")
+      .values({
+        source_id: sourceId,
+        guid: "prog-2",
+        canonical_url: "https://prog.example.test/other",
+        title: "Other",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const [first] = await trx
+      .insertInto("moment")
+      .values(
+        ["One", "Two"].map((title, ordinal) => ({
+          content_item_id: other.id,
+          ordinal,
+          title,
+          estimated_minutes: 3,
+          link: `https://prog.example.test/other#${title}`,
+          link_type: "anchor" as const,
+        })),
+      )
+      .returning("id")
+      .execute();
+    if (first === undefined) throw new Error("seed");
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    await progress.recordOpen(userId, other.id, first.id);
+    const at = (days: number) =>
+      sql<Date>`now() - make_interval(days => ${days})`;
+    await trx
+      .updateTable("user_moment_finished")
+      .set({ finished_at: at(5) })
+      .where("user_id", "=", userId)
+      .execute();
+    await trx
+      .updateTable("user_moment_opened")
+      .set({ opened_at: at(2) })
+      .where("user_id", "=", userId)
+      .execute();
+    const now = new Date();
+    expect(
+      (await progress.continueCards(userId, now, 3)).map((c) => c.itemId),
+    ).toEqual([other.id, itemId]);
+    expect(
+      (await progress.continueCards(userId, now, 1)).map((c) => c.itemId),
+    ).toEqual([other.id]);
+  });
+});
+
+// Owner, 2026-10-26: dismissed until the reader reads on.
+test("a later read brings a dismissed continue card back", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro, raft] = momentIds;
+    if (intro === undefined || raft === undefined) throw new Error("seed");
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    await trx
+      .updateTable("user_moment_finished")
+      .set({ finished_at: sql<Date>`now() - interval '1 hour'` })
+      .execute();
+    await progress.dismissContinue(userId, itemId);
+    expect(await progress.continueCards(userId, new Date(), 3)).toEqual([]);
+    await progress.recordOpen(userId, itemId, raft);
+    await trx
+      .updateTable("user_moment_opened")
+      .set({ opened_at: sql<Date>`now() + interval '1 minute'` })
+      .execute();
+    const [card] = await progress.continueCards(userId, new Date(), 3);
+    expect(card?.sectionTitle).toBe("Paxos");
+  });
+});

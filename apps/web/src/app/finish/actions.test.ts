@@ -9,11 +9,22 @@ const finishMoment = vi.fn<Progress["finishMoment"]>(() =>
 const finishArticle = vi.fn<Progress["finishArticle"]>(() =>
   Promise.resolve(true),
 );
+const finishArticleIfComplete = vi.fn<Progress["finishArticleIfComplete"]>(() =>
+  Promise.resolve(false),
+);
+const dismissContinue = vi.fn<Progress["dismissContinue"]>(() =>
+  Promise.resolve(),
+);
 const emit = vi.fn();
 const deleteCookie = vi.fn();
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
-  progress: () => ({ finishMoment, finishArticle }),
+  progress: () => ({
+    finishMoment,
+    finishArticle,
+    finishArticleIfComplete,
+    dismissContinue,
+  }),
   events: () => ({ emit }),
 }));
 vi.mock("next/headers", () => ({
@@ -157,4 +168,50 @@ test("without a session the visitor is sent to /join", async () => {
     ),
   ).rejects.toThrow("redirect:/join");
   expect(finishArticle).not.toHaveBeenCalled();
+});
+
+// P1-W5-S03 (Q-P1-35): the finish that completes an article finishes the article.
+test("the last section's finish also finishes the article, once", async () => {
+  finishArticleIfComplete.mockResolvedValueOnce(true);
+  await expect(
+    finish({
+      control: "finish",
+      itemId: "5",
+      momentId: "9",
+      method: "return_prompt",
+      chip: "3-8",
+    }),
+  ).rejects.toThrow("redirect:");
+  expect(finishArticleIfComplete).toHaveBeenCalledWith(
+    "g1",
+    "5",
+    "return_prompt",
+  );
+  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
+    "section_finished",
+    "article_finished",
+  ]);
+});
+
+test("a repeated section finish doesn't look at the article", async () => {
+  finishMoment.mockResolvedValueOnce(false);
+  await expect(
+    finish({
+      control: "finish",
+      itemId: "5",
+      momentId: "9",
+      method: "mark_done",
+      chip: "3-8",
+    }),
+  ).rejects.toThrow("redirect:");
+  expect(finishArticleIfComplete).not.toHaveBeenCalled();
+});
+
+test("a continue card can be dismissed", async () => {
+  const { continueAction } = await import("./actions");
+  current.mockResolvedValue(guest);
+  await expect(
+    continueAction(form({ itemId: "5", chip: "3-8" })),
+  ).rejects.toThrow(/^redirect:\/\?chip=3-8$/);
+  expect(dismissContinue).toHaveBeenCalledExactlyOnceWith("g1", "5");
 });

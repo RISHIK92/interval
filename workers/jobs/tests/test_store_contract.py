@@ -34,6 +34,7 @@ from interval_jobs.ports import (
     ConceptGraph,
     DuplicateInviteCode,
     FeedEntry,
+    Finished,
     MomentRow,
     NoteInput,
     NoteKey,
@@ -94,6 +95,7 @@ class Probe(Protocol):
     def hide_source(self, user_id: str, source_id: int) -> None: ...
     def reset_inferred(self, user_id: str) -> None: ...
     def record_arm(self, arm: Arm, shown: int, finished: int) -> None: ...
+    def finish(self, user_id: str, moment_id: int, item_id: int) -> None: ...
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None: ...
     def override_level(self, item_id: int, heading: str, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
@@ -174,6 +176,10 @@ class MemoryProbe:
 
     def hide_source(self, user_id: str, source_id: int) -> None:
         self.s.ranking.hidden.add((user_id, source_id))
+
+    def finish(self, user_id: str, moment_id: int, item_id: int) -> None:
+        self.s.ranking.finished_moments.add((user_id, moment_id))
+        self.s.ranking.finished_items.add((user_id, item_id))
 
     def record_arm(self, arm: Arm, shown: int, finished: int) -> None:
         self.s.ranking.outcomes[arm] = ArmOutcome(shown, finished)
@@ -370,6 +376,18 @@ class PostgresProbe:
         self.conn.execute(
             "insert into user_save (user_id, content_item_id, saved_at) "
             "values (%s, %s, clock_timestamp())",
+            (user_id, item_id),
+        )
+
+    def finish(self, user_id: str, moment_id: int, item_id: int) -> None:
+        self.conn.execute(
+            "insert into user_moment_finished (user_id, moment_id, method) "
+            "values (%s, %s, 'mark_done')",
+            (user_id, moment_id),
+        )
+        self.conn.execute(
+            "insert into user_article_finished (user_id, content_item_id, method) "
+            "values (%s, %s, 'mark_done')",
             (user_id, item_id),
         )
 
@@ -2214,3 +2232,50 @@ def test_arm_outcomes_are_read_as_stored(store: tuple[Store, Probe]) -> None:
     probe.record_arm(Arm("topic", "contract-backend"), shown=10, finished=4)
     outcomes = s.ranking.arm_outcomes()
     assert outcomes[Arm("topic", "contract-backend")] == ArmOutcome(10, 4)
+
+
+# P1-W5-S03: finished moments and articles, which candidates leave out.
+def test_finished_reads_moments_and_articles(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("fin"), keep_excerpt=False)
+    s.moments.replace(item, [moment(0, "fin0")])
+    (only,) = (m[0] for m in probe.moments(item))
+    user = f"fin-{uuid4().hex[:8]}"
+    probe.add_user(user, False, [])
+    assert s.ranking.finished(user) == Finished(frozenset(), frozenset())
+    probe.finish(user, only, item)
+    assert s.ranking.finished(user) == Finished(frozenset({only}), frozenset({item}))
+
+
+def test_topic_moments_leave_out_given_moments_before_the_limit(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    sid = dup_source(s, "tx")
+    probe.enable_moments(sid)
+    item = dup_item(s, sid, "tx1", 9)
+    s.moments.replace(item, [moment(0, "tx-a"), moment(1, "tx-b")])
+    first, second = (m[0] for m in probe.moments(item))
+    probe.reset_concepts()
+    sync_concepts(
+        s,
+        parse_concepts(
+            "version: 1\nconcepts:\n  - {slug: tx-c, name: C, topic: databases}\n",
+            "c.yaml",
+        ),
+    )
+    s.tags.save(item, TagResult(Tags("beginner", frozenset({"tx-c"})), {}), "m", 1)
+
+    def offered(limit: int, skip: frozenset[int]) -> list[int]:
+        rows = s.ranking.topic_moments(
+            ["databases"],
+            limit,
+            exclude_sources=set(),
+            exclude_items=set(),
+            exclude_moments=skip,
+        )
+        return [r.moment_id for r in rows if r.item_id == item]
+
+    assert offered(1000, frozenset({first})) == [second]

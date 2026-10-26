@@ -105,7 +105,34 @@ export interface Progress {
     itemId: string,
     momentId: string,
   ): Promise<{ momentId: string; title: string } | null>;
+  // P1-W5-S03 (Q-P1-35): the article, once every one of its sections is finished.
+  finishArticleIfComplete(
+    userId: string,
+    itemId: string,
+    method: FinishMethod,
+  ): Promise<boolean>;
+  // A section opened through /out: read, for continue cards, but not finished
+  // (owner, 2026-10-26). The first open is kept; a moment of another item is ignored.
+  recordOpen(userId: string, itemId: string, momentId: string): Promise<void>;
+  // Q-P1-40: articles with a section read (opened or finished) and one unread, the
+  // last read within 30 days of `now`, not finished, not dismissed since that read;
+  // most recent first.
+  continueCards(
+    userId: string,
+    now: Date,
+    limit: number,
+  ): Promise<ContinueCard[]>;
+  dismissContinue(userId: string, itemId: string): Promise<void>;
 }
+
+export type ContinueCard = {
+  itemId: string;
+  momentId: string; // the next unread section, in order
+  sectionTitle: string;
+  sectionNumber: number;
+  sectionCount: number;
+  articleTitle: string;
+};
 
 // A row id as forms carry it (a content item or a source): a positive bigint.
 export const BIGINT_ID = /^[1-9][0-9]{0,18}$/;

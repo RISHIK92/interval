@@ -19,6 +19,7 @@ import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { ArticleCard } from "./ArticleCard";
 import { CardControls, UndoNotInterested } from "./CardControls";
+import { ContinueReading } from "./ContinueReading";
 import { NowReading } from "./NowReading";
 import { ReturnPrompt } from "./ReturnPrompt";
 import { MomentCard } from "./MomentCard";
@@ -89,6 +90,12 @@ export default async function HomePage({
       : (await progress().describe(finished.itemId, finished.momentId)) === null
         ? undefined
         : await progress().nextMoment(finished.itemId, finished.momentId);
+  // Read live: a finish shows its continue card at once (owner, 2026-10-26).
+  const continuing = await progress().continueCards(
+    actor.userId,
+    new Date(),
+    3,
+  );
   // The stored feed (CACHE-1); a first visit may wait for it, then a starter (ADR-0008).
   const { cards } = await loadFeed(
     { feed: feedReader() },
@@ -155,6 +162,7 @@ export default async function HomePage({
           </a>
         </p>
       )}
+      <ContinueReading cards={continuing} chip={chip} />
       {undoable === null ? null : (
         <UndoNotInterested itemId={undoable} chip={chip} />
       )}

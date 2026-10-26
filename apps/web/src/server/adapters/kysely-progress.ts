@@ -74,6 +74,100 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
         ? null
         : { articleTitle: item.title, sectionTitle: moment.title };
     },
+    finishArticleIfComplete: async (userId, itemId, method) => {
+      const added = await sql<{ content_item_id: string }>`
+        insert into user_article_finished (user_id, content_item_id, method)
+        select ${userId}, ${itemId}, ${method}::finish_method
+        where exists (select 1 from moment where content_item_id = ${itemId})
+          and not exists (
+            select 1 from moment m
+            where m.content_item_id = ${itemId}
+              and not exists (
+                select 1 from user_moment_finished f
+                where f.user_id = ${userId} and f.moment_id = m.id
+              )
+          )
+        on conflict do nothing
+        returning content_item_id
+      `.execute(db);
+      return added.rows.length > 0;
+    },
+    recordOpen: async (userId, itemId, momentId) => {
+      await sql`
+        insert into user_moment_opened (user_id, moment_id)
+        select ${userId}, m.id from moment m
+        where m.id = ${momentId} and m.content_item_id = ${itemId}
+        on conflict do nothing
+      `.execute(db);
+    },
+    continueCards: async (userId, now, limit) => {
+      const rows = await sql<{
+        item_id: string;
+        moment_id: string;
+        section_title: string;
+        section_number: number;
+        section_count: number;
+        article_title: string;
+      }>`
+        with seen as (
+          select moment_id, finished_at as at from user_moment_finished
+          where user_id = ${userId}
+          union all
+          select moment_id, opened_at from user_moment_opened
+          where user_id = ${userId}
+        ),
+        per_item as (
+          select m.content_item_id as item_id, max(r.at) as last_at
+          from seen r join moment m on m.id = r.moment_id
+          group by m.content_item_id
+          having max(r.at) > ${now}::timestamptz - interval '30 days'
+        )
+        select p.item_id, nx.id as moment_id, nx.title as section_title,
+               nx.ordinal + 1 as section_number,
+               (select count(*) from moment where content_item_id = p.item_id)::integer
+                 as section_count,
+               c.title as article_title
+        from per_item p
+        join content_item c on c.id = p.item_id
+        join source s on s.id = c.source_id
+        cross join lateral (
+          select m.id, m.title, m.ordinal from moment m
+          where m.content_item_id = p.item_id
+            and m.id not in (select moment_id from seen)
+          order by m.ordinal limit 1
+        ) nx
+        -- The rights gate, as allowedMoments above (ING-2).
+        where s.moments_enabled
+          and s.rights_profile in ('full_text_internal', 'full_text_display')
+          -- Dismissed until the reader reads on (owner, 2026-10-26).
+          and not exists (
+            select 1 from continue_dismissal d
+            where d.user_id = ${userId} and d.content_item_id = p.item_id
+              and d.dismissed_at >= p.last_at
+          )
+          and not exists (
+            select 1 from user_article_finished a
+            where a.user_id = ${userId} and a.content_item_id = p.item_id
+          )
+        order by p.last_at desc, p.item_id
+        limit ${limit}
+      `.execute(db);
+      return rows.rows.map((r) => ({
+        itemId: r.item_id,
+        momentId: r.moment_id,
+        sectionTitle: r.section_title,
+        sectionNumber: r.section_number,
+        sectionCount: r.section_count,
+        articleTitle: r.article_title,
+      }));
+    },
+    dismissContinue: async (userId, itemId) => {
+      await sql`
+        insert into continue_dismissal (user_id, content_item_id)
+        select ${userId}, id from content_item where id = ${itemId}
+        on conflict (user_id, content_item_id) do update set dismissed_at = now()
+      `.execute(db);
+    },
     nextMoment: async (itemId, momentId) => {
       const next = await allowedMoments()
         .select(["m.id", "m.title"])

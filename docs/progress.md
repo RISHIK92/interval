@@ -1305,3 +1305,31 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `alertdialog` with focus on Yes;
   - Continue counting as a feed card (owner).
 - Checked in Chrome: open → Now reading panel → Mark section done → the row and `section_finished {method: mark_done}` stored, the panel cleared, "That was the last section." shown. The client prompt itself was not driven in the browser: the extension can't switch tabs to fire `visibilitychange`; its logic is covered by the reducer tests.
+
+### 2026-10-26 — P1-W5-S03a (progress and continue cards, §3.2, §5C, Q-P1-35, Q-P1-40)
+- Owner choices:
+  - **Continue cards** are read live, pinned above the feed in every chip: up to 3, most recent first, opened as `continue_clicked`.
+  - **Article completion** is recorded at the finish that completes it.
+  - **Finished items** leave the candidates.
+  - **Raised mid-slice by the owner (gap):** a section opened through `/out` counts as read for continue cards, though not as finished. So opening section 1 and never answering still offers section 2.
+  - **Review follow-up:** a dismissed card comes back on a later read.
+- Done:
+  - **Migration `20261026210000_continue.sql`:** `user_moment_opened` (the first open; W5-S04's history can use it) and `continue_dismissal`.
+  - **`/out`** records an opened section, only when the link really resolved to it.
+  - **`Progress`:**
+    - `recordOpen`;
+    - `finishArticleIfComplete` (every moment finished; once);
+    - `continueCards`: the lowest unread section of articles with a read and an unread section, the source allowing moments, within 30 days, not finished, not dismissed since the last read;
+    - `dismissContinue`.
+  - **`finishAction`** emits `article_finished` when a section finish completes the article.
+  - **`ContinueReading`** on the page: `/out` continue links with `data-item`/`data-moment` (so the return prompt applies), and Dismiss.
+  - **Worker:** `RankingInputs.finished`. `candidates_for` and `article_candidates` leave out finished moments (in the query, before the limit, through a new `exclude_moments` on `topic_moments` and `similar`), every moment of finished articles, and finished articles.
+- Review fixes:
+  - a `recordOpen` test that proved nothing;
+  - order and limit tests;
+  - the exclusion moved into the queries;
+  - re-showing dismissed cards (owner);
+  - CTE naming and the 30-day `having`;
+  - a `target=original` test.
+- Checked in Chrome: opening section 1 of a multi-section article without answering showed "Continue reading: <section 2>" pinned above the feed, with Dismiss.
+- Next: W5-S03b (exploration arm outcomes).

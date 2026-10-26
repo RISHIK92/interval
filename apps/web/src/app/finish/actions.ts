@@ -37,7 +37,28 @@ export async function finishAction(form: FormData): Promise<void> {
     await progress().finishMoment(actor.userId, itemId, momentId, method)
   ) {
     events().emit("section_finished", { method }, context);
+    // Q-P1-35: the finish that completes an article finishes it (P1-W5-S03).
+    if (
+      await progress().finishArticleIfComplete(actor.userId, itemId, method)
+    ) {
+      events().emit("article_finished", { method }, context);
+    }
   }
   // The feed then offers the next section (Yes, owner 2026-10-26).
   redirect(`/?chip=${chip}&finished=${itemId}.${momentId ?? ""}`);
+}
+
+const Dismiss = z.object({
+  itemId: z.string().regex(BIGINT_ID),
+  chip: z.enum(CHIPS),
+});
+
+// Q-P1-40: a continue card goes when dismissed.
+export async function continueAction(form: FormData): Promise<void> {
+  const actor = await sessionReader().current(await headers());
+  if (actor === null) redirect("/join");
+  const parsed = Dismiss.safeParse(Object.fromEntries(form));
+  if (!parsed.success) redirect("/");
+  await progress().dismissContinue(actor.userId, parsed.data.itemId);
+  redirect(`/?chip=${parsed.data.chip}`);
 }

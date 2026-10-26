@@ -37,6 +37,7 @@ from interval_jobs.ports import (
     EntryFacts,
     FeedEntry,
     FetchInput,
+    Finished,
     GrantResult,
     MomentRow,
     NoteInput,
@@ -1212,6 +1213,7 @@ class PostgresEmbeddings:
         model: str | None = None,
         exclude_sources: set[int] | None = None,
         exclude_items: set[int] | None = None,
+        exclude_moments: frozenset[int] = frozenset(),
     ) -> list[SimilarMoment]:
         # With filters, a plain HNSW scan returns at most ef_search candidates and
         # filters them afterwards; the iterative scan keeps going until `limit` match.
@@ -1242,6 +1244,7 @@ class PostgresEmbeddings:
               and (%(model)s::text is null or e.model = %(model)s)
               and s.active and ci.id in (select id from shown_item)
               and s.id <> all(%(no_sources)s) and ci.id <> all(%(no_items)s)
+              and m.id <> all(%(no_moments)s)
               and (
                 %(levels)s::difficulty[] is null
                 or coalesce(o.difficulty, t.difficulty) = any(%(levels)s)
@@ -1257,6 +1260,7 @@ class PostgresEmbeddings:
                 "model": model,
                 "no_sources": sorted(exclude_sources or set()),
                 "no_items": sorted(exclude_items or set()),
+                "no_moments": sorted(exclude_moments),
             },
         ).fetchall()
         return [
@@ -1384,6 +1388,19 @@ class PostgresRankingInputs:
         rows = self._conn.execute("select key, value from ranking_config").fetchall()
         return {str(r[0]): float(r[1]) for r in rows}
 
+    def finished(self, user_id: str) -> Finished:
+        moments = self._conn.execute(
+            "select moment_id from user_moment_finished where user_id = %s",
+            (user_id,),
+        ).fetchall()
+        items = self._conn.execute(
+            "select content_item_id from user_article_finished where user_id = %s",
+            (user_id,),
+        ).fetchall()
+        return Finished(
+            frozenset(int(r[0]) for r in moments), frozenset(int(r[0]) for r in items)
+        )
+
     def arm_outcomes(self) -> dict[Arm, ArmOutcome]:
         rows = self._conn.execute(
             "select kind, arm, shown, finished from explore_arm_outcome"
@@ -1441,6 +1458,7 @@ class PostgresRankingInputs:
         *,
         exclude_sources: set[int],
         exclude_items: set[int],
+        exclude_moments: frozenset[int] = frozenset(),
     ) -> list[CandidateMoment]:
         rows = self._conn.execute(
             f"""
@@ -1460,6 +1478,7 @@ class PostgresRankingInputs:
               on o.content_item_id = ci.id and o.heading = ''
             where ci.id in (select id from shown_item) and s.active
               and s.id <> all(%(sources)s) and ci.id <> all(%(items)s)
+              and m.id <> all(%(moments)s)
               and {_ON_TOPICS}
             order by ci.published_at desc nulls last, ci.id desc, m.ordinal
             limit %(limit)s
@@ -1468,6 +1487,7 @@ class PostgresRankingInputs:
                 "topics": list(topics),
                 "sources": sorted(exclude_sources),
                 "items": sorted(exclude_items),
+                "moments": sorted(exclude_moments),
                 "limit": limit,
             },
         ).fetchall()

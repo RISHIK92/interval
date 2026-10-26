@@ -16,7 +16,13 @@ also flagged). Hidden sources and Not interested items are never candidates
 from dataclasses import dataclass, field
 from typing import Literal
 
-from interval_jobs.ports import CandidateMoment, EntryKey, Store, UserPreferences
+from interval_jobs.ports import (
+    CandidateMoment,
+    EntryKey,
+    Finished,
+    Store,
+    UserPreferences,
+)
 
 type Generator = Literal["topic", "similar"]
 
@@ -25,6 +31,7 @@ type Generator = Literal["topic", "similar"]
 TOPIC_LIMIT = 300
 MAX_ANCHORS = 10  # liked items whose moments seed the similarity search
 PER_ANCHOR = 20
+_NOTHING_FINISHED = Finished(frozenset(), frozenset())
 
 
 @dataclass
@@ -55,7 +62,9 @@ def candidates_for(
     liked item to find similar moments from: topic matches only."""
     inputs = store.ranking
     hidden = inputs.hidden_sources(user_id) if user_id else set[int]()
-    gone = inputs.not_interested(user_id) if user_id else set[int]()
+    done = inputs.finished(user_id) if user_id else _NOTHING_FINISHED
+    # Not interested and finished articles alike are never offered again (P1-W5-S03).
+    gone = (inputs.not_interested(user_id) if user_id else set[int]()) | done.items
     found: dict[int, Candidate] = {}
 
     def add(
@@ -71,7 +80,13 @@ def candidates_for(
             candidate.similarity = score
 
     for row in inputs.topic_moments(
-        preferences.topics, TOPIC_LIMIT, exclude_sources=hidden, exclude_items=gone
+        preferences.topics,
+        TOPIC_LIMIT,
+        exclude_sources=hidden,
+        exclude_items=gone,
+        # In the query, before its limit: a heavy reader's finished moments would
+        # otherwise fill the slots. The rest of a half-read article still counts.
+        exclude_moments=done.moments,
     ):
         add(row, "topic")
     if model is not None and user_id is not None:
@@ -87,6 +102,7 @@ def candidates_for(
                     model=model,
                     exclude_sources=hidden,
                     exclude_items=skip_items,
+                    exclude_moments=done.moments,
                 ):
                     row = CandidateMoment(hit.moment_id, hit.item_id, hit.source_id)
                     add(row, "similar", hit.score)
@@ -100,7 +116,8 @@ def article_candidates(
     Topic matches only: an article has no embedding of its own."""
     inputs = store.ranking
     hidden = inputs.hidden_sources(user_id) if user_id else set[int]()
-    gone = inputs.not_interested(user_id) if user_id else set[int]()
+    done = inputs.finished(user_id) if user_id else _NOTHING_FINISHED
+    gone = (inputs.not_interested(user_id) if user_id else set[int]()) | done.items
     return [
         Candidate(None, row.item_id, row.source_id, {"topic"})
         for row in inputs.topic_articles(

@@ -7,7 +7,7 @@ from interval_jobs.adapters.memory import InMemoryStore
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.ports import FeedEntry, MomentRow, TagResult, Tags, UserPreferences
-from interval_jobs.ranking.candidates import Candidate, candidates
+from interval_jobs.ranking.candidates import Candidate, article_candidates, candidates
 from interval_jobs.ranking.rank import rank_for_user
 
 MODEL = "voyage-3.5"
@@ -157,3 +157,31 @@ def test_a_users_feed_is_ranked_from_candidates_and_capped_per_source() -> None:
         "3-8": [],
         "8-15": [],
     }
+
+
+# P1-W5-S03 (carried over from W4-S02): what the user finished isn't offered again.
+def test_finished_moments_and_articles_are_not_candidates() -> None:
+    w = World()
+    db = w.source("dbblog", topics=("databases",))
+    half, _ = w.item(db, "half-read")
+    w.store.moments.replace(
+        half,
+        [
+            MomentRow(0, "a", 3, "https://x.test/half#a", "anchor"),
+            MomentRow(1, "b", 3, "https://x.test/half#b", "anchor"),
+        ],
+    )
+    done_a, rest = (m.id for m in w.store.moments.for_item(half))
+    whole, whole_moment = w.item(db, "all-read", day=2)
+    w.store.ranking.finished_moments.add(("u1", done_a))
+    w.store.ranking.finished_items.add(("u1", whole))
+    found = ids(candidates(w.store, "u1", None))
+    assert done_a not in found and whole_moment not in found
+    assert rest in found  # the rest of a half-read article is still offered
+    articles = article_candidates(
+        w.store,
+        w.store.ranking.preferences("u1") or UserPreferences([], "beginner", "3-8"),
+        "u1",
+    )
+    assert whole not in {c.item_id for c in articles}
+    assert half in {c.item_id for c in articles}

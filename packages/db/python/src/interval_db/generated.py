@@ -137,6 +137,12 @@ class ContentItemSection(TypedDict):
     word_count: int
 
 
+class ContinueDismissal(TypedDict):
+    user_id: str
+    content_item_id: int
+    dismissed_at: datetime
+
+
 class ExploreArmOutcome(TypedDict):
     kind: str
     arm: str
@@ -398,6 +404,12 @@ class UserMomentFinished(TypedDict):
     moment_id: int
     method: FinishMethod
     finished_at: datetime
+
+
+class UserMomentOpened(TypedDict):
+    user_id: str
+    moment_id: int
+    opened_at: datetime
 
 
 class UserPreferences(TypedDict):

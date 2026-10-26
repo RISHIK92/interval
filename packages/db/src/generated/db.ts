@@ -162,6 +162,12 @@ export interface ContentItemSection {
   word_count: number;
 }
 
+export interface ContinueDismissal {
+  content_item_id: Int8;
+  dismissed_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface ExploreArmOutcome {
   arm: string;
   finished: Generated<Int8>;
@@ -425,6 +431,12 @@ export interface UserMomentFinished {
   user_id: string;
 }
 
+export interface UserMomentOpened {
+  moment_id: Int8;
+  opened_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface UserPreferences {
   break_length: BreakLength;
   level: Difficulty;
@@ -452,6 +464,7 @@ export interface DB {
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;
+  continue_dismissal: ContinueDismissal;
   explore_arm_outcome: ExploreArmOutcome;
   feed_note: FeedNote;
   fetch_validator: FetchValidator;
@@ -484,6 +497,7 @@ export interface DB {
   user_hidden_source: UserHiddenSource;
   user_inferred_reset: UserInferredReset;
   user_moment_finished: UserMomentFinished;
+  user_moment_opened: UserMomentOpened;
   user_preferences: UserPreferences;
   user_save: UserSave;
 }

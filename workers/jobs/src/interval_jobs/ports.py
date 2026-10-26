@@ -560,6 +560,7 @@ class MomentEmbeddings(Protocol):
         model: str | None = None,
         exclude_sources: set[int] | None = None,
         exclude_items: set[int] | None = None,
+        exclude_moments: frozenset[int] = frozenset(),
     ) -> list[SimilarMoment]:
         """Nearest moments first, in one query filtered by rights, source and
         difficulty (DB-3). A difficulty filter leaves out untagged moments; `model`
@@ -627,6 +628,14 @@ class ArmOutcome:
 
 
 @dataclass(frozen=True)
+class Finished:
+    """What a user finished (P1-W5-S02): not offered again (P1-W5-S03)."""
+
+    moments: frozenset[int]
+    items: frozenset[int]
+
+
+@dataclass(frozen=True)
 class CandidateArticle:
     item_id: int
     source_id: int
@@ -672,11 +681,14 @@ class RankingInputs(Protocol):
         *,
         exclude_sources: set[int],
         exclude_items: set[int],
+        exclude_moments: frozenset[int] = frozenset(),
     ) -> list[CandidateMoment]:
         """Moments whose item's concepts (an admin's correction first, else the model's
         tags) or source's seed topics match, newest first. Only the copy of a duplicate
         group the feed shows, from active sources."""
         ...
+
+    def finished(self, user_id: str) -> Finished: ...
 
     def arm_outcomes(self) -> dict[Arm, ArmOutcome]:
         """Every arm with recorded outcomes; an arm not listed is at its prior."""

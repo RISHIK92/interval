@@ -39,6 +39,7 @@ from interval_jobs.ports import (
     FetchError,
     FetchInput,
     FetchKind,
+    Finished,
     GrantResult,
     MomentRow,
     NoteInput,
@@ -917,6 +918,7 @@ class InMemoryEmbeddings:
         model: str | None = None,
         exclude_sources: set[int] | None = None,
         exclude_items: set[int] | None = None,
+        exclude_moments: frozenset[int] = frozenset(),
     ) -> list[SimilarMoment]:
         # Mirrors PostgresEmbeddings.similar; vectors of purged moments are gone.
         live = {m.id: m.item_id for m in self._moments.rows}
@@ -925,6 +927,8 @@ class InMemoryEmbeddings:
         for moment_id, (their_model, other) in self.rows.items():
             item_id = live.get(moment_id)
             if item_id is None or (model is not None and their_model != model):
+                continue
+            if moment_id in exclude_moments:
                 continue
             source = self._sources.rows[self._items.rows[item_id].source_id]
             if source.rights_profile not in _FULL_TEXT or not source.active:
@@ -1013,6 +1017,9 @@ class InMemoryRankingInputs:
         # A reset of inferred interests (P1-W4-S08): how much of `feedback` came before.
         self.resets: dict[str, int] = {}
         self.outcomes: dict[Arm, ArmOutcome] = {}
+        # (user, moment) and (user, item): the web app writes them in production.
+        self.finished_moments: set[tuple[str, int]] = set()
+        self.finished_items: set[tuple[str, int]] = set()
         # The ranking_config migration's seed values (P1-W4-S03)
         self.config_rows: dict[str, float] = dict(RANKING_DEFAULTS)
 
@@ -1060,6 +1067,12 @@ class InMemoryRankingInputs:
 
     def arm_outcomes(self) -> dict[Arm, ArmOutcome]:
         return dict(self.outcomes)
+
+    def finished(self, user_id: str) -> Finished:
+        return Finished(
+            frozenset(m for u, m in self.finished_moments if u == user_id),
+            frozenset(i for u, i in self.finished_items if u == user_id),
+        )
 
     def moment_facts(self, moment_ids: list[int]) -> dict[int, EntryFacts]:
         # Mirrors PostgresRankingInputs.moment_facts.
@@ -1186,6 +1199,7 @@ class InMemoryRankingInputs:
         *,
         exclude_sources: set[int],
         exclude_items: set[int],
+        exclude_moments: frozenset[int] = frozenset(),
     ) -> list[CandidateMoment]:
         # Mirrors PostgresRankingInputs.topic_moments.
         store = self._store
@@ -1200,6 +1214,8 @@ class InMemoryRankingInputs:
             if item.id not in shown or not source.active:
                 continue
             if source.id in exclude_sources or item.id in exclude_items:
+                continue
+            if moment.id in exclude_moments:
                 continue
             concepts = self._item_concepts(item.id)
             by_concept = any(topic_of.get(c) in wanted for c in concepts)

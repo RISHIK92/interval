@@ -23,7 +23,7 @@ const notInterested = vi.fn<
 vi.mock("../server/container", () => ({
   preferences: () => ({ get: getPreferences }),
   feedback: () => ({ notInterested }),
-  progress: () => ({ describe: describe_, nextMoment }),
+  progress: () => ({ describe: describe_, nextMoment, continueCards }),
   feedReader: () => ({ read: getFeed, starter: vi.fn() }),
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
@@ -33,6 +33,9 @@ let chipCookie: string | undefined;
 let readingCookie: string | undefined;
 const describe_ = vi.fn<Progress["describe"]>(() => Promise.resolve(null));
 const nextMoment = vi.fn<Progress["nextMoment"]>(() => Promise.resolve(null));
+const continueCards = vi.fn<Progress["continueCards"]>(() =>
+  Promise.resolve([]),
+);
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
   cookies: () =>
@@ -333,4 +336,29 @@ test("card links carry what the return prompt asks about", async () => {
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render();
   expect(html).toMatch(/<a[^>]*data-item="10"[^>]*data-moment="1"/);
+});
+
+// P1-W5-S03 (Q-P1-40): half-read articles, above the feed in every chip.
+test("continue cards point at the next section and can be dismissed", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  continueCards.mockResolvedValueOnce([
+    {
+      itemId: "30",
+      momentId: "31",
+      sectionTitle: "Raft",
+      sectionNumber: 2,
+      sectionCount: 3,
+      articleTitle: "Consensus in practice",
+    },
+  ]);
+  const html = await render({ chip: "1-3" });
+  expect(continueCards).toHaveBeenCalledWith("u1", expect.any(Date), 3);
+  expect(html).toContain("Continue reading");
+  expect(html).toContain("Raft — Consensus in practice · Section 2 of 3");
+  expect(html).toContain(
+    'href="/out?item=30&amp;moment=31&amp;chip=1-3&amp;from=continue&amp;target=section"',
+  );
+  expect(html).toMatch(/<a[^>]*data-item="30"[^>]*data-moment="31"/);
+  expect(html).toContain("Dismiss");
 });

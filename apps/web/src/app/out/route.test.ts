@@ -1,13 +1,15 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import type { Actor, OutboundLinks } from "../../server/ports";
+import type { Actor, OutboundLinks, Progress } from "../../server/ports";
 
 // §3.2, §5D, §8, P1-W5-S01: a card's link records the open, then goes to the publisher.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const resolve = vi.fn<OutboundLinks["resolve"]>();
 const emit = vi.fn();
+const recordOpen = vi.fn<Progress["recordOpen"]>(() => Promise.resolve());
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   outboundLinks: () => ({ resolve }),
+  progress: () => ({ recordOpen }),
   events: () => ({ emit }),
 }));
 const setCookie = vi.fn();
@@ -243,4 +245,23 @@ test("a Continue link counts as continue_clicked, not as a feed card", async () 
   expect(emit.mock.calls.map((c) => c[0] as string)).not.toContain(
     "card_opened",
   );
+});
+
+// P1-W5-S03: an open section counts for continue cards (owner, 2026-10-26).
+test("an opened section is recorded; a whole article or fallback is not", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post#raft",
+    linkType: "anchor",
+  });
+  await open("item=5&moment=9&chip=3-8&pos=1&target=section");
+  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
+  recordOpen.mockClear();
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post",
+    linkType: "article",
+  });
+  await open("item=5&moment=9&chip=3-8&pos=1&target=section");
+  await open("item=5&moment=9&chip=3-8&pos=1&target=original");
+  expect(recordOpen).not.toHaveBeenCalled();
 });

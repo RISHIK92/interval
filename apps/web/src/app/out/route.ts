@@ -1,7 +1,12 @@
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { CHIPS } from "../../server/chips";
-import { events, outboundLinks, sessionReader } from "../../server/container";
+import {
+  events,
+  outboundLinks,
+  progress,
+  sessionReader,
+} from "../../server/container";
 import { log } from "../../server/log";
 import { BIGINT_ID } from "../../server/ports";
 import { formatReading, READING_COOKIE } from "../../server/reading";
@@ -84,6 +89,10 @@ export async function GET(request: Request): Promise<Response> {
       }),
       session,
     );
+    // A section the reader reached counts as read for continue cards (P1-W5-S03).
+    if (moment !== undefined && link.linkType !== "article") {
+      await progress().recordOpen(actor.userId, item, moment);
+    }
     if (pos === undefined) {
       events().emit("continue_clicked", {}, context);
     } else {
