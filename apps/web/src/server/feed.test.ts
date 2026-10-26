@@ -18,6 +18,7 @@ const card = (id: string): FeedCard => ({
   sourceName: "Source",
   note: null,
   saved: false,
+  frameable: false,
 });
 
 const NOW = new Date("2026-10-26T12:00:00Z");

@@ -22,6 +22,9 @@ type CardBase = {
   // Why this matters (§5E, P1-W4-S06): `ai` once the notes model wrote it (AI-3).
   note: { text: string; ai: boolean } | null;
   saved: boolean; // the user saved its article (P1-W5-S04)
+  // ADR-0018: the publisher's page allows Interval's in-app reader to frame it
+  // (false while unknown).
+  frameable: boolean;
 };
 export type MomentFeedCard = CardBase & {
   kind: "moment";
@@ -144,6 +147,7 @@ export type ContinueCard = {
   sectionNumber: number;
   sectionCount: number;
   articleTitle: string;
+  frameable: boolean; // ADR-0018, as on feed cards
 };
 
 // Saves and history (§5I, P1-W5-S04), for the Library (W5-S05): ids, titles and

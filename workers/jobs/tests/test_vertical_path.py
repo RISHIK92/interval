@@ -103,6 +103,8 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         # The why-this-matters note (P1-W4-S06): built from the title and choices.
         "note_text",
         "note_ai",
+        # ADR-0018: whether the in-app reader may frame the page; no source text.
+        "frameable",
     }
     for view, keys in (
         ("user_feed_visible", {"user_id", "chip"}),

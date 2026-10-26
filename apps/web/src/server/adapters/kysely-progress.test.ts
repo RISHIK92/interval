@@ -238,8 +238,17 @@ test("a half-read article gives a continue card at its next unfinished section",
         sectionNumber: 2,
         sectionCount: 3,
         articleTitle: "Consensus in practice",
+        frameable: false, // ADR-0018: not known yet reads as no
       },
     ]);
+    await trx
+      .updateTable("content_item")
+      .set({ frameable: true })
+      .where("id", "=", itemId)
+      .execute();
+    expect((await progress.continueCards(userId, now, 3))[0]?.frameable).toBe(
+      true,
+    );
     // Dismissed: gone for that article.
     await progress.dismissContinue(userId, itemId);
     expect(await progress.continueCards(userId, now, 3)).toEqual([]);

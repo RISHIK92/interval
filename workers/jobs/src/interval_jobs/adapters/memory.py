@@ -108,6 +108,7 @@ class StoredItem:
     duplicate_of: int | None = None
     simhash: int | None = None
     link_broken_at: datetime | None = None  # P1-W6-S03
+    frameable: bool | None = None  # ADR-0018
 
 
 def _title_key(title: str) -> str:
@@ -327,6 +328,11 @@ class InMemoryItems:
     def link_health(self, item_id: int) -> tuple[str, datetime | None] | None:
         item = self.rows.get(item_id)
         return None if item is None else (item.canonical_url, item.link_broken_at)
+
+    def set_frameable(self, item_id: int, frameable: bool) -> None:
+        item = self.rows.get(item_id)
+        if item is not None:
+            item.frameable = frameable
 
     def set_link_broken(self, item_id: int, at: datetime | None) -> None:
         item = self.rows.get(item_id)
@@ -1346,13 +1352,14 @@ class FakeFetcher:
             raise page
         return page
 
-    def check(self, url: str) -> None:
+    def check(self, url: str) -> bool:
         self.checked.append(url)
         page = self._pages.get(url)
         if page is None:
             raise FetchError(f"no fake page for {url}")
         if isinstance(page, FetchError):
             raise page
+        return page.frameable is True
 
     def fetch_if_changed(
         self, url: str, kind: FetchKind, known: Validators | None

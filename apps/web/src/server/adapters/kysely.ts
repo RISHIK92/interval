@@ -56,6 +56,7 @@ const CARD_COLUMNS = [
   "source_name",
   "note_text",
   "note_ai",
+  "frameable",
 ] as const;
 type CardRow = Pick<
   Selectable<UserFeedVisible>,
@@ -111,6 +112,7 @@ export function toCard(row: CardRow): FeedCard | null {
           ? null
           : { text: row.note_text, ai: row.note_ai === true },
       saved: row.saved,
+      frameable: row.frameable === true,
     };
     if (kind === "article") {
       return { kind, ...base, estimatedMinutes: estimated_minutes };

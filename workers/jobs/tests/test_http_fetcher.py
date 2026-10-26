@@ -142,3 +142,29 @@ def test_a_status_check_guards_every_redirect_hop() -> None:
         HttpxFetcher(
             http, lambda h: [PUBLIC] if h == "a.example.test" else ["10.0.0.1"]
         ).check("https://a.example.test/p")
+
+
+def test_a_fetch_and_a_check_say_whether_the_page_can_be_framed() -> None:
+    # ADR-0018: the in-app reader frames only pages that allow it.
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/hop":
+            return httpx.Response(302, headers={"location": "/framed"})
+        if request.url.path == "/framed":
+            return httpx.Response(
+                200, headers={"content-type": "text/html"}, content=b"<p/>"
+            )
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/html", "x-frame-options": "DENY"},
+            content=b"<p/>",
+        )
+
+    with client(httpx.MockTransport(handler)) as http:
+        fetcher = HttpxFetcher(http, public)
+        assert (
+            fetcher.fetch("https://a.example.test/denied", "article").frameable is False
+        )
+        assert fetcher.check("https://a.example.test/denied") is False
+        # After a redirect, the final page's headers decide.
+        assert fetcher.fetch("https://a.example.test/hop", "article").frameable is True
+        assert fetcher.check("https://a.example.test/hop") is True

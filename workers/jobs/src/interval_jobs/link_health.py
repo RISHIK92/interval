@@ -34,7 +34,7 @@ def check_link(
         return "unchanged"  # deleted since it was queued
     url, broken_at = health
     try:
-        fetcher.check(url)
+        can_frame = fetcher.check(url)
     except FetchStatusError as error:
         if error.status in _GONE:
             if broken_at is None:
@@ -63,6 +63,7 @@ def check_link(
     if broken_at is not None:
         log.info("links: item link works again", item_id=item_id)
     store.items.set_link_broken(item_id, None)
+    store.items.set_frameable(item_id, can_frame)  # ADR-0018
     return "fine"
 
 

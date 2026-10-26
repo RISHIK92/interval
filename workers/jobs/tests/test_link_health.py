@@ -176,3 +176,17 @@ def test_the_weekly_key_follows_the_iso_week_across_new_year() -> None:
     assert new_years_eve == keys(datetime(2027, 1, 1, tzinfo=UTC))
     assert all(k.endswith("2026-W53") for k in new_years_eve)
     assert all(k.endswith("2027-W01") for k in keys(datetime(2027, 1, 4, tzinfo=UTC)))
+
+
+def test_a_check_records_whether_the_page_can_be_framed() -> None:
+    # ADR-0018: the weekly check keeps the in-app reader's answer fresh.
+    store = InMemoryStore()
+    item_id = item(store)
+    framed = Fetched(URL, b"", None, frameable=True)
+    check_link(store, web(framed), item_id, NOW)
+    assert store.items.rows[item_id].frameable is True
+    check_link(store, web(Fetched(URL, b"", None, frameable=False)), item_id, NOW)
+    assert store.items.rows[item_id].frameable is False
+    # A failed check changes nothing.
+    check_link(store, web(RobotsDisallowed("robots")), item_id, NOW)
+    assert store.items.rows[item_id].frameable is False

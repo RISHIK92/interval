@@ -153,6 +153,7 @@ export interface ContentItem {
   excerpt: string | null;
   feed_summary: string | null;
   fetched_at: Generated<Timestamp>;
+  frameable: boolean | null;
   guid: string;
   id: Generated<Int8>;
   link_broken_at: Timestamp | null;
@@ -351,6 +352,7 @@ export interface StarterFeedVisible {
   chip: BreakLength | null;
   content_item_id: Int8 | null;
   estimated_minutes: number | null;
+  frameable: boolean | null;
   kind: string | null;
   level: Difficulty | null;
   link: string | null;
@@ -432,6 +434,7 @@ export interface UserFeedVisible {
   chip: BreakLength | null;
   content_item_id: Int8 | null;
   estimated_minutes: number | null;
+  frameable: boolean | null;
   kind: string | null;
   link: string | null;
   moment_id: Int8 | null;

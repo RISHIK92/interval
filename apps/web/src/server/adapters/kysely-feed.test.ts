@@ -197,6 +197,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
           sourceName: "webfeed-test",
           note: null,
           saved: false,
+          frameable: false,
         },
       ],
     });
@@ -250,6 +251,7 @@ test("a whole article reads as an article card, before or after moments", async 
       sourceName: "webfeed-test",
       note: null,
       saved: false,
+      frameable: false,
     });
     expect(cards.map((c) => c.kind)).toEqual(["article", "moment"]);
   });
@@ -362,6 +364,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     note_text: null,
     note_ai: false,
     saved: false,
+    frameable: false,
   });
 
   expect(card).toBeNull();
@@ -381,6 +384,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
       note_text: "New this week.",
       note_ai: true,
       saved: false,
+      frameable: false,
     }),
   ).toEqual({
     kind: "article",
@@ -391,6 +395,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     sourceName: "Source",
     note: { text: "New this week.", ai: true },
     saved: false,
+    frameable: false,
   });
   expect(lines).toHaveLength(1);
   const logged = JSON.parse(lines[0] ?? "") as Record<string, unknown>;
@@ -570,6 +575,38 @@ test("finished sections and finished articles are left out at once", async () =>
       .execute();
     expect(await ids("3-8")).toEqual([]);
     expect(await ids("8-15")).toEqual([]);
+  });
+});
+
+// ADR-0018: a card says whether the in-app reader may frame its page; unknown is no.
+test("cards say whether their page can be framed, unknown reading as no", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const [first] = momentIds;
+    if (first === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_feed_entry")
+      .values({
+        user_id: userId,
+        chip: "3-8",
+        content_item_id: itemId,
+        moment_id: first,
+        rank: 1,
+        top_signal: "quality",
+      })
+      .execute();
+    await trx
+      .insertInto("user_feed_state")
+      .values({ user_id: userId, computed_at: new Date() })
+      .execute();
+    const framed = async () =>
+      (await kyselyFeedReader(trx).read(userId, "3-8", 50)).cards[0]?.frameable;
+    expect(await framed()).toBe(false);
+    await trx
+      .updateTable("content_item")
+      .set({ frameable: true })
+      .where("id", "=", itemId)
+      .execute();
+    expect(await framed()).toBe(true);
   });
 });
 

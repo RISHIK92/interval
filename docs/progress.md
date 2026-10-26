@@ -669,6 +669,27 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - Profile has no sign-out (Home has one);
   - the popover and return-sheet positions have not been checked on a phone.
 
+### 2026-10-26 — In-app reader, slice 1: which pages can be framed (ADR-0018)
+- **ADR-0018** was accepted by the owner (2026-10-26). Articles open inside Interval where the publisher allows framing, with an overlay at the bottom; everything else opens in the browser. It amends C-07.
+  - **Owner answers:**
+    - a 6 s timeout falls back to "Open in browser";
+    - framing is recorded per item;
+    - the reader is full-screen on desktop too;
+    - the overlay has Why this matters, Save, Mark done, Next section, and disabled Highlight, Listen and Test me;
+    - "Did you finish?" asks when the reader closes;
+    - `card_opened` gains a `surface` prop.
+  - **Source scan:** of 35 active sources, 20 allow framing, 10 refuse it, and 5 already block us.
+- **Done:**
+  - `frameable()` reads `X-Frame-Options` (any value → no) and every enforced CSP `frame-ancestors` (not exactly `*` → no). It errs toward no, because a wrong no only sends the card to the browser.
+  - `Fetched.frameable`; `Fetcher.check` returns it.
+  - `content_item.frameable` is set at fetch (when the body fetch is allowed) and at the weekly link check; both feed views carry it.
+  - Feed and continue cards get `frameable` (unknown reads as false).
+- **Review fixes:**
+  - **Blocker:** repeated CSP headers, which httpx joins with commas, were missed. They now split into policies.
+  - Tests cover Report-Only, ALLOWALL, directive case, and the continue card passing true through.
+  - The docstring says the rule errs toward no.
+- **Backfill:** a one-off check of all 554 items through the consumer, rerun after the fix.
+
 ## Pre-deploy list (from the S18 review; parked by the owner until deployment, ADR-0013)
 
 - **CloudFront to ALB:** traffic crosses the internet over HTTP. Make the ALB internal behind a CloudFront VPC origin (drops the origin-verify header and the 0.0.0.0/0 ingress).

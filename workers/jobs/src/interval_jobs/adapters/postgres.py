@@ -241,6 +241,12 @@ class PostgresItems:
         ).fetchone()
         return None if row is None else (str(row[0]), row[1])
 
+    def set_frameable(self, item_id: int, frameable: bool) -> None:
+        self._conn.execute(
+            "update content_item set frameable = %s where id = %s",
+            (frameable, item_id),
+        )
+
     def set_link_broken(self, item_id: int, at: datetime | None) -> None:
         self._conn.execute(
             "update content_item set link_broken_at = "

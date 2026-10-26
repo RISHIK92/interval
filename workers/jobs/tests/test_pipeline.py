@@ -735,11 +735,12 @@ def test_a_link_check_is_retried_after_a_server_error_then_recorded() -> None:
     ]
 
     class Flaky(FakeFetcher):
-        def check(self, url: str) -> None:
+        def check(self, url: str) -> bool:
             self.checked.append(url)
             answer = answers.pop(0)
             if isinstance(answer, FetchError):
                 raise answer
+            return False
 
     world.fetcher = Flaky({})
     world.queue.enqueue(
@@ -748,3 +749,19 @@ def test_a_link_check_is_retried_after_a_server_error_then_recorded() -> None:
     world.run()
     assert world.fetcher.checked == [url, url]
     assert world.store.items.link_health(item_id) == (url, NOW)
+
+
+def test_the_article_fetch_records_whether_its_page_can_be_framed() -> None:
+    # ADR-0018: known from the fetch's own headers, before any weekly check.
+    world = World(
+        extra={
+            WAL: Fetched(WAL, fixture_bytes("article.html"), "utf-8", frameable=True),
+            OLDER: Fetched(
+                OLDER, fixture_bytes("article_v2.html"), "utf-8", frameable=False
+            ),
+        }
+    )
+    world.discover()
+    world.run()
+    by_url = {i.canonical_url: i.frameable for i in world.store.items.rows.values()}
+    assert by_url == {WAL: True, OLDER: False}

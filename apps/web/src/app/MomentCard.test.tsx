@@ -16,6 +16,7 @@ const card: MomentFeedCard = {
   sourceName: "Example Engineering",
   note: null,
   saved: false,
+  frameable: false,
 };
 
 function textOf(html: string): string {

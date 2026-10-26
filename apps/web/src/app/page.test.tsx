@@ -83,6 +83,7 @@ const card: FeedCard = {
   sourceName: "Example Engineering",
   note: null,
   saved: false,
+  frameable: false,
 };
 
 async function render(
@@ -203,6 +204,7 @@ test("the 8–15 chip renders whole-article cards next to moments", async () => 
         sourceName: "Example Engineering",
         note: null,
         saved: false,
+        frameable: false,
       },
       card,
     ]),
@@ -387,6 +389,7 @@ test("continue cards point at the next section and can be dismissed", async () =
       sectionNumber: 2,
       sectionCount: 3,
       articleTitle: "Consensus in practice",
+      frameable: false,
     },
   ]);
   const html = await render({ chip: "1-3" });

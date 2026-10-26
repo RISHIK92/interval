@@ -90,6 +90,9 @@ class Fetched:
     encoding: str | None
     # What the next conditional request sends (ING-1); None when the server sent none.
     validators: Validators | None = None
+    # Whether the page allows Interval's in-app reader to frame it (ADR-0018); None
+    # when unknown.
+    frameable: bool | None = None
 
 
 @dataclass(frozen=True)
@@ -224,6 +227,10 @@ class Items(Protocol):
 
     def set_link_broken(self, item_id: int, at: datetime | None) -> None:
         """Marks the link broken at `at`, keeping an earlier mark; None clears it."""
+        ...
+
+    def set_frameable(self, item_id: int, frameable: bool) -> None:
+        """Whether the item's page lets Interval's reader frame it (ADR-0018)."""
         ...
 
     def upsert_from_feed(
@@ -879,10 +886,10 @@ class Store(Protocol):
 class Fetcher(Protocol):
     def fetch(self, url: str, kind: FetchKind) -> Fetched: ...
 
-    def check(self, url: str) -> None:
-        """The page's status only: returns on success, raises FetchError as fetch
-        does, and never reads the body, so any rights profile allows it (P1-W6-S03).
-        """
+    def check(self, url: str) -> bool:
+        """The page's status only: on success, whether it can be framed (ADR-0018);
+        raises FetchError as fetch does. It never reads the body, so any rights profile
+        allows it (P1-W6-S03)."""
         ...
 
     def fetch_if_changed(

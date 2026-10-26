@@ -108,6 +108,7 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
         section_number: number;
         section_count: number;
         article_title: string;
+        frameable: boolean;
       }>`
         with seen as (
           select moment_id, finished_at as at from user_moment_finished
@@ -126,7 +127,7 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
                nx.ordinal + 1 as section_number,
                (select count(*) from moment where content_item_id = p.item_id)::integer
                  as section_count,
-               c.title as article_title
+               c.title as article_title, coalesce(c.frameable, false) as frameable
         from per_item p
         join content_item c on c.id = p.item_id
         join source s on s.id = c.source_id
@@ -161,6 +162,7 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
         sectionNumber: r.section_number,
         sectionCount: r.section_count,
         articleTitle: r.article_title,
+        frameable: r.frameable,
       }));
     },
     dismissContinue: async (userId, itemId) => {

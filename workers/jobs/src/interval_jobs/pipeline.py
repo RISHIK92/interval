@@ -291,6 +291,9 @@ class Pipeline:
                 "pipeline: robots.txt disallows the article", content_item_id=item_id
             )
             return []
+        # ADR-0018: known from this fetch's headers, before any weekly check.
+        if article.frameable is not None:
+            store.items.set_frameable(item_id, article.frameable)
         text = services.extractor.text(article.body, article.encoding)
         store.items.set_canonical(
             item_id, page_canonical(article.body, article.encoding, article.url)

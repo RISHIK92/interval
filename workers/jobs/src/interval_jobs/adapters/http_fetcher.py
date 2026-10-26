@@ -16,6 +16,7 @@ from urllib.parse import urljoin, urlsplit
 
 import httpx
 
+from interval_jobs.frameable import frameable
 from interval_jobs.ports import (
     Fetched,
     FetchError,
@@ -87,8 +88,9 @@ class HttpxFetcher:
             raise FetchError(f"{kind} {url}: 304 without a conditional request")
         return fetched
 
-    def check(self, url: str, on_hop: OnHop | None = None) -> None:
-        self.request(url, "article", {}, on_hop, read_body=False)
+    def check(self, url: str, on_hop: OnHop | None = None) -> bool:
+        fetched = self.request(url, "article", {}, on_hop, read_body=False)
+        return fetched is not None and fetched.frameable is True
 
     def request(
         self,
@@ -138,8 +140,10 @@ def _fetch(
                 url = urljoin(url, location)
                 continue
             response.raise_for_status()
+            # The final response's own headers decide, as the browser's frame will see.
+            can_frame = frameable(response.headers)
             if not read_body:
-                return Fetched(url=url, body=b"", encoding=None)
+                return Fetched(url=url, body=b"", encoding=None, frameable=can_frame)
             media_type = response.headers.get("content-type", "").split(";")[0].strip()
             expected = CONTENT_TYPES[kind]
             if expected is not None and media_type.lower() not in expected:
@@ -156,6 +160,7 @@ def _fetch(
                 body=bytes(body),
                 encoding=response.charset_encoding,
                 validators=_validators(response.headers),
+                frameable=can_frame,
             )
     raise FetchError(f"more than {MAX_REDIRECTS} redirects from {url}")
 

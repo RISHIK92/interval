@@ -57,8 +57,8 @@ class PoliteFetcher:
             raise FetchError(f"{kind} {url}: 304 without a conditional request")
         return fetched
 
-    def check(self, url: str) -> None:
-        self._inner.check(url, self._hop)
+    def check(self, url: str) -> bool:
+        return self._inner.check(url, self._hop)
 
     def fetch_if_changed(
         self, url: str, kind: FetchKind, known: Validators | None

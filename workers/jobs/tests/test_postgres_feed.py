@@ -460,3 +460,25 @@ def test_a_broken_link_leaves_every_feed_at_once(conn: psycopg.Connection) -> No
         "select count(*) from starter_feed_visible where source_name = 'feedtest-n'"
     ).fetchone()
     assert starter == (0,)
+
+
+def test_the_views_say_whether_an_entry_can_be_framed(conn: psycopg.Connection) -> None:
+    # ADR-0018: the web opens a card in-app only when its page allows framing.
+    src = source(conn, "feedtest-o")
+    item = add_item(conn, src, "framed", datetime(2026, 10, 1, tzinfo=UTC), 1)
+    me = user(conn)
+    give(conn, me, moments_of(conn, item))
+    store = PostgresStore(conn)
+
+    def framed() -> object:
+        row = conn.execute(
+            "select frameable from user_feed_visible where user_id = %s", (me,)
+        ).fetchone()
+        assert row is not None
+        return row[0]
+
+    assert framed() is None  # not known yet
+    store.items.set_frameable(item, True)
+    assert framed() is True
+    store.items.set_frameable(item, False)
+    assert framed() is False

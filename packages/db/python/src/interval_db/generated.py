@@ -127,6 +127,7 @@ class ContentItem(TypedDict):
     duplicate_of: int | None
     simhash: int | None
     link_broken_at: datetime | None
+    frameable: bool | None
 
 
 class ContentItemPrivateText(TypedDict):
@@ -330,6 +331,7 @@ class StarterFeedVisible(TypedDict):
     source_name: str | None
     note_text: str | None
     note_ai: bool | None
+    frameable: bool | None
 
 
 class TagOverride(TypedDict):
@@ -410,6 +412,7 @@ class UserFeedVisible(TypedDict):
     source_name: str | None
     note_text: str | None
     note_ai: bool | None
+    frameable: bool | None
 
 
 class UserHiddenSource(TypedDict):

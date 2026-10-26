@@ -13,6 +13,7 @@ const card: ArticleFeedCard = {
   sourceName: "Example Engineering",
   note: null,
   saved: false,
+  frameable: false,
 };
 
 function textOf(html: string): string {
