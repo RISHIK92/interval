@@ -3,7 +3,7 @@ from collections.abc import Iterator
 import httpx
 import pytest
 
-from interval_jobs.adapters.http_fetcher import MAX_BYTES, HttpxFetcher
+from interval_jobs.adapters.http_fetcher import MAX_BYTES, MAX_FEED_BYTES, HttpxFetcher
 from interval_jobs.ports import FetchError, FetchStatusError
 
 PUBLIC = "93.184.216.34"
@@ -168,3 +168,28 @@ def test_a_fetch_and_a_check_say_whether_the_page_can_be_framed() -> None:
         # After a redirect, the final page's headers decide.
         assert fetcher.fetch("https://a.example.test/hop", "article").frameable is True
         assert fetcher.check("https://a.example.test/hop") is True
+
+
+@pytest.mark.parametrize("media_type", ["application/x-rss+xml", "text/html"])
+def test_a_feed_served_under_a_loose_type_is_read(media_type: str) -> None:
+    # Real feeds arrive as these (Evan Jones, Brave New Geek; owner, 2026-10-27); the
+    # feed parser, not the header, decides whether it is a feed.
+    web = respond(headers={"content-type": media_type}, content=b"<rss/>")
+    with client(web) as http:
+        got = HttpxFetcher(http, public).fetch("https://a.example.test/feed", "feed")
+    assert got.body == b"<rss/>"
+
+
+def test_a_feed_may_be_larger_than_a_page() -> None:
+    # Full-text feeds of long-running blogs pass 5 MB (Phil Eaton, Haki Benita).
+    body = b"x" * (MAX_BYTES + 1)
+    web = respond(headers={"content-type": "application/rss+xml"}, content=body)
+    with client(web) as http:
+        got = HttpxFetcher(http, public).fetch("https://a.example.test/feed", "feed")
+    assert len(got.body) == MAX_BYTES + 1
+    huge = respond(
+        headers={"content-type": "application/rss+xml"},
+        content=b"x" * (MAX_FEED_BYTES + 1),
+    )
+    with client(huge) as http, pytest.raises(FetchError, match="larger than"):
+        HttpxFetcher(http, public).fetch("https://a.example.test/feed", "feed")

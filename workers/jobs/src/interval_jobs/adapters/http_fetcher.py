@@ -3,7 +3,8 @@
 Owner rules, 2026-10-25:
 
 http(s) only; every hop, including redirects, must resolve to public addresses only;
-bodies over MAX_BYTES are refused; the content type must match what the caller expects.
+bodies over MAX_BYTES (MAX_FEED_BYTES for a feed) are refused; the content type must
+match what the caller expects.
 Name resolution here and the later connect are separate lookups (DNS rebinding is not
 covered); the AWS deployment adds network-level egress rules.
 """
@@ -32,6 +33,8 @@ type OnHop = Callable[[str], None]
 type RequestKind = FetchKind | Literal["robots"]
 
 MAX_BYTES = 5 * 1024 * 1024
+# Full-text feeds of long-running blogs pass 5 MB (owner, 2026-10-27).
+MAX_FEED_BYTES = 15 * 1024 * 1024
 MAX_REDIRECTS = 5
 TIMEOUT_S = 10.0
 
@@ -44,6 +47,10 @@ CONTENT_TYPES: dict[RequestKind, frozenset[str] | None] = {
             "application/xml",
             "text/xml",
             "application/rdf+xml",
+            # Real feeds arrive under these too (owner, 2026-10-27); the feed parser,
+            # not the header, decides whether it is a feed.
+            "application/x-rss+xml",
+            "text/html",
         }
     ),
     "article": frozenset({"text/html", "application/xhtml+xml"}),
@@ -150,11 +157,12 @@ def _fetch(
                 raise UnexpectedContentType(
                     f"unexpected content type {media_type!r} for {kind} {url}"
                 )
+            limit = MAX_FEED_BYTES if kind == "feed" else MAX_BYTES
             body = bytearray()
             for chunk in response.iter_bytes():
                 body += chunk
-                if len(body) > MAX_BYTES:
-                    raise FetchError(f"{kind} {url} is larger than {MAX_BYTES} bytes")
+                if len(body) > limit:
+                    raise FetchError(f"{kind} {url} is larger than {limit} bytes")
             return Fetched(
                 url=url,
                 body=bytes(body),

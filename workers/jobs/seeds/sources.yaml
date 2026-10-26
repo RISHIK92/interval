@@ -304,3 +304,246 @@
   moments_enabled: true
   paywalled: false
   topics: [backend, system-design]
+
+# Added 2026-10-27 (owner): vetted by Claude for a parsing feed, robots.txt and framing
+# (report in the session scratchpad); the owner confirmed full_text_internal for them.
+
+- name: Shopify Engineering
+  homepage: https://shopify.engineering/
+  feed_url: https://shopify.engineering/blog.atom
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, system-design]
+
+- name: Yelp Engineering
+  homepage: https://engineeringblog.yelp.com/
+  feed_url: https://engineeringblog.yelp.com/feed.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, distributed-systems]
+
+- name: Zalando Engineering
+  homepage: https://engineering.zalando.com/
+  feed_url: https://engineering.zalando.com/atom.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, system-design]
+
+- name: Architecture Notes
+  homepage: https://architecturenotes.co/
+  feed_url: https://architecturenotes.co/feed
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design]
+
+- name: Hillel Wayne
+  homepage: https://www.hillelwayne.com/
+  feed_url: https://www.hillelwayne.com/index.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design]
+
+- name: Fly.io Blog
+  homepage: https://fly.io/blog/
+  feed_url: https://fly.io/blog/feed.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [distributed-systems, backend]
+
+- name: Kyle Kingsbury (aphyr)
+  homepage: https://aphyr.com/
+  feed_url: https://aphyr.com/posts.atom
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [distributed-systems, databases]
+
+- name: Jack Vanlightly
+  homepage: https://jack-vanlightly.com/
+  feed_url: https://jack-vanlightly.com/blog?format=rss
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [distributed-systems, databases]
+
+- name: Aleksey Charapko
+  homepage: https://charap.co/
+  feed_url: https://charap.co/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [distributed-systems]
+
+- name: Ink & Switch
+  homepage: https://www.inkandswitch.com/
+  feed_url: https://www.inkandswitch.com/index.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [distributed-systems]
+
+- name: TigerBeetle Blog
+  homepage: https://tigerbeetle.com/blog/
+  feed_url: https://tigerbeetle.com/blog/atom.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases, distributed-systems]
+
+- name: Alex Miller (transactional.blog)
+  homepage: https://transactional.blog/
+  feed_url: https://transactional.blog/feed.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases, distributed-systems]
+
+- name: Percona Blog
+  homepage: https://www.percona.com/blog/
+  feed_url: https://www.percona.com/blog/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases]
+
+- name: Crunchy Data Blog
+  homepage: https://www.crunchydata.com/blog
+  feed_url: https://www.crunchydata.com/blog/rss.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases]
+
+- name: DuckDB Blog
+  homepage: https://duckdb.org/news/
+  feed_url: https://duckdb.org/feed.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases]
+
+- name: Vitess Blog
+  homepage: https://vitess.io/blog/
+  feed_url: https://vitess.io/blog/index.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases, distributed-systems]
+
+- name: depesz
+  homepage: https://www.depesz.com/
+  feed_url: https://www.depesz.com/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases]
+
+- name: Robert Haas
+  homepage: https://rhaas.blogspot.com/
+  feed_url: https://rhaas.blogspot.com/feeds/posts/default
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases]
+
+- name: Andy Pavlo
+  homepage: https://www.cs.cmu.edu/~pavlo/blog/
+  feed_url: https://www.cs.cmu.edu/~pavlo/blog/feed.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases]
+
+- name: Justin Jaffray (NULL BITMAP)
+  homepage: https://buttondown.com/jaffray
+  feed_url: https://buttondown.com/jaffray/rss
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases]
+
+- name: pganalyze Blog
+  homepage: https://pganalyze.com/blog
+  feed_url: https://pganalyze.com/feed.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases]
+
+- name: Gunnar Morling
+  homepage: https://www.morling.dev/
+  feed_url: https://www.morling.dev/index.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases, distributed-systems]
+
+- name: antirez
+  homepage: http://antirez.com/
+  feed_url: http://antirez.com/rss
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases, backend]
+
+- name: Brandur Leach
+  homepage: https://brandur.org/
+  feed_url: https://brandur.org/articles.atom
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, databases]
+
+- name: Tailscale Blog
+  homepage: https://tailscale.com/blog
+  feed_url: https://tailscale.com/blog/index.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, distributed-systems]
+
+- name: Jane Street Tech Blog
+  homepage: https://blog.janestreet.com/
+  feed_url: https://blog.janestreet.com/feed.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend]
+
+- name: Phil Eaton
+  homepage: https://notes.eatonphil.com/
+  feed_url: https://notes.eatonphil.com/rss.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases, distributed-systems]
+
+- name: Brave New Geek
+  homepage: https://bravenewgeek.com/
+  feed_url: https://bravenewgeek.com/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [distributed-systems, system-design]
+
+- name: Haki Benita
+  homepage: https://hakibenita.com/
+  feed_url: https://hakibenita.com/feeds/all.atom.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases, backend]
+
+- name: Evan Jones
+  homepage: https://www.evanjones.ca/
+  feed_url: https://www.evanjones.ca/index.rss
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [databases, backend]
