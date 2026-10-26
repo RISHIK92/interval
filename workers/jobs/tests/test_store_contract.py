@@ -27,6 +27,8 @@ from interval_jobs.concepts.graph import ConceptSeedError, parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.ports import (
     AiLedger,
+    Arm,
+    ArmOutcome,
     ConceptCycleError,
     ConceptEdge,
     ConceptGraph,
@@ -91,6 +93,7 @@ class Probe(Protocol):
     def save(self, user_id: str, item_id: int) -> None: ...
     def hide_source(self, user_id: str, source_id: int) -> None: ...
     def reset_inferred(self, user_id: str) -> None: ...
+    def record_arm(self, arm: Arm, shown: int, finished: int) -> None: ...
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None: ...
     def override_level(self, item_id: int, heading: str, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
@@ -171,6 +174,9 @@ class MemoryProbe:
 
     def hide_source(self, user_id: str, source_id: int) -> None:
         self.s.ranking.hidden.add((user_id, source_id))
+
+    def record_arm(self, arm: Arm, shown: int, finished: int) -> None:
+        self.s.ranking.outcomes[arm] = ArmOutcome(shown, finished)
 
     def reset_inferred(self, user_id: str) -> None:
         # As the web's resetInferred: More and Less like this go, the time is kept.
@@ -365,6 +371,13 @@ class PostgresProbe:
             "insert into user_save (user_id, content_item_id, saved_at) "
             "values (%s, %s, clock_timestamp())",
             (user_id, item_id),
+        )
+
+    def record_arm(self, arm: Arm, shown: int, finished: int) -> None:
+        self.conn.execute(
+            "insert into explore_arm_outcome (kind, arm, shown, finished) "
+            "values (%s, %s, %s, %s)",
+            (arm.kind, arm.key, shown, finished),
         )
 
     def reset_inferred(self, user_id: str) -> None:
@@ -2193,3 +2206,11 @@ def test_a_refused_polish_keeps_the_template_and_is_not_tried_again(
     s.notes.polish(ref.note_id, None, "small-model")  # the reply was refused
     assert s.notes.input(ref.note_id) is None
     assert not s.notes.ensure_all({key: "x"})[key].needs_polish
+
+
+# Exploration outcomes (REC-4, P1-W4-S09): written by Week 5, read by ranking.
+def test_arm_outcomes_are_read_as_stored(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    probe.record_arm(Arm("topic", "contract-backend"), shown=10, finished=4)
+    outcomes = s.ranking.arm_outcomes()
+    assert outcomes[Arm("topic", "contract-backend")] == ArmOutcome(10, 4)

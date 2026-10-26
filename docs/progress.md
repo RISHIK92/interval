@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls) and W4-S08 (profile settings) done. Next: W4-S09 (Thompson sampling for exploration). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. Next: W5-S01 (read on site). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -1229,3 +1229,28 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the reset timing is documented in the migration.
 - Checked in Chrome: the Profile page renders with the choices filled in; saving an edit stores it and the feed recomputes. The Profile page does not reload in a loop, unlike home after a dev restart (see W4-S07); home is the page that writes `feed_viewed`.
 - Noticed, not fixed: the two contract-test probes disagree on an item-level override that only changes the level. The Postgres probe writes empty concepts (an admin correction with none); the memory probe keeps the model's concepts.
+
+### 2026-10-26 — P1-W4-S09 (Thompson sampling for exploration, REC-4, REC-3, Q-P1-13)
+- Owner choices:
+  - `explore.share` 0.1 in `ranking_config` (validated 0–0.5);
+  - **arms:** topics the user didn't choose, and sources their main picks don't reach;
+  - **rates:** global per arm;
+  - **data:** read from a port, at the uniform prior until Week 5 records outcomes.
+- Done:
+  - **Migration `20261026190000_exploration.sql`:** `explore_arm_outcome (kind, arm, shown, finished)`, empty until W5 writes it; the `explore.share` row.
+  - **`ranking/explore.py`:**
+    - `sample_arm`: a Beta(1 + finished, 1 + shown − finished) draw per arm;
+    - `explore`: fills the slots by sampling. One article appears once, sources keep `cap.per_source`, and explored entries are spread through the feed.
+  - **`rank.py`:**
+    - candidates are gathered per chip by `_candidates`, the same chip rules for the chosen and the unchosen topics;
+    - user feeds only (starter feeds don't explore);
+    - main picks are `limit − slots`, and any slot exploration can't fill goes back to the main feed;
+    - adjacent items also on a chosen topic are not counted as adjacent.
+- Review fixes:
+  - the per-source cap (the first test had locked in 5 cards from one source);
+  - item-level dedupe;
+  - backfill of unfilled slots;
+  - adjacent-topic attribution;
+  - tests for the source arm, the spread, the cap, and that exploration still happens next to a Not interested item.
+- Process note: the exploration tests were written with the code, not run red first; the module they test didn't exist before.
+- On local data the owner now has all four topics chosen, so only source arms apply: 50 entries per chip, 17–26 sources, none over 4.

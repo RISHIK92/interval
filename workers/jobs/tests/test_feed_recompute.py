@@ -3,6 +3,7 @@ feedback, kept as they were when ranking fails, and starter feeds for new guests
 feed per time chip (Q-P1-16, P1-W4-S05)."""
 
 import json
+import random
 from datetime import UTC, datetime, timedelta
 
 import pytest
@@ -12,6 +13,7 @@ from interval_jobs.adapters.memory import InMemoryStore, StoredUser
 from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
+from interval_jobs.feed import precompute
 from interval_jobs.feed.precompute import (
     STARTERS,
     enqueue_recomputes,
@@ -379,3 +381,135 @@ def test_recompute_due_queues_starter_note_polish_only_with_a_notes_model(
     cli.main(["recompute-due"])
     capsys.readouterr()
     assert (queue.pending("polish_note") > 0) is queued
+
+
+# Exploration (REC-4, P1-W4-S09): a share of slots for topics the user didn't choose
+# and sources new to them, by Thompson sampling.
+def backend_world(items: int = 10) -> tuple[World, int]:
+    w = World()
+    sync_concepts(
+        w.store,
+        parse_concepts(
+            "version: 2\nconcepts:\n"
+            "  - {slug: indexes, name: Indexes, topic: databases}\n"
+            "  - {slug: raft, name: Raft, topic: distributed-systems}\n"
+            "  - {slug: rest, name: REST, topic: backend}\n",
+            "c.yaml",
+        ),
+    )
+    other = w.store.sources.upsert(
+        name="apiblog",
+        feed_url="https://apiblog.test/f",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    w.store.sources.set_moments_enabled(other, True)
+    w.store.sources.rows[other].topics = ("backend",)
+    for n in range(items):
+        entry = FeedEntry(
+            guid=f"api-{n}",
+            link=f"https://apiblog.test/{n}",
+            title=f"api-{n}",
+            author=None,
+            published_at=datetime(2026, 10, 20, tzinfo=UTC),
+            updated_at=None,
+            summary=None,
+        )
+        item = w.store.items.upsert_from_feed(other, entry, keep_excerpt=False)
+        w.store.items.store_full_text(item, "text")
+        w.store.items.replace_sections(item, [Section("h", 2, None, 5 * 230)])
+        w.store.moments.replace(item, [MomentRow(0, "h", 5, entry.link, "anchor")])
+    for n in range(20):
+        w.item(f"db-{n}", 25)
+    return w, other
+
+
+def from_source(w: World, source: int, chip: BreakLength = "3-8") -> int:
+    return sum(
+        1 for item, _ in w.entries(chip) if w.store.items.rows[item].source_id == source
+    )
+
+
+def test_a_tenth_of_the_slots_explore_topics_the_user_did_not_choose() -> None:
+    w, other = backend_world()
+    w.store.ranking.config_rows["cap.per_source"] = 10
+    recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
+    # 50 entries per chip, 0.1 of them explored: 5, here all from the backend arm.
+    assert from_source(w, other) == 5
+    # Spread through the feed: never at the top.
+    first_item, _ = w.entries("3-8")[0]
+    assert w.store.items.rows[first_item].source_id != other
+
+
+def test_explored_entries_keep_the_per_source_cap() -> None:
+    w, other = backend_world()  # cap.per_source is 4
+    recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
+    for chip in ("1-3", "3-8", "8-15"):
+        sources = [w.store.items.rows[i].source_id for i, _ in w.entries(chip)]
+        assert all(sources.count(src) <= 4 for src in set(sources))
+    assert from_source(w, other) == 4
+
+
+def test_exploration_share_zero_explores_nothing() -> None:
+    w, other = backend_world()
+    w.store.ranking.config_rows["explore.share"] = 0
+    recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
+    assert from_source(w, other) == 0
+
+
+def test_a_hidden_source_or_not_interested_item_is_never_explored() -> None:
+    w, other = backend_world()
+    w.store.ranking.hidden.add(("u1", other))
+    recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
+    assert from_source(w, other) == 0
+    w.store.ranking.hidden.clear()
+    gone = next(i for i in w.store.items.rows.values() if i.source_id == other).id
+    w.store.ranking.feedback.append(("u1", gone, "not_interested"))
+    recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
+    assert from_source(w, other) > 0  # still exploring, just never that item
+    assert all(
+        item != gone for chip in ("1-3", "3-8", "8-15") for item, _ in w.entries(chip)
+    )
+
+
+def test_a_source_the_main_picks_do_not_reach_is_explored(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Two sources on the chosen topic; a feed of 2 with half explored leaves room
+    # for one main pick, so the other source is new to the user: a source arm.
+    monkeypatch.setattr(precompute, "FEED_LIMIT", 2)
+    w = World()
+    w.store.ranking.config_rows["explore.share"] = 0.5
+    second = w.store.sources.upsert(
+        name="dbblog2",
+        feed_url="https://dbblog2.test/f",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    w.store.sources.set_moments_enabled(second, True)
+    w.store.sources.rows[second].topics = ("databases",)
+    w.item("main-1", 25)
+    first, w.source = w.source, second
+    w.item("second-1", 20)
+    recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
+    sources = [w.store.items.rows[i].source_id for i, _ in w.entries("3-8")]
+    assert sources == [first, second]
+
+
+def test_an_unfilled_exploration_slot_goes_back_to_the_main_feed() -> None:
+    w = World()
+    for n in range(30):
+        w.item(f"db-{n}", 25)
+    w.store.ranking.config_rows["cap.per_source"] = 50
+    w.store.ranking.config_rows["explore.share"] = 0.5
+    # 25 main slots, 25 for exploration, nothing to explore (one source, reached; no
+    # other topic): the empty slots go back to the main feed.
+    recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
+    assert len(w.entries("3-8")) == 30
+
+
+def test_starter_feeds_do_not_explore() -> None:
+    w, other = backend_world()
+    recompute_starters(w.store)
+    starter = w.store.feed.starters[("databases", "beginner", "3-8")]
+    assert all(w.store.items.rows[r.item_id].source_id != other for r in starter)

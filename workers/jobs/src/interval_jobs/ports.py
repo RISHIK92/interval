@@ -610,6 +610,23 @@ class EntryFacts:
 
 
 @dataclass(frozen=True)
+class Arm:
+    """An exploration arm (REC-4, P1-W4-S09): a topic the user didn't choose, or a
+    source new to them (its id)."""
+
+    kind: Literal["topic", "source"]
+    key: str
+
+
+@dataclass(frozen=True)
+class ArmOutcome:
+    """Across all users (owner, 2026-10-26); Week 5's reading slices count them."""
+
+    shown: int
+    finished: int
+
+
+@dataclass(frozen=True)
 class CandidateArticle:
     item_id: int
     source_id: int
@@ -659,6 +676,10 @@ class RankingInputs(Protocol):
         """Moments whose item's concepts (an admin's correction first, else the model's
         tags) or source's seed topics match, newest first. Only the copy of a duplicate
         group the feed shows, from active sources."""
+        ...
+
+    def arm_outcomes(self) -> dict[Arm, ArmOutcome]:
+        """Every arm with recorded outcomes; an arm not listed is at its prior."""
         ...
 
     def article_facts(self, item_ids: list[int]) -> dict[int, EntryFacts]:

@@ -136,6 +136,13 @@ class ContentItemSection(TypedDict):
     word_count: int
 
 
+class ExploreArmOutcome(TypedDict):
+    kind: str
+    arm: str
+    shown: int
+    finished: int
+
+
 class FeedNote(TypedDict):
     id: int
     content_item_id: int

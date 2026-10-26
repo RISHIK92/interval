@@ -25,6 +25,8 @@ from interval_jobs.concepts.graph import TOPICS
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
+    Arm,
+    ArmOutcome,
     CandidateArticle,
     CandidateMoment,
     ConceptCycleError,
@@ -1381,6 +1383,12 @@ class PostgresRankingInputs:
     def config(self) -> dict[str, float]:
         rows = self._conn.execute("select key, value from ranking_config").fetchall()
         return {str(r[0]): float(r[1]) for r in rows}
+
+    def arm_outcomes(self) -> dict[Arm, ArmOutcome]:
+        rows = self._conn.execute(
+            "select kind, arm, shown, finished from explore_arm_outcome"
+        ).fetchall()
+        return {Arm(r[0], r[1]): ArmOutcome(int(r[2]), int(r[3])) for r in rows}
 
     def moment_facts(self, moment_ids: list[int]) -> dict[int, EntryFacts]:
         rows = self._conn.execute(

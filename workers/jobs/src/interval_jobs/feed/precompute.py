@@ -5,6 +5,7 @@ A failed recompute leaves the stored feed as it was and logs `feed: recompute fa
 which the AWS stack counts (LOAD-5); the queue retries it, then the DLQ holds it.
 """
 
+import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import get_args
@@ -19,7 +20,12 @@ from interval_jobs.ports import (
     Store,
     UserPreferences,
 )
-from interval_jobs.ranking.rank import Ranked, rank_for_preferences, rank_for_user
+from interval_jobs.ranking.rank import (
+    TOPICS,
+    Ranked,
+    rank_for_preferences,
+    rank_for_user,
+)
 from interval_jobs.ranking.scoring import Scored
 
 FEED_LIMIT = 50
@@ -27,7 +33,6 @@ FEED_LIMIT = 50
 # updated_at at most once a day (updateAge), so in practice this is 6 to 7 days.
 ACTIVE_DAYS = 7
 LEVELS: tuple[Difficulty, ...] = get_args(Difficulty.__value__)
-TOPICS: tuple[Topic, ...] = get_args(Topic.__value__)
 # Only fills the required field: ranking replaces it with each chip's own break.
 STARTER_BREAK: BreakLength = "3-8"
 
@@ -77,7 +82,11 @@ def _with_notes(
 
 
 def recompute_user_feed(
-    store: Store, user_id: str, model: str | None, now: datetime
+    store: Store,
+    user_id: str,
+    model: str | None,
+    now: datetime,
+    rng: random.Random | None = None,
 ) -> Recomputed:
     """Ranks the user's feed for every chip and stores it whole. A user without
     preferences gets empty feeds, still stored, so the web stops waiting for them."""
@@ -86,7 +95,7 @@ def recompute_user_feed(
         # Before ranking: a recompute running alongside finishes first, and this one
         # then ranks on whatever it committed (feedback included, Q-P1-17).
         store.feed.hold_user(user_id)
-        ranked = rank_for_user(store, user_id, model, now, FEED_LIMIT)
+        ranked = rank_for_user(store, user_id, model, now, FEED_LIMIT, rng)
         preferences = store.ranking.preferences(user_id)
         by_chip: dict[BreakLength, list[RankedEntry]] = (
             _with_notes(store, ranked, preferences, now, done)

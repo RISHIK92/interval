@@ -9,16 +9,19 @@ articles too long to fit; an article that fits is offered whole, not as its mome
 (owner, 2026-10-26).
 """
 
-from dataclasses import replace
+import random
+from dataclasses import dataclass, replace
 from datetime import datetime
+from typing import get_args
 
-from interval_db.generated import BreakLength
-from interval_jobs.ports import EntryFacts, EntryKey, Store, UserPreferences
+from interval_db.generated import BreakLength, Topic
+from interval_jobs.ports import Arm, EntryFacts, EntryKey, Store, UserPreferences
 from interval_jobs.ranking.candidates import (
     Candidate,
     article_candidates,
     candidates_for,
 )
+from interval_jobs.ranking.explore import explore
 from interval_jobs.ranking.scoring import (
     BREAK_MINUTES,
     RankingConfig,
@@ -30,6 +33,7 @@ from interval_jobs.ranking.scoring import (
 
 Ranked = dict[BreakLength, list[Scored]]
 WHOLE_ARTICLE_CHIP: BreakLength = "8-15"  # Q-P1-16
+TOPICS: tuple[Topic, ...] = get_args(Topic.__value__)  # the enum's order
 
 
 def _empty() -> Ranked:
@@ -62,28 +66,34 @@ def _whole_articles(
 
 
 def rank_for_user(
-    store: Store, user_id: str, model: str | None, now: datetime, limit: int
+    store: Store,
+    user_id: str,
+    model: str | None,
+    now: datetime,
+    limit: int,
+    rng: random.Random | None = None,
 ) -> Ranked:
     preferences = store.ranking.preferences(user_id)
     if preferences is None:
         return _empty()
-    return rank_for_preferences(store, preferences, user_id, model, now, limit)
+    return rank_for_preferences(store, preferences, user_id, model, now, limit, rng)
 
 
-def rank_for_preferences(
-    store: Store,
-    preferences: UserPreferences,
-    user_id: str | None,
-    model: str | None,
-    now: datetime,
-    limit: int,
-) -> Ranked:
-    """With no user, a starter feed (ADR-0008): no feedback, no similarity anchors."""
+@dataclass
+class _ChipCandidates:
+    by_chip: dict[BreakLength, list[Candidate]]
+    facts: dict[EntryKey, EntryFacts]
+
+
+def _candidates(
+    store: Store, preferences: UserPreferences, user_id: str | None, model: str | None
+) -> _ChipCandidates | None:
+    """Each chip's candidates on the preferences' topics, and their facts."""
     inputs = store.ranking
     moments = candidates_for(store, preferences, user_id, model)
     articles = article_candidates(store, preferences, user_id)
     if not moments and not articles:
-        return _empty()
+        return None
     by_moment = inputs.moment_facts(
         [c.moment_id for c in moments if c.moment_id is not None]
     )
@@ -92,16 +102,8 @@ def rank_for_preferences(
     facts: dict[EntryKey, EntryFacts] = {
         f.key: f for f in [*by_moment.values(), *by_item.values()]
     }
-    user = UserSignals(
-        topics=frozenset(preferences.topics),
-        level=preferences.level,
-        break_length=preferences.break_length,
-        less_liked=frozenset(inputs.less_liked(user_id)) if user_id else frozenset(),
-        avoided_concepts=inputs.avoided_concepts(user_id) if user_id else frozenset(),
-    )
-    config = RankingConfig.from_rows(inputs.config())
     whole, whole_items = _whole_articles(moments, articles, by_item)
-    ranked = _empty()
+    by_chip: dict[BreakLength, list[Candidate]] = {}
     for chip, (_, upper) in BREAK_MINUTES.items():
 
         def fits(candidate: Candidate, upper: int = upper) -> bool:
@@ -112,6 +114,71 @@ def rank_for_preferences(
         chosen = [c for c in moments if fits(c)]
         if chip == WHOLE_ARTICLE_CHIP:
             chosen = whole + [c for c in chosen if c.item_id not in whole_items]
-        scored = score(chosen, facts, replace(user, break_length=chip), config, now)
-        ranked[chip] = rerank(scored, facts, config, limit)
+        by_chip[chip] = chosen
+    return _ChipCandidates(by_chip, facts)
+
+
+def rank_for_preferences(
+    store: Store,
+    preferences: UserPreferences,
+    user_id: str | None,
+    model: str | None,
+    now: datetime,
+    limit: int,
+    rng: random.Random | None = None,
+) -> Ranked:
+    """With no user, a starter feed (ADR-0008): no feedback, no similarity anchors, and
+    no exploration (there is no one to explore for)."""
+    inputs = store.ranking
+    config = RankingConfig.from_rows(inputs.config())
+    main = _candidates(store, preferences, user_id, model)
+    unchosen = [t for t in TOPICS if t not in preferences.topics]
+    exploring = user_id is not None and config.explore_share > 0
+    # Adjacent topics by topic match only: similarity anchors serve the main feed.
+    adjacent = (
+        _candidates(store, replace(preferences, topics=unchosen), user_id, None)
+        if exploring and unchosen
+        else None
+    )
+    if main is None and adjacent is None:
+        return _empty()
+    facts = {**(main.facts if main else {}), **(adjacent.facts if adjacent else {})}
+    user = UserSignals(
+        topics=frozenset(preferences.topics),
+        level=preferences.level,
+        break_length=preferences.break_length,
+        less_liked=frozenset(inputs.less_liked(user_id)) if user_id else frozenset(),
+        avoided_concepts=inputs.avoided_concepts(user_id) if user_id else frozenset(),
+    )
+    outcomes = inputs.arm_outcomes() if exploring else {}
+    draw = rng or random.Random()
+    ranked = _empty()
+    for chip in BREAK_MINUTES:
+        signals = replace(user, break_length=chip)
+        scored = score(main.by_chip[chip] if main else [], facts, signals, config, now)
+        if not exploring:
+            ranked[chip] = rerank(scored, facts, config, limit)
+            continue
+        slots = int(limit * config.explore_share)
+        # Greedy, so the first limit - slots are the main picks; the rest refill any
+        # slot exploration can't fill.
+        full = rerank(scored, facts, config, limit)
+        picked = full[: limit - slots]
+        # REC-4 arms: sources the user's picks don't reach, and unchosen topics.
+        reached = {s.source_id for s in picked}
+        pool: dict[Arm, list[Scored]] = {}
+        for s in scored:
+            if s.source_id not in reached:
+                pool.setdefault(Arm("source", str(s.source_id)), []).append(s)
+        if adjacent is not None:
+            for s in score(adjacent.by_chip[chip], facts, signals, config, now):
+                if s.facts.topics & user.topics:
+                    continue  # on a chosen topic too: a main candidate, not adjacent
+                topic = next((t for t in unchosen if t in s.facts.topics), None)
+                if topic is not None:
+                    pool.setdefault(Arm("topic", topic), []).append(s)
+        feed = explore(picked, pool, slots, outcomes, draw, config.per_source_cap)
+        taken = {s.key for s in feed}
+        refill = [s for s in full[limit - slots :] if s.key not in taken]
+        ranked[chip] = feed + refill[: limit - len(feed)]
     return ranked

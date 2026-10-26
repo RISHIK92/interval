@@ -274,3 +274,9 @@ def test_on_a_tie_an_article_comes_before_its_own_moments() -> None:
     ]
     picked = rerank(score(candidates, pool, USER, CONFIG, NOW), pool, CONFIG, 2)
     assert [s.moment_id for s in picked] == [None, BASE.moment_id]
+
+
+@pytest.mark.parametrize("share", [-0.1, 0.51, float("nan")])
+def test_an_exploration_share_outside_0_to_half_is_refused(share: float) -> None:
+    with pytest.raises(RankingConfigError, match=r"explore\.share"):
+        RankingConfig.from_rows({**RANKING_DEFAULTS, "explore.share": share})

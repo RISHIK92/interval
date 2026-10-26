@@ -26,6 +26,8 @@ from interval_jobs.normalize import near_duplicates
 from interval_jobs.polling import START_INTERVAL
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
+    Arm,
+    ArmOutcome,
     CandidateArticle,
     CandidateMoment,
     ConceptGraph,
@@ -962,6 +964,7 @@ RANKING_DEFAULTS: dict[str, float] = {
     "freshness.half_life_days": 14,
     "mmr.lambda": 0.7,
     "cap.per_source": 4,
+    "explore.share": 0.1,
 }
 
 
@@ -1009,6 +1012,7 @@ class InMemoryRankingInputs:
         self.saves: list[tuple[str, int]] = []  # (user, item), oldest first
         # A reset of inferred interests (P1-W4-S08): how much of `feedback` came before.
         self.resets: dict[str, int] = {}
+        self.outcomes: dict[Arm, ArmOutcome] = {}
         # The ranking_config migration's seed values (P1-W4-S03)
         self.config_rows: dict[str, float] = dict(RANKING_DEFAULTS)
 
@@ -1053,6 +1057,9 @@ class InMemoryRankingInputs:
 
     def config(self) -> dict[str, float]:
         return dict(self.config_rows)
+
+    def arm_outcomes(self) -> dict[Arm, ArmOutcome]:
+        return dict(self.outcomes)
 
     def moment_facts(self, moment_ids: list[int]) -> dict[int, EntryFacts]:
         # Mirrors PostgresRankingInputs.moment_facts.

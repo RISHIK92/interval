@@ -160,6 +160,13 @@ export interface ContentItemSection {
   word_count: number;
 }
 
+export interface ExploreArmOutcome {
+  arm: string;
+  finished: Generated<Int8>;
+  kind: string;
+  shown: Generated<Int8>;
+}
+
 export interface FeedNote {
   content_item_id: Int8;
   created_at: Generated<Timestamp>;
@@ -429,6 +436,7 @@ export interface DB {
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;
+  explore_arm_outcome: ExploreArmOutcome;
   feed_note: FeedNote;
   fetch_validator: FetchValidator;
   graph_version: GraphVersion;

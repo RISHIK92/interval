@@ -47,6 +47,7 @@ class RankingConfig:
     half_life_days: float
     mmr_lambda: float
     per_source_cap: int
+    explore_share: float  # REC-4: the share of a user's slots per chip (P1-W4-S09)
 
     @staticmethod
     def from_rows(rows: dict[str, float]) -> "RankingConfig":
@@ -56,6 +57,7 @@ class RankingConfig:
             "freshness.half_life_days",
             "mmr.lambda",
             "cap.per_source",
+            "explore.share",
         ]
         missing = [key for key in needed if key not in rows]
         if missing:
@@ -72,6 +74,8 @@ class RankingConfig:
             raise RankingConfigError("freshness.half_life_days must be above 0")
         if not 0 <= rows["mmr.lambda"] <= 1:
             raise RankingConfigError("mmr.lambda must be between 0 and 1")
+        if rows["explore.share"] > 0.5:
+            raise RankingConfigError("explore.share must be between 0 and 0.5")
         cap = rows["cap.per_source"]
         if cap < 1 or cap != int(cap):
             raise RankingConfigError("cap.per_source must be a whole number above 0")
@@ -81,6 +85,7 @@ class RankingConfig:
             half_life_days=float(rows["freshness.half_life_days"]),
             mmr_lambda=float(rows["mmr.lambda"]),
             per_source_cap=int(rows["cap.per_source"]),
+            explore_share=float(rows["explore.share"]),
         )
 
 
