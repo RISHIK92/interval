@@ -55,12 +55,16 @@ const CARD_COLUMNS = [
   "article_title",
   "author",
   "source_name",
+  "note_text",
+  "note_ai",
 ] as const;
 type CardRow = Pick<Selectable<UserFeedVisible>, (typeof CARD_COLUMNS)[number]>;
 
-// Columns an article row leaves null: it has no moment, and maybe no length.
+// Columns any row may leave null: no known author, no note yet.
+const NULLABLE_ON_EVERY_ROW = ["author", "note_text", "note_ai"];
+// Columns an article row also leaves null: it has no moment, and maybe no length.
 const ARTICLE_NULLS = new Set([
-  "author",
+  ...NULLABLE_ON_EVERY_ROW,
   "moment_id",
   "section_title",
   "section_number",
@@ -93,6 +97,10 @@ export function toCard(row: CardRow): FeedCard | null {
       articleTitle: article_title,
       author: row.author,
       sourceName: source_name,
+      note:
+        row.note_text === null
+          ? null
+          : { text: row.note_text, ai: row.note_ai === true },
     };
     if (kind === "article") {
       return { kind, ...base, estimatedMinutes: estimated_minutes };
@@ -116,7 +124,8 @@ export function toCard(row: CardRow): FeedCard | null {
       };
     }
   }
-  const allowedNull = kind === "article" ? ARTICLE_NULLS : new Set(["author"]);
+  const allowedNull =
+    kind === "article" ? ARTICLE_NULLS : new Set(NULLABLE_ON_EVERY_ROW);
   const missing = Object.entries(row)
     .filter(([column, value]) => value === null && !allowedNull.has(column))
     .map(([column]) => column);

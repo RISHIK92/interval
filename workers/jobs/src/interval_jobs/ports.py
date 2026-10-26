@@ -286,7 +286,8 @@ class RankedEntry:
 
     item_id: int
     moment_id: int | None
-    top_signal: str  # the rule that counted most (W4-S06's why-this-matters note)
+    top_signal: str  # the rule that counted most: what the entry's note says
+    note_id: int | None  # its why-this-matters note (P1-W4-S06)
 
 
 class Feed(Protocol):
@@ -601,6 +602,7 @@ class EntryFacts:
     quality: int | None  # the source's 1-5 score (ING-6)
     concepts: frozenset[str]  # the item's: the admin's correction, else the model's
     topics: frozenset[str]  # its source's seed topics and its concepts' topics
+    source_name: str  # for the why-this-matters note (P1-W4-S06)
 
     @property
     def key(self) -> EntryKey:
@@ -687,6 +689,51 @@ class FetchValidators(Protocol):
         ...
 
 
+@dataclass(frozen=True)
+class NoteKey:
+    """What a why-this-matters note is cached by (Q-P1-18): the item it cites, the
+    signal, the level, and the topic or chip its words name ('' for neither)."""
+
+    item_id: int
+    signal: str
+    level: Difficulty
+    variant: str
+
+
+@dataclass(frozen=True)
+class NoteRef:
+    note_id: int
+    # No polish tried yet: the notes model may still reword it, once (AI-4).
+    needs_polish: bool
+
+
+@dataclass(frozen=True)
+class NoteInput:
+    """All the notes model may see (AI-1): never the article's text."""
+
+    note_id: int
+    title: str
+    source_name: str
+    text: str
+
+
+class Notes(Protocol):
+    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, NoteRef]:
+        """The note for each key, written with its text the first time only. Keys are
+        written in one order, so recomputes sharing notes wait rather than deadlock;
+        one waiting on another's uncommitted note gets that note once it commits."""
+        ...
+
+    def input(self, note_id: int) -> NoteInput | None:
+        """What polishing needs; None when the note is gone or its polish was tried."""
+        ...
+
+    def polish(self, note_id: int, text: str | None, model: str) -> None:
+        """Records the one polish: the model's wording, or None when its reply was
+        refused (the template stays). A second polish of the note changes nothing."""
+        ...
+
+
 class Store(Protocol):
     """Repositories sharing one unit of work; the composition root commits it."""
 
@@ -701,6 +748,9 @@ class Store(Protocol):
 
     @property
     def feed(self) -> Feed: ...
+
+    @property
+    def notes(self) -> Notes: ...
 
     @property
     def invites(self) -> Invites: ...

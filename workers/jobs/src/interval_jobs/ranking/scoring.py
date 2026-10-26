@@ -101,6 +101,10 @@ class Scored:
     score: float
     # The largest weighted part: W4-S06's why-this-matters note says why (REC-5).
     top_signal: str
+    facts: EntryFacts  # what the entry's note is built from (P1-W4-S06)
+    # Every signal, largest weighted part first: a note falls to the next when the
+    # top one's words wouldn't be true (owner, 2026-10-26).
+    signals: tuple[str, ...]
 
     @property
     def key(self) -> EntryKey:
@@ -170,14 +174,17 @@ def score(
             * (1.0 if fact.item_id in user.less_liked else 0.0)
             + config.penalties["not_interested_concepts"] * avoided
         )
-        top = max(weighted, key=lambda name: weighted[name])
+        # Stable: on a tie the earlier signal leads, as max() picked before.
+        order = tuple(sorted(weighted, key=lambda name: -weighted[name]))
         scored.append(
             Scored(
                 candidate.moment_id,
                 candidate.item_id,
                 candidate.source_id,
                 sum(weighted.values()) - penalty,
-                top,
+                order[0],
+                fact,
+                order,
             )
         )
     return scored

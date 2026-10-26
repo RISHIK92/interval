@@ -39,6 +39,9 @@ from interval_jobs.ports import (
     FetchKind,
     GrantResult,
     MomentRow,
+    NoteInput,
+    NoteKey,
+    NoteRef,
     RankedEntry,
     RevokeResult,
     RightsViolation,
@@ -471,6 +474,50 @@ class InMemoryMoments:
         return sorted(
             (m for m in self.rows if m.item_id == item_id), key=lambda m: m.row.ordinal
         )
+
+
+@dataclass
+class StoredNote:
+    key: NoteKey
+    text: str
+    model: str | None = None
+    tried: bool = False  # polished, or the reply was refused
+
+
+class InMemoryNotes:
+    def __init__(self, items: InMemoryItems, sources: InMemorySources) -> None:
+        self._items = items
+        self._sources = sources
+        self.rows: dict[int, StoredNote] = {}
+        self._next_id = 1
+
+    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, NoteRef]:
+        by_key = {note.key: note_id for note_id, note in self.rows.items()}
+        refs: dict[NoteKey, NoteRef] = {}
+        for key, text in texts.items():
+            note_id = by_key.get(key)
+            if note_id is None:
+                note_id = self._next_id
+                self._next_id += 1
+                self.rows[note_id] = StoredNote(key, text)
+            refs[key] = NoteRef(note_id, not self.rows[note_id].tried)
+        return refs
+
+    def input(self, note_id: int) -> NoteInput | None:
+        note = self.rows.get(note_id)
+        if note is None or note.tried:
+            return None
+        item = self._items.rows[note.key.item_id]
+        source = self._sources.rows[item.source_id]
+        return NoteInput(note_id, item.title, source.name, note.text)
+
+    def polish(self, note_id: int, text: str | None, model: str) -> None:
+        note = self.rows[note_id]
+        if note.tried:
+            return
+        note.tried = True
+        if text is not None:
+            note.text, note.model = text, model
 
 
 class InMemoryFeed:
@@ -1043,6 +1090,7 @@ class InMemoryRankingInputs:
                 source.quality_score,
                 concepts,
                 frozenset(topics),
+                source.name,
             )
         return facts
 
@@ -1076,6 +1124,7 @@ class InMemoryRankingInputs:
                 source.quality_score,
                 concepts,
                 frozenset(topics),
+                source.name,
             )
         return facts
 
@@ -1157,6 +1206,7 @@ class InMemoryStore:
         self.invites = InMemoryInvites()
         self.users = InMemoryUsers()
         self.feed = InMemoryFeed(self.users, self.moments)
+        self.notes = InMemoryNotes(self.items, self.sources)
         self.moments.on_delete = self.feed.drop_missing
         self.grants = InMemoryGrants(self.users)
         self.validators = InMemoryValidators()

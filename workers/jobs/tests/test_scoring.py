@@ -39,6 +39,7 @@ BASE = EntryFacts(
     quality=3,
     concepts=frozenset({"raft"}),
     topics=frozenset({"distributed-systems"}),
+    source_name="Example Engineering",
 )
 
 

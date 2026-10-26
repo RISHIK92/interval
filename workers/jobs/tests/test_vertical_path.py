@@ -58,7 +58,7 @@ def test_one_feed_becomes_moment_cards_without_source_text(
     ).fetchall()
     PostgresStore(conn).feed.replace_user(
         user_id,
-        {"3-8": [RankedEntry(r[1], r[0], "topic_match") for r in moments]},
+        {"3-8": [RankedEntry(r[1], r[0], "topic_match", None) for r in moments]},
         datetime.now(UTC),
     )
 
@@ -100,6 +100,9 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         "article_title",
         "author",
         "source_name",
+        # The why-this-matters note (P1-W4-S06): built from the title and choices.
+        "note_text",
+        "note_ai",
     }
     for view, keys in (
         ("user_feed_visible", {"user_id", "chip"}),

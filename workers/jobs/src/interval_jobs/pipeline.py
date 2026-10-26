@@ -30,6 +30,7 @@ from interval_db.messages import (
     EmbedItem,
     FetchItem,
     MessageName,
+    PolishNote,
     RecomputeFeed,
     SegmentItem,
     TagItem,
@@ -37,6 +38,7 @@ from interval_db.messages import (
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.embedding import embed_item
+from interval_jobs.feed.notes import polish_note, queue_polish
 from interval_jobs.feed.precompute import recompute_user_feed
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.normalize import page_canonical, simhash
@@ -57,7 +59,7 @@ from interval_jobs.segment import segment_item
 from interval_jobs.tagging import PROMPT_VERSION, active_concepts, tag_item
 
 # Every queue the consumer serves: ingestion in the order an item moves through it,
-# then the per-user feed recompute (CACHE-1, P1-W4-S04).
+# then the per-user feed recompute (CACHE-1, P1-W4-S04) and its notes' polish (W4-S06).
 STAGES: tuple[MessageName, ...] = (
     "discover_source",
     "fetch_item",
@@ -65,6 +67,7 @@ STAGES: tuple[MessageName, ...] = (
     "tag_item",
     "embed_item",
     "recompute_feed",
+    "polish_note",
 )
 
 
@@ -102,6 +105,7 @@ class Pipeline:
         tagging: ModelJob | None = None,
         embedding: ModelJob | None = None,
         max_entries: int | None = None,
+        notes: ModelJob | None = None,
     ) -> None:
         self._unit = unit_of_work
         self._queue = queue
@@ -110,6 +114,7 @@ class Pipeline:
         self._embedding = embedding
         # Only for a one-off local run (consume --max-entries); polls take whole feeds.
         self._max_entries = max_entries
+        self._notes = notes
 
     def handlers(self) -> dict[MessageName, QueueHandler]:
         return {
@@ -119,6 +124,7 @@ class Pipeline:
             "tag_item": self._tag_stage,
             "embed_item": self._embed_stage,
             "recompute_feed": self._recompute_stage,
+            "polish_note": self._polish_stage,
         }
 
     def _stage(
@@ -141,7 +147,34 @@ class Pipeline:
         # Similarity candidates need the embedding model in use; none while it is off.
         model = self._embedding.model if self._embedding else None
         with self._unit() as services:
-            recompute_user_feed(services.store, message.user_id, model, self._clock())
+            done = recompute_user_feed(
+                services.store, message.user_id, model, self._clock()
+            )
+        # After the commit, so the stage sees the notes. Nothing while notes are off:
+        # their template wording stands (Q-P1-18).
+        if self._notes is not None:
+            queue_polish(self._queue, done.unpolished)
+
+    def _polish_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        """Read, call the model with no transaction open, then store (as tagging)."""
+        assert isinstance(message, PolishNote)
+        if self._notes is None:
+            log.info("pipeline: notes are off (no model)", note_id=message.note_id)
+            return
+        with self._unit() as services:
+            note = services.store.notes.input(message.note_id)
+        if note is None:
+            return  # polished already, or its item is gone
+        with self._notes.gateway() as gateway:
+            text = polish_note(gateway, self._notes.model, note)
+        if isinstance(text, OverBudget):
+            # OPS-4, LOAD-5: the template stays, observably; the next recompute that
+            # shows the note queues it again.
+            log.warn("notes: over budget", note_id=note.note_id, scope=text.scope)
+            return
+        # A refused reply (None) is recorded too: tried once, never paid for again.
+        with self._unit() as services:
+            services.store.notes.polish(note.note_id, text, self._notes.model)
 
     def _discover_stage(self, message: BaseModel, delivery: Delivery) -> None:
         with self._unit() as services:

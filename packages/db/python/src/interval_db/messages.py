@@ -44,6 +44,13 @@ class FetchItem(_Message):
     content_item_id: Annotated[int, Field(ge=1)]
 
 
+class PolishNote(_Message):
+    """Polish one why-this-matters note with the notes model, once (REC-5, AI-2,
+    AI-4, P1-W4-S06)."""
+
+    note_id: Annotated[int, Field(ge=1)]
+
+
 class RecomputeFeed(_Message):
     """Rank one user's feed again and store it (CACHE-1, Q-P1-17, ADR-0008)."""
 
@@ -67,6 +74,7 @@ type MessageName = Literal[
     "discover_source",
     "embed_item",
     "fetch_item",
+    "polish_note",
     "recompute_feed",
     "segment_item",
     "tag_item",
@@ -76,6 +84,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "discover_source": DiscoverSource,
     "embed_item": EmbedItem,
     "fetch_item": FetchItem,
+    "polish_note": PolishNote,
     "recompute_feed": RecomputeFeed,
     "segment_item": SegmentItem,
     "tag_item": TagItem,

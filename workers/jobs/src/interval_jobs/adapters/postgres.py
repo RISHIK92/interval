@@ -37,6 +37,9 @@ from interval_jobs.ports import (
     FetchInput,
     GrantResult,
     MomentRow,
+    NoteInput,
+    NoteKey,
+    NoteRef,
     RankedEntry,
     RevokeResult,
     RightsViolation,
@@ -482,8 +485,8 @@ class PostgresMoments:
 # The ranked entries as rows, numbered in order; an entry whose item or moment is gone
 # is skipped.
 _RANKED_ROWS = """
-from unnest(%s::bigint[], %s::bigint[], %s::text[]) with ordinality
-  as r(item_id, moment_id, top_signal, rank)
+from unnest(%s::bigint[], %s::bigint[], %s::text[], %s::bigint[]) with ordinality
+  as r(item_id, moment_id, top_signal, note_id, rank)
 where exists (select 1 from content_item ci where ci.id = r.item_id)
   and (r.moment_id is null
        or exists (select 1 from moment m where m.id = r.moment_id))
@@ -492,12 +495,78 @@ where exists (select 1 from content_item ci where ci.id = r.item_id)
 
 def _ranked_arrays(
     ranked: list[RankedEntry],
-) -> tuple[list[int], list[int | None], list[str]]:
+) -> tuple[list[int], list[int | None], list[str], list[int | None]]:
     return (
         [r.item_id for r in ranked],
         [r.moment_id for r in ranked],
         [r.top_signal for r in ranked],
+        [r.note_id for r in ranked],
     )
+
+
+class PostgresNotes:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, NoteRef]:
+        if not texts:
+            return {}
+        keys = sorted(texts, key=lambda k: (k.item_id, k.signal, k.level, k.variant))
+        columns = (
+            [k.item_id for k in keys],
+            [k.signal for k in keys],
+            [k.level for k in keys],
+            [k.variant for k in keys],
+        )
+        # Sorted, so two writers lock shared keys in one order. On another's
+        # uncommitted note this waits for its commit and then skips it.
+        self._conn.execute(
+            """
+            insert into feed_note (content_item_id, signal, level, variant, text)
+            select * from unnest(%s::bigint[], %s::text[], %s::difficulty[],
+                                 %s::text[], %s::text[])
+            on conflict (content_item_id, signal, level, variant) do nothing
+            """,
+            (*columns, [texts[k] for k in keys]),
+        )
+        # A second statement: its snapshot sees notes committed while the insert
+        # waited.
+        rows = self._conn.execute(
+            """
+            select n.id, n.content_item_id, n.signal, n.level, n.variant,
+                   n.polished_at is null
+            from feed_note n
+            join unnest(%s::bigint[], %s::text[], %s::difficulty[], %s::text[])
+              as k(item, signal, level, variant)
+              on n.content_item_id = k.item and n.signal = k.signal
+              and n.level = k.level and n.variant = k.variant
+            """,
+            columns,
+        ).fetchall()
+        return {
+            NoteKey(int(r[1]), r[2], r[3], r[4]): NoteRef(int(r[0]), bool(r[5]))
+            for r in rows
+        }
+
+    def input(self, note_id: int) -> NoteInput | None:
+        row = self._conn.execute(
+            "select n.id, ci.title, s.name, n.text from feed_note n "
+            "join content_item ci on ci.id = n.content_item_id "
+            "join source s on s.id = ci.source_id "
+            "where n.id = %s and n.polished_at is null",
+            (note_id,),
+        ).fetchone()
+        return NoteInput(int(row[0]), row[1], row[2], row[3]) if row else None
+
+    def polish(self, note_id: int, text: str | None, model: str) -> None:
+        # Once: a redelivered job finds it tried and changes nothing.
+        self._conn.execute(
+            "update feed_note set polished_at = now(), "
+            "text = coalesce(%s, text), model = case when %s::text is null "
+            "then null else %s end "
+            "where id = %s and polished_at is null",
+            (text, text, model, note_id),
+        )
 
 
 class PostgresFeed:
@@ -534,9 +603,10 @@ class PostgresFeed:
                 self._conn.execute(
                     f"""
                     insert into user_feed_entry
-                      (user_id, chip, content_item_id, moment_id, rank, top_signal)
+                      (user_id, chip, content_item_id, moment_id, rank, top_signal,
+                       note_id)
                     select %s, %s::break_length, r.item_id, r.moment_id, r.rank,
-                           r.top_signal
+                           r.top_signal, r.note_id
                     {_RANKED_ROWS}
                     """,
                     (user_id, chip, *_ranked_arrays(ranked)),
@@ -569,8 +639,9 @@ class PostgresFeed:
             self._conn.execute(
                 f"""
                 insert into starter_feed_entry
-                  (topic, level, chip, content_item_id, moment_id, rank)
-                select %s, %s, %s::break_length, r.item_id, r.moment_id, r.rank
+                  (topic, level, chip, content_item_id, moment_id, rank, note_id)
+                select %s, %s, %s::break_length, r.item_id, r.moment_id, r.rank,
+                       r.note_id
                 {_RANKED_ROWS}
                 """,
                 (topic, level, chip, *_ranked_arrays(ranked)),
@@ -1319,7 +1390,8 @@ class PostgresRankingInputs:
                      where k.slug in (
                        select slug from ({_ITEM_CONCEPTS.format(item="ci.id")}) c2
                      )
-                   )
+                   ),
+                   s.name
             from moment m
             join content_item ci on ci.id = m.content_item_id
             join source s on s.id = ci.source_id
@@ -1343,6 +1415,7 @@ class PostgresRankingInputs:
                 r[6],
                 frozenset(str(c) for c in r[7]),
                 frozenset(str(t) for t in r[8]),
+                str(r[9]),
             )
             for r in rows
         }
@@ -1400,7 +1473,8 @@ class PostgresRankingInputs:
                      where k.slug in (
                        select slug from ({_ITEM_CONCEPTS.format(item="ci.id")}) c2
                      )
-                   )
+                   ),
+                   s.name
             from content_item ci
             join source s on s.id = ci.source_id
             left join tag_override io on io.content_item_id = ci.id and io.heading = ''
@@ -1420,6 +1494,7 @@ class PostgresRankingInputs:
                 r[5],
                 frozenset(str(c) for c in r[6]),
                 frozenset(str(t) for t in r[7]),
+                str(r[8]),
             )
             for r in rows
         }
@@ -1470,6 +1545,7 @@ class PostgresStore:
         self.items = PostgresItems(conn)
         self.moments = PostgresMoments(conn)
         self.feed = PostgresFeed(conn)
+        self.notes = PostgresNotes(conn)
         self.invites = PostgresInvites(conn)
         self.users = PostgresUsers(conn)
         self.grants = PostgresGrants(conn)

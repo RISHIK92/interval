@@ -13,7 +13,7 @@ from psycopg import sql
 
 from interval_db.generated import BreakLength
 from interval_jobs.adapters.postgres import PostgresStore
-from interval_jobs.ports import RankedEntry
+from interval_jobs.ports import NoteKey, NoteRef, RankedEntry
 
 
 def add_item(
@@ -105,7 +105,7 @@ def give(
     PostgresStore(conn).feed.replace_user(
         user_id,
         {
-            chip: [RankedEntry(item_of[m], m, "topic_match") for m in ids]
+            chip: [RankedEntry(item_of[m], m, "topic_match", None) for m in ids]
             for chip, ids in by_chip.items()
         },
         datetime.now(UTC),
@@ -154,7 +154,7 @@ def test_switching_moments_off_cascades_to_every_feed(conn: psycopg.Connection) 
         "databases",
         "beginner",
         "3-8",
-        [RankedEntry(item, m, "quality") for m in moments],
+        [RankedEntry(item, m, "quality", None) for m in moments],
     )
     conn.execute(
         "update source set moments_seeded = false, moments_enabled = false "
@@ -201,7 +201,7 @@ def test_views_hide_stale_entries_when_the_source_no_longer_allows_moments(
         "databases",
         "advanced",
         "3-8",
-        [RankedEntry(item, m, "quality") for m in moments_of(conn, item)],
+        [RankedEntry(item, m, "quality", None) for m in moments_of(conn, item)],
     )
     # Skip triggers for this transaction only, to leave stale feed entries behind.
     conn.execute("set local session_replication_role = replica")
@@ -280,8 +280,8 @@ def test_a_whole_article_shows_title_and_link_from_any_profile(
         me,
         {
             "8-15": [
-                RankedEntry(listed, None, "topic_match"),
-                RankedEntry(counted, None, "time_fit"),
+                RankedEntry(listed, None, "topic_match", None),
+                RankedEntry(counted, None, "time_fit", None),
             ]
         },
         datetime.now(UTC),
@@ -311,6 +311,75 @@ def test_an_entry_cannot_pair_a_moment_with_another_items_title(
     with pytest.raises(psycopg.errors.ForeignKeyViolation):
         PostgresStore(conn).feed.replace_user(
             me,
-            {"3-8": [RankedEntry(other, moments_of(conn, one)[0], "quality")]},
+            {"3-8": [RankedEntry(other, moments_of(conn, one)[0], "quality", None)]},
             datetime.now(UTC),
         )
+
+
+def test_a_card_shows_its_note_labelled_ai_only_once_polished(
+    conn: psycopg.Connection,
+) -> None:
+    src = source(conn, "feedtest-j")
+    item = add_item(conn, src, "noted", datetime(2026, 10, 1, tzinfo=UTC), 2)
+    store = PostgresStore(conn)
+    key = NoteKey(item, "freshness", "beginner", "")
+    note = store.notes.ensure_all({key: "New this week."})[key]
+    me = user(conn)
+    noted, plain = moments_of(conn, item)
+    store.feed.replace_user(
+        me,
+        {
+            "3-8": [
+                RankedEntry(item, noted, "freshness", note.note_id),
+                RankedEntry(item, plain, "quality", None),
+            ]
+        },
+        datetime.now(UTC),
+    )
+
+    def shown() -> list[tuple[str | None, bool]]:
+        return conn.execute(
+            "select note_text, note_ai from user_feed_visible where user_id = %s "
+            "order by rank",
+            (me,),
+        ).fetchall()
+
+    assert shown() == [("New this week.", False), (None, False)]
+    store.notes.polish(note.note_id, "Fresh this week, on your topic.", "small")
+    assert shown() == [("Fresh this week, on your topic.", True), (None, False)]
+    # A note goes with its item (it cites it, AI-3).
+    conn.execute("delete from content_item where id = %s", (item,))
+    gone = conn.execute(
+        "select count(*) from feed_note where id = %s", (note.note_id,)
+    ).fetchone()
+    assert gone == (0,)
+
+
+def test_two_recomputes_writing_one_note_agree_on_it(
+    conn: psycopg.Connection,
+) -> None:
+    # The second waits for the first's uncommitted note, then reads it: one note.
+    url = os.environ["DATABASE_URL"]
+    with psycopg.connect(url) as setup:
+        src = source(setup, f"feedtest-k-{uuid4().hex[:6]}")
+        item = add_item(setup, src, "shared", datetime(2026, 10, 1, tzinfo=UTC), 1)
+        setup.commit()
+    key = NoteKey(item, "freshness", "beginner", "")
+    with psycopg.connect(url) as first, psycopg.connect(url) as second:
+        mine = PostgresStore(first).notes.ensure_all({key: "New this week."})[key]
+        theirs: list[NoteRef] = []
+
+        def run_second() -> None:
+            theirs.append(PostgresStore(second).notes.ensure_all({key: "other"})[key])
+            second.commit()
+
+        thread = threading.Thread(target=run_second)
+        thread.start()
+        time.sleep(0.3)
+        assert theirs == []  # waiting on the first's uncommitted row
+        first.commit()
+        thread.join(timeout=10)
+        assert theirs == [mine]
+    with psycopg.connect(url) as cleanup:
+        cleanup.execute("delete from content_item where id = %s", (item,))
+        cleanup.execute("delete from source where id = %s", (src,))

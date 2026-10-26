@@ -64,6 +64,7 @@ const card: FeedCard = {
   articleTitle: "Consensus in practice",
   author: null,
   sourceName: "Example Engineering",
+  note: null,
 };
 
 async function render(
@@ -178,6 +179,7 @@ test("the 8–15 chip renders whole-article cards next to moments", async () => 
         articleTitle: "A whole read",
         author: null,
         sourceName: "Example Engineering",
+        note: null,
       },
       card,
     ]),

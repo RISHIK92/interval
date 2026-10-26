@@ -196,6 +196,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
           articleTitle: "Consensus in practice",
           author: "Rae Writer",
           sourceName: "webfeed-test",
+          note: null,
         },
       ],
     });
@@ -248,6 +249,7 @@ test("a whole article reads as an article card, before or after moments", async 
       articleTitle: "Consensus in practice",
       author: "Rae Writer",
       sourceName: "webfeed-test",
+      note: null,
     });
     expect(cards.map((c) => c.kind)).toEqual(["article", "moment"]);
   });
@@ -357,6 +359,8 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     article_title: "Article",
     author: "Someone",
     source_name: "Source",
+    note_text: null,
+    note_ai: false,
   });
 
   expect(card).toBeNull();
@@ -374,6 +378,8 @@ test("toCard drops a row with missing fields and logs only its id and column nam
       article_title: "Article",
       author: null,
       source_name: "Source",
+      note_text: "New this week.",
+      note_ai: true,
     }),
   ).toEqual({
     kind: "article",
@@ -383,6 +389,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     articleTitle: "Article",
     author: null,
     sourceName: "Source",
+    note: { text: "New this week.", ai: true },
   });
   expect(lines).toHaveLength(1);
   const logged = JSON.parse(lines[0] ?? "") as Record<string, unknown>;

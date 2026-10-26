@@ -13,6 +13,8 @@ type CardBase = {
   articleTitle: string;
   author: string | null;
   sourceName: string;
+  // Why this matters (§5E, P1-W4-S06): `ai` once the notes model wrote it (AI-3).
+  note: { text: string; ai: boolean } | null;
 };
 export type MomentFeedCard = CardBase & {
   kind: "moment";

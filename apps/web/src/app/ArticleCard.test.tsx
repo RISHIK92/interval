@@ -12,6 +12,7 @@ const card: ArticleFeedCard = {
   articleTitle: "Consensus in practice",
   author: "Rae Writer",
   sourceName: "Example Engineering",
+  note: null,
 };
 
 function textOf(html: string): string {
@@ -50,5 +51,20 @@ test("an article with no countable text says its length is unknown", () => {
   expect(textOf(html)).toBe(
     "Consensus in practice / Whole article · Length unknown / " +
       "Example Engineering / Read on site",
+  );
+});
+
+test("shows its note like a moment card does", () => {
+  const html = renderToStaticMarkup(
+    <ArticleCard
+      card={{
+        ...card,
+        note: { text: "Pitched at your beginner level.", ai: true },
+      }}
+      chip="8-15"
+    />,
+  );
+  expect(html).toContain(
+    "<p>Why this matters: Pitched at your beginner level. <small>AI</small></p>",
   );
 });

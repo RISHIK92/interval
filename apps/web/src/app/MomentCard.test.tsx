@@ -15,6 +15,7 @@ const card: MomentFeedCard = {
   articleTitle: "Consensus in practice",
   author: "Rae Writer",
   sourceName: "Example Engineering",
+  note: null,
 };
 
 function textOf(html: string): string {
@@ -45,4 +46,25 @@ test("omits the author when unknown", () => {
     <MomentCard card={{ ...card, author: null }} chip="1-3" />,
   );
   expect(textOf(html)).toContain(" / Example Engineering / Read on site");
+});
+
+// P1-W4-S06: why this matters, labelled AI only once a model wrote it (AI-3, owner).
+test("shows the card's note, with an AI label only when a model wrote it", () => {
+  const template = renderToStaticMarkup(
+    <MomentCard
+      card={{ ...card, note: { text: "New this week.", ai: false } }}
+      chip="3-8"
+    />,
+  );
+  expect(textOf(template)).toContain("Why this matters: New this week.");
+  expect(template).not.toContain("<small>AI</small>");
+  const polished = renderToStaticMarkup(
+    <MomentCard
+      card={{ ...card, note: { text: "Fresh, on your topic.", ai: true } }}
+      chip="3-8"
+    />,
+  );
+  expect(polished).toContain(
+    "<p>Why this matters: Fresh, on your topic. <small>AI</small></p>",
+  );
 });

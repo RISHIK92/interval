@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) and W4-S05 (a: time chips, b: whole-article cards) done. Next: W4-S06 (why-this-matters notes). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) done. Next: W4-S07 (feedback controls). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -1141,3 +1141,37 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Process note: parts of the worker were written before their tests in this slice. The review's test additions cover the rules.
 - Not fixed: the empty state still says "No moments yet." on 8–15, which can now hold articles. That's product text for the owner.
 - After migrating: restart any running `consume` (an old process writes entries the new schema refuses) and run `recompute-due`.
+
+### 2026-10-26 — P1-W4-S06 (why-this-matters notes, §5E, REC-5, AI-1..AI-4, OPS-4, Q-P1-18)
+- Owner choices:
+  - **Template copy per top signal:** "On {topic}, a topic you chose." / "Pitched at your {level} level." / "From {source}, one of the most trusted sources here." / "New this week." / "Sized for your N–M min break."
+  - **AI label:** only on a note the model polished.
+  - **Flow:** the template is written at recompute; the polish is queued.
+  - **When a note wouldn't be true, the next signal's is used:**
+    - topic: the item is on one of the user's topics;
+    - level: its level is theirs;
+    - quality: rated 4 or 5;
+    - freshness: within 7 days;
+    - time: its known length fits the chip.
+- Done:
+  - **Migration `20261026160000_feed_notes.sql`:** `feed_note`, cached per (item, signal, level, topic or chip). It cites its item (AI-3) and cascades with it. Feed entries get `note_id`; both views get `note_text` and `note_ai`.
+  - **Message:** `polish_note {note_id}`, with its queue and DLQ.
+  - **Worker:**
+    - `feed/notes.py` holds the templates and truth checks, plus `polish_note`. The model sees only the title, the source name and the template (AI-1); its reply must be one line of at most 160 characters.
+    - Each feed's notes are written in one sorted batch (`Notes.ensure_all`).
+    - The polish is queued after commit, only when `NOTES_MODEL` is set; the stage serves it.
+    - Over budget: the template stays and it's logged. A refused reply is recorded, so it's never paid for again. A redelivered polish changes nothing.
+    - `recompute-due` commits each starter feed separately.
+  - **Infra:** the recompute-due role may also send to `polish_note`. `NOTES_MODEL` is documented in `.env.example`.
+  - **Web:** a "Why this matters: …" line on both card kinds, with a small "AI" mark only when `note.ai` is true.
+- Review fixes:
+  - concurrent recomputes sharing a note could get no row or deadlock (now a batched sorted insert and a fresh read; a two-connection test);
+  - refused replies were retried every hour;
+  - polish wasn't once-only;
+  - false freshness and topic claims;
+  - the recompute-due IAM grant;
+  - a notes-off test that couldn't fail;
+  - CLI coverage;
+  - item cascade and no-note view checks.
+- Owner to review: a card gets no note when nothing true can be said (none of the five checks hold). With tagging off, every note today is a topic note.
+- Pending, with the other model work: the notes eval and `NOTES_MODEL` pick (AI-5, ADR-0010).

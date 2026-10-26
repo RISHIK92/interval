@@ -359,12 +359,15 @@ export class AwsStack extends Stack {
       secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
       logging: logging("recompute-due"),
     });
-    // It emits no events and queues only recompute_feed.
-    const recomputeQueue = queues[MESSAGE_NAMES.indexOf("recompute_feed")];
-    if (recomputeQueue === undefined) {
-      throw new Error("packages/db/messages has no recompute_feed schema");
+    // It emits no events and queues only recompute_feed, and polish_note for the
+    // starter feeds' new notes (P1-W4-S06).
+    for (const name of ["recompute_feed", "polish_note"] as const) {
+      const queue = queues[MESSAGE_NAMES.indexOf(name)];
+      if (queue === undefined) {
+        throw new Error(`packages/db/messages has no ${name} schema`);
+      }
+      queue.grantSendMessages(recomputeDueTask.taskRole);
     }
-    recomputeQueue.grantSendMessages(recomputeDueTask.taskRole);
     new scheduler.Schedule(this, "RecomputeDueSchedule", {
       schedule: scheduler.ScheduleExpression.rate(Duration.hours(1)),
       target: new targets.EcsRunFargateTask(cluster, {

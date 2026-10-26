@@ -136,6 +136,18 @@ class ContentItemSection(TypedDict):
     word_count: int
 
 
+class FeedNote(TypedDict):
+    id: int
+    content_item_id: int
+    signal: str
+    level: Difficulty
+    variant: str
+    text: str
+    model: str | None
+    created_at: datetime
+    polished_at: datetime | None
+
+
 class FetchValidator(TypedDict):
     url: str
     etag: str | None
@@ -271,6 +283,7 @@ class StarterFeedEntry(TypedDict):
     rank: int
     chip: BreakLength
     content_item_id: int
+    note_id: int | None
 
 
 class StarterFeedVisible(TypedDict):
@@ -289,6 +302,8 @@ class StarterFeedVisible(TypedDict):
     article_title: str | None
     author: str | None
     source_name: str | None
+    note_text: str | None
+    note_ai: bool | None
 
 
 class TagOverride(TypedDict):
@@ -319,6 +334,7 @@ class UserFeedEntry(TypedDict):
     top_signal: str
     chip: BreakLength
     content_item_id: int
+    note_id: int | None
 
 
 class UserFeedState(TypedDict):
@@ -341,6 +357,8 @@ class UserFeedVisible(TypedDict):
     article_title: str | None
     author: str | None
     source_name: str | None
+    note_text: str | None
+    note_ai: bool | None
 
 
 class UserHiddenSource(TypedDict):

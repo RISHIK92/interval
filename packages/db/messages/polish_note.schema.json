@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Polish one why-this-matters note with the notes model, once (REC-5, AI-2, AI-4, P1-W4-S06).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["note_id"],
+  "properties": {
+    "note_id": { "type": "integer", "minimum": 1 }
+  }
+}

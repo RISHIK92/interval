@@ -33,6 +33,9 @@ from interval_jobs.ports import (
     DuplicateInviteCode,
     FeedEntry,
     MomentRow,
+    NoteInput,
+    NoteKey,
+    NoteRef,
     RankedEntry,
     RightsViolation,
     Section,
@@ -1846,7 +1849,9 @@ def put_in_feed(s: Store, probe: Probe, item_id: int) -> str:
     """A user whose feed holds the item's moments (feeds are per user, W4-S04)."""
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
-    ranked = [RankedEntry(item_id, m[0], "topic_match") for m in probe.moments(item_id)]
+    ranked = [
+        RankedEntry(item_id, m[0], "topic_match", None) for m in probe.moments(item_id)
+    ]
     s.feed.replace_user(user, {"3-8": ranked}, datetime.now(UTC))
     return user
 
@@ -1870,17 +1875,19 @@ def test_a_users_feed_is_replaced_whole_with_its_time(
         user,
         {
             "3-8": [
-                RankedEntry(item, first, "quality"),
-                RankedEntry(item, second, "topic_match"),
+                RankedEntry(item, first, "quality", None),
+                RankedEntry(item, second, "topic_match", None),
             ],
-            "1-3": [RankedEntry(item, second, "time_fit")],
+            "1-3": [RankedEntry(item, second, "time_fit", None)],
         },
         early,
     )
     assert probe.feed_titles("3-8") == ["uf0", "uf1"]
     assert probe.feed_titles("1-3") == ["uf1"]
     later = datetime(2099, 1, 2, tzinfo=UTC)
-    s.feed.replace_user(user, {"3-8": [RankedEntry(item, second, "freshness")]}, later)
+    s.feed.replace_user(
+        user, {"3-8": [RankedEntry(item, second, "freshness", None)]}, later
+    )
     assert probe.feed_titles("3-8") == ["uf1"]
     assert probe.feed_titles("1-3") == []  # a chip left out is emptied, not kept
     assert probe.feed_state(user) == later
@@ -1899,14 +1906,20 @@ def test_starter_feeds_are_replaced_per_topic_level_and_chip(
     item = s.items.upsert_from_feed(sid, entry("sf"), keep_excerpt=False)
     s.moments.replace(item, [moment(0, "sf0"), moment(1, "sf1")])
     a, b = (m[0] for m in probe.moments(item))
-    s.feed.replace_starter("databases", "beginner", "3-8", [RankedEntry(item, a, "q")])
-    s.feed.replace_starter("databases", "advanced", "3-8", [RankedEntry(item, b, "q")])
-    s.feed.replace_starter("databases", "beginner", "1-3", [RankedEntry(item, a, "q")])
+    s.feed.replace_starter(
+        "databases", "beginner", "3-8", [RankedEntry(item, a, "q", None)]
+    )
+    s.feed.replace_starter(
+        "databases", "advanced", "3-8", [RankedEntry(item, b, "q", None)]
+    )
+    s.feed.replace_starter(
+        "databases", "beginner", "1-3", [RankedEntry(item, a, "q", None)]
+    )
     s.feed.replace_starter(
         "databases",
         "beginner",
         "3-8",
-        [RankedEntry(item, b, "quality"), RankedEntry(item, a, "quality")],
+        [RankedEntry(item, b, "quality", None), RankedEntry(item, a, "quality", None)],
     )
     assert probe.starter_ids("databases", "beginner", "3-8") == [b, a]
     assert probe.starter_ids("databases", "beginner", "1-3") == [a]
@@ -1943,8 +1956,13 @@ def test_a_failed_feed_write_keeps_the_previous_feed(
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
     first = datetime(2099, 1, 1, tzinfo=UTC)
-    s.feed.replace_user(user, {"3-8": [RankedEntry(item, kept, "quality")]}, first)
-    twice = [RankedEntry(item, kept, "quality"), RankedEntry(item, kept, "freshness")]
+    s.feed.replace_user(
+        user, {"3-8": [RankedEntry(item, kept, "quality", None)]}, first
+    )
+    twice = [
+        RankedEntry(item, kept, "quality", None),
+        RankedEntry(item, kept, "freshness", None),
+    ]
     with pytest.raises(Exception):  # noqa: B017  the engine's own error
         s.feed.replace_user(
             user, {"1-3": [], "3-8": twice}, datetime(2099, 1, 2, tzinfo=UTC)
@@ -1965,7 +1983,9 @@ def test_a_feed_for_a_deleted_user_or_moment_is_skipped(
     s.moments.replace(item, [moment(0, "gone0")])
     (live,) = (m[0] for m in probe.moments(item))
     now = datetime(2099, 1, 1, tzinfo=UTC)
-    s.feed.replace_user("never-existed", {"3-8": [RankedEntry(item, live, "q")]}, now)
+    s.feed.replace_user(
+        "never-existed", {"3-8": [RankedEntry(item, live, "q", None)]}, now
+    )
     assert probe.feed_state("never-existed") is None
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
@@ -1974,8 +1994,8 @@ def test_a_feed_for_a_deleted_user_or_moment_is_skipped(
         user,
         {
             "3-8": [
-                RankedEntry(item, gone, "quality"),
-                RankedEntry(item, live, "topic_match"),
+                RankedEntry(item, gone, "quality", None),
+                RankedEntry(item, live, "topic_match", None),
             ]
         },
         now,
@@ -2065,13 +2085,60 @@ def test_a_feed_holds_moments_and_whole_articles_in_rank_order(
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
     now = datetime(2099, 1, 1, tzinfo=UTC)
-    mixed = [RankedEntry(item, None, "time_fit"), RankedEntry(item, only, "quality")]
+    mixed = [
+        RankedEntry(item, None, "time_fit", None),
+        RankedEntry(item, only, "quality", None),
+    ]
     s.feed.replace_user(user, {"8-15": mixed}, now)
     assert probe.feed_entries(user, "8-15") == [(item, None), (item, only)]
-    whole_twice = [RankedEntry(item, None, "a"), RankedEntry(item, None, "b")]
+    whole_twice = [
+        RankedEntry(item, None, "a", None),
+        RankedEntry(item, None, "b", None),
+    ]
     with pytest.raises(Exception):  # noqa: B017  the engine's own error
         s.feed.replace_user(user, {"8-15": whole_twice}, now)
     assert probe.feed_entries(user, "8-15") == [(item, None), (item, only)]
     # Re-segmenting drops the moment's entry; the whole article stays.
     s.moments.replace(item, [])
     assert probe.feed_entries(user, "8-15") == [(item, None)]
+
+
+# Why-this-matters notes (REC-5, Q-P1-18, P1-W4-S06).
+def test_a_note_is_written_once_per_key_and_polished_once(
+    store: tuple[Store, Probe],
+) -> None:
+    s, _ = store
+    src = dup_source(s, "nt")
+    item = dup_item(s, src, "nt1", 3)
+    key = NoteKey(item, "quality", "beginner", "")
+    other_key = NoteKey(item, "quality", "advanced", "")
+    first = s.notes.ensure_all(
+        {key: "From dup-nt, one of the most trusted sources here.", other_key: "t"}
+    )
+    # A cache hit: the stored note comes back, whatever text was offered.
+    assert s.notes.ensure_all({key: "other words"}) == {key: first[key]}
+    assert first[key].needs_polish and first[other_key].needs_polish
+    assert first[key].note_id != first[other_key].note_id
+    note_id = first[key].note_id
+    assert s.notes.input(note_id) == NoteInput(
+        note_id,
+        "Unique title nt1",
+        "dup-nt",
+        "From dup-nt, one of the most trusted sources here.",
+    )
+    s.notes.polish(note_id, "A trusted source on this.", "small-model")
+    s.notes.polish(note_id, "A second delivery's words.", "small-model")  # ignored
+    assert s.notes.ensure_all({key: "x"}) == {key: NoteRef(note_id, needs_polish=False)}
+    assert s.notes.input(note_id) is None  # polished once, never again
+
+
+def test_a_refused_polish_keeps_the_template_and_is_not_tried_again(
+    store: tuple[Store, Probe],
+) -> None:
+    s, _ = store
+    item = dup_item(s, dup_source(s, "nr"), "nr1", 3)
+    key = NoteKey(item, "freshness", "beginner", "")
+    (ref,) = s.notes.ensure_all({key: "New this week."}).values()
+    s.notes.polish(ref.note_id, None, "small-model")  # the reply was refused
+    assert s.notes.input(ref.note_id) is None
+    assert not s.notes.ensure_all({key: "x"})[key].needs_polish

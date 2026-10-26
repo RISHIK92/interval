@@ -160,6 +160,18 @@ export interface ContentItemSection {
   word_count: number;
 }
 
+export interface FeedNote {
+  content_item_id: Int8;
+  created_at: Generated<Timestamp>;
+  id: Generated<Int8>;
+  level: Difficulty;
+  model: string | null;
+  polished_at: Timestamp | null;
+  signal: string;
+  text: string;
+  variant: string;
+}
+
 export interface FetchValidator {
   etag: string | null;
   last_modified: string | null;
@@ -293,6 +305,7 @@ export interface StarterFeedEntry {
   content_item_id: Int8;
   level: Difficulty;
   moment_id: Int8 | null;
+  note_id: Int8 | null;
   rank: number;
   topic: string;
 }
@@ -307,6 +320,8 @@ export interface StarterFeedVisible {
   level: Difficulty | null;
   link: string | null;
   moment_id: Int8 | null;
+  note_ai: boolean | null;
+  note_text: string | null;
   rank: number | null;
   section_count: number | null;
   section_number: number | null;
@@ -340,6 +355,7 @@ export interface UserFeedEntry {
   chip: BreakLength;
   content_item_id: Int8;
   moment_id: Int8 | null;
+  note_id: Int8 | null;
   rank: number;
   top_signal: string;
   user_id: string;
@@ -359,6 +375,8 @@ export interface UserFeedVisible {
   kind: string | null;
   link: string | null;
   moment_id: Int8 | null;
+  note_ai: boolean | null;
+  note_text: string | null;
   rank: number | null;
   section_count: number | null;
   section_number: number | null;
@@ -394,6 +412,7 @@ export interface DB {
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;
+  feed_note: FeedNote;
   fetch_validator: FetchValidator;
   graph_version: GraphVersion;
   invite_code: InviteCode;

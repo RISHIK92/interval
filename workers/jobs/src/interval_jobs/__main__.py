@@ -15,6 +15,7 @@ Usage:
 
 import argparse
 import json
+import os
 import signal
 import sys
 import threading
@@ -42,13 +43,19 @@ from interval_jobs.consumer import run_consumers
 from interval_jobs.embedding_eval import MIN_POOL, MIN_RECALL, parse_queries
 from interval_jobs.embedding_eval import EvalError as EmbeddingEvalError
 from interval_jobs.embedding_eval import run_eval as run_embedding_eval
-from interval_jobs.feed.precompute import enqueue_recomputes, recompute_starters
+from interval_jobs.feed.notes import queue_polish
+from interval_jobs.feed.precompute import (
+    STARTERS,
+    enqueue_recomputes,
+    recompute_starter,
+)
 from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.pipeline import Pipeline
 from interval_jobs.polling import enqueue_due
 from interval_jobs.ports import ConceptCycleError, ModelError
+from interval_jobs.ranking.scoring import BREAK_MINUTES
 from interval_jobs.segment import segment_item
 from interval_jobs.tagging import TaggingError
 from interval_jobs.tagging_eval import (
@@ -164,10 +171,22 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         # Q-P1-17: hourly. Users' recomputes go through the queue (one job each,
         # retried alone); starter feeds have no user and are cheap, so they run here.
         now = datetime.now(UTC)
+        queue = queue_for_enqueue()
         with services() as s:
-            queued = enqueue_recomputes(s.store, queue_for_enqueue(), now)
-            starters = recompute_starters(s.store, None, now)
-        print(json.dumps({"queued": queued, "starter_feeds": starters}))
+            queued = enqueue_recomputes(s.store, queue, now)
+        # One commit per starter: its notes don't keep a user's recompute waiting
+        # behind all 36 feeds.
+        for topic, level in STARTERS:
+            with services() as s:
+                done = recompute_starter(s.store, topic, level, None, now)
+            if os.environ.get("NOTES_MODEL"):
+                # The consumer polishes the new notes (P1-W4-S06).
+                queue_polish(queue, done.unpolished)
+        print(
+            json.dumps(
+                {"queued": queued, "starter_feeds": len(STARTERS) * len(BREAK_MINUTES)}
+            )
+        )
         return
 
     if args.command == "poll-due":
@@ -345,6 +364,7 @@ def _consume(max_entries: int | None) -> None:
             stage_units() as units,
             model_job("TAGGING_MODEL") as tagging,
             model_job("EMBEDDING_MODEL") as embedding,
+            model_job("NOTES_MODEL") as notes,
         ):
             pipeline = Pipeline(
                 units,
@@ -352,6 +372,7 @@ def _consume(max_entries: int | None) -> None:
                 tagging=tagging,
                 embedding=embedding,
                 max_entries=max_entries,
+                notes=notes,
             )
             run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
     finally:

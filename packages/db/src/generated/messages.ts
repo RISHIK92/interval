@@ -14,6 +14,10 @@ export const messageSchemas = {
   fetch_item: z.strictObject({
     content_item_id: z.number().int().min(1),
   }),
+  // Polish one why-this-matters note with the notes model, once (REC-5, AI-2, AI-4, P1-W4-S06).
+  polish_note: z.strictObject({
+    note_id: z.number().int().min(1),
+  }),
   // Rank one user's feed again and store it (CACHE-1, Q-P1-17, ADR-0008).
   recompute_feed: z.strictObject({
     user_id: z.string().min(1),

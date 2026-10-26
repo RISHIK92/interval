@@ -5,14 +5,22 @@ A failed recompute leaves the stored feed as it was and logs `feed: recompute fa
 which the AWS stack counts (LOAD-5); the queue retries it, then the DLQ holds it.
 """
 
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import get_args
 
 from interval_db.generated import BreakLength, Difficulty, Topic
 from interval_jobs import log
-from interval_jobs.ports import JobQueue, RankedEntry, Store, UserPreferences
+from interval_jobs.feed.notes import note_for
+from interval_jobs.ports import (
+    JobQueue,
+    NoteKey,
+    RankedEntry,
+    Store,
+    UserPreferences,
+)
 from interval_jobs.ranking.rank import Ranked, rank_for_preferences, rank_for_user
-from interval_jobs.ranking.scoring import BREAK_MINUTES, Scored
+from interval_jobs.ranking.scoring import Scored
 
 FEED_LIMIT = 50
 # Owner, 2026-10-26: active = an auth session used in the last 7 days. Better Auth moves
@@ -24,53 +32,96 @@ TOPICS: tuple[Topic, ...] = get_args(Topic.__value__)
 STARTER_BREAK: BreakLength = "3-8"
 
 
-def _entries(scored: list[Scored]) -> list[RankedEntry]:
-    return [RankedEntry(s.item_id, s.moment_id, s.top_signal) for s in scored]
+@dataclass
+class Recomputed:
+    entries: int
+    # Notes still in their template wording: the notes model polishes them, if set.
+    unpolished: set[int] = field(default_factory=set[int])
 
 
-def _by_chip(ranked: Ranked) -> dict[BreakLength, list[RankedEntry]]:
-    return {chip: _entries(scored) for chip, scored in ranked.items()}
+def _with_notes(
+    store: Store,
+    ranked: Ranked,
+    preferences: UserPreferences,
+    now: datetime,
+    done: Recomputed,
+) -> dict[BreakLength, list[RankedEntry]]:
+    """Every chip's entries with their why-this-matters notes (P1-W4-S06): a note is
+    written the first time its key comes up and reused after (Q-P1-18). One write
+    for the whole feed, so recomputes sharing notes take them in one order."""
+    keyed: dict[BreakLength, list[tuple[Scored, tuple[NoteKey, str] | None]]] = {
+        chip: [
+            (s, note_for(s, preferences.topics, preferences.level, chip, now))
+            for s in scored
+        ]
+        for chip, scored in ranked.items()
+    }
+    notes = store.notes.ensure_all(
+        {found[0]: found[1] for rows in keyed.values() for _, found in rows if found}
+    )
+    by_chip: dict[BreakLength, list[RankedEntry]] = {}
+    for chip, rows in keyed.items():
+        entries: list[RankedEntry] = []
+        for s, found in rows:
+            note = notes[found[0]] if found else None
+            if note is not None and note.needs_polish:
+                done.unpolished.add(note.note_id)
+            entries.append(
+                RankedEntry(
+                    s.item_id, s.moment_id, s.top_signal, note.note_id if note else None
+                )
+            )
+        by_chip[chip] = entries
+        done.entries += len(entries)
+    return by_chip
 
 
 def recompute_user_feed(
     store: Store, user_id: str, model: str | None, now: datetime
-) -> int:
-    """Ranks the user's feed for every chip and stores it whole; returns how many
-    entries. A user without preferences gets empty feeds, still stored, so the web
-    stops waiting for them."""
+) -> Recomputed:
+    """Ranks the user's feed for every chip and stores it whole. A user without
+    preferences gets empty feeds, still stored, so the web stops waiting for them."""
+    done = Recomputed(0)
     try:
         # Before ranking: a recompute running alongside finishes first, and this one
         # then ranks on whatever it committed (feedback included, Q-P1-17).
         store.feed.hold_user(user_id)
         ranked = rank_for_user(store, user_id, model, now, FEED_LIMIT)
-        store.feed.replace_user(user_id, _by_chip(ranked), now)
+        preferences = store.ranking.preferences(user_id)
+        by_chip: dict[BreakLength, list[RankedEntry]] = (
+            _with_notes(store, ranked, preferences, now, done)
+            if preferences
+            else {chip: [] for chip in ranked}
+        )
+        store.feed.replace_user(user_id, by_chip, now)
     except Exception as error:
         log.error("feed: recompute failed", user_id=user_id, error=error)
         raise
-    return sum(len(scored) for scored in ranked.values())
+    return done
 
 
-def recompute_starters(store: Store, model: str | None, now: datetime) -> int:
-    """One starter feed per (topic, level, chip); returns how many. Every topic, not
-    only those the concept graph uses now, so a topic it drops is emptied, not left
-    stale."""
-    for topic in TOPICS:
-        for level in LEVELS:
-            preferences = UserPreferences(
-                topics=[topic], level=level, break_length=STARTER_BREAK
-            )
-            try:
-                ranked = rank_for_preferences(
-                    store, preferences, None, model, now, FEED_LIMIT
-                )
-                for chip, scored in ranked.items():
-                    store.feed.replace_starter(topic, level, chip, _entries(scored))
-            except Exception as error:
-                log.error(
-                    "feed: recompute failed", topic=topic, level=level, error=error
-                )
-                raise
-    return len(TOPICS) * len(LEVELS) * len(BREAK_MINUTES)
+STARTERS: tuple[tuple[Topic, Difficulty], ...] = tuple(
+    (topic, level) for topic in TOPICS for level in LEVELS
+)
+
+
+def recompute_starter(
+    store: Store, topic: Topic, level: Difficulty, model: str | None, now: datetime
+) -> Recomputed:
+    """The starter feeds of one topic and level, every chip (ADR-0008). Every topic,
+    not only those the concept graph uses now, so a topic it drops is emptied."""
+    done = Recomputed(0)
+    preferences = UserPreferences(
+        topics=[topic], level=level, break_length=STARTER_BREAK
+    )
+    try:
+        ranked = rank_for_preferences(store, preferences, None, model, now, FEED_LIMIT)
+        for chip, entries in _with_notes(store, ranked, preferences, now, done).items():
+            store.feed.replace_starter(topic, level, chip, entries)
+    except Exception as error:
+        log.error("feed: recompute failed", topic=topic, level=level, error=error)
+        raise
+    return done
 
 
 def enqueue_recomputes(store: Store, queue: JobQueue, now: datetime) -> int:

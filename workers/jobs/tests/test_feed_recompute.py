@@ -13,8 +13,9 @@ from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.feed.precompute import (
+    STARTERS,
     enqueue_recomputes,
-    recompute_starters,
+    recompute_starter,
     recompute_user_feed,
 )
 from interval_jobs.ports import (
@@ -28,6 +29,11 @@ from interval_jobs.ports import (
 )
 
 NOW = datetime(2026, 10, 26, 12, tzinfo=UTC)
+
+
+def recompute_starters(store: InMemoryStore) -> None:
+    for topic, level in STARTERS:
+        recompute_starter(store, topic, level, None, NOW)
 
 
 class World:
@@ -163,9 +169,9 @@ def test_a_user_without_preferences_gets_an_empty_computed_feed() -> None:
 def test_starter_feeds_cover_every_topic_level_and_chip() -> None:
     w = World()
     _, db_moment = w.item("db-post", 25)
-    written = recompute_starters(w.store, None, NOW)
+    recompute_starters(w.store)
     # Every topic, three levels, three chips (topics the graph lacks come out empty).
-    assert written == 36
+    assert len(w.store.feed.starters) == 36
     for level in ("beginner", "intermediate", "advanced"):
         starter = w.store.feed.starters[("databases", level, "3-8")]
         assert [r.moment_id for r in starter] == [db_moment]
@@ -204,9 +210,9 @@ def test_starter_feeds_of_a_topic_dropped_from_the_graph_are_emptied() -> None:
     w = World()
     db_item, db_moment = w.item("db-post", 25)
     w.store.feed.replace_starter(
-        "backend", "beginner", "3-8", [RankedEntry(db_item, db_moment, "q")]
+        "backend", "beginner", "3-8", [RankedEntry(db_item, db_moment, "q", None)]
     )
-    recompute_starters(w.store, None, NOW)
+    recompute_starters(w.store)
     # "backend" isn't in this world's concept graph: its starter is now empty.
     assert w.store.feed.starters[("backend", "beginner", "3-8")] == []
 
@@ -316,7 +322,7 @@ def test_an_article_of_unknown_length_appears_only_under_8_15() -> None:
 def test_starter_feeds_hold_whole_articles_under_8_15() -> None:
     w = World()
     item, moment = w.item("db-post", 25)
-    recompute_starters(w.store, None, NOW)
+    recompute_starters(w.store)
     starter = w.store.feed.starters[("databases", "beginner", "8-15")]
     assert [(r.item_id, r.moment_id) for r in starter] == [(item, None)]
     short = w.store.feed.starters[("databases", "beginner", "3-8")]
@@ -338,3 +344,38 @@ def test_an_article_that_fits_stays_whole_when_only_its_moments_were_found(
     recompute_user_feed(w.store, "u1", None, NOW)
     assert w.entries("8-15") == [(item, None)]
     assert w.entries("3-8") == [(item, moment)]
+
+
+@pytest.mark.parametrize(
+    ("notes_model", "queued"), [("small-notes", True), ("", False)]
+)
+def test_recompute_due_queues_starter_note_polish_only_with_a_notes_model(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+    notes_model: str,
+    queued: bool,
+) -> None:
+    from collections.abc import Generator
+    from contextlib import contextmanager
+    from dataclasses import dataclass
+
+    from interval_jobs import __main__ as cli
+
+    w = World()
+    w.item("db-post", 25)
+    queue = InMemoryQueue()
+
+    @dataclass
+    class FakeServices:
+        store: InMemoryStore
+
+    @contextmanager
+    def services() -> Generator[FakeServices]:
+        yield FakeServices(w.store)
+
+    monkeypatch.setattr(cli, "services", services)
+    monkeypatch.setattr(cli, "queue_for_enqueue", lambda: queue)
+    monkeypatch.setenv("NOTES_MODEL", notes_model)
+    cli.main(["recompute-due"])
+    capsys.readouterr()
+    assert (queue.pending("polish_note") > 0) is queued

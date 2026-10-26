@@ -1,5 +1,6 @@
 import { type Chip, chipLabel, chipLimit } from "../server/chips";
 import type { ArticleFeedCard } from "../server/ports";
+import { WhyNote } from "./WhyNote";
 
 // A whole article, offered by the 8–15 chip (§3.2, Q-P1-16): a link to the publisher's
 // page with its title and length, never its text. An article longer than the break is
@@ -23,6 +24,7 @@ export function ArticleCard({
       {minutes !== null && minutes <= chipLimit(chip) ? (
         <p>{`Fits your ${chipLabel(chip)} break`}</p>
       ) : null}
+      <WhyNote note={card.note} />
       <p>{attribution}</p>
       <a href={card.link} target="_blank" rel="noopener noreferrer">
         Read on site
