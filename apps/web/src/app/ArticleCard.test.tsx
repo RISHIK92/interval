@@ -29,7 +29,7 @@ test("an article that fits says so, and links to the publisher's page", () => {
   );
   expect(textOf(html)).toBe(
     "Example Engineering · Rae Writer / Consensus in practice / " +
-      "Whole article · 12 min / Fits your 8–15 min break / Open original website",
+      "Whole article · 12 min / Fits your 8–15 min break / Read article",
   );
   expect(html).toContain(
     'href="/out?item=5&amp;chip=8-15&amp;pos=1&amp;target=original"',
@@ -63,7 +63,7 @@ test("an article with no countable text says its length is unknown", () => {
   );
   expect(textOf(html)).toBe(
     "Example Engineering / Consensus in practice / " +
-      "Whole article · Length unknown / Open original website",
+      "Whole article · Length unknown / Read article",
   );
 });
 

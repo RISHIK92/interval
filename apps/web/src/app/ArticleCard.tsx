@@ -45,7 +45,8 @@ export function ArticleCard({
           from: { position },
           target: "original",
         }),
-        label: "Open original website",
+        // Still the publisher's page, from the top (owner, 2026-10-26).
+        label: "Read article",
         item: card.itemId,
       }}
       originalHref={null}
