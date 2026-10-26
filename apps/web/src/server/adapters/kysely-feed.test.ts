@@ -503,6 +503,76 @@ test("the user's not-interested items and hidden sources are left out at once", 
   });
 });
 
+// A finished section, or a finished article, leaves the feed at once, not at the next
+// recompute (owner report, 2026-10-26: a card marked done kept showing).
+test("finished sections and finished articles are left out at once", async () => {
+  await inRollback(async (trx, { userId, otherId, itemId, momentIds }) => {
+    const [first, second] = momentIds;
+    if (first === undefined || second === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_feed_entry")
+      .values([
+        {
+          user_id: userId,
+          chip: "3-8",
+          content_item_id: itemId,
+          moment_id: first,
+          rank: 1,
+          top_signal: "quality",
+        },
+        {
+          user_id: userId,
+          chip: "3-8",
+          content_item_id: itemId,
+          moment_id: second,
+          rank: 2,
+          top_signal: "quality",
+        },
+        {
+          user_id: userId,
+          chip: "8-15",
+          content_item_id: itemId,
+          moment_id: null,
+          rank: 1,
+          top_signal: "quality",
+        },
+      ])
+      .execute();
+    await trx
+      .insertInto("user_feed_state")
+      .values({ user_id: userId, computed_at: new Date() })
+      .execute();
+    const reader = kyselyFeedReader(trx);
+    const ids = async (chip: "3-8" | "8-15") =>
+      (await reader.read(userId, chip, 50)).cards.map((c) =>
+        c.kind === "moment" ? c.momentId : `article ${c.itemId}`,
+      );
+    expect(await ids("3-8")).toEqual([first, second]);
+
+    // Someone else's finish changes nothing here.
+    await trx
+      .insertInto("user_moment_finished")
+      .values({ user_id: otherId, moment_id: first, method: "mark_done" })
+      .execute();
+    expect(await ids("3-8")).toEqual([first, second]);
+
+    await trx
+      .insertInto("user_moment_finished")
+      .values({ user_id: userId, moment_id: first, method: "mark_done" })
+      .execute();
+    expect(await ids("3-8")).toEqual([second]);
+    expect(await ids("8-15")).toEqual([`article ${itemId}`]);
+
+    // The whole article finished: its whole-article card and its other sections go.
+    await trx
+      .insertInto("user_article_finished")
+      .values({ user_id: userId, content_item_id: itemId, method: "mark_done" })
+      .execute();
+    expect(await ids("3-8")).toEqual([]);
+    expect(await ids("8-15")).toEqual([]);
+  });
+});
+
 // P1-W5-S04: a card knows whether the user saved its article.
 test("cards say whether the user saved their article", async () => {
   await inRollback(async (trx, { userId, itemId, momentIds }) => {

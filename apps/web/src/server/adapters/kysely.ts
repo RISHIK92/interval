@@ -163,6 +163,25 @@ function keptFor(userId: string, itemColumn: string) {
     )`;
 }
 
+// What the user finished leaves the feed at once (P1-W5-S03 excludes it at ranking;
+// a stored feed lasts until the next recompute): a finished section, and every card of
+// a finished article.
+function notFinishedBy(
+  userId: string,
+  momentColumn: string,
+  itemColumn: string,
+) {
+  const moment = sql.ref(momentColumn);
+  const item = sql.ref(itemColumn);
+  return sql<boolean>`not exists (
+      select 1 from user_moment_finished f
+      where f.user_id = ${userId} and f.moment_id = ${moment}
+    ) and not exists (
+      select 1 from user_article_finished a
+      where a.user_id = ${userId} and a.content_item_id = ${item}
+    )`;
+}
+
 export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
   return {
     read: async (userId, chip, limit) => {
@@ -173,7 +192,8 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
           join
             .onRef("v.user_id", "=", "s.user_id")
             .on("v.chip", "=", chip)
-            .on(keptFor(userId, "v.content_item_id")),
+            .on(keptFor(userId, "v.content_item_id"))
+            .on(notFinishedBy(userId, "v.moment_id", "v.content_item_id")),
         )
         .select(CARD_COLUMNS.map((column) => `v.${column}` as const))
         .select(savedBy(userId, "v.content_item_id"))
@@ -195,6 +215,13 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .select(CARD_COLUMNS)
         .select(savedBy(userId, "starter_feed_visible.content_item_id"))
         .where(keptFor(userId, "starter_feed_visible.content_item_id"))
+        .where(
+          notFinishedBy(
+            userId,
+            "starter_feed_visible.moment_id",
+            "starter_feed_visible.content_item_id",
+          ),
+        )
         .where("topic", "=", topic)
         .where("level", "=", level)
         .where("chip", "=", chip)

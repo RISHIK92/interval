@@ -86,7 +86,9 @@ function Row(props: { title: string; source: string; children: ReactNode }) {
   );
 }
 
+// No bar for a one-section article, as on Home (owner, 2026-10-26).
 function Progress(props: { done: number; total: number }) {
+  if (props.total <= 1) return null;
   return (
     <div aria-hidden="true" className="flex gap-1">
       {Array.from({ length: props.total }, (_, i) => (

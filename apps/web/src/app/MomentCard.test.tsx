@@ -113,3 +113,18 @@ test("shows the card's note, with an AI label only when a model wrote it", () =>
     /<div class="[^"]*border-dashed[^"]*">Why this matters: Fresh, on your topic\. <span[^>]*>AI<\/span><\/div>/,
   );
 });
+
+// Owner, 2026-10-26: a one-section article shows no progress bar, only its words.
+test("a one-section moment shows no progress bar", () => {
+  const html = renderToStaticMarkup(
+    <MomentCard
+      card={{ ...card, sectionNumber: 1, sectionCount: 1 }}
+      chip="3-8"
+      position={1}
+      hero
+      controls={null}
+    />,
+  );
+  expect(html).toContain("Section 1 of 1");
+  expect(html).not.toContain("bg-go");
+});
