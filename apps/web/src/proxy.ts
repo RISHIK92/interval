@@ -49,7 +49,11 @@ export async function proxy(
   const query = request.nextUrl.searchParams;
   const read = /^\/read\/([^/]+)$/.exec(request.nextUrl.pathname);
   const reading =
-    read === null || chip === null || query.has("pos") === query.has("from")
+    read === null ||
+    chip === null ||
+    query.has("pos") === query.has("from") ||
+    // Now reading is about what the feed sent you to (owner, 2026-10-26).
+    query.get("from") === "library"
       ? null
       : parseReading(`${read[1] ?? ""}.${query.get("moment") ?? ""}`);
   if (reading !== null) {

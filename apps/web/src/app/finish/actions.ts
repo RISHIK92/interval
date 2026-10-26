@@ -6,8 +6,9 @@ import { z } from "zod";
 import { CHIPS } from "../../server/chips";
 import { events, progress, sessionReader } from "../../server/container";
 import { BIGINT_ID } from "../../server/ports";
-import { READING_COOKIE } from "../../server/reading";
+import { parseReading, READING_COOKIE } from "../../server/reading";
 import { visitId } from "../../server/visits";
+import { sameSitePath, textField } from "../form";
 
 // Finishing from the return prompt or Mark done (§5D, C-22, Q-P1-35, P1-W5-S02).
 const Finish = z.object({
@@ -24,10 +25,18 @@ export async function finishAction(form: FormData): Promise<void> {
   const parsed = Finish.safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect("/");
   const { control, itemId, momentId, method, chip } = parsed.data;
+  // Answered from the Library, or a reader opened there: back to it (owner,
+  // 2026-10-26). Only a path on this site.
+  const back = sameSitePath(textField(form, "back"), "");
   const jar = await cookies();
-  // Finished or dismissed, the Now reading panel has done its job.
-  jar.delete(READING_COOKIE);
-  if (control === "dismiss") redirect(`/?chip=${chip}`);
+  // Finished or dismissed, the Now reading panel has done its job; from the Library,
+  // only when the panel was about this article (it is about what the feed opened).
+  if (
+    back === "" ||
+    parseReading(jar.get(READING_COOKIE)?.value)?.itemId === itemId
+  )
+    jar.delete(READING_COOKIE);
+  if (control === "dismiss") redirect(back || `/?chip=${chip}`);
   const context = { ...actor, sessionId: visitId(jar) };
   let finishedNow: boolean;
   if (momentId === undefined) {
@@ -59,7 +68,7 @@ export async function finishAction(form: FormData): Promise<void> {
   // statement after the finish: if it fails, that finish is never counted (low is safe).
   if (finishedNow) await progress().countExploreFinish(actor.userId, itemId);
   // The feed then offers the next section (Yes, owner 2026-10-26).
-  redirect(`/?chip=${chip}&finished=${itemId}.${momentId ?? ""}`);
+  redirect(back || `/?chip=${chip}&finished=${itemId}.${momentId ?? ""}`);
 }
 
 const Dismiss = z.object({

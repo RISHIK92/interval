@@ -3,7 +3,11 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { library, preferences, sessionReader } from "../../server/container";
-import { outHref } from "../../server/outbound";
+import type { Chip } from "../../server/chips";
+import { outHref, readHref } from "../../server/outbound";
+import type { HistoryItem, SavedItem } from "../../server/ports";
+import { parseReading } from "../../server/reading";
+import { ReturnPrompt } from "../ReturnPrompt";
 import { TabBar } from "../TabBar";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -16,27 +20,51 @@ const LIMIT = 50;
 // The Library tab (§4.1, §5I, C-06, Q-P1-19, P1-W5-S05): what you saved and what you
 // finished (owner: finished, not opened). Everything, hidden sources included: it is
 // the reader's own record, not the feed.
-// The publisher's page, unless the weekly check found it gone (P1-W6-S03): the item
-// stays listed so the reader knows why it left the feed (owner, 2026-10-26).
-function OriginalLink(props: {
-  item: { itemId: string; articleTitle: string; linkBroken: boolean };
-}) {
-  const { item } = props;
+// The link follows the reader (owner, 2026-10-26): Continue reading at the first
+// unfinished section, Open article when none is done, Read again from the top when
+// finished. In Interval's reader when the page can be framed (ADR-0018), marked so
+// Back asks; else the browser. Unless the weekly check found the page gone
+// (P1-W6-S03): the item stays listed so the reader knows why it left the feed.
+function ReadLink(props: { item: SavedItem | HistoryItem; chip: Chip }) {
+  const { item, chip } = props;
   if (item.linkBroken)
     return <p className="text-sm text-ink-muted">Link broken</p>;
-  return (
+  const momentId =
+    !item.finished && item.finishedSections > 0
+      ? (item.nextMomentId ?? undefined)
+      : undefined;
+  const label = item.finished
+    ? "Read again"
+    : momentId === undefined
+      ? "Open article"
+      : "Continue reading";
+  const at = momentId === undefined ? {} : { momentId };
+  const className = "text-sm font-semibold text-select";
+  const name = `${label}: ${item.articleTitle}`;
+  return item.frameable ? (
+    <a
+      href={readHref({ itemId: item.itemId, ...at, chip, from: "library" })}
+      data-read-item={item.itemId}
+      data-read-moment={momentId}
+      aria-label={name}
+      className={className}
+    >
+      {label}
+    </a>
+  ) : (
     <a
       href={outHref({
         itemId: item.itemId,
+        ...at,
         from: "library",
-        target: "original",
+        target: momentId === undefined ? "original" : "section",
       })}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`Open ${item.articleTitle} on the original website`}
-      className="text-sm font-semibold text-select"
+      aria-label={name}
+      className={className}
     >
-      Open original website
+      {label}
     </a>
   );
 }
@@ -86,25 +114,49 @@ function Row(props: { title: string; source: string; children: ReactNode }) {
   );
 }
 
-// No bar for a one-section article, as on Home (owner, 2026-10-26).
-function Progress(props: { done: number; total: number }) {
-  if (props.total <= 1) return null;
+// How far: "Finished" or "n of m sections", and a bar unless it has one section, as on
+// Home (owner, 2026-10-26).
+function Reached(props: { item: SavedItem | HistoryItem }) {
+  const { finished, finishedSections, totalSections } = props.item;
+  const done = finished ? totalSections : finishedSections;
   return (
-    <div aria-hidden="true" className="flex gap-1">
-      {Array.from({ length: props.total }, (_, i) => (
-        <span
-          key={i}
-          className={`h-1.5 flex-1 rounded-full ${i < props.done ? "bg-go" : "bg-track"}`}
-        />
-      ))}
-    </div>
+    <>
+      <p className={`text-sm ${finished ? "text-go-text" : "text-ink-muted"}`}>
+        {finished
+          ? "Finished"
+          : `${String(finishedSections)} of ${String(totalSections)} sections`}
+      </p>
+      {totalSections <= 1 ? null : (
+        <div aria-hidden="true" className="flex gap-1">
+          {Array.from({ length: totalSections }, (_, i) => (
+            <span
+              key={i}
+              className={`h-1.5 flex-1 rounded-full ${i < done ? "bg-go" : "bg-track"}`}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
 
-export default async function LibraryPage() {
+export default async function LibraryPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
-  if ((await preferences().get(actor.userId)) === null) redirect("/onboarding");
+  const chosen = await preferences().get(actor.userId);
+  if (chosen === null) redirect("/onboarding");
+  // The reader opens and finishes in the user's usual break length; nothing here
+  // counts toward a feed (owner, 2026-10-26).
+  const chip = chosen.breakLength;
+  // Back from a reader opened here: ask about what it showed (ADR-0018).
+  const params = await searchParams;
+  const ask = parseReading(
+    typeof params["ask"] === "string" ? params["ask"] : undefined,
+  );
   const [saved, finished] = await Promise.all([
     library().saves(actor.userId, LIMIT),
     library().history(actor.userId, LIMIT),
@@ -159,8 +211,11 @@ export default async function LibraryPage() {
                   title={item.articleTitle}
                   source={item.sourceName}
                 >
+                  {item.finished || item.finishedSections > 0 ? (
+                    <Reached item={item} />
+                  ) : null}
                   <div className="flex items-center justify-between gap-3">
-                    <OriginalLink item={item} />
+                    <ReadLink item={item} chip={chip} />
                     <form action={libraryUnsaveAction}>
                       <input type="hidden" name="itemId" value={item.itemId} />
                       <Button
@@ -180,11 +235,13 @@ export default async function LibraryPage() {
         </Card>
       </section>
 
-      <section aria-label="Finished">
-        <h2 className="mb-3 text-section">Finished</h2>
+      {/* "History", not "Finished" (owner, 2026-10-26): it lists what you've read,
+        part or whole. */}
+      <section aria-label="History">
+        <h2 className="mb-3 text-section">History</h2>
         <Card>
           {finished.length === 0 ? (
-            <p className="px-5 py-4 text-ink-muted">Nothing finished yet.</p>
+            <p className="px-5 py-4 text-ink-muted">Nothing here yet.</p>
           ) : (
             <ul className="divide-y divide-hairline">
               {finished.map((item) => (
@@ -193,26 +250,17 @@ export default async function LibraryPage() {
                   title={item.articleTitle}
                   source={item.sourceName}
                 >
-                  <p
-                    className={`text-sm ${item.finished ? "text-go-text" : "text-ink-muted"}`}
-                  >
-                    {item.finished
-                      ? "Finished"
-                      : `${String(item.finishedSections)} of ${String(item.totalSections)} sections`}
-                  </p>
-                  <Progress
-                    done={
-                      item.finished ? item.totalSections : item.finishedSections
-                    }
-                    total={item.totalSections}
-                  />
-                  <OriginalLink item={item} />
+                  <Reached item={item} />
+                  <ReadLink item={item} chip={chip} />
                 </Row>
               ))}
             </ul>
           )}
         </Card>
       </section>
+      <ReturnPrompt chip={chip} initialAsk={ask} back="/library">
+        {null}
+      </ReturnPrompt>
     </main>
   );
 }

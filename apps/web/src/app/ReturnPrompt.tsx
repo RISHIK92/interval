@@ -50,10 +50,13 @@ function takeReaderOpen(): Opened | null {
 export function ReturnPrompt({
   chip,
   initialAsk,
+  back,
   children,
 }: {
   chip: Chip;
   initialAsk: Opened | null;
+  // Where answering leads, when not the feed (the Library, owner 2026-10-26).
+  back?: string;
   children: ReactNode;
 }) {
   const [state, dispatch] = useReducer(promptState, initialAsk, askingAbout);
@@ -142,6 +145,9 @@ export function ReturnPrompt({
       )}
       <input type="hidden" name="method" value="return_prompt" />
       <input type="hidden" name="chip" value={chip} />
+      {back === undefined ? null : (
+        <input type="hidden" name="back" value={back} />
+      )}
       {/* A bottom sheet just above the tab bar (design screen 2). */}
       <Card className="p-5">
         <div className="flex items-start gap-3">

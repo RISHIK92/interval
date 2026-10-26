@@ -359,10 +359,6 @@ test.each([
   ],
   ["no from, no chip, no position", "item=5&target=original"],
   ["a chip with no position and no from", "item=5&chip=3-8&target=original"],
-  [
-    "a Library open naming a section",
-    "item=5&moment=9&from=library&target=section",
-  ],
 ])("%s goes home without a lookup", async (_name, query) => {
   current.mockResolvedValue(guest);
   const response = await open(query);
@@ -399,4 +395,23 @@ test("a reader link records the section and the outbound click only", async () =
     "outbound_click",
   ]);
   expect(countExploreOpen).not.toHaveBeenCalled();
+});
+
+// The Library's Continue reading names the next section (owner, 2026-10-26): still an
+// outbound click only, and the section counts as reached.
+test("a Library open of a section goes to it and records the outbound click only", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post#raft",
+    linkType: "anchor",
+  });
+  const response = await open("item=5&moment=9&from=library&target=section");
+  expect(response.headers.get("location")).toBe(
+    "https://pub.test/post?utm_source=interval#raft",
+  );
+  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
+    "outbound_click",
+  ]);
+  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
+  expect(setCookie).not.toHaveBeenCalled();
 });

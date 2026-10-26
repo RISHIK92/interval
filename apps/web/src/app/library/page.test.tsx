@@ -34,10 +34,23 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-async function page(): Promise<string> {
+async function page(params: Record<string, string> = {}): Promise<string> {
   const { default: LibraryPage } = await import("./page");
-  return renderToStaticMarkup(await LibraryPage());
+  return renderToStaticMarkup(
+    await LibraryPage({ searchParams: Promise.resolve(params) }),
+  );
 }
+
+// Not started, four sections, opens in the browser: the fields a test doesn't care
+// about.
+const fresh = {
+  finishedSections: 0,
+  totalSections: 4,
+  finished: false,
+  nextMomentId: "71",
+  frameable: false,
+  linkBroken: false,
+};
 
 // The words a reader sees, whatever elements carry them.
 const text = (html: string) => html.replace(/<[^>]+>/g, "");
@@ -46,68 +59,100 @@ test("empty states say so", async () => {
   current.mockResolvedValue(guest);
   const html = await page();
   expect(html).toContain("Nothing saved yet.");
-  expect(html).toContain("Nothing finished yet.");
+  expect(html).toContain("Nothing here yet.");
+  // "History", not "Finished" (owner, 2026-10-26).
+  expect(html).toMatch(/<h2[^>]*>History<\/h2>/);
+  expect(html).not.toMatch(/<h2[^>]*>Finished<\/h2>/);
   expect(saves).toHaveBeenCalledWith("g1", 50);
   expect(history).toHaveBeenCalledWith("g1", 50);
 });
 
-test("saves and finished articles are listed with their links", async () => {
+// The link follows the reader (owner, 2026-10-26): Continue reading at the next
+// section, Open article when none is done, Read again when finished; in Interval's
+// reader when the page can be framed, else the browser.
+test("saves and history link by progress, in the reader when the page allows", async () => {
   current.mockResolvedValue(guest);
   saves.mockResolvedValueOnce([
     {
+      ...fresh,
       itemId: "7",
       articleTitle: "Raft in practice",
       sourceName: "Example Engineering",
       savedAt: new Date(),
-      linkBroken: false,
+    },
+    {
+      ...fresh,
+      itemId: "10",
+      articleTitle: "Paxos made plain",
+      sourceName: "Example Engineering",
+      savedAt: new Date(),
+      finishedSections: 2,
+      nextMomentId: "103",
     },
   ]);
   history.mockResolvedValueOnce([
     {
+      ...fresh,
       itemId: "8",
       articleTitle: "Consensus in practice",
       sourceName: "Other Blog",
       finishedSections: 4,
-      totalSections: 4,
       finished: true,
+      nextMomentId: null,
+      frameable: true,
       lastFinishedAt: new Date(),
-      linkBroken: false,
     },
     {
+      ...fresh,
       itemId: "9",
       articleTitle: "Half read",
       sourceName: "Other Blog",
       finishedSections: 2,
-      totalSections: 4,
-      finished: false,
+      nextMomentId: "93",
+      frameable: true,
       lastFinishedAt: new Date(),
-      linkBroken: false,
     },
   ]);
   const html = await page();
   expect(text(html)).toContain("Raft in practice · Example Engineering");
-  expect(html).toContain(
-    'href="/out?item=7&amp;from=library&amp;target=original"',
+  // Not started, not framable: the article in a new tab.
+  expect(html).toMatch(
+    /<a href="\/out\?item=7&amp;from=library&amp;target=original" target="_blank" rel="noopener noreferrer" aria-label="Open article: Raft in practice"[^>]*>Open article<\/a>/,
   );
+  // Half read, not framable: its next section in a new tab.
+  expect(html).toMatch(
+    /<a href="\/out\?item=10&amp;moment=103&amp;from=library&amp;target=section" target="_blank"[^>]*>Continue reading<\/a>/,
+  );
+  expect(html).toContain("2 of 4 sections");
+  // Finished, framable: from the top in the reader, this tab, marked for Back.
+  expect(html).toMatch(
+    /<a href="\/read\/8\?chip=3-8&amp;from=library" data-read-item="8" aria-label="Read again: Consensus in practice"[^>]*>Read again<\/a>/,
+  );
+  // Half read, framable: the next section in the reader.
+  expect(html).toMatch(
+    /<a href="\/read\/9\?moment=93&amp;chip=3-8&amp;from=library" data-read-item="9" data-read-moment="93"[^>]*>Continue reading<\/a>/,
+  );
+  expect(html).toMatch(/<p[^>]*>Finished<\/p>/);
   expect(html).toMatch(/<input[^>]*name="itemId"[^>]*value="7"/);
   expect(html).toContain("Unsave");
-  expect(text(html)).toContain("Consensus in practice · Other Blog");
-  expect(html).toMatch(/<p[^>]*>Finished<\/p>/);
-  expect(html).not.toContain("4 of 4 sections");
-  expect(html).toContain("2 of 4 sections");
-  expect(html).toContain(
-    'href="/out?item=8&amp;from=library&amp;target=original"',
-  );
-  expect(html).toContain(
-    'aria-label="Open Raft in practice on the original website"',
-  );
-  expect(html).not.toContain("Nothing saved yet.");
+  expect(html).not.toContain("Open original website");
+});
+
+// Closing a reader opened here comes back asking (owner, 2026-10-26).
+test("ask= opens the finish prompt, which comes back to the Library", async () => {
+  current.mockResolvedValue(guest);
+  const html = await page({ ask: "9.93" });
+  expect(html).toContain("Finished this section?");
+  expect(html).toContain('name="back" value="/library"');
+  expect(html).toMatch(/name="momentId" value="93"/);
+  expect(await page({ ask: "nope" })).not.toContain("Finished this");
 });
 
 test("an item whose link broke stays, marked, with no link to follow", async () => {
   current.mockResolvedValue(guest);
   saves.mockResolvedValueOnce([
     {
+      ...fresh,
       itemId: "7",
       articleTitle: "Gone post",
       sourceName: "Example Engineering",
@@ -117,12 +162,14 @@ test("an item whose link broke stays, marked, with no link to follow", async () 
   ]);
   history.mockResolvedValueOnce([
     {
+      ...fresh,
       itemId: "8",
       articleTitle: "Gone too",
       sourceName: "Other Blog",
       finishedSections: 1,
       totalSections: 1,
       finished: true,
+      nextMomentId: null,
       lastFinishedAt: new Date(),
       linkBroken: true,
     },
@@ -131,8 +178,9 @@ test("an item whose link broke stays, marked, with no link to follow", async () 
   expect(text(html)).toContain("Gone post · Example Engineering");
   expect(text(html)).toContain("Gone too · Other Blog");
   expect(html.match(/Link broken/g)).toHaveLength(2);
-  expect(html).not.toContain("/out?item=7");
-  expect(html).not.toContain("/out?item=8");
+  expect(html).not.toContain("item=7");
+  expect(html).not.toContain("item=8");
+  expect(html).not.toContain("/read/");
   expect(html).toContain("Unsave"); // it can still be removed
 });
 
@@ -141,11 +189,11 @@ test("the shelf counts saves; highlights, notes and audio are disabled for later
   current.mockResolvedValue(guest);
   saves.mockResolvedValueOnce([
     {
+      ...fresh,
       itemId: "7",
       articleTitle: "Raft in practice",
       sourceName: "Example Engineering",
       savedAt: new Date(),
-      linkBroken: false,
     },
   ]);
   const html = await page();

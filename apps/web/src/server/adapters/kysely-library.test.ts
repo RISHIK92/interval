@@ -113,12 +113,139 @@ test("saves list newest first, with title and source only", async () => {
     expect(saves.map((s) => s.itemId)).toEqual([second, first]);
     expect(Object.keys(saves[0] ?? {}).sort()).toEqual([
       "articleTitle",
+      "finished",
+      "finishedSections",
+      "frameable",
       "itemId",
       "linkBroken",
+      "nextMomentId",
       "savedAt",
       "sourceName",
+      "totalSections",
     ]);
     expect(JSON.stringify(saves)).not.toContain("SUMMARY TEXT");
+  });
+});
+
+// The Library's link follows the reader (owner, 2026-10-26): continue at the first
+// unfinished section, open a fresh one, read a finished one again; in-app if framable.
+test("saves and history say how far, which section is next, and if it can be framed", async () => {
+  await inRollback(async (trx, { userId, items, moments }) => {
+    const [first, second] = items;
+    const [firstMoments, secondMoments] = moments;
+    if (!first || !second || !firstMoments || !secondMoments)
+      throw new Error("seed");
+    await trx
+      .insertInto("user_save")
+      .values([
+        {
+          user_id: userId,
+          content_item_id: first,
+          saved_at: sql<Date>`now() - interval '1 day'`,
+        },
+        { user_id: userId, content_item_id: second },
+      ])
+      .execute();
+    // Article 1: sections 0 and 2 finished, so 1 is next. Article 2: untouched.
+    await trx
+      .insertInto("user_moment_finished")
+      .values(
+        [firstMoments[0], firstMoments[2]].map((moment_id) => ({
+          user_id: userId,
+          moment_id: moment_id ?? "",
+          method: "mark_done" as const,
+        })),
+      )
+      .execute();
+    await trx
+      .updateTable("content_item")
+      .set({ frameable: true })
+      .where("id", "=", first)
+      .execute();
+    const library = kyselyLibrary(trx);
+    const progress = (rows: Awaited<ReturnType<typeof library.saves>>) =>
+      rows.map((r) => ({
+        itemId: r.itemId,
+        finishedSections: r.finishedSections,
+        totalSections: r.totalSections,
+        finished: r.finished,
+        nextMomentId: r.nextMomentId,
+        frameable: r.frameable,
+      }));
+    expect(progress(await library.saves(userId, 10))).toEqual([
+      {
+        itemId: second,
+        finishedSections: 0,
+        totalSections: 4,
+        finished: false,
+        nextMomentId: secondMoments[0],
+        frameable: false,
+      },
+      {
+        itemId: first,
+        finishedSections: 2,
+        totalSections: 4,
+        finished: false,
+        nextMomentId: firstMoments[1],
+        frameable: true,
+      },
+    ]);
+    const [row] = await library.history(userId, 10);
+    expect(row?.nextMomentId).toBe(firstMoments[1]);
+    expect(row?.frameable).toBe(true);
+    // Every section done: nothing is next.
+    await trx
+      .insertInto("user_moment_finished")
+      .values(
+        [firstMoments[1], firstMoments[3]].map((moment_id) => ({
+          user_id: userId,
+          moment_id: moment_id ?? "",
+          method: "mark_done" as const,
+        })),
+      )
+      .execute();
+    const done = (await library.saves(userId, 10)).find(
+      (r) => r.itemId === first,
+    );
+    expect(done?.finished).toBe(true);
+    expect(done?.nextMomentId).toBeNull();
+  });
+});
+
+// A whole-article finish with no sections done is finished; an item with no sections
+// (metadata only) is never "next" anywhere.
+test("a whole finish reads again; an item without sections has nothing next", async () => {
+  await inRollback(async (trx, { userId, items }) => {
+    const [first, second] = items;
+    if (first === undefined || second === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_article_finished")
+      .values({ user_id: userId, content_item_id: first, method: "mark_done" })
+      .execute();
+    await trx
+      .deleteFrom("moment")
+      .where("content_item_id", "=", second)
+      .execute();
+    await trx
+      .insertInto("user_save")
+      .values({ user_id: userId, content_item_id: second })
+      .execute();
+    const library = kyselyLibrary(trx);
+    const [whole] = await library.history(userId, 10);
+    expect(whole).toMatchObject({
+      itemId: first,
+      finished: true,
+      finishedSections: 0,
+      nextMomentId: null,
+    });
+    const [bare] = await library.saves(userId, 10);
+    expect(bare).toMatchObject({
+      itemId: second,
+      finished: false,
+      finishedSections: 0,
+      totalSections: 0,
+      nextMomentId: null,
+    });
   });
 });
 

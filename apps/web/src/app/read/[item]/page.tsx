@@ -18,12 +18,13 @@ export const dynamic = "force-dynamic";
 
 // As /out's query, with the chip always there: the reader goes back to that feed. A
 // feed card has a position; "continue" is a Continue card, "reader" a move inside the
-// reader (back after Save), which counts no event.
+// reader (back after Save), which counts no event, and "library" an open from the
+// Library, which counts none either and goes back there (owner, 2026-10-26).
 const Read = z.object({
   moment: z.string().regex(BIGINT_ID).optional(),
   chip: z.enum(CHIPS),
   pos: z.coerce.number().int().min(1).max(200).optional(),
-  from: z.enum(["continue", "reader"]).optional(),
+  from: z.enum(["continue", "reader", "library"]).optional(),
 });
 
 // Smaller than the feed's round buttons: the reader's bars stay out of the page's way
@@ -94,13 +95,18 @@ export default async function ReadPage({
       ? page.articleTitle
       : `${page.sectionTitle} — ${page.articleTitle}`;
   const domain = new URL(publisher).hostname.replace(/^www\./, "");
-  // Back to the feed asking "Finished?" about what was shown (C-22's prompt).
-  const closeHref = `/?chip=${chip}&ask=${formatReading({ itemId: item, momentId: reached })}`;
+  // Back to where it was opened, asking "Finished?" about what was shown (C-22's
+  // prompt): the feed, or the Library.
+  const library = from === "library";
+  const asked = formatReading({ itemId: item, momentId: reached });
+  const closeHref = library
+    ? `/library?ask=${asked}`
+    : `/?chip=${chip}&ask=${asked}`;
   const here = readHref({
     itemId: item,
     ...(moment === undefined ? {} : { momentId: moment }),
     chip,
-    from: "reader",
+    from: library ? "library" : "reader",
   });
   return (
     <main className="flex h-dvh flex-col">
@@ -182,7 +188,8 @@ export default async function ReadPage({
             <Glyph path="M9 9a3 3 0 1 1 4 2.8c-.6.3-1 .9-1 1.6V15M12 18.5v.5" />
           </ComingLater>
           <div className="ml-auto flex items-center gap-2">
-            {/* Mark done goes to the feed and skips the prompt (ADR-0018). */}
+            {/* Mark done goes back where the reader was opened and skips the prompt
+              (ADR-0018). */}
             <form action={finishAction}>
               <input type="hidden" name="control" value="finish" />
               <input type="hidden" name="itemId" value={item} />
@@ -191,6 +198,9 @@ export default async function ReadPage({
               )}
               <input type="hidden" name="method" value="mark_done" />
               <input type="hidden" name="chip" value={chip} />
+              {library ? (
+                <input type="hidden" name="back" value="/library" />
+              ) : null}
               <button
                 type="submit"
                 className="inline-flex size-11 items-center justify-center rounded-full border border-hairline bg-page font-semibold text-ink sm:size-auto sm:px-4 sm:py-2.5"

@@ -175,4 +175,8 @@ test("anything else, or a reader URL with bad ids, leaves Now reading alone", as
   expect(
     await readingAfter("/read/5?moment=9&chip=3-8&pos=1&from=continue"),
   ).toBeUndefined();
+  // A Library open doesn't feed Now reading (owner, 2026-10-26).
+  expect(
+    await readingAfter("/read/5?moment=9&chip=3-8&from=library"),
+  ).toBeUndefined();
 });

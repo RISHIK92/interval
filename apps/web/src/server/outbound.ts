@@ -28,12 +28,13 @@ export function outHref(
 
 // ADR-0018: a link into Interval's in-app reader, for a page that allows framing. /read
 // records the open as /out does; the chip takes the reader back to the same feed.
-// "reader" is a move inside the reader (Next section, or back after Save).
+// "reader" is a move inside the reader (Next section, or back after Save); "library"
+// an open from the Library, which counts no feed event (owner, 2026-10-26).
 export function readHref(link: {
   itemId: string;
   momentId?: string;
   chip: Chip;
-  from: { position: number } | "continue" | "reader";
+  from: { position: number } | "continue" | "reader" | "library";
 }): string {
   const query = new URLSearchParams();
   if (link.momentId !== undefined) query.set("moment", link.momentId);

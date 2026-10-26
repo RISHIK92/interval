@@ -45,7 +45,6 @@ export async function GET(request: Request): Promise<Response> {
       ? { chip, pos }
       : null;
   if (card === null && (from === undefined || pos !== undefined)) return home();
-  if (from === "library" && moment !== undefined) return home(); // no UI sends it
   const link = await outboundLinks().resolve(
     item,
     target === "section" ? (moment ?? null) : null,

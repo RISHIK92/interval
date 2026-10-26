@@ -1777,3 +1777,11 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Checked in Chrome: 1440 and 390 wide, dark mode, arrow-key scrolling, the menu on a card without a picture.
 - Not done: a plain mouse wheel doesn't scroll the row sideways (trackpad, shift+wheel and arrow keys do); the sidebar shows a person icon, not the user's initials.
 - Follow-ups (owner, 2026-10-26): the Hidden / Undo banner leaves after 3 s (and drops `undo` from the address); "Open original website" moved into each card's "…" menu (sections only; a whole-article card's Read article is already that page); on phones the reader's Mark done and Next section are a tick and an arrow, with their words kept for screen readers. Noticed: a heavy page (the Cloudflare blog) fires its frame `load` after 6 s, so the "taking a while" card shows briefly over a page that already looks ready.
+
+### 2026-10-26 — Library links by progress; "History"; PWA manifest behind ngrok
+
+- Owner choices: Library rows link "Continue reading" (first unfinished section), "Open article" (none done) or "Read again" (finished, from the top), in the in-app reader when framable, else the browser; closing a reader opened from the Library returns there and asks "Did you finish?"; "Finished" is renamed "History".
+- Done: `kysely-library` returns progress, the next section and `frameable` for saves and history; `ReadLink` on the Library; `/read` and `/out` accept Library section opens (no feed events, no Now reading; the proxy skips `from=library`); `finishAction` takes a same-site `back`; `ReturnPrompt` posts it.
+- PWA: the manifest is served from `app/manifest.webmanifest/route.ts` and linked with `crossorigin="use-credentials"`, since Chrome's cookieless manifest fetch got ngrok's warning page and Android said the app can't be installed (not yet confirmed on the phone).
+- Review fixes: a Library finish no longer clears Now reading for another article; tests for a whole-only finish and an item with no sections; a stale comment.
+- Open for the owner: a finish from the Library still counts as a finish everywhere (events, exploration) — assumed intended; browser opens from the Library don't arm the return prompt; "Continue reading" ignores a source whose moments were switched off (the reader then shows the article).

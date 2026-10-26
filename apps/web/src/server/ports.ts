@@ -172,22 +172,27 @@ export type ContinueCard = {
 
 // Saves and history (§5I, P1-W5-S04), for the Library (W5-S05): ids, titles and
 // sources only, never an article's text.
-export type SavedItem = {
+// How far the user read a Library item, for its link (owner, 2026-10-26): continue at
+// the next section, open it fresh, or read it again; in the reader when framable.
+type LibraryProgress = {
+  finishedSections: number;
+  totalSections: number;
+  finished: boolean; // every section, or the whole article
+  nextMomentId: string | null; // the first section by order not yet finished
+  frameable: boolean; // ADR-0018 (false while unknown)
+  linkBroken: boolean; // the weekly check found it gone (P1-W6-S03)
+};
+export type SavedItem = LibraryProgress & {
   itemId: string;
   articleTitle: string;
   sourceName: string;
   savedAt: Date;
-  linkBroken: boolean; // the weekly check found it gone (P1-W6-S03)
 };
-export type HistoryItem = {
+export type HistoryItem = LibraryProgress & {
   itemId: string;
   articleTitle: string;
   sourceName: string;
-  finishedSections: number;
-  totalSections: number;
-  finished: boolean; // every section, or the whole article
   lastFinishedAt: Date;
-  linkBroken: boolean;
 };
 export interface Library {
   saves(userId: string, limit: number): Promise<SavedItem[]>;

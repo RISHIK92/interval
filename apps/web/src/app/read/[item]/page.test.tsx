@@ -83,7 +83,7 @@ test.each([
   ["a position past 200", { ...card, pos: "201" }, "5"],
   ["neither a position nor from", { moment: "9", chip: "3-8" }, "5"],
   ["from with a position", { ...card, from: "continue" }, "5"],
-  ["a Library open", { chip: "3-8", from: "library" }, "5"],
+  ["an unknown from", { chip: "3-8", from: "elsewhere" }, "5"],
   ["a repeated chip", { ...card, chip: ["3-8", "1-3"] }, "5"],
 ])("%s goes home with no lookup or events", async (_name, query, item) => {
   current.mockResolvedValue(guest);
@@ -267,4 +267,26 @@ test("the last section has no Next section; a saved item says Saved; a template 
   expect(html).toMatch(/<button[^>]*value="unsave"[^>]*name="control"/);
   expect(html).toContain("A classic.");
   expect(html).not.toContain(">AI</span>");
+});
+
+// Opened from the Library (owner, 2026-10-26): no feed event, and closing or Mark done
+// goes back to the Library, which asks.
+test("a Library open counts nothing and comes back to the Library", async () => {
+  current.mockResolvedValue(guest);
+  reader.mockResolvedValue(page);
+  const html = await render({ moment: "9", chip: "3-8", from: "library" });
+  expect(emit).not.toHaveBeenCalled();
+  expect(countExploreOpen).not.toHaveBeenCalled();
+  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
+  expect(html).toMatch(
+    /<a href="\/library\?ask=5\.9"[^>]*aria-label="Close reader"/,
+  );
+  expect(html).toContain('name="back" value="/library"');
+  // Save stays in this reader; Next section stays a Library open.
+  expect(html).toContain(
+    'name="back" value="/read/5?moment=9&amp;chip=3-8&amp;from=library"',
+  );
+  expect(html).toMatch(
+    /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;from=library"[^>]*>[^]*?Next section<\/span><\/a>/,
+  );
 });

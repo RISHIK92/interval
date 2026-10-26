@@ -20,6 +20,7 @@ const countExploreFinish = vi.fn<Progress["countExploreFinish"]>(() =>
 );
 const emit = vi.fn();
 const deleteCookie = vi.fn();
+let readingCookie = "5.9";
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   progress: () => ({
@@ -36,9 +37,16 @@ vi.mock("next/headers", () => ({
   cookies: () =>
     Promise.resolve({
       get: (name: string) =>
-        name === "iv_visit" ? { name, value: "visit-1.1790000000" } : undefined,
+        name === "iv_visit"
+          ? { name, value: "visit-1.1790000000" }
+          : name === "iv_reading"
+            ? { name, value: readingCookie }
+            : undefined,
       delete: deleteCookie,
     }),
+}));
+vi.mock("../../env", () => ({
+  env: () => ({ BETTER_AUTH_URL: "http://localhost:3100" }),
 }));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
@@ -269,4 +277,63 @@ test("a whole article's new finish counts toward its arm; a repeat doesn't", asy
     }),
   ).rejects.toThrow("redirect:");
   expect(countExploreFinish).not.toHaveBeenCalled();
+});
+
+// The Library's prompt and a reader opened from it answer back to the Library (owner,
+// 2026-10-26); a path off this site is ignored.
+test("a finish or dismiss with back returns there, if it is on this site", async () => {
+  const base = { itemId: "5", momentId: "9", chip: "3-8" };
+  await expect(
+    finish({
+      ...base,
+      control: "finish",
+      method: "mark_done",
+      back: "/library",
+    }),
+  ).rejects.toThrow(/^redirect:\/library$/);
+  await expect(
+    finish({
+      ...base,
+      control: "dismiss",
+      method: "return_prompt",
+      back: "/library",
+    }),
+  ).rejects.toThrow(/^redirect:\/library$/);
+  await expect(
+    finish({
+      ...base,
+      control: "finish",
+      method: "mark_done",
+      back: "https://evil.test/x",
+    }),
+  ).rejects.toThrow("redirect:/?chip=3-8&finished=5.9");
+});
+
+// Now reading is about what the feed opened (owner, 2026-10-26): a finish from the
+// Library leaves it unless it is the same article.
+test("a Library finish keeps Now reading for another article", async () => {
+  readingCookie = "77.1";
+  await expect(
+    finish({
+      control: "finish",
+      itemId: "5",
+      momentId: "9",
+      method: "mark_done",
+      chip: "3-8",
+      back: "/library",
+    }),
+  ).rejects.toThrow("redirect:/library");
+  expect(deleteCookie).not.toHaveBeenCalled();
+  readingCookie = "5.";
+  await expect(
+    finish({
+      control: "dismiss",
+      itemId: "5",
+      method: "return_prompt",
+      chip: "3-8",
+      back: "/library",
+    }),
+  ).rejects.toThrow("redirect:/library");
+  expect(deleteCookie).toHaveBeenCalledWith("iv_reading");
+  readingCookie = "5.9";
 });
