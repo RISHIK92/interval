@@ -1006,6 +1006,7 @@ class InMemoryRankingInputs:
         self.hidden: set[tuple[str, int]] = set()  # (user, source id)
         # (user, item id, kind), oldest first: the order Postgres reads by given_at
         self.feedback: list[tuple[str, int, str]] = []
+        self.saves: list[tuple[str, int]] = []  # (user, item), oldest first
         # The ranking_config migration's seed values (P1-W4-S03)
         self.config_rows: dict[str, float] = dict(RANKING_DEFAULTS)
 
@@ -1022,13 +1023,14 @@ class InMemoryRankingInputs:
             if user == user_id and kind == "not_interested"
         }
 
-    def liked_items(self, user_id: str, limit: int) -> list[int]:
+    def anchor_items(self, user_id: str, limit: int) -> list[int]:
         liked = [
             item
             for user, item, kind in reversed(self.feedback)
             if user == user_id and kind == "more_like_this"
         ]
-        return liked[:limit]
+        saved = [item for user, item in reversed(self.saves) if user == user_id]
+        return list(dict.fromkeys(liked + saved))[:limit]
 
     def less_liked(self, user_id: str) -> set[int]:
         return {

@@ -47,13 +47,20 @@
     },
     "item_saved": {
       "version": 1,
-      "description": "An item was saved (W5-S04).",
+      "description": "An item was saved (W4-S07; listed by the W5-S04 Library).",
       "props": {}
     },
     "feedback_given": {
       "version": 1,
-      "description": "Feedback on a card; its kind is defined by W4-S07.",
-      "props": {}
+      "description": "Feedback on a card (W4-S07, Q-P1-15).",
+      "props": {
+        "kind": ["more_like_this", "less_like_this", "not_interested"]
+      }
+    },
+    "feedback_undone": {
+      "version": 1,
+      "description": "Not interested undone right after it was given (W4-S07).",
+      "props": { "kind": ["not_interested"] }
     },
     "source_hidden": {
       "version": 1,

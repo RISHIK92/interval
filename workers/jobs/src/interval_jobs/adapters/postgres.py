@@ -1342,12 +1342,24 @@ class PostgresRankingInputs:
         ).fetchall()
         return {int(r[0]) for r in rows}
 
-    def liked_items(self, user_id: str, limit: int) -> list[int]:
+    def anchor_items(self, user_id: str, limit: int) -> list[int]:
         rows = self._conn.execute(
-            "select content_item_id from item_feedback "
-            "where user_id = %s and kind = 'more_like_this' "
-            "order by given_at desc limit %s",
-            (user_id, limit),
+            """
+            select content_item_id from (
+              -- Each item once, at its strongest: More like this before a save.
+              select distinct on (content_item_id) content_item_id, tier, at from (
+                select content_item_id, 0 as tier, given_at as at from item_feedback
+                where user_id = %(user)s and kind = 'more_like_this'
+                union all
+                select content_item_id, 1, saved_at from user_save
+                where user_id = %(user)s
+              ) a
+              order by content_item_id, tier, at desc
+            ) best
+            order by tier, at desc
+            limit %(limit)s
+            """,
+            {"user": user_id, "limit": limit},
         ).fetchall()
         return [int(r[0]) for r in rows]
 

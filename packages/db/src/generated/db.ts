@@ -400,6 +400,12 @@ export interface UserPreferences {
   user_id: string;
 }
 
+export interface UserSave {
+  content_item_id: Int8;
+  saved_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface DB {
   ai_budget: AiBudget;
   ai_usage: AiUsage;
@@ -440,4 +446,5 @@ export interface DB {
   user_feed_visible: UserFeedVisible;
   user_hidden_source: UserHiddenSource;
   user_preferences: UserPreferences;
+  user_save: UserSave;
 }

@@ -88,6 +88,7 @@ class Probe(Protocol):
     # What the web app writes about a user (P1-W4-S01, W4-S07).
     def set_preferences(self, user_id: str, topics: list[str]) -> None: ...
     def give_feedback(self, user_id: str, item_id: int, kind: str) -> None: ...
+    def save(self, user_id: str, item_id: int) -> None: ...
     def hide_source(self, user_id: str, source_id: int) -> None: ...
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None: ...
     def override_level(self, item_id: int, heading: str, level: str) -> None: ...
@@ -163,6 +164,9 @@ class MemoryProbe:
 
     def give_feedback(self, user_id: str, item_id: int, kind: str) -> None:
         self.s.ranking.feedback.append((user_id, item_id, kind))
+
+    def save(self, user_id: str, item_id: int) -> None:
+        self.s.ranking.saves.append((user_id, item_id))
 
     def hide_source(self, user_id: str, source_id: int) -> None:
         self.s.ranking.hidden.add((user_id, source_id))
@@ -343,6 +347,14 @@ class PostgresProbe:
             "insert into item_feedback (user_id, content_item_id, kind) "
             "values (%s, %s, %s)",
             (user_id, item_id, kind),
+        )
+
+    def save(self, user_id: str, item_id: int) -> None:
+        # Spaced out in time so "newest first" is well defined in one transaction.
+        self.conn.execute(
+            "insert into user_save (user_id, content_item_id, saved_at) "
+            "values (%s, %s, clock_timestamp())",
+            (user_id, item_id),
         )
 
     def hide_source(self, user_id: str, source_id: int) -> None:
@@ -1721,7 +1733,12 @@ def test_readers_return_preferences_feedback_and_topic_moments(
     probe.give_feedback(user, by_correction, "more_like_this")
     probe.hide_source(user, plain)
     assert s.ranking.not_interested(user) == {by_tag}
-    assert s.ranking.liked_items(user, 5) == [by_correction]
+    assert s.ranking.anchor_items(user, 5) == [by_correction]
+    # Saved items anchor too (P1-W4-S07): after More like this, newest first, once.
+    probe.save(user, off_topic)
+    probe.save(user, by_correction)
+    assert s.ranking.anchor_items(user, 5) == [by_correction, off_topic]
+    assert s.ranking.anchor_items(user, 1) == [by_correction]
     assert s.ranking.hidden_sources(user) == {plain}
     rows = s.ranking.topic_moments(
         ["databases"], 1000, exclude_sources={plain}, exclude_items=set()

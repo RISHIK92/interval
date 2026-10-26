@@ -282,7 +282,7 @@ test("a computed but empty chip reads as computed with no cards", async () => {
 });
 
 test("the starter feed is read per topic, level and chip", async () => {
-  await inRollback(async (trx, { itemId, momentIds }) => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
     const [first, second] = momentIds;
     if (first === undefined || second === undefined) throw new Error("seed");
     const beginner = { topic: "databases", level: "beginner" } as const;
@@ -327,6 +327,7 @@ test("the starter feed is read per topic, level and chip", async () => {
       ])
       .execute();
     const cards = await kyselyFeedReader(trx).starter(
+      userId,
       "databases",
       "beginner",
       "3-8",
@@ -398,4 +399,106 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     missing: ["estimated_minutes"],
   });
   expect(lines[0]).not.toContain("Secret-ish title");
+});
+
+// P1-W4-S07: Not interested and Hide source take effect before the recompute lands.
+test("the user's not-interested items and hidden sources are left out at once", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const [first] = momentIds;
+    if (first === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_feed_entry")
+      .values({
+        user_id: userId,
+        chip: "3-8",
+        content_item_id: itemId,
+        moment_id: first,
+        rank: 1,
+        top_signal: "quality",
+      })
+      .execute();
+    await trx
+      .insertInto("user_feed_state")
+      .values({ user_id: userId, computed_at: new Date() })
+      .execute();
+    await trx
+      .deleteFrom("starter_feed_entry")
+      .where("topic", "=", "databases")
+      .where("level", "=", "beginner")
+      .execute();
+    await trx
+      .insertInto("starter_feed_entry")
+      .values({
+        topic: "databases",
+        level: "beginner",
+        chip: "3-8",
+        content_item_id: itemId,
+        moment_id: first,
+        rank: 1,
+      })
+      .execute();
+    const reader = kyselyFeedReader(trx);
+    const read = () => reader.read(userId, "3-8", 50);
+    const starter = () =>
+      reader.starter(userId, "databases", "beginner", "3-8", 50);
+    expect((await read()).cards).toHaveLength(1);
+    expect(await starter()).toHaveLength(1);
+
+    // Another user's Not interested and hidden source never reach this user's feed.
+    const otherId = (
+      await trx
+        .selectFrom("app_user")
+        .select("id")
+        .where("id", "!=", userId)
+        .limit(1)
+        .executeTakeFirstOrThrow()
+    ).id;
+    const source = await trx
+      .selectFrom("content_item")
+      .select("source_id")
+      .where("id", "=", itemId)
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("item_feedback")
+      .values({
+        user_id: otherId,
+        content_item_id: itemId,
+        kind: "not_interested",
+      })
+      .execute();
+    await trx
+      .insertInto("user_hidden_source")
+      .values({ user_id: otherId, source_id: source.source_id })
+      .execute();
+    expect((await read()).cards).toHaveLength(1);
+    expect(await starter()).toHaveLength(1);
+
+    await trx
+      .insertInto("item_feedback")
+      .values({
+        user_id: userId,
+        content_item_id: itemId,
+        kind: "not_interested",
+      })
+      .execute();
+    // Still computed: only this card is gone.
+    expect(await read()).toEqual({ computed: true, cards: [] });
+    expect(await starter()).toEqual([]);
+
+    await trx
+      .deleteFrom("item_feedback")
+      .where("user_id", "=", userId)
+      .execute();
+    const item = await trx
+      .selectFrom("content_item")
+      .select("source_id")
+      .where("id", "=", itemId)
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("user_hidden_source")
+      .values({ user_id: userId, source_id: item.source_id })
+      .execute();
+    expect(await read()).toEqual({ computed: true, cards: [] });
+    expect(await starter()).toEqual([]);
+  });
 });

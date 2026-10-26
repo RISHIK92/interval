@@ -75,7 +75,7 @@ def candidates_for(
     ):
         add(row, "topic")
     if model is not None and user_id is not None:
-        anchors = inputs.liked_items(user_id, MAX_ANCHORS)
+        anchors = inputs.anchor_items(user_id, MAX_ANCHORS)
         # Excluded in the query, before its limit: an anchor's own moments would
         # otherwise fill every slot.
         skip_items = gone | set(anchors)

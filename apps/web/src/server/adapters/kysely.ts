@@ -138,6 +138,21 @@ export function toCard(row: CardRow): FeedCard | null {
 }
 
 // Reads the precomputed feed (CACHE-1); the worker writes it (ADR-0008).
+// The user's Not interested items and hidden sources leave the feed at once, before
+// the recompute they queue lands (owner, P1-W4-S07).
+function keptFor(userId: string, itemColumn: string) {
+  const item = sql.ref(itemColumn);
+  return sql<boolean>`not exists (
+      select 1 from item_feedback f
+      where f.user_id = ${userId} and f.content_item_id = ${item}
+        and f.kind = 'not_interested'
+    ) and not exists (
+      select 1 from user_hidden_source h
+      join content_item c on c.source_id = h.source_id
+      where h.user_id = ${userId} and c.id = ${item}
+    )`;
+}
+
 export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
   return {
     read: async (userId, chip, limit) => {
@@ -145,7 +160,10 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
       const rows = await db
         .selectFrom("user_feed_state as s")
         .leftJoin("user_feed_visible as v", (join) =>
-          join.onRef("v.user_id", "=", "s.user_id").on("v.chip", "=", chip),
+          join
+            .onRef("v.user_id", "=", "s.user_id")
+            .on("v.chip", "=", chip)
+            .on(keptFor(userId, "v.content_item_id")),
         )
         .select(CARD_COLUMNS.map((column) => `v.${column}` as const))
         .where("s.user_id", "=", userId)
@@ -160,10 +178,11 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .filter((card) => card !== null);
       return { computed: true, cards };
     },
-    starter: async (topic, level, chip, limit) => {
+    starter: async (userId, topic, level, chip, limit) => {
       const rows = await db
         .selectFrom("starter_feed_visible")
         .select(CARD_COLUMNS)
+        .where(keptFor(userId, "starter_feed_visible.content_item_id"))
         .where("topic", "=", topic)
         .where("level", "=", level)
         .where("chip", "=", chip)

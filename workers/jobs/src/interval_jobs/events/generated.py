@@ -20,6 +20,7 @@ type EventName = Literal[
     "continue_clicked",
     "feed_viewed",
     "feedback_given",
+    "feedback_undone",
     "guest_merged",
     "item_saved",
     "onboarding_completed",
@@ -40,6 +41,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "continue_clicked": 1,
     "feed_viewed": 1,
     "feedback_given": 1,
+    "feedback_undone": 1,
     "guest_merged": 1,
     "item_saved": 1,
     "onboarding_completed": 1,
@@ -77,7 +79,11 @@ class FeedViewedProps(_Model):
 
 
 class FeedbackGivenProps(_Model):
-    pass
+    kind: Literal["more_like_this", "less_like_this", "not_interested"]
+
+
+class FeedbackUndoneProps(_Model):
+    kind: Literal["not_interested"]
 
 
 class GuestMergedProps(_Model):
@@ -168,6 +174,12 @@ class FeedbackGivenEvent(_EnvelopeBase):
     props: FeedbackGivenProps
 
 
+class FeedbackUndoneEvent(_EnvelopeBase):
+    name: Literal["feedback_undone"]
+    version: Literal[1]
+    props: FeedbackUndoneProps
+
+
 class GuestMergedEvent(_EnvelopeBase):
     name: Literal["guest_merged"]
     version: Literal[1]
@@ -230,6 +242,7 @@ type Envelope = Annotated[
     | ContinueClickedEvent
     | FeedViewedEvent
     | FeedbackGivenEvent
+    | FeedbackUndoneEvent
     | GuestMergedEvent
     | ItemSavedEvent
     | OnboardingCompletedEvent

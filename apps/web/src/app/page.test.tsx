@@ -17,8 +17,12 @@ const getPreferences = vi.fn<(userId: string) => Promise<object | null>>(() =>
     onboardedAt: new Date("2026-01-01T00:00:00Z"),
   }),
 );
+const notInterested = vi.fn<
+  (userId: string, itemId: string) => Promise<boolean>
+>(() => Promise.resolve(false));
 vi.mock("../server/container", () => ({
   preferences: () => ({ get: getPreferences }),
+  feedback: () => ({ notInterested }),
   feedReader: () => ({ read: getFeed, starter: vi.fn() }),
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
@@ -188,4 +192,38 @@ test("the 8–15 chip renders whole-article cards next to moments", async () => 
   expect(html).toContain("Whole article · Length unknown");
   expect(html).toContain('href="https://webfeed.example.test/whole"');
   expect(html.match(/<article/g)).toHaveLength(2);
+});
+
+// P1-W4-S07, C-20: Save on the card; the other controls in its overflow menu.
+test("every card offers Save and the four other controls", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  const html = await render();
+  expect(html).toContain('name="itemId" value="10"');
+  for (const control of [
+    "save",
+    "more_like_this",
+    "less_like_this",
+    "not_interested",
+    "hide_source",
+  ]) {
+    expect(html).toMatch(new RegExp(`<button[^>]*value="${control}"[^>]*>`));
+  }
+  expect(html).toContain("<details>");
+  expect(html).toContain('aria-label="Save Why consensus"');
+});
+
+test("after Not interested the page offers Undo for that item only", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  notInterested.mockResolvedValueOnce(true);
+  const html = await render({ undo: "77" });
+  expect(notInterested).toHaveBeenCalledWith("u1", "77");
+  expect(html).toContain('value="undo_not_interested" name="control"');
+  expect(html).toContain('name="itemId" value="77"');
+  notInterested.mockResolvedValueOnce(false);
+  expect(await render({ undo: "78" })).not.toContain("undo_not_interested");
+  notInterested.mockClear();
+  expect(await render({ undo: "abc" })).not.toContain("undo_not_interested");
+  expect(notInterested).not.toHaveBeenCalled();
 });

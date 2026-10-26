@@ -87,6 +87,7 @@ describe("loadFeed", () => {
     expect(result).toEqual({ cards: [card("starter")] });
     expect(waited.reduce((a, b) => a + b, 0)).toBe(3000);
     expect(feed.starter).toHaveBeenCalledWith(
+      "u1",
       "databases",
       "intermediate",
       "8-15",

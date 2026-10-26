@@ -374,3 +374,9 @@ class UserPreferences(TypedDict):
     break_length: BreakLength
     onboarded_at: datetime
     updated_at: datetime
+
+
+class UserSave(TypedDict):
+    user_id: str
+    content_item_id: int
+    saved_at: datetime

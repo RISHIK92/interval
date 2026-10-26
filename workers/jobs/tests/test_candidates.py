@@ -81,7 +81,7 @@ def test_topic_match_uses_the_items_tags_or_else_its_sources_topics() -> None:
     assert unrelated not in ids(found)
 
 
-def test_similar_moments_to_liked_items_are_candidates() -> None:
+def test_similar_moments_to_anchor_items_are_candidates() -> None:
     w = World()
     other = w.source("misc", topics=("backend",))
     liked, liked_moment = w.item(other, "liked")

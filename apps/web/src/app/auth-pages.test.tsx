@@ -23,6 +23,7 @@ vi.mock("../server/container", () => ({
     read: () => Promise.resolve({ computed: true, cards: [] as FeedCard[] }),
   }),
   entitlements: () => ({ can: () => Promise.resolve(true) }),
+  feedback: () => ({ notInterested: () => Promise.resolve(false) }),
   // Onboarded (P1-W4-S01), so the home page renders.
   preferences: () => ({
     get: () =>

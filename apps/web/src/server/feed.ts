@@ -39,6 +39,12 @@ export async function loadFeed(
   const [topic] = preferences.topics;
   if (topic === undefined) return { cards: [] };
   return {
-    cards: await deps.feed.starter(topic, preferences.level, chip, limit),
+    cards: await deps.feed.starter(
+      userId,
+      topic,
+      preferences.level,
+      chip,
+      limit,
+    ),
   };
 }

@@ -627,8 +627,9 @@ class RankingInputs(Protocol):
         """Item ids the user said Not interested to: never shown again."""
         ...
 
-    def liked_items(self, user_id: str, limit: int) -> list[int]:
-        """Items the user said More like this to, newest first."""
+    def anchor_items(self, user_id: str, limit: int) -> list[int]:
+        """Items to find similar moments from (Q-P1-13): those the user said More like
+        this to, then those they saved (P1-W4-S07), each newest first, once."""
         ...
 
     def less_liked(self, user_id: str) -> set[int]:

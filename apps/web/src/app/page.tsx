@@ -4,15 +4,18 @@ import { redirect } from "next/navigation";
 import {
   entitlements,
   events,
+  feedback,
   feedReader,
   preferences,
   sessionReader,
 } from "../server/container";
 import { CHIP_COOKIE, chipFor, chipLabel, CHIPS } from "../server/chips";
 import { loadFeed } from "../server/feed";
+import { ITEM_ID } from "../server/ports";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { ArticleCard } from "./ArticleCard";
+import { CardControls, UndoNotInterested } from "./CardControls";
 import { MomentCard } from "./MomentCard";
 
 export const dynamic = "force-dynamic";
@@ -51,11 +54,16 @@ export default async function HomePage({
   }
   // The selected time chip picks the feed (Q-P1-16); the proxy remembers a chip link.
   const jar = await cookies();
-  const chip = chipFor(
-    (await searchParams)["chip"],
-    jar.get(CHIP_COOKIE)?.value,
-    chosen,
-  );
+  const params = await searchParams;
+  const chip = chipFor(params["chip"], jar.get(CHIP_COOKIE)?.value, chosen);
+  // Offered only for an item this user really marked Not interested (P1-W4-S07).
+  const undo = params["undo"];
+  const undoable =
+    typeof undo === "string" &&
+    ITEM_ID.test(undo) &&
+    (await feedback().notInterested(actor.userId, undo))
+      ? undo
+      : null;
   // The stored feed (CACHE-1); a first visit may wait for it, then a starter (ADR-0008).
   const { cards } = await loadFeed(
     { feed: feedReader() },
@@ -91,16 +99,32 @@ export default async function HomePage({
           ))}
         </ul>
       </nav>
+      {undoable === null ? null : (
+        <UndoNotInterested itemId={undoable} chip={chip} />
+      )}
       {cards.length === 0 ? (
         <p>No moments yet.</p>
       ) : (
-        cards.map((card) =>
-          card.kind === "moment" ? (
-            <MomentCard key={`m${card.momentId}`} card={card} chip={chip} />
-          ) : (
-            <ArticleCard key={`a${card.itemId}`} card={card} chip={chip} />
-          ),
-        )
+        cards.map((card) => (
+          <section
+            key={
+              card.kind === "moment" ? `m${card.momentId}` : `a${card.itemId}`
+            }
+          >
+            {card.kind === "moment" ? (
+              <MomentCard card={card} chip={chip} />
+            ) : (
+              <ArticleCard card={card} chip={chip} />
+            )}
+            <CardControls
+              itemId={card.itemId}
+              title={
+                card.kind === "moment" ? card.sectionTitle : card.articleTitle
+              }
+              chip={chip}
+            />
+          </section>
+        ))
       )}
     </main>
   );

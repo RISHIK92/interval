@@ -1,7 +1,13 @@
 // Ports (ADR-0012): what server logic and pages depend on. Adapters implement them;
 // container.ts wires them. Nothing outside adapters/ imports kysely or pg.
 
-import type { BreakLength, Capability, Difficulty, Topic } from "@interval/db";
+import type {
+  BreakLength,
+  Capability,
+  Difficulty,
+  FeedbackKind,
+  Topic,
+} from "@interval/db";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 
@@ -40,13 +46,31 @@ export interface FeedReader {
     chip: BreakLength,
     limit: number,
   ): Promise<{ computed: boolean; cards: FeedCard[] }>;
-  // A new guest's feed while their own is computed (ADR-0008).
+  // A new guest's feed while their own is computed (ADR-0008). Both leave out the
+  // user's Not interested items and hidden sources at once (P1-W4-S07).
   starter(
+    userId: string,
     topic: Topic,
     level: Difficulty,
     chip: BreakLength,
     limit: number,
   ): Promise<FeedCard[]>;
+}
+
+// A content item id as forms carry it: a positive bigint.
+export const ITEM_ID = /^[1-9][0-9]{0,18}$/;
+
+// The feedback controls (§5C, Q-P1-15, P1-W4-S07). Each returns whether it changed
+// anything: a repeat counts no event and queues no recompute. An item that doesn't
+// exist changes nothing. None touches the user's explicit choices (PER-1).
+export interface Feedback {
+  give(userId: string, itemId: string, kind: FeedbackKind): Promise<boolean>;
+  // Only right after it was given (owner, 2026-10-26); More and Less stay.
+  undoNotInterested(userId: string, itemId: string): Promise<boolean>;
+  // The item's source, hidden for this user; undone from settings (Q-P1-36).
+  hideSource(userId: string, itemId: string): Promise<boolean>;
+  save(userId: string, itemId: string): Promise<boolean>;
+  notInterested(userId: string, itemId: string): Promise<boolean>;
 }
 
 export interface DatabasePing {

@@ -21,6 +21,8 @@ describe("the event list (Q-P1-20)", () => {
         "continue_clicked",
         "item_saved",
         "feedback_given",
+        // Added by the owner with W4-S07's plan (2026-10-26): Not interested undone.
+        "feedback_undone",
         "source_hidden",
         "signup_completed",
         "guest_merged",
