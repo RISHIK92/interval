@@ -13,6 +13,7 @@ from datetime import datetime
 from typing import Literal
 
 from interval_jobs import log
+from interval_jobs.frameable import framed_at
 from interval_jobs.ports import (
     Fetcher,
     FetchError,
@@ -63,7 +64,8 @@ def check_link(
     if broken_at is not None:
         log.info("links: item link works again", item_id=item_id)
     store.items.set_link_broken(item_id, None)
-    store.items.set_frameable(item_id, can_frame)  # ADR-0018
+    # ADR-0018: the in-app reader's answer, for the address it frames.
+    store.items.set_frameable(item_id, framed_at(url, headers_allow=can_frame))
     return "fine"
 
 

@@ -41,6 +41,7 @@ from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.embedding import embed_item
 from interval_jobs.feed.notes import polish_note, queue_polish
 from interval_jobs.feed.precompute import recompute_user_feed
+from interval_jobs.frameable import framed_at
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.link_health import check_link
 from interval_jobs.normalize import page_canonical, simhash
@@ -291,13 +292,15 @@ class Pipeline:
                 "pipeline: robots.txt disallows the article", content_item_id=item_id
             )
             return []
-        # ADR-0018: known from this fetch's headers, before any weekly check.
-        if article.frameable is not None:
-            store.items.set_frameable(item_id, article.frameable)
         text = services.extractor.text(article.body, article.encoding)
-        store.items.set_canonical(
-            item_id, page_canonical(article.body, article.encoding, article.url)
-        )
+        canonical = page_canonical(article.body, article.encoding, article.url)
+        store.items.set_canonical(item_id, canonical)
+        # ADR-0018: known from this fetch's headers, before any weekly check, for the
+        # address the reader will frame.
+        if article.frameable is not None:
+            store.items.set_frameable(
+                item_id, framed_at(canonical, headers_allow=article.frameable)
+            )
         follow_ups: list[Next] = []
         if allowed(item.rights_profile, "store_full_text"):
             store.items.store_full_text(item_id, text)

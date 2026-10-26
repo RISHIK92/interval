@@ -209,7 +209,7 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
     },
     nextMoment: async (itemId, momentId) => {
       const next = await allowedMoments()
-        .select(["m.id", "m.title"])
+        .select(["m.id", "m.title", "c.frameable"])
         .where("m.content_item_id", "=", itemId)
         .where(
           "m.ordinal",
@@ -225,7 +225,11 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
         .executeTakeFirst();
       return next === undefined
         ? null
-        : { momentId: next.id, title: next.title };
+        : {
+            momentId: next.id,
+            title: next.title,
+            frameable: next.frameable === true,
+          };
     },
   };
 }

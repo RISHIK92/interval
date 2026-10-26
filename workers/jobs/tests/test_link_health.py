@@ -190,3 +190,14 @@ def test_a_check_records_whether_the_page_can_be_framed() -> None:
     # A failed check changes nothing.
     check_link(store, web(RobotsDisallowed("robots")), item_id, NOW)
     assert store.items.rows[item_id].frameable is False
+
+
+def test_a_plain_http_page_is_never_framed() -> None:
+    # The reader frames https only (frame-src https:); an http page would leave
+    # Interval in the same tab instead (owner, 2026-10-27 beta check).
+    store = InMemoryStore()
+    item_id = item(store, url="http://blog.example.test/post")
+    http = "http://blog.example.test/post"
+    framed = Fetched(http, b"", None, frameable=True)
+    check_link(store, FakeFetcher({http: framed}), item_id, NOW)
+    assert store.items.rows[item_id].frameable is False

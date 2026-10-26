@@ -129,7 +129,7 @@ export interface Progress {
   nextMoment(
     itemId: string,
     momentId: string,
-  ): Promise<{ momentId: string; title: string } | null>;
+  ): Promise<{ momentId: string; title: string; frameable: boolean } | null>;
   // P1-W5-S03 (Q-P1-35): the article, once every one of its sections is finished.
   finishArticleIfComplete(
     userId: string,

@@ -18,7 +18,7 @@ import {
   CHIPS,
 } from "../server/chips";
 import { loadFeed } from "../server/feed";
-import { outHref } from "../server/outbound";
+import { outHref, readHref } from "../server/outbound";
 import { parseReading, READING_COOKIE } from "../server/reading";
 import { BIGINT_ID, type FeedCard } from "../server/ports";
 import { visitId } from "../server/visits";
@@ -149,13 +149,20 @@ export default async function HomePage({
     3,
   );
   // The stored feed (CACHE-1); a first visit may wait for it, then a starter (ADR-0008).
-  const { cards } = await loadFeed(
+  const { cards: loaded } = await loadFeed(
     { feed: feedReader() },
     actor.userId,
     chosen,
     chip,
     FEED_LIMIT,
   );
+  // An article already in Continue reading isn't offered again below it (owner,
+  // 2026-10-27).
+  const fresh = loaded.filter(
+    (card) => !continuing.some((c) => c.itemId === card.itemId),
+  );
+  // Never "No moments yet" while there are moments: then they show after all.
+  const cards = fresh.length > 0 ? fresh : loaded;
   events().emit(
     "feed_viewed",
     { card_count: cards.length },
@@ -239,21 +246,39 @@ export default async function HomePage({
         ) : (
           <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
             Continue:{" "}
-            <a
-              href={outHref({
-                itemId: finished.itemId,
-                momentId: next.momentId,
-                from: "continue",
-                target: "section",
-              })}
-              data-item={finished.itemId}
-              data-moment={next.momentId}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-select"
-            >
-              {next.title}
-            </a>
+            {/* In the reader when the page can be framed, as the cards do
+              (ADR-0018). */}
+            {next.frameable ? (
+              <a
+                href={readHref({
+                  itemId: finished.itemId,
+                  momentId: next.momentId,
+                  chip,
+                  from: "continue",
+                })}
+                data-read-item={finished.itemId}
+                data-read-moment={next.momentId}
+                className="font-semibold text-select"
+              >
+                {next.title}
+              </a>
+            ) : (
+              <a
+                href={outHref({
+                  itemId: finished.itemId,
+                  momentId: next.momentId,
+                  from: "continue",
+                  target: "section",
+                })}
+                data-item={finished.itemId}
+                data-moment={next.momentId}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-select"
+              >
+                {next.title}
+              </a>
+            )}
           </p>
         )}
         <ContinueReading cards={continuing} chip={chip} />

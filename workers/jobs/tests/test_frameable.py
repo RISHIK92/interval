@@ -3,7 +3,7 @@
 import httpx
 import pytest
 
-from interval_jobs.frameable import frameable
+from interval_jobs.frameable import frameable, framed_at
 
 
 @pytest.mark.parametrize(
@@ -59,3 +59,10 @@ def test_every_csp_header_counts_when_a_page_sends_several() -> None:
         ]
     )
     assert frameable(allowed) is True
+
+
+def test_only_an_https_page_whose_headers_allow_it_is_framed() -> None:
+    # ADR-0018: the reader page allows frame-src https: only.
+    assert framed_at("https://a.example.test/p", headers_allow=True) is True
+    assert framed_at("http://a.example.test/p", headers_allow=True) is False
+    assert framed_at("https://a.example.test/p", headers_allow=False) is False

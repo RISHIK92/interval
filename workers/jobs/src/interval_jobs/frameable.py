@@ -22,3 +22,9 @@ def frameable(headers: Mapping[str, str]) -> bool:
             if parts and parts[0].lower() == "frame-ancestors" and parts[1:] != ["*"]:
                 return False
     return True
+
+
+def framed_at(url: str, *, headers_allow: bool) -> bool:
+    # The reader page allows frame-src https: only, so an http page can't be shown
+    # in it whatever its headers say; it opens in the browser (owner, 2026-10-27).
+    return headers_allow and url.startswith("https://")

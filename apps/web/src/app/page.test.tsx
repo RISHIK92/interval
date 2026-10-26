@@ -393,6 +393,7 @@ test("after a section is finished the next one is offered, or the end is said", 
   nextMoment.mockResolvedValueOnce({
     momentId: "2",
     title: "Raft in practice",
+    frameable: false,
   });
   const html = await render({ finished: "10.1" });
   expect(nextMoment).toHaveBeenCalledWith("10", "1");
@@ -400,6 +401,15 @@ test("after a section is finished the next one is offered, or the end is said", 
   // Owner, 2026-10-26: a Continue open counts as continue_clicked, not a feed card.
   expect(html).toContain(
     'href="/out?item=10&amp;moment=2&amp;from=continue&amp;target=section"',
+  );
+  // A page the reader can frame opens there, in this tab (ADR-0018).
+  nextMoment.mockResolvedValueOnce({
+    momentId: "2",
+    title: "Raft in practice",
+    frameable: true,
+  });
+  expect(await render({ finished: "10.1" })).toMatch(
+    /<a href="\/read\/10\?moment=2&amp;chip=3-8&amp;from=continue" data-read-item="10" data-read-moment="2"[^>]*>Raft in practice<\/a>/,
   );
   nextMoment.mockResolvedValueOnce(null);
   expect(await render({ finished: "10.1" })).toContain(
@@ -526,4 +536,30 @@ test("a frameable card opens in the in-app reader, in this tab", async () => {
   expect(html).toMatch(
     /<details[^>]*>(?:(?!<\/details>)[^])*<a href="\/out\?item=10&amp;moment=1&amp;chip=3-8&amp;pos=1&amp;target=original" target="_blank" rel="noopener noreferrer"[^>]*>Open original website<\/a>/,
   );
+});
+
+// An article in Continue reading isn't offered again in the feed below it (owner,
+// 2026-10-27 beta check).
+test("the feed leaves out articles already in Continue reading", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(
+    feedOf([
+      card,
+      { ...card, itemId: "30", momentId: "32", sectionTitle: "Raft again" },
+    ]),
+  );
+  continueCards.mockResolvedValueOnce([
+    {
+      itemId: "30",
+      momentId: "31",
+      sectionTitle: "Raft",
+      sectionNumber: 2,
+      sectionCount: 3,
+      articleTitle: "Consensus in practice",
+      frameable: false,
+    },
+  ]);
+  const feed = (await render()).split('aria-label="Your feed"')[1] ?? "";
+  expect(feed).toContain("Why consensus");
+  expect(feed).not.toContain("Raft again");
 });

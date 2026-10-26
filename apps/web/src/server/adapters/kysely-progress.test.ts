@@ -139,8 +139,16 @@ test("the next section follows by order; the last has none", async () => {
     expect(await progress.nextMoment(itemId, intro)).toEqual({
       momentId: raft,
       title: "Raft",
+      frameable: false,
     });
     expect(await progress.nextMoment(itemId, paxos)).toBeNull();
+    // The reader opens it when the page can be framed (ADR-0018).
+    await trx
+      .updateTable("content_item")
+      .set({ frameable: true })
+      .where("id", "=", itemId)
+      .execute();
+    expect((await progress.nextMoment(itemId, intro))?.frameable).toBe(true);
   });
 });
 

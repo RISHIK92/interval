@@ -765,3 +765,25 @@ def test_the_article_fetch_records_whether_its_page_can_be_framed() -> None:
     world.run()
     by_url = {i.canonical_url: i.frameable for i in world.store.items.rows.values()}
     assert by_url == {WAL: True, OLDER: False}
+
+
+def test_a_page_whose_canonical_is_plain_http_is_not_framed() -> None:
+    # The reader frames the stored canonical, https only (owner, 2026-10-27): an https
+    # fetch naming an http canonical opens in the browser, whatever its headers say.
+    page = fixture_bytes("article.html").replace(
+        b"<head>",
+        b'<head><link rel="canonical" href="http://blog.example.test/wal">',
+        1,
+    )
+    world = World(
+        extra={
+            WAL: Fetched(WAL, page, "utf-8", frameable=True),
+            OLDER: Fetched(
+                OLDER, fixture_bytes("article_v2.html"), "utf-8", frameable=True
+            ),
+        }
+    )
+    world.discover()
+    world.run()
+    by_url = {i.canonical_url: i.frameable for i in world.store.items.rows.values()}
+    assert by_url == {"http://blog.example.test/wal": False, OLDER: True}
