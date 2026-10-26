@@ -34,6 +34,7 @@ from interval_jobs.ports import (
     FeedEntry,
     FetchInput,
     GrantResult,
+    MomentFacts,
     MomentRow,
     RevokeResult,
     RightsViolation,
@@ -1122,6 +1123,19 @@ class PostgresEmbeddings:
         return [[float(x) for x in str(r[0]).strip("[]").split(",")] for r in rows]
 
 
+# An item's concepts: the admin's correction replaces the model's tags (P1-W3-S05).
+_ITEM_CONCEPTS = """
+    select unnest(o.concepts) as slug from tag_override o
+    where o.content_item_id = {item} and o.heading = ''
+    union all
+    select c.slug from item_concept ic join concept c on c.id = ic.concept_id
+    where ic.content_item_id = {item} and not exists (
+      select 1 from tag_override o2
+      where o2.content_item_id = {item} and o2.heading = ''
+    )
+"""
+
+
 class PostgresRankingInputs:
     """What the web app writes about a user, read for ranking (P1-W4-S02)."""
 
@@ -1171,6 +1185,73 @@ class PostgresRankingInputs:
             (user_id, limit),
         ).fetchall()
         return [int(r[0]) for r in rows]
+
+    def less_liked(self, user_id: str) -> set[int]:
+        rows = self._conn.execute(
+            "select content_item_id from item_feedback "
+            "where user_id = %s and kind = 'less_like_this'",
+            (user_id,),
+        ).fetchall()
+        return {int(r[0]) for r in rows}
+
+    def avoided_concepts(self, user_id: str) -> frozenset[str]:
+        rows = self._conn.execute(
+            f"""
+            select distinct concept.slug
+            from item_feedback f
+            cross join lateral ({_ITEM_CONCEPTS.format(item="f.content_item_id")})
+              as concept(slug)
+            where f.user_id = %s and f.kind = 'not_interested'
+            """,
+            (user_id,),
+        ).fetchall()
+        return frozenset(str(r[0]) for r in rows)
+
+    def config(self) -> dict[str, float]:
+        rows = self._conn.execute("select key, value from ranking_config").fetchall()
+        return {str(r[0]): float(r[1]) for r in rows}
+
+    def moment_facts(self, moment_ids: list[int]) -> dict[int, MomentFacts]:
+        rows = self._conn.execute(
+            f"""
+            select m.id, ci.id, s.id, m.estimated_minutes,
+                   -- Human before model (owner, 2026-10-26): the admin's moment level,
+                   -- the admin's item level, the model's moment tag, its item tag.
+                   coalesce(mo.difficulty, io.difficulty, mt.difficulty, it.difficulty),
+                   ci.published_at, s.quality_score,
+                   array(select slug from ({_ITEM_CONCEPTS.format(item="ci.id")}) c),
+                   s.topics || array(
+                     select k.topic from concept k
+                     where k.slug in (
+                       select slug from ({_ITEM_CONCEPTS.format(item="ci.id")}) c2
+                     )
+                   )
+            from moment m
+            join content_item ci on ci.id = m.content_item_id
+            join source s on s.id = ci.source_id
+            left join moment_tagging mt on mt.moment_id = m.id
+            left join tag_override mo on mo.content_item_id = ci.id
+              and mo.heading = m.title and m.link_type <> 'page_top'
+            left join tag_override io on io.content_item_id = ci.id and io.heading = ''
+            left join item_tagging it on it.content_item_id = ci.id
+            where m.id = any(%s)
+            """,
+            (moment_ids,),
+        ).fetchall()
+        return {
+            int(r[0]): MomentFacts(
+                int(r[0]),
+                int(r[1]),
+                int(r[2]),
+                int(r[3]),
+                r[4],
+                r[5],
+                r[6],
+                frozenset(str(c) for c in r[7]),
+                frozenset(str(t) for t in r[8]),
+            )
+            for r in rows
+        }
 
     def topic_moments(
         self,

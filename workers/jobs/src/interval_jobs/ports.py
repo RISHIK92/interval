@@ -545,6 +545,21 @@ class CandidateMoment:
     source_id: int
 
 
+@dataclass(frozen=True)
+class MomentFacts:
+    """What scoring needs about one candidate moment (P1-W4-S03)."""
+
+    moment_id: int
+    item_id: int
+    source_id: int
+    minutes: int
+    difficulty: Difficulty | None  # the admin's correction, else the model's, else none
+    published_at: datetime | None
+    quality: int | None  # the source's 1-5 score (ING-6)
+    concepts: frozenset[str]  # the item's: the admin's correction, else the model's
+    topics: frozenset[str]  # its source's seed topics and its concepts' topics
+
+
 class RankingInputs(Protocol):
     """What ranking reads (REC-1, Q-P1-15): a user's choices and feedback, which the
     web app writes, and the moments that match them."""
@@ -559,6 +574,22 @@ class RankingInputs(Protocol):
 
     def liked_items(self, user_id: str, limit: int) -> list[int]:
         """Items the user said More like this to, newest first."""
+        ...
+
+    def less_liked(self, user_id: str) -> set[int]:
+        """Items the user said Less like this to (a score penalty, P1-W4-S03)."""
+        ...
+
+    def avoided_concepts(self, user_id: str) -> frozenset[str]:
+        """Concepts of the items the user said Not interested to (Q-P1-15)."""
+        ...
+
+    def config(self) -> dict[str, float]:
+        """`ranking_config`: every weight in one place (Q-P1-13)."""
+        ...
+
+    def moment_facts(self, moment_ids: list[int]) -> dict[int, MomentFacts]:
+        """By moment id; a moment deleted meanwhile (a re-segment) is left out."""
         ...
 
     def topic_moments(

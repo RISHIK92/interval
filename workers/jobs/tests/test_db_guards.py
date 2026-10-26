@@ -318,3 +318,17 @@ def test_the_budget_cannot_be_raised_for_one_user(conn: psycopg.Connection) -> N
             "insert into user_capability (user_id, capability) "
             "values ('budget2', 'ai.budget.daily_cents')"
         )
+
+
+# P1-W4-S03: numeric holds NaN and Infinity, and a negative weight reverses its rule;
+# the owner tunes this table by hand, so bad values are refused when written.
+@pytest.mark.parametrize("value", ["NaN", "Infinity", "-1"])
+def test_ranking_config_refuses_values_that_break_ranking(
+    conn: psycopg.Connection, value: str
+) -> None:
+    with pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(
+            "update ranking_config set value = %s::numeric "
+            "where key = 'weight.quality'",
+            (value,),
+        )

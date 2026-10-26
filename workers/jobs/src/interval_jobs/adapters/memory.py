@@ -34,6 +34,7 @@ from interval_jobs.ports import (
     FetchInput,
     FetchKind,
     GrantResult,
+    MomentFacts,
     MomentRow,
     RevokeResult,
     RightsViolation,
@@ -866,6 +867,21 @@ def _cosine(a: list[float], b: list[float]) -> float:
     return dot / norm if norm else 0.0
 
 
+# The rows the ranking_config migration seeds; tests change their own copy.
+RANKING_DEFAULTS: dict[str, float] = {
+    "weight.topic_match": 1.0,
+    "weight.level_fit": 0.6,
+    "weight.quality": 0.4,
+    "weight.freshness": 0.5,
+    "weight.time_fit": 0.7,
+    "penalty.less_like_this": 1.0,
+    "penalty.not_interested_concepts": 0.8,
+    "freshness.half_life_days": 14,
+    "mmr.lambda": 0.7,
+    "cap.per_source": 4,
+}
+
+
 def shown_items(store: "InMemoryStore") -> set[int]:
     """Per duplicate group, the earliest copy that has moments: what the feed shows
     (owner review, 2026-10-26), and so what ranking may offer. Mirrors the SQL."""
@@ -890,6 +906,8 @@ class InMemoryRankingInputs:
         self.hidden: set[tuple[str, int]] = set()  # (user, source id)
         # (user, item id, kind), oldest first: the order Postgres reads by given_at
         self.feedback: list[tuple[str, int, str]] = []
+        # The ranking_config migration's seed values (P1-W4-S03)
+        self.config_rows: dict[str, float] = dict(RANKING_DEFAULTS)
 
     def preferences(self, user_id: str) -> UserPreferences | None:
         return self.preferences_by_user.get(user_id)
@@ -911,6 +929,76 @@ class InMemoryRankingInputs:
             if user == user_id and kind == "more_like_this"
         ]
         return liked[:limit]
+
+    def less_liked(self, user_id: str) -> set[int]:
+        return {
+            item
+            for user, item, kind in self.feedback
+            if user == user_id and kind == "less_like_this"
+        }
+
+    def avoided_concepts(self, user_id: str) -> frozenset[str]:
+        return frozenset(
+            concept
+            for item in self.not_interested(user_id)
+            for concept in self._item_concepts(item)
+        )
+
+    def config(self) -> dict[str, float]:
+        return dict(self.config_rows)
+
+    def moment_facts(self, moment_ids: list[int]) -> dict[int, MomentFacts]:
+        # Mirrors PostgresRankingInputs.moment_facts.
+        store = self._store
+        wanted = set(moment_ids)
+        facts: dict[int, MomentFacts] = {}
+        graph = store.concepts.state()
+        topic_of = {c.slug: c.topic for c in graph.concepts} if graph else {}
+        for moment in store.moments.rows:
+            if moment.id not in wanted:
+                continue
+            item = store.items.rows[moment.item_id]
+            source = store.sources.rows[item.source_id]
+            # The raw row: for_item keys moment tags by ordinal, this by moment id.
+            tagged = store.tags.rows.get(item.id)
+            item_tags = tagged[0] if tagged else None
+            moment_tags = tagged[1] if tagged else {}
+            heading_fix = (
+                store.tags.overrides.get((item.id, moment.row.title))
+                if moment.row.link_type != "page_top"
+                else None
+            )
+            model_moment = moment_tags.get(moment.id)
+            # Human before model (owner, 2026-10-26), as PostgresRankingInputs reads.
+            difficulty = (
+                heading_fix
+                or store.tags.overrides.get((item.id, ""))
+                or (model_moment.difficulty if model_moment else None)
+                or (item_tags.difficulty if item_tags else None)
+            )
+            concepts = self._item_concepts(item.id)
+            topics = set(source.topics) | {
+                topic_of[c] for c in concepts if c in topic_of
+            }
+            facts[moment.id] = MomentFacts(
+                moment.id,
+                item.id,
+                source.id,
+                moment.row.estimated_minutes,
+                difficulty,
+                item.published_at,
+                source.quality_score,
+                concepts,
+                frozenset(topics),
+            )
+        return facts
+
+    def _item_concepts(self, item_id: int) -> frozenset[str]:
+        corrected = self._store.tags.item_concept_overrides.get(item_id)
+        if corrected is not None:
+            return corrected
+        tags, _ = self._store.tags.for_item(item_id)
+        return tags.concepts if tags else frozenset()
 
     def topic_moments(
         self,
@@ -934,13 +1022,7 @@ class InMemoryRankingInputs:
                 continue
             if source.id in exclude_sources or item.id in exclude_items:
                 continue
-            corrected = store.tags.item_concept_overrides.get(item.id)
-            tags, _ = store.tags.for_item(item.id)
-            concepts = (
-                corrected
-                if corrected is not None
-                else (tags.concepts if tags else frozenset[str]())
-            )
+            concepts = self._item_concepts(item.id)
             by_concept = any(topic_of.get(c) in wanted for c in concepts)
             if not (wanted & set(source.topics) or by_concept):
                 continue

@@ -16,7 +16,12 @@ import psycopg
 import pytest
 
 from interval_db.generated import RightsProfile, Topic
-from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
+from interval_jobs.adapters.memory import (
+    RANKING_DEFAULTS,
+    InMemoryAi,
+    InMemoryStore,
+    StoredUser,
+)
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore
 from interval_jobs.concepts.graph import ConceptSeedError, parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
@@ -1758,3 +1763,72 @@ def test_topic_moments_offer_the_shown_copy_of_active_sources_in_order(
     )
     s.sources.sync([seed("other-only")])  # tm-full leaves the seed list: inactive
     assert offered() == []
+
+
+# REC-2 scoring inputs (P1-W4-S03).
+def test_the_fakes_ranking_config_matches_the_migrations_seed(
+    conn: psycopg.Connection,
+) -> None:
+    assert PostgresStore(conn).ranking.config() == RANKING_DEFAULTS
+
+
+def test_moment_facts_and_feedback_for_scoring(store: tuple[Store, Probe]) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(
+        s,
+        parse_concepts(
+            "version: 1\nconcepts:\n"
+            "  - {slug: sf-a, name: A, topic: databases}\n"
+            "  - {slug: sf-b, name: B, topic: databases}\n",
+            "c.yaml",
+        ),
+    )
+    user = f"scoring-{uuid4().hex[:8]}"
+    probe.add_user(user, False, [])
+    sid = dup_source(s, "sf")
+    probe.enable_moments(sid)
+    item = dup_item(s, sid, "sf1", 7)
+    disliked = dup_item(s, sid, "sf2", 6)
+    heading_row = replace(moment(1, "Setup"), link_type="anchor")
+    tuning_row = replace(moment(2, "Tuning"), link_type="anchor")
+    s.moments.replace(item, [moment(0, "intro"), heading_row, tuning_row])
+    s.moments.replace(disliked, [moment(0, "d0")])
+    intro, setup, tuning = (m[0] for m in probe.moments(item))
+    s.tags.save(
+        item,
+        TagResult(
+            Tags("beginner", frozenset({"sf-a"})),
+            {
+                setup: Tags("advanced", frozenset()),
+                tuning: Tags("beginner", frozenset()),
+            },
+        ),
+        "m",
+        1,
+    )
+    s.tags.save(disliked, TagResult(Tags("beginner", frozenset({"sf-b"})), {}), "m", 1)
+    probe.override_level(item, "Setup", "intermediate")  # the admin wins
+    facts = s.ranking.moment_facts([intro, setup, tuning])
+    assert facts[setup].difficulty == "intermediate"
+    assert facts[intro].difficulty == "beginner"  # no moment tag: the item's level
+    assert facts[tuning].difficulty == "beginner"  # the model's moment tag
+    assert facts[intro].concepts == frozenset({"sf-a"})
+    assert facts[intro].minutes == 1 and facts[intro].item_id == item
+    # Topics: the source's seed topics plus the topics of the item's concepts.
+    assert facts[intro].topics == frozenset({"databases"})
+    assert facts[intro].quality is None and facts[intro].source_id == sid
+    assert facts[intro].published_at == datetime(2099, 11, 7, tzinfo=UTC)
+    # Owner, 2026-10-26: an admin's item correction beats every model tag; only the
+    # admin's own moment correction is more specific.
+    probe.override_level(item, "", "advanced")
+    facts = s.ranking.moment_facts([intro, setup, tuning])
+    assert facts[tuning].difficulty == "advanced"
+    assert facts[intro].difficulty == "advanced"
+    assert facts[setup].difficulty == "intermediate"
+    probe.give_feedback(user, item, "less_like_this")
+    probe.give_feedback(user, disliked, "not_interested")
+    assert s.ranking.less_liked(user) == {item}
+    assert s.ranking.avoided_concepts(user) == frozenset({"sf-b"})
+    probe.correct_concepts(disliked, ["sf-a"])  # an admin's correction replaces them
+    assert s.ranking.avoided_concepts(user) == frozenset({"sf-a"})

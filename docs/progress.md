@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding) and W4-S02 (candidates) done. Next: W4-S03 (scoring), S04 (precomputed feed). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates) and W4-S03 (scoring) done. Next: W4-S04 (precomputed feed). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -16,6 +16,7 @@ Dependencies added overnight (all pinned):
 - pnpm `allowBuilds: msgpackr-extract: false`: BullMQ's optional native speed-up; the JS fallback works.
 
 Needs your review (newest first):
+- W4-S03: every value in `ranking_config` is a placeholder for your Week 6 tuning. So are the missing-data defaults: an untagged level and an unscored source count as neutral (0.5), and an undated item counts as old (freshness 0).
 - W4-S02: continue items deferred to W5-S03; More like this used as the similarity anchor until saves and finishes exist; items without moments can't be candidates yet (W4-S05's whole-article chip needs an item-level path).
 - W3-S02: docs/conflicts.md C-35 (title and summary of metadata-only items go to the tagging model) and C-36 (what AI-3's citations mean for tags).
 - W3-S01: the provisional concept list (`workers/jobs/seeds/concepts.yaml`, 72 concepts drafted overnight) and the Voyage price table in `adapters/voyage.py`.
@@ -1034,3 +1035,22 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - **Deferred:** continue items need W5-S03's progress data, so that generator, and leaving finished items out, moved to W5-S03 (noted on that slice).
   - **Similarity anchors:** Q-P1-13 names saved and finished items, which don't exist yet. More like this stands in, and saves and finishes join when they exist.
   - **Whole articles:** metadata-only, excerpt, moments-off and headingless items have no moments, so they can never be candidates. W4-S05's 8–15 chip shows whole articles, so ranking needs an item-level path there.
+
+### 2026-10-26 — P1-W4-S03 (rule-based scoring and re-ranking, REC-2, REC-3, Q-P1-13)
+- Done:
+  - **Migration `20261026120000_ranking_config.sql`:** every weight in one table (placeholders, flagged above). Values must be finite and not negative (a check constraint, because Postgres `numeric` holds NaN and Infinity).
+  - **`ranking/scoring.py`:**
+    - score = weighted topic match, level fit, source quality, freshness and time fit, minus Less like this and not-interested-concept penalties;
+    - re-ranking by MMR (scores scaled to 0–1; Jaccard concept overlap, with the same item and the same source counting as alike) with a per-source cap and ties broken by moment id;
+    - `RankingConfig` refuses missing, non-finite and negative values.
+  - **`ranking/rank.py`:** `rank_for_user` ties candidates, facts and config together; W4-S04 calls it.
+  - **`RankingInputs`** gains moment facts, Less like this items, avoided concepts and the config, in Postgres and memory, both in the contract suite.
+- Owner choices (2026-10-26, after review):
+  - **8–15 break:** a moment shorter than 8 minutes fits less, rising linearly from 0.3 at 1 minute to full fit at 8.
+  - **Difficulty order:** human before model: the admin's moment level, the admin's item level, the model's moment tag, then the model's item tag.
+- Review fixes:
+  - NaN, Infinity and negative config values refused (in code and in the DB);
+  - the contract test checks topics, quality, published_at and the level order;
+  - the concept graph lookup moved out of the fake's loop;
+  - tests for the 1–3 chip, future dates and tie order.
+- Deferred: whole-article candidates (W4-S05's 8–15 chip). `top_signal` waits for W4-S06's why-this-matters note.

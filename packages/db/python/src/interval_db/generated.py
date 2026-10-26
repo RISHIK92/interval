@@ -251,6 +251,12 @@ class PlanCapability(TypedDict):
     limit_value: int | None
 
 
+class RankingConfig(TypedDict):
+    key: str
+    value: Decimal
+    note: str
+
+
 class SchemaMeta(TypedDict):
     key: str
     value: str

@@ -275,6 +275,12 @@ export interface PlanCapability {
   plan_id: string;
 }
 
+export interface RankingConfig {
+  key: string;
+  note: string;
+  value: Numeric;
+}
+
 export interface SchemaMeta {
   key: string;
   value: string;
@@ -365,6 +371,7 @@ export interface DB {
   moment_tagging: MomentTagging;
   plan: Plan;
   plan_capability: PlanCapability;
+  ranking_config: RankingConfig;
   schema_meta: SchemaMeta;
   source: Source;
   tag_override: TagOverride;

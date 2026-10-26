@@ -8,6 +8,7 @@ from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.ports import FeedEntry, MomentRow, TagResult, Tags, UserPreferences
 from interval_jobs.ranking.candidates import Candidate, candidates
+from interval_jobs.ranking.rank import rank_for_user
 
 MODEL = "voyage-3.5"
 
@@ -137,3 +138,20 @@ def test_similar_moments_from_hidden_sources_or_dropped_items_never_appear() -> 
     found = ids(candidates(w.store, "u1", MODEL))
     assert kept in found
     assert from_hidden not in found and from_dropped not in found
+
+
+def test_a_users_feed_is_ranked_from_candidates_and_capped_per_source() -> None:
+    w = World()
+    w.store.ranking.config_rows["cap.per_source"] = 2
+    busy = w.source("busy", topics=("databases",))
+    quiet = w.source("quiet", topics=("databases",))
+    for day in range(1, 5):
+        w.item(busy, f"busy-{day}", day=day)
+    _, quiet_moment = w.item(quiet, "quiet-1", day=1)
+    ranked = rank_for_user(w.store, "u1", None, datetime(2026, 10, 26, tzinfo=UTC), 10)
+    sources = [r.source_id for r in ranked]
+    assert sources.count(busy) == 2 and quiet_moment in [r.moment_id for r in ranked]
+    assert (
+        rank_for_user(w.store, "nobody", None, datetime(2026, 10, 26, tzinfo=UTC), 10)
+        == []
+    )
