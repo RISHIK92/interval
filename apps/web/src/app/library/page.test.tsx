@@ -55,6 +55,7 @@ test("saves and finished articles are listed with their links", async () => {
       articleTitle: "Raft in practice",
       sourceName: "Example Engineering",
       savedAt: new Date(),
+      linkBroken: false,
     },
   ]);
   history.mockResolvedValueOnce([
@@ -66,6 +67,7 @@ test("saves and finished articles are listed with their links", async () => {
       totalSections: 4,
       finished: true,
       lastFinishedAt: new Date(),
+      linkBroken: false,
     },
     {
       itemId: "9",
@@ -75,6 +77,7 @@ test("saves and finished articles are listed with their links", async () => {
       totalSections: 4,
       finished: false,
       lastFinishedAt: new Date(),
+      linkBroken: false,
     },
   ]);
   const html = await page();
@@ -95,6 +98,38 @@ test("saves and finished articles are listed with their links", async () => {
     'aria-label="Open Raft in practice on the original website"',
   );
   expect(html).not.toContain("Nothing saved yet.");
+});
+
+test("an item whose link broke stays, marked, with no link to follow", async () => {
+  current.mockResolvedValue(guest);
+  saves.mockResolvedValueOnce([
+    {
+      itemId: "7",
+      articleTitle: "Gone post",
+      sourceName: "Example Engineering",
+      savedAt: new Date(),
+      linkBroken: true,
+    },
+  ]);
+  history.mockResolvedValueOnce([
+    {
+      itemId: "8",
+      articleTitle: "Gone too",
+      sourceName: "Other Blog",
+      finishedSections: 1,
+      totalSections: 1,
+      finished: true,
+      lastFinishedAt: new Date(),
+      linkBroken: true,
+    },
+  ]);
+  const html = await page();
+  expect(html).toContain("Gone post · Example Engineering");
+  expect(html).toContain("Gone too · Other Blog");
+  expect(html.match(/Link broken/g)).toHaveLength(2);
+  expect(html).not.toContain("/out?item=7");
+  expect(html).not.toContain("/out?item=8");
+  expect(html).toContain("Unsave"); // it can still be removed
 });
 
 test("the Library tab is marked current", async () => {

@@ -26,6 +26,7 @@ from datetime import UTC, datetime
 from pydantic import BaseModel
 
 from interval_db.messages import (
+    CheckLink,
     DiscoverSource,
     EmbedItem,
     FetchItem,
@@ -41,6 +42,7 @@ from interval_jobs.embedding import embed_item
 from interval_jobs.feed.notes import polish_note, queue_polish
 from interval_jobs.feed.precompute import recompute_user_feed
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
+from interval_jobs.link_health import check_link
 from interval_jobs.normalize import page_canonical, simhash
 from interval_jobs.polling import MIN_INTERVAL, next_interval
 from interval_jobs.ports import (
@@ -59,7 +61,8 @@ from interval_jobs.segment import segment_item
 from interval_jobs.tagging import PROMPT_VERSION, active_concepts, tag_item
 
 # Every queue the consumer serves: ingestion in the order an item moves through it,
-# then the per-user feed recompute (CACHE-1, P1-W4-S04) and its notes' polish (W4-S06).
+# then the per-user feed recompute (CACHE-1, P1-W4-S04) and its notes' polish (W4-S06),
+# and the weekly link health check (P1-W6-S03).
 STAGES: tuple[MessageName, ...] = (
     "discover_source",
     "fetch_item",
@@ -68,6 +71,7 @@ STAGES: tuple[MessageName, ...] = (
     "embed_item",
     "recompute_feed",
     "polish_note",
+    "check_link",
 )
 
 
@@ -125,6 +129,7 @@ class Pipeline:
             "embed_item": self._embed_stage,
             "recompute_feed": self._recompute_stage,
             "polish_note": self._polish_stage,
+            "check_link": self._stage(self._check_link),
         }
 
     def _stage(
@@ -261,6 +266,13 @@ class Pipeline:
                 follow_ups.extend(self._tag_if_needed(store, item_id))
                 follow_ups.extend(self._embed_if_needed(store, item_id))
         return follow_ups, answered, new_items
+
+    def _check_link(self, services: StageServices, message: BaseModel) -> list[Next]:
+        assert isinstance(message, CheckLink)
+        check_link(
+            services.store, services.fetcher, message.content_item_id, self._clock()
+        )
+        return []
 
     def _fetch(self, services: StageServices, message: BaseModel) -> list[Next]:
         assert isinstance(message, FetchItem)

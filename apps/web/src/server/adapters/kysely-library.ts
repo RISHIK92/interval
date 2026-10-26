@@ -10,7 +10,13 @@ export function kyselyLibrary(db: Kysely<DB>): Library {
         .selectFrom("user_save as us")
         .innerJoin("content_item as c", "c.id", "us.content_item_id")
         .innerJoin("source as s", "s.id", "c.source_id")
-        .select(["c.id", "c.title", "s.name", "us.saved_at"])
+        .select([
+          "c.id",
+          "c.title",
+          "s.name",
+          "us.saved_at",
+          "c.link_broken_at",
+        ])
         .where("us.user_id", "=", userId)
         .orderBy("us.saved_at", "desc")
         .orderBy("c.id", "desc")
@@ -21,6 +27,7 @@ export function kyselyLibrary(db: Kysely<DB>): Library {
         articleTitle: r.title,
         sourceName: r.name,
         savedAt: r.saved_at,
+        linkBroken: r.link_broken_at !== null,
       }));
     },
     history: async (userId, limit) => {
@@ -32,6 +39,7 @@ export function kyselyLibrary(db: Kysely<DB>): Library {
         total_sections: number;
         whole: boolean;
         last_at: Date;
+        link_broken: boolean;
       }>`
         with done as (
           select m.content_item_id as item_id, count(*)::integer as n,
@@ -54,7 +62,7 @@ export function kyselyLibrary(db: Kysely<DB>): Library {
                p.n as finished_sections,
                (select count(*) from moment where content_item_id = p.item_id)::integer
                  as total_sections,
-               p.whole, p.last_at
+               p.whole, p.last_at, c.link_broken_at is not null as link_broken
         from per_item p
         join content_item c on c.id = p.item_id
         join source s on s.id = c.source_id
@@ -71,6 +79,7 @@ export function kyselyLibrary(db: Kysely<DB>): Library {
           r.whole ||
           (r.total_sections > 0 && r.finished_sections >= r.total_sections),
         lastFinishedAt: r.last_at,
+        linkBroken: r.link_broken,
       }));
     },
   };

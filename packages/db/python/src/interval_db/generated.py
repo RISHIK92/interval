@@ -123,6 +123,7 @@ class ContentItem(TypedDict):
     fetched_at: datetime
     duplicate_of: int | None
     simhash: int | None
+    link_broken_at: datetime | None
 
 
 class ContentItemPrivateText(TypedDict):

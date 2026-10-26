@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. W6-S01 (ranking inspection) and W6-S02 (deep-link check) done. Next: W6-S03 (weekly link health checks). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. W6-S01 (ranking inspection), W6-S02 (deep-link check) and W6-S03 (weekly link health) done. Next: W6-S04 (Athena queries by beta group). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 
@@ -464,6 +464,33 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `PERMALINK_GLYPHS` is shared from headings.py;
   - fetch failures are logged as warnings.
 - Run on the local data: 921 of 921 moments passed across 29 sources; none unchecked or flagged. Links were built from the same served HTML, so this confirms the pages haven't moved. Pages that render headings with JavaScript would only differ in a real browser (accepted with the no-browser choice).
+
+### 2026-10-26 — P1-W6-S03 (weekly link health checks, ING-6, §5B, Q-P1-38)
+- Owner choices:
+  - every stored item is checked weekly, broken ones too;
+  - only a 404 or 410 marks a link broken. A 5xx is raised for the queue to retry (3 attempts, then the failed set) and checked again next week. Robots.txt, 403s and other failures change nothing; they're logged;
+  - a later 200 clears the mark;
+  - the Library keeps a broken item, showing "Link broken" in place of its link;
+  - the check reads only the status for every rights profile, metadata_only included (ING-2): a streamed GET whose body is never read.
+- Done:
+  - migration `20261026235000_link_health.sql`: `content_item.link_broken_at`, and both `*_feed_visible` views filter broken items, so they leave every feed at once;
+  - `Fetcher.check` (polite: robots.txt, spacing, the SSRF guard on every hop) via `HttpxFetcher.request(read_body=False)`;
+  - `link_health.py` (`check_link`, `queue_link_checks` keyed by ISO week);
+  - the `check_link` message and stage, and the `check-links-due` command;
+  - `Items.ids`, `link_health` and `set_link_broken` (Postgres and memory; the first mark is kept);
+  - ranking's three shown-copy queries skip broken items, so a working duplicate copy takes over;
+  - continue cards skip broken items; Library rows carry `linkBroken`;
+  - schedules: `deploy/systemd/interval-links.{timer,service}` (weekly, persistent, installed by deploy.sh), and a weekly EventBridge Scheduler task in AWS whose role may only send to `check_link`;
+  - CLAUDE.md command line.
+- Review fixes:
+  - the idempotency wording: the per-week key only collapses pending duplicates; the check itself is idempotent;
+  - tests: the stage retried after a 503 and then recording a 404, broken links in the similar-moment and article candidate queries (including the hand-over to a copy without moments), the `check-links-due` command, and the ISO-week key across new year;
+  - URLs in the warning logs.
+  - **Not done:** splitting the stage's transaction around the HTTP check (the fetch stage holds one too); `/out` still redirects for a broken item (the publisher answers 404 itself).
+- Checked:
+  - `check-links-due` queued 554 local items;
+  - the consumer worked through them: no broken links so far; Netflix TechBlog answers 403 (unchanged, as decided);
+  - in Chrome, with one item marked broken by hand: it left the 3-8 feed, and the Library showed it saved with "Link broken" and no link. Mark and save were removed afterwards.
 
 ## Pre-deploy list (from the S18 review; parked by the owner until deployment, ADR-0013)
 

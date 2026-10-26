@@ -25,6 +25,12 @@ class _Message(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
 
+class CheckLink(_Message):
+    """Check one item's own URL for the weekly link health check (ING-6, P1-W6-S03)."""
+
+    content_item_id: Annotated[int, Field(ge=1)]
+
+
 class DiscoverSource(_Message):
     """Poll one source's feed for new items (ING-1 discover)."""
 
@@ -71,6 +77,7 @@ class TagItem(_Message):
 
 
 type MessageName = Literal[
+    "check_link",
     "discover_source",
     "embed_item",
     "fetch_item",
@@ -81,6 +88,7 @@ type MessageName = Literal[
 ]
 
 MESSAGES: dict[MessageName, type[_Message]] = {
+    "check_link": CheckLink,
     "discover_source": DiscoverSource,
     "embed_item": EmbedItem,
     "fetch_item": FetchItem,

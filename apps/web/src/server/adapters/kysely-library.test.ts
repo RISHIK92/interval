@@ -114,6 +114,7 @@ test("saves list newest first, with title and source only", async () => {
     expect(Object.keys(saves[0] ?? {}).sort()).toEqual([
       "articleTitle",
       "itemId",
+      "linkBroken",
       "savedAt",
       "sourceName",
     ]);
@@ -247,5 +248,29 @@ test("an article with no sections, finished whole, is finished", async () => {
       totalSections: 0,
       finished: true,
     });
+  });
+});
+
+test("saves and history say when an item's link broke (P1-W6-S03)", async () => {
+  await inRollback(async (trx, { userId, items }) => {
+    const [first] = items;
+    if (first === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_save")
+      .values({ user_id: userId, content_item_id: first })
+      .execute();
+    await trx
+      .insertInto("user_article_finished")
+      .values({ user_id: userId, content_item_id: first, method: "mark_done" })
+      .execute();
+    const library = kyselyLibrary(trx);
+    expect((await library.saves(userId, 10))[0]?.linkBroken).toBe(false);
+    await trx
+      .updateTable("content_item")
+      .set({ link_broken_at: new Date() })
+      .where("id", "=", first)
+      .execute();
+    expect((await library.saves(userId, 10))[0]?.linkBroken).toBe(true);
+    expect((await library.history(userId, 10))[0]?.linkBroken).toBe(true);
   });
 });

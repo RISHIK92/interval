@@ -2,6 +2,10 @@
 import { z } from "zod";
 
 export const messageSchemas = {
+  // Check one item's own URL for the weekly link health check (ING-6, P1-W6-S03).
+  check_link: z.strictObject({
+    content_item_id: z.number().int().min(1),
+  }),
   // Poll one source's feed for new items (ING-1 discover).
   discover_source: z.strictObject({
     source_id: z.number().int().min(1),

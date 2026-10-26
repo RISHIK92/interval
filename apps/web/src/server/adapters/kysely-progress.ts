@@ -136,8 +136,10 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
             and m.id not in (select moment_id from seen)
           order by m.ordinal limit 1
         ) nx
-        -- The rights gate, as allowedMoments above (ING-2).
-        where s.moments_enabled
+        -- The rights gate, as allowedMoments above (ING-2); a broken link has left
+        -- the feed, and so its continue card (P1-W6-S03).
+        where c.link_broken_at is null
+          and s.moments_enabled
           and s.rights_profile in ('full_text_internal', 'full_text_display')
           -- Dismissed until the reader reads on (owner, 2026-10-26).
           and not exists (

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Check one item's own URL for the weekly link health check (ING-6, P1-W6-S03).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["content_item_id"],
+  "properties": {
+    "content_item_id": { "type": "integer", "minimum": 1 }
+  }
+}

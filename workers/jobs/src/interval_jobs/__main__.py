@@ -53,6 +53,7 @@ from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.link_check import check_links
+from interval_jobs.link_health import queue_link_checks
 from interval_jobs.pipeline import Pipeline
 from interval_jobs.polling import enqueue_due
 from interval_jobs.ports import ConceptCycleError, ModelError
@@ -160,6 +161,10 @@ def main(argv: list[str]) -> None:
     commands.add_parser(
         "poll-due", help="queue a poll of every source whose turn has come (ING-3)"
     )
+    commands.add_parser(
+        "check-links-due",
+        help="queue this week's link health check of every item (P1-W6-S03)",
+    )
     args = parser.parse_args(argv)
     setup()
     if args.command == "consume":
@@ -199,6 +204,12 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         with services() as s:
             enqueued = enqueue_due(s.store, queue_for_enqueue(), datetime.now(UTC))
         print(json.dumps({"enqueued": enqueued}))
+        return
+
+    if args.command == "check-links-due":
+        with services() as s:
+            queued = queue_link_checks(s.store, queue_for_enqueue(), datetime.now(UTC))
+        print(json.dumps({"queued": queued}))
         return
 
     if args.command == "enqueue-discover":

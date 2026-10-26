@@ -29,6 +29,7 @@ from interval_jobs.ports import (
     Embeddings,
     Fetched,
     FetchError,
+    FetchStatusError,
     Message,
     MomentRow,
     RobotsDisallowed,
@@ -718,3 +719,32 @@ def test_a_polish_over_budget_keeps_the_template(
     assert llm.calls == 0
     assert all(n.model is None for n in world.store.notes.rows.values())
     assert "notes: over budget" in capsys.readouterr().out
+
+
+def test_a_link_check_is_retried_after_a_server_error_then_recorded() -> None:
+    # P1-W6-S03: a 5xx raises, the queue delivers the message again, and the next
+    # answer is what counts.
+    world = World()
+    world.discover()
+    world.run()
+    item_id = next(iter(world.store.items.rows))
+    url = world.store.items.rows[item_id].canonical_url
+    answers: list[Fetched | FetchError] = [
+        FetchStatusError("HTTP 503", 503),
+        FetchStatusError("HTTP 404", 404),
+    ]
+
+    class Flaky(FakeFetcher):
+        def check(self, url: str) -> None:
+            self.checked.append(url)
+            answer = answers.pop(0)
+            if isinstance(answer, FetchError):
+                raise answer
+
+    world.fetcher = Flaky({})
+    world.queue.enqueue(
+        "check_link", {"content_item_id": item_id}, idempotency_key="check-1"
+    )
+    world.run()
+    assert world.fetcher.checked == [url, url]
+    assert world.store.items.link_health(item_id) == (url, NOW)

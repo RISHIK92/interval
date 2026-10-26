@@ -209,3 +209,15 @@ def test_every_request_says_it_is_interval() -> None:
     handler, seen = site()
     polite(handler, Clock()).fetch(POST, "article")
     assert all(r.headers["user-agent"].startswith("Interval/") for r in seen)
+
+
+def test_a_status_check_honours_robots_and_spacing() -> None:
+    clock = Clock()
+    handler, seen = site(clock=clock)
+    fetcher = polite(handler, clock)
+    with pytest.raises(RobotsDisallowed):
+        fetcher.check(PRIVATE)
+    fetcher.check("https://blog.example.test/one")
+    fetcher.check("https://blog.example.test/two")
+    assert [r.url.path for r in seen] == ["/robots.txt", "/one", "/two"]
+    assert all(gap >= 1.0 for gap in clock.gaps("blog.example.test"))

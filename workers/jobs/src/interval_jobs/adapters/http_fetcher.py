@@ -87,17 +87,24 @@ class HttpxFetcher:
             raise FetchError(f"{kind} {url}: 304 without a conditional request")
         return fetched
 
+    def check(self, url: str, on_hop: OnHop | None = None) -> None:
+        self.request(url, "article", {}, on_hop, read_body=False)
+
     def request(
         self,
         url: str,
         kind: RequestKind,
         headers: dict[str, str],
         on_hop: OnHop | None = None,
+        read_body: bool = True,
     ) -> Fetched | None:
-        """One guarded GET with extra headers; None for 304 Not Modified."""
+        """One guarded GET with extra headers; None for 304 Not Modified. Without
+        `read_body`, only the status: the body is never read, nor its type checked."""
         # The port promises FetchError for every failure, so callers never see httpx.
         try:
-            return _fetch(self._http, url, kind, self._resolve, headers, on_hop)
+            return _fetch(
+                self._http, url, kind, self._resolve, headers, on_hop, read_body
+            )
         except httpx.HTTPStatusError as error:
             raise FetchStatusError(
                 f"{kind} {url}: {error}", error.response.status_code
@@ -113,6 +120,7 @@ def _fetch(
     resolve: Resolver,
     headers: dict[str, str],
     on_hop: OnHop | None,
+    read_body: bool,
 ) -> Fetched | None:
     for _ in range(MAX_REDIRECTS + 1):
         _check_url(url, resolve)
@@ -130,6 +138,8 @@ def _fetch(
                 url = urljoin(url, location)
                 continue
             response.raise_for_status()
+            if not read_body:
+                return Fetched(url=url, body=b"", encoding=None)
             media_type = response.headers.get("content-type", "").split(";")[0].strip()
             expected = CONTENT_TYPES[kind]
             if expected is not None and media_type.lower() not in expected:

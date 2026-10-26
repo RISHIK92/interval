@@ -153,6 +153,7 @@ export interface ContentItem {
   fetched_at: Generated<Timestamp>;
   guid: string;
   id: Generated<Int8>;
+  link_broken_at: Timestamp | null;
   published_at: Timestamp | null;
   simhash: Int8 | null;
   source_id: Int8;

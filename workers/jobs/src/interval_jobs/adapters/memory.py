@@ -106,6 +106,7 @@ class StoredItem:
     sections: list[Section] = field(default_factory=list[Section])
     duplicate_of: int | None = None
     simhash: int | None = None
+    link_broken_at: datetime | None = None  # P1-W6-S03
 
 
 def _title_key(title: str) -> str:
@@ -318,6 +319,18 @@ class InMemoryItems:
         self._sources = sources
         self.rows: dict[int, StoredItem] = {}
         self.boundary_overrides: dict[int, list[str]] = {}  # written by the web app
+
+    def ids(self) -> list[int]:
+        return sorted(self.rows)
+
+    def link_health(self, item_id: int) -> tuple[str, datetime | None] | None:
+        item = self.rows.get(item_id)
+        return None if item is None else (item.canonical_url, item.link_broken_at)
+
+    def set_link_broken(self, item_id: int, at: datetime | None) -> None:
+        item = self.rows.get(item_id)
+        if item is not None:
+            item.link_broken_at = None if at is None else item.link_broken_at or at
 
     def upsert_from_feed(
         self, source_id: int, entry: FeedEntry, keep_excerpt: bool
@@ -1002,6 +1015,8 @@ def shown_items(store: "InMemoryStore") -> set[int]:
     best: dict[int, StoredItem] = {}
     for item_id in with_moments:
         item = store.items.rows[item_id]
+        if item.link_broken_at is not None:
+            continue  # a broken link is never offered (P1-W6-S03)
         group = item.duplicate_of or item.id
         current = best.get(group)
         if current is None or _earlier(item, current):
@@ -1019,6 +1034,8 @@ def shown_articles(store: "InMemoryStore") -> set[int]:
 
     best: dict[int, StoredItem] = {}
     for item in store.items.rows.values():
+        if item.link_broken_at is not None:
+            continue  # a broken link is never offered (P1-W6-S03)
         group = item.duplicate_of or item.id
         current = best.get(group)
         if current is None or order(item) < order(current):
@@ -1279,6 +1296,7 @@ class FakeFetcher:
     def __init__(self, pages: dict[str, Fetched | FetchError]) -> None:
         self._pages = pages
         self.requested: list[tuple[str, FetchKind]] = []
+        self.checked: list[str] = []  # status checks, which read no body
 
     def fetch(self, url: str, kind: FetchKind) -> Fetched:
         self.requested.append((url, kind))
@@ -1288,6 +1306,14 @@ class FakeFetcher:
         if isinstance(page, FetchError):
             raise page
         return page
+
+    def check(self, url: str) -> None:
+        self.checked.append(url)
+        page = self._pages.get(url)
+        if page is None:
+            raise FetchError(f"no fake page for {url}")
+        if isinstance(page, FetchError):
+            raise page
 
     def fetch_if_changed(
         self, url: str, kind: FetchKind, known: Validators | None

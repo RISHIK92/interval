@@ -440,3 +440,23 @@ def test_an_entry_keeps_its_score_breakdown_for_inspection(
         ),
         (None,),
     ]
+
+
+def test_a_broken_link_leaves_every_feed_at_once(conn: psycopg.Connection) -> None:
+    src = source(conn, "feedtest-n")
+    item = add_item(conn, src, "broken", datetime(2026, 10, 1, tzinfo=UTC), 1)
+    me = user(conn)
+    give(conn, me, moments_of(conn, item))
+    PostgresStore(conn).feed.replace_starter(
+        "databases",
+        "advanced",
+        "3-8",
+        [RankedEntry(item, m, "quality", None) for m in moments_of(conn, item)],
+    )
+    assert visible(conn, me) != []
+    PostgresStore(conn).items.set_link_broken(item, datetime.now(UTC))
+    assert visible(conn, me) == []
+    starter = conn.execute(
+        "select count(*) from starter_feed_visible where source_name = 'feedtest-n'"
+    ).fetchone()
+    assert starter == (0,)

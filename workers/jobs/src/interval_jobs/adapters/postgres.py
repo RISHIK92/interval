@@ -229,6 +229,25 @@ class PostgresItems:
     def __init__(self, conn: psycopg.Connection) -> None:
         self._conn = conn
 
+    def ids(self) -> list[int]:
+        rows = self._conn.execute("select id from content_item order by id").fetchall()
+        return [int(row[0]) for row in rows]
+
+    def link_health(self, item_id: int) -> tuple[str, datetime | None] | None:
+        row = self._conn.execute(
+            "select canonical_url, link_broken_at from content_item where id = %s",
+            (item_id,),
+        ).fetchone()
+        return None if row is None else (str(row[0]), row[1])
+
+    def set_link_broken(self, item_id: int, at: datetime | None) -> None:
+        self._conn.execute(
+            "update content_item set link_broken_at = "
+            "case when %(at)s::timestamptz is null then null "
+            "else coalesce(link_broken_at, %(at)s) end where id = %(item)s",
+            {"at": at, "item": item_id},
+        )
+
     def upsert_from_feed(
         self, source_id: int, entry: FeedEntry, keep_excerpt: bool
     ) -> int:
@@ -1259,6 +1278,7 @@ class PostgresEmbeddings:
               select distinct on (coalesce(c.duplicate_of, c.id)) c.id
               from content_item c
               where exists (select 1 from moment x where x.content_item_id = c.id)
+                and c.link_broken_at is null  -- P1-W6-S03
               order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
             )
             select e.moment_id, m.content_item_id, ci.source_id,
@@ -1501,6 +1521,7 @@ class PostgresRankingInputs:
               select distinct on (coalesce(c.duplicate_of, c.id)) c.id
               from content_item c
               where exists (select 1 from moment x where x.content_item_id = c.id)
+                and c.link_broken_at is null  -- P1-W6-S03
               order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
             )
             select m.id, ci.id, s.id
@@ -1581,6 +1602,7 @@ class PostgresRankingInputs:
               -- earliest: one story is one card.
               select distinct on (coalesce(c.duplicate_of, c.id)) c.id
               from content_item c
+              where c.link_broken_at is null  -- P1-W6-S03
               order by coalesce(c.duplicate_of, c.id),
                 not exists (select 1 from moment x where x.content_item_id = c.id),
                 c.published_at nulls last, c.id

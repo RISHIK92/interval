@@ -672,6 +672,22 @@ def test_moment_links_cover_sources_with_moments_on(
     assert "gone" not in {m.title for m in everything}
 
 
+def test_link_health_keeps_the_first_break_and_clears_on_recovery(
+    store: tuple[Store, Probe],
+) -> None:
+    s, _ = store
+    item = s.items.upsert_from_feed(source(s), entry("health"), keep_excerpt=False)
+    assert item in s.items.ids()
+    assert s.items.link_health(item) == ("https://contract.example.test/health", None)
+    first = datetime(2026, 10, 19, tzinfo=UTC)
+    s.items.set_link_broken(item, first)
+    s.items.set_link_broken(item, first + timedelta(days=7))
+    assert s.items.link_health(item) == ("https://contract.example.test/health", first)
+    s.items.set_link_broken(item, None)
+    assert s.items.link_health(item) == ("https://contract.example.test/health", None)
+    assert s.items.link_health(10**12) is None
+
+
 def test_the_oversized_flag_is_stored_and_updated(store: tuple[Store, Probe]) -> None:
     s, probe = store
     sid = source(s)
@@ -1631,6 +1647,11 @@ def test_similar_moments_filter_by_rights_source_and_difficulty(
     assert [h.moment_id for h in by_source] == [b0]
     by_level = s.embeddings.similar(query, 50, difficulties=["beginner"])
     assert [h.moment_id for h in by_level if h.moment_id in ours] == [a1]
+    # A broken link (P1-W6-S03) is never offered as similar; it comes back once fixed.
+    s.items.set_link_broken(item_b, datetime(2026, 10, 26, tzinfo=UTC))
+    assert b0 not in {h.moment_id for h in s.embeddings.similar(query, 50)}
+    s.items.set_link_broken(item_b, None)
+    assert b0 in {h.moment_id for h in s.embeddings.similar(query, 50)}
     # An admin's correction of a1's level wins (P1-W3-S05).
     probe.override_level(item_a, "a1", "advanced")
     by_level = s.embeddings.similar(query, 50, difficulties=["beginner"])
@@ -1868,6 +1889,12 @@ def test_topic_moments_offer_the_shown_copy_of_active_sources_in_order(
         s.ranking.topic_moments([], 10, exclude_sources=set(), exclude_items=set())
         == []
     )
+    # A broken link (P1-W6-S03) is never offered, and comes back once it works.
+    when = datetime(2026, 10, 26, tzinfo=UTC)
+    s.items.set_link_broken(newer, when)
+    assert [item for item, _ in offered()] == [original, original]
+    s.items.set_link_broken(newer, None)
+    assert [item for item, _ in offered()] == [newer, newer, original, original]
     s.sources.sync([seed("other-only")])  # tm-full leaves the seed list: inactive
     assert offered() == []
 
@@ -2146,6 +2173,11 @@ def test_topic_articles_offer_one_copy_per_story_whatever_the_profile(
     # listing; a metadata-only article on its own is offered too. Newest first.
     assert offered(set()) == [solo, original]
     assert offered({solo}) == [original]
+    # A broken link (P1-W6-S03) hands the story to a working copy, moments or not.
+    s.items.set_link_broken(original, datetime(2026, 10, 26, tzinfo=UTC))
+    assert offered(set()) == [solo, listing]
+    s.items.set_link_broken(original, None)
+    assert offered(set()) == [solo, original]
     # With no copy that has moments, the earliest copy stands for the story.
     first = dup_item(s, dup_source(s, "ta-a", "metadata_only"), "ta4", 4, url=url + "2")
     later = dup_item(s, dup_source(s, "ta-b", "metadata_only"), "ta5", 6, url=url + "2")

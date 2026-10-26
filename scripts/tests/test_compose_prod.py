@@ -239,3 +239,20 @@ def test_a_systemd_timer_runs_recompute_due_hourly() -> None:
     assert re.search(r"^TimeoutStartSec=", service, re.MULTILINE)
     deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
     assert re.search(r"systemctl enable --now interval-recompute\.timer", deploy)
+
+
+# ING-6 (P1-W6-S03): the weekly link health check, as EventBridge Scheduler does in AWS.
+def test_a_systemd_timer_runs_check_links_due_weekly() -> None:
+    timer = (SYSTEMD / "interval-links.timer").read_text()
+    service = (SYSTEMD / "interval-links.service").read_text()
+    assert "OnCalendar=weekly" in timer
+    # A VM that was off at the hour still runs it once it is back.
+    assert "Persistent=true" in timer
+    assert re.search(
+        r"^ExecStart=.*stack\.sh run check-links-due$", service, re.MULTILINE
+    )
+    assert "Requisite=interval.service" in service
+    assert re.search(r"^TimeoutStartSec=", service, re.MULTILINE)
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert "interval-links.timer" in deploy
+    assert re.search(r"systemctl enable --now interval-links\.timer", deploy)

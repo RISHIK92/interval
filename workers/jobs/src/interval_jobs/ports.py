@@ -213,6 +213,18 @@ class Sources(Protocol):
 class Items(Protocol):
     """Writes the source's profile forbids raise RightsViolation (ING-2)."""
 
+    def ids(self) -> list[int]:
+        """Every stored item, for the weekly link check (P1-W6-S03)."""
+        ...
+
+    def link_health(self, item_id: int) -> tuple[str, datetime | None] | None:
+        """The item's URL and when it was found broken (None: fine); None if gone."""
+        ...
+
+    def set_link_broken(self, item_id: int, at: datetime | None) -> None:
+        """Marks the link broken at `at`, keeping an earlier mark; None clears it."""
+        ...
+
     def upsert_from_feed(
         self, source_id: int, entry: FeedEntry, keep_excerpt: bool
     ) -> int:
@@ -847,6 +859,12 @@ class Store(Protocol):
 
 class Fetcher(Protocol):
     def fetch(self, url: str, kind: FetchKind) -> Fetched: ...
+
+    def check(self, url: str) -> None:
+        """The page's status only: returns on success, raises FetchError as fetch
+        does, and never reads the body, so any rights profile allows it (P1-W6-S03).
+        """
+        ...
 
     def fetch_if_changed(
         self, url: str, kind: FetchKind, known: Validators | None

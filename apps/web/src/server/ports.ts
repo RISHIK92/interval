@@ -152,6 +152,7 @@ export type SavedItem = {
   articleTitle: string;
   sourceName: string;
   savedAt: Date;
+  linkBroken: boolean; // the weekly check found it gone (P1-W6-S03)
 };
 export type HistoryItem = {
   itemId: string;
@@ -161,6 +162,7 @@ export type HistoryItem = {
   totalSections: number;
   finished: boolean; // every section, or the whole article
   lastFinishedAt: Date;
+  linkBroken: boolean;
 };
 export interface Library {
   saves(userId: string, limit: number): Promise<SavedItem[]>;

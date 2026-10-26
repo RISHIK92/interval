@@ -276,6 +276,22 @@ test("no continue card for a source that no longer allows moments", async () => 
   });
 });
 
+test("no continue card for an item whose link broke (P1-W6-S03)", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro] = momentIds;
+    if (intro === undefined) throw new Error("seed");
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    expect(await progress.continueCards(userId, new Date(), 3)).toHaveLength(1);
+    await trx
+      .updateTable("content_item")
+      .set({ link_broken_at: new Date() })
+      .where("id", "=", itemId)
+      .execute();
+    expect(await progress.continueCards(userId, new Date(), 3)).toEqual([]);
+  });
+});
+
 // Owner, 2026-10-26: opening a section counts as reading it for continue cards.
 test("opening a section, without finishing it, offers the next one", async () => {
   await inRollback(async (trx, { userId, itemId, momentIds }) => {

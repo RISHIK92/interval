@@ -380,6 +380,38 @@ export class AwsStack extends Stack {
       }),
     });
 
+    // ING-6 (W6-S03): EventBridge Scheduler runs `check-links-due` weekly. It queues
+    // a status check of every item (the consumer runs them); its role may only send
+    // to the check_link queue.
+    const checkLinksDueTask = taskDefinition("CheckLinksDue");
+    checkLinksDueTask.addContainer("check-links-due", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["check-links-due"],
+      environment,
+      secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
+      logging: logging("check-links-due"),
+    });
+    const checkLinkQueue = queues[MESSAGE_NAMES.indexOf("check_link")];
+    if (checkLinkQueue === undefined) {
+      throw new Error("packages/db/messages has no check_link schema");
+    }
+    checkLinkQueue.grantSendMessages(checkLinksDueTask.taskRole);
+    new scheduler.Schedule(this, "CheckLinksDueSchedule", {
+      schedule: scheduler.ScheduleExpression.rate(Duration.days(7)),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: checkLinksDueTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // A missed run would leave a week unchecked; a retry only re-attempts a
+        // failed RunTask, and a check is idempotent anyway.
+        retryAttempts: 2,
+        maxEventAge: Duration.hours(1),
+      }),
+    });
+
     // The ingestion pipeline's consumer (W2-S02b): one always-on task serving every
     // stage queue. Same image and grants as the one-off jobs.
     const workerTask = taskDefinition("Worker");

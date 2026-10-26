@@ -247,7 +247,8 @@ describe("edge", () => {
 describe("containers", () => {
   test("ARM64 tasks get secrets only through ECS secrets, never plain env", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
-    expect(tasks.length).toBe(6); // web, jobs, worker, migrate, poll-due, recompute-due
+    // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due
+    expect(tasks.length).toBe(7);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -486,10 +487,13 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(2);
+    expect(runTask).toHaveLength(3);
     const targets = runTask.map((st) => JSON.stringify(st.Resource));
     expect(targets.filter((t) => t.includes("PollDueTask"))).toHaveLength(1);
     expect(targets.filter((t) => t.includes("RecomputeDueTask"))).toHaveLength(
+      1,
+    );
+    expect(targets.filter((t) => t.includes("CheckLinksDueTask"))).toHaveLength(
       1,
     );
   });
@@ -597,5 +601,50 @@ describe("precomputed feeds (W4-S04, Q-P1-17)", () => {
         }),
       ],
     });
+  });
+});
+
+describe("weekly link health checks (W6-S03, ING-6)", () => {
+  test("EventBridge Scheduler runs check-links-due weekly as a Fargate task", () => {
+    const schedule = scheduleFor("CheckLinksDueTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe("rate(7 days)");
+    expect(containerNamed("check-links-due")?.Command).toEqual([
+      "check-links-due",
+    ]);
+    // Retried: a missed run would leave a whole week unchecked, and a check is
+    // idempotent, so a repeat does no harm.
+    expect(
+      (schedule.Properties["Target"] as { RetryPolicy: unknown }).RetryPolicy,
+    ).toEqual({ MaximumRetryAttempts: 2, MaximumEventAgeInSeconds: 3600 });
+  });
+
+  test("check-links-due may send only to the check_link queue, with only the DB secret", () => {
+    const policies = all("AWS::IAM::Policy").filter(([, policy]) =>
+      (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
+        r.Ref.startsWith("CheckLinksDueTaskTaskRole"),
+      ),
+    );
+    const statements = policies.flatMap(
+      ([, policy]) =>
+        (
+          policy.Properties["PolicyDocument"] as {
+            Statement: { Action: string | string[]; Resource: unknown }[];
+          }
+        ).Statement,
+    );
+    const actions = new Set(statements.flatMap((st) => [st.Action].flat()));
+    expect(actions.has("sqs:SendMessage")).toBe(true);
+    expect(actions.has("sqs:ReceiveMessage")).toBe(false);
+    expect([...actions].some((a) => a.startsWith("firehose:"))).toBe(false);
+    const sends = statements.filter((st) =>
+      [st.Action].flat().includes("sqs:SendMessage"),
+    );
+    expect(JSON.stringify(sends.map((st) => st.Resource))).toContain(
+      "checklink",
+    );
+    expect(sends.flatMap((st) => [st.Resource].flat())).toHaveLength(1);
+    expect(
+      (containerNamed("check-links-due")?.Secrets ?? []).map((x) => x.Name),
+    ).toEqual(["DB_PASSWORD"]);
   });
 });

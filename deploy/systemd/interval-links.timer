@@ -1,0 +1,12 @@
+# VM mode (ADR-0011), ING-6 (P1-W6-S03): weekly. Persistent, so a VM that was off at
+# the scheduled time runs it once it is back; an extra run is harmless, since a check
+# is idempotent.
+[Unit]
+Description=Interval check-links-due every week
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

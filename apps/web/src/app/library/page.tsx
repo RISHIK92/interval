@@ -13,6 +13,29 @@ const LIMIT = 50;
 // The Library tab (§4.1, §5I, C-06, Q-P1-19, P1-W5-S05): what you saved and what you
 // finished (owner: finished, not opened). Everything, hidden sources included: it is
 // the reader's own record, not the feed.
+// The publisher's page, unless the weekly check found it gone (P1-W6-S03): the item
+// stays listed so the reader knows why it left the feed (owner, 2026-10-26).
+function OriginalLink(props: {
+  item: { itemId: string; articleTitle: string; linkBroken: boolean };
+}) {
+  const { item } = props;
+  if (item.linkBroken) return <p>Link broken</p>;
+  return (
+    <a
+      href={outHref({
+        itemId: item.itemId,
+        from: "library",
+        target: "original",
+      })}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Open ${item.articleTitle} on the original website`}
+    >
+      Open original website
+    </a>
+  );
+}
+
 export default async function LibraryPage() {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
@@ -21,8 +44,6 @@ export default async function LibraryPage() {
     library().saves(actor.userId, LIMIT),
     library().history(actor.userId, LIMIT),
   ]);
-  const open = (itemId: string) =>
-    outHref({ itemId, from: "library", target: "original" });
   return (
     <main>
       <h1>Library</h1>
@@ -40,14 +61,7 @@ export default async function LibraryPage() {
             {saved.map((item) => (
               <li key={item.itemId}>
                 <p>{`${item.articleTitle} · ${item.sourceName}`}</p>
-                <a
-                  href={open(item.itemId)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Open ${item.articleTitle} on the original website`}
-                >
-                  Open original website
-                </a>
+                <OriginalLink item={item} />
                 <form action={libraryUnsaveAction}>
                   <input type="hidden" name="itemId" value={item.itemId} />
                   <button
@@ -77,14 +91,7 @@ export default async function LibraryPage() {
                     ? "Finished"
                     : `${String(item.finishedSections)} of ${String(item.totalSections)} sections`}
                 </p>
-                <a
-                  href={open(item.itemId)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={`Open ${item.articleTitle} on the original website`}
-                >
-                  Open original website
-                </a>
+                <OriginalLink item={item} />
               </li>
             ))}
           </ul>

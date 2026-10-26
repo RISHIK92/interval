@@ -1,8 +1,10 @@
+from collections.abc import Iterator
+
 import httpx
 import pytest
 
 from interval_jobs.adapters.http_fetcher import MAX_BYTES, HttpxFetcher
-from interval_jobs.ports import FetchError
+from interval_jobs.ports import FetchError, FetchStatusError
 
 PUBLIC = "93.184.216.34"
 
@@ -107,3 +109,36 @@ def test_transport_failure_becomes_fetch_error() -> None:
 
     with client(httpx.MockTransport(broken)) as http, pytest.raises(FetchError):
         HttpxFetcher(http, public).fetch("https://a.example.test/feed", "feed")
+
+
+class _NeverRead(httpx.SyncByteStream):
+    def __iter__(self) -> Iterator[bytes]:
+        raise AssertionError("the body was read")
+
+
+def test_a_status_check_reads_no_body_and_takes_any_content_type() -> None:
+    # P1-W6-S03: the weekly link check reads only the status, whatever the rights
+    # profile allows of the body (owner, 2026-10-26).
+    web = httpx.MockTransport(
+        lambda _req: httpx.Response(
+            200, headers={"content-type": "application/pdf"}, stream=_NeverRead()
+        )
+    )
+    with client(web) as http:
+        HttpxFetcher(http, public).check("https://a.example.test/paper.pdf")
+
+
+def test_a_status_check_raises_the_status() -> None:
+    with client(respond(410)) as http, pytest.raises(FetchStatusError) as raised:
+        HttpxFetcher(http, public).check("https://a.example.test/gone")
+    assert raised.value.status == 410
+
+
+def test_a_status_check_guards_every_redirect_hop() -> None:
+    web = httpx.MockTransport(
+        lambda _req: httpx.Response(302, headers={"location": "http://internal.test/"})
+    )
+    with client(web) as http, pytest.raises(FetchError, match="non-public"):
+        HttpxFetcher(
+            http, lambda h: [PUBLIC] if h == "a.example.test" else ["10.0.0.1"]
+        ).check("https://a.example.test/p")

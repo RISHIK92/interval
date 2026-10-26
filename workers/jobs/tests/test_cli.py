@@ -11,6 +11,7 @@ import pytest
 from interval_jobs import __main__ as cli
 from interval_jobs.__main__ import main
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
+from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.ports import FeedEntry, Fetched, FetchKind, MomentRow
@@ -424,3 +425,40 @@ def test_check_links_prints_a_report_per_source(
         }
     ]
     assert report["flagged"] == []
+
+
+def test_check_links_due_queues_every_item(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    memory = InMemoryStore()
+    source_id = memory.sources.upsert(
+        name="Blog",
+        feed_url="https://blog.example.test/feed.xml",
+        rights_profile="metadata_only",
+        homepage=None,
+    )
+    for guid in ("a", "b"):
+        memory.items.upsert_from_feed(
+            source_id,
+            FeedEntry(
+                guid=guid,
+                link=f"https://blog.example.test/{guid}",
+                title=guid,
+                author=None,
+                published_at=None,
+                updated_at=None,
+                summary=None,
+            ),
+            keep_excerpt=False,
+        )
+    queue = InMemoryQueue()
+
+    @contextmanager
+    def services() -> Generator[FakeServices]:
+        yield FakeServices(memory)
+
+    monkeypatch.setattr(cli, "services", services)
+    monkeypatch.setattr(cli, "queue_for_enqueue", lambda: queue)
+    main(["check-links-due"])
+    assert json.loads(capsys.readouterr().out) == {"queued": 2}
+    assert queue.pending("check_link") == 2

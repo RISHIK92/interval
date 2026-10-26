@@ -124,6 +124,9 @@ class FakeFetcher:
             raise found
         return Fetched(url, found, "utf-8")
 
+    def check(self, url: str) -> None:
+        raise AssertionError("not used")
+
     def fetch_if_changed(
         self, url: str, kind: FetchKind, known: Validators | None
     ) -> Fetched | None:
