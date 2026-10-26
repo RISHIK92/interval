@@ -1,3 +1,4 @@
+import type { Chip } from "./chips";
 import type { FeedCard, FeedReader, Preferences } from "./ports";
 
 // ADR-0008: a new guest's first page waits up to about 3 seconds for their feed's first
@@ -20,21 +21,24 @@ export async function loadFeed(
   },
   userId: string,
   preferences: Preferences & { onboardedAt: Date },
+  chip: Chip,
   limit: number,
 ): Promise<{ cards: FeedCard[] }> {
   const sleep = deps.sleep ?? pause;
   const now = deps.now ?? (() => new Date());
   const newGuest =
     now().getTime() - preferences.onboardedAt.getTime() < NEW_GUEST_MS;
-  let read = await deps.feed.read(userId, limit);
+  let read = await deps.feed.read(userId, chip, limit);
   let waited = 0;
   while (newGuest && !read.computed && waited < FIRST_VISIT_WAIT_MS) {
     await sleep(POLL_MS);
     waited += POLL_MS;
-    read = await deps.feed.read(userId, limit);
+    read = await deps.feed.read(userId, chip, limit);
   }
   if (read.computed) return { cards: read.cards };
   const [topic] = preferences.topics;
   if (topic === undefined) return { cards: [] };
-  return { cards: await deps.feed.starter(topic, preferences.level, limit) };
+  return {
+    cards: await deps.feed.starter(topic, preferences.level, chip, limit),
+  };
 }

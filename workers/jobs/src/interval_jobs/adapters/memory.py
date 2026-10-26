@@ -8,12 +8,14 @@ switching moments off purges what the source no longer allows.
 
 import math
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 
 from interval_db.generated import (
     BetaGroup,
+    BreakLength,
     Capability,
     Difficulty,
     RightsProfile,
@@ -470,29 +472,42 @@ class InMemoryFeed:
     def __init__(self, users: "InMemoryUsers", moments: InMemoryMoments) -> None:
         self._users = users
         self._moments = moments
-        self.users: dict[str, list[RankedMoment]] = {}
+        self.users: dict[str, dict[BreakLength, list[RankedMoment]]] = {}
         self.computed: dict[str, datetime] = {}
-        self.starters: dict[tuple[str, Difficulty], list[RankedMoment]] = {}
+        self.starters: dict[
+            tuple[str, Difficulty, BreakLength], list[RankedMoment]
+        ] = {}
 
     def hold_user(self, user_id: str) -> None:
         pass  # one thread at a time in the fake
 
     def replace_user(
-        self, user_id: str, ranked: list[RankedMoment], computed_at: datetime
+        self,
+        user_id: str,
+        by_chip: Mapping[BreakLength, list[RankedMoment]],
+        computed_at: datetime,
     ) -> None:
-        ids = [r.moment_id for r in ranked]
-        if len(set(ids)) != len(ids):
-            raise ValueError("a moment twice in one feed (the primary key refuses it)")
+        for ranked in by_chip.values():
+            ids = [r.moment_id for r in ranked]
+            if len(set(ids)) != len(ids):
+                raise ValueError("a moment twice in one feed (the primary key refuses)")
         if user_id not in self._users.rows:
             return
         live = {m.id for m in self._moments.rows}
-        self.users[user_id] = [r for r in ranked if r.moment_id in live]
+        self.users[user_id] = {
+            chip: [r for r in ranked if r.moment_id in live]
+            for chip, ranked in by_chip.items()
+        }
         self.computed[user_id] = computed_at
 
     def replace_starter(
-        self, topic: str, level: Difficulty, ranked: list[RankedMoment]
+        self,
+        topic: str,
+        level: Difficulty,
+        chip: BreakLength,
+        ranked: list[RankedMoment],
     ) -> None:
-        self.starters[(topic, level)] = list(ranked)
+        self.starters[(topic, level, chip)] = list(ranked)
 
     def active_users(self, since: datetime) -> list[str]:
         return sorted(
@@ -506,8 +521,9 @@ class InMemoryFeed:
     def drop_missing(self) -> None:
         # Mirrors the on-delete cascade from moment to every feed table.
         live = {m.id for m in self._moments.rows}
-        for user, rows in self.users.items():
-            self.users[user] = [r for r in rows if r.moment_id in live]
+        for chips in self.users.values():
+            for chip, rows in chips.items():
+                chips[chip] = [r for r in rows if r.moment_id in live]
         for key, rows in self.starters.items():
             self.starters[key] = [r for r in rows if r.moment_id in live]
 

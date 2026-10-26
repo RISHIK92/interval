@@ -148,10 +148,12 @@ def test_a_users_feed_is_ranked_from_candidates_and_capped_per_source() -> None:
     for day in range(1, 5):
         w.item(busy, f"busy-{day}", day=day)
     _, quiet_moment = w.item(quiet, "quiet-1", day=1)
-    ranked = rank_for_user(w.store, "u1", None, datetime(2026, 10, 26, tzinfo=UTC), 10)
+    now = datetime(2026, 10, 26, tzinfo=UTC)
+    ranked = rank_for_user(w.store, "u1", None, now, 10)["8-15"]
     sources = [r.source_id for r in ranked]
     assert sources.count(busy) == 2 and quiet_moment in [r.moment_id for r in ranked]
-    assert (
-        rank_for_user(w.store, "nobody", None, datetime(2026, 10, 26, tzinfo=UTC), 10)
-        == []
-    )
+    assert rank_for_user(w.store, "nobody", None, now, 10) == {
+        "1-3": [],
+        "3-8": [],
+        "8-15": [],
+    }

@@ -296,15 +296,22 @@ class Feed(Protocol):
         ...
 
     def replace_user(
-        self, user_id: str, ranked: list[RankedMoment], computed_at: datetime
+        self,
+        user_id: str,
+        by_chip: Mapping[BreakLength, list[RankedMoment]],
+        computed_at: datetime,
     ) -> None:
-        """Replaces the user's whole feed and records when, in one transaction: a
-        failure leaves the previous feed exactly as it was (LOAD-5). A user or moment
-        deleted since ranking is skipped, not an error."""
+        """Replaces the user's whole feed, one list per time chip (Q-P1-16), and records
+        when, in one transaction: a failure leaves the previous feed exactly as it was
+        (LOAD-5). A user or moment deleted since ranking is skipped, not an error."""
         ...
 
     def replace_starter(
-        self, topic: str, level: Difficulty, ranked: list[RankedMoment]
+        self,
+        topic: str,
+        level: Difficulty,
+        chip: BreakLength,
+        ranked: list[RankedMoment],
     ) -> None:
         """Replaces one starter feed (ADR-0008: a new guest's feed meanwhile)."""
         ...

@@ -4,6 +4,7 @@ import {
   NextResponse,
 } from "next/server";
 import { env } from "./env";
+import { CHIP_COOKIE, parseChip } from "./server/chips";
 import { events, sessionReader } from "./server/container";
 import { log } from "./server/log";
 import {
@@ -30,6 +31,12 @@ export async function proxy(
   const now = Math.floor(Date.now() / 1000);
   const visit = parseVisit(request.cookies.get(VISIT_COOKIE)?.value);
   const options = visitCookieOptions(env().BETTER_AUTH_URL);
+
+  // A chip link (Q-P1-16) is remembered for the browser session: no maxAge.
+  const chip = parseChip(request.nextUrl.searchParams.get("chip"));
+  if (chip !== null) {
+    response.cookies.set(CHIP_COOKIE, chip, { ...options, maxAge: undefined });
+  }
 
   if (visit !== null && now - visit.lastSeen < VISIT_IDLE_SECONDS) {
     if (now - visit.lastSeen >= REFRESH_SECONDS) {

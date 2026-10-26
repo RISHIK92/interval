@@ -45,35 +45,50 @@ describe("loadFeed", () => {
   test("a computed feed is served from one read, with no waiting", async () => {
     const feed = reader(0);
     const sleep = vi.fn(() => Promise.resolve());
-    expect(await loadFeed({ feed, sleep, now }, "u1", preferences, 50)).toEqual(
-      {
-        cards: [card("own")],
-      },
-    );
-    expect(feed.read).toHaveBeenCalledOnce();
+    expect(
+      await loadFeed({ feed, sleep, now }, "u1", preferences, "1-3", 50),
+    ).toEqual({ cards: [card("own")] });
+    expect(feed.read).toHaveBeenCalledExactlyOnceWith("u1", "1-3", 50);
     expect(sleep).not.toHaveBeenCalled();
   });
 
   test("a first visit waits for the recompute and then serves it", async () => {
     const feed = reader(2);
     const sleep = vi.fn(() => Promise.resolve());
-    const result = await loadFeed({ feed, sleep, now }, "u1", preferences, 50);
+    const result = await loadFeed(
+      { feed, sleep, now },
+      "u1",
+      preferences,
+      "3-8",
+      50,
+    );
     expect(result).toEqual({ cards: [card("own")] });
     expect(sleep).toHaveBeenCalledTimes(2);
     expect(feed.starter).not.toHaveBeenCalled();
   });
 
-  test("after about 3 seconds the starter feed for the first topic and level is served", async () => {
+  test("after about 3 seconds the starter feed for the first topic, level and chip is served", async () => {
     const feed = reader(Number.POSITIVE_INFINITY);
     const waited: number[] = [];
     const sleep = vi.fn((ms: number) => {
       waited.push(ms);
       return Promise.resolve();
     });
-    const result = await loadFeed({ feed, sleep, now }, "u1", preferences, 50);
+    const result = await loadFeed(
+      { feed, sleep, now },
+      "u1",
+      preferences,
+      "8-15",
+      50,
+    );
     expect(result).toEqual({ cards: [card("starter")] });
     expect(waited.reduce((a, b) => a + b, 0)).toBe(3000);
-    expect(feed.starter).toHaveBeenCalledWith("databases", "intermediate", 50);
+    expect(feed.starter).toHaveBeenCalledWith(
+      "databases",
+      "intermediate",
+      "8-15",
+      50,
+    );
   });
 
   test("a computed but empty feed is not replaced by the starter", async () => {
@@ -82,6 +97,7 @@ describe("loadFeed", () => {
       { feed, sleep: () => Promise.resolve(), now },
       "u1",
       preferences,
+      "3-8",
       50,
     );
     expect(result).toEqual({ cards: [] });
@@ -97,7 +113,13 @@ describe("loadFeed", () => {
       ...preferences,
       onboardedAt: new Date(NOW.getTime() - 3_600_000),
     };
-    const result = await loadFeed({ feed, sleep, now }, "u1", settled, 50);
+    const result = await loadFeed(
+      { feed, sleep, now },
+      "u1",
+      settled,
+      "3-8",
+      50,
+    );
     expect(result).toEqual({ cards: [card("starter")] });
     expect(sleep).not.toHaveBeenCalled();
     expect(feed.read).toHaveBeenCalledOnce();

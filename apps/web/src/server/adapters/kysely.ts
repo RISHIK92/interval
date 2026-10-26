@@ -102,11 +102,13 @@ export function toCard(row: CardRow): FeedCard | null {
 // Reads the precomputed feed (CACHE-1); the worker writes it (ADR-0008).
 export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
   return {
-    read: async (userId, limit) => {
-      // The state row says "computed"; the left join brings its cards, if any.
+    read: async (userId, chip, limit) => {
+      // The state row says "computed"; the left join brings the chip's cards, if any.
       const rows = await db
         .selectFrom("user_feed_state as s")
-        .leftJoin("user_feed_visible as v", "v.user_id", "s.user_id")
+        .leftJoin("user_feed_visible as v", (join) =>
+          join.onRef("v.user_id", "=", "s.user_id").on("v.chip", "=", chip),
+        )
         .select(CARD_COLUMNS.map((column) => `v.${column}` as const))
         .where("s.user_id", "=", userId)
         .orderBy("v.rank")
@@ -119,12 +121,13 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .filter((card) => card !== null);
       return { computed: true, cards };
     },
-    starter: async (topic, level, limit) => {
+    starter: async (topic, level, chip, limit) => {
       const rows = await db
         .selectFrom("starter_feed_visible")
         .select(CARD_COLUMNS)
         .where("topic", "=", topic)
         .where("level", "=", level)
+        .where("chip", "=", chip)
         .orderBy("rank")
         .limit(limit)
         .execute();

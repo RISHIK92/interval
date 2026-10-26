@@ -4,7 +4,7 @@ One `PostgresStore` is one unit of work; `unit_of_work` commits it on success an
 it back on error. The database's own triggers still guard ING-2 behind these queries.
 """
 
-from collections.abc import Generator
+from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -490,7 +490,10 @@ class PostgresFeed:
         )
 
     def replace_user(
-        self, user_id: str, ranked: list[RankedMoment], computed_at: datetime
+        self,
+        user_id: str,
+        by_chip: Mapping[BreakLength, list[RankedMoment]],
+        computed_at: datetime,
     ) -> None:
         # One savepoint: the old feed stays whole unless the new one lands (LOAD-5).
         with self._conn.transaction():
@@ -504,20 +507,23 @@ class PostgresFeed:
                 "delete from user_feed_entry where user_id = %s", (user_id,)
             )
             # Moments re-segmented since ranking are skipped; the rank keeps the order.
-            self._conn.execute(
-                """
-                insert into user_feed_entry (user_id, moment_id, rank, top_signal)
-                select %s, r.moment_id, r.rank, r.top_signal
-                from unnest(%s::bigint[], %s::text[]) with ordinality
-                  as r(moment_id, top_signal, rank)
-                where exists (select 1 from moment m where m.id = r.moment_id)
-                """,
-                (
-                    user_id,
-                    [r.moment_id for r in ranked],
-                    [r.top_signal for r in ranked],
-                ),
-            )
+            for chip, ranked in by_chip.items():
+                self._conn.execute(
+                    """
+                    insert into user_feed_entry
+                      (user_id, chip, moment_id, rank, top_signal)
+                    select %s, %s::break_length, r.moment_id, r.rank, r.top_signal
+                    from unnest(%s::bigint[], %s::text[]) with ordinality
+                      as r(moment_id, top_signal, rank)
+                    where exists (select 1 from moment m where m.id = r.moment_id)
+                    """,
+                    (
+                        user_id,
+                        chip,
+                        [r.moment_id for r in ranked],
+                        [r.top_signal for r in ranked],
+                    ),
+                )
             self._conn.execute(
                 "insert into user_feed_state (user_id, computed_at) values (%s, %s) "
                 "on conflict (user_id) "
@@ -526,26 +532,31 @@ class PostgresFeed:
             )
 
     def replace_starter(
-        self, topic: str, level: Difficulty, ranked: list[RankedMoment]
+        self,
+        topic: str,
+        level: Difficulty,
+        chip: BreakLength,
+        ranked: list[RankedMoment],
     ) -> None:
         with self._conn.transaction():
             # Overlapping hourly runs (a slow one and the next) may rewrite it at once.
             self._conn.execute(
                 "select pg_advisory_xact_lock(%s, hashtext(%s))",
-                (FEED_LOCK_KEY, f"starter:{topic}:{level}"),
+                (FEED_LOCK_KEY, f"starter:{topic}:{level}:{chip}"),
             )
             self._conn.execute(
-                "delete from starter_feed_entry where topic = %s and level = %s",
-                (topic, level),
+                "delete from starter_feed_entry "
+                "where topic = %s and level = %s and chip = %s",
+                (topic, level, chip),
             )
             self._conn.execute(
                 """
-                insert into starter_feed_entry (topic, level, moment_id, rank)
-                select %s, %s, r.moment_id, r.rank
+                insert into starter_feed_entry (topic, level, chip, moment_id, rank)
+                select %s, %s, %s::break_length, r.moment_id, r.rank
                 from unnest(%s::bigint[]) with ordinality as r(moment_id, rank)
                 where exists (select 1 from moment m where m.id = r.moment_id)
                 """,
-                (topic, level, [r.moment_id for r in ranked]),
+                (topic, level, chip, [r.moment_id for r in ranked]),
             )
 
     def active_users(self, since: datetime) -> list[str]:

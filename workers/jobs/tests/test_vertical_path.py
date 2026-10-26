@@ -56,7 +56,9 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         "order by m.ordinal"
     ).fetchall()
     PostgresStore(conn).feed.replace_user(
-        user_id, [RankedMoment(r[0], "topic_match") for r in moments], datetime.now(UTC)
+        user_id,
+        {"3-8": [RankedMoment(r[0], "topic_match") for r in moments]},
+        datetime.now(UTC),
     )
 
     cards = conn.execute(
@@ -97,8 +99,8 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         "source_name",
     }
     for view, keys in (
-        ("user_feed_visible", {"user_id"}),
-        ("starter_feed_visible", {"topic", "level"}),
+        ("user_feed_visible", {"user_id", "chip"}),
+        ("starter_feed_visible", {"topic", "level", "chip"}),
     ):
         columns = {
             row[0]

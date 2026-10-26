@@ -24,23 +24,23 @@ function textOf(html: string): string {
 }
 
 test("links to the publisher's section in a new tab without leaking the opener", () => {
-  const html = renderToStaticMarkup(<MomentCard card={card} />);
+  const html = renderToStaticMarkup(<MomentCard card={card} chip="3-8" />);
   expect(html).toContain('href="https://webfeed.example.test/post#raft"');
   expect(html).toContain('target="_blank"');
   expect(html).toContain('rel="noopener noreferrer"');
 });
 
-test("renders only the card fields: title, position, article and attribution", () => {
-  const html = renderToStaticMarkup(<MomentCard card={card} />);
+test("renders only the card fields: title, position, fit, article and attribution", () => {
+  const html = renderToStaticMarkup(<MomentCard card={card} chip="3-8" />);
   expect(textOf(html)).toBe(
-    "Raft in one page / Section 2 of 4 · 3 min / Consensus in practice / " +
-      "Example Engineering · Rae Writer / Read on site",
+    "Raft in one page / Section 2 of 4 · 3 min / Fits your 3–8 min break / " +
+      "Consensus in practice / Example Engineering · Rae Writer / Read on site",
   );
 });
 
 test("omits the author when unknown", () => {
   const html = renderToStaticMarkup(
-    <MomentCard card={{ ...card, author: null }} />,
+    <MomentCard card={{ ...card, author: null }} chip="1-3" />,
   );
   expect(textOf(html)).toContain(" / Example Engineering / Read on site");
 });

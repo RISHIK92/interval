@@ -20,14 +20,21 @@ export type FeedCard = {
 
 // CACHE-1, P1-W4-S04: the worker stores each user's ranked feed; this only reads it.
 export interface FeedReader {
-  // One query: the stored cards in rank order, and whether the feed was ever computed
-  // (a first visit waits for it, ADR-0008). Empty and computed is a real, empty feed.
+  // One query: one time chip's stored cards in rank order (Q-P1-16), and whether the
+  // feed was ever computed (a first visit waits for it, ADR-0008). Empty and computed
+  // is a real, empty feed.
   read(
     userId: string,
+    chip: BreakLength,
     limit: number,
   ): Promise<{ computed: boolean; cards: FeedCard[] }>;
   // A new guest's feed while their own is computed (ADR-0008).
-  starter(topic: Topic, level: Difficulty, limit: number): Promise<FeedCard[]>;
+  starter(
+    topic: Topic,
+    level: Difficulty,
+    chip: BreakLength,
+    limit: number,
+  ): Promise<FeedCard[]>;
 }
 
 export interface DatabasePing {

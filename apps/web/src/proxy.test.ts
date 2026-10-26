@@ -115,3 +115,32 @@ test("a failed session lookup is logged and never breaks the page", async () => 
   expect(await visit()).toBeUndefined();
   expect(emit).not.toHaveBeenCalled();
 });
+
+// Q-P1-16: the chosen time chip lasts for the browser session (owner, 2026-10-26).
+async function chipAfter(path: string) {
+  const { proxy } = await import("./proxy");
+  const request = new NextRequest(`http://localhost:3100${path}`, {
+    // A live visit, so only the chip can set a cookie.
+    headers: { cookie: `iv_visit=visit-1.${seconds(NOW - 30_000)}` },
+  });
+  const event = { waitUntil: () => undefined } as unknown as NextFetchEvent;
+  return (await proxy(request, event)).cookies.get("iv_chip");
+}
+
+test("a chip link remembers the chip in a session cookie", async () => {
+  const cookie = await chipAfter("/?chip=1-3");
+  expect(cookie).toMatchObject({
+    value: "1-3",
+    httpOnly: true,
+    sameSite: "lax",
+    path: "/",
+  });
+  // A session cookie: no expiry, so it ends when the browser does.
+  expect(cookie?.maxAge).toBeUndefined();
+  expect(cookie?.expires).toBeUndefined();
+});
+
+test("an unknown chip or no chip leaves the cookie alone", async () => {
+  expect(await chipAfter("/?chip=99")).toBeUndefined();
+  expect(await chipAfter("/")).toBeUndefined();
+});

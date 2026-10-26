@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring) and W4-S04 (precomputed feed) done. Next: W4-S05 (time chips and format selection). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) and W4-S05a (time chips) done. Next: W4-S05b (whole-article cards). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -1084,3 +1084,19 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - stale texts fixed and the starter rows of dropped topics cleared;
   - least-privilege IAM.
 - Not checked: whether BullMQ hangs rather than fails when Valkey is down (its offline queue), and whether `recompute_feed` jobs can wait behind an ingestion backlog (that would make first visits fall back to the starter more often).
+
+### 2026-10-26 — P1-W4-S05a (time chips, Q-P1-16, ADR-0006 C-23)
+- Owner choices: W4-S05 split into (a) chips and (b) whole-article cards; one stored feed per chip; a chip shows only moments up to its upper bound (3, 8 or 15 minutes); cards say "Fits your 3–8 min break"; the chip lasts the browser session (cookie `iv_chip`, no expiry); chips are links (`?chip=`).
+- Done:
+  - **Migration `20261026140000_feed_chips.sql`:** empties the three precomputed tables (the next recompute refills them), adds `chip` to `user_feed_entry` and `starter_feed_entry` (in their primary keys) and to both views.
+  - **Worker:**
+    - `rank_for_user` and `rank_for_preferences` rank once per chip: candidates and facts are read once; each chip drops the moments that don't fit, then scores with its own time fit;
+    - `Feed.replace_user(user_id, by_chip, computed_at)` replaces every chip in one savepoint; a chip left out is emptied;
+    - starters cover every topic × level × chip (36).
+  - **Web:**
+    - `server/chips.ts`: the link's chip, else the session's, else the onboarding break length;
+    - the proxy sets `iv_chip` for a valid `?chip=`;
+    - the home page shows the three chips (`aria-current` on the selected one) and reads that chip's feed; the starter fallback is per chip too;
+    - `MomentCard` says "Fits your N–M min break".
+- After migrating: run `recompute-due` (and `consume`); the migration empties every stored and starter feed, so pages say "No moments yet" until then.
+- Not in this part: whole-article cards and "Length unknown" (W4-S05b), the chip in `feed_viewed` (an event version change nobody asked for).

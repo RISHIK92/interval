@@ -26,7 +26,7 @@ from interval_jobs.ranking.candidates import Candidate
 SIGNALS = ("topic_match", "level_fit", "quality", "freshness", "time_fit")
 PENALTIES = ("less_like_this", "not_interested_concepts")
 _LEVELS: dict[Difficulty, int] = {"beginner": 0, "intermediate": 1, "advanced": 2}
-_BREAK_MINUTES: dict[BreakLength, tuple[int, int]] = {
+BREAK_MINUTES: dict[BreakLength, tuple[int, int]] = {
     "1-3": (1, 3),
     "3-8": (3, 8),
     "8-15": (8, 15),
@@ -117,7 +117,7 @@ def _freshness(published: datetime | None, now: datetime, half_life: float) -> f
 
 
 def _time_fit(minutes: int, break_length: BreakLength) -> float:
-    low, limit = _BREAK_MINUTES[break_length]
+    low, limit = BREAK_MINUTES[break_length]
     if minutes > limit:
         # Past the break's length, fit falls off over the same length again.
         return max(0.0, 1.0 - (minutes - limit) / limit)

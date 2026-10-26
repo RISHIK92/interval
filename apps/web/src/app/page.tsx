@@ -8,6 +8,7 @@ import {
   preferences,
   sessionReader,
 } from "../server/container";
+import { CHIP_COOKIE, chipFor, chipLabel, CHIPS } from "../server/chips";
 import { loadFeed } from "../server/feed";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
@@ -17,7 +18,11 @@ export const dynamic = "force-dynamic";
 
 const FEED_LIMIT = 50;
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   // Private beta (Q-P1-24): no session, no app.
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
@@ -43,26 +48,47 @@ export default async function HomePage() {
       </main>
     );
   }
+  // The selected time chip picks the feed (Q-P1-16); the proxy remembers a chip link.
+  const jar = await cookies();
+  const chip = chipFor(
+    (await searchParams)["chip"],
+    jar.get(CHIP_COOKIE)?.value,
+    chosen,
+  );
   // The stored feed (CACHE-1); a first visit may wait for it, then a starter (ADR-0008).
   const { cards } = await loadFeed(
     { feed: feedReader() },
     actor.userId,
     chosen,
+    chip,
     FEED_LIMIT,
   );
   events().emit(
     "feed_viewed",
     { card_count: cards.length },
-    { ...actor, sessionId: visitId(await cookies()) },
+    { ...actor, sessionId: visitId(jar) },
   );
   return (
     <main>
       <h1>Interval</h1>
       {account}
+      <nav aria-label="Break length">
+        {CHIPS.map((option) => (
+          <Link
+            key={option}
+            href={`/?chip=${option}`}
+            aria-current={option === chip ? "true" : undefined}
+          >
+            {chipLabel(option)}
+          </Link>
+        ))}
+      </nav>
       {cards.length === 0 ? (
         <p>No moments yet.</p>
       ) : (
-        cards.map((card) => <MomentCard key={card.momentId} card={card} />)
+        cards.map((card) => (
+          <MomentCard key={card.momentId} card={card} chip={chip} />
+        ))
       )}
     </main>
   );

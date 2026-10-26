@@ -269,11 +269,13 @@ class StarterFeedEntry(TypedDict):
     level: Difficulty
     moment_id: int
     rank: int
+    chip: BreakLength
 
 
 class StarterFeedVisible(TypedDict):
     topic: str | None
     level: Difficulty | None
+    chip: BreakLength | None
     rank: int | None
     moment_id: int | None
     section_title: str | None
@@ -312,6 +314,7 @@ class UserFeedEntry(TypedDict):
     moment_id: int
     rank: int
     top_signal: str
+    chip: BreakLength
 
 
 class UserFeedState(TypedDict):
@@ -321,6 +324,7 @@ class UserFeedState(TypedDict):
 
 class UserFeedVisible(TypedDict):
     user_id: str | None
+    chip: BreakLength | None
     rank: int | None
     moment_id: int | None
     section_title: str | None

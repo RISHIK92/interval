@@ -72,7 +72,7 @@ async function html(
 describe("home", () => {
   async function home(): Promise<string> {
     const { default: HomePage } = await import("./page");
-    return html(HomePage());
+    return html(HomePage({ searchParams: Promise.resolve({}) }));
   }
 
   test("a guest is offered sign-up, not sign-out", async () => {

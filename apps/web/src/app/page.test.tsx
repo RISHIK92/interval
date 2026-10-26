@@ -24,12 +24,18 @@ vi.mock("../server/container", () => ({
   events: () => ({ emit }),
   entitlements: () => ({ can }),
 }));
+let chipCookie: string | undefined;
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
   cookies: () =>
     Promise.resolve({
-      get: (name: string) =>
-        name === "iv_visit" ? { name, value: "visit-9.1790000000" } : undefined,
+      get: (name: string) => {
+        if (name === "iv_visit") return { name, value: "visit-9.1790000000" };
+        if (name === "iv_chip" && chipCookie !== undefined) {
+          return { name, value: chipCookie };
+        }
+        return undefined;
+      },
     }),
 }));
 const redirect = vi.fn((url: string) => {
@@ -40,6 +46,7 @@ vi.mock("next/navigation", () => ({ redirect }));
 const guest: Actor = { userId: "u1", isGuest: true, betaGroup: "student" };
 
 afterEach(() => {
+  chipCookie = undefined;
   getFeed.mockReset();
   current.mockReset();
   emit.mockReset();
@@ -57,9 +64,13 @@ const card: FeedCard = {
   sourceName: "Example Engineering",
 };
 
-async function render(): Promise<string> {
+async function render(
+  params: Record<string, string | string[]> = {},
+): Promise<string> {
   const { default: HomePage } = await import("./page");
-  return renderToStaticMarkup(await HomePage());
+  return renderToStaticMarkup(
+    await HomePage({ searchParams: Promise.resolve(params) }),
+  );
 }
 
 test("without a session the visitor is sent to /join", async () => {
@@ -114,4 +125,35 @@ test("a user who hasn't onboarded is sent to /onboarding first", async () => {
   getPreferences.mockResolvedValueOnce(null);
   await expect(render()).rejects.toThrow("redirect:/onboarding");
   expect(getFeed).not.toHaveBeenCalled();
+});
+
+// Q-P1-16: three time chips; the selected one decides the feed (P1-W4-S05).
+test("renders the three chips as links and marks the onboarding one", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  const html = await render();
+  for (const chip of ["1-3", "3-8", "8-15"]) {
+    expect(html).toContain(`href="/?chip=${chip}"`);
+  }
+  expect(html).toContain('<a aria-current="true" href="/?chip=3-8">');
+  expect(html.match(/aria-current/g)).toHaveLength(1);
+  expect(getFeed).toHaveBeenCalledWith("u1", "3-8", 50);
+  expect(html).toContain("Fits your 3–8 min break");
+});
+
+test("a chip in the link picks that chip's feed", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  const html = await render({ chip: "1-3" });
+  expect(getFeed).toHaveBeenCalledWith("u1", "1-3", 50);
+  expect(html).toContain('<a aria-current="true" href="/?chip=1-3">');
+  expect(html).toContain("Fits your 1–3 min break");
+});
+
+test("the chip chosen earlier in the session is kept", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  chipCookie = "8-15";
+  await render();
+  expect(getFeed).toHaveBeenCalledWith("u1", "8-15", 50);
 });

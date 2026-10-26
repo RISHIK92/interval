@@ -11,6 +11,7 @@ import psycopg
 import pytest
 from psycopg import sql
 
+from interval_db.generated import BreakLength
 from interval_jobs.adapters.postgres import PostgresStore
 from interval_jobs.ports import RankedMoment
 
@@ -88,19 +89,30 @@ def moments_of(conn: psycopg.Connection, item_id: int) -> list[int]:
     return [r[0] for r in rows]
 
 
-def give(conn: psycopg.Connection, user_id: str, moment_ids: list[int]) -> None:
+def give(
+    conn: psycopg.Connection,
+    user_id: str,
+    moment_ids: list[int],
+    others: dict[BreakLength, list[int]] | None = None,
+) -> None:
+    by_chip: dict[BreakLength, list[int]] = {"3-8": moment_ids, **(others or {})}
     PostgresStore(conn).feed.replace_user(
         user_id,
-        [RankedMoment(m, "topic_match") for m in moment_ids],
+        {
+            chip: [RankedMoment(m, "topic_match") for m in ids]
+            for chip, ids in by_chip.items()
+        },
         datetime.now(UTC),
     )
 
 
-def visible(conn: psycopg.Connection, user_id: str) -> list[tuple[str, int, int]]:
+def visible(
+    conn: psycopg.Connection, user_id: str, chip: BreakLength = "3-8"
+) -> list[tuple[str, int, int]]:
     return conn.execute(
         "select section_title, section_number, section_count from user_feed_visible "
-        "where user_id = %s order by rank",
-        (user_id,),
+        "where user_id = %s and chip = %s order by rank",
+        (user_id, chip),
     ).fetchall()
 
 
@@ -115,6 +127,17 @@ def test_a_user_sees_their_own_feed_in_rank_order(conn: psycopg.Connection) -> N
     assert visible(conn, other) == [("one s0", 1, 2)]
 
 
+def test_each_chip_is_its_own_feed(conn: psycopg.Connection) -> None:
+    src = source(conn, "feedtest-f")
+    item = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 2)
+    first, second = moments_of(conn, item)
+    me = user(conn)
+    give(conn, me, [first, second], {"1-3": [second], "8-15": []})
+    assert visible(conn, me, "3-8") == [("one s0", 1, 2), ("one s1", 2, 2)]
+    assert visible(conn, me, "1-3") == [("one s1", 2, 2)]
+    assert visible(conn, me, "8-15") == []
+
+
 def test_switching_moments_off_cascades_to_every_feed(conn: psycopg.Connection) -> None:
     src = source(conn, "feedtest-c")
     item = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 2)
@@ -123,6 +146,7 @@ def test_switching_moments_off_cascades_to_every_feed(conn: psycopg.Connection) 
     PostgresStore(conn).feed.replace_starter(
         "databases",
         "beginner",
+        "3-8",
         [RankedMoment(m, "quality") for m in moments_of(conn, item)],
     )
     conn.execute(
@@ -168,6 +192,7 @@ def test_views_hide_stale_entries_when_the_source_no_longer_allows_moments(
     PostgresStore(conn).feed.replace_starter(
         "databases",
         "advanced",
+        "3-8",
         [RankedMoment(m, "quality") for m in moments_of(conn, item)],
     )
     # Skip triggers for this transaction only, to leave stale feed entries behind.

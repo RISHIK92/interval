@@ -108,7 +108,7 @@ async function inRollback(
 
 test("a feed never computed reads as not computed", async () => {
   await inRollback(async (trx, { userId }) => {
-    expect(await kyselyFeedReader(trx).read(userId, 50)).toEqual({
+    expect(await kyselyFeedReader(trx).read(userId, "3-8", 50)).toEqual({
       computed: false,
       cards: [],
     });
@@ -127,17 +127,32 @@ test("read returns the user's own cards in rank order, in one query", async () =
   await inRollback(async (trx, { userId, otherId, momentIds }) => {
     const [first, second] = momentIds;
     if (first === undefined || second === undefined) throw new Error("seed");
-    // Only the second section is in this user's feed; the count still covers both.
+    // Only the second section is in this user's 3-8 feed; the count still covers
+    // both. Another chip's entries and another user's stay out.
     await trx
       .insertInto("user_feed_entry")
       .values([
         {
           user_id: userId,
+          chip: "3-8",
           moment_id: second,
           rank: 1,
           top_signal: "topic_match",
         },
-        { user_id: otherId, moment_id: first, rank: 1, top_signal: "quality" },
+        {
+          user_id: userId,
+          chip: "1-3",
+          moment_id: first,
+          rank: 1,
+          top_signal: "time_fit",
+        },
+        {
+          user_id: otherId,
+          chip: "3-8",
+          moment_id: first,
+          rank: 1,
+          top_signal: "quality",
+        },
       ])
       .execute();
     await trx
@@ -149,6 +164,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
       .execute();
     const result = await kyselyFeedReader(trx.withPlugin(counting)).read(
       userId,
+      "3-8",
       50,
     );
     expect(queries).toBe(1);
@@ -172,34 +188,55 @@ test("read returns the user's own cards in rank order, in one query", async () =
   });
 });
 
-test("a computed but empty feed reads as computed with no cards", async () => {
-  await inRollback(async (trx, { userId }) => {
+test("a computed but empty chip reads as computed with no cards", async () => {
+  await inRollback(async (trx, { userId, momentIds }) => {
+    const [first] = momentIds;
+    if (first === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_feed_entry")
+      .values({
+        user_id: userId,
+        chip: "3-8",
+        moment_id: first,
+        rank: 1,
+        top_signal: "quality",
+      })
+      .execute();
     await trx
       .insertInto("user_feed_state")
       .values({ user_id: userId, computed_at: new Date() })
       .execute();
-    expect(await kyselyFeedReader(trx).read(userId, 50)).toEqual({
+    expect(await kyselyFeedReader(trx).read(userId, "8-15", 50)).toEqual({
       computed: true,
       cards: [],
     });
   });
 });
 
-test("the starter feed is read per topic and level", async () => {
+test("the starter feed is read per topic, level and chip", async () => {
   await inRollback(async (trx, { momentIds }) => {
     const [first, second] = momentIds;
     if (first === undefined || second === undefined) throw new Error("seed");
+    const beginner = { topic: "databases", level: "beginner" } as const;
     await trx
       .insertInto("starter_feed_entry")
       .values([
-        { topic: "databases", level: "beginner", moment_id: second, rank: 1 },
-        { topic: "databases", level: "beginner", moment_id: first, rank: 2 },
-        { topic: "databases", level: "advanced", moment_id: first, rank: 1 },
+        { ...beginner, chip: "3-8", moment_id: second, rank: 1 },
+        { ...beginner, chip: "3-8", moment_id: first, rank: 2 },
+        { ...beginner, chip: "1-3", moment_id: first, rank: 1 },
+        {
+          ...beginner,
+          level: "advanced",
+          chip: "3-8",
+          moment_id: first,
+          rank: 1,
+        },
       ])
       .execute();
     const cards = await kyselyFeedReader(trx).starter(
       "databases",
       "beginner",
+      "3-8",
       50,
     );
     expect(cards.map((c) => c.momentId)).toEqual([second, first]);

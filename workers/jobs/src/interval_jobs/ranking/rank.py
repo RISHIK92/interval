@@ -1,13 +1,19 @@
 """A user's ranked feed (REC-1..REC-3, P1-W4-S03): candidates, scored by the rules in
 `ranking_config`, re-ranked for diversity and the per-source cap. The precomputed feed
 (W4-S04) stores the result.
+
+One ranking per time chip (Q-P1-16, W4-S05): a chip holds only moments that fit within
+its upper bound, scored with that chip's time fit.
 """
 
+from dataclasses import replace
 from datetime import datetime
 
+from interval_db.generated import BreakLength
 from interval_jobs.ports import Store, UserPreferences
 from interval_jobs.ranking.candidates import candidates_for
 from interval_jobs.ranking.scoring import (
+    BREAK_MINUTES,
     RankingConfig,
     Scored,
     UserSignals,
@@ -15,13 +21,19 @@ from interval_jobs.ranking.scoring import (
     score,
 )
 
+Ranked = dict[BreakLength, list[Scored]]
+
+
+def _empty() -> Ranked:
+    return {chip: [] for chip in BREAK_MINUTES}
+
 
 def rank_for_user(
     store: Store, user_id: str, model: str | None, now: datetime, limit: int
-) -> list[Scored]:
+) -> Ranked:
     preferences = store.ranking.preferences(user_id)
     if preferences is None:
-        return []
+        return _empty()
     return rank_for_preferences(store, preferences, user_id, model, now, limit)
 
 
@@ -32,12 +44,12 @@ def rank_for_preferences(
     model: str | None,
     now: datetime,
     limit: int,
-) -> list[Scored]:
+) -> Ranked:
     """With no user, a starter feed (ADR-0008): no feedback, no similarity anchors."""
     inputs = store.ranking
     found = candidates_for(store, preferences, user_id, model)
     if not found:
-        return []
+        return _empty()
     facts = inputs.moment_facts([c.moment_id for c in found])
     user = UserSignals(
         topics=frozenset(preferences.topics),
@@ -47,4 +59,14 @@ def rank_for_preferences(
         avoided_concepts=inputs.avoided_concepts(user_id) if user_id else frozenset(),
     )
     config = RankingConfig.from_rows(inputs.config())
-    return rerank(score(found, facts, user, config, now), facts, config, limit)
+    ranked = _empty()
+    for chip, (_, upper) in BREAK_MINUTES.items():
+        # A moment gone since the candidate read stays in: score() logs and skips it.
+        fits = [
+            c
+            for c in found
+            if (fact := facts.get(c.moment_id)) is None or fact.minutes <= upper
+        ]
+        scored = score(fits, facts, replace(user, break_length=chip), config, now)
+        ranked[chip] = rerank(scored, facts, config, limit)
+    return ranked
