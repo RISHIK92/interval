@@ -25,18 +25,19 @@ from interval_jobs.concepts.graph import TOPICS
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
+    CandidateArticle,
     CandidateMoment,
     ConceptCycleError,
     ConceptEdge,
     ConceptGraph,
     ConceptSeed,
     DuplicateInviteCode,
+    EntryFacts,
     FeedEntry,
     FetchInput,
     GrantResult,
-    MomentFacts,
     MomentRow,
-    RankedMoment,
+    RankedEntry,
     RevokeResult,
     RightsViolation,
     Section,
@@ -478,6 +479,27 @@ class PostgresMoments:
             )
 
 
+# The ranked entries as rows, numbered in order; an entry whose item or moment is gone
+# is skipped.
+_RANKED_ROWS = """
+from unnest(%s::bigint[], %s::bigint[], %s::text[]) with ordinality
+  as r(item_id, moment_id, top_signal, rank)
+where exists (select 1 from content_item ci where ci.id = r.item_id)
+  and (r.moment_id is null
+       or exists (select 1 from moment m where m.id = r.moment_id))
+"""
+
+
+def _ranked_arrays(
+    ranked: list[RankedEntry],
+) -> tuple[list[int], list[int | None], list[str]]:
+    return (
+        [r.item_id for r in ranked],
+        [r.moment_id for r in ranked],
+        [r.top_signal for r in ranked],
+    )
+
+
 class PostgresFeed:
     def __init__(self, conn: psycopg.Connection) -> None:
         self._conn = conn
@@ -492,7 +514,7 @@ class PostgresFeed:
     def replace_user(
         self,
         user_id: str,
-        by_chip: Mapping[BreakLength, list[RankedMoment]],
+        by_chip: Mapping[BreakLength, list[RankedEntry]],
         computed_at: datetime,
     ) -> None:
         # One savepoint: the old feed stays whole unless the new one lands (LOAD-5).
@@ -506,23 +528,18 @@ class PostgresFeed:
             self._conn.execute(
                 "delete from user_feed_entry where user_id = %s", (user_id,)
             )
-            # Moments re-segmented since ranking are skipped; the rank keeps the order.
+            # Items or moments deleted since ranking are skipped; the rank keeps the
+            # order.
             for chip, ranked in by_chip.items():
                 self._conn.execute(
-                    """
+                    f"""
                     insert into user_feed_entry
-                      (user_id, chip, moment_id, rank, top_signal)
-                    select %s, %s::break_length, r.moment_id, r.rank, r.top_signal
-                    from unnest(%s::bigint[], %s::text[]) with ordinality
-                      as r(moment_id, top_signal, rank)
-                    where exists (select 1 from moment m where m.id = r.moment_id)
+                      (user_id, chip, content_item_id, moment_id, rank, top_signal)
+                    select %s, %s::break_length, r.item_id, r.moment_id, r.rank,
+                           r.top_signal
+                    {_RANKED_ROWS}
                     """,
-                    (
-                        user_id,
-                        chip,
-                        [r.moment_id for r in ranked],
-                        [r.top_signal for r in ranked],
-                    ),
+                    (user_id, chip, *_ranked_arrays(ranked)),
                 )
             self._conn.execute(
                 "insert into user_feed_state (user_id, computed_at) values (%s, %s) "
@@ -536,7 +553,7 @@ class PostgresFeed:
         topic: str,
         level: Difficulty,
         chip: BreakLength,
-        ranked: list[RankedMoment],
+        ranked: list[RankedEntry],
     ) -> None:
         with self._conn.transaction():
             # Overlapping hourly runs (a slow one and the next) may rewrite it at once.
@@ -550,13 +567,13 @@ class PostgresFeed:
                 (topic, level, chip),
             )
             self._conn.execute(
-                """
-                insert into starter_feed_entry (topic, level, chip, moment_id, rank)
-                select %s, %s, %s::break_length, r.moment_id, r.rank
-                from unnest(%s::bigint[]) with ordinality as r(moment_id, rank)
-                where exists (select 1 from moment m where m.id = r.moment_id)
+                f"""
+                insert into starter_feed_entry
+                  (topic, level, chip, content_item_id, moment_id, rank)
+                select %s, %s, %s::break_length, r.item_id, r.moment_id, r.rank
+                {_RANKED_ROWS}
                 """,
-                (topic, level, chip, [r.moment_id for r in ranked]),
+                (topic, level, chip, *_ranked_arrays(ranked)),
             )
 
     def active_users(self, since: datetime) -> list[str]:
@@ -1196,6 +1213,23 @@ _ITEM_CONCEPTS = """
 """
 
 
+# The item `ci` (its source `s`, its item-level override `o`) is on one of the topics.
+_ON_TOPICS = """(
+  s.topics && %(topics)s::text[]
+  or exists (
+    select 1 from concept c
+    where c.topic = any(%(topics)s)
+      and (
+        -- An admin's correction replaces the model's tags (P1-W3-S05).
+        (o.content_item_id is not null and c.slug = any(o.concepts))
+        or (o.content_item_id is null and c.id in (
+          select concept_id from item_concept where content_item_id = ci.id
+        ))
+      )
+  )
+)"""
+
+
 class PostgresRankingInputs:
     """What the web app writes about a user, read for ranking (P1-W4-S02)."""
 
@@ -1271,7 +1305,7 @@ class PostgresRankingInputs:
         rows = self._conn.execute("select key, value from ranking_config").fetchall()
         return {str(r[0]): float(r[1]) for r in rows}
 
-    def moment_facts(self, moment_ids: list[int]) -> dict[int, MomentFacts]:
+    def moment_facts(self, moment_ids: list[int]) -> dict[int, EntryFacts]:
         rows = self._conn.execute(
             f"""
             select m.id, ci.id, s.id, m.estimated_minutes,
@@ -1299,7 +1333,7 @@ class PostgresRankingInputs:
             (moment_ids,),
         ).fetchall()
         return {
-            int(r[0]): MomentFacts(
+            int(r[0]): EntryFacts(
                 int(r[0]),
                 int(r[1]),
                 int(r[2]),
@@ -1322,7 +1356,7 @@ class PostgresRankingInputs:
         exclude_items: set[int],
     ) -> list[CandidateMoment]:
         rows = self._conn.execute(
-            """
+            f"""
             with shown_item as (
               -- Per duplicate group, the earliest copy that has moments: the one the
               -- feed shows (owner review, 2026-10-26).
@@ -1339,21 +1373,7 @@ class PostgresRankingInputs:
               on o.content_item_id = ci.id and o.heading = ''
             where ci.id in (select id from shown_item) and s.active
               and s.id <> all(%(sources)s) and ci.id <> all(%(items)s)
-              and (
-                s.topics && %(topics)s::text[]
-                or exists (
-                  select 1 from concept c
-                  where c.topic = any(%(topics)s)
-                    and (
-                      -- An admin's correction replaces the model's tags (P1-W3-S05).
-                      (o.content_item_id is not null and c.slug = any(o.concepts))
-                      or (o.content_item_id is null and c.id in (
-                        select concept_id from item_concept
-                        where content_item_id = ci.id
-                      ))
-                    )
-                )
-              )
+              and {_ON_TOPICS}
             order by ci.published_at desc nulls last, ci.id desc, m.ordinal
             limit %(limit)s
             """,
@@ -1365,6 +1385,83 @@ class PostgresRankingInputs:
             },
         ).fetchall()
         return [CandidateMoment(int(r[0]), int(r[1]), int(r[2])) for r in rows]
+
+    def article_facts(self, item_ids: list[int]) -> dict[int, EntryFacts]:
+        rows = self._conn.execute(
+            f"""
+            select ci.id, s.id, item_minutes(ci.id),
+                   -- Human before model, as moment_facts: the admin's item level, else
+                   -- the model's item tag.
+                   coalesce(io.difficulty, it.difficulty),
+                   ci.published_at, s.quality_score,
+                   array(select slug from ({_ITEM_CONCEPTS.format(item="ci.id")}) c),
+                   s.topics || array(
+                     select k.topic from concept k
+                     where k.slug in (
+                       select slug from ({_ITEM_CONCEPTS.format(item="ci.id")}) c2
+                     )
+                   )
+            from content_item ci
+            join source s on s.id = ci.source_id
+            left join tag_override io on io.content_item_id = ci.id and io.heading = ''
+            left join item_tagging it on it.content_item_id = ci.id
+            where ci.id = any(%s)
+            """,
+            (item_ids,),
+        ).fetchall()
+        return {
+            int(r[0]): EntryFacts(
+                None,
+                int(r[0]),
+                int(r[1]),
+                r[2],
+                r[3],
+                r[4],
+                r[5],
+                frozenset(str(c) for c in r[6]),
+                frozenset(str(t) for t in r[7]),
+            )
+            for r in rows
+        }
+
+    def topic_articles(
+        self,
+        topics: list[Topic],
+        limit: int,
+        *,
+        exclude_sources: set[int],
+        exclude_items: set[int],
+    ) -> list[CandidateArticle]:
+        rows = self._conn.execute(
+            f"""
+            with shown_item as (
+              -- Per duplicate group, the copy whose moments the feed shows, else the
+              -- earliest: one story is one card.
+              select distinct on (coalesce(c.duplicate_of, c.id)) c.id
+              from content_item c
+              order by coalesce(c.duplicate_of, c.id),
+                not exists (select 1 from moment x where x.content_item_id = c.id),
+                c.published_at nulls last, c.id
+            )
+            select ci.id, s.id
+            from content_item ci
+            join source s on s.id = ci.source_id
+            left join tag_override o
+              on o.content_item_id = ci.id and o.heading = ''
+            where ci.id in (select id from shown_item) and s.active
+              and s.id <> all(%(sources)s) and ci.id <> all(%(items)s)
+              and {_ON_TOPICS}
+            order by ci.published_at desc nulls last, ci.id desc
+            limit %(limit)s
+            """,
+            {
+                "topics": list(topics),
+                "sources": sorted(exclude_sources),
+                "items": sorted(exclude_items),
+                "limit": limit,
+            },
+        ).fetchall()
+        return [CandidateArticle(int(r[0]), int(r[1])) for r in rows]
 
 
 class PostgresStore:

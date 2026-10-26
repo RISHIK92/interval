@@ -53,6 +53,8 @@ afterEach(() => {
 });
 
 const card: FeedCard = {
+  kind: "moment",
+  itemId: "10",
   momentId: "1",
   sectionTitle: "Why consensus",
   sectionNumber: 1,
@@ -162,4 +164,26 @@ test("the chip chosen earlier in the session is kept", async () => {
   chipCookie = "8-15";
   await render();
   expect(getFeed).toHaveBeenCalledWith("u1", "8-15", 50);
+});
+
+test("the 8–15 chip renders whole-article cards next to moments", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(
+    feedOf([
+      {
+        kind: "article",
+        itemId: "20",
+        estimatedMinutes: null,
+        link: "https://webfeed.example.test/whole",
+        articleTitle: "A whole read",
+        author: null,
+        sourceName: "Example Engineering",
+      },
+      card,
+    ]),
+  );
+  const html = await render({ chip: "8-15" });
+  expect(html).toContain("Whole article · Length unknown");
+  expect(html).toContain('href="https://webfeed.example.test/whole"');
+  expect(html.match(/<article/g)).toHaveLength(2);
 });

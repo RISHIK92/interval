@@ -12,6 +12,7 @@ import { CHIP_COOKIE, chipFor, chipLabel, CHIPS } from "../server/chips";
 import { loadFeed } from "../server/feed";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
+import { ArticleCard } from "./ArticleCard";
 import { MomentCard } from "./MomentCard";
 
 export const dynamic = "force-dynamic";
@@ -93,9 +94,13 @@ export default async function HomePage({
       {cards.length === 0 ? (
         <p>No moments yet.</p>
       ) : (
-        cards.map((card) => (
-          <MomentCard key={card.momentId} card={card} chip={chip} />
-        ))
+        cards.map((card) =>
+          card.kind === "moment" ? (
+            <MomentCard key={`m${card.momentId}`} card={card} chip={chip} />
+          ) : (
+            <ArticleCard key={`a${card.itemId}`} card={card} chip={chip} />
+          ),
+        )
       )}
     </main>
   );

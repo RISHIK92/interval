@@ -44,6 +44,8 @@ export function kyselyPing(db: Kysely<DB>): DatabasePing {
 // The card columns, as both feed views name them (no summary or text, §3.2, ING-2).
 const CARD_COLUMNS = [
   "rank",
+  "kind",
+  "content_item_id",
   "moment_id",
   "section_title",
   "section_number",
@@ -56,8 +58,20 @@ const CARD_COLUMNS = [
 ] as const;
 type CardRow = Pick<Selectable<UserFeedVisible>, (typeof CARD_COLUMNS)[number]>;
 
+// Columns an article row leaves null: it has no moment, and maybe no length.
+const ARTICLE_NULLS = new Set([
+  "author",
+  "moment_id",
+  "section_title",
+  "section_number",
+  "section_count",
+  "estimated_minutes",
+]);
+
 export function toCard(row: CardRow): FeedCard | null {
   const {
+    kind,
+    content_item_id,
     moment_id,
     section_title,
     section_number,
@@ -68,35 +82,50 @@ export function toCard(row: CardRow): FeedCard | null {
     source_name,
   } = row;
   if (
-    moment_id === null ||
-    section_title === null ||
-    section_number === null ||
-    section_count === null ||
-    estimated_minutes === null ||
-    link === null ||
-    article_title === null ||
-    source_name === null
+    content_item_id !== null &&
+    link !== null &&
+    article_title !== null &&
+    source_name !== null
   ) {
-    const missing = Object.entries(row)
-      .filter(([column, value]) => value === null && column !== "author")
-      .map(([column]) => column);
-    log.error("feed: dropped a feed row with missing fields", {
-      momentId: moment_id,
-      missing,
-    });
-    return null;
+    const base = {
+      itemId: content_item_id,
+      link,
+      articleTitle: article_title,
+      author: row.author,
+      sourceName: source_name,
+    };
+    if (kind === "article") {
+      return { kind, ...base, estimatedMinutes: estimated_minutes };
+    }
+    if (
+      kind === "moment" &&
+      moment_id !== null &&
+      section_title !== null &&
+      section_number !== null &&
+      section_count !== null &&
+      estimated_minutes !== null
+    ) {
+      return {
+        kind,
+        ...base,
+        momentId: moment_id,
+        sectionTitle: section_title,
+        sectionNumber: section_number,
+        sectionCount: section_count,
+        estimatedMinutes: estimated_minutes,
+      };
+    }
   }
-  return {
+  const allowedNull = kind === "article" ? ARTICLE_NULLS : new Set(["author"]);
+  const missing = Object.entries(row)
+    .filter(([column, value]) => value === null && !allowedNull.has(column))
+    .map(([column]) => column);
+  log.error("feed: dropped a feed row with missing fields", {
     momentId: moment_id,
-    sectionTitle: section_title,
-    sectionNumber: section_number,
-    sectionCount: section_count,
-    estimatedMinutes: estimated_minutes,
-    link,
-    articleTitle: article_title,
-    author: row.author,
-    sourceName: source_name,
-  };
+    itemId: content_item_id,
+    missing,
+  });
+  return null;
 }
 
 // Reads the precomputed feed (CACHE-1); the worker writes it (ADR-0008).
@@ -115,8 +144,9 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .limit(limit)
         .execute();
       if (rows.length === 0) return { computed: false, cards: [] };
+      // A computed feed with no entries in this chip comes back as one empty row.
       const cards = rows
-        .filter((row) => row.moment_id !== null)
+        .filter((row) => row.content_item_id !== null)
         .map(toCard)
         .filter((card) => card !== null);
       return { computed: true, cards };

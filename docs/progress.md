@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) and W4-S05a (time chips) done. Next: W4-S05b (whole-article cards). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) and W4-S05 (a: time chips, b: whole-article cards) done. Next: W4-S06 (why-this-matters notes). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -1112,3 +1112,32 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Code: `consume --max-entries N` takes each feed's newest N entries (one-off local runs only; polling still takes whole feeds).
 - Test fix: the moments-off cascade test counted every starter row in the shared database; it now counts only its own moments.
 - Not checked: whether these 27 publishers allow this use (the rights review the first 10 had, ING-6). Medium-hosted article pages may refuse the fetcher, as Netflix's did (403).
+
+### 2026-10-26 — P1-W4-S05b (whole-article cards, §3.2, Q-P1-16, Q-P1-39, ADR-0006 C-23)
+- Owner choices:
+  - **Up to 15 min:** under 8–15, an article whose known length is 15 min or less is offered whole, and its moments are left out of that chip.
+  - **Over 15 min:** offered whole, ranked lower by time fit, and its moments of up to 15 min show too.
+  - **Unknown length:** only under 8–15, as "Length unknown", with time fit 0.5.
+  - **Length:** from the stored word count (230 wpm). Feeds have no reading-time field, so that part of Q-P1-39 waits for a source that has one.
+- Done:
+  - **Migration `20261026150000_feed_articles.sql`:**
+    - a feed entry is a moment or a whole item (`content_item_id` is required, `moment_id` is nullable);
+    - a composite key ties an entry's moment to its item;
+    - `item_minutes()`;
+    - both views gain `kind` and `content_item_id`. An article row shows its title and link from any rights profile; a moment row still needs moments allowed (ING-2).
+  - **Worker:**
+    - `RankedEntry` and `EntryFacts` cover both kinds;
+    - new `topic_articles`: one copy per story, the one whose moments show, else the earliest;
+    - new `article_facts`;
+    - `rank.py` builds 8–15 from whole articles plus the moments of articles over 15 min. A fitting article found only through its moments (by similarity, or past the candidate limit) is still offered whole.
+  - **Web:** `FeedCard` is a moment or an article. The new `ArticleCard` shows "Whole article · N min" with "Fits your 8–15 min break" only when the article fits, or "Length unknown".
+  - **The in-memory fake** now cascades re-segmented moments out of feeds, as Postgres does.
+- Review fixes:
+  - a fitting article found only by its moments vanished from 8–15;
+  - an entry could pair one item's moment with another item's title (now a composite foreign key);
+  - tests for: a moment over 15 min, the unknown-length fit, the earliest-copy rule, and the article-first tie-break;
+  - `CHIP_MINUTES` no longer duplicates the worker's bounds;
+  - small naming fixes.
+- Process note: parts of the worker were written before their tests in this slice. The review's test additions cover the rules.
+- Not fixed: the empty state still says "No moments yet." on 8–15, which can now hold articles. That's product text for the owner.
+- After migrating: restart any running `consume` (an old process writes entries the new schema refuses) and run `recompute-due`.

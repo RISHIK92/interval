@@ -7,6 +7,7 @@ Generators with data in Phase 1:
   Q-P1-13 names saved and finished items as the anchors; neither exists until W4-S07
   and W5, so More like this stands in, and those join when they do (overnight pick,
   2026-10-26, in docs/progress.md for the owner).
+Whole articles (the 8-15 chip, P1-W4-S05b) come from topic matches only.
 Continue items need reading progress, so that generator comes with W5-S03 (deferred,
 also flagged). Hidden sources and Not interested items are never candidates
 (Q-P1-15); scoring is W4-S03.
@@ -15,7 +16,7 @@ also flagged). Hidden sources and Not interested items are never candidates
 from dataclasses import dataclass, field
 from typing import Literal
 
-from interval_jobs.ports import CandidateMoment, Store, UserPreferences
+from interval_jobs.ports import CandidateMoment, EntryKey, Store, UserPreferences
 
 type Generator = Literal["topic", "similar"]
 
@@ -28,11 +29,15 @@ PER_ANCHOR = 20
 
 @dataclass
 class Candidate:
-    moment_id: int
+    moment_id: int | None  # None: the whole article (P1-W4-S05b)
     item_id: int
     source_id: int
     generators: set[Generator] = field(default_factory=set[Generator])
     similarity: float | None = None  # best cosine to an anchor, when similar
+
+    @property
+    def key(self) -> EntryKey:
+        return (self.item_id, self.moment_id)
 
 
 def candidates(store: Store, user_id: str, model: str | None) -> list[Candidate]:
@@ -86,3 +91,19 @@ def candidates_for(
                     row = CandidateMoment(hit.moment_id, hit.item_id, hit.source_id)
                     add(row, "similar", hit.score)
     return list(found.values())
+
+
+def article_candidates(
+    store: Store, preferences: UserPreferences, user_id: str | None
+) -> list[Candidate]:
+    """Whole articles on the chosen topics, for the 8-15 chip (Q-P1-16, P1-W4-S05b).
+    Topic matches only: an article has no embedding of its own."""
+    inputs = store.ranking
+    hidden = inputs.hidden_sources(user_id) if user_id else set[int]()
+    gone = inputs.not_interested(user_id) if user_id else set[int]()
+    return [
+        Candidate(None, row.item_id, row.source_id, {"topic"})
+        for row in inputs.topic_articles(
+            preferences.topics, TOPIC_LIMIT, exclude_sources=hidden, exclude_items=gone
+        )
+    ]

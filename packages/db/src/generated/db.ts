@@ -290,8 +290,9 @@ export interface Source {
 
 export interface StarterFeedEntry {
   chip: BreakLength;
+  content_item_id: Int8;
   level: Difficulty;
-  moment_id: Int8;
+  moment_id: Int8 | null;
   rank: number;
   topic: string;
 }
@@ -300,7 +301,9 @@ export interface StarterFeedVisible {
   article_title: string | null;
   author: string | null;
   chip: BreakLength | null;
+  content_item_id: Int8 | null;
   estimated_minutes: number | null;
+  kind: string | null;
   level: Difficulty | null;
   link: string | null;
   moment_id: Int8 | null;
@@ -335,7 +338,8 @@ export interface UserEntitlement {
 
 export interface UserFeedEntry {
   chip: BreakLength;
-  moment_id: Int8;
+  content_item_id: Int8;
+  moment_id: Int8 | null;
   rank: number;
   top_signal: string;
   user_id: string;
@@ -350,7 +354,9 @@ export interface UserFeedVisible {
   article_title: string | null;
   author: string | null;
   chip: BreakLength | null;
+  content_item_id: Int8 | null;
   estimated_minutes: number | null;
+  kind: string | null;
   link: string | null;
   moment_id: Int8 | null;
   rank: number | null;

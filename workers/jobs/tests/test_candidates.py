@@ -61,7 +61,7 @@ class World:
         return item, self.store.moments.for_item(item)[0].id
 
 
-def ids(found: list[Candidate]) -> set[int]:
+def ids(found: list[Candidate]) -> set[int | None]:
     return {c.moment_id for c in found}
 
 

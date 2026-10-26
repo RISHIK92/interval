@@ -20,7 +20,7 @@ from datetime import datetime
 
 from interval_db.generated import BreakLength, Difficulty
 from interval_jobs import log
-from interval_jobs.ports import MomentFacts
+from interval_jobs.ports import EntryFacts, EntryKey
 from interval_jobs.ranking.candidates import Candidate
 
 SIGNALS = ("topic_match", "level_fit", "quality", "freshness", "time_fit")
@@ -95,12 +95,16 @@ class UserSignals:
 
 @dataclass(frozen=True)
 class Scored:
-    moment_id: int
+    moment_id: int | None  # None: the whole article
     item_id: int
     source_id: int
     score: float
     # The largest weighted part: W4-S06's why-this-matters note says why (REC-5).
     top_signal: str
+
+    @property
+    def key(self) -> EntryKey:
+        return (self.item_id, self.moment_id)
 
 
 def _level_fit(difficulty: Difficulty | None, level: Difficulty) -> float:
@@ -116,7 +120,9 @@ def _freshness(published: datetime | None, now: datetime, half_life: float) -> f
     return math.exp(-math.log(2) * age_days / half_life)
 
 
-def _time_fit(minutes: int, break_length: BreakLength) -> float:
+def _time_fit(minutes: int | None, break_length: BreakLength) -> float:
+    if minutes is None:
+        return 0.5  # length unknown (Q-P1-39): neither a fit nor a miss (owner)
     low, limit = BREAK_MINUTES[break_length]
     if minutes > limit:
         # Past the break's length, fit falls off over the same length again.
@@ -129,17 +135,21 @@ def _time_fit(minutes: int, break_length: BreakLength) -> float:
 
 def score(
     candidates: list[Candidate],
-    facts: dict[int, MomentFacts],
+    facts: dict[EntryKey, EntryFacts],
     user: UserSignals,
     config: RankingConfig,
     now: datetime,
 ) -> list[Scored]:
     scored: list[Scored] = []
     for candidate in candidates:
-        fact = facts.get(candidate.moment_id)
+        fact = facts.get(candidate.key)
         if fact is None:
-            # Re-segmented between the candidate and facts reads: it is gone.
-            log.info("ranking: candidate moment gone", moment_id=candidate.moment_id)
+            # Re-segmented or deleted between the candidate and facts reads: it is gone.
+            log.info(
+                "ranking: candidate gone",
+                item_id=candidate.item_id,
+                moment_id=candidate.moment_id,
+            )
             continue
         parts = {
             # On a chosen topic, whichever generator found it.
@@ -173,7 +183,7 @@ def score(
     return scored
 
 
-def _similarity(a: MomentFacts, b: MomentFacts) -> float:
+def _similarity(a: EntryFacts, b: EntryFacts) -> float:
     if a.item_id == b.item_id:
         return 1.0
     union = a.concepts | b.concepts
@@ -183,14 +193,15 @@ def _similarity(a: MomentFacts, b: MomentFacts) -> float:
 
 def rerank(
     scored: list[Scored],
-    facts: dict[int, MomentFacts],
+    facts: dict[EntryKey, EntryFacts],
     config: RankingConfig,
     limit: int,
 ) -> list[Scored]:
-    remaining = sorted(scored, key=lambda s: (-s.score, s.moment_id))
+    # Ties: lower item ids first, then the article before its moments, in order.
+    remaining = sorted(scored, key=lambda s: (-s.score, s.item_id, s.moment_id or 0))
     low = min((s.score for s in scored), default=0.0)
     spread = max((s.score for s in scored), default=0.0) - low
-    scaled = {s.moment_id: (s.score - low) / spread if spread else 1.0 for s in scored}
+    scaled = {s.key: (s.score - low) / spread if spread else 1.0 for s in scored}
     picked: list[Scored] = []
     per_source: dict[int, int] = {}
     lam = config.mmr_lambda
@@ -204,11 +215,11 @@ def rerank(
             break
 
         def mmr(candidate: Scored) -> float:
-            fact = facts[candidate.moment_id]
+            fact = facts[candidate.key]
             nearest = max(
-                (_similarity(fact, facts[p.moment_id]) for p in picked), default=0.0
+                (_similarity(fact, facts[p.key]) for p in picked), default=0.0
             )
-            return lam * scaled[candidate.moment_id] - (1 - lam) * nearest
+            return lam * scaled[candidate.key] - (1 - lam) * nearest
 
         best = max(allowed, key=mmr)
         picked.append(best)

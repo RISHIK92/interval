@@ -11,7 +11,7 @@ from interval_jobs.adapters.polite_fetcher import PoliteFetcher
 from interval_jobs.adapters.postgres import PostgresStore
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.ingest.one import ingest_one
-from interval_jobs.ports import RankedMoment
+from interval_jobs.ports import RankedEntry
 
 from .support import ARTICLE_URL, FEED_URL, mock_web_client, public
 
@@ -51,13 +51,14 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         (user_id, f"{user_id}@example.test", code[0]),
     )
     moments = conn.execute(
-        "select m.id from moment m join content_item ci on ci.id = m.content_item_id "
+        "select m.id, ci.id from moment m "
+        "join content_item ci on ci.id = m.content_item_id "
         "join source s on s.id = ci.source_id where s.name = 'seg-test' "
         "order by m.ordinal"
     ).fetchall()
     PostgresStore(conn).feed.replace_user(
         user_id,
-        {"3-8": [RankedMoment(r[0], "topic_match") for r in moments]},
+        {"3-8": [RankedEntry(r[1], r[0], "topic_match") for r in moments]},
         datetime.now(UTC),
     )
 
@@ -88,6 +89,8 @@ def test_one_feed_becomes_moment_cards_without_source_text(
     # An allowlist: any new column (e.g. a summary) must be added here on purpose.
     card_columns = {
         "rank",
+        "kind",
+        "content_item_id",
         "moment_id",
         "section_title",
         "section_number",

@@ -13,7 +13,7 @@ from psycopg import sql
 
 from interval_db.generated import BreakLength
 from interval_jobs.adapters.postgres import PostgresStore
-from interval_jobs.ports import RankedMoment
+from interval_jobs.ports import RankedEntry
 
 
 def add_item(
@@ -96,10 +96,16 @@ def give(
     others: dict[BreakLength, list[int]] | None = None,
 ) -> None:
     by_chip: dict[BreakLength, list[int]] = {"3-8": moment_ids, **(others or {})}
+    item_of = dict(
+        conn.execute(
+            "select id, content_item_id from moment where id = any(%s)",
+            ([m for ids in by_chip.values() for m in ids],),
+        ).fetchall()
+    )
     PostgresStore(conn).feed.replace_user(
         user_id,
         {
-            chip: [RankedMoment(m, "topic_match") for m in ids]
+            chip: [RankedEntry(item_of[m], m, "topic_match") for m in ids]
             for chip, ids in by_chip.items()
         },
         datetime.now(UTC),
@@ -148,7 +154,7 @@ def test_switching_moments_off_cascades_to_every_feed(conn: psycopg.Connection) 
         "databases",
         "beginner",
         "3-8",
-        [RankedMoment(m, "quality") for m in moments],
+        [RankedEntry(item, m, "quality") for m in moments],
     )
     conn.execute(
         "update source set moments_seeded = false, moments_enabled = false "
@@ -195,7 +201,7 @@ def test_views_hide_stale_entries_when_the_source_no_longer_allows_moments(
         "databases",
         "advanced",
         "3-8",
-        [RankedMoment(m, "quality") for m in moments_of(conn, item)],
+        [RankedEntry(item, m, "quality") for m in moments_of(conn, item)],
     )
     # Skip triggers for this transaction only, to leave stale feed entries behind.
     conn.execute("set local session_replication_role = replica")
@@ -248,3 +254,63 @@ def test_two_recomputes_of_one_user_wait_for_each_other(
     finally:
         with psycopg.connect(url) as cleanup:
             cleanup.execute("delete from app_user where id = %s", (me,))
+
+
+def test_a_whole_article_shows_title_and_link_from_any_profile(
+    conn: psycopg.Connection,
+) -> None:
+    # Q-P1-39: a metadata-only article has no length; its card links to the page.
+    src = source(conn, "feedtest-g")
+    conn.execute(
+        "update source set rights_profile = 'metadata_only', moments_seeded = false, "
+        "moments_enabled = false where id = %s",
+        (src,),
+    )
+    listed = add_item(conn, src, "listed", datetime(2026, 10, 1, tzinfo=UTC), 0)
+    full = source(conn, "feedtest-h")
+    counted = add_item(conn, full, "counted", datetime(2026, 10, 2, tzinfo=UTC), 1)
+    conn.execute(
+        "insert into content_item_section "
+        "(content_item_id, ordinal, heading, level, anchor_id, word_count) "
+        "values (%s, 0, null, null, null, 700)",
+        (counted,),
+    )
+    me = user(conn)
+    PostgresStore(conn).feed.replace_user(
+        me,
+        {
+            "8-15": [
+                RankedEntry(listed, None, "topic_match"),
+                RankedEntry(counted, None, "time_fit"),
+            ]
+        },
+        datetime.now(UTC),
+    )
+    rows = conn.execute(
+        "select kind, content_item_id, moment_id, section_title, estimated_minutes, "
+        "link from user_feed_visible where user_id = %s and chip = '8-15' "
+        "order by rank",
+        (me,),
+    ).fetchall()
+    assert rows == [
+        ("article", listed, None, None, None, "https://feed.example.test/listed"),
+        # 700 words at 230 a minute, rounded up.
+        ("article", counted, None, None, 4, "https://feed.example.test/counted"),
+    ]
+
+
+def test_an_entry_cannot_pair_a_moment_with_another_items_title(
+    conn: psycopg.Connection,
+) -> None:
+    # The view takes the title, source and rights gate from the entry's item; the
+    # moment must belong to it, or one item's link would show under another's title.
+    src = source(conn, "feedtest-i")
+    one = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 1)
+    other = add_item(conn, src, "other", datetime(2026, 10, 2, tzinfo=UTC), 1)
+    me = user(conn)
+    with pytest.raises(psycopg.errors.ForeignKeyViolation):
+        PostgresStore(conn).feed.replace_user(
+            me,
+            {"3-8": [RankedEntry(other, moments_of(conn, one)[0], "quality")]},
+            datetime.now(UTC),
+        )

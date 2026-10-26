@@ -21,6 +21,11 @@ export function chipFor(
   return parseChip(first) ?? parseChip(cookie) ?? preferences.breakLength;
 }
 
+// A chip's upper bound in minutes, from its value ("8-15" is 15): what "fits" means.
+export function chipLimit(chip: Chip): number {
+  return Number(chip.split("-")[1]);
+}
+
 export function chipLabel(chip: Chip): string {
   return `${chip.replace("-", "–")} min`;
 }

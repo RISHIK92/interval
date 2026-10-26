@@ -5,18 +5,28 @@ import type { BreakLength, Capability, Difficulty, Topic } from "@interval/db";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 
-// What a card may show (§3.2, ING-2): no summary or body text.
-export type FeedCard = {
-  momentId: string;
-  sectionTitle: string;
-  sectionNumber: number;
-  sectionCount: number;
-  estimatedMinutes: number;
+// What a card may show (§3.2, ING-2): no summary or body text. A moment, or in the
+// 8–15 chip a whole article (Q-P1-16, P1-W4-S05b).
+type CardBase = {
+  itemId: string;
   link: string;
   articleTitle: string;
   author: string | null;
   sourceName: string;
 };
+export type MomentFeedCard = CardBase & {
+  kind: "moment";
+  momentId: string;
+  sectionTitle: string;
+  sectionNumber: number;
+  sectionCount: number;
+  estimatedMinutes: number;
+};
+export type ArticleFeedCard = CardBase & {
+  kind: "article";
+  estimatedMinutes: number | null; // null: no body text to count (Q-P1-39)
+};
+export type FeedCard = MomentFeedCard | ArticleFeedCard;
 
 // CACHE-1, P1-W4-S04: the worker stores each user's ranked feed; this only reads it.
 export interface FeedReader {

@@ -33,7 +33,7 @@ from interval_jobs.ports import (
     DuplicateInviteCode,
     FeedEntry,
     MomentRow,
-    RankedMoment,
+    RankedEntry,
     RightsViolation,
     Section,
     SectionRow,
@@ -58,6 +58,9 @@ class Probe(Protocol):
     def moments(self, item_id: int) -> list[tuple[int, int, str]]: ...
     def feed_titles(self, chip: BreakLength = "3-8") -> list[str]: ...
     def feed_state(self, user_id: str) -> datetime | None: ...
+    def feed_entries(
+        self, user_id: str, chip: BreakLength
+    ) -> list[tuple[int, int | None]]: ...
     def starter_ids(
         self, topic: str, level: Difficulty, chip: BreakLength
     ) -> list[int]: ...
@@ -194,16 +197,23 @@ class MemoryProbe:
             by_id[r.moment_id]
             for chips in self.s.feed.users.values()
             for r in chips.get(chip, [])
+            if r.moment_id is not None  # moment entries, as the Postgres probe reads
         ]
 
     def feed_state(self, user_id: str) -> datetime | None:
         return self.s.feed.computed.get(user_id)
 
+    def feed_entries(
+        self, user_id: str, chip: BreakLength
+    ) -> list[tuple[int, int | None]]:
+        rows = self.s.feed.users.get(user_id, {}).get(chip, [])
+        return [(r.item_id, r.moment_id) for r in rows]
+
     def starter_ids(
         self, topic: str, level: Difficulty, chip: BreakLength
     ) -> list[int]:
         rows = self.s.feed.starters.get((topic, level, chip), [])
-        return [r.moment_id for r in rows]
+        return [r.moment_id for r in rows if r.moment_id is not None]
 
     def age_sessions(self, user_id: str, days: int) -> None:
         user = self.s.users.rows[user_id]
@@ -404,12 +414,23 @@ class PostgresProbe:
         ).fetchone()
         return None if row is None else row[0]
 
+    def feed_entries(
+        self, user_id: str, chip: BreakLength
+    ) -> list[tuple[int, int | None]]:
+        rows = self.conn.execute(
+            "select content_item_id, moment_id from user_feed_entry "
+            "where user_id = %s and chip = %s order by rank",
+            (user_id, chip),
+        ).fetchall()
+        return [(int(r[0]), r[1]) for r in rows]
+
     def starter_ids(
         self, topic: str, level: Difficulty, chip: BreakLength
     ) -> list[int]:
         rows = self.conn.execute(
             "select moment_id from starter_feed_entry where topic = %s "
-            "and level = %s::difficulty and chip = %s::break_length order by rank",
+            "and level = %s::difficulty and chip = %s::break_length "
+            "and moment_id is not null order by rank",
             (topic, level, chip),
         ).fetchall()
         return [r[0] for r in rows]
@@ -1825,7 +1846,7 @@ def put_in_feed(s: Store, probe: Probe, item_id: int) -> str:
     """A user whose feed holds the item's moments (feeds are per user, W4-S04)."""
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
-    ranked = [RankedMoment(m[0], "topic_match") for m in probe.moments(item_id)]
+    ranked = [RankedEntry(item_id, m[0], "topic_match") for m in probe.moments(item_id)]
     s.feed.replace_user(user, {"3-8": ranked}, datetime.now(UTC))
     return user
 
@@ -1849,17 +1870,17 @@ def test_a_users_feed_is_replaced_whole_with_its_time(
         user,
         {
             "3-8": [
-                RankedMoment(first, "quality"),
-                RankedMoment(second, "topic_match"),
+                RankedEntry(item, first, "quality"),
+                RankedEntry(item, second, "topic_match"),
             ],
-            "1-3": [RankedMoment(second, "time_fit")],
+            "1-3": [RankedEntry(item, second, "time_fit")],
         },
         early,
     )
     assert probe.feed_titles("3-8") == ["uf0", "uf1"]
     assert probe.feed_titles("1-3") == ["uf1"]
     later = datetime(2099, 1, 2, tzinfo=UTC)
-    s.feed.replace_user(user, {"3-8": [RankedMoment(second, "freshness")]}, later)
+    s.feed.replace_user(user, {"3-8": [RankedEntry(item, second, "freshness")]}, later)
     assert probe.feed_titles("3-8") == ["uf1"]
     assert probe.feed_titles("1-3") == []  # a chip left out is emptied, not kept
     assert probe.feed_state(user) == later
@@ -1878,14 +1899,14 @@ def test_starter_feeds_are_replaced_per_topic_level_and_chip(
     item = s.items.upsert_from_feed(sid, entry("sf"), keep_excerpt=False)
     s.moments.replace(item, [moment(0, "sf0"), moment(1, "sf1")])
     a, b = (m[0] for m in probe.moments(item))
-    s.feed.replace_starter("databases", "beginner", "3-8", [RankedMoment(a, "q")])
-    s.feed.replace_starter("databases", "advanced", "3-8", [RankedMoment(b, "q")])
-    s.feed.replace_starter("databases", "beginner", "1-3", [RankedMoment(a, "q")])
+    s.feed.replace_starter("databases", "beginner", "3-8", [RankedEntry(item, a, "q")])
+    s.feed.replace_starter("databases", "advanced", "3-8", [RankedEntry(item, b, "q")])
+    s.feed.replace_starter("databases", "beginner", "1-3", [RankedEntry(item, a, "q")])
     s.feed.replace_starter(
         "databases",
         "beginner",
         "3-8",
-        [RankedMoment(b, "quality"), RankedMoment(a, "quality")],
+        [RankedEntry(item, b, "quality"), RankedEntry(item, a, "quality")],
     )
     assert probe.starter_ids("databases", "beginner", "3-8") == [b, a]
     assert probe.starter_ids("databases", "beginner", "1-3") == [a]
@@ -1922,8 +1943,8 @@ def test_a_failed_feed_write_keeps_the_previous_feed(
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
     first = datetime(2099, 1, 1, tzinfo=UTC)
-    s.feed.replace_user(user, {"3-8": [RankedMoment(kept, "quality")]}, first)
-    twice = [RankedMoment(kept, "quality"), RankedMoment(kept, "freshness")]
+    s.feed.replace_user(user, {"3-8": [RankedEntry(item, kept, "quality")]}, first)
+    twice = [RankedEntry(item, kept, "quality"), RankedEntry(item, kept, "freshness")]
     with pytest.raises(Exception):  # noqa: B017  the engine's own error
         s.feed.replace_user(
             user, {"1-3": [], "3-8": twice}, datetime(2099, 1, 2, tzinfo=UTC)
@@ -1944,15 +1965,113 @@ def test_a_feed_for_a_deleted_user_or_moment_is_skipped(
     s.moments.replace(item, [moment(0, "gone0")])
     (live,) = (m[0] for m in probe.moments(item))
     now = datetime(2099, 1, 1, tzinfo=UTC)
-    s.feed.replace_user("never-existed", {"3-8": [RankedMoment(live, "q")]}, now)
+    s.feed.replace_user("never-existed", {"3-8": [RankedEntry(item, live, "q")]}, now)
     assert probe.feed_state("never-existed") is None
     user = f"feed-{uuid4().hex[:8]}"
     probe.add_user(user, False, [])
     gone = live + 10_000_000
     s.feed.replace_user(
         user,
-        {"3-8": [RankedMoment(gone, "quality"), RankedMoment(live, "topic_match")]},
+        {
+            "3-8": [
+                RankedEntry(item, gone, "quality"),
+                RankedEntry(item, live, "topic_match"),
+            ]
+        },
         now,
     )
     assert probe.feed_titles() == ["gone0"]
     assert probe.feed_state(user) == now
+
+
+# Whole articles (§3.2, Q-P1-16, Q-P1-39, P1-W4-S05b).
+def test_topic_articles_offer_one_copy_per_story_whatever_the_profile(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(
+        s,
+        parse_concepts(
+            "version: 1\nconcepts:\n  - {slug: ta-idx, name: I, topic: databases}\n",
+            "c.yaml",
+        ),
+    )
+    url = "https://dup.example.test/ta-shared"
+    listing = dup_item(s, dup_source(s, "ta-list", "metadata_only"), "ta1", 1, url=url)
+    full = dup_source(s, "ta-full")
+    probe.enable_moments(full)
+    original = dup_item(s, full, "ta2", 2, url=url)
+    s.items.link_duplicates(original)
+    solo = dup_item(s, dup_source(s, "ta-meta", "metadata_only"), "ta3", 3)
+    s.moments.replace(original, [moment(0, "ta-o")])
+    for item in (listing, original, solo):
+        s.tags.save(
+            item, TagResult(Tags("beginner", frozenset({"ta-idx"})), {}), "m", 1
+        )
+
+    def offered(exclude: set[int]) -> list[int]:
+        rows = s.ranking.topic_articles(
+            ["databases"], 1000, exclude_sources=set(), exclude_items=exclude
+        )
+        return [r.item_id for r in rows if r.item_id in {listing, original, solo}]
+
+    # One card per story: the copy whose moments the feed shows, not the earlier
+    # listing; a metadata-only article on its own is offered too. Newest first.
+    assert offered(set()) == [solo, original]
+    assert offered({solo}) == [original]
+    # With no copy that has moments, the earliest copy stands for the story.
+    first = dup_item(s, dup_source(s, "ta-a", "metadata_only"), "ta4", 4, url=url + "2")
+    later = dup_item(s, dup_source(s, "ta-b", "metadata_only"), "ta5", 6, url=url + "2")
+    s.items.link_duplicates(later)
+    for item in (first, later):
+        s.tags.save(
+            item, TagResult(Tags("beginner", frozenset({"ta-idx"})), {}), "m", 1
+        )
+    rows = s.ranking.topic_articles(
+        ["databases"], 1000, exclude_sources=set(), exclude_items=set()
+    )
+    assert {r.item_id for r in rows} & {first, later} == {first}
+
+
+def test_article_facts_measure_length_from_stored_sections(
+    store: tuple[Store, Probe],
+) -> None:
+    s, _ = store
+    item = dup_item(s, dup_source(s, "af"), "af1", 8)
+    s.items.store_full_text(item, "text")
+    s.items.replace_sections(
+        item, [Section(None, None, None, 30), Section("A", 2, None, 500)]
+    )
+    s.tags.save(item, TagResult(Tags("advanced", frozenset()), {}), "m", 1)
+    bare = dup_item(s, dup_source(s, "af-meta", "metadata_only"), "af2", 9)
+    facts = s.ranking.article_facts([item, bare, 10**12])
+    assert set(facts) == {item, bare}
+    assert facts[item].minutes == 3  # 530 words at 230 a minute, rounded up
+    assert facts[item].difficulty == "advanced"
+    assert facts[item].moment_id is None
+    assert facts[bare].minutes is None  # no body text: length unknown (Q-P1-39)
+
+
+def test_a_feed_holds_moments_and_whole_articles_in_rank_order(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("mix"), keep_excerpt=False)
+    s.moments.replace(item, [moment(0, "mix0")])
+    (only,) = (m[0] for m in probe.moments(item))
+    user = f"feed-{uuid4().hex[:8]}"
+    probe.add_user(user, False, [])
+    now = datetime(2099, 1, 1, tzinfo=UTC)
+    mixed = [RankedEntry(item, None, "time_fit"), RankedEntry(item, only, "quality")]
+    s.feed.replace_user(user, {"8-15": mixed}, now)
+    assert probe.feed_entries(user, "8-15") == [(item, None), (item, only)]
+    whole_twice = [RankedEntry(item, None, "a"), RankedEntry(item, None, "b")]
+    with pytest.raises(Exception):  # noqa: B017  the engine's own error
+        s.feed.replace_user(user, {"8-15": whole_twice}, now)
+    assert probe.feed_entries(user, "8-15") == [(item, None), (item, only)]
+    # Re-segmenting drops the moment's entry; the whole article stays.
+    s.moments.replace(item, [])
+    assert probe.feed_entries(user, "8-15") == [(item, None)]

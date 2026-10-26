@@ -5,6 +5,8 @@ import type { FeedCard, FeedReader, Preferences } from "./ports";
 // The stored feed and ADR-0008's first visit, on a fake reader (ADR-0012).
 
 const card = (id: string): FeedCard => ({
+  kind: "moment",
+  itemId: `item-${id}`,
   momentId: id,
   sectionTitle: `Section ${id}`,
   sectionNumber: 1,

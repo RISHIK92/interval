@@ -267,9 +267,10 @@ class Source(TypedDict):
 class StarterFeedEntry(TypedDict):
     topic: str
     level: Difficulty
-    moment_id: int
+    moment_id: int | None
     rank: int
     chip: BreakLength
+    content_item_id: int
 
 
 class StarterFeedVisible(TypedDict):
@@ -277,6 +278,8 @@ class StarterFeedVisible(TypedDict):
     level: Difficulty | None
     chip: BreakLength | None
     rank: int | None
+    kind: str | None
+    content_item_id: int | None
     moment_id: int | None
     section_title: str | None
     section_number: int | None
@@ -311,10 +314,11 @@ class UserEntitlement(TypedDict):
 
 class UserFeedEntry(TypedDict):
     user_id: str
-    moment_id: int
+    moment_id: int | None
     rank: int
     top_signal: str
     chip: BreakLength
+    content_item_id: int
 
 
 class UserFeedState(TypedDict):
@@ -326,6 +330,8 @@ class UserFeedVisible(TypedDict):
     user_id: str | None
     chip: BreakLength | None
     rank: int | None
+    kind: str | None
+    content_item_id: int | None
     moment_id: int | None
     section_title: str | None
     section_number: int | None

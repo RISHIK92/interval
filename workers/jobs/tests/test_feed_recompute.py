@@ -18,10 +18,12 @@ from interval_jobs.feed.precompute import (
     recompute_user_feed,
 )
 from interval_jobs.ports import (
+    CandidateArticle,
+    EntryFacts,
     FeedEntry,
-    MomentFacts,
     MomentRow,
-    RankedMoment,
+    RankedEntry,
+    Section,
     UserPreferences,
 )
 
@@ -53,7 +55,12 @@ class World:
         self.store.sources.set_moments_enabled(self.source, True)
         self.store.sources.rows[self.source].topics = ("databases",)
 
-    def item(self, guid: str, day: int, minutes: int = 5) -> tuple[int, int]:
+    def item(
+        self, guid: str, day: int, minutes: int = 5, parts: list[int] | None = None
+    ) -> tuple[int, int]:
+        """A full-text article with one moment per part (default: one of `minutes`);
+        returns the item and its first moment."""
+        parts = parts or [minutes]
         entry = FeedEntry(
             guid=guid,
             link=f"https://dbblog.test/{guid}",
@@ -64,12 +71,49 @@ class World:
             summary=None,
         )
         item = self.store.items.upsert_from_feed(self.source, entry, keep_excerpt=False)
+        # Sections give the whole article its length: 230 words a minute.
+        self.store.items.store_full_text(item, "text")
+        self.store.items.replace_sections(
+            item,
+            [Section(f"{guid} {i}", 2, None, n * 230) for i, n in enumerate(parts)],
+        )
         self.store.moments.replace(
-            item, [MomentRow(0, guid, minutes, entry.link, "page_top")]
+            item,
+            [
+                MomentRow(i, f"{guid} {i}", n, f"{entry.link}#{i}", "anchor")
+                for i, n in enumerate(parts)
+            ],
         )
         return item, self.store.moments.for_item(item)[0].id
 
-    def feed(self, user: str = "u1", chip: BreakLength = "3-8") -> list[int]:
+    def metadata_only(self, guid: str, day: int) -> int:
+        """An article from a source that allows only its title and link (Q-P1-39)."""
+        source = self.store.sources.upsert(
+            name="meta",
+            feed_url="https://meta.test/f",
+            rights_profile="metadata_only",
+            homepage=None,
+        )
+        self.store.sources.rows[source].topics = ("databases",)
+        entry = FeedEntry(
+            guid=guid,
+            link=f"https://meta.test/{guid}",
+            title=guid,
+            author=None,
+            published_at=datetime(2026, 10, day, tzinfo=UTC),
+            updated_at=None,
+            summary=None,
+        )
+        return self.store.items.upsert_from_feed(source, entry, keep_excerpt=False)
+
+    def entries(
+        self, chip: BreakLength, user: str = "u1"
+    ) -> list[tuple[int, int | None]]:
+        """(item, moment) in rank order; no moment means the whole article."""
+        rows = self.store.feed.users.get(user, {}).get(chip, [])
+        return [(r.item_id, r.moment_id) for r in rows]
+
+    def feed(self, user: str = "u1", chip: BreakLength = "3-8") -> list[int | None]:
         return [r.moment_id for r in self.store.feed.users.get(user, {}).get(chip, [])]
 
 
@@ -153,14 +197,14 @@ def test_a_feed_holds_ranked_moments_in_order() -> None:
     recompute_user_feed(w.store, "u1", None, NOW)
     rows = w.store.feed.users["u1"]["3-8"]
     assert [r.moment_id for r in rows] == [first, second]
-    assert all(isinstance(r, RankedMoment) and r.top_signal for r in rows)
+    assert all(isinstance(r, RankedEntry) and r.top_signal for r in rows)
 
 
 def test_starter_feeds_of_a_topic_dropped_from_the_graph_are_emptied() -> None:
     w = World()
-    _, db_moment = w.item("db-post", 25)
+    db_item, db_moment = w.item("db-post", 25)
     w.store.feed.replace_starter(
-        "backend", "beginner", "3-8", [RankedMoment(db_moment, "q")]
+        "backend", "beginner", "3-8", [RankedEntry(db_item, db_moment, "q")]
     )
     recompute_starters(w.store, None, NOW)
     # "backend" isn't in this world's concept graph: its starter is now empty.
@@ -197,15 +241,20 @@ def test_recompute_due_queues_users_and_refreshes_starters(
     assert queue.pending("recompute_feed") == 1
 
 
-def test_each_chip_holds_only_moments_that_fit_it() -> None:
+def test_short_chips_hold_moments_that_fit_and_8_15_whole_articles_that_fit() -> None:
     w = World()
-    _, two = w.item("two", 25, minutes=2)
-    _, five = w.item("five", 25, minutes=5)
-    _, twelve = w.item("twelve", 25, minutes=12)
+    two_item, two = w.item("two", 25, minutes=2)
+    five_item, five = w.item("five", 25, minutes=5)
+    twelve_item, _ = w.item("twelve", 25, minutes=12)
     recompute_user_feed(w.store, "u1", None, NOW)
-    assert w.feed(chip="1-3") == [two]
-    assert set(w.feed(chip="3-8")) == {two, five}
-    assert set(w.feed(chip="8-15")) == {two, five, twelve}
+    assert w.entries("1-3") == [(two_item, two)]
+    assert set(w.entries("3-8")) == {(two_item, two), (five_item, five)}
+    # Every article fits in 15 minutes: offered whole, not as its moments (owner).
+    assert set(w.entries("8-15")) == {
+        (two_item, None),
+        (five_item, None),
+        (twelve_item, None),
+    }
 
 
 def test_each_chip_ranks_with_its_own_time_fit() -> None:
@@ -215,12 +264,12 @@ def test_each_chip_ranks_with_its_own_time_fit() -> None:
         if key.startswith("weight.") and key != "weight.time_fit":
             w.store.ranking.config_rows[key] = 0
     w.store.ranking.config_rows["mmr.lambda"] = 1
-    _, short = w.item("short", 25, minutes=2)
-    _, long = w.item("long", 25, minutes=10)
+    short_item, short = w.item("short", 25, minutes=2)
+    long_item, _ = w.item("long", 25, minutes=10)
     recompute_user_feed(w.store, "u1", None, NOW)
-    # The long break wants long reads (W4-S03); a 2-minute moment fits it less.
-    assert w.feed(chip="8-15") == [long, short]
-    assert w.feed(chip="3-8") == [short]
+    # The long break wants long reads (W4-S03); a 2-minute article fits it less.
+    assert w.entries("8-15") == [(long_item, None), (short_item, None)]
+    assert w.entries("3-8") == [(short_item, short)]
 
 
 def test_a_moment_gone_before_scoring_is_logged_not_silently_dropped(
@@ -230,10 +279,62 @@ def test_a_moment_gone_before_scoring_is_logged_not_silently_dropped(
     w.item("resegmented", 25)
 
     # Re-segmented between the candidate read and the facts read.
-    def none_found(ids: list[int]) -> dict[int, MomentFacts]:
+    def none_found(ids: list[int]) -> dict[int, EntryFacts]:
         return {}
 
     monkeypatch.setattr(w.store.ranking, "moment_facts", none_found)
     recompute_user_feed(w.store, "u1", None, NOW)
     lines = [json.loads(line) for line in capsys.readouterr().out.splitlines()]
-    assert any(line["msg"] == "ranking: candidate moment gone" for line in lines)
+    assert any(line["msg"] == "ranking: candidate gone" for line in lines)
+
+
+def test_an_article_over_15_minutes_shows_whole_and_as_its_moments() -> None:
+    w = World()
+    # Owner, 2026-10-26: too long to fit, so ranked lower, and its moments show too.
+    w.store.ranking.config_rows["cap.per_source"] = 10  # one source in this world
+    long_item, _ = w.item("long", 25, parts=[8, 7, 6, 16])
+    fits_item, _ = w.item("fits", 25, minutes=12)
+    recompute_user_feed(w.store, "u1", None, NOW)
+    *fitting, too_long = [m.id for m in w.store.moments.for_item(long_item)]
+    entries = w.entries("8-15")
+    assert (long_item, None) in entries and (fits_item, None) in entries
+    assert {(long_item, m) for m in fitting} <= set(entries)
+    assert (long_item, too_long) not in entries  # a 16-minute moment fits no chip
+    assert entries.index((fits_item, None)) < entries.index((long_item, None))
+
+
+def test_an_article_of_unknown_length_appears_only_under_8_15() -> None:
+    w = World()
+    unknown = w.metadata_only("meta-post", 25)
+    recompute_user_feed(w.store, "u1", None, NOW)
+    assert (unknown, None) in w.entries("8-15")
+    for chip in ("1-3", "3-8"):
+        assert all(item != unknown for item, _ in w.entries(chip))
+    assert w.store.moments.for_item(unknown) == []
+
+
+def test_starter_feeds_hold_whole_articles_under_8_15() -> None:
+    w = World()
+    item, moment = w.item("db-post", 25)
+    recompute_starters(w.store, None, NOW)
+    starter = w.store.feed.starters[("databases", "beginner", "8-15")]
+    assert [(r.item_id, r.moment_id) for r in starter] == [(item, None)]
+    short = w.store.feed.starters[("databases", "beginner", "3-8")]
+    assert [(r.item_id, r.moment_id) for r in short] == [(item, moment)]
+
+
+def test_an_article_that_fits_stays_whole_when_only_its_moments_were_found(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # A moment can be found without its article: by similarity (off-topic), or past
+    # the article candidates' limit. The article is still offered whole under 8-15.
+    w = World()
+    item, moment = w.item("found-by-moment", 25, minutes=6)
+
+    def none_found(*_args: object, **_kwargs: object) -> list[CandidateArticle]:
+        return []
+
+    monkeypatch.setattr(w.store.ranking, "topic_articles", none_found)
+    recompute_user_feed(w.store, "u1", None, NOW)
+    assert w.entries("8-15") == [(item, None)]
+    assert w.entries("3-8") == [(item, moment)]

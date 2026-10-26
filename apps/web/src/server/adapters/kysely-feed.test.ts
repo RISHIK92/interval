@@ -20,7 +20,12 @@ afterEach(() => {
 
 class Rollback extends Error {}
 
-type Seeded = { userId: string; otherId: string; momentIds: string[] };
+type Seeded = {
+  userId: string;
+  otherId: string;
+  itemId: string;
+  momentIds: string[];
+};
 
 // One source, one item with two moments, and two users (P1-W4-S04).
 async function seed(trx: Transaction<DB>): Promise<Seeded> {
@@ -92,7 +97,12 @@ async function seed(trx: Transaction<DB>): Promise<Seeded> {
       })
       .execute();
   }
-  return { userId, otherId, momentIds: moments.map((m) => m.id) };
+  return {
+    userId,
+    otherId,
+    itemId: item.id,
+    momentIds: moments.map((m) => m.id),
+  };
 }
 
 async function inRollback(
@@ -124,7 +134,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
     },
     transformResult: ({ result }) => Promise.resolve(result),
   };
-  await inRollback(async (trx, { userId, otherId, momentIds }) => {
+  await inRollback(async (trx, { userId, otherId, itemId, momentIds }) => {
     const [first, second] = momentIds;
     if (first === undefined || second === undefined) throw new Error("seed");
     // Only the second section is in this user's 3-8 feed; the count still covers
@@ -135,6 +145,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
         {
           user_id: userId,
           chip: "3-8",
+          content_item_id: itemId,
           moment_id: second,
           rank: 1,
           top_signal: "topic_match",
@@ -142,6 +153,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
         {
           user_id: userId,
           chip: "1-3",
+          content_item_id: itemId,
           moment_id: first,
           rank: 1,
           top_signal: "time_fit",
@@ -149,6 +161,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
         {
           user_id: otherId,
           chip: "3-8",
+          content_item_id: itemId,
           moment_id: first,
           rank: 1,
           top_signal: "quality",
@@ -172,6 +185,8 @@ test("read returns the user's own cards in rank order, in one query", async () =
       computed: true,
       cards: [
         {
+          kind: "moment",
+          itemId,
           momentId: second,
           sectionTitle: "Raft in one page",
           sectionNumber: 2,
@@ -188,8 +203,58 @@ test("read returns the user's own cards in rank order, in one query", async () =
   });
 });
 
+// P1-W4-S05b: 8-15 holds whole articles too; an article has no moment, and its length
+// is unknown without stored sections (Q-P1-39).
+test("a whole article reads as an article card, before or after moments", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const [first] = momentIds;
+    if (first === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_feed_entry")
+      .values([
+        {
+          user_id: userId,
+          chip: "8-15",
+          content_item_id: itemId,
+          moment_id: null,
+          rank: 1,
+          top_signal: "time_fit",
+        },
+        {
+          user_id: userId,
+          chip: "8-15",
+          content_item_id: itemId,
+          moment_id: first,
+          rank: 2,
+          top_signal: "quality",
+        },
+      ])
+      .execute();
+    await trx
+      .insertInto("user_feed_state")
+      .values({ user_id: userId, computed_at: new Date() })
+      .execute();
+    const { computed, cards } = await kyselyFeedReader(trx).read(
+      userId,
+      "8-15",
+      50,
+    );
+    expect(computed).toBe(true);
+    expect(cards[0]).toEqual({
+      kind: "article",
+      itemId,
+      estimatedMinutes: null,
+      link: "https://webfeed.example.test/post",
+      articleTitle: "Consensus in practice",
+      author: "Rae Writer",
+      sourceName: "webfeed-test",
+    });
+    expect(cards.map((c) => c.kind)).toEqual(["article", "moment"]);
+  });
+});
+
 test("a computed but empty chip reads as computed with no cards", async () => {
-  await inRollback(async (trx, { userId, momentIds }) => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
     const [first] = momentIds;
     if (first === undefined) throw new Error("seed");
     await trx
@@ -197,6 +262,7 @@ test("a computed but empty chip reads as computed with no cards", async () => {
       .values({
         user_id: userId,
         chip: "3-8",
+        content_item_id: itemId,
         moment_id: first,
         rank: 1,
         top_signal: "quality",
@@ -214,7 +280,7 @@ test("a computed but empty chip reads as computed with no cards", async () => {
 });
 
 test("the starter feed is read per topic, level and chip", async () => {
-  await inRollback(async (trx, { momentIds }) => {
+  await inRollback(async (trx, { itemId, momentIds }) => {
     const [first, second] = momentIds;
     if (first === undefined || second === undefined) throw new Error("seed");
     const beginner = { topic: "databases", level: "beginner" } as const;
@@ -227,13 +293,32 @@ test("the starter feed is read per topic, level and chip", async () => {
     await trx
       .insertInto("starter_feed_entry")
       .values([
-        { ...beginner, chip: "3-8", moment_id: second, rank: 1 },
-        { ...beginner, chip: "3-8", moment_id: first, rank: 2 },
-        { ...beginner, chip: "1-3", moment_id: first, rank: 1 },
+        {
+          ...beginner,
+          content_item_id: itemId,
+          chip: "3-8",
+          moment_id: second,
+          rank: 1,
+        },
+        {
+          ...beginner,
+          content_item_id: itemId,
+          chip: "3-8",
+          moment_id: first,
+          rank: 2,
+        },
+        {
+          ...beginner,
+          content_item_id: itemId,
+          chip: "1-3",
+          moment_id: first,
+          rank: 1,
+        },
         {
           ...beginner,
           level: "advanced",
           chip: "3-8",
+          content_item_id: itemId,
           moment_id: first,
           rank: 1,
         },
@@ -245,7 +330,9 @@ test("the starter feed is read per topic, level and chip", async () => {
       "3-8",
       50,
     );
-    expect(cards.map((c) => c.momentId)).toEqual([second, first]);
+    expect(cards.map((c) => (c.kind === "moment" ? c.momentId : null))).toEqual(
+      [second, first],
+    );
   });
 });
 
@@ -259,6 +346,8 @@ test("toCard drops a row with missing fields and logs only its id and column nam
   );
   const card = toCard({
     rank: 1,
+    kind: "moment",
+    content_item_id: "8",
     moment_id: "9",
     section_title: "Secret-ish title",
     section_number: 1,
@@ -271,6 +360,30 @@ test("toCard drops a row with missing fields and logs only its id and column nam
   });
 
   expect(card).toBeNull();
+  expect(
+    toCard({
+      rank: 1,
+      kind: "article",
+      content_item_id: "8",
+      moment_id: null,
+      section_title: null,
+      section_number: null,
+      section_count: null,
+      estimated_minutes: null,
+      link: "https://webfeed.example.test/p",
+      article_title: "Article",
+      author: null,
+      source_name: "Source",
+    }),
+  ).toEqual({
+    kind: "article",
+    itemId: "8",
+    estimatedMinutes: null,
+    link: "https://webfeed.example.test/p",
+    articleTitle: "Article",
+    author: null,
+    sourceName: "Source",
+  });
   expect(lines).toHaveLength(1);
   const logged = JSON.parse(lines[0] ?? "") as Record<string, unknown>;
   expect(logged).toMatchObject({

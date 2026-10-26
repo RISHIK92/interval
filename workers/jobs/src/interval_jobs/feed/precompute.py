@@ -10,7 +10,7 @@ from typing import get_args
 
 from interval_db.generated import BreakLength, Difficulty, Topic
 from interval_jobs import log
-from interval_jobs.ports import JobQueue, RankedMoment, Store, UserPreferences
+from interval_jobs.ports import JobQueue, RankedEntry, Store, UserPreferences
 from interval_jobs.ranking.rank import Ranked, rank_for_preferences, rank_for_user
 from interval_jobs.ranking.scoring import BREAK_MINUTES, Scored
 
@@ -24,11 +24,11 @@ TOPICS: tuple[Topic, ...] = get_args(Topic.__value__)
 STARTER_BREAK: BreakLength = "3-8"
 
 
-def _entries(scored: list[Scored]) -> list[RankedMoment]:
-    return [RankedMoment(s.moment_id, s.top_signal) for s in scored]
+def _entries(scored: list[Scored]) -> list[RankedEntry]:
+    return [RankedEntry(s.item_id, s.moment_id, s.top_signal) for s in scored]
 
 
-def _by_chip(ranked: Ranked) -> dict[BreakLength, list[RankedMoment]]:
+def _by_chip(ranked: Ranked) -> dict[BreakLength, list[RankedEntry]]:
     return {chip: _entries(scored) for chip, scored in ranked.items()}
 
 

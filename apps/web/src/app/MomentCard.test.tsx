@@ -1,9 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
-import type { FeedCard } from "../server/ports";
+import type { MomentFeedCard } from "../server/ports";
 import { MomentCard } from "./MomentCard";
 
-const card: FeedCard = {
+const card: MomentFeedCard = {
+  kind: "moment",
+  itemId: "70",
   momentId: "7",
   sectionTitle: "Raft in one page",
   sectionNumber: 2,

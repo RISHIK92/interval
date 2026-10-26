@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { chipFor, chipLabel } from "./chips";
+import { chipFor, chipLabel, chipLimit } from "./chips";
 
 // Q-P1-16: the link's chip, else the session's, else the onboarding break length.
 describe("chipFor", () => {
@@ -24,6 +24,12 @@ describe("chipFor", () => {
   test("a repeated chip counts by its first value, as the proxy reads it", () => {
     expect(chipFor(["1-3", "8-15"], undefined, preferences)).toBe("1-3");
   });
+});
+
+test("a chip's limit is its upper bound", () => {
+  expect([chipLimit("1-3"), chipLimit("3-8"), chipLimit("8-15")]).toEqual([
+    3, 8, 15,
+  ]);
 });
 
 test("chips read as minute ranges", () => {

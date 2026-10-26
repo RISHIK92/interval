@@ -280,10 +280,12 @@ class Moments(Protocol):
 
 
 @dataclass(frozen=True)
-class RankedMoment:
-    """One feed entry, in rank order (the list's order is the rank)."""
+class RankedEntry:
+    """One feed entry, in rank order (the list's order is the rank): a moment, or with
+    no moment the whole article (§3.2, P1-W4-S05b)."""
 
-    moment_id: int
+    item_id: int
+    moment_id: int | None
     top_signal: str  # the rule that counted most (W4-S06's why-this-matters note)
 
 
@@ -298,7 +300,7 @@ class Feed(Protocol):
     def replace_user(
         self,
         user_id: str,
-        by_chip: Mapping[BreakLength, list[RankedMoment]],
+        by_chip: Mapping[BreakLength, list[RankedEntry]],
         computed_at: datetime,
     ) -> None:
         """Replaces the user's whole feed, one list per time chip (Q-P1-16), and records
@@ -311,7 +313,7 @@ class Feed(Protocol):
         topic: str,
         level: Difficulty,
         chip: BreakLength,
-        ranked: list[RankedMoment],
+        ranked: list[RankedEntry],
     ) -> None:
         """Replaces one starter feed (ADR-0008: a new guest's feed meanwhile)."""
         ...
@@ -581,19 +583,34 @@ class CandidateMoment:
     source_id: int
 
 
-@dataclass(frozen=True)
-class MomentFacts:
-    """What scoring needs about one candidate moment (P1-W4-S03)."""
+# (item id, moment id): a moment, or with no moment the whole article.
+type EntryKey = tuple[int, int | None]
 
-    moment_id: int
+
+@dataclass(frozen=True)
+class EntryFacts:
+    """What scoring needs about one candidate: a moment or a whole article (P1-W4-S03,
+    P1-W4-S05b)."""
+
+    moment_id: int | None
     item_id: int
     source_id: int
-    minutes: int
+    minutes: int | None  # None: an article with no body text to count (Q-P1-39)
     difficulty: Difficulty | None  # the admin's correction, else the model's, else none
     published_at: datetime | None
     quality: int | None  # the source's 1-5 score (ING-6)
     concepts: frozenset[str]  # the item's: the admin's correction, else the model's
     topics: frozenset[str]  # its source's seed topics and its concepts' topics
+
+    @property
+    def key(self) -> EntryKey:
+        return (self.item_id, self.moment_id)
+
+
+@dataclass(frozen=True)
+class CandidateArticle:
+    item_id: int
+    source_id: int
 
 
 class RankingInputs(Protocol):
@@ -624,7 +641,7 @@ class RankingInputs(Protocol):
         """`ranking_config`: every weight in one place (Q-P1-13)."""
         ...
 
-    def moment_facts(self, moment_ids: list[int]) -> dict[int, MomentFacts]:
+    def moment_facts(self, moment_ids: list[int]) -> dict[int, EntryFacts]:
         """By moment id; a moment deleted meanwhile (a re-segment) is left out."""
         ...
 
@@ -639,6 +656,24 @@ class RankingInputs(Protocol):
         """Moments whose item's concepts (an admin's correction first, else the model's
         tags) or source's seed topics match, newest first. Only the copy of a duplicate
         group the feed shows, from active sources."""
+        ...
+
+    def article_facts(self, item_ids: list[int]) -> dict[int, EntryFacts]:
+        """Whole articles by item id: minutes from the stored sections (230 words a
+        minute), None with no body text; the item's level, not a moment's."""
+        ...
+
+    def topic_articles(
+        self,
+        topics: list[Topic],
+        limit: int,
+        *,
+        exclude_sources: set[int],
+        exclude_items: set[int],
+    ) -> list[CandidateArticle]:
+        """Items matching as topic_moments does, newest first, whatever their rights
+        profile (a whole article shows only its title and link). Per duplicate group,
+        the copy the feed shows: the earliest with moments, else the earliest."""
         ...
 
 

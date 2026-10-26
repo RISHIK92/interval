@@ -8,7 +8,7 @@ switching moments off purges what the source no longer allows.
 
 import math
 import re
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -26,19 +26,20 @@ from interval_jobs.normalize import near_duplicates
 from interval_jobs.polling import START_INTERVAL
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
+    CandidateArticle,
     CandidateMoment,
     ConceptGraph,
     ConceptSeed,
     DuplicateInviteCode,
+    EntryFacts,
     FeedEntry,
     Fetched,
     FetchError,
     FetchInput,
     FetchKind,
     GrantResult,
-    MomentFacts,
     MomentRow,
-    RankedMoment,
+    RankedEntry,
     RevokeResult,
     RightsViolation,
     Section,
@@ -56,6 +57,7 @@ from interval_jobs.ports import (
     UserPreferences,
     Validators,
 )
+from interval_jobs.segment import minutes
 
 _FULL_TEXT: frozenset[RightsProfile] = frozenset(
     {"full_text_internal", "full_text_display"}
@@ -441,6 +443,8 @@ class InMemoryMoments:
         self._sources = sources
         self.rows: list[StoredMoment] = []
         self._next_id = 1
+        # The store points this at the feed: deleted moments cascade, as in Postgres.
+        self.on_delete: Callable[[], None] = lambda: None
 
     def replace(self, item_id: int, rows: list[MomentRow]) -> None:
         source = self._sources.rows[self._items.rows[item_id].source_id]
@@ -461,6 +465,7 @@ class InMemoryMoments:
             else:
                 kept.append(replace(current, row=row))
         self.rows = kept
+        self.on_delete()
 
     def for_item(self, item_id: int) -> list[StoredMoment]:
         return sorted(
@@ -472,11 +477,9 @@ class InMemoryFeed:
     def __init__(self, users: "InMemoryUsers", moments: InMemoryMoments) -> None:
         self._users = users
         self._moments = moments
-        self.users: dict[str, dict[BreakLength, list[RankedMoment]]] = {}
+        self.users: dict[str, dict[BreakLength, list[RankedEntry]]] = {}
         self.computed: dict[str, datetime] = {}
-        self.starters: dict[
-            tuple[str, Difficulty, BreakLength], list[RankedMoment]
-        ] = {}
+        self.starters: dict[tuple[str, Difficulty, BreakLength], list[RankedEntry]] = {}
 
     def hold_user(self, user_id: str) -> None:
         pass  # one thread at a time in the fake
@@ -484,30 +487,33 @@ class InMemoryFeed:
     def replace_user(
         self,
         user_id: str,
-        by_chip: Mapping[BreakLength, list[RankedMoment]],
+        by_chip: Mapping[BreakLength, list[RankedEntry]],
         computed_at: datetime,
     ) -> None:
         for ranked in by_chip.values():
-            ids = [r.moment_id for r in ranked]
-            if len(set(ids)) != len(ids):
-                raise ValueError("a moment twice in one feed (the primary key refuses)")
+            entries = [(r.item_id, r.moment_id) for r in ranked]
+            if len(set(entries)) != len(entries):
+                raise ValueError("an entry twice in one feed (a unique index refuses)")
         if user_id not in self._users.rows:
             return
-        live = {m.id for m in self._moments.rows}
         self.users[user_id] = {
-            chip: [r for r in ranked if r.moment_id in live]
-            for chip, ranked in by_chip.items()
+            chip: self._live(ranked) for chip, ranked in by_chip.items()
         }
         self.computed[user_id] = computed_at
+
+    def _live(self, ranked: list[RankedEntry]) -> list[RankedEntry]:
+        # Items are never deleted here, so only moments can have gone.
+        moments = {m.id for m in self._moments.rows}
+        return [r for r in ranked if r.moment_id is None or r.moment_id in moments]
 
     def replace_starter(
         self,
         topic: str,
         level: Difficulty,
         chip: BreakLength,
-        ranked: list[RankedMoment],
+        ranked: list[RankedEntry],
     ) -> None:
-        self.starters[(topic, level, chip)] = list(ranked)
+        self.starters[(topic, level, chip)] = self._live(ranked)
 
     def active_users(self, since: datetime) -> list[str]:
         return sorted(
@@ -520,12 +526,11 @@ class InMemoryFeed:
 
     def drop_missing(self) -> None:
         # Mirrors the on-delete cascade from moment to every feed table.
-        live = {m.id for m in self._moments.rows}
         for chips in self.users.values():
             for chip, rows in chips.items():
-                chips[chip] = [r for r in rows if r.moment_id in live]
+                chips[chip] = self._live(rows)
         for key, rows in self.starters.items():
-            self.starters[key] = [r for r in rows if r.moment_id in live]
+            self.starters[key] = self._live(rows)
 
 
 @dataclass
@@ -927,6 +932,23 @@ def shown_items(store: "InMemoryStore") -> set[int]:
     return {item.id for item in best.values()}
 
 
+def shown_articles(store: "InMemoryStore") -> set[int]:
+    """Per duplicate group, the copy the feed shows as a whole article: the one whose
+    moments it shows, else the earliest copy. Mirrors the SQL."""
+    with_moments = {m.item_id for m in store.moments.rows}
+
+    def order(item: StoredItem) -> tuple[bool, tuple[bool, float, int]]:
+        return (item.id not in with_moments, _publication_order(item))
+
+    best: dict[int, StoredItem] = {}
+    for item in store.items.rows.values():
+        group = item.duplicate_of or item.id
+        current = best.get(group)
+        if current is None or order(item) < order(current):
+            best[group] = item
+    return {item.id for item in best.values()}
+
+
 class InMemoryRankingInputs:
     """What ranking reads about a user (P1-W4-S02); the web app writes it in
     production, tests set it here."""
@@ -978,11 +1000,11 @@ class InMemoryRankingInputs:
     def config(self) -> dict[str, float]:
         return dict(self.config_rows)
 
-    def moment_facts(self, moment_ids: list[int]) -> dict[int, MomentFacts]:
+    def moment_facts(self, moment_ids: list[int]) -> dict[int, EntryFacts]:
         # Mirrors PostgresRankingInputs.moment_facts.
         store = self._store
         wanted = set(moment_ids)
-        facts: dict[int, MomentFacts] = {}
+        facts: dict[int, EntryFacts] = {}
         graph = store.concepts.state()
         topic_of = {c.slug: c.topic for c in graph.concepts} if graph else {}
         for moment in store.moments.rows:
@@ -1011,7 +1033,7 @@ class InMemoryRankingInputs:
             topics = set(source.topics) | {
                 topic_of[c] for c in concepts if c in topic_of
             }
-            facts[moment.id] = MomentFacts(
+            facts[moment.id] = EntryFacts(
                 moment.id,
                 item.id,
                 source.id,
@@ -1023,6 +1045,69 @@ class InMemoryRankingInputs:
                 frozenset(topics),
             )
         return facts
+
+    def article_facts(self, item_ids: list[int]) -> dict[int, EntryFacts]:
+        # Mirrors PostgresRankingInputs.article_facts.
+        store = self._store
+        graph = store.concepts.state()
+        topic_of = {c.slug: c.topic for c in graph.concepts} if graph else {}
+        facts: dict[int, EntryFacts] = {}
+        for item_id in item_ids:
+            item = store.items.rows.get(item_id)
+            if item is None:
+                continue
+            source = store.sources.rows[item.source_id]
+            tagged = store.tags.rows.get(item.id)
+            difficulty = store.tags.overrides.get((item.id, "")) or (
+                tagged[0].difficulty if tagged and tagged[0] else None
+            )
+            words = sum(section.word_count for section in item.sections)
+            concepts = self._item_concepts(item.id)
+            topics = set(source.topics) | {
+                topic_of[c] for c in concepts if c in topic_of
+            }
+            facts[item.id] = EntryFacts(
+                None,
+                item.id,
+                source.id,
+                minutes(words) if item.sections else None,
+                difficulty,
+                item.published_at,
+                source.quality_score,
+                concepts,
+                frozenset(topics),
+            )
+        return facts
+
+    def topic_articles(
+        self,
+        topics: list[Topic],
+        limit: int,
+        *,
+        exclude_sources: set[int],
+        exclude_items: set[int],
+    ) -> list[CandidateArticle]:
+        # Mirrors PostgresRankingInputs.topic_articles.
+        store = self._store
+        graph = store.concepts.state()
+        topic_of = {c.slug: c.topic for c in graph.concepts} if graph else {}
+        wanted = set(topics)
+        shown = shown_articles(store)
+        found: list[tuple[bool, float, int, CandidateArticle]] = []
+        for item in store.items.rows.values():
+            source = store.sources.rows[item.source_id]
+            if item.id not in shown or not source.active:
+                continue
+            if source.id in exclude_sources or item.id in exclude_items:
+                continue
+            concepts = self._item_concepts(item.id)
+            by_concept = any(topic_of.get(c) in wanted for c in concepts)
+            if not (wanted & set(source.topics) or by_concept):
+                continue
+            published = item.published_at.timestamp() if item.published_at else 0.0
+            row = CandidateArticle(item.id, source.id)
+            found.append((item.published_at is None, -published, -item.id, row))
+        return [f[3] for f in sorted(found, key=lambda f: f[:3])][:limit]
 
     def _item_concepts(self, item_id: int) -> frozenset[str]:
         corrected = self._store.tags.item_concept_overrides.get(item_id)
@@ -1072,6 +1157,7 @@ class InMemoryStore:
         self.invites = InMemoryInvites()
         self.users = InMemoryUsers()
         self.feed = InMemoryFeed(self.users, self.moments)
+        self.moments.on_delete = self.feed.drop_missing
         self.grants = InMemoryGrants(self.users)
         self.validators = InMemoryValidators()
         self.concepts = InMemoryConcepts()

@@ -315,8 +315,7 @@ def test_the_same_article_from_two_sources_shows_once_in_a_users_feed() -> None:
     )
     world.queue.enqueue("recompute_feed", {"user_id": "u1"}, idempotency_key="r-1")
     world.run()
-    by_id = {m.id: m.item_id for m in world.store.moments.rows}
-    shown = {by_id[r.moment_id] for r in world.store.feed.users["u1"]["8-15"]}
+    shown = {r.item_id for r in world.store.feed.users["u1"]["8-15"]}
     assert shown == {i.id for i in primaries}
     assert world.store.feed.computed["u1"] == world.now
 
