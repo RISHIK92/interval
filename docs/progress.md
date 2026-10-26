@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history) and W5-S05 (Library tab) done. Next: W5-S06 (PWA install). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. Next: W6-S01 (ranking inspection). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -366,6 +366,28 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - The `interval/aws/*` secret names, so both stacks can share an account.
   - The secret origin header instead of the CloudFront prefix list, so no account lookup is needed at synth.
 - Not done (out of scope): custom domain/ACM, WAF, SNS targets for alarms, the worker service (W2-S02), Multi-AZ.
+
+### 2026-10-26 — P1-W5-S06 (PWA install, §4.2, Q-P1-31)
+- Owner choices:
+  - a placeholder icon (a white "I" on #1f2933) until a design pass;
+  - the service worker keeps only the offline page and answers only navigations, so no signed-in page is ever cached.
+- Done:
+  - `app/manifest.ts` (standalone, start at `/`, 192 and 512 icons plus a 512 maskable); PNGs in `apps/web/public/icons/` from a throwaway stdlib script;
+  - `public/sw.js`: caches `/offline` on install; a navigation that fails falls back to it; a versioned cache, with older ones dropped on activate;
+  - `/offline` (static);
+  - `PwaSetup` in the root layout registers the worker and POSTs `/api/pwa-installed` on `appinstalled`;
+  - the route emits `pwa_installed` with a session, same origin only (403 otherwise);
+  - a theme-color viewport.
+  - The shared ESLint config treats `public/**/*.js` like config files (no type-aware rules).
+- Review fixes:
+  - the Docker image now copies `public/` (standalone output leaves it out; checked in a local build);
+  - install-report failures are logged;
+  - the service worker is tested by running it in a `vm` context with fake caches (install, activate, navigation, offline fallback, non-navigations);
+  - a missing Origin gets a 403;
+  - a comment to bump the cache name when the offline page changes.
+  - **Not done:** navigation preload (small cost) and a server action in place of the route.
+- Checked in Chrome: the manifest link and theme colour; the worker activated with only `interval-offline-v1`, `/offline` cached (200, not a redirect); with the dev server stopped, /library showed the offline page.
+- Not checked: Lighthouse (not installed), and a real install prompt (`appinstalled`).
 
 ## Pre-deploy list (from the S18 review; parked by the owner until deployment, ADR-0013)
 - **CloudFront to ALB:** traffic crosses the internet over HTTP. Make the ALB internal behind a CloudFront VPC origin (drops the origin-verify header and the 0.0.0.0/0 ingress).

@@ -23,12 +23,13 @@ COPY apps/web apps/web
 RUN pnpm --filter @interval/web build
 
 # Standalone output (ARCH-1, LOAD-1): one stateless container serving pages and API.
-# Add a COPY for apps/web/public when that directory exists.
 FROM node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752 AS run
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 WORKDIR /app
 COPY --from=build /repo/apps/web/.next/standalone ./
 COPY --from=build /repo/apps/web/.next/static ./apps/web/.next/static
+# Standalone output leaves out public/: the service worker and the manifest icons.
+COPY --from=build /repo/apps/web/public ./apps/web/public
 # Code stays root-owned and read-only to the app; only Next's cache directory is writable.
 RUN mkdir -p apps/web/.next/cache && chown node:node apps/web/.next/cache
 # Amazon RDS CA bundle (pinned digest) for verify-full TLS in the AWS mode (ADR-0011).

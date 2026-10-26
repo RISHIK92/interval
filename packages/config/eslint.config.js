@@ -17,9 +17,10 @@ export default defineConfig(
       parserOptions: { projectService: true },
     },
   },
-  // Config files are plain JS outside each tsconfig, so type-aware rules cannot run on them.
+  // Config files and a web app's static scripts (the service worker) are plain JS
+  // outside each tsconfig, so type-aware rules cannot run on them.
   {
-    files: ["**/*.config.js"],
+    files: ["**/*.config.js", "**/public/**/*.js"],
     extends: [tseslint.configs.disableTypeChecked],
   },
 );
