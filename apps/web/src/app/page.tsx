@@ -22,6 +22,7 @@ import { CardControls, UndoNotInterested } from "./CardControls";
 import { ContinueReading } from "./ContinueReading";
 import { NowReading } from "./NowReading";
 import { ReturnPrompt } from "./ReturnPrompt";
+import { TabNav } from "./TabNav";
 import { MomentCard } from "./MomentCard";
 
 export const dynamic = "force-dynamic";
@@ -116,6 +117,7 @@ export default async function HomePage({
         <Link href="/profile">Profile</Link>
       </p>
       {account}
+      <TabNav current="home" />
       <nav aria-label="Break length">
         <ul>
           {CHIPS.map((option) => (
@@ -149,7 +151,6 @@ export default async function HomePage({
             href={outHref({
               itemId: finished.itemId,
               momentId: next.momentId,
-              chip,
               from: "continue",
               target: "section",
             })}

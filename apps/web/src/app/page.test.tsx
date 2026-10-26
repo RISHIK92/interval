@@ -164,7 +164,7 @@ test("renders the three chips as links and marks the onboarding one", async () =
     '<li><a aria-current="true" href="/?chip=3-8"><strong>3–8 min</strong></a></li>',
   );
   expect(html).toContain('<li><a href="/?chip=1-3">1–3 min</a></li>');
-  expect(html.match(/aria-current/g)).toHaveLength(1);
+  expect(html.match(/aria-current="true"/g)).toHaveLength(1); // one chip; the tab is "page"
   expect(html.match(/<strong>/g)).toHaveLength(1);
   expect(getFeed).toHaveBeenCalledWith("u1", "3-8", 50);
   expect(html).toContain("Fits your 3–8 min break");
@@ -310,7 +310,7 @@ test("after a section is finished the next one is offered, or the end is said", 
   expect(html).toContain("Continue: ");
   // Owner, 2026-10-26: a Continue open counts as continue_clicked, not a feed card.
   expect(html).toContain(
-    'href="/out?item=10&amp;moment=2&amp;chip=3-8&amp;from=continue&amp;target=section"',
+    'href="/out?item=10&amp;moment=2&amp;from=continue&amp;target=section"',
   );
   nextMoment.mockResolvedValueOnce(null);
   expect(await render({ finished: "10.1" })).toContain(
@@ -359,7 +359,7 @@ test("continue cards point at the next section and can be dismissed", async () =
   expect(html).toContain("Continue reading");
   expect(html).toContain("Raft — Consensus in practice · Section 2 of 3");
   expect(html).toContain(
-    'href="/out?item=30&amp;moment=31&amp;chip=1-3&amp;from=continue&amp;target=section"',
+    'href="/out?item=30&amp;moment=31&amp;from=continue&amp;target=section"',
   );
   expect(html).toMatch(/<a[^>]*data-item="30"[^>]*data-moment="31"/);
   expect(html).toContain("Dismiss");
@@ -376,4 +376,12 @@ test("a saved card's button says Saved and unsaves", async () => {
   expect(await render()).toMatch(
     /<button[^>]*value="save"[^>]*>Save<\/button>/,
   );
+});
+
+test("the Home tab is marked current", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  const html = await render();
+  expect(html).toContain('<a aria-current="page" href="/">Home</a>');
+  expect(html).toContain('href="/library">Library</a>');
 });

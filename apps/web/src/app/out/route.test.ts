@@ -302,3 +302,69 @@ test("an article card's open is counted for its whole-article entry", async () =
     null,
   );
 });
+
+// P1-W5-S05 (owner): a Library open is attributed and counts as an outbound click only.
+test("a Library open records outbound_click only, and needs no chip", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post",
+    linkType: "article",
+  });
+  const response = await open("item=5&from=library&target=original");
+  expect(response.headers.get("location")).toBe(
+    "https://pub.test/post?utm_source=interval",
+  );
+  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
+    "outbound_click",
+  ]);
+  expect(countExploreOpen).not.toHaveBeenCalled();
+});
+
+test("a continue open needs no chip; a feed card without one goes home", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post#raft",
+    linkType: "anchor",
+  });
+  const cont = await open("item=5&moment=9&from=continue&target=section");
+  expect(cont.headers.get("location")).toBe(
+    "https://pub.test/post?utm_source=interval#raft",
+  );
+  emit.mockClear();
+  const card = await open("item=5&moment=9&pos=1&target=section");
+  expect(card.headers.get("location")).toBe("/");
+  expect(emit).not.toHaveBeenCalled();
+});
+
+test.each([
+  [
+    "from with a position",
+    "item=5&moment=9&from=continue&pos=1&target=section",
+  ],
+  [
+    "a Library open with chip and position",
+    "item=5&from=library&chip=3-8&pos=1&target=original",
+  ],
+  ["no from, no chip, no position", "item=5&target=original"],
+  ["a chip with no position and no from", "item=5&chip=3-8&target=original"],
+  [
+    "a Library open naming a section",
+    "item=5&moment=9&from=library&target=section",
+  ],
+])("%s goes home without a lookup", async (_name, query) => {
+  current.mockResolvedValue(guest);
+  const response = await open(query);
+  expect(response.headers.get("location")).toBe("/");
+  expect(resolve).not.toHaveBeenCalled();
+});
+
+// Owner, 2026-10-26: Now reading is about what the feed sent you to.
+test("a Library open doesn't feed the Now reading panel", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post",
+    linkType: "article",
+  });
+  await open("item=5&from=library&target=original");
+  expect(setCookie).not.toHaveBeenCalled();
+});

@@ -18,10 +18,12 @@ export const dynamic = "force-dynamic";
 const Open = z.object({
   item: z.string().regex(BIGINT_ID),
   moment: z.string().regex(BIGINT_ID).optional(),
-  chip: z.enum(CHIPS),
+  // A feed card has a chip and position. A Continue link (continue_clicked) and a
+  // Library link (an outbound click only, the whole article) need neither; a chip
+  // sent with them is ignored (owner, 2026-10-26).
+  chip: z.enum(CHIPS).optional(),
   pos: z.coerce.number().int().min(1).max(200).optional(),
-  // A Continue link after a finish (owner, 2026-10-26): no feed position.
-  from: z.literal("continue").optional(),
+  from: z.enum(["continue", "library"]).optional(),
   target: z.enum(["section", "original"]),
 });
 
@@ -57,8 +59,12 @@ export async function GET(request: Request): Promise<Response> {
   const parsed = Open.safeParse(Object.fromEntries(query));
   if (!parsed.success) return home();
   const { item, moment, chip, pos, from, target } = parsed.data;
-  // A feed card has a position; a Continue link has none.
-  if ((from === undefined) === (pos === undefined)) return home();
+  const card =
+    from === undefined && pos !== undefined && chip !== undefined
+      ? { chip, pos }
+      : null;
+  if (card === null && (from === undefined || pos !== undefined)) return home();
+  if (from === "library" && moment !== undefined) return home(); // no UI sends it
   const link = await outboundLinks().resolve(
     item,
     target === "section" ? (moment ?? null) : null,
@@ -81,40 +87,40 @@ export async function GET(request: Request): Promise<Response> {
       ...visitCookieOptions(env().BETTER_AUTH_URL),
       maxAge: undefined,
     };
-    jar.set(
-      READING_COOKIE,
-      formatReading({
-        itemId: item,
-        // The moment only when the reader really reached it, not a fallback.
-        momentId: link.linkType === "article" ? null : (moment ?? null),
-      }),
-      session,
-    );
+    // Not for a Library open: the panel is about what the feed sent you to (owner).
+    if (from !== "library")
+      jar.set(
+        READING_COOKIE,
+        formatReading({
+          itemId: item,
+          // The moment only when the reader really reached it, not a fallback.
+          momentId: link.linkType === "article" ? null : (moment ?? null),
+        }),
+        session,
+      );
     // A section the reader reached counts as read for continue cards (P1-W5-S03).
     if (moment !== undefined && link.linkType !== "article") {
       await progress().recordOpen(actor.userId, item, moment);
     }
-    if (pos !== undefined) {
+    if (card !== null) {
       // A feed card placed by exploration counts toward its arm (P1-W5-S03).
       await progress().countExploreOpen(
         actor.userId,
-        chip,
+        card.chip,
         item,
         moment ?? null,
       );
-    }
-    if (pos === undefined) {
-      events().emit("continue_clicked", {}, context);
-    } else {
       events().emit(
         "card_opened",
         {
           kind: moment === undefined ? "article" : "moment",
-          chip,
-          position: pos,
+          chip: card.chip,
+          position: card.pos,
         },
         context,
       );
+    } else if (from === "continue") {
+      events().emit("continue_clicked", {}, context);
     }
     events().emit(
       "outbound_click",

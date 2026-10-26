@@ -24,7 +24,6 @@ export function ContinueReading({
               href={outHref({
                 itemId: card.itemId,
                 momentId: card.momentId,
-                chip,
                 from: "continue",
                 target: "section",
               })}
