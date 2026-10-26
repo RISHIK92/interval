@@ -67,7 +67,9 @@ class CardImpressionProps(_Model):
 
 
 class CardOpenedProps(_Model):
-    pass
+    kind: Literal["moment", "article"]
+    chip: Literal["1-3", "3-8", "8-15"]
+    position: int = Field(ge=0, strict=True)
 
 
 class ContinueClickedProps(_Model):
@@ -99,7 +101,8 @@ class OnboardingCompletedProps(_Model):
 
 
 class OutboundClickProps(_Model):
-    pass
+    link_type: Literal["anchor", "text_fragment", "page_top", "article"]
+    target: Literal["section", "original"]
 
 
 class PwaInstalledProps(_Model):

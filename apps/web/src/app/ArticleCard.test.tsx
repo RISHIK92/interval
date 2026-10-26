@@ -8,7 +8,6 @@ const card: ArticleFeedCard = {
   kind: "article",
   itemId: "5",
   estimatedMinutes: 12,
-  link: "https://webfeed.example.test/post",
   articleTitle: "Consensus in practice",
   author: "Rae Writer",
   sourceName: "Example Engineering",
@@ -24,18 +23,27 @@ function textOf(html: string): string {
 }
 
 test("an article that fits says so, and links to the publisher's page", () => {
-  const html = renderToStaticMarkup(<ArticleCard card={card} chip="8-15" />);
+  const html = renderToStaticMarkup(
+    <ArticleCard card={card} chip="8-15" position={1} />,
+  );
   expect(textOf(html)).toBe(
     "Consensus in practice / Whole article · 12 min / " +
-      "Fits your 8–15 min break / Example Engineering · Rae Writer / Read on site",
+      "Fits your 8–15 min break / Example Engineering · Rae Writer / " +
+      "Open original website",
   );
-  expect(html).toContain('href="https://webfeed.example.test/post"');
+  expect(html).toContain(
+    'href="/out?item=5&amp;chip=8-15&amp;pos=1&amp;target=original"',
+  );
   expect(html).toContain('rel="noopener noreferrer"');
 });
 
 test("a longer article shows its length and never claims to fit", () => {
   const html = renderToStaticMarkup(
-    <ArticleCard card={{ ...card, estimatedMinutes: 22 }} chip="8-15" />,
+    <ArticleCard
+      card={{ ...card, estimatedMinutes: 22 }}
+      chip="8-15"
+      position={1}
+    />,
   );
   expect(textOf(html)).toContain("Whole article · 22 min");
   expect(html).not.toContain("Fits your");
@@ -46,11 +54,12 @@ test("an article with no countable text says its length is unknown", () => {
     <ArticleCard
       card={{ ...card, estimatedMinutes: null, author: null }}
       chip="8-15"
+      position={1}
     />,
   );
   expect(textOf(html)).toBe(
     "Consensus in practice / Whole article · Length unknown / " +
-      "Example Engineering / Read on site",
+      "Example Engineering / Open original website",
   );
 });
 
@@ -62,6 +71,7 @@ test("shows its note like a moment card does", () => {
         note: { text: "Pitched at your beginner level.", ai: true },
       }}
       chip="8-15"
+      position={1}
     />,
   );
   expect(html).toContain(

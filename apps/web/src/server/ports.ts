@@ -15,7 +15,6 @@ import type { Envelope } from "@interval/events";
 // 8–15 chip a whole article (Q-P1-16, P1-W4-S05b).
 type CardBase = {
   itemId: string;
-  link: string;
   articleTitle: string;
   author: string | null;
   sourceName: string;
@@ -64,6 +63,20 @@ export type Inferred = {
   // From the user_avoided_concept view; names aren't unique, slugs are.
   avoidedConcepts: { slug: string; name: string }[];
 };
+
+// Where a card's link goes (§3.2, P1-W5-S01): looked up by id, never taken from
+// input, so /out can't send anyone elsewhere. A moment goes to its section while its
+// source allows moments (ING-2); otherwise, and for a whole article, to the page.
+export type OutboundLink = {
+  url: string;
+  linkType: "anchor" | "text_fragment" | "page_top" | "article";
+};
+export interface OutboundLinks {
+  resolve(
+    itemId: string,
+    momentId: string | null,
+  ): Promise<OutboundLink | null>;
+}
 
 // A row id as forms carry it (a content item or a source): a positive bigint.
 export const BIGINT_ID = /^[1-9][0-9]{0,18}$/;

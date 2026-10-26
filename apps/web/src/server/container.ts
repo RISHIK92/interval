@@ -21,6 +21,7 @@ import { bullmqQueue } from "./adapters/bullmq-queue";
 import { kyselyAdminReview } from "./adapters/kysely-admin-review";
 import { kyselyAdminSources } from "./adapters/kysely-admin-sources";
 import { kyselyFeedback } from "./adapters/kysely-feedback";
+import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
 import { kyselyPreferences } from "./adapters/kysely-preferences";
 import { fileSink } from "./adapters/file-sink";
 import { firehoseSink } from "./adapters/firehose-sink";
@@ -38,6 +39,7 @@ import type {
   GuestSessions,
   InviteCodes,
   JobQueue,
+  OutboundLinks,
   PreferencesStore,
   SessionReader,
 } from "./ports";
@@ -69,6 +71,10 @@ export function preferences(): PreferencesStore {
 
 export function feedback(): Feedback {
   return kyselyFeedback(db());
+}
+
+export function outboundLinks(): OutboundLinks {
+  return kyselyOutboundLinks(db());
 }
 
 export function adminSources(): AdminSources {

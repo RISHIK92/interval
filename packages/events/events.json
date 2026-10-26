@@ -28,7 +28,11 @@
     "card_opened": {
       "version": 1,
       "description": "A card was opened (Q-P1-21 \"opened\").",
-      "props": {}
+      "props": {
+        "kind": ["moment", "article"],
+        "chip": ["1-3", "3-8", "8-15"],
+        "position": "count"
+      }
     },
     "section_finished": {
       "version": 1,
@@ -85,7 +89,10 @@
     "outbound_click": {
       "version": 1,
       "description": "A link to a publisher's page was followed.",
-      "props": {}
+      "props": {
+        "link_type": ["anchor", "text_fragment", "page_top", "article"],
+        "target": ["section", "original"]
+      }
     }
   }
 }

@@ -11,7 +11,6 @@ const card: MomentFeedCard = {
   sectionNumber: 2,
   sectionCount: 4,
   estimatedMinutes: 3,
-  link: "https://webfeed.example.test/post#raft",
   articleTitle: "Consensus in practice",
   author: "Rae Writer",
   sourceName: "Example Engineering",
@@ -27,25 +26,38 @@ function textOf(html: string): string {
 }
 
 test("links to the publisher's section in a new tab without leaking the opener", () => {
-  const html = renderToStaticMarkup(<MomentCard card={card} chip="3-8" />);
-  expect(html).toContain('href="https://webfeed.example.test/post#raft"');
+  const html = renderToStaticMarkup(
+    <MomentCard card={card} chip="3-8" position={4} />,
+  );
+  // Through /out, which records the open (P1-W5-S01); the URL is looked up there.
+  expect(html).toContain(
+    'href="/out?item=70&amp;moment=7&amp;chip=3-8&amp;pos=4&amp;target=section"',
+  );
+  expect(html).toContain(
+    'href="/out?item=70&amp;moment=7&amp;chip=3-8&amp;pos=4&amp;target=original"',
+  );
   expect(html).toContain('target="_blank"');
   expect(html).toContain('rel="noopener noreferrer"');
 });
 
 test("renders only the card fields: title, position, fit, article and attribution", () => {
-  const html = renderToStaticMarkup(<MomentCard card={card} chip="3-8" />);
+  const html = renderToStaticMarkup(
+    <MomentCard card={card} chip="3-8" position={1} />,
+  );
   expect(textOf(html)).toBe(
     "Raft in one page / Section 2 of 4 · 3 min / Fits your 3–8 min break / " +
-      "Consensus in practice / Example Engineering · Rae Writer / Read on site",
+      "Consensus in practice / Example Engineering · Rae Writer / Read on site / " +
+      "Open original website",
   );
 });
 
 test("omits the author when unknown", () => {
   const html = renderToStaticMarkup(
-    <MomentCard card={{ ...card, author: null }} chip="1-3" />,
+    <MomentCard card={{ ...card, author: null }} chip="1-3" position={1} />,
   );
-  expect(textOf(html)).toContain(" / Example Engineering / Read on site");
+  expect(textOf(html)).toContain(
+    " / Example Engineering / Read on site / Open original website",
+  );
 });
 
 // P1-W4-S06: why this matters, labelled AI only once a model wrote it (AI-3, owner).
@@ -54,6 +66,7 @@ test("shows the card's note, with an AI label only when a model wrote it", () =>
     <MomentCard
       card={{ ...card, note: { text: "New this week.", ai: false } }}
       chip="3-8"
+      position={1}
     />,
   );
   expect(textOf(template)).toContain("Why this matters: New this week.");
@@ -62,6 +75,7 @@ test("shows the card's note, with an AI label only when a model wrote it", () =>
     <MomentCard
       card={{ ...card, note: { text: "Fresh, on your topic.", ai: true } }}
       chip="3-8"
+      position={1}
     />,
   );
   expect(polished).toContain(

@@ -111,16 +111,16 @@ export default async function HomePage({
       {cards.length === 0 ? (
         <p>No moments yet.</p>
       ) : (
-        cards.map((card) => (
+        cards.map((card, index) => (
           <section
             key={
               card.kind === "moment" ? `m${card.momentId}` : `a${card.itemId}`
             }
           >
             {card.kind === "moment" ? (
-              <MomentCard card={card} chip={chip} />
+              <MomentCard card={card} chip={chip} position={index + 1} />
             ) : (
-              <ArticleCard card={card} chip={chip} />
+              <ArticleCard card={card} chip={chip} position={index + 1} />
             )}
             <CardControls
               itemId={card.itemId}

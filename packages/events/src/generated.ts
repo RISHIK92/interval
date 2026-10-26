@@ -43,7 +43,11 @@ export const EVENT_VERSIONS = {
 export const propsSchemas = {
   article_finished: z.strictObject({}),
   card_impression: z.strictObject({}),
-  card_opened: z.strictObject({}),
+  card_opened: z.strictObject({
+    kind: z.enum(["moment", "article"]),
+    chip: z.enum(["1-3", "3-8", "8-15"]),
+    position: z.number().int().nonnegative(),
+  }),
   continue_clicked: z.strictObject({}),
   feed_viewed: z.strictObject({ card_count: z.number().int().nonnegative() }),
   feedback_given: z.strictObject({
@@ -53,7 +57,10 @@ export const propsSchemas = {
   guest_merged: z.strictObject({}),
   item_saved: z.strictObject({}),
   onboarding_completed: z.strictObject({}),
-  outbound_click: z.strictObject({}),
+  outbound_click: z.strictObject({
+    link_type: z.enum(["anchor", "text_fragment", "page_top", "article"]),
+    target: z.enum(["section", "original"]),
+  }),
   pwa_installed: z.strictObject({}),
   section_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done"]),

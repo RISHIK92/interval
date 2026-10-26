@@ -12,7 +12,6 @@ const card = (id: string): FeedCard => ({
   sectionNumber: 1,
   sectionCount: 1,
   estimatedMinutes: 3,
-  link: `https://example.test/${id}`,
   articleTitle: "Article",
   author: null,
   sourceName: "Source",

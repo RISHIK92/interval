@@ -1,5 +1,6 @@
 import { type Chip, chipLabel } from "../server/chips";
 import type { MomentFeedCard } from "../server/ports";
+import { outHref } from "../server/outbound";
 import { WhyNote } from "./WhyNote";
 
 // A moment is a deep link into the publisher's page, never a copy (§3.2). Every card in
@@ -7,10 +8,13 @@ import { WhyNote } from "./WhyNote";
 export function MomentCard({
   card,
   chip,
+  position,
 }: {
   card: MomentFeedCard;
   chip: Chip;
+  position: number;
 }) {
+  const out = { itemId: card.itemId, momentId: card.momentId, chip, position };
   const attribution = card.author
     ? `${card.sourceName} · ${card.author}`
     : card.sourceName;
@@ -24,8 +28,19 @@ export function MomentCard({
       <WhyNote note={card.note} />
       <p>{card.articleTitle}</p>
       <p>{attribution}</p>
-      <a href={card.link} target="_blank" rel="noopener noreferrer">
+      <a
+        href={outHref({ ...out, target: "section" })}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
         Read on site
+      </a>
+      <a
+        href={outHref({ ...out, target: "original" })}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open original website
       </a>
     </article>
   );

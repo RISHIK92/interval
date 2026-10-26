@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. Next: W5-S01 (read on site). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) done. Next: W5-S02 (return prompt and Mark section done). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -1254,3 +1254,26 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - tests for the source arm, the spread, the cap, and that exploration still happens next to a Not interested item.
 - Process note: the exploration tests were written with the code, not run red first; the module they test didn't exist before.
 - On local data the owner now has all four topics chosen, so only source arms apply: 50 entries per chip, 17–26 sources, none over 4.
+
+### 2026-10-26 — P1-W5-S01 (read on site, §3.2, §5D, §8)
+- Owner choices:
+  - clicks go through an `/out` redirect;
+  - `utm_source=interval` is added to publisher links;
+  - `card_opened {kind, chip, position}` and `outbound_click {link_type, target}`.
+- Done:
+  - **`app/out/route.ts`:**
+    - zod-validates the ids, chip, position and target;
+    - the URL is looked up by id through the new `OutboundLinks` port (Kysely adapter), never taken from input. A moment's link is used only while it belongs to the item and its source allows moments; otherwise the article page;
+    - only http(s) links are followed;
+    - `utm_source=interval` is appended without re-encoding the publisher's query, before the fragment;
+    - with a session it emits both events, then a 302;
+    - bad input or an unknown item gives a relative redirect home (no http downgrade behind the proxy).
+  - **Cards:** "Read on site" (the section) and "Open original website" (the page) on moment cards; "Open original website" on article cards; plain `<a>`, a new tab, `noopener noreferrer`. The dead `card.link` is removed.
+- Review fixes:
+  - query re-encoding;
+  - non-http(s) and relative stored links;
+  - the absolute http home redirect;
+  - bad-input tests that couldn't fail;
+  - an open-redirect test;
+  - comments on the GET side effect (a cross-site link could count an open; analytics only) and the purge trigger.
+- Checked in Chrome: a card's "Read on site" opened the publisher with `?utm_source=interval#:~:text=…`, and both events landed in `.data/events` with their props.

@@ -1,5 +1,6 @@
 import { type Chip, chipLabel, chipLimit } from "../server/chips";
 import type { ArticleFeedCard } from "../server/ports";
+import { outHref } from "../server/outbound";
 import { WhyNote } from "./WhyNote";
 
 // A whole article, offered by the 8–15 chip (§3.2, Q-P1-16): a link to the publisher's
@@ -8,9 +9,11 @@ import { WhyNote } from "./WhyNote";
 export function ArticleCard({
   card,
   chip,
+  position,
 }: {
   card: ArticleFeedCard;
   chip: Chip;
+  position: number;
 }) {
   const attribution = card.author
     ? `${card.sourceName} · ${card.author}`
@@ -26,8 +29,17 @@ export function ArticleCard({
       ) : null}
       <WhyNote note={card.note} />
       <p>{attribution}</p>
-      <a href={card.link} target="_blank" rel="noopener noreferrer">
-        Read on site
+      <a
+        href={outHref({
+          itemId: card.itemId,
+          chip,
+          position,
+          target: "original",
+        })}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Open original website
       </a>
     </article>
   );

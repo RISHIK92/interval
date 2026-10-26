@@ -64,7 +64,6 @@ const card: FeedCard = {
   sectionNumber: 1,
   sectionCount: 2,
   estimatedMinutes: 2,
-  link: "https://webfeed.example.test/post",
   articleTitle: "Consensus in practice",
   author: null,
   sourceName: "Example Engineering",
@@ -93,7 +92,10 @@ test("renders one card per feed entry", async () => {
   );
   const html = await render();
   expect(html.match(/<article/g)).toHaveLength(2);
-  expect(html).toContain('href="https://webfeed.example.test/post"');
+  // Through /out, which records the open (P1-W5-S01).
+  expect(html).toContain(
+    'href="/out?item=10&amp;moment=1&amp;chip=3-8&amp;pos=1',
+  );
   expect(html).toContain("Example Engineering");
 });
 
@@ -179,7 +181,6 @@ test("the 8–15 chip renders whole-article cards next to moments", async () => 
         kind: "article",
         itemId: "20",
         estimatedMinutes: null,
-        link: "https://webfeed.example.test/whole",
         articleTitle: "A whole read",
         author: null,
         sourceName: "Example Engineering",
@@ -190,7 +191,9 @@ test("the 8–15 chip renders whole-article cards next to moments", async () => 
   );
   const html = await render({ chip: "8-15" });
   expect(html).toContain("Whole article · Length unknown");
-  expect(html).toContain('href="https://webfeed.example.test/whole"');
+  expect(html).toContain(
+    'href="/out?item=20&amp;chip=8-15&amp;pos=1&amp;target=original"',
+  );
   expect(html.match(/<article/g)).toHaveLength(2);
 });
 

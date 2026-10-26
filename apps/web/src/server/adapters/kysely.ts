@@ -51,7 +51,6 @@ const CARD_COLUMNS = [
   "section_number",
   "section_count",
   "estimated_minutes",
-  "link",
   "article_title",
   "author",
   "source_name",
@@ -81,19 +80,16 @@ export function toCard(row: CardRow): FeedCard | null {
     section_number,
     section_count,
     estimated_minutes,
-    link,
     article_title,
     source_name,
   } = row;
   if (
     content_item_id !== null &&
-    link !== null &&
     article_title !== null &&
     source_name !== null
   ) {
     const base = {
       itemId: content_item_id,
-      link,
       articleTitle: article_title,
       author: row.author,
       sourceName: source_name,
