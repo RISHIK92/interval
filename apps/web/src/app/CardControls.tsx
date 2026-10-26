@@ -96,31 +96,3 @@ export function CardControls({
     </form>
   );
 }
-
-// Straight after Not interested only (owner, 2026-10-26): there is no list to undo
-// it from later in Phase 1.
-export function UndoNotInterested({
-  itemId,
-  chip,
-}: {
-  itemId: string;
-  chip: Chip;
-}) {
-  return (
-    <form action={feedbackAction} className="my-4">
-      <input type="hidden" name="itemId" value={itemId} />
-      <input type="hidden" name="chip" value={chip} />
-      <p className="flex items-center justify-between rounded-2xl bg-well px-4 py-3">
-        Hidden.{" "}
-        <button
-          type="submit"
-          name="control"
-          value="undo_not_interested"
-          className="font-semibold text-select"
-        >
-          Undo
-        </button>
-      </p>
-    </form>
-  );
-}
