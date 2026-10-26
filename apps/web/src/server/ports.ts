@@ -20,6 +20,7 @@ type CardBase = {
   sourceName: string;
   // Why this matters (§5E, P1-W4-S06): `ai` once the notes model wrote it (AI-3).
   note: { text: string; ai: boolean } | null;
+  saved: boolean; // the user saved its article (P1-W5-S04)
 };
 export type MomentFeedCard = CardBase & {
   kind: "moment";
@@ -144,6 +145,29 @@ export type ContinueCard = {
   articleTitle: string;
 };
 
+// Saves and history (§5I, P1-W5-S04), for the Library (W5-S05): ids, titles and
+// sources only, never an article's text.
+export type SavedItem = {
+  itemId: string;
+  articleTitle: string;
+  sourceName: string;
+  savedAt: Date;
+};
+export type HistoryItem = {
+  itemId: string;
+  articleTitle: string;
+  sourceName: string;
+  finishedSections: number;
+  totalSections: number;
+  finished: boolean; // every section, or the whole article
+  lastFinishedAt: Date;
+};
+export interface Library {
+  saves(userId: string, limit: number): Promise<SavedItem[]>;
+  // Articles with a finished section, or finished whole; newest finish first.
+  history(userId: string, limit: number): Promise<HistoryItem[]>;
+}
+
 // A row id as forms carry it (a content item or a source): a positive bigint.
 export const BIGINT_ID = /^[1-9][0-9]{0,18}$/;
 
@@ -157,6 +181,7 @@ export interface Feedback {
   // The item's source, hidden for this user; undone from settings (Q-P1-36).
   hideSource(userId: string, itemId: string): Promise<boolean>;
   save(userId: string, itemId: string): Promise<boolean>;
+  unsave(userId: string, itemId: string): Promise<boolean>;
   notInterested(userId: string, itemId: string): Promise<boolean>;
   // The Profile page (§5A, Q-P1-36, P1-W4-S08).
   hiddenSources(userId: string): Promise<{ sourceId: string; name: string }[]>;

@@ -6,10 +6,12 @@ import { feedbackAction } from "./feedback/actions";
 export function CardControls({
   itemId,
   title,
+  saved,
   chip,
 }: {
   itemId: string;
   title: string;
+  saved: boolean;
   chip: Chip;
 }) {
   // Every card has these buttons: the title tells them apart for a screen reader.
@@ -17,14 +19,25 @@ export function CardControls({
     <form action={feedbackAction} aria-label={`Actions for ${title}`}>
       <input type="hidden" name="itemId" value={itemId} />
       <input type="hidden" name="chip" value={chip} />
-      <button
-        type="submit"
-        name="control"
-        value="save"
-        aria-label={`Save ${title}`}
-      >
-        Save
-      </button>
+      {saved ? (
+        <button
+          type="submit"
+          name="control"
+          value="unsave"
+          aria-label={`Saved: unsave ${title}`}
+        >
+          Saved ✓
+        </button>
+      ) : (
+        <button
+          type="submit"
+          name="control"
+          value="save"
+          aria-label={`Save ${title}`}
+        >
+          Save
+        </button>
+      )}
       <details>
         <summary>More options</summary>
         <button type="submit" name="control" value="more_like_this">

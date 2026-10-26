@@ -81,6 +81,7 @@ const card: FeedCard = {
   author: null,
   sourceName: "Example Engineering",
   note: null,
+  saved: false,
 };
 
 async function render(
@@ -198,6 +199,7 @@ test("the 8–15 chip renders whole-article cards next to moments", async () => 
         author: null,
         sourceName: "Example Engineering",
         note: null,
+        saved: false,
       },
       card,
     ]),
@@ -361,4 +363,17 @@ test("continue cards point at the next section and can be dismissed", async () =
   );
   expect(html).toMatch(/<a[^>]*data-item="30"[^>]*data-moment="31"/);
   expect(html).toContain("Dismiss");
+});
+
+test("a saved card's button says Saved and unsaves", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([{ ...card, saved: true }]));
+  const html = await render();
+  expect(html).toMatch(/<button[^>]*value="unsave"[^>]*>Saved ✓<\/button>/);
+  // The visible words lead the accessible name (WCAG 2.5.3).
+  expect(html).toContain('aria-label="Saved: unsave Why consensus"');
+  getFeed.mockResolvedValue(feedOf([card]));
+  expect(await render()).toMatch(
+    /<button[^>]*value="save"[^>]*>Save<\/button>/,
+  );
 });

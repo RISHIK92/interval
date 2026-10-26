@@ -185,6 +185,7 @@ export default async function HomePage({
               title={
                 card.kind === "moment" ? card.sectionTitle : card.articleTitle
               }
+              saved={card.saved}
               chip={chip}
             />
           </section>

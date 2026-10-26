@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) done. Next: W5-S04 (saves and history). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) and W5-S04 (saves and history) done. Next: W5-S05 (Library tab). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -1346,3 +1346,20 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Review fixes:
   - tests for the upsert path across users, the whole-article entry (`moment_id` null) and moment-vs-article matching, the article finish path, and the article card open;
   - comments on the cross-site GET (it can now add one shown per user and item), the after-commit count (a failed count stays low, which is safe), and the arm read from the current feed.
+
+### 2026-10-26 — P1-W5-S04 (saves and history, §5I)
+- Owner choices:
+  - the card's Save becomes "Saved ✓", and pressing it unsaves;
+  - **history is finished items, not opened ones.** The slice text says "opened items appear in history"; the owner chose finished. An article appears once any section, or the whole article, is finished, newest first, with "Finished" or "n of m sections".
+- Done:
+  - `FeedCard.saved` (an `exists` on `user_save`, in the same feed query);
+  - `Feedback.unsave` and `control=unsave` (a recompute, no event);
+  - the `Library` port and Kysely adapter (`saves`, `history`: ids, titles and source names only). It has no caller until W5-S05, by plan, and no fake until a caller needs one.
+  - No migration: history reads the W5-S02 finish tables.
+- Review fixes:
+  - "Saved ✓"'s accessible name now starts with "Saved" (WCAG 2.5.3);
+  - tests for sections plus article finished, a zero-section article, the unsave scope, and an unsave with no change.
+- For W5-S05:
+  - ask the owner whether the Library hides items from hidden sources;
+  - the Library links go through `/out` by item id.
+- Not tested: "guest saves survive merge" waits for W1-S12 (deferred). Saves and finishes are keyed by user id.

@@ -196,6 +196,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
           author: "Rae Writer",
           sourceName: "webfeed-test",
           note: null,
+          saved: false,
         },
       ],
     });
@@ -248,6 +249,7 @@ test("a whole article reads as an article card, before or after moments", async 
       author: "Rae Writer",
       sourceName: "webfeed-test",
       note: null,
+      saved: false,
     });
     expect(cards.map((c) => c.kind)).toEqual(["article", "moment"]);
   });
@@ -359,6 +361,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     source_name: "Source",
     note_text: null,
     note_ai: false,
+    saved: false,
   });
 
   expect(card).toBeNull();
@@ -377,6 +380,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
       source_name: "Source",
       note_text: "New this week.",
       note_ai: true,
+      saved: false,
     }),
   ).toEqual({
     kind: "article",
@@ -386,6 +390,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     author: null,
     sourceName: "Source",
     note: { text: "New this week.", ai: true },
+    saved: false,
   });
   expect(lines).toHaveLength(1);
   const logged = JSON.parse(lines[0] ?? "") as Record<string, unknown>;
@@ -495,5 +500,35 @@ test("the user's not-interested items and hidden sources are left out at once", 
       .execute();
     expect(await read()).toEqual({ computed: true, cards: [] });
     expect(await starter()).toEqual([]);
+  });
+});
+
+// P1-W5-S04: a card knows whether the user saved its article.
+test("cards say whether the user saved their article", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const [first] = momentIds;
+    if (first === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_feed_entry")
+      .values({
+        user_id: userId,
+        chip: "3-8",
+        content_item_id: itemId,
+        moment_id: first,
+        rank: 1,
+        top_signal: "quality",
+      })
+      .execute();
+    await trx
+      .insertInto("user_feed_state")
+      .values({ user_id: userId, computed_at: new Date() })
+      .execute();
+    const reader = kyselyFeedReader(trx);
+    expect((await reader.read(userId, "3-8", 50)).cards[0]?.saved).toBe(false);
+    await trx
+      .insertInto("user_save")
+      .values({ user_id: userId, content_item_id: itemId })
+      .execute();
+    expect((await reader.read(userId, "3-8", 50)).cards[0]?.saved).toBe(true);
   });
 });

@@ -11,6 +11,7 @@ const port = {
   ),
   hideSource: vi.fn<Feedback["hideSource"]>(() => Promise.resolve(true)),
   save: vi.fn<Feedback["save"]>(() => Promise.resolve(true)),
+  unsave: vi.fn<Feedback["unsave"]>(() => Promise.resolve(true)),
   notInterested: vi.fn<Feedback["notInterested"]>(),
 };
 const emit = vi.fn();
@@ -169,4 +170,17 @@ test("without a session the visitor is sent to /join", async () => {
     feedbackAction(form({ control: "save", itemId: "42", chip: "3-8" })),
   ).rejects.toThrow("redirect:/join");
   expect(port.save).not.toHaveBeenCalled();
+});
+
+test("Saved ✓ unsaves, queues a recompute and counts no event", async () => {
+  await expect(press("unsave")).rejects.toThrow("redirect:/?chip=3-8");
+  expect(port.unsave).toHaveBeenCalledExactlyOnceWith("g1", "42");
+  expect(enqueue).toHaveBeenCalledOnce();
+  expect(emit).not.toHaveBeenCalled();
+});
+
+test("an unsave that changes nothing queues nothing", async () => {
+  port.unsave.mockResolvedValueOnce(false);
+  await expect(press("unsave")).rejects.toThrow("redirect:/?chip=3-8");
+  expect(enqueue).not.toHaveBeenCalled();
 });

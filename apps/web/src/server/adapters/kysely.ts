@@ -57,7 +57,20 @@ const CARD_COLUMNS = [
   "note_text",
   "note_ai",
 ] as const;
-type CardRow = Pick<Selectable<UserFeedVisible>, (typeof CARD_COLUMNS)[number]>;
+type CardRow = Pick<
+  Selectable<UserFeedVisible>,
+  (typeof CARD_COLUMNS)[number]
+> & {
+  saved: boolean;
+};
+
+// Whether the user saved the card's article (P1-W5-S04), in the same query.
+function savedBy(userId: string, itemColumn: string) {
+  return sql<boolean>`exists (
+    select 1 from user_save us
+    where us.user_id = ${userId} and us.content_item_id = ${sql.ref(itemColumn)}
+  )`.as("saved");
+}
 
 // Columns any row may leave null: no known author, no note yet.
 const NULLABLE_ON_EVERY_ROW = ["author", "note_text", "note_ai"];
@@ -97,6 +110,7 @@ export function toCard(row: CardRow): FeedCard | null {
         row.note_text === null
           ? null
           : { text: row.note_text, ai: row.note_ai === true },
+      saved: row.saved,
     };
     if (kind === "article") {
       return { kind, ...base, estimatedMinutes: estimated_minutes };
@@ -162,6 +176,7 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
             .on(keptFor(userId, "v.content_item_id")),
         )
         .select(CARD_COLUMNS.map((column) => `v.${column}` as const))
+        .select(savedBy(userId, "v.content_item_id"))
         .where("s.user_id", "=", userId)
         .orderBy("v.rank")
         .limit(limit)
@@ -178,6 +193,7 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
       const rows = await db
         .selectFrom("starter_feed_visible")
         .select(CARD_COLUMNS)
+        .select(savedBy(userId, "starter_feed_visible.content_item_id"))
         .where(keptFor(userId, "starter_feed_visible.content_item_id"))
         .where("topic", "=", topic)
         .where("level", "=", level)

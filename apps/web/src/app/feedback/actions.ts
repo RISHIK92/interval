@@ -23,6 +23,7 @@ const Control = z.object({
     "not_interested",
     "hide_source",
     "save",
+    "unsave",
     "undo_not_interested",
   ]),
   itemId: z.string().regex(BIGINT_ID),
@@ -46,6 +47,10 @@ export async function feedbackAction(form: FormData): Promise<void> {
     case "save":
       changed = await port.save(actor.userId, itemId);
       if (changed) events().emit("item_saved", {}, context);
+      break;
+    case "unsave":
+      // No event: none is in the accepted list (P1-W5-S04).
+      changed = await port.unsave(actor.userId, itemId);
       break;
     case "undo_not_interested":
       changed = await port.undoNotInterested(actor.userId, itemId);

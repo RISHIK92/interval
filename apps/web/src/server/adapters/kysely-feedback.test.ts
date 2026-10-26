@@ -202,3 +202,29 @@ test("a reset clears More and Less like this and the concept down-rank only", as
     expect(saved).toHaveLength(1);
   });
 });
+
+// P1-W5-S04: Saved ✓ on the card unsaves.
+test("unsave removes a save; a repeat changes nothing", async () => {
+  await inRollback(async (trx, { userId, itemId }) => {
+    const feedback = kyselyFeedback(trx);
+    // Another user's save of the same item stays.
+    const otherId = (
+      await trx
+        .selectFrom("app_user")
+        .select("id")
+        .where("id", "!=", userId)
+        .limit(1)
+        .executeTakeFirstOrThrow()
+    ).id;
+    await feedback.save(otherId, itemId);
+    await feedback.save(userId, itemId);
+    expect(await feedback.unsave(userId, itemId)).toBe(true);
+    expect(await feedback.unsave(userId, itemId)).toBe(false);
+    const left = await trx
+      .selectFrom("user_save")
+      .select("user_id")
+      .where("content_item_id", "=", itemId)
+      .execute();
+    expect(left).toEqual([{ user_id: otherId }]);
+  });
+});

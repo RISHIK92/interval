@@ -12,6 +12,7 @@ const card: ArticleFeedCard = {
   author: "Rae Writer",
   sourceName: "Example Engineering",
   note: null,
+  saved: false,
 };
 
 function textOf(html: string): string {

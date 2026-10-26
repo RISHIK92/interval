@@ -131,6 +131,15 @@ export function kyselyFeedback(db: Kysely<DB>): Feedback {
           .execute();
       });
     },
+    unsave: async (userId, itemId) => {
+      const removed = await db
+        .deleteFrom("user_save")
+        .where("user_id", "=", userId)
+        .where("content_item_id", "=", itemId)
+        .returning("content_item_id")
+        .execute();
+      return removed.length > 0;
+    },
     notInterested: async (userId, itemId) => {
       const row = await db
         .selectFrom("item_feedback")
