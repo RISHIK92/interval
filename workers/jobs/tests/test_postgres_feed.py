@@ -13,7 +13,7 @@ from psycopg import sql
 
 from interval_db.generated import BreakLength
 from interval_jobs.adapters.postgres import PostgresStore
-from interval_jobs.ports import NoteKey, NoteRef, RankedEntry
+from interval_jobs.ports import Arm, NoteKey, NoteRef, RankedEntry
 
 
 def add_item(
@@ -383,3 +383,20 @@ def test_two_recomputes_writing_one_note_agree_on_it(
     with psycopg.connect(url) as cleanup:
         cleanup.execute("delete from content_item where id = %s", (item,))
         cleanup.execute("delete from source where id = %s", (src,))
+
+
+def test_an_explored_entry_is_stored_with_its_arm(conn: psycopg.Connection) -> None:
+    src = source(conn, "feedtest-l")
+    item = add_item(conn, src, "explored", datetime(2026, 10, 1, tzinfo=UTC), 1)
+    (moment,) = moments_of(conn, item)
+    me = user(conn)
+    PostgresStore(conn).feed.replace_user(
+        me,
+        {"3-8": [RankedEntry(item, moment, "quality", None, Arm("topic", "backend"))]},
+        datetime.now(UTC),
+    )
+    row = conn.execute(
+        "select explore_kind, explore_arm from user_feed_entry where user_id = %s",
+        (me,),
+    ).fetchone()
+    assert row == ("topic", "backend")

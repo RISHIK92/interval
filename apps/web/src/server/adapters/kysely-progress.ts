@@ -168,6 +168,41 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
         on conflict (user_id, content_item_id) do update set dismissed_at = now()
       `.execute(db);
     },
+    // The arm comes from the user's current stored feed: a recompute between showing
+    // the card and the click may have changed it (hourly; accepted).
+    countExploreOpen: async (userId, chip, itemId, momentId) => {
+      await sql`
+        with entry as (
+          select explore_kind, explore_arm from user_feed_entry
+          where user_id = ${userId} and chip = ${chip}::break_length
+            and content_item_id = ${itemId}
+            and moment_id is not distinct from ${momentId}::bigint
+            and explore_kind is not null
+        ),
+        opened as (
+          insert into user_explore_open (user_id, content_item_id, kind, arm)
+          select ${userId}, ${itemId}, explore_kind, explore_arm from entry
+          on conflict do nothing
+          returning kind, arm
+        )
+        insert into explore_arm_outcome (kind, arm, shown, finished)
+        select kind, arm, 1, 0 from opened
+        on conflict (kind, arm)
+        do update set shown = explore_arm_outcome.shown + 1
+      `.execute(db);
+    },
+    countExploreFinish: async (userId, itemId) => {
+      await sql`
+        with counted as (
+          update user_explore_open set finished_counted = true
+          where user_id = ${userId} and content_item_id = ${itemId}
+            and not finished_counted
+          returning kind, arm
+        )
+        update explore_arm_outcome o set finished = o.finished + 1
+        from counted c where o.kind = c.kind and o.arm = c.arm
+      `.execute(db);
+    },
     nextMoment: async (itemId, momentId) => {
       const next = await allowedMoments()
         .select(["m.id", "m.title"])

@@ -73,7 +73,11 @@ def _with_notes(
                 done.unpolished.add(note.note_id)
             entries.append(
                 RankedEntry(
-                    s.item_id, s.moment_id, s.top_signal, note.note_id if note else None
+                    s.item_id,
+                    s.moment_id,
+                    s.top_signal,
+                    note.note_id if note else None,
+                    s.arm,
                 )
             )
         by_chip[chip] = entries

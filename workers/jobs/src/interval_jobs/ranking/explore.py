@@ -9,6 +9,7 @@ Week 5 records outcomes, every arm is at its prior and the draws are even.
 import random
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 
 from interval_jobs.ports import Arm, ArmOutcome
 from interval_jobs.ranking.scoring import Scored
@@ -53,7 +54,8 @@ def explore(
         if not left:
             break
         arms = sorted(left, key=lambda a: (a.kind, a.key))
-        best = left[sample_arm(arms, outcomes, rng)][0]
+        arm = sample_arm(arms, outcomes, rng)
+        best = replace(left[arm][0], arm=arm)
         explored.append(best)
         items.add(best.item_id)
         per_source[best.source_id] += 1

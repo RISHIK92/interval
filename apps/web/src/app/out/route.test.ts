@@ -6,10 +6,13 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const resolve = vi.fn<OutboundLinks["resolve"]>();
 const emit = vi.fn();
 const recordOpen = vi.fn<Progress["recordOpen"]>(() => Promise.resolve());
+const countExploreOpen = vi.fn<Progress["countExploreOpen"]>(() =>
+  Promise.resolve(),
+);
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   outboundLinks: () => ({ resolve }),
-  progress: () => ({ recordOpen }),
+  progress: () => ({ recordOpen, countExploreOpen }),
   events: () => ({ emit }),
 }));
 const setCookie = vi.fn();
@@ -264,4 +267,38 @@ test("an opened section is recorded; a whole article or fallback is not", async 
   await open("item=5&moment=9&chip=3-8&pos=1&target=section");
   await open("item=5&moment=9&chip=3-8&pos=1&target=original");
   expect(recordOpen).not.toHaveBeenCalled();
+});
+
+// P1-W5-S03: a feed card's open counts toward its exploration arm, if it had one.
+test("a feed card's open is counted for exploration; a Continue open is not", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post#raft",
+    linkType: "anchor",
+  });
+  await open("item=5&moment=9&chip=3-8&pos=1&target=section");
+  expect(countExploreOpen).toHaveBeenCalledExactlyOnceWith(
+    "g1",
+    "3-8",
+    "5",
+    "9",
+  );
+  countExploreOpen.mockClear();
+  await open("item=5&moment=9&chip=3-8&from=continue&target=section");
+  expect(countExploreOpen).not.toHaveBeenCalled();
+});
+
+test("an article card's open is counted for its whole-article entry", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post",
+    linkType: "article",
+  });
+  await open("item=5&chip=8-15&pos=2&target=original");
+  expect(countExploreOpen).toHaveBeenCalledExactlyOnceWith(
+    "g1",
+    "8-15",
+    "5",
+    null,
+  );
 });

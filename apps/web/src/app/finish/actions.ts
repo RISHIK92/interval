@@ -29,21 +29,30 @@ export async function finishAction(form: FormData): Promise<void> {
   jar.delete(READING_COOKIE);
   if (control === "dismiss") redirect(`/?chip=${chip}`);
   const context = { ...actor, sessionId: visitId(jar) };
+  let finishedNow: boolean;
   if (momentId === undefined) {
-    if (await progress().finishArticle(actor.userId, itemId, method)) {
-      events().emit("article_finished", { method }, context);
-    }
-  } else if (
-    await progress().finishMoment(actor.userId, itemId, momentId, method)
-  ) {
-    events().emit("section_finished", { method }, context);
-    // Q-P1-35: the finish that completes an article finishes it (P1-W5-S03).
-    if (
-      await progress().finishArticleIfComplete(actor.userId, itemId, method)
-    ) {
-      events().emit("article_finished", { method }, context);
+    finishedNow = await progress().finishArticle(actor.userId, itemId, method);
+    if (finishedNow) events().emit("article_finished", { method }, context);
+  } else {
+    finishedNow = await progress().finishMoment(
+      actor.userId,
+      itemId,
+      momentId,
+      method,
+    );
+    if (finishedNow) {
+      events().emit("section_finished", { method }, context);
+      // Q-P1-35: the finish that completes an article finishes it (P1-W5-S03).
+      if (
+        await progress().finishArticleIfComplete(actor.userId, itemId, method)
+      ) {
+        events().emit("article_finished", { method }, context);
+      }
     }
   }
+  // Exploration learns what was finished (REC-4); once per user and article. Its own
+  // statement after the finish: if it fails, that finish is never counted (low is safe).
+  if (finishedNow) await progress().countExploreFinish(actor.userId, itemId);
   // The feed then offers the next section (Yes, owner 2026-10-26).
   redirect(`/?chip=${chip}&finished=${itemId}.${momentId ?? ""}`);
 }

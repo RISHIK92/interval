@@ -386,3 +386,143 @@ test("a later read brings a dismissed continue card back", async () => {
     expect(card?.sectionTitle).toBe("Paxos");
   });
 });
+
+// P1-W5-S03: outcomes of exploration (REC-4, P1-W4-S09), counted once per user and item.
+test("an explored entry's first open counts as shown, its first finish as finished", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro, raft] = momentIds;
+    if (intro === undefined || raft === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_feed_entry")
+      .values([
+        {
+          user_id: userId,
+          chip: "3-8",
+          rank: 1,
+          content_item_id: itemId,
+          moment_id: intro,
+          top_signal: "freshness",
+          explore_kind: "topic",
+          explore_arm: "test-arm",
+        },
+        {
+          user_id: userId,
+          chip: "3-8",
+          rank: 2,
+          content_item_id: itemId,
+          moment_id: raft,
+          top_signal: "freshness",
+        },
+      ])
+      .execute();
+    const outcome = () =>
+      trx
+        .selectFrom("explore_arm_outcome")
+        .select(["shown", "finished"])
+        .where("kind", "=", "topic")
+        .where("arm", "=", "test-arm")
+        .executeTakeFirst();
+    // A finish before any explored open counts nothing.
+    await progress.countExploreFinish(userId, itemId);
+    expect(await outcome()).toBeUndefined();
+    await progress.countExploreOpen(userId, "3-8", itemId, intro);
+    await progress.countExploreOpen(userId, "3-8", itemId, intro);
+    expect(await outcome()).toEqual({ shown: "1", finished: "0" });
+    await progress.countExploreFinish(userId, itemId);
+    await progress.countExploreFinish(userId, itemId);
+    expect(await outcome()).toEqual({ shown: "1", finished: "1" });
+  });
+});
+
+test("opening an entry that wasn't explored counts nothing", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const [, raft] = momentIds;
+    if (raft === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_feed_entry")
+      .values({
+        user_id: userId,
+        chip: "3-8",
+        rank: 1,
+        content_item_id: itemId,
+        moment_id: raft,
+        top_signal: "freshness",
+      })
+      .execute();
+    await kyselyProgress(trx).countExploreOpen(userId, "3-8", itemId, raft);
+    const opens = await trx
+      .selectFrom("user_explore_open")
+      .select("arm")
+      .where("user_id", "=", userId)
+      .execute();
+    expect(opens).toEqual([]);
+  });
+});
+
+test("a whole article's explored entry counts; a moment card of the same item doesn't match it", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const [intro] = momentIds;
+    if (intro === undefined) throw new Error("seed");
+    await trx
+      .insertInto("user_feed_entry")
+      .values({
+        user_id: userId,
+        chip: "8-15",
+        rank: 1,
+        content_item_id: itemId,
+        moment_id: null,
+        top_signal: "freshness",
+        explore_kind: "source",
+        explore_arm: "art-arm",
+      })
+      .execute();
+    const progress = kyselyProgress(trx);
+    await progress.countExploreOpen(userId, "8-15", itemId, intro);
+    const none = await trx
+      .selectFrom("user_explore_open")
+      .select("arm")
+      .where("user_id", "=", userId)
+      .execute();
+    expect(none).toEqual([]);
+    await progress.countExploreOpen(userId, "8-15", itemId, null);
+    const outcome = await trx
+      .selectFrom("explore_arm_outcome")
+      .select(["shown", "finished"])
+      .where("kind", "=", "source")
+      .where("arm", "=", "art-arm")
+      .executeTakeFirst();
+    expect(outcome).toEqual({ shown: "1", finished: "0" });
+  });
+});
+
+test("opens by another user add to the same arm's shown count", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const [intro] = momentIds;
+    if (intro === undefined) throw new Error("seed");
+    await trx
+      .insertInto("explore_arm_outcome")
+      .values({ kind: "topic", arm: "shared-arm", shown: 3, finished: 1 })
+      .execute();
+    await trx
+      .insertInto("user_feed_entry")
+      .values({
+        user_id: userId,
+        chip: "3-8",
+        rank: 1,
+        content_item_id: itemId,
+        moment_id: intro,
+        top_signal: "freshness",
+        explore_kind: "topic",
+        explore_arm: "shared-arm",
+      })
+      .execute();
+    await kyselyProgress(trx).countExploreOpen(userId, "3-8", itemId, intro);
+    const outcome = await trx
+      .selectFrom("explore_arm_outcome")
+      .select(["shown", "finished"])
+      .where("arm", "=", "shared-arm")
+      .executeTakeFirst();
+    expect(outcome).toEqual({ shown: "4", finished: "1" });
+  });
+});

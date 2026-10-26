@@ -50,7 +50,8 @@ function attributed(stored: string): string | null {
 
 // "Read on site" and "Open original website" (§3.2, §5D, P1-W5-S01): record the open,
 // then send the reader to the publisher, attributed (§8). Works without scripts. A GET:
-// another site could send a signed-in reader here and count an open; analytics only.
+// another site could send a signed-in reader here and count an open, in the analytics
+// and, for an explored entry, once in its arm's shown count (exploration only).
 export async function GET(request: Request): Promise<Response> {
   const query = new URL(request.url).searchParams;
   const parsed = Open.safeParse(Object.fromEntries(query));
@@ -92,6 +93,15 @@ export async function GET(request: Request): Promise<Response> {
     // A section the reader reached counts as read for continue cards (P1-W5-S03).
     if (moment !== undefined && link.linkType !== "article") {
       await progress().recordOpen(actor.userId, item, moment);
+    }
+    if (pos !== undefined) {
+      // A feed card placed by exploration counts toward its arm (P1-W5-S03).
+      await progress().countExploreOpen(
+        actor.userId,
+        chip,
+        item,
+        moment ?? null,
+      );
     }
     if (pos === undefined) {
       events().emit("continue_clicked", {}, context);

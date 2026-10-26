@@ -488,8 +488,9 @@ class PostgresMoments:
 # The ranked entries as rows, numbered in order; an entry whose item or moment is gone
 # is skipped.
 _RANKED_ROWS = """
-from unnest(%s::bigint[], %s::bigint[], %s::text[], %s::bigint[]) with ordinality
-  as r(item_id, moment_id, top_signal, note_id, rank)
+from unnest(%s::bigint[], %s::bigint[], %s::text[], %s::bigint[], %s::text[],
+            %s::text[]) with ordinality
+  as r(item_id, moment_id, top_signal, note_id, explore_kind, explore_arm, rank)
 where exists (select 1 from content_item ci where ci.id = r.item_id)
   and (r.moment_id is null
        or exists (select 1 from moment m where m.id = r.moment_id))
@@ -498,12 +499,21 @@ where exists (select 1 from content_item ci where ci.id = r.item_id)
 
 def _ranked_arrays(
     ranked: list[RankedEntry],
-) -> tuple[list[int], list[int | None], list[str], list[int | None]]:
+) -> tuple[
+    list[int],
+    list[int | None],
+    list[str],
+    list[int | None],
+    list[str | None],
+    list[str | None],
+]:
     return (
         [r.item_id for r in ranked],
         [r.moment_id for r in ranked],
         [r.top_signal for r in ranked],
         [r.note_id for r in ranked],
+        [r.arm.kind if r.arm else None for r in ranked],
+        [r.arm.key if r.arm else None for r in ranked],
     )
 
 
@@ -607,9 +617,9 @@ class PostgresFeed:
                     f"""
                     insert into user_feed_entry
                       (user_id, chip, content_item_id, moment_id, rank, top_signal,
-                       note_id)
+                       note_id, explore_kind, explore_arm)
                     select %s, %s::break_length, r.item_id, r.moment_id, r.rank,
-                           r.top_signal, r.note_id
+                           r.top_signal, r.note_id, r.explore_kind, r.explore_arm
                     {_RANKED_ROWS}
                     """,
                     (user_id, chip, *_ranked_arrays(ranked)),

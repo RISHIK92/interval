@@ -15,6 +15,9 @@ const finishArticleIfComplete = vi.fn<Progress["finishArticleIfComplete"]>(() =>
 const dismissContinue = vi.fn<Progress["dismissContinue"]>(() =>
   Promise.resolve(),
 );
+const countExploreFinish = vi.fn<Progress["countExploreFinish"]>(() =>
+  Promise.resolve(),
+);
 const emit = vi.fn();
 const deleteCookie = vi.fn();
 vi.mock("../../server/container", () => ({
@@ -24,6 +27,7 @@ vi.mock("../../server/container", () => ({
     finishArticle,
     finishArticleIfComplete,
     dismissContinue,
+    countExploreFinish,
   }),
   events: () => ({ emit }),
 }));
@@ -214,4 +218,52 @@ test("a continue card can be dismissed", async () => {
     continueAction(form({ itemId: "5", chip: "3-8" })),
   ).rejects.toThrow(/^redirect:\/\?chip=3-8$/);
   expect(dismissContinue).toHaveBeenCalledExactlyOnceWith("g1", "5");
+});
+
+test("a new finish counts toward the item's exploration arm; a repeat doesn't", async () => {
+  await expect(
+    finish({
+      control: "finish",
+      itemId: "5",
+      momentId: "9",
+      method: "mark_done",
+      chip: "3-8",
+    }),
+  ).rejects.toThrow("redirect:");
+  expect(countExploreFinish).toHaveBeenCalledExactlyOnceWith("g1", "5");
+  countExploreFinish.mockClear();
+  finishMoment.mockResolvedValueOnce(false);
+  await expect(
+    finish({
+      control: "finish",
+      itemId: "5",
+      momentId: "9",
+      method: "mark_done",
+      chip: "3-8",
+    }),
+  ).rejects.toThrow("redirect:");
+  expect(countExploreFinish).not.toHaveBeenCalled();
+});
+
+test("a whole article's new finish counts toward its arm; a repeat doesn't", async () => {
+  await expect(
+    finish({
+      control: "finish",
+      itemId: "5",
+      method: "mark_done",
+      chip: "8-15",
+    }),
+  ).rejects.toThrow("redirect:");
+  expect(countExploreFinish).toHaveBeenCalledExactlyOnceWith("g1", "5");
+  countExploreFinish.mockClear();
+  finishArticle.mockResolvedValueOnce(false);
+  await expect(
+    finish({
+      control: "finish",
+      itemId: "5",
+      method: "mark_done",
+      chip: "8-15",
+    }),
+  ).rejects.toThrow("redirect:");
+  expect(countExploreFinish).not.toHaveBeenCalled();
 });

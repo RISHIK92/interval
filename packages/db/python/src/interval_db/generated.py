@@ -354,6 +354,15 @@ class UserEntitlement(TypedDict):
     limit_value: int | None
 
 
+class UserExploreOpen(TypedDict):
+    user_id: str
+    content_item_id: int
+    kind: str
+    arm: str
+    opened_at: datetime
+    finished_counted: bool
+
+
 class UserFeedEntry(TypedDict):
     user_id: str
     moment_id: int | None
@@ -362,6 +371,8 @@ class UserFeedEntry(TypedDict):
     chip: BreakLength
     content_item_id: int
     note_id: int | None
+    explore_kind: str | None
+    explore_arm: str | None
 
 
 class UserFeedState(TypedDict):

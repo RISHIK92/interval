@@ -21,6 +21,7 @@ from interval_jobs.feed.precompute import (
     recompute_user_feed,
 )
 from interval_jobs.ports import (
+    Arm,
     CandidateArticle,
     EntryFacts,
     FeedEntry,
@@ -513,3 +514,16 @@ def test_starter_feeds_do_not_explore() -> None:
     recompute_starters(w.store)
     starter = w.store.feed.starters[("databases", "beginner", "3-8")]
     assert all(w.store.items.rows[r.item_id].source_id != other for r in starter)
+
+
+# P1-W5-S03: an explored entry keeps its arm, so opens and finishes can be counted.
+def test_explored_entries_keep_their_arm() -> None:
+    w, other = backend_world()
+    w.store.ranking.config_rows["cap.per_source"] = 10
+    recompute_user_feed(w.store, "u1", None, NOW, rng=random.Random(3))
+    rows = w.store.feed.users["u1"]["3-8"]
+    explored = [r for r in rows if w.store.items.rows[r.item_id].source_id == other]
+    assert explored and all(r.arm == Arm("topic", "backend") for r in explored)
+    assert all(
+        r.arm is None for r in rows if w.store.items.rows[r.item_id].source_id != other
+    )

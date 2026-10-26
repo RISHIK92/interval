@@ -379,9 +379,20 @@ export interface UserEntitlement {
   user_id: string | null;
 }
 
+export interface UserExploreOpen {
+  arm: string;
+  content_item_id: Int8;
+  finished_counted: Generated<boolean>;
+  kind: string;
+  opened_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface UserFeedEntry {
   chip: BreakLength;
   content_item_id: Int8;
+  explore_arm: string | null;
+  explore_kind: string | null;
   moment_id: Int8 | null;
   note_id: Int8 | null;
   rank: number;
@@ -491,6 +502,7 @@ export interface DB {
   user_avoided_concept: UserAvoidedConcept;
   user_capability: UserCapability;
   user_entitlement: UserEntitlement;
+  user_explore_open: UserExploreOpen;
   user_feed_entry: UserFeedEntry;
   user_feed_state: UserFeedState;
   user_feed_visible: UserFeedVisible;

@@ -288,6 +288,9 @@ class RankedEntry:
     moment_id: int | None
     top_signal: str  # the rule that counted most: what the entry's note says
     note_id: int | None  # its why-this-matters note (P1-W4-S06)
+    # The exploration arm that placed it (REC-4); None for a main pick. Opens and
+    # finishes of it count toward that arm (P1-W5-S03).
+    arm: "Arm | None" = None
 
 
 class Feed(Protocol):

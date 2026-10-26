@@ -123,6 +123,16 @@ export interface Progress {
     limit: number,
   ): Promise<ContinueCard[]>;
   dismissContinue(userId: string, itemId: string): Promise<void>;
+  // Exploration outcomes (REC-4, P1-W4-S09): a feed card's first open counts as shown
+  // for the arm that placed it, if any; the user's first finish of that article then
+  // counts as finished. Each once per user and article.
+  countExploreOpen(
+    userId: string,
+    chip: BreakLength,
+    itemId: string,
+    momentId: string | null,
+  ): Promise<void>;
+  countExploreFinish(userId: string, itemId: string): Promise<void>;
 }
 
 export type ContinueCard = {
