@@ -141,12 +141,14 @@ export class AwsStack extends Stack {
     // its URL from SQS_QUEUE_URL_PREFIX plus the message name. Separate queues also keep
     // a backfill from starving feed recomputes (proposal section 9).
     const queuePrefix = `${this.stackName}-`;
+    const dlqs: sqs.Queue[] = [];
     const queues = MESSAGE_NAMES.map((name) => {
       const dlq = new sqs.Queue(this, `${name}-dlq`, {
         queueName: `${queuePrefix}${name}-dlq`,
         encryption: sqs.QueueEncryption.SQS_MANAGED,
         retentionPeriod: Duration.days(14),
       });
+      dlqs.push(dlq);
       new cloudwatch.Alarm(this, `${name}-dlq-not-empty`, {
         metric: dlq.metricApproximateNumberOfMessagesVisible(),
         threshold: 0,
@@ -302,24 +304,27 @@ export class AwsStack extends Stack {
       metricValue: "$.count",
     });
     // LOAD-5 (W4-S04): a failed feed recompute keeps the last feed and is counted.
-    logGroup.addMetricFilter("FeedRecomputeFailures", {
-      filterPattern: logs.FilterPattern.stringValue(
-        "$.msg",
-        "=",
-        "feed: recompute failed",
-      ),
-      metricNamespace: "Interval/Feed",
-      metricName: "RecomputeFailures",
-      metricValue: "1",
-    });
+    const recomputeFailures = logGroup.addMetricFilter(
+      "FeedRecomputeFailures",
+      {
+        filterPattern: logs.FilterPattern.stringValue(
+          "$.msg",
+          "=",
+          "feed: recompute failed",
+        ),
+        metricNamespace: "Interval/Feed",
+        metricName: "RecomputeFailures",
+        metricValue: "1",
+      },
+    );
     // OPS-4: the AI gateway logs each call's cost and each refusal (Q-P1-23).
-    logGroup.addMetricFilter("AiCost", {
+    const aiCost = logGroup.addMetricFilter("AiCost", {
       filterPattern: logs.FilterPattern.stringValue("$.msg", "=", "ai: call"),
       metricNamespace: "Interval/AI",
       metricName: "CostMicroUsd",
       metricValue: "$.cost_micro_usd",
     });
-    logGroup.addMetricFilter("AiOverBudget", {
+    const aiOverBudget = logGroup.addMetricFilter("AiOverBudget", {
       filterPattern: logs.FilterPattern.stringValue(
         "$.msg",
         "=",
@@ -328,6 +333,33 @@ export class AwsStack extends Stack {
       metricNamespace: "Interval/AI",
       metricName: "OverBudget",
       metricValue: "1",
+    });
+
+    // OPS-2 (W6-S05): the web app logs each feed page's time (server/feed.ts) ...
+    const feedLatency = logGroup.addMetricFilter("FeedLatency", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "feed: served",
+      ),
+      metricNamespace: "Interval/Feed",
+      metricName: "FeedLatencyMs",
+      metricValue: "$.duration_ms",
+      unit: cloudwatch.Unit.MILLISECONDS,
+      // A new guest's first page may wait up to 3 s for its feed: kept apart.
+      dimensions: { From: "$.from" },
+    });
+    // ... and both queue adapters log each failed stage delivery, by queue.
+    const deliveryFailures = logGroup.addMetricFilter("QueueDeliveryFailures", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "queue: delivery failed",
+      ),
+      metricNamespace: "Interval/Queue",
+      metricName: "DeliveryFailures",
+      metricValue: "1",
+      dimensions: { Queue: "$.queue" },
     });
 
     const environment = {
@@ -620,6 +652,142 @@ export class AwsStack extends Stack {
       "BETTER_AUTH_URL",
       `https://${distribution.distributionDomainName}`,
     );
+
+    // OPS-2, OPS-4 (W6-S05): one dashboard and the alarms. No alarm notifies anyone
+    // yet; they show in the console (owner, 2026-10-26; paging is out of scope).
+    const fiveMinutes = Duration.minutes(5);
+    const target5xx = alb.metrics.httpCodeTarget(
+      elbv2.HttpCodeTarget.TARGET_5XX_COUNT,
+      { period: fiveMinutes, statistic: "Sum" },
+    );
+    // Target 5xx plus the load balancer's own (502-504 when the web task is down),
+    // over all requests; quiet windows (under 20 requests) count as 0, so one bad
+    // request in a quiet beta hour doesn't fire it.
+    const errorRate = new cloudwatch.MathExpression({
+      expression:
+        "IF(requests >= 20, 100 * (FILL(errors, 0) + FILL(elb, 0)) / requests, 0)",
+      usingMetrics: {
+        errors: target5xx,
+        elb: alb.metrics.httpCodeElb(elbv2.HttpCodeElb.ELB_5XX_COUNT, {
+          period: fiveMinutes,
+          statistic: "Sum",
+        }),
+        requests: alb.metrics.requestCount({
+          period: fiveMinutes,
+          statistic: "Sum",
+        }),
+      },
+      label: "5xx rate (%)",
+      period: fiveMinutes,
+    });
+    new cloudwatch.Alarm(this, "Http5xxRate", {
+      metric: errorRate,
+      threshold: 5,
+      evaluationPeriods: 2,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription:
+        "More than 5% of requests answered 5xx, 10 minutes running",
+    });
+    const overBudget = aiOverBudget.metric({
+      period: fiveMinutes,
+      statistic: "Sum",
+    });
+    new cloudwatch.Alarm(this, "AiBudgetBreach", {
+      metric: overBudget,
+      threshold: 0,
+      evaluationPeriods: 1,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+      alarmDescription: "An AI call was refused over budget (OPS-4)",
+    });
+    const latency = (from: string, stat: string) =>
+      feedLatency.metric({
+        dimensionsMap: { From: from },
+        period: fiveMinutes,
+        statistic: stat,
+        label: `${from} ${stat}`,
+      });
+    new cloudwatch.Dashboard(this, "Dashboard", {
+      dashboardName: "interval",
+      // Whole days for the per-day cost widgets.
+      defaultInterval: Duration.days(7),
+      widgets: [
+        [
+          new cloudwatch.GraphWidget({
+            title: "AI cost per day (micro-USD)",
+            left: [
+              aiCost.metric({ period: Duration.days(1), statistic: "Sum" }),
+            ],
+            width: 12,
+          }),
+          new cloudwatch.LogQueryWidget({
+            title: "AI cost per user per day (USD)",
+            logGroupNames: [logGroup.logGroupName],
+            queryLines: [
+              'filter msg = "ai: call"',
+              "stats sum(cost_micro_usd) / 1000000 as usd by user_id, bin(1d)",
+              "sort usd desc",
+              "limit 50",
+            ],
+            width: 12,
+          }),
+        ],
+        [
+          new cloudwatch.GraphWidget({
+            title: "Feed latency (ms)",
+            left: [
+              latency("user", "p50"),
+              latency("user", "p95"),
+              latency("starter", "p95"),
+            ],
+            width: 12,
+          }),
+          new cloudwatch.GraphWidget({
+            title: "5xx rate (%)",
+            left: [errorRate],
+            width: 12,
+          }),
+        ],
+        [
+          new cloudwatch.GraphWidget({
+            title: "Stage delivery failures",
+            left: [
+              ...MESSAGE_NAMES.map((name) =>
+                deliveryFailures.metric({
+                  dimensionsMap: { Queue: name },
+                  period: fiveMinutes,
+                  statistic: "Sum",
+                  label: name,
+                }),
+              ),
+              recomputeFailures.metric({
+                period: fiveMinutes,
+                statistic: "Sum",
+                label: "feed recompute",
+              }),
+            ],
+            width: 12,
+          }),
+          new cloudwatch.GraphWidget({
+            title: "Dead-letter queue depth",
+            left: dlqs.map((dlq) =>
+              dlq.metricApproximateNumberOfMessagesVisible({
+                label: dlq.node.id,
+              }),
+            ),
+            width: 12,
+          }),
+        ],
+        [
+          new cloudwatch.GraphWidget({
+            title: "AI calls refused over budget",
+            left: [overBudget],
+            width: 12,
+          }),
+        ],
+      ],
+    });
 
     new CfnOutput(this, "SiteDomain", {
       value: distribution.distributionDomainName,

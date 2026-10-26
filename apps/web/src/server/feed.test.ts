@@ -1,5 +1,6 @@
-import { describe, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import { loadFeed } from "./feed";
+import { log } from "./log";
 import type { FeedCard, FeedReader, Preferences } from "./ports";
 
 // The stored feed and ADR-0008's first visit, on a fake reader (ADR-0012).
@@ -127,5 +128,65 @@ describe("loadFeed", () => {
     expect(result).toEqual({ cards: [card("starter")] });
     expect(sleep).not.toHaveBeenCalled();
     expect(feed.read).toHaveBeenCalledOnce();
+  });
+});
+
+// OPS-2, P1-W6-S05: one "feed: served" line per feed page, which the AWS stack turns
+// into the feed-latency metric. No user id: latency only.
+describe("feed latency", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  function ticking(stepMs: number) {
+    let t = NOW.getTime();
+    return () => {
+      const at = new Date(t);
+      t += stepMs;
+      return at;
+    };
+  }
+
+  test("a stored feed logs how long it took", async () => {
+    const info = vi.spyOn(log, "info").mockImplementation(() => undefined);
+    const feed = reader(0);
+    await loadFeed({ feed, now: ticking(40) }, "u1", preferences, "1-3", 50);
+    expect(info).toHaveBeenCalledExactlyOnceWith("feed: served", {
+      duration_ms: 40,
+      from: "user",
+    });
+  });
+
+  test("the starter fallback says so, its wait included", async () => {
+    const info = vi.spyOn(log, "info").mockImplementation(() => undefined);
+    const feed = reader(Number.POSITIVE_INFINITY);
+    const sleep = vi.fn(() => Promise.resolve());
+    await loadFeed(
+      { feed, sleep, now: ticking(500) },
+      "u1",
+      preferences,
+      "1-3",
+      50,
+    );
+    expect(info).toHaveBeenCalledExactlyOnceWith("feed: served", {
+      duration_ms: 500,
+      from: "starter",
+    });
+  });
+
+  test("no topic to start from serves nothing, logged as empty", async () => {
+    const info = vi.spyOn(log, "info").mockImplementation(() => undefined);
+    const feed = reader(Number.POSITIVE_INFINITY);
+    await loadFeed(
+      { feed, sleep: () => Promise.resolve(), now: ticking(10) },
+      "u1",
+      { ...preferences, topics: [] },
+      "1-3",
+      50,
+    );
+    expect(info).toHaveBeenCalledExactlyOnceWith("feed: served", {
+      duration_ms: 10,
+      from: "empty",
+    });
   });
 });

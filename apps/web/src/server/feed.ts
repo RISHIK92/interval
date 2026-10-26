@@ -1,4 +1,5 @@
 import type { Chip } from "./chips";
+import { log } from "./log";
 import type { FeedCard, FeedReader, Preferences } from "./ports";
 
 // ADR-0008: a new guest's first page waits up to about 3 seconds for their feed's first
@@ -26,8 +27,16 @@ export async function loadFeed(
 ): Promise<{ cards: FeedCard[] }> {
   const sleep = deps.sleep ?? pause;
   const now = deps.now ?? (() => new Date());
+  const started = now();
+  // OPS-2 (P1-W6-S05): the AWS stack turns this line into the feed-latency metric.
+  const served = (from: "user" | "starter" | "empty") => {
+    log.info("feed: served", {
+      duration_ms: now().getTime() - started.getTime(),
+      from,
+    });
+  };
   const newGuest =
-    now().getTime() - preferences.onboardedAt.getTime() < NEW_GUEST_MS;
+    started.getTime() - preferences.onboardedAt.getTime() < NEW_GUEST_MS;
   let read = await deps.feed.read(userId, chip, limit);
   let waited = 0;
   while (newGuest && !read.computed && waited < FIRST_VISIT_WAIT_MS) {
@@ -35,16 +44,15 @@ export async function loadFeed(
     waited += POLL_MS;
     read = await deps.feed.read(userId, chip, limit);
   }
-  if (read.computed) return { cards: read.cards };
+  if (read.computed) {
+    served("user");
+    return { cards: read.cards };
+  }
   const [topic] = preferences.topics;
-  if (topic === undefined) return { cards: [] };
-  return {
-    cards: await deps.feed.starter(
-      userId,
-      topic,
-      preferences.level,
-      chip,
-      limit,
-    ),
-  };
+  const cards =
+    topic === undefined
+      ? []
+      : await deps.feed.starter(userId, topic, preferences.level, chip, limit);
+  served(topic === undefined ? "empty" : "starter");
+  return { cards };
 }

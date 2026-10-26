@@ -766,3 +766,113 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     }
   });
 });
+
+describe("dashboards and alarms (W6-S05, OPS-2, OPS-4)", () => {
+  function filterNamed(metricName: string) {
+    const found = all("AWS::Logs::MetricFilter").find(([, f]) =>
+      JSON.stringify(f.Properties["MetricTransformations"]).includes(
+        `"MetricName":"${metricName}"`,
+      ),
+    );
+    if (found === undefined) throw new Error(`no filter for ${metricName}`);
+    return found[1].Properties as {
+      FilterPattern: string;
+      MetricTransformations: {
+        MetricNamespace: string;
+        MetricValue: string;
+        Dimensions?: { Key: string; Value: string }[];
+      }[];
+    };
+  }
+
+  test("feed latency and failed deliveries become metrics", () => {
+    const latency = filterNamed("FeedLatencyMs");
+    expect(latency.FilterPattern).toBe('{ $.msg = "feed: served" }');
+    expect(latency.MetricTransformations[0]).toMatchObject({
+      MetricNamespace: "Interval/Feed",
+      MetricValue: "$.duration_ms",
+      Dimensions: [{ Key: "From", Value: "$.from" }],
+    });
+    const failures = filterNamed("DeliveryFailures");
+    expect(failures.FilterPattern).toBe('{ $.msg = "queue: delivery failed" }');
+    expect(failures.MetricTransformations[0]).toMatchObject({
+      MetricNamespace: "Interval/Queue",
+      MetricValue: "1",
+      Dimensions: [{ Key: "Queue", Value: "$.queue" }],
+    });
+  });
+
+  test("one dashboard shows AI cost, per-user cost, latency, failures, DLQs, 5xx and budget", () => {
+    const dashboards = all("AWS::CloudWatch::Dashboard");
+    expect(dashboards).toHaveLength(1);
+    const body = JSON.stringify(dashboards[0]?.[1].Properties["DashboardBody"]);
+    for (const needle of [
+      "CostMicroUsd",
+      "FeedLatencyMs",
+      "p95",
+      "DeliveryFailures",
+      "RecomputeFailures",
+      "ApproximateNumberOfMessagesVisible",
+      "HTTPCode_Target_5XX_Count",
+      "OverBudget",
+      // Per-user cost from the logs, no per-user metric (owner, 2026-10-26).
+      'filter msg = \\\\\\"ai: call\\\\\\"',
+      "by user_id",
+    ]) {
+      expect(body).toContain(needle);
+    }
+    // Every dead-letter queue is on it.
+    const names = readdirSync(
+      path.join(import.meta.dirname, "../../packages/db/messages"),
+    )
+      .filter((file) => file.endsWith(".schema.json"))
+      .map((file) => file.replace(".schema.json", ""));
+    for (const name of names) {
+      expect(body).toContain(`${name}-dlq`);
+    }
+  });
+
+  test("the 5xx rate alarms above 5% for two 5-minute periods", () => {
+    const alarm = all("AWS::CloudWatch::Alarm").find(([, a]) =>
+      JSON.stringify(a.Properties["Metrics"] ?? "").includes(
+        "HTTPCode_Target_5XX_Count",
+      ),
+    );
+    expect(alarm).toBeDefined();
+    const metrics = JSON.stringify(alarm?.[1].Properties["Metrics"]);
+    expect(metrics).toContain(
+      "IF(requests >= 20, 100 * (FILL(errors, 0) + FILL(elb, 0)) / requests, 0)",
+    );
+    for (const name of [
+      "HTTPCode_Target_5XX_Count",
+      "HTTPCode_ELB_5XX_Count",
+      "RequestCount",
+    ]) {
+      expect(metrics).toContain(name);
+    }
+    expect(metrics).toContain('"Stat":"Sum"');
+    expect(metrics).toContain('"Period":300');
+    expect(alarm?.[1].Properties).toMatchObject({
+      Threshold: 5,
+      EvaluationPeriods: 2,
+      ComparisonOperator: "GreaterThanThreshold",
+      TreatMissingData: "notBreaching",
+    });
+  });
+
+  test("a budget breach alarms", () => {
+    template.hasResourceProperties("AWS::CloudWatch::Alarm", {
+      MetricName: "OverBudget",
+      Namespace: "Interval/AI",
+      Statistic: "Sum",
+      Threshold: 0,
+      ComparisonOperator: "GreaterThanThreshold",
+    });
+  });
+
+  test("alarms notify no one: the console only (owner, 2026-10-26)", () => {
+    for (const [, alarm] of all("AWS::CloudWatch::Alarm")) {
+      expect(alarm.Properties["AlarmActions"]).toBeUndefined();
+    }
+  });
+});
