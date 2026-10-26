@@ -132,8 +132,13 @@ def main(argv: list[str]) -> None:
     vectors.add_argument("--model", required=True, help="Voyage model id")
     vectors.add_argument("--min-recall", type=float, default=MIN_RECALL)
     vectors.add_argument("--min-pool", type=int, default=MIN_POOL)
-    commands.add_parser(
+    consume = commands.add_parser(
         "consume", help="run the ingestion pipeline's stages until stopped"
+    )
+    consume.add_argument(
+        "--max-entries",
+        type=int,
+        help="take only each feed's newest N entries (a one-off local run)",
     )
     discover = commands.add_parser(
         "enqueue-discover", help="queue a poll of one or every active source"
@@ -147,7 +152,7 @@ def main(argv: list[str]) -> None:
     if args.command == "consume":
         # Long-running: each delivery is its own trace (consumer.py), not one span
         # open for the life of the process.
-        _consume()
+        _consume(args.max_entries)
         return
     # OPS-2: one trace per run of a one-off command.
     with run_span(args.command):
@@ -326,7 +331,7 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
 HEARTBEAT = Path("/tmp/interval-consumer-alive")
 
 
-def _consume() -> None:
+def _consume(max_entries: int | None) -> None:
     stop = threading.Event()
 
     def request_stop(_signal: int, _frame: object) -> None:
@@ -341,7 +346,13 @@ def _consume() -> None:
             model_job("TAGGING_MODEL") as tagging,
             model_job("EMBEDDING_MODEL") as embedding,
         ):
-            pipeline = Pipeline(units, queue, tagging=tagging, embedding=embedding)
+            pipeline = Pipeline(
+                units,
+                queue,
+                tagging=tagging,
+                embedding=embedding,
+                max_entries=max_entries,
+            )
             run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
     finally:
         close = getattr(queue, "close", None)

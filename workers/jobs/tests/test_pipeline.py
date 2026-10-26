@@ -74,6 +74,7 @@ class World:
         extra: dict[str, Fetched] | None = None,
         tagging: ModelJob | None = None,
         embedding: ModelJob | None = None,
+        max_entries: int | None = None,
     ) -> None:
         self.store = InMemoryStore()
         self.fetcher = web(failing, blocked, extra)
@@ -94,6 +95,7 @@ class World:
             clock=lambda: self.now,
             tagging=tagging,
             embedding=embedding,
+            max_entries=max_entries,
         )
 
     def discover(self, key: str = "poll-1") -> None:
@@ -120,6 +122,15 @@ def test_a_full_text_source_flows_from_discovery_to_moments() -> None:
     assert sorted(i.canonical_url for i in items) == [OLDER, WAL]
     assert all(i.full_text for i in items)
     assert world.store.moments.rows, "segmentation produced moments"
+
+
+def test_a_capped_run_takes_only_the_newest_entries_of_each_feed() -> None:
+    # A one-off local run (consume --max-entries) samples many sources cheaply.
+    world = World(max_entries=1)
+    world.discover()
+    world.run()
+    assert [i.canonical_url for i in world.store.items.rows.values()] == [WAL]
+    assert world.requested() == [FEED_URL, WAL]
 
 
 def test_redelivered_messages_create_nothing_twice() -> None:

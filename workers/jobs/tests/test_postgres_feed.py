@@ -142,12 +142,13 @@ def test_switching_moments_off_cascades_to_every_feed(conn: psycopg.Connection) 
     src = source(conn, "feedtest-c")
     item = add_item(conn, src, "one", datetime(2026, 10, 1, tzinfo=UTC), 2)
     me = user(conn)
-    give(conn, me, moments_of(conn, item))
+    moments = moments_of(conn, item)
+    give(conn, me, moments)
     PostgresStore(conn).feed.replace_starter(
         "databases",
         "beginner",
         "3-8",
-        [RankedMoment(m, "quality") for m in moments_of(conn, item)],
+        [RankedMoment(m, "quality") for m in moments],
     )
     conn.execute(
         "update source set moments_seeded = false, moments_enabled = false "
@@ -156,9 +157,10 @@ def test_switching_moments_off_cascades_to_every_feed(conn: psycopg.Connection) 
     )
     # No recompute: the purge trigger deletes the moments and the entries cascade.
     assert visible(conn, me) == []
+    # This test's moments only: the shared database may hold real starter feeds.
     left = conn.execute(
-        "select count(*) from starter_feed_entry where topic = 'databases' "
-        "and level = 'beginner'"
+        "select count(*) from starter_feed_entry where moment_id = any(%s)",
+        (moments,),
     ).fetchone()
     assert left == (0,)
 

@@ -20,9 +20,10 @@ GOOD = """\
 """
 
 
-def test_the_repo_seed_file_parses_into_the_accepted_ten() -> None:
+def test_the_repo_seed_file_parses_into_the_owners_sources() -> None:
+    # The accepted 10 (2026-10-25) and the owner's 27 additions (2026-10-26).
     seeds = parse_seeds(REPO_SEEDS.read_text(encoding="utf-8"), str(REPO_SEEDS))
-    assert len(seeds) == 10
+    assert len(seeds) == 37
     assert all(s.rights_profile == "full_text_internal" for s in seeds)
     assert all(s.feed_url is not None for s in seeds)
 

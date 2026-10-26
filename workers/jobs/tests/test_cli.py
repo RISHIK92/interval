@@ -130,7 +130,7 @@ def test_load_sources_defaults_to_the_repo_seed_file(
 ) -> None:
     main(["load-sources"])
     result = json.loads(capsys.readouterr().out.splitlines()[-1])
-    assert result["added"] == 10
+    assert result["added"] == 37
 
 
 def test_load_sources_reports_a_missing_file(

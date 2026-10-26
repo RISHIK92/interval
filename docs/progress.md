@@ -1100,3 +1100,15 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
     - `MomentCard` says "Fits your N–M min break".
 - After migrating: run `recompute-due` (and `consume`); the migration empties every stored and starter feed, so pages say "No moments yet" until then.
 - Not in this part: whole-article cards and "Length unknown" (W4-S05b), the chip in `feed_viewed` (an event version change nobody asked for).
+
+### 2026-10-26 — Seed list grows to 37 sources (owner request, outside the slice plan)
+- Owner choices: from their list of tech blogs, the sources that fit the four topics and have a feed the worker parses; all `full_text_internal`; added to `sources.yaml` and committed; at most 10 articles each for this run, through a flag, not a permanent limit.
+- Added 27: newsletters (ByteByteGo, AlgoMaster, System Design Codex, The System Design Newsletter, The Pragmatic Engineer (paywalled)), High Scalability, InfoQ Architecture and Design, The New Stack, LWN.net (paywalled), authors (All Things Distributed, Charity Majors, Murat Demirbas, Russ Cox, Eli Bendersky, Sam Who, Mitchell Hashimoto) and company blogs (Meta, Stripe, Slack, Dropbox, Spotify, Grab, Canva, Zerodha, and the Medium-hosted Airbnb, Pinterest and Flipkart).
+- Left out:
+  - **No working feed:** Uber (406), DoorDash and Quastor (403), Jepsen, Arpit Bhayani, Architecture Notes, Design Gurus, Engineer's Codex and Anthropic (404), ACM Queue (410), Rachel by the Bay (429), Kleppmann and Swiggy (connection reset), LinkedIn (no valid entry).
+  - **Over the 5 MB feed limit:** Phil Eaton.
+  - **Whole company blog, not engineering:** Figma, Shopify, Discord.
+  - **Off-topic:** frontend, ML and product sources, essays, digests, and every aggregator, directory and reader.
+- Code: `consume --max-entries N` takes each feed's newest N entries (one-off local runs only; polling still takes whole feeds).
+- Test fix: the moments-off cascade test counted every starter row in the shared database; it now counts only its own moments.
+- Not checked: whether these 27 publishers allow this use (the rights review the first 10 had, ING-6). Medium-hosted article pages may refuse the fetcher, as Netflix's did (403).

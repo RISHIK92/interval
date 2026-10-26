@@ -101,12 +101,15 @@ class Pipeline:
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         tagging: ModelJob | None = None,
         embedding: ModelJob | None = None,
+        max_entries: int | None = None,
     ) -> None:
         self._unit = unit_of_work
         self._queue = queue
         self._clock = clock
         self._tagging = tagging
         self._embedding = embedding
+        # Only for a one-off local run (consume --max-entries); polls take whole feeds.
+        self._max_entries = max_entries
 
     def handlers(self) -> dict[MessageName, QueueHandler]:
         return {
@@ -189,6 +192,14 @@ class Pipeline:
             # failed store on every poll) wouldn't help.
             log.warn("pipeline: feed has no valid entry", source_id=source.id)
             return [], answered, 0
+        if self._max_entries is not None:
+            entries = sorted(
+                entries,
+                key=lambda e: (
+                    e.published_at or e.updated_at or datetime.min.replace(tzinfo=UTC)
+                ),
+                reverse=True,
+            )[: self._max_entries]
         seen = store.items.known_guids(source.id, [e.guid for e in entries])
         new_items = sum(1 for e in entries if e.guid not in seen)
         profile = source.rights_profile

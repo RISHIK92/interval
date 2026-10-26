@@ -6,6 +6,8 @@
 #   quality_score (optional, 1-5, Q-P1-37), topics (kebab-case).
 # Removing a source disables it (no more polling); its items stay in the feed.
 # The first 10 were accepted in docs/proposals/seed-sources.md (2026-10-25).
+# The rest were added by the owner on 2026-10-26: the sources from their list that fit
+# the four topics and have a feed the worker parses, all full_text_internal.
 
 - name: The Cloudflare Blog
   homepage: https://blog.cloudflare.com/
@@ -86,3 +88,219 @@
   moments_enabled: true
   paywalled: false
   topics: [databases]
+
+- name: ByteByteGo
+  homepage: https://blog.bytebytego.com/
+  feed_url: https://blog.bytebytego.com/feed
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design]
+
+- name: AlgoMaster
+  homepage: https://blog.algomaster.io/
+  feed_url: https://blog.algomaster.io/feed
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design]
+
+- name: System Design Codex
+  homepage: https://newsletter.systemdesigncodex.com/
+  feed_url: https://newsletter.systemdesigncodex.com/feed
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design]
+
+- name: The System Design Newsletter
+  homepage: https://newsletter.systemdesign.one/
+  feed_url: https://newsletter.systemdesign.one/feed
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design, distributed-systems]
+
+- name: The Pragmatic Engineer
+  homepage: https://newsletter.pragmaticengineer.com/
+  feed_url: https://newsletter.pragmaticengineer.com/feed
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: true
+  topics: [backend, system-design]
+
+- name: High Scalability
+  homepage: https://highscalability.com/
+  feed_url: https://highscalability.com/rss/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design, distributed-systems]
+
+- name: InfoQ Architecture and Design
+  homepage: https://www.infoq.com/architecture-design/
+  feed_url: https://feed.infoq.com/architecture-design/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [system-design]
+
+- name: The New Stack
+  homepage: https://thenewstack.io/
+  feed_url: https://thenewstack.io/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend]
+
+- name: LWN.net
+  homepage: https://lwn.net/
+  feed_url: https://lwn.net/headlines/rss
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: true
+  topics: [backend]
+
+- name: All Things Distributed
+  homepage: https://www.allthingsdistributed.com/
+  feed_url: https://www.allthingsdistributed.com/atom.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [distributed-systems, system-design]
+
+- name: Charity Majors
+  homepage: https://charity.wtf/
+  feed_url: https://charity.wtf/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend]
+
+- name: Murat Demirbas
+  homepage: https://muratbuffalo.blogspot.com/
+  feed_url: https://muratbuffalo.blogspot.com/feeds/posts/default
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [distributed-systems, databases]
+
+- name: Russ Cox
+  homepage: https://research.swtch.com/
+  feed_url: https://research.swtch.com/feed.atom
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend]
+
+- name: Eli Bendersky
+  homepage: https://eli.thegreenplace.net/
+  feed_url: https://eli.thegreenplace.net/feeds/all.atom.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend]
+
+- name: Sam Who
+  homepage: https://samwho.dev/
+  feed_url: https://samwho.dev/rss.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, system-design]
+
+- name: Mitchell Hashimoto
+  homepage: https://mitchellh.com/
+  feed_url: https://mitchellh.com/feed.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend]
+
+- name: Meta Engineering
+  homepage: https://engineering.fb.com/
+  feed_url: https://engineering.fb.com/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, distributed-systems]
+
+- name: Stripe Engineering
+  homepage: https://stripe.com/blog/engineering
+  feed_url: https://stripe.com/blog/feed.rss
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, distributed-systems]
+
+- name: Slack Engineering
+  homepage: https://slack.engineering/
+  feed_url: https://slack.engineering/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, system-design]
+
+- name: Dropbox Tech
+  homepage: https://dropbox.tech/
+  feed_url: https://dropbox.tech/feed
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, distributed-systems]
+
+- name: Spotify Engineering
+  homepage: https://engineering.atspotify.com/
+  feed_url: https://engineering.atspotify.com/feed/
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend]
+
+- name: Grab Engineering
+  homepage: https://engineering.grab.com/
+  feed_url: https://engineering.grab.com/feed.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, distributed-systems]
+
+- name: Canva Engineering
+  homepage: https://www.canva.dev/blog/engineering/
+  feed_url: https://www.canva.dev/blog/engineering/feed.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend]
+
+- name: Zerodha Tech
+  homepage: https://zerodha.tech/
+  feed_url: https://zerodha.tech/index.xml
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, databases]
+
+- name: Airbnb Engineering
+  homepage: https://medium.com/airbnb-engineering
+  feed_url: https://medium.com/feed/airbnb-engineering
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, system-design]
+
+- name: Pinterest Engineering
+  homepage: https://medium.com/pinterest-engineering
+  feed_url: https://medium.com/feed/pinterest-engineering
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, system-design]
+
+- name: Flipkart Tech
+  homepage: https://blog.flipkart.tech/
+  feed_url: https://blog.flipkart.tech/feed
+  rights_profile: full_text_internal
+  moments_enabled: true
+  paywalled: false
+  topics: [backend, system-design]
