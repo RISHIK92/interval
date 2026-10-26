@@ -1,8 +1,8 @@
 # Concept graph seed (DB-2, §3.1, Q-P1-03, Q-P1-04). `load-concepts` syncs it into the
 # concept tables. The owner edits and approves this file; bump `version` on every change.
 #
-# PROVISIONAL (2026-10-26): drafted overnight by Claude as a starting point, NOT owner-
-# approved. About 70 of the ~250 concepts; `draft-concepts` proposes more per topic.
+# PROVISIONAL (2026-10-27): Claude drafted the first 72 on 2026-10-26 and expanded the
+# list to about 250 concepts on 2026-10-27. NOT owner-approved yet.
 #
 # Fields per concept:
 #   slug (required, kebab-case, the key; never reuse a retired one), name, topic
@@ -13,7 +13,7 @@
 #   merged_into: slug of the concept that replaced it (implies retired).
 # A concept removed from this file is retired, never deleted.
 
-version: 1
+version: 2
 
 concepts:
   # --- backend -------------------------------------------------------------------
@@ -117,6 +117,232 @@ concepts:
     topic: backend
     description: Logs as machine-readable fields rather than free text.
     prerequisites: [observability]
+  - slug: http-methods-and-status-codes
+    name: HTTP methods and status codes
+    topic: backend
+    description: What GET, POST, PUT, PATCH and DELETE promise, and what each status class tells a client.
+    prerequisites: [http-request-lifecycle]
+    related: [idempotency]
+  - slug: http2-and-http3
+    name: HTTP/2 and HTTP/3
+    topic: backend
+    description: Multiplexed streams over one connection, header compression, and QUIC over UDP.
+    prerequisites: [http-request-lifecycle, tls-handshake]
+    related: [udp]
+  - slug: udp
+    name: UDP
+    topic: backend
+    description: Connectionless datagrams, and when losing a packet beats waiting for it.
+    related: [tcp-connection]
+  - slug: reverse-proxy
+    name: Reverse proxies
+    topic: backend
+    description: A server in front of services that terminates TLS, routes and buffers requests.
+    prerequisites: [http-request-lifecycle]
+    related: [load-balancing]
+  - slug: rest-api-design
+    name: REST API design
+    topic: backend
+    description: Modelling resources, URLs, methods and representations for HTTP APIs.
+    prerequisites: [http-methods-and-status-codes]
+  - slug: api-versioning
+    name: API versioning
+    topic: backend
+    description: Changing an API without breaking the clients that already call it.
+    prerequisites: [rest-api-design]
+    related: [schema-evolution]
+  - slug: pagination
+    name: Pagination
+    topic: backend
+    description: Returning large result sets in pages with offsets or cursors.
+    prerequisites: [rest-api-design]
+    related: [indexes]
+  - slug: graphql
+    name: GraphQL
+    topic: backend
+    description: A typed query language where clients ask for exactly the fields they need.
+    prerequisites: [http-request-lifecycle]
+    related: [rest-api-design, n-plus-one-queries]
+  - slug: serialization-formats
+    name: Serialization formats
+    topic: backend
+    description: Encoding data as JSON, Protocol Buffers or Avro, and their size and speed trade-offs.
+  - slug: grpc
+    name: gRPC
+    topic: backend
+    description: Remote procedure calls over HTTP/2 with Protocol Buffers schemas and streaming.
+    prerequisites: [http2-and-http3, serialization-formats]
+    related: [rest-api-design]
+  - slug: websockets
+    name: WebSockets
+    topic: backend
+    description: Long-lived two-way connections for pushing data to clients.
+    prerequisites: [http-request-lifecycle, tcp-connection]
+    related: [server-sent-events]
+  - slug: server-sent-events
+    name: Server-sent events
+    topic: backend
+    description: One-way streaming of events from server to browser over plain HTTP.
+    prerequisites: [http-request-lifecycle]
+  - slug: long-polling
+    name: Long polling
+    topic: backend
+    description: Holding a request open until data is ready, as a simpler form of push.
+    prerequisites: [http-request-lifecycle]
+    related: [websockets]
+  - slug: webhooks
+    name: Webhooks
+    topic: backend
+    description: Notifying another system by calling its HTTP endpoint when something happens.
+    prerequisites: [http-request-lifecycle]
+    related: [idempotency-keys, retries-with-backoff]
+  - slug: http-caching-headers
+    name: HTTP caching headers
+    topic: backend
+    description: Cache-Control, ETag and conditional requests that let browsers and proxies reuse responses.
+    prerequisites: [caching, http-request-lifecycle]
+    related: [cdn]
+  - slug: cache-eviction-policies
+    name: Cache eviction policies
+    topic: backend
+    description: LRU, LFU and TTL rules for choosing what to drop when a cache is full.
+    prerequisites: [caching]
+  - slug: sliding-window-rate-limiting
+    name: Sliding window rate limiting
+    topic: backend
+    description: Counting requests over a moving window to avoid bursts at fixed window edges.
+    prerequisites: [rate-limiting]
+    related: [token-bucket]
+  - slug: authentication-vs-authorization
+    name: Authentication and authorization
+    topic: backend
+    description: Proving who a caller is versus deciding what they may do.
+  - slug: session-management
+    name: Session management
+    topic: backend
+    description: Keeping a user signed in across requests with cookies and server-side sessions.
+    prerequisites: [authentication-vs-authorization]
+    related: [jwt]
+  - slug: jwt
+    name: JSON Web Tokens
+    topic: backend
+    description: Signed, self-contained tokens carrying claims, and the cost of not being able to revoke them.
+    prerequisites: [authentication-vs-authorization]
+  - slug: oauth2-and-oidc
+    name: OAuth 2.0 and OpenID Connect
+    topic: backend
+    description: Delegated authorization and sign-in through a third-party identity provider.
+    prerequisites: [authentication-vs-authorization, jwt]
+  - slug: password-hashing
+    name: Password hashing
+    topic: backend
+    description: Storing passwords with slow salted hashes such as bcrypt, scrypt and Argon2.
+    prerequisites: [authentication-vs-authorization]
+  - slug: rbac
+    name: Role-based access control
+    topic: backend
+    description: Granting permissions through roles rather than to each user directly.
+    prerequisites: [authentication-vs-authorization]
+  - slug: sql-injection
+    name: SQL injection
+    topic: backend
+    description: Untrusted input executed as SQL, and why parameterised queries stop it.
+    prerequisites: [relational-model]
+  - slug: cross-site-scripting
+    name: Cross-site scripting (XSS)
+    topic: backend
+    description: Script injected into pages other users load, and output encoding and CSP as defences.
+    prerequisites: [http-request-lifecycle]
+  - slug: csrf
+    name: Cross-site request forgery (CSRF)
+    topic: backend
+    description: Tricking a signed-in browser into sending a request, and tokens and SameSite cookies as defences.
+    prerequisites: [session-management]
+    related: [cors]
+  - slug: cors
+    name: CORS
+    topic: backend
+    description: How browsers let a page call another origin only when that origin allows it.
+    prerequisites: [http-request-lifecycle]
+  - slug: secrets-management
+    name: Secrets management
+    topic: backend
+    description: Storing, rotating and injecting credentials without putting them in code or images.
+  - slug: encryption-at-rest-and-in-transit
+    name: Encryption at rest and in transit
+    topic: backend
+    description: Protecting stored data with managed keys and moving data with TLS.
+    prerequisites: [tls-handshake]
+    related: [secrets-management]
+  - slug: concurrency-vs-parallelism
+    name: Concurrency and parallelism
+    topic: backend
+    description: Interleaving many tasks versus running them at the same time on many cores.
+  - slug: threads-and-processes
+    name: Threads and processes
+    topic: backend
+    description: Operating system units of execution, what they share, and what switching between them costs.
+  - slug: event-loop
+    name: Event loops and async I/O
+    topic: backend
+    description: Serving many connections on one thread by reacting to I/O readiness.
+    prerequisites: [concurrency-vs-parallelism]
+    related: [threads-and-processes]
+  - slug: race-conditions
+    name: Race conditions
+    topic: backend
+    description: Bugs where the result depends on the timing of concurrent operations.
+    prerequisites: [concurrency-vs-parallelism]
+    related: [lost-updates]
+  - slug: locks-and-mutexes
+    name: Locks and mutexes
+    topic: backend
+    description: Serialising access to shared in-memory state, and the contention that causes.
+    prerequisites: [race-conditions]
+    related: [deadlocks]
+  - slug: thread-pools
+    name: Thread pools
+    topic: backend
+    description: Reusing a fixed set of workers to bound concurrency and queue the rest.
+    prerequisites: [threads-and-processes]
+    related: [backpressure]
+  - slug: garbage-collection
+    name: Garbage collection
+    topic: backend
+    description: How managed runtimes reclaim memory, and how collection pauses show up as latency spikes.
+    related: [tail-latency]
+  - slug: publish-subscribe
+    name: Publish-subscribe
+    topic: backend
+    description: Fanning each message out to every interested subscriber.
+    prerequisites: [message-queues]
+  - slug: message-ordering
+    name: Message ordering
+    topic: backend
+    description: When consumers see messages in the order they were sent, and what breaks it.
+    prerequisites: [message-queues]
+    related: [partitioning]
+  - slug: background-jobs
+    name: Background jobs
+    topic: backend
+    description: Moving slow work out of the request path into workers fed by a queue.
+    prerequisites: [message-queues]
+  - slug: metrics
+    name: Metrics
+    topic: backend
+    description: Counters, gauges and histograms aggregated over time, and why percentiles need histograms.
+    prerequisites: [observability]
+    related: [tail-latency]
+  - slug: health-checks
+    name: Health checks
+    topic: backend
+    description: Liveness and readiness endpoints that let load balancers and orchestrators route and restart.
+    related: [load-balancing]
+  - slug: graceful-shutdown
+    name: Graceful shutdown
+    topic: backend
+    description: Draining in-flight requests and jobs before a process exits.
+    related: [health-checks]
 
   # --- databases -----------------------------------------------------------------
   - slug: relational-model
@@ -198,6 +424,241 @@ concepts:
     topic: databases
     description: Streaming a database's committed changes to other systems.
     prerequisites: [write-ahead-log]
+  - slug: keys-and-constraints
+    name: Keys and constraints
+    topic: databases
+    description: Primary keys, foreign keys, unique and check constraints that keep data valid.
+    prerequisites: [relational-model]
+  - slug: sql-joins
+    name: SQL joins
+    topic: databases
+    description: "Combining rows from tables by matching keys: inner, outer and self joins."
+    prerequisites: [relational-model]
+  - slug: join-algorithms
+    name: Join algorithms
+    topic: databases
+    description: Nested loop, hash and merge joins, and when the planner picks each.
+    prerequisites: [sql-joins, query-planning]
+  - slug: window-functions
+    name: Window functions
+    topic: databases
+    description: Running totals, ranks and row-to-row comparisons without collapsing rows.
+    prerequisites: [relational-model]
+  - slug: n-plus-one-queries
+    name: N+1 queries
+    topic: databases
+    description: One query per row of an earlier result, usually from an ORM, and how to batch it.
+    prerequisites: [sql-joins]
+  - slug: composite-indexes
+    name: Composite indexes
+    topic: databases
+    description: Indexes on several columns, and why column order decides which queries they serve.
+    prerequisites: [b-tree-index]
+  - slug: covering-indexes
+    name: Covering indexes
+    topic: databases
+    description: Indexes holding every column a query needs, so the table itself is never read.
+    prerequisites: [composite-indexes]
+  - slug: clustered-index
+    name: Clustered and secondary indexes
+    topic: databases
+    description: Storing rows in index order versus pointing at them from a separate structure.
+    prerequisites: [b-tree-index]
+  - slug: hash-index
+    name: Hash indexes
+    topic: databases
+    description: Indexing by hashed key for exact-match lookups, giving up range scans.
+    prerequisites: [indexes]
+    related: [b-tree-index]
+  - slug: inverted-index
+    name: Inverted indexes
+    topic: databases
+    description: Mapping each term to the documents that contain it.
+    prerequisites: [indexes]
+  - slug: full-text-search
+    name: Full-text search
+    topic: databases
+    description: Tokenising, stemming and ranking documents by relevance to a text query.
+    prerequisites: [inverted-index]
+    related: [vector-search]
+  - slug: geospatial-indexes
+    name: Geospatial indexes
+    topic: databases
+    description: Geohashes, quadtrees and R-trees for finding things near a point.
+    prerequisites: [indexes]
+  - slug: approximate-nearest-neighbor
+    name: Approximate nearest neighbour indexes
+    topic: databases
+    description: HNSW and IVF indexes that trade a little recall for fast vector search.
+    prerequisites: [vector-search]
+  - slug: bloom-filters
+    name: Bloom filters
+    topic: databases
+    description: Compact probabilistic sets that answer "definitely not" or "maybe".
+    applied_in: [lsm-tree]
+  - slug: sstables-and-compaction
+    name: SSTables and compaction
+    topic: databases
+    description: Immutable sorted files and the background merging that reclaims space.
+    prerequisites: [lsm-tree]
+  - slug: write-amplification
+    name: Write and read amplification
+    topic: databases
+    description: Extra bytes written or read per logical operation, and how storage engines trade them.
+    prerequisites: [lsm-tree, b-tree-index]
+  - slug: buffer-pool
+    name: Buffer pool
+    topic: databases
+    description: The database's own page cache and how it decides which pages stay in memory.
+    prerequisites: [b-tree-index, caching]
+    related: [cache-eviction-policies]
+  - slug: durability-and-fsync
+    name: Durability and fsync
+    topic: databases
+    description: What it takes for a committed write to survive power loss, and why fsync is slow.
+    prerequisites: [write-ahead-log]
+  - slug: table-statistics
+    name: Table statistics and cardinality estimation
+    topic: databases
+    description: How row-count estimates drive plan choice, and how stale statistics produce bad plans.
+    prerequisites: [query-planning]
+  - slug: explain-analyze
+    name: Reading EXPLAIN plans
+    topic: databases
+    description: Reading a plan's estimated and actual costs to find why a query is slow.
+    prerequisites: [query-planning]
+    related: [table-statistics]
+  - slug: materialized-views
+    name: Materialized views
+    topic: databases
+    description: Precomputed query results stored and refreshed as the base data changes.
+    prerequisites: [relational-model]
+    related: [caching]
+  - slug: read-committed
+    name: Read committed
+    topic: databases
+    description: Never seeing or overwriting uncommitted data, and the anomalies it still allows.
+    prerequisites: [isolation-levels]
+  - slug: snapshot-isolation
+    name: Snapshot isolation
+    topic: databases
+    description: Each transaction reads a consistent snapshot of the database as of its start.
+    prerequisites: [mvcc]
+  - slug: serializability
+    name: Serializability
+    topic: databases
+    description: Concurrent transactions behaving as if they ran one at a time.
+    prerequisites: [isolation-levels]
+    related: [linearizability]
+  - slug: lost-updates
+    name: Lost updates
+    topic: databases
+    description: Two read-modify-write cycles where one silently overwrites the other.
+    prerequisites: [isolation-levels]
+    related: [optimistic-locking]
+  - slug: write-skew
+    name: Write skew and phantoms
+    topic: databases
+    description: Transactions reading overlapping data and writing different rows, breaking an invariant.
+    prerequisites: [snapshot-isolation]
+  - slug: row-and-table-locks
+    name: Row-level and table-level locks
+    topic: databases
+    description: Lock granularity, shared versus exclusive locks, and waiting on locks.
+    prerequisites: [transactions]
+    related: [deadlocks]
+  - slug: two-phase-locking
+    name: Two-phase locking
+    topic: databases
+    description: Pessimistic serializability by holding locks until commit.
+    prerequisites: [serializability, row-and-table-locks]
+  - slug: serializable-snapshot-isolation
+    name: Serializable snapshot isolation
+    topic: databases
+    description: Optimistic serializability that aborts transactions whose reads went stale.
+    prerequisites: [snapshot-isolation, serializability]
+  - slug: optimistic-locking
+    name: Optimistic and pessimistic locking
+    topic: databases
+    description: Checking a version number at write time versus locking rows up front.
+    prerequisites: [transactions]
+  - slug: vacuum-and-bloat
+    name: Vacuum and table bloat
+    topic: databases
+    description: Reclaiming the dead row versions MVCC leaves behind.
+    prerequisites: [mvcc]
+  - slug: backups-and-point-in-time-recovery
+    name: Backups and point-in-time recovery
+    topic: databases
+    description: Restoring a database to any moment from a base backup plus archived WAL.
+    prerequisites: [write-ahead-log]
+  - slug: physical-and-logical-replication
+    name: Physical and logical replication
+    topic: databases
+    description: Shipping disk-level changes versus row-level changes between databases.
+    prerequisites: [write-ahead-log, leader-follower-replication]
+    related: [change-data-capture]
+  - slug: read-replicas
+    name: Read replicas
+    topic: databases
+    description: Sending reads to followers to scale them, and the staleness that brings.
+    prerequisites: [leader-follower-replication]
+    related: [replication-lag]
+  - slug: schema-evolution
+    name: Schema evolution
+    topic: databases
+    description: Changing stored and message schemas while old and new readers and writers coexist.
+    prerequisites: [serialization-formats]
+    related: [schema-migrations, api-versioning]
+  - slug: oltp-vs-olap
+    name: OLTP and OLAP
+    topic: databases
+    description: Transaction processing versus analytics workloads, and why they want different stores.
+    prerequisites: [relational-model]
+  - slug: column-oriented-storage
+    name: Column-oriented storage
+    topic: databases
+    description: Storing each column together so analytical scans read only the columns they need.
+    prerequisites: [oltp-vs-olap]
+  - slug: data-warehouses
+    name: Data warehouses
+    topic: databases
+    description: Separate analytical stores with star schemas, loaded from operational databases.
+    prerequisites: [column-oriented-storage]
+  - slug: key-value-stores
+    name: Key-value stores
+    topic: databases
+    description: The simplest data model, get and put by key, and how far it scales.
+  - slug: document-databases
+    name: Document databases
+    topic: databases
+    description: Storing self-contained JSON-like documents, and where joins and updates get hard.
+    related: [relational-model]
+  - slug: wide-column-stores
+    name: Wide-column stores
+    topic: databases
+    description: Cassandra- and Bigtable-style rows of sparse columns grouped by partition key.
+    prerequisites: [key-value-stores, lsm-tree]
+  - slug: graph-databases
+    name: Graph databases
+    topic: databases
+    description: Vertices and edges with traversal queries for highly connected data.
+  - slug: time-series-databases
+    name: Time-series databases
+    topic: databases
+    description: Storage tuned for append-mostly timestamped data, downsampling and retention.
+    related: [column-oriented-storage, lsm-tree]
+  - slug: in-memory-data-stores
+    name: In-memory data stores
+    topic: databases
+    description: Redis-style stores that keep data in RAM, their data structures, and how they persist.
+    prerequisites: [key-value-stores]
+    related: [caching]
+  - slug: sql-vs-nosql
+    name: SQL vs NoSQL
+    topic: databases
+    description: Choosing between relational and non-relational stores by access pattern and consistency need.
+    prerequisites: [relational-model, document-databases, key-value-stores]
 
   # --- distributed systems -------------------------------------------------------
   - slug: network-partitions
@@ -303,6 +764,227 @@ concepts:
     description: Overload that sustains itself, such as retry storms, after the trigger is gone.
     prerequisites: [retries-with-backoff]
     related: [backpressure]
+  - slug: failure-models
+    name: Failure models
+    topic: distributed-systems
+    description: Crash-stop, crash-recovery and Byzantine nodes; synchronous and asynchronous networks.
+    prerequisites: [network-partitions]
+  - slug: two-generals-problem
+    name: Two Generals problem
+    topic: distributed-systems
+    description: Why two parties can never be certain they agree over an unreliable link.
+    prerequisites: [network-partitions]
+  - slug: pacelc
+    name: PACELC
+    topic: distributed-systems
+    description: "Extending CAP: without a partition, a system still trades latency against consistency."
+    prerequisites: [cap-theorem]
+  - slug: happens-before
+    name: Causality and happens-before
+    topic: distributed-systems
+    description: The partial order of events that could have influenced each other.
+    prerequisites: [clocks-and-ordering]
+  - slug: clock-skew-and-ntp
+    name: Clock skew and NTP
+    topic: distributed-systems
+    description: How physical clocks drift, how NTP corrects them, and why timestamps mislead.
+    prerequisites: [clocks-and-ordering]
+  - slug: lamport-clocks
+    name: Lamport clocks
+    topic: distributed-systems
+    description: Logical timestamps that order events consistently with causality.
+    prerequisites: [happens-before]
+  - slug: vector-clocks
+    name: Vector clocks
+    topic: distributed-systems
+    description: Per-node counters that tell whether two events are concurrent.
+    prerequisites: [lamport-clocks]
+    applied_in: [conflict-resolution]
+  - slug: hybrid-logical-clocks
+    name: Hybrid logical clocks
+    topic: distributed-systems
+    description: Timestamps that stay close to wall time while still respecting causality.
+    prerequisites: [lamport-clocks, clock-skew-and-ntp]
+  - slug: truetime
+    name: TrueTime and commit wait
+    topic: distributed-systems
+    description: Spanner's bounded clock uncertainty, used to make commits externally consistent.
+    prerequisites: [clock-skew-and-ntp]
+    related: [linearizability]
+  - slug: sequential-consistency
+    name: Sequential consistency
+    topic: distributed-systems
+    description: All nodes see operations in one order that respects each node's program order.
+    prerequisites: [consistency-models]
+    related: [linearizability]
+  - slug: causal-consistency
+    name: Causal consistency
+    topic: distributed-systems
+    description: Everyone sees causally related writes in the same order.
+    prerequisites: [consistency-models, happens-before]
+  - slug: monotonic-reads
+    name: Monotonic reads
+    topic: distributed-systems
+    description: A client never sees data go back in time across successive reads.
+    prerequisites: [replication-lag]
+    related: [read-your-writes]
+  - slug: synchronous-and-asynchronous-replication
+    name: Synchronous and asynchronous replication
+    topic: distributed-systems
+    description: Waiting for followers before acknowledging a write versus acknowledging at once.
+    prerequisites: [leader-follower-replication]
+  - slug: failover
+    name: Failover
+    topic: distributed-systems
+    description: Promoting a follower when the leader dies, and the data loss and split-brain risks.
+    prerequisites: [leader-follower-replication, failure-detection]
+  - slug: split-brain
+    name: Split brain
+    topic: distributed-systems
+    description: Two nodes both acting as leader after a partition.
+    prerequisites: [leader-election, network-partitions]
+  - slug: fencing-tokens
+    name: Fencing tokens
+    topic: distributed-systems
+    description: Increasing tokens that stop a stale leader or lock holder from writing.
+    prerequisites: [split-brain]
+    related: [distributed-locks]
+  - slug: distributed-locks
+    name: Distributed locks and leases
+    topic: distributed-systems
+    description: Mutual exclusion across machines with time-bounded leases.
+    prerequisites: [locks-and-mutexes, failure-detection]
+  - slug: multi-leader-replication
+    name: Multi-leader replication
+    topic: distributed-systems
+    description: Several nodes accept writes and exchange them, at the cost of conflicts.
+    prerequisites: [replication]
+  - slug: leaderless-replication
+    name: Leaderless replication
+    topic: distributed-systems
+    description: Clients write to several replicas directly, Dynamo-style.
+    prerequisites: [replication, quorums]
+  - slug: conflict-resolution
+    name: Write conflict resolution
+    topic: distributed-systems
+    description: Last-write-wins, merging and application-level handling of concurrent writes.
+    prerequisites: [multi-leader-replication]
+  - slug: crdts
+    name: CRDTs
+    topic: distributed-systems
+    description: Data types whose replicas always merge to the same state without coordination.
+    prerequisites: [conflict-resolution, eventual-consistency]
+  - slug: merkle-trees
+    name: Merkle trees
+    topic: distributed-systems
+    description: Hash trees that find which ranges of data differ between replicas cheaply.
+  - slug: read-repair-and-anti-entropy
+    name: Read repair and anti-entropy
+    topic: distributed-systems
+    description: On-read and background fixes that bring stale replicas up to date.
+    prerequisites: [leaderless-replication]
+    related: [merkle-trees]
+  - slug: sloppy-quorums
+    name: Sloppy quorums and hinted handoff
+    topic: distributed-systems
+    description: Accepting writes on stand-in nodes during failures and handing them back later.
+    prerequisites: [leaderless-replication]
+  - slug: gossip-protocols
+    name: Gossip protocols
+    topic: distributed-systems
+    description: Spreading membership and state by having nodes exchange it with random peers.
+    related: [failure-detection]
+  - slug: paxos
+    name: Paxos
+    topic: distributed-systems
+    description: The classic consensus protocol of proposers, acceptors and numbered ballots.
+    prerequisites: [consensus]
+    related: [raft]
+  - slug: replicated-state-machines
+    name: Replicated state machines
+    topic: distributed-systems
+    description: Applying the same deterministic commands in the same order on every node.
+    prerequisites: [consensus]
+    related: [raft]
+  - slug: byzantine-faults
+    name: Byzantine faults
+    topic: distributed-systems
+    description: Nodes that lie or behave arbitrarily, and what tolerating them costs.
+    prerequisites: [failure-models, consensus]
+  - slug: flp-impossibility
+    name: FLP impossibility
+    topic: distributed-systems
+    description: No deterministic protocol guarantees consensus in an asynchronous system with one crash.
+    prerequisites: [consensus]
+  - slug: coordination-services
+    name: Coordination services
+    topic: distributed-systems
+    description: ZooKeeper and etcd as small consistent stores for configuration, locks and membership.
+    prerequisites: [consensus]
+    related: [leader-election, distributed-locks]
+  - slug: two-phase-commit
+    name: Two-phase commit
+    topic: distributed-systems
+    description: A coordinator asks every participant to prepare, then to commit, and blocks if it fails.
+    prerequisites: [distributed-transactions]
+  - slug: transactional-outbox
+    name: Transactional outbox
+    topic: distributed-systems
+    description: Writing an event in the same transaction as the data change so neither is lost.
+    prerequisites: [transactions, message-queues]
+    related: [change-data-capture, saga-pattern]
+  - slug: distributed-sql
+    name: Distributed SQL databases
+    topic: distributed-systems
+    description: Systems like Spanner and CockroachDB that shard SQL tables with consensus per range.
+    prerequisites: [consensus, partitioning, transactions]
+  - slug: hash-partitioning
+    name: Hash partitioning
+    topic: distributed-systems
+    description: Assigning keys to partitions by hash for even spread, giving up range scans.
+    prerequisites: [partitioning]
+    related: [consistent-hashing]
+  - slug: range-partitioning
+    name: Range partitioning
+    topic: distributed-systems
+    description: Assigning key ranges to partitions so scans stay cheap, at the risk of hot spots.
+    prerequisites: [partitioning]
+  - slug: partitioned-secondary-indexes
+    name: Partitioned secondary indexes
+    topic: distributed-systems
+    description: Local versus global secondary indexes on partitioned data.
+    prerequisites: [partitioning, indexes]
+  - slug: log-based-message-brokers
+    name: Log-based message brokers
+    topic: distributed-systems
+    description: Kafka-style partitioned append-only logs that consumers read at their own offset.
+    prerequisites: [message-queues, partitioning]
+  - slug: consumer-groups
+    name: Consumer groups and offsets
+    topic: distributed-systems
+    description: Sharing a topic's partitions among consumers and tracking how far each has read.
+    prerequisites: [log-based-message-brokers]
+  - slug: exactly-once-processing
+    name: Exactly-once processing
+    topic: distributed-systems
+    description: Getting the effect of processing each message once from retries plus deduplication.
+    prerequisites: [at-least-once-delivery, idempotency-keys]
+  - slug: stream-processing
+    name: Stream processing
+    topic: distributed-systems
+    description: Continuously computing results over unbounded event streams.
+    prerequisites: [log-based-message-brokers]
+  - slug: event-time-and-watermarks
+    name: Event time and watermarks
+    topic: distributed-systems
+    description: Windowing streams by when events happened and deciding when a window is complete.
+    prerequisites: [stream-processing, clocks-and-ordering]
+  - slug: mapreduce
+    name: MapReduce and batch processing
+    topic: distributed-systems
+    description: Processing large datasets in parallel map and reduce stages over distributed files.
+    prerequisites: [partitioning]
+    related: [stream-processing]
 
   # --- system design -------------------------------------------------------------
   - slug: latency-and-throughput
@@ -374,3 +1056,254 @@ concepts:
     name: Feature flags
     topic: system-design
     description: Turning behaviour on and off at runtime without a deploy.
+  - slug: requirements-gathering
+    name: Functional and non-functional requirements
+    topic: system-design
+    description: Pinning down what a system must do and the scale, latency and availability it must meet.
+  - slug: latency-numbers
+    name: Latency numbers every programmer should know
+    topic: system-design
+    description: Rough costs of memory, disk, network and cross-region round trips.
+    applied_in: [back-of-the-envelope-estimation]
+  - slug: littles-law
+    name: Little's law
+    topic: system-design
+    description: Concurrency equals throughput times latency, for sizing pools and queues.
+    prerequisites: [latency-and-throughput]
+    applied_in: [capacity-planning]
+  - slug: utilization-and-queueing
+    name: Utilisation and queueing delay
+    topic: system-design
+    description: Why latency climbs steeply as a resource nears full use.
+    prerequisites: [littles-law]
+    related: [tail-latency]
+  - slug: availability-and-nines
+    name: Availability and the nines
+    topic: system-design
+    description: Measuring uptime as a percentage, and what each extra nine costs.
+  - slug: slos-and-error-budgets
+    name: SLIs, SLOs and error budgets
+    topic: system-design
+    description: Reliability targets set from user-facing measures, and spending the slack on change.
+    prerequisites: [availability-and-nines]
+    related: [metrics]
+  - slug: single-point-of-failure
+    name: Single points of failure
+    topic: system-design
+    description: Finding components whose loss takes the system down, and removing them with redundancy.
+    prerequisites: [availability-and-nines]
+    related: [replication]
+  - slug: vertical-scaling
+    name: Vertical scaling
+    topic: system-design
+    description: Buying a bigger machine, and where that stops working.
+    related: [horizontal-scaling]
+  - slug: autoscaling
+    name: Autoscaling
+    topic: system-design
+    description: Adding and removing instances automatically from load signals.
+    prerequisites: [horizontal-scaling]
+  - slug: l4-vs-l7-load-balancing
+    name: Layer 4 and layer 7 load balancing
+    topic: system-design
+    description: Balancing TCP connections versus routing individual HTTP requests by content.
+    prerequisites: [load-balancing, tcp-connection]
+    related: [reverse-proxy]
+  - slug: global-traffic-routing
+    name: Global traffic routing
+    topic: system-design
+    description: GeoDNS and anycast steering users to the nearest healthy region.
+    prerequisites: [dns-resolution, load-balancing]
+  - slug: api-gateway
+    name: API gateways
+    topic: system-design
+    description: A single entry point that routes, authenticates and rate-limits calls to backend services.
+    prerequisites: [reverse-proxy]
+    related: [rate-limiting]
+  - slug: service-discovery
+    name: Service discovery
+    topic: system-design
+    description: How services find healthy instances of each other as they come and go.
+    related: [health-checks, dns-resolution]
+  - slug: monoliths-and-microservices
+    name: Monoliths and microservices
+    topic: system-design
+    description: One deployable versus many independently deployed services, and the costs of splitting.
+  - slug: service-mesh
+    name: Service mesh
+    topic: system-design
+    description: Sidecar proxies that handle retries, TLS and telemetry between services.
+    prerequisites: [monoliths-and-microservices]
+  - slug: cache-aside
+    name: Cache-aside
+    topic: system-design
+    description: The application checks the cache first and fills it from the database on a miss.
+    prerequisites: [caching]
+  - slug: write-through-caching
+    name: Write-through and write-back caching
+    topic: system-design
+    description: Updating the cache on every write, synchronously or deferred.
+    prerequisites: [caching]
+    related: [cache-aside]
+  - slug: hot-keys
+    name: Hot keys and hot partitions
+    topic: system-design
+    description: Skewed load on one key or shard, and ways to spread it.
+    prerequisites: [sharding]
+    related: [cache-stampede]
+  - slug: bulkheads
+    name: Bulkheads
+    topic: system-design
+    description: Isolating resources per dependency so one slow call cannot exhaust them all.
+    related: [circuit-breakers, thread-pools]
+  - slug: load-shedding
+    name: Load shedding
+    topic: system-design
+    description: Rejecting excess requests early to keep serving the rest.
+    related: [backpressure, graceful-degradation]
+  - slug: hedged-requests
+    name: Hedged requests
+    topic: system-design
+    description: Sending a duplicate request after a delay to cut tail latency.
+    prerequisites: [tail-latency]
+  - slug: chaos-engineering
+    name: Chaos engineering
+    topic: system-design
+    description: Injecting failures deliberately to find weaknesses before users do.
+    related: [graceful-degradation]
+  - slug: canary-releases
+    name: Canary releases
+    topic: system-design
+    description: Sending a small share of traffic to a new version before rolling it out.
+    prerequisites: [load-balancing]
+    related: [blue-green-deployment, feature-flags]
+  - slug: rolling-deployments
+    name: Rolling deployments
+    topic: system-design
+    description: Replacing instances a few at a time with no downtime.
+    prerequisites: [load-balancing]
+    related: [blue-green-deployment]
+  - slug: multi-region-architecture
+    name: Multi-region architecture
+    topic: system-design
+    description: Running in several regions for latency and disaster tolerance, active-passive or active-active.
+    prerequisites: [replication]
+    related: [multi-leader-replication, global-traffic-routing]
+  - slug: disaster-recovery
+    name: Disaster recovery, RPO and RTO
+    topic: system-design
+    description: How much data and time you can afford to lose, and the plans that meet those targets.
+    related: [backups-and-point-in-time-recovery]
+  - slug: multi-tenancy
+    name: Multi-tenancy
+    topic: system-design
+    description: Serving many customers from shared infrastructure while isolating their data and load.
+  - slug: object-storage
+    name: Object storage
+    topic: system-design
+    description: S3-style stores of immutable blobs by key, and their consistency and cost model.
+  - slug: presigned-urls
+    name: Pre-signed URLs
+    topic: system-design
+    description: Letting clients upload and download directly to object storage with a time-limited URL.
+    prerequisites: [object-storage]
+  - slug: unique-id-generation
+    name: Unique ID generation
+    topic: system-design
+    description: Unique, roughly ordered IDs across machines, as with Snowflake IDs and UUIDs.
+    related: [clocks-and-ordering]
+  - slug: event-sourcing
+    name: Event sourcing
+    topic: system-design
+    description: Storing every change as an immutable event and deriving current state from the log.
+    prerequisites: [event-driven-architecture]
+  - slug: cqrs
+    name: CQRS
+    topic: system-design
+    description: Separate models for writes and reads, kept in sync asynchronously.
+    related: [event-sourcing, materialized-views]
+  - slug: fan-out-on-write
+    name: Fan-out on write and on read
+    topic: system-design
+    description: Pushing new posts into followers' feeds at write time versus assembling feeds when read.
+    prerequisites: [caching]
+  - slug: probabilistic-counting
+    name: HyperLogLog and Count-Min sketch
+    topic: system-design
+    description: Approximate distinct counts and frequencies in a few kilobytes of memory.
+    related: [bloom-filters]
+  - slug: url-shortener-design
+    name: Designing a URL shortener
+    topic: system-design
+    description: ID generation, redirects and read-heavy caching for short links.
+    prerequisites: [unique-id-generation, caching]
+  - slug: rate-limiter-design
+    name: Designing a distributed rate limiter
+    topic: system-design
+    description: Enforcing limits across many servers with a shared counter store.
+    prerequisites: [token-bucket, sliding-window-rate-limiting, in-memory-data-stores]
+  - slug: news-feed-design
+    name: Designing a news feed
+    topic: system-design
+    description: Building timelines for many followers, with fan-out and ranking.
+    prerequisites: [fan-out-on-write]
+  - slug: chat-system-design
+    name: Designing a chat system
+    topic: system-design
+    description: Real-time delivery, presence and message history for one-to-one and group chat.
+    prerequisites: [websockets, message-ordering]
+  - slug: notification-system-design
+    name: Designing a notification system
+    topic: system-design
+    description: Sending push, email and SMS reliably at scale with preferences and retries.
+    prerequisites: [message-queues, retries-with-backoff]
+  - slug: web-crawler-design
+    name: Designing a web crawler
+    topic: system-design
+    description: URL frontier, politeness, deduplication and recrawl scheduling.
+    prerequisites: [message-queues, bloom-filters]
+  - slug: search-autocomplete-design
+    name: Designing search autocomplete
+    topic: system-design
+    description: Suggesting completions from prefixes with tries and precomputed top results.
+    prerequisites: [caching]
+  - slug: video-streaming-design
+    name: Designing a video streaming service
+    topic: system-design
+    description: Upload, transcoding, adaptive bitrate and CDN delivery.
+    prerequisites: [cdn, object-storage]
+  - slug: file-storage-design
+    name: Designing cloud file storage
+    topic: system-design
+    description: Syncing files across devices with chunking, deduplication and a metadata store.
+    prerequisites: [object-storage]
+  - slug: key-value-store-design
+    name: Designing a distributed key-value store
+    topic: system-design
+    description: Partitioning, replication, quorums and conflict handling put together.
+    prerequisites: [consistent-hashing, leaderless-replication]
+  - slug: proximity-service-design
+    name: Designing a proximity service
+    topic: system-design
+    description: Finding nearby places or drivers with geospatial indexes.
+    prerequisites: [geospatial-indexes]
+  - slug: ticket-booking-design
+    name: Designing a ticket booking system
+    topic: system-design
+    description: Selling limited seats without overselling under spiky demand.
+    prerequisites: [transactions, optimistic-locking]
+  - slug: payment-system-design
+    name: Designing a payment system
+    topic: system-design
+    description: Moving money exactly once with idempotency keys, a ledger and reconciliation.
+    prerequisites: [idempotency-keys, transactions]
+  - slug: leaderboard-design
+    name: Designing a real-time leaderboard
+    topic: system-design
+    description: Ranking many players by score with sorted sets and sharded counts.
+    prerequisites: [in-memory-data-stores]
+  - slug: job-scheduler-design
+    name: Designing a distributed job scheduler
+    topic: system-design
+    description: Running jobs at the right time, once, across many workers.
+    prerequisites: [background-jobs, distributed-locks]

@@ -1,0 +1,219 @@
+# Embeddings eval queries (ADR-0007, Q-P1-27, P1-W3-S04): `eval-embeddings --queries`
+# reads this file.
+#
+# DRAFT labels by Claude, 2026-10-27. NOT owner-checked: the owner corrects them before
+# any eval result is trusted. Picked from the local database's full-text items as
+# ingested on 2026-10-27.
+#
+# Each query is what a learner might type; `relevant` names the moment(s) that answer
+# it by the item's canonical URL and the moment's heading (null for the intro). The
+# pool is every moment of every item named here plus the distractor items, so sibling
+# sections of a labelled article are hard negatives. The eval refuses a pool under 50
+# moments, a heading that matches no moment, and two moments of one item sharing a
+# heading.
+
+version: 1
+queries:
+  # --- backend ---------------------------------------------------------------------
+  - query: long polling vs websockets vs server-sent events for real-time updates
+    relevant:
+      - {url: "https://blog.algomaster.io/p/real-time-communication-patterns", moment: "1. The Core Problem: Getting Updates in Real Time"}
+  - query: how do Kafka, RabbitMQ and SQS differ in how they hold messages
+    relevant:
+      - {url: "https://blog.algomaster.io/p/kafka-vs-rabbitmq-vs-sqs", moment: "1. Three Different Models"}
+  - query: queue workers that slow down when their dependencies start failing
+    relevant:
+      - {url: "https://www.canva.dev/blog/engineering/worker-backpressure-part-1-how-we-taught-our-queue-workers-to-slow-down/", moment: "Worker Backpressure (Part 1)"}
+  - query: revoking logged-out sessions when session state lives in encrypted cookies
+    relevant:
+      - {url: "https://www.canva.dev/blog/engineering/session-revocations-at-scale/", moment: "Session revocations at scale"}
+  - query: why HTTP keep-alive reuses one connection for many requests
+    relevant:
+      - {url: "https://newsletter.systemdesign.one/p/http-concepts-explained", moment: "3. Persistent Connections"}
+  - query: ETag, If-None-Match and 304 Not Modified responses
+    relevant:
+      - {url: "https://newsletter.systemdesign.one/p/http-concepts-explained", moment: "7. Caching and Conditional Requests"}
+  - query: how HTTP/2 splits messages into binary frames on numbered streams
+    relevant:
+      - {url: "https://newsletter.systemdesign.one/p/http-concepts-explained", moment: "10. Binary Framing Layer"}
+  - query: choosing between REST, GraphQL and gRPC for an API
+    relevant:
+      - {url: "https://newsletter.systemdesigncodex.com/p/how-to-design-apis", moment: "1 - The Interface"}
+
+  # --- databases -------------------------------------------------------------------
+  - query: pessimistic vs optimistic locking with SELECT FOR UPDATE and version numbers
+    relevant:
+      - {url: "https://newsletter.systemdesigncodex.com/p/database-locking-mechanisms", moment: "What Is Pessimistic Locking?"}
+  - query: term dictionary and postings lists in an inverted index
+    relevant:
+      - {url: "https://planetscale.com/blog/anatomy-of-a-postgres-search-engine", moment: "Inverted index overview"}
+  - query: tokenizing, stemming and stop words for full-text search, BM25 scoring
+    relevant:
+      - {url: "https://planetscale.com/blog/anatomy-of-a-postgres-search-engine", moment: "Tokenizers"}
+  - query: ON DELETE CASCADE holding locks that block a schema migration and cause an outage
+    relevant:
+      - {url: "https://planetscale.com/blog/i-dont-like-delete-cascade", moment: "How cascades grow"}
+  - query: an idle transaction blocks ALTER TABLE and every later query queues behind it
+    relevant:
+      - {url: "https://planetscale.com/blog/debugging-live-database-connections", moment: "Want to see a stuck database?"}
+  - query: keeping logical replication slots when promoting a Postgres replica
+    relevant:
+      - {url: "https://planetscale.com/blog/how-to-make-a-replication-slot-survive-a-cutover", moment: "When we'll block a cutover"}
+  - query: how a sharded Postgres router plans a query with joins across shards
+    relevant:
+      - {url: "https://planetscale.com/blog/the-lifecycle-of-a-sharded-postgres-query", moment: "Planning"}
+  - query: speeding up slow repeated joins with materialized views and CTEs
+    relevant:
+      - {url: "https://zerodha.tech/blog/working-with-postgresql/", moment: "Materialized views"}
+  - query: using a second Postgres database as a hot cache for heavy report queries
+    relevant:
+      - {url: "https://zerodha.tech/blog/working-with-postgresql/", moment: "Postgres as a hot cache (sql-jobber)"}
+  - query: SQLite query was slow until I ran ANALYZE to gather statistics
+    relevant:
+      - {url: "https://jvns.ca/blog/2026/07/17/learning-about-running-sqlite/", moment: "ANALYZE is apparently important"}
+  - query: Django generating database migrations automatically from model changes
+    relevant:
+      - {url: "https://jvns.ca/blog/2026/07/21/more-nice-django-things/", moment: "automatic database migrations are still great"}
+  - query: what Postgres TOAST does with oversized column values
+    relevant:
+      - {url: "https://planetscale.com/blog/what-gets-toasted-in-postgres", moment: "TOAST does two different jobs"}
+      - {url: "https://planetscale.com/blog/dealing-with-large-tables-in-postgres", moment: "Wide tables split across pages and files"}
+  - query: choosing a partition key for log tables in ClickHouse
+    relevant:
+      - {url: "https://zerodha.tech/blog/logging-at-zerodha/", moment: "Challenges with Clickhouse"}
+  - query: ARM vs x86 servers for a database cluster
+    relevant:
+      - {url: "https://planetscale.com/blog/when-to-choose-x86-64-vs-aarch64", moment: "ARM and x86 were built for different problems"}
+
+  # --- distributed systems ---------------------------------------------------------
+  - query: how consistent hashing places nodes and keys on a hash ring
+    relevant:
+      - {url: "https://highscalability.com/consistent-hashing-algorithm/", moment: "How does consistent hashing work?"}
+  - query: storing node positions in a binary search tree to find a key's successor node
+    relevant:
+      - {url: "https://highscalability.com/consistent-hashing-algorithm/", moment: "Consistent hashing implementation"}
+  - query: random assignment vs key range vs static hash partitioning of cache servers
+    relevant:
+      - {url: "https://highscalability.com/consistent-hashing-algorithm/", moment: "Partitioning"}
+  - query: anti-entropy vs rumor-mongering gossip protocols
+    relevant:
+      - {url: "https://highscalability.com/gossip-protocol-explained/", moment: "Types of Gossip Protocol"}
+  - query: using gossip for failure detection and cluster membership
+    relevant:
+      - {url: "https://highscalability.com/gossip-protocol-explained/", moment: "Gossip Protocol Use Cases"}
+  - query: how Kafka elects its controller and moved off ZooKeeper
+    relevant:
+      - {url: "https://highscalability.com/untitled-2/", moment: "Fault Tolerance"}
+  - query: Kafka partitions, replica sets and in-sync replicas
+    relevant:
+      - {url: "https://highscalability.com/untitled-2/", moment: "Back to Basics"}
+  - query: why an append-only log is fast on hard drives
+    relevant:
+      - {url: "https://highscalability.com/untitled-2/", moment: "The Log"}
+  - query: erasure coding instead of three-way replication for durability in S3
+    relevant:
+      - {url: "https://highscalability.com/behind-aws-s3s-massive-scale/", moment: "Replication"}
+  - query: one round trip fast path added to leader-based consensus like Raft and Paxos
+    relevant:
+      - {url: "http://muratbuffalo.blogspot.com/2026/09/jetpack-consensus-made-generally-fast.html", moment: "Jetpack: Consensus Made Generally Fast (OSDI '26)"}
+  - query: a retry budget that stops a retry storm from becoming a metastable failure
+    relevant:
+      - {url: "http://muratbuffalo.blogspot.com/2026/09/metastability-as-failed-conditional.html", moment: "Fixing the retry law"}
+
+  # --- system design ---------------------------------------------------------------
+  - query: round robin and weighted round robin load balancing
+    relevant:
+      - {url: "https://blog.algomaster.io/p/how-load-balancers-actually-distribute-traffic", moment: "1. Round Robin"}
+  - query: least connections load balancing weighted by server capacity
+    relevant:
+      - {url: "https://blog.algomaster.io/p/how-load-balancers-actually-distribute-traffic", moment: "4. Weighted Least Connections"}
+  - query: sticky sessions with IP hash and why modulo hashing breaks when servers are added
+    relevant:
+      - {url: "https://blog.algomaster.io/p/how-load-balancers-actually-distribute-traffic", moment: "7. IP Hash"}
+  - query: blue/green vs canary deployment trade-offs
+    relevant:
+      - {url: "https://newsletter.systemdesigncodex.com/p/top-deployment-strategies", moment: "1 - Blue/Green Deployment"}
+  - query: strangler fig pattern for moving a monolith to microservices
+    relevant:
+      - {url: "https://newsletter.systemdesigncodex.com/p/how-to-move-from-monolith-to-a-service", moment: "1 - Strangler Fig Pattern"}
+  - query: Kubernetes horizontal vs vertical pod autoscaling
+    relevant:
+      - {url: "https://newsletter.systemdesigncodex.com/p/how-to-scale-kubernetes", moment: "1 - Horizontal Pod Autoscaling (HPA)"}
+  - query: databases that reject work they cannot finish, admission control and throttling
+    relevant:
+      - {url: "https://planetscale.com/blog/leaky-buckets-in-software-explained", moment: "Admission controls and databases"}
+  - query: backup and restore, pilot light and warm standby disaster recovery patterns
+    relevant:
+      - {url: "https://newsletter.pragmaticengineer.com/p/building-resilient-systems", moment: "4. Disaster Recovery Patterns"}
+  - query: staged app rollout that pauses automatically when the crash rate rises
+    relevant:
+      - {url: "https://engineering.grab.com/app-stability-at-scale-with-a-layered-defense", moment: "The release gate: Staged rollout and feature flags"}
+  - query: planning capacity for traffic spikes during a live sports event
+    relevant:
+      - {url: "https://engineering.fb.com/2026/10/15/production-engineering/2026-world-cup-record-traffic-reliability-at-scale/", moment: "Traffic Followed the Breaks, Not the Ball"}
+  - query: WebSocket heartbeat canary driving a Route 53 health check for regional failover
+    relevant:
+      - {url: "https://aws.amazon.com/blogs/architecture/multi-region-disaster-recovery-for-amazon-api-gateway-websocket-apis/", moment: "Heartbeat"}
+  - query: evacuating an availability zone with a zonal shift
+    relevant:
+      - {url: "https://aws.amazon.com/blogs/architecture/running-multi-day-az-evacuation-drills-with-arc-zonal-shift/", moment: "How ARC Zonal Shift works"}
+  - query: a separate database cluster and encryption key per tenant for isolation
+    relevant:
+      - {url: "https://aws.amazon.com/blogs/architecture/readyons-four-walls-of-tenant-isolation-on-amazon-eks/", moment: "Wall 4: Data isolation with Amazon Aurora"}
+  - query: serving HTTP range requests from partly cached large files without duplicate origin fetches
+    relevant:
+      - {url: "https://blog.cloudflare.com/origin-range-requests/", moment: "Coordinating cached and in-flight data"}
+  - query: replacing instances with new machine images instead of patching them in place
+    relevant:
+      - {url: "https://slack.engineering/shipyard-how-we-built-slacks-next-generation-ec2-platform/", moment: "Deployments and Fleet Updates"}
+  - query: do change approval boards actually reduce production incidents
+    relevant:
+      - {url: "https://highscalability.com/the-swedbank-outage-shows-that-change-controls-dont-work/", moment: "Research shows external approvals don’t work"}
+
+  # --- data structures, AI and general engineering ---------------------------------
+  - query: how a bloom filter sets bits with several hash functions
+    relevant:
+      - {url: "https://samwho.dev/bloom-filters/", moment: "# How bloom filters work"}
+  - query: how many bits and hash functions a bloom filter needs for a target false positive rate
+    relevant:
+      - {url: "https://samwho.dev/bloom-filters/", moment: "# Tuning a bloom filter"}
+  - query: why you can't delete from a bloom filter, and counting bloom filters
+    relevant:
+      - {url: "https://samwho.dev/bloom-filters/", moment: "# Removing items from a bloom filter"}
+  - query: picking a fair random sample from a stream when you don't know its length
+    relevant:
+      - {url: "https://samwho.dev/reservoir-sampling/", moment: "# Sampling when you don't know the size"}
+  - query: the halting problem and why some programs are undecidable
+    relevant:
+      - {url: "https://samwho.dev/turing-machines/", moment: "# What can't be computed?"}
+  - query: putting stable content at the start of the prompt so LLM prompt caching hits
+    relevant:
+      - {url: "https://blog.bytebytego.com/p/llm-prompt-caching-versus-semantic", moment: "Where to Place the Shared Content in Prompt Caching"}
+      - {url: "https://blog.cloudflare.com/obsessive-inference-optimization/", moment: "Sharing a cached prefix between every repository"}
+  - query: semantic caching of LLM answers with embeddings
+    relevant:
+      - {url: "https://blog.bytebytego.com/p/llm-prompt-caching-versus-semantic", moment: "Semantic Caching: Reusing a Previous Answer"}
+  - query: why grep in the middle of a pipe prints nothing, output buffering
+    relevant:
+      - {url: "https://jvns.ca/blog/2024/11/29/why-pipes-get-stuck-buffering/", moment: "why this happens: buffering"}
+  - query: compiling and linking a C program, include and library path flags
+    relevant:
+      - {url: "https://jvns.ca/blog/2025/06/10/how-to-compile-a-c-program/", moment: "the world’s shortest introduction to the compiler and linker"}
+  - query: estimating pi with a Monte Carlo simulation
+    relevant:
+      - {url: "https://eli.thegreenplace.net/2026/monte-carlo-simulations/", moment: "Estimating pi"}
+  - query: writing a SIMD loop that handles one vector width at a time
+    relevant:
+      - {url: "https://mitchellh.com/writing/everyone-should-know-simd", moment: "Step 2: Loop One Vector at a Time"}
+  - query: Bayesian vs frequentist A/B testing for an experimentation program
+    relevant:
+      - {url: "https://engineering.atspotify.com/2026/9/why-spotify-is-not-using-bayesian-a-b-testing", moment: "Clarifying what Bayesian inference for A/B testing is"}
+
+# Items no query is about: their moments only widen the pool.
+distractors:
+  - https://jvns.ca/blog/2024/11/26/terminal-rules/
+  - https://charity.wtf/p/make-ai-boring-again
+  - https://martinfowler.com/articles/never-send-slides/slide-principles.html
+  - https://zerodha.tech/blog/remoteness-of-remote-work/
+  - https://engineering.fb.com/2026/10/13/ml-applications/generative-ads-model-gem-scaling-frontier-ads-ai/
+  - https://stripe.com/blog/economics-of-ai-monetization

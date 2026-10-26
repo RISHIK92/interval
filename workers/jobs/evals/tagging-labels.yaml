@@ -1,0 +1,157 @@
+# Tagging eval labels (AI-5, P1-W3-S02): `eval-tagging --labels` reads this file.
+#
+# DRAFT labels by Claude, 2026-10-27. NOT owner-checked: the owner corrects them before
+# any eval result is trusted. Picked from the local database's full-text items as
+# ingested on 2026-10-27; concept slugs from workers/jobs/seeds/concepts.yaml version 2.
+#
+# Each label names a moment by its item's canonical URL and its heading (null for the
+# intro), the difficulty (beginner | intermediate | advanced) and 1-5 concept slugs the
+# section substantively teaches. Precision over recall: passing mentions are left out.
+# A heading that matches no moment silently scores as all-missed, so keep headings
+# exactly as stored.
+
+version: 1
+moments:
+  # --- backend ---------------------------------------------------------------------
+  - url: https://blog.algomaster.io/p/real-time-communication-patterns
+    moment: "1. The Core Problem: Getting Updates in Real Time"
+    difficulty: beginner
+    concepts: [long-polling, websockets, server-sent-events]
+  - url: https://blog.algomaster.io/p/kafka-vs-rabbitmq-vs-sqs
+    moment: "1. Three Different Models"
+    difficulty: beginner
+    concepts: [message-queues, log-based-message-brokers]
+  - url: https://www.canva.dev/blog/engineering/worker-backpressure-part-1-how-we-taught-our-queue-workers-to-slow-down/
+    moment: "Worker Backpressure (Part 1)"
+    difficulty: intermediate
+    concepts: [backpressure, background-jobs, dead-letter-queues]
+  - url: https://www.canva.dev/blog/engineering/session-revocations-at-scale/
+    moment: "Session revocations at scale"
+    difficulty: intermediate
+    concepts: [session-management, caching]
+  - url: https://newsletter.systemdesign.one/p/http-concepts-explained
+    moment: "3. Persistent Connections"
+    difficulty: beginner
+    concepts: [tcp-connection, http-request-lifecycle]
+  - url: https://newsletter.systemdesign.one/p/http-concepts-explained
+    moment: "7. Caching and Conditional Requests"
+    difficulty: beginner
+    concepts: [http-caching-headers]
+  - url: https://newsletter.systemdesign.one/p/http-concepts-explained
+    moment: "10. Binary Framing Layer"
+    difficulty: intermediate
+    concepts: [http2-and-http3]
+  - url: https://newsletter.systemdesigncodex.com/p/how-to-design-apis
+    moment: "1 - The Interface"
+    difficulty: beginner
+    concepts: [rest-api-design, graphql, grpc, http-methods-and-status-codes]
+
+  # --- databases -------------------------------------------------------------------
+  - url: https://newsletter.systemdesigncodex.com/p/database-locking-mechanisms
+    moment: "What Is Pessimistic Locking?"
+    difficulty: beginner
+    concepts: [optimistic-locking, row-and-table-locks, deadlocks]
+  - url: https://planetscale.com/blog/anatomy-of-a-postgres-search-engine
+    moment: "Inverted index overview"
+    difficulty: intermediate
+    concepts: [inverted-index, full-text-search]
+  - url: https://planetscale.com/blog/i-dont-like-delete-cascade
+    moment: "How cascades grow"
+    difficulty: advanced
+    concepts: [keys-and-constraints, row-and-table-locks, schema-migrations]
+  - url: https://planetscale.com/blog/debugging-live-database-connections
+    moment: "Want to see a stuck database?"
+    difficulty: intermediate
+    concepts: [row-and-table-locks, schema-migrations, transactions]
+  - url: https://planetscale.com/blog/how-to-make-a-replication-slot-survive-a-cutover
+    moment: "When we'll block a cutover"
+    difficulty: advanced
+    concepts: [physical-and-logical-replication, failover, change-data-capture]
+  - url: https://planetscale.com/blog/the-lifecycle-of-a-sharded-postgres-query
+    moment: "Planning"
+    difficulty: advanced
+    concepts: [query-planning, sharding, join-algorithms]
+  - url: https://zerodha.tech/blog/working-with-postgresql/
+    moment: "Materialized views"
+    difficulty: intermediate
+    concepts: [materialized-views, sharding]
+  - url: https://jvns.ca/blog/2026/07/17/learning-about-running-sqlite/
+    moment: "ANALYZE is apparently important"
+    difficulty: beginner
+    concepts: [table-statistics, query-planning]
+  - url: https://jvns.ca/blog/2026/07/21/more-nice-django-things/
+    moment: "automatic database migrations are still great"
+    difficulty: beginner
+    concepts: [schema-migrations]
+
+  # --- distributed systems ---------------------------------------------------------
+  - url: https://highscalability.com/consistent-hashing-algorithm/
+    moment: "Partitioning"
+    difficulty: intermediate
+    concepts: [partitioning, range-partitioning, hash-partitioning, consistent-hashing]
+  - url: https://highscalability.com/gossip-protocol-explained/
+    moment: "Types of Gossip Protocol"
+    difficulty: intermediate
+    concepts: [gossip-protocols, read-repair-and-anti-entropy, merkle-trees]
+  - url: https://highscalability.com/untitled-2/
+    moment: "Fault Tolerance"
+    difficulty: intermediate
+    concepts: [leader-election, consensus, coordination-services]
+  - url: https://highscalability.com/behind-aws-s3s-massive-scale/
+    moment: "Replication"
+    difficulty: intermediate
+    concepts: [replication, object-storage, hot-keys]
+  - url: http://muratbuffalo.blogspot.com/2026/09/jetpack-consensus-made-generally-fast.html
+    moment: "Jetpack: Consensus Made Generally Fast (OSDI '26)"
+    difficulty: advanced
+    concepts: [consensus, paxos, raft, quorums]
+  - url: http://muratbuffalo.blogspot.com/2026/09/metastability-as-failed-conditional.html
+    moment: "Fixing the retry law"
+    difficulty: advanced
+    concepts: [metastable-failures, retries-with-backoff, token-bucket]
+
+  # --- system design ---------------------------------------------------------------
+  - url: https://blog.algomaster.io/p/how-load-balancers-actually-distribute-traffic
+    moment: "1. Round Robin"
+    difficulty: beginner
+    concepts: [load-balancing]
+  - url: https://newsletter.systemdesigncodex.com/p/top-deployment-strategies
+    moment: "1 - Blue/Green Deployment"
+    difficulty: beginner
+    concepts: [blue-green-deployment, canary-releases, rolling-deployments]
+  - url: https://newsletter.systemdesigncodex.com/p/how-to-move-from-monolith-to-a-service
+    moment: "1 - Strangler Fig Pattern"
+    difficulty: beginner
+    concepts: [monoliths-and-microservices, api-gateway]
+  - url: https://newsletter.systemdesigncodex.com/p/how-to-scale-kubernetes
+    moment: "1 - Horizontal Pod Autoscaling (HPA)"
+    difficulty: beginner
+    concepts: [autoscaling, horizontal-scaling, vertical-scaling]
+  - url: https://planetscale.com/blog/leaky-buckets-in-software-explained
+    moment: "Admission controls and databases"
+    difficulty: intermediate
+    concepts: [load-shedding, rate-limiting]
+  - url: https://newsletter.pragmaticengineer.com/p/building-resilient-systems
+    moment: "4. Disaster Recovery Patterns"
+    difficulty: intermediate
+    concepts: [disaster-recovery, backups-and-point-in-time-recovery, multi-region-architecture, failover]
+  - url: https://engineering.grab.com/app-stability-at-scale-with-a-layered-defense
+    moment: "The release gate: Staged rollout and feature flags"
+    difficulty: intermediate
+    concepts: [feature-flags, canary-releases]
+  - url: https://engineering.fb.com/2026/10/15/production-engineering/2026-world-cup-record-traffic-reliability-at-scale/
+    moment: "Traffic Followed the Breaks, Not the Ball"
+    difficulty: intermediate
+    concepts: [capacity-planning, autoscaling, global-traffic-routing]
+  - url: https://aws.amazon.com/blogs/architecture/multi-region-disaster-recovery-for-amazon-api-gateway-websocket-apis/
+    moment: "Heartbeat"
+    difficulty: intermediate
+    concepts: [health-checks, failure-detection, failover, multi-region-architecture]
+  - url: https://blog.cloudflare.com/origin-range-requests/
+    moment: "Coordinating cached and in-flight data"
+    difficulty: advanced
+    concepts: [cdn, cache-stampede]
+  - url: https://slack.engineering/shipyard-how-we-built-slacks-next-generation-ec2-platform/
+    moment: "Deployments and Fleet Updates"
+    difficulty: intermediate
+    concepts: [rolling-deployments, canary-releases]
