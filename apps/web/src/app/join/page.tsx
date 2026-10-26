@@ -14,12 +14,17 @@ export default async function JoinPage({
   if ((await sessionReader().current(await headers())) !== null) redirect("/");
   const { code } = await searchParams;
   return (
-    <main>
-      <h1>Join Interval</h1>
-      <p>Interval is in private beta. Enter your invite code to start.</p>
+    <main className="mx-auto max-w-md px-4 pt-10 pb-12">
+      <h1 className="text-display">Join Interval</h1>
+      <p className="mt-2 text-ink-muted">
+        Interval is in private beta. Create your account with your invite code.
+      </p>
       <JoinForm code={typeof code === "string" ? code : ""} />
-      <p>
-        Already have an account? <Link href="/sign-in">Sign in</Link>
+      <p className="mt-6">
+        Already have an account?{" "}
+        <Link href="/sign-in" className="font-semibold underline">
+          Sign in
+        </Link>
       </p>
     </main>
   );

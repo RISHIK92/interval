@@ -1,5 +1,12 @@
 import { z } from "zod";
-import type { Accounts, Actor } from "./ports";
+import { INVITE_MESSAGES, redeemInvite } from "./invites";
+import { log } from "./log";
+import {
+  AccountNotRemoved,
+  type Accounts,
+  type Actor,
+  type InviteCodes,
+} from "./ports";
 
 type FormResult = { ok: true } | { ok: false; message: string };
 
@@ -20,6 +27,70 @@ const BAD_TOKEN = "That reset link is invalid or has expired.";
 
 const refused = (message: string) => ({ ok: false as const, message });
 
+// A use that can't be given back is logged, never thrown over the error that caused it.
+async function releaseUse(
+  codes: InviteCodes,
+  inviteCodeId: string,
+): Promise<void> {
+  try {
+    await codes.release(inviteCodeId);
+  } catch (error) {
+    log.error("join: invite use not given back", { inviteCodeId, error });
+  }
+}
+
+// Account first (ADR-0016, owner 2026-10-26): the invite code and the account in one
+// form. Details are checked before the code is spent; the use is given back when the
+// account can't be made.
+export async function joinWithInvite(
+  deps: { codes: InviteCodes; accounts: Pick<Accounts, "create"> },
+  raw: { code: string; name: string; email: string; password: string },
+  headers: Headers,
+): Promise<
+  | { ok: true; setCookies: string[]; actor: Actor }
+  | { ok: false; message: string }
+> {
+  const parsedName = name.safeParse(raw.name);
+  if (!parsedName.success) return refused(BAD_NAME);
+  const parsedEmail = email.safeParse(raw.email);
+  if (!parsedEmail.success) return refused(BAD_EMAIL);
+  if (!password.safeParse(raw.password).success) return refused(BAD_PASSWORD);
+  const redemption = await redeemInvite(deps.codes, raw.code);
+  if (!redemption.ok) return refused(INVITE_MESSAGES[redemption.reason]);
+  let result;
+  try {
+    result = await deps.accounts.create(
+      redemption,
+      {
+        name: parsedName.data,
+        email: parsedEmail.data,
+        password: raw.password,
+      },
+      headers,
+    );
+  } catch (error) {
+    if (error instanceof AccountNotRemoved) {
+      log.error("join: account half made and kept; its use stays spent", {
+        inviteCodeId: redemption.inviteCodeId,
+        error,
+      });
+      throw error;
+    }
+    log.error("join: account creation failed; releasing the use", {
+      inviteCodeId: redemption.inviteCodeId,
+      error,
+    });
+    await releaseUse(deps.codes, redemption.inviteCodeId);
+    throw error;
+  }
+  if (!result.ok) {
+    await releaseUse(deps.codes, redemption.inviteCodeId);
+    return refused(SIGN_UP_REFUSED.email_taken);
+  }
+  return result;
+}
+
+// Dormant since ADR-0016 (option B): there are no guests to upgrade.
 export async function signUp(
   accounts: Accounts,
   headers: Headers,

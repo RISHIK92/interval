@@ -82,7 +82,7 @@
     },
     "signup_completed": {
       "version": 1,
-      "description": "A guest became an account (S11).",
+      "description": "An account was made: by joining with an invite code (ADR-0016), or earlier by a guest signing up (S11, dormant).",
       "props": {}
     },
     "guest_merged": {

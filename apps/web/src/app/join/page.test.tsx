@@ -39,3 +39,13 @@ test("a link's code pre-fills the form", async () => {
   current.mockResolvedValue(null);
   expect(await render("ABCDE-FGHJK")).toContain('value="ABCDE-FGHJK"');
 });
+
+// Account first (ADR-0016): one form for the code and the account.
+test("the form asks for the code, a name, an email and a password", async () => {
+  current.mockResolvedValue(null);
+  const html = await render();
+  for (const field of ["code", "name", "email", "password"]) {
+    expect(html).toContain(`name="${field}"`);
+  }
+  expect(html).toContain("Create your account with your invite code.");
+});

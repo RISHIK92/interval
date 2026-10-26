@@ -13,7 +13,8 @@ import {
 // through an internal request whose Set-Cookie never reaches the browser, so a visit the
 // proxy started there would be counted again on the next navigation. A cookie set here
 // is both sent to the browser and seen by that internal render.
-export async function startVisit(actor: Actor): Promise<void> {
+// Returns the new visit's id, for events sent in the same request.
+export async function startVisit(actor: Actor): Promise<string> {
   const id = crypto.randomUUID();
   const lastSeen = Math.floor(Date.now() / 1000);
   (await cookies()).set(
@@ -22,6 +23,7 @@ export async function startVisit(actor: Actor): Promise<void> {
     visitCookieOptions(env().BETTER_AUTH_URL),
   );
   events().emit("session_started", {}, { ...actor, sessionId: id });
+  return id;
 }
 
 // After sign-out the browser may be used by someone else; their visit starts fresh.

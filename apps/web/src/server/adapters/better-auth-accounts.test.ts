@@ -204,6 +204,81 @@ test("only a guest can sign up", async () => {
   }
 });
 
+// Account-first join (ADR-0016): a new account straight from an invite redemption.
+test("create makes a signed-in account in the code's group, with its code", async () => {
+  const address = email();
+  const result = await port.create(
+    { ok: true, inviteCodeId: codeId, betaGroup: "developer" },
+    { name: "Grace", email: address, password: PASSWORD },
+    new Headers(),
+  );
+  if (!result.ok) throw new Error(`create refused: ${result.reason}`);
+  expect(result.actor).toMatchObject({
+    isGuest: false,
+    betaGroup: "developer",
+  });
+  expect(await sessions.current(cookieHeader(result.setCookies))).toEqual(
+    result.actor,
+  );
+  const row = await db
+    .selectFrom("app_user")
+    .select(["is_anonymous", "invite_code_id", "beta_group", "name"])
+    .where("id", "=", result.actor.userId)
+    .executeTakeFirstOrThrow();
+  expect(row).toEqual({
+    is_anonymous: false,
+    invite_code_id: codeId,
+    beta_group: "developer",
+    name: "Grace",
+  });
+  expect(await signedIn(address, PASSWORD)).not.toBeNull();
+});
+
+test("create refuses an email in use and leaves no user behind", async () => {
+  const taken = await newAccount();
+  expect(
+    await port.create(
+      { ok: true, inviteCodeId: codeId, betaGroup: "developer" },
+      { name: "Dup", email: taken.email, password: PASSWORD },
+      new Headers(),
+    ),
+  ).toEqual({ ok: false, reason: "email_taken" });
+  const named = await db
+    .selectFrom("app_user")
+    .select("id")
+    .where("name", "=", "Dup")
+    .where("invite_code_id", "=", codeId)
+    .execute();
+  expect(named).toEqual([]);
+});
+
+test("when sign-in fails after create, the new account is removed", async () => {
+  const address = email();
+  vi.spyOn(auth.api, "signInEmail").mockRejectedValueOnce(
+    new Error("no session"),
+  );
+  await expect(
+    port.create(
+      { ok: true, inviteCodeId: codeId, betaGroup: "developer" },
+      { name: "Gone", email: address, password: PASSWORD },
+      new Headers(),
+    ),
+  ).rejects.toThrow("no session");
+  const rows = await db
+    .selectFrom("app_user")
+    .select("id")
+    .where("email", "=", address)
+    .execute();
+  expect(rows).toEqual([]);
+  const credentials = await db
+    .selectFrom("auth_account")
+    .innerJoin("app_user", "app_user.id", "auth_account.user_id")
+    .select("auth_account.id")
+    .where("app_user.email", "=", address)
+    .execute();
+  expect(credentials).toEqual([]);
+});
+
 test("Better Auth's own sign-up endpoint is closed", async () => {
   await expect(
     auth.api.signUpEmail({

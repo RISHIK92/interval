@@ -27,6 +27,7 @@ function fake(
         opts.signIn === false ? null : { setCookies: [], actor: ACCOUNT },
       ),
     ),
+    create: vi.fn<Accounts["create"]>(),
     signOut: vi.fn<Accounts["signOut"]>(() => Promise.resolve()),
     requestReset: vi.fn<Accounts["requestReset"]>(() => Promise.resolve()),
     resetPassword: vi.fn<Accounts["resetPassword"]>(() =>

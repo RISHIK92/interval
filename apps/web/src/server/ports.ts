@@ -223,6 +223,12 @@ export class GuestNotRemoved extends Error {
   override name = "GuestNotRemoved";
 }
 
+// Account first (ADR-0016): an account half made (no session) that couldn't be removed.
+// It still holds its invite use, so the use must not be given back.
+export class AccountNotRemoved extends Error {
+  override name = "AccountNotRemoved";
+}
+
 export interface GuestSessions {
   // Creates a guest (anonymous user) in the redemption's beta group and returns it with
   // the Set-Cookie values for its session. If it throws anything but GuestNotRemoved, no
@@ -243,6 +249,10 @@ export interface Mailer {
   send(mail: Mail): Promise<void>;
 }
 
+export type CreateResult =
+  | { ok: true; setCookies: string[]; actor: Actor }
+  | { ok: false; reason: "email_taken" };
+
 export type SignUpResult =
   | { ok: true; setCookies: string[] }
   | { ok: false; reason: "not_a_guest" | "email_taken" };
@@ -250,6 +260,14 @@ export type SignUpResult =
 // Email-and-password accounts (ADR-0004). Inputs arrive validated and normalised.
 // Sign-up and sign-in return the new session's Set-Cookie values, like GuestSessions.
 export interface Accounts {
+  // Account first (ADR-0016): a new account from an invite redemption, in its beta
+  // group, signed in. Nothing is left behind when it refuses or throws, except when it
+  // throws AccountNotRemoved.
+  create(
+    redemption: Extract<Redemption, { ok: true }>,
+    input: { name: string; email: string; password: string },
+    headers: Headers,
+  ): Promise<CreateResult>;
   // Turns the current guest into the account, keeping its user id, code and group
   // (Q-P1-11, Q-P1-24), and replaces the guest's session with a new one.
   signUp(

@@ -8,6 +8,7 @@ import { DatabaseError } from "pg";
 import { z } from "zod";
 import { log } from "../log";
 import {
+  AccountNotRemoved,
   GuestNotRemoved,
   type Accounts,
   type Actor,
@@ -51,8 +52,9 @@ export function createAuth(opts: {
     // in Phase 1, a reset link valid for an hour that signs out every other session.
     emailAndPassword: {
       enabled: true,
-      // Accounts are made only by upgrading a guest (Accounts.signUp), never through
-      // the public endpoint, which would skip the invite code.
+      // Accounts are made only from an invite redemption (Accounts.create, ADR-0016),
+      // never through the public endpoint, which would skip the invite code. The guest
+      // upgrade (Accounts.signUp) is dormant.
       disableSignUp: true,
       minPasswordLength: 8,
       maxPasswordLength: 128,
@@ -215,6 +217,84 @@ function isEmailTaken(error: unknown): boolean {
 
 export function accounts(auth: Auth, db: Kysely<DB>): Accounts {
   return {
+    // Account first (ADR-0016): the user and its password together, then a session.
+    create: async (redemption, input, headers) => {
+      const context = await auth.$context;
+      const hash = await context.password.hash(input.password);
+      const userId = context.generateId({ model: "user" });
+      const credentialId = context.generateId({ model: "account" });
+      if (userId === false || credentialId === false) {
+        throw new Error("Better Auth gave no id");
+      }
+      try {
+        await db.transaction().execute(async (trx) => {
+          await trx
+            .insertInto("app_user")
+            .values({
+              id: userId,
+              name: input.name,
+              email: input.email,
+              is_anonymous: false,
+              beta_group: redemption.betaGroup,
+              invite_code_id: redemption.inviteCodeId,
+            })
+            .execute();
+          await trx
+            .insertInto("auth_account")
+            .values({
+              id: credentialId,
+              account_id: userId,
+              provider_id: "credential",
+              user_id: userId,
+              password: hash,
+              updated_at: new Date(),
+            })
+            .execute();
+        });
+      } catch (error) {
+        if (isEmailTaken(error)) return { ok: false, reason: "email_taken" };
+        throw error;
+      }
+      // Without any cookie the visitor brought: a plain sign-in for the new account.
+      const fresh = new Headers(headers);
+      fresh.delete("cookie");
+      try {
+        const signedIn = await auth.api.signInEmail({
+          body: { email: input.email, password: input.password },
+          headers: fresh,
+          returnHeaders: true,
+        });
+        const { user } = signedIn.response;
+        return {
+          ok: true,
+          setCookies: signedIn.headers.getSetCookie(),
+          actor: {
+            userId: user.id,
+            isGuest: false,
+            betaGroup: betaGroup.parse(user.betaGroup),
+          },
+        };
+      } catch (error) {
+        // Nothing left behind (credentials and sessions cascade), so the caller can give
+        // the invite use back; if even that fails, it must not.
+        try {
+          await db.deleteFrom("app_user").where("id", "=", userId).execute();
+        } catch (cleanup) {
+          log.error("account: sign-in failed and the new account remains", {
+            userId,
+            error,
+            cleanup,
+          });
+          throw new AccountNotRemoved(
+            "account creation failed and its user remains",
+            {
+              cause: error,
+            },
+          );
+        }
+        throw error;
+      }
+    },
     signUp: async (headers, input) => {
       const current = await auth.api.getSession({ headers });
       if (current?.user.isAnonymous !== true) {

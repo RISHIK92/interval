@@ -1,4 +1,4 @@
-import { redeemInvite } from "./invites";
+import { INVITE_MESSAGES, redeemInvite } from "./invites";
 import { log } from "./log";
 import {
   type Actor,
@@ -11,12 +11,9 @@ export type GuestStart =
   | { ok: true; setCookies: string[]; actor: Actor }
   | { ok: false; message: string };
 
-// Unknown and expired share a message, so a guess cannot tell the two apart.
-const INVALID = "That invite code isn't valid.";
-const USED_UP = "That invite code has no uses left.";
-
 // Q-P1-24: a guest exists only through a redeemed invite code. The use is spent first;
 // if creating the guest then fails, it is given back (owner choice, 2026-10-25).
+// Dormant since ADR-0016 (account first, option B): nothing calls it now.
 export async function startGuest(
   deps: { codes: InviteCodes; guests: GuestSessions },
   rawCode: string,
@@ -24,10 +21,7 @@ export async function startGuest(
 ): Promise<GuestStart> {
   const redemption = await redeemInvite(deps.codes, rawCode);
   if (!redemption.ok) {
-    return {
-      ok: false,
-      message: redemption.reason === "used_up" ? USED_UP : INVALID,
-    };
+    return { ok: false, message: INVITE_MESSAGES[redemption.reason] };
   }
   try {
     const { setCookies, actor } = await deps.guests.start(redemption, headers);
