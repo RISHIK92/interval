@@ -19,3 +19,14 @@ test.each([
   expect(html).toContain(`data-theme="${theme}"`);
   expect(get).toHaveBeenCalledWith("iv_theme");
 });
+
+// Chrome fetches a manifest without cookies unless told to; behind a tunnel that gates
+// on a cookie (ngrok's warning page) the app then can't be installed (owner, 2026-10-26).
+test("the manifest link sends credentials", async () => {
+  get.mockReturnValue(undefined);
+  const { default: RootLayout } = await import("./layout");
+  const html = renderToStaticMarkup(await RootLayout({ children: <p>hi</p> }));
+  expect(html).toContain(
+    '<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials"/>',
+  );
+});

@@ -1,8 +1,9 @@
 import type { MetadataRoute } from "next";
 
 // Installable PWA (§4.2, Q-P1-31). Placeholder icon until a design pass (owner,
-// 2026-10-26).
-export default function manifest(): MetadataRoute.Manifest {
+// 2026-10-26). Served by app/manifest.webmanifest/route.ts, not Next's manifest file,
+// so the layout can link it with credentials.
+export function manifest(): MetadataRoute.Manifest {
   return {
     name: "Interval",
     short_name: "Interval",

@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import manifest from "./manifest";
+import { manifest } from "../server/manifest";
+import { GET } from "./manifest.webmanifest/route";
 
 // §4.2, Q-P1-31, P1-W5-S06: installable, with a placeholder icon (owner, 2026-10-26).
 const PUBLIC = join(__dirname, "..", "..", "public");
@@ -34,4 +35,12 @@ test("every icon exists at the size it claims, and one is maskable", () => {
     expect(`${String(width)}x${String(height)}`).toBe(icon.sizes);
     expect(icon.type).toBe("image/png");
   }
+});
+
+test("the route serves the manifest as a web app manifest", async () => {
+  const response = GET();
+  expect(response.headers.get("content-type")).toBe(
+    "application/manifest+json",
+  );
+  expect(await response.json()).toEqual(manifest());
 });
