@@ -519,8 +519,9 @@ test("a frameable card opens in the in-app reader, in this tab", async () => {
   expect(html).toMatch(
     /<a href="\/read\/30\?moment=31&amp;chip=3-8&amp;from=continue" data-read-item="30" data-read-moment="31" aria-label="Continue: Raft — Consensus in practice" class="[^"]*">Continue<\/a>/,
   );
-  // Open original website still leaves for the browser.
-  expect(html).toContain(
-    'href="/out?item=10&amp;moment=1&amp;chip=3-8&amp;pos=1&amp;target=original" target="_blank"',
+  // Open original website still leaves for the browser, from the card's "…" menu
+  // (owner, 2026-10-26).
+  expect(html).toMatch(
+    /<details[^>]*>(?:(?!<\/details>)[^])*<a href="\/out\?item=10&amp;moment=1&amp;chip=3-8&amp;pos=1&amp;target=original" target="_blank" rel="noopener noreferrer"[^>]*>Open original website<\/a>/,
   );
 });

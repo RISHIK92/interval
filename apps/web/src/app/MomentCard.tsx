@@ -47,7 +47,6 @@ export function MomentCard({
         moment: card.momentId,
         inApp: card.frameable,
       }}
-      originalHref={outHref({ ...out, target: "original" })}
       topic={card.topic}
       controls={controls}
     />

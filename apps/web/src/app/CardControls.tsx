@@ -14,11 +14,15 @@ export function CardControls({
   title,
   saved,
   chip,
+  originalHref,
 }: {
   itemId: string;
   title: string;
   saved: boolean;
   chip: Chip;
+  // A section's article page from the top (§5D); none for a whole-article card, whose
+  // Read article already is that page.
+  originalHref: string | null;
 }) {
   // Every card has these buttons: the title tells them apart for a screen reader. The
   // Save button is only an icon, so its label is its whole name.
@@ -59,6 +63,16 @@ export function CardControls({
         {/* To the left of the button, rising from its foot: inside the card, where the
           sideways feed row can't clip it (ADR-0019). */}
         <div className="absolute right-full bottom-0 z-20 mr-2 flex w-52 flex-col rounded-2xl border border-hairline bg-page p-1 shadow-card">
+          {originalHref === null ? null : (
+            <a
+              href={originalHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`block ${MENU_ITEM}`}
+            >
+              Open original website
+            </a>
+          )}
           <button
             type="submit"
             name="control"

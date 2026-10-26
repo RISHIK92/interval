@@ -193,9 +193,10 @@ export default async function ReadPage({
               <input type="hidden" name="chip" value={chip} />
               <button
                 type="submit"
-                className="inline-flex items-center justify-center rounded-full border border-hairline bg-page px-4 py-2.5 font-semibold text-ink"
+                className="inline-flex size-11 items-center justify-center rounded-full border border-hairline bg-page font-semibold text-ink sm:size-auto sm:px-4 sm:py-2.5"
               >
-                Mark done
+                <Glyph path="M5 12l5 5 9-10" className="size-5 sm:hidden" />
+                <span className="sr-only sm:not-sr-only">Mark done</span>
               </button>
             </form>
             {page.nextMomentId === null ? null : (
@@ -206,14 +207,15 @@ export default async function ReadPage({
                   chip,
                   // An open of the next section from the same card, counted like one
                   // (owner, 2026-10-26); after Save the card is unknown, so none.
-                  from:
-                    card === null
-                      ? (from ?? "continue")
-                      : { position: card.pos },
+                  from: origin,
                 })}
-                className="inline-flex items-center justify-center rounded-full bg-ink px-4 py-2.5 font-semibold text-page"
+                className="inline-flex size-11 items-center justify-center rounded-full bg-ink font-semibold text-page sm:size-auto sm:px-4 sm:py-2.5"
               >
-                Next section
+                <Glyph
+                  path="M5 12h14M13 6l6 6-6 6"
+                  className="size-5 sm:hidden"
+                />
+                <span className="sr-only sm:not-sr-only">Next section</span>
               </a>
             )}
           </div>
@@ -223,12 +225,20 @@ export default async function ReadPage({
   );
 }
 
-function Glyph({ path }: { path: string }) {
+// Mark done and Next section are icons only on phones (owner, 2026-10-26), at their
+// own size.
+function Glyph({
+  path,
+  className = "size-4",
+}: {
+  path: string;
+  className?: string;
+}) {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 24 24"
-      className="size-4"
+      className={className}
       fill="none"
       stroke="currentColor"
       strokeWidth="1.8"

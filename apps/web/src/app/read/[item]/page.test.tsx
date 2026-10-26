@@ -156,10 +156,10 @@ test("Next section from a Continue card stays a Continue open; after Save it cou
   current.mockResolvedValue(guest);
   reader.mockResolvedValue(page);
   expect(await render({ moment: "9", chip: "3-8", from: "continue" })).toMatch(
-    /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;from=continue"[^>]*>Next section<\/a>/,
+    /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;from=continue"[^>]*>[^]*?Next section<\/span><\/a>/,
   );
   expect(await render({ moment: "9", chip: "3-8", from: "reader" })).toMatch(
-    /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;from=reader"[^>]*>Next section<\/a>/,
+    /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;from=reader"[^>]*>[^]*?Next section<\/span><\/a>/,
   );
 });
 
@@ -234,10 +234,18 @@ test("the overlay: why this matters, Save that stays, Mark done, Next section, a
   expect(html).toContain('name="method" value="mark_done"');
   expect(html).toContain('name="momentId" value="9"');
   expect(html).toContain("Mark done");
+  // On phones a tick and an arrow; the words stay for screen readers and wider
+  // screens (owner, 2026-10-26).
+  expect(html).toMatch(
+    /<svg[^>]*class="[^"]*sm:hidden[^"]*"[^>]*><path d="M5 12l5 5 9-10"><\/path><\/svg><span class="sr-only sm:not-sr-only">Mark done<\/span>/,
+  );
+  expect(html).toMatch(
+    /<svg[^>]*class="[^"]*sm:hidden[^"]*"[^>]*><path d="M5 12h14M13 6l6 6-6 6"><\/path><\/svg><span class="sr-only sm:not-sr-only">Next section<\/span>/,
+  );
   // Next section is an open of that section from the same card, so it counts like one
   // (owner, 2026-10-26).
   expect(html).toMatch(
-    /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;pos=4"[^>]*>Next section<\/a>/,
+    /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;pos=4"[^>]*>[^]*?Next section<\/span><\/a>/,
   );
   expect(html.match(/aria-disabled="true"/g)).toHaveLength(3);
   expect(html.match(/Coming later/g)?.length).toBeGreaterThanOrEqual(3);

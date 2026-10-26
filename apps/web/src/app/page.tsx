@@ -167,6 +167,17 @@ export default async function HomePage({
         title={card.kind === "moment" ? card.sectionTitle : card.articleTitle}
         saved={card.saved}
         chip={chip}
+        originalHref={
+          card.kind === "moment"
+            ? outHref({
+                itemId: card.itemId,
+                momentId: card.momentId,
+                chip,
+                from: { position: index + 1 },
+                target: "original",
+              })
+            : null
+        }
       />
     );
     return card.kind === "moment" ? (

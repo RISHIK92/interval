@@ -36,9 +36,6 @@ test("links to the publisher's section in a new tab without leaking the opener",
   expect(html).toContain(
     'href="/out?item=70&amp;moment=7&amp;chip=3-8&amp;pos=4&amp;target=section"',
   );
-  expect(html).toContain(
-    'href="/out?item=70&amp;moment=7&amp;chip=3-8&amp;pos=4&amp;target=original"',
-  );
   expect(html).toContain('target="_blank"');
   expect(html).toContain('rel="noopener noreferrer"');
 });
@@ -49,8 +46,7 @@ test("renders only the card fields: attribution, title, article, position, lengt
   );
   expect(textOf(html)).toBe(
     "Example Engineering · Rae Writer / Raft in one page / Consensus in practice / " +
-      "Section 2 of 4 / 3 min reading / Fits your 3–8 min break / Read article / " +
-      "Open original website",
+      "Section 2 of 4 / 3 min reading / Fits your 3–8 min break / Read article",
   );
   // One progress segment per section (design screen 2): finished ones green, this one
   // light green and gently pulsing, the rest empty (owner, 2026-10-26).
@@ -127,7 +123,4 @@ test("a frameable section opens in the in-app reader; Open original still leaves
     /<a href="\/read\/70\?moment=7&amp;chip=3-8&amp;pos=4" data-read-item="70" data-read-moment="7" class="[^"]*">Read article<\/a>/,
   );
   expect(html).not.toContain("data-item");
-  expect(html).toContain(
-    'href="/out?item=70&amp;moment=7&amp;chip=3-8&amp;pos=4&amp;target=original" target="_blank"',
-  );
 });

@@ -20,7 +20,6 @@ export function FeedCardLayout({
   fits,
   note,
   read,
-  originalHref,
   topic,
   controls,
 }: {
@@ -38,7 +37,6 @@ export function FeedCardLayout({
     moment?: string;
     inApp: boolean;
   };
-  originalHref: string | null;
   topic: Topic | null;
   controls: ReactNode;
 }) {
@@ -93,18 +91,6 @@ export function FeedCardLayout({
             {readLink}
             {controls}
           </div>
-          {originalHref === null ? null : (
-            <p className="mt-3">
-              <a
-                href={originalHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-ink-muted underline-offset-2 hover:underline"
-              >
-                Open original website
-              </a>
-            </p>
-          )}
         </div>
       </Card>
     </article>

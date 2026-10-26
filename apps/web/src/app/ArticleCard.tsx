@@ -50,7 +50,6 @@ export function ArticleCard({
         item: card.itemId,
         inApp: card.frameable,
       }}
-      originalHref={null}
       topic={card.topic}
       controls={controls}
     />
