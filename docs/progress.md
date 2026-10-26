@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. W6-S01 (ranking inspection), W6-S02 (deep-link check), W6-S03 (weekly link health) and W6-S04 (Athena metric queries) and W6-S05 (dashboards and alarms) done: Phase 1 is built apart from W1-S12 (guest merge, deferred). Next: the owner's design pass for the PWA, web and admin (owner instruction), then W1-S12. Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. W6-S01 (ranking inspection), W6-S02 (deep-link check), W6-S03 (weekly link health) and W6-S04 (Athena metric queries) and W6-S05 (dashboards and alarms) done: Phase 1 is built apart from W1-S12 (guest merge, deferred). Design pass started (owner, 2026-10-26): designs in docs/wireframes/, ADR-0015 (goals), ADR-0016 (account first, so W1-S12 merge is no longer needed) and ADR-0017 (five tabs) accepted; foundation done. Next: screen restyles (Home, Library, return prompt, admin), then goals and account-first once their ADRs' open questions are answered. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 
@@ -527,6 +527,54 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the budget alarm fires on per-user caps too; filtering to `scope = global` is an option;
   - the thresholds (5%, 20 requests) are starting points;
   - run the Logs Insights query once in the console after deploy.
+
+### 2026-10-26 — Design pass 1: design-system foundation (owner's design pass)
+- The owner shared two designs, now in `docs/wireframes/`:
+  - `app-design.html`: 16 screens, light and dark;
+  - `design-system.html`: tokens, type and components.
+  They're JavaScript bundles, so open them in a browser.
+- **Owner choices:**
+  - restyle with placeholders for later-phase UI;
+  - reading stays on the publisher's page, with Interval around it;
+  - goals adopted;
+  - account first;
+  - Tailwind v4;
+  - self-hosted fonts;
+  - dark mode follows the device, plus a per-device toggle (a cookie, not per user).
+- **ADRs, accepted by the owner on 2026-10-26:**
+  - 0015, learning goals (option A): several goals per user, a ranking boost, and a Profile card;
+  - 0016, account-first onboarding (option B): the guest code is kept dormant, and W1-S12 (merge) is no longer needed;
+  - 0017, a five-tab bar with Explore, Paths and Play disabled (amends ADR-0006 C-06).
+  - The open questions for 0015 and 0016 are still with the owner:
+    - each goal's concept set;
+    - what "Finish that book" and "Stack I use" do before Phase 2;
+    - which onboarding steps remain;
+    - whether sign-up still takes an invite code;
+    - what happens to existing guests.
+- **Done:**
+  - **Tailwind:** `tailwindcss` and `@tailwindcss/postcss` 4.3.3 (dev).
+  - **Tokens:** `globals.css` holds the design tokens as `light-dark()` custom properties, with `color-scheme` from `data-theme`, a Tailwind `@theme` mapping and the type-scale utilities.
+  - **Fonts:** Outfit and JetBrains Mono, self-hosted with their OFL texts.
+  - **Theme:** a per-device `iv_theme` cookie (`server/theme.ts`, `setThemeAction` with a same-site return path), the root layout's `data-theme`, and an Appearance form on Profile.
+  - **Tab bar:** `TabBar` replaces `TabNav`, with five tabs, inline SVG icons, and three disabled ones reading "Coming later".
+  - **Components:** `AiBox` (the dashed AI box) for AI notes, and `Button` (act and secondary variants) in the return prompt and the Appearance form. Home's chips are styled as a segmented control.
+  - **Browser chrome:** the theme colour follows light and dark.
+  - **Offline cache:** the cache name moves to v2.
+- **Review fixes:**
+  - a theme return path with a tab or newline could leave the site; it's now parsed as a URL and must stay on the same origin;
+  - ADR-0017 recorded for the tab override;
+  - the offline cache is bumped;
+  - the unused red play button is gone (its contrast needs fixing when Play arrives);
+  - the tab bar has a z-index, and the bottom padding includes the safe area;
+  - the duplicate "Coming later" announcement is gone;
+  - the chosen chip is visible in dark mode (a `lift` token).
+- **Checked in Chrome:**
+  - in the device's dark mode: Outfit loaded and the dark tokens applied;
+  - Appearance → Light switched the page to the light tokens, then it was set back to Device;
+  - the tab bar shows three disabled tabs.
+- **Noticed, not fixed:**
+  - a stored author still shows an email ("Murat (noreply@blogger.com)"), from before the author fix; a re-ingest or a cleanup would clear it;
+  - the cached offline page can show the theme that was active when the worker installed.
 
 ## Pre-deploy list (from the S18 review; parked by the owner until deployment, ADR-0013)
 

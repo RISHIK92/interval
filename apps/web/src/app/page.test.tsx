@@ -160,10 +160,12 @@ test("renders the three chips as links and marks the onboarding one", async () =
   }
   // Separate list items, and the selected chip is visibly marked, not only for
   // screen readers.
-  expect(html).toContain(
-    '<li><a aria-current="true" href="/?chip=3-8"><strong>3–8 min</strong></a></li>',
+  expect(html).toMatch(
+    /<li[^>]*><a aria-current="true"[^>]*href="\/\?chip=3-8"><strong>3–8 min<\/strong><\/a><\/li>/,
   );
-  expect(html).toContain('<li><a href="/?chip=1-3">1–3 min</a></li>');
+  expect(html).toMatch(
+    /<li[^>]*><a [^>]*href="\/\?chip=1-3">1–3 min<\/a><\/li>/,
+  );
   expect(html.match(/aria-current="true"/g)).toHaveLength(1); // one chip; the tab is "page"
   expect(html.match(/<strong>/g)).toHaveLength(1);
   expect(getFeed).toHaveBeenCalledWith("u1", "3-8", 50);
@@ -175,7 +177,7 @@ test("a chip in the link picks that chip's feed", async () => {
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render({ chip: "1-3" });
   expect(getFeed).toHaveBeenCalledWith("u1", "1-3", 50);
-  expect(html).toContain('<a aria-current="true" href="/?chip=1-3">');
+  expect(html).toMatch(/<a aria-current="true"[^>]*href="\/\?chip=1-3">/);
   expect(html).toContain("Fits your 1–3 min break");
 });
 
@@ -382,6 +384,6 @@ test("the Home tab is marked current", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(feedOf([]));
   const html = await render();
-  expect(html).toContain('<a aria-current="page" href="/">Home</a>');
-  expect(html).toContain('href="/library">Library</a>');
+  expect(html).toMatch(/<a aria-current="page"[^>]*href="\/">.*?Home<\/a>/);
+  expect(html).toMatch(/href="\/library">.*?Library<\/a>/);
 });

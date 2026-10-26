@@ -1,8 +1,11 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { feedback, preferences, sessionReader } from "../../server/container";
+import { parseTheme, THEME_COOKIE, THEMES } from "../../server/theme";
 import { ChoicesFields } from "../ChoicesFields";
+import { setThemeAction } from "../theme/actions";
+import { Button } from "../ui/Button";
 import {
   resetInferredAction,
   unhideSourceAction,
@@ -10,6 +13,12 @@ import {
 } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+const THEME_LABELS = {
+  light: "Light",
+  dark: "Dark",
+  system: "Device",
+} as const;
 
 // Fixed text per key: the query string picks which, never what it says.
 const NOTICES: Record<string, string> = {
@@ -36,9 +45,29 @@ export default async function ProfilePage(props: {
     feedback().inferred(actor.userId),
   ]);
   const { saved, missing } = await props.searchParams;
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
-    <main>
-      <h1>Profile</h1>
+    <main className="mx-auto max-w-xl px-4 pt-6 pb-24">
+      <h1 className="text-display">Profile</h1>
+      {/* This device's theme (owner, 2026-10-26); the Profile restyle places it. */}
+      <form action={setThemeAction} aria-label="Appearance" className="my-4">
+        <input type="hidden" name="back" value="/profile" />
+        <p className="text-section">Appearance</p>
+        <div className="mt-2 flex gap-2">
+          {THEMES.map((option) => (
+            <Button
+              key={option}
+              type="submit"
+              name="theme"
+              value={option}
+              variant={option === theme ? "act" : "secondary"}
+              aria-pressed={option === theme}
+            >
+              {THEME_LABELS[option]}
+            </Button>
+          ))}
+        </div>
+      </form>
       <p>
         <Link href="/">Back to your feed</Link>
       </p>

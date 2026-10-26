@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useReducer } from "react";
 import type { Chip } from "../server/chips";
 import { finishAction } from "./finish/actions";
 import { initialPrompt, promptState } from "./promptState";
+import { Button } from "./ui/Button";
 
 // The return prompt (§5D, Q-P1-32): back on this tab after opening a card, ask once.
 // Card links mark themselves with data-item (and data-moment for a section).
@@ -64,17 +65,18 @@ export function ReturnPrompt({
           : "Finished this section? Continue to the next?"}
       </p>
       {/* Focus moves here so a screen reader announces the question. */}
-      <button type="submit" autoFocus>
+      <Button type="submit" autoFocus>
         Yes
-      </button>{" "}
-      <button
+      </Button>{" "}
+      <Button
         type="button"
+        variant="secondary"
         onClick={() => {
           dispatch({ type: "closed" });
         }}
       >
         No
-      </button>
+      </Button>
     </form>
   );
 }

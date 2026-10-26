@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { library, preferences, sessionReader } from "../../server/container";
 import { outHref } from "../../server/outbound";
-import { TabNav } from "../TabNav";
+import { TabBar } from "../TabBar";
 import { libraryUnsaveAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -45,12 +45,12 @@ export default async function LibraryPage() {
     library().history(actor.userId, LIMIT),
   ]);
   return (
-    <main>
+    <main className="mx-auto max-w-xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
       <h1>Library</h1>
       <p>
         <Link href="/profile">Profile</Link>
       </p>
-      <TabNav current="library" />
+      <TabBar current="library" />
 
       <section aria-label="Saved">
         <h2>Saved</h2>

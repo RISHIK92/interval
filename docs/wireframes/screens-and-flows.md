@@ -2,48 +2,50 @@
 
 UI reference only. Product rules come from docs/product.md and docs/decisions.md.
 
+The visual design (owner, 2026-10-26) is in `app-design.html` (16 screens, light and dark) and `design-system.html` (tokens, type, components) in this folder. They are JavaScript bundles: open them in a browser. Where they show behavior the decisions don't have, an ADR comes first.
+
 Extracted from the `SCREENS` and `FLOWS` arrays in docs/wireframes/interval-blueprint-wireframes.html (Oct 22 wireframes). Text is copied verbatim. Known disagreements with the Oct 23 blueprint: docs/conflicts.md.
 
 ## Screens
 
 ### Mobile · learning
 
-| # | ID | Name | Purpose |
-|---|---|---|---|
-| 01 | `onboard` | Onboarding | Topics, level, break length and formats in under a minute. |
-| 02 | `home` | For You feed | Time chips decide what the feed shows: continue cards, moments and the daily challenge. |
-| 03 | `article` | In-app browser | The publisher’s page, untouched. Interval’s context lives in a sheet below it. |
-| 04 | `explore` | Explore | Search by concept, follow topic spaces, see what’s trending in them. |
-| 05 | `paths` | Learning paths | Books and topics split into sessions, with checkpoints between sections. |
-| 06 | `reader` | Book reader | Original text badged. AI help sits in dashed boxes, apart from the text. |
-| 07 | `listen` | Audio player | Expands from the mini-player. Two modes, labeled as original or AI. |
-| 08 | `library` | Library | Review queue first, then notes, highlights, history and the knowledge map. |
-| 09 | `profile` | Profile | Interests, projects, sources, sessions, games and privacy. |
+| #   | ID        | Name           | Purpose                                                                                 |
+| --- | --------- | -------------- | --------------------------------------------------------------------------------------- |
+| 01  | `onboard` | Onboarding     | Topics, level, break length and formats in under a minute.                              |
+| 02  | `home`    | For You feed   | Time chips decide what the feed shows: continue cards, moments and the daily challenge. |
+| 03  | `article` | In-app browser | The publisher’s page, untouched. Interval’s context lives in a sheet below it.          |
+| 04  | `explore` | Explore        | Search by concept, follow topic spaces, see what’s trending in them.                    |
+| 05  | `paths`   | Learning paths | Books and topics split into sessions, with checkpoints between sections.                |
+| 06  | `reader`  | Book reader    | Original text badged. AI help sits in dashed boxes, apart from the text.                |
+| 07  | `listen`  | Audio player   | Expands from the mini-player. Two modes, labeled as original or AI.                     |
+| 08  | `library` | Library        | Review queue first, then notes, highlights, history and the knowledge map.              |
+| 09  | `profile` | Profile        | Interests, projects, sources, sessions, games and privacy.                              |
 
 ### Mobile · play
 
-| # | ID | Name | Purpose |
-|---|---|---|---|
-| 10 | `hub` | Play hub | League switch, a recommended game, quick games and desktop battles. |
-| 11 | `match` | Matchmaking | Rating band, concepts in play, and the bot fallback. |
-| 12 | `ff` | Fastest finger | Live 1v1. Same questions for both players, timed by the server. |
-| 13 | `est` | Estimation sprint | Numeric answers with unit keys, scored within a tolerance. |
-| 14 | `results` | Results | Outcome and rating, then the missed concept with one button to read the fix. |
-| 15 | `lead` | Leaderboards | Global, country and university boards with season and mode filters. |
-| 16 | `battles` | Battles on mobile | Desktop handoff, tournaments, replays and spectating. |
+| #   | ID        | Name              | Purpose                                                                      |
+| --- | --------- | ----------------- | ---------------------------------------------------------------------------- |
+| 10  | `hub`     | Play hub          | League switch, a recommended game, quick games and desktop battles.          |
+| 11  | `match`   | Matchmaking       | Rating band, concepts in play, and the bot fallback.                         |
+| 12  | `ff`      | Fastest finger    | Live 1v1. Same questions for both players, timed by the server.              |
+| 13  | `est`     | Estimation sprint | Numeric answers with unit keys, scored within a tolerance.                   |
+| 14  | `results` | Results           | Outcome and rating, then the missed concept with one button to read the fix. |
+| 15  | `lead`    | Leaderboards      | Global, country and university boards with season and mode filters.          |
+| 16  | `battles` | Battles on mobile | Desktop handoff, tournaments, replays and spectating.                        |
 
 ### Web and desktop
 
-| # | ID | Name | Purpose |
-|---|---|---|---|
-| W1 | `whome` | Web · For You | The web feed. Articles open in a new tab while Interval keeps the context panel. |
-| W2 | `whub` | Web · Play hub | Ratings, quick games, battles, the daily challenge and tournaments. |
-| W3 | `wquick` | Web · Quick game | Fastest finger on the web, answered with keys 1–4. |
-| W4 | `hld` | HLD battle | Requirements, scenarios, canvas, component settings and trade-off notes. |
-| W5 | `lld` | LLD battle | Interface spec, editor, test layers and the extension round. |
-| W6 | `wres` | Web · Results | Score split, rubric with reasons, AI coach and concepts to revisit. |
-| W7 | `wlead` | Web · Leaderboards | Players and universities, by league, season and mode. |
-| W8 | `comp` | Desktop companion | A menubar window beside the coding agent. Options sized to the time left. |
+| #   | ID       | Name               | Purpose                                                                          |
+| --- | -------- | ------------------ | -------------------------------------------------------------------------------- |
+| W1  | `whome`  | Web · For You      | The web feed. Articles open in a new tab while Interval keeps the context panel. |
+| W2  | `whub`   | Web · Play hub     | Ratings, quick games, battles, the daily challenge and tournaments.              |
+| W3  | `wquick` | Web · Quick game   | Fastest finger on the web, answered with keys 1–4.                               |
+| W4  | `hld`    | HLD battle         | Requirements, scenarios, canvas, component settings and trade-off notes.         |
+| W5  | `lld`    | LLD battle         | Interface spec, editor, test layers and the extension round.                     |
+| W6  | `wres`   | Web · Results      | Score split, rubric with reasons, AI coach and concepts to revisit.              |
+| W7  | `wlead`  | Web · Leaderboards | Players and universities, by league, season and mode.                            |
+| W8  | `comp`   | Desktop companion  | A menubar window beside the coding agent. Options sized to the time left.        |
 
 ### UX notes per screen
 

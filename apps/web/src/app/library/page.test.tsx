@@ -135,8 +135,10 @@ test("an item whose link broke stays, marked, with no link to follow", async () 
 test("the Library tab is marked current", async () => {
   current.mockResolvedValue(guest);
   const html = await page();
-  expect(html).toContain('<a aria-current="page" href="/library">Library</a>');
-  expect(html).toContain('href="/">Home</a>');
+  expect(html).toMatch(
+    /<a aria-current="page"[^>]*href="\/library">.*?Library<\/a>/,
+  );
+  expect(html).toMatch(/href="\/">.*?Home<\/a>/);
 });
 
 test("no session goes to /join; not onboarded goes to /onboarding", async () => {

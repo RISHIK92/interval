@@ -79,7 +79,8 @@ test("shows the card's note, with an AI label only when a model wrote it", () =>
       position={1}
     />,
   );
-  expect(polished).toContain(
-    "<p>Why this matters: Fresh, on your topic. <small>AI</small></p>",
+  // In the dashed AI box, with its tag (AI-1).
+  expect(polished).toMatch(
+    /<div class="[^"]*border-dashed[^"]*">Why this matters: Fresh, on your topic\. <span[^>]*>AI<\/span><\/div>/,
   );
 });

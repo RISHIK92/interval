@@ -75,7 +75,7 @@ test("shows its note like a moment card does", () => {
       position={1}
     />,
   );
-  expect(html).toContain(
-    "<p>Why this matters: Pitched at your beginner level. <small>AI</small></p>",
+  expect(html).toMatch(
+    /<div class="[^"]*border-dashed[^"]*">Why this matters: Pitched at your beginner level\. <span[^>]*>AI<\/span><\/div>/,
   );
 });

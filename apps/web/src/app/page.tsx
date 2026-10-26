@@ -22,7 +22,7 @@ import { CardControls, UndoNotInterested } from "./CardControls";
 import { ContinueReading } from "./ContinueReading";
 import { NowReading } from "./NowReading";
 import { ReturnPrompt } from "./ReturnPrompt";
-import { TabNav } from "./TabNav";
+import { TabBar } from "./TabBar";
 import { MomentCard } from "./MomentCard";
 
 export const dynamic = "force-dynamic";
@@ -111,20 +111,22 @@ export default async function HomePage({
     { ...actor, sessionId: visitId(jar) },
   );
   return (
-    <main>
-      <h1>Interval</h1>
+    <main className="mx-auto max-w-xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <h1 className="text-display">Interval</h1>
       <p>
         <Link href="/profile">Profile</Link>
       </p>
       {account}
-      <TabNav current="home" />
-      <nav aria-label="Break length">
-        <ul>
+      <TabBar current="home" />
+      <nav aria-label="Break length" className="my-4">
+        {/* The design's segmented chips: a well, the chosen one lifted. */}
+        <ul className="flex gap-1 rounded-2xl bg-well p-1">
           {CHIPS.map((option) => (
-            <li key={option}>
+            <li key={option} className="flex-1">
               <Link
                 href={`/?chip=${option}`}
                 aria-current={option === chip ? "true" : undefined}
+                className={`block rounded-xl py-2 text-center ${option === chip ? "bg-lift shadow-card" : "text-ink-muted"}`}
               >
                 {option === chip ? (
                   <strong>{chipLabel(option)}</strong>

@@ -20,7 +20,7 @@ export default defineConfig(
   // Config files and a web app's static scripts (the service worker) are plain JS
   // outside each tsconfig, so type-aware rules cannot run on them.
   {
-    files: ["**/*.config.js", "**/public/**/*.js"],
+    files: ["**/*.config.js", "**/*.config.mjs", "**/public/**/*.js"],
     extends: [tseslint.configs.disableTypeChecked],
   },
 );

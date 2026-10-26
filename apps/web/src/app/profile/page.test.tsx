@@ -20,8 +20,10 @@ vi.mock("../../server/container", () => ({
   preferences: () => ({ get }),
   feedback: () => ({ hiddenSources, inferred }),
 }));
+const themeCookie = vi.fn<(name: string) => { value: string } | undefined>();
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
+  cookies: () => Promise.resolve({ get: themeCookie }),
 }));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
@@ -100,4 +102,28 @@ test("notices come from fixed text, never from the query string", async () => {
   expect(await page({ missing: "topic" })).toContain(
     '<p role="alert">Pick at least one topic.</p>',
   );
+});
+
+// The device's theme (owner, 2026-10-26): three choices, the current one pressed.
+test("appearance offers light, dark and the device's own, this device's marked", async () => {
+  current.mockResolvedValue(guest);
+  get.mockResolvedValue({
+    topics: ["databases"],
+    level: "advanced",
+    breakLength: "8-15",
+  });
+  themeCookie.mockReturnValue({ value: "dark" });
+  const html = await page();
+  for (const theme of ["light", "dark", "system"]) {
+    expect(html).toMatch(
+      new RegExp(
+        `name="theme"[^>]*value="${theme}"|value="${theme}"[^>]*name="theme"`,
+      ),
+    );
+  }
+  expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
+  expect(html).toMatch(
+    /aria-pressed="true"[^>]*value="dark"|value="dark"[^>]*aria-pressed="true"/,
+  );
+  expect(html).toMatch(/<input[^>]*name="back"[^>]*value="\/profile"/);
 });

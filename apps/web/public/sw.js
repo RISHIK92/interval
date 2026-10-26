@@ -1,7 +1,7 @@
 // Only the offline page is cached (Q-P1-31, owner 2026-10-26): every other request
 // goes to the network as usual, so no signed-in page is ever stored.
 // Bump when the offline page changes: installed browsers keep the cached copy.
-const CACHE = "interval-offline-v1";
+const CACHE = "interval-offline-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.add("/offline")));
