@@ -44,9 +44,14 @@ class FetchItem(_Message):
     content_item_id: Annotated[int, Field(ge=1)]
 
 
+class RecomputeFeed(_Message):
+    """Rank one user's feed again and store it (CACHE-1, Q-P1-17, ADR-0008)."""
+
+    user_id: Annotated[str, Field(min_length=1)]
+
+
 class SegmentItem(_Message):
-    """Split one stored item into moments and refresh the feed (ING-1 segment,
-    ING-4)."""
+    """Split one stored item into moments (ING-1 segment, ING-4)."""
 
     content_item_id: Annotated[int, Field(ge=1)]
 
@@ -59,13 +64,19 @@ class TagItem(_Message):
 
 
 type MessageName = Literal[
-    "discover_source", "embed_item", "fetch_item", "segment_item", "tag_item"
+    "discover_source",
+    "embed_item",
+    "fetch_item",
+    "recompute_feed",
+    "segment_item",
+    "tag_item",
 ]
 
 MESSAGES: dict[MessageName, type[_Message]] = {
     "discover_source": DiscoverSource,
     "embed_item": EmbedItem,
     "fetch_item": FetchItem,
+    "recompute_feed": RecomputeFeed,
     "segment_item": SegmentItem,
     "tag_item": TagItem,
 }

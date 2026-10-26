@@ -1,8 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, FeedCard } from "../server/ports";
+import type { Actor, FeedCard, FeedReader } from "../server/ports";
 
-const getFeed = vi.fn<(limit: number) => Promise<FeedCard[]>>();
+const getFeed = vi.fn<FeedReader["read"]>();
+const feedOf = (cards: FeedCard[]) => ({ computed: true, cards });
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const emit = vi.fn();
 const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
@@ -13,11 +14,12 @@ const getPreferences = vi.fn<(userId: string) => Promise<object | null>>(() =>
     topics: ["backend"],
     level: "beginner",
     breakLength: "3-8",
+    onboardedAt: new Date("2026-01-01T00:00:00Z"),
   }),
 );
 vi.mock("../server/container", () => ({
   preferences: () => ({ get: getPreferences }),
-  feedReader: () => ({ list: getFeed }),
+  feedReader: () => ({ read: getFeed, starter: vi.fn() }),
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
   entitlements: () => ({ can }),
@@ -68,10 +70,9 @@ test("without a session the visitor is sent to /join", async () => {
 
 test("renders one card per feed entry", async () => {
   current.mockResolvedValue(guest);
-  getFeed.mockResolvedValue([
-    card,
-    { ...card, momentId: "2", sectionNumber: 2 },
-  ]);
+  getFeed.mockResolvedValue(
+    feedOf([card, { ...card, momentId: "2", sectionNumber: 2 }]),
+  );
   const html = await render();
   expect(html.match(/<article/g)).toHaveLength(2);
   expect(html).toContain('href="https://webfeed.example.test/post"');
@@ -80,7 +81,7 @@ test("renders one card per feed entry", async () => {
 
 test("viewing the feed emits feed_viewed with the card count and the visit", async () => {
   current.mockResolvedValue(guest);
-  getFeed.mockResolvedValue([card, { ...card, momentId: "2" }]);
+  getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
   await render();
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "feed_viewed",
@@ -91,7 +92,7 @@ test("viewing the feed emits feed_viewed with the card count and the visit", asy
 
 test("renders an empty state when the feed is empty", async () => {
   current.mockResolvedValue(guest);
-  getFeed.mockResolvedValue([]);
+  getFeed.mockResolvedValue(feedOf([]));
   expect(await render()).toContain("No moments yet.");
 });
 

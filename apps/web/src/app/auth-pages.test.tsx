@@ -19,7 +19,9 @@ vi.mock("../server/container", () => ({
   sessionReader: () => ({ current }),
   accounts: () => port,
   events: () => ({ emit }),
-  feedReader: () => ({ list: () => Promise.resolve([] as FeedCard[]) }),
+  feedReader: () => ({
+    read: () => Promise.resolve({ computed: true, cards: [] as FeedCard[] }),
+  }),
   entitlements: () => ({ can: () => Promise.resolve(true) }),
   // Onboarded (P1-W4-S01), so the home page renders.
   preferences: () => ({
@@ -28,6 +30,7 @@ vi.mock("../server/container", () => ({
         topics: ["backend"],
         level: "beginner",
         breakLength: "3-8",
+        onboardedAt: new Date("2026-01-01T00:00:00Z"),
       }),
   }),
 }));

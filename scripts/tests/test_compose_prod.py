@@ -224,3 +224,18 @@ def test_one_off_jobs_run_in_the_jobs_image_unless_a_deploy_is_running() -> None
     run_branch = stack.split("run)", 1)[1]
     assert "flock -n 9" in run_branch
     assert 'compose --profile jobs run --rm --no-deps jobs "$@"' in run_branch
+
+
+# Q-P1-17 (P1-W4-S04): hourly feed recomputes, as EventBridge Scheduler does in AWS.
+def test_a_systemd_timer_runs_recompute_due_hourly() -> None:
+    timer = (SYSTEMD / "interval-recompute.timer").read_text()
+    service = (SYSTEMD / "interval-recompute.service").read_text()
+    assert "OnUnitActiveSec=1h" in timer
+    assert "OnBootSec=" in timer
+    assert re.search(
+        r"^ExecStart=.*stack\.sh run recompute-due$", service, re.MULTILINE
+    )
+    assert "Requisite=interval.service" in service
+    assert re.search(r"^TimeoutStartSec=", service, re.MULTILINE)
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert re.search(r"systemctl enable --now interval-recompute\.timer", deploy)

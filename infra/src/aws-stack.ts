@@ -200,6 +200,17 @@ export class AwsStack extends Stack {
       metricName: "EmitFailures",
       metricValue: "$.count",
     });
+    // LOAD-5 (W4-S04): a failed feed recompute keeps the last feed and is counted.
+    logGroup.addMetricFilter("FeedRecomputeFailures", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "feed: recompute failed",
+      ),
+      metricNamespace: "Interval/Feed",
+      metricName: "RecomputeFailures",
+      metricValue: "1",
+    });
     // OPS-4: the AI gateway logs each call's cost and each refusal (Q-P1-23).
     logGroup.addMetricFilter("AiCost", {
       filterPattern: logs.FilterPattern.stringValue("$.msg", "=", "ai: call"),
@@ -331,6 +342,38 @@ export class AwsStack extends Stack {
         // The next run 5 minutes on picks up whatever a failed one missed.
         retryAttempts: 0,
         maxEventAge: Duration.minutes(5),
+      }),
+    });
+
+    // Q-P1-17 (W4-S04): EventBridge Scheduler runs `recompute-due` hourly. It queues a
+    // feed recompute per active user (the consumer runs them) and refreshes the
+    // starter feeds itself; like poll-due, its role may only send to the queues.
+    const recomputeDueTask = taskDefinition("RecomputeDue");
+    recomputeDueTask.addContainer("recompute-due", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["recompute-due"],
+      environment,
+      secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
+      logging: logging("recompute-due"),
+    });
+    // It emits no events and queues only recompute_feed.
+    const recomputeQueue = queues[MESSAGE_NAMES.indexOf("recompute_feed")];
+    if (recomputeQueue === undefined) {
+      throw new Error("packages/db/messages has no recompute_feed schema");
+    }
+    recomputeQueue.grantSendMessages(recomputeDueTask.taskRole);
+    new scheduler.Schedule(this, "RecomputeDueSchedule", {
+      schedule: scheduler.ScheduleExpression.rate(Duration.hours(1)),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: recomputeDueTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // The next hour covers every active user again; no retry needed.
+        retryAttempts: 0,
+        maxEventAge: Duration.hours(1),
       }),
     });
 

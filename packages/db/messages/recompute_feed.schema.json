@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Rank one user's feed again and store it (CACHE-1, Q-P1-17, ADR-0008).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["user_id"],
+  "properties": {
+    "user_id": { "type": "string", "minLength": 1 }
+  }
+}

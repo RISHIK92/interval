@@ -1,5 +1,8 @@
 """Week 1 vertical path through the real adapters (Postgres, httpx, trafilatura):
-feed -> ingest -> moments -> precomputed feed -> card rows."""
+feed -> ingest -> moments -> a user's precomputed feed -> card rows."""
+
+from datetime import UTC, datetime
+from uuid import uuid4
 
 import psycopg
 
@@ -8,6 +11,7 @@ from interval_jobs.adapters.polite_fetcher import PoliteFetcher
 from interval_jobs.adapters.postgres import PostgresStore
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.ingest.one import ingest_one
+from interval_jobs.ports import RankedMoment
 
 from .support import ARTICLE_URL, FEED_URL, mock_web_client, public
 
@@ -33,13 +37,35 @@ def test_one_feed_becomes_moment_cards_without_source_text(
     conn: psycopg.Connection,
 ) -> None:
     ingest(conn, "article_long.html")
+    # The ranking stage's output, written as the recompute stage does (P1-W4-S04).
+    user_id = f"vertical-{uuid4().hex[:8]}"
+    code = conn.execute(
+        "insert into invite_code (code, beta_group, max_uses, expires_at) "
+        "values (%s, 'student', 1, now() + interval '1 day') returning id",
+        (f"VERTICAL{uuid4().hex[:8].upper()}",),
+    ).fetchone()
+    assert code is not None
+    conn.execute(
+        "insert into app_user (id, name, email, beta_group, invite_code_id) "
+        "values (%s, 'n', %s, 'student', %s)",
+        (user_id, f"{user_id}@example.test", code[0]),
+    )
+    moments = conn.execute(
+        "select m.id from moment m join content_item ci on ci.id = m.content_item_id "
+        "join source s on s.id = ci.source_id where s.name = 'seg-test' "
+        "order by m.ordinal"
+    ).fetchall()
+    PostgresStore(conn).feed.replace_user(
+        user_id, [RankedMoment(r[0], "topic_match") for r in moments], datetime.now(UTC)
+    )
 
     cards = conn.execute(
         """
         select section_title, section_number, section_count, estimated_minutes, link,
                article_title, author, source_name
-        from feed_visible where source_name = 'seg-test' order by rank
-        """
+        from user_feed_visible where user_id = %s order by rank
+        """,
+        (user_id,),
     ).fetchall()
 
     title = "How our write-ahead log works"
@@ -57,15 +83,8 @@ def test_one_feed_becomes_moment_cards_without_source_text(
             "seg-test",
         ),
     ]
-    columns = {
-        row[0]
-        for row in conn.execute(
-            "select column_name from information_schema.columns "
-            "where table_name = 'feed_visible'"
-        ).fetchall()
-    }
     # An allowlist: any new column (e.g. a summary) must be added here on purpose.
-    assert columns == {
+    card_columns = {
         "rank",
         "moment_id",
         "section_title",
@@ -77,3 +96,16 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         "author",
         "source_name",
     }
+    for view, keys in (
+        ("user_feed_visible", {"user_id"}),
+        ("starter_feed_visible", {"topic", "level"}),
+    ):
+        columns = {
+            row[0]
+            for row in conn.execute(
+                "select column_name from information_schema.columns "
+                "where table_name = %s",
+                (view,),
+            ).fetchall()
+        }
+        assert columns == card_columns | keys, view

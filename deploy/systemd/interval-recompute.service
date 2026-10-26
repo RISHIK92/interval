@@ -1,0 +1,16 @@
+# VM mode (ADR-0011), Q-P1-17: queue a feed recompute per active user and refresh the
+# starter feeds. Started by interval-recompute.timer; the AWS stack runs the same
+# command hourly from EventBridge Scheduler.
+[Unit]
+Description=Interval recompute-due
+# Requisite, not Requires: a stack stopped for maintenance skips the pass instead of
+# being started again by the timer.
+Requisite=interval.service
+After=interval.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/interval
+ExecStart=/opt/interval/deploy/bin/stack.sh run recompute-due
+# A oneshot has no start timeout by default: a hung pass would stop the timer for good.
+TimeoutStartSec=30min

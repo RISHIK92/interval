@@ -160,25 +160,6 @@ export interface ContentItemSection {
   word_count: number;
 }
 
-export interface FeedEntry {
-  computed_at: Generated<Timestamp>;
-  moment_id: Int8;
-  rank: number;
-}
-
-export interface FeedVisible {
-  article_title: string | null;
-  author: string | null;
-  estimated_minutes: number | null;
-  link: string | null;
-  moment_id: Int8 | null;
-  rank: number | null;
-  section_count: number | null;
-  section_number: number | null;
-  section_title: string | null;
-  source_name: string | null;
-}
-
 export interface FetchValidator {
   etag: string | null;
   last_modified: string | null;
@@ -307,6 +288,28 @@ export interface Source {
   topics: Generated<string[]>;
 }
 
+export interface StarterFeedEntry {
+  level: Difficulty;
+  moment_id: Int8;
+  rank: number;
+  topic: string;
+}
+
+export interface StarterFeedVisible {
+  article_title: string | null;
+  author: string | null;
+  estimated_minutes: number | null;
+  level: Difficulty | null;
+  link: string | null;
+  moment_id: Int8 | null;
+  rank: number | null;
+  section_count: number | null;
+  section_number: number | null;
+  section_title: string | null;
+  source_name: string | null;
+  topic: string | null;
+}
+
 export interface TagOverride {
   concepts: string[];
   content_item_id: Int8;
@@ -325,6 +328,32 @@ export interface UserCapability {
 export interface UserEntitlement {
   capability: Capability | null;
   limit_value: number | null;
+  user_id: string | null;
+}
+
+export interface UserFeedEntry {
+  moment_id: Int8;
+  rank: number;
+  top_signal: string;
+  user_id: string;
+}
+
+export interface UserFeedState {
+  computed_at: Timestamp;
+  user_id: string;
+}
+
+export interface UserFeedVisible {
+  article_title: string | null;
+  author: string | null;
+  estimated_minutes: number | null;
+  link: string | null;
+  moment_id: Int8 | null;
+  rank: number | null;
+  section_count: number | null;
+  section_number: number | null;
+  section_title: string | null;
+  source_name: string | null;
   user_id: string | null;
 }
 
@@ -355,8 +384,6 @@ export interface DB {
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;
-  feed_entry: FeedEntry;
-  feed_visible: FeedVisible;
   fetch_validator: FetchValidator;
   graph_version: GraphVersion;
   invite_code: InviteCode;
@@ -374,9 +401,14 @@ export interface DB {
   ranking_config: RankingConfig;
   schema_meta: SchemaMeta;
   source: Source;
+  starter_feed_entry: StarterFeedEntry;
+  starter_feed_visible: StarterFeedVisible;
   tag_override: TagOverride;
   user_capability: UserCapability;
   user_entitlement: UserEntitlement;
+  user_feed_entry: UserFeedEntry;
+  user_feed_state: UserFeedState;
+  user_feed_visible: UserFeedVisible;
   user_hidden_source: UserHiddenSource;
   user_preferences: UserPreferences;
 }

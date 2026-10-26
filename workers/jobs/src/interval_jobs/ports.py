@@ -279,9 +279,38 @@ class Moments(Protocol):
         ...
 
 
+@dataclass(frozen=True)
+class RankedMoment:
+    """One feed entry, in rank order (the list's order is the rank)."""
+
+    moment_id: int
+    top_signal: str  # the rule that counted most (W4-S06's why-this-matters note)
+
+
 class Feed(Protocol):
-    def rebuild(self) -> int:
-        """Recompute the precomputed feed; returns the number of entries."""
+    """Precomputed feeds (CACHE-1, Q-P1-17): the worker writes them, the web reads."""
+
+    def hold_user(self, user_id: str) -> None:
+        """Until the unit of work ends, no other recompute of this user runs: call it
+        before ranking, so the later of two recomputes ranks on the newer inputs."""
+        ...
+
+    def replace_user(
+        self, user_id: str, ranked: list[RankedMoment], computed_at: datetime
+    ) -> None:
+        """Replaces the user's whole feed and records when, in one transaction: a
+        failure leaves the previous feed exactly as it was (LOAD-5). A user or moment
+        deleted since ranking is skipped, not an error."""
+        ...
+
+    def replace_starter(
+        self, topic: str, level: Difficulty, ranked: list[RankedMoment]
+    ) -> None:
+        """Replaces one starter feed (ADR-0008: a new guest's feed meanwhile)."""
+        ...
+
+    def active_users(self, since: datetime) -> list[str]:
+        """Users whose session was used at or after `since` (owner: 7 days)."""
         ...
 
 

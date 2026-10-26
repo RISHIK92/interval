@@ -36,6 +36,7 @@ from interval_jobs.ports import (
     GrantResult,
     MomentFacts,
     MomentRow,
+    RankedMoment,
     RevokeResult,
     RightsViolation,
     Section,
@@ -69,8 +70,8 @@ def _rights_guard(conn: psycopg.Connection) -> Generator[None]:
         raise RightsViolation(str(error).splitlines()[0]) from error
 
 
-# Serialises feed rebuilds: two concurrent delete+insert runs would collide on the
-# primary key (LOAD-5: jobs may run more than once and side by side).
+# Serialises rewrites of one feed (a user's, or one starter): two delete+insert runs at
+# once would collide on the primary key (LOAD-5: jobs may run twice and side by side).
 FEED_LOCK_KEY = 0x1E_ED_F0_0D
 # Serialises duplicate linking: two stages regrouping overlapping items at once could
 # each pick a different primary.
@@ -481,31 +482,79 @@ class PostgresFeed:
     def __init__(self, conn: psycopg.Connection) -> None:
         self._conn = conn
 
-    def rebuild(self) -> int:
-        # Placeholder order until ranking (REC-1, REC-2) in Week 4: newest item first,
-        # then its sections in reading order.
-        self._conn.execute("select pg_advisory_xact_lock(%s)", (FEED_LOCK_KEY,))
-        self._conn.execute("delete from feed_entry")
-        cursor = self._conn.execute(
-            """
-            insert into feed_entry (moment_id, rank)
-            select m.id,
-                   row_number() over (
-                     order by ci.published_at desc nulls last, ci.id desc, m.ordinal
-                   )
-            from moment m
-            join content_item ci on ci.id = m.content_item_id
-            where ci.id in (
-              -- Per duplicate group, the earliest copy that has moments: the primary
-              -- may be a metadata-only listing with none (owner review, 2026-10-26).
-              select distinct on (coalesce(c.duplicate_of, c.id)) c.id
-              from content_item c
-              where exists (select 1 from moment x where x.content_item_id = c.id)
-              order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
-            )
-            """
+    def hold_user(self, user_id: str) -> None:
+        # Held to the end of the unit of work: the hourly pass and a feedback
+        # recompute of one user take turns, ranking and writing.
+        self._conn.execute(
+            "select pg_advisory_xact_lock(%s, hashtext(%s))", (FEED_LOCK_KEY, user_id)
         )
-        return cursor.rowcount
+
+    def replace_user(
+        self, user_id: str, ranked: list[RankedMoment], computed_at: datetime
+    ) -> None:
+        # One savepoint: the old feed stays whole unless the new one lands (LOAD-5).
+        with self._conn.transaction():
+            self.hold_user(user_id)
+            exists = self._conn.execute(
+                "select 1 from app_user where id = %s", (user_id,)
+            ).fetchone()
+            if exists is None:
+                return  # deleted since ranking (a purged guest): nothing to store
+            self._conn.execute(
+                "delete from user_feed_entry where user_id = %s", (user_id,)
+            )
+            # Moments re-segmented since ranking are skipped; the rank keeps the order.
+            self._conn.execute(
+                """
+                insert into user_feed_entry (user_id, moment_id, rank, top_signal)
+                select %s, r.moment_id, r.rank, r.top_signal
+                from unnest(%s::bigint[], %s::text[]) with ordinality
+                  as r(moment_id, top_signal, rank)
+                where exists (select 1 from moment m where m.id = r.moment_id)
+                """,
+                (
+                    user_id,
+                    [r.moment_id for r in ranked],
+                    [r.top_signal for r in ranked],
+                ),
+            )
+            self._conn.execute(
+                "insert into user_feed_state (user_id, computed_at) values (%s, %s) "
+                "on conflict (user_id) "
+                "do update set computed_at = excluded.computed_at",
+                (user_id, computed_at),
+            )
+
+    def replace_starter(
+        self, topic: str, level: Difficulty, ranked: list[RankedMoment]
+    ) -> None:
+        with self._conn.transaction():
+            # Overlapping hourly runs (a slow one and the next) may rewrite it at once.
+            self._conn.execute(
+                "select pg_advisory_xact_lock(%s, hashtext(%s))",
+                (FEED_LOCK_KEY, f"starter:{topic}:{level}"),
+            )
+            self._conn.execute(
+                "delete from starter_feed_entry where topic = %s and level = %s",
+                (topic, level),
+            )
+            self._conn.execute(
+                """
+                insert into starter_feed_entry (topic, level, moment_id, rank)
+                select %s, %s, r.moment_id, r.rank
+                from unnest(%s::bigint[]) with ordinality as r(moment_id, rank)
+                where exists (select 1 from moment m where m.id = r.moment_id)
+                """,
+                (topic, level, [r.moment_id for r in ranked]),
+            )
+
+    def active_users(self, since: datetime) -> list[str]:
+        rows = self._conn.execute(
+            "select distinct user_id from auth_session where updated_at >= %s "
+            "order by user_id",
+            (since,),
+        ).fetchall()
+        return [str(r[0]) for r in rows]
 
 
 class PostgresInvites:

@@ -15,7 +15,7 @@ also flagged). Hidden sources and Not interested items are never candidates
 from dataclasses import dataclass, field
 from typing import Literal
 
-from interval_jobs.ports import CandidateMoment, Store
+from interval_jobs.ports import CandidateMoment, Store, UserPreferences
 
 type Generator = Literal["topic", "similar"]
 
@@ -37,12 +37,20 @@ class Candidate:
 
 def candidates(store: Store, user_id: str, model: str | None) -> list[Candidate]:
     """`model` is the embedding model in use; None while embeddings are off."""
-    inputs = store.ranking
-    preferences = inputs.preferences(user_id)
+    preferences = store.ranking.preferences(user_id)
     if preferences is None:
         return []
-    hidden = inputs.hidden_sources(user_id)
-    gone = inputs.not_interested(user_id)
+    return candidates_for(store, preferences, user_id, model)
+
+
+def candidates_for(
+    store: Store, preferences: UserPreferences, user_id: str | None, model: str | None
+) -> list[Candidate]:
+    """With no user (a starter feed, ADR-0008) there is no feedback to honour and no
+    liked item to find similar moments from: topic matches only."""
+    inputs = store.ranking
+    hidden = inputs.hidden_sources(user_id) if user_id else set[int]()
+    gone = inputs.not_interested(user_id) if user_id else set[int]()
     found: dict[int, Candidate] = {}
 
     def add(
@@ -61,7 +69,7 @@ def candidates(store: Store, user_id: str, model: str | None) -> list[Candidate]
         preferences.topics, TOPIC_LIMIT, exclude_sources=hidden, exclude_items=gone
     ):
         add(row, "topic")
-    if model is not None:
+    if model is not None and user_id is not None:
         anchors = inputs.liked_items(user_id, MAX_ANCHORS)
         # Excluded in the query, before its limit: an anchor's own moments would
         # otherwise fill every slot.

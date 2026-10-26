@@ -11,7 +11,12 @@ import pytest
 
 from interval_db.generated import AiProvider, RightsProfile
 from interval_db.messages import MessageName
-from interval_jobs.adapters.memory import FakeFetcher, InMemoryAi, InMemoryStore
+from interval_jobs.adapters.memory import (
+    FakeFetcher,
+    InMemoryAi,
+    InMemoryStore,
+    StoredUser,
+)
 from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.ai.gateway import AiGateway
@@ -28,6 +33,7 @@ from interval_jobs.ports import (
     MomentRow,
     RobotsDisallowed,
     Usage,
+    UserPreferences,
     Validators,
 )
 
@@ -106,7 +112,7 @@ class World:
         return [url for url, _ in self.fetcher.requested]
 
 
-def test_a_full_text_source_flows_from_discovery_to_moments_and_the_feed() -> None:
+def test_a_full_text_source_flows_from_discovery_to_moments() -> None:
     world = World()
     world.discover()
     world.run()
@@ -114,7 +120,6 @@ def test_a_full_text_source_flows_from_discovery_to_moments_and_the_feed() -> No
     assert sorted(i.canonical_url for i in items) == [OLDER, WAL]
     assert all(i.full_text for i in items)
     assert world.store.moments.rows, "segmentation produced moments"
-    assert world.store.feed.entries, "the feed was rebuilt"
 
 
 def test_redelivered_messages_create_nothing_twice() -> None:
@@ -273,7 +278,7 @@ def test_an_article_robots_disallows_is_skipped_not_retried() -> None:
     assert world.requested().count(OLDER) == 1
 
 
-def test_the_same_article_from_two_sources_shows_once_in_the_feed() -> None:
+def test_the_same_article_from_two_sources_shows_once_in_a_users_feed() -> None:
     mirror = "https://mirror.example.test/feed.atom"
     world = World(extra={mirror: Fetched(mirror, fixture_bytes("atom.xml"), "utf-8")})
     other = world.store.sources.upsert(
@@ -283,6 +288,8 @@ def test_the_same_article_from_two_sources_shows_once_in_the_feed() -> None:
         homepage=None,
     )
     world.store.sources.set_moments_enabled(other, True)
+    for sid in (world.source_id, other):
+        world.store.sources.rows[sid].topics = ("databases",)
     world.discover()
     world.queue.enqueue("discover_source", {"source_id": other}, idempotency_key="m-1")
     world.run()
@@ -290,10 +297,17 @@ def test_the_same_article_from_two_sources_shows_once_in_the_feed() -> None:
     assert len(items) == 4
     primaries = [i for i in items if i.duplicate_of is None]
     assert sorted(i.canonical_url for i in primaries) == [OLDER, WAL]
-    shown = {
-        m.item_id for m in world.store.moments.rows if m.id in world.store.feed.entries
-    }
+    # The recompute stage (CACHE-1, P1-W4-S04) stores the user's ranked feed.
+    world.store.users.rows["u1"] = StoredUser("u1", is_anonymous=True)
+    world.store.ranking.preferences_by_user["u1"] = UserPreferences(
+        topics=["databases"], level="intermediate", break_length="8-15"
+    )
+    world.queue.enqueue("recompute_feed", {"user_id": "u1"}, idempotency_key="r-1")
+    world.run()
+    by_id = {m.id: m.item_id for m in world.store.moments.rows}
+    shown = {by_id[r.moment_id] for r in world.store.feed.users["u1"]}
     assert shown == {i.id for i in primaries}
+    assert world.store.feed.computed["u1"] == world.now
 
 
 def test_the_fetch_refines_the_canonical_url_and_fingerprints_full_text() -> None:

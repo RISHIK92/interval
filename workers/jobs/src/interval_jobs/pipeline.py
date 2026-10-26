@@ -30,13 +30,14 @@ from interval_db.messages import (
     EmbedItem,
     FetchItem,
     MessageName,
+    RecomputeFeed,
     SegmentItem,
     TagItem,
 )
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.embedding import embed_item
-from interval_jobs.feed.precompute import rebuild_feed
+from interval_jobs.feed.precompute import recompute_user_feed
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.normalize import page_canonical, simhash
 from interval_jobs.polling import MIN_INTERVAL, next_interval
@@ -55,13 +56,15 @@ from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
 from interval_jobs.segment import segment_item
 from interval_jobs.tagging import PROMPT_VERSION, active_concepts, tag_item
 
-# The order a message moves through; the consumer serves all of them.
+# Every queue the consumer serves: ingestion in the order an item moves through it,
+# then the per-user feed recompute (CACHE-1, P1-W4-S04).
 STAGES: tuple[MessageName, ...] = (
     "discover_source",
     "fetch_item",
     "segment_item",
     "tag_item",
     "embed_item",
+    "recompute_feed",
 )
 
 
@@ -112,6 +115,7 @@ class Pipeline:
             "segment_item": self._stage(self._segment),
             "tag_item": self._tag_stage,
             "embed_item": self._embed_stage,
+            "recompute_feed": self._recompute_stage,
         }
 
     def _stage(
@@ -128,6 +132,13 @@ class Pipeline:
         # After the commit: the next stage must see this stage's rows.
         for name, payload, key in follow_ups:
             self._queue.enqueue(name, payload, idempotency_key=key)
+
+    def _recompute_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, RecomputeFeed)
+        # Similarity candidates need the embedding model in use; none while it is off.
+        model = self._embedding.model if self._embedding else None
+        with self._unit() as services:
+            recompute_user_feed(services.store, message.user_id, model, self._clock())
 
     def _discover_stage(self, message: BaseModel, delivery: Delivery) -> None:
         with self._unit() as services:
@@ -253,8 +264,8 @@ class Pipeline:
         # segment_item checks the profile and the moments switch itself (ING-2, §3.2)
         # and stores nothing when they don't allow moments.
         segment_item(store, item_id)
-        rebuild_feed(store)
-        # Moments are tagged and embedded once they exist.
+        # Moments are tagged and embedded once they exist; they reach users' feeds at
+        # each user's next recompute (hourly, or after feedback, Q-P1-17).
         return [
             *self._tag_if_needed(store, item_id),
             *self._embed_if_needed(store, item_id),

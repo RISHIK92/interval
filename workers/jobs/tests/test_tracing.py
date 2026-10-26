@@ -24,12 +24,12 @@ def test_a_run_is_one_root_span_with_a_message_id(
     spans: InMemorySpanExporter,
 ) -> None:
     with (
-        run_span("rebuild-feed"),
+        run_span("recompute-due"),
         trace.get_tracer("test").start_as_current_span("inner"),
     ):
         pass
     finished = {span.name: span for span in spans.get_finished_spans()}
-    root = finished["rebuild-feed"]
+    root = finished["recompute-due"]
     assert root.parent is None
     assert root.attributes is not None
     message_id = root.attributes.get("message_id")

@@ -14,12 +14,18 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
           sql<string[]>`topics::text[]`.as("topics"),
           "level",
           "break_length",
+          "onboarded_at",
         ])
         .where("user_id", "=", userId)
         .executeTakeFirst();
       if (row === undefined) return null;
       const topics = TOPICS.filter((topic) => row.topics.includes(topic));
-      return { topics, level: row.level, breakLength: row.break_length };
+      return {
+        topics,
+        level: row.level,
+        breakLength: row.break_length,
+        onboardedAt: row.onboarded_at,
+      };
     },
 
     async createIfAbsent(userId, preferences) {

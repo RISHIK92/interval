@@ -15,7 +15,7 @@ from uuid import uuid4
 import psycopg
 import pytest
 
-from interval_db.generated import RightsProfile, Topic
+from interval_db.generated import Difficulty, RightsProfile, Topic
 from interval_jobs.adapters.memory import (
     RANKING_DEFAULTS,
     InMemoryAi,
@@ -33,6 +33,7 @@ from interval_jobs.ports import (
     DuplicateInviteCode,
     FeedEntry,
     MomentRow,
+    RankedMoment,
     RightsViolation,
     Section,
     SectionRow,
@@ -56,6 +57,9 @@ class Probe(Protocol):
     def full_text(self, item_id: int) -> str | None: ...
     def moments(self, item_id: int) -> list[tuple[int, int, str]]: ...
     def feed_titles(self) -> list[str]: ...
+    def feed_state(self, user_id: str) -> datetime | None: ...
+    def starter_ids(self, topic: str, level: Difficulty) -> list[int]: ...
+    def age_sessions(self, user_id: str, days: int) -> None: ...
     def disable_moments(self, source_id: int) -> None: ...
     def invite(
         self, code: str
@@ -96,7 +100,11 @@ class MemoryProbe:
         self, user_id: str, anonymous: bool, session_expires: list[datetime]
     ) -> None:
         self.s.users.rows[user_id] = StoredUser(
-            user_id, anonymous, list(session_expires), email=email_of(user_id)
+            user_id,
+            anonymous,
+            list(session_expires),
+            email=email_of(user_id),
+            session_seen=datetime.now(UTC) if session_expires else None,
         )
 
     def user_ids(self) -> set[str]:
@@ -180,7 +188,18 @@ class MemoryProbe:
 
     def feed_titles(self) -> list[str]:
         by_id = {m.id: m.row.title for m in self.s.moments.rows}
-        return [by_id[i] for i in self.s.feed.entries]
+        return [by_id[r.moment_id] for rows in self.s.feed.users.values() for r in rows]
+
+    def feed_state(self, user_id: str) -> datetime | None:
+        return self.s.feed.computed.get(user_id)
+
+    def starter_ids(self, topic: str, level: Difficulty) -> list[int]:
+        rows = self.s.feed.starters.get((topic, level), [])
+        return [r.moment_id for r in rows]
+
+    def age_sessions(self, user_id: str, days: int) -> None:
+        user = self.s.users.rows[user_id]
+        user.session_seen = datetime.now(UTC) - timedelta(days=days)
 
 
 @dataclass
@@ -362,11 +381,33 @@ class PostgresProbe:
 
     def feed_titles(self) -> list[str]:
         rows = self.conn.execute(
-            "select m.title from feed_entry fe join moment m on m.id = fe.moment_id "
+            "select m.title from user_feed_entry fe "
+            "join moment m on m.id = fe.moment_id "
             "join content_item ci on ci.id = m.content_item_id "
-            "where ci.guid like 'contract-%%' order by fe.rank"
+            "where ci.guid like 'contract-%%' order by fe.user_id, fe.rank"
         ).fetchall()
         return [r[0] for r in rows]
+
+    def feed_state(self, user_id: str) -> datetime | None:
+        row = self.conn.execute(
+            "select computed_at from user_feed_state where user_id = %s", (user_id,)
+        ).fetchone()
+        return None if row is None else row[0]
+
+    def starter_ids(self, topic: str, level: Difficulty) -> list[int]:
+        rows = self.conn.execute(
+            "select moment_id from starter_feed_entry where topic = %s "
+            "and level = %s::difficulty order by rank",
+            (topic, level),
+        ).fetchall()
+        return [r[0] for r in rows]
+
+    def age_sessions(self, user_id: str, days: int) -> None:
+        self.conn.execute(
+            "update auth_session set updated_at = now() - make_interval(days => %s) "
+            "where user_id = %s",
+            (days, user_id),
+        )
 
 
 @pytest.fixture(params=["memory", "postgres"])
@@ -518,39 +559,6 @@ def test_the_oversized_flag_is_stored_and_updated(store: tuple[Store, Probe]) ->
     assert probe.oversized(item) == [False, True]
 
 
-def test_feed_orders_newest_item_first_then_sections_and_rebuild_replaces(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
-    sid = source(s)
-    probe.enable_moments(sid)
-    # Far-future dates keep these first in Postgres even if other rows exist.
-    old = s.items.upsert_from_feed(
-        sid, entry("old", datetime(2099, 10, 1, tzinfo=UTC)), keep_excerpt=False
-    )
-    new = s.items.upsert_from_feed(
-        sid, entry("new", datetime(2099, 10, 20, tzinfo=UTC)), keep_excerpt=False
-    )
-    s.moments.replace(old, [moment(0, "old0"), moment(1, "old1")])
-    s.moments.replace(new, [moment(0, "new0"), moment(1, "new1")])
-    undated = s.items.upsert_from_feed(sid, entry("undated"), keep_excerpt=False)
-    tie_a = s.items.upsert_from_feed(
-        sid, entry("tie-a", datetime(2099, 10, 10, tzinfo=UTC)), keep_excerpt=False
-    )
-    tie_b = s.items.upsert_from_feed(
-        sid, entry("tie-b", datetime(2099, 10, 10, tzinfo=UTC)), keep_excerpt=False
-    )
-    s.moments.replace(undated, [moment(0, "undated0")])
-    s.moments.replace(tie_a, [moment(0, "tieA")])
-    s.moments.replace(tie_b, [moment(0, "tieB")])
-    s.feed.rebuild()
-    s.feed.rebuild()
-    titles = probe.feed_titles()
-    # Newest first; equal dates by newer item (higher id) first; undated last.
-    assert titles[:6] == ["new0", "new1", "tieB", "tieA", "old0", "old1"]
-    assert titles[-1] == "undated0"
-
-
 def change_profile(s: Store, profile_from: RightsProfile, to: RightsProfile) -> None:
     s.sources.upsert(
         name=f"contract-{profile_from}",
@@ -572,7 +580,7 @@ def test_lowering_full_text_purges_text_sections_moments_and_feed(
     s.items.store_full_text(item, "body")
     s.items.replace_sections(item, [Section("A", 2, "a", 10)])
     s.moments.replace(item, [moment(0, "purge0")])
-    s.feed.rebuild()
+    put_in_feed(s, probe, item)
 
     change_profile(s, "full_text_internal", "excerpt")
     assert probe.full_text(item) is None
@@ -1121,23 +1129,6 @@ def test_a_poll_keeps_the_canonical_url_the_fetch_found(
     assert fetch.canonical_url == "https://dup.example.test/c1"
 
 
-def test_the_feed_shows_only_the_primary(store: tuple[Store, Probe]) -> None:
-    s, probe = store
-    url = "https://dup.example.test/feed-dup"
-    a, b = dup_source(s, "a"), dup_source(s, "b")
-    probe.enable_moments(a)
-    probe.enable_moments(b)
-    primary = dup_item(s, a, "d1", 2, url=url)
-    copy = dup_item(s, b, "d2", 3, url=url)
-    s.moments.replace(primary, [moment(0, "dup-primary")])
-    s.moments.replace(copy, [moment(0, "dup-copy")])
-    s.items.link_duplicates(copy)
-    s.feed.rebuild()
-    titles = probe.feed_titles()
-    assert "dup-primary" in titles
-    assert "dup-copy" not in titles
-
-
 def test_a_missing_author_or_date_never_matches_on_metadata(
     store: tuple[Store, Probe],
 ) -> None:
@@ -1207,22 +1198,6 @@ def test_an_item_bridging_two_groups_merges_them(store: tuple[Store, Probe]) -> 
         x1,
         x1,
     ]
-
-
-def test_the_feed_keeps_the_earliest_copy_that_has_moments(
-    store: tuple[Store, Probe],
-) -> None:
-    s, probe = store
-    url = "https://dup.example.test/syndicated"
-    listing = dup_item(s, dup_source(s, "listing", "metadata_only"), "k1", 1, url=url)
-    original_source = dup_source(s, "original")
-    probe.enable_moments(original_source)
-    original = dup_item(s, original_source, "k2", 2, url=url)
-    s.moments.replace(original, [moment(0, "dup-original")])
-    s.items.link_duplicates(original)
-    s.feed.rebuild()
-    assert probe.primary_of(original) == listing
-    assert "dup-original" in probe.feed_titles()
 
 
 # ING-3 adaptive polling (P1-W2-S03).
@@ -1625,7 +1600,7 @@ def test_an_admins_moments_switch_survives_seed_reloads(
     )
     item = s.items.upsert_from_feed(sid, entry("switched-item"), keep_excerpt=False)
     s.moments.replace(item, [moment(0, "sw0")])
-    s.feed.rebuild()
+    put_in_feed(s, probe, item)
     assert "sw0" in probe.feed_titles()
     probe.switch_moments_off(sid, True)
     assert probe.moments(item) == []  # purged: gone from the feed at once
@@ -1832,3 +1807,124 @@ def test_moment_facts_and_feedback_for_scoring(store: tuple[Store, Probe]) -> No
     assert s.ranking.avoided_concepts(user) == frozenset({"sf-b"})
     probe.correct_concepts(disliked, ["sf-a"])  # an admin's correction replaces them
     assert s.ranking.avoided_concepts(user) == frozenset({"sf-a"})
+
+
+def put_in_feed(s: Store, probe: Probe, item_id: int) -> str:
+    """A user whose feed holds the item's moments (feeds are per user, W4-S04)."""
+    user = f"feed-{uuid4().hex[:8]}"
+    probe.add_user(user, False, [])
+    ranked = [RankedMoment(m[0], "topic_match") for m in probe.moments(item_id)]
+    s.feed.replace_user(user, ranked, datetime.now(UTC))
+    return user
+
+
+# CACHE-1, Q-P1-17 (P1-W4-S04): a user's feed is replaced whole, with its time.
+def test_a_users_feed_is_replaced_whole_with_its_time(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("uf"), keep_excerpt=False)
+    s.moments.replace(item, [moment(0, "uf0"), moment(1, "uf1")])
+    first, second = (m[0] for m in probe.moments(item))
+    user = f"feed-{uuid4().hex[:8]}"
+    probe.add_user(user, False, [])
+    assert probe.feed_state(user) is None
+    early = datetime(2099, 1, 1, tzinfo=UTC)
+    s.feed.replace_user(
+        user,
+        [RankedMoment(first, "quality"), RankedMoment(second, "topic_match")],
+        early,
+    )
+    assert probe.feed_titles() == ["uf0", "uf1"]
+    later = datetime(2099, 1, 2, tzinfo=UTC)
+    s.feed.replace_user(user, [RankedMoment(second, "freshness")], later)
+    assert probe.feed_titles() == ["uf1"]
+    assert probe.feed_state(user) == later
+    # An empty feed still counts as computed (ADR-0008: "not yet" vs "nothing").
+    s.feed.replace_user(user, [], later)
+    assert probe.feed_titles() == []
+    assert probe.feed_state(user) == later
+
+
+def test_starter_feeds_are_replaced_per_topic_and_level(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("sf"), keep_excerpt=False)
+    s.moments.replace(item, [moment(0, "sf0"), moment(1, "sf1")])
+    a, b = (m[0] for m in probe.moments(item))
+    s.feed.replace_starter("databases", "beginner", [RankedMoment(a, "quality")])
+    s.feed.replace_starter("databases", "advanced", [RankedMoment(b, "quality")])
+    s.feed.replace_starter(
+        "databases",
+        "beginner",
+        [RankedMoment(b, "quality"), RankedMoment(a, "quality")],
+    )
+    assert probe.starter_ids("databases", "beginner") == [b, a]
+    assert probe.starter_ids("databases", "advanced") == [b]
+
+
+def test_active_users_used_a_session_in_the_window(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    soon = datetime(2099, 1, 1, tzinfo=UTC)
+    recent, stale, never = (f"act-{uuid4().hex[:8]}" for _ in range(3))
+    probe.add_user(recent, True, [soon])
+    probe.add_user(stale, False, [soon])
+    probe.add_user(never, False, [])
+    probe.age_sessions(stale, 8)
+    since = datetime.now(UTC) - timedelta(days=7)
+    active = set(s.feed.active_users(since))
+    assert recent in active
+    assert stale not in active
+    assert never not in active
+
+
+def test_a_failed_feed_write_keeps_the_previous_feed(
+    store: tuple[Store, Probe],
+) -> None:
+    # LOAD-5: the write is all or nothing; the unit of work it runs in stays usable.
+    s, probe = store
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("kept"), keep_excerpt=False)
+    s.moments.replace(item, [moment(0, "kept0")])
+    (kept,) = (m[0] for m in probe.moments(item))
+    user = f"feed-{uuid4().hex[:8]}"
+    probe.add_user(user, False, [])
+    first = datetime(2099, 1, 1, tzinfo=UTC)
+    s.feed.replace_user(user, [RankedMoment(kept, "quality")], first)
+    twice = [RankedMoment(kept, "quality"), RankedMoment(kept, "freshness")]
+    with pytest.raises(Exception):  # noqa: B017  the engine's own error
+        s.feed.replace_user(user, twice, datetime(2099, 1, 2, tzinfo=UTC))
+    assert probe.feed_titles() == ["kept0"]
+    assert probe.feed_state(user) == first
+
+
+def test_a_feed_for_a_deleted_user_or_moment_is_skipped(
+    store: tuple[Store, Probe],
+) -> None:
+    # A user purged or a moment re-segmented between ranking and writing is not a
+    # failure (it would otherwise retry and count as one).
+    s, probe = store
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("gone"), keep_excerpt=False)
+    s.moments.replace(item, [moment(0, "gone0")])
+    (live,) = (m[0] for m in probe.moments(item))
+    now = datetime(2099, 1, 1, tzinfo=UTC)
+    s.feed.replace_user("never-existed", [RankedMoment(live, "quality")], now)
+    assert probe.feed_state("never-existed") is None
+    user = f"feed-{uuid4().hex[:8]}"
+    probe.add_user(user, False, [])
+    gone = live + 10_000_000
+    s.feed.replace_user(
+        user, [RankedMoment(gone, "quality"), RankedMoment(live, "topic_match")], now
+    )
+    assert probe.feed_titles() == ["gone0"]
+    assert probe.feed_state(user) == now

@@ -136,25 +136,6 @@ class ContentItemSection(TypedDict):
     word_count: int
 
 
-class FeedEntry(TypedDict):
-    moment_id: int
-    rank: int
-    computed_at: datetime
-
-
-class FeedVisible(TypedDict):
-    rank: int | None
-    moment_id: int | None
-    section_title: str | None
-    section_number: int | None
-    section_count: int | None
-    estimated_minutes: int | None
-    link: str | None
-    article_title: str | None
-    author: str | None
-    source_name: str | None
-
-
 class FetchValidator(TypedDict):
     url: str
     etag: str | None
@@ -283,6 +264,28 @@ class Source(TypedDict):
     moments_switched_at: datetime | None
 
 
+class StarterFeedEntry(TypedDict):
+    topic: str
+    level: Difficulty
+    moment_id: int
+    rank: int
+
+
+class StarterFeedVisible(TypedDict):
+    topic: str | None
+    level: Difficulty | None
+    rank: int | None
+    moment_id: int | None
+    section_title: str | None
+    section_number: int | None
+    section_count: int | None
+    estimated_minutes: int | None
+    link: str | None
+    article_title: str | None
+    author: str | None
+    source_name: str | None
+
+
 class TagOverride(TypedDict):
     content_item_id: int
     heading: str
@@ -302,6 +305,32 @@ class UserEntitlement(TypedDict):
     user_id: str | None
     capability: Capability | None
     limit_value: int | None
+
+
+class UserFeedEntry(TypedDict):
+    user_id: str
+    moment_id: int
+    rank: int
+    top_signal: str
+
+
+class UserFeedState(TypedDict):
+    user_id: str
+    computed_at: datetime
+
+
+class UserFeedVisible(TypedDict):
+    user_id: str | None
+    rank: int | None
+    moment_id: int | None
+    section_title: str | None
+    section_number: int | None
+    section_count: int | None
+    estimated_minutes: int | None
+    link: str | None
+    article_title: str | None
+    author: str | None
+    source_name: str | None
 
 
 class UserHiddenSource(TypedDict):

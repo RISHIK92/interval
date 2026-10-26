@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates) and W4-S03 (scoring) done. Next: W4-S04 (precomputed feed). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring) and W4-S04 (precomputed feed) done. Next: W4-S05 (time chips and format selection). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -1054,3 +1054,33 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the concept graph lookup moved out of the fake's loop;
   - tests for the 1–3 chip, future dates and tie order.
 - Deferred: whole-article candidates (W4-S05's 8–15 chip). `top_signal` waits for W4-S06's why-this-matters note.
+
+### 2026-10-26 — P1-W4-S04 (precomputed feed and fallback, CACHE-1, LOAD-5, Q-P1-17, ADR-0008)
+- Owner choices: starter feeds now; active = a session used in 7 days (6–7 in practice: Better Auth refreshes `updated_at` daily); `recompute-due` on the poll-due schedulers, hourly.
+- Done:
+  - **Migration `20261026130000_user_feed.sql`:**
+    - `user_feed_entry`, `user_feed_state` (its presence means "computed", even when empty) and `starter_feed_entry`;
+    - the `user_feed_visible` and `starter_feed_visible` views with the card columns and source gate only (ING-2, §3.2);
+    - the global `feed_entry`/`feed_visible` and the `rebuild-feed` command are retired.
+  - **Message:** `recompute_feed {user_id}`, with its queue and DLQ.
+  - **Worker:**
+    - `recompute_user_feed` takes the user's lock before ranking (the later of two recomputes ranks on newer inputs), ranks, and replaces the feed in one savepoint. A failure logs `feed: recompute failed` (the AWS metric `Interval/Feed RecomputeFailures`) and keeps the old feed; the queue retries, then the DLQ.
+    - A user or moment deleted mid-recompute is skipped, not counted as a failure.
+    - Starter feeds are built per (topic, level) for every topic, so a topic dropped from the graph empties.
+    - `recompute-due` queues one job per active user (key per UTC hour) and refreshes the starters.
+    - The consumer serves `recompute_feed`.
+  - **Web:**
+    - `FeedReader.read` returns the stored cards and whether the feed was ever computed, in one query;
+    - `loadFeed` waits up to 3 s only within 2 minutes of onboarding (ADR-0008: a new guest), then serves the starter feed for the first topic and level;
+    - onboarding emits its event first, then queues the first recompute; a queue failure is logged (`feed: first recompute not queued`) and onboarding still completes.
+  - **Infra:** an hourly EventBridge schedule and a recompute-due task (send-only to `recompute_feed`, the DB secret only); a VM `interval-recompute.{service,timer}` enabled by `deploy.sh`.
+- Review fixes:
+  - a queue failure at onboarding broke the page and lost `onboarding_completed` (a blocker);
+  - the lock is now taken before ranking;
+  - the 3 s wait is scoped to new guests;
+  - a deleted user or moment is a no-op;
+  - a Postgres test that a failed write keeps the old feed;
+  - `recompute-due` is tested;
+  - stale texts fixed and the starter rows of dropped topics cleared;
+  - least-privilege IAM.
+- Not checked: whether BullMQ hangs rather than fails when Valkey is down (its offline queue), and whether `recompute_feed` jobs can wait behind an ingestion backlog (that would make first visits fall back to the starter more often).

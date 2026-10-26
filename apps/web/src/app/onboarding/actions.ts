@@ -2,7 +2,13 @@
 
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { events, preferences, sessionReader } from "../../server/container";
+import {
+  events,
+  jobQueue,
+  preferences,
+  sessionReader,
+} from "../../server/container";
+import { log } from "../../server/log";
 import { completeOnboarding } from "../../server/preferences";
 import { visitId } from "../../server/visits";
 import { textField } from "../form";
@@ -23,6 +29,20 @@ export async function onboardingAction(form: FormData): Promise<void> {
       {},
       { ...actor, sessionId: visitId(await cookies()) },
     );
+  }
+  // The first feed (Q-P1-17, ADR-0008): the home page waits briefly for this job. If the
+  // queue is down, the starter feed shows and the hourly pass computes it (LOAD-5).
+  try {
+    await jobQueue().enqueue(
+      "recompute_feed",
+      { user_id: actor.userId },
+      { idempotencyKey: `onboarding-recompute-${actor.userId}` },
+    );
+  } catch (error) {
+    log.error("feed: first recompute not queued", {
+      userId: actor.userId,
+      error,
+    });
   }
   redirect("/");
 }

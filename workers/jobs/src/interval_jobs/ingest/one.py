@@ -6,7 +6,6 @@ Works through ports only (ADR-0012); the caller owns the unit of work.
 from dataclasses import dataclass
 from typing import Literal
 
-from interval_jobs.feed.precompute import rebuild_feed
 from interval_jobs.ingest.feed import newest_entry
 from interval_jobs.ports import Extractor, Fetcher, Store
 from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
@@ -51,7 +50,6 @@ def ingest_one(
         )
         # Moments always match the stored structure (owner, 2026-10-25).
         segment_item(store, item_id)
-        rebuild_feed(store)
         return IngestResult(content_item_id=item_id, stored="full_text")
 
     if allowed(profile, "store_excerpt"):

@@ -1,4 +1,4 @@
-import type { Capability, DB, FeedVisible } from "@interval/db";
+import type { Capability, DB, UserFeedVisible } from "@interval/db";
 import { Kysely, PostgresDialect, sql, type Selectable } from "kysely";
 import pg from "pg";
 import { log } from "../log";
@@ -41,7 +41,22 @@ export function kyselyPing(db: Kysely<DB>): DatabasePing {
 
 // View columns are nullable in the generated types; a null here means a broken view, so
 // the row is dropped and only its id and the missing column names are logged.
-export function toCard(row: Selectable<FeedVisible>): FeedCard | null {
+// The card columns, as both feed views name them (no summary or text, §3.2, ING-2).
+const CARD_COLUMNS = [
+  "rank",
+  "moment_id",
+  "section_title",
+  "section_number",
+  "section_count",
+  "estimated_minutes",
+  "link",
+  "article_title",
+  "author",
+  "source_name",
+] as const;
+type CardRow = Pick<Selectable<UserFeedVisible>, (typeof CARD_COLUMNS)[number]>;
+
+export function toCard(row: CardRow): FeedCard | null {
   const {
     moment_id,
     section_title,
@@ -65,7 +80,7 @@ export function toCard(row: Selectable<FeedVisible>): FeedCard | null {
     const missing = Object.entries(row)
       .filter(([column, value]) => value === null && column !== "author")
       .map(([column]) => column);
-    log.error("feed: dropped a feed_visible row with missing fields", {
+    log.error("feed: dropped a feed row with missing fields", {
       momentId: moment_id,
       missing,
     });
@@ -87,10 +102,29 @@ export function toCard(row: Selectable<FeedVisible>): FeedCard | null {
 // Reads the precomputed feed (CACHE-1); the worker writes it (ADR-0008).
 export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
   return {
-    list: async (limit) => {
+    read: async (userId, limit) => {
+      // The state row says "computed"; the left join brings its cards, if any.
       const rows = await db
-        .selectFrom("feed_visible")
-        .selectAll()
+        .selectFrom("user_feed_state as s")
+        .leftJoin("user_feed_visible as v", "v.user_id", "s.user_id")
+        .select(CARD_COLUMNS.map((column) => `v.${column}` as const))
+        .where("s.user_id", "=", userId)
+        .orderBy("v.rank")
+        .limit(limit)
+        .execute();
+      if (rows.length === 0) return { computed: false, cards: [] };
+      const cards = rows
+        .filter((row) => row.moment_id !== null)
+        .map(toCard)
+        .filter((card) => card !== null);
+      return { computed: true, cards };
+    },
+    starter: async (topic, level, limit) => {
+      const rows = await db
+        .selectFrom("starter_feed_visible")
+        .select(CARD_COLUMNS)
+        .where("topic", "=", topic)
+        .where("level", "=", level)
         .orderBy("rank")
         .limit(limit)
         .execute();

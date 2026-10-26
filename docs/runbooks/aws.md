@@ -33,7 +33,7 @@ Per ADR-0013 nothing is deployed until every phase is built. The owner runs ever
 
 ## Run a job
 The same `run-task` as migrations, with `<JobsTaskDefinition>` and
-`--overrides '{"containerOverrides":[{"name":"jobs","command":["rebuild-feed"]}]}'`.
+`--overrides '{"containerOverrides":[{"name":"jobs","command":["recompute-due"]}]}'`.
 
 ## Database
 - TLS: every task connects with `sslmode=verify-full`, using the RDS CA bundle baked into the images (`/certs/rds-global-bundle.pem`).

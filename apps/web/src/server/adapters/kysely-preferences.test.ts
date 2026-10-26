@@ -66,7 +66,10 @@ test("onboarding's choices are kept once; a second create changes nothing", asyn
         breakLength: "8-15",
       }),
     ).toBe(false);
-    expect(await store.get(userId)).toEqual(first);
+    const stored = await store.get(userId);
+    expect(stored).toMatchObject(first);
+    // When onboarding saved them: the home page waits for a first feed only just after.
+    expect(stored?.onboardedAt).toBeInstanceOf(Date);
   });
 });
 

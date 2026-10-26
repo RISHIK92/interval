@@ -247,7 +247,7 @@ describe("edge", () => {
 describe("containers", () => {
   test("ARM64 tasks get secrets only through ECS secrets, never plain env", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
-    expect(tasks.length).toBe(5); // web, jobs, worker, migrate, poll-due
+    expect(tasks.length).toBe(6); // web, jobs, worker, migrate, poll-due, recompute-due
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -455,7 +455,7 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
   });
 
   test("the schedule runs in the app subnets, never retries, and may run only poll-due", () => {
-    const [, schedule] = only("AWS::Scheduler::Schedule");
+    const schedule = scheduleFor("PollDueTask");
     const target = schedule.Properties["Target"] as {
       RetryPolicy: {
         MaximumRetryAttempts: number;
@@ -478,6 +478,7 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
       target.EcsParameters.NetworkConfiguration.AwsvpcConfiguration;
     expect(network.AssignPublicIp ?? "DISABLED").toBe("DISABLED");
     expect(JSON.stringify(network.SecurityGroups)).toContain("AppSg");
+    // Each schedule's role may run its own task only.
     const runTask = all("AWS::IAM::Policy").flatMap(([, policy]) =>
       (
         policy.Properties["PolicyDocument"] as {
@@ -485,8 +486,12 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(1);
-    expect(JSON.stringify(runTask[0]?.Resource)).toContain("PollDueTask");
+    expect(runTask).toHaveLength(2);
+    const targets = runTask.map((st) => JSON.stringify(st.Resource));
+    expect(targets.filter((t) => t.includes("PollDueTask"))).toHaveLength(1);
+    expect(targets.filter((t) => t.includes("RecomputeDueTask"))).toHaveLength(
+      1,
+    );
   });
 
   test("poll-due gets the database password and no other secret", () => {
@@ -502,5 +507,93 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
     expect((container?.Secrets ?? []).map((x) => x.Name)).toEqual([
       "DB_PASSWORD",
     ]);
+  });
+});
+
+function scheduleFor(taskPrefix: string): Resource {
+  const found = all("AWS::Scheduler::Schedule").find(([, schedule]) =>
+    JSON.stringify(schedule.Properties["Target"]).includes(taskPrefix),
+  );
+  if (found === undefined) throw new Error(`no schedule runs ${taskPrefix}`);
+  return found[1];
+}
+
+function containerNamed(name: string) {
+  return all("AWS::ECS::TaskDefinition")
+    .flatMap(
+      ([, task]) =>
+        task.Properties["ContainerDefinitions"] as {
+          Name: string;
+          Command?: string[];
+          Secrets?: { Name: string }[];
+        }[],
+    )
+    .find((c) => c.Name === name);
+}
+
+describe("precomputed feeds (W4-S04, Q-P1-17)", () => {
+  test("EventBridge Scheduler runs recompute-due hourly as a Fargate task", () => {
+    const schedule = scheduleFor("RecomputeDueTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe("rate(1 hour)");
+    expect(containerNamed("recompute-due")?.Command).toEqual(["recompute-due"]);
+    // A missed hour needs no retry: the next run covers every active user again.
+    expect(
+      (schedule.Properties["Target"] as { RetryPolicy: unknown }).RetryPolicy,
+    ).toEqual({ MaximumRetryAttempts: 0, MaximumEventAgeInSeconds: 3600 });
+  });
+
+  test("recompute-due may send to the queues, never consume, and has only the DB secret", () => {
+    const actions = new Set<string>();
+    for (const [, policy] of all("AWS::IAM::Policy")) {
+      const props = policy.Properties as {
+        Roles: { Ref: string }[];
+        PolicyDocument: { Statement: { Action: string | string[] }[] };
+      };
+      if (
+        !props.Roles.some((r) => r.Ref.startsWith("RecomputeDueTaskTaskRole"))
+      ) {
+        continue;
+      }
+      for (const statement of props.PolicyDocument.Statement) {
+        for (const action of [statement.Action].flat()) actions.add(action);
+      }
+    }
+    expect(actions.has("sqs:SendMessage")).toBe(true);
+    expect(actions.has("sqs:ReceiveMessage")).toBe(false);
+    expect([...actions].some((a) => a.startsWith("firehose:"))).toBe(false);
+    expect(
+      (containerNamed("recompute-due")?.Secrets ?? []).map((x) => x.Name),
+    ).toEqual(["DB_PASSWORD"]);
+    // Only the recompute_feed queue: least privilege (it queues nothing else).
+    const sends = all("AWS::IAM::Policy")
+      .filter(([, policy]) =>
+        (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
+          r.Ref.startsWith("RecomputeDueTaskTaskRole"),
+        ),
+      )
+      .flatMap(([, policy]) =>
+        (
+          policy.Properties["PolicyDocument"] as {
+            Statement: { Action: string | string[]; Resource: unknown }[];
+          }
+        ).Statement.filter((st) =>
+          [st.Action].flat().includes("sqs:SendMessage"),
+        ),
+      );
+    expect(sends).toHaveLength(1);
+    expect(JSON.stringify(sends[0]?.Resource)).toContain("recomputefeed");
+  });
+
+  test("a failed recompute becomes a CloudWatch metric (LOAD-5)", () => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "feed: recompute failed" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Feed",
+          MetricName: "RecomputeFailures",
+          MetricValue: "1",
+        }),
+      ],
+    });
   });
 });

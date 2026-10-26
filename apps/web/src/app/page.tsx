@@ -8,6 +8,7 @@ import {
   preferences,
   sessionReader,
 } from "../server/container";
+import { loadFeed } from "../server/feed";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { MomentCard } from "./MomentCard";
@@ -21,7 +22,8 @@ export default async function HomePage() {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
   // Guest-first onboarding (§5A, P1-W4-S01): topics, level and break length first.
-  if ((await preferences().get(actor.userId)) === null) redirect("/onboarding");
+  const chosen = await preferences().get(actor.userId);
+  if (chosen === null) redirect("/onboarding");
   const account = actor.isGuest ? (
     <p>
       <Link href="/sign-up">Sign up to keep your progress</Link>
@@ -41,7 +43,13 @@ export default async function HomePage() {
       </main>
     );
   }
-  const cards = await feedReader().list(FEED_LIMIT);
+  // The stored feed (CACHE-1); a first visit may wait for it, then a starter (ADR-0008).
+  const { cards } = await loadFeed(
+    { feed: feedReader() },
+    actor.userId,
+    chosen,
+    FEED_LIMIT,
+  );
   events().emit(
     "feed_viewed",
     { card_count: cards.length },

@@ -57,5 +57,11 @@ class InMemoryQueue:
     def pending(self, name: MessageName) -> int:
         return len(self._pending[name])
 
+    def pending_messages(
+        self, name: MessageName
+    ) -> list[tuple[str, dict[str, object]]]:
+        """Tests: what is waiting, as (idempotency key, message)."""
+        return [(p.key, p.payload) for p in self._pending[name]]
+
     def failed_messages(self, name: MessageName) -> list[dict[str, object]]:
         return list(self._failed[name])

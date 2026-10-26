@@ -42,7 +42,8 @@ install -d -m 700 "$DATA_MOUNT/files" "$INTERVAL_ETC"
 "$APP_DIR/deploy/bin/stack.sh" build
 "$APP_DIR/deploy/bin/stack.sh" up
 
-for unit in interval.service interval-poll.service interval-poll.timer; do
+for unit in interval.service interval-poll.service interval-poll.timer \
+  interval-recompute.service interval-recompute.timer; do
   install -m 644 "$APP_DIR/deploy/systemd/$unit" "/etc/systemd/system/$unit"
 done
 systemctl daemon-reload
@@ -52,6 +53,8 @@ systemctl enable interval.service
 systemctl start interval.service
 # ING-3: polls due sources every 5 minutes, as EventBridge Scheduler does in AWS mode.
 systemctl enable --now interval-poll.timer
+# Q-P1-17: recomputes active users' feeds hourly, as EventBridge Scheduler does in AWS.
+systemctl enable --now interval-recompute.timer
 docker image prune -f >/dev/null
 
 echo "Deployed $(git -C "$APP_DIR" rev-parse --short HEAD)"

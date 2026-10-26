@@ -36,6 +36,7 @@ from interval_jobs.ports import (
     GrantResult,
     MomentFacts,
     MomentRow,
+    RankedMoment,
     RevokeResult,
     RightsViolation,
     Section,
@@ -466,36 +467,49 @@ class InMemoryMoments:
 
 
 class InMemoryFeed:
-    def __init__(self, items: InMemoryItems, moments: InMemoryMoments) -> None:
-        self._items = items
+    def __init__(self, users: "InMemoryUsers", moments: InMemoryMoments) -> None:
+        self._users = users
         self._moments = moments
-        self.entries: list[int] = []  # moment ids in rank order
+        self.users: dict[str, list[RankedMoment]] = {}
+        self.computed: dict[str, datetime] = {}
+        self.starters: dict[tuple[str, Difficulty], list[RankedMoment]] = {}
 
-    def rebuild(self) -> int:
-        # Same placeholder order as the Postgres adapter: newest item first (undated
-        # last), then higher item id, then reading order.
-        def key(m: StoredMoment) -> tuple[bool, float, int, int]:
-            item = self._items.rows[m.item_id]
-            published = item.published_at.timestamp() if item.published_at else 0.0
-            return (item.published_at is None, -published, -item.id, m.row.ordinal)
+    def hold_user(self, user_id: str) -> None:
+        pass  # one thread at a time in the fake
 
-        # Per duplicate group, the earliest copy that has moments (as in Postgres).
-        shown: dict[int, StoredItem] = {}
-        for m in self._moments.rows:
-            item = self._items.rows[m.item_id]
-            group = item.duplicate_of or item.id
-            current = shown.get(group)
-            if current is None or _earlier(item, current):
-                shown[group] = item
-        ids = {item.id for item in shown.values()}
-        kept = [m for m in self._moments.rows if m.item_id in ids]
-        self.entries = [m.id for m in sorted(kept, key=key)]
-        return len(self.entries)
+    def replace_user(
+        self, user_id: str, ranked: list[RankedMoment], computed_at: datetime
+    ) -> None:
+        ids = [r.moment_id for r in ranked]
+        if len(set(ids)) != len(ids):
+            raise ValueError("a moment twice in one feed (the primary key refuses it)")
+        if user_id not in self._users.rows:
+            return
+        live = {m.id for m in self._moments.rows}
+        self.users[user_id] = [r for r in ranked if r.moment_id in live]
+        self.computed[user_id] = computed_at
+
+    def replace_starter(
+        self, topic: str, level: Difficulty, ranked: list[RankedMoment]
+    ) -> None:
+        self.starters[(topic, level)] = list(ranked)
+
+    def active_users(self, since: datetime) -> list[str]:
+        return sorted(
+            u.id
+            for u in self._users.rows.values()
+            if u.session_expiries
+            and u.session_seen is not None
+            and u.session_seen >= since
+        )
 
     def drop_missing(self) -> None:
-        # Mirrors feed_entry's on-delete cascade from moment.
+        # Mirrors the on-delete cascade from moment to every feed table.
         live = {m.id for m in self._moments.rows}
-        self.entries = [i for i in self.entries if i in live]
+        for user, rows in self.users.items():
+            self.users[user] = [r for r in rows if r.moment_id in live]
+        for key, rows in self.starters.items():
+            self.starters[key] = [r for r in rows if r.moment_id in live]
 
 
 @dataclass
@@ -540,6 +554,7 @@ class StoredUser:
     session_expiries: list[datetime] = field(default_factory=list[datetime])
     email: str = ""
     capabilities: set[Capability] = field(default_factory=set[Capability])
+    session_seen: datetime | None = None  # the auth session's updated_at
 
 
 class InMemoryUsers:
@@ -1038,9 +1053,9 @@ class InMemoryStore:
         self.sources = InMemorySources()
         self.items = InMemoryItems(self.sources)
         self.moments = InMemoryMoments(self.items, self.sources)
-        self.feed = InMemoryFeed(self.items, self.moments)
         self.invites = InMemoryInvites()
         self.users = InMemoryUsers()
+        self.feed = InMemoryFeed(self.users, self.moments)
         self.grants = InMemoryGrants(self.users)
         self.validators = InMemoryValidators()
         self.concepts = InMemoryConcepts()

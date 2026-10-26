@@ -9,10 +9,12 @@ const createIfAbsent = vi.fn<
   (userId: string, preferences: Preferences) => Promise<boolean>
 >(() => Promise.resolve(true));
 const emit = vi.fn();
+const enqueue = vi.fn<() => Promise<void>>(() => Promise.resolve());
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({ get, createIfAbsent }),
   events: () => ({ emit }),
+  jobQueue: () => ({ enqueue }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -95,6 +97,12 @@ test("choices are saved, onboarding_completed is emitted, and the feed follows",
     {},
     expect.objectContaining({ userId: "g1", sessionId: "visit-1" }),
   );
+  // The first feed is computed now (ADR-0008); the home page waits briefly for it.
+  expect(enqueue).toHaveBeenCalledWith(
+    "recompute_feed",
+    { user_id: "g1" },
+    { idempotencyKey: "onboarding-recompute-g1" },
+  );
 });
 
 test("a resubmit after onboarding changes and counts nothing", async () => {
@@ -121,4 +129,29 @@ test("there is no way past it without a topic", async () => {
   expect(await page({ missing: "topic" })).toContain(
     "Pick at least one topic.",
   );
+});
+
+// LOAD-5: the queue being down must not lose the onboarding or its event; the starter
+// feed shows meanwhile and the hourly pass computes the user's feed.
+test("a failed recompute enqueue is logged, and onboarding still completes", async () => {
+  current.mockResolvedValue(guest);
+  enqueue.mockRejectedValueOnce(new Error("valkey down"));
+  const lines: string[] = [];
+  vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
+    lines.push(String(chunk));
+    return true;
+  });
+  const { onboardingAction } = await import("./actions");
+  await expect(
+    onboardingAction(
+      form({ topic: "databases", level: "beginner", breakLength: "1-3" }),
+    ),
+  ).rejects.toThrow(/^redirect:\/$/);
+  expect(emit).toHaveBeenCalledWith(
+    "onboarding_completed",
+    {},
+    expect.objectContaining({ userId: "g1" }),
+  );
+  expect(lines.join("")).toContain("feed: first recompute not queued");
+  vi.restoreAllMocks();
 });

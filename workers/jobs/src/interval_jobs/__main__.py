@@ -3,7 +3,7 @@
 Usage:
   python -m interval_jobs ingest-one --name N --feed-url URL --rights-profile P
   python -m interval_jobs segment-item --content-item-id ID
-  python -m interval_jobs rebuild-feed
+  python -m interval_jobs recompute-due
   python -m interval_jobs issue-invites --group student --uses 30 --days 30 [--count N]
   python -m interval_jobs purge-guests
   python -m interval_jobs poll-due
@@ -42,7 +42,7 @@ from interval_jobs.consumer import run_consumers
 from interval_jobs.embedding_eval import MIN_POOL, MIN_RECALL, parse_queries
 from interval_jobs.embedding_eval import EvalError as EmbeddingEvalError
 from interval_jobs.embedding_eval import run_eval as run_embedding_eval
-from interval_jobs.feed.precompute import rebuild_feed
+from interval_jobs.feed.precompute import enqueue_recomputes, recompute_starters
 from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
@@ -78,7 +78,10 @@ def main(argv: list[str]) -> None:
     one.add_argument("--homepage")
     seg = commands.add_parser("segment-item", help="split one stored item into moments")
     seg.add_argument("--content-item-id", type=int, required=True)
-    commands.add_parser("rebuild-feed", help="recompute the precomputed feed")
+    commands.add_parser(
+        "recompute-due",
+        help="queue a feed recompute per active user and refresh the starter feeds",
+    )
     inv = commands.add_parser("issue-invites", help="issue private-beta invite codes")
     inv.add_argument("--group", required=True, choices=get_args(BetaGroup.__value__))
     inv.add_argument("--uses", type=int, required=True, help="1 = personal code")
@@ -152,6 +155,16 @@ def main(argv: list[str]) -> None:
 
 
 def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    if args.command == "recompute-due":
+        # Q-P1-17: hourly. Users' recomputes go through the queue (one job each,
+        # retried alone); starter feeds have no user and are cheap, so they run here.
+        now = datetime.now(UTC)
+        with services() as s:
+            queued = enqueue_recomputes(s.store, queue_for_enqueue(), now)
+            starters = recompute_starters(s.store, None, now)
+        print(json.dumps({"queued": queued, "starter_feeds": starters}))
+        return
+
     if args.command == "poll-due":
         with services() as s:
             enqueued = enqueue_due(s.store, queue_for_enqueue(), datetime.now(UTC))
@@ -291,11 +304,8 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     with services() as s:
         if args.command == "purge-guests":
             result = {"purged": s.store.users.purge_inactive_guests(datetime.now(UTC))}
-        elif args.command == "rebuild-feed":
-            result = {"feed_entries": rebuild_feed(s.store)}
         elif args.command == "segment-item":
             rows = segment_item(s.store, args.content_item_id)
-            rebuild_feed(s.store)
             result = {"content_item_id": args.content_item_id, "moments": len(rows)}
         else:
             source_id = s.store.sources.upsert(

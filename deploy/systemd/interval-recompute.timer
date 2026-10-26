@@ -1,0 +1,11 @@
+# VM mode (ADR-0011), Q-P1-17: hourly, starting 5 minutes after boot so the stack is up
+# first. A missed run needs no catch-up: the next one covers every active user again.
+[Unit]
+Description=Interval recompute-due every hour
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+
+[Install]
+WantedBy=timers.target
