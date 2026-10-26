@@ -7,6 +7,7 @@ import { env } from "./env";
 import { CHIP_COOKIE, parseChip } from "./server/chips";
 import { events, sessionReader } from "./server/container";
 import { log } from "./server/log";
+import { formatReading, parseReading, READING_COOKIE } from "./server/reading";
 import {
   formatVisit,
   parseVisit,
@@ -36,6 +37,26 @@ export async function proxy(
   const chip = parseChip(request.nextUrl.searchParams.get("chip"));
   if (chip !== null) {
     response.cookies.set(CHIP_COOKIE, chip, { ...options, maxAge: undefined });
+  }
+
+  // An in-app reader open feeds Now reading like a browser open through /out (ADR-0018,
+  // owner 2026-10-26). Pages can't set cookies, so it's done here.
+  // shortcut: a moment whose link fell back to the article is still remembered as the
+  // moment; move this into /read if that fallback turns out to matter.
+  // Only the shapes /read accepts: a chip and either a card position or a `from`.
+  // shortcut: a signed-out request is still remembered (no session lookup on this path);
+  // harmless, since Home asks for a session before showing it.
+  const query = request.nextUrl.searchParams;
+  const read = /^\/read\/([^/]+)$/.exec(request.nextUrl.pathname);
+  const reading =
+    read === null || chip === null || query.has("pos") === query.has("from")
+      ? null
+      : parseReading(`${read[1] ?? ""}.${query.get("moment") ?? ""}`);
+  if (reading !== null) {
+    response.cookies.set(READING_COOKIE, formatReading(reading), {
+      ...options,
+      maxAge: undefined,
+    });
   }
 
   if (visit !== null && now - visit.lastSeen < VISIT_IDLE_SECONDS) {

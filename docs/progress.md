@@ -1763,3 +1763,4 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - should Next section emit an event?
   - `docs/product.md` §5D still says "Read on site".
 - Not tested: ReaderFrame's timer phases (no DOM test library).
+- Follow-up (owner answers, 2026-10-26): an in-app reader open sets the Now reading cookie (in the proxy, only for the `/read` shapes the page accepts); Next section counts as an open of that section from the same card (`card_opened` in_app from a feed card, `continue_clicked` from a Continue card, nothing after Save). `product.md` §5D "Read on site" left as is. Reviewer: the cookie was set for malformed `/read` links, now fixed. Note: each Next section adds an open to the finished-rate denominator.

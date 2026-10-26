@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 // As /out's query, with the chip always there: the reader goes back to that feed. A
 // feed card has a position; "continue" is a Continue card, "reader" a move inside the
-// reader (Next section, or back after Save), which counts no event.
+// reader (back after Save), which counts no event.
 const Read = z.object({
   moment: z.string().regex(BIGINT_ID).optional(),
   chip: z.enum(CHIPS),
@@ -49,13 +49,12 @@ export default async function ReadPage({
   const { moment, chip, pos, from } = parsed.data;
   if ((from === undefined) === (pos === undefined)) redirect("/");
   const card = pos === undefined ? null : { chip, pos };
+  const origin = card === null ? (from ?? "continue") : { position: card.pos };
   const browserHref = outHref({
     itemId: item,
     ...(moment === undefined ? {} : { momentId: moment }),
     target: "section",
-    ...(card === null
-      ? { from: from ?? "continue" }
-      : { chip, from: { position: card.pos } }),
+    ...(typeof origin === "string" ? { from: origin } : { chip, from: origin }),
   });
   // Leaving for the browser from inside the reader: the open is already counted, so
   // only the outbound click is recorded (from=reader).
@@ -205,7 +204,12 @@ export default async function ReadPage({
                   itemId: item,
                   momentId: page.nextMomentId,
                   chip,
-                  from: "reader",
+                  // An open of the next section from the same card, counted like one
+                  // (owner, 2026-10-26); after Save the card is unknown, so none.
+                  from:
+                    card === null
+                      ? (from ?? "continue")
+                      : { position: card.pos },
                 })}
                 className="inline-flex items-center justify-center rounded-full bg-ink px-4 py-2.5 font-semibold text-page"
               >
