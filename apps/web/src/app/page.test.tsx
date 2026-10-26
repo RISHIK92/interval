@@ -135,8 +135,14 @@ test("renders the three chips as links and marks the onboarding one", async () =
   for (const chip of ["1-3", "3-8", "8-15"]) {
     expect(html).toContain(`href="/?chip=${chip}"`);
   }
-  expect(html).toContain('<a aria-current="true" href="/?chip=3-8">');
+  // Separate list items, and the selected chip is visibly marked, not only for
+  // screen readers.
+  expect(html).toContain(
+    '<li><a aria-current="true" href="/?chip=3-8"><strong>3–8 min</strong></a></li>',
+  );
+  expect(html).toContain('<li><a href="/?chip=1-3">1–3 min</a></li>');
   expect(html.match(/aria-current/g)).toHaveLength(1);
+  expect(html.match(/<strong>/g)).toHaveLength(1);
   expect(getFeed).toHaveBeenCalledWith("u1", "3-8", 50);
   expect(html).toContain("Fits your 3–8 min break");
 });

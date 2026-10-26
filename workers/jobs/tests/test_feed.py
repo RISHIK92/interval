@@ -94,3 +94,41 @@ def test_an_entry_with_a_malformed_link_is_skipped_not_fatal() -> None:
 </channel></rss>"""
     entries = valid_entries(feed, "https://blog.example.test/rss")
     assert [e.title for e in entries] == ["Good"]
+
+
+@pytest.mark.parametrize(
+    ("author_xml", "expected"),
+    [
+        # Blogger's Atom feeds: the name plus a placeholder email.
+        (
+            "<author><name>Murat</name><email>noreply@blogger.com</email></author>",
+            "Murat",
+        ),
+        ("<author><email>someone@example.test</email></author>", None),
+    ],
+)
+def test_an_atom_author_shows_the_name_never_the_email(
+    author_xml: str, expected: str | None
+) -> None:
+    feed = (
+        '<feed xmlns="http://www.w3.org/2005/Atom"><title>t</title>'
+        f"<entry><id>e1</id><title>One</title>{author_xml}"
+        '<link href="https://blog.example.test/one"/>'
+        "<updated>2026-10-20T09:00:00Z</updated></entry></feed>"
+    ).encode()
+    assert newest_entry(feed, FEED).author == expected
+
+
+@pytest.mark.parametrize(
+    ("author", "expected"),
+    [("rae@example.test (Rae Writer)", "Rae Writer"), ("rae@example.test", None)],
+)
+def test_an_rss_author_shows_the_name_never_the_email(
+    author: str, expected: str | None
+) -> None:
+    feed = (
+        '<rss version="2.0"><channel><title>t</title><item><title>One</title>'
+        f"<link>https://blog.example.test/one</link><author>{author}</author>"
+        "</item></channel></rss>"
+    ).encode()
+    assert newest_entry(feed, FEED).author == expected

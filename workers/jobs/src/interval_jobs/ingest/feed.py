@@ -64,6 +64,17 @@ def _summary(raw: dict[str, Any]) -> str | None:
     return plain_summary(summary)
 
 
+def _author(raw: dict[str, Any]) -> str | None:
+    # feedparser joins a name and email ("Murat (noreply@blogger.com)"); a card shows
+    # only the name, and an author with no name has none to show.
+    detail: dict[str, Any] = raw.get("author_detail") or {}
+    name = (detail.get("name") or "").strip()
+    if name:
+        return name
+    author = _text(raw, "author")
+    return None if author is None or "@" in author else author
+
+
 def _to_entry(raw: dict[str, Any], feed_url: str) -> FeedEntry | None:
     link = _text(raw, "link")
     title = _text(raw, "title")
@@ -81,7 +92,7 @@ def _to_entry(raw: dict[str, Any], feed_url: str) -> FeedEntry | None:
         guid=_text(raw, "id") or absolute,
         link=link,
         title=title,
-        author=_text(raw, "author"),
+        author=_author(raw),
         published_at=_time(raw, "published_parsed"),
         updated_at=_time(raw, "updated_parsed"),
         summary=_summary(raw),

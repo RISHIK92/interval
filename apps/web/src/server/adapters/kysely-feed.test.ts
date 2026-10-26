@@ -218,6 +218,12 @@ test("the starter feed is read per topic, level and chip", async () => {
     const [first, second] = momentIds;
     if (first === undefined || second === undefined) throw new Error("seed");
     const beginner = { topic: "databases", level: "beginner" } as const;
+    // The shared database may hold real starter feeds; this transaction rolls back.
+    await trx
+      .deleteFrom("starter_feed_entry")
+      .where("topic", "=", "databases")
+      .where("level", "in", ["beginner", "advanced"])
+      .execute();
     await trx
       .insertInto("starter_feed_entry")
       .values([

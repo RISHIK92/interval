@@ -73,15 +73,22 @@ export default async function HomePage({
       <h1>Interval</h1>
       {account}
       <nav aria-label="Break length">
-        {CHIPS.map((option) => (
-          <Link
-            key={option}
-            href={`/?chip=${option}`}
-            aria-current={option === chip ? "true" : undefined}
-          >
-            {chipLabel(option)}
-          </Link>
-        ))}
+        <ul>
+          {CHIPS.map((option) => (
+            <li key={option}>
+              <Link
+                href={`/?chip=${option}`}
+                aria-current={option === chip ? "true" : undefined}
+              >
+                {option === chip ? (
+                  <strong>{chipLabel(option)}</strong>
+                ) : (
+                  chipLabel(option)
+                )}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </nav>
       {cards.length === 0 ? (
         <p>No moments yet.</p>
