@@ -9,8 +9,14 @@ const config: NextConfig = {
   // CLAUDE.md is the one place for agent rules (owner, 2026-10-25).
   agentRules: false,
   // Development only: testing on a phone through an ngrok HTTPS tunnel (owner,
-  // 2026-10-26). Next blocks dev requests from origins not listed here.
-  allowedDevOrigins: ["*.ngrok-free.app", "*.ngrok-free.dev", "*.ngrok.app"],
+  // 2026-10-26), and a second signed-in session on 127.0.0.1 beside localhost (its own
+  // cookies). Next blocks dev requests from origins not listed here.
+  allowedDevOrigins: [
+    "*.ngrok-free.app",
+    "*.ngrok-free.dev",
+    "*.ngrok.app",
+    "127.0.0.1",
+  ],
   // ADR-0018: the in-app reader frames publishers' pages over https only.
   headers: () =>
     Promise.resolve([
