@@ -116,6 +116,11 @@ export async function GET(request: Request): Promise<Response> {
           kind: moment === undefined ? "article" : "moment",
           chip: card.chip,
           position: card.pos,
+          // The ids, to match this open to a finish (P1-W6-S04). A link that landed
+          // on the article is an article open: the article is what the reader can
+          // finish, as the reading cookie says (owner, 2026-10-26).
+          item_id: item,
+          moment_id: link.linkType === "article" ? null : (moment ?? null),
         },
         context,
       );

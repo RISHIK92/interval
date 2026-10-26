@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import {
   CfnOutput,
@@ -7,6 +7,7 @@ import {
   Stack,
   type StackProps,
 } from "aws-cdk-lib";
+import * as athena from "aws-cdk-lib/aws-athena";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as origins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as cloudwatch from "aws-cdk-lib/aws-cloudwatch";
@@ -15,6 +16,7 @@ import { Platform } from "aws-cdk-lib/aws-ecr-assets";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as elasticache from "aws-cdk-lib/aws-elasticache";
 import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
+import * as glue from "aws-cdk-lib/aws-glue";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as rds from "aws-cdk-lib/aws-rds";
 import * as scheduler from "aws-cdk-lib/aws-scheduler";
@@ -171,6 +173,105 @@ export class AwsStack extends Stack {
       events,
       "interval-prod-aws-events",
     );
+
+    // DB-5, P1-W6-S04: Athena reads the events Firehose writes, one prefix per day
+    // (partition projection: no crawler, no partitions to add). `props` lists only the
+    // props the saved queries read; the stack test pins them against the queries.
+    const eventsDatabase = new glue.CfnDatabase(this, "EventsDatabase", {
+      catalogId: this.account,
+      databaseInput: { name: "interval_events" },
+    });
+    const eventsLocation = `s3://${events.bucketName}/events/`;
+    const eventsTable = new glue.CfnTable(this, "EventsTable", {
+      catalogId: this.account,
+      databaseName: eventsDatabase.ref,
+      tableInput: {
+        name: "events",
+        tableType: "EXTERNAL_TABLE",
+        partitionKeys: [{ name: "dt", type: "string" }],
+        parameters: {
+          classification: "json",
+          "projection.enabled": "true",
+          "projection.dt.type": "date",
+          "projection.dt.format": "yyyy-MM-dd",
+          "projection.dt.range": "2026-10-01,NOW",
+          "projection.dt.interval": "1",
+          "projection.dt.interval.unit": "DAYS",
+          "storage.location.template": `${eventsLocation}dt=\${dt}/`,
+        },
+        storageDescriptor: {
+          location: eventsLocation,
+          inputFormat: "org.apache.hadoop.mapred.TextInputFormat",
+          outputFormat:
+            "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+          serdeInfo: {
+            serializationLibrary: "org.openx.data.jsonserde.JsonSerDe",
+          },
+          columns: [
+            { name: "event_id", type: "string" },
+            { name: "occurred_at", type: "string" },
+            { name: "user_id", type: "string" },
+            { name: "is_guest", type: "boolean" },
+            { name: "beta_group", type: "string" },
+            { name: "session_id", type: "string" },
+            { name: "source", type: "string" },
+            { name: "name", type: "string" },
+            { name: "version", type: "int" },
+            {
+              name: "props",
+              type: "struct<kind:string,item_id:string,moment_id:string,method:string>",
+            },
+          ],
+        },
+      },
+    });
+    // Query results are throwaway: kept a month, then expired.
+    events.addLifecycleRule({
+      prefix: "athena-results/",
+      expiration: Duration.days(30),
+    });
+    const workGroup = new athena.CfnWorkGroup(this, "EventsWorkGroup", {
+      name: "interval-events",
+      // The saved queries go with it when the stack is deleted.
+      recursiveDeleteOption: true,
+      workGroupConfiguration: {
+        enforceWorkGroupConfiguration: true,
+        // OPS-4: the queries read the whole events prefix; 10 GB per query is far above
+        // beta volume and stops a runaway scan.
+        bytesScannedCutoffPerQuery: 10 * 1024 ** 3,
+        resultConfiguration: {
+          outputLocation: `s3://${events.bucketName}/athena-results/`,
+          encryptionConfiguration: { encryptionOption: "SSE_S3" },
+        },
+      },
+    });
+    // Phase 1 "done when" (Q-P1-21), by beta group: the SQL lives in the repo, tested
+    // with DuckDB on fixture events (workers/jobs/tests/test_metric_queries.py).
+    for (const [id, file, description] of [
+      [
+        "ReturnRateQuery",
+        "return_rate.sql",
+        "Users who return the week after signup",
+      ],
+      [
+        "FinishedRateQuery",
+        "finished_rate.sql",
+        "Opened items marked finished",
+      ],
+    ] as const) {
+      const query = new athena.CfnNamedQuery(this, id, {
+        name: file.replace(".sql", ""),
+        description,
+        database: eventsDatabase.ref,
+        workGroup: workGroup.name,
+        queryString: readFileSync(
+          path.join(REPO_ROOT, "packages/events/queries", file),
+          "utf8",
+        ),
+      });
+      query.addResourceDependency(workGroup);
+      query.addResourceDependency(eventsTable);
+    }
 
     const appSecret = (name: string): secretsmanager.Secret =>
       new secretsmanager.Secret(this, name.replaceAll("/", "-"), {

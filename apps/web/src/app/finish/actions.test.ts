@@ -85,7 +85,7 @@ test.each(["return_prompt", "mark_done"] as const)(
     );
     expect(emit).toHaveBeenCalledExactlyOnceWith(
       "section_finished",
-      { method },
+      { method, item_id: "5", moment_id: "9" },
       context,
     );
     expect(deleteCookie).toHaveBeenCalledWith("iv_reading");
@@ -105,7 +105,7 @@ test("a whole article is finished as an article", async () => {
   expect(finishMoment).not.toHaveBeenCalled();
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "article_finished",
-    { method: "mark_done" },
+    { method: "mark_done", item_id: "5" },
     context,
   );
 });
@@ -191,9 +191,12 @@ test("the last section's finish also finishes the article, once", async () => {
     "5",
     "return_prompt",
   );
-  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
-    "section_finished",
-    "article_finished",
+  expect(emit.mock.calls.map((c) => [c[0], c[1]] as const)).toEqual([
+    [
+      "section_finished",
+      { method: "return_prompt", item_id: "5", moment_id: "9" },
+    ],
+    ["article_finished", { method: "return_prompt", item_id: "5" }],
   ]);
 });
 

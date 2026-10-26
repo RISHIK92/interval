@@ -35,9 +35,9 @@ type BetaGroup = Literal["student", "developer"]
 type Source = Literal["web", "jobs"]
 
 EVENT_VERSIONS: dict[EventName, int] = {
-    "article_finished": 1,
+    "article_finished": 2,
     "card_impression": 1,
-    "card_opened": 1,
+    "card_opened": 2,
     "continue_clicked": 1,
     "feed_viewed": 1,
     "feedback_given": 1,
@@ -47,7 +47,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "onboarding_completed": 1,
     "outbound_click": 1,
     "pwa_installed": 1,
-    "section_finished": 1,
+    "section_finished": 2,
     "session_started": 1,
     "signup_completed": 1,
     "source_hidden": 1,
@@ -60,6 +60,7 @@ class _Model(BaseModel):
 
 class ArticleFinishedProps(_Model):
     method: Literal["return_prompt", "mark_done"]
+    item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class CardImpressionProps(_Model):
@@ -70,6 +71,8 @@ class CardOpenedProps(_Model):
     kind: Literal["moment", "article"]
     chip: Literal["1-3", "3-8", "8-15"]
     position: int = Field(ge=0, strict=True)
+    item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    moment_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class ContinueClickedProps(_Model):
@@ -111,6 +114,8 @@ class PwaInstalledProps(_Model):
 
 class SectionFinishedProps(_Model):
     method: Literal["return_prompt", "mark_done"]
+    item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    moment_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class SessionStartedProps(_Model):
@@ -143,7 +148,7 @@ class _EnvelopeBase(_Model):
 
 class ArticleFinishedEvent(_EnvelopeBase):
     name: Literal["article_finished"]
-    version: Literal[1]
+    version: Literal[2]
     props: ArticleFinishedProps
 
 
@@ -155,7 +160,7 @@ class CardImpressionEvent(_EnvelopeBase):
 
 class CardOpenedEvent(_EnvelopeBase):
     name: Literal["card_opened"]
-    version: Literal[1]
+    version: Literal[2]
     props: CardOpenedProps
 
 
@@ -215,7 +220,7 @@ class PwaInstalledEvent(_EnvelopeBase):
 
 class SectionFinishedEvent(_EnvelopeBase):
     name: Literal["section_finished"]
-    version: Literal[1]
+    version: Literal[2]
     props: SectionFinishedProps
 
 

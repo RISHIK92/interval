@@ -3,6 +3,8 @@ members = ["workers/jobs", "packages/db/python"]
 
 [dependency-groups]
 dev = [
+    # Runs the Athena metric queries on fixture events in tests (P1-W6-S04, owner).
+    "duckdb==1.5.6",
     "pyright==1.1.414",
     "pytest==9.1.1",
     "ruff==0.17.2",

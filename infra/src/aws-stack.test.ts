@@ -1,4 +1,4 @@
-import { readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { App } from "aws-cdk-lib";
 import { Match, Template } from "aws-cdk-lib/assertions";
@@ -646,5 +646,123 @@ describe("weekly link health checks (W6-S03, ING-6)", () => {
     expect(
       (containerNamed("check-links-due")?.Secrets ?? []).map((x) => x.Name),
     ).toEqual(["DB_PASSWORD"]);
+  });
+});
+
+describe("Athena metric queries (W6-S04, DB-5)", () => {
+  const QUERIES = path.join(
+    import.meta.dirname,
+    "../../packages/events/queries",
+  );
+  const PROPS =
+    "struct<kind:string,item_id:string,moment_id:string,method:string>";
+
+  test("a Glue table reads the Firehose events by day, with partition projection", () => {
+    const [table] = all("AWS::Glue::Table");
+    expect(table).toBeDefined();
+    const input = table?.[1].Properties["TableInput"] as {
+      Name: string;
+      PartitionKeys: { Name: string; Type: string }[];
+      Parameters: Record<string, string>;
+      StorageDescriptor: {
+        Location: unknown;
+        SerdeInfo: { SerializationLibrary: string };
+        Columns: { Name: string; Type: string }[];
+      };
+    };
+    expect(input.Name).toBe("events");
+    expect(input.PartitionKeys).toEqual([{ Name: "dt", Type: "string" }]);
+    expect(input.Parameters["projection.enabled"]).toBe("true");
+    expect(input.Parameters["projection.dt.type"]).toBe("date");
+    expect(input.Parameters["projection.dt.format"]).toBe("yyyy-MM-dd");
+    // The same prefix Firehose writes to (storage.ts).
+    expect(
+      JSON.stringify(input.Parameters["storage.location.template"]),
+    ).toContain("/events/dt=${dt}/");
+    expect(JSON.stringify(input.StorageDescriptor.Location)).toContain(
+      "/events/",
+    );
+    expect(input.StorageDescriptor.SerdeInfo.SerializationLibrary).toBe(
+      "org.openx.data.jsonserde.JsonSerDe",
+    );
+    const columns = Object.fromEntries(
+      input.StorageDescriptor.Columns.map((c) => [c.Name, c.Type]),
+    );
+    expect(columns).toEqual({
+      event_id: "string",
+      occurred_at: "string",
+      user_id: "string",
+      is_guest: "boolean",
+      beta_group: "string",
+      session_id: "string",
+      source: "string",
+      name: "string",
+      version: "int",
+      props: PROPS,
+    });
+  });
+
+  test("every prop the queries read is in the table's props struct", () => {
+    const declared = new Set(
+      [...PROPS.matchAll(/(\w+):string/g)].map((m) => m[1]),
+    );
+    for (const file of ["return_rate.sql", "finished_rate.sql"]) {
+      const sql = readFileSync(path.join(QUERIES, file), "utf8");
+      for (const [, prop] of sql.matchAll(/props\.(\w+)/g)) {
+        expect(declared).toContain(prop);
+      }
+    }
+  });
+
+  test("an enforced workgroup writes results, encrypted, under athena-results/", () => {
+    template.hasResourceProperties("AWS::Athena::WorkGroup", {
+      Name: "interval-events",
+      RecursiveDeleteOption: true,
+      WorkGroupConfiguration: Match.objectLike({
+        EnforceWorkGroupConfiguration: true,
+        BytesScannedCutoffPerQuery: 10 * 1024 ** 3,
+        ResultConfiguration: Match.objectLike({
+          EncryptionConfiguration: { EncryptionOption: "SSE_S3" },
+        }),
+      }),
+    });
+    const [workgroup] = all("AWS::Athena::WorkGroup");
+    expect(
+      JSON.stringify(workgroup?.[1].Properties["WorkGroupConfiguration"]),
+    ).toContain("/athena-results/");
+  });
+
+  test("query results expire after 30 days", () => {
+    template.hasResourceProperties("AWS::S3::Bucket", {
+      LifecycleConfiguration: {
+        Rules: Match.arrayWith([
+          Match.objectLike({
+            Prefix: "athena-results/",
+            ExpirationInDays: 30,
+            Status: "Enabled",
+          }),
+        ]),
+      },
+    });
+  });
+
+  test("both metrics are saved queries carrying the repo's SQL", () => {
+    const saved = all("AWS::Athena::NamedQuery").map(
+      ([, q]) =>
+        q.Properties as {
+          QueryString: string;
+          Database: string;
+          WorkGroup: string;
+        },
+    );
+    expect(saved).toHaveLength(2);
+    for (const file of ["return_rate.sql", "finished_rate.sql"]) {
+      const sql = readFileSync(path.join(QUERIES, file), "utf8");
+      expect(saved.map((q) => q.QueryString)).toContain(sql);
+    }
+    for (const q of saved) {
+      expect(JSON.stringify(q.Database)).toContain("EventsDatabase");
+      expect(q.WorkGroup).toBe("interval-events");
+    }
   });
 });

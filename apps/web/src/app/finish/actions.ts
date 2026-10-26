@@ -32,7 +32,8 @@ export async function finishAction(form: FormData): Promise<void> {
   let finishedNow: boolean;
   if (momentId === undefined) {
     finishedNow = await progress().finishArticle(actor.userId, itemId, method);
-    if (finishedNow) events().emit("article_finished", { method }, context);
+    if (finishedNow)
+      events().emit("article_finished", { method, item_id: itemId }, context);
   } else {
     finishedNow = await progress().finishMoment(
       actor.userId,
@@ -41,12 +42,16 @@ export async function finishAction(form: FormData): Promise<void> {
       method,
     );
     if (finishedNow) {
-      events().emit("section_finished", { method }, context);
+      events().emit(
+        "section_finished",
+        { method, item_id: itemId, moment_id: momentId },
+        context,
+      );
       // Q-P1-35: the finish that completes an article finishes it (P1-W5-S03).
       if (
         await progress().finishArticleIfComplete(actor.userId, itemId, method)
       ) {
-        events().emit("article_finished", { method }, context);
+        events().emit("article_finished", { method, item_id: itemId }, context);
       }
     }
   }

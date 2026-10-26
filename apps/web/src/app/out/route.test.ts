@@ -87,6 +87,9 @@ describe("each link type lands where it points, attributed", () => {
         kind: linkType === "article" ? "article" : "moment",
         chip: "3-8",
         position: 4,
+        // The ids match an open to its finish (P1-W6-S04).
+        item_id: "5",
+        moment_id: linkType === "article" ? null : "9",
       },
       context,
     );
@@ -111,7 +114,8 @@ test("Open original website goes to the page itself, not the section", async () 
   );
   expect(emit).toHaveBeenCalledWith(
     "card_opened",
-    { kind: "moment", chip: "3-8", position: 1 },
+    // Landed on the article, so it's matched to the article's finish (owner).
+    { kind: "moment", chip: "3-8", position: 1, item_id: "5", moment_id: null },
     context,
   );
   expect(emit).toHaveBeenCalledWith(

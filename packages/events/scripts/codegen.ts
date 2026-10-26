@@ -3,7 +3,8 @@
 // Usage: node scripts/codegen.ts <events.json> <ts out> <py out>
 import { readFileSync, writeFileSync } from "node:fs";
 
-type PropType = "count" | "string" | "boolean" | string[];
+// "id": a row id (a positive bigint) as a string; "id?": the same, or null.
+type PropType = "count" | "string" | "boolean" | "id" | "id?" | string[];
 type EventSpec = {
   version: number;
   description: string;
@@ -35,7 +36,7 @@ for (const name of names) {
   for (const [prop, type] of Object.entries(event.props)) {
     const ok = Array.isArray(type)
       ? type.length > 0 && type.every((v) => typeof v === "string")
-      : ["count", "string", "boolean"].includes(type);
+      : ["count", "string", "boolean", "id", "id?"].includes(type);
     if (!ok)
       throw new Error(`${name}.${prop}: unknown type ${JSON.stringify(type)}`);
   }
@@ -50,15 +51,22 @@ const eventOf = (name: string): EventSpec => {
   return event;
 };
 
+// The same row-id pattern the web app checks forms with (BIGINT_ID in server/ports.ts).
+const ID_PATTERN = "^[1-9][0-9]{0,18}$";
+
 function zodType(type: PropType): string {
   if (Array.isArray(type)) return `z.enum([${type.map(quote).join(", ")}])`;
   if (type === "count") return "z.number().int().nonnegative()";
+  if (type === "id") return `z.string().regex(/${ID_PATTERN}/)`;
+  if (type === "id?") return `z.string().regex(/${ID_PATTERN}/).nullable()`;
   return type === "string" ? "z.string()" : "z.boolean()";
 }
 
 function pyType(type: PropType): string {
   if (Array.isArray(type)) return `Literal[${type.map(quote).join(", ")}]`;
   if (type === "count") return "int = Field(ge=0, strict=True)";
+  if (type === "id") return `str = Field(pattern=r"${ID_PATTERN}")`;
+  if (type === "id?") return `str | None = Field(pattern=r"${ID_PATTERN}")`;
   return type === "string" ? "str" : "StrictBool";
 }
 

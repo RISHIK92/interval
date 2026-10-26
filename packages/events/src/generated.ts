@@ -22,9 +22,9 @@ export const EVENT_NAMES = [
 export type EventName = (typeof EVENT_NAMES)[number];
 
 export const EVENT_VERSIONS = {
-  article_finished: 1,
+  article_finished: 2,
   card_impression: 1,
-  card_opened: 1,
+  card_opened: 2,
   continue_clicked: 1,
   feed_viewed: 1,
   feedback_given: 1,
@@ -34,7 +34,7 @@ export const EVENT_VERSIONS = {
   onboarding_completed: 1,
   outbound_click: 1,
   pwa_installed: 1,
-  section_finished: 1,
+  section_finished: 2,
   session_started: 1,
   signup_completed: 1,
   source_hidden: 1,
@@ -43,12 +43,18 @@ export const EVENT_VERSIONS = {
 export const propsSchemas = {
   article_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done"]),
+    item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   card_impression: z.strictObject({}),
   card_opened: z.strictObject({
     kind: z.enum(["moment", "article"]),
     chip: z.enum(["1-3", "3-8", "8-15"]),
     position: z.number().int().nonnegative(),
+    item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    moment_id: z
+      .string()
+      .regex(/^[1-9][0-9]{0,18}$/)
+      .nullable(),
   }),
   continue_clicked: z.strictObject({}),
   feed_viewed: z.strictObject({ card_count: z.number().int().nonnegative() }),
@@ -66,6 +72,8 @@ export const propsSchemas = {
   pwa_installed: z.strictObject({}),
   section_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done"]),
+    item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    moment_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   session_started: z.strictObject({}),
   signup_completed: z.strictObject({}),
@@ -91,7 +99,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("article_finished"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.article_finished,
   }),
   z.strictObject({
@@ -103,7 +111,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("card_opened"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.card_opened,
   }),
   z.strictObject({
@@ -163,7 +171,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("section_finished"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.section_finished,
   }),
   z.strictObject({
