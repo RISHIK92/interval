@@ -364,6 +364,37 @@ export type SourceSwitch = {
   momentsEnabled: boolean;
 };
 
+// Ranking inspection (REC-2, P1-W6-S01): how the worker made each score, by rule.
+export type ScoreBreakdown = {
+  values: Record<string, number>; // each signal, 0-1
+  weights: Record<string, number>; // as scored, before any later edit
+  weighted: Record<string, number>; // value times its weight
+  penalty: number;
+};
+
+export type InspectedEntry = {
+  rank: number;
+  kind: "moment" | "article";
+  articleTitle: string;
+  sectionTitle: string | null;
+  sourceName: string;
+  topSignal: string;
+  explored: { kind: string; arm: string } | null; // placed by exploration (REC-4)
+  breakdown: ScoreBreakdown | null; // null: stored before P1-W6-S01
+};
+
+export type RankingSetting = { key: string; value: number; note: string };
+
+export interface RankingInspection {
+  // The user's own feed for a chip, in rank order, as the feed shows it.
+  entries(userId: string, chip: BreakLength): Promise<InspectedEntry[]>;
+  settings(): Promise<RankingSetting[]>;
+  setSetting(
+    key: string,
+    value: number,
+  ): Promise<"changed" | "unchanged" | "missing">;
+}
+
 export interface AdminSources {
   list(): Promise<SourceSwitch[]>;
   get(id: string): Promise<SourceSwitch | null>;

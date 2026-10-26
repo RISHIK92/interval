@@ -6,12 +6,14 @@ it back on error. The database's own triggers still guard ING-2 behind these que
 
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
+from dataclasses import asdict
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import cast
 
 import psycopg
 from psycopg.rows import class_row
+from psycopg.types.json import Jsonb
 
 from interval_db.generated import (
     BetaGroup,
@@ -489,8 +491,9 @@ class PostgresMoments:
 # is skipped.
 _RANKED_ROWS = """
 from unnest(%s::bigint[], %s::bigint[], %s::text[], %s::bigint[], %s::text[],
-            %s::text[]) with ordinality
-  as r(item_id, moment_id, top_signal, note_id, explore_kind, explore_arm, rank)
+            %s::text[], %s::jsonb[]) with ordinality
+  as r(item_id, moment_id, top_signal, note_id, explore_kind, explore_arm,
+       score_parts, rank)
 where exists (select 1 from content_item ci where ci.id = r.item_id)
   and (r.moment_id is null
        or exists (select 1 from moment m where m.id = r.moment_id))
@@ -506,6 +509,7 @@ def _ranked_arrays(
     list[int | None],
     list[str | None],
     list[str | None],
+    list[Jsonb | None],
 ]:
     return (
         [r.item_id for r in ranked],
@@ -514,6 +518,7 @@ def _ranked_arrays(
         [r.note_id for r in ranked],
         [r.arm.kind if r.arm else None for r in ranked],
         [r.arm.key if r.arm else None for r in ranked],
+        [Jsonb(asdict(r.breakdown)) if r.breakdown else None for r in ranked],
     )
 
 
@@ -617,9 +622,10 @@ class PostgresFeed:
                     f"""
                     insert into user_feed_entry
                       (user_id, chip, content_item_id, moment_id, rank, top_signal,
-                       note_id, explore_kind, explore_arm)
+                       note_id, explore_kind, explore_arm, score_parts)
                     select %s, %s::break_length, r.item_id, r.moment_id, r.rank,
-                           r.top_signal, r.note_id, r.explore_kind, r.explore_arm
+                           r.top_signal, r.note_id, r.explore_kind, r.explore_arm,
+                           r.score_parts
                     {_RANKED_ROWS}
                     """,
                     (user_id, chip, *_ranked_arrays(ranked)),

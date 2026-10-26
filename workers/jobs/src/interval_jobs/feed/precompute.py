@@ -78,6 +78,7 @@ def _with_notes(
                     s.top_signal,
                     note.note_id if note else None,
                     s.arm,
+                    s.breakdown,
                 )
             )
         by_chip[chip] = entries

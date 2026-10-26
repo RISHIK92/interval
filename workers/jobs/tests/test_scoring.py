@@ -179,6 +179,30 @@ def test_mmr_keeps_alike_moments_apart(alike: Callable[[int], EntryFacts]) -> No
     assert sorted(order) == [1, 2, 3, 4, 5]
 
 
+def test_the_breakdown_adds_up_to_the_score() -> None:
+    disliked = replace(USER, less_liked=frozenset({BASE.item_id}))
+    scored = ranked(BASE, disliked)
+    parts = scored.breakdown
+    assert set(parts.values) == set(CONFIG.weights)
+    assert parts.weights == CONFIG.weights
+    for name, value in parts.values.items():
+        assert parts.weighted[name] == pytest.approx(value * CONFIG.weights[name])
+    assert parts.penalty == CONFIG.penalties["less_like_this"]
+    assert scored.score == pytest.approx(sum(parts.weighted.values()) - parts.penalty)
+
+
+def test_a_weight_change_shows_in_the_breakdown() -> None:
+    louder = replace(CONFIG, weights={**CONFIG.weights, "freshness": 3.0})
+    candidate = Candidate(1, 10, 100, {"topic"})
+    (before,) = score([candidate], {BASE.key: BASE}, USER, CONFIG, NOW)
+    (after,) = score([candidate], {BASE.key: BASE}, USER, louder, NOW)
+    assert after.breakdown.values == before.breakdown.values
+    assert after.breakdown.weights["freshness"] == 3.0
+    assert after.breakdown.weighted["freshness"] == pytest.approx(
+        3.0 * before.breakdown.values["freshness"]
+    )
+
+
 def test_weights_come_from_the_one_config() -> None:
     louder = replace(CONFIG, weights={**CONFIG.weights, "quality": 4.0})
     candidate = Candidate(1, 10, 100, {"topic"})

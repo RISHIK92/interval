@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import type { Actor, AdminReview, ReviewItem } from "../../server/ports";
+import type {
+  Actor,
+  AdminReview,
+  RankingInspection,
+  ReviewItem,
+} from "../../server/ports";
 
 // ING-6, Q-P1-29, P1-W3-S05: the review pages and actions exist only for admin.review.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
@@ -33,7 +38,19 @@ const sources = {
   setMomentsSwitchedOff: vi.fn(() => Promise.resolve()),
   fullTextItemIds: vi.fn(() => Promise.resolve([])),
 };
+const ranking = {
+  entries: vi.fn<RankingInspection["entries"]>(() => Promise.resolve([])),
+  settings: vi.fn<RankingInspection["settings"]>(() =>
+    Promise.resolve([
+      { key: "weight.freshness", value: 0.5, note: "exp(-age / half-life)" },
+    ]),
+  ),
+  setSetting: vi.fn<RankingInspection["setSetting"]>(() =>
+    Promise.resolve("changed" as const),
+  ),
+};
 vi.mock("../../server/container", () => ({
+  rankingInspection: () => ranking,
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
   adminReview: () => review,
@@ -290,6 +307,138 @@ describe("sources (P1-W3-S06)", () => {
       "3",
       true,
       "admin-1",
+    );
+  });
+});
+
+describe("ranking (P1-W6-S01)", () => {
+  async function rankingPage(
+    params: Record<string, string> = {},
+  ): Promise<string> {
+    const { default: Page } = await import("./ranking/page");
+    return renderToStaticMarkup(
+      await Page({ searchParams: Promise.resolve(params) }),
+    );
+  }
+
+  function settingForm(fields: Record<string, string>): FormData {
+    const form = new FormData();
+    for (const [key, value] of Object.entries(fields)) form.set(key, value);
+    return form;
+  }
+
+  test("is a 404 without admin.review, page and action alike", async () => {
+    current.mockResolvedValue(admin);
+    can.mockResolvedValue(false);
+    await expect(rankingPage()).rejects.toThrow("notFound");
+    const { saveRankingSettingAction } = await import("./ranking/actions");
+    await expect(
+      saveRankingSettingAction(
+        settingForm({ key: "weight.freshness", value: "2", chip: "3-8" }),
+      ),
+    ).rejects.toThrow("notFound");
+    expect(ranking.setSetting).not.toHaveBeenCalled();
+    expect(ranking.entries).not.toHaveBeenCalled();
+  });
+
+  test("shows the admin's own feed for the chip, each score broken down by rule", async () => {
+    current.mockResolvedValue(admin);
+    can.mockResolvedValue(true);
+    ranking.settings.mockResolvedValueOnce([
+      { key: "weight.freshness", value: 0.5, note: "exp(-age / half-life)" },
+      { key: "weight.quality", value: 0.4, note: "the source's quality" },
+    ]);
+    ranking.entries.mockResolvedValueOnce([
+      {
+        rank: 1,
+        kind: "moment",
+        articleTitle: "Consensus in practice",
+        sectionTitle: "Raft in one page",
+        sourceName: "Blog",
+        topSignal: "freshness",
+        explored: { kind: "topic", arm: "backend" },
+        breakdown: {
+          values: { freshness: 0.8, quality: 0.5 },
+          weights: { freshness: 0.5, quality: 0.4 },
+          weighted: { freshness: 0.4, quality: 0.2 },
+          penalty: 0.1,
+        },
+      },
+      {
+        rank: 2,
+        kind: "article",
+        articleTitle: "Old entry",
+        sectionTitle: null,
+        sourceName: "Blog",
+        topSignal: "quality",
+        explored: null,
+        breakdown: null,
+      },
+    ]);
+    const html = await rankingPage({ chip: "8-15" });
+    expect(ranking.entries).toHaveBeenCalledWith("admin-1", "8-15");
+    expect(html).toContain("Raft in one page");
+    expect(html).toContain("0.80 × 0.50 = 0.40"); // freshness: value, weight, part
+    expect(html).toContain("0.50 × 0.40 = 0.20"); // quality
+    expect(html).toContain("−0.10"); // the penalty
+    expect(html).toContain("<td>0.50</td>"); // the total: 0.40 + 0.20 - 0.10
+    expect(html).toContain("explored: topic backend");
+    expect(html).toContain("No breakdown yet");
+    // Every row has as many cells as the header, with or without a breakdown.
+    const cells = (row: string) =>
+      (row.match(/<t[dh][ >]/g) ?? []).length +
+      [...row.matchAll(/colSpan="(\d+)"/g)].reduce(
+        (sum, m) => sum + Number(m[1]) - 1,
+        0,
+      );
+    const rows = html.match(/<tr>.*?<\/tr>/g) ?? [];
+    expect(rows).toHaveLength(3);
+    expect(new Set(rows.map(cells)).size).toBe(1);
+    expect(html).toContain('name="key" value="weight.freshness"');
+  });
+
+  test("an unknown chip falls back to the shortest break", async () => {
+    current.mockResolvedValue(admin);
+    can.mockResolvedValue(true);
+    await rankingPage({ chip: "forever" });
+    expect(ranking.entries).toHaveBeenCalledWith("admin-1", "1-3");
+  });
+
+  test("saving a setting changes it, recomputes the admin's feed and comes back", async () => {
+    current.mockResolvedValue(admin);
+    can.mockResolvedValue(true);
+    const { saveRankingSettingAction } = await import("./ranking/actions");
+    await expect(
+      saveRankingSettingAction(
+        settingForm({ key: "weight.freshness", value: "2", chip: "3-8" }),
+      ),
+    ).rejects.toThrow("redirect:/admin/ranking?chip=3-8&saved=1");
+    expect(await rankingPage({ saved: "same" })).toContain("No change");
+    expect(ranking.setSetting).toHaveBeenCalledExactlyOnceWith(
+      "weight.freshness",
+      2,
+    );
+    expect(enqueue).toHaveBeenCalledExactlyOnceWith(
+      "recompute_feed",
+      { user_id: "admin-1" },
+      expect.anything(),
+    );
+  });
+
+  test("a refused value comes back with the reason, as fixed text", async () => {
+    current.mockResolvedValue(admin);
+    can.mockResolvedValue(true);
+    const { saveRankingSettingAction } = await import("./ranking/actions");
+    await expect(
+      saveRankingSettingAction(
+        settingForm({ key: "mmr.lambda", value: "7", chip: "1-3" }),
+      ),
+    ).rejects.toThrow("redirect:/admin/ranking?chip=1-3&error=out-of-range");
+    expect(ranking.setSetting).not.toHaveBeenCalled();
+    const html = await rankingPage({ error: "<b>made up</b>" });
+    expect(html).not.toContain("made up");
+    expect(await rankingPage({ error: "out-of-range" })).toContain(
+      "outside its allowed range",
     );
   });
 });

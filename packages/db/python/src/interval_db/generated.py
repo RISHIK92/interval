@@ -4,6 +4,9 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Literal, TypedDict
 
+type JsonScalar = str | int | float | bool | None
+type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
+
 type AiFeature = Literal["tagging", "notes", "embeddings", "concept_drafting"]
 type AiProvider = Literal["openrouter", "voyage"]
 type BetaGroup = Literal["student", "developer"]
@@ -373,6 +376,7 @@ class UserFeedEntry(TypedDict):
     note_id: int | None
     explore_kind: str | None
     explore_arm: str | None
+    score_parts: JsonValue | None
 
 
 class UserFeedState(TypedDict):

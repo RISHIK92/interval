@@ -20,6 +20,7 @@ import {
 import { bullmqQueue } from "./adapters/bullmq-queue";
 import { kyselyAdminReview } from "./adapters/kysely-admin-review";
 import { kyselyAdminSources } from "./adapters/kysely-admin-sources";
+import { kyselyRanking } from "./adapters/kysely-ranking";
 import { kyselyFeedback } from "./adapters/kysely-feedback";
 import { kyselyLibrary } from "./adapters/kysely-library";
 import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
@@ -34,6 +35,7 @@ import type {
   Accounts,
   AdminReview,
   AdminSources,
+  RankingInspection,
   DatabasePing,
   Entitlements,
   Feedback,
@@ -91,6 +93,10 @@ export function progress(): Progress {
 
 export function adminSources(): AdminSources {
   return kyselyAdminSources(db());
+}
+
+export function rankingInspection(): RankingInspection {
+  return kyselyRanking(db());
 }
 
 export function adminReview(): AdminReview {

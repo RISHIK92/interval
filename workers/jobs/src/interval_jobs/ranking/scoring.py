@@ -20,7 +20,7 @@ from datetime import datetime
 
 from interval_db.generated import BreakLength, Difficulty
 from interval_jobs import log
-from interval_jobs.ports import Arm, EntryFacts, EntryKey
+from interval_jobs.ports import Arm, Breakdown, EntryFacts, EntryKey
 from interval_jobs.ranking.candidates import Candidate
 
 SIGNALS = ("topic_match", "level_fit", "quality", "freshness", "time_fit")
@@ -110,6 +110,7 @@ class Scored:
     # Every signal, largest weighted part first: a note falls to the next when the
     # top one's words wouldn't be true (owner, 2026-10-26).
     signals: tuple[str, ...]
+    breakdown: Breakdown  # for the owner's ranking inspection (P1-W6-S01)
     arm: Arm | None = None  # set by exploration (P1-W4-S09)
 
     @property
@@ -191,6 +192,7 @@ def score(
                 order[0],
                 fact,
                 order,
+                Breakdown(parts, dict(config.weights), weighted, penalty),
             )
         )
     return scored

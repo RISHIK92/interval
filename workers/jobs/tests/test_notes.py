@@ -13,6 +13,7 @@ from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.feed.notes import note_for, polish_note
 from interval_jobs.ports import (
+    Breakdown,
     Completion,
     EmbeddingPurpose,
     Embeddings,
@@ -45,7 +46,7 @@ ALL = ("topic_match", "level_fit", "quality", "freshness", "time_fit")
 def scored(signal: str, facts: EntryFacts = FACTS) -> Scored:
     # The other signals follow in a fixed order, as the fallback reads them.
     order = (signal, *(s for s in ALL if s != signal))
-    return Scored(7, 70, 700, 1.0, signal, facts, order)
+    return Scored(7, 70, 700, 1.0, signal, facts, order, Breakdown({}, {}, {}, 0))
 
 
 def note(s: Scored, topics: list[Topic] | None = None) -> tuple[NoteKey, str] | None:

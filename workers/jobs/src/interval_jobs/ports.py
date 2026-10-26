@@ -291,6 +291,7 @@ class RankedEntry:
     # The exploration arm that placed it (REC-4); None for a main pick. Opens and
     # finishes of it count toward that arm (P1-W5-S03).
     arm: "Arm | None" = None
+    breakdown: "Breakdown | None" = None  # a starter feed's entries keep none
 
 
 class Feed(Protocol):
@@ -620,6 +621,19 @@ class Arm:
 
     kind: Literal["topic", "source"]
     key: str
+
+
+@dataclass(frozen=True)
+class Breakdown:
+    """How an entry's score was made, by rule (REC-2): each signal's value, the weight
+    it was scored with, their product, and the penalty taken off. Kept for the owner's
+    ranking inspection (P1-W6-S01); the weights are kept because ranking_config may
+    change before the next recompute."""
+
+    values: dict[str, float]
+    weights: dict[str, float]
+    weighted: dict[str, float]
+    penalty: float
 
 
 @dataclass(frozen=True)

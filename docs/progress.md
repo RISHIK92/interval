@@ -1,6 +1,6 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. Next: W6-S01 (ranking inspection). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. W6-S01 (ranking inspection) done. Next: W6-S02 (deep-link verification script). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 Owner permissions (answered before sleeping):
@@ -388,6 +388,34 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - **Not done:** navigation preload (small cost) and a server action in place of the route.
 - Checked in Chrome: the manifest link and theme colour; the worker activated with only `interval-offline-v1`, `/offline` cached (200, not a redirect); with the dev server stopped, /library showed the offline page.
 - Not checked: Lighthouse (not installed), and a real install prompt (`appinstalled`).
+
+### 2026-10-26 — P1-W6-S01 (ranking inspection, REC-2, Q-P1-13)
+- Owner choices:
+  - weights are edited on the page; a save queues a recompute of the owner's own feed (everyone else's at their hourly recompute);
+  - only the admin's own feed, per chip;
+  - every `ranking_config` row is editable within its range.
+- Done:
+  - **Worker:** `score()` keeps a `Breakdown` (each signal's value, the weight it was scored with, the product, and the penalty). It's passed through `RankedEntry` into the new nullable `user_feed_entry.score_parts` jsonb (starter feeds keep none).
+  - **Web:**
+    - the `RankingInspection` port and `kysely-ranking` adapter: titles from `user_feed_visible`, so the rights gate holds; `score_parts` zod-checked, and an unreadable one is logged and shown as none;
+    - `server/ranking-settings.ts`: per-key ranges, a recompute only when the value changed;
+    - `/admin/ranking` (admin.review): chip links, a row per entry with "value × weight = part" per rule, the penalty and the score before diversity, and a form per setting.
+- **Deviation from the plan:** `explore.share` is limited to 0–0.5, not 0–1, to match what the worker accepts. The ranges are written in both TS and Python (`RankingConfig.from_rows`); one SQL check per key would hold them in one place (not done; worth an owner call).
+- Review fixes:
+  - the weights are stored with each breakdown, so the page never shows a weight edited after the recompute;
+  - the cell count of a row with no breakdown;
+  - "No change" in place of a recompute promise for an unchanged save;
+  - no "−0.00";
+  - the score column labelled "before diversity";
+  - no misleading `min=0` on every input.
+  - **Not done:** a gated-entry case in the adapter test (the view's gate is tested in the feed tests).
+- Checked in Chrome:
+  - granted `admin.review` to the local user (owner OK, local DB only);
+  - /admin/ranking showed the 3-8 feed's breakdown;
+  - setting `weight.freshness` to 2 recomputed the feed: the parts read `× 2.00` and the top signal moved to freshness;
+  - set back to 0.5 afterwards.
+- Found while checking: rows written before the weights field crashed the page; now logged and shown as "No breakdown yet" (test added).
+- A flake seen once in `pnpm check` (kysely-feedback "unsave … a repeat changes nothing": FK error on user_save) didn't recur in three runs; not investigated.
 
 ## Pre-deploy list (from the S18 review; parked by the owner until deployment, ADR-0013)
 - **CloudFront to ALB:** traffic crosses the internet over HTTP. Make the ALB internal behind a CloudFront VPC origin (drops the origin-verify header and the 0.0.0.0/0 ingress).

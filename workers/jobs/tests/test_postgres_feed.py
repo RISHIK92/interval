@@ -13,7 +13,7 @@ from psycopg import sql
 
 from interval_db.generated import BreakLength
 from interval_jobs.adapters.postgres import PostgresStore
-from interval_jobs.ports import Arm, NoteKey, NoteRef, RankedEntry
+from interval_jobs.ports import Arm, Breakdown, NoteKey, NoteRef, RankedEntry
 
 
 def add_item(
@@ -400,3 +400,43 @@ def test_an_explored_entry_is_stored_with_its_arm(conn: psycopg.Connection) -> N
         (me,),
     ).fetchone()
     assert row == ("topic", "backend")
+
+
+def test_an_entry_keeps_its_score_breakdown_for_inspection(
+    conn: psycopg.Connection,
+) -> None:
+    src = source(conn, "feedtest-m")
+    item = add_item(conn, src, "inspected", datetime(2026, 10, 1, tzinfo=UTC), 2)
+    scored, plain = moments_of(conn, item)
+    me = user(conn)
+    parts = Breakdown(
+        values={"topic_match": 1.0, "quality": 0.5},
+        weights={"topic_match": 1.0, "quality": 0.4},
+        weighted={"topic_match": 1.0, "quality": 0.2},
+        penalty=0.25,
+    )
+    PostgresStore(conn).feed.replace_user(
+        me,
+        {
+            "3-8": [
+                RankedEntry(item, scored, "topic_match", None, None, parts),
+                RankedEntry(item, plain, "quality", None),
+            ]
+        },
+        datetime.now(UTC),
+    )
+    rows = conn.execute(
+        "select score_parts from user_feed_entry where user_id = %s order by rank",
+        (me,),
+    ).fetchall()
+    assert rows == [
+        (
+            {
+                "values": {"topic_match": 1.0, "quality": 0.5},
+                "weights": {"topic_match": 1.0, "quality": 0.4},
+                "weighted": {"topic_match": 1.0, "quality": 0.2},
+                "penalty": 0.25,
+            },
+        ),
+        (None,),
+    ]

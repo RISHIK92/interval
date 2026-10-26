@@ -5,7 +5,7 @@ best entry; explored entries are spread through the feed."""
 import random
 from datetime import UTC, datetime
 
-from interval_jobs.ports import Arm, ArmOutcome, EntryFacts
+from interval_jobs.ports import Arm, ArmOutcome, Breakdown, EntryFacts
 from interval_jobs.ranking.explore import explore, sample_arm
 from interval_jobs.ranking.scoring import Scored
 
@@ -44,7 +44,16 @@ def entry(
         frozenset(),
         "S",
     )
-    return Scored(n, item, source, score, "freshness", facts, ("freshness",))
+    return Scored(
+        n,
+        item,
+        source,
+        score,
+        "freshness",
+        facts,
+        ("freshness",),
+        Breakdown({}, {}, {}, 0),
+    )
 
 
 def test_explored_entries_fill_only_their_slots_spread_through_the_feed() -> None:
