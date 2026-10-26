@@ -11,8 +11,8 @@ import {
   jobQueue,
   sessionReader,
 } from "../../server/container";
-import { log } from "../../server/log";
-import { ITEM_ID } from "../../server/ports";
+import { queueRecompute } from "../../server/recompute";
+import { BIGINT_ID } from "../../server/ports";
 import { visitId } from "../../server/visits";
 
 // The card controls (§5C, Q-P1-15, ADR-0006 C-20, P1-W4-S07).
@@ -25,7 +25,7 @@ const Control = z.object({
     "save",
     "undo_not_interested",
   ]),
-  itemId: z.string().regex(ITEM_ID),
+  itemId: z.string().regex(BIGINT_ID),
   chip: z.enum(CHIPS),
 });
 
@@ -61,18 +61,12 @@ export async function feedbackAction(form: FormData): Promise<void> {
   // interested and Hide source still apply at read, and the hourly pass catches up
   // (LOAD-5).
   if (changed) {
-    try {
-      await jobQueue().enqueue(
-        "recompute_feed",
-        { user_id: actor.userId },
-        { idempotencyKey: `feedback-${actor.userId}-${randomUUID()}` },
-      );
-    } catch (error) {
-      log.error("feed: recompute after feedback not queued", {
-        userId: actor.userId,
-        error,
-      });
-    }
+    await queueRecompute(
+      jobQueue(),
+      actor.userId,
+      `feedback-${actor.userId}-${randomUUID()}`,
+      "feed: recompute after feedback not queued",
+    );
   }
   redirect(
     control === "not_interested"

@@ -28,6 +28,21 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
       };
     },
 
+    async update(userId, preferences) {
+      const updated = await db
+        .updateTable("user_preferences")
+        .set({
+          topics: preferences.topics,
+          level: preferences.level,
+          break_length: preferences.breakLength,
+          updated_at: sql<Date>`now()`,
+        })
+        .where("user_id", "=", userId)
+        .returning("user_id")
+        .execute();
+      return updated.length > 0;
+    },
+
     async createIfAbsent(userId, preferences) {
       const inserted = await db
         .insertInto("user_preferences")

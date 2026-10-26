@@ -90,6 +90,7 @@ class Probe(Protocol):
     def give_feedback(self, user_id: str, item_id: int, kind: str) -> None: ...
     def save(self, user_id: str, item_id: int) -> None: ...
     def hide_source(self, user_id: str, source_id: int) -> None: ...
+    def reset_inferred(self, user_id: str) -> None: ...
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None: ...
     def override_level(self, item_id: int, heading: str, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
@@ -170,6 +171,14 @@ class MemoryProbe:
 
     def hide_source(self, user_id: str, source_id: int) -> None:
         self.s.ranking.hidden.add((user_id, source_id))
+
+    def reset_inferred(self, user_id: str) -> None:
+        # As the web's resetInferred: More and Less like this go, the time is kept.
+        ranking = self.s.ranking
+        ranking.feedback = [
+            f for f in ranking.feedback if f[0] != user_id or f[2] == "not_interested"
+        ]
+        ranking.resets[user_id] = len(ranking.feedback)
 
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None:
         self.s.tags.item_concept_overrides[item_id] = frozenset(slugs)
@@ -344,8 +353,9 @@ class PostgresProbe:
 
     def give_feedback(self, user_id: str, item_id: int, kind: str) -> None:
         self.conn.execute(
-            "insert into item_feedback (user_id, content_item_id, kind) "
-            "values (%s, %s, %s)",
+            # clock_timestamp: given after an earlier reset in the same transaction.
+            "insert into item_feedback (user_id, content_item_id, kind, given_at) "
+            "values (%s, %s, %s, clock_timestamp())",
             (user_id, item_id, kind),
         )
 
@@ -355,6 +365,20 @@ class PostgresProbe:
             "insert into user_save (user_id, content_item_id, saved_at) "
             "values (%s, %s, clock_timestamp())",
             (user_id, item_id),
+        )
+
+    def reset_inferred(self, user_id: str) -> None:
+        # As the web's resetInferred: More and Less like this go, the time is kept.
+        self.conn.execute(
+            "delete from item_feedback where user_id = %s "
+            "and kind in ('more_like_this', 'less_like_this')",
+            (user_id,),
+        )
+        self.conn.execute(
+            "insert into user_inferred_reset (user_id, reset_at) "
+            "values (%s, clock_timestamp()) "
+            "on conflict (user_id) do update set reset_at = excluded.reset_at",
+            (user_id,),
         )
 
     def hide_source(self, user_id: str, source_id: int) -> None:
@@ -1860,6 +1884,16 @@ def test_moment_facts_and_feedback_for_scoring(store: tuple[Store, Probe]) -> No
     assert s.ranking.avoided_concepts(user) == frozenset({"sf-b"})
     probe.correct_concepts(disliked, ["sf-a"])  # an admin's correction replaces them
     assert s.ranking.avoided_concepts(user) == frozenset({"sf-a"})
+    # A reset (P1-W4-S08): the item stays hidden, its concepts stop counting...
+    probe.reset_inferred(user)
+    assert s.ranking.avoided_concepts(user) == frozenset()
+    assert s.ranking.not_interested(user) == {disliked}
+    assert s.ranking.less_liked(user) == set()
+    # ...until something is marked Not interested after it.
+    later = dup_item(s, sid, "sf3", 5)
+    s.tags.save(later, TagResult(Tags("beginner", frozenset({"sf-b"})), {}), "m", 1)
+    probe.give_feedback(user, later, "not_interested")
+    assert s.ranking.avoided_concepts(user) == frozenset({"sf-b"})
 
 
 def put_in_feed(s: Store, probe: Probe, item_id: int) -> str:

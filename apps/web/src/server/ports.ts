@@ -57,8 +57,16 @@ export interface FeedReader {
   ): Promise<FeedCard[]>;
 }
 
-// A content item id as forms carry it: a positive bigint.
-export const ITEM_ID = /^[1-9][0-9]{0,18}$/;
+// What the feed inferred from a user's feedback (PER-1's inferred layer, §5A).
+export type Inferred = {
+  more: { itemId: string; title: string }[];
+  less: { itemId: string; title: string }[];
+  // From the user_avoided_concept view; names aren't unique, slugs are.
+  avoidedConcepts: { slug: string; name: string }[];
+};
+
+// A row id as forms carry it (a content item or a source): a positive bigint.
+export const BIGINT_ID = /^[1-9][0-9]{0,18}$/;
 
 // The feedback controls (§5C, Q-P1-15, P1-W4-S07). Each returns whether it changed
 // anything: a repeat counts no event and queues no recompute. An item that doesn't
@@ -71,6 +79,13 @@ export interface Feedback {
   hideSource(userId: string, itemId: string): Promise<boolean>;
   save(userId: string, itemId: string): Promise<boolean>;
   notInterested(userId: string, itemId: string): Promise<boolean>;
+  // The Profile page (§5A, Q-P1-36, P1-W4-S08).
+  hiddenSources(userId: string): Promise<{ sourceId: string; name: string }[]>;
+  unhideSource(userId: string, sourceId: string): Promise<boolean>;
+  inferred(userId: string): Promise<Inferred>;
+  // Clears More and Less like this and stops Not interested items' concepts from
+  // down-ranking; those items stay hidden, and saves stay (owner, 2026-10-26).
+  resetInferred(userId: string): Promise<void>;
 }
 
 export interface DatabasePing {
@@ -286,4 +301,6 @@ export interface PreferencesStore {
   // Onboarding happens once: false when the user already had preferences, which
   // are then left as they were (a resubmit can't overwrite them).
   createIfAbsent(userId: string, preferences: Preferences): Promise<boolean>;
+  // The Profile page's edit (P1-W4-S08); false before onboarding (nothing to edit).
+  update(userId: string, preferences: Preferences): Promise<boolean>;
 }

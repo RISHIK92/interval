@@ -11,7 +11,7 @@ import {
 } from "../server/container";
 import { CHIP_COOKIE, chipFor, chipLabel, CHIPS } from "../server/chips";
 import { loadFeed } from "../server/feed";
-import { ITEM_ID } from "../server/ports";
+import { BIGINT_ID } from "../server/ports";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { ArticleCard } from "./ArticleCard";
@@ -47,6 +47,9 @@ export default async function HomePage({
     return (
       <main>
         <h1>Interval</h1>
+        <p>
+          <Link href="/profile">Profile</Link>
+        </p>
         {account}
         <p>Your plan doesn&apos;t include the feed.</p>
       </main>
@@ -60,7 +63,7 @@ export default async function HomePage({
   const undo = params["undo"];
   const undoable =
     typeof undo === "string" &&
-    ITEM_ID.test(undo) &&
+    BIGINT_ID.test(undo) &&
     (await feedback().notInterested(actor.userId, undo))
       ? undo
       : null;
@@ -80,6 +83,9 @@ export default async function HomePage({
   return (
     <main>
       <h1>Interval</h1>
+      <p>
+        <Link href="/profile">Profile</Link>
+      </p>
       {account}
       <nav aria-label="Break length">
         <ul>

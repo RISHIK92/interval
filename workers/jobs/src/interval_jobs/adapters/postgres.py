@@ -1372,15 +1372,9 @@ class PostgresRankingInputs:
         return {int(r[0]) for r in rows}
 
     def avoided_concepts(self, user_id: str) -> frozenset[str]:
+        # The view the Profile page also reads (P1-W4-S08): it honours a reset.
         rows = self._conn.execute(
-            f"""
-            select distinct concept.slug
-            from item_feedback f
-            cross join lateral ({_ITEM_CONCEPTS.format(item="f.content_item_id")})
-              as concept(slug)
-            where f.user_id = %s and f.kind = 'not_interested'
-            """,
-            (user_id,),
+            "select slug from user_avoided_concept where user_id = %s", (user_id,)
         ).fetchall()
         return frozenset(str(r[0]) for r in rows)
 

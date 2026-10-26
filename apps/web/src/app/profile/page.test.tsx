@@ -1,0 +1,103 @@
+import { renderToStaticMarkup } from "react-dom/server";
+import { afterEach, expect, test, vi } from "vitest";
+import type { Actor, Feedback, Preferences } from "../../server/ports";
+
+// §5A, Q-P1-36, P1-W4-S08: choices, hidden sources, and what was inferred.
+const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
+const get = vi.fn<(userId: string) => Promise<Preferences | null>>();
+const hiddenSources = vi.fn<Feedback["hiddenSources"]>(() =>
+  Promise.resolve([{ sourceId: "7", name: "Example Engineering" }]),
+);
+const inferred = vi.fn<Feedback["inferred"]>(() =>
+  Promise.resolve({
+    more: [{ itemId: "1", title: "Raft in practice" }],
+    less: [{ itemId: "2", title: "Yet another ORM" }],
+    avoidedConcepts: [{ slug: "wal", name: "Write-ahead log" }],
+  }),
+);
+vi.mock("../../server/container", () => ({
+  sessionReader: () => ({ current }),
+  preferences: () => ({ get }),
+  feedback: () => ({ hiddenSources, inferred }),
+}));
+vi.mock("next/headers", () => ({
+  headers: () => Promise.resolve(new Headers()),
+}));
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => {
+    throw new Error(`redirect:${url}`);
+  },
+}));
+
+const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+async function page(query: Record<string, string> = {}): Promise<string> {
+  const { default: ProfilePage } = await import("./page");
+  return renderToStaticMarkup(
+    await ProfilePage({ searchParams: Promise.resolve(query) }),
+  );
+}
+
+test("the choices form is filled in with the user's choices", async () => {
+  current.mockResolvedValue(guest);
+  get.mockResolvedValue({
+    topics: ["databases"],
+    level: "advanced",
+    breakLength: "8-15",
+  });
+  const html = await page();
+  const checked = (value: string) =>
+    (html.match(/<input[^>]*>/g) ?? []).some(
+      (tag) => tag.includes(`value="${value}"`) && tag.includes("checked"),
+    );
+  expect(checked("databases")).toBe(true);
+  expect(checked("backend")).toBe(false);
+  expect(checked("advanced")).toBe(true);
+  expect(checked("8-15")).toBe(true);
+});
+
+test("hidden sources and inferred interests are listed with their actions", async () => {
+  current.mockResolvedValue(guest);
+  get.mockResolvedValue({
+    topics: ["databases"],
+    level: "advanced",
+    breakLength: "8-15",
+  });
+  const html = await page({ saved: "reset" });
+  expect(html).toContain("Example Engineering");
+  expect(html).toContain('name="sourceId" value="7"');
+  expect(html).toContain("Raft in practice");
+  expect(html).toContain("Yet another ORM");
+  expect(html).toContain("Write-ahead log");
+  expect(html).toContain("Reset inferred interests");
+  expect(html).toContain("Inferred interests reset.");
+});
+
+test("no session goes to /join; not onboarded goes to /onboarding", async () => {
+  current.mockResolvedValue(null);
+  await expect(page()).rejects.toThrow("redirect:/join");
+  current.mockResolvedValue(guest);
+  get.mockResolvedValue(null);
+  await expect(page()).rejects.toThrow("redirect:/onboarding");
+});
+
+// The query string picks a fixed message; it is never shown itself.
+test("notices come from fixed text, never from the query string", async () => {
+  current.mockResolvedValue(guest);
+  get.mockResolvedValue({
+    topics: ["databases"],
+    level: "advanced",
+    breakLength: "8-15",
+  });
+  const odd = await page({ saved: "<b>x</b>", missing: "constructor" });
+  expect(odd).not.toContain('role="status"');
+  expect(odd).not.toContain('role="alert"');
+  expect(odd).not.toContain("&lt;b&gt;x");
+  expect(await page({ missing: "topic" })).toContain(
+    '<p role="alert">Pick at least one topic.</p>',
+  );
+});

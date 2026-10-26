@@ -227,3 +227,10 @@ test("after Not interested the page offers Undo for that item only", async () =>
   expect(await render({ undo: "abc" })).not.toContain("undo_not_interested");
   expect(notInterested).not.toHaveBeenCalled();
 });
+
+// P1-W4-S08: the Profile page, from the header until the avatar arrives (C-06).
+test("the header links to the Profile page", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  expect(await render()).toContain('href="/profile"');
+});

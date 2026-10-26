@@ -1007,6 +1007,8 @@ class InMemoryRankingInputs:
         # (user, item id, kind), oldest first: the order Postgres reads by given_at
         self.feedback: list[tuple[str, int, str]] = []
         self.saves: list[tuple[str, int]] = []  # (user, item), oldest first
+        # A reset of inferred interests (P1-W4-S08): how much of `feedback` came before.
+        self.resets: dict[str, int] = {}
         # The ranking_config migration's seed values (P1-W4-S03)
         self.config_rows: dict[str, float] = dict(RANKING_DEFAULTS)
 
@@ -1040,9 +1042,12 @@ class InMemoryRankingInputs:
         }
 
     def avoided_concepts(self, user_id: str) -> frozenset[str]:
+        # Mirrors the user_avoided_concept view: only Not interested since the reset.
+        since = self.resets.get(user_id, 0)
         return frozenset(
             concept
-            for item in self.not_interested(user_id)
+            for user, item, kind in self.feedback[since:]
+            if user == user_id and kind == "not_interested"
             for concept in self._item_concepts(item)
         )
 

@@ -142,3 +142,63 @@ test("an item that doesn't exist changes nothing", async () => {
     expect(await feedback.save(userId, "999999999999")).toBe(false);
   });
 });
+
+// P1-W4-S08: the Profile page lists and resets what was inferred, and unhides sources.
+test("hidden sources are listed and can be unhidden", async () => {
+  await inRollback(async (trx, { userId, itemId, sourceId }) => {
+    const feedback = kyselyFeedback(trx);
+    expect(await feedback.hiddenSources(userId)).toEqual([]);
+    await feedback.hideSource(userId, itemId);
+    const [hidden] = await feedback.hiddenSources(userId);
+    expect(hidden?.sourceId).toBe(sourceId);
+    expect(hidden?.name).toMatch(/^fb-/);
+    expect(await feedback.unhideSource(userId, sourceId)).toBe(true);
+    expect(await feedback.unhideSource(userId, sourceId)).toBe(false);
+    expect(await feedback.hiddenSources(userId)).toEqual([]);
+  });
+});
+
+test("a reset clears More and Less like this and the concept down-rank only", async () => {
+  await inRollback(async (trx, { userId, itemId }) => {
+    const slug = `fb-c-${userId.slice(0, 8)}`;
+    await trx
+      .insertInto("concept")
+      .values({ slug, name: "Write-ahead log", topic: "databases" })
+      .execute();
+    // An admin's item correction names the concepts the view reads.
+    await trx
+      .insertInto("tag_override")
+      .values({
+        content_item_id: itemId,
+        heading: "",
+        difficulty: "beginner",
+        concepts: [slug],
+        updated_by: "test",
+      })
+      .execute();
+    const feedback = kyselyFeedback(trx);
+    await feedback.give(userId, itemId, "more_like_this");
+    await feedback.give(userId, itemId, "less_like_this");
+    await feedback.give(userId, itemId, "not_interested");
+    await feedback.save(userId, itemId);
+    expect(await feedback.inferred(userId)).toEqual({
+      more: [{ itemId, title: "A" }],
+      less: [{ itemId, title: "A" }],
+      avoidedConcepts: [{ slug, name: "Write-ahead log" }],
+    });
+    await feedback.resetInferred(userId);
+    expect(await feedback.inferred(userId)).toEqual({
+      more: [],
+      less: [],
+      avoidedConcepts: [],
+    });
+    // Not interested items stay hidden; saves stay (owner, 2026-10-26).
+    expect(await feedback.notInterested(userId, itemId)).toBe(true);
+    const saved = await trx
+      .selectFrom("user_save")
+      .select("content_item_id")
+      .where("user_id", "=", userId)
+      .execute();
+    expect(saved).toHaveLength(1);
+  });
+});

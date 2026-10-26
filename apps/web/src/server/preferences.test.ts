@@ -7,6 +7,7 @@ function store() {
   return {
     get: vi.fn(() => Promise.resolve(null)),
     createIfAbsent: vi.fn(() => Promise.resolve(true)),
+    update: vi.fn(() => Promise.resolve(true)),
   } satisfies PreferencesStore;
 }
 

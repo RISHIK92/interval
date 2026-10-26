@@ -315,6 +315,12 @@ class TagOverride(TypedDict):
     updated_at: datetime
 
 
+class UserAvoidedConcept(TypedDict):
+    user_id: str | None
+    slug: str | None
+    name: str | None
+
+
 class UserCapability(TypedDict):
     user_id: str
     capability: Capability
@@ -365,6 +371,11 @@ class UserHiddenSource(TypedDict):
     user_id: str
     source_id: int
     hidden_at: datetime
+
+
+class UserInferredReset(TypedDict):
+    user_id: str
+    reset_at: datetime
 
 
 class UserPreferences(TypedDict):

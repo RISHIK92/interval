@@ -339,6 +339,12 @@ export interface TagOverride {
   updated_by: string;
 }
 
+export interface UserAvoidedConcept {
+  name: string | null;
+  slug: string | null;
+  user_id: string | null;
+}
+
 export interface UserCapability {
   capability: Capability;
   granted_at: Generated<Timestamp>;
@@ -391,6 +397,11 @@ export interface UserHiddenSource {
   user_id: string;
 }
 
+export interface UserInferredReset {
+  reset_at: Timestamp;
+  user_id: string;
+}
+
 export interface UserPreferences {
   break_length: BreakLength;
   level: Difficulty;
@@ -439,12 +450,14 @@ export interface DB {
   starter_feed_entry: StarterFeedEntry;
   starter_feed_visible: StarterFeedVisible;
   tag_override: TagOverride;
+  user_avoided_concept: UserAvoidedConcept;
   user_capability: UserCapability;
   user_entitlement: UserEntitlement;
   user_feed_entry: UserFeedEntry;
   user_feed_state: UserFeedState;
   user_feed_visible: UserFeedVisible;
   user_hidden_source: UserHiddenSource;
+  user_inferred_reset: UserInferredReset;
   user_preferences: UserPreferences;
   user_save: UserSave;
 }

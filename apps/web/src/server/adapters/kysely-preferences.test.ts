@@ -98,3 +98,27 @@ test("the database refuses an empty topic list", async () => {
     ).rejects.toThrow(/check constraint/);
   });
 });
+
+// P1-W4-S08: the Profile page edits the explicit choices (PER-1).
+test("an edit replaces the three choices and keeps when onboarding happened", async () => {
+  await withUser(async (trx, userId) => {
+    const store = kyselyPreferences(trx);
+    await store.createIfAbsent(userId, {
+      topics: ["databases"],
+      level: "beginner",
+      breakLength: "1-3",
+    });
+    const before = await store.get(userId);
+    const edited: Preferences = {
+      topics: ["system-design", "backend"], // read back in the topic list's order
+      level: "advanced",
+      breakLength: "8-15",
+    };
+    expect(await store.update(userId, edited)).toBe(true);
+    const after = await store.get(userId);
+    expect(after).toMatchObject(edited);
+    expect(after?.onboardedAt).toEqual(before?.onboardedAt);
+    // Nothing to edit before onboarding.
+    expect(await store.update(`${userId}-none`, edited)).toBe(false);
+  });
+});
