@@ -17,6 +17,7 @@ import pytest
 
 from interval_db.generated import BreakLength, Difficulty, RightsProfile, Topic
 from interval_jobs.adapters.memory import (
+    GOAL_CONCEPTS,
     RANKING_DEFAULTS,
     InMemoryAi,
     InMemoryStore,
@@ -26,6 +27,7 @@ from interval_jobs.adapters.postgres import PostgresAi, PostgresStore
 from interval_jobs.concepts.graph import ConceptSeedError, parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.ports import (
+    LEARNING_GOALS,
     AiLedger,
     Arm,
     ArmOutcome,
@@ -89,7 +91,9 @@ class Probe(Protocol):
     def set_boundaries(self, item_id: int, headings: list[str]) -> None: ...
     def switch_moments_off(self, source_id: int, off: bool) -> None: ...
     # What the web app writes about a user (P1-W4-S01, W4-S07).
-    def set_preferences(self, user_id: str, topics: list[str]) -> None: ...
+    def set_preferences(
+        self, user_id: str, topics: list[str], goals: list[str] | None = None
+    ) -> None: ...
     def give_feedback(self, user_id: str, item_id: int, kind: str) -> None: ...
     def save(self, user_id: str, item_id: int) -> None: ...
     def hide_source(self, user_id: str, source_id: int) -> None: ...
@@ -163,9 +167,14 @@ class MemoryProbe:
     def switch_moments_off(self, source_id: int, off: bool) -> None:
         self.s.sources.switch_moments_off(source_id, off)
 
-    def set_preferences(self, user_id: str, topics: list[str]) -> None:
+    def set_preferences(
+        self, user_id: str, topics: list[str], goals: list[str] | None = None
+    ) -> None:
         self.s.ranking.preferences_by_user[user_id] = UserPreferences(
-            [t for t in get_args(Topic.__value__) if t in topics], "beginner", "3-8"
+            [t for t in get_args(Topic.__value__) if t in topics],
+            "beginner",
+            "3-8",
+            [g for g in LEARNING_GOALS if g in (goals or [])],
         )
 
     def give_feedback(self, user_id: str, item_id: int, kind: str) -> None:
@@ -356,11 +365,15 @@ class PostgresProbe:
             (item_id, heading, level),
         )
 
-    def set_preferences(self, user_id: str, topics: list[str]) -> None:
+    def set_preferences(
+        self, user_id: str, topics: list[str], goals: list[str] | None = None
+    ) -> None:
+        # At least one goal, as the database requires (ADR-0015).
         self.conn.execute(
-            "insert into user_preferences (user_id, topics, level, break_length) "
-            "values (%s, %s::topic[], 'beginner', '3-8')",
-            (user_id, topics),
+            "insert into user_preferences "
+            "(user_id, topics, level, break_length, goals) "
+            "values (%s, %s::topic[], 'beginner', '3-8', %s::learning_goal[])",
+            (user_id, topics, goals or ["stay-sharp"]),
         )
 
     def give_feedback(self, user_id: str, item_id: int, kind: str) -> None:
@@ -1785,6 +1798,28 @@ def test_the_seed_file_and_the_admin_switch_both_have_to_allow_moments(
 
 
 # REC-1 (P1-W4-S02): what ranking reads about a user.
+# Learning goals (ADR-0015): explicit choices, with the owner-approved concept sets.
+def test_goals_come_back_in_order_with_their_concept_sets(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    user = f"goals-{uuid4().hex[:8]}"
+    probe.add_user(user, False, [])
+    probe.set_preferences(
+        user, ["databases"], ["stay-sharp", "system-design-interviews"]
+    )
+    prefs = s.ranking.preferences(user)
+    assert prefs is not None
+    assert prefs.goals == ["system-design-interviews", "stay-sharp"]
+    sets = s.ranking.goal_concepts(["system-design-interviews", "stay-sharp"])
+    assert len(sets["system-design-interviews"]) == 24
+    assert {"cap-theorem", "back-of-the-envelope-estimation", "caching"} <= sets[
+        "system-design-interviews"
+    ]
+    assert sets.get("stay-sharp", frozenset()) == frozenset()  # no boost
+    assert s.ranking.goal_concepts([]) == {}
+
+
 def test_readers_return_preferences_feedback_and_topic_moments(
     store: tuple[Store, Probe],
 ) -> None:
@@ -1900,6 +1935,14 @@ def test_topic_moments_offer_the_shown_copy_of_active_sources_in_order(
 
 
 # REC-2 scoring inputs (P1-W4-S03).
+def test_the_fakes_goal_concepts_match_the_migrations_seed(
+    conn: psycopg.Connection,
+) -> None:
+    assert PostgresStore(conn).ranking.goal_concepts(list(LEARNING_GOALS)) == (
+        GOAL_CONCEPTS
+    )
+
+
 def test_the_fakes_ranking_config_matches_the_migrations_seed(
     conn: psycopg.Connection,
 ) -> None:

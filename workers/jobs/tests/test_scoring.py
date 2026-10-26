@@ -179,6 +179,24 @@ def test_mmr_keeps_alike_moments_apart(alike: Callable[[int], EntryFacts]) -> No
     assert sorted(order) == [1, 2, 3, 4, 5]
 
 
+GOAL = ("system-design-interviews", frozenset({"raft", "sharding"}))
+
+
+def test_goal_match_is_the_share_of_the_items_concepts_in_the_goals() -> None:
+    # ADR-0015 option A: the share of an item's concepts in the user's goal sets.
+    with_goal = replace(USER, goal_sets=(GOAL,))
+    on_goal = ranked(BASE, with_goal)  # {"raft"}: all in the goal
+    assert on_goal.breakdown.values["goal_match"] == 1.0
+    assert on_goal.breakdown.weighted["goal_match"] == CONFIG.weights["goal_match"]
+    half = ranked(replace(BASE, concepts=frozenset({"raft", "paxos"})), with_goal)
+    assert half.breakdown.values["goal_match"] == 0.5
+    off_goal = ranked(replace(BASE, concepts=frozenset({"paxos"})), with_goal)
+    assert off_goal.breakdown.values["goal_match"] == 0.0
+    untagged = ranked(replace(BASE, concepts=frozenset()), with_goal)
+    assert untagged.breakdown.values["goal_match"] == 0.0
+    assert ranked(BASE).breakdown.values["goal_match"] == 0.0  # no goals: no lift
+
+
 def test_the_breakdown_adds_up_to_the_score() -> None:
     disliked = replace(USER, less_liked=frozenset({BASE.item_id}))
     scored = ranked(BASE, disliked)

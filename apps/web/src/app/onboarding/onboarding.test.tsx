@@ -43,15 +43,19 @@ async function page(query: Record<string, string> = {}): Promise<string> {
   );
 }
 
+// A goal unless the test says otherwise (ADR-0015 needs one).
 function form(fields: Record<string, string | string[]>): FormData {
   const data = new FormData();
-  for (const [key, value] of Object.entries(fields)) {
+  for (const [key, value] of Object.entries({
+    goal: "system-design-interviews",
+    ...fields,
+  })) {
     for (const v of [value].flat()) data.append(key, v);
   }
   return data;
 }
 
-test("a new guest gets one screen with the three fields", async () => {
+test("a new account gets one screen with the four fields", async () => {
   current.mockResolvedValue(guest);
   get.mockResolvedValue(null);
   const html = await page();
@@ -63,6 +67,7 @@ test("a new guest gets one screen with the three fields", async () => {
 test("a returning guest skips onboarding", async () => {
   current.mockResolvedValue(guest);
   get.mockResolvedValue({
+    goals: ["system-design-interviews"],
     topics: ["backend"],
     level: "beginner",
     breakLength: "1-3",
@@ -88,6 +93,7 @@ test("choices are saved, onboarding_completed is emitted, and the feed follows",
     ),
   ).rejects.toThrow(/^redirect:\/$/);
   expect(createIfAbsent).toHaveBeenCalledWith("g1", {
+    goals: ["system-design-interviews"],
     topics: ["databases", "backend"],
     level: "intermediate",
     breakLength: "3-8",
@@ -154,4 +160,23 @@ test("a failed recompute enqueue is logged, and onboarding still completes", asy
   );
   expect(lines.join("")).toContain("feed: first recompute not queued");
   vi.restoreAllMocks();
+});
+
+// ADR-0015: goals first; the two that need Phase 2 are shown but can't be picked.
+test("onboarding asks for goals first, with the coming-soon ones disabled", async () => {
+  current.mockResolvedValue(guest);
+  get.mockResolvedValue(null);
+  const html = await page();
+  expect(html.indexOf('name="goal"')).toBeLessThan(
+    html.indexOf('name="topic"'),
+  );
+  expect(html.match(/name="goal"/g)).toHaveLength(4);
+  for (const goal of ["stack-i-use", "finish-that-book"]) {
+    expect(html).toMatch(
+      new RegExp(
+        `<input[^>]*disabled=""[^>]*value="${goal}"|<input[^>]*value="${goal}"[^>]*disabled=""`,
+      ),
+    );
+  }
+  expect(html.match(/Coming soon/g)).toHaveLength(2);
 });

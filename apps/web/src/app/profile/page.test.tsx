@@ -47,6 +47,7 @@ async function page(query: Record<string, string> = {}): Promise<string> {
 test("the choices form is filled in with the user's choices", async () => {
   current.mockResolvedValue(guest);
   get.mockResolvedValue({
+    goals: ["system-design-interviews"],
     topics: ["databases"],
     level: "advanced",
     breakLength: "8-15",
@@ -56,6 +57,8 @@ test("the choices form is filled in with the user's choices", async () => {
     (html.match(/<input[^>]*>/g) ?? []).some(
       (tag) => tag.includes(`value="${value}"`) && tag.includes("checked"),
     );
+  expect(checked("system-design-interviews")).toBe(true); // ADR-0015
+  expect(checked("stay-sharp")).toBe(false);
   expect(checked("databases")).toBe(true);
   expect(checked("backend")).toBe(false);
   expect(checked("advanced")).toBe(true);
@@ -65,6 +68,7 @@ test("the choices form is filled in with the user's choices", async () => {
 test("hidden sources and inferred interests are listed with their actions", async () => {
   current.mockResolvedValue(guest);
   get.mockResolvedValue({
+    goals: ["system-design-interviews"],
     topics: ["databases"],
     level: "advanced",
     breakLength: "8-15",
@@ -91,6 +95,7 @@ test("no session goes to /join; not onboarded goes to /onboarding", async () => 
 test("notices come from fixed text, never from the query string", async () => {
   current.mockResolvedValue(guest);
   get.mockResolvedValue({
+    goals: ["system-design-interviews"],
     topics: ["databases"],
     level: "advanced",
     breakLength: "8-15",
@@ -108,6 +113,7 @@ test("notices come from fixed text, never from the query string", async () => {
 test("appearance offers light, dark and the device's own, this device's marked", async () => {
   current.mockResolvedValue(guest);
   get.mockResolvedValue({
+    goals: ["system-design-interviews"],
     topics: ["databases"],
     level: "advanced",
     breakLength: "8-15",

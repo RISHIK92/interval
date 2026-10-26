@@ -17,6 +17,7 @@ export async function onboardingAction(form: FormData): Promise<void> {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
   const result = await completeOnboarding(preferences(), actor.userId, {
+    goals: form.getAll("goal").filter((v) => typeof v === "string"),
     topics: form.getAll("topic").filter((v) => typeof v === "string"),
     level: textField(form, "level"),
     breakLength: textField(form, "breakLength"),

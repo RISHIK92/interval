@@ -18,6 +18,9 @@ type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type Difficulty = Literal["beginner", "intermediate", "advanced"]
 type FeedbackKind = Literal["more_like_this", "less_like_this", "not_interested"]
 type FinishMethod = Literal["return_prompt", "mark_done"]
+type LearningGoal = Literal[
+    "system-design-interviews", "stack-i-use", "finish-that-book", "stay-sharp"
+]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
@@ -171,6 +174,11 @@ class FetchValidator(TypedDict):
     etag: str | None
     last_modified: str | None
     updated_at: datetime
+
+
+class GoalConcept(TypedDict):
+    goal: LearningGoal
+    concept_slug: str
 
 
 class GraphVersion(TypedDict):
@@ -435,6 +443,7 @@ class UserPreferences(TypedDict):
     break_length: BreakLength
     onboarded_at: datetime
     updated_at: datetime
+    goals: list[LearningGoal]
 
 
 class UserSave(TypedDict):

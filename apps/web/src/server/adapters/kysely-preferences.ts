@@ -1,6 +1,6 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import { type PreferencesStore, TOPICS } from "../ports";
+import { GOALS, type PreferencesStore, TOPICS } from "../ports";
 
 // Postgres adapter (ADR-0012) for the explicit preferences (PER-1, P1-W4-S01).
 export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
@@ -12,6 +12,7 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
           // node-pg doesn't parse arrays of an enum type it doesn't know (topic[]):
           // read them as text[] and keep the values the enum allows.
           sql<string[]>`topics::text[]`.as("topics"),
+          sql<string[]>`goals::text[]`.as("goals"),
           "level",
           "break_length",
           "onboarded_at",
@@ -20,7 +21,9 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
         .executeTakeFirst();
       if (row === undefined) return null;
       const topics = TOPICS.filter((topic) => row.topics.includes(topic));
+      const goals = GOALS.filter((goal) => row.goals.includes(goal));
       return {
+        goals,
         topics,
         level: row.level,
         breakLength: row.break_length,
@@ -32,6 +35,7 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
       const updated = await db
         .updateTable("user_preferences")
         .set({
+          goals: preferences.goals,
           topics: preferences.topics,
           level: preferences.level,
           break_length: preferences.breakLength,
@@ -48,6 +52,7 @@ export function kyselyPreferences(db: Kysely<DB>): PreferencesStore {
         .insertInto("user_preferences")
         .values({
           user_id: userId,
+          goals: preferences.goals,
           topics: preferences.topics,
           level: preferences.level,
           break_length: preferences.breakLength,

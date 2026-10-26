@@ -33,9 +33,13 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
+// A goal unless the test gives its own (ADR-0015 needs one).
 function form(fields: [string, string][]): FormData {
   const data = new FormData();
-  for (const [name, value] of fields) data.append(name, value);
+  const withGoal: [string, string][] = fields.some(([name]) => name === "goal")
+    ? fields
+    : [["goal", "system-design-interviews"], ...fields];
+  for (const [name, value] of withGoal) data.append(name, value);
   return data;
 }
 
@@ -58,6 +62,7 @@ describe("editing the explicit choices", () => {
       ),
     ).rejects.toThrow("redirect:/profile?saved=choices");
     expect(update).toHaveBeenCalledExactlyOnceWith("g1", {
+      goals: ["system-design-interviews"],
       topics: ["backend", "databases"],
       level: "advanced",
       breakLength: "8-15",

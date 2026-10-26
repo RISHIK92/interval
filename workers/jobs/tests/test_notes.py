@@ -11,7 +11,7 @@ import pytest
 from interval_db.generated import AiProvider, Topic
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore
 from interval_jobs.ai.gateway import AiGateway, OverBudget
-from interval_jobs.feed.notes import note_for, polish_note
+from interval_jobs.feed.notes import GoalSets, note_for, polish_note
 from interval_jobs.ports import (
     Breakdown,
     Completion,
@@ -40,7 +40,7 @@ FACTS = EntryFacts(
 )
 
 
-ALL = ("topic_match", "level_fit", "quality", "freshness", "time_fit")
+ALL = ("topic_match", "level_fit", "quality", "freshness", "time_fit", "goal_match")
 
 
 def scored(signal: str, facts: EntryFacts = FACTS) -> Scored:
@@ -170,3 +170,30 @@ def test_over_budget_makes_no_call() -> None:
     result = polish_note(gateway(llm, spent=Decimal(1000)), "small", NOTE)
     assert isinstance(result, OverBudget)
     assert llm.prompts == []
+
+
+# ADR-0015: the goal the item serves, by the owner's wording (2026-10-26).
+def test_a_goal_note_names_the_goal_the_item_serves() -> None:
+    facts = replace(FACTS, concepts=frozenset({"caching"}))
+    goals: GoalSets = (("system-design-interviews", frozenset({"caching", "cdn"})),)
+    found = note_for(
+        scored("goal_match", facts),
+        ["databases"],
+        "intermediate",
+        "3-8",
+        NOW,
+        goals,
+    )
+    assert found == (
+        NoteKey(70, "goal_match", "intermediate", "system-design-interviews"),
+        "Toward your goal: pass system design interviews.",
+    )
+
+
+def test_no_goal_note_when_the_item_serves_none() -> None:
+    goals: GoalSets = (("system-design-interviews", frozenset({"cdn"})),)
+    found = note_for(
+        scored("goal_match"), ["databases"], "intermediate", "3-8", NOW, goals
+    )
+    # Falls to the next true signal instead (the item is fresh and on a topic).
+    assert found is not None and found[0].signal != "goal_match"

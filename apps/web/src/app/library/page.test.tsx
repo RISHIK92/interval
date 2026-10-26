@@ -6,6 +6,7 @@ import type { Actor, Library, Preferences } from "../../server/ports";
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
   Promise.resolve({
+    goals: ["system-design-interviews"],
     topics: ["backend"],
     level: "beginner",
     breakLength: "3-8",

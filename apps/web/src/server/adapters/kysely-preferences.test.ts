@@ -54,6 +54,7 @@ test("onboarding's choices are kept once; a second create changes nothing", asyn
     const store = kyselyPreferences(trx);
     expect(await store.get(userId)).toBeNull();
     const first: Preferences = {
+      goals: ["system-design-interviews"],
       topics: ["databases"],
       level: "beginner",
       breakLength: "1-3",
@@ -61,6 +62,7 @@ test("onboarding's choices are kept once; a second create changes nothing", asyn
     expect(await store.createIfAbsent(userId, first)).toBe(true);
     expect(
       await store.createIfAbsent(userId, {
+        goals: ["system-design-interviews"],
         topics: ["backend"],
         level: "advanced",
         breakLength: "8-15",
@@ -77,6 +79,7 @@ test("the guest purge takes the preferences with the user", async () => {
   await withUser(async (trx, userId) => {
     const store = kyselyPreferences(trx);
     await store.createIfAbsent(userId, {
+      goals: ["system-design-interviews"],
       topics: ["backend"],
       level: "beginner",
       breakLength: "3-8",
@@ -91,6 +94,7 @@ test("the database refuses an empty topic list", async () => {
     // The last statement of the case: a failed one aborts the transaction.
     await expect(
       kyselyPreferences(trx).createIfAbsent(userId, {
+        goals: ["system-design-interviews"],
         topics: [],
         level: "beginner",
         breakLength: "1-3",
@@ -99,18 +103,34 @@ test("the database refuses an empty topic list", async () => {
   });
 });
 
+test("the database refuses an empty goal list (ADR-0015)", async () => {
+  await withUser(async (trx, userId) => {
+    await expect(
+      kyselyPreferences(trx).createIfAbsent(userId, {
+        goals: [],
+        topics: ["backend"],
+        level: "beginner",
+        breakLength: "1-3",
+      }),
+    ).rejects.toThrow(/check constraint/);
+  });
+});
+
 // P1-W4-S08: the Profile page edits the explicit choices (PER-1).
-test("an edit replaces the three choices and keeps when onboarding happened", async () => {
+test("an edit replaces the four choices and keeps when onboarding happened", async () => {
   await withUser(async (trx, userId) => {
     const store = kyselyPreferences(trx);
     await store.createIfAbsent(userId, {
+      goals: ["stay-sharp"],
       topics: ["databases"],
       level: "beginner",
       breakLength: "1-3",
     });
     const before = await store.get(userId);
     const edited: Preferences = {
-      topics: ["system-design", "backend"], // read back in the topic list's order
+      // Goals and topics read back in their lists' order (ADR-0015).
+      goals: ["system-design-interviews", "stay-sharp"],
+      topics: ["system-design", "backend"],
       level: "advanced",
       breakLength: "8-15",
     };

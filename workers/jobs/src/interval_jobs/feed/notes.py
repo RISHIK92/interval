@@ -6,7 +6,7 @@ model sees only the article's title besides (AI-1): a note never restates the ar
 
 from datetime import datetime, timedelta
 
-from interval_db.generated import BreakLength, Difficulty, Topic
+from interval_db.generated import BreakLength, Difficulty, LearningGoal, Topic
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.ports import JobQueue, Message, NoteInput, NoteKey
@@ -29,6 +29,15 @@ TRUSTED_QUALITY = 4  # "one of the most trusted sources here": rated 4 or 5 (ING
 FRESH = timedelta(days=7)  # "New this week."
 
 
+# How a goal reads in a note (ADR-0015, owner 2026-10-26); only goals that point at
+# concepts can be a card's reason.
+GOAL_WORDS: dict[LearningGoal, str] = {
+    "system-design-interviews": "pass system design interviews",
+}
+
+type GoalSets = tuple[tuple[LearningGoal, frozenset[str]], ...]
+
+
 def _note(
     signal: str,
     scored: Scored,
@@ -36,9 +45,25 @@ def _note(
     level: Difficulty,
     chip: BreakLength,
     now: datetime,
+    goals: GoalSets,
 ) -> tuple[NoteKey, str] | None:
     """The signal's note, or None when its words wouldn't be true of this entry."""
     facts, item = scored.facts, scored.item_id
+    if signal == "goal_match":
+        goal: LearningGoal | None = next(
+            (
+                g
+                for g, concepts in goals
+                if facts.concepts & concepts and g in GOAL_WORDS
+            ),
+            None,
+        )
+        if goal is None:
+            return None
+        return (
+            NoteKey(item, signal, level, goal),
+            f"Toward your goal: {GOAL_WORDS[goal]}.",
+        )
     if signal == "topic_match":
         topic = next((t for t in topics if t in facts.topics), None)
         if topic is None:
@@ -79,11 +104,12 @@ def note_for(
     level: Difficulty,
     chip: BreakLength,
     now: datetime,
+    goals: GoalSets = (),
 ) -> tuple[NoteKey, str] | None:
     """The cache key and template text for the entry's largest signal whose note is
     true of it (owner, 2026-10-26); None when no note would be."""
     for signal in scored.signals:
-        found = _note(signal, scored, topics, level, chip, now)
+        found = _note(signal, scored, topics, level, chip, now, goals)
         if found is not None:
             return found
     return None

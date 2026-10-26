@@ -11,6 +11,7 @@ const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
 );
 const getPreferences = vi.fn<(userId: string) => Promise<object | null>>(() =>
   Promise.resolve({
+    goals: ["system-design-interviews"],
     topics: ["backend"],
     level: "beginner",
     breakLength: "3-8",

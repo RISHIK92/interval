@@ -20,6 +20,7 @@ from interval_db.generated import (
     BreakLength,
     Capability,
     Difficulty,
+    LearningGoal,
     RightsProfile,
     Topic,
 )
@@ -1369,7 +1370,9 @@ class PostgresRankingInputs:
     def preferences(self, user_id: str) -> UserPreferences | None:
         # psycopg doesn't parse arrays of an unregistered enum type: read as text[].
         row = self._conn.execute(
-            "select topics::text[], level, break_length::text "
+            "select topics::text[], level, break_length::text, "
+            # The enum's own order, which LEARNING_GOALS mirrors.
+            "array(select u.goal::text from unnest(goals) as u(goal) order by u.goal) "
             "from user_preferences where user_id = %s",
             (user_id,),
         ).fetchone()
@@ -1385,7 +1388,21 @@ class PostgresRankingInputs:
             topics=[cast(Topic, t) for t in row[0]],
             level=row[1],
             break_length=cast(BreakLength, row[2]),
+            goals=[cast(LearningGoal, g) for g in row[3]],
         )
+
+    def goal_concepts(
+        self, goals: list[LearningGoal]
+    ) -> dict[LearningGoal, frozenset[str]]:
+        rows = self._conn.execute(
+            "select goal::text, concept_slug from goal_concept "
+            "where goal = any(%s::learning_goal[])",
+            (list(goals),),
+        ).fetchall()
+        found: dict[LearningGoal, set[str]] = {}
+        for goal, slug in rows:
+            found.setdefault(cast(LearningGoal, goal), set()).add(str(slug))
+        return {goal: frozenset(slugs) for goal, slugs in found.items()}
 
     def hidden_sources(self, user_id: str) -> set[int]:
         rows = self._conn.execute(

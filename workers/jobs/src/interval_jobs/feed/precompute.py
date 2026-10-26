@@ -23,6 +23,7 @@ from interval_jobs.ports import (
 from interval_jobs.ranking.rank import (
     TOPICS,
     Ranked,
+    goal_sets,
     rank_for_preferences,
     rank_for_user,
 )
@@ -54,9 +55,10 @@ def _with_notes(
     """Every chip's entries with their why-this-matters notes (P1-W4-S06): a note is
     written the first time its key comes up and reused after (Q-P1-18). One write
     for the whole feed, so recomputes sharing notes take them in one order."""
+    goals = goal_sets(store.ranking, preferences)
     keyed: dict[BreakLength, list[tuple[Scored, tuple[NoteKey, str] | None]]] = {
         chip: [
-            (s, note_for(s, preferences.topics, preferences.level, chip, now))
+            (s, note_for(s, preferences.topics, preferences.level, chip, now, goals))
             for s in scored
         ]
         for chip, scored in ranked.items()

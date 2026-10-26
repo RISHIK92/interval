@@ -27,6 +27,7 @@ const NOTICES: Record<string, string> = {
   unhidden: "Source shown again. Your feed updates in a moment.",
 };
 const MISSING: Record<string, string> = {
+  goal: "Pick at least one goal.",
   topic: "Pick at least one topic.",
   level: "Pick a level.",
   break: "Pick a break length.",

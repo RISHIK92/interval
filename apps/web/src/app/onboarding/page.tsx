@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic";
 
 // Fixed text per field: the query string picks which, never what it says.
 const MISSING: Record<string, string> = {
+  goal: "Pick at least one goal.",
   topic: "Pick at least one topic.",
   level: "Pick a level.",
   break: "Pick a break length.",

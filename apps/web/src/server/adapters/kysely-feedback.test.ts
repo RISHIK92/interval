@@ -207,15 +207,24 @@ test("a reset clears More and Less like this and the concept down-rank only", as
 test("unsave removes a save; a repeat changes nothing", async () => {
   await inRollback(async (trx, { userId, itemId }) => {
     const feedback = kyselyFeedback(trx);
-    // Another user's save of the same item stays.
-    const otherId = (
-      await trx
-        .selectFrom("app_user")
-        .select("id")
-        .where("id", "!=", userId)
-        .limit(1)
-        .executeTakeFirstOrThrow()
-    ).id;
+    // Another user's save of the same item stays. Made here: the test must not
+    // depend on who else is in the database.
+    const mine = await trx
+      .selectFrom("app_user")
+      .select(["invite_code_id", "beta_group"])
+      .where("id", "=", userId)
+      .executeTakeFirstOrThrow();
+    const otherId = randomUUID();
+    await trx
+      .insertInto("app_user")
+      .values({
+        id: otherId,
+        name: "other",
+        email: `${otherId}@example.test`,
+        beta_group: mine.beta_group,
+        invite_code_id: mine.invite_code_id,
+      })
+      .execute();
     await feedback.save(otherId, itemId);
     await feedback.save(userId, itemId);
     expect(await feedback.unsave(userId, itemId)).toBe(true);

@@ -49,6 +49,8 @@ export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
+export type LearningGoal = "finish-that-book" | "stack-i-use" | "stay-sharp" | "system-design-interviews";
+
 export type MomentLinkType = "anchor" | "page_top" | "text_fragment";
 
 export type Numeric = ColumnType<string, number | string, number | string>;
@@ -205,6 +207,11 @@ export interface FetchValidator {
   last_modified: string | null;
   updated_at: Generated<Timestamp>;
   url: string;
+}
+
+export interface GoalConcept {
+  concept_slug: string;
+  goal: LearningGoal;
 }
 
 export interface GraphVersion {
@@ -464,6 +471,7 @@ export interface UserMomentOpened {
 
 export interface UserPreferences {
   break_length: BreakLength;
+  goals: ArrayType<LearningGoal>;
   level: Difficulty;
   onboarded_at: Generated<Timestamp>;
   topics: ArrayType<Topic>;
@@ -493,6 +501,7 @@ export interface DB {
   explore_arm_outcome: ExploreArmOutcome;
   feed_note: FeedNote;
   fetch_validator: FetchValidator;
+  goal_concept: GoalConcept;
   graph_version: GraphVersion;
   invite_code: InviteCode;
   item_concept: ItemConcept;

@@ -6,6 +6,7 @@ import type {
   Capability,
   Difficulty,
   FeedbackKind,
+  LearningGoal,
   Topic,
 } from "@interval/db";
 import type { MessageName, Messages } from "@interval/db/messages";
@@ -444,7 +445,21 @@ export const BREAK_LENGTHS = [
   "8-15",
 ] as const satisfies readonly BreakLength[];
 
+// ADR-0015: learning goals, in the enum's order. Stack and book goals are coming soon
+// until Phase 2 (GitHub, PDF books): shown, not selectable (owner, 2026-10-26).
+export const GOALS = [
+  "system-design-interviews",
+  "stack-i-use",
+  "finish-that-book",
+  "stay-sharp",
+] as const satisfies readonly LearningGoal[];
+export const LIVE_GOALS = [
+  "system-design-interviews",
+  "stay-sharp",
+] as const satisfies readonly LearningGoal[];
+
 export type Preferences = {
+  goals: LearningGoal[];
   topics: Topic[];
   level: Difficulty;
   breakLength: BreakLength;

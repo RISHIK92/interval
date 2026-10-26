@@ -18,6 +18,7 @@ from interval_db.generated import (
     BreakLength,
     Capability,
     Difficulty,
+    LearningGoal,
     RightsProfile,
     Topic,
 )
@@ -992,9 +993,42 @@ def _cosine(a: list[float], b: list[float]) -> float:
     return dot / norm if norm else 0.0
 
 
+# The learning_goals migration's seed (ADR-0015, owner-approved 2026-10-26).
+GOAL_CONCEPTS: dict[LearningGoal, frozenset[str]] = {
+    "system-design-interviews": frozenset(
+        {
+            "latency-and-throughput",
+            "tail-latency",
+            "load-balancing",
+            "horizontal-scaling",
+            "stateless-services",
+            "cdn",
+            "back-of-the-envelope-estimation",
+            "capacity-planning",
+            "sharding",
+            "event-driven-architecture",
+            "graceful-degradation",
+            "circuit-breakers",
+            "blue-green-deployment",
+            "feature-flags",
+            "cap-theorem",
+            "replication",
+            "consistency-models",
+            "partitioning",
+            "consistent-hashing",
+            "quorums",
+            "indexes",
+            "isolation-levels",
+            "caching",
+            "rate-limiting",
+        }
+    ),
+}
+
 # The rows the ranking_config migration seeds; tests change their own copy.
 RANKING_DEFAULTS: dict[str, float] = {
     "weight.topic_match": 1.0,
+    "weight.goal_match": 0.8,
     "weight.level_fit": 0.6,
     "weight.quality": 0.4,
     "weight.freshness": 0.5,
@@ -1065,6 +1099,11 @@ class InMemoryRankingInputs:
 
     def preferences(self, user_id: str) -> UserPreferences | None:
         return self.preferences_by_user.get(user_id)
+
+    def goal_concepts(
+        self, goals: list[LearningGoal]
+    ) -> dict[LearningGoal, frozenset[str]]:
+        return {g: GOAL_CONCEPTS[g] for g in goals if g in GOAL_CONCEPTS}
 
     def hidden_sources(self, user_id: str) -> set[int]:
         return {source for (user, source) in self.hidden if user == user_id}

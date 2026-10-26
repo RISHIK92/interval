@@ -1,6 +1,7 @@
 """Rule-based scoring and re-ranking (REC-2, REC-3, Q-P1-13, P1-W4-S03).
 
-Score = weighted sum of topic match, level fit (Q-P1-10), source quality (ING-6),
+Score = weighted sum of topic match, goal match (ADR-0015), level fit (Q-P1-10),
+source quality (ING-6),
 freshness and time fit to the user's break, minus penalties for Less like this and for
 concepts of items the user said Not interested to (Q-P1-15). Hidden sources and Not
 interested items never get here (W4-S02). Every weight is a row of `ranking_config`,
@@ -18,12 +19,12 @@ import math
 from dataclasses import dataclass
 from datetime import datetime
 
-from interval_db.generated import BreakLength, Difficulty
+from interval_db.generated import BreakLength, Difficulty, LearningGoal
 from interval_jobs import log
 from interval_jobs.ports import Arm, Breakdown, EntryFacts, EntryKey
 from interval_jobs.ranking.candidates import Candidate
 
-SIGNALS = ("topic_match", "level_fit", "quality", "freshness", "time_fit")
+SIGNALS = ("topic_match", "goal_match", "level_fit", "quality", "freshness", "time_fit")
 PENALTIES = ("less_like_this", "not_interested_concepts")
 _LEVELS: dict[Difficulty, int] = {"beginner": 0, "intermediate": 1, "advanced": 2}
 BREAK_MINUTES: dict[BreakLength, tuple[int, int]] = {
@@ -96,6 +97,8 @@ class UserSignals:
     break_length: BreakLength
     less_liked: frozenset[int]  # item ids
     avoided_concepts: frozenset[str]  # concepts of Not interested items
+    # ADR-0015: the user's goals that point at concepts, in their order, with the sets.
+    goal_sets: tuple[tuple[LearningGoal, frozenset[str]], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -116,6 +119,16 @@ class Scored:
     @property
     def key(self) -> EntryKey:
         return (self.item_id, self.moment_id)
+
+
+def _goal_share(
+    concepts: frozenset[str],
+    goal_sets: tuple[tuple[LearningGoal, frozenset[str]], ...],
+) -> float:
+    if not concepts or not goal_sets:
+        return 0.0
+    wanted: frozenset[str] = frozenset[str]().union(*(s for _, s in goal_sets))
+    return len(concepts & wanted) / len(concepts)
 
 
 def _level_fit(difficulty: Difficulty | None, level: Difficulty) -> float:
@@ -165,6 +178,8 @@ def score(
         parts = {
             # On a chosen topic, whichever generator found it.
             "topic_match": 1.0 if fact.topics & user.topics else 0.0,
+            # ADR-0015: the share of the item's concepts in the user's goal sets.
+            "goal_match": _goal_share(fact.concepts, user.goal_sets),
             "level_fit": _level_fit(fact.difficulty, user.level),
             "quality": (fact.quality - 1) / 4 if fact.quality is not None else 0.5,
             "freshness": _freshness(fact.published_at, now, config.half_life_days),

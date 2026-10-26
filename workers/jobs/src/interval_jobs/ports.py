@@ -5,7 +5,7 @@ never imports a driver or SDK, so a service is swapped by replacing one adapter.
 """
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from threading import Event
@@ -21,6 +21,7 @@ from interval_db.generated import (
     Capability,
     ConceptEdgeType,
     Difficulty,
+    LearningGoal,
     MomentLinkType,
     RightsProfile,
     Topic,
@@ -602,6 +603,16 @@ class MomentEmbeddings(Protocol):
         ...
 
 
+# The migration's enum order (learning_goal), which both stores return goals in. Written
+# out because codegen sorts the generated Literal alphabetically, losing that order.
+LEARNING_GOALS: tuple[LearningGoal, ...] = (
+    "system-design-interviews",
+    "stack-i-use",
+    "finish-that-book",
+    "stay-sharp",
+)
+
+
 @dataclass(frozen=True)
 class UserPreferences:
     """The explicit layer (PER-1), written by the web app's onboarding (P1-W4-S01)."""
@@ -609,6 +620,8 @@ class UserPreferences:
     topics: list[Topic]
     level: Difficulty
     break_length: BreakLength
+    # ADR-0015, in LEARNING_GOALS order; none for a starter feed.
+    goals: list[LearningGoal] = field(default_factory=list["LearningGoal"])
 
 
 @dataclass(frozen=True)
@@ -693,6 +706,12 @@ class RankingInputs(Protocol):
 
     def preferences(self, user_id: str) -> UserPreferences | None: ...
 
+    def goal_concepts(
+        self, goals: list[LearningGoal]
+    ) -> dict[LearningGoal, frozenset[str]]:
+        """The curated concept slugs of each goal that has any (ADR-0015)."""
+        ...
+
     def hidden_sources(self, user_id: str) -> set[int]: ...
 
     def not_interested(self, user_id: str) -> set[int]:
@@ -772,7 +791,7 @@ class FetchValidators(Protocol):
 @dataclass(frozen=True)
 class NoteKey:
     """What a why-this-matters note is cached by (Q-P1-18): the item it cites, the
-    signal, the level, and the topic or chip its words name ('' for neither)."""
+    signal, the level, and the topic, chip or goal its words name ('' for none)."""
 
     item_id: int
     signal: str

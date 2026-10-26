@@ -22,6 +22,7 @@ const card = (id: string): FeedCard => ({
 
 const NOW = new Date("2026-10-26T12:00:00Z");
 const preferences: Preferences & { onboardedAt: Date } = {
+  goals: ["system-design-interviews"],
   topics: ["databases", "backend"],
   level: "intermediate",
   breakLength: "3-8",

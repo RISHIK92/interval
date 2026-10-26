@@ -14,8 +14,15 @@ from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import get_args
 
-from interval_db.generated import BreakLength, Topic
-from interval_jobs.ports import Arm, EntryFacts, EntryKey, Store, UserPreferences
+from interval_db.generated import BreakLength, LearningGoal, Topic
+from interval_jobs.ports import (
+    Arm,
+    EntryFacts,
+    EntryKey,
+    RankingInputs,
+    Store,
+    UserPreferences,
+)
 from interval_jobs.ranking.candidates import (
     Candidate,
     article_candidates,
@@ -118,6 +125,14 @@ def _candidates(
     return _ChipCandidates(by_chip, facts)
 
 
+def goal_sets(
+    inputs: RankingInputs, preferences: UserPreferences
+) -> tuple[tuple[LearningGoal, frozenset[str]], ...]:
+    """The user's goals that point at concepts, in their order (ADR-0015)."""
+    sets = inputs.goal_concepts(preferences.goals) if preferences.goals else {}
+    return tuple((g, sets[g]) for g in preferences.goals if sets.get(g))
+
+
 def rank_for_preferences(
     store: Store,
     preferences: UserPreferences,
@@ -149,6 +164,7 @@ def rank_for_preferences(
         break_length=preferences.break_length,
         less_liked=frozenset(inputs.less_liked(user_id)) if user_id else frozenset(),
         avoided_concepts=inputs.avoided_concepts(user_id) if user_id else frozenset(),
+        goal_sets=goal_sets(inputs, preferences),
     )
     outcomes = inputs.arm_outcomes() if exploring else {}
     draw = rng or random.Random()

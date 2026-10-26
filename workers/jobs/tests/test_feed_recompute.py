@@ -28,6 +28,8 @@ from interval_jobs.ports import (
     MomentRow,
     RankedEntry,
     Section,
+    TagResult,
+    Tags,
     UserPreferences,
 )
 
@@ -526,4 +528,30 @@ def test_explored_entries_keep_their_arm() -> None:
     assert explored and all(r.arm == Arm("topic", "backend") for r in explored)
     assert all(
         r.arm is None for r in rows if w.store.items.rows[r.item_id].source_id != other
+    )
+
+
+# ADR-0015 end to end: a goal reaches scoring and the note through the recompute.
+def test_a_goal_lifts_its_items_and_names_itself_in_the_note() -> None:
+    w = World()
+    w.store.ranking.preferences_by_user["u1"] = UserPreferences(
+        topics=["databases"],
+        level="intermediate",
+        break_length="3-8",
+        goals=["system-design-interviews"],
+    )
+    # Above topic match, so the goal is the top reason and its note is written.
+    w.store.ranking.config_rows["weight.goal_match"] = 2.0
+    item, moment = w.item("idx", 25)
+    w.store.tags.save(
+        item, TagResult(Tags("intermediate", frozenset({"indexes"})), {}), "m", 1
+    )
+    recompute_user_feed(w.store, "u1", None, NOW)
+    (entry,) = [r for r in w.store.feed.users["u1"]["3-8"] if r.moment_id == moment]
+    assert entry.breakdown is not None
+    assert entry.breakdown.values["goal_match"] == 1.0
+    assert entry.top_signal == "goal_match"
+    assert entry.note_id is not None
+    assert w.store.notes.rows[entry.note_id].text == (
+        "Toward your goal: pass system design interviews."
     )
