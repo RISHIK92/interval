@@ -1802,3 +1802,10 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reader: a slow page gets a slim "Slow to load? Open on <site>" bar below the frame (live region present from the start), not a card over the page.
 - Review fixes: momentum swipes moved 2–3 cards (settle now extends per event); pinch-zoom was captured; step to the next card's edge, not a viewport width; clearer dismiss label.
 - Not checked in Chrome: the slow bar itself (the post loaded within 6 s), the Library browser-open prompt.
+
+### 2026-10-26 — Phase 1 beta check (owner)
+
+- Walked a new account end to end on 127.0.0.1 (own cookies; test account deleted after): join with invite → 4-step onboarding → first feed at once → in-app reader → × asks → Yes offers the next section → Mark done from Now reading → Save → Library (Saved / History / Continue reading / Read again) → Profile → Sign out; phone width checked in a 390px frame. Events for both "done when" metrics were emitted (signup_completed, session_started, card_opened, section_finished, article_finished).
+- Blockers before beta: no deployment (ADR-0013 says none until all phases are built, but Phase 1 week 6 is a private beta: needs an owner decision/ADR); models off locally (tagging, embeddings, AI notes: 0 tagged items, every note the same template; W3-S02/S04 model picks and eval labels pending); concept graph 72 provisional vs ~250; 37 sources vs 50–100; real invite codes for ~30 + ~30.
+- Bugs found: items with http:// links are marked frameable, so the reader hands them to /out in the same tab and the user leaves Interval; Blogger authors show "(noreply@blogger.com)"; the same section shows in Continue reading and as the first feed card; the post-finish "Continue:" line always opens the browser; fast scrolling through the feed row (owner report, open).
+- Dev only: 127.0.0.1 added to allowedDevOrigins (Next blocked hydration there).
