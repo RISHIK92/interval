@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
+import { SlowBar } from "./ReaderFrame";
 import type {
   Actor,
   OutboundLinks,
@@ -289,4 +290,20 @@ test("a Library open counts nothing and comes back to the Library", async () => 
   expect(html).toMatch(
     /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;from=library"[^>]*>[^]*?Next section<\/span><\/a>/,
   );
+});
+
+// A slow page gets a slim bar below the frame, never over it (owner, 2026-10-26).
+test("the slow-page bar offers the publisher's site in the browser, and closes", () => {
+  const html = renderToStaticMarkup(
+    <SlowBar
+      domain="pub.test"
+      browserHref="/out?item=5"
+      onClose={() => undefined}
+    />,
+  );
+  expect(html).toContain("Slow to load?");
+  expect(html).toMatch(
+    /<a href="\/out\?item=5" target="_blank" rel="noopener noreferrer"[^>]*>Open on pub\.test<\/a>/,
+  );
+  expect(html).toMatch(/<button[^>]*aria-label="Dismiss slow-load notice"/);
 });

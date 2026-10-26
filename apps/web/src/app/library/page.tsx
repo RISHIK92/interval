@@ -59,6 +59,8 @@ function ReadLink(props: { item: SavedItem | HistoryItem; chip: Chip }) {
         from: "library",
         target: momentId === undefined ? "original" : "section",
       })}
+      data-item={item.itemId}
+      data-moment={momentId}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={name}
@@ -169,7 +171,7 @@ export default async function LibraryPage({
           Profile
         </Link>
       </div>
-      <TabBar current="library" />
+      <TabBar current="library" firstName={chosen.firstName} />
 
       <section aria-label="Everything you kept">
         <h2 className="mb-3 text-section">Everything you kept</h2>

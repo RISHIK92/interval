@@ -132,7 +132,7 @@ export function ReturnPrompt({
       action={finishAction}
       role="alertdialog"
       aria-label="Finished reading?"
-      className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 mx-auto max-w-xl px-4"
+      className="fixed inset-x-0 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 mx-auto max-w-xl px-4 lg:bottom-8 lg:left-60"
       onSubmit={() => {
         // Closed even when the redirect lands on the same URL and nothing remounts.
         dispatch({ type: "closed" });
@@ -148,7 +148,8 @@ export function ReturnPrompt({
       {back === undefined ? null : (
         <input type="hidden" name="back" value={back} />
       )}
-      {/* A bottom sheet just above the tab bar (design screen 2). */}
+      {/* A bottom sheet just above the tab bar (design screen 2); on wide screens, in
+        the content area beside the sidebar. */}
       <Card className="p-5">
         <div className="flex items-start gap-3">
           <span

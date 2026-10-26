@@ -1793,3 +1793,12 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Review fixes: the root's `overflow-hidden` made `.landing` a scroll container, so no scroll reveal ever ran (now `overflow-x-clip`, checked in Chrome); the picker uses `aria-pressed` buttons, not a radio group without arrow keys; the player's skip buttons are now decorative and "Save this moment" goes to `/join`; the topic marquee is `aria-hidden` (it repeats itself); unused tokens removed; under reduced motion the second battle alert is hidden so the two don't overlap.
 - Checked in Chrome at 1512 wide: every section, dark mode, the picker, play/pause, the reveals. Not checked: phone width (the window wouldn't resize).
 - Noted: the page's ~600 arbitrary Tailwind classes go into the shared stylesheet every route loads; the page describes features that aren't built yet (games, battles, Listen, Books), as the design does.
+
+### 2026-10-26 — Polish leftovers (owner)
+
+- The finish prompt sits beside the sidebar on wide screens; Library browser opens ask "Did you finish?" on return (back to the Library).
+- Feed row: one swipe or wheel flick moves exactly one card (`snap-always` on each card; `FeedRow` turns a vertical wheel or trackpad stream into one step, swallowing the rest of the gesture until a 400 ms pause, passing at either end and for pinch-zoom/ctrl+wheel; reduced motion jumps). `wheelDecision` is tested; checked in Chrome with a 1 s momentum-like stream (one card).
+- Sidebar profile: the first name's initial and the name.
+- Reader: a slow page gets a slim "Slow to load? Open on <site>" bar below the frame (live region present from the start), not a card over the page.
+- Review fixes: momentum swipes moved 2–3 cards (settle now extends per event); pinch-zoom was captured; step to the next card's edge, not a viewport width; clearer dismiss label.
+- Not checked in Chrome: the slow bar itself (the post loaded within 6 s), the Library browser-open prompt.

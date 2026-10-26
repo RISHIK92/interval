@@ -27,6 +27,7 @@ import { ArticleCard } from "./ArticleCard";
 import { CardControls } from "./CardControls";
 import { ComingLater } from "./ComingLater";
 import { ContinueReading } from "./ContinueReading";
+import { FeedRow } from "./FeedRow";
 import { Greeting } from "./Greeting";
 import { NowReading } from "./NowReading";
 import { ReturnPrompt } from "./ReturnPrompt";
@@ -268,12 +269,7 @@ export default async function HomePage({
           // card's edge says there is more. Arrow keys scroll it once it has focus. The
           // vertical padding, taken back by the negative margin, keeps card shadows from
           // being clipped by the scroller.
-          <div
-            role="region"
-            aria-label="Your feed"
-            tabIndex={0}
-            className="-my-3 mt-3 snap-x snap-mandatory overflow-x-auto overscroll-x-contain py-3 [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-select [&::-webkit-scrollbar]:hidden"
-          >
+          <FeedRow>
             <ul className="flex gap-2">
               {cards.map((card, index) => (
                 <li
@@ -282,17 +278,17 @@ export default async function HomePage({
                       ? `m${card.momentId}`
                       : `a${card.itemId}`
                   }
-                  className="w-[calc(100%-18px)] shrink-0 snap-start last:w-full"
+                  className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full"
                 >
                   {renderCard(card, index)}
                 </li>
               ))}
             </ul>
-          </div>
+          </FeedRow>
         )}
       </main>
       <ComingLater />
-      <TabBar current="home" />
+      <TabBar current="home" firstName={chosen.firstName} />
     </div>
   );
 }

@@ -10,6 +10,7 @@ const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
     topics: ["backend"],
     level: "beginner",
     breakLength: "3-8",
+    firstName: null,
   }),
 );
 const saves = vi.fn<Library["saves"]>(() => Promise.resolve([]));
@@ -117,11 +118,12 @@ test("saves and history link by progress, in the reader when the page allows", a
   expect(text(html)).toContain("Raft in practice · Example Engineering");
   // Not started, not framable: the article in a new tab.
   expect(html).toMatch(
-    /<a href="\/out\?item=7&amp;from=library&amp;target=original" target="_blank" rel="noopener noreferrer" aria-label="Open article: Raft in practice"[^>]*>Open article<\/a>/,
+    /<a href="\/out\?item=7&amp;from=library&amp;target=original" data-item="7" target="_blank" rel="noopener noreferrer" aria-label="Open article: Raft in practice"[^>]*>Open article<\/a>/,
   );
   // Half read, not framable: its next section in a new tab.
   expect(html).toMatch(
-    /<a href="\/out\?item=10&amp;moment=103&amp;from=library&amp;target=section" target="_blank"[^>]*>Continue reading<\/a>/,
+    // Marked so coming back to this tab asks, as on Home (owner, 2026-10-26).
+    /<a href="\/out\?item=10&amp;moment=103&amp;from=library&amp;target=section" data-item="10" data-moment="103" target="_blank"[^>]*>Continue reading<\/a>/,
   );
   expect(html).toContain("2 of 4 sections");
   // Finished, framable: from the top in the reader, this tab, marked for Back.

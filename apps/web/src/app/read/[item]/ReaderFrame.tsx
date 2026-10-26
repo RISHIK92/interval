@@ -11,8 +11,8 @@ export const FRAME_REFERRER = "strict-origin-when-cross-origin";
 const noChanges = () => () => undefined;
 
 // ADR-0018: the publisher's live page, framed. A frame can't report a refusal or a
-// blank page across origins, so a load that hasn't come after 6 s offers the browser.
-// Nothing covers a loaded page.
+// blank page across origins, so a load that hasn't come after 6 s offers the browser,
+// in a bar below the frame.
 export function ReaderFrame({
   src,
   title,
@@ -42,50 +42,84 @@ export function ReaderFrame({
     };
   }, []);
   return (
-    <div
-      className="relative min-h-0 flex-1 bg-well"
-      data-frame-src={src}
-      data-frame-title={title}
-    >
-      {mounted ? (
-        <iframe
-          src={src}
-          title={title}
-          sandbox={FRAME_SANDBOX}
-          referrerPolicy={FRAME_REFERRER}
-          className="absolute inset-0 size-full border-0 bg-page"
-          onLoad={() => {
-            setPhase("done");
-          }}
-        />
-      ) : null}
-      {phase === "stalled" ? (
-        <div
-          role="status"
-          className="absolute inset-x-4 top-1/3 mx-auto max-w-sm rounded-3xl border border-hairline bg-page p-5 text-center shadow-card"
+    <>
+      <div
+        className="relative min-h-0 flex-1 bg-well"
+        data-frame-src={src}
+        data-frame-title={title}
+      >
+        {mounted ? (
+          <iframe
+            src={src}
+            title={title}
+            sandbox={FRAME_SANDBOX}
+            referrerPolicy={FRAME_REFERRER}
+            className="absolute inset-0 size-full border-0 bg-page"
+            onLoad={() => {
+              setPhase("done");
+            }}
+          />
+        ) : null}
+      </div>
+      {/* A live region present from the start, so a screen reader announces the bar
+        when it fills. */}
+      <div role="status" className="shrink-0">
+        {phase === "stalled" ? (
+          <SlowBar
+            domain={domain}
+            browserHref={browserHref}
+            onClose={() => {
+              setPhase("done");
+            }}
+          />
+        ) : null}
+      </div>
+    </>
+  );
+}
+
+// Below the frame, never over it (owner, 2026-10-26): heavy pages often look ready
+// long before their load event.
+export function SlowBar({
+  domain,
+  browserHref,
+  onClose,
+}: {
+  domain: string;
+  browserHref: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex items-center gap-3 border-t border-hairline bg-well px-4 py-2 text-sm">
+      <p className="min-w-0 flex-1 truncate text-ink-muted">
+        Slow to load?{" "}
+        <a
+          href={browserHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-select"
         >
-          <p className="text-section">This page is taking a while.</p>
-          <div className="mt-4 flex flex-col gap-2">
-            <a
-              href={browserHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
-            >
-              {`Open on ${domain}`}
-            </a>
-            <button
-              type="button"
-              onClick={() => {
-                setPhase("done");
-              }}
-              className="text-sm text-ink-muted underline-offset-2 hover:underline"
-            >
-              Keep waiting
-            </button>
-          </div>
-        </div>
-      ) : null}
+          {`Open on ${domain}`}
+        </a>
+      </p>
+      <button
+        type="button"
+        aria-label="Dismiss slow-load notice"
+        onClick={onClose}
+        className="flex size-7 shrink-0 items-center justify-center rounded-full text-ink-muted hover:bg-page"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          className="size-4"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        >
+          <path d="M6 6l12 12M18 6L6 18" />
+        </svg>
+      </button>
     </div>
   );
 }

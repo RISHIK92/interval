@@ -92,7 +92,13 @@ function Later(props: { name: string; icon: ReactNode; wideOnly?: boolean }) {
   );
 }
 
-export function TabBar({ current }: { current: Current }) {
+export function TabBar({
+  current,
+  firstName,
+}: {
+  current: Current;
+  firstName: string | null;
+}) {
   return (
     <nav
       aria-label="Main"
@@ -128,8 +134,23 @@ export function TabBar({ current }: { current: Current }) {
         href="/profile"
         className="mt-auto hidden items-center gap-3 rounded-xl px-3 py-2.5 text-ink-muted hover:bg-well lg:flex"
       >
-        {ICONS.profile}
-        Profile and settings
+        {/* The design's profile row: an initial and the name (owner, 2026-10-26). */}
+        {firstName === null ? (
+          ICONS.profile
+        ) : (
+          <span
+            aria-hidden="true"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-well font-semibold text-select"
+          >
+            {firstName.charAt(0).toUpperCase()}
+          </span>
+        )}
+        <span className="flex flex-col leading-tight">
+          {firstName === null ? null : (
+            <span className="font-semibold text-ink">{firstName}</span>
+          )}
+          <span className="text-sm">Profile and settings</span>
+        </span>
       </Link>
     </nav>
   );

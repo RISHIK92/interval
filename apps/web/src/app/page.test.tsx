@@ -284,6 +284,8 @@ test("every card is full size in one sideways feed", async () => {
   expect(feed).toMatch(/^aria-label="Your feed"[^>]*tabindex="0"/i);
   expect(feed).toMatch(/snap-x/);
   expect(feed.match(/<li /g)).toHaveLength(2);
+  // One swipe moves one card: the row stops at every card (owner, 2026-10-26).
+  expect(feed.match(/<li [^>]*class="[^"]*snap-always/g)).toHaveLength(2);
   expect(feed).toContain("Why consensus");
   expect(feed).toContain(">Raft<");
   // Both cards have the full-size controls.

@@ -32,6 +32,7 @@ vi.mock("../server/container", () => ({
         topics: ["backend"],
         level: "beginner",
         breakLength: "3-8",
+        firstName: null,
         onboardedAt: new Date("2026-01-01T00:00:00Z"),
       }),
   }),

@@ -7,7 +7,9 @@ import { TabBar } from "./TabBar";
 test.each(["home", "library"] as const)(
   "on %s, five tabs, that one current",
   (current) => {
-    const html = renderToStaticMarkup(<TabBar current={current} />);
+    const html = renderToStaticMarkup(
+      <TabBar current={current} firstName={null} />,
+    );
     for (const name of ["Home", "Explore", "Paths", "Play", "Library"]) {
       expect(html).toContain(name);
     }
@@ -25,7 +27,7 @@ test.each(["home", "library"] as const)(
 );
 
 test("Explore, Paths, Play and Leagues are not links, and say they're coming later", () => {
-  const html = renderToStaticMarkup(<TabBar current="home" />);
+  const html = renderToStaticMarkup(<TabBar current="home" firstName={null} />);
   expect(html.match(/aria-disabled="true"/g)).toHaveLength(4);
   for (const name of ["Explore", "Paths", "Play", "Leagues"]) {
     expect(html).toContain(`${name}<span class="sr-only">Coming later</span>`);
@@ -35,7 +37,7 @@ test("Explore, Paths, Play and Leagues are not links, and say they're coming lat
 // ADR-0019: on wide screens the bar is the design's sidebar, with the wordmark,
 // Leagues (web only) and the profile at the bottom; phones keep five tabs.
 test("Leagues, the wordmark and the profile show only in the wide sidebar", () => {
-  const html = renderToStaticMarkup(<TabBar current="home" />);
+  const html = renderToStaticMarkup(<TabBar current="home" firstName={null} />);
   // Hidden on phones, shown in the sidebar: the class has both.
   const wide = String.raw`class="(?=[^"]*\bhidden\b)(?=[^"]*lg:flex)[^"]*"`;
   // Anchored on the Leagues item itself: its span, its icon, its name.
@@ -50,4 +52,16 @@ test("Leagues, the wordmark and the profile show only in the wide sidebar", () =
   );
   // Home, Library and the profile are the only links.
   expect(html.match(/<a /g)).toHaveLength(3);
+});
+
+// The design's profile row: the first name's initial and the name (owner, 2026-10-26).
+test("the sidebar's profile shows the initial and first name, or a glyph", () => {
+  const named = renderToStaticMarkup(<TabBar current="home" firstName="ada" />);
+  expect(named).toMatch(
+    /href="\/profile"[^>]*>.*?<span[^>]*aria-hidden="true"[^>]*>A<\/span>.*?ada.*?Profile and settings/,
+  );
+  const unnamed = renderToStaticMarkup(
+    <TabBar current="home" firstName={null} />,
+  );
+  expect(unnamed).toMatch(/href="\/profile"[^>]*><svg/);
 });
