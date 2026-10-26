@@ -41,6 +41,7 @@ from interval_jobs.ports import (
     FetchInput,
     Finished,
     GrantResult,
+    MomentLink,
     MomentRow,
     NoteInput,
     NoteKey,
@@ -451,6 +452,22 @@ class PostgresMoments:
             "select 1 from moment where content_item_id = %s limit 1", (item_id,)
         ).fetchone()
         return row is not None
+
+    def links(self, source_id: int | None) -> list[MomentLink]:
+        with self._conn.cursor(row_factory=class_row(MomentLink)) as cur:
+            return cur.execute(
+                """
+                select m.id as moment_id, ci.id as item_id, s.id as source_id,
+                       s.name as source_name, m.title, m.link, m.link_type
+                from moment m
+                join content_item ci on ci.id = m.content_item_id
+                join source s on s.id = ci.source_id
+                where s.moments_enabled
+                  and (%(source)s::bigint is null or s.id = %(source)s)
+                order by s.id, ci.id, m.ordinal
+                """,
+                {"source": source_id},
+            ).fetchall()
 
     def replace(self, item_id: int, rows: list[MomentRow]) -> None:
         with _rights_guard(self._conn):

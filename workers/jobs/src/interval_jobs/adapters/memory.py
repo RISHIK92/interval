@@ -41,6 +41,7 @@ from interval_jobs.ports import (
     FetchKind,
     Finished,
     GrantResult,
+    MomentLink,
     MomentRow,
     NoteInput,
     NoteKey,
@@ -451,6 +452,28 @@ class InMemoryMoments:
         self._next_id = 1
         # The store points this at the feed: deleted moments cascade, as in Postgres.
         self.on_delete: Callable[[], None] = lambda: None
+
+    def links(self, source_id: int | None) -> list[MomentLink]:
+        found: list[tuple[tuple[int, int, int], MomentLink]] = []
+        for m in self.rows:
+            item = self._items.rows[m.item_id]
+            source = self._sources.rows[item.source_id]
+            if source.moments_enabled and source_id in (None, item.source_id):
+                found.append(
+                    (
+                        (item.source_id, m.item_id, m.row.ordinal),
+                        MomentLink(
+                            m.id,
+                            m.item_id,
+                            item.source_id,
+                            source.name,
+                            m.row.title,
+                            m.row.link,
+                            m.row.link_type,
+                        ),
+                    )
+                )
+        return [link for _, link in sorted(found, key=lambda pair: pair[0])]
 
     def replace(self, item_id: int, rows: list[MomentRow]) -> None:
         source = self._sources.rows[self._items.rows[item_id].source_id]

@@ -7,12 +7,15 @@ Session log: docs/progress.md. Read it first, every session.
 Read only the doc sections relevant to the task. Never load whole docs "for context".
 
 ## Source of truth and precedence
+
 1. docs/adr/ (ACCEPTED only) → 2. docs/decisions.md → 3. docs/product.md → 4. docs/wireframes/ (UI only).
+
 - Known disagreements: docs/conflicts.md.
 - If docs conflict or are silent on behavior you need: STOP and ask. Never invent product behavior.
 - Never edit docs/decisions.md, docs/product.md, docs/_source/, or ACCEPTED ADRs. Propose changes as a new ADR (use /adr).
 
 ## Stack (ARCH-2, strict)
+
 - TypeScript: web, API, shared packages, simulation engine. Python: ingestion, ML, AI jobs. Go: game server, execution engine (Phase 3+).
 - Nothing implemented twice across languages.
 - Schema: plain SQL migrations in packages/db with generated TS and Python types (ADR-0002). Never hand-write a type the codegen produces.
@@ -22,6 +25,7 @@ Read only the doc sections relevant to the task. Never load whole docs "for cont
 - Build and verify everything locally; no deployment until all phases are built (ADR-0013).
 
 ## Domain invariants (never violate)
+
 - A source's rights profile gates every processing step (ING-2). No full text stored, processed, or displayed beyond what the profile allows.
 - Moments are deep links into the publisher's page, never copies (Part I §3.2).
 - AI output is stored separately from source text, cites its source passages, and is always labeled in UI (AI-3, AI-1).
@@ -30,6 +34,7 @@ Read only the doc sections relevant to the task. Never load whole docs "for cont
 - Deliberate scaffolding is required, not speculative: entitlements (OPS-3), cost budgets (OPS-4), event tracking (DB-5), idempotency keys (LOAD-5). Never remove or "simplify away" anything a decision ID requires.
 
 ## Code standards
+
 - TypeScript: strict mode, no `any`, no non-null `!` without a comment saying why. Python: full type hints, ruff + pyright strict. Go: gofmt, vet, no panics in request paths.
 - Validate at boundaries (zod / pydantic); trust types inside.
 - Never swallow errors. Graceful degradation only where LOAD-5 says so, and it must be observable (log + metric).
@@ -40,6 +45,7 @@ Read only the doc sections relevant to the task. Never load whole docs "for cont
 - Tests verify behavior, not implementation. Every bug fix starts with a failing test.
 
 ## How we work
+
 1. Plan mode first. A plan lists: files to touch, decision IDs implemented, tests to write, risks, open questions. Wait for approval.
 2. One slice per session (docs/roadmap/phase-N-slices.md). Use /slice. Stay in scope; list anything else you noticed instead of fixing it.
 3. Write failing tests → implement → run the reviewer subagent → fix → summarize the diff file by file, flagging uncertainty.
@@ -47,7 +53,9 @@ Read only the doc sections relevant to the task. Never load whole docs "for cont
 5. End every session with /session-end.
 
 ## Commands
+
 Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED).
+
 - Setup once: `corepack enable` (pnpm pinned in package.json) · `brew install uv dbmate` · `cp .env.example .env`
 - Install: `pnpm install` (TS) · `uv sync --all-packages` (Python workspace: workers/jobs, packages/db/python)
 - Local services: `docker compose up -d --wait` (Postgres + pgvector, SeaweedFS for S3, Valkey for BullMQ queues, ADR-0014)
@@ -59,6 +67,7 @@ Tooling from docs/proposals/phase-1-skeleton.md (ACCEPTED).
 - Worker, re-split one item into moments: `scripts/with-env.sh uv run python -m interval_jobs segment-item --content-item-id ID`
 - Worker, ingestion pipeline (ING-1, W2-S02b): `scripts/with-env.sh uv run python -m interval_jobs consume` runs the stages (discover, fetch, segment, tag, embed, recompute_feed, polish_note) until Ctrl-C (`--max-entries N` takes only each feed's newest N entries, for a one-off local sample); `... enqueue-discover [--source-id N]` queues a poll of one or every active source; `... poll-due` queues only the sources whose adaptive turn has come (ING-3; EventBridge Scheduler or the VM's `interval-poll.timer` runs it every 5 minutes). Load sources first with `... load-sources`
 - Worker, precomputed feeds (CACHE-1, Q-P1-17, W4-S04): `scripts/with-env.sh uv run python -m interval_jobs recompute-due` queues a recompute per active user (session used in 7 days; `consume` runs them) and refreshes the starter feeds; EventBridge Scheduler or the VM's `interval-recompute.timer` runs it hourly. Onboarding queues a user's first recompute
+- Worker, deep-link check (Q-P1-25, W6-S02): `scripts/with-env.sh uv run python -m interval_jobs check-links [--source-id N]` fetches each moment's page politely and prints a JSON report: per-source pass rates, sources under 90% flagged, and every failing or unchecked moment with its reason. Nothing is stored or switched off
 - CDK synth (both stacks, VM `interval-prod` and AWS `interval-prod-aws`; no credentials; never deploy): `pnpm --filter @interval/infra synth`
 - VM mode stack (local smoke run, ADR-0013): see `deploy/compose.prod.yml` and docs/runbooks/vm.md; set `ENV_DIR`, `PGDATA_DIR`, `VALKEY_DIR`, `HTTP_PORT=8080` to run it locally
 - All checks (needs local services up; CI runs the same in `.github/workflows/ci.yml`): `pnpm check` (turbo with `--concurrency=4`: the DB-backed suites share one Postgres and starve each other when everything runs at once)

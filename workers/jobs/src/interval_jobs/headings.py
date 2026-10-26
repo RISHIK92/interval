@@ -4,7 +4,7 @@ publisher ids, and tagging finding a moment's heading line in the stored text.""
 import unicodedata
 
 # Permalink glyphs that publishing tools append to headings (Sphinx, MkDocs, Hugo).
-_PERMALINK_GLYPHS = "¶#§🔗"
+PERMALINK_GLYPHS = "¶#§🔗"
 HEADING_MAX_CHARS = 300
 
 
@@ -15,7 +15,7 @@ def _strip_format_chars(text: str) -> str:
 
 def clean_heading(text: str) -> str:
     cleaned = (
-        " ".join(_strip_format_chars(text).split()).rstrip(_PERMALINK_GLYPHS).strip()
+        " ".join(_strip_format_chars(text).split()).rstrip(PERMALINK_GLYPHS).strip()
     )
     return cleaned[:HEADING_MAX_CHARS]
 

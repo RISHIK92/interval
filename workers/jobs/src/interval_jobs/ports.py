@@ -271,8 +271,25 @@ class Items(Protocol):
         ...
 
 
+@dataclass(frozen=True)
+class MomentLink:
+    """A moment's deep link, for checking where it lands (P1-W6-S02)."""
+
+    moment_id: int
+    item_id: int
+    source_id: int
+    source_name: str
+    title: str
+    link: str
+    link_type: MomentLinkType
+
+
 class Moments(Protocol):
     def exist(self, item_id: int) -> bool: ...
+
+    def links(self, source_id: int | None) -> list[MomentLink]:
+        """Every moment's link, or one source's, by source then item and ordinal."""
+        ...
 
     def replace(self, item_id: int, rows: list[MomentRow]) -> None:
         """Upsert by ordinal (ids stay stable) and remove ordinals no longer present."""

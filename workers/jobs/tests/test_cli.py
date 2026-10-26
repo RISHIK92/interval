@@ -13,6 +13,7 @@ from interval_jobs.__main__ import main
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
+from interval_jobs.ports import FeedEntry, Fetched, FetchKind, MomentRow
 
 
 @dataclass
@@ -364,3 +365,62 @@ def test_the_commands_run_through_python_dash_m() -> None:
     )
     assert "NameError" not in result.stderr
     assert "QUEUE_TRANSPORT must be bullmq or sqs" in result.stderr
+
+
+def test_check_links_prints_a_report_per_source(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    memory = InMemoryStore()
+    source_id = memory.sources.upsert(
+        name="Blog",
+        feed_url="https://blog.example.test/feed.xml",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    memory.sources.set_moments_enabled(source_id, True)
+    item = memory.items.upsert_from_feed(
+        source_id,
+        FeedEntry(
+            guid="g",
+            link="https://blog.example.test/post",
+            title="Post",
+            author=None,
+            published_at=None,
+            updated_at=None,
+            summary=None,
+        ),
+        keep_excerpt=False,
+    )
+    memory.moments.replace(
+        item,
+        [MomentRow(0, "Post", 1, "https://blog.example.test/post", "page_top")],
+    )
+
+    class Fetcher:
+        def fetch(self, url: str, kind: FetchKind) -> Fetched:
+            return Fetched(url, b"<h1>Post</h1>", "utf-8")
+
+    @dataclass
+    class LinkServices:
+        store: InMemoryStore
+        fetcher: Fetcher
+
+    @contextmanager
+    def services() -> Generator[LinkServices]:
+        yield LinkServices(memory, Fetcher())
+
+    monkeypatch.setattr(cli, "services", services)
+    main(["check-links"])
+    report = json.loads(capsys.readouterr().out)
+    assert report["sources"] == [
+        {
+            "source_id": source_id,
+            "source_name": "Blog",
+            "passed": 1,
+            "failed": 0,
+            "unchecked": 0,
+            "pass_rate": 1.0,
+            "flagged": False,
+        }
+    ]
+    assert report["flagged"] == []

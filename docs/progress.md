@@ -1,9 +1,11 @@
 # Progress
 
-Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. W6-S01 (ranking inspection) done. Next: W6-S02 (deep-link verification script). Everything is built locally; deploy once all is built (ADR-0013).
+Status: P1-W1-S01 to S08 done, committed and pushed. Two deployment modes, full AWS and single VM (ADR-0011). S19, S09 (VM mode), S18 (AWS mode), S13 (invite codes), S10 (guest sessions), S11 (accounts) and S14 (event tracking) done. S12 (merge) deferred until after W5-S04 (owner, 2026-10-25). ADR-0014 accepted (queues: BullMQ on Valkey for local and VM, SQS in AWS; built in W2-S02). S15 (entitlements), S16 (cost budgets) and S17 (OpenTelemetry) done; Week 1 is complete apart from S12 (deferred until after W5-S04). W2-S01 (sources and seed list) and W2-S02 (a: queue port; b: staged pipeline and consumer) done. W2-S04 (polite fetcher), W2-S05 (heading-preserving extraction) W2-S06 (canonical URLs and duplicates) and W2-S03 (adaptive polling) done; Week 2 is complete. W3-S03 (segmentation rules), W3-S01 (concept graph, provisional list) W3-S02 (tagging mechanism) and W3-S04 (embeddings mechanism) done; their eval labels and model picks are pending. W3-S05 (admin review page) and W3-S06 (per-source moments switch) done; Week 3 is complete as far as it can go without owner data. W4-S01 (onboarding), W4-S02 (candidates), W4-S03 (scoring), W4-S04 (precomputed feed) W4-S05 (a: time chips, b: whole-article cards) and W4-S06 (why-this-matters notes, model off) W4-S07 (feedback controls), W4-S08 (profile settings) and W4-S09 (exploration, at its prior until W5) done; Week 4 is complete. W5-S01 (read on site) W5-S02 (return prompt and Mark done) and W5-S03 (progress, continue cards, exploration outcomes) W5-S04 (saves and history), W5-S05 (Library tab) and W5-S06 (PWA install) done; Week 5 is complete. W6-S01 (ranking inspection) and W6-S02 (deep-link check) done. Next: W6-S03 (weekly link health checks). Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
+
 Owner permissions (answered before sleeping):
+
 - Pick the recommended answer for every decision; a slice that truly needs the owner goes to the pending list below, and non-dependent slices continue.
 - New dependencies are allowed if pinned exactly, at least 2 weeks old, and listed here with a reason.
 - Decisions that need an ADR: write it as PROPOSED, build on the recommendation, flag it here.
@@ -12,10 +14,12 @@ Owner permissions (answered before sleeping):
 - Concept list: drafted and used provisionally, flagged here. Model evals: mechanisms only; labels and real runs wait. No real model calls.
 
 Dependencies added overnight (all pinned):
+
 - `ioredis` 6.0.0 (apps/web): BullMQ 6 needs a Redis client beside it (owner-chosen before sleeping).
 - pnpm `allowBuilds: msgpackr-extract: false`: BullMQ's optional native speed-up; the JS fallback works.
 
 Needs your review (newest first):
+
 - W4-S03: every value in `ranking_config` is a placeholder for your Week 6 tuning. So are the missing-data defaults: an untagged level and an unscored source count as neutral (0.5), and an undated item counts as old (freshness 0).
 - W4-S02: continue items deferred to W5-S03; More like this used as the similarity anchor until saves and finishes exist; items without moments can't be candidates yet (W4-S05's whole-article chip needs an item-level path).
 - W3-S02: docs/conflicts.md C-35 (title and summary of metadata-only items go to the tagging model) and C-36 (what AI-3's citations mean for tags).
@@ -26,6 +30,7 @@ Needs your review (newest first):
 - Dan Luu's feed (https://danluu.com/atom.xml) is larger than the fetcher's 5 MB body cap (owner rule, 2026-10-25), so that source never polls. Options: raise the cap for feeds only, or drop or replace the source. Found in W2-S04.
 
 Pending (needs the owner):
+
 - W3-S02: the tagging eval's ~30 labelled moments, its thresholds and the tagging model (`TAGGING_MODEL`); tagging is off until then.
 - W3-S04: the embeddings eval's queries over ~50 labelled moments (plus distractors), its pass mark and the Voyage model (`EMBEDDING_MODEL`); embeddings are off until then.
 
@@ -43,6 +48,7 @@ Pending (needs the owner):
 ## Decision session (2026-10-25)
 
 The owner answered every open question and ADR.
+
 - ACCEPTED: ADR-0001, 0002 (plain SQL + codegen), 0003 (full monorepo now, Turborepo included), 0004 (Better Auth, email + password), 0006 (with per-row changes).
 - New and ACCEPTED: ADR-0007 (OpenRouter for LLMs, Voyage AI for embeddings), ADR-0008 (Python worker owns ranking and every model call; `workers/jobs`), ADR-0009 (GitHub Actions).
 - ADR-0005 stays PROPOSED. Settled so far: local until the beta, prod-only AWS in ap-south-1. The host is still to be picked.
@@ -78,6 +84,10 @@ The owner answered every open question and ADR.
 
 P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 
+## Owner instructions
+
+- After Phase 1, before Phase 2: a design pass for the PWA, the web app and the admin pages. Ping the owner to run it; until then, UI stays plain and functional (owner, 2026-10-26).
+
 ## Open questions
 
 - ADR-0013: the Week 6 beta (about 60 real users) and Phase 1's usage measures need a deployment. Is there a small real-user beta before everything is built, or does all user validation wait for the final deploy?
@@ -88,6 +98,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 ## Session log
 
 ### 2026-10-25 — P1-W1-S01
+
 - Done: pnpm 12.15 (via Corepack) workspace with Turborepo 2.11; packages @interval/web, @interval/db, @interval/infra and @interval/config; the uv project workers/jobs (Python 3.13). `pnpm turbo check` runs 19 tasks: prettier, eslint (strict-type-checked), tsc and vitest for TS; ruff format, ruff check, pyright strict and pytest for Python; a root format check. Tests: `src/baseline.test.ts` in each TS package and `workers/jobs/tests/test_baseline.py`, all passing. Verified by hand:
   - a type error fails typecheck in each of the four packages;
   - `any`, a non-null `!`, a format error and ruff F401 each fail check;
@@ -101,6 +112,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Needs ADR: none. The proposal says "Node 22 LTS", which matches; versions are pinned in package.json and pyproject.toml.
 
 ### 2026-10-25 — P1-W1-S02
+
 - Done: docker-compose.yml (Postgres 17 + pgvector 0.8.7, SeaweedFS 4.50, ElasticMQ 1.7.1, all bound to 127.0.0.1). The dbmate migration `20261025000000_init.sql` enables `vector` and creates and seeds `schema_meta`. `pnpm db:migrate` applies migrations and regenerates `packages/db/src/generated/db.ts` (kysely-codegen) and `packages/db/python/src/interval_db/generated.py` (the in-repo generator). `pnpm db:check` diffs a fresh migrate + codegen on a throwaway database against the committed files. Root uv workspace (workers/jobs, packages/db/python); `scripts/with-env.sh` loads `.env`. Tests: `packages/db/src/schema-meta.test.ts`, `packages/db/python/tests/test_schema_meta.py` and 33 generator tests in `test_codegen.py`. `pnpm turbo check` passes, 21 tasks. Verified by hand:
   - a migration edit without regenerating makes db:check exit 1 with a diff;
   - a stopped DB fails check with "connection refused", and the DB tests are never cached;
@@ -117,6 +129,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Needs ADR: none.
 
 ### 2026-10-25 — P1-W1-S03
+
 - Done: Next.js 16.4 app in apps/web.
   - Placeholder home page; `GET /api/health` returns `{status}` with 200 or 503 and `cache-control: no-store`.
   - Lazy zod env (`DATABASE_URL` must be a postgres URL; `NODE_ENV`). `register()` exits 1 on a bad env.
@@ -141,6 +154,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Needs ADR: none.
 
 ### 2026-10-25 — P1-W1-S04
+
 - Done:
   - **Migration `20261025010000_sources_and_items.sql`:** `rights_profile` enum, `source`, `content_item` (`feed_summary` and `excerpt` capped at 300), and `content_item_private_text`.
   - **DB triggers:** private text only under full_text profiles; an excerpt only under `excerpt`; lowering a profile deletes text the new profile forbids.
@@ -165,6 +179,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Needs ADR: none.
 
 ### 2026-10-25 — P1-W1-S05
+
 - Done:
   - **Migration `20261025020000_moments.sql`:**
     - `content_item_section`: private heading structure; headings and word counts, no body text; full-text rights trigger.
@@ -194,6 +209,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Needs ADR: none.
 
 ### 2026-10-25 — P1-W1-S06
+
 - Done:
   - **Migration `20261025030000_feed.sql`:**
     - `feed_entry` (global precomputed feed, CACHE-1).
@@ -222,6 +238,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Needs ADR: none.
 
 ### 2026-10-25 — P1-W1-S07
+
 - Done:
   - **Workflow `.github/workflows/ci.yml` (ADR-0009):**
     - one job on PRs and on pushes to main, with a Postgres+pgvector service;
@@ -244,6 +261,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Needs ADR: none.
 
 ### 2026-10-25 — P1-W1-S08
+
 - Done:
   - **CDK prod stack (`infra/src/prod-stack.ts`, ap-south-1, region-only env):**
     - VPC with public subnets, no NAT;
@@ -283,15 +301,18 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - Possible flake: one web test failed once under a full parallel `turbo check` and didn't reproduce in 4 more runs. The suspect is the stalled-DB 2.5 s timing assertion.
 
 ### 2026-10-25 — Decision: two deployment modes (ADR-0011, ACCEPTED)
+
 - Owner: support full AWS (Fargate, RDS, ElastiCache, S3, SQS) and a single VM (one compose file with Postgres, Redis, ElasticMQ, web, worker, Caddy, optional SeaweedFS) from the same code; build both now. Redis is in Phase 1, overriding CACHE-1. VM file storage is a switch, defaulting to real S3. ADR-0005 is superseded.
 - This replaces the "VM only, no ADR" note under S08: DB-1/LOAD-1 are no longer deviations, because the AWS mode keeps them and the VM mode is an ADR-backed alternative.
 - Slices: S09 is now the VM compose stack; new P1-W1-S18 is the full-AWS CDK stack.
 
 ### 2026-10-25 — Decisions: ports and adapters (ADR-0012), build locally then deploy (ADR-0013)
+
 - Business logic depends only on ports: storage, queue, cache, HTTP, models, email, and repositories for data access. Adapters per service plus in-memory fakes. Existing S04–S06 code is refactored first, in new slice P1-W1-S19.
 - All phases are built and verified locally. The first deployment happens when everything is built. This conflicts with the Week 6 real-user beta; flagged as an open question.
 
 ### 2026-10-25 — P1-W1-S19 (ports and adapters, ADR-0012)
+
 - Done:
   - **Worker:**
     - `ports.py` holds the Protocols and domain types: `Store` (sources, items, moments, feed) as one unit of work, plus `Fetcher` and `Extractor`, the errors (`FetchError`, `ExtractionError`, `RightsViolation`) and `FeedEntry`.
@@ -310,6 +331,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Needs ADR: none.
 
 ### 2026-10-25 — P1-W1-S09 (VM mode, ADR-0011)
+
 - Done:
   - **`deploy/compose.prod.yml`:** Postgres+pgvector on the mounted volume (the bind fails if the volume is missing), Redis 8.8.3, ElasticMQ, SeaweedFS under the `local-s3` profile, a dbmate migrate container, web, Caddy 2.11.7 (the only published ports) and one-off jobs under the `jobs` profile. All images are pinned, every long-running service has a health check and `restart: unless-stopped`, and each service gets only its own env file.
   - **`deploy/bin/write-env.sh`:** Secrets Manager values go into 600-mode `app.env`, `postgres.env` and `caddy.env` in `/run` (tmpfs), written atomically. Docker also keeps container env in its root-only state on the encrypted root disk.
@@ -344,6 +366,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - The atomic-rename path in write-env.sh is exercised only on success.
 
 ### 2026-10-25 — P1-W1-S18 (AWS mode, ADR-0011)
+
 - Done:
   - **CDK stack `interval-prod-aws`** (infra/src/aws-stack.ts):
     - **Network:** a VPC with public, private-with-egress and isolated subnets, 1 NAT and an S3 gateway endpoint.
@@ -368,6 +391,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not done (out of scope): custom domain/ACM, WAF, SNS targets for alarms, the worker service (W2-S02), Multi-AZ.
 
 ### 2026-10-26 — P1-W5-S06 (PWA install, §4.2, Q-P1-31)
+
 - Owner choices:
   - a placeholder icon (a white "I" on #1f2933) until a design pass;
   - the service worker keeps only the offline page and answers only navigations, so no signed-in page is ever cached.
@@ -390,6 +414,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not checked: Lighthouse (not installed), and a real install prompt (`appinstalled`).
 
 ### 2026-10-26 — P1-W6-S01 (ranking inspection, REC-2, Q-P1-13)
+
 - Owner choices:
   - weights are edited on the page; a save queues a recompute of the owner's own feed (everyone else's at their hourly recompute);
   - only the admin's own feed, per chip;
@@ -417,7 +442,31 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Found while checking: rows written before the weights field crashed the page; now logged and shown as "No breakdown yet" (test added).
 - A flake seen once in `pnpm check` (kysely-feedback "unsave … a repeat changes nothing": FK error on user_save) didn't recur in three runs; not investigated.
 
+### 2026-10-26 — P1-W6-S02 (deep-link check, §3.2, ING-4, Q-P1-25)
+- Owner choices:
+  - no headless browser and no new dependency: the polite fetcher plus stdlib `html.parser`, reading pages as served;
+  - robots.txt, timeouts, 5xx and blocks are "unchecked", outside the pass rate; 404/410 and a section not found fail;
+  - a page_top link passes once its page loads (its title is the feed's, which often differs from the page);
+  - a JSON report on stdout; nothing stored or switched off.
+- Done:
+  - `link_check.py`: `check_page` and `check_links`. Each page is fetched and parsed once, and each moment is checked by link type:
+    - anchor: the id exists (decoded, then raw), outside hidden elements, and the text from it starts with the title;
+    - text_fragment: the decoded text is in the visible text. Text is joined the way it reads: inline tags join, block tags separate, and script, style, template and title are hidden.
+  - Per-source pass rates; under 90% is flagged.
+  - `Moments.links` in the Postgres and memory stores (only sources with moments on);
+  - the `check-links [--source-id N]` command, added to CLAUDE.md.
+- Review fixes:
+  - inline markup in headings (`<code>`, `<em>`) no longer adds spaces (a false-fail blocker);
+  - an unknown charset reads as utf-8, logged;
+  - the fragment decode is reduced to what `segment.text_fragment` builds, and the tests build links with it;
+  - the anchor fixture uses a real Unicode id, plus a raw-id fallback case;
+  - ids inside hidden elements are ignored;
+  - `PERMALINK_GLYPHS` is shared from headings.py;
+  - fetch failures are logged as warnings.
+- Run on the local data: 921 of 921 moments passed across 29 sources; none unchecked or flagged. Links were built from the same served HTML, so this confirms the pages haven't moved. Pages that render headings with JavaScript would only differ in a real browser (accepted with the no-browser choice).
+
 ## Pre-deploy list (from the S18 review; parked by the owner until deployment, ADR-0013)
+
 - **CloudFront to ALB:** traffic crosses the internet over HTTP. Make the ALB internal behind a CloudFront VPC origin (drops the origin-verify header and the 0.0.0.0/0 ingress).
 - **Secrets per task:** web gets DB_PASSWORD and BETTER_AUTH_SECRET; jobs gets DB_PASSWORD and the model keys; migrate gets DB_PASSWORD only. Same split for the execution-role grants.
 - **One env contract** for both modes: queue and bucket names (VM app.env vs the AWS task env) must match before W2-S02 uses them.
@@ -443,6 +492,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Auth email (from S11):** build the SES adapter for the `Mailer` port (new dependency `@aws-sdk/client-sesv2`, ask first) and set `MAIL_TRANSPORT=ses` on the VM (with the domain) and the AWS web task. Until then the web app refuses to start on any non-localhost `BETTER_AUTH_URL`, by design. Also: SES production access and a verified sending domain (owner tasks, Q-P1-33).
 
 ### 2026-10-25 — P1-W1-S13 (invite codes, Q-P1-24)
+
 - Done:
   - **Migration `20261025040000_auth_and_invites.sql`:**
     - `beta_group` enum and `invite_code` (personal or shared, expiry, at least 10 characters, normalised);
@@ -462,6 +512,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Answered (owner): when a guest signs up, the account reuses the guest's code and group; no second use (Q-P1-24).
 
 ### 2026-10-25 — P1-W1-S10 (guest sessions, Q-P1-12, Q-P1-24)
+
 - Done:
   - **Join flow:** `/join?code=…` pre-fills a form and `/join` accepts a typed code. The server action spends a use only on submit, never on GET. A visitor who already has a session is sent to `/`, and `/` without a session goes to `/join`.
   - **Better Auth adapter (`adapters/better-auth.ts`):**
@@ -486,6 +537,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Local setup: `.env` needs `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL=http://localhost:3100` (see `.env.example`). The VM's domain is `interval.rishiklabs.tech` (docs/runbooks/vm.md).
 
 ### 2026-10-25 — P1-W1-S11 (accounts, ADR-0004, Q-P1-33)
+
 - Done:
   - **Sign-up upgrades the guest in place** (owner choice; Q-P1-11's new-account rule): same `user_id`, code and group (Q-P1-24).
     - One transaction sets name, email and `is_anonymous = false` (guarded by `is_anonymous = true`, so a second concurrent sign-up gets `not_a_guest`) and adds the `credential` account with Better Auth's own scrypt hash.
@@ -517,6 +569,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Local setup: `.env` needs `MAIL_TRANSPORT=log` (see `.env.example`). The reset link appears in the dev server log as `mail: logged instead of sent`.
 
 ### 2026-10-25 — Decisions: S12 deferred; queues move to BullMQ on Valkey (ADR pending)
+
 - **S12 (merge) deferred until after W5-S04:** its rules need saves, history, progress, choices and events that later slices create. Sign-up already keeps the guest's user id (Q-P1-11's new-account rule).
 - **Queues (owner):**
   - Valkey holds real-time state and BullMQ queues;
@@ -529,6 +582,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - W2-S02 becomes "Staged pipeline on the queue port" and builds the port, the four adapters, Valkey in local dev and on the VM, and the ElasticMQ removal.
 
 ### 2026-10-25 — P1-W1-S14 (event tracking, DB-5, LOAD-5, Q-P1-20, Q-P1-21)
+
 - Done:
   - **One event list:** `packages/events/events.json` holds the 15 Q-P1-20 names. An in-repo generator (`pnpm events:codegen`) writes zod schemas (`@interval/events`) and pydantic models (`interval_jobs.events.generated`). `scripts/check.sh` fails the check when either is stale.
   - **Envelope:** Q-P1-20's fields plus `source` (web or jobs). `occurred_at` is UTC with milliseconds from both emitters, and the Python models are strict like zod. A test keeps the spec's beta groups equal to the DB enum.
@@ -577,6 +631,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Local setup: `.env` needs `EVENTS_TRANSPORT=file` and `EVENTS_DIR=.data/events`, as well as `MAIL_TRANSPORT=log` from S11 (see `.env.example`). The worker CLI also needs them now.
 
 ### 2026-10-25 — P1-W1-S15 (entitlements, OPS-3, Q-P1-22, Q-P1-29)
+
 - Done:
   - **Migration `20261025050000_entitlements.sql`:**
     - a `capability` enum, the one list (the codegen gives TS `Capability` and Python `Capability`, so an unknown capability fails typecheck);
@@ -602,6 +657,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Admin for the owner: `scripts/with-env.sh uv run python -m interval_jobs grant-capability --email <your account> --capability admin.review` (needs an account from /sign-up).
 
 ### 2026-10-25 — P1-W1-S16 (cost budgets, OPS-4, LOAD-6, LOAD-5, Q-P1-23, ADR-0010 item 6)
+
 - Done:
   - **Migrations:**
     - `20261025060000_ai_budget_capability.sql` adds `ai.budget.daily_cents` to the capability enum (`if not exists`, because Postgres can't drop an enum value on rollback);
@@ -624,6 +680,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Owner action before the beta: set the per-user (`plan_capability` `ai.budget.daily_cents`) and global (`ai_budget`) dollar limits.
 
 ### 2026-10-26 — P1-W1-S17 (OpenTelemetry tracing, OPS-2)
+
 - Done:
   - **Web:**
     - `instrumentation.ts` registers `@vercel/otel` 2.1.3 (plus its 7 OTel peers, owner-approved) with options from `server/tracing.ts`: no inbound propagation, and span export only for `OTEL_TRACES_EXPORTER=console`;
@@ -644,6 +701,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Local: `OTEL_TRACES_EXPORTER=console` before a command (or in `.env`) prints spans; `rebuild-feed` showed its root span with trace id and `message_id`.
 
 ### 2026-10-26 — P1-W2-S01 (sources and seed list, ING-2, ING-6, Q-P1-01/02/09/37)
+
 - Done:
   - **Migration `20261026000000_source_seed_fields.sql`:** `source.quality_score` (optional 1–5), `topics text[]` and `active`.
   - **`workers/jobs/seeds/sources.yaml`:** the 10 accepted sources (no quality scores yet; owner adds them when wanted).
@@ -670,6 +728,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Local DB: loaded twice, with 10 added and then 10 unchanged.
 
 ### 2026-10-26 — P1-W2-S02a (queue port and message contracts, ADR-0014, ADR-0010 item 1)
+
 - W2-S02 was split in two (owner choice). This part is the queue foundation; W2-S02b adds the stages and the consumer process.
 - Done:
   - **Message contracts:** `packages/db/messages/<name>.schema.json` (first: `discover_source`). A JSON Schema subset generates zod (`@interval/db/messages`) and pydantic (`interval_db.messages`) through `pnpm db:migrate`; `db:check` covers both. The subset is enforced: top-level keywords, snake_case names, one type, a non-empty enum, a one-line description, and http(s)-only URLs.
@@ -705,6 +764,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Checks overnight run as `pnpm turbo run check --concurrency=2`: the machine's load average (10–15 from other work) makes 4 flaky.
 
 ### 2026-10-26 — P1-W2-S02b (staged pipeline and consumer, ING-1, LOAD-3, LOAD-5; overnight, recommended options)
+
 - Done:
   - **Messages:** `fetch_item` and `segment_item` (`content_item_id`) join `discover_source`.
   - **`pipeline.py`:**
@@ -737,6 +797,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not done: a schedule for `enqueue-discover` (W2-S03 adds adaptive polling and the trigger). Taking the feed advisory lock at the start of a segment, to avoid rare deadlocks between two segments (Postgres aborts one; the retry recovers).
 
 ### 2026-10-26 — P1-W2-S04 (polite fetcher, ING-1; overnight, recommended options)
+
 - Done:
   - **`PoliteFetcher`** (one per worker process, shared by the stage threads) wraps the guarded `HttpxFetcher`:
     - robots.txt is read once a day per origin and checked on every hop, redirects included;
@@ -770,6 +831,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not covered by a test: the Postgres validator expiry (`updated_at > now() - 1 day`). The pipeline test covers the same rule on the in-memory store.
 
 ### 2026-10-26 — P1-W2-S05 (heading-preserving extraction, ING-1, ING-2; overnight, recommended options)
+
 - Done:
   - **Real-page fixtures:** pages from six seed sources (Cloudflare, Marc Brooker, GitHub, PlanetScale, Julia Evans, Martin Fowler), fetched politely 2026-10-26.
     - The repo is public, so `tests/fixtures/real/reduce.py` strips their prose. It keeps markup and heading text, scrambles every other text node and descriptive attribute letter by letter (same counts), and drops scripts and meta.
@@ -792,6 +854,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Known limit: a last section that holds only a table is trimmed, because tables aren't counted. The extractor's docstring explains why.
 
 ### 2026-10-26 — P1-W2-S06 (canonical URLs and duplicate detection, ING-1 normalize, Q-P1-08; overnight, recommended options)
+
 - Done:
   - **`normalize.py`:**
     - `clean_url` strips tracking parameters (utm_*, fbclid, gclid and the like), the fragment and the default port, and lowercases the host. It keeps the query's own order and encoding.
@@ -826,6 +889,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - rows created before this migration keep their uncleaned canonical URLs (local DB only).
 
 ### 2026-10-26 — P1-W2-S03 (adaptive polling schedule, ING-3, ADR-0011; overnight, recommended options)
+
 - Done:
   - **`polling.py`:** `next_interval` halves the interval after a poll with new items and lengthens it by half after one without (a 304 included). It is bounded to 15 min–24 h and starts at 1 h, in whole seconds.
   - **`enqueue_due`:** claims due active sources (`for update skip locked`; each one's next turn moves one interval on) and queues a discover for each, in one unit of work.
@@ -858,6 +922,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Process note: `npx biome` was run by mistake while linting. It fetched an unrelated old npm package named `biome` (an env-variable manager), whose only effect was an empty `~/.biome` (removed). A copy stays in `~/.npm/_npx/b040de3f3c289dd6/`.
 
 ### 2026-10-26 — P1-W3-S03 (moment segmentation rules, ING-4, Q-P1-06; overnight)
+
 - Done:
   - **`segment.py`:**
     - sections nest under their nearest shallower heading;
@@ -876,6 +941,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Re-segmenting rows that already exist locally reassigns moment ids by ordinal. That's harmless now (only the feed references moments), but it matters once saves reference them.
 
 ### 2026-10-26 — P1-W3-S01 (concept graph, DB-2, §3.1, Q-P1-03, Q-P1-04; overnight)
+
 - Done:
   - **Migration `20261026050000_concept_graph.sql`:**
     - `concept` (slug, name, topic in the four launch topics, description, retired_at, merged_into);
@@ -914,6 +980,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - **Voyage prices in `adapters/voyage.py`:** 3.5 $0.06, 3.5-lite $0.02, 3-large $0.18 per million tokens. Please confirm them.
 
 ### 2026-10-26 — P1-W3-S02 (concept tagging and difficulty, AI-2..AI-5, OPS-4, Q-P1-10; overnight, mechanism only)
+
 - Done:
   - **Migration `20261026060000_tagging.sql`:**
     - a `difficulty` enum;
@@ -956,6 +1023,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Follow-up: AI-4 asks for prompt caching in offline jobs, but the concept list (about 250 slugs) is resent on every call.
 
 ### 2026-10-26 — P1-W3-S04 (embeddings per moment, DB-3, AI-4, OPS-4, Q-P1-27; overnight, mechanism only)
+
 - Done:
   - **Migration `20261026070000_moment_embeddings.sql`:**
     - `moment_embedding` holds `vector(1024)`: the default of voyage-3.5, 3.5-lite and 3-large, which the Voyage client pins with `output_dimension` and checks;
@@ -990,6 +1058,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Pending (needs the owner): about 50 labelled moments and their queries, the pass mark (recall@5 0.6 and a 50-moment pool are placeholders), the model pick and real runs.
 
 ### 2026-10-26 — P1-W3-S05 (admin review page, ING-6, Q-P1-29; overnight)
+
 - Done:
   - **Migration `20261026080000_review_overrides.sql`:** `moment_boundary_override` (the headings moments start at) and `tag_override` (the level and concept slugs for the item, keyed by heading `''`, or for a moment by its heading). Both are keyed by heading text, never by moment id, kept apart from the model's tags (AI-3), and survive re-ingestion, re-segmentation and re-tagging (tested).
   - **Worker:**
@@ -1016,6 +1085,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - **Not yet applied:** tag corrections aren't read by ranking until W4. W4's ranking must prefer them over the model's tags.
 
 ### 2026-10-26 — P1-W3-S06 (per-source moments switch, §3.2, ING-2, ADR-0006 C-28; overnight)
+
 - Done:
   - **Migration `20261026090000_source_moments_switch.sql`:**
     - `moments_seeded` (the seed file's value) and `moments_switched_off` (the admin's switch, with by/at);
@@ -1039,6 +1109,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Gap (needs the owner): §3.2's "falls back to whole articles" can't happen yet, because the feed has no whole-article cards. A switched-off source drops out of the feed until those cards exist (W4/W5 ranking and budgets).
 
 ### 2026-10-26 — P1-W4-S01 (guest-first onboarding, §5A, PER-1, PER-3, C-21; overnight)
+
 - Done:
   - **Migration `20261026100000_user_preferences.sql`:**
     - `topic` (the four launch topics) and `break_length` (`1-3`, `3-8`, `8-15`) enums;
@@ -1065,6 +1136,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - **Readers of `topic[]`:** they must select it as `text[]`, because node-pg (and psycopg) don't parse arrays of unregistered enum types.
 
 ### 2026-10-26 — P1-W4-S02 (candidate generation, REC-1, Q-P1-13/14/15, ADR-0008; overnight)
+
 - Done:
   - **Migration `20261026110000_feedback.sql`:** `user_hidden_source` and `item_feedback` (more_like_this, less_like_this, not_interested). The feedback controls (W4-S07) write them; candidates read them now.
   - **`ranking/candidates.py`:**
@@ -1087,6 +1159,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - **Whole articles:** metadata-only, excerpt, moments-off and headingless items have no moments, so they can never be candidates. W4-S05's 8–15 chip shows whole articles, so ranking needs an item-level path there.
 
 ### 2026-10-26 — P1-W4-S03 (rule-based scoring and re-ranking, REC-2, REC-3, Q-P1-13)
+
 - Done:
   - **Migration `20261026120000_ranking_config.sql`:** every weight in one table (placeholders, flagged above). Values must be finite and not negative (a check constraint, because Postgres `numeric` holds NaN and Infinity).
   - **`ranking/scoring.py`:**
@@ -1106,6 +1179,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Deferred: whole-article candidates (W4-S05's 8–15 chip). `top_signal` waits for W4-S06's why-this-matters note.
 
 ### 2026-10-26 — P1-W4-S04 (precomputed feed and fallback, CACHE-1, LOAD-5, Q-P1-17, ADR-0008)
+
 - Owner choices: starter feeds now; active = a session used in 7 days (6–7 in practice: Better Auth refreshes `updated_at` daily); `recompute-due` on the poll-due schedulers, hourly.
 - Done:
   - **Migration `20261026130000_user_feed.sql`:**
@@ -1136,6 +1210,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not checked: whether BullMQ hangs rather than fails when Valkey is down (its offline queue), and whether `recompute_feed` jobs can wait behind an ingestion backlog (that would make first visits fall back to the starter more often).
 
 ### 2026-10-26 — P1-W4-S05a (time chips, Q-P1-16, ADR-0006 C-23)
+
 - Owner choices: W4-S05 split into (a) chips and (b) whole-article cards; one stored feed per chip; a chip shows only moments up to its upper bound (3, 8 or 15 minutes); cards say "Fits your 3–8 min break"; the chip lasts the browser session (cookie `iv_chip`, no expiry); chips are links (`?chip=`).
 - Done:
   - **Migration `20261026140000_feed_chips.sql`:** empties the three precomputed tables (the next recompute refills them), adds `chip` to `user_feed_entry` and `starter_feed_entry` (in their primary keys) and to both views.
@@ -1152,6 +1227,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not in this part: whole-article cards and "Length unknown" (W4-S05b), the chip in `feed_viewed` (an event version change nobody asked for).
 
 ### 2026-10-26 — Seed list grows to 37 sources (owner request, outside the slice plan)
+
 - Owner choices: from their list of tech blogs, the sources that fit the four topics and have a feed the worker parses; all `full_text_internal`; added to `sources.yaml` and committed; at most 10 articles each for this run, through a flag, not a permanent limit.
 - Added 27: newsletters (ByteByteGo, AlgoMaster, System Design Codex, The System Design Newsletter, The Pragmatic Engineer (paywalled)), High Scalability, InfoQ Architecture and Design, The New Stack, LWN.net (paywalled), authors (All Things Distributed, Charity Majors, Murat Demirbas, Russ Cox, Eli Bendersky, Sam Who, Mitchell Hashimoto) and company blogs (Meta, Stripe, Slack, Dropbox, Spotify, Grab, Canva, Zerodha, and the Medium-hosted Airbnb, Pinterest and Flipkart).
 - Left out:
@@ -1164,6 +1240,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not checked: whether these 27 publishers allow this use (the rights review the first 10 had, ING-6). Medium-hosted article pages may refuse the fetcher, as Netflix's did (403).
 
 ### 2026-10-26 — P1-W4-S05b (whole-article cards, §3.2, Q-P1-16, Q-P1-39, ADR-0006 C-23)
+
 - Owner choices:
   - **Up to 15 min:** under 8–15, an article whose known length is 15 min or less is offered whole, and its moments are left out of that chip.
   - **Over 15 min:** offered whole, ranked lower by time fit, and its moments of up to 15 min show too.
@@ -1193,6 +1270,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - After migrating: restart any running `consume` (an old process writes entries the new schema refuses) and run `recompute-due`.
 
 ### 2026-10-26 — P1-W4-S06 (why-this-matters notes, §5E, REC-5, AI-1..AI-4, OPS-4, Q-P1-18)
+
 - Owner choices:
   - **Template copy per top signal:** "On {topic}, a topic you chose." / "Pitched at your {level} level." / "From {source}, one of the most trusted sources here." / "New this week." / "Sized for your N–M min break."
   - **AI label:** only on a note the model polished.
@@ -1227,6 +1305,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Pending, with the other model work: the notes eval and `NOTES_MODEL` pick (AI-5, ADR-0010).
 
 ### 2026-10-26 — P1-W4-S07 (feedback controls, §5C, PER-1, Q-P1-15, ADR-0006 C-20)
+
 - Owner choices:
   - More and Less like this can both stand on one item.
   - Not interested and Hide source take effect at once at read, then a recompute is queued.
@@ -1255,6 +1334,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - after a restart, the dev page reloaded about twice a second. Each reload wrote a `feed_viewed` line to `.data/events`; it's possibly the dev watcher reacting to that file. Not investigated: it's a dev-mode issue, not in the slice.
 
 ### 2026-10-26 — P1-W4-S08 (profile settings and inferred reset, §5A, PER-1, Q-P1-36, C-06)
+
 - Owner choices:
   - **Inferred** = the More and Less like this titles, plus the concepts that Not interested pushes down.
   - **Reset** clears More and Less like this and stops older Not interested items' concepts from counting. Those items stay hidden; saves, hidden sources and choices stay.
@@ -1281,6 +1361,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Noticed, not fixed: the two contract-test probes disagree on an item-level override that only changes the level. The Postgres probe writes empty concepts (an admin correction with none); the memory probe keeps the model's concepts.
 
 ### 2026-10-26 — P1-W4-S09 (Thompson sampling for exploration, REC-4, REC-3, Q-P1-13)
+
 - Owner choices:
   - `explore.share` 0.1 in `ranking_config` (validated 0–0.5);
   - **arms:** topics the user didn't choose, and sources their main picks don't reach;
@@ -1306,6 +1387,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - On local data the owner now has all four topics chosen, so only source arms apply: 50 entries per chip, 17–26 sources, none over 4.
 
 ### 2026-10-26 — P1-W5-S01 (read on site, §3.2, §5D, §8)
+
 - Owner choices:
   - clicks go through an `/out` redirect;
   - `utm_source=interval` is added to publisher links;
@@ -1329,6 +1411,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Checked in Chrome: a card's "Read on site" opened the publisher with `?utm_source=interval#:~:text=…`, and both events landed in `.data/events` with their props.
 
 ### 2026-10-26 — P1-W5-S02 (return prompt and Mark section done, §5D, C-22, Q-P1-32, Q-P1-35)
+
 - Owner choices:
   - finishes are stored now;
   - the context panel is a "Now reading" box at the top of the feed;
@@ -1357,6 +1440,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Checked in Chrome: open → Now reading panel → Mark section done → the row and `section_finished {method: mark_done}` stored, the panel cleared, "That was the last section." shown. The client prompt itself was not driven in the browser: the extension can't switch tabs to fire `visibilitychange`; its logic is covered by the reducer tests.
 
 ### 2026-10-26 — P1-W5-S03a (progress and continue cards, §3.2, §5C, Q-P1-35, Q-P1-40)
+
 - Owner choices:
   - **Continue cards** are read live, pinned above the feed in every chip: up to 3, most recent first, opened as `continue_clicked`.
   - **Article completion** is recorded at the finish that completes it.
@@ -1385,6 +1469,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Next: W5-S03b (exploration arm outcomes).
 
 ### 2026-10-26 — P1-W5-S03b (exploration outcomes, REC-4, P1-W4-S09)
+
 - Done:
   - **Migration `20261026220000_explore_outcomes.sql`:** `user_feed_entry.explore_kind/explore_arm` (both or neither); `user_explore_open` (the first open per user and item, with `finished_counted`).
   - **Worker:** `explore()` stamps each explored `Scored` with its arm; `RankedEntry.arm` is stored by both feed adapters.
@@ -1398,6 +1483,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - comments on the cross-site GET (it can now add one shown per user and item), the after-commit count (a failed count stays low, which is safe), and the arm read from the current feed.
 
 ### 2026-10-26 — P1-W5-S04 (saves and history, §5I)
+
 - Owner choices:
   - the card's Save becomes "Saved ✓", and pressing it unsaves;
   - **history is finished items, not opened ones.** The slice text says "opened items appear in history"; the owner chose finished. An article appears once any section, or the whole article, is finished, newest first, with "Finished" or "n of m sections".
@@ -1415,6 +1501,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not tested: "guest saves survive merge" waits for W1-S12 (deferred). Saves and finishes are keyed by user id.
 
 ### 2026-10-26 — P1-W5-S05 (Library tab, §4.1, §5I, C-06, Q-P1-19)
+
 - Owner choices:
   - the Library shows everything saved or finished, hidden sources included;
   - a Library open records `outbound_click` only;

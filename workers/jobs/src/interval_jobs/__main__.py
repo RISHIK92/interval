@@ -52,6 +52,7 @@ from interval_jobs.feed.precompute import (
 from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
+from interval_jobs.link_check import check_links
 from interval_jobs.pipeline import Pipeline
 from interval_jobs.polling import enqueue_due
 from interval_jobs.ports import ConceptCycleError, ModelError
@@ -85,6 +86,11 @@ def main(argv: list[str]) -> None:
     one.add_argument("--homepage")
     seg = commands.add_parser("segment-item", help="split one stored item into moments")
     seg.add_argument("--content-item-id", type=int, required=True)
+    links = commands.add_parser(
+        "check-links",
+        help="check that moment links land on their sections (P1-W6-S02)",
+    )
+    links.add_argument("--source-id", type=int)
     commands.add_parser(
         "recompute-due",
         help="queue a feed recompute per active user and refresh the starter feeds",
@@ -328,6 +334,8 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     with services() as s:
         if args.command == "purge-guests":
             result = {"purged": s.store.users.purge_inactive_guests(datetime.now(UTC))}
+        elif args.command == "check-links":
+            result = dict(check_links(s.store.moments, s.fetcher, args.source_id))
         elif args.command == "segment-item":
             rows = segment_item(s.store, args.content_item_id)
             result = {"content_item_id": args.content_item_id, "moments": len(rows)}

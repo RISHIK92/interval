@@ -648,6 +648,30 @@ def test_moments_replace_keeps_ids_by_ordinal_and_removes_extras(
     assert probe.moments(item) == [(ids[0], 0, "a2"), (ids[1], 1, "b2")]
 
 
+def test_moment_links_cover_sources_with_moments_on(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    on, off = source(s), source(s, "full_text_display")
+    probe.enable_moments(on)
+    probe.enable_moments(off)
+    item = s.items.upsert_from_feed(on, entry("links"), keep_excerpt=False)
+    other = s.items.upsert_from_feed(off, entry("links-off"), keep_excerpt=False)
+    s.moments.replace(item, [moment(1, "second"), moment(0, "first")])
+    s.moments.replace(other, [moment(0, "gone")])
+    probe.disable_moments(off)
+    links = s.moments.links(on)
+    assert [(m.title, m.source_name, m.item_id) for m in links] == [
+        ("first", "contract-full_text_internal", item),
+        ("second", "contract-full_text_internal", item),
+    ]
+    assert links[0].link == "https://contract.example.test/a"
+    assert links[0].link_type == "page_top"
+    everything = s.moments.links(None)
+    assert {m.moment_id for m in links} <= {m.moment_id for m in everything}
+    assert "gone" not in {m.title for m in everything}
+
+
 def test_the_oversized_flag_is_stored_and_updated(store: tuple[Store, Probe]) -> None:
     s, probe = store
     sid = source(s)
