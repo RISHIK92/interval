@@ -10,7 +10,14 @@ import pytest
 from interval_db.generated import AiProvider
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
 from interval_jobs.ai.gateway import AiGateway, Completed, Embedded, OverBudget
-from interval_jobs.ports import Completion, EmbeddingPurpose, Embeddings, Message, Usage
+from interval_jobs.ports import (
+    Completion,
+    EmbeddingPurpose,
+    Embeddings,
+    Message,
+    ModelError,
+    Usage,
+)
 
 NOW = datetime(2026, 10, 25, 12, 0, tzinfo=UTC)
 MESSAGES: list[Message] = [{"role": "user", "content": "tag this"}]
@@ -208,3 +215,52 @@ def test_spend_just_under_the_budget_still_allows_a_call(ledger: InMemoryAi) -> 
         feature="tagging", user_id="u1", model="small", messages=MESSAGES
     )
     assert isinstance(result, Completed)
+
+
+class FakeGroq(FakeLlm):
+    provider: AiProvider = "groq"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.models: list[str] = []
+
+    def complete(self, model: str, messages: list[Message]) -> Completion:
+        self.models.append(model)
+        return super().complete(model, messages)
+
+
+def test_a_groq_prefix_routes_the_call_and_records_groq(ledger: InMemoryAi) -> None:
+    # ADR-0020: the model setting names the provider; a bare id stays OpenRouter.
+    openrouter, groq = FakeLlm(), FakeGroq()
+    gate = AiGateway(
+        ledger, openrouter, FakeEmbeddings(), clock=lambda: NOW, others={"groq": groq}
+    )
+    result = gate.complete(
+        feature="tagging",
+        user_id=None,
+        model="groq:openai/gpt-oss-120b",
+        messages=MESSAGES,
+    )
+    assert isinstance(result, Completed)
+    assert groq.models == ["openai/gpt-oss-120b"]
+    assert openrouter.calls == 0
+    assert (result.usage.provider, result.usage.model) == (
+        "groq",
+        "openai/gpt-oss-120b",
+    )
+    named = gate.complete(
+        feature="tagging", user_id=None, model="openrouter:x/y", messages=MESSAGES
+    )
+    assert isinstance(named, Completed)
+    assert (named.usage.provider, named.usage.model) == ("openrouter", "x/y")
+    assert openrouter.calls == 1
+
+
+def test_a_groq_model_without_a_groq_client_is_a_model_error(
+    ledger: InMemoryAi,
+) -> None:
+    with pytest.raises(ModelError, match="groq"):
+        gateway(ledger).complete(
+            feature="tagging", user_id=None, model="groq:m", messages=MESSAGES
+        )
+    assert ledger.rows == []

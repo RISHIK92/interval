@@ -51,7 +51,9 @@ def test_openrouter_returns_text_tokens_and_the_reported_cost() -> None:
 )
 def test_openrouter_failures_are_model_errors(response: httpx.Response) -> None:
     llm = OpenRouterClient(
-        client(httpx.MockTransport(lambda _r: response)), api_key="k"
+        client(httpx.MockTransport(lambda _r: response)),
+        api_key="k",
+        sleep=lambda _s: None,  # a 429 is waited out first (rate_limited.py)
     )
     with pytest.raises(ModelError):
         llm.complete("vendor/model", MESSAGES)

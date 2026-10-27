@@ -7,7 +7,7 @@ import type { ColumnType } from "kysely";
 
 export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "tagging";
 
-export type AiProvider = "openrouter" | "voyage";
+export type AiProvider = "google" | "groq" | "openrouter" | "voyage";
 
 export type ArrayType<T> = ArrayTypeImpl<T> extends (infer U)[]
   ? U[]

@@ -8,7 +8,7 @@ lines carry the metrics (the AWS stack turns them into Interval/AI CostMicroUsd 
 OverBudget).
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -22,6 +22,7 @@ from interval_jobs.ports import (
     EmbeddingPurpose,
     LlmClient,
     Message,
+    ModelError,
     Usage,
 )
 
@@ -50,9 +51,13 @@ class AiGateway:
         llm: LlmClient,
         embeddings: EmbeddingClient,
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
+        *,
+        others: Mapping[str, LlmClient] | None = None,
     ) -> None:
         self._ledger = ledger
         self._llm = llm
+        # Other LLM providers by model prefix: "groq:", "google:" (ADR-0020, ADR-0021).
+        self._others = others or {}
         self._embeddings = embeddings
         self._clock = clock
 
@@ -67,12 +72,13 @@ class AiGateway:
         refused = self._over_budget(feature, user_id)
         if refused is not None:
             return refused
-        result = self._llm.complete(model, messages)
+        client, bare = self._route(model)
+        result = client.complete(bare, messages)
         usage = self._record(
             feature,
             user_id,
-            self._llm.provider,
-            model,
+            client.provider,
+            bare,
             result.input_tokens,
             result.output_tokens,
             result.cost_usd,
@@ -102,6 +108,19 @@ class AiGateway:
             result.cost_usd,
         )
         return Embedded(result.vectors, usage)
+
+    def _route(self, model: str) -> tuple[LlmClient, str]:
+        # "groq:"/"google:" pick that provider; "openrouter:" or a bare id (which may
+        # itself hold a colon, as in "vendor/model:free") is OpenRouter.
+        prefix, _, bare = model.partition(":")
+        if bare and prefix in ("groq", "google"):
+            client = self._others.get(prefix)
+            if client is None:
+                raise ModelError(f"no {prefix} client: is its API key set?")
+            return client, bare
+        if bare and prefix == "openrouter":
+            return self._llm, bare
+        return self._llm, model
 
     def _over_budget(
         self, feature: AiFeature, user_id: str | None

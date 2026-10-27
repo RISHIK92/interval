@@ -41,3 +41,5 @@ An ADR records one decision that the blueprint does not settle, or changes one i
 | [0017](0017-five-tab-bar-with-later-tabs-disabled.md)    | Five-tab bar with the later tabs shown disabled                              | ACCEPTED                                     | design pass: tab bar (amends ADR-0006 C-06)           |
 | [0018](0018-in-app-reader-framed-publisher-page.md)      | In-app reader: the publisher's live page, framed, in the PWA and web         | ACCEPTED                                     | home experience before Phase 2 (amends ADR-0006 C-07) |
 | [0019](0019-web-home-layout.md)                         | Web Home layout: sidebar with Leagues, sideways feed, "Coming later" column, greeting | ACCEPTED | design pass: Home (amends ADR-0017) |
+| [0020](0020-groq-as-a-second-llm-provider.md) | Groq as a second LLM provider, chosen per model | ACCEPTED | tagging model pick (amends ADR-0007) |
+| [0021](0021-google-gemini-api-as-an-llm-provider.md) | Google's Gemini API as an LLM provider, chosen per model like Groq | ACCEPTED | tagging model pick (extends ADR-0020) |

@@ -2,12 +2,15 @@
 it. The request asks OpenRouter to report the call's cost, which the gateway records
 (OPS-4)."""
 
+import time
+from collections.abc import Callable
 from decimal import Decimal
 
 import httpx
 from pydantic import BaseModel, ValidationError
 
 from interval_db.generated import AiProvider
+from interval_jobs.adapters.rate_limited import post_until_allowed
 from interval_jobs.ports import Completion, Message, ModelError
 
 URL = "https://openrouter.ai/api/v1/chat/completions"
@@ -36,17 +39,25 @@ class _Response(BaseModel):
 class OpenRouterClient:
     provider: AiProvider = "openrouter"
 
-    def __init__(self, http: httpx.Client, api_key: str) -> None:
+    def __init__(
+        self,
+        http: httpx.Client,
+        api_key: str,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
         self._http = http
         self._api_key = api_key
+        self._sleep = sleep
 
     def complete(self, model: str, messages: list[Message]) -> Completion:
         try:
-            response = self._http.post(
+            response = post_until_allowed(
+                self._http,
                 URL,
                 json={"model": model, "messages": messages, "usage": {"include": True}},
                 headers={"authorization": f"Bearer {self._api_key}"},
                 timeout=TIMEOUT_S,
+                sleep=self._sleep,
             )
             response.raise_for_status()
             body = _Response.model_validate_json(response.content)

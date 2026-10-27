@@ -22,6 +22,11 @@ from interval_jobs.adapters.bullmq_queue import BullmqConsumer, BullmqQueue
 from interval_jobs.adapters.file_sink import FileEventSink
 from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSink
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
+from interval_jobs.adapters.openai_compatible import (
+    GOOGLE,
+    GROQ,
+    OpenAiCompatibleClient,
+)
 from interval_jobs.adapters.openrouter import OpenRouterClient
 from interval_jobs.adapters.polite_fetcher import PoliteFetcher
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore, unit_of_work
@@ -180,11 +185,18 @@ def stage_units() -> Generator[UnitOfWork]:
 
 
 def ai_gateway(ledger: AiLedger, http: httpx.Client) -> AiGateway:
-    """The one way to a model (ADR-0008): OpenRouter and Voyage AI (ADR-0007)."""
+    """The one way to a model (ADR-0008): OpenRouter and Voyage AI (ADR-0007), and Groq
+    or Google for a "groq:" or "google:" model (ADR-0020, ADR-0021)."""
     return AiGateway(
         ledger,
         OpenRouterClient(http, _required("OPENROUTER_API_KEY")),
         VoyageClient(http, os.environ.get("VOYAGE_API_KEY") or None),
+        others={
+            spec.provider: OpenAiCompatibleClient(
+                spec, http, os.environ.get(spec.key_name) or None
+            )
+            for spec in (GROQ, GOOGLE)
+        },
     )
 
 

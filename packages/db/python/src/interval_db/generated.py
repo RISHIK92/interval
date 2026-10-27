@@ -8,7 +8,7 @@ type JsonScalar = str | int | float | bool | None
 type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
 
 type AiFeature = Literal["tagging", "notes", "embeddings", "concept_drafting"]
-type AiProvider = Literal["openrouter", "voyage"]
+type AiProvider = Literal["openrouter", "voyage", "groq", "google"]
 type BetaGroup = Literal["student", "developer"]
 type BreakLength = Literal["1-3", "3-8", "8-15"]
 type Capability = Literal[
