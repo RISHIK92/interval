@@ -1900,3 +1900,9 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `question-report [--sample N]`: counts, pass rate, a sample to read.
 - Reviewer: option shuffling, stranded pending questions, observability, the single cap, and tests fixed.
 - The local run: 511 tagged moments queued for drafting; free Nemotron answers 429 so far (the day's free quota went on the morning's evals), so they retry every 5 minutes.
+
+### 2026-10-27 — P2-W8-S03 (spot-check queue, Q-2, §6.8)
+- Migration `20261027130000_question_review.sql`: `question_review` (its own id, reason sample/flagged, the decision, who, when); one open review per question, so a question kept once can be flagged and reviewed again.
+- `spot-check-due` (weekly: VM `interval-spot-checks.timer`, AWS EventBridge `SpotCheckDueSchedule`, no queue access): a random 10% (rounded up) of the questions validated in the past week, counted over the week whatever their status now so a rerun draws nothing twice, drawn from live ones never sampled; plus every flagged question without an open review. Serialised with an advisory lock.
+- `/admin/questions` (admin.review): each open review of a live or flagged question, with its section link, options (key and validator's answer marked) and quote; Keep returns a flagged question to live, Retire retires it, each review decided once (`AdminQuestions` port, Kysely adapter).
+- Reviewer: the window by `validated_at`, the quota over the week, repeat reviews, dead questions left out of the queue, the unused status field, the lock, the empty-state text and tests fixed. Known limit: a VM off for over a week samples only the last 7 days.

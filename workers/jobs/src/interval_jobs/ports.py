@@ -573,6 +573,12 @@ class Questions(Protocol):
         the answer; false (nothing changed) unless the question was pending."""
         ...
 
+    def queue_spot_checks(self, since: datetime, share: float) -> tuple[int, int]:
+        """Q-2: queue for review a random `share` (rounded up) of the live questions
+        created since `since`, less those already sampled from that window, plus every
+        flagged question not yet queued; (sampled, flagged) counts."""
+        ...
+
     def summary(self, sample: int) -> QuestionSummary:
         """Counts by status (retired left out) and a random sample of validated
         questions, for the owner to read (`question-report`)."""

@@ -2014,6 +2014,51 @@ class PostgresQuestions:
         ).fetchone()
         return row is not None
 
+    def queue_spot_checks(self, since: datetime, share: float) -> tuple[int, int]:
+        # Two runs at once would sample the same window twice.
+        self._conn.execute("select pg_advisory_xact_lock(hashtext('spot-checks'))")
+        # The window is what went live since `since` (validated, whatever it is now), so
+        # retiring a sampled question doesn't make a rerun draw another.
+        sampled = self._conn.execute(
+            """
+            with window_q as (
+              select id, status from question
+              where validated_at >= %(since)s and status <> 'rejected'
+            ), taken as (
+              select count(distinct r.question_id) as n from question_review r
+              join window_q w on w.id = r.question_id where r.reason = 'sample'
+            )
+            insert into question_review (question_id, reason)
+            select w.id, 'sample' from window_q w
+            where w.status = 'live' and not exists (
+              select 1 from question_review r
+              where r.question_id = w.id and (r.reason = 'sample' or r.decision is null)
+            )
+            order by random()
+            limit greatest(
+              0,
+              ceil(%(share)s * (select count(*) from window_q))::int
+                - (select n from taken)
+            )
+            returning question_id
+            """,
+            {"since": since, "share": share},
+        ).fetchall()
+        # Every flagged question without an open review: one kept before and flagged
+        # again goes back in.
+        flagged = self._conn.execute(
+            """
+            insert into question_review (question_id, reason)
+            select id, 'flagged' from question q
+            where q.status = 'flagged' and not exists (
+              select 1 from question_review r
+              where r.question_id = q.id and r.decision is null
+            )
+            returning question_id
+            """
+        ).fetchall()
+        return len(sampled), len(flagged)
+
     def summary(self, sample: int) -> QuestionSummary:
         counts = {
             str(status): int(n)

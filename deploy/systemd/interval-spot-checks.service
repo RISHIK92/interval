@@ -1,0 +1,17 @@
+# VM mode (ADR-0011), Q-2 (P2-W8-S03): queue this week's question spot checks, a random
+# 10% of the week's new live questions plus every flagged one. Started by
+# interval-spot-checks.timer; the AWS stack runs the same command weekly from
+# EventBridge Scheduler.
+[Unit]
+Description=Interval spot-check-due
+# Requisite, not Requires: a stack stopped for maintenance skips the run instead of
+# being started again by the timer.
+Requisite=interval.service
+After=interval.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/interval
+ExecStart=/opt/interval/deploy/bin/stack.sh run spot-check-due
+# A oneshot has no start timeout by default: a hung run would stop the timer for good.
+TimeoutStartSec=10min

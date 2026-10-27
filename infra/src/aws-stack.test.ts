@@ -247,8 +247,9 @@ describe("edge", () => {
 describe("containers", () => {
   test("ARM64 tasks get secrets only through ECS secrets, never plain env", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
-    // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due
-    expect(tasks.length).toBe(7);
+    // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due,
+    // spot-check-due
+    expect(tasks.length).toBe(8);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -487,13 +488,16 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(3);
+    expect(runTask).toHaveLength(4);
     const targets = runTask.map((st) => JSON.stringify(st.Resource));
     expect(targets.filter((t) => t.includes("PollDueTask"))).toHaveLength(1);
     expect(targets.filter((t) => t.includes("RecomputeDueTask"))).toHaveLength(
       1,
     );
     expect(targets.filter((t) => t.includes("CheckLinksDueTask"))).toHaveLength(
+      1,
+    );
+    expect(targets.filter((t) => t.includes("SpotCheckDueTask"))).toHaveLength(
       1,
     );
   });
@@ -874,5 +878,29 @@ describe("dashboards and alarms (W6-S05, OPS-2, OPS-4)", () => {
     for (const [, alarm] of all("AWS::CloudWatch::Alarm")) {
       expect(alarm.Properties["AlarmActions"]).toBeUndefined();
     }
+  });
+});
+
+describe("weekly question spot checks (P2-W8-S03, Q-2)", () => {
+  test("EventBridge Scheduler runs spot-check-due weekly, with no queue access", () => {
+    const schedule = scheduleFor("SpotCheckDueTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe("rate(7 days)");
+    expect(containerNamed("spot-check-due")?.Command).toEqual([
+      "spot-check-due",
+    ]);
+    const actions = all("AWS::IAM::Policy")
+      .filter(([, policy]) =>
+        (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
+          r.Ref.startsWith("SpotCheckDueTaskTaskRole"),
+        ),
+      )
+      .flatMap(([, policy]) =>
+        (
+          policy.Properties["PolicyDocument"] as {
+            Statement: { Action: string | string[] }[];
+          }
+        ).Statement.flatMap((st) => [st.Action].flat()),
+      );
+    expect(actions.some((a) => a.startsWith("sqs:"))).toBe(false);
   });
 });

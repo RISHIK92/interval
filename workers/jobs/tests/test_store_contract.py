@@ -106,6 +106,10 @@ class Probe(Protocol):
     def correct_moment_concepts(
         self, item_id: int, heading: str, slugs: list[str]
     ) -> None: ...
+    def flag_question(self, question_id: int) -> None: ...
+    def reviews(self) -> list[tuple[int, str, bool]]: ...
+    def decide_review(self, question_id: int) -> None: ...
+    def retire_question(self, question_id: int) -> None: ...
     def override_level(self, item_id: int, heading: str, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
 
@@ -213,6 +217,26 @@ class MemoryProbe:
         self, item_id: int, heading: str, slugs: list[str]
     ) -> None:
         self.s.tags.moment_concept_overrides[(item_id, heading)] = frozenset(slugs)
+
+    def flag_question(self, question_id: int) -> None:
+        next(q for q in self.s.questions.rows if q.id == question_id).status = "flagged"
+
+    def reviews(self) -> list[tuple[int, str, bool]]:
+        return sorted(self.s.questions.reviews)
+
+    def decide_review(self, question_id: int) -> None:
+        # What the admin page's Keep does (P2-W8-S03): decided, and a flagged question
+        # is live again.
+        self.s.questions.reviews = [
+            (q, r, True if q == question_id else d)
+            for q, r, d in self.s.questions.reviews
+        ]
+        question = next(q for q in self.s.questions.rows if q.id == question_id)
+        if question.status == "flagged":
+            question.status = "live"
+
+    def retire_question(self, question_id: int) -> None:
+        next(q for q in self.s.questions.rows if q.id == question_id).status = "retired"
 
     def override_level(self, item_id: int, heading: str, level: str) -> None:
         assert level in ("beginner", "intermediate", "advanced")
@@ -446,6 +470,35 @@ class PostgresProbe:
             "insert into tag_override (content_item_id, heading, difficulty, concepts, "
             "updated_by) values (%s, '', 'beginner', %s, 'contract-test')",
             (item_id, slugs),
+        )
+
+    def flag_question(self, question_id: int) -> None:
+        self.conn.execute(
+            "update question set status = 'flagged' where id = %s", (question_id,)
+        )
+
+    def reviews(self) -> list[tuple[int, str, bool]]:
+        return sorted(
+            (int(qid), str(reason), bool(decided))
+            for qid, reason, decided in self.conn.execute(
+                "select question_id, reason, decision is not null from question_review"
+            ).fetchall()
+        )
+
+    def decide_review(self, question_id: int) -> None:
+        self.conn.execute(
+            "update question_review set decision = 'keep', decided_by = 't', "
+            "decided_at = now() where question_id = %s and decision is null",
+            (question_id,),
+        )
+        self.conn.execute(
+            "update question set status = 'live' where id = %s and status = 'flagged'",
+            (question_id,),
+        )
+
+    def retire_question(self, question_id: int) -> None:
+        self.conn.execute(
+            "update question set status = 'retired' where id = %s", (question_id,)
         )
 
     def correct_moment_concepts(
@@ -2574,3 +2627,39 @@ def test_the_summary_counts_by_status_and_samples_validated_questions(
         (wrong, 0, "rejected"),
     ]
     assert len(s.questions.summary(1).sample) == 1
+
+
+# Q-2 (P2-W8-S03): a weekly random share of the week's new live questions, plus every
+# flagged one, queued once each for review.
+def test_spot_checks_sample_new_live_questions_and_take_every_flagged_one(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    _, (_, lag, quorum), _ = _question_item(s, probe)
+    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    a, b = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1")
+    c, d = s.questions.save(quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1")
+    since = datetime.now(UTC) - timedelta(seconds=1)
+    # The window is by when a question went live, not when it was drafted.
+    for qid in (a, b, c, d):
+        s.questions.record_verdict(qid, "v", 2)  # live
+    probe.flag_question(d)
+    # 10% of 4 newly validated questions rounds up to 1; the flagged one always goes.
+    assert s.questions.queue_spot_checks(since, 0.1) == (1, 1)
+    queued = probe.reviews()
+    assert (d, "flagged", False) in queued
+    sampled = [q for q, r, _ in queued if r == "sample"]
+    assert len(sampled) == 1 and sampled[0] in (a, b, c)
+    # A rerun the same week queues nothing twice, even after the sample was retired.
+    probe.retire_question(sampled[0])
+    assert s.questions.queue_spot_checks(since, 0.1) == (0, 0)
+    # A bigger share samples more, from the live ones never sampled.
+    assert s.questions.queue_spot_checks(since, 0.75) == (2, 0)
+    # A flagged question kept once and flagged again goes back in.
+    probe.decide_review(d)
+    probe.flag_question(d)
+    assert s.questions.queue_spot_checks(since, 0.75) == (0, 1)
+    assert sum(q == d for q, _, _ in probe.reviews()) == 2
+    # Nothing validated after the window starts: nothing sampled.
+    later = datetime.now(UTC) + timedelta(days=1)
+    assert s.questions.queue_spot_checks(later, 1.0) == (0, 0)

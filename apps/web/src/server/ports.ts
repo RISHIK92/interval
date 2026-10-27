@@ -502,6 +502,33 @@ export interface RankingInspection {
   ): Promise<"changed" | "unchanged" | "missing">;
 }
 
+// Q-2 (P2-W8-S03): the spot-check queue. A review is decided once: Keep returns a
+// flagged question to live, Retire retires it.
+export type ReviewDecision = "keep" | "retire";
+export type ReviewQuestion = {
+  questionId: string;
+  reason: "sample" | "flagged";
+  stem: string;
+  options: string[];
+  correct: number;
+  validatorAnswer: number | null;
+  citation: string;
+  articleTitle: string;
+  sectionTitle: string;
+  link: string;
+};
+export interface AdminQuestions {
+  // Undecided reviews of questions still live or flagged, the oldest first: one
+  // retired meanwhile (a redraft) needs no check.
+  open(): Promise<ReviewQuestion[]>;
+  // False when there was no undecided review of that question.
+  decide(
+    questionId: string,
+    decision: ReviewDecision,
+    by: string,
+  ): Promise<boolean>;
+}
+
 export interface AdminSources {
   list(): Promise<SourceSwitch[]>;
   get(id: string): Promise<SourceSwitch | null>;

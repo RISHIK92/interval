@@ -256,3 +256,18 @@ def test_a_systemd_timer_runs_check_links_due_weekly() -> None:
     deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
     assert "interval-links.timer" in deploy
     assert re.search(r"systemctl enable --now interval-links\.timer", deploy)
+
+
+# Q-2 (P2-W8-S03): this week's question spot checks, as EventBridge Scheduler does in
+# AWS.
+def test_a_systemd_timer_runs_spot_check_due_weekly() -> None:
+    timer = (SYSTEMD / "interval-spot-checks.timer").read_text()
+    service = (SYSTEMD / "interval-spot-checks.service").read_text()
+    assert "OnCalendar=weekly" in timer
+    assert "Persistent=true" in timer
+    assert re.search(
+        r"^ExecStart=.*stack\.sh run spot-check-due$", service, re.MULTILINE
+    )
+    assert "Requisite=interval.service" in service
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert re.search(r"systemctl enable --now interval-spot-checks\.timer", deploy)

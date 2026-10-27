@@ -1,0 +1,11 @@
+# VM mode (ADR-0011), Q-2 (P2-W8-S03): weekly. Persistent, so a VM that was off at the
+# scheduled time runs it once it is back; an extra run queues nothing twice.
+[Unit]
+Description=Interval spot-check-due every week
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target

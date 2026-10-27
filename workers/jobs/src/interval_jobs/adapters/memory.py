@@ -1412,6 +1412,7 @@ class StoredQuestion:
     status: str = "pending"
     validator_model: str | None = None
     validator_answer: int | None = None
+    validated_at: datetime | None = None
 
 
 class InMemoryQuestions:
@@ -1433,6 +1434,8 @@ class InMemoryQuestions:
         self.rows: list[StoredQuestion] = []
         self._next_id = 1
         self.retries: dict[int, tuple[int, datetime]] = {}
+        # Q-2 reviews, oldest first: (question id, reason, decided)
+        self.reviews: list[tuple[int, str, bool]] = []
 
     def target(self, moment_id: int) -> QuestionTarget | None:
         moment = next((m for m in self._moments.rows if m.id == moment_id), None)
@@ -1537,7 +1540,33 @@ class InMemoryQuestions:
             return False
         q.status = "live" if answer == q.draft.correct else "rejected"
         q.validator_model, q.validator_answer = model, answer
+        q.validated_at = datetime.now(UTC)
         return True
+
+    def queue_spot_checks(self, since: datetime, share: float) -> tuple[int, int]:
+        window = [
+            q
+            for q in self.rows
+            if q.validated_at is not None
+            and q.validated_at >= since
+            and q.status != "rejected"
+        ]
+        sampled_ids = {qid for qid, reason, _ in self.reviews if reason == "sample"}
+        open_ids = {qid for qid, _, decided in self.reviews if not decided}
+        taken = sum(q.id in sampled_ids for q in window)
+        drawable = [
+            q
+            for q in window
+            if q.status == "live" and q.id not in sampled_ids | open_ids
+        ]
+        quota = max(0, math.ceil(share * len(window)) - taken)
+        sampled = random.sample(drawable, min(quota, len(drawable)))
+        self.reviews += [(q.id, "sample", False) for q in sampled]
+        flagged = [
+            q for q in self.rows if q.status == "flagged" and q.id not in open_ids
+        ]
+        self.reviews += [(q.id, "flagged", False) for q in flagged]
+        return len(sampled), len(flagged)
 
     def summary(self, sample: int) -> QuestionSummary:
         counts: dict[str, int] = {}
@@ -1564,6 +1593,8 @@ class InMemoryQuestions:
         live = {m.id for m in self._moments.rows}
         self.rows = [q for q in self.rows if q.moment_id in live]
         self.retries = {m: r for m, r in self.retries.items() if m in live}
+        kept = {q.id for q in self.rows}
+        self.reviews = [r for r in self.reviews if r[0] in kept]
 
 
 class InMemoryStore:

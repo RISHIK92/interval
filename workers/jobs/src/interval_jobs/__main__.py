@@ -21,7 +21,7 @@ import sys
 import threading
 import time
 from dataclasses import asdict
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import get_args
 
@@ -182,6 +182,10 @@ def main(argv: list[str]) -> None:
         "enqueue-questions",
         help="queue question drafting for every tagged full-text moment (Q-1)",
     )
+    commands.add_parser(
+        "spot-check-due",
+        help="queue this week's question spot checks: 10%% sampled, plus flagged (Q-2)",
+    )
     report = commands.add_parser(
         "question-report",
         help="the question bank's counts, pass rate and a sample to read (Q-1)",
@@ -247,6 +251,15 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
 
     if args.command == "enqueue-questions":
         print(json.dumps({"enqueued": _enqueue_questions()}))
+        return
+
+    if args.command == "spot-check-due":
+        # Q-2: a random 10% of the week's new live questions, plus every flagged one.
+        # EventBridge Scheduler or the VM's interval-spot-checks.timer runs it weekly.
+        since = datetime.now(UTC) - timedelta(days=7)
+        with services() as s:
+            sampled, flagged = s.store.questions.queue_spot_checks(since, 0.1)
+        print(json.dumps({"sampled": sampled, "flagged": flagged}))
         return
 
     if args.command == "question-report":

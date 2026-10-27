@@ -545,6 +545,31 @@ export class AwsStack extends Stack {
       }),
     });
 
+    // Q-2 (P2-W8-S03): EventBridge Scheduler runs `spot-check-due` weekly. It only
+    // marks questions for review in the database: no queue to send to.
+    const spotCheckDueTask = taskDefinition("SpotCheckDue");
+    spotCheckDueTask.addContainer("spot-check-due", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["spot-check-due"],
+      environment,
+      secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
+      logging: logging("spot-check-due"),
+    });
+    new scheduler.Schedule(this, "SpotCheckDueSchedule", {
+      schedule: scheduler.ScheduleExpression.rate(Duration.days(7)),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: spotCheckDueTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // A missed run would skip a week's sample; a rerun queues nothing twice.
+        retryAttempts: 2,
+        maxEventAge: Duration.hours(1),
+      }),
+    });
+
     // The ingestion pipeline's consumer (W2-S02b): one always-on task serving every
     // stage queue. Same image and grants as the one-off jobs.
     const workerTask = taskDefinition("Worker");

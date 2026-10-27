@@ -26,6 +26,8 @@ type LearningGoal = Literal[
 ]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type QuestionStatus = Literal["pending", "live", "rejected", "flagged", "retired"]
+type ReviewDecision = Literal["keep", "retire"]
+type ReviewReason = Literal["sample", "flagged"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
 ]
@@ -350,6 +352,16 @@ class QuestionDrafting(TypedDict):
     moment_id: int
     attempt: int
     retry_at: datetime
+
+
+class QuestionReview(TypedDict):
+    id: int
+    question_id: int
+    reason: ReviewReason
+    queued_at: datetime
+    decision: ReviewDecision | None
+    decided_by: str | None
+    decided_at: datetime | None
 
 
 class RankingConfig(TypedDict):

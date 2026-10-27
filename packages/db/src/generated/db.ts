@@ -59,6 +59,10 @@ export type Numeric = ColumnType<string, number | string, number | string>;
 
 export type QuestionStatus = "flagged" | "live" | "pending" | "rejected" | "retired";
 
+export type ReviewDecision = "keep" | "retire";
+
+export type ReviewReason = "flagged" | "sample";
+
 export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
@@ -385,6 +389,16 @@ export interface QuestionDrafting {
   retry_at: Timestamp;
 }
 
+export interface QuestionReview {
+  decided_at: Timestamp | null;
+  decided_by: string | null;
+  decision: ReviewDecision | null;
+  id: Generated<Int8>;
+  question_id: Int8;
+  queued_at: Generated<Timestamp>;
+  reason: ReviewReason;
+}
+
 export interface RankingConfig {
   key: string;
   note: string;
@@ -621,6 +635,7 @@ export interface DB {
   question: Question;
   question_concept: QuestionConcept;
   question_drafting: QuestionDrafting;
+  question_review: QuestionReview;
   ranking_config: RankingConfig;
   schema_meta: SchemaMeta;
   source: Source;
