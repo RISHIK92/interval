@@ -28,6 +28,9 @@ type EventName = Literal[
     "onboarding_completed",
     "outbound_click",
     "pwa_installed",
+    "quiz_answered",
+    "quiz_finished",
+    "quiz_started",
     "section_finished",
     "session_started",
     "signup_completed",
@@ -51,6 +54,9 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "onboarding_completed": 1,
     "outbound_click": 1,
     "pwa_installed": 1,
+    "quiz_answered": 1,
+    "quiz_finished": 1,
+    "quiz_started": 1,
     "section_finished": 2,
     "session_started": 1,
     "signup_completed": 1,
@@ -125,6 +131,25 @@ class OutboundClickProps(_Model):
 
 class PwaInstalledProps(_Model):
     pass
+
+
+class QuizAnsweredProps(_Model):
+    attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    question_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    result: Literal["right", "wrong"]
+    ms: int = Field(ge=0, strict=True)
+
+
+class QuizFinishedProps(_Model):
+    attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    answered: int = Field(ge=0, strict=True)
+    correct: int = Field(ge=0, strict=True)
+
+
+class QuizStartedProps(_Model):
+    attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    moment_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class SectionFinishedProps(_Model):
@@ -245,6 +270,24 @@ class PwaInstalledEvent(_EnvelopeBase):
     props: PwaInstalledProps
 
 
+class QuizAnsweredEvent(_EnvelopeBase):
+    name: Literal["quiz_answered"]
+    version: Literal[1]
+    props: QuizAnsweredProps
+
+
+class QuizFinishedEvent(_EnvelopeBase):
+    name: Literal["quiz_finished"]
+    version: Literal[1]
+    props: QuizFinishedProps
+
+
+class QuizStartedEvent(_EnvelopeBase):
+    name: Literal["quiz_started"]
+    version: Literal[1]
+    props: QuizStartedProps
+
+
 class SectionFinishedEvent(_EnvelopeBase):
     name: Literal["section_finished"]
     version: Literal[2]
@@ -285,6 +328,9 @@ type Envelope = Annotated[
     | OnboardingCompletedEvent
     | OutboundClickEvent
     | PwaInstalledEvent
+    | QuizAnsweredEvent
+    | QuizFinishedEvent
+    | QuizStartedEvent
     | SectionFinishedEvent
     | SessionStartedEvent
     | SignupCompletedEvent
