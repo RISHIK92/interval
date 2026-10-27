@@ -22,6 +22,7 @@ from collections.abc import Callable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -36,6 +37,7 @@ from interval_db.messages import (
     RecomputeFeed,
     SegmentItem,
     TagItem,
+    ValidateQuestion,
 )
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
@@ -67,8 +69,11 @@ from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.questions import (
     QuestionReplyError,
     content_hash,
+    parse_answer,
     parse_reply,
     prompt,
+    shuffled,
+    validation_prompt,
 )
 from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
 from interval_jobs.segment import segment_item
@@ -96,6 +101,7 @@ STAGES: tuple[MessageName, ...] = (
     "polish_note",
     "check_link",
     "generate_questions",
+    "validate_question",
 )
 
 # Q-P2-10: the free question model is an unimportant background task. A rate limit or
@@ -167,6 +173,7 @@ class Pipeline:
             "polish_note": self._polish_stage,
             "check_link": self._stage(self._check_link),
             "generate_questions": self._questions_stage,
+            "validate_question": self._validate_stage,
         }
 
     def _stage(
@@ -445,6 +452,7 @@ class Pipeline:
             questions = services.store.questions
             target = questions.target(moment_id)
             drafted = questions.drafted_hash(moment_id)
+            pending_ids = questions.pending_ids(moment_id)
             retry = questions.retry_state(moment_id)
             text = self._moment_text(services.store, target)
         # One retry chain per moment: a re-tag or a second backfill while a retry
@@ -462,7 +470,11 @@ class Pipeline:
         slugs = [slug for slug, _ in target.concepts]
         digest = content_hash(text, slugs)
         if digest == drafted:
-            return  # AI-4: drafted once per text, concepts and prompt
+            # AI-4: drafted once per text, concepts and prompt. A backfill still
+            # re-queues the validation of any draft left pending (a validator that
+            # gave up, rights that came back, a crash before the enqueue).
+            self._validate_later(pending_ids)
+            return
         broken = message.broken
         try:
             with job.gateway() as gateway:
@@ -476,38 +488,23 @@ class Pipeline:
                 raise ModelError(f"the {answered.scope} AI budget is spent")
             drafts = parse_reply(answered.text, text)
         except (ModelError, QuestionReplyError) as error:
-            if isinstance(error, QuestionReplyError):
-                broken += 1
             attempt = message.attempt + 1
-            if broken >= QUESTION_BROKEN_REPLIES:
-                log.warn(
-                    "questions: giving up after broken replies",
-                    moment_id=moment_id,
-                    broken=broken,
-                    error=str(error),
-                )
-                with self._unit() as services:
-                    services.store.questions.clear_retry(moment_id)
-                return
-            log.warn(
-                "questions: retrying in 5 minutes",
-                moment_id=moment_id,
-                attempt=attempt,
-                broken=broken,
-                error=str(error),
-            )
+            # The retry state first: the retry it describes may run as soon as it's
+            # queued.
             with self._unit() as services:
                 services.store.questions.record_retry(
                     moment_id, attempt, now + timedelta(seconds=QUESTION_RETRY_SECONDS)
                 )
-            self._queue.enqueue(
+            if not self._retry_question_call(
                 "generate_questions",
-                {"moment_id": moment_id, "attempt": attempt, "broken": broken},
-                idempotency_key=(
-                    f"questions-{moment_id}-v{QUESTIONS_PROMPT_VERSION}-try{attempt}"
-                ),
-                delay_seconds=QUESTION_RETRY_SECONDS,
-            )
+                {"moment_id": moment_id},
+                f"questions-{moment_id}-v{QUESTIONS_PROMPT_VERSION}",
+                attempt,
+                broken,
+                error,
+            ):
+                with self._unit() as services:
+                    services.store.questions.clear_retry(moment_id)
             return
         with self._unit() as services:
             # The moment changed or lost its target while the model ran: the next
@@ -518,14 +515,122 @@ class Pipeline:
                     "questions: moment changed; drafts dropped", moment_id=moment_id
                 )
                 return
-            services.store.questions.save(
+            saved = services.store.questions.save(
                 moment_id,
-                drafts,
+                [shuffled(draft) for draft in drafts],
                 [slug for slug, _ in current.concepts],
                 job.model,
                 QUESTIONS_PROMPT_VERSION,
                 content_hash(text, [slug for slug, _ in current.concepts]),
             )
+        # Q-1: each draft goes to the blind validator (P2-W8-S02), after the commit.
+        self._validate_later(saved)
+
+    def _validate_later(self, question_ids: list[int]) -> None:
+        for question_id in question_ids:
+            self._queue.enqueue(
+                "validate_question",
+                {"question_id": question_id, "attempt": 0, "broken": 0},
+                idempotency_key=f"validate-{question_id}",
+            )
+
+    def _retry_question_call(
+        self,
+        name: Literal["generate_questions", "validate_question"],
+        ids: dict[str, object],
+        key: str,
+        attempt: int,
+        broken: int,
+        error: Exception,
+    ) -> bool:
+        """Q-P2-10: a rate limit or model error tries again in 5 minutes without end;
+        a reply that breaks a rule does too, until QUESTION_BROKEN_REPLIES of them.
+        False when it gave up."""
+        if isinstance(error, QuestionReplyError):
+            broken += 1
+        if broken >= QUESTION_BROKEN_REPLIES:
+            log.warn(
+                "questions: giving up after broken replies",
+                stage=name,
+                broken=broken,
+                error=str(error),
+                **ids,
+            )
+            return False
+        log.warn(
+            "questions: retrying in 5 minutes",
+            stage=name,
+            attempt=attempt,
+            broken=broken,
+            error=str(error),
+            **ids,
+        )
+        self._queue.enqueue(
+            name,
+            {**ids, "attempt": attempt, "broken": broken},
+            idempotency_key=f"{key}-try{attempt}",
+            delay_seconds=QUESTION_RETRY_SECONDS,
+        )
+        return True
+
+    def _validate_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        """Q-1: answer a pending question blind; live if it matches the key, else
+        rejected (P2-W8-S02). A decided or retired question is skipped, so a
+        repeated delivery changes nothing."""
+        assert isinstance(message, ValidateQuestion)
+        question_id, job = message.question_id, self._questions
+        if job is None:
+            log.info("pipeline: questions are off (no model)", question_id=question_id)
+            return
+        with self._unit() as services:
+            pending = services.store.questions.pending(question_id)
+            target = (
+                None if pending is None else services.store.questions.target(pending[0])
+            )
+            text = self._moment_text(services.store, target)
+        if pending is None:
+            return  # decided, retired or gone: a repeat delivery
+        if not text:
+            # Its moment lost its rights or tags meanwhile (ING-2): left pending, and
+            # a later backfill re-queues it if they come back.
+            log.warn(
+                "questions: pending, but its moment isn't a target",
+                question_id=question_id,
+            )
+            return
+        try:
+            with job.gateway() as gateway:
+                answered = gateway.complete(
+                    feature="questions",
+                    user_id=None,
+                    model=job.model,
+                    messages=validation_prompt(text, pending[1]),
+                )
+            if isinstance(answered, OverBudget):
+                raise ModelError(f"the {answered.scope} AI budget is spent")
+            answer = parse_answer(answered.text)
+        except (ModelError, QuestionReplyError) as error:
+            self._retry_question_call(
+                "validate_question",
+                {"question_id": question_id},
+                f"validate-{question_id}",
+                message.attempt + 1,
+                message.broken,
+                error,
+            )
+            return
+        with self._unit() as services:
+            decided = services.store.questions.record_verdict(
+                question_id, job.model, answer
+            )
+        if decided:
+            log.info(
+                "questions: validated",
+                question_id=question_id,
+                agreed=answer == pending[1].correct,
+            )
+        else:
+            log.info("questions: decided or retired meanwhile", question_id=question_id)
 
     @staticmethod
     def _moment_text(store: Store, target: QuestionTarget | None) -> str:

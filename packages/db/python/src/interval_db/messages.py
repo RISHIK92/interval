@@ -87,6 +87,17 @@ class TagItem(_Message):
     content_item_id: Annotated[int, Field(ge=1)]
 
 
+class ValidateQuestion(_Message):
+    """Answer one pending question blind with the question model and keep or reject
+    it (Q-1, P2-W8-S02). `attempt` counts retries, each 5 minutes later: after a
+    rate limit or a model error without end, and after a reply that breaks a rule
+    up to 5 times (`broken` counts those)."""
+
+    attempt: Annotated[int, Field(ge=0)]
+    broken: Annotated[int, Field(ge=0)]
+    question_id: Annotated[int, Field(ge=1)]
+
+
 type MessageName = Literal[
     "check_link",
     "discover_source",
@@ -97,6 +108,7 @@ type MessageName = Literal[
     "recompute_feed",
     "segment_item",
     "tag_item",
+    "validate_question",
 ]
 
 MESSAGES: dict[MessageName, type[_Message]] = {
@@ -109,4 +121,5 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "recompute_feed": RecomputeFeed,
     "segment_item": SegmentItem,
     "tag_item": TagItem,
+    "validate_question": ValidateQuestion,
 }

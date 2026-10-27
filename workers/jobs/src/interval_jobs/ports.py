@@ -504,6 +504,20 @@ class QuestionTarget:
     concepts: tuple[tuple[str, str], ...]
 
 
+@dataclass(frozen=True)
+class ValidatedQuestion:
+    question_id: int
+    draft: QuestionDraft
+    validator_answer: int
+    status: str
+
+
+@dataclass(frozen=True)
+class QuestionSummary:
+    counts: dict[str, int]
+    sample: list[ValidatedQuestion]
+
+
 class Questions(Protocol):
     """The question bank (Q-1, P2-W8-S01)."""
 
@@ -541,6 +555,27 @@ class Questions(Protocol):
 
     def clear_retry(self, moment_id: int) -> None:
         """Drafting gave up (a reply that kept breaking the rules)."""
+        ...
+
+    # P2-W8-S02 (Q-1): the blind validator.
+    def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
+        """A question still waiting for its verdict, with its moment; None once
+        validated, retired, or gone."""
+        ...
+
+    def pending_ids(self, moment_id: int) -> list[int]:
+        """The moment's questions still waiting for a verdict (re-queued by a
+        backfill, so none waits forever)."""
+        ...
+
+    def record_verdict(self, question_id: int, model: str, answer: int) -> bool:
+        """Live when the validator's answer is the key, rejected when not, keeping
+        the answer; false (nothing changed) unless the question was pending."""
+        ...
+
+    def summary(self, sample: int) -> QuestionSummary:
+        """Counts by status (retired left out) and a random sample of validated
+        questions, for the owner to read (`question-report`)."""
         ...
 
 

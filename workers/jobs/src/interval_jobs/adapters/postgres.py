@@ -49,6 +49,7 @@ from interval_jobs.ports import (
     NoteKey,
     NoteRef,
     QuestionDraft,
+    QuestionSummary,
     QuestionTarget,
     RankedEntry,
     RevokeResult,
@@ -66,6 +67,7 @@ from interval_jobs.ports import (
     Tags,
     Usage,
     UserPreferences,
+    ValidatedQuestion,
     Validators,
 )
 
@@ -1973,6 +1975,74 @@ class PostgresQuestions:
     def clear_retry(self, moment_id: int) -> None:
         self._conn.execute(
             "delete from question_drafting where moment_id = %s", (moment_id,)
+        )
+
+    def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
+        row = self._conn.execute(
+            "select moment_id, stem, options, correct, citation from question "
+            "where id = %s and status = 'pending'",
+            (question_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        moment_id, stem, options, correct, citation = row
+        return int(moment_id), QuestionDraft(
+            str(stem), tuple(str(o) for o in options), int(correct), str(citation)
+        )
+
+    def pending_ids(self, moment_id: int) -> list[int]:
+        rows = self._conn.execute(
+            "select id from question where moment_id = %s and status = 'pending' "
+            "order by ordinal",
+            (moment_id,),
+        ).fetchall()
+        return [int(r[0]) for r in rows]
+
+    def record_verdict(self, question_id: int, model: str, answer: int) -> bool:
+        row = self._conn.execute(
+            """
+            update question set
+              status = case when correct = %(answer)s then 'live' else 'rejected' end
+                ::question_status,
+              validator_model = %(model)s,
+              validator_answer = %(answer)s,
+              validated_at = now()
+            where id = %(id)s and status = 'pending'
+            returning id
+            """,
+            {"id": question_id, "model": model, "answer": answer},
+        ).fetchone()
+        return row is not None
+
+    def summary(self, sample: int) -> QuestionSummary:
+        counts = {
+            str(status): int(n)
+            for status, n in self._conn.execute(
+                "select status, count(*) from question "
+                "where status <> 'retired' group by status"
+            ).fetchall()
+        }
+        rows = self._conn.execute(
+            """
+            select id, stem, options, correct, citation, validator_answer, status
+            from question where validated_at is not null and status <> 'retired'
+            order by random() limit %s
+            """,
+            (sample,),
+        ).fetchall()
+        return QuestionSummary(
+            counts,
+            [
+                ValidatedQuestion(
+                    int(qid),
+                    QuestionDraft(
+                        str(stem), tuple(str(o) for o in options), int(key), str(cite)
+                    ),
+                    int(answer),
+                    str(status),
+                )
+                for qid, stem, options, key, cite, answer, status in rows
+            ],
         )
 
 

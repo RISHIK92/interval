@@ -336,6 +336,9 @@ class Question(TypedDict):
     prompt_version: int
     content_hash: str
     created_at: datetime
+    validator_model: str | None
+    validator_answer: int | None
+    validated_at: datetime | None
 
 
 class QuestionConcept(TypedDict):

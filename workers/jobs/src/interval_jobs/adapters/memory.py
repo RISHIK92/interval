@@ -7,6 +7,7 @@ switching moments off purges what the source no longer allows.
 """
 
 import math
+import random
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
@@ -49,6 +50,7 @@ from interval_jobs.ports import (
     NoteKey,
     NoteRef,
     QuestionDraft,
+    QuestionSummary,
     QuestionTarget,
     RankedEntry,
     RevokeResult,
@@ -66,6 +68,7 @@ from interval_jobs.ports import (
     Tags,
     Usage,
     UserPreferences,
+    ValidatedQuestion,
     Validators,
 )
 from interval_jobs.segment import minutes
@@ -1407,6 +1410,8 @@ class StoredQuestion:
     prompt_version: int
     content_hash: str
     status: str = "pending"
+    validator_model: str | None = None
+    validator_answer: int | None = None
 
 
 class InMemoryQuestions:
@@ -1514,6 +1519,39 @@ class InMemoryQuestions:
 
     def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:
         return self.retries.get(moment_id)
+
+    def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
+        q = next((q for q in self.rows if q.id == question_id), None)
+        return None if q is None or q.status != "pending" else (q.moment_id, q.draft)
+
+    def pending_ids(self, moment_id: int) -> list[int]:
+        return [
+            q.id
+            for q in sorted(self.rows, key=lambda q: q.ordinal)
+            if q.moment_id == moment_id and q.status == "pending"
+        ]
+
+    def record_verdict(self, question_id: int, model: str, answer: int) -> bool:
+        q = next((q for q in self.rows if q.id == question_id), None)
+        if q is None or q.status != "pending":
+            return False
+        q.status = "live" if answer == q.draft.correct else "rejected"
+        q.validator_model, q.validator_answer = model, answer
+        return True
+
+    def summary(self, sample: int) -> QuestionSummary:
+        counts: dict[str, int] = {}
+        for q in self.rows:
+            if q.status != "retired":
+                counts[q.status] = counts.get(q.status, 0) + 1
+        validated = [
+            ValidatedQuestion(q.id, q.draft, q.validator_answer, q.status)
+            for q in self.rows
+            if q.validator_answer is not None and q.status != "retired"
+        ]
+        return QuestionSummary(
+            counts, random.sample(validated, min(sample, len(validated)))
+        )
 
     def record_retry(self, moment_id: int, attempt: int, retry_at: datetime) -> None:
         self.retries[moment_id] = (attempt, retry_at)

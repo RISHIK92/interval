@@ -36,8 +36,23 @@ class QuestionLlm:
     def __init__(self) -> None:
         self.question_calls = 0
         self.fail: str | None = None  # "error" or "garbage"
+        # The drafts' right option is "It"; options are shuffled when saved, so the
+        # validator answers by finding it (or names a wrong one when told).
+        self.validator_wrong = False
+        self.validator_fail: str | None = None
+        self.validator_prompts: list[str] = []
 
     def complete(self, model: str, messages: list[Message]) -> Completion:
+        if messages[0]["content"].startswith("You answer a multiple-choice"):
+            self.validator_prompts.append(messages[1]["content"])
+            if self.validator_fail == "error":
+                raise ModelError("openrouter free: 429 rate limited")
+            if self.validator_fail == "garbage":
+                return Completion("B, I think", 300, 5, Decimal(0))
+            lines = messages[1]["content"].splitlines()
+            right = next(int(l.split(".")[0]) for l in lines if l.endswith(". It"))
+            answer = (right + 1) % 4 if self.validator_wrong else right
+            return Completion(json.dumps({"answer": answer}), 300, 5, Decimal(0))
         if "multiple-choice" not in messages[0]["content"]:
             return Completion(TAGS, 800, 60, Decimal(0))
         self.question_calls += 1
@@ -98,7 +113,9 @@ def test_tagging_queues_a_tagged_moments_questions_and_they_are_drafted_once() -
     world.discover()
     world.run()
     saved = world.store.questions.rows
-    assert saved and all(q.status == "pending" for q in saved)
+    # Drafted, then validated blind: the validator chose the key, so they're live.
+    assert saved and all(q.status == "live" for q in saved)
+    assert all(q.draft.options[q.validator_answer or 0] == "It" for q in saved)
     assert {q.concepts for q in saved} == {("write-ahead-log",)}
     assert all(q.model == "nemotron-free" for q in saved)
     drafted = llm.question_calls
@@ -202,3 +219,61 @@ def test_a_redraft_retires_the_old_questions_instead_of_deleting_them() -> None:
     retired = {q.id for q in world.store.questions.rows if q.status == "retired"}
     assert retired and retired <= first
     assert any(q.id not in first for q in world.store.questions.rows)
+
+
+# P2-W8-S02 (Q-1): the validator answers blind; a mismatch rejects the question.
+def test_a_question_the_validator_answers_differently_is_rejected() -> None:
+    world, llm = question_world()
+    llm.validator_wrong = True
+    world.discover()
+    world.run()
+    saved = world.store.questions.rows
+    assert saved and all(q.status == "rejected" for q in saved)
+    assert all(q.validator_answer != q.draft.correct for q in saved)
+    # Options were shuffled when saved: the key isn't always first.
+    assert len({q.draft.correct for q in saved}) > 1 or len(saved) < 4
+
+
+def _validate_once(world: World) -> None:
+    handler = world.pipeline.handlers()["validate_question"]
+    for _ in range(world.queue.pending("validate_question")):
+        world.queue.consume_one("validate_question", handler, threading.Event())
+
+
+def test_validation_retries_errors_without_end_and_broken_replies_five_times() -> None:
+    world, llm = question_world()
+    world.discover()
+    world.run_except("validate_question")
+    waiting = world.queue.pending("validate_question")
+    assert waiting > 0
+    llm.validator_fail = "error"
+    for _ in range(7):  # past the broken-reply cap: errors never give up
+        _validate_once(world)
+    assert world.queue.pending_delays("validate_question") == [300] * waiting
+    llm.validator_fail = "garbage"
+    for _ in range(10):
+        _validate_once(world)
+    # Five broken replies each, then it gives up: still pending, nothing waits.
+    assert world.queue.pending("validate_question") == 0
+    assert all(q.status == "pending" for q in world.store.questions.rows)
+    # A backfill finds them pending and queues their validation again.
+    llm.validator_fail = None
+    moments = {q.moment_id for q in world.store.questions.rows}
+    for moment_id in moments:
+        world.queue.enqueue(
+            "generate_questions",
+            {"moment_id": moment_id, "attempt": 0, "broken": 0},
+            idempotency_key=f"backfill-{moment_id}",
+        )
+    world.run()
+    assert all(q.status == "live" for q in world.store.questions.rows)
+
+
+def test_a_pending_question_whose_moment_lost_its_rights_is_not_sent() -> None:
+    world, llm = question_world()
+    world.discover()
+    world.run_except("validate_question")
+    world.store.sources.set_moments_enabled(world.source_id, False)
+    _validate_once(world)
+    assert llm.validator_prompts == []
+    assert world.queue.pending("validate_question") == 0

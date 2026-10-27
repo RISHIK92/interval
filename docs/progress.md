@@ -1892,3 +1892,11 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `questions.py`: the prompt (passage fenced as data), a strict parser (exactly 2, 4 distinct options, one key, a citation of ≥3 whole words from the passage), a content hash over text, concepts and prompt version.
 - Stage `generate_questions` (`QUESTIONS_MODEL`; off when unset): tagging queues each tagged moment after saving tags; `enqueue-questions` backfills. A rate limit or model error retries in 5 minutes without end, a broken reply up to 5 times; one retry chain per moment; a redraft retires the old questions. Store port `Questions` with Postgres (set-based targets) and memory adapters, contract tests.
 - Reviewer: the broken-reply cap, chain merging, the set-based query, concepts in the hash, whole-word citations, retire-not-delete, prompt fencing and more tests fixed. Not fixed, noted: on a daily-cap 429 each delivery still spends its ~65 s of in-call retries (serial, other stages unaffected).
+
+### 2026-10-27 — P2-W8-S02 (blind validator, Q-1, Q-P2-07)
+- Migration `20261027120000_question_validation.sql`: the validator's model, answer and time on `question` (set together). Message `validate_question`.
+- `questions.py`: `validation_prompt` (passage, stem and options; never the key or citation), `parse_answer`, and `shuffled`: options are shuffled when a draft is saved, so a model's habit of putting the key first can't pass as agreement, and readers can't learn a position.
+- Stage `validate_question`, queued per saved draft: live on a match, rejected otherwise (the answer kept); only a pending question is decided. Retries shared with drafting (`_retry_question_call`): errors without end, broken replies up to 5. A moment that lost rights leaves its question pending (warned); drafting's AI-4 skip re-queues the validation of pending drafts, so a backfill recovers any that were stranded.
+- `question-report [--sample N]`: counts, pass rate, a sample to read.
+- Reviewer: option shuffling, stranded pending questions, observability, the single cap, and tests fixed.
+- The local run: 511 tagged moments queued for drafting; free Nemotron answers 429 so far (the day's free quota went on the morning's evals), so they retry every 5 minutes.

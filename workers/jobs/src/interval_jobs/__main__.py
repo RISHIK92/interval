@@ -182,6 +182,11 @@ def main(argv: list[str]) -> None:
         "enqueue-questions",
         help="queue question drafting for every tagged full-text moment (Q-1)",
     )
+    report = commands.add_parser(
+        "question-report",
+        help="the question bank's counts, pass rate and a sample to read (Q-1)",
+    )
+    report.add_argument("--sample", type=int, default=20)
     commands.add_parser(
         "poll-due", help="queue a poll of every source whose turn has come (ING-3)"
     )
@@ -242,6 +247,38 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
 
     if args.command == "enqueue-questions":
         print(json.dumps({"enqueued": _enqueue_questions()}))
+        return
+
+    if args.command == "question-report":
+        with services() as s:
+            summary = s.store.questions.summary(args.sample)
+        decided = summary.counts.get("live", 0) + summary.counts.get("rejected", 0)
+        print(
+            json.dumps(
+                {
+                    "counts": summary.counts,
+                    # Of the questions the validator decided, the share it agreed on.
+                    "pass_rate": (
+                        round(summary.counts.get("live", 0) / decided, 3)
+                        if decided
+                        else None
+                    ),
+                    "sample": [
+                        {
+                            "question_id": q.question_id,
+                            "status": q.status,
+                            "stem": q.draft.stem,
+                            "options": list(q.draft.options),
+                            "key": q.draft.correct,
+                            "validator": q.validator_answer,
+                            "citation": q.draft.citation,
+                        }
+                        for q in summary.sample
+                    ],
+                },
+                indent=2,
+            )
+        )
         return
 
     if args.command == "load-sources":

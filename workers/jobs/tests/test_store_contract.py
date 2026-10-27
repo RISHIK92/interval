@@ -2534,3 +2534,43 @@ def test_drafts_replace_a_moments_questions_and_remember_their_hash(
     # Questions go with their moment (and so with its rights, ING-2).
     s.moments.replace(item, [moment(0, "intro")])
     assert s.questions.drafted_hash(lag) is None
+
+
+def test_a_verdict_makes_a_pending_question_live_or_rejected_once(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    _, (_, lag, _), _ = _question_item(s, probe)
+    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    right, wrong = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1")
+    assert s.questions.pending(right) == (lag, draft)
+    assert s.questions.record_verdict(right, "validator", 2) is True
+    assert s.questions.record_verdict(wrong, "validator", 1) is True
+    # Decided once: no longer pending, and a repeat changes nothing.
+    assert s.questions.pending(right) is None
+    assert s.questions.record_verdict(right, "validator", 0) is False
+    # A redraft's questions are pending again; the decided ones are retired.
+    (again, _) = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h2")
+    assert s.questions.pending(again) == (lag, draft)
+    assert s.questions.pending(wrong) is None
+
+
+def test_the_summary_counts_by_status_and_samples_validated_questions(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    _, (_, lag, quorum), _ = _question_item(s, probe)
+    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    right, wrong = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1")
+    s.questions.save(quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1")
+    s.questions.record_verdict(right, "v", 2)
+    s.questions.record_verdict(wrong, "v", 0)
+    got = s.questions.summary(10)
+    assert got.counts == {"live": 1, "rejected": 1, "pending": 2}
+    assert sorted(
+        (q.question_id, q.validator_answer, q.status) for q in got.sample
+    ) == [
+        (right, 2, "live"),
+        (wrong, 0, "rejected"),
+    ]
+    assert len(s.questions.summary(1).sample) == 1

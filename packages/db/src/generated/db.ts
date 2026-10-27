@@ -369,6 +369,9 @@ export interface Question {
   prompt_version: number;
   status: Generated<QuestionStatus>;
   stem: string;
+  validated_at: Timestamp | null;
+  validator_answer: number | null;
+  validator_model: string | null;
 }
 
 export interface QuestionConcept {

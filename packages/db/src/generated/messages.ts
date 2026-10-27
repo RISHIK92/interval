@@ -40,6 +40,12 @@ export const messageSchemas = {
   tag_item: z.strictObject({
     content_item_id: z.number().int().min(1),
   }),
+  // Answer one pending question blind with the question model and keep or reject it (Q-1, P2-W8-S02). `attempt` counts retries, each 5 minutes later: after a rate limit or a model error without end, and after a reply that breaks a rule up to 5 times (`broken` counts those).
+  validate_question: z.strictObject({
+    attempt: z.number().int().min(0),
+    broken: z.number().int().min(0),
+    question_id: z.number().int().min(1),
+  }),
 } as const;
 
 export type MessageName = keyof typeof messageSchemas;
