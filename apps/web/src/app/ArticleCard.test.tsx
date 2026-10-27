@@ -98,3 +98,17 @@ test("a frameable article opens in the in-app reader without a new tab", () => {
   expect(html).not.toContain("target=");
   expect(html).not.toContain("data-item");
 });
+
+// P2-W7-S04: the user's note on the whole article, a line on its card.
+test("an article card shows the user's note on the article", () => {
+  const html = renderToStaticMarkup(
+    <ArticleCard
+      card={card}
+      chip="8-15"
+      position={1}
+      controls={null}
+      yourNote="Read the Raft part twice"
+    />,
+  );
+  expect(textOf(html)).toMatch(/Your note: +\/ Read the Raft part twice/);
+});

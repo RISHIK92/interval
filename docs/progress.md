@@ -1876,3 +1876,12 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `noteAction`: save or delete; an empty save deletes; CRLF counted as the text area counts it; a refused input or a save with nothing to attach to is logged; events `note_saved` / `note_deleted` with ids only (events guard test lists them as owner-approved with the Week 7 plan).
 - UI (owner, 2026-10-27): a small note icon at the top right of Home's Now reading card and the reader's footer opens the text area; a dot marks an existing note. Checked in Chrome (opened, not saved).
 - Reviewer: unique indexes + upsert (replacing the select-then-insert race), CRLF, logging, the shared target filter, the section-title refresh and the Delete note label fixed. Noted: saving from the reader reloads the publisher's frame at its anchor (a no-script form).
+
+### 2026-10-27 — P2-W7-S04 (notes in the Library and on cards, Q-P2-01, §5I)
+- `Notes` port: `list` (newest edit first, with article, source, section and link state), `onItems` (a card's own section or article note; not fallen-back ones), `update` / `removeById` by the note's id (the Library; reaches a note whose section was re-segmented away).
+- `noteAction` takes a note id or a target (zod union); a lost edit is logged.
+- Library: the Notes tile is live (count) and a Notes section lists each note with its article, source, section ("Whole article" when none), body, a link back (in-app reader when frameable, else /out; "Link broken"), and edit/delete by id. `ReadLink` and the note link share `LibraryLink`; note rows reuse `Row`.
+- Cards: a "Your note:" line from one `onItems` query per Home render (live, never in the precomputed feed).
+- `NoteBox` takes `about`, so every box (and its text area) is named by what it's on.
+- Checked in Chrome: the Library's Notes tile and empty state. Reviewer: labels, the lost-edit log, the shared link, link names and test gaps fixed.
+- Week 7 is complete: S01–S04.

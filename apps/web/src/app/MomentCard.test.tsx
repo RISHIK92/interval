@@ -124,3 +124,22 @@ test("a frameable section opens in the in-app reader; Open original still leaves
   );
   expect(html).not.toContain("data-item");
 });
+
+// P2-W7-S04: the user's own note on this section, a line on its card.
+test("a card with the user's note shows it, and one without shows nothing", () => {
+  const html = renderToStaticMarkup(
+    <MomentCard
+      card={card}
+      chip="3-8"
+      position={4}
+      controls={null}
+      yourNote="Terms are epochs"
+    />,
+  );
+  expect(textOf(html)).toMatch(/Your note: +\/ Terms are epochs/);
+  expect(
+    renderToStaticMarkup(
+      <MomentCard card={card} chip="3-8" position={4} controls={null} />,
+    ),
+  ).not.toContain("Your note");
+});

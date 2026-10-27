@@ -2,11 +2,17 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
-import { library, preferences, sessionReader } from "../../server/container";
+import {
+  library,
+  notes,
+  preferences,
+  sessionReader,
+} from "../../server/container";
 import type { Chip } from "../../server/chips";
 import { outHref, readHref } from "../../server/outbound";
-import type { HistoryItem, SavedItem } from "../../server/ports";
+import type { HistoryItem, NoteEntry, SavedItem } from "../../server/ports";
 import { parseReading } from "../../server/reading";
+import { NoteBox } from "../NoteBox";
 import { ReturnPrompt } from "../ReturnPrompt";
 import { TabBar } from "../TabBar";
 import { Button } from "../ui/Button";
@@ -27,8 +33,6 @@ const LIMIT = 50;
 // (P1-W6-S03): the item stays listed so the reader knows why it left the feed.
 function ReadLink(props: { item: SavedItem | HistoryItem; chip: Chip }) {
   const { item, chip } = props;
-  if (item.linkBroken)
-    return <p className="text-sm text-ink-muted">Link broken</p>;
   const momentId =
     !item.finished && item.finishedSections > 0
       ? (item.nextMomentId ?? undefined)
@@ -38,13 +42,39 @@ function ReadLink(props: { item: SavedItem | HistoryItem; chip: Chip }) {
     : momentId === undefined
       ? "Open article"
       : "Continue reading";
+  return (
+    <LibraryLink
+      itemId={item.itemId}
+      momentId={momentId}
+      label={label}
+      name={`${label}: ${item.articleTitle}`}
+      frameable={item.frameable}
+      linkBroken={item.linkBroken}
+      chip={chip}
+    />
+  );
+}
+
+// A link out of the Library to a section (or the article) on the publisher's page:
+// the in-app reader when it can frame it, else the browser through /out.
+function LibraryLink(props: {
+  itemId: string;
+  momentId: string | undefined;
+  label: string;
+  name: string;
+  frameable: boolean;
+  linkBroken: boolean;
+  chip: Chip;
+}) {
+  const { itemId, momentId, label, name, chip } = props;
+  if (props.linkBroken)
+    return <p className="text-sm text-ink-muted">Link broken</p>;
   const at = momentId === undefined ? {} : { momentId };
   const className = "text-sm font-semibold text-select";
-  const name = `${label}: ${item.articleTitle}`;
-  return item.frameable ? (
+  return props.frameable ? (
     <a
-      href={readHref({ itemId: item.itemId, ...at, chip, from: "library" })}
-      data-read-item={item.itemId}
+      href={readHref({ itemId, ...at, chip, from: "library" })}
+      data-read-item={itemId}
       data-read-moment={momentId}
       aria-label={name}
       className={className}
@@ -54,12 +84,12 @@ function ReadLink(props: { item: SavedItem | HistoryItem; chip: Chip }) {
   ) : (
     <a
       href={outHref({
-        itemId: item.itemId,
+        itemId,
         ...at,
         from: "library",
         target: momentId === undefined ? "original" : "section",
       })}
-      data-item={item.itemId}
+      data-item={itemId}
       data-moment={momentId}
       target="_blank"
       rel="noopener noreferrer"
@@ -86,14 +116,10 @@ const icon = (path: ReactNode) => (
   </svg>
 );
 
-// Highlights, notes and audio come with later phases (owner, 2026-10-26): shown, dimmed,
-// so the shelf has its final shape.
+// Highlights and audio come with later phases (owner, 2026-10-26): shown, dimmed, so the
+// shelf has its final shape. Notes came in P2-W7-S04.
 const LATER = [
   { label: "Highlights", icon: icon(<path d="M4 20h6M14 4l6 6-9 9H5v-6z" />) },
-  {
-    label: "Notes",
-    icon: icon(<path d="M6 3h9l4 4v14H6zM9 12h7M9 16h5" />),
-  },
   {
     label: "Audio",
     icon: icon(
@@ -104,9 +130,14 @@ const LATER = [
 
 const TILE = "flex flex-col gap-2 rounded-2xl bg-well p-4";
 
-function Row(props: { title: string; source: string; children: ReactNode }) {
+function Row(props: {
+  title: string;
+  source: string;
+  children: ReactNode;
+  className?: string;
+}) {
   return (
-    <li className="flex flex-col gap-2 px-5 py-4">
+    <li className={`flex flex-col gap-2 px-5 py-4 ${props.className ?? ""}`}>
       <p>
         <span className="font-semibold">{props.title}</span>
         <span className="text-ink-muted">{` · ${props.source}`}</span>
@@ -142,6 +173,25 @@ function Reached(props: { item: SavedItem | HistoryItem }) {
   );
 }
 
+// A note goes back to its section on the publisher's page (§3.2), or to the article
+// when it is on the whole article or its section was re-segmented away; named by the
+// section, so notes on one article's sections read apart.
+function NoteLink(props: { note: NoteEntry; chip: Chip }) {
+  const { note, chip } = props;
+  const label = note.momentId === null ? "Open article" : "Open section";
+  return (
+    <LibraryLink
+      itemId={note.itemId}
+      momentId={note.momentId ?? undefined}
+      label={label}
+      name={`${label}: ${note.sectionTitle ?? note.articleTitle}`}
+      frameable={note.frameable}
+      linkBroken={note.linkBroken}
+      chip={chip}
+    />
+  );
+}
+
 export default async function LibraryPage({
   searchParams,
 }: {
@@ -159,9 +209,10 @@ export default async function LibraryPage({
   const ask = parseReading(
     typeof params["ask"] === "string" ? params["ask"] : undefined,
   );
-  const [saved, finished] = await Promise.all([
+  const [saved, finished, written] = await Promise.all([
     library().saves(actor.userId, LIMIT),
     library().history(actor.userId, LIMIT),
+    notes().list(actor.userId, LIMIT),
   ]);
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[52rem] lg:pt-10 lg:pl-64">
@@ -182,6 +233,13 @@ export default async function LibraryPage({
             {/* Only the newest LIMIT are read, so a full page is "at least". */}
             <span className="text-numbers">
               {saved.length === LIMIT ? `${String(LIMIT)}+` : saved.length}
+            </span>
+          </div>
+          <div role="group" aria-label="Notes" className={TILE}>
+            {icon(<path d="M6 3h9l4 4v14H6zM9 12h7M9 16h5" />)}
+            <span className="font-semibold">Notes</span>
+            <span className="text-numbers">
+              {written.length === LIMIT ? `${String(LIMIT)}+` : written.length}
             </span>
           </div>
           {LATER.map((tile) => (
@@ -230,6 +288,42 @@ export default async function LibraryPage({
                       </Button>
                     </form>
                   </div>
+                </Row>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </section>
+
+      {/* P2-W7-S04 (§5I, Q-P2-01): your notes, newest edit first; each edited by its
+        own id, so one whose section was re-segmented away is still yours to edit. */}
+      <section aria-label="Notes">
+        <h2 className="mb-3 text-section">Notes</h2>
+        <Card>
+          {written.length === 0 ? (
+            <p className="px-5 py-4 text-ink-muted">
+              No notes yet. Add one from the note icon while you read.
+            </p>
+          ) : (
+            <ul className="divide-y divide-hairline">
+              {written.map((note) => (
+                <Row
+                  key={note.noteId}
+                  title={note.articleTitle}
+                  source={note.sourceName}
+                  className="relative pr-16"
+                >
+                  <p className="text-sm text-ink-muted">
+                    {note.sectionTitle ?? "Whole article"}
+                  </p>
+                  <p className="whitespace-pre-line">{note.body}</p>
+                  <NoteLink note={note} chip={chip} />
+                  <NoteBox
+                    on={{ noteId: note.noteId }}
+                    about={note.sectionTitle ?? note.articleTitle}
+                    note={note.body}
+                    back="/library"
+                  />
                 </Row>
               ))}
             </ul>

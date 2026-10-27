@@ -22,6 +22,7 @@ export function FeedCardLayout({
   read,
   topic,
   controls,
+  yourNote = null,
 }: {
   title: string;
   attribution: string;
@@ -39,6 +40,8 @@ export function FeedCardLayout({
   };
   topic: Topic | null;
   controls: ReactNode;
+  // P2-W7-S04: the user's own note on this section or article (Q-P2-01).
+  yourNote?: string | null;
 }) {
   const className =
     "inline-flex flex-1 items-center justify-center rounded-full bg-ink px-5 py-2.5 font-semibold text-page";
@@ -86,6 +89,12 @@ export function FeedCardLayout({
           <div className="mt-3 empty:hidden">
             <WhyNote note={note} />
           </div>
+          {yourNote === null ? null : (
+            <p className="mt-2 line-clamp-2 text-sm whitespace-pre-line">
+              <span className="font-semibold">Your note: </span>
+              {yourNote}
+            </p>
+          )}
           {/* The actions sit at the bottom, level across the row's cards. */}
           <div className="mt-auto flex items-center gap-2 pt-4">
             {readLink}

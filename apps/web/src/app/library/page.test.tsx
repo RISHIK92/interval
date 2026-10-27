@@ -1,6 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, Library, Preferences } from "../../server/ports";
+import type {
+  Actor,
+  Library,
+  NoteEntry,
+  Notes,
+  Preferences,
+} from "../../server/ports";
 
 // §4.1, §5I, C-06, Q-P1-19, P1-W5-S05: what you saved and what you finished.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
@@ -15,10 +21,12 @@ const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
 );
 const saves = vi.fn<Library["saves"]>(() => Promise.resolve([]));
 const history = vi.fn<Library["history"]>(() => Promise.resolve([]));
+const list = vi.fn<Notes["list"]>(() => Promise.resolve([]));
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
   library: () => ({ saves, history }),
+  notes: () => ({ list }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -187,7 +195,7 @@ test("an item whose link broke stays, marked, with no link to follow", async () 
 });
 
 // Highlights, notes and audio arrive in later phases (owner, 2026-10-26).
-test("the shelf counts saves; highlights, notes and audio are disabled for later", async () => {
+test("the shelf counts saves and notes; highlights and audio are disabled for later", async () => {
   current.mockResolvedValue(guest);
   saves.mockResolvedValueOnce([
     {
@@ -205,7 +213,9 @@ test("the shelf counts saves; highlights, notes and audio are disabled for later
     )?.[0] ?? "";
   expect(text(tile("Saved"))).toBe("Saved1");
   expect(tile("Saved")).not.toContain("aria-disabled");
-  for (const label of ["Highlights", "Notes", "Audio"]) {
+  expect(text(tile("Notes"))).toBe("Notes0");
+  expect(tile("Notes")).not.toContain("aria-disabled");
+  for (const label of ["Highlights", "Audio"]) {
     expect(tile(label)).toContain('aria-disabled="true"');
     expect(text(tile(label))).toContain("Coming later");
   }
@@ -226,4 +236,81 @@ test("no session goes to /join; not onboarded goes to /onboarding", async () => 
   current.mockResolvedValue(guest);
   get.mockResolvedValueOnce(null);
   await expect(page()).rejects.toThrow("redirect:/onboarding");
+});
+
+// P2-W7-S04 (§5I, Q-P2-01): the Notes section, each note back to its section.
+test("Notes lists each note with its article, section and an edit by its id", async () => {
+  current.mockResolvedValue(guest);
+  const note: NoteEntry = {
+    noteId: "42",
+    itemId: "70",
+    momentId: "7",
+    sectionTitle: "Raft in one page",
+    articleTitle: "Consensus in practice",
+    sourceName: "Example Engineering",
+    body: "Terms are epochs",
+    frameable: true,
+    linkBroken: false,
+  };
+  list.mockResolvedValueOnce([
+    note,
+    // Its section was re-segmented away: still listed, on the article.
+    { ...note, noteId: "43", momentId: null, body: "Older" },
+  ]);
+  const html = await page();
+  const notes = html.slice(html.indexOf('aria-label="Notes"><h2'));
+  expect(text(notes)).toContain("Consensus in practice · Example Engineering");
+  expect(text(notes)).toContain("Raft in one page");
+  expect(text(notes)).toContain("Terms are epochs");
+  expect(notes).toContain(
+    'href="/read/70?moment=7&amp;chip=3-8&amp;from=library"',
+  );
+  // The fallen-back note opens the article, and is edited by its own id.
+  expect(notes).toContain('href="/read/70?chip=3-8&amp;from=library"');
+  expect(notes).toMatch(/<input[^>]*name="noteId"[^>]*value="43"/);
+  expect(notes).toMatch(/<button[^>]*value="delete"/);
+  // The Notes tile is no longer "Coming later".
+  expect(html).toMatch(
+    /aria-label="Notes"[^>]*>(?:(?!aria-disabled).)*?<span class="text-numbers">2<\/span>/s,
+  );
+});
+
+test("no notes yet says how to start", async () => {
+  current.mockResolvedValue(guest);
+  expect(text(await page())).toContain(
+    "No notes yet. Add one from the note icon while you read.",
+  );
+});
+
+test("note links follow the page: the browser when it can't be framed, or Link broken", async () => {
+  current.mockResolvedValue(guest);
+  const note: NoteEntry = {
+    noteId: "42",
+    itemId: "70",
+    momentId: "7",
+    sectionTitle: "Raft in one page",
+    articleTitle: "Consensus in practice",
+    sourceName: "Example Engineering",
+    body: "Terms are epochs",
+    frameable: false,
+    linkBroken: false,
+  };
+  list.mockResolvedValueOnce([
+    note,
+    { ...note, noteId: "43", momentId: null, sectionTitle: null },
+    { ...note, noteId: "44", linkBroken: true },
+  ]);
+  const html = await page();
+  const notes = html.slice(html.indexOf('aria-label="Notes"><h2'));
+  expect(notes).toContain(
+    'href="/out?item=70&amp;moment=7&amp;from=library&amp;target=section"',
+  );
+  expect(notes).toContain(
+    'href="/out?item=70&amp;from=library&amp;target=original"',
+  );
+  expect(text(notes)).toContain("Link broken");
+  // Each row's controls are named by what the note is on (screen readers).
+  expect(notes).toContain('aria-label="Open section: Raft in one page"');
+  expect(notes).toContain('aria-label="Note on Raft in one page"');
+  expect(notes).toContain('aria-label="Note on Consensus in practice"');
 });

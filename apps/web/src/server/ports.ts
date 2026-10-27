@@ -252,7 +252,34 @@ export interface Notes {
     itemId: string,
     momentId: string | null,
   ): Promise<boolean>;
+  // P2-W7-S04: the Library's list, newest edit first.
+  list(userId: string, limit: number): Promise<NoteEntry[]>;
+  // Notes on these items' own sections or the articles themselves, for their cards;
+  // not those whose section was re-segmented away.
+  onItems(
+    userId: string,
+    itemIds: string[],
+  ): Promise<{ itemId: string; momentId: string | null; body: string }[]>;
+  // By the note's own id (the Library), which also reaches a note whose section was
+  // re-segmented away; what it was on, or null when the user has no such note.
+  update(
+    userId: string,
+    noteId: string,
+    body: string,
+  ): Promise<NoteTarget | null>;
+  removeById(userId: string, noteId: string): Promise<NoteTarget | null>;
 }
+export type NoteTarget = { itemId: string; momentId: string | null };
+export type NoteEntry = NoteTarget & {
+  noteId: string;
+  // The section's title, kept when the section is gone; null on the article's note.
+  sectionTitle: string | null;
+  articleTitle: string;
+  sourceName: string;
+  body: string;
+  frameable: boolean;
+  linkBroken: boolean;
+};
 
 export interface DatabasePing {
   // Resolves when the database answers; rejects otherwise.

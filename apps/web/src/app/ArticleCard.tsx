@@ -12,11 +12,13 @@ export function ArticleCard({
   chip,
   position,
   controls,
+  yourNote = null,
 }: {
   card: ArticleFeedCard;
   chip: Chip;
   position: number;
   controls: ReactNode;
+  yourNote?: string | null;
 }) {
   const minutes = card.estimatedMinutes;
   const length = minutes === null ? "Length unknown" : `${String(minutes)} min`;
@@ -52,6 +54,7 @@ export function ArticleCard({
       }}
       topic={card.topic}
       controls={controls}
+      yourNote={yourNote}
     />
   );
 }

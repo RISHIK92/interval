@@ -62,5 +62,82 @@ export function kyselyNotes(db: Kysely<DB>): Notes {
         .execute();
       return removed.length > 0;
     },
+    list: async (userId, limit) => {
+      const rows = await db
+        .selectFrom("user_note as n")
+        .innerJoin("content_item as c", "c.id", "n.content_item_id")
+        .innerJoin("source as s", "s.id", "c.source_id")
+        .select([
+          "n.id",
+          "n.content_item_id",
+          "n.moment_id",
+          "n.section_title",
+          "n.body",
+          "c.title",
+          "c.frameable",
+          "c.link_broken_at",
+          "s.name",
+        ])
+        .where("n.user_id", "=", userId)
+        .orderBy("n.updated_at", "desc")
+        .orderBy("n.id", "desc")
+        .limit(limit)
+        .execute();
+      return rows.map((r) => ({
+        noteId: r.id,
+        itemId: r.content_item_id,
+        momentId: r.moment_id,
+        sectionTitle: r.section_title,
+        articleTitle: r.title,
+        sourceName: r.name,
+        body: r.body,
+        frameable: r.frameable === true,
+        linkBroken: r.link_broken_at !== null,
+      }));
+    },
+    onItems: async (userId, itemIds) => {
+      if (itemIds.length === 0) return [];
+      const rows = await db
+        .selectFrom("user_note")
+        .select(["content_item_id", "moment_id", "body"])
+        .where("user_id", "=", userId)
+        .where("content_item_id", "in", itemIds)
+        // A section's note, or the article's own (no title): not a fallen-back one.
+        .where((eb) =>
+          eb.or([
+            eb("moment_id", "is not", null),
+            eb("section_title", "is", null),
+          ]),
+        )
+        .execute();
+      return rows.map((r) => ({
+        itemId: r.content_item_id,
+        momentId: r.moment_id,
+        body: r.body,
+      }));
+    },
+    update: async (userId, noteId, body) => {
+      const row = await db
+        .updateTable("user_note")
+        .set({ body, updated_at: sql<Date>`now()` })
+        .where("id", "=", noteId)
+        .where("user_id", "=", userId)
+        .returning(["content_item_id", "moment_id"])
+        .executeTakeFirst();
+      return row === undefined
+        ? null
+        : { itemId: row.content_item_id, momentId: row.moment_id };
+    },
+    removeById: async (userId, noteId) => {
+      const row = await db
+        .deleteFrom("user_note")
+        .where("id", "=", noteId)
+        .where("user_id", "=", userId)
+        .returning(["content_item_id", "moment_id"])
+        .executeTakeFirst();
+      return row === undefined
+        ? null
+        : { itemId: row.content_item_id, momentId: row.moment_id };
+    },
   };
 }

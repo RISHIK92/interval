@@ -32,7 +32,7 @@ vi.mock("../server/container", () => ({
   preferences: () => ({ get: getPreferences }),
   feedback: () => ({ notInterested }),
   progress: () => ({ describe: describe_, nextMoment, continueCards }),
-  notes: () => ({ get: getNote }),
+  notes: () => ({ get: getNote, onItems }),
   feedReader: () => ({ read: getFeed, starter: vi.fn() }),
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
@@ -42,6 +42,7 @@ let chipCookie: string | undefined;
 let readingCookie: string | undefined;
 const describe_ = vi.fn<Progress["describe"]>(() => Promise.resolve(null));
 const getNote = vi.fn<Notes["get"]>(() => Promise.resolve(null));
+const onItems = vi.fn<Notes["onItems"]>(() => Promise.resolve([]));
 const nextMoment = vi.fn<Progress["nextMoment"]>(() => Promise.resolve(null));
 const continueCards = vi.fn<Progress["continueCards"]>(() =>
   Promise.resolve([]),
@@ -590,4 +591,46 @@ test("Now reading offers a note on the section, filled in when there is one", as
   );
   expect(html).toMatch(/<input[^>]*name="momentId"[^>]*value="1"/);
   expect(html).toMatch(/<button[^>]*value="delete"/);
+});
+
+// P2-W7-S04: a card shows the user's note on its own section.
+test("cards show the user's notes on their sections, not on other sections", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  onItems.mockResolvedValueOnce([
+    { itemId: "10", momentId: "1", body: "Mine on this section" },
+    { itemId: "10", momentId: "2", body: "Mine on another" },
+  ]);
+  const html = await render();
+  expect(onItems).toHaveBeenCalledWith("u1", ["10"]);
+  expect(html).toContain("Mine on this section");
+  expect(html).not.toContain("Mine on another");
+});
+
+test("an article card shows the article's note; a section card never does", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(
+    feedOf([
+      {
+        kind: "article",
+        itemId: "20",
+        estimatedMinutes: null,
+        articleTitle: "A whole read",
+        author: null,
+        sourceName: "Example Engineering",
+        note: null,
+        saved: false,
+        frameable: false,
+        topic: null,
+      },
+      card,
+    ]),
+  );
+  onItems.mockResolvedValueOnce([
+    { itemId: "20", momentId: null, body: "On the whole read" },
+    { itemId: "10", momentId: null, body: "On the consensus article" },
+  ]);
+  const html = await render({ chip: "8-15" });
+  expect(html).toContain("On the whole read");
+  expect(html).not.toContain("On the consensus article");
 });

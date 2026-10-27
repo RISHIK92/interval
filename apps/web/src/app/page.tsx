@@ -172,6 +172,19 @@ export default async function HomePage({
     { card_count: cards.length },
     { ...actor, sessionId: visitId(jar) },
   );
+  // P2-W7-S04: each card's own note, on its section (or the article for an article
+  // card).
+  const onCards = await notes().onItems(
+    actor.userId,
+    cards.map((c) => c.itemId),
+  );
+  const yours = new Map(
+    onCards.map((n) => [`${n.itemId}.${n.momentId ?? ""}`, n.body]),
+  );
+  const yourNote = (card: FeedCard) =>
+    yours.get(
+      `${card.itemId}.${card.kind === "moment" ? card.momentId : ""}`,
+    ) ?? null;
   const renderCard = (card: FeedCard, index: number) => {
     const controls = (
       <CardControls
@@ -198,6 +211,7 @@ export default async function HomePage({
         chip={chip}
         position={index + 1}
         controls={controls}
+        yourNote={yourNote(card)}
       />
     ) : (
       <ArticleCard
@@ -205,6 +219,7 @@ export default async function HomePage({
         chip={chip}
         position={index + 1}
         controls={controls}
+        yourNote={yourNote(card)}
       />
     );
   };

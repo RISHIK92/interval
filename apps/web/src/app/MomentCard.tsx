@@ -11,11 +11,13 @@ export function MomentCard({
   chip,
   position,
   controls,
+  yourNote = null,
 }: {
   card: MomentFeedCard;
   chip: Chip;
   position: number;
   controls: ReactNode;
+  yourNote?: string | null;
 }) {
   const out = {
     itemId: card.itemId,
@@ -49,6 +51,7 @@ export function MomentCard({
       }}
       topic={card.topic}
       controls={controls}
+      yourNote={yourNote}
     />
   );
 }

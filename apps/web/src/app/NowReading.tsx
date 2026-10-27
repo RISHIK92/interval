@@ -52,8 +52,8 @@ export function NowReading({
       </form>
       {/* Its own form: a note isn't part of finishing (Q-P2-01). */}
       <NoteBox
-        itemId={reading.itemId}
-        momentId={reading.momentId}
+        on={{ itemId: reading.itemId, momentId: reading.momentId }}
+        about={name}
         note={note}
         back={`/?chip=${chip}`}
       />

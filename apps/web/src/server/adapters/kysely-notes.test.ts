@@ -163,3 +163,86 @@ test("re-segmenting away a note's section keeps the note, on the article", async
     expect(await notes.get(userId, itemId, null)).toBe("On the article");
   });
 });
+
+// P2-W7-S04: the Library's list, the cards' lookup, and edits by the note's own id,
+// which also reach a note whose section was re-segmented away.
+test("the Library lists a user's notes newest first, with their article and section", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const notes = kyselyNotes(trx);
+    const [, raft] = momentIds;
+    if (raft === undefined) throw new Error("seed");
+    await notes.save(userId, itemId, null, "On the article");
+    await notes.save(userId, itemId, raft, "On Raft");
+    await notes.save(`${userId}-other`, itemId, null, "Someone else's");
+    await trx
+      .updateTable("user_note")
+      .set({ updated_at: new Date("2026-10-01T00:00:00Z") })
+      .where("body", "=", "On the article")
+      .execute();
+    const listed = await notes.list(userId, 10);
+    expect(
+      listed.map((n) => ({
+        momentId: n.momentId,
+        sectionTitle: n.sectionTitle,
+        articleTitle: n.articleTitle,
+        body: n.body,
+      })),
+    ).toEqual([
+      {
+        momentId: raft,
+        sectionTitle: "Raft",
+        articleTitle: "Consensus in practice",
+        body: "On Raft",
+      },
+      {
+        momentId: null,
+        sectionTitle: null,
+        articleTitle: "Consensus in practice",
+        body: "On the article",
+      },
+    ]);
+    expect(listed[0]?.sourceName).toMatch(/^notes-/);
+    expect(await notes.list(userId, 1)).toHaveLength(1);
+  });
+});
+
+test("cards find the note on their own section or article, not a fallen-back one", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const notes = kyselyNotes(trx);
+    const [intro, raft] = momentIds;
+    if (intro === undefined || raft === undefined) throw new Error("seed");
+    await notes.save(userId, itemId, intro, "On the intro");
+    await notes.save(userId, itemId, raft, "On Raft");
+    await trx.deleteFrom("moment").where("id", "=", raft).execute();
+    expect(await notes.onItems(userId, [itemId, "999999999999"])).toEqual([
+      { itemId, momentId: intro, body: "On the intro" },
+    ]);
+    expect(await notes.onItems(userId, [])).toEqual([]);
+  });
+});
+
+test("a note is edited and deleted by its id, a fallen-back one included, only by its owner", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const notes = kyselyNotes(trx);
+    const [, raft] = momentIds;
+    if (raft === undefined) throw new Error("seed");
+    await notes.save(userId, itemId, raft, "On Raft");
+    await trx.deleteFrom("moment").where("id", "=", raft).execute();
+    const [fallen] = await notes.list(userId, 10);
+    if (fallen === undefined) throw new Error("seed");
+    expect(
+      await notes.update(`${userId}-other`, fallen.noteId, "x"),
+    ).toBeNull();
+    expect(await notes.update(userId, fallen.noteId, "Still on Raft")).toEqual({
+      itemId,
+      momentId: null,
+    });
+    expect((await notes.list(userId, 10))[0]?.body).toBe("Still on Raft");
+    expect(await notes.removeById(`${userId}-other`, fallen.noteId)).toBeNull();
+    expect(await notes.removeById(userId, fallen.noteId)).toEqual({
+      itemId,
+      momentId: null,
+    });
+    expect(await notes.list(userId, 10)).toEqual([]);
+  });
+});

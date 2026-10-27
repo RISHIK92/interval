@@ -156,7 +156,12 @@ export default async function ReadPage({
         <div className="min-h-9 pr-12">
           <Why note={page.note} />
         </div>
-        <NoteBox itemId={item} momentId={reached} note={note} back={here} />
+        <NoteBox
+          on={{ itemId: item, momentId: reached }}
+          about={title}
+          note={note}
+          back={here}
+        />
         <div className="flex items-center gap-2">
           <form action={feedbackAction}>
             <input type="hidden" name="itemId" value={item} />

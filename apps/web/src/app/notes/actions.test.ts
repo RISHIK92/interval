@@ -5,12 +5,18 @@ import type { Actor, Notes } from "../../server/ports";
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const save = vi.fn<Notes["save"]>(() => Promise.resolve(true));
 const remove = vi.fn<Notes["remove"]>(() => Promise.resolve(true));
+const update = vi.fn<Notes["update"]>(() =>
+  Promise.resolve({ itemId: "5", momentId: null }),
+);
+const removeById = vi.fn<Notes["removeById"]>(() =>
+  Promise.resolve({ itemId: "5", momentId: "9" }),
+);
 const emit = vi.fn();
 const warn = vi.fn();
 vi.mock("../../server/log", () => ({ log: { warn, info: vi.fn() } }));
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
-  notes: () => ({ save, remove }),
+  notes: () => ({ save, remove, update, removeById }),
   events: () => ({ emit }),
 }));
 vi.mock("next/headers", () => ({
@@ -132,4 +138,45 @@ test("a refused note or a save with nowhere to go is logged, never dropped silen
     moment_id: "9",
   });
   expect(emit).not.toHaveBeenCalled();
+});
+
+// P2-W7-S04: the Library edits a note by its id, a fallen-back one included.
+test("with a note id, saving edits that note and deleting removes it", async () => {
+  current.mockResolvedValue(user);
+  const to = await act({
+    control: "save",
+    noteId: "42",
+    body: "Still on Raft",
+    back: "/library",
+  });
+  expect(update).toHaveBeenCalledWith("u1", "42", "Still on Raft");
+  expect(save).not.toHaveBeenCalled();
+  expect(emit).toHaveBeenCalledWith(
+    "note_saved",
+    { item_id: "5", moment_id: null },
+    context,
+  );
+  expect(to).toBe("/library");
+  await act({ control: "delete", noteId: "42", back: "/library" });
+  expect(removeById).toHaveBeenCalledWith("u1", "42");
+  expect(emit).toHaveBeenLastCalledWith(
+    "note_deleted",
+    { item_id: "5", moment_id: "9" },
+    context,
+  );
+});
+
+test("an empty edit deletes; someone else's note id changes and counts nothing", async () => {
+  current.mockResolvedValue(user);
+  await act({ control: "save", noteId: "42", body: " ", back: "/library" });
+  expect(removeById).toHaveBeenCalledWith("u1", "42");
+  vi.clearAllMocks();
+  update.mockResolvedValueOnce(null);
+  await act({ control: "save", noteId: "7", body: "x", back: "/library" });
+  expect(emit).not.toHaveBeenCalled();
+  expect(warn).toHaveBeenCalledWith("notes: no such note", {
+    user_id: "u1",
+    note_id: "7",
+  });
+  expect(await act({ control: "save", noteId: "x", body: "a" })).toBe("/");
 });
