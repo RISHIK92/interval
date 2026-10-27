@@ -84,6 +84,7 @@ test("feedback marks the choice and the right option in words", async () => {
     chosen: 1,
     correctOption: 0,
     correct: false,
+    flagged: false,
   });
   const html = await render({ chip: "3-8", answered: "7" });
   expect(answered).toHaveBeenCalledWith("u1", "41", "7");
@@ -122,6 +123,7 @@ test("a right answer says so", async () => {
     chosen: 2,
     correctOption: 2,
     correct: true,
+    flagged: false,
   });
   const html = await render({ chip: "3-8", answered: "7" });
   expect(html).toContain("Correct.");
@@ -204,4 +206,39 @@ test("a review has no clock and says when every due concept is done", async () =
   const done = await render({ chip: "3-8" }, review);
   expect(done).toContain("That&#x27;s every concept due.");
   expect(done).toContain("See results");
+});
+
+// P2-W9-S07 (Q-P2-18): a Flag control on each answered question.
+test("an answered question can be flagged with a reason, then says it was", async () => {
+  answered.mockResolvedValue({
+    stem: "Q?",
+    options: ["a", "b", "c", "d"],
+    chosen: 2,
+    correctOption: 2,
+    correct: true,
+    flagged: false,
+  });
+  const html = await render({ chip: "3-8", answered: "7" });
+  expect(html).toContain("Report a problem with this question");
+  for (const value of ["wrong_key", "unclear", "not_in_section", "other"])
+    expect(html).toContain(`value="${value}"`);
+  expect(html).toContain("The answer marked right is wrong");
+  // No reason is picked for the user: the metric's reasons are theirs.
+  expect(html).not.toMatch(/name="reason"[^>]*checked/);
+  expect(html).toContain("What&#x27;s wrong with it?");
+  expect(html).not.toMatch(/sr-only[^>]*>What/);
+  expect(html).toMatch(
+    /<form[^>]*>(?:(?!<\/form>)[^])*name="questionId" value="7"(?:(?!<\/form>)[^])*Send report/,
+  );
+  answered.mockResolvedValue({
+    stem: "Q?",
+    options: ["a", "b", "c", "d"],
+    chosen: 2,
+    correctOption: 2,
+    correct: true,
+    flagged: true,
+  });
+  const done = await render({ chip: "3-8", answered: "7" });
+  expect(done).not.toContain("Send report");
+  expect(done).toContain("Thanks. This question is out of quizzes until it");
 });

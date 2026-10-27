@@ -31,6 +31,8 @@ export type FeedbackKind = "less_like_this" | "more_like_this" | "not_interested
 
 export type FinishMethod = "mark_done" | "return_prompt";
 
+export type FlagReason = "not_in_section" | "other" | "unclear" | "wrong_key";
+
 export type Generated<T> = T extends ColumnType<infer S, infer I, infer U>
   ? ColumnType<S, I | undefined, U>
   : ColumnType<T, T | undefined, T>;
@@ -428,6 +430,13 @@ export interface QuestionDrafting {
   retry_at: Timestamp;
 }
 
+export interface QuestionFlag {
+  flagged_at: Generated<Timestamp>;
+  question_id: Int8;
+  reason: FlagReason;
+  user_id: string;
+}
+
 export interface QuestionReview {
   decided_at: Timestamp | null;
   decided_by: string | null;
@@ -703,6 +712,7 @@ export interface DB {
   question_batch_item: QuestionBatchItem;
   question_concept: QuestionConcept;
   question_drafting: QuestionDrafting;
+  question_flag: QuestionFlag;
   question_review: QuestionReview;
   quiz_answer: QuizAnswer;
   quiz_attempt: QuizAttempt;

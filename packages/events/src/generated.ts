@@ -16,6 +16,7 @@ export const EVENT_NAMES = [
   "onboarding_completed",
   "outbound_click",
   "pwa_installed",
+  "question_flagged",
   "quiz_answered",
   "quiz_finished",
   "quiz_started",
@@ -41,6 +42,7 @@ export const EVENT_VERSIONS = {
   onboarding_completed: 1,
   outbound_click: 1,
   pwa_installed: 1,
+  question_flagged: 1,
   quiz_answered: 1,
   quiz_finished: 1,
   quiz_started: 2,
@@ -95,6 +97,10 @@ export const propsSchemas = {
     target: z.enum(["section", "original"]),
   }),
   pwa_installed: z.strictObject({}),
+  question_flagged: z.strictObject({
+    question_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    reason: z.enum(["wrong_key", "unclear", "not_in_section", "other"]),
+  }),
   quiz_answered: z.strictObject({
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     question_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -227,6 +233,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("pwa_installed"),
     version: z.literal(1),
     props: propsSchemas.pwa_installed,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("question_flagged"),
+    version: z.literal(1),
+    props: propsSchemas.question_flagged,
   }),
   z.strictObject({
     ...base,

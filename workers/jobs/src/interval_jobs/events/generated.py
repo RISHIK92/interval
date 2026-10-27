@@ -28,6 +28,7 @@ type EventName = Literal[
     "onboarding_completed",
     "outbound_click",
     "pwa_installed",
+    "question_flagged",
     "quiz_answered",
     "quiz_finished",
     "quiz_started",
@@ -54,6 +55,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "onboarding_completed": 1,
     "outbound_click": 1,
     "pwa_installed": 1,
+    "question_flagged": 1,
     "quiz_answered": 1,
     "quiz_finished": 1,
     "quiz_started": 2,
@@ -131,6 +133,11 @@ class OutboundClickProps(_Model):
 
 class PwaInstalledProps(_Model):
     pass
+
+
+class QuestionFlaggedProps(_Model):
+    question_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    reason: Literal["wrong_key", "unclear", "not_in_section", "other"]
 
 
 class QuizAnsweredProps(_Model):
@@ -271,6 +278,12 @@ class PwaInstalledEvent(_EnvelopeBase):
     props: PwaInstalledProps
 
 
+class QuestionFlaggedEvent(_EnvelopeBase):
+    name: Literal["question_flagged"]
+    version: Literal[1]
+    props: QuestionFlaggedProps
+
+
 class QuizAnsweredEvent(_EnvelopeBase):
     name: Literal["quiz_answered"]
     version: Literal[1]
@@ -329,6 +342,7 @@ type Envelope = Annotated[
     | OnboardingCompletedEvent
     | OutboundClickEvent
     | PwaInstalledEvent
+    | QuestionFlaggedEvent
     | QuizAnsweredEvent
     | QuizFinishedEvent
     | QuizStartedEvent

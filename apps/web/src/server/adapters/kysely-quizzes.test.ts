@@ -4,6 +4,7 @@ import { sql, type Transaction } from "kysely";
 import { afterAll, expect, test } from "vitest";
 import { type QuizQuestion, quizKey } from "../ports";
 import { createDb } from "./kysely";
+import { kyselyAdminQuestions } from "./kysely-admin-questions";
 import { kyselyQuizzes } from "./kysely-quizzes";
 
 // Test 60s (Q-P2-14, P2-W9-S01): the server serves a sprint over a moment's or an
@@ -568,6 +569,7 @@ test("feedback gives the key only once the question is answered", async () => {
       chosen: 2,
       correctOption: 0,
       correct: false,
+      flagged: false,
     });
     expect(
       await quizzes.answered(otherUser, started.attemptId, open.questionId),
@@ -1160,5 +1162,151 @@ test("a review takes at most 10 concepts", async () => {
     expect(due.map((d) => d.name)).toEqual(
       concepts.slice(0, 10).map((c) => c.name),
     );
+  });
+});
+
+// P2-W9-S07 (Q-2, Q-P2-18): flagging an answered question.
+test("a flag takes the question out of quizzes and into review, once per user", async () => {
+  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const started = await quizzes.start(userId, itemId, raft);
+    if (started === null) throw new Error("no quiz");
+    const open = served(await quizzes.next(userId, started.attemptId));
+    // Not answered yet: nothing to flag.
+    expect(
+      await quizzes.flag(userId, started.attemptId, open.questionId, "unclear"),
+    ).toBe(false);
+    await quizzes.answer(userId, started.attemptId, open.questionId, 1);
+    // Not someone else's to flag through this attempt.
+    expect(
+      await quizzes.flag(
+        otherUser,
+        started.attemptId,
+        open.questionId,
+        "unclear",
+      ),
+    ).toBe(false);
+    expect(
+      await quizzes.flag(
+        userId,
+        started.attemptId,
+        open.questionId,
+        "wrong_key",
+      ),
+    ).toBe(true);
+    expect(
+      await quizzes.flag(userId, started.attemptId, open.questionId, "other"),
+    ).toBe(false);
+    const question = await trx
+      .selectFrom("question")
+      .select("status")
+      .where("id", "=", open.questionId)
+      .executeTakeFirstOrThrow();
+    expect(question.status).toBe("flagged");
+    const reviews = await trx
+      .selectFrom("question_review")
+      .select(["reason", "decision"])
+      .where("question_id", "=", open.questionId)
+      .execute();
+    expect(reviews).toEqual([{ reason: "flagged", decision: null }]);
+    expect(
+      await quizzes.answered(userId, started.attemptId, open.questionId),
+    ).toMatchObject({ flagged: true });
+    // Out of quizzes: another user's sprint never serves it.
+    const theirs = await quizzes.start(otherUser, itemId, raft);
+    if (theirs === null) throw new Error("no quiz");
+    const ids: string[] = [];
+    for (;;) {
+      const got = await quizzes.next(otherUser, theirs.attemptId);
+      if (got === "over") break;
+      ids.push(served(got).questionId);
+      await quizzes.answer(
+        otherUser,
+        theirs.attemptId,
+        served(got).questionId,
+        0,
+      );
+    }
+    expect(ids).not.toContain(open.questionId);
+  });
+});
+
+test("an admin's Keep returns a flagged question; another user can flag it again", async () => {
+  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const flagOnce = async (user: string) => {
+      const started = await quizzes.start(user, itemId, raft);
+      if (started === null) throw new Error("no quiz");
+      const open = served(await quizzes.next(user, started.attemptId));
+      await quizzes.answer(user, started.attemptId, open.questionId, 0);
+      expect(
+        await quizzes.flag(user, started.attemptId, open.questionId, "unclear"),
+      ).toBe(true);
+      return open.questionId;
+    };
+    const flagged = await flagOnce(userId);
+    await kyselyAdminQuestions(trx).decide(flagged, "keep", userId);
+    const back = await trx
+      .selectFrom("question")
+      .select("status")
+      .where("id", "=", flagged)
+      .executeTakeFirstOrThrow();
+    expect(back.status).toBe("live");
+    expect(await flagOnce(otherUser)).toBe(flagged);
+    const reviews = await trx
+      .selectFrom("question_review")
+      .select(["reason", "decision"])
+      .where("question_id", "=", flagged)
+      .orderBy("id")
+      .execute();
+    expect(reviews).toEqual([
+      { reason: "flagged", decision: "keep" },
+      { reason: "flagged", decision: null },
+    ]);
+  });
+});
+
+test("a flag on a question in the sample turns its review into a flagged one", async () => {
+  await inRollback(async (trx, { userId, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const started = await quizzes.start(userId, itemId, raft);
+    if (started === null) throw new Error("no quiz");
+    const open = served(await quizzes.next(userId, started.attemptId));
+    await quizzes.answer(userId, started.attemptId, open.questionId, 0);
+    await trx
+      .insertInto("question_review")
+      .values({ question_id: open.questionId, reason: "sample" })
+      .execute();
+    await quizzes.flag(userId, started.attemptId, open.questionId, "unclear");
+    const reviews = await trx
+      .selectFrom("question_review")
+      .select(["reason", "decision"])
+      .where("question_id", "=", open.questionId)
+      .execute();
+    expect(reviews).toEqual([{ reason: "flagged", decision: null }]);
+  });
+});
+
+test("a flag on a question retired meanwhile is kept but queues nothing", async () => {
+  await inRollback(async (trx, { userId, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const started = await quizzes.start(userId, itemId, raft);
+    if (started === null) throw new Error("no quiz");
+    const open = served(await quizzes.next(userId, started.attemptId));
+    await quizzes.answer(userId, started.attemptId, open.questionId, 0);
+    await trx
+      .updateTable("question")
+      .set({ status: "retired" })
+      .where("id", "=", open.questionId)
+      .execute();
+    expect(
+      await quizzes.flag(userId, started.attemptId, open.questionId, "other"),
+    ).toBe(true);
+    const reviews = await trx
+      .selectFrom("question_review")
+      .select("id")
+      .where("question_id", "=", open.questionId)
+      .execute();
+    expect(reviews).toEqual([]);
   });
 });

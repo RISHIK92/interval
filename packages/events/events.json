@@ -94,6 +94,14 @@
       "description": "A Test 60s sprint was finished, once per attempt (P2-W9-S01).",
       "props": { "attempt_id": "id", "answered": "count", "correct": "count" }
     },
+    "question_flagged": {
+      "version": 1,
+      "description": "A user flagged a question they answered, once per question (P2-W9-S07, Q-2, Q-P2-18). For the under-2% metric.",
+      "props": {
+        "question_id": "id",
+        "reason": ["wrong_key", "unclear", "not_in_section", "other"]
+      }
+    },
     "item_saved": {
       "version": 1,
       "description": "An item was saved (W4-S07; listed by the W5-S04 Library).",

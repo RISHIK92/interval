@@ -637,6 +637,47 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       });
     },
 
+    // One statement: the flag, the question leaving quizzes (a live one becomes
+    // flagged) and its spot check (Q-2: everything flagged), only for a question the
+    // user answered in their own attempt, once per user.
+    flag: async (userId, attemptId, questionId, reason) => {
+      const { rows } = await sql<{ question_id: string }>`
+        with answered as (
+          select 1 from quiz_answer qa
+          join quiz_attempt a on a.id = qa.attempt_id and a.user_id = ${userId}
+          where qa.attempt_id = ${attemptId} and qa.question_id = ${questionId}
+            and qa.answered_at is not null
+        ),
+        flagged as (
+          insert into question_flag (user_id, question_id, reason)
+          select ${userId}, ${questionId}, ${reason}::flag_reason
+          where exists (select 1 from answered)
+          on conflict (user_id, question_id) do nothing
+          returning question_id
+        ),
+        marked as (
+          update question set status = 'flagged'
+          where id = ${questionId} and status = 'live'
+            and exists (select 1 from flagged)
+        ),
+        -- A question in this week's sample is now there because it was flagged;
+        -- one retired meanwhile has nothing left to check.
+        queued as (
+          insert into question_review (question_id, reason)
+          select ${questionId}, 'flagged'
+          where exists (select 1 from flagged)
+            and exists (
+              select 1 from question
+              where id = ${questionId} and status in ('live', 'flagged')
+            )
+          on conflict (question_id) where decision is null
+          do update set reason = 'flagged'
+        )
+        select question_id from flagged
+      `.execute(db);
+      return rows.length > 0;
+    },
+
     answered: async (userId, attemptId, questionId) => {
       const row = await db
         .selectFrom("quiz_answer as qa")
@@ -648,6 +689,10 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           "qa.chosen",
           "q.correct as key",
           "qa.correct",
+          sql<boolean>`exists (
+            select 1 from question_flag f
+            where f.user_id = ${userId} and f.question_id = q.id
+          )`.as("flagged"),
         ])
         .where("qa.attempt_id", "=", attemptId)
         .where("qa.question_id", "=", questionId)
@@ -661,6 +706,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         chosen: row.chosen,
         correctOption: row.key,
         correct: row.correct,
+        flagged: row.flagged,
       };
     },
   };

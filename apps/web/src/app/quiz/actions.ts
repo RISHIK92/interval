@@ -8,6 +8,7 @@ import { events, quizzes, sessionReader } from "../../server/container";
 import { BIGINT_ID } from "../../server/ports";
 import { visitId } from "../../server/visits";
 import { sameSitePath, textField } from "../form";
+import { FLAG_REASON_KEYS } from "./flagReasons";
 
 // Test 60s (Q-P2-14, Q-P2-20, P2-W9-S01): the server holds the sprint's clock and
 // checks each answer; these validate the form and record what happened once.
@@ -111,6 +112,28 @@ export async function answerQuizAction(form: FormData): Promise<void> {
         result: got.correct ? "right" : "wrong",
         ms: got.answeredAt.getTime() - got.servedAt.getTime(),
       },
+      context,
+    );
+  redirect(`/quiz/${attemptId}?chip=${chip}&answered=${questionId}`);
+}
+
+// P2-W9-S07 (Q-2, Q-P2-18): a flag on an answered question, with its reason.
+const Flag = z.object({
+  attemptId: z.string().regex(BIGINT_ID),
+  questionId: z.string().regex(BIGINT_ID),
+  reason: z.enum(FLAG_REASON_KEYS),
+  chip: z.enum(CHIPS),
+});
+
+export async function flagQuestionAction(form: FormData): Promise<void> {
+  const { actor, context } = await signedIn();
+  const parsed = Flag.safeParse(Object.fromEntries(form));
+  if (!parsed.success) redirect("/");
+  const { attemptId, questionId, reason, chip } = parsed.data;
+  if (await quizzes().flag(actor.userId, attemptId, questionId, reason))
+    events().emit(
+      "question_flagged",
+      { question_id: questionId, reason },
       context,
     );
   redirect(`/quiz/${attemptId}?chip=${chip}&answered=${questionId}`);

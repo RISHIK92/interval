@@ -4,7 +4,12 @@ import { z } from "zod";
 import { CHIPS } from "../../../server/chips";
 import { quizzes, sessionReader } from "../../../server/container";
 import { BIGINT_ID } from "../../../server/ports";
-import { answerQuizAction, finishQuizAction } from "../actions";
+import {
+  answerQuizAction,
+  finishQuizAction,
+  flagQuestionAction,
+} from "../actions";
+import { FLAG_REASON_KEYS, FLAG_REASONS } from "../flagReasons";
 import { Countdown } from "./Countdown";
 
 export const dynamic = "force-dynamic";
@@ -90,6 +95,44 @@ export default async function QuizPage({
             Next question
           </a>
         </div>
+        {/* P2-W9-S07 (Q-2, Q-P2-18): a flagged question leaves quizzes until an
+          admin checks it. */}
+        {feedback.flagged ? (
+          <p role="status" className="text-sm text-ink-muted">
+            Thanks. This question is out of quizzes until it&apos;s checked.
+          </p>
+        ) : (
+          <details className="rounded-2xl border border-hairline px-4 py-3">
+            <summary className="cursor-pointer text-sm font-semibold">
+              Report a problem with this question
+            </summary>
+            <form
+              action={flagQuestionAction}
+              className="mt-3 flex flex-col gap-2"
+            >
+              <input type="hidden" name="attemptId" value={attemptId} />
+              <input type="hidden" name="questionId" value={answered} />
+              <input type="hidden" name="chip" value={chip} />
+              <fieldset className="flex flex-col gap-2">
+                <legend className="mb-1 text-sm text-ink-muted">
+                  What&apos;s wrong with it?
+                </legend>
+                {FLAG_REASON_KEYS.map((key) => (
+                  <label key={key} className="flex items-center gap-2 text-sm">
+                    <input type="radio" name="reason" value={key} required />
+                    {FLAG_REASONS[key]}
+                  </label>
+                ))}
+              </fieldset>
+              <button
+                type="submit"
+                className="self-start rounded-full border border-hairline px-4 py-2 text-sm font-semibold"
+              >
+                Send report
+              </button>
+            </form>
+          </details>
+        )}
       </>
     );
   } else {

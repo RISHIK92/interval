@@ -6,6 +6,7 @@ import type {
   Capability,
   Difficulty,
   FeedbackKind,
+  FlagReason,
   LearnerState,
   LearningGoal,
   Topic,
@@ -294,6 +295,14 @@ export interface Quizzes {
     concepts: number;
     firstTime: boolean;
   } | null>;
+  // P2-W9-S07 (Q-2, Q-P2-18): flag a question answered in the user's attempt, once
+  // per user; true when this was the user's first flag on it.
+  flag(
+    userId: string,
+    attemptId: string,
+    questionId: string,
+    reason: FlagReason,
+  ): Promise<boolean>;
   // A question answered in the user's attempt, key included, for its feedback.
   answered(
     userId: string,
@@ -328,6 +337,7 @@ export type QuizFeedback = {
   chosen: number;
   correctOption: number;
   correct: boolean;
+  flagged: boolean; // by this user (P2-W9-S07)
 };
 
 // Notes (§5I, Q-P2-01, P2-W7-S03): a user's private note on a section, or on the

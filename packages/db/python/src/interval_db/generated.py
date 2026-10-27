@@ -20,6 +20,7 @@ type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type Difficulty = Literal["beginner", "intermediate", "advanced"]
 type FeedbackKind = Literal["more_like_this", "less_like_this", "not_interested"]
 type FinishMethod = Literal["return_prompt", "mark_done"]
+type FlagReason = Literal["wrong_key", "unclear", "not_in_section", "other"]
 type LearnerState = Literal["explored", "practiced", "mastered", "due_for_review"]
 type LearningGoal = Literal[
     "system-design-interviews", "stack-i-use", "finish-that-book", "stay-sharp"
@@ -390,6 +391,13 @@ class QuestionDrafting(TypedDict):
     moment_id: int
     attempt: int
     retry_at: datetime
+
+
+class QuestionFlag(TypedDict):
+    user_id: str
+    question_id: int
+    reason: FlagReason
+    flagged_at: datetime
 
 
 class QuestionReview(TypedDict):

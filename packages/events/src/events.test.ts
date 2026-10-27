@@ -35,6 +35,7 @@ describe("the event list (Q-P1-20)", () => {
         "quiz_started",
         "quiz_answered",
         "quiz_finished",
+        "question_flagged",
       ].sort(),
     );
   });

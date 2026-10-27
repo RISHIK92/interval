@@ -8,10 +8,11 @@ const start = vi.fn<Quizzes["start"]>();
 const answer = vi.fn<Quizzes["answer"]>();
 const finish = vi.fn<Quizzes["finish"]>();
 const startReview = vi.fn<Quizzes["startReview"]>();
+const flag = vi.fn<Quizzes["flag"]>();
 const emit = vi.fn();
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
-  quizzes: () => ({ start, answer, finish, startReview }),
+  quizzes: () => ({ start, answer, finish, startReview, flag }),
   events: () => ({ emit }),
 }));
 vi.mock("next/headers", () => ({
@@ -216,6 +217,38 @@ test("starting a review records it once and opens it; nothing due goes back", as
   await expect(startReviewAction(form({ chip: "huge" }))).rejects.toThrow(
     "redirect:/library",
   );
+});
+
+// P2-W9-S07 (Q-2, Q-P2-18, Q-P2-20): flagging, recorded once.
+test("a flag is recorded once and goes back to the question's feedback", async () => {
+  const { flagQuestionAction } = await actions();
+  flag.mockResolvedValue(true);
+  const fields = {
+    attemptId: "41",
+    questionId: "7",
+    reason: "wrong_key",
+    chip: "3-8",
+  };
+  await expect(flagQuestionAction(form(fields))).rejects.toThrow(
+    "redirect:/quiz/41?chip=3-8&answered=7",
+  );
+  expect(flag).toHaveBeenCalledWith("u1", "41", "7", "wrong_key");
+  expect(emit).toHaveBeenCalledWith(
+    "question_flagged",
+    { question_id: "7", reason: "wrong_key" },
+    context,
+  );
+  emit.mockClear();
+  flag.mockResolvedValue(false);
+  await expect(flagQuestionAction(form(fields))).rejects.toThrow(
+    "redirect:/quiz/41?chip=3-8&answered=7",
+  );
+  expect(emit).not.toHaveBeenCalled();
+  flag.mockClear();
+  await expect(
+    flagQuestionAction(form({ ...fields, reason: "spam" })),
+  ).rejects.toThrow("redirect:/");
+  expect(flag).not.toHaveBeenCalled();
 });
 
 test("Close finishes and goes back to the feed", async () => {
