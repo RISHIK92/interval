@@ -49,6 +49,8 @@ export type JsonPrimitive = boolean | number | string | null;
 
 export type JsonValue = JsonArray | JsonObject | JsonPrimitive;
 
+export type LearnerState = "due_for_review" | "explored" | "mastered" | "practiced";
+
 export type LearningGoal = "finish-that-book" | "stack-i-use" | "stay-sharp" | "system-design-interviews";
 
 export type MomentLinkType = "anchor" | "page_top" | "text_fragment";
@@ -153,6 +155,15 @@ export interface ConceptEmbedding {
   embedding: string;
   model: string;
   text_hash: string;
+}
+
+export interface ConceptMastery {
+  concept_id: Int8;
+  evidence_count: number;
+  probability: number;
+  state: LearnerState;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
 }
 
 export interface ContentItem {
@@ -539,6 +550,7 @@ export interface DB {
   concept: Concept;
   concept_edge: ConceptEdge;
   concept_embedding: ConceptEmbedding;
+  concept_mastery: ConceptMastery;
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;

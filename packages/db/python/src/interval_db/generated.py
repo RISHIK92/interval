@@ -18,6 +18,7 @@ type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type Difficulty = Literal["beginner", "intermediate", "advanced"]
 type FeedbackKind = Literal["more_like_this", "less_like_this", "not_interested"]
 type FinishMethod = Literal["return_prompt", "mark_done"]
+type LearnerState = Literal["explored", "practiced", "mastered", "due_for_review"]
 type LearningGoal = Literal[
     "system-design-interviews", "stack-i-use", "finish-that-book", "stay-sharp"
 ]
@@ -120,6 +121,15 @@ class ConceptEmbedding(TypedDict):
     text_hash: str
     embedding: str
     embedded_at: datetime
+
+
+class ConceptMastery(TypedDict):
+    user_id: str
+    concept_id: int
+    probability: float
+    state: LearnerState
+    evidence_count: int
+    updated_at: datetime
 
 
 class ContentItem(TypedDict):

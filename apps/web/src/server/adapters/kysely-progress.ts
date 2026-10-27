@@ -1,6 +1,72 @@
 import type { DB } from "@interval/db";
-import { type Kysely, sql } from "kysely";
+import { type Kysely, type RawBuilder, sql } from "kysely";
 import type { Progress } from "../ports";
+
+// Reading as weak evidence of mastery (PER-2, Q-P2-02): each new finish moves a concept
+// a tenth of the way to 1, never past 0.3 from reading alone, and never lowers or
+// demotes one a quiz has raised further; reading's state is explored (Q-P2-03).
+const READING_WEIGHT = 0.1;
+const READING_CAP = 0.3;
+
+// Credits each concept `taught` selects (one `id` column). Part of the finish's own
+// statement, reading its `added` rows, so a repeat finish credits nothing and a finish
+// is never kept without its credit.
+function credit(
+  userId: string,
+  taught: RawBuilder<unknown>,
+): RawBuilder<unknown> {
+  return sql`
+    insert into concept_mastery
+      (user_id, concept_id, probability, state, evidence_count)
+    -- A first finish moves p from 0 by the weight; in id order, so two finishes at
+    -- once lock the rows they share in the same order.
+    select ${userId}, id, ${READING_WEIGHT}::double precision, 'explored', 1
+    from (${taught}) taught
+    order by id
+    on conflict (user_id, concept_id) do update set
+      probability = case
+        when concept_mastery.probability >= ${READING_CAP}::double precision
+          then concept_mastery.probability
+        else least(
+          ${READING_CAP}::double precision,
+          concept_mastery.probability
+            + ${READING_WEIGHT}::double precision * (1 - concept_mastery.probability)
+        )
+      end,
+      evidence_count = concept_mastery.evidence_count + 1,
+      updated_at = now()
+  `;
+}
+
+// The live concepts a finished moment or article teaches; an admin's correction
+// replaces the model's tags (P1-W3-S05), for a moment by its heading. A retired concept
+// isn't credited: its tags wait for the migration script (Q-P1-04). A moment its source
+// no longer allows isn't read (ING-2), as allowedMoments below.
+const MOMENT_CONCEPTS = sql`
+  select c.id from added a
+  join moment m on m.id = a.moment_id
+  join content_item ci on ci.id = m.content_item_id
+  join source s on s.id = ci.source_id
+   and s.moments_enabled
+   and s.rights_profile in ('full_text_internal', 'full_text_display')
+  join concept c on c.retired_at is null and c.slug = any(coalesce(
+    (select o.concepts from tag_override o
+     where o.content_item_id = m.content_item_id
+       and o.heading = m.title and m.link_type <> 'page_top'),
+    array(select c2.slug from moment_concept mc
+          join concept c2 on c2.id = mc.concept_id where mc.moment_id = m.id)
+  ))
+`;
+const ARTICLE_CONCEPTS = sql`
+  select c.id from added a
+  join concept c on c.retired_at is null and c.slug = any(coalesce(
+    (select o.concepts from tag_override o
+     where o.content_item_id = a.content_item_id and o.heading = ''),
+    array(select c2.slug from item_concept ic
+          join concept c2 on c2.id = ic.concept_id
+          where ic.content_item_id = a.content_item_id)
+  ))
+`;
 
 // Inserts select from the moment or item, so ids that name nothing write nothing; `on
 // conflict do nothing` keeps the first finish.
@@ -18,43 +84,30 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
       ]);
   return {
     finishMoment: async (userId, itemId, momentId, method) => {
-      const added = await db
-        .insertInto("user_moment_finished")
-        .columns(["user_id", "moment_id", "method"])
-        .expression(
-          db
-            .selectFrom("moment")
-            .select([
-              sql<string>`${userId}`.as("user_id"),
-              "id",
-              sql<typeof method>`${method}::finish_method`.as("method"),
-            ])
-            .where("id", "=", momentId)
-            .where("content_item_id", "=", itemId),
-        )
-        .onConflict((oc) => oc.doNothing())
-        .returning("moment_id")
-        .execute();
-      return added.length > 0;
+      const added = await sql<{ moment_id: string }>`
+        with added as (
+          insert into user_moment_finished (user_id, moment_id, method)
+          select ${userId}, id, ${method}::finish_method from moment
+          where id = ${momentId} and content_item_id = ${itemId}
+          on conflict do nothing
+          returning moment_id
+        ), credited as (${credit(userId, MOMENT_CONCEPTS)})
+        select moment_id from added
+      `.execute(db);
+      return added.rows.length > 0;
     },
     finishArticle: async (userId, itemId, method) => {
-      const added = await db
-        .insertInto("user_article_finished")
-        .columns(["user_id", "content_item_id", "method"])
-        .expression(
-          db
-            .selectFrom("content_item")
-            .select([
-              sql<string>`${userId}`.as("user_id"),
-              "id",
-              sql<typeof method>`${method}::finish_method`.as("method"),
-            ])
-            .where("id", "=", itemId),
-        )
-        .onConflict((oc) => oc.doNothing())
-        .returning("content_item_id")
-        .execute();
-      return added.length > 0;
+      const added = await sql<{ content_item_id: string }>`
+        with added as (
+          insert into user_article_finished (user_id, content_item_id, method)
+          select ${userId}, id, ${method}::finish_method from content_item
+          where id = ${itemId}
+          on conflict do nothing
+          returning content_item_id
+        ), credited as (${credit(userId, ARTICLE_CONCEPTS)})
+        select content_item_id from added
+      `.execute(db);
+      return added.rows.length > 0;
     },
     describe: async (itemId, momentId) => {
       const item = await db
@@ -76,19 +129,22 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
     },
     finishArticleIfComplete: async (userId, itemId, method) => {
       const added = await sql<{ content_item_id: string }>`
-        insert into user_article_finished (user_id, content_item_id, method)
-        select ${userId}, ${itemId}, ${method}::finish_method
-        where exists (select 1 from moment where content_item_id = ${itemId})
-          and not exists (
-            select 1 from moment m
-            where m.content_item_id = ${itemId}
-              and not exists (
-                select 1 from user_moment_finished f
-                where f.user_id = ${userId} and f.moment_id = m.id
-              )
-          )
-        on conflict do nothing
-        returning content_item_id
+        with added as (
+          insert into user_article_finished (user_id, content_item_id, method)
+          select ${userId}, ${itemId}, ${method}::finish_method
+          where exists (select 1 from moment where content_item_id = ${itemId})
+            and not exists (
+              select 1 from moment m
+              where m.content_item_id = ${itemId}
+                and not exists (
+                  select 1 from user_moment_finished f
+                  where f.user_id = ${userId} and f.moment_id = m.id
+                )
+            )
+          on conflict do nothing
+          returning content_item_id
+        ), credited as (${credit(userId, ARTICLE_CONCEPTS)})
+        select content_item_id from added
       `.execute(db);
       return added.rows.length > 0;
     },

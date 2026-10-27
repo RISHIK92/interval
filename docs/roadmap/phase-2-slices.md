@@ -11,7 +11,7 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - IDs: PER-2, PER-1, DB-1, DB-2
 - Needs: Phase 1 (finishes, P1-W5-S02; tags, P1-W3-S02)
 - Goal: each user has a mastery row per concept they have evidence for; finishing a moment or an article raises its tagged concepts' probability weakly, and their state becomes explored.
-- Acceptance: migration `concept_mastery` (user, concept, probability, `learner_state`, evidence count, updated at) with generated types. The update rule is one pure TS function with the D1 constants. A new finish credits its concepts in the finish's transaction; a repeat finish, an untagged item, and an opened-only item credit nothing; an admin's correction replaces the model's tags; reset-inferred leaves mastery alone. Tests in the in-memory fake and the Kysely adapter.
+- Acceptance: migration `concept_mastery` (user, concept, probability, `learner_state`, evidence count, updated at) with generated types. The update rule and D1 constants live in the progress adapter's finish statements (as built: one statement records the finish and credits it, so they are atomic without a transaction; there is no Progress fake). A new finish credits its concepts; a repeat finish, an untagged item, an opened-only item, a retired concept and a moment its source no longer allows (ING-2) credit nothing; an admin's correction replaces the model's tags; reset-inferred leaves mastery alone. Tests against Postgres in the Kysely adapter's suite.
 - Out of scope: quizzes, FSRS, practiced and mastered states, ranking changes, any UI.
 - Q: Q-P2-02, Q-P2-03.
 

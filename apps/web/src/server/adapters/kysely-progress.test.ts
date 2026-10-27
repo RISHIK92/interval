@@ -3,6 +3,7 @@ import type { DB } from "@interval/db";
 import { sql, type Transaction } from "kysely";
 import { afterAll, expect, test } from "vitest";
 import { createDb } from "./kysely";
+import { kyselyFeedback } from "./kysely-feedback";
 import { kyselyProgress } from "./kysely-progress";
 
 // Finishes (§5D, C-22, P1-W5-S02): the first is kept; a repeat changes nothing.
@@ -557,5 +558,314 @@ test("opens by another user add to the same arm's shown count", async () => {
       .where("arm", "=", "shared-arm")
       .executeTakeFirst();
     expect(outcome).toEqual({ shown: "4", finished: "1" });
+  });
+});
+
+// Concept mastery from reading (PER-2, Q-P2-02, Q-P2-03, P2-W7-S01): a new finish
+// raises its tagged concepts weakly, to explored at most; nothing else does.
+// The new concepts' ids, in the order named; a missing one fails here, not later as a
+// bad bigint.
+async function concepts<const N extends readonly string[]>(
+  trx: Transaction<DB>,
+  names: N,
+): Promise<{ [K in keyof N]: string }> {
+  const rows = await trx
+    .insertInto("concept")
+    .values(
+      names.map((name) => ({
+        slug: `mastery-${name}-${randomUUID().slice(0, 8)}`,
+        name,
+        topic: "distributed-systems",
+      })),
+    )
+    .returning(["id", "name"])
+    .execute();
+  const ids = names.map((name) => {
+    const row = rows.find((r) => r.name === name);
+    if (row === undefined) throw new Error(`seed ${name}`);
+    return row.id;
+  });
+  // map keeps the tuple's length and order; TypeScript only widens it to string[].
+  return ids as { [K in keyof N]: string };
+}
+
+async function mastery(trx: Transaction<DB>, userId: string) {
+  const rows = await trx
+    .selectFrom("concept_mastery as m")
+    .innerJoin("concept as c", "c.id", "m.concept_id")
+    .select(["c.name", "m.probability", "m.state", "m.evidence_count"])
+    .where("m.user_id", "=", userId)
+    .orderBy("c.name")
+    .execute();
+  return rows.map((r) => ({
+    name: r.name,
+    p: Math.round(r.probability * 1000) / 1000,
+    state: r.state,
+    evidence: r.evidence_count,
+  }));
+}
+
+async function tag(
+  trx: Transaction<DB>,
+  momentId: string,
+  conceptIds: string[],
+) {
+  await trx
+    .insertInto("moment_tagging")
+    .values({ moment_id: momentId, difficulty: "intermediate" })
+    .execute();
+  await trx
+    .insertInto("moment_concept")
+    .values(conceptIds.map((id) => ({ moment_id: momentId, concept_id: id })))
+    .execute();
+}
+
+async function tagArticle(
+  trx: Transaction<DB>,
+  itemId: string,
+  conceptId: string,
+) {
+  await trx
+    .insertInto("item_tagging")
+    .values({
+      content_item_id: itemId,
+      difficulty: "intermediate",
+      model: "test",
+      prompt_version: 1,
+    })
+    .execute();
+  await trx
+    .insertInto("item_concept")
+    .values({ content_item_id: itemId, concept_id: conceptId })
+    .execute();
+}
+
+test("a new moment finish raises its concepts weakly, once, to explored", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [, raft, paxos] = momentIds;
+    if (raft === undefined || paxos === undefined) throw new Error("seed");
+    const [consensus, r, p] = await concepts(trx, [
+      "consensus",
+      "raft",
+      "paxos",
+    ]);
+    await tag(trx, raft, [consensus, r]);
+    await tag(trx, paxos, [consensus, p]);
+    await progress.finishMoment(userId, itemId, raft, "mark_done");
+    await progress.finishMoment(userId, itemId, raft, "return_prompt");
+    expect(await mastery(trx, userId)).toEqual([
+      { name: "consensus", p: 0.1, state: "explored", evidence: 1 },
+      { name: "raft", p: 0.1, state: "explored", evidence: 1 },
+    ]);
+    await progress.finishMoment(userId, itemId, paxos, "mark_done");
+    expect(await mastery(trx, userId)).toEqual([
+      { name: "consensus", p: 0.19, state: "explored", evidence: 2 },
+      { name: "paxos", p: 0.1, state: "explored", evidence: 1 },
+      { name: "raft", p: 0.1, state: "explored", evidence: 1 },
+    ]);
+  });
+});
+
+test("reading never lifts a concept past the cap, nor lowers or demotes one above it", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro, raft] = momentIds;
+    if (intro === undefined || raft === undefined) throw new Error("seed");
+    const [consensus, quorum] = await concepts(trx, ["consensus", "quorum"]);
+    await tag(trx, intro, [consensus, quorum]);
+    await tag(trx, raft, [consensus, quorum]);
+    // Near the cap from earlier reading, and above it as a Week 9 quiz would leave it.
+    await trx
+      .insertInto("concept_mastery")
+      .values([
+        {
+          user_id: userId,
+          concept_id: consensus,
+          probability: 0.29,
+          state: "explored",
+          evidence_count: 3,
+        },
+        {
+          user_id: userId,
+          concept_id: quorum,
+          probability: 0.6,
+          state: "practiced",
+          evidence_count: 1,
+        },
+      ])
+      .execute();
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    await progress.finishMoment(userId, itemId, raft, "mark_done");
+    expect(await mastery(trx, userId)).toEqual([
+      { name: "consensus", p: 0.3, state: "explored", evidence: 5 },
+      { name: "quorum", p: 0.6, state: "practiced", evidence: 3 },
+    ]);
+  });
+});
+
+test("an untagged moment credits nothing; an admin's correction replaces the model's tags", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro, raft] = momentIds;
+    if (intro === undefined || raft === undefined) throw new Error("seed");
+    const [r] = await concepts(trx, ["raft"]);
+    const leader = await trx
+      .insertInto("concept")
+      .values({
+        slug: `mastery-leader-${randomUUID().slice(0, 8)}`,
+        name: "leader-election",
+        topic: "distributed-systems",
+      })
+      .returning("slug")
+      .executeTakeFirstOrThrow();
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    expect(await mastery(trx, userId)).toEqual([]);
+    await tag(trx, raft, [r]);
+    await trx
+      .insertInto("tag_override")
+      .values({
+        content_item_id: itemId,
+        heading: "Raft",
+        difficulty: "intermediate",
+        concepts: [leader.slug],
+        updated_by: "admin",
+      })
+      .execute();
+    await progress.finishMoment(userId, itemId, raft, "mark_done");
+    expect(await mastery(trx, userId)).toEqual([
+      { name: "leader-election", p: 0.1, state: "explored", evidence: 1 },
+    ]);
+  });
+});
+
+test("an article finish credits the article's concepts, also when its last section completes it", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [consensus] = await concepts(trx, ["consensus"]);
+    await tagArticle(trx, itemId, consensus);
+    await progress.finishArticle(userId, itemId, "mark_done");
+    await progress.finishArticle(userId, itemId, "mark_done");
+    expect(await mastery(trx, userId)).toEqual([
+      { name: "consensus", p: 0.1, state: "explored", evidence: 1 },
+    ]);
+    // A second user completes the article section by section (Q-P1-35).
+    const invite = await trx
+      .selectFrom("app_user")
+      .select("invite_code_id")
+      .where("id", "=", userId)
+      .executeTakeFirstOrThrow();
+    const other = randomUUID();
+    await trx
+      .insertInto("app_user")
+      .values({
+        id: other,
+        name: "n",
+        email: `${other}@example.test`,
+        beta_group: "student",
+        invite_code_id: invite.invite_code_id,
+      })
+      .execute();
+    for (const m of momentIds) {
+      await progress.finishMoment(other, itemId, m, "mark_done");
+    }
+    expect(
+      await progress.finishArticleIfComplete(other, itemId, "mark_done"),
+    ).toBe(true);
+    expect(await mastery(trx, other)).toEqual([
+      { name: "consensus", p: 0.1, state: "explored", evidence: 1 },
+    ]);
+  });
+});
+
+test("resetting inferred interests leaves mastery alone (PER-1)", async () => {
+  await inRollback(async (trx, { userId, itemId }) => {
+    const [consensus] = await concepts(trx, ["consensus"]);
+    await tagArticle(trx, itemId, consensus);
+    await kyselyProgress(trx).finishArticle(userId, itemId, "mark_done");
+    await kyselyFeedback(trx).resetInferred(userId);
+    expect(await mastery(trx, userId)).toHaveLength(1);
+  });
+});
+
+test("retired concepts, disallowed moments and a stranger's ids credit nothing", async () => {
+  await inRollback(async (trx, { userId, itemId, sourceId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro, raft, paxos] = momentIds;
+    if (intro === undefined || raft === undefined || paxos === undefined) {
+      throw new Error("seed");
+    }
+    const [live, old] = await concepts(trx, ["live", "old"]);
+    await trx
+      .updateTable("concept")
+      .set({ retired_at: sql<Date>`now()` })
+      .where("id", "=", old)
+      .execute();
+    await tag(trx, intro, [live, old]);
+    await tag(trx, raft, [live]);
+    await tag(trx, paxos, [live]);
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    // Another item's id with this moment: not this item's moment, so not finished.
+    await progress.finishMoment(userId, "999999999999", raft, "mark_done");
+    expect(await mastery(trx, userId)).toEqual([
+      { name: "live", p: 0.1, state: "explored", evidence: 1 },
+    ]);
+    // The source switches moments off (ING-2): finishing one is kept, not read.
+    await trx
+      .updateTable("source")
+      .set({ moments_switched_off: true, moments_enabled: false })
+      .where("id", "=", sourceId)
+      .execute();
+    await progress.finishMoment(userId, itemId, raft, "mark_done");
+    expect(await mastery(trx, userId)).toEqual([
+      { name: "live", p: 0.1, state: "explored", evidence: 1 },
+    ]);
+  });
+});
+
+test("corrections: the intro can't be overridden by heading; an article's, even empty, replaces its tags", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [intro] = momentIds;
+    if (intro === undefined) throw new Error("seed");
+    const [model, corrected] = await concepts(trx, ["model", "corrected"]);
+    const slug = await trx
+      .selectFrom("concept")
+      .select("slug")
+      .where("id", "=", corrected)
+      .executeTakeFirstOrThrow();
+    await tag(trx, intro, [model]);
+    await tagArticle(trx, itemId, model);
+    await trx
+      .insertInto("tag_override")
+      .values([
+        // The intro is its page's top, not a heading: this matches no moment.
+        {
+          content_item_id: itemId,
+          heading: "Intro",
+          difficulty: "beginner",
+          concepts: [slug.slug],
+          updated_by: "admin",
+        },
+        {
+          content_item_id: itemId,
+          heading: "",
+          difficulty: "beginner",
+          concepts: [],
+          updated_by: "admin",
+        },
+      ])
+      .execute();
+    await trx
+      .updateTable("moment")
+      .set({ link_type: "page_top" })
+      .where("id", "=", intro)
+      .execute();
+    await progress.finishMoment(userId, itemId, intro, "mark_done");
+    await progress.finishArticle(userId, itemId, "mark_done");
+    // The intro keeps the model's tag; the article's empty correction credits nothing.
+    expect(await mastery(trx, userId)).toEqual([
+      { name: "model", p: 0.1, state: "explored", evidence: 1 },
+    ]);
   });
 });
