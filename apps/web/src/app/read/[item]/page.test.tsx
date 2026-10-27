@@ -6,6 +6,7 @@ import type {
   Notes,
   OutboundLinks,
   Progress,
+  Quizzes,
   ReaderPage,
 } from "../../../server/ports";
 
@@ -14,6 +15,7 @@ import type {
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const reader = vi.fn<OutboundLinks["reader"]>();
 const getNote = vi.fn<Notes["get"]>(() => Promise.resolve(null));
+const offered = vi.fn<Quizzes["offered"]>(() => Promise.resolve(new Set()));
 const emit = vi.fn();
 const recordOpen = vi.fn<Progress["recordOpen"]>(() => Promise.resolve());
 const countExploreOpen = vi.fn<Progress["countExploreOpen"]>(() =>
@@ -24,6 +26,7 @@ vi.mock("../../../server/container", () => ({
   outboundLinks: () => ({ reader }),
   progress: () => ({ recordOpen, countExploreOpen }),
   notes: () => ({ get: getNote }),
+  quizzes: () => ({ offered }),
   events: () => ({ emit }),
 }));
 vi.mock("next/headers", () => ({
@@ -251,11 +254,27 @@ test("the overlay: why this matters, Save that stays, Mark done, Next section, a
   expect(html).toMatch(
     /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;pos=4"[^>]*>[^]*?Next section<\/span><\/a>/,
   );
+  // No live question for this section yet: Test me waits too.
   expect(html.match(/aria-disabled="true"/g)).toHaveLength(3);
-  expect(html.match(/Coming later/g)?.length).toBeGreaterThanOrEqual(3);
+  expect(html.match(/Coming later/g)?.length).toBeGreaterThanOrEqual(2);
+  expect(html).toContain("Test me. No questions yet");
   for (const name of ["Highlight", "Listen", "Test me"]) {
     expect(html).toContain(name);
   }
+});
+
+test("with live questions, Test me starts a sprint on the section shown", async () => {
+  current.mockResolvedValue(guest);
+  reader.mockResolvedValue(page);
+  offered.mockResolvedValue(new Set(["5.9"]));
+  const html = await render(card);
+  expect(offered).toHaveBeenCalledWith([{ itemId: "5", momentId: "9" }]);
+  expect(html.match(/aria-disabled="true"/g)).toHaveLength(2);
+  expect(html).not.toContain("No questions yet");
+  expect(html).toMatch(
+    /<form[^>]*>(?:(?!<\/form>)[^])*name="momentId" value="9"(?:(?!<\/form>)[^])*Test me/,
+  );
+  expect(html).toContain('name="chip" value="3-8"');
 });
 
 test("the last section has no Next section; a saved item says Saved; a template note is not AI", async () => {

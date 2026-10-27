@@ -3,15 +3,21 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { z } from "zod";
 import { CHIPS } from "../../../server/chips";
-import { notes, outboundLinks, sessionReader } from "../../../server/container";
+import {
+  notes,
+  outboundLinks,
+  quizzes,
+  sessionReader,
+} from "../../../server/container";
 import { attributed, countOpen } from "../../../server/opens";
 import { outHref, readHref } from "../../../server/outbound";
-import { BIGINT_ID, type ReaderPage } from "../../../server/ports";
+import { BIGINT_ID, quizKey, type ReaderPage } from "../../../server/ports";
 import { formatReading } from "../../../server/reading";
 import { visitId } from "../../../server/visits";
 import { feedbackAction } from "../../feedback/actions";
 import { finishAction } from "../../finish/actions";
 import { NoteBox } from "../../NoteBox";
+import { StartQuiz, ZAP } from "../../quiz/StartQuiz";
 import { WhyNote } from "../../WhyNote";
 import { ReaderFrame } from "./ReaderFrame";
 
@@ -104,6 +110,10 @@ export default async function ReadPage({
     ? `/library?ask=${asked}`
     : `/?chip=${chip}&ask=${asked}`;
   const note = await notes().get(actor.userId, item, reached);
+  // Test 60s on what's shown (P2-W9-S02), once it has a live question.
+  const testable = (
+    await quizzes().offered([{ itemId: item, momentId: reached }])
+  ).has(quizKey(item, reached));
   const here = readHref({
     itemId: item,
     ...(moment === undefined ? {} : { momentId: moment }),
@@ -195,9 +205,22 @@ export default async function ReadPage({
           <ComingLater name="Listen">
             <Glyph path="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z" />
           </ComingLater>
-          <ComingLater name="Test me">
-            <Glyph path="M9 9a3 3 0 1 1 4 2.8c-.6.3-1 .9-1 1.6V15M12 18.5v.5" />
-          </ComingLater>
+          {testable ? (
+            <StartQuiz
+              itemId={item}
+              momentId={reached}
+              chip={chip}
+              back={here}
+              label="Test me"
+              className={ROUND}
+            >
+              <Glyph path={ZAP} />
+            </StartQuiz>
+          ) : (
+            <ComingLater name="Test me" why="No questions yet">
+              <Glyph path={ZAP} />
+            </ComingLater>
+          )}
           <div className="ml-auto flex items-center gap-2">
             {/* Mark done goes back where the reader was opened and skips the prompt
               (ADR-0018). */}
@@ -271,23 +294,26 @@ function Glyph({
   );
 }
 
-// Shown, not usable yet (owner, ADR-0018): highlight, listen and quiz come later.
+// Shown, not usable yet (owner, ADR-0018): highlight and listen come later; Test me
+// waits for its section's questions.
 function ComingLater({
   name,
+  why = "Coming later",
   children,
 }: {
   name: string;
+  why?: string;
   children: ReactNode;
 }) {
   return (
     <button
       type="button"
       aria-disabled="true"
-      title="Coming later"
+      title={why}
       className={`${ROUND} cursor-not-allowed opacity-50`}
     >
       {children}
-      <span className="sr-only">{`${name}. Coming later`}</span>
+      <span className="sr-only">{`${name}. ${why}`}</span>
     </button>
   );
 }

@@ -3,6 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { CHIPS } from "../../server/chips";
 import { events, quizzes, sessionReader } from "../../server/container";
 import { BIGINT_ID } from "../../server/ports";
 import { visitId } from "../../server/visits";
@@ -10,17 +11,25 @@ import { sameSitePath, textField } from "../form";
 
 // Test 60s (Q-P2-14, Q-P2-20, P2-W9-S01): the server holds the sprint's clock and
 // checks each answer; these validate the form and record what happened once.
+// The feed's chip rides along so the quiz returns to the same feed (and the reader).
 const Start = z.object({
   itemId: z.string().regex(BIGINT_ID),
   momentId: z.string().regex(BIGINT_ID).optional(),
+  chip: z.enum(CHIPS),
 });
 // LOAD-5: the attempt and question are the answer's idempotency key.
 const Answer = z.object({
   attemptId: z.string().regex(BIGINT_ID),
   questionId: z.string().regex(BIGINT_ID),
   chosen: z.coerce.number().int().min(0).max(3),
+  chip: z.enum(CHIPS),
 });
-const Finish = z.object({ attemptId: z.string().regex(BIGINT_ID) });
+// Close leaves for the feed; otherwise the results.
+const Finish = z.object({
+  attemptId: z.string().regex(BIGINT_ID),
+  chip: z.enum(CHIPS),
+  leave: z.literal("1").optional(),
+});
 
 async function signedIn() {
   const actor = await sessionReader().current(await headers());
@@ -33,9 +42,10 @@ export async function startQuizAction(form: FormData): Promise<void> {
   const parsed = Start.safeParse({
     itemId: textField(form, "itemId"),
     momentId: textField(form, "momentId") || undefined,
+    chip: textField(form, "chip"),
   });
   if (!parsed.success) redirect("/");
-  const { itemId, momentId } = parsed.data;
+  const { itemId, momentId, chip } = parsed.data;
   const started = await quizzes().start(actor.userId, itemId, momentId ?? null);
   // No live question (yet, or its rights changed): back where it was offered.
   if (started === null) redirect(sameSitePath(textField(form, "back"), "/"));
@@ -49,14 +59,14 @@ export async function startQuizAction(form: FormData): Promise<void> {
       },
       context,
     );
-  redirect(`/quiz/${started.attemptId}`);
+  redirect(`/quiz/${started.attemptId}?chip=${chip}`);
 }
 
 export async function answerQuizAction(form: FormData): Promise<void> {
   const { actor, context } = await signedIn();
   const parsed = Answer.safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect("/");
-  const { attemptId, questionId, chosen } = parsed.data;
+  const { attemptId, questionId, chosen, chip } = parsed.data;
   const got = await quizzes().answer(
     actor.userId,
     attemptId,
@@ -64,7 +74,8 @@ export async function answerQuizAction(form: FormData): Promise<void> {
     chosen,
   );
   // Late, or not this attempt's open question: the quiz page shows where it stands.
-  if (got === null || got === "late") redirect(`/quiz/${attemptId}`);
+  if (got === null || got === "late")
+    redirect(`/quiz/${attemptId}?chip=${chip}`);
   if (got.firstTime)
     events().emit(
       "quiz_answered",
@@ -76,14 +87,14 @@ export async function answerQuizAction(form: FormData): Promise<void> {
       },
       context,
     );
-  redirect(`/quiz/${attemptId}?answered=${questionId}`);
+  redirect(`/quiz/${attemptId}?chip=${chip}&answered=${questionId}`);
 }
 
 export async function finishQuizAction(form: FormData): Promise<void> {
   const { actor, context } = await signedIn();
   const parsed = Finish.safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect("/");
-  const { attemptId } = parsed.data;
+  const { attemptId, chip, leave } = parsed.data;
   const done = await quizzes().finish(actor.userId, attemptId);
   if (done === null) redirect("/");
   if (done.firstTime)
@@ -92,5 +103,9 @@ export async function finishQuizAction(form: FormData): Promise<void> {
       { attempt_id: attemptId, answered: done.answered, correct: done.correct },
       context,
     );
-  redirect(`/quiz/${attemptId}/results`);
+  redirect(
+    leave === undefined
+      ? `/quiz/${attemptId}/results?chip=${chip}`
+      : `/?chip=${chip}`,
+  );
 }

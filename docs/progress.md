@@ -1932,3 +1932,14 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `app/quiz/actions.ts`: start, answer and finish actions (zod at the boundary) with `quiz_started`, `quiz_answered` (right or wrong, ms) and `quiz_finished`, each emitted once. The `/quiz/[attempt]` page is S02.
 - Reviewer: vacuous ING-2 and retired-concept tests (now hold back the purge trigger, mutation-checked), answers after a finish, a double-tap start, finish counting and the grace window fixed. Not fixed (nits): a question retired mid-sprint is still answerable; a re-segment deletes the moment's attempts with it (S03 keeps mastery in its own table).
 - Two Postgres contract tests counted every question in the database; the local backfill broke them. They now count only their own rows.
+
+### 2026-10-28 — Question backfill done (DeepSeek batch)
+- All 511 tagged moments drafted and validated on `batch:deepseek/deepseek-v4.1-flash`: 1,022 live questions, none rejected, 8 batches, $0.175 (estimate $0.15). The validator is the drafting model, so its 100% agreement is weak evidence; Q-2's weekly spot checks are the backstop.
+
+### 2026-10-28 — P2-W9-S02 (Test 60s, Q-P2-14)
+- `Quizzes.offered` (which sections or articles can start a sprint, rights-filtered), `attempt` (header and results: counts, average answer time, seconds left by the database's clock, the answered questions' concepts with the user's state) and `answered` (feedback, key included only after answering).
+- `/quiz/[attempt]`: one question as four submit buttons (no script needed, key never sent), instant feedback marked with an icon and a word, "Time's up" or "That's every question for now" when the sprint ends early; `Countdown` submits the finish at zero. `/quiz/[attempt]/results`: correct of answered, each concept's state (Unseen until there's evidence), accuracy, average answer, time used, the next section.
+- Entry points: the reader's Test me, a Test 60s button on feed cards, and "Test yourself · 60s" after finishing a section, each only when live questions exist. The feed's chip rides through the quiz.
+- Owner (2026-10-28): no Finish button; the × warns "Exiting now ends this test and will affect your score." in a native popover (Exit test / Keep going).
+- Checked in Chrome on the local dev server with a throwaway local account (127.0.0.1, so the owner's session was untouched): reader → quiz → wrong-answer feedback → next → auto-finish at 0 → results; phone width; the exit warning.
+- Reviewer: early-end wording, the ING-2 offer test, `<dt>` before `<dd>`, "Unseen" for §3.1's state, the footer's source line, no auto-finish on a feedback view, and formatting fixed. Not done: a DOM test for the countdown's submit (no jsdom; checked in the browser); the feed card's button seen only in tests (the test account isn't onboarded).

@@ -26,6 +26,7 @@ vi.mock("../server/container", () => ({
   feedback: () => ({ notInterested: () => Promise.resolve(false) }),
   progress: () => ({ continueCards: () => Promise.resolve([]) }),
   notes: () => ({ onItems: () => Promise.resolve([]) }),
+  quizzes: () => ({ offered: () => Promise.resolve(new Set()) }),
   // Onboarded (P1-W4-S01), so the home page renders.
   preferences: () => ({
     get: () =>

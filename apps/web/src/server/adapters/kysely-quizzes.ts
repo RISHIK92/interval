@@ -1,6 +1,11 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import { QUIZ_SECONDS, type QuizQuestion, type Quizzes } from "../ports";
+import {
+  QUIZ_SECONDS,
+  type QuizQuestion,
+  type Quizzes,
+  quizKey,
+} from "../ports";
 
 // The last answer in flight when the clock runs out still counts (Q-P2-14).
 const GRACE = sql.raw(`interval '5 seconds'`);
@@ -234,6 +239,119 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         answered: row.answered,
         correct: row.correct,
         firstTime: finished !== undefined,
+      };
+    },
+
+    offered: async (targets) => {
+      if (targets.length === 0) return new Set();
+      const items = [...new Set(targets.map((t) => t.itemId))];
+      // Per article: its moments with a live question; the article itself when any.
+      const { rows } = await sql<{ item: string; moment: string }>`
+        select distinct m.content_item_id as item, m.id as moment
+        from ${LIVE}
+        where q.status = 'live' and m.content_item_id = any(${items}::bigint[])
+      `.execute(db);
+      const live = new Set(rows.map((r) => quizKey(r.item, r.moment)));
+      const articles = new Set(rows.map((r) => r.item));
+      return new Set(
+        targets
+          .filter((t) =>
+            t.momentId === null
+              ? articles.has(t.itemId)
+              : live.has(quizKey(t.itemId, t.momentId)),
+          )
+          .map((t) => quizKey(t.itemId, t.momentId)),
+      );
+    },
+
+    attempt: async (userId, attemptId) => {
+      const row = await db
+        .selectFrom("quiz_attempt as a")
+        .innerJoin("content_item as ci", "ci.id", "a.content_item_id")
+        .leftJoin("moment as m", "m.id", "a.moment_id")
+        .select([
+          "a.content_item_id",
+          "a.moment_id",
+          "a.started_at",
+          "a.ends_at",
+          "a.finished_at",
+          sql<string>`coalesce(m.title, ci.title)`.as("title"),
+          sql<number>`greatest(0, ceil(extract(epoch from a.ends_at - now())))::int`.as(
+            "seconds_left",
+          ),
+          sql<number>`(select count(*)::int from quiz_answer qa
+            where qa.attempt_id = a.id and qa.answered_at is not null)`.as(
+            "answered",
+          ),
+          sql<number>`(select count(*)::int from quiz_answer qa
+            where qa.attempt_id = a.id and qa.correct)`.as("correct"),
+          sql<number | null>`(select avg(extract(epoch from
+              qa.answered_at - qa.served_at) * 1000)::float8
+            from quiz_answer qa
+            where qa.attempt_id = a.id and qa.answered_at is not null)`.as(
+            "avg_ms",
+          ),
+        ])
+        .where("a.id", "=", attemptId)
+        .where("a.user_id", "=", userId)
+        .executeTakeFirst();
+      if (row === undefined) return null;
+      // The live concepts its answered questions test, with the user's state.
+      const concepts = await db
+        .selectFrom("quiz_answer as qa")
+        .innerJoin("question_concept as qc", "qc.question_id", "qa.question_id")
+        .innerJoin("concept as c", "c.id", "qc.concept_id")
+        .leftJoin("concept_mastery as cm", (join) =>
+          join
+            .onRef("cm.concept_id", "=", "c.id")
+            .on("cm.user_id", "=", userId),
+        )
+        .select(["c.name", "cm.state"])
+        .distinct()
+        .where("qa.attempt_id", "=", attemptId)
+        .where("qa.answered_at", "is not", null)
+        .where("c.retired_at", "is", null)
+        .orderBy("c.name")
+        .execute();
+      return {
+        itemId: row.content_item_id,
+        momentId: row.moment_id,
+        title: row.title,
+        startedAt: row.started_at,
+        endsAt: row.ends_at,
+        secondsLeft: row.seconds_left,
+        finishedAt: row.finished_at,
+        answered: row.answered,
+        correct: row.correct,
+        avgMs: row.avg_ms === null ? null : Math.round(row.avg_ms),
+        concepts: concepts.map((c) => ({ name: c.name, state: c.state })),
+      };
+    },
+
+    answered: async (userId, attemptId, questionId) => {
+      const row = await db
+        .selectFrom("quiz_answer as qa")
+        .innerJoin("quiz_attempt as a", "a.id", "qa.attempt_id")
+        .innerJoin("question as q", "q.id", "qa.question_id")
+        .select([
+          "q.stem",
+          "q.options",
+          "qa.chosen",
+          "q.correct as key",
+          "qa.correct",
+        ])
+        .where("qa.attempt_id", "=", attemptId)
+        .where("qa.question_id", "=", questionId)
+        .where("a.user_id", "=", userId)
+        .executeTakeFirst();
+      if (row === undefined || row.chosen === null || row.correct === null)
+        return null;
+      return {
+        stem: row.stem,
+        options: row.options,
+        chosen: row.chosen,
+        correctOption: row.key,
+        correct: row.correct,
       };
     },
   };

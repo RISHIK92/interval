@@ -9,6 +9,7 @@ import {
   notes,
   progress,
   preferences,
+  quizzes,
   sessionReader,
 } from "../server/container";
 import {
@@ -21,7 +22,7 @@ import {
 import { loadFeed } from "../server/feed";
 import { outHref, readHref } from "../server/outbound";
 import { parseReading, READING_COOKIE } from "../server/reading";
-import { BIGINT_ID, type FeedCard } from "../server/ports";
+import { BIGINT_ID, type FeedCard, quizKey } from "../server/ports";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
 import { ArticleCard } from "./ArticleCard";
@@ -35,6 +36,7 @@ import { ReturnPrompt } from "./ReturnPrompt";
 import { TabBar } from "./TabBar";
 import { UndoNotInterested } from "./UndoNotInterested";
 import { MomentCard } from "./MomentCard";
+import { StartQuiz, ZAP } from "./quiz/StartQuiz";
 import { Card } from "./ui/Card";
 
 export const dynamic = "force-dynamic";
@@ -179,19 +181,32 @@ export default async function HomePage({
     cards.map((c) => c.itemId),
   );
   const yours = new Map(
-    onCards.map((n) => [`${n.itemId}.${n.momentId ?? ""}`, n.body]),
+    onCards.map((n) => [quizKey(n.itemId, n.momentId), n.body]),
   );
+  // P2-W9-S02: which cards, and the section just finished, can start Test 60s.
+  const target = (card: FeedCard) => ({
+    itemId: card.itemId,
+    momentId: card.kind === "moment" ? card.momentId : null,
+  });
+  const testable = await quizzes().offered([
+    ...cards.map(target),
+    ...(finished === null || next === undefined ? [] : [finished]),
+  ]);
   const yourNote = (card: FeedCard) =>
-    yours.get(
-      `${card.itemId}.${card.kind === "moment" ? card.momentId : ""}`,
-    ) ?? null;
+    yours.get(quizKey(target(card).itemId, target(card).momentId)) ?? null;
   const renderCard = (card: FeedCard, index: number) => {
+    const on = target(card);
     const controls = (
       <CardControls
         itemId={card.itemId}
         title={card.kind === "moment" ? card.sectionTitle : card.articleTitle}
         saved={card.saved}
         chip={chip}
+        test={
+          testable.has(quizKey(on.itemId, on.momentId))
+            ? { momentId: on.momentId }
+            : null
+        }
         originalHref={
           card.kind === "moment"
             ? outHref({
@@ -305,6 +320,31 @@ export default async function HomePage({
             )}
           </p>
         )}
+        {/* The end of a section offers a test or the next one (wireframe 03, end). */}
+        {finished !== null &&
+        next !== undefined &&
+        testable.has(quizKey(finished.itemId, finished.momentId)) ? (
+          <StartQuiz
+            itemId={finished.itemId}
+            momentId={finished.momentId}
+            chip={chip}
+            back={`/?chip=${chip}`}
+            className="mb-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="size-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+            >
+              <path d={ZAP} />
+            </svg>
+            Test yourself · 60s
+          </StartQuiz>
+        ) : null}
         <ContinueReading cards={continuing} chip={chip} />
         {undoable === null ? null : (
           <UndoNotInterested itemId={undoable} chip={chip} />

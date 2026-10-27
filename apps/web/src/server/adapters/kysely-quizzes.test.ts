@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { DB } from "@interval/db";
 import { sql, type Transaction } from "kysely";
 import { afterAll, expect, test } from "vitest";
-import type { QuizQuestion } from "../ports";
+import { type QuizQuestion, quizKey } from "../ports";
 import { createDb } from "./kysely";
 import { kyselyQuizzes } from "./kysely-quizzes";
 
@@ -26,6 +26,8 @@ type Seeded = {
   itemId: string;
   intro: string;
   raft: string;
+  // An article whose source has moments switched off, its questions kept (ING-2).
+  hidden: { itemId: string; momentId: string };
   // stems → question id
   q: Record<string, string>;
 };
@@ -212,6 +214,7 @@ async function inRollback(
         itemId: main.itemId,
         intro,
         raft,
+        hidden: { itemId: hidden.itemId, momentId: hiddenMoment },
         q,
       });
       throw new Rollback();
@@ -474,5 +477,116 @@ test("an attempt is its user's alone", async () => {
       await quizzes.answer(otherUser, started.attemptId, open.questionId, 0),
     ).toBeNull();
     expect(await quizzes.finish(otherUser, started.attemptId)).toBeNull();
+  });
+});
+
+// P2-W9-S02: what the cards, the reader and the results page ask.
+test("offered keys only targets with a live question their source allows", async () => {
+  await inRollback(async (trx, { itemId, intro, raft, hidden }) => {
+    const quizzes = kyselyQuizzes(trx);
+    await trx
+      .updateTable("question")
+      .set({ status: "retired" })
+      .where("moment_id", "=", intro)
+      .execute();
+    const got = await quizzes.offered([
+      { itemId, momentId: raft },
+      { itemId, momentId: intro },
+      { itemId, momentId: null },
+      // A moment of another article: not this one's.
+      { itemId: "999999999999", momentId: raft },
+      // Live questions, but its source no longer allows moments (ING-2).
+      hidden,
+      { itemId: hidden.itemId, momentId: null },
+    ]);
+    expect([...got].sort()).toEqual(
+      [quizKey(itemId, raft), quizKey(itemId, null)].sort(),
+    );
+    expect(await quizzes.offered([])).toEqual(new Set());
+  });
+});
+
+test("an attempt's summary: counts, time, and its concepts with the user's state", async () => {
+  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const started = await quizzes.start(userId, itemId, raft);
+    if (started === null) throw new Error("no quiz");
+    const empty = await quizzes.attempt(userId, started.attemptId);
+    expect(empty?.secondsLeft).toBeGreaterThan(55);
+    expect(empty).toMatchObject({
+      itemId,
+      momentId: raft,
+      title: "Raft",
+      answered: 0,
+      correct: 0,
+      avgMs: null,
+      finishedAt: null,
+      concepts: [],
+    });
+    const one = served(await quizzes.next(userId, started.attemptId));
+    await quizzes.answer(userId, started.attemptId, one.questionId, 0);
+    const two = served(await quizzes.next(userId, started.attemptId));
+    await quizzes.answer(userId, started.attemptId, two.questionId, 3);
+    // Served, not answered: not counted, its concepts not listed.
+    served(await quizzes.next(userId, started.attemptId));
+    const concept = await trx
+      .selectFrom("question_concept as qc")
+      .innerJoin("concept as c", "c.id", "qc.concept_id")
+      .select(["c.id", "c.name"])
+      .where("qc.question_id", "=", one.questionId)
+      .where("c.name", "=", "raft")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("concept_mastery")
+      .values({
+        user_id: userId,
+        concept_id: concept.id,
+        probability: 0.1,
+        state: "explored",
+        evidence_count: 1,
+      })
+      .execute();
+    const got = await quizzes.attempt(userId, started.attemptId);
+    expect(got).toMatchObject({ answered: 2, correct: 1 });
+    expect(got?.avgMs).toBeGreaterThanOrEqual(0);
+    // raft-0 also tests the retired concept: never shown.
+    expect(got?.concepts).toEqual([{ name: "raft", state: "explored" }]);
+    expect(await quizzes.attempt(otherUser, started.attemptId)).toBeNull();
+  });
+});
+
+test("an article attempt is titled by the article", async () => {
+  await inRollback(async (trx, { userId, itemId }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const started = await quizzes.start(userId, itemId, null);
+    if (started === null) throw new Error("no quiz");
+    expect((await quizzes.attempt(userId, started.attemptId))?.title).toBe(
+      "Consensus",
+    );
+  });
+});
+
+test("feedback gives the key only once the question is answered", async () => {
+  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const started = await quizzes.start(userId, itemId, raft);
+    if (started === null) throw new Error("no quiz");
+    const open = served(await quizzes.next(userId, started.attemptId));
+    expect(
+      await quizzes.answered(userId, started.attemptId, open.questionId),
+    ).toBeNull();
+    await quizzes.answer(userId, started.attemptId, open.questionId, 2);
+    expect(
+      await quizzes.answered(userId, started.attemptId, open.questionId),
+    ).toEqual({
+      stem: open.stem,
+      options: open.options,
+      chosen: 2,
+      correctOption: 0,
+      correct: false,
+    });
+    expect(
+      await quizzes.answered(otherUser, started.attemptId, open.questionId),
+    ).toBeNull();
   });
 });

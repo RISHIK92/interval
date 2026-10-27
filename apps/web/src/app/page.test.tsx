@@ -6,6 +6,7 @@ import type {
   FeedReader,
   Notes,
   Progress,
+  Quizzes,
 } from "../server/ports";
 
 const getFeed = vi.fn<FeedReader["read"]>();
@@ -37,7 +38,9 @@ vi.mock("../server/container", () => ({
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
   entitlements: () => ({ can }),
+  quizzes: () => ({ offered }),
 }));
+const offered = vi.fn<Quizzes["offered"]>(() => Promise.resolve(new Set()));
 let chipCookie: string | undefined;
 let readingCookie: string | undefined;
 const describe_ = vi.fn<Progress["describe"]>(() => Promise.resolve(null));
@@ -633,4 +636,42 @@ test("an article card shows the article's note; a section card never does", asyn
   const html = await render({ chip: "8-15" });
   expect(html).toContain("On the whole read");
   expect(html).not.toContain("On the consensus article");
+});
+
+// P2-W9-S02: Test 60s from a card, and after finishing a section.
+test("a card with live questions offers Test 60s on its section", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
+  offered.mockResolvedValueOnce(new Set(["10.1"]));
+  const html = await render();
+  expect(offered).toHaveBeenCalledWith([
+    { itemId: "10", momentId: "1" },
+    { itemId: "10", momentId: "2" },
+  ]);
+  expect(html.match(/aria-label="Test yourself: Why consensus"/g)).toHaveLength(
+    1,
+  );
+  expect(html).toMatch(
+    /<form[^>]*>(?:(?!<\/form>)[^])*name="momentId" value="1"(?:(?!<\/form>)[^])*Test yourself: Why consensus/,
+  );
+});
+
+test("after finishing a section with live questions, the feed offers its test", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  describe_.mockResolvedValue({
+    articleTitle: "Consensus in practice",
+    sectionTitle: "Why consensus",
+  });
+  nextMoment.mockResolvedValue(null);
+  offered.mockResolvedValue(new Set(["10.1"]));
+  const html = await render({ finished: "10.1" });
+  expect(html).toContain("Test yourself · 60s");
+  expect(html).toContain("That was the last section.");
+  offered.mockResolvedValue(new Set());
+  expect(await render({ finished: "10.1" })).not.toContain(
+    "Test yourself · 60s",
+  );
+  describe_.mockReset();
+  describe_.mockResolvedValue(null);
 });

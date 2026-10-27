@@ -53,8 +53,10 @@ test("starting a section's sprint records it and opens the quiz", async () => {
     firstTime: true,
   });
   await expect(
-    startQuizAction(form({ itemId: "5", momentId: "9", back: "/read/5" })),
-  ).rejects.toThrow("redirect:/quiz/41");
+    startQuizAction(
+      form({ itemId: "5", momentId: "9", chip: "3-8", back: "/read/5" }),
+    ),
+  ).rejects.toThrow("redirect:/quiz/41?chip=3-8");
   expect(start).toHaveBeenCalledWith("u1", "5", "9");
   expect(emit).toHaveBeenCalledWith(
     "quiz_started",
@@ -69,8 +71,8 @@ test("starting a section's sprint records it and opens the quiz", async () => {
     firstTime: false,
   });
   await expect(
-    startQuizAction(form({ itemId: "5", momentId: "9" })),
-  ).rejects.toThrow("redirect:/quiz/41");
+    startQuizAction(form({ itemId: "5", momentId: "9", chip: "3-8" })),
+  ).rejects.toThrow("redirect:/quiz/41?chip=3-8");
   expect(emit).not.toHaveBeenCalled();
 });
 
@@ -78,7 +80,7 @@ test("an article's sprint has no section; no live questions goes back", async ()
   const { startQuizAction } = await actions();
   start.mockResolvedValue(null);
   await expect(
-    startQuizAction(form({ itemId: "5", back: "/read/5" })),
+    startQuizAction(form({ itemId: "5", chip: "3-8", back: "/read/5" })),
   ).rejects.toThrow("redirect:/read/5");
   expect(start).toHaveBeenCalledWith("u1", "5", null);
   expect(emit).not.toHaveBeenCalled();
@@ -95,8 +97,10 @@ test("an answer is recorded once, with its time to answer", async () => {
     firstTime: true,
   });
   await expect(
-    answerQuizAction(form({ attemptId: "41", questionId: "7", chosen: "2" })),
-  ).rejects.toThrow("redirect:/quiz/41?answered=7");
+    answerQuizAction(
+      form({ attemptId: "41", questionId: "7", chosen: "2", chip: "3-8" }),
+    ),
+  ).rejects.toThrow("redirect:/quiz/41?chip=3-8&answered=7");
   expect(answer).toHaveBeenCalledWith("u1", "41", "7", 2);
   expect(emit).toHaveBeenCalledWith(
     "quiz_answered",
@@ -113,8 +117,10 @@ test("an answer is recorded once, with its time to answer", async () => {
     firstTime: false,
   });
   await expect(
-    answerQuizAction(form({ attemptId: "41", questionId: "7", chosen: "2" })),
-  ).rejects.toThrow("redirect:/quiz/41?answered=7");
+    answerQuizAction(
+      form({ attemptId: "41", questionId: "7", chosen: "2", chip: "3-8" }),
+    ),
+  ).rejects.toThrow("redirect:/quiz/41?chip=3-8&answered=7");
   expect(emit).not.toHaveBeenCalled();
 });
 
@@ -123,8 +129,10 @@ test("a late or foreign answer records nothing", async () => {
   for (const got of ["late", null] as const) {
     answer.mockResolvedValue(got);
     await expect(
-      answerQuizAction(form({ attemptId: "41", questionId: "7", chosen: "1" })),
-    ).rejects.toThrow("redirect:/quiz/41");
+      answerQuizAction(
+        form({ attemptId: "41", questionId: "7", chosen: "1", chip: "3-8" }),
+      ),
+    ).rejects.toThrow("redirect:/quiz/41?chip=3-8");
   }
   expect(emit).not.toHaveBeenCalled();
 });
@@ -132,9 +140,9 @@ test("a late or foreign answer records nothing", async () => {
 test("finishing reports once", async () => {
   const { finishQuizAction } = await actions();
   finish.mockResolvedValue({ answered: 6, correct: 4, firstTime: true });
-  await expect(finishQuizAction(form({ attemptId: "41" }))).rejects.toThrow(
-    "redirect:/quiz/41/results",
-  );
+  await expect(
+    finishQuizAction(form({ attemptId: "41", chip: "3-8" })),
+  ).rejects.toThrow("redirect:/quiz/41/results?chip=3-8");
   expect(emit).toHaveBeenCalledWith(
     "quiz_finished",
     { attempt_id: "41", answered: 6, correct: 4 },
@@ -142,19 +150,21 @@ test("finishing reports once", async () => {
   );
   emit.mockClear();
   finish.mockResolvedValue({ answered: 6, correct: 4, firstTime: false });
-  await expect(finishQuizAction(form({ attemptId: "41" }))).rejects.toThrow(
-    "redirect:/quiz/41/results",
-  );
+  await expect(
+    finishQuizAction(form({ attemptId: "41", chip: "3-8" })),
+  ).rejects.toThrow("redirect:/quiz/41/results?chip=3-8");
   expect(emit).not.toHaveBeenCalled();
 });
 
 test.each([
-  ["start", { itemId: "x" }],
-  ["start", { itemId: "5", momentId: "0" }],
-  ["answer", { attemptId: "41", questionId: "7", chosen: "4" }],
-  ["answer", { attemptId: "41", questionId: "7", chosen: "a" }],
-  ["answer", { attemptId: "-1", questionId: "7", chosen: "1" }],
-  ["finish", { attemptId: "x" }],
+  ["start", { itemId: "x", chip: "3-8" }],
+  ["start", { itemId: "5", momentId: "0", chip: "3-8" }],
+  ["answer", { attemptId: "41", questionId: "7", chosen: "4", chip: "3-8" }],
+  ["answer", { attemptId: "41", questionId: "7", chosen: "a", chip: "3-8" }],
+  ["answer", { attemptId: "-1", questionId: "7", chosen: "1", chip: "3-8" }],
+  ["finish", { attemptId: "x", chip: "3-8" }],
+  ["finish", { attemptId: "41", chip: "huge" }],
+  ["start", { itemId: "5" }],
 ] as const)(
   "bad input to %s goes home without a call",
   async (kind, fields) => {
@@ -171,10 +181,18 @@ test.each([
   },
 );
 
+test("Close finishes and goes back to the feed", async () => {
+  const { finishQuizAction } = await actions();
+  finish.mockResolvedValue({ answered: 1, correct: 1, firstTime: true });
+  await expect(
+    finishQuizAction(form({ attemptId: "41", chip: "1-3", leave: "1" })),
+  ).rejects.toThrow("redirect:/?chip=1-3");
+});
+
 test("signed out goes to join", async () => {
   const { startQuizAction } = await actions();
   current.mockResolvedValue(null);
-  await expect(startQuizAction(form({ itemId: "5" }))).rejects.toThrow(
-    "redirect:/join",
-  );
+  await expect(
+    startQuizAction(form({ itemId: "5", chip: "3-8" })),
+  ).rejects.toThrow("redirect:/join");
 });

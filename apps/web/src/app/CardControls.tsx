@@ -1,5 +1,6 @@
 import type { Chip } from "../server/chips";
 import { feedbackAction } from "./feedback/actions";
+import { StartQuiz, ZAP } from "./quiz/StartQuiz";
 
 // Round icon buttons beside the card's pill (design screen 2).
 const ROUND =
@@ -15,6 +16,7 @@ export function CardControls({
   saved,
   chip,
   originalHref,
+  test,
 }: {
   itemId: string;
   title: string;
@@ -23,90 +25,116 @@ export function CardControls({
   // A section's article page from the top (§5D); none for a whole-article card, whose
   // Read article already is that page.
   originalHref: string | null;
+  // P2-W9-S02: Test 60s on the card's section (or article), when it has questions.
+  test: { momentId: string | null } | null;
 }) {
   // Every card has these buttons: the title tells them apart for a screen reader. The
   // Save button is only an icon, so its label is its whole name.
   return (
-    <form
-      action={feedbackAction}
-      aria-label={`Actions for ${title}`}
-      className="flex shrink-0 items-center gap-2"
-    >
-      <input type="hidden" name="itemId" value={itemId} />
-      <input type="hidden" name="chip" value={chip} />
-      <button
-        type="submit"
-        name="control"
-        value={saved ? "unsave" : "save"}
-        aria-label={saved ? `Saved: unsave ${title}` : `Save ${title}`}
-        className={ROUND}
+    <div className="flex shrink-0 items-center gap-2">
+      {test === null ? null : (
+        <StartQuiz
+          itemId={itemId}
+          momentId={test.momentId}
+          chip={chip}
+          back={`/?chip=${chip}`}
+          label={`Test yourself: ${title}`}
+          className={ROUND}
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="size-5"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          >
+            <path d={ZAP} />
+          </svg>
+        </StartQuiz>
+      )}
+      <form
+        action={feedbackAction}
+        aria-label={`Actions for ${title}`}
+        className="flex shrink-0 items-center gap-2"
       >
-        <svg
-          aria-hidden="true"
-          viewBox="0 0 24 24"
-          className="size-5"
-          fill={saved ? "currentColor" : "none"}
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinejoin="round"
+        <input type="hidden" name="itemId" value={itemId} />
+        <input type="hidden" name="chip" value={chip} />
+        <button
+          type="submit"
+          name="control"
+          value={saved ? "unsave" : "save"}
+          aria-label={saved ? `Saved: unsave ${title}` : `Save ${title}`}
+          className={ROUND}
         >
-          <path d="M6 3h12v18l-6-4-6 4z" />
-        </svg>
-      </button>
-      <details className="relative">
-        <summary
-          className={`${ROUND} list-none [&::-webkit-details-marker]:hidden`}
-        >
-          <span aria-hidden="true">…</span>
-          <span className="sr-only">More options</span>
-        </summary>
-        {/* To the left of the button, rising from its foot: inside the card, where the
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="size-5"
+            fill={saved ? "currentColor" : "none"}
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          >
+            <path d="M6 3h12v18l-6-4-6 4z" />
+          </svg>
+        </button>
+        <details className="relative">
+          <summary
+            className={`${ROUND} list-none [&::-webkit-details-marker]:hidden`}
+          >
+            <span aria-hidden="true">…</span>
+            <span className="sr-only">More options</span>
+          </summary>
+          {/* To the left of the button, rising from its foot: inside the card, where the
           sideways feed row can't clip it (ADR-0019). */}
-        <div className="absolute right-full bottom-0 z-20 mr-2 flex w-52 flex-col rounded-2xl border border-hairline bg-page p-1 shadow-card">
-          {originalHref === null ? null : (
-            <a
-              href={originalHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`block ${MENU_ITEM}`}
+          <div className="absolute right-full bottom-0 z-20 mr-2 flex w-52 flex-col rounded-2xl border border-hairline bg-page p-1 shadow-card">
+            {originalHref === null ? null : (
+              <a
+                href={originalHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`block ${MENU_ITEM}`}
+              >
+                Open original website
+              </a>
+            )}
+            <button
+              type="submit"
+              name="control"
+              value="more_like_this"
+              className={MENU_ITEM}
             >
-              Open original website
-            </a>
-          )}
-          <button
-            type="submit"
-            name="control"
-            value="more_like_this"
-            className={MENU_ITEM}
-          >
-            More like this
-          </button>
-          <button
-            type="submit"
-            name="control"
-            value="less_like_this"
-            className={MENU_ITEM}
-          >
-            Less like this
-          </button>
-          <button
-            type="submit"
-            name="control"
-            value="not_interested"
-            className={MENU_ITEM}
-          >
-            Not interested
-          </button>
-          <button
-            type="submit"
-            name="control"
-            value="hide_source"
-            className={MENU_ITEM}
-          >
-            Hide this source
-          </button>
-        </div>
-      </details>
-    </form>
+              More like this
+            </button>
+            <button
+              type="submit"
+              name="control"
+              value="less_like_this"
+              className={MENU_ITEM}
+            >
+              Less like this
+            </button>
+            <button
+              type="submit"
+              name="control"
+              value="not_interested"
+              className={MENU_ITEM}
+            >
+              Not interested
+            </button>
+            <button
+              type="submit"
+              name="control"
+              value="hide_source"
+              className={MENU_ITEM}
+            >
+              Hide this source
+            </button>
+          </div>
+        </details>
+      </form>
+    </div>
   );
 }

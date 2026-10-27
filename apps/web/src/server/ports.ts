@@ -6,6 +6,7 @@ import type {
   Capability,
   Difficulty,
   FeedbackKind,
+  LearnerState,
   LearningGoal,
   Topic,
 } from "@interval/db";
@@ -275,7 +276,44 @@ export interface Quizzes {
     userId: string,
     attemptId: string,
   ): Promise<{ answered: number; correct: number; firstTime: boolean } | null>;
+  // P2-W9-S02: which of these targets would start a quiz, as `quizKey` keys.
+  offered(
+    targets: { itemId: string; momentId: string | null }[],
+  ): Promise<Set<string>>;
+  // The attempt's header and results; null when it isn't the user's.
+  attempt(userId: string, attemptId: string): Promise<QuizAttempt | null>;
+  // A question answered in the user's attempt, key included, for its feedback.
+  answered(
+    userId: string,
+    attemptId: string,
+    questionId: string,
+  ): Promise<QuizFeedback | null>;
 }
+
+export const quizKey = (itemId: string, momentId: string | null): string =>
+  `${itemId}.${momentId ?? ""}`;
+export type QuizAttempt = {
+  itemId: string;
+  momentId: string | null;
+  title: string; // the section's, else the article's
+  startedAt: Date;
+  endsAt: Date;
+  // By the database's clock, which holds the sprint's (0 once it has run out).
+  secondsLeft: number;
+  finishedAt: Date | null;
+  answered: number;
+  correct: number;
+  avgMs: number | null; // from serving to answering; null before any answer
+  // The concepts its answered questions test, with the user's state (null: unseen).
+  concepts: { name: string; state: LearnerState | null }[];
+};
+export type QuizFeedback = {
+  stem: string;
+  options: string[];
+  chosen: number;
+  correctOption: number;
+  correct: boolean;
+};
 
 // Notes (§5I, Q-P2-01, P2-W7-S03): a user's private note on a section, or on the
 // article when momentId is null. Never shown to anyone else.
