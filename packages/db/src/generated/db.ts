@@ -424,6 +424,25 @@ export interface QuestionReview {
   reason: ReviewReason;
 }
 
+export interface QuizAnswer {
+  answered_at: Timestamp | null;
+  attempt_id: Int8;
+  chosen: number | null;
+  correct: boolean | null;
+  question_id: Int8;
+  served_at: Generated<Timestamp>;
+}
+
+export interface QuizAttempt {
+  content_item_id: Int8;
+  ends_at: Timestamp;
+  finished_at: Timestamp | null;
+  id: Generated<Int8>;
+  moment_id: Int8 | null;
+  started_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface RankingConfig {
   key: string;
   note: string;
@@ -663,6 +682,8 @@ export interface DB {
   question_concept: QuestionConcept;
   question_drafting: QuestionDrafting;
   question_review: QuestionReview;
+  quiz_answer: QuizAnswer;
+  quiz_attempt: QuizAttempt;
   ranking_config: RankingConfig;
   schema_meta: SchemaMeta;
   source: Source;

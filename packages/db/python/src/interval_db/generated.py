@@ -388,6 +388,25 @@ class QuestionReview(TypedDict):
     decided_at: datetime | None
 
 
+class QuizAnswer(TypedDict):
+    attempt_id: int
+    question_id: int
+    served_at: datetime
+    chosen: int | None
+    correct: bool | None
+    answered_at: datetime | None
+
+
+class QuizAttempt(TypedDict):
+    id: int
+    user_id: str
+    content_item_id: int
+    moment_id: int | None
+    started_at: datetime
+    ends_at: datetime
+    finished_at: datetime | None
+
+
 class RankingConfig(TypedDict):
     key: str
     value: Decimal

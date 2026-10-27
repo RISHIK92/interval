@@ -16,6 +16,9 @@ export const EVENT_NAMES = [
   "onboarding_completed",
   "outbound_click",
   "pwa_installed",
+  "quiz_answered",
+  "quiz_finished",
+  "quiz_started",
   "section_finished",
   "session_started",
   "signup_completed",
@@ -38,6 +41,9 @@ export const EVENT_VERSIONS = {
   onboarding_completed: 1,
   outbound_click: 1,
   pwa_installed: 1,
+  quiz_answered: 1,
+  quiz_finished: 1,
+  quiz_started: 1,
   section_finished: 2,
   session_started: 1,
   signup_completed: 1,
@@ -89,6 +95,25 @@ export const propsSchemas = {
     target: z.enum(["section", "original"]),
   }),
   pwa_installed: z.strictObject({}),
+  quiz_answered: z.strictObject({
+    attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    question_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    result: z.enum(["right", "wrong"]),
+    ms: z.number().int().nonnegative(),
+  }),
+  quiz_finished: z.strictObject({
+    attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    answered: z.number().int().nonnegative(),
+    correct: z.number().int().nonnegative(),
+  }),
+  quiz_started: z.strictObject({
+    attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    moment_id: z
+      .string()
+      .regex(/^[1-9][0-9]{0,18}$/)
+      .nullable(),
+  }),
   section_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -198,6 +223,24 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("pwa_installed"),
     version: z.literal(1),
     props: propsSchemas.pwa_installed,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("quiz_answered"),
+    version: z.literal(1),
+    props: propsSchemas.quiz_answered,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("quiz_finished"),
+    version: z.literal(1),
+    props: propsSchemas.quiz_finished,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("quiz_started"),
+    version: z.literal(1),
+    props: propsSchemas.quiz_started,
   }),
   z.strictObject({
     ...base,

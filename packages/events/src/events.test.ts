@@ -31,6 +31,10 @@ describe("the event list (Q-P1-20)", () => {
         // Phase 2, in the owner-approved Week 7 plan (2026-10-27, P2-W7-S03).
         "note_saved",
         "note_deleted",
+        // The owner-approved Week 9 plan (2026-10-27, Q-P2-20, P2-W9-S01).
+        "quiz_started",
+        "quiz_answered",
+        "quiz_finished",
       ].sort(),
     );
   });

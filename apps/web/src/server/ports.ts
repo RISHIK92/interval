@@ -231,6 +231,52 @@ export interface Feedback {
   resetInferred(userId: string): Promise<void>;
 }
 
+// Test 60s (Q-P2-14, P2-W9-S01): a 60-second sprint over a moment's (or, momentId
+// null, an article's) concepts. The server holds the clock and serves one question at
+// a time; the key never leaves it before the answer.
+export const QUIZ_SECONDS = 60;
+export type QuizQuestion = {
+  questionId: string;
+  stem: string;
+  options: string[];
+  servedAt: Date;
+};
+export type QuizResult = {
+  correct: boolean;
+  correctOption: number;
+  servedAt: Date;
+  answeredAt: Date;
+  firstTime: boolean; // false: a resubmission (LOAD-5) given the stored result
+};
+export interface Quizzes {
+  // Null when the target has no live question its source's rights allow (ING-2).
+  // A start while the user's sprint on the same target still runs returns that one
+  // (LOAD-5: a double-tap starts one quiz), firstTime false.
+  start(
+    userId: string,
+    itemId: string,
+    momentId: string | null,
+  ): Promise<{ attemptId: string; endsAt: Date; firstTime: boolean } | null>;
+  // The open question (the same one until it's answered), else the next; "over" when
+  // the clock has run out or nothing is left; null when the attempt isn't the user's.
+  next(
+    userId: string,
+    attemptId: string,
+  ): Promise<QuizQuestion | "over" | null>;
+  // "late" after the clock (and its grace); null when the question wasn't served in
+  // the user's attempt.
+  answer(
+    userId: string,
+    attemptId: string,
+    questionId: string,
+    chosen: number,
+  ): Promise<QuizResult | "late" | null>;
+  finish(
+    userId: string,
+    attemptId: string,
+  ): Promise<{ answered: number; correct: number; firstTime: boolean } | null>;
+}
+
 // Notes (§5I, Q-P2-01, P2-W7-S03): a user's private note on a section, or on the
 // article when momentId is null. Never shown to anyone else.
 export interface Notes {

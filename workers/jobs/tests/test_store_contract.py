@@ -2626,20 +2626,30 @@ def test_the_summary_counts_by_status_and_samples_validated_questions(
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
+    # A local database may already hold real questions: counted from what was there.
+    before = s.questions.summary(0).counts
     _, (_, lag, quorum), _ = _question_item(s, probe)
     draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
     right, wrong = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None)
     s.questions.save(quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1", None)
     s.questions.record_verdict(right, "v", 2)
     s.questions.record_verdict(wrong, "v", 0)
-    got = s.questions.summary(10)
-    assert got.counts == {"live": 1, "rejected": 1, "pending": 2}
+    got = s.questions.summary(100_000)
+    added = {k: got.counts.get(k, 0) - before.get(k, 0) for k in got.counts}
+    assert {k: n for k, n in added.items() if n} == {
+        "live": 1,
+        "rejected": 1,
+        "pending": 2,
+    }
     assert sorted(
-        (q.question_id, q.validator_answer, q.status) for q in got.sample
+        (q.question_id, q.validator_answer, q.status)
+        for q in got.sample
+        if q.question_id in (right, wrong)
     ) == [
         (right, 2, "live"),
         (wrong, 0, "rejected"),
     ]
+    assert all(q.status in ("live", "rejected") for q in got.sample)
     assert len(s.questions.summary(1).sample) == 1
 
 
@@ -2705,12 +2715,25 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
     store: tuple[Store, Probe],
 ) -> None:
     s, probe = store
+    # A local database may already hold real pending questions.
+    before = set(s.questions.pending_questions())
+    held_moments, held_questions = s.questions.in_open_batches()
+
+    def open_ours() -> list[tuple[str, str]]:
+        return [(b, k) for b, k, _ in s.questions.open_batches() if b in ("b1", "b2")]
+
+    def in_ours() -> tuple[set[int], set[int]]:
+        moments, questions = s.questions.in_open_batches()
+        return moments - held_moments, questions - held_questions
+
     _, (_, lag, quorum), _ = _question_item(s, probe)
     draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
     (pending, _) = s.questions.save(
         quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1", None
     )
-    assert s.questions.pending_questions() == sorted(s.questions.pending_ids(quorum))
+    assert [q for q in s.questions.pending_questions() if q not in before] == sorted(
+        s.questions.pending_ids(quorum)
+    )
     s.questions.record_batch(
         "b1",
         "draft",
@@ -2726,12 +2749,9 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
         "haiku",
         [QuestionBatchEntry(f"v-{pending}", None, pending, None)],
     )
-    assert [(b, k) for b, k, _ in s.questions.open_batches()] == [
-        ("b1", "draft"),
-        ("b2", "validate"),
-    ]
+    assert open_ours() == [("b1", "draft"), ("b2", "validate")]
     assert all(at.tzinfo is not None for _, _, at in s.questions.open_batches())
-    assert s.questions.in_open_batches() == ({lag, quorum}, {pending})
+    assert in_ours() == ({lag, quorum}, {pending})
     assert s.questions.batch_entries("b1") == [
         QuestionBatchEntry(f"draft-{lag}", lag, None, "h-lag"),
         QuestionBatchEntry(f"draft-{quorum}", quorum, None, "h-q"),
@@ -2742,10 +2762,14 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
     s.questions.close_batch(
         "b1", "completed", {f"draft-{lag}": "broken", f"draft-{quorum}": "saved"}
     )
-    assert [(b, k) for b, k, _ in s.questions.open_batches()] == [("b2", "validate")]
-    assert s.questions.in_open_batches() == (set(), {pending})
-    assert s.questions.broken_counts() == ({(lag, "h-lag"): 1}, {})
+    assert open_ours() == [("b2", "validate")]
+    assert in_ours() == (set(), {pending})
+    broken_moments, broken_questions = s.questions.broken_counts()
+    assert {k: n for k, n in broken_moments.items() if k[0] in (lag, quorum)} == {
+        (lag, "h-lag"): 1
+    }
+    assert pending not in broken_questions
     # A failed batch frees its items without results.
     s.questions.close_batch("b2", "failed", {})
-    assert s.questions.open_batches() == []
-    assert s.questions.in_open_batches() == (set(), set())
+    assert open_ours() == []
+    assert in_ours() == (set(), set())

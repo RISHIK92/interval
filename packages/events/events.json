@@ -69,6 +69,26 @@
       "description": "A note was deleted (P2-W7-S03).",
       "props": { "item_id": "id", "moment_id": "id?" }
     },
+    "quiz_started": {
+      "version": 1,
+      "description": "A Test 60s sprint started on a section or a whole article (P2-W9-S01, Q-P2-14, Q-P2-20).",
+      "props": { "attempt_id": "id", "item_id": "id", "moment_id": "id?" }
+    },
+    "quiz_answered": {
+      "version": 1,
+      "description": "A quiz question was answered in time, first time only (P2-W9-S01). ms: from serving to answering.",
+      "props": {
+        "attempt_id": "id",
+        "question_id": "id",
+        "result": ["right", "wrong"],
+        "ms": "count"
+      }
+    },
+    "quiz_finished": {
+      "version": 1,
+      "description": "A Test 60s sprint was finished, once per attempt (P2-W9-S01).",
+      "props": { "attempt_id": "id", "answered": "count", "correct": "count" }
+    },
     "item_saved": {
       "version": 1,
       "description": "An item was saved (W4-S07; listed by the W5-S04 Library).",
