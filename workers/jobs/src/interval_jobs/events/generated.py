@@ -56,7 +56,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "pwa_installed": 1,
     "quiz_answered": 1,
     "quiz_finished": 1,
-    "quiz_started": 1,
+    "quiz_started": 2,
     "section_finished": 2,
     "session_started": 1,
     "signup_completed": 1,
@@ -148,7 +148,8 @@ class QuizFinishedProps(_Model):
 
 class QuizStartedProps(_Model):
     attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
-    item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    kind: Literal["test", "review"]
+    item_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
     moment_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
@@ -284,7 +285,7 @@ class QuizFinishedEvent(_EnvelopeBase):
 
 class QuizStartedEvent(_EnvelopeBase):
     name: Literal["quiz_started"]
-    version: Literal[1]
+    version: Literal[2]
     props: QuizStartedProps
 
 
