@@ -75,3 +75,11 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - Acceptance: difficulty from the moment's level (an admin's correction winning); answer and correct counts and an empty calibrated-at stored.
 - Out of scope: the IRT recalibration job (Week 9).
 - Q: Q-P2-11.
+
+### P2-W8-S05 Questions through the batch API
+- IDs: Q-1, AI-4, OPS-4, ADR-0008
+- Needs: S01, S02
+- Goal: drafting and validation run through OpenRouter's Batch API at half price, collected every 30 minutes.
+- Acceptance: an `OpenRouterBatches` adapter (submit with `requests` last, status, results by custom_id, cost required, the price cap on the `:batch` listing) behind `AiGateway.submit_batch` / `collect_batch` (budget before, cost recorded at collection); `question_batch` / `question_batch_item`; `question-batches` collects then submits, freeing failed batches and capping broken replies; batch mode keeps tagging from queuing per-moment drafting; a VM timer and an AWS schedule every 30 minutes.
+- Out of scope: other features' batching.
+- Q: Q-P2-13.

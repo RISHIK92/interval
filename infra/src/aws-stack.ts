@@ -570,6 +570,36 @@ export class AwsStack extends Stack {
       }),
     });
 
+    // Q-P2-13 (P2-W8-S05): EventBridge Scheduler runs `question-batches` every 30
+    // minutes: it calls the model (the OpenRouter key) and writes the database; no
+    // queue to send to.
+    const questionBatchesTask = taskDefinition("QuestionBatches");
+    questionBatchesTask.addContainer("question-batches", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["question-batches"],
+      environment,
+      // Only what it uses: the database and the model provider.
+      secrets: {
+        DB_PASSWORD: secrets.DB_PASSWORD,
+        OPENROUTER_API_KEY: secrets.OPENROUTER_API_KEY,
+      },
+      logging: logging("question-batches"),
+    });
+    new scheduler.Schedule(this, "QuestionBatchesSchedule", {
+      schedule: scheduler.ScheduleExpression.rate(Duration.minutes(30)),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: questionBatchesTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // The next run picks up whatever this one missed.
+        retryAttempts: 0,
+        maxEventAge: Duration.minutes(30),
+      }),
+    });
+
     // The ingestion pipeline's consumer (W2-S02b): one always-on task serving every
     // stage queue. Same image and grants as the one-off jobs.
     const workerTask = taskDefinition("Worker");

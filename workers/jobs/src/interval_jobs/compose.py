@@ -28,6 +28,7 @@ from interval_jobs.adapters.openai_compatible import (
     OpenAiCompatibleClient,
 )
 from interval_jobs.adapters.openrouter import ListedOutputPrices, OpenRouterClient
+from interval_jobs.adapters.openrouter_batches import OpenRouterBatches
 from interval_jobs.adapters.openrouter_decisions import OpenRouterDecisions
 from interval_jobs.adapters.polite_fetcher import PoliteFetcher
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore, unit_of_work
@@ -189,12 +190,13 @@ def ai_gateway(ledger: AiLedger, http: httpx.Client) -> AiGateway:
     """The one way to a model (ADR-0008): OpenRouter and Voyage AI (ADR-0007), and Groq
     or Google for a "groq:" or "google:" model (ADR-0020, ADR-0021)."""
     key = _required("OPENROUTER_API_KEY")
-    prices = ListedOutputPrices(http)  # one price list for both OpenRouter clients
+    prices = ListedOutputPrices(http)  # one price list for every OpenRouter client
     return AiGateway(
         ledger,
         OpenRouterClient(http, key, output_price=prices),
         VoyageClient(http, os.environ.get("VOYAGE_API_KEY") or None),
         decisions=OpenRouterDecisions(http, key, output_price=prices),
+        batches=OpenRouterBatches(http, key, output_price=prices),
         others={
             spec.provider: OpenAiCompatibleClient(
                 spec, http, os.environ.get(spec.key_name) or None

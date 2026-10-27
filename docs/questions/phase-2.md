@@ -70,3 +70,8 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P2-12 The citation (P1)
 - Cite: Q-1 ("with a citation"), AI-3 (cites its source passages; stored separately), ING-2, §3.2 (deep links, never copies).
 - Suggested default: a verbatim quote of at most 300 characters from the moment's text, stored with the question for validation and review only; users see the deep link to the section, never the quote.
+
+### Q-P2-13 Questions through the batch API (P1)
+- Cite: Q-P2-10, AI-4 ("Offline jobs use batch processing"), OPS-4.
+- **Answer (owner, 2026-10-27):** draft and validate with `anthropic/claude-haiku-5.5` through OpenRouter's Batch API, at the batch tier's half price ($0.05 / $0.25 per 1M tokens): "batch path costs literally half". Set as `QUESTIONS_MODEL=batch:anthropic/claude-haiku-5.5`; the free per-moment path stays for a non-`batch:` model.
+- Suggested defaults (as built in P2-W8-S05): `question-batches` every 30 minutes collects, then submits; a failed batch frees its items; a broken reply counts toward the cap of 5 (drafts per moment, validations per question); up to 1,000 requests per batch; Haiku's reasoning effort low (its thinking is billed as output).

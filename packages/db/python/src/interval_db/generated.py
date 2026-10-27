@@ -25,6 +25,7 @@ type LearningGoal = Literal[
     "system-design-interviews", "stack-i-use", "finish-that-book", "stay-sharp"
 ]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
+type QuestionBatchKind = Literal["draft", "validate"]
 type QuestionStatus = Literal["pending", "live", "rejected", "flagged", "retired"]
 type ReviewDecision = Literal["keep", "retire"]
 type ReviewReason = Literal["sample", "flagged"]
@@ -345,6 +346,25 @@ class Question(TypedDict):
     answer_count: int
     correct_count: int
     calibrated_at: datetime | None
+
+
+class QuestionBatch(TypedDict):
+    id: str
+    kind: QuestionBatchKind
+    model: str
+    submitted_at: datetime
+    closed_at: datetime | None
+    outcome: str | None
+    cost_usd: Decimal | None
+
+
+class QuestionBatchItem(TypedDict):
+    batch_id: str
+    custom_id: str
+    moment_id: int | None
+    question_id: int | None
+    content_hash: str | None
+    result: str | None
 
 
 class QuestionConcept(TypedDict):

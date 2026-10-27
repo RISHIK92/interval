@@ -248,8 +248,8 @@ describe("containers", () => {
   test("ARM64 tasks get secrets only through ECS secrets, never plain env", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
     // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due,
-    // spot-check-due
-    expect(tasks.length).toBe(8);
+    // spot-check-due, question-batches
+    expect(tasks.length).toBe(9);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -488,7 +488,7 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(4);
+    expect(runTask).toHaveLength(5);
     const targets = runTask.map((st) => JSON.stringify(st.Resource));
     expect(targets.filter((t) => t.includes("PollDueTask"))).toHaveLength(1);
     expect(targets.filter((t) => t.includes("RecomputeDueTask"))).toHaveLength(
@@ -892,6 +892,32 @@ describe("weekly question spot checks (P2-W8-S03, Q-2)", () => {
       .filter(([, policy]) =>
         (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
           r.Ref.startsWith("SpotCheckDueTaskTaskRole"),
+        ),
+      )
+      .flatMap(([, policy]) =>
+        (
+          policy.Properties["PolicyDocument"] as {
+            Statement: { Action: string | string[] }[];
+          }
+        ).Statement.flatMap((st) => [st.Action].flat()),
+      );
+    expect(actions.some((a) => a.startsWith("sqs:"))).toBe(false);
+  });
+});
+
+describe("question batches (P2-W8-S05, Q-P2-13)", () => {
+  test("EventBridge Scheduler runs question-batches every 30 minutes, with no queue access", () => {
+    const schedule = scheduleFor("QuestionBatchesTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe("rate(30 minutes)");
+    const container = containerNamed("question-batches");
+    expect(container?.Command).toEqual(["question-batches"]);
+    expect(
+      (container?.Secrets ?? []).map((s: { Name: string }) => s.Name).sort(),
+    ).toEqual(["DB_PASSWORD", "OPENROUTER_API_KEY"]);
+    const actions = all("AWS::IAM::Policy")
+      .filter(([, policy]) =>
+        (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
+          r.Ref.startsWith("QuestionBatchesTaskTaskRole"),
         ),
       )
       .flatMap(([, policy]) =>

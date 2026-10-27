@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
-from typing import cast
+from typing import Literal, cast
 
 import psycopg
 from psycopg.rows import class_row
@@ -30,6 +30,8 @@ from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
     Arm,
     ArmOutcome,
+    BatchItemResult,
+    BatchKind,
     CandidateArticle,
     CandidateMoment,
     ConceptCycleError,
@@ -48,6 +50,7 @@ from interval_jobs.ports import (
     NoteInput,
     NoteKey,
     NoteRef,
+    QuestionBatchEntry,
     QuestionDraft,
     QuestionSummary,
     QuestionTarget,
@@ -2068,6 +2071,113 @@ class PostgresQuestions:
             """
         ).fetchall()
         return len(sampled), len(flagged)
+
+    def pending_questions(self) -> list[int]:
+        rows = self._conn.execute(
+            "select id from question where status = 'pending' order by created_at, id"
+        ).fetchall()
+        return [int(r[0]) for r in rows]
+
+    def record_batch(
+        self,
+        batch_id: str,
+        kind: BatchKind,
+        model: str,
+        entries: Sequence[QuestionBatchEntry],
+    ) -> None:
+        self._conn.execute(
+            "insert into question_batch (id, kind, model) values (%s, %s, %s)",
+            (batch_id, kind, model),
+        )
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                """
+                insert into question_batch_item
+                  (batch_id, custom_id, moment_id, question_id, content_hash)
+                values (%s, %s, %s, %s, %s)
+                """,
+                [
+                    (batch_id, e.custom_id, e.moment_id, e.question_id, e.content_hash)
+                    for e in entries
+                ],
+            )
+
+    def open_batches(self) -> list[tuple[str, BatchKind]]:
+        rows = self._conn.execute(
+            "select id, kind from question_batch where closed_at is null "
+            "order by submitted_at, id"
+        ).fetchall()
+        return [(str(r[0]), cast(BatchKind, r[1])) for r in rows]
+
+    def batch_entries(self, batch_id: str) -> list[QuestionBatchEntry]:
+        rows = self._conn.execute(
+            """
+            select custom_id, moment_id, question_id, content_hash
+            from question_batch_item where batch_id = %s order by custom_id
+            """,
+            (batch_id,),
+        ).fetchall()
+        return [
+            QuestionBatchEntry(
+                str(cid),
+                None if mid is None else int(mid),
+                None if qid is None else int(qid),
+                None if digest is None else str(digest),
+            )
+            for cid, mid, qid, digest in rows
+        ]
+
+    def in_open_batches(self) -> tuple[set[int], set[int]]:
+        rows = self._conn.execute(
+            """
+            select i.moment_id, i.question_id from question_batch_item i
+            join question_batch b on b.id = i.batch_id where b.closed_at is null
+            """
+        ).fetchall()
+        return (
+            {int(m) for m, _ in rows if m is not None},
+            {int(q) for _, q in rows if q is not None},
+        )
+
+    def claim_batch_cost(self, batch_id: str, cost_usd: Decimal) -> bool:
+        row = self._conn.execute(
+            "update question_batch set cost_usd = %s "
+            "where id = %s and cost_usd is null returning id",
+            (cost_usd, batch_id),
+        ).fetchone()
+        return row is not None
+
+    def close_batch(
+        self,
+        batch_id: str,
+        outcome: Literal["completed", "failed"],
+        results: Mapping[str, BatchItemResult],
+    ) -> None:
+        self._conn.execute(
+            "update question_batch set closed_at = now(), outcome = %s where id = %s",
+            (outcome, batch_id),
+        )
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                "update question_batch_item set result = %s "
+                "where batch_id = %s and custom_id = %s",
+                [(result, batch_id, cid) for cid, result in results.items()],
+            )
+
+    def broken_counts(self) -> tuple[dict[tuple[int, str], int], dict[int, int]]:
+        rows = self._conn.execute(
+            "select moment_id, content_hash, question_id, count(*) "
+            "from question_batch_item where result = 'broken' "
+            "group by moment_id, content_hash, question_id"
+        ).fetchall()
+        return (
+            {
+                (int(m), str(h)): int(n)
+                for m, h, _, n in rows
+                if m is not None and h is not None
+            },
+            {int(q): int(n) for _, _, q, n in rows if q is not None},
+        )
 
     def summary(self, sample: int) -> QuestionSummary:
         counts = {

@@ -1912,3 +1912,10 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `QuestionTarget.difficulty` (Postgres: moment tagging and the heading's correction, never the intro; memory: `moment_difficulty`); the stage saves each draft at its moment's current level.
 - Reviewer: a stage test for the level, the backfill and comment, the shadowed alias and a redundant check fixed.
 - Week 8 is built: S01–S04. Recalibration from answers (Q-3) comes with Week 9's quizzes.
+
+### 2026-10-27 — P2-W8-S05 (questions through OpenRouter's Batch API, Q-P2-13)
+- Owner: "batch path costs literally half". `QUESTIONS_MODEL=batch:anthropic/claude-haiku-5.5` drafts and validates through OpenRouter's Batch API at $0.05 / $0.25 per 1M (the `:batch` variant can't be called on chat/completions).
+- `adapters/openrouter_batches.py`: submit (`requests` last; Haiku reasoning effort low; price cap on the `<model>:batch` listing), status (running / completed / failed; 404 and 410 free the items; each result parsed alone; an expired batch's paid results and cost kept; cost required on completion). Gateway: `submit_batch` (budget first), `batch_status`, `record_batch_cost`.
+- Migration `20261027150000_question_batches.sql`: `question_batch`, `question_batch_item`. `question_batches.py`: submit (one open batch per kind, bounding spend in flight; up to 1,000 requests; broken caps per moment and text, per question) and collect (the cost claimed on the batch row before it's recorded, so a retried collection never double counts; saves can run again; a changed moment is skipped and sent again; a failed batch frees its items).
+- `question-batches` (collect, then submit; one run at a time, advisory lock): a VM timer and an AWS EventBridge schedule every 30 minutes (only the DB and OpenRouter secrets, no queue access).
+- Reviewer: the double count (blocker), stuck batches (410, odd bodies), part-run batches, submit failures per kind, in-flight spend, secrets, overlapping runs, hash-keyed caps, and tests fixed. Known limit: a submit that fails after OpenRouter accepted it leaves an unnamed paid batch (no idempotency key documented); it's logged.

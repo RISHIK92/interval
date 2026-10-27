@@ -110,6 +110,9 @@ STAGES: tuple[MessageName, ...] = (
 # QUESTION_BROKEN_REPLIES times, so a moment the model can't do doesn't spend the free
 # tier's daily requests forever. Config and infrastructure errors still raise.
 QUESTION_RETRY_SECONDS = 300
+# Q-P2-13: QUESTIONS_MODEL=batch:<model> drafts and validates through the provider's
+# batch API (question_batches.py) instead of one call per moment here.
+BATCH_PREFIX = "batch:"
 QUESTION_BROKEN_REPLIES = 5
 # A retry this far past due was lost (a flushed queue): a fresh start is taken.
 QUESTION_RETRY_LOST = timedelta(minutes=30)
@@ -138,6 +141,16 @@ class ModelJob:
 type Next = tuple[MessageName, dict[str, object], str]
 # The feed URL and what it answered with; None when nothing is to be kept.
 type Answered = tuple[str, Validators | None] | None
+
+
+def moment_text(store: Store, target: QuestionTarget | None) -> str:
+    """A question target's text, as drafting reads it; empty when there is none."""
+    if target is None:
+        return ""
+    item = store.tags.input(target.item_id)
+    if item is None or item.full_text is None:
+        return ""
+    return moment_texts(item.full_text, item.moments).get(target.moment_id, "").strip()
 
 
 class Pipeline:
@@ -427,8 +440,9 @@ class Pipeline:
 
     def _questions_for(self, store: Store, item_id: int) -> list[Next]:
         """Q-P2-09: each tagged full-text moment's questions, once tagging saved its
-        tags; drafting skips a moment whose text and prompt are unchanged (AI-4)."""
-        if self._questions is None:
+        tags; drafting skips a moment whose text and prompt are unchanged (AI-4). In
+        batch mode (Q-P2-13) the batch commands draft instead."""
+        if self._questions is None or self._questions.model.startswith(BATCH_PREFIX):
             return []
         return [
             (
@@ -444,8 +458,8 @@ class Pipeline:
         with no transaction open, then save, as tagging does."""
         assert isinstance(message, GenerateQuestions)
         moment_id, job = message.moment_id, self._questions
-        if job is None:
-            log.info("pipeline: questions are off (no model)", moment_id=moment_id)
+        if job is None or job.model.startswith(BATCH_PREFIX):
+            log.info("pipeline: sync questions are off", moment_id=moment_id)
             return
         now = self._clock()
         with self._unit() as services:
@@ -454,7 +468,7 @@ class Pipeline:
             drafted = questions.drafted_hash(moment_id)
             pending_ids = questions.pending_ids(moment_id)
             retry = questions.retry_state(moment_id)
-            text = self._moment_text(services.store, target)
+            text = moment_text(services.store, target)
         # One retry chain per moment: a re-tag or a second backfill while a retry
         # waits starts another, which is dropped here.
         if (
@@ -510,7 +524,7 @@ class Pipeline:
             # The moment changed or lost its target while the model ran: the next
             # tagging pass queues it again.
             current = services.store.questions.target(moment_id)
-            if current is None or self._moment_text(services.store, current) != text:
+            if current is None or moment_text(services.store, current) != text:
                 log.info(
                     "questions: moment changed; drafts dropped", moment_id=moment_id
                 )
@@ -580,15 +594,15 @@ class Pipeline:
         repeated delivery changes nothing."""
         assert isinstance(message, ValidateQuestion)
         question_id, job = message.question_id, self._questions
-        if job is None:
-            log.info("pipeline: questions are off (no model)", question_id=question_id)
+        if job is None or job.model.startswith(BATCH_PREFIX):
+            log.info("pipeline: sync questions are off", question_id=question_id)
             return
         with self._unit() as services:
             pending = services.store.questions.pending(question_id)
             target = (
                 None if pending is None else services.store.questions.target(pending[0])
             )
-            text = self._moment_text(services.store, target)
+            text = moment_text(services.store, target)
         if pending is None:
             return  # decided, retired or gone: a repeat delivery
         if not text:
@@ -632,17 +646,6 @@ class Pipeline:
             )
         else:
             log.info("questions: decided or retired meanwhile", question_id=question_id)
-
-    @staticmethod
-    def _moment_text(store: Store, target: QuestionTarget | None) -> str:
-        if target is None:
-            return ""
-        item = store.tags.input(target.item_id)
-        if item is None or item.full_text is None:
-            return ""
-        return (
-            moment_texts(item.full_text, item.moments).get(target.moment_id, "").strip()
-        )
 
     def _tag_if_needed(self, store: Store, item_id: int) -> list[Next]:
         if self._tagging is None or not store.tags.needs_tagging(

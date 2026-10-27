@@ -1,6 +1,7 @@
 """Every model call goes through the gateway (ADR-0008), which keeps budgets (OPS-4)."""
 
 import json
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from decimal import Decimal
 from typing import Any
@@ -17,6 +18,9 @@ from interval_jobs.ai.gateway import (
     OverBudget,
 )
 from interval_jobs.ports import (
+    BatchItem,
+    BatchRequest,
+    BatchStatus,
     ChoiceAnswer,
     Completion,
     Decision,
@@ -325,4 +329,72 @@ def test_a_decision_without_a_decisions_client_is_a_model_error(
     with pytest.raises(ModelError, match="decision"):
         gateway(ledger).decide(
             feature="tagging", user_id=None, model="m", state={}, questions={}
+        )
+
+
+# Q-P2-13 (P2-W8-S05): a batch is budgeted before it's submitted and costed once, when
+# it completes.
+class FakeBatches:
+    provider: AiProvider = "openrouter"
+
+    def __init__(self, state: BatchStatus) -> None:
+        self.state = state
+        self.submitted: list[list[BatchRequest]] = []
+
+    def submit(self, model: str, requests: Sequence[BatchRequest]) -> str:
+        self.submitted.append(list(requests))
+        return "batch_1"
+
+    def status(self, batch_id: str) -> BatchStatus:
+        return self.state
+
+
+def batch_gateway(ledger: InMemoryAi, batches: FakeBatches) -> AiGateway:
+    return AiGateway(
+        ledger, FakeLlm(), FakeEmbeddings(), clock=lambda: NOW, batches=batches
+    )
+
+
+def test_a_batch_is_refused_over_the_global_budget_and_otherwise_submitted(
+    ledger: InMemoryAi,
+) -> None:
+    batches = FakeBatches(BatchStatus("running", [], None, None))
+    requests = [BatchRequest("draft-1", MESSAGES)]
+    got = batch_gateway(ledger, batches).submit_batch(
+        feature="questions", model="m", requests=requests
+    )
+    assert got == "batch_1" and batches.submitted == [requests]
+    assert ledger.rows == []  # nothing is paid until it completes
+    spend(ledger, None, "5.00", NOW)
+    assert batch_gateway(ledger, batches).submit_batch(
+        feature="questions", model="m", requests=requests
+    ) == OverBudget("global")
+    assert len(batches.submitted) == 1
+
+
+def test_reading_a_batch_records_nothing_and_its_cost_is_recorded_when_asked(
+    ledger: InMemoryAi,
+) -> None:
+    done = BatchStatus(
+        "completed",
+        [
+            BatchItem("a", "x", None, 1000, 200),
+            BatchItem("b", None, "overloaded", 0, 0),
+        ],
+        Decimal("0.0001"),
+        None,
+    )
+    gateway = batch_gateway(ledger, FakeBatches(done))
+    assert gateway.batch_status("batch_1") == done
+    assert ledger.rows == []
+    gateway.record_batch_cost(feature="questions", model="m", status=done)
+    (row,) = ledger.rows
+    assert (row.feature, row.user_id, row.model) == ("questions", None, "m")
+    assert (row.input_tokens, row.output_tokens) == (1000, 200)
+    assert row.cost_usd == Decimal("0.0001")
+    with pytest.raises(ModelError, match="without a cost"):
+        gateway.record_batch_cost(
+            feature="questions",
+            model="m",
+            status=BatchStatus("completed", [], None, None),
         )

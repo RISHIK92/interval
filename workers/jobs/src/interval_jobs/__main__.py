@@ -20,16 +20,20 @@ import signal
 import sys
 import threading
 import time
+from collections.abc import Generator
+from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import get_args
 
 import httpx
+import psycopg
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.compose import (
     ai_gateway,
+    database_url,
     model_job,
     queue_consumer,
     queue_for_enqueue,
@@ -55,9 +59,10 @@ from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.link_check import check_links
 from interval_jobs.link_health import queue_link_checks
-from interval_jobs.pipeline import Pipeline
+from interval_jobs.pipeline import BATCH_PREFIX, Pipeline
 from interval_jobs.polling import enqueue_due
-from interval_jobs.ports import ConceptCycleError, ModelError
+from interval_jobs.ports import ConceptCycleError, ModelError, Store
+from interval_jobs.question_batches import collect, submit
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.ranking.scoring import BREAK_MINUTES
 from interval_jobs.segment import segment_item
@@ -183,6 +188,11 @@ def main(argv: list[str]) -> None:
         help="queue question drafting for every tagged full-text moment (Q-1)",
     )
     commands.add_parser(
+        "question-batches",
+        help="collect finished question batches, then submit what needs doing "
+        "(QUESTIONS_MODEL=batch:<model>, Q-P2-13)",
+    )
+    commands.add_parser(
         "spot-check-due",
         help="queue this week's question spot checks: 10%% sampled, plus flagged (Q-2)",
     )
@@ -251,6 +261,10 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
 
     if args.command == "enqueue-questions":
         print(json.dumps({"enqueued": _enqueue_questions()}))
+        return
+
+    if args.command == "question-batches":
+        _question_batches()
         return
 
     if args.command == "spot-check-due":
@@ -510,6 +524,36 @@ def _draft_count(value: str) -> int:
     if not 1 <= count <= 50:
         raise argparse.ArgumentTypeError("count must be between 1 and 50")
     return count
+
+
+def _question_batches() -> None:
+    """Q-P2-13: collect what finished, then submit the rest. EventBridge Scheduler or
+    the VM's interval-question-batches.timer runs it every 30 minutes."""
+
+    @contextmanager
+    def unit() -> Generator[Store]:
+        with services() as s:
+            yield s.store
+
+    with (
+        model_job("QUESTIONS_MODEL") as job,
+        # One run at a time (a VM timer and an EventBridge schedule can overlap a
+        # slow run): two collections or submits at once would double up.
+        psycopg.connect(database_url(), autocommit=True) as lock,
+    ):
+        if job is None or not job.model.startswith(BATCH_PREFIX):
+            sys.exit("question-batches needs QUESTIONS_MODEL=batch:<model>")
+        got = lock.execute(
+            "select pg_try_advisory_lock(hashtext('question-batches'))"
+        ).fetchone()
+        if got is None or not got[0]:
+            print(json.dumps({"skipped": "another run holds the lock"}))
+            return
+        model = job.model.removeprefix(BATCH_PREFIX)
+        with job.gateway() as gateway:
+            collected = collect(unit, gateway, model)
+            submitted = submit(unit, gateway, model)
+    print(json.dumps({"collected": asdict(collected), "submitted": asdict(submitted)}))
 
 
 def _enqueue_questions() -> int:

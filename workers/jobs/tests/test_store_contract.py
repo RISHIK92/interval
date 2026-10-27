@@ -42,6 +42,7 @@ from interval_jobs.ports import (
     NoteInput,
     NoteKey,
     NoteRef,
+    QuestionBatchEntry,
     QuestionDraft,
     RankedEntry,
     RightsViolation,
@@ -2696,3 +2697,51 @@ def test_a_question_starts_at_its_moments_difficulty(
         lag, [draft, draft], ["cg-lag"], "m", 1, "h1", target.difficulty
     )
     assert probe.question_difficulty(first) == "advanced"
+
+
+# Q-P2-13 (P2-W8-S05): batches remember what each request was for; an open batch
+# holds its moments and questions; broken replies count per moment.
+def test_question_batches_hold_their_items_until_closed_and_count_broken_replies(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    _, (_, lag, quorum), _ = _question_item(s, probe)
+    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    (pending, _) = s.questions.save(
+        quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1", None
+    )
+    assert s.questions.pending_questions() == sorted(s.questions.pending_ids(quorum))
+    s.questions.record_batch(
+        "b1",
+        "draft",
+        "haiku",
+        [
+            QuestionBatchEntry(f"draft-{lag}", lag, None, "h-lag"),
+            QuestionBatchEntry(f"draft-{quorum}", quorum, None, "h-q"),
+        ],
+    )
+    s.questions.record_batch(
+        "b2",
+        "validate",
+        "haiku",
+        [QuestionBatchEntry(f"v-{pending}", None, pending, None)],
+    )
+    assert s.questions.open_batches() == [("b1", "draft"), ("b2", "validate")]
+    assert s.questions.in_open_batches() == ({lag, quorum}, {pending})
+    assert s.questions.batch_entries("b1") == [
+        QuestionBatchEntry(f"draft-{lag}", lag, None, "h-lag"),
+        QuestionBatchEntry(f"draft-{quorum}", quorum, None, "h-q"),
+    ]
+    # The cost is claimed once, whatever happens to the closing after it.
+    assert s.questions.claim_batch_cost("b1", Decimal("0.0002")) is True
+    assert s.questions.claim_batch_cost("b1", Decimal("0.0002")) is False
+    s.questions.close_batch(
+        "b1", "completed", {f"draft-{lag}": "broken", f"draft-{quorum}": "saved"}
+    )
+    assert s.questions.open_batches() == [("b2", "validate")]
+    assert s.questions.in_open_batches() == (set(), {pending})
+    assert s.questions.broken_counts() == ({(lag, "h-lag"): 1}, {})
+    # A failed batch frees its items without results.
+    s.questions.close_batch("b2", "failed", {})
+    assert s.questions.open_batches() == []
+    assert s.questions.in_open_batches() == (set(), set())

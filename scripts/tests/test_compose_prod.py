@@ -271,3 +271,17 @@ def test_a_systemd_timer_runs_spot_check_due_weekly() -> None:
     assert "Requisite=interval.service" in service
     deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
     assert re.search(r"systemctl enable --now interval-spot-checks\.timer", deploy)
+
+
+# Q-P2-13 (P2-W8-S05): question batches every 30 minutes, as EventBridge Scheduler does
+# in AWS.
+def test_a_systemd_timer_runs_question_batches_every_half_hour() -> None:
+    timer = (SYSTEMD / "interval-question-batches.timer").read_text()
+    service = (SYSTEMD / "interval-question-batches.service").read_text()
+    assert re.search(r"^OnCalendar=\*:0/30$", timer, re.MULTILINE)
+    assert re.search(
+        r"^ExecStart=.*stack\.sh run question-batches$", service, re.MULTILINE
+    )
+    assert "Requisite=interval.service" in service
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert re.search(r"systemctl enable --now interval-question-batches\.timer", deploy)

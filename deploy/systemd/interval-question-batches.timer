@@ -1,0 +1,11 @@
+# VM mode (ADR-0011), Q-P2-13 (P2-W8-S05): every 30 minutes. The command takes a lock,
+# so a run that overlaps another exits without doing anything.
+[Unit]
+Description=Interval question-batches every 30 minutes
+
+[Timer]
+OnCalendar=*:0/30
+Persistent=true
+
+[Install]
+WantedBy=timers.target

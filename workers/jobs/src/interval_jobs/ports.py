@@ -520,6 +520,21 @@ class QuestionSummary:
     sample: list[ValidatedQuestion]
 
 
+@dataclass(frozen=True)
+class QuestionBatchEntry:
+    """One request of a question batch (Q-P2-13): a moment's draft (with the content
+    hash it was built from) or a question's validation."""
+
+    custom_id: str
+    moment_id: int | None
+    question_id: int | None
+    content_hash: str | None
+
+
+type BatchKind = Literal["draft", "validate"]
+type BatchItemResult = Literal["saved", "decided", "broken", "error", "skipped"]
+
+
 class Questions(Protocol):
     """The question bank (Q-1, P2-W8-S01)."""
 
@@ -580,6 +595,50 @@ class Questions(Protocol):
         """Q-2: queue for review a random `share` (rounded up) of the live questions
         created since `since`, less those already sampled from that window, plus every
         flagged question not yet queued; (sampled, flagged) counts."""
+        ...
+
+    # P2-W8-S05 (Q-P2-13): question batches.
+    def pending_questions(self) -> list[int]:
+        """Every question waiting for its verdict, oldest first."""
+        ...
+
+    def record_batch(
+        self,
+        batch_id: str,
+        kind: BatchKind,
+        model: str,
+        entries: Sequence[QuestionBatchEntry],
+    ) -> None: ...
+
+    def open_batches(self) -> list[tuple[str, BatchKind]]:
+        """Batches not yet closed, oldest first: (id, kind)."""
+        ...
+
+    def batch_entries(self, batch_id: str) -> list[QuestionBatchEntry]: ...
+
+    def in_open_batches(self) -> tuple[set[int], set[int]]:
+        """The moments and questions an open batch is working on."""
+        ...
+
+    def claim_batch_cost(self, batch_id: str, cost_usd: Decimal) -> bool:
+        """Sets the batch's cost if it has none yet: true for the one caller that
+        should record it in the AI ledger (OPS-4), so a retried collection doesn't
+        record it twice."""
+        ...
+
+    def close_batch(
+        self,
+        batch_id: str,
+        outcome: Literal["completed", "failed"],
+        results: Mapping[str, BatchItemResult],
+    ) -> None:
+        """Closed: its moments and questions can be sent again; each entry keeps its
+        result (by custom_id)."""
+        ...
+
+    def broken_counts(self) -> tuple[dict[tuple[int, str], int], dict[int, int]]:
+        """How many batch replies came back breaking a rule: per (moment, content
+        hash) for drafts, so a changed moment starts again, and per question."""
         ...
 
     def summary(self, sample: int) -> QuestionSummary:
@@ -1184,6 +1243,50 @@ class QueueHandler(Protocol):
     (LOAD-5)."""
 
     def __call__(self, message: BaseModel, delivery: Delivery) -> None: ...
+
+
+@dataclass(frozen=True)
+class BatchRequest:
+    """One chat request in a batch (Q-P2-13): matched back by `custom_id`."""
+
+    custom_id: str
+    messages: list[Message]
+
+
+@dataclass(frozen=True)
+class BatchItem:
+    """One request's outcome: its reply text, or the provider's error."""
+
+    custom_id: str
+    text: str | None
+    error: str | None
+    input_tokens: int
+    output_tokens: int
+
+
+@dataclass(frozen=True)
+class BatchStatus:
+    """A batch's state: running (not done yet), completed (items and the cost) or
+    failed (expired, cancelled or refused: nothing ran, its requests can go again)."""
+
+    state: Literal["running", "completed", "failed"]
+    items: list[BatchItem]
+    cost_usd: Decimal | None
+    error: str | None
+
+
+class BatchClient(Protocol):
+    """A model provider's batch API (OpenRouter, Q-P2-13): half price, results later."""
+
+    provider: AiProvider
+
+    def submit(self, model: str, requests: Sequence[BatchRequest]) -> str:
+        """The batch's id; ModelError if refused (price cap) or the call fails."""
+        ...
+
+    def status(self, batch_id: str) -> BatchStatus:
+        """ModelError when it can't be read now (a balance hold, a bad reply)."""
+        ...
 
 
 class JobQueue(Protocol):

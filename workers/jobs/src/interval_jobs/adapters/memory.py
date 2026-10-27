@@ -13,6 +13,7 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from typing import Literal
 
 from interval_db.generated import (
     BetaGroup,
@@ -30,6 +31,8 @@ from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
     Arm,
     ArmOutcome,
+    BatchItemResult,
+    BatchKind,
     CandidateArticle,
     CandidateMoment,
     ConceptGraph,
@@ -49,6 +52,7 @@ from interval_jobs.ports import (
     NoteInput,
     NoteKey,
     NoteRef,
+    QuestionBatchEntry,
     QuestionDraft,
     QuestionSummary,
     QuestionTarget,
@@ -1437,6 +1441,11 @@ class InMemoryQuestions:
         self.retries: dict[int, tuple[int, datetime]] = {}
         # Q-2 reviews, oldest first: (question id, reason, decided)
         self.reviews: list[tuple[int, str, bool]] = []
+        # Q-P2-13 batches: id -> (kind, open?), their claimed costs, and entries with
+        # their result
+        self.batches: dict[str, tuple[BatchKind, bool]] = {}
+        self.batch_costs: dict[str, Decimal] = {}
+        self.batch_items: dict[str, list[tuple[QuestionBatchEntry, str | None]]] = {}
 
     def target(self, moment_id: int) -> QuestionTarget | None:
         moment = next((m for m in self._moments.rows if m.id == moment_id), None)
@@ -1575,6 +1584,72 @@ class InMemoryQuestions:
         ]
         self.reviews += [(q.id, "flagged", False) for q in flagged]
         return len(sampled), len(flagged)
+
+    def pending_questions(self) -> list[int]:
+        return [q.id for q in self.rows if q.status == "pending"]
+
+    def record_batch(
+        self,
+        batch_id: str,
+        kind: BatchKind,
+        model: str,
+        entries: Sequence[QuestionBatchEntry],
+    ) -> None:
+        self.batches[batch_id] = (kind, True)
+        self.batch_items[batch_id] = [(e, None) for e in entries]
+
+    def open_batches(self) -> list[tuple[str, BatchKind]]:
+        return [(b, kind) for b, (kind, is_open) in self.batches.items() if is_open]
+
+    def batch_entries(self, batch_id: str) -> list[QuestionBatchEntry]:
+        return sorted(
+            (e for e, _ in self.batch_items.get(batch_id, [])),
+            key=lambda e: e.custom_id,
+        )
+
+    def in_open_batches(self) -> tuple[set[int], set[int]]:
+        entries = [
+            e
+            for b, (_, is_open) in self.batches.items()
+            if is_open
+            for e, _ in self.batch_items[b]
+        ]
+        return (
+            {e.moment_id for e in entries if e.moment_id is not None},
+            {e.question_id for e in entries if e.question_id is not None},
+        )
+
+    def claim_batch_cost(self, batch_id: str, cost_usd: Decimal) -> bool:
+        if batch_id in self.batch_costs:
+            return False
+        self.batch_costs[batch_id] = cost_usd
+        return True
+
+    def close_batch(
+        self,
+        batch_id: str,
+        outcome: Literal["completed", "failed"],
+        results: Mapping[str, BatchItemResult],
+    ) -> None:
+        kind, _ = self.batches[batch_id]
+        self.batches[batch_id] = (kind, False)
+        self.batch_items[batch_id] = [
+            (e, results.get(e.custom_id, r)) for e, r in self.batch_items[batch_id]
+        ]
+
+    def broken_counts(self) -> tuple[dict[tuple[int, str], int], dict[int, int]]:
+        moments: dict[tuple[int, str], int] = {}
+        questions: dict[int, int] = {}
+        for items in self.batch_items.values():
+            for e, result in items:
+                if result != "broken":
+                    continue
+                if e.moment_id is not None and e.content_hash is not None:
+                    key = (e.moment_id, e.content_hash)
+                    moments[key] = moments.get(key, 0) + 1
+                if e.question_id is not None:
+                    questions[e.question_id] = questions.get(e.question_id, 0) + 1
+        return moments, questions
 
     def summary(self, sample: int) -> QuestionSummary:
         counts: dict[str, int] = {}

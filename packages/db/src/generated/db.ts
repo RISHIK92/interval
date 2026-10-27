@@ -57,6 +57,8 @@ export type MomentLinkType = "anchor" | "page_top" | "text_fragment";
 
 export type Numeric = ColumnType<string, number | string, number | string>;
 
+export type QuestionBatchKind = "draft" | "validate";
+
 export type QuestionStatus = "flagged" | "live" | "pending" | "rejected" | "retired";
 
 export type ReviewDecision = "keep" | "retire";
@@ -382,6 +384,25 @@ export interface Question {
   validator_model: string | null;
 }
 
+export interface QuestionBatch {
+  closed_at: Timestamp | null;
+  cost_usd: Numeric | null;
+  id: string;
+  kind: QuestionBatchKind;
+  model: string;
+  outcome: string | null;
+  submitted_at: Generated<Timestamp>;
+}
+
+export interface QuestionBatchItem {
+  batch_id: string;
+  content_hash: string | null;
+  custom_id: string;
+  moment_id: Int8 | null;
+  question_id: Int8 | null;
+  result: string | null;
+}
+
 export interface QuestionConcept {
   concept_id: Int8;
   question_id: Int8;
@@ -637,6 +658,8 @@ export interface DB {
   plan: Plan;
   plan_capability: PlanCapability;
   question: Question;
+  question_batch: QuestionBatch;
+  question_batch_item: QuestionBatchItem;
   question_concept: QuestionConcept;
   question_drafting: QuestionDrafting;
   question_review: QuestionReview;

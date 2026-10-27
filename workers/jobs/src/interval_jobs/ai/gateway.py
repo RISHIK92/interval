@@ -8,7 +8,7 @@ lines carry the metrics (the AWS stack turns them into Interval/AI CostMicroUsd 
 OverBudget).
 """
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from decimal import Decimal
@@ -18,6 +18,9 @@ from interval_db.generated import AiFeature, AiProvider
 from interval_jobs import log
 from interval_jobs.ports import (
     AiLedger,
+    BatchClient,
+    BatchRequest,
+    BatchStatus,
     DecisionAnswer,
     DecisionClient,
     DecisionState,
@@ -63,6 +66,7 @@ class AiGateway:
         *,
         others: Mapping[str, LlmClient] | None = None,
         decisions: DecisionClient | None = None,
+        batches: BatchClient | None = None,
     ) -> None:
         self._ledger = ledger
         self._llm = llm
@@ -70,6 +74,8 @@ class AiGateway:
         self._others = others or {}
         # Decision models (OpenRouter's Decisions API): typed answers, not text.
         self._decisions = decisions
+        # Batch tiers (Q-P2-13): half price, results later.
+        self._batches = batches
         self._embeddings = embeddings
         self._clock = clock
 
@@ -122,6 +128,47 @@ class AiGateway:
             result.cost_usd,
         )
         return Decided(result.answers, usage)
+
+    def submit_batch(
+        self,
+        *,
+        feature: AiFeature,
+        model: str,
+        requests: Sequence[BatchRequest],
+    ) -> str | OverBudget:
+        """Offline only. The budget is checked before submitting; nothing is paid
+        until the batch completes (collect_batch records it)."""
+        if self._batches is None:
+            raise ModelError("no batch client configured")
+        refused = self._over_budget(feature, None)
+        if refused is not None:
+            return refused
+        return self._batches.submit(model, requests)
+
+    def batch_status(self, batch_id: str) -> BatchStatus:
+        """Reads a batch; records nothing (record_batch_cost does, once claimed)."""
+        if self._batches is None:
+            raise ModelError("no batch client configured")
+        return self._batches.status(batch_id)
+
+    def record_batch_cost(
+        self, *, feature: AiFeature, model: str, status: BatchStatus
+    ) -> None:
+        """A finished batch's cost and tokens (OPS-4). The caller claims the batch
+        first so a retried collection never records it twice."""
+        if self._batches is None:
+            raise ModelError("no batch client configured")
+        if status.cost_usd is None:
+            raise ModelError("a finished batch without a cost can't be recorded")
+        self._record(
+            feature,
+            None,
+            self._batches.provider,
+            model,
+            sum(item.input_tokens for item in status.items),
+            sum(item.output_tokens for item in status.items),
+            status.cost_usd,
+        )
 
     def embed(
         self,
