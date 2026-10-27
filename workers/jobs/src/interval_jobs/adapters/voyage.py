@@ -20,6 +20,9 @@ PRICE_PER_MILLION: dict[str, Decimal] = {
     "voyage-3.5": Decimal("0.06"),
     "voyage-3.5-lite": Decimal("0.02"),
     "voyage-3-large": Decimal("0.18"),
+    "voyage-4-lite": Decimal("0.02"),
+    "voyage-4": Decimal("0.06"),
+    "voyage-4-large": Decimal("0.12"),
 }
 
 
