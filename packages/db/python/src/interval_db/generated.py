@@ -341,6 +341,10 @@ class Question(TypedDict):
     validator_model: str | None
     validator_answer: int | None
     validated_at: datetime | None
+    difficulty: Difficulty | None
+    answer_count: int
+    correct_count: int
+    calibrated_at: datetime | None
 
 
 class QuestionConcept(TypedDict):

@@ -1906,3 +1906,9 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `spot-check-due` (weekly: VM `interval-spot-checks.timer`, AWS EventBridge `SpotCheckDueSchedule`, no queue access): a random 10% (rounded up) of the questions validated in the past week, counted over the week whatever their status now so a rerun draws nothing twice, drawn from live ones never sampled; plus every flagged question without an open review. Serialised with an advisory lock.
 - `/admin/questions` (admin.review): each open review of a live or flagged question, with its section link, options (key and validator's answer marked) and quote; Keep returns a flagged question to live, Retire retires it, each review decided once (`AdminQuestions` port, Kysely adapter).
 - Reviewer: the window by `validated_at`, the quota over the week, repeat reviews, dead questions left out of the queue, the unused status field, the lock, the empty-state text and tests fixed. Known limit: a VM off for over a week samples only the last 7 days.
+
+### 2026-10-27 — P2-W8-S04 (starting difficulty, Q-3, Q-P2-11)
+- Migration `20261027140000_question_difficulty.sql`: `question.difficulty` (the moment's level when drafted, an admin's correction winning; earlier questions backfilled), `answer_count`, `correct_count` (within the answers) and `calibrated_at` for Week 9's IRT recalibration.
+- `QuestionTarget.difficulty` (Postgres: moment tagging and the heading's correction, never the intro; memory: `moment_difficulty`); the stage saves each draft at its moment's current level.
+- Reviewer: a stage test for the level, the backfill and comment, the shadowed alias and a redundant check fixed.
+- Week 8 is built: S01–S04. Recalibration from answers (Q-3) comes with Week 9's quizzes.

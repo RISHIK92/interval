@@ -502,6 +502,8 @@ class QuestionTarget:
     moment_id: int
     item_id: int
     concepts: tuple[tuple[str, str], ...]
+    # Its level (an admin's correction winning); a question starts there (Q-P2-11).
+    difficulty: Difficulty | None
 
 
 @dataclass(frozen=True)
@@ -539,10 +541,11 @@ class Questions(Protocol):
         model: str,
         prompt_version: int,
         content_hash: str,
+        difficulty: Difficulty | None,
     ) -> list[int]:
-        """These, pending, each tagged with the concepts (slugs), in place of the
-        moment's current questions, which are retired, not deleted; clears the
-        moment's retry state. Their ids, in order."""
+        """These, pending, starting at `difficulty`, each tagged with the concepts
+        (slugs), in place of the moment's current questions, which are retired, not
+        deleted; clears the moment's retry state. Their ids, in order."""
         ...
 
     def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:

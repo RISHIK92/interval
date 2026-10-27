@@ -361,10 +361,14 @@ export interface PlanCapability {
 }
 
 export interface Question {
+  answer_count: Generated<number>;
+  calibrated_at: Timestamp | null;
   citation: string;
   content_hash: string;
   correct: number;
+  correct_count: Generated<number>;
   created_at: Generated<Timestamp>;
+  difficulty: Difficulty | null;
   generator_model: string;
   id: Generated<Int8>;
   moment_id: Int8;

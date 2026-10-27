@@ -522,6 +522,7 @@ class Pipeline:
                 job.model,
                 QUESTIONS_PROMPT_VERSION,
                 content_hash(text, [slug for slug, _ in current.concepts]),
+                current.difficulty,
             )
         # Q-1: each draft goes to the blind validator (P2-W8-S02), after the commit.
         self._validate_later(saved)

@@ -120,6 +120,8 @@ def test_tagging_queues_a_tagged_moments_questions_and_they_are_drafted_once() -
     assert all(q.draft.options[q.validator_answer or 0] == "It" for q in saved)
     assert {q.concepts for q in saved} == {("write-ahead-log",)}
     assert all(q.model == "nemotron-free" for q in saved)
+    # Q-P2-11: each starts at its moment's level (the fake tags it beginner).
+    assert {q.difficulty for q in saved} == {"beginner"}
     drafted = llm.question_calls
     assert drafted == len({q.moment_id for q in saved})
     # Queued again (a re-tag, a backfill): same text, same prompt, no new call.

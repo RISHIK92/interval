@@ -109,6 +109,7 @@ class Probe(Protocol):
     def flag_question(self, question_id: int) -> None: ...
     def reviews(self) -> list[tuple[int, str, bool]]: ...
     def decide_review(self, question_id: int) -> None: ...
+    def question_difficulty(self, question_id: int) -> str | None: ...
     def retire_question(self, question_id: int) -> None: ...
     def override_level(self, item_id: int, heading: str, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
@@ -216,7 +217,9 @@ class MemoryProbe:
     def correct_moment_concepts(
         self, item_id: int, heading: str, slugs: list[str]
     ) -> None:
+        # As the Postgres probe's row: the level comes with the concepts.
         self.s.tags.moment_concept_overrides[(item_id, heading)] = frozenset(slugs)
+        self.s.tags.overrides[(item_id, heading)] = "beginner"
 
     def flag_question(self, question_id: int) -> None:
         next(q for q in self.s.questions.rows if q.id == question_id).status = "flagged"
@@ -237,6 +240,9 @@ class MemoryProbe:
 
     def retire_question(self, question_id: int) -> None:
         next(q for q in self.s.questions.rows if q.id == question_id).status = "retired"
+
+    def question_difficulty(self, question_id: int) -> str | None:
+        return next(q for q in self.s.questions.rows if q.id == question_id).difficulty
 
     def override_level(self, item_id: int, heading: str, level: str) -> None:
         assert level in ("beginner", "intermediate", "advanced")
@@ -500,6 +506,13 @@ class PostgresProbe:
         self.conn.execute(
             "update question set status = 'retired' where id = %s", (question_id,)
         )
+
+    def question_difficulty(self, question_id: int) -> str | None:
+        row = self.conn.execute(
+            "select difficulty from question where id = %s", (question_id,)
+        ).fetchone()
+        assert row is not None
+        return None if row[0] is None else str(row[0])
 
     def correct_moment_concepts(
         self, item_id: int, heading: str, slugs: list[str]
@@ -2580,9 +2593,9 @@ def test_drafts_replace_a_moments_questions_and_remember_their_hash(
     item, (_, lag, _), _ = _question_item(s, probe)
     assert s.questions.drafted_hash(lag) is None
     draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
-    first = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1")
+    first = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None)
     assert len(first) == 2 and s.questions.drafted_hash(lag) == "h1"
-    again = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h2")
+    again = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h2", None)
     assert set(again).isdisjoint(first) and s.questions.drafted_hash(lag) == "h2"
     # Questions go with their moment (and so with its rights, ING-2).
     s.moments.replace(item, [moment(0, "intro")])
@@ -2595,7 +2608,7 @@ def test_a_verdict_makes_a_pending_question_live_or_rejected_once(
     s, probe = store
     _, (_, lag, _), _ = _question_item(s, probe)
     draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
-    right, wrong = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1")
+    right, wrong = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None)
     assert s.questions.pending(right) == (lag, draft)
     assert s.questions.record_verdict(right, "validator", 2) is True
     assert s.questions.record_verdict(wrong, "validator", 1) is True
@@ -2603,7 +2616,7 @@ def test_a_verdict_makes_a_pending_question_live_or_rejected_once(
     assert s.questions.pending(right) is None
     assert s.questions.record_verdict(right, "validator", 0) is False
     # A redraft's questions are pending again; the decided ones are retired.
-    (again, _) = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h2")
+    (again, _) = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h2", None)
     assert s.questions.pending(again) == (lag, draft)
     assert s.questions.pending(wrong) is None
 
@@ -2614,8 +2627,8 @@ def test_the_summary_counts_by_status_and_samples_validated_questions(
     s, probe = store
     _, (_, lag, quorum), _ = _question_item(s, probe)
     draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
-    right, wrong = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1")
-    s.questions.save(quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1")
+    right, wrong = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None)
+    s.questions.save(quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1", None)
     s.questions.record_verdict(right, "v", 2)
     s.questions.record_verdict(wrong, "v", 0)
     got = s.questions.summary(10)
@@ -2637,8 +2650,8 @@ def test_spot_checks_sample_new_live_questions_and_take_every_flagged_one(
     s, probe = store
     _, (_, lag, quorum), _ = _question_item(s, probe)
     draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
-    a, b = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1")
-    c, d = s.questions.save(quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1")
+    a, b = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None)
+    c, d = s.questions.save(quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1", None)
     since = datetime.now(UTC) - timedelta(seconds=1)
     # The window is by when a question went live, not when it was drafted.
     for qid in (a, b, c, d):
@@ -2663,3 +2676,23 @@ def test_spot_checks_sample_new_live_questions_and_take_every_flagged_one(
     # Nothing validated after the window starts: nothing sampled.
     later = datetime.now(UTC) + timedelta(days=1)
     assert s.questions.queue_spot_checks(later, 1.0) == (0, 0)
+
+
+# Q-3, Q-P2-11 (P2-W8-S04): a question starts at its moment's level, an admin's
+# correction winning.
+def test_a_question_starts_at_its_moments_difficulty(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    item, (_, lag, quorum), _ = _question_item(s, probe)
+    target = s.questions.target(lag)
+    assert target is not None and target.difficulty == "advanced"
+    # The admin page saves a heading's level and concepts together.
+    probe.correct_moment_concepts(item, "Quorum", ["cg-quorum"])
+    corrected = s.questions.target(quorum)
+    assert corrected is not None and corrected.difficulty == "beginner"
+    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    (first, _) = s.questions.save(
+        lag, [draft, draft], ["cg-lag"], "m", 1, "h1", target.difficulty
+    )
+    assert probe.question_difficulty(first) == "advanced"

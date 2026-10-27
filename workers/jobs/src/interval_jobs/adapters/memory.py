@@ -1413,6 +1413,7 @@ class StoredQuestion:
     validator_model: str | None = None
     validator_answer: int | None = None
     validated_at: datetime | None = None
+    difficulty: Difficulty | None = None
 
 
 class InMemoryQuestions:
@@ -1470,7 +1471,12 @@ class InMemoryQuestions:
         ]
         if not live:
             return None
-        return QuestionTarget(moment_id, moment.item_id, tuple(live))
+        return QuestionTarget(
+            moment_id,
+            moment.item_id,
+            tuple(live),
+            self._tags.moment_difficulty(moment.item_id, moment_id),
+        )
 
     def targets(self, item_id: int | None) -> list[int]:
         moments = sorted(
@@ -1497,6 +1503,7 @@ class InMemoryQuestions:
         model: str,
         prompt_version: int,
         content_hash: str,
+        difficulty: Difficulty | None,
     ) -> list[int]:
         for q in self.rows:
             if q.moment_id == moment_id:
@@ -1514,6 +1521,7 @@ class InMemoryQuestions:
                     model,
                     prompt_version,
                     content_hash,
+                    difficulty=difficulty,
                 )
             )
             ids.append(self._next_id)

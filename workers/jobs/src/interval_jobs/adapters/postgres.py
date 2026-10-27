@@ -1859,9 +1859,16 @@ _MOMENT_LIVE_CONCEPTS = """
 # Moments questions may be drafted for (Q-P2-09): not a duplicate's, full-text rights
 # with moments on (ING-2), and some live concept.
 _QUESTION_TARGETS = f"""
-    select m.id, m.content_item_id from moment m
+    select m.id, m.content_item_id,
+           coalesce(lo.difficulty, t.difficulty) as difficulty
+    from moment m
     join content_item ci on ci.id = m.content_item_id
     join source s on s.id = ci.source_id
+    left join moment_tagging t on t.moment_id = m.id
+    -- An admin's correction wins over the model's level (P1-W3-S05).
+    left join tag_override lo
+      on lo.content_item_id = m.content_item_id
+     and lo.heading = m.title and m.link_type <> 'page_top'
     where ci.duplicate_of is null and s.moments_enabled
       and s.rights_profile in ('full_text_internal', 'full_text_display')
       and exists ({_MOMENT_LIVE_CONCEPTS})
@@ -1889,6 +1896,7 @@ class PostgresQuestions:
             moment_id,
             int(found[1]),
             tuple((str(slug), str(name)) for slug, name in concepts),
+            None if found[2] is None else cast(Difficulty, found[2]),
         )
 
     def targets(self, item_id: int | None) -> list[int]:
@@ -1915,6 +1923,7 @@ class PostgresQuestions:
         model: str,
         prompt_version: int,
         content_hash: str,
+        difficulty: Difficulty | None,
     ) -> list[int]:
         self._conn.execute(
             "update question set status = 'retired' "
@@ -1927,8 +1936,8 @@ class PostgresQuestions:
             row = self._conn.execute(
                 """
                 insert into question (moment_id, ordinal, stem, options, correct,
-                  citation, generator_model, prompt_version, content_hash)
-                values (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                  citation, generator_model, prompt_version, content_hash, difficulty)
+                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 returning id
                 """,
                 (
@@ -1941,6 +1950,7 @@ class PostgresQuestions:
                     model,
                     prompt_version,
                     content_hash,
+                    difficulty,
                 ),
             ).fetchone()
             assert row is not None  # insert ... returning always returns the row
