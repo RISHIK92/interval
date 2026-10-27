@@ -60,6 +60,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P2-10 The question model (P0)
 - Cite: AI-2 ("A stronger model handles … question generation, judging"), OPS-4.
 - **Answer (owner, 2026-10-27):** the free `nvidia/nemotron-3.5-super-vl:free` through OpenRouter, run as an unimportant background task: a rate limit or an error retries in 5 minutes, and every success is saved, while other work goes on. Overrides AI-2's "stronger model" for now.
+- Suggested defaults (as built in P2-W8-S01, not yet confirmed): a reply that breaks a rule (not JSON, a citation that isn't the passage's) also retries in 5 minutes, but stops after 5, so a moment the model can't do doesn't spend the free tier's daily requests forever; one retry chain per moment (a re-tag or backfill while a retry waits is dropped); a redraft (new text, concepts or prompt) retires the old questions rather than deleting them.
 
 ### Q-P2-11 Difficulty before there are answers (P1)
 - Cite: Q-3 ("recalibrated from real answers using item response theory"), Phase 2 Week 9 (quizzes).

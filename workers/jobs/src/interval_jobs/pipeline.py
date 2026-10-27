@@ -21,7 +21,7 @@ full text, and both link duplicates to the earliest-published item.
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from pydantic import BaseModel
 
@@ -30,6 +30,7 @@ from interval_db.messages import (
     DiscoverSource,
     EmbedItem,
     FetchItem,
+    GenerateQuestions,
     MessageName,
     PolishNote,
     RecomputeFeed,
@@ -53,12 +54,21 @@ from interval_jobs.ports import (
     Extractor,
     Fetcher,
     JobQueue,
+    ModelError,
+    QuestionTarget,
     QueueHandler,
     RobotsDisallowed,
     SourceRecord,
     Store,
     TagInput,
     Validators,
+)
+from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
+from interval_jobs.questions import (
+    QuestionReplyError,
+    content_hash,
+    parse_reply,
+    prompt,
 )
 from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
 from interval_jobs.segment import segment_item
@@ -67,6 +77,7 @@ from interval_jobs.tagging import (
     PROMPT_VERSION,
     TaggingError,
     active_concepts,
+    moment_texts,
     tag_item,
 )
 from interval_jobs.tagging_decide import decide
@@ -84,7 +95,18 @@ STAGES: tuple[MessageName, ...] = (
     "recompute_feed",
     "polish_note",
     "check_link",
+    "generate_questions",
 )
+
+# Q-P2-10: the free question model is an unimportant background task. A rate limit or
+# a model error waits this long and tries again, without end (the queue's own retries,
+# ATTEMPTS, would give up); a reply that breaks a rule does too, up to
+# QUESTION_BROKEN_REPLIES times, so a moment the model can't do doesn't spend the free
+# tier's daily requests forever. Config and infrastructure errors still raise.
+QUESTION_RETRY_SECONDS = 300
+QUESTION_BROKEN_REPLIES = 5
+# A retry this far past due was lost (a flushed queue): a fresh start is taken.
+QUESTION_RETRY_LOST = timedelta(minutes=30)
 
 
 @dataclass(frozen=True)
@@ -122,6 +144,7 @@ class Pipeline:
         embedding: ModelJob | None = None,
         max_entries: int | None = None,
         notes: ModelJob | None = None,
+        questions: ModelJob | None = None,
     ) -> None:
         self._unit = unit_of_work
         self._queue = queue
@@ -131,6 +154,7 @@ class Pipeline:
         # Only for a one-off local run (consume --max-entries); polls take whole feeds.
         self._max_entries = max_entries
         self._notes = notes
+        self._questions = questions
 
     def handlers(self) -> dict[MessageName, QueueHandler]:
         return {
@@ -142,6 +166,7 @@ class Pipeline:
             "recompute_feed": self._recompute_stage,
             "polish_note": self._polish_stage,
             "check_link": self._stage(self._check_link),
+            "generate_questions": self._questions_stage,
         }
 
     def _stage(
@@ -393,6 +418,126 @@ class Pipeline:
             )
         self._enqueue(then)
 
+    def _questions_for(self, store: Store, item_id: int) -> list[Next]:
+        """Q-P2-09: each tagged full-text moment's questions, once tagging saved its
+        tags; drafting skips a moment whose text and prompt are unchanged (AI-4)."""
+        if self._questions is None:
+            return []
+        return [
+            (
+                "generate_questions",
+                {"moment_id": moment_id, "attempt": 0, "broken": 0},
+                f"questions-{moment_id}-v{QUESTIONS_PROMPT_VERSION}",
+            )
+            for moment_id in store.questions.targets(item_id)
+        ]
+
+    def _questions_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        """Q-1: draft a tagged moment's questions (P2-W8-S01). Read, call the model
+        with no transaction open, then save, as tagging does."""
+        assert isinstance(message, GenerateQuestions)
+        moment_id, job = message.moment_id, self._questions
+        if job is None:
+            log.info("pipeline: questions are off (no model)", moment_id=moment_id)
+            return
+        now = self._clock()
+        with self._unit() as services:
+            questions = services.store.questions
+            target = questions.target(moment_id)
+            drafted = questions.drafted_hash(moment_id)
+            retry = questions.retry_state(moment_id)
+            text = self._moment_text(services.store, target)
+        # One retry chain per moment: a re-tag or a second backfill while a retry
+        # waits starts another, which is dropped here.
+        if (
+            retry is not None
+            and message.attempt < retry[0]
+            and now < retry[1] + QUESTION_RETRY_LOST
+        ):
+            log.info("questions: a newer retry is waiting", moment_id=moment_id)
+            return
+        if target is None or not text:
+            log.info("questions: not a target now", moment_id=moment_id)
+            return
+        slugs = [slug for slug, _ in target.concepts]
+        digest = content_hash(text, slugs)
+        if digest == drafted:
+            return  # AI-4: drafted once per text, concepts and prompt
+        broken = message.broken
+        try:
+            with job.gateway() as gateway:
+                answered = gateway.complete(
+                    feature="questions",
+                    user_id=None,
+                    model=job.model,
+                    messages=prompt(text, [name for _, name in target.concepts]),
+                )
+            if isinstance(answered, OverBudget):
+                raise ModelError(f"the {answered.scope} AI budget is spent")
+            drafts = parse_reply(answered.text, text)
+        except (ModelError, QuestionReplyError) as error:
+            if isinstance(error, QuestionReplyError):
+                broken += 1
+            attempt = message.attempt + 1
+            if broken >= QUESTION_BROKEN_REPLIES:
+                log.warn(
+                    "questions: giving up after broken replies",
+                    moment_id=moment_id,
+                    broken=broken,
+                    error=str(error),
+                )
+                with self._unit() as services:
+                    services.store.questions.clear_retry(moment_id)
+                return
+            log.warn(
+                "questions: retrying in 5 minutes",
+                moment_id=moment_id,
+                attempt=attempt,
+                broken=broken,
+                error=str(error),
+            )
+            with self._unit() as services:
+                services.store.questions.record_retry(
+                    moment_id, attempt, now + timedelta(seconds=QUESTION_RETRY_SECONDS)
+                )
+            self._queue.enqueue(
+                "generate_questions",
+                {"moment_id": moment_id, "attempt": attempt, "broken": broken},
+                idempotency_key=(
+                    f"questions-{moment_id}-v{QUESTIONS_PROMPT_VERSION}-try{attempt}"
+                ),
+                delay_seconds=QUESTION_RETRY_SECONDS,
+            )
+            return
+        with self._unit() as services:
+            # The moment changed or lost its target while the model ran: the next
+            # tagging pass queues it again.
+            current = services.store.questions.target(moment_id)
+            if current is None or self._moment_text(services.store, current) != text:
+                log.info(
+                    "questions: moment changed; drafts dropped", moment_id=moment_id
+                )
+                return
+            services.store.questions.save(
+                moment_id,
+                drafts,
+                [slug for slug, _ in current.concepts],
+                job.model,
+                QUESTIONS_PROMPT_VERSION,
+                content_hash(text, [slug for slug, _ in current.concepts]),
+            )
+
+    @staticmethod
+    def _moment_text(store: Store, target: QuestionTarget | None) -> str:
+        if target is None:
+            return ""
+        item = store.tags.input(target.item_id)
+        if item is None or item.full_text is None:
+            return ""
+        return (
+            moment_texts(item.full_text, item.moments).get(target.moment_id, "").strip()
+        )
+
     def _tag_if_needed(self, store: Store, item_id: int) -> list[Next]:
         if self._tagging is None or not store.tags.needs_tagging(
             item_id, PROMPT_VERSION
@@ -458,6 +603,7 @@ class Pipeline:
                 known_item,
                 embedded=embedded,
             )
+        questions: list[Next] = []
         with self._unit() as services:
             now = services.store.tags.input(item_id)
             if now is None or now.moments != item.moments:
@@ -494,6 +640,8 @@ class Pipeline:
                     self._tagging.model,
                     PROMPT_VERSION,
                 )
+                questions = self._questions_for(services.store, item_id)
+        self._enqueue(questions)
         if asked.refused is not None:
             # LOAD-5: degrade, observably; the next poll queues it again.
             log.warn(
@@ -547,3 +695,5 @@ class Pipeline:
             services.store.tags.save(
                 item_id, tagged.result, self._tagging.model, PROMPT_VERSION
             )
+            questions = self._questions_for(services.store, item_id)
+        self._enqueue(questions)

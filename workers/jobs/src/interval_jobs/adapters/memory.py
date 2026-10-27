@@ -8,7 +8,7 @@ switching moments off purges what the source no longer allows.
 
 import math
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
@@ -48,6 +48,8 @@ from interval_jobs.ports import (
     NoteInput,
     NoteKey,
     NoteRef,
+    QuestionDraft,
+    QuestionTarget,
     RankedEntry,
     RevokeResult,
     RightsViolation,
@@ -899,6 +901,8 @@ class InMemoryItemTags:
         # item's corrected concepts
         self.overrides: dict[tuple[int, str], Difficulty] = {}
         self.item_concept_overrides: dict[int, frozenset[str]] = {}
+        # (item id, moment heading) -> an admin's corrected concepts for that moment
+        self.moment_concept_overrides: dict[tuple[int, str], frozenset[str]] = {}
 
     def input(self, item_id: int) -> TagInput | None:
         item = self._items.rows.get(item_id)
@@ -1392,6 +1396,138 @@ class InMemoryRankingInputs:
         return [f[4] for f in sorted(found, key=lambda f: f[:4])][:limit]
 
 
+@dataclass
+class StoredQuestion:
+    id: int
+    moment_id: int
+    ordinal: int
+    draft: QuestionDraft
+    concepts: tuple[str, ...]
+    model: str
+    prompt_version: int
+    content_hash: str
+    status: str = "pending"
+
+
+class InMemoryQuestions:
+    """The question bank (Q-1, P2-W8-S01), as PostgresQuestions."""
+
+    def __init__(
+        self,
+        items: InMemoryItems,
+        sources: InMemorySources,
+        moments: InMemoryMoments,
+        tags: InMemoryItemTags,
+        concepts: InMemoryConcepts,
+    ) -> None:
+        self._items = items
+        self._sources = sources
+        self._moments = moments
+        self._tags = tags
+        self._concepts = concepts
+        self.rows: list[StoredQuestion] = []
+        self._next_id = 1
+        self.retries: dict[int, tuple[int, datetime]] = {}
+
+    def target(self, moment_id: int) -> QuestionTarget | None:
+        moment = next((m for m in self._moments.rows if m.id == moment_id), None)
+        if moment is None:
+            return None
+        item = self._items.rows[moment.item_id]
+        source = self._sources.rows[item.source_id]
+        if (
+            item.duplicate_of is not None
+            or not source.moments_enabled
+            or source.rights_profile not in _FULL_TEXT
+        ):
+            return None
+        corrected = (
+            None
+            if moment.row.link_type == "page_top"
+            else self._tags.moment_concept_overrides.get(
+                (moment.item_id, moment.row.title)
+            )
+        )
+        row = self._tags.rows.get(moment.item_id)
+        tagged = row[1].get(moment_id) if row else None
+        slugs = (
+            corrected
+            if corrected is not None
+            else (tagged.concepts if tagged else frozenset[str]())
+        )
+        live = [
+            (seed.slug, seed.name)
+            for slug in sorted(slugs)
+            if (seed := self._concepts.get(slug)) is not None and not seed.retired
+        ]
+        if not live:
+            return None
+        return QuestionTarget(moment_id, moment.item_id, tuple(live))
+
+    def targets(self, item_id: int | None) -> list[int]:
+        moments = sorted(
+            (m for m in self._moments.rows if item_id in (None, m.item_id)),
+            key=lambda m: (m.item_id, m.row.ordinal),
+        )
+        return [m.id for m in moments if self.target(m.id) is not None]
+
+    def drafted_hash(self, moment_id: int) -> str | None:
+        return next(
+            (
+                q.content_hash
+                for q in self.rows
+                if q.moment_id == moment_id and q.status != "retired"
+            ),
+            None,
+        )
+
+    def save(
+        self,
+        moment_id: int,
+        drafts: Sequence[QuestionDraft],
+        concepts: Sequence[str],
+        model: str,
+        prompt_version: int,
+        content_hash: str,
+    ) -> list[int]:
+        for q in self.rows:
+            if q.moment_id == moment_id:
+                q.status = "retired"
+        self.clear_retry(moment_id)
+        ids: list[int] = []
+        for ordinal, draft in enumerate(drafts):
+            self.rows.append(
+                StoredQuestion(
+                    self._next_id,
+                    moment_id,
+                    ordinal,
+                    draft,
+                    tuple(c for c in concepts if self._concepts.get(c) is not None),
+                    model,
+                    prompt_version,
+                    content_hash,
+                )
+            )
+            ids.append(self._next_id)
+            self._next_id += 1
+        return ids
+
+    def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:
+        return self.retries.get(moment_id)
+
+    def record_retry(self, moment_id: int, attempt: int, retry_at: datetime) -> None:
+        self.retries[moment_id] = (attempt, retry_at)
+
+    def clear_retry(self, moment_id: int) -> None:
+        self.retries.pop(moment_id, None)
+
+    def drop_missing(self) -> None:
+        # Questions and retry state cascade with their moment, as in Postgres.
+        live = {m.id for m in self._moments.rows}
+        self.rows = [q for q in self.rows if q.moment_id in live]
+        self.retries = {m: r for m, r in self.retries.items() if m in live}
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -1401,7 +1537,6 @@ class InMemoryStore:
         self.users = InMemoryUsers()
         self.feed = InMemoryFeed(self.users, self.moments)
         self.notes = InMemoryNotes(self.items, self.sources)
-        self.moments.on_delete = self.feed.drop_missing
         self.grants = InMemoryGrants(self.users)
         self.validators = InMemoryValidators()
         self.concepts = InMemoryConcepts()
@@ -1412,6 +1547,16 @@ class InMemoryStore:
         self.embeddings.store = self
         self.ranking = InMemoryRankingInputs(self)
         self.decisions = InMemoryDecisions(self.moments, self.concepts)
+        self.questions = InMemoryQuestions(
+            self.items, self.sources, self.moments, self.tags, self.concepts
+        )
+        drop_feed = self.feed.drop_missing
+
+        def drop_missing() -> None:
+            drop_feed()
+            self.questions.drop_missing()
+
+        self.moments.on_delete = drop_missing
         self.sources.store = self
 
 

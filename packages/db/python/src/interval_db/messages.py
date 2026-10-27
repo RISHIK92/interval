@@ -50,6 +50,17 @@ class FetchItem(_Message):
     content_item_id: Annotated[int, Field(ge=1)]
 
 
+class GenerateQuestions(_Message):
+    """Draft the questions for one tagged moment with the question model (Q-1,
+    P2-W8-S01). `attempt` counts retries, each 5 minutes later: after a rate limit
+    or a model error without end, and after a reply that breaks a rule up to 5
+    times (`broken` counts those)."""
+
+    attempt: Annotated[int, Field(ge=0)]
+    broken: Annotated[int, Field(ge=0)]
+    moment_id: Annotated[int, Field(ge=1)]
+
+
 class PolishNote(_Message):
     """Polish one why-this-matters note with the notes model, once (REC-5, AI-2,
     AI-4, P1-W4-S06)."""
@@ -81,6 +92,7 @@ type MessageName = Literal[
     "discover_source",
     "embed_item",
     "fetch_item",
+    "generate_questions",
     "polish_note",
     "recompute_feed",
     "segment_item",
@@ -92,6 +104,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "discover_source": DiscoverSource,
     "embed_item": EmbedItem,
     "fetch_item": FetchItem,
+    "generate_questions": GenerateQuestions,
     "polish_note": PolishNote,
     "recompute_feed": RecomputeFeed,
     "segment_item": SegmentItem,

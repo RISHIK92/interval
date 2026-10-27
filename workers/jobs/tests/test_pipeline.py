@@ -77,6 +77,7 @@ class World:
         embedding: ModelJob | None = None,
         max_entries: int | None = None,
         notes: ModelJob | None = None,
+        questions: ModelJob | None = None,
     ) -> None:
         self.store = InMemoryStore()
         self.fetcher = web(failing, blocked, extra)
@@ -99,6 +100,7 @@ class World:
             embedding=embedding,
             max_entries=max_entries,
             notes=notes,
+            questions=questions,
         )
 
     def discover(self, key: str = "poll-1") -> None:
@@ -108,9 +110,14 @@ class World:
 
     def run(self) -> None:
         """Delivers every stage until all queues are empty."""
+        self.run_except(None)
+
+    def run_except(self, skipped: MessageName | None) -> None:
+        """As run, leaving one queue waiting (one whose retries never end)."""
         handlers = self.pipeline.handlers()
-        while any(self.queue.pending(name) for name in STAGES):
-            for name in STAGES:
+        names: list[MessageName] = [name for name in STAGES if name != skipped]
+        while any(self.queue.pending(name) for name in names):
+            for name in names:
                 self.queue.consume(name, handlers[name], threading.Event())
 
     def requested(self) -> list[str]:

@@ -4,7 +4,7 @@ One `PostgresStore` is one unit of work; `unit_of_work` commits it on success an
 it back on error. The database's own triggers still guard ING-2 behind these queries.
 """
 
-from collections.abc import Generator, Mapping
+from collections.abc import Generator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import UTC, date, datetime, time, timedelta
@@ -48,6 +48,8 @@ from interval_jobs.ports import (
     NoteInput,
     NoteKey,
     NoteRef,
+    QuestionDraft,
+    QuestionTarget,
     RankedEntry,
     RevokeResult,
     RightsViolation,
@@ -1838,6 +1840,142 @@ class PostgresDecisions:
         return ItemDecisions(moments, item, None if found is None else float(found[0]))
 
 
+# A moment's live concepts, as crediting mastery reads them: an admin's correction
+# replaces the model's tags (P1-W3-S05), by heading and never for the intro; retired
+# concepts don't count. `m` is the moment.
+_MOMENT_LIVE_CONCEPTS = """
+    select c.slug, c.name from concept c
+    where c.retired_at is null and c.slug = any(coalesce(
+      (select o.concepts from tag_override o
+       where o.content_item_id = m.content_item_id
+         and o.heading = m.title and m.link_type <> 'page_top'),
+      array(select c2.slug from moment_concept mc
+            join concept c2 on c2.id = mc.concept_id where mc.moment_id = m.id)
+    ))
+"""
+
+# Moments questions may be drafted for (Q-P2-09): not a duplicate's, full-text rights
+# with moments on (ING-2), and some live concept.
+_QUESTION_TARGETS = f"""
+    select m.id, m.content_item_id from moment m
+    join content_item ci on ci.id = m.content_item_id
+    join source s on s.id = ci.source_id
+    where ci.duplicate_of is null and s.moments_enabled
+      and s.rights_profile in ('full_text_internal', 'full_text_display')
+      and exists ({_MOMENT_LIVE_CONCEPTS})
+"""
+
+
+class PostgresQuestions:
+    """The question bank (Q-1, P2-W8-S01)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def target(self, moment_id: int) -> QuestionTarget | None:
+        found = self._conn.execute(
+            f"{_QUESTION_TARGETS} and m.id = %s", (moment_id,)
+        ).fetchone()
+        if found is None:
+            return None
+        concepts = self._conn.execute(
+            f"select slug, name from moment m, lateral ({_MOMENT_LIVE_CONCEPTS}) c "
+            "where m.id = %s order by slug",
+            (moment_id,),
+        ).fetchall()
+        return QuestionTarget(
+            moment_id,
+            int(found[1]),
+            tuple((str(slug), str(name)) for slug, name in concepts),
+        )
+
+    def targets(self, item_id: int | None) -> list[int]:
+        rows = self._conn.execute(
+            f"{_QUESTION_TARGETS} and (%(item)s::bigint is null "
+            "or m.content_item_id = %(item)s) order by m.content_item_id, m.ordinal",
+            {"item": item_id},
+        ).fetchall()
+        return [int(r[0]) for r in rows]
+
+    def drafted_hash(self, moment_id: int) -> str | None:
+        row = self._conn.execute(
+            "select content_hash from question "
+            "where moment_id = %s and status <> 'retired' limit 1",
+            (moment_id,),
+        ).fetchone()
+        return None if row is None else str(row[0])
+
+    def save(
+        self,
+        moment_id: int,
+        drafts: Sequence[QuestionDraft],
+        concepts: Sequence[str],
+        model: str,
+        prompt_version: int,
+        content_hash: str,
+    ) -> list[int]:
+        self._conn.execute(
+            "update question set status = 'retired' "
+            "where moment_id = %s and status <> 'retired'",
+            (moment_id,),
+        )
+        self.clear_retry(moment_id)
+        ids: list[int] = []
+        for ordinal, draft in enumerate(drafts):
+            row = self._conn.execute(
+                """
+                insert into question (moment_id, ordinal, stem, options, correct,
+                  citation, generator_model, prompt_version, content_hash)
+                values (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                returning id
+                """,
+                (
+                    moment_id,
+                    ordinal,
+                    draft.stem,
+                    list(draft.options),
+                    draft.correct,
+                    draft.citation,
+                    model,
+                    prompt_version,
+                    content_hash,
+                ),
+            ).fetchone()
+            assert row is not None  # insert ... returning always returns the row
+            ids.append(int(row[0]))
+            self._conn.execute(
+                """
+                insert into question_concept (question_id, concept_id)
+                select %s, id from concept where slug = any(%s)
+                """,
+                (row[0], list(concepts)),
+            )
+        return ids
+
+    def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:
+        row = self._conn.execute(
+            "select attempt, retry_at from question_drafting where moment_id = %s",
+            (moment_id,),
+        ).fetchone()
+        return None if row is None else (int(row[0]), row[1])
+
+    def record_retry(self, moment_id: int, attempt: int, retry_at: datetime) -> None:
+        self._conn.execute(
+            """
+            insert into question_drafting (moment_id, attempt, retry_at)
+            values (%s, %s, %s)
+            on conflict (moment_id) do update
+              set attempt = excluded.attempt, retry_at = excluded.retry_at
+            """,
+            (moment_id, attempt, retry_at),
+        )
+
+    def clear_retry(self, moment_id: int) -> None:
+        self._conn.execute(
+            "delete from question_drafting where moment_id = %s", (moment_id,)
+        )
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.sources = PostgresSources(conn)
@@ -1854,6 +1992,7 @@ class PostgresStore:
         self.embeddings = PostgresEmbeddings(conn)
         self.ranking = PostgresRankingInputs(conn)
         self.decisions = PostgresDecisions(conn)
+        self.questions = PostgresQuestions(conn)
 
 
 @contextmanager

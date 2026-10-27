@@ -18,6 +18,12 @@ export const messageSchemas = {
   fetch_item: z.strictObject({
     content_item_id: z.number().int().min(1),
   }),
+  // Draft the questions for one tagged moment with the question model (Q-1, P2-W8-S01). `attempt` counts retries, each 5 minutes later: after a rate limit or a model error without end, and after a reply that breaks a rule up to 5 times (`broken` counts those).
+  generate_questions: z.strictObject({
+    attempt: z.number().int().min(0),
+    broken: z.number().int().min(0),
+    moment_id: z.number().int().min(1),
+  }),
   // Polish one why-this-matters note with the notes model, once (REC-5, AI-2, AI-4, P1-W4-S06).
   polish_note: z.strictObject({
     note_id: z.number().int().min(1),

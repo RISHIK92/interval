@@ -5,7 +5,7 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "tagging";
+export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "questions" | "tagging";
 
 export type AiProvider = "google" | "groq" | "openrouter" | "voyage";
 
@@ -56,6 +56,8 @@ export type LearningGoal = "finish-that-book" | "stack-i-use" | "stay-sharp" | "
 export type MomentLinkType = "anchor" | "page_top" | "text_fragment";
 
 export type Numeric = ColumnType<string, number | string, number | string>;
+
+export type QuestionStatus = "flagged" | "live" | "pending" | "rejected" | "retired";
 
 export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
 
@@ -354,6 +356,32 @@ export interface PlanCapability {
   plan_id: string;
 }
 
+export interface Question {
+  citation: string;
+  content_hash: string;
+  correct: number;
+  created_at: Generated<Timestamp>;
+  generator_model: string;
+  id: Generated<Int8>;
+  moment_id: Int8;
+  options: string[];
+  ordinal: number;
+  prompt_version: number;
+  status: Generated<QuestionStatus>;
+  stem: string;
+}
+
+export interface QuestionConcept {
+  concept_id: Int8;
+  question_id: Int8;
+}
+
+export interface QuestionDrafting {
+  attempt: number;
+  moment_id: Int8;
+  retry_at: Timestamp;
+}
+
 export interface RankingConfig {
   key: string;
   note: string;
@@ -587,6 +615,9 @@ export interface DB {
   moment_tagging: MomentTagging;
   plan: Plan;
   plan_capability: PlanCapability;
+  question: Question;
+  question_concept: QuestionConcept;
+  question_drafting: QuestionDrafting;
   ranking_config: RankingConfig;
   schema_meta: SchemaMeta;
   source: Source;

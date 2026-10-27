@@ -1885,3 +1885,10 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `NoteBox` takes `about`, so every box (and its text area) is named by what it's on.
 - Checked in Chrome: the Library's Notes tile and empty state. Reviewer: labels, the lost-edit log, the shared link, link names and test gaps fixed.
 - Week 7 is complete: S01–S04.
+
+### 2026-10-27 — P2-W8-S01 (question bank and generator, Q-1, AI-3, AI-4, ING-2)
+- Week 8 planning first (`cee7451`): Q-P2-07..12 (owner: free `nvidia/nemotron-3.5-super-vl:free` as generator and blind validator, an unimportant background task retrying every 5 minutes; MCQ, 2 per tagged full-text moment).
+- Migration `20261027110000_question_bank.sql`: `question` (stem, 4 options, key, a verbatim citation ≤300 chars kept internal, status, model, prompt version, content hash; one non-retired question per slot), `question_concept`, `question_drafting` (retry state); `ai_feature` gains `questions`. Questions cascade with their moment, so with its rights.
+- `questions.py`: the prompt (passage fenced as data), a strict parser (exactly 2, 4 distinct options, one key, a citation of ≥3 whole words from the passage), a content hash over text, concepts and prompt version.
+- Stage `generate_questions` (`QUESTIONS_MODEL`; off when unset): tagging queues each tagged moment after saving tags; `enqueue-questions` backfills. A rate limit or model error retries in 5 minutes without end, a broken reply up to 5 times; one retry chain per moment; a redraft retires the old questions. Store port `Questions` with Postgres (set-based targets) and memory adapters, contract tests.
+- Reviewer: the broken-reply cap, chain merging, the set-based query, concepts in the hash, whole-word citations, retire-not-delete, prompt fencing and more tests fixed. Not fixed, noted: on a daily-cap 429 each delivery still spends its ~65 s of in-call retries (serial, other stages unaffected).

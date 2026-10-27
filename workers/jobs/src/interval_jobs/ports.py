@@ -4,7 +4,7 @@ Adapters in `interval_jobs.adapters` implement these; `compose.py` wires them. L
 never imports a driver or SDK, so a service is swapped by replacing one adapter.
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -482,6 +482,68 @@ class ItemDecisions:
     item_difficulty: float | None = None  # the title/summary pass's score
 
 
+@dataclass(frozen=True)
+class QuestionDraft:
+    """One drafted multiple-choice question (Q-1, Q-P2-08): `correct` indexes
+    `options`; `citation` quotes the moment's text (Q-P2-12)."""
+
+    stem: str
+    options: tuple[str, ...]
+    correct: int
+    citation: str
+
+
+@dataclass(frozen=True)
+class QuestionTarget:
+    """A moment questions may be drafted for (Q-P2-09): not a duplicate's, its source
+    allows full text and moments (ING-2), and it has live concepts (an admin's
+    correction replacing the model's tags) as (slug, name)."""
+
+    moment_id: int
+    item_id: int
+    concepts: tuple[tuple[str, str], ...]
+
+
+class Questions(Protocol):
+    """The question bank (Q-1, P2-W8-S01)."""
+
+    def target(self, moment_id: int) -> QuestionTarget | None: ...
+
+    def targets(self, item_id: int | None) -> list[int]:
+        """The item's moments that are targets; every target when item_id is None."""
+        ...
+
+    def drafted_hash(self, moment_id: int) -> str | None:
+        """The content hash the moment's questions were drafted from; None if none."""
+        ...
+
+    def save(
+        self,
+        moment_id: int,
+        drafts: Sequence[QuestionDraft],
+        concepts: Sequence[str],
+        model: str,
+        prompt_version: int,
+        content_hash: str,
+    ) -> list[int]:
+        """These, pending, each tagged with the concepts (slugs), in place of the
+        moment's current questions, which are retired, not deleted; clears the
+        moment's retry state. Their ids, in order."""
+        ...
+
+    def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:
+        """The attempt the moment's newest retry carries and when it is due."""
+        ...
+
+    def record_retry(
+        self, moment_id: int, attempt: int, retry_at: datetime
+    ) -> None: ...
+
+    def clear_retry(self, moment_id: int) -> None:
+        """Drafting gave up (a reply that kept breaking the rules)."""
+        ...
+
+
 class Decisions(Protocol):
     """A decision model's raw answers, kept so cut-offs can be retuned without asking
     again; each with the hash of what was asked about."""
@@ -937,6 +999,9 @@ class Store(Protocol):
 
     @property
     def decisions(self) -> Decisions: ...
+
+    @property
+    def questions(self) -> Questions: ...
 
 
 class Fetcher(Protocol):

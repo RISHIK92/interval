@@ -7,7 +7,9 @@ from typing import Literal, TypedDict
 type JsonScalar = str | int | float | bool | None
 type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
 
-type AiFeature = Literal["tagging", "notes", "embeddings", "concept_drafting"]
+type AiFeature = Literal[
+    "tagging", "notes", "embeddings", "concept_drafting", "questions"
+]
 type AiProvider = Literal["openrouter", "voyage", "groq", "google"]
 type BetaGroup = Literal["student", "developer"]
 type BreakLength = Literal["1-3", "3-8", "8-15"]
@@ -23,6 +25,7 @@ type LearningGoal = Literal[
     "system-design-interviews", "stack-i-use", "finish-that-book", "stay-sharp"
 ]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
+type QuestionStatus = Literal["pending", "live", "rejected", "flagged", "retired"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
 ]
@@ -318,6 +321,32 @@ class PlanCapability(TypedDict):
     plan_id: str
     capability: Capability
     limit_value: int | None
+
+
+class Question(TypedDict):
+    id: int
+    moment_id: int
+    ordinal: int
+    stem: str
+    options: list[str]
+    correct: int
+    citation: str
+    status: QuestionStatus
+    generator_model: str
+    prompt_version: int
+    content_hash: str
+    created_at: datetime
+
+
+class QuestionConcept(TypedDict):
+    question_id: int
+    concept_id: int
+
+
+class QuestionDrafting(TypedDict):
+    moment_id: int
+    attempt: int
+    retry_at: datetime
 
 
 class RankingConfig(TypedDict):

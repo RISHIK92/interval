@@ -58,6 +58,7 @@ from interval_jobs.link_health import queue_link_checks
 from interval_jobs.pipeline import Pipeline
 from interval_jobs.polling import enqueue_due
 from interval_jobs.ports import ConceptCycleError, ModelError
+from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.ranking.scoring import BREAK_MINUTES
 from interval_jobs.segment import segment_item
 from interval_jobs.tagging import TaggingError
@@ -178,6 +179,10 @@ def main(argv: list[str]) -> None:
     )
     discover.add_argument("--source-id", type=int)
     commands.add_parser(
+        "enqueue-questions",
+        help="queue question drafting for every tagged full-text moment (Q-1)",
+    )
+    commands.add_parser(
         "poll-due", help="queue a poll of every source whose turn has come (ING-3)"
     )
     commands.add_parser(
@@ -233,6 +238,10 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
 
     if args.command == "enqueue-discover":
         print(json.dumps({"enqueued": _enqueue_discover(args.source_id)}))
+        return
+
+    if args.command == "enqueue-questions":
+        print(json.dumps({"enqueued": _enqueue_questions()}))
         return
 
     if args.command == "load-sources":
@@ -428,6 +437,7 @@ def _consume(max_entries: int | None) -> None:
             model_job("TAGGING_MODEL") as tagging,
             model_job("EMBEDDING_MODEL") as embedding,
             model_job("NOTES_MODEL") as notes,
+            model_job("QUESTIONS_MODEL") as questions,
         ):
             pipeline = Pipeline(
                 units,
@@ -436,6 +446,7 @@ def _consume(max_entries: int | None) -> None:
                 embedding=embedding,
                 max_entries=max_entries,
                 notes=notes,
+                questions=questions,
             )
             run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
     finally:
@@ -449,6 +460,20 @@ def _draft_count(value: str) -> int:
     if not 1 <= count <= 50:
         raise argparse.ArgumentTypeError("count must be between 1 and 50")
     return count
+
+
+def _enqueue_questions() -> int:
+    """Q-1 backfill: every target moment; drafting skips ones already done (AI-4)."""
+    with services() as s:
+        moments = s.store.questions.targets(None)
+    queue = queue_for_enqueue()
+    for moment_id in moments:
+        queue.enqueue(
+            "generate_questions",
+            {"moment_id": moment_id, "attempt": 0, "broken": 0},
+            idempotency_key=f"questions-{moment_id}-v{QUESTIONS_PROMPT_VERSION}",
+        )
+    return len(moments)
 
 
 def _enqueue_discover(source_id: int | None) -> int:

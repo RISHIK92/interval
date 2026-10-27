@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Draft the questions for one tagged moment with the question model (Q-1, P2-W8-S01). `attempt` counts retries, each 5 minutes later: after a rate limit or a model error without end, and after a reply that breaks a rule up to 5 times (`broken` counts those).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["moment_id", "attempt", "broken"],
+  "properties": {
+    "moment_id": { "type": "integer", "minimum": 1 },
+    "attempt": { "type": "integer", "minimum": 0 },
+    "broken": { "type": "integer", "minimum": 0 }
+  }
+}

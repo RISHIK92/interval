@@ -42,6 +42,7 @@ from interval_jobs.ports import (
     NoteInput,
     NoteKey,
     NoteRef,
+    QuestionDraft,
     RankedEntry,
     RightsViolation,
     Section,
@@ -102,6 +103,9 @@ class Probe(Protocol):
     def record_arm(self, arm: Arm, shown: int, finished: int) -> None: ...
     def finish(self, user_id: str, moment_id: int, item_id: int) -> None: ...
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None: ...
+    def correct_moment_concepts(
+        self, item_id: int, heading: str, slugs: list[str]
+    ) -> None: ...
     def override_level(self, item_id: int, heading: str, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
 
@@ -204,6 +208,11 @@ class MemoryProbe:
 
     def correct_concepts(self, item_id: int, slugs: list[str]) -> None:
         self.s.tags.item_concept_overrides[item_id] = frozenset(slugs)
+
+    def correct_moment_concepts(
+        self, item_id: int, heading: str, slugs: list[str]
+    ) -> None:
+        self.s.tags.moment_concept_overrides[(item_id, heading)] = frozenset(slugs)
 
     def override_level(self, item_id: int, heading: str, level: str) -> None:
         assert level in ("beginner", "intermediate", "advanced")
@@ -437,6 +446,15 @@ class PostgresProbe:
             "insert into tag_override (content_item_id, heading, difficulty, concepts, "
             "updated_by) values (%s, '', 'beginner', %s, 'contract-test')",
             (item_id, slugs),
+        )
+
+    def correct_moment_concepts(
+        self, item_id: int, heading: str, slugs: list[str]
+    ) -> None:
+        self.conn.execute(
+            "insert into tag_override (content_item_id, heading, difficulty, concepts, "
+            "updated_by) values (%s, %s, 'beginner', %s, 'contract-test')",
+            (item_id, heading, slugs),
         )
 
     def switch_moments_off(self, source_id: int, off: bool) -> None:
@@ -2443,3 +2461,76 @@ def test_topic_moments_leave_out_given_moments_before_the_limit(
         return [r.moment_id for r in rows if r.item_id == item]
 
     assert offered(1000, frozenset({first})) == [second]
+
+
+# The question bank (Q-1, Q-P2-09, P2-W8-S01): tagged full-text moments are targets;
+# drafts replace a moment's questions and go with it.
+def _question_item(s: Store, probe: Probe) -> tuple[int, list[int], int]:
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("questions"), keep_excerpt=False)
+    s.items.store_full_text(item, "Intro\nLag\nbody\nQuorum\nmore")
+    # The intro is the page's top; the others are headings an admin can correct.
+    anchor = "https://contract.example.test/a#"
+    s.moments.replace(
+        item,
+        [
+            moment(0, "intro"),
+            MomentRow(1, "Lag", 1, f"{anchor}lag", "anchor"),
+            MomentRow(2, "Quorum", 1, f"{anchor}quorum", "anchor"),
+        ],
+    )
+    tag_input = s.tags.input(item)
+    assert tag_input is not None
+    ids = [m.id for m in tag_input.moments]
+    s.tags.save(
+        item,
+        TagResult(
+            Tags("intermediate", frozenset({"cg-lag"})),
+            {
+                ids[1]: Tags("advanced", frozenset({"cg-lag", "cg-replication"})),
+                ids[2]: Tags("advanced", frozenset({"cg-quorum"})),
+            },
+        ),
+        "small-model",
+        1,
+    )
+    return item, ids, sid
+
+
+def test_tagged_full_text_moments_are_question_targets(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    item, (intro, lag, quorum), sid = _question_item(s, probe)
+    target = s.questions.target(lag)
+    assert target is not None and target.item_id == item
+    assert target.concepts == (("cg-lag", "Lag"), ("cg-replication", "Replication"))
+    assert s.questions.target(intro) is None  # untagged
+    assert s.questions.targets(item) == [lag, quorum]
+    assert lag in s.questions.targets(None)
+    # An admin's correction replaces the model's tags, by the moment's heading.
+    probe.correct_moment_concepts(item, "Quorum", ["cg-ryw"])
+    corrected = s.questions.target(quorum)
+    assert corrected is not None and corrected.concepts == (("cg-ryw", "RYW"),)
+    # A source that stops allowing moments makes none of them targets (ING-2).
+    probe.switch_moments_off(sid, True)
+    assert s.questions.target(lag) is None
+
+
+def test_drafts_replace_a_moments_questions_and_remember_their_hash(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    item, (_, lag, _), _ = _question_item(s, probe)
+    assert s.questions.drafted_hash(lag) is None
+    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    first = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1")
+    assert len(first) == 2 and s.questions.drafted_hash(lag) == "h1"
+    again = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h2")
+    assert set(again).isdisjoint(first) and s.questions.drafted_hash(lag) == "h2"
+    # Questions go with their moment (and so with its rights, ING-2).
+    s.moments.replace(item, [moment(0, "intro")])
+    assert s.questions.drafted_hash(lag) is None
