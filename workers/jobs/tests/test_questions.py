@@ -161,7 +161,7 @@ def test_the_validators_answer_is_one_index() -> None:
 
 def test_shuffling_moves_the_options_and_the_key_follows_its_option() -> None:
     draft = QuestionDraft("Q?", ("right", "w1", "w2", "w3"), 0, "c c c")
-    seen = set()
+    seen: set[int] = set()
     for seed in range(20):
         got = shuffled(draft, random.Random(seed))
         assert got.options[got.correct] == "right"

@@ -50,7 +50,9 @@ class QuestionLlm:
             if self.validator_fail == "garbage":
                 return Completion("B, I think", 300, 5, Decimal(0))
             lines = messages[1]["content"].splitlines()
-            right = next(int(l.split(".")[0]) for l in lines if l.endswith(". It"))
+            right = next(
+                int(line.split(".")[0]) for line in lines if line.endswith(". It")
+            )
             answer = (right + 1) % 4 if self.validator_wrong else right
             return Completion(json.dumps({"answer": answer}), 300, 5, Decimal(0))
         if "multiple-choice" not in messages[0]["content"]:
