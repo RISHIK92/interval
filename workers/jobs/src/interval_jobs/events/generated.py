@@ -23,6 +23,8 @@ type EventName = Literal[
     "feedback_undone",
     "guest_merged",
     "item_saved",
+    "note_deleted",
+    "note_saved",
     "onboarding_completed",
     "outbound_click",
     "pwa_installed",
@@ -44,6 +46,8 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "feedback_undone": 1,
     "guest_merged": 1,
     "item_saved": 1,
+    "note_deleted": 1,
+    "note_saved": 1,
     "onboarding_completed": 1,
     "outbound_click": 1,
     "pwa_installed": 1,
@@ -98,6 +102,16 @@ class GuestMergedProps(_Model):
 
 class ItemSavedProps(_Model):
     pass
+
+
+class NoteDeletedProps(_Model):
+    item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    moment_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class NoteSavedProps(_Model):
+    item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    moment_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class OnboardingCompletedProps(_Model):
@@ -201,6 +215,18 @@ class ItemSavedEvent(_EnvelopeBase):
     props: ItemSavedProps
 
 
+class NoteDeletedEvent(_EnvelopeBase):
+    name: Literal["note_deleted"]
+    version: Literal[1]
+    props: NoteDeletedProps
+
+
+class NoteSavedEvent(_EnvelopeBase):
+    name: Literal["note_saved"]
+    version: Literal[1]
+    props: NoteSavedProps
+
+
 class OnboardingCompletedEvent(_EnvelopeBase):
     name: Literal["onboarding_completed"]
     version: Literal[1]
@@ -254,6 +280,8 @@ type Envelope = Annotated[
     | FeedbackUndoneEvent
     | GuestMergedEvent
     | ItemSavedEvent
+    | NoteDeletedEvent
+    | NoteSavedEvent
     | OnboardingCompletedEvent
     | OutboundClickEvent
     | PwaInstalledEvent
