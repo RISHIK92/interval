@@ -6,6 +6,7 @@ import json
 import re
 from collections.abc import Callable, Generator, Sequence
 from contextlib import AbstractContextManager, contextmanager
+from datetime import timedelta
 from decimal import Decimal
 
 import pytest
@@ -16,7 +17,13 @@ from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.pipeline import ModelJob, moment_text
-from interval_jobs.ports import BatchItem, BatchRequest, BatchStatus, Store
+from interval_jobs.ports import (
+    BatchItem,
+    BatchNotFound,
+    BatchRequest,
+    BatchStatus,
+    Store,
+)
 from interval_jobs.question_batches import collect, submit
 
 from .test_pipeline import NOW, NoEmbeddings, World
@@ -61,6 +68,8 @@ class FakeBatches:
     def status(self, batch_id: str) -> BatchStatus:
         if self.mode == "running":
             return BatchStatus("running", [], None, None)
+        if self.mode == "not-found":
+            raise BatchNotFound(f"{batch_id}: not found")
         if self.mode == "failed":
             return BatchStatus("failed", [], None, "expired")
         items = [
@@ -138,6 +147,21 @@ def test_a_running_batch_waits_and_a_failed_one_frees_its_moments() -> None:
     assert collect(unit, gateway, MODEL).failed_batches == 1
     assert store.questions.rows == []
     # Freed: the next submit sends them again.
+    assert submit(unit, gateway, MODEL).drafts == first
+
+
+def test_a_batch_not_found_waits_then_is_failed_once_past_its_window() -> None:
+    store, gateway, batches, _ = batch_setup()
+    unit = unit_of(store)
+    first = submit(unit, gateway, MODEL).drafts
+    # OpenRouter reads a new batch as 404 for a moment: it stays open.
+    batches.mode = "not-found"
+    assert collect(unit, gateway, MODEL).failed_batches == 0
+    assert submit(unit, gateway, MODEL).drafts == 0
+    # Still unknown two days on (past the 24h window): failed, its moments freed.
+    (batch_id, kind, _) = store.questions.open_batches()[0]
+    store.questions.batches[batch_id] = (kind, True, NOW - timedelta(days=2))
+    assert collect(unit, gateway, MODEL).failed_batches == 1
     assert submit(unit, gateway, MODEL).drafts == first
 
 

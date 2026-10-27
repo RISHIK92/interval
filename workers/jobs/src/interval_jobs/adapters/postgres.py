@@ -2102,12 +2102,12 @@ class PostgresQuestions:
                 ],
             )
 
-    def open_batches(self) -> list[tuple[str, BatchKind]]:
+    def open_batches(self) -> list[tuple[str, BatchKind, datetime]]:
         rows = self._conn.execute(
-            "select id, kind from question_batch where closed_at is null "
+            "select id, kind, submitted_at from question_batch where closed_at is null "
             "order by submitted_at, id"
         ).fetchall()
-        return [(str(r[0]), cast(BatchKind, r[1])) for r in rows]
+        return [(str(r[0]), cast(BatchKind, r[1]), r[2]) for r in rows]
 
     def batch_entries(self, batch_id: str) -> list[QuestionBatchEntry]:
         rows = self._conn.execute(

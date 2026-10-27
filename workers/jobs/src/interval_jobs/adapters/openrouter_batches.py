@@ -15,7 +15,13 @@ from interval_db.generated import AiProvider
 from interval_jobs.adapters.openrouter import ListedOutputPrices
 from interval_jobs.adapters.price_cap import refuse_over_cap
 from interval_jobs.adapters.rate_limited import post_until_allowed
-from interval_jobs.ports import BatchItem, BatchRequest, BatchStatus, ModelError
+from interval_jobs.ports import (
+    BatchItem,
+    BatchNotFound,
+    BatchRequest,
+    BatchStatus,
+    ModelError,
+)
 
 URL = "https://openrouter.ai/api/v1/batches"
 TIMEOUT_S = 120.0
@@ -162,10 +168,15 @@ class OpenRouterBatches:
                 headers={"authorization": f"Bearer {self._api_key}"},
                 timeout=TIMEOUT_S,
             )
-            if response.status_code in (404, 410):
-                # Unknown, or its results were deleted (30 days on): nothing more
-                # will come; its requests can go again.
-                return BatchStatus("failed", [], None, f"gone ({response.status_code})")
+            if response.status_code == 404:
+                # Seen live: a batch reads as 404 for a moment after it's accepted.
+                # Failing it would free its requests and pay for them twice; it's read
+                # again on the next run.
+                raise BatchNotFound(f"openrouter batch {batch_id}: not found (yet)")
+            if response.status_code == 410:
+                # Its results were deleted (30 days on): nothing more will come; its
+                # requests can go again.
+                return BatchStatus("failed", [], None, "gone (410)")
             response.raise_for_status()
             batch = _Batch.model_validate_json(response.content)
         except (httpx.HTTPError, ValidationError) as error:

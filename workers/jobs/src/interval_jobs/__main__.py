@@ -63,6 +63,7 @@ from interval_jobs.pipeline import BATCH_PREFIX, Pipeline
 from interval_jobs.polling import enqueue_due
 from interval_jobs.ports import ConceptCycleError, ModelError, Store
 from interval_jobs.question_batches import collect, submit
+from interval_jobs.question_trial import TrialError, run_trial, trial_moments
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.ranking.scoring import BREAK_MINUTES
 from interval_jobs.segment import segment_item
@@ -192,6 +193,17 @@ def main(argv: list[str]) -> None:
         help="collect finished question batches, then submit what needs doing "
         "(QUESTIONS_MODEL=batch:<model>, Q-P2-13)",
     )
+    trial = commands.add_parser(
+        "question-trial",
+        help="draft and validate the first N target moments on QUESTIONS_MODEL="
+        "batch:<model> and report, saving nothing to the bank (Q-P2-13)",
+    )
+    trial.add_argument("--limit", type=int, default=10)
+    trial.add_argument(
+        "--draft-batch",
+        help="resume this submitted draft batch, one no trial has finished reading "
+        "(its cost would be recorded twice)",
+    )
     commands.add_parser(
         "spot-check-due",
         help="queue this week's question spot checks: 10%% sampled, plus flagged (Q-2)",
@@ -265,6 +277,28 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
 
     if args.command == "question-batches":
         _question_batches()
+        return
+
+    if args.command == "question-trial":
+        with services() as s:
+            try:
+                moments = trial_moments(s.store, args.limit)
+            except TrialError as error:
+                sys.exit(f"question-trial: {error}")
+        with model_job("QUESTIONS_MODEL") as job:
+            if job is None or not job.model.startswith(BATCH_PREFIX):
+                sys.exit("question-trial needs QUESTIONS_MODEL=batch:<model>")
+            with job.gateway() as gateway:
+                try:
+                    report = run_trial(
+                        gateway,
+                        job.model.removeprefix(BATCH_PREFIX),
+                        moments,
+                        draft_batch=args.draft_batch,
+                    )
+                except TrialError as error:
+                    sys.exit(f"question-trial: {error}")
+        print(json.dumps(asdict(report), indent=2, default=str))
         return
 
     if args.command == "spot-check-due":

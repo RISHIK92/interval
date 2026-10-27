@@ -17,6 +17,7 @@ few thousand moments, batch the reads if that grows."""
 from collections.abc import Callable, Mapping
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
@@ -24,6 +25,7 @@ from interval_jobs.pipeline import QUESTION_BROKEN_REPLIES, moment_text
 from interval_jobs.ports import (
     BatchItemResult,
     BatchKind,
+    BatchNotFound,
     BatchRequest,
     ModelError,
     QuestionBatchEntry,
@@ -43,6 +45,9 @@ from interval_jobs.questions import (
 # Requests per batch: well inside the provider's 200 MB body (4,000-character
 # passages), and a failed batch frees no more than this.
 MAX_BATCH = 1000
+# A batch the provider still doesn't know this long after submitting (its window is
+# 24h) never will.
+UNKNOWN_AFTER = timedelta(hours=48)
 
 type StoreUnit = Callable[[], AbstractContextManager[Store]]
 
@@ -70,7 +75,7 @@ def submit(unit: StoreUnit, gateway: AiGateway, model: str) -> Submitted:
     validations: list[tuple[QuestionBatchEntry, BatchRequest]] = []
     with unit() as store:
         questions = store.questions
-        open_kinds = {kind for _, kind in questions.open_batches()}
+        open_kinds = {kind for _, kind, _ in questions.open_batches()}
         busy_moments, busy_questions = questions.in_open_batches()
         broken_moments, broken_questions = questions.broken_counts()
         for moment_id in [] if "draft" in open_kinds else questions.targets(None):
@@ -160,9 +165,24 @@ def collect(unit: StoreUnit, gateway: AiGateway, model: str) -> Collected:
         open_batches = store.questions.open_batches()
     closed = failed = 0
     counts: dict[str, int] = {}
-    for batch_id, kind in open_batches:
+    for batch_id, kind, submitted_at in open_batches:
         try:
             status = gateway.batch_status(batch_id)
+        except BatchNotFound as error:
+            if datetime.now(UTC) - submitted_at < UNKNOWN_AFTER:
+                log.warn(
+                    "questions: batch not found yet",
+                    batch_id=batch_id,
+                    error=str(error),
+                )
+                continue
+            # Past the provider's 24h window it can't still be running: failed, so
+            # its moments and questions aren't stranded behind it.
+            log.warn("questions: batch unknown, failed", batch_id=batch_id)
+            with unit() as store:
+                store.questions.close_batch(batch_id, "failed", {})
+            failed += 1
+            continue
         except ModelError as error:
             # A balance hold or a bad read: polled again on the next run.
             log.warn(

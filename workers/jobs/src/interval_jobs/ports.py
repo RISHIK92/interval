@@ -610,8 +610,8 @@ class Questions(Protocol):
         entries: Sequence[QuestionBatchEntry],
     ) -> None: ...
 
-    def open_batches(self) -> list[tuple[str, BatchKind]]:
-        """Batches not yet closed, oldest first: (id, kind)."""
+    def open_batches(self) -> list[tuple[str, BatchKind, datetime]]:
+        """Batches not yet closed, oldest first: (id, kind, submitted at)."""
         ...
 
     def batch_entries(self, batch_id: str) -> list[QuestionBatchEntry]: ...
@@ -1273,6 +1273,11 @@ class BatchStatus:
     items: list[BatchItem]
     cost_usd: Decimal | None
     error: str | None
+
+
+class BatchNotFound(ModelError):
+    """The provider doesn't know the batch (yet: OpenRouter reads a new one as 404
+    for a moment)."""
 
 
 class BatchClient(Protocol):

@@ -169,9 +169,15 @@ def test_failures_to_read_a_batch_are_model_errors(response: httpx.Response) -> 
 
 
 def test_a_gone_batch_is_failed_so_its_requests_can_go_again() -> None:
-    for code in (404, 410):
-        got = client(lambda _r, c=code: httpx.Response(c, json={})).status("b")
-        assert got.state == "failed" and got.items == []
+    got = client(lambda _r: httpx.Response(410, json={})).status("b")
+    assert got.state == "failed" and got.items == []
+
+
+def test_a_batch_not_found_yet_is_read_again_later_not_failed() -> None:
+    # OpenRouter answers 404 for a moment after accepting a batch (seen live): failing
+    # it would free its requests and pay for them twice.
+    with pytest.raises(ModelError, match="not found"):
+        client(lambda _r: httpx.Response(404, json={})).status("b")
 
 
 def test_an_odd_result_body_fails_only_its_item() -> None:

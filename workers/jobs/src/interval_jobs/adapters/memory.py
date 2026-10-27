@@ -1443,7 +1443,7 @@ class InMemoryQuestions:
         self.reviews: list[tuple[int, str, bool]] = []
         # Q-P2-13 batches: id -> (kind, open?), their claimed costs, and entries with
         # their result
-        self.batches: dict[str, tuple[BatchKind, bool]] = {}
+        self.batches: dict[str, tuple[BatchKind, bool, datetime]] = {}
         self.batch_costs: dict[str, Decimal] = {}
         self.batch_items: dict[str, list[tuple[QuestionBatchEntry, str | None]]] = {}
 
@@ -1595,11 +1595,13 @@ class InMemoryQuestions:
         model: str,
         entries: Sequence[QuestionBatchEntry],
     ) -> None:
-        self.batches[batch_id] = (kind, True)
+        self.batches[batch_id] = (kind, True, datetime.now(UTC))
         self.batch_items[batch_id] = [(e, None) for e in entries]
 
-    def open_batches(self) -> list[tuple[str, BatchKind]]:
-        return [(b, kind) for b, (kind, is_open) in self.batches.items() if is_open]
+    def open_batches(self) -> list[tuple[str, BatchKind, datetime]]:
+        return [
+            (b, kind, at) for b, (kind, is_open, at) in self.batches.items() if is_open
+        ]
 
     def batch_entries(self, batch_id: str) -> list[QuestionBatchEntry]:
         return sorted(
@@ -1610,7 +1612,7 @@ class InMemoryQuestions:
     def in_open_batches(self) -> tuple[set[int], set[int]]:
         entries = [
             e
-            for b, (_, is_open) in self.batches.items()
+            for b, (_, is_open, _) in self.batches.items()
             if is_open
             for e, _ in self.batch_items[b]
         ]
@@ -1631,8 +1633,8 @@ class InMemoryQuestions:
         outcome: Literal["completed", "failed"],
         results: Mapping[str, BatchItemResult],
     ) -> None:
-        kind, _ = self.batches[batch_id]
-        self.batches[batch_id] = (kind, False)
+        kind, _, at = self.batches[batch_id]
+        self.batches[batch_id] = (kind, False, at)
         self.batch_items[batch_id] = [
             (e, results.get(e.custom_id, r)) for e, r in self.batch_items[batch_id]
         ]

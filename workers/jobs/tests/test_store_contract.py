@@ -2726,7 +2726,11 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
         "haiku",
         [QuestionBatchEntry(f"v-{pending}", None, pending, None)],
     )
-    assert s.questions.open_batches() == [("b1", "draft"), ("b2", "validate")]
+    assert [(b, k) for b, k, _ in s.questions.open_batches()] == [
+        ("b1", "draft"),
+        ("b2", "validate"),
+    ]
+    assert all(at.tzinfo is not None for _, _, at in s.questions.open_batches())
     assert s.questions.in_open_batches() == ({lag, quorum}, {pending})
     assert s.questions.batch_entries("b1") == [
         QuestionBatchEntry(f"draft-{lag}", lag, None, "h-lag"),
@@ -2738,7 +2742,7 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
     s.questions.close_batch(
         "b1", "completed", {f"draft-{lag}": "broken", f"draft-{quorum}": "saved"}
     )
-    assert s.questions.open_batches() == [("b2", "validate")]
+    assert [(b, k) for b, k, _ in s.questions.open_batches()] == [("b2", "validate")]
     assert s.questions.in_open_batches() == (set(), {pending})
     assert s.questions.broken_counts() == ({(lag, "h-lag"): 1}, {})
     # A failed batch frees its items without results.
