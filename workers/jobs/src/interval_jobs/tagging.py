@@ -13,6 +13,7 @@ summary. A moment whose heading line can't be found is left out and logged.
 """
 
 import json
+import math
 import secrets
 from dataclasses import dataclass
 from decimal import Decimal
@@ -23,8 +24,11 @@ from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.headings import clean_heading, heading_key
 from interval_jobs.ports import (
+    ChoiceAnswer,
     ConceptGraph,
+    DecisionState,
     Message,
+    ScoreAnswer,
     TagInput,
     TagMoment,
     TagResult,
@@ -179,12 +183,137 @@ def _parse(answer: str, sent: dict[int, int], known: set[str]) -> TagResult:
     return TagResult(_tags(doc["item"], known, "item"), moments)
 
 
+# A model setting starting "decisions:" is a decision model on OpenRouter's Decisions
+# API (TypeSafe's Jev, 2026-10-27): typed questions per section instead of a prompt.
+DECISIONS_PREFIX = "decisions:"
+# A section's concepts: every option at least this likely, most likely first. Tuned
+# on the tagging eval for Jev 1.14 (2026-10-27: 0.03 gave F1 0.67 against 0.56 at
+# 0.15, on the draft labels); retune per model and after the labels change.
+MIN_PROBABILITY = 0.03
+_RUBRIC = [
+    "Beginner: assumes little beyond programming basics",
+    "Intermediate: assumes working knowledge of the topic",
+    "Advanced: assumes deep familiarity; covers internals, trade-offs or research",
+]
+
+
+def _picked(probabilities: dict[str, float], known: set[str]) -> frozenset[str]:
+    unknown = [slug for slug in probabilities if slug not in known]
+    if unknown:
+        log.warn("tagging: unknown concept dropped", slugs=unknown[:5])
+    ranked = sorted(
+        (slug for slug in probabilities if slug in known),
+        key=lambda slug: probabilities[slug],
+        reverse=True,
+    )
+    likely = [s for s in ranked if probabilities[s] >= MIN_PROBABILITY]
+    return frozenset((likely or ranked[:1])[:MAX_CONCEPTS])
+
+
+def _level(score: float) -> Difficulty:
+    # Halves round up (0.5 is intermediate), not to even as round() does.
+    return cast(Difficulty, DIFFICULTIES[min(2, max(0, math.floor(score + 0.5)))])
+
+
+def _ask(
+    gateway: AiGateway,
+    model: str,
+    state: DecisionState,
+    criteria: dict[str, str],
+) -> tuple[dict[str, float], float, Decimal] | OverBudget:
+    result = gateway.decide(
+        feature="tagging",
+        user_id=None,
+        model=model,
+        state=state,
+        questions={
+            "concepts": {
+                "type": "choice",
+                "instructions": "Which concept does this text teach most?",
+                "criteria": criteria,
+            },
+            "difficulty": {
+                "type": "score",
+                "instructions": "How advanced is this text for a software engineer?",
+                "criteria": _RUBRIC,
+            },
+        },
+    )
+    if isinstance(result, OverBudget):
+        return result
+    concepts, level = result.answers.get("concepts"), result.answers.get("difficulty")
+    if not isinstance(concepts, ChoiceAnswer) or not isinstance(level, ScoreAnswer):
+        raise TaggingError("the decision is missing its concepts or difficulty")
+    probabilities = concepts.probabilities or {concepts.choice: 1.0}
+    return probabilities, level.score, result.usage.cost_usd
+
+
+def _tag_by_decisions(
+    gateway: AiGateway, model: str, item: TagInput, graph: ConceptGraph
+) -> Tagged | OverBudget:
+    names = {c.slug: c.name for c in graph.concepts if not c.retired}
+    known = set(names)
+    texts = moment_texts(item.full_text, item.moments) if item.full_text else {}
+    sent = [m for m in sorted(item.moments, key=lambda m: m.ordinal) if m.id in texts]
+    budget = min(MOMENT_CHARS, TOTAL_CHARS // max(1, len(sent)))
+    moments: dict[int, Tags] = {}
+    summed: dict[str, float] = {}
+    scores: list[float] = []
+    cost = Decimal(0)
+    states: list[tuple[int | None, DecisionState]] = [
+        (
+            m.id,
+            {
+                "article": item.title,
+                "section": m.heading or "Introduction",
+                "text": texts[m.id][:budget],
+            },
+        )
+        for m in sent
+    ] or [
+        (
+            None,
+            {
+                "article": item.title,
+                "summary": (item.summary or "")[:MOMENT_CHARS],
+                "excerpt": (item.excerpt or "")[:TOTAL_CHARS],
+            },
+        )
+    ]
+    for moment_id, state in states:
+        asked = _ask(gateway, model, state, names)
+        if isinstance(asked, OverBudget):
+            return asked
+        probabilities, score, paid = asked
+        cost += paid
+        scores.append(score)
+        for slug, p in probabilities.items():
+            if slug in known:
+                summed[slug] = summed.get(slug, 0.0) + p
+        if moment_id is not None:
+            moments[moment_id] = Tags(_level(score), _picked(probabilities, known))
+    # The article's concepts: the per-section cut-off on the average over its
+    # sections, so a long article doesn't loosen it.
+    mean = {slug: total / len(states) for slug, total in summed.items()}
+    top = sorted(mean, key=lambda slug: mean[slug], reverse=True)
+    likely = [slug for slug in top if mean[slug] >= MIN_PROBABILITY]
+    whole = Tags(
+        _level(sum(scores) / len(scores)),
+        frozenset((likely or top[:1])[:MAX_CONCEPTS]),
+    )
+    return Tagged(TagResult(whole, moments), cost)
+
+
 def tag_item(
     gateway: AiGateway, model: str, item: TagInput, graph: ConceptGraph | None
 ) -> Tagged | OverBudget:
     concepts = active_concepts(graph)
-    if not concepts:
+    if graph is None or not concepts:
         raise TaggingError("no concept graph loaded")
+    if model.startswith(DECISIONS_PREFIX):
+        return _tag_by_decisions(
+            gateway, model.removeprefix(DECISIONS_PREFIX), item, graph
+        )
     texts = moment_texts(item.full_text, item.moments) if item.full_text else {}
     sent = {m.ordinal: m.id for m in item.moments if m.id in texts}
     # A fresh tag name per call: article text can't close the section early.

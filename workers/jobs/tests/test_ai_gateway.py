@@ -9,9 +9,18 @@ import pytest
 
 from interval_db.generated import AiProvider
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
-from interval_jobs.ai.gateway import AiGateway, Completed, Embedded, OverBudget
+from interval_jobs.ai.gateway import (
+    AiGateway,
+    Completed,
+    Decided,
+    Embedded,
+    OverBudget,
+)
 from interval_jobs.ports import (
+    ChoiceAnswer,
     Completion,
+    Decision,
+    DecisionState,
     EmbeddingPurpose,
     Embeddings,
     Message,
@@ -264,3 +273,56 @@ def test_a_groq_model_without_a_groq_client_is_a_model_error(
             feature="tagging", user_id=None, model="groq:m", messages=MESSAGES
         )
     assert ledger.rows == []
+
+
+class FakeDecisions:
+    provider: AiProvider = "openrouter"
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def decide(
+        self, model: str, state: DecisionState, questions: dict[str, object]
+    ) -> Decision:
+        self.calls += 1
+        return Decision(
+            {"team": ChoiceAnswer("payments", {"payments": 0.9})},
+            input_tokens=400,
+            output_tokens=0,
+            cost_usd=Decimal("0.00002"),
+        )
+
+
+def test_a_decision_is_budgeted_and_recorded_like_any_call(ledger: InMemoryAi) -> None:
+    decisions = FakeDecisions()
+    gate = AiGateway(
+        ledger, FakeLlm(), FakeEmbeddings(), clock=lambda: NOW, decisions=decisions
+    )
+    result = gate.decide(
+        feature="tagging",
+        user_id="u1",
+        model="typesafe/jev-1.14",
+        state={},
+        questions={},
+    )
+    assert isinstance(result, Decided)
+    assert result.answers["team"] == ChoiceAnswer("payments", {"payments": 0.9})
+    assert ledger.rows == [result.usage]
+    assert (result.usage.provider, result.usage.model) == (
+        "openrouter",
+        "typesafe/jev-1.14",
+    )
+    spend(ledger, "u1", "0.50", NOW)
+    assert gate.decide(
+        feature="tagging", user_id="u1", model="m", state={}, questions={}
+    ) == OverBudget("user")
+    assert decisions.calls == 1
+
+
+def test_a_decision_without_a_decisions_client_is_a_model_error(
+    ledger: InMemoryAi,
+) -> None:
+    with pytest.raises(ModelError, match="decision"):
+        gateway(ledger).decide(
+            feature="tagging", user_id=None, model="m", state={}, questions={}
+        )

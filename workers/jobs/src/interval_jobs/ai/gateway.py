@@ -18,6 +18,9 @@ from interval_db.generated import AiFeature, AiProvider
 from interval_jobs import log
 from interval_jobs.ports import (
     AiLedger,
+    DecisionAnswer,
+    DecisionClient,
+    DecisionState,
     EmbeddingClient,
     EmbeddingPurpose,
     LlmClient,
@@ -39,6 +42,12 @@ class Completed:
 
 
 @dataclass(frozen=True)
+class Decided:
+    answers: dict[str, DecisionAnswer]
+    usage: Usage
+
+
+@dataclass(frozen=True)
 class Embedded:
     vectors: list[list[float]]
     usage: Usage
@@ -53,11 +62,14 @@ class AiGateway:
         clock: Callable[[], datetime] = lambda: datetime.now(UTC),
         *,
         others: Mapping[str, LlmClient] | None = None,
+        decisions: DecisionClient | None = None,
     ) -> None:
         self._ledger = ledger
         self._llm = llm
         # Other LLM providers by model prefix: "groq:", "google:" (ADR-0020, ADR-0021).
         self._others = others or {}
+        # Decision models (OpenRouter's Decisions API): typed answers, not text.
+        self._decisions = decisions
         self._embeddings = embeddings
         self._clock = clock
 
@@ -84,6 +96,32 @@ class AiGateway:
             result.cost_usd,
         )
         return Completed(result.text, usage)
+
+    def decide(
+        self,
+        *,
+        feature: AiFeature,
+        user_id: str | None,
+        model: str,
+        state: DecisionState,
+        questions: dict[str, object],
+    ) -> Decided | OverBudget:
+        if self._decisions is None:
+            raise ModelError("no decision-model client configured")
+        refused = self._over_budget(feature, user_id)
+        if refused is not None:
+            return refused
+        result = self._decisions.decide(model, state, questions)
+        usage = self._record(
+            feature,
+            user_id,
+            self._decisions.provider,
+            model,
+            result.input_tokens,
+            result.output_tokens,
+            result.cost_usd,
+        )
+        return Decided(result.answers, usage)
 
     def embed(
         self,

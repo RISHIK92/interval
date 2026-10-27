@@ -952,6 +952,43 @@ class LlmClient(Protocol):
     def complete(self, model: str, messages: list[Message]) -> Completion: ...
 
 
+# Decision models (OpenRouter's Decisions API, e.g. TypeSafe's Jev): typed questions
+# about a state, typed answers with probabilities instead of generated text.
+@dataclass(frozen=True)
+class ChoiceAnswer:
+    choice: str
+    probabilities: dict[str, float]  # every option's, when the model gives them
+
+
+@dataclass(frozen=True)
+class ScoreAnswer:
+    score: float  # a position on the question's ordered rubric, from 0
+
+
+type DecisionAnswer = ChoiceAnswer | ScoreAnswer
+type DecisionState = dict[str, object]
+
+
+@dataclass(frozen=True)
+class Decision:
+    answers: dict[str, DecisionAnswer]
+    input_tokens: int
+    output_tokens: int
+    cost_usd: Decimal  # as the provider reports it
+
+
+class DecisionClient(Protocol):
+    """Decision-model calls (OpenRouter's Decisions API). Only ai/gateway.py uses
+    this."""
+
+    @property
+    def provider(self) -> AiProvider: ...
+
+    def decide(
+        self, model: str, state: DecisionState, questions: dict[str, object]
+    ) -> Decision: ...
+
+
 class EmbeddingClient(Protocol):
     """Embeddings (ADR-0007: Voyage AI). Only ai/gateway.py uses this."""
 
