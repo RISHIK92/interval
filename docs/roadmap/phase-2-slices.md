@@ -41,3 +41,37 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - Acceptance: each listed note shows its article title, source and section with a deep link to the publisher's page, plus edit and delete; a card whose item has a note shows a "Your note" line; page tests; checked in Chrome.
 - Out of scope: search over notes, collections.
 - Q: Q-P2-01.
+
+## Week 8: generator-validator questions, spot checks, difficulty
+
+### P2-W8-S01 Question bank and generator
+- IDs: Q-1, AI-3, AI-4, ING-2, OPS-4, LOAD-5
+- Needs: tagging (P1-W3-S02)
+- Goal: each tagged full-text moment gets 2 multiple-choice questions drafted by the question model, citing its text, saved as pending.
+- Acceptance: migration `question` and `question_concept`; a pure prompt and reply parser (2 questions, 4 distinct options, one key, a verbatim citation of at most 300 characters, else refused); stage `generate_questions` through the gateway (feature `questions`), once per moment by content hash; a rate limit or model error re-enqueues the job 5 minutes later and logs it; `QUESTIONS_MODEL` unset means off; tagging queues it, `enqueue-questions` backfills.
+- Out of scope: validation (S02), any UI.
+- Q: Q-P2-08, Q-P2-09, Q-P2-10, Q-P2-12.
+
+### P2-W8-S02 Validator
+- IDs: Q-1
+- Needs: S01
+- Goal: a second, blind call answers each pending question; a match makes it live, a mismatch rejects it.
+- Acceptance: stage `validate_question` (never sends the key); the validator's answer is kept; an unparseable reply retries in 5 minutes; a report of the pass rate and a sample.
+- Out of scope: showing questions to users (Week 9).
+- Q: Q-P2-07.
+
+### P2-W8-S03 Spot-check queue
+- IDs: Q-2
+- Needs: S02
+- Goal: a weekly random 10% of new live questions, plus every flagged one, wait for an admin's Keep or Retire.
+- Acceptance: a weekly job marks the sample; `/admin/questions` behind `admin.review` shows the moment link, quote, options, key and validator's answer; Keep and Retire are recorded.
+- Out of scope: user flagging (Week 9, when users see questions).
+- Q: none.
+
+### P2-W8-S04 Starting difficulty
+- IDs: Q-3
+- Needs: S01
+- Goal: each question has a starting difficulty and the fields recalibration will need.
+- Acceptance: difficulty from the moment's level (an admin's correction winning); answer and correct counts and an empty calibrated-at stored.
+- Out of scope: the IRT recalibration job (Week 9).
+- Q: Q-P2-11.

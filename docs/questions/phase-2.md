@@ -42,3 +42,30 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: Q-P1-04 (retired concepts are never deleted; tags are migrated by script), Q-P2-04.
 - Why it matters: a concept retired or merged after a user explored it would still be listed, under its old name.
 - Suggested default (as built in P2-W7-S02): hide it, as crediting already skips retired concepts (P2-W7-S01). Folding a merged concept into its target waits for the knowledge map.
+
+## Week 8: generator-validator questions, spot checks, difficulty
+
+### Q-P2-07 The validator model (P0)
+- Cite: Q-1 ("a second model answers it without the key; mismatches are rejected"), §6.8.
+- **Answer (owner, 2026-10-27):** the same free Nemotron, in a fresh call that never sees the key. Q-2's spot checks are the backstop for a model agreeing with its own mistakes.
+
+### Q-P2-08 Question format and count (P0)
+- Cite: Q-1, §6.2 (question types).
+- **Answer (owner, 2026-10-27):** multiple choice, 4 options, one correct, 2 per moment. Other §6.2 types come with Play.
+
+### Q-P2-09 Which moments get questions (P0)
+- Cite: §3.1 ("every question tests one or more concepts"), ING-2.
+- **Answer (owner, 2026-10-27):** tagged moments only, under full-text rights.
+
+### Q-P2-10 The question model (P0)
+- Cite: AI-2 ("A stronger model handles … question generation, judging"), OPS-4.
+- **Answer (owner, 2026-10-27):** the free `nvidia/nemotron-3.5-super-vl:free` through OpenRouter, run as an unimportant background task: a rate limit or an error retries in 5 minutes, and every success is saved, while other work goes on. Overrides AI-2's "stronger model" for now.
+
+### Q-P2-11 Difficulty before there are answers (P1)
+- Cite: Q-3 ("recalibrated from real answers using item response theory"), Phase 2 Week 9 (quizzes).
+- Why it matters: there are no answers until Week 9's quizzes.
+- Suggested default: a question starts at its moment's difficulty (an admin's correction winning); Week 8 stores that and the counts IRT needs; the recalibration job comes in Week 9 with real answers.
+
+### Q-P2-12 The citation (P1)
+- Cite: Q-1 ("with a citation"), AI-3 (cites its source passages; stored separately), ING-2, §3.2 (deep links, never copies).
+- Suggested default: a verbatim quote of at most 300 characters from the moment's text, stored with the question for validation and review only; users see the deep link to the section, never the quote.
