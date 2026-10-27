@@ -1,8 +1,10 @@
 # Tagging eval labels (AI-5, P1-W3-S02): `eval-tagging --labels` reads this file.
 #
-# DRAFT labels by Claude, 2026-10-27. NOT owner-checked: the owner corrects them before
-# any eval result is trusted. Picked from the local database's full-text items as
-# ingested on 2026-10-27; concept slugs from workers/jobs/seeds/concepts.yaml version 2.
+# DRAFT labels by Claude, 2026-10-27; second pass by Claude on the owner's instruction the
+# same day (12 moments where the Decider disagreed, re-read against the first 4000
+# characters the model sees; 11 changed). Not owner-checked.
+# Picked from the local database's full-text items as ingested on 2026-10-27; concept
+# slugs from workers/jobs/seeds/concepts.yaml version 2.
 #
 # Each label names a moment by its item's canonical URL and its heading (null for the
 # intro), the difficulty (beginner | intermediate | advanced) and 1-5 concept slugs the
@@ -16,7 +18,7 @@ moments:
   - url: https://blog.algomaster.io/p/real-time-communication-patterns
     moment: "1. The Core Problem: Getting Updates in Real Time"
     difficulty: beginner
-    concepts: [long-polling, websockets, server-sent-events]
+    concepts: [long-polling, server-sent-events]
   - url: https://blog.algomaster.io/p/kafka-vs-rabbitmq-vs-sqs
     moment: "1. Three Different Models"
     difficulty: beginner
@@ -24,11 +26,11 @@ moments:
   - url: https://www.canva.dev/blog/engineering/worker-backpressure-part-1-how-we-taught-our-queue-workers-to-slow-down/
     moment: "Worker Backpressure (Part 1)"
     difficulty: intermediate
-    concepts: [backpressure, background-jobs, dead-letter-queues]
+    concepts: [background-jobs, backpressure, dead-letter-queues, message-queues]
   - url: https://www.canva.dev/blog/engineering/session-revocations-at-scale/
     moment: "Session revocations at scale"
     difficulty: intermediate
-    concepts: [session-management, caching]
+    concepts: [caching, session-management, object-storage]
   - url: https://newsletter.systemdesign.one/p/http-concepts-explained
     moment: "3. Persistent Connections"
     difficulty: beginner
@@ -36,7 +38,7 @@ moments:
   - url: https://newsletter.systemdesign.one/p/http-concepts-explained
     moment: "7. Caching and Conditional Requests"
     difficulty: beginner
-    concepts: [http-caching-headers]
+    concepts: [http-caching-headers, caching, cache-invalidation]
   - url: https://newsletter.systemdesign.one/p/http-concepts-explained
     moment: "10. Binary Framing Layer"
     difficulty: intermediate
@@ -44,7 +46,7 @@ moments:
   - url: https://newsletter.systemdesigncodex.com/p/how-to-design-apis
     moment: "1 - The Interface"
     difficulty: beginner
-    concepts: [rest-api-design, graphql, grpc, http-methods-and-status-codes]
+    concepts: [graphql, grpc, http-methods-and-status-codes, rest-api-design, api-versioning]
 
   # --- databases -------------------------------------------------------------------
   - url: https://newsletter.systemdesigncodex.com/p/database-locking-mechanisms
@@ -104,7 +106,7 @@ moments:
   - url: http://muratbuffalo.blogspot.com/2026/09/jetpack-consensus-made-generally-fast.html
     moment: "Jetpack: Consensus Made Generally Fast (OSDI '26)"
     difficulty: advanced
-    concepts: [consensus, paxos, raft, quorums]
+    concepts: [consensus, paxos, quorums, raft, replication]
   - url: http://muratbuffalo.blogspot.com/2026/09/metastability-as-failed-conditional.html
     moment: "Fixing the retry law"
     difficulty: advanced
@@ -118,11 +120,11 @@ moments:
   - url: https://newsletter.systemdesigncodex.com/p/top-deployment-strategies
     moment: "1 - Blue/Green Deployment"
     difficulty: beginner
-    concepts: [blue-green-deployment, canary-releases, rolling-deployments]
+    concepts: [blue-green-deployment, canary-releases, rolling-deployments, feature-flags]
   - url: https://newsletter.systemdesigncodex.com/p/how-to-move-from-monolith-to-a-service
     moment: "1 - Strangler Fig Pattern"
     difficulty: beginner
-    concepts: [monoliths-and-microservices, api-gateway]
+    concepts: [api-gateway, monoliths-and-microservices, change-data-capture]
   - url: https://newsletter.systemdesigncodex.com/p/how-to-scale-kubernetes
     moment: "1 - Horizontal Pod Autoscaling (HPA)"
     difficulty: beginner
@@ -130,7 +132,7 @@ moments:
   - url: https://planetscale.com/blog/leaky-buckets-in-software-explained
     moment: "Admission controls and databases"
     difficulty: intermediate
-    concepts: [load-shedding, rate-limiting]
+    concepts: [load-shedding, rate-limiting, token-bucket]
   - url: https://newsletter.pragmaticengineer.com/p/building-resilient-systems
     moment: "4. Disaster Recovery Patterns"
     difficulty: intermediate
@@ -146,11 +148,11 @@ moments:
   - url: https://aws.amazon.com/blogs/architecture/multi-region-disaster-recovery-for-amazon-api-gateway-websocket-apis/
     moment: "Heartbeat"
     difficulty: intermediate
-    concepts: [health-checks, failure-detection, failover, multi-region-architecture]
+    concepts: [websockets, health-checks, failure-detection, failover, retries-with-backoff]
   - url: https://blog.cloudflare.com/origin-range-requests/
     moment: "Coordinating cached and in-flight data"
     difficulty: advanced
-    concepts: [cdn, cache-stampede]
+    concepts: [cache-stampede, cdn, caching]
   - url: https://slack.engineering/shipyard-how-we-built-slacks-next-generation-ec2-platform/
     moment: "Deployments and Fleet Updates"
     difficulty: intermediate
