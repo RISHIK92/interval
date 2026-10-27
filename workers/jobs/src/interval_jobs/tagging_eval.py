@@ -185,6 +185,9 @@ def _decisions_eval(
             raise EvalError(f"labelled item {url} is not in this database")
         found[url] = (item_id, item)
     items: dict[str, tuple[int, dict[int, str | None], frozenset[int]]] = {}
+    # shortcut: the run is one unit of work, so its answer rows stay locked until it
+    # ends and a pipeline tag of the same item waits (a deadlock aborts one side); give
+    # each item its own unit if evals grow or run beside a busy pipeline.
     cost = Decimal(0)
     stopped: str | None = None
     for url, (item_id, item) in found.items():

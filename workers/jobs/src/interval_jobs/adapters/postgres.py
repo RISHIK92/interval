@@ -1726,14 +1726,23 @@ class PostgresDecisions:
         probabilities: dict[str, float],
     ) -> None:
         self._known(probabilities)
+        # An upsert, so a second writer (the pipeline and an eval run) waits on the
+        # row's lock and then replaces the answers instead of failing on the key.
         self._conn.execute(
-            "delete from moment_decision where moment_id = %s and model = %s",
-            (moment_id, model),
+            """
+            insert into moment_decision (moment_id, model, content_hash, difficulty)
+            values (%s, %s, %s, %s)
+            on conflict (moment_id, model) do update
+              set content_hash = excluded.content_hash,
+                  difficulty = excluded.difficulty,
+                  decided_at = now()
+            """,
+            (moment_id, model, content_hash, difficulty),
         )
         self._conn.execute(
-            "insert into moment_decision (moment_id, model, content_hash, difficulty) "
-            "values (%s, %s, %s, %s)",
-            (moment_id, model, content_hash, difficulty),
+            "delete from moment_concept_probability "
+            "where moment_id = %s and model = %s",
+            (moment_id, model),
         )
         with self._conn.cursor() as cur:
             cur.executemany(
@@ -1762,14 +1771,22 @@ class PostgresDecisions:
         probabilities: dict[str, float],
     ) -> None:
         self._known(probabilities)
+        # An upsert for the same reason as save_moment.
         self._conn.execute(
-            "delete from item_decision where content_item_id = %s and model = %s",
-            (item_id, model),
+            """
+            insert into item_decision (content_item_id, model, content_hash, difficulty)
+            values (%s, %s, %s, %s)
+            on conflict (content_item_id, model) do update
+              set content_hash = excluded.content_hash,
+                  difficulty = excluded.difficulty,
+                  decided_at = now()
+            """,
+            (item_id, model, content_hash, difficulty),
         )
         self._conn.execute(
-            "insert into item_decision (content_item_id, model, content_hash, "
-            "difficulty) values (%s, %s, %s, %s)",
-            (item_id, model, content_hash, difficulty),
+            "delete from item_concept_probability "
+            "where content_item_id = %s and model = %s",
+            (item_id, model),
         )
         with self._conn.cursor() as cur:
             cur.executemany(

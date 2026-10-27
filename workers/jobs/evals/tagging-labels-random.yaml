@@ -1,0 +1,131 @@
+# Tagging eval labels on a RANDOM sample (seed 20261027) of 30 moments from the local
+# database's full-text items, 2026-10-27, leaving out moments already in
+# tagging-labels.yaml. DRAFT labels by Claude, labelled blind (before looking at the
+# model's tags); not owner-checked. Concept slugs from workers/jobs/seeds/concepts.yaml.
+#
+# Unlike tagging-labels.yaml (picked for teaching-heavy sections), this sample shows the
+# feed as it is: an empty `concepts` list means the section teaches none of the graph's
+# concepts, so any tag on it is a false positive.
+
+version: 1
+moments:
+  - url: https://planetscale.com/blog/anatomy-of-a-postgres-search-engine
+    moment: null
+    difficulty: beginner
+    concepts: [indexes, b-tree-index, inverted-index, full-text-search]
+  - url: https://martinfowler.com/articles/never-send-slides/need-presentation.html
+    moment: "Use web interactions and applications to manage cognitive load"
+    difficulty: beginner
+    concepts: []
+  - url: http://muratbuffalo.blogspot.com/2026/10/the-man-from-future-why-johnny-cant.html
+    moment: "The Man from the Future: Why Johnny Can't Stop Abstracting"
+    difficulty: beginner
+    concepts: []
+  - url: https://www.brendangregg.com/blog/2025-08-04/when-to-hire-a-computer-performance-engineering-team-2025-part1.html
+    moment: "What do performance engineers do?"
+    difficulty: intermediate
+    concepts: [observability]
+  - url: https://newsletter.systemdesigncodex.com/p/essential-non-functional-requirements
+    moment: null
+    difficulty: beginner
+    concepts: [requirements-gathering]
+  - url: https://www.crunchydata.com/blog/postgres-19-how-our-advice-has-changed-since-we-wrote-it
+    moment: "TOAST: same mechanism, faster default compression"
+    difficulty: advanced
+    concepts: [vacuum-and-bloat]
+  - url: https://blog.algomaster.io/p/how-to-learn-low-level-design-from-zero
+    moment: "Pick One OOP Language"
+    difficulty: beginner
+    concepts: []
+  - url: https://zerodha.tech/blog/from-native-to-react-native-to-flutter/
+    moment: "Native Android, not so native iOS."
+    difficulty: beginner
+    concepts: []
+  - url: https://aws.amazon.com/blogs/architecture/bulk-executor-for-amazon-dynamodb-part-2-lessons-we-learned-the-hard-way/
+    moment: "Building a library of commands"
+    difficulty: intermediate
+    concepts: []
+  - url: https://highscalability.com/the-swedbank-outage-shows-that-change-controls-dont-work/
+    moment: "How did the Swedbank incident happen?"
+    difficulty: beginner
+    concepts: []
+  - url: https://blog.cloudflare.com/d1-control-plane/
+    moment: "Fast on-demand database creation close to the user"
+    difficulty: intermediate
+    concepts: [multi-tenancy, read-replicas]
+  - url: https://blog.cloudflare.com/d1-control-plane/
+    moment: "Enforcing row usage limits at the edge"
+    difficulty: intermediate
+    concepts: [oltp-vs-olap, rate-limiting]
+  - url: https://tailscale.com/blog/meta-muse-ai-agent-tailscale
+    moment: null
+    difficulty: beginner
+    concepts: []
+  - url: https://zerodha.tech/blog/alar-the-making-of-an-open-source-dictionary/
+    moment: "Zerodha"
+    difficulty: beginner
+    concepts: []
+  - url: https://zerodha.tech/blog/alar-the-making-of-an-open-source-dictionary/
+    moment: "Prologue"
+    difficulty: beginner
+    concepts: []
+  - url: https://www.cs.cmu.edu/~pavlo/blog/2023/06/yes-postgresql-has-problems-but-were-sticking-with-it.html
+    moment: "Problem #4: Vacuum Management"
+    difficulty: advanced
+    concepts: [vacuum-and-bloat, mvcc, table-statistics]
+  - url: https://martinfowler.com/articles/are-harnesses-worth-the-cost.html
+    moment: "The outer loop: evaluation harness"
+    difficulty: intermediate
+    concepts: []
+  - url: https://jvns.ca/blog/2025/03/07/escape-code-standards/
+    moment: "what’s an escape code?"
+    difficulty: beginner
+    concepts: []
+  - url: https://engineeringblog.yelp.com/2026/08/migrating-a-large-flow-monorepo-to-typescript.html
+    moment: "Preparing for prime time"
+    difficulty: intermediate
+    concepts: []
+  - url: https://hakibenita.com/django-reliable-signals
+    moment: "Polling Changes"
+    difficulty: intermediate
+    concepts: [background-jobs]
+  - url: https://highscalability.com/consistent-hashing-algorithm/
+    moment: "How does consistent hashing work?"
+    difficulty: beginner
+    concepts: [consistent-hashing, hot-keys, horizontal-scaling]
+  - url: https://danluu.com/pl-tokens/
+    moment: "Zstd"
+    difficulty: intermediate
+    concepts: []
+  - url: https://tailscale.com/blog/built-in-router-nas-vpns
+    moment: null
+    difficulty: beginner
+    concepts: []
+  - url: https://shopify.engineering/overexposed
+    moment: null
+    difficulty: beginner
+    concepts: []
+  - url: https://engineering.zalando.com/posts/2026/10/structure-automating-data-ingestion-with-a-rag-flywheel.html
+    moment: "Security and Operational Boundaries"
+    difficulty: intermediate
+    concepts: []
+  - url: https://newsletter.pragmaticengineer.com/p/the-revised-rules-of-engineering
+    moment: "Stream the latest episode"
+    difficulty: beginner
+    concepts: []
+  - url: https://thenewstack.io/linux-developer-device-management/
+    moment: null
+    difficulty: beginner
+    concepts: []
+  - url: https://engineering.grab.com/crowdsourced-taxonomy-verification
+    moment: "Impact"
+    difficulty: intermediate
+    concepts: []
+  - url: https://blog.bytebytego.com/p/how-uber-built-a-genie-to-answer-051
+    moment: "How Genie Handles User Questions"
+    difficulty: beginner
+    concepts: [vector-search]
+  - url: https://newsletter.systemdesign.one/p/advanced-ai-concepts-explained
+    moment: "21. In-Context Learning"
+    difficulty: beginner
+    concepts: []

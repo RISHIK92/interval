@@ -3,9 +3,10 @@
 Pure, and cheap to rerun: the cut-offs can be retuned on stored answers without asking
 the model again (`eval-tagging` sweeps them).
 - A moment keeps every concept at or over `moment`, most likely first, at most five;
-  with nothing over it, its single most likely concept.
+  with nothing over it, none: much of the feed teaches no concept in the graph.
 - The article keeps concepts at or over `moment` in at least two of its moments, or at
-  or over `strong` in one, or at or over `title` in its title/summary pass.
+  or over `strong` in one, or at or over `title` in its title/summary pass; possibly
+  none.
 - Difficulty is the moment's score rounded (halves up); the article's is the median of
   its moments' scores, or its title pass's score when it has no moments."""
 
@@ -48,8 +49,7 @@ def _moment(
     probabilities: dict[str, float], known: set[str], cut: float
 ) -> frozenset[str]:
     ranked = _ranked(probabilities, known)
-    likely = [s for s in ranked if probabilities[s] >= cut]
-    return frozenset((likely or ranked[:1])[:MAX_CONCEPTS])
+    return frozenset([s for s in ranked if probabilities[s] >= cut][:MAX_CONCEPTS])
 
 
 def rollup(
@@ -91,7 +91,7 @@ def rollup(
         or decisions.item.get(s, 0.0) >= cutoffs.title
     }
     ranked = sorted(best, key=lambda s: best[s], reverse=True)
-    concepts = [s for s in ranked if s in chosen][:MAX_CONCEPTS] or ranked[:1]
+    concepts = [s for s in ranked if s in chosen][:MAX_CONCEPTS]
     scores = [score for score, _ in decisions.moments.values()]
     if scores:
         difficulty = level(median(scores))

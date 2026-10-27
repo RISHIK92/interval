@@ -21,9 +21,14 @@ def test_a_moment_keeps_concepts_at_or_over_the_cut_at_most_five() -> None:
     assert got.moments[1].difficulty == "beginner"  # 0.4 rounds to 0
 
 
-def test_a_moment_with_nothing_over_the_cut_keeps_its_most_likely_concept() -> None:
-    got = rollup(ItemDecisions({1: (1.0, {"wal": 0.3, "raft": 0.2})}, {}), KNOWN, CUT)
-    assert got.moments[1].concepts == frozenset({"wal"})
+def test_nothing_over_the_cuts_means_no_tags() -> None:
+    # A random sample of the feed: 20 of 30 moments teach none of the graph's
+    # concepts, and a forced "most likely" tag on each was most of the false positives.
+    got = rollup(
+        ItemDecisions({1: (1.0, {"wal": 0.3, "raft": 0.2})}, {"wal": 0.4}), KNOWN, CUT
+    )
+    assert got.moments[1].concepts == frozenset()
+    assert got.item.concepts == frozenset()
 
 
 def test_the_article_takes_concepts_in_two_moments_or_strong_or_from_its_title() -> (
