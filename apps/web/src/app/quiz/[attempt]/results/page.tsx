@@ -4,20 +4,12 @@ import { z } from "zod";
 import { CHIPS } from "../../../../server/chips";
 import { progress, quizzes, sessionReader } from "../../../../server/container";
 import { outHref, readHref } from "../../../../server/outbound";
-import type { LearnerState } from "@interval/db";
 import { BIGINT_ID } from "../../../../server/ports";
+import { STATE_WORDS } from "../../../learnerState";
 
 export const dynamic = "force-dynamic";
 
 const Query = z.object({ chip: z.enum(CHIPS) });
-
-// §3.1's states in words (shape and word, not colour alone: wireframe 08).
-const STATE: Record<LearnerState, string> = {
-  explored: "Explored",
-  practiced: "Practiced",
-  mastered: "Mastered",
-  due_for_review: "Due for review",
-};
 
 // Test 60s results (P2-W9-S02; wireframe 14, variant test): how it went, each
 // concept's state, and the next section.
@@ -96,7 +88,7 @@ export default async function ResultsPage({
             >
               <span className="font-semibold">{c.name}</span>
               <span className="text-sm">
-                {c.state === null ? "Unseen" : STATE[c.state]}
+                {c.state === null ? "Unseen" : STATE_WORDS[c.state]}
               </span>
             </li>
           ))}

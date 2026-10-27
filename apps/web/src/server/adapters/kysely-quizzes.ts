@@ -1,5 +1,5 @@
 import type { DB } from "@interval/db";
-import { type Kysely, sql } from "kysely";
+import { type Kysely, type RawBuilder, sql } from "kysely";
 import {
   QUIZ_SECONDS,
   type QuizQuestion,
@@ -10,6 +10,10 @@ import {
 // The last answer in flight when the clock runs out still counts (Q-P2-14).
 const GRACE = sql.raw(`interval '5 seconds'`);
 const DURATION = sql.raw(`interval '${String(QUIZ_SECONDS)} seconds'`);
+const RIGHT = 0.3;
+const WRONG = 0.7;
+const PRACTICED = 0.5;
+const MASTERED = 0.85;
 
 // Live questions in moments their source's rights allow (Q-1, ING-2), as `q` and `m`.
 const LIVE = sql`
@@ -20,6 +24,41 @@ const LIVE = sql`
    and s.moments_enabled
    and s.rights_profile in ('full_text_internal', 'full_text_display')
 `;
+
+// Q-P2-15: a right answer moves p by 0.3(1 - p); a wrong one leaves 0.7p. `done` is the answer statement's own row (none for a repeat).
+const moved = (p: RawBuilder<unknown>) => sql`
+  case when (select correct from done)
+    then ${p} + ${RIGHT}::float8 * (1 - ${p})
+    else ${WRONG}::float8 * ${p}
+  end`;
+
+// Practiced at 0.5; mastered at 0.85 with right answers on two UTC days (owner,
+// 2026-10-28: any quiz's answers count). The statement can't see the answer it is
+// recording, so today joins the days when this answer is right.
+// shortcut: the days come from the statement's snapshot, so a right answer on another
+// UTC day committing at the same moment is missed; only across midnight, and the next
+// right answer counts it. Lock the user's answers if that ever matters.
+const stateOf = (
+  p: RawBuilder<unknown>,
+  conceptId: RawBuilder<unknown>,
+  userId: string,
+) => sql`
+  (case
+    when ${p} >= ${MASTERED}::float8 and (
+      select count(distinct day) from (
+        select (qa.answered_at at time zone 'UTC')::date as day
+        from quiz_answer qa
+        join quiz_attempt a on a.id = qa.attempt_id and a.user_id = ${userId}
+        join question_concept qc
+          on qc.question_id = qa.question_id and qc.concept_id = ${conceptId}
+        where qa.correct
+        union
+        select (now() at time zone 'UTC')::date where (select correct from done)
+      ) days
+    ) >= 2 then 'mastered'
+    when ${p} >= ${PRACTICED}::float8 then 'practiced'
+    else 'explored'
+  end)::learner_state`;
 
 type Open = {
   question_id: string;
@@ -173,6 +212,28 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           set answer_count = answer_count + 1,
               correct_count = correct_count + (select count(*) from done where correct)
           where id = ${questionId} and exists (select 1 from done)
+        ),
+        -- PER-2, Q-P2-15: quiz evidence moves each live concept the question tests
+        -- strongly. p is moved from the locked row (do update), so two answers at once
+        -- both count; in id order, so they lock shared rows in one order.
+        mastery as (
+          insert into concept_mastery
+            (user_id, concept_id, probability, state, evidence_count)
+          select ${userId}, qc.concept_id, ${moved(sql`0`)},
+                 ${stateOf(moved(sql`0`), sql`qc.concept_id`, userId)}, 1
+          from question_concept qc
+          join concept c on c.id = qc.concept_id and c.retired_at is null
+          where qc.question_id = ${questionId} and exists (select 1 from done)
+          order by qc.concept_id
+          on conflict (user_id, concept_id) do update set
+            probability = ${moved(sql`concept_mastery.probability`)},
+            state = ${stateOf(
+              moved(sql`concept_mastery.probability`),
+              sql`excluded.concept_id`,
+              userId,
+            )},
+            evidence_count = concept_mastery.evidence_count + 1,
+            updated_at = now()
         )
         select * from done
       `.execute(db);

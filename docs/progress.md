@@ -1943,3 +1943,10 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Owner (2026-10-28): no Finish button; the × warns "Exiting now ends this test and will affect your score." in a native popover (Exit test / Keep going).
 - Checked in Chrome on the local dev server with a throwaway local account (127.0.0.1, so the owner's session was untouched): reader → quiz → wrong-answer feedback → next → auto-finish at 0 → results; phone width; the exit warning.
 - Reviewer: early-end wording, the ING-2 offer test, `<dt>` before `<dd>`, "Unseen" for §3.1's state, the footer's source line, no auto-finish on a feedback view, and formatting fixed. Not done: a DOM test for the countdown's submit (no jsdom; checked in the browser); the feed card's button seen only in tests (the test account isn't onboarded).
+
+### 2026-10-28 — P2-W9-S03 (mastery from quiz answers, PER-2, Q-P2-15)
+- Owner: mastered's "2 correct reviews on separate days" counts any right answer on the concept (Test 60s now, reviews later) on 2 UTC days; a wrong first answer is evidence, explored at p = 0.
+- `answer()`'s one statement now credits each live concept the question tests: p + 0.3(1 − p) right, 0.7p wrong, moved from the locked row so answers at once both count, in concept-id order; practiced at 0.5, mastered at 0.85 with right answers on 2 UTC days, else explored, following p both ways. Repeats and late answers credit nothing. Reading still never touches a state (existing test).
+- `Progress.explored()` → `concepts()` (`ConceptsByTopic`), each with its state; Profile's "Your concepts" shows the state in words (`STATE_WORDS`, shared with the quiz results).
+- Checked live on the local test account: one right answer put the question's 4 concepts at 0.3, explored.
+- Reviewer: the same-day case and the wrong-first case tested (owner decided the latter), the explored naming fixed, a snapshot limit on counting days noted as a shortcut. For S04: S03 recomputes `concept_mastery.state` on every answer, so due for review should come from the FSRS card's due date, not a stored state, or S03 would overwrite it. Untested: two concurrent answers on one concept (as with reading's credit).

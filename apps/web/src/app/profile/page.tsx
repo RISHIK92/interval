@@ -12,6 +12,7 @@ import { ChoicesFields, GOAL_TEXT, TOPIC_NAMES } from "../ChoicesFields";
 import { setThemeAction } from "../theme/actions";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { STATE_WORDS } from "../learnerState";
 import {
   resetInferredAction,
   unhideSourceAction,
@@ -47,10 +48,10 @@ export default async function ProfilePage(props: {
   if (actor === null) redirect("/join");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
-  const [hidden, inferred, explored] = await Promise.all([
+  const [hidden, inferred, concepts] = await Promise.all([
     feedback().hiddenSources(actor.userId),
     feedback().inferred(actor.userId),
-    progress().explored(actor.userId),
+    progress().concepts(actor.userId),
   ]);
   const { saved, missing } = await props.searchParams;
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
@@ -220,19 +221,27 @@ export default async function ProfilePage(props: {
 
       <Card className="p-5">
         <section className="flex flex-col gap-3">
-          <h2 className="text-section">Concepts you&apos;ve explored</h2>
-          {explored.length === 0 ? (
+          <h2 className="text-section">Your concepts</h2>
+          {concepts.length === 0 ? (
             <p className="text-ink-muted">
-              Finish a section or an article to start: the concepts it teaches
-              show up here.
+              Finish a section or an article, or take Test 60s, to start: the
+              concepts it covers show up here.
             </p>
           ) : (
-            explored.map((group) => (
+            concepts.map((group) => (
               <div key={group.topic}>
                 <h3 className="font-semibold">{TOPIC_NAMES[group.topic]}</h3>
-                <ul className="list-disc pl-5">
+                <ul className="flex flex-col gap-1">
                   {group.concepts.map((concept) => (
-                    <li key={concept.slug}>{concept.name}</li>
+                    <li
+                      key={concept.slug}
+                      className="flex items-center justify-between gap-3"
+                    >
+                      <span>{concept.name}</span>
+                      <span className="text-sm text-ink-muted">
+                        {STATE_WORDS[concept.state]}
+                      </span>
+                    </li>
                   ))}
                 </ul>
               </div>

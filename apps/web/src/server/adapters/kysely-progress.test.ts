@@ -908,13 +908,13 @@ test("explored concepts come grouped by topic, newest first, and only the user's
       .insertInto("concept_mastery")
       .values([
         row(raft, "2026-10-01T00:00:00Z"),
-        row(quorum, "2026-10-02T00:00:00Z"),
+        { ...row(quorum, "2026-10-02T00:00:00Z"), state: "practiced" as const },
         row(paxos, "2026-10-02T00:00:00Z"),
         row(indexes.id, "2026-10-03T00:00:00Z"),
         row(retired, "2026-10-04T00:00:00Z"),
       ])
       .execute();
-    const got = await kyselyProgress(trx).explored(userId);
+    const got = await kyselyProgress(trx).concepts(userId);
     expect(
       got.map((g) => ({
         topic: g.topic,
@@ -929,6 +929,15 @@ test("explored concepts come grouped by topic, newest first, and only the user's
         .flatMap((g) => g.concepts)
         .every((c) => c.slug.startsWith("mastery-")),
     ).toBe(true);
-    expect(await kyselyProgress(trx).explored("someone-else")).toEqual([]);
+    // P2-W9-S03: each with its state, as Profile shows it.
+    expect(
+      got.flatMap((g) => g.concepts).map((c) => [c.name, c.state]),
+    ).toEqual([
+      ["Indexes", "explored"],
+      ["Paxos", "explored"],
+      ["Quorum", "practiced"],
+      ["Raft", "explored"],
+    ]);
+    expect(await kyselyProgress(trx).concepts("someone-else")).toEqual([]);
   });
 });

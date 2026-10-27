@@ -20,12 +20,12 @@ const inferred = vi.fn<Feedback["inferred"]>(() =>
     avoidedConcepts: [{ slug: "wal", name: "Write-ahead log" }],
   }),
 );
-const explored = vi.fn<Progress["explored"]>(() => Promise.resolve([]));
+const explored = vi.fn<Progress["concepts"]>(() => Promise.resolve([]));
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
   feedback: () => ({ hiddenSources, inferred }),
-  progress: () => ({ explored }),
+  progress: () => ({ concepts: explored }),
 }));
 const themeCookie = vi.fn<(name: string) => { value: string } | undefined>();
 vi.mock("next/headers", () => ({
@@ -163,7 +163,7 @@ test("appearance offers light, dark and the device's own, this device's marked",
 });
 
 // Q-P2-04, P2-W7-S02: what reading has explored, by topic (§3.1 learner state).
-test("Profile lists explored concepts by topic, or says how to start", async () => {
+test("Profile lists the user's concepts by topic with their states, or says how to start", async () => {
   current.mockResolvedValue(guest);
   get.mockResolvedValue({
     goals: [],
@@ -172,26 +172,32 @@ test("Profile lists explored concepts by topic, or says how to start", async () 
     breakLength: "3-8",
   });
   const empty = await page();
-  expect(empty).toContain("Concepts you&#x27;ve explored");
-  expect(empty).toContain("Finish a section or an article to start");
+  expect(empty).toContain("Your concepts");
+  expect(empty).toContain("Finish a section or an article, or take Test 60s");
   explored.mockResolvedValueOnce([
     {
       topic: "distributed-systems",
       concepts: [
-        { slug: "raft", name: "Raft" },
-        { slug: "paxos", name: "Paxos" },
+        { slug: "raft", name: "Raft", state: "mastered" },
+        { slug: "paxos", name: "Paxos", state: "explored" },
       ],
     },
-    { topic: "databases", concepts: [{ slug: "mvcc", name: "MVCC" }] },
+    {
+      topic: "databases",
+      concepts: [{ slug: "mvcc", name: "MVCC", state: "practiced" }],
+    },
   ]);
   const html = await page();
   // The choices form names every topic too: look only at this section.
-  const section = html.slice(html.indexOf("Concepts you&#x27;ve explored"));
+  const section = html.slice(html.indexOf("Your concepts"));
   expect(section.indexOf("Raft")).toBeLessThan(section.indexOf("Paxos"));
   expect(section.indexOf("Distributed systems")).toBeGreaterThan(-1);
   expect(section.indexOf("Distributed systems")).toBeLessThan(
     section.indexOf("Databases"),
   );
   expect(section).toContain("MVCC");
+  // P2-W9-S03: each concept's state in words (§3.1), not colour alone.
+  expect(section).toMatch(/Raft[^]*?Mastered[^]*?Paxos[^]*?Explored/);
+  expect(section).toMatch(/MVCC[^]*?Practiced/);
   expect(explored).toHaveBeenCalledWith("g1");
 });

@@ -87,7 +87,8 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P2-15 How quiz answers move mastery (P0)
 - Cite: PER-2 ("quizzes and games count strongly"), §3.1 (unseen, explored, practiced, mastered, due for review), Q-P2-03, §8 ("how many concepts reach mastered").
 - **Answer (owner, 2026-10-27):** a correct answer moves p ← p + 0.3(1 − p), a wrong one p ← 0.7p, per concept the question tests. Practiced at p ≥ 0.5; mastered at p ≥ 0.85 with at least 2 correct reviews on separate days. Reading's cap at 0.3 stays.
-- Suggested defaults: the state follows the probability both ways (a wrong answer can move mastered back to practiced, or practiced back to explored), so the stored state is never out of step with p; reading never lowers a state a quiz earned; "correct reviews on separate days" counts correct answers on the concept in a review (Q-P2-16) on two different UTC days.
+- **Update (owner, 2026-10-28):** "correct reviews on separate days" means any correct answer on the concept (Test 60s now, reviews from P2-W9-S05) on two different UTC days, so mastered is reachable before the review queue exists. A wrong first answer on a concept is evidence too: it shows as explored, at p = 0 (owner, 2026-10-28).
+- Suggested defaults: the state follows the probability both ways (a wrong answer can move mastered back to practiced, or practiced back to explored), so the stored state is never out of step with p; reading never lowers a state a quiz earned.
 
 ### Q-P2-16 What FSRS schedules (P0)
 - Cite: PER-2 ("FSRS schedules reviews"), §5I ("The review queue is scheduled by FSRS and fed by reading, quizzes, games, and checkpoints"), glossary "FSRS", "Review queue".

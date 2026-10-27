@@ -1,6 +1,6 @@
 import type { DB } from "@interval/db";
 import { type Kysely, type RawBuilder, sql } from "kysely";
-import { type ExploredTopic, type Progress, TOPICS } from "../ports";
+import { type ConceptsByTopic, type Progress, TOPICS } from "../ports";
 
 // Reading as weak evidence of mastery (PER-2, Q-P2-02): each new finish moves a concept
 // a tenth of the way to 1, never past 0.3 from reading alone, and never lowers or
@@ -287,11 +287,11 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
             frameable: next.frameable === true,
           };
     },
-    explored: async (userId) => {
+    concepts: async (userId) => {
       const rows = await db
         .selectFrom("concept_mastery as m")
         .innerJoin("concept as c", "c.id", "m.concept_id")
-        .select(["c.slug", "c.name", "c.topic"])
+        .select(["c.slug", "c.name", "c.topic", "m.state"])
         .where("m.user_id", "=", userId)
         // As crediting does (S01); see Q-P2-06.
         .where("c.retired_at", "is", null)
@@ -299,7 +299,7 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
         .orderBy("c.name")
         .execute();
       // Map keeps first-seen order: topics come as their newest concept did.
-      const byTopic = new Map<ExploredTopic["topic"], ExploredTopic>();
+      const byTopic = new Map<ConceptsByTopic["topic"], ConceptsByTopic>();
       for (const row of rows) {
         // concept.topic is checked against these values in the database.
         const topic = TOPICS.find((t) => t === row.topic);
@@ -309,7 +309,11 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
           group = { topic, concepts: [] };
           byTopic.set(topic, group);
         }
-        group.concepts.push({ slug: row.slug, name: row.name });
+        group.concepts.push({
+          slug: row.slug,
+          name: row.name,
+          state: row.state,
+        });
       }
       return [...byTopic.values()];
     },
