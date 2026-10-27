@@ -42,6 +42,7 @@ from interval_jobs.ports import (
     FetchKind,
     Finished,
     GrantResult,
+    ItemDecisions,
     MomentLink,
     MomentRow,
     NoteInput,
@@ -821,6 +822,73 @@ class InMemoryConcepts:
         return found - retired
 
 
+class InMemoryDecisions:
+    def __init__(self, moments: "InMemoryMoments", concepts: InMemoryConcepts) -> None:
+        self._moments = moments
+        self._concepts = concepts
+        # (moment id, model) -> (hash, difficulty, probabilities)
+        self._moment: dict[tuple[int, str], tuple[str, float, dict[str, float]]] = {}
+        self._item: dict[tuple[int, str], tuple[str, float, dict[str, float]]] = {}
+
+    def _known(self, probabilities: dict[str, float]) -> None:
+        graph = self._concepts.graph
+        slugs = {c.slug for c in graph.concepts} if graph else set[str]()
+        unknown = sorted(set(probabilities) - slugs)
+        if unknown:
+            raise ValueError(f"no concept {unknown[0]}")
+
+    def _ids(self, item_id: int) -> set[int]:
+        return {m.id for m in self._moments.for_item(item_id)}
+
+    def moment_hashes(self, item_id: int, model: str) -> dict[int, str]:
+        ids = self._ids(item_id)
+        return {
+            m: v[0] for (m, mm), v in self._moment.items() if mm == model and m in ids
+        }
+
+    def save_moment(
+        self,
+        moment_id: int,
+        model: str,
+        content_hash: str,
+        difficulty: float,
+        probabilities: dict[str, float],
+    ) -> None:
+        self._known(probabilities)
+        self._moment[(moment_id, model)] = (
+            content_hash,
+            difficulty,
+            dict(probabilities),
+        )
+
+    def item_hash(self, item_id: int, model: str) -> str | None:
+        found = self._item.get((item_id, model))
+        return None if found is None else found[0]
+
+    def save_item(
+        self,
+        item_id: int,
+        model: str,
+        content_hash: str,
+        difficulty: float,
+        probabilities: dict[str, float],
+    ) -> None:
+        self._known(probabilities)
+        self._item[(item_id, model)] = (content_hash, difficulty, dict(probabilities))
+
+    def read(self, item_id: int, model: str) -> ItemDecisions:
+        ids = self._ids(item_id)
+        moments = {
+            m: (v[1], dict(v[2]))
+            for (m, mm), v in self._moment.items()
+            if mm == model and m in ids
+        }
+        found = self._item.get((item_id, model))
+        if found is None:
+            return ItemDecisions(moments, {})
+        return ItemDecisions(moments, dict(found[2]), found[1])
+
+
 class InMemoryItemTags:
     def __init__(self, items: InMemoryItems, moments: InMemoryMoments) -> None:
         self._items = items
@@ -1343,6 +1411,7 @@ class InMemoryStore:
         )
         self.embeddings.store = self
         self.ranking = InMemoryRankingInputs(self)
+        self.decisions = InMemoryDecisions(self.moments, self.concepts)
         self.sources.store = self
 
 

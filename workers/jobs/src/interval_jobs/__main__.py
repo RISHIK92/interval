@@ -140,6 +140,10 @@ def main(argv: list[str]) -> None:
     evaluate.add_argument("--model", required=True, help="OpenRouter model id")
     evaluate.add_argument("--min-f1", type=float, default=MIN_F1)
     evaluate.add_argument("--min-difficulty", type=float, default=MIN_DIFFICULTY)
+    evaluate.add_argument(
+        "--embedding-model",
+        help="the concepts' Voyage model, for a decisions: model's shortlist",
+    )
     vectors = commands.add_parser(
         "eval-embeddings",
         help="score an embedding model on owner-labelled queries (Q-P1-27)",
@@ -296,6 +300,7 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
                     labels,
                     args.min_f1,
                     args.min_difficulty,
+                    args.embedding_model,
                 )
         except (OSError, EvalError, TaggingError, ModelError) as error:
             sys.exit(str(error))

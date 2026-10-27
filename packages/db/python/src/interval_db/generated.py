@@ -212,6 +212,21 @@ class ItemConcept(TypedDict):
     concept_id: int
 
 
+class ItemConceptProbability(TypedDict):
+    content_item_id: int
+    model: str
+    concept_id: int
+    probability: float
+
+
+class ItemDecision(TypedDict):
+    content_item_id: int
+    model: str
+    content_hash: str
+    difficulty: float
+    decided_at: datetime
+
+
 class ItemEmbedding(TypedDict):
     content_item_id: int
     model: str
@@ -255,6 +270,21 @@ class MomentBoundaryOverride(TypedDict):
 class MomentConcept(TypedDict):
     moment_id: int
     concept_id: int
+
+
+class MomentConceptProbability(TypedDict):
+    moment_id: int
+    model: str
+    concept_id: int
+    probability: float
+
+
+class MomentDecision(TypedDict):
+    moment_id: int
+    model: str
+    content_hash: str
+    difficulty: float
+    decided_at: datetime
 
 
 class MomentEmbedding(TypedDict):

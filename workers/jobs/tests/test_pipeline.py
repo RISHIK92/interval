@@ -787,3 +787,79 @@ def test_a_page_whose_canonical_is_plain_http_is_not_framed() -> None:
     world.run()
     by_url = {i.canonical_url: i.frameable for i in world.store.items.rows.values()}
     assert by_url == {"http://blog.example.test/wal": False, OLDER: True}
+
+
+def test_a_decision_model_tags_from_the_shortlist_once_per_prompt_version() -> None:
+    # Tagging v3 (2026-10-27): stored answers, rolled up. (Skipping unchanged moments
+    # after a re-segmentation is tested in test_tagging_decide.)
+    from interval_jobs.concept_vectors import text_hash
+
+    from .test_tagging_decide import Decider, NearWal
+
+    decider, voyage = Decider(), NearWal()
+    ledger = InMemoryAi(InMemoryStore().users)
+
+    @contextmanager
+    def gateway() -> Generator[AiGateway]:
+        yield AiGateway(ledger, TagLlm(), voyage, clock=lambda: NOW, decisions=decider)
+
+    world = World(
+        tagging=ModelJob("decisions:pplx", gateway), embedding=ModelJob("v", gateway)
+    )
+    sync_concepts(
+        world.store,
+        parse_concepts(
+            "version: 1\nconcepts:\n"
+            "  - {slug: write-ahead-log, name: Write-ahead log, topic: databases}\n",
+            "c.yaml",
+        ),
+    )
+    world.store.concepts.save_vector(
+        "write-ahead-log", "v", text_hash("Write-ahead log"), [1.0, 0.0, 0.0]
+    )
+    world.discover("poll-1")
+    world.run()
+    asked = len(decider.asked)
+    assert asked > 0
+    for item_id in world.store.items.rows:
+        tags, moments = world.store.tags.for_item(item_id)
+        assert tags is not None and tags.concepts == frozenset({"write-ahead-log"})
+        assert all(
+            m.concepts == frozenset({"write-ahead-log"}) for m in moments.values()
+        )
+    world.now = NOW + timedelta(days=2)
+    world.discover("poll-2")
+    world.run()
+    assert len(decider.asked) == asked
+
+
+def test_decision_tagging_over_budget_keeps_no_tags_and_logs_it(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from .test_tagging_decide import Decider, NearWal
+
+    ledger = InMemoryAi(InMemoryStore().users)
+    ledger.record(Usage(None, "tagging", "openrouter", "m", 0, 0, Decimal("10"), NOW))
+
+    @contextmanager
+    def gateway() -> Generator[AiGateway]:
+        yield AiGateway(
+            ledger, TagLlm(), NearWal(), clock=lambda: NOW, decisions=Decider()
+        )
+
+    world = World(
+        tagging=ModelJob("decisions:pplx", gateway), embedding=ModelJob("v", gateway)
+    )
+    sync_concepts(
+        world.store,
+        parse_concepts(
+            "version: 1\nconcepts:\n"
+            "  - {slug: write-ahead-log, name: Write-ahead log, topic: databases}\n",
+            "c.yaml",
+        ),
+    )
+    world.discover("poll-1")
+    world.run()
+    for item_id in world.store.items.rows:
+        assert world.store.tags.for_item(item_id)[0] is None
+    assert "pipeline: tagging over budget" in capsys.readouterr().out

@@ -12,7 +12,7 @@ owner to set (2026-10-26).
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from decimal import Decimal
 from typing import cast
 
@@ -22,8 +22,16 @@ from interval_db.generated import Difficulty
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.concept_vectors import concept_text, text_hash
 from interval_jobs.headings import heading_key
-from interval_jobs.ports import Store, Tags
-from interval_jobs.tagging import DIFFICULTIES, MOMENT_CHARS, moment_texts, tag_item
+from interval_jobs.ports import Store, TagInput, Tags
+from interval_jobs.tagging import (
+    DECISIONS_PREFIX,
+    DIFFICULTIES,
+    MOMENT_CHARS,
+    moment_texts,
+    tag_item,
+)
+from interval_jobs.tagging_decide import decide
+from interval_jobs.tagging_rollup import DEFAULT_CUTOFFS, Cutoffs, rollup
 from interval_jobs.tagging_shortlist import alias_hits, recall, shortlist
 
 MIN_F1 = 0.7
@@ -51,6 +59,11 @@ class Report:
     difficulty_accuracy: float
     cost_usd: Decimal
     passed: bool
+    # Decision models only: (moment cut-off, precision, recall, f1) over stored answers.
+    sweep: tuple[tuple[float, float, float, float], ...] = ()
+    # Decision models only: why asking stopped part way (budget, model error). The
+    # answers before it are kept, and a re-run resumes from them.
+    stopped: str | None = None
 
 
 def parse_labels(text: str, path: str) -> list[Label]:
@@ -124,6 +137,115 @@ def score(
     )
 
 
+SWEEP = (0.3, 0.4, 0.5, 0.6, 0.7, 0.8)
+
+
+def _current_vectors(store: Store, model: str) -> dict[str, list[float]]:
+    """Every active concept's vector from `model`, refusing missing or stale ones:
+    both would only lower scores without saying why."""
+    graph = store.concepts.state()
+    stored = store.concepts.vectors(model)
+    active = {c.slug: c for c in graph.concepts if not c.retired} if graph else {}
+    stale = [
+        slug
+        for slug, c in active.items()
+        if stored.get(slug, ("",))[0] != text_hash(concept_text(c.name, c.description))
+    ]
+    if not active or stale:
+        raise EvalError(
+            f"{len(stale) or 'all'} concept vectors missing or stale for {model}: "
+            "run embed-concepts first"
+        )
+    return {slug: stored[slug][1] for slug in active}
+
+
+def _decisions_eval(
+    gateway: AiGateway,
+    model: str,
+    embedding_model: str,
+    store: Store,
+    labels: list[Label],
+    min_f1: float,
+    min_difficulty: float,
+) -> Report:
+    """Asks the decision model about every labelled item's changed moments, keeps the
+    raw answers (an unchanged moment costs nothing next time), then scores the roll-up
+    at the default cut-offs and over a sweep."""
+    graph = store.concepts.state()
+    if graph is None:
+        raise EvalError("no concept graph loaded")
+    vectors = _current_vectors(store, embedding_model)
+    known = set(vectors)
+    # Every labelled item checked before anything is paid for.
+    found: dict[str, tuple[int, TagInput]] = {}
+    for url in sorted({label.url for label in labels}):
+        item_id = store.tags.find(url)
+        item = store.tags.input(item_id) if item_id is not None else None
+        if item is None or item_id is None:
+            raise EvalError(f"labelled item {url} is not in this database")
+        found[url] = (item_id, item)
+    items: dict[str, tuple[int, dict[int, str | None], frozenset[int]]] = {}
+    cost = Decimal(0)
+    stopped: str | None = None
+    for url, (item_id, item) in found.items():
+        asked = decide(
+            gateway,
+            model,
+            embedding_model,
+            item,
+            graph,
+            vectors,
+            store.decisions.moment_hashes(item_id, model),
+            store.decisions.item_hash(item_id, model),
+        )
+        for moment_id, answer in asked.moments.items():
+            store.decisions.save_moment(
+                moment_id,
+                model,
+                answer.content_hash,
+                answer.difficulty,
+                answer.probabilities,
+            )
+        if asked.item is not None:
+            store.decisions.save_item(
+                item_id,
+                model,
+                asked.item.content_hash,
+                asked.item.difficulty,
+                asked.item.probabilities,
+            )
+        cost += asked.cost_usd
+        items[url] = (item_id, {m.id: m.heading for m in item.moments}, asked.current)
+        if asked.refused is not None:
+            stopped = f"the {asked.refused.scope} AI budget is spent for today"
+        elif asked.stopped is not None:
+            stopped = asked.stopped
+        if stopped is not None:
+            break  # what was answered is kept; scores below cover what exists
+
+    def predicted(cutoffs: Cutoffs) -> dict[tuple[str, str | None], Tags]:
+        found: dict[tuple[str, str | None], Tags] = {}
+        for url, (item_id, headings, current) in items.items():
+            tagged = rollup(
+                store.decisions.read(item_id, model), known, cutoffs, current
+            )
+            for moment_id, tags in tagged.moments.items():
+                found[_key(url, headings[moment_id])] = tags
+        return found
+
+    sweep = tuple(
+        (cut, r.precision, r.recall, r.f1)
+        for cut in SWEEP
+        for r in [
+            score(labels, predicted(replace(DEFAULT_CUTOFFS, moment=cut, title=cut)))
+        ]
+    )
+    report = score(labels, predicted(DEFAULT_CUTOFFS), cost, min_f1, min_difficulty)
+    return replace(
+        report, sweep=sweep, stopped=stopped, passed=report.passed and not stopped
+    )
+
+
 def run_eval(
     gateway: AiGateway,
     model: str,
@@ -131,9 +253,24 @@ def run_eval(
     labels: list[Label],
     min_f1: float = MIN_F1,
     min_difficulty: float = MIN_DIFFICULTY,
+    embedding_model: str | None = None,
 ) -> Report:
-    """Tags every labelled item with `model` (costed through the gateway), stores
-    nothing, and scores the labelled moments."""
+    """Tags every labelled item with `model` (costed through the gateway), stores no
+    tags, and scores the labelled moments. A decision model ("decisions:<id>") also
+    needs the concepts' `embedding_model` for its shortlist, and keeps its raw
+    answers."""
+    if model.startswith(DECISIONS_PREFIX):
+        if embedding_model is None:
+            raise EvalError("a decision model needs the concepts' embedding model")
+        return _decisions_eval(
+            gateway,
+            model.removeprefix(DECISIONS_PREFIX),
+            embedding_model,
+            store,
+            labels,
+            min_f1,
+            min_difficulty,
+        )
     graph = store.concepts.state()
     predicted: dict[tuple[str, str | None], Tags] = {}
     cost = Decimal(0)
@@ -178,20 +315,11 @@ def run_shortlist_eval(
     stored. Missing or stale concept vectors, and labels naming no active concept, are
     refused: both would only lower recall without saying why."""
     graph = store.concepts.state()
-    vectors = {slug: v for slug, (_, v) in store.concepts.vectors(model).items()}
-    stored = store.concepts.vectors(model)
-    active = {c.slug: c for c in graph.concepts if not c.retired} if graph else {}
-    stale = [
-        slug
-        for slug, c in active.items()
-        if stored.get(slug, ("",))[0] != text_hash(concept_text(c.name, c.description))
-    ]
-    if graph is None or not vectors or stale:
-        raise EvalError(
-            f"{len(stale) or 'all'} concept vectors missing or stale for {model}: "
-            "run embed-concepts first"
-        )
-    unknown = sorted({s for label in labels for s in label.concepts} - set(active))
+    vectors = _current_vectors(store, model)
+    if graph is None:
+        raise EvalError("no concept graph loaded")
+    active = set(vectors)
+    unknown = sorted({s for label in labels for s in label.concepts} - active)
     if unknown:
         raise EvalError(f"labels name unknown concepts: {', '.join(unknown[:10])}")
     cases: list[tuple[set[str], str, int]] = []  # labelled, section text, item

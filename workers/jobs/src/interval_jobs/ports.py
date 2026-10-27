@@ -472,6 +472,47 @@ class ConceptCycleError(ValueError):
     """A "prerequisite of" cycle (Q-P1-04): refused by the parser and the store."""
 
 
+@dataclass(frozen=True)
+class ItemDecisions:
+    """A decision model's raw answers for one item (tagging v3, 2026-10-27)."""
+
+    # moment id -> (difficulty score, concept slug -> probability)
+    moments: dict[int, tuple[float, dict[str, float]]]
+    item: dict[str, float]  # the title/summary pass: concept slug -> probability
+    item_difficulty: float | None = None  # the title/summary pass's score
+
+
+class Decisions(Protocol):
+    """A decision model's raw answers, kept so cut-offs can be retuned without asking
+    again; each with the hash of what was asked about."""
+
+    def moment_hashes(self, item_id: int, model: str) -> dict[int, str]: ...
+
+    def save_moment(
+        self,
+        moment_id: int,
+        model: str,
+        content_hash: str,
+        difficulty: float,
+        probabilities: dict[str, float],
+    ) -> None:
+        """Replaces the moment's earlier answers from this model."""
+        ...
+
+    def item_hash(self, item_id: int, model: str) -> str | None: ...
+
+    def save_item(
+        self,
+        item_id: int,
+        model: str,
+        content_hash: str,
+        difficulty: float,
+        probabilities: dict[str, float],
+    ) -> None: ...
+
+    def read(self, item_id: int, model: str) -> ItemDecisions: ...
+
+
 class Concepts(Protocol):
     def state(self) -> ConceptGraph | None:
         """The loaded graph at its latest version; None before the first load."""
@@ -893,6 +934,9 @@ class Store(Protocol):
     @property
     def ranking(self) -> RankingInputs: ...
 
+    @property
+    def decisions(self) -> Decisions: ...
+
 
 class Fetcher(Protocol):
     def fetch(self, url: str, kind: FetchKind) -> Fetched: ...
@@ -976,7 +1020,12 @@ class ScoreAnswer:
     score: float  # a position on the question's ordered rubric, from 0
 
 
-type DecisionAnswer = ChoiceAnswer | ScoreAnswer
+@dataclass(frozen=True)
+class NoulAnswer:
+    probability: float  # of "yes", from 0 to 1
+
+
+type DecisionAnswer = ChoiceAnswer | ScoreAnswer | NoulAnswer
 type DecisionState = dict[str, object]
 
 

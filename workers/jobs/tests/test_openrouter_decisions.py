@@ -9,7 +9,7 @@ import httpx
 import pytest
 
 from interval_jobs.adapters.openrouter_decisions import URL, OpenRouterDecisions
-from interval_jobs.ports import ChoiceAnswer, ModelError, ScoreAnswer
+from interval_jobs.ports import ChoiceAnswer, ModelError, NoulAnswer, ScoreAnswer
 
 QUESTIONS: dict[str, object] = {
     "team": {
@@ -32,6 +32,7 @@ ANSWER = {
             "probabilities": {"payments": 0.84, "frontend": 0.16},
         },
         "urgency": {"type": "score", "score": 1.99, "probabilities": {"2": 0.99}},
+        "is_bug": {"type": "noul", "noul": 0.96},
     },
     "model": "typesafe/jev-1.14-20261014",
     "usage": {"cost": 0.000019992, "input_tokens": 476, "output_tokens": 70},
@@ -70,6 +71,7 @@ def test_a_decision_sends_model_state_and_questions_and_reads_typed_answers() ->
     assert team.choice == "payments"
     assert team.probabilities == {"payments": 0.84, "frontend": 0.16}
     assert urgency.score == 1.99
+    assert got.answers["is_bug"] == NoulAnswer(0.96)
     assert (got.input_tokens, got.output_tokens) == (476, 70)
     assert got.cost_usd == Decimal("0.000019992")
 

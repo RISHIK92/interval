@@ -37,6 +37,7 @@ from interval_jobs.ports import (
     DuplicateInviteCode,
     FeedEntry,
     Finished,
+    ItemDecisions,
     MomentRow,
     NoteInput,
     NoteKey,
@@ -1455,6 +1456,35 @@ def test_concept_vectors_are_stored_per_model_with_their_texts_hash(
     assert s.concepts.vectors("other-model") == {}
     with pytest.raises(ValueError, match="no concept"):
         s.concepts.save_vector("cg-nobody", "voyage-x", "h", vector)
+
+
+# Tagging v3 (2026-10-27): a decision model's raw answers, kept so cut-offs can be
+# retuned without asking again, with the hash of what was asked about.
+def test_decisions_are_kept_per_moment_and_article_with_their_hashes(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    sid = source(s)
+    probe.enable_moments(sid)
+    item = s.items.upsert_from_feed(sid, entry("decided"), keep_excerpt=False)
+    s.moments.replace(item, [moment(0, "a"), moment(1, "b")])
+    first = probe.moments(item)[0][0]
+    model = "perplexity/pplx-decider-v1.2"
+    assert s.decisions.moment_hashes(item, model) == {}
+    s.decisions.save_moment(first, model, "h0", 1.2, {"cg-lag": 0.9, "cg-ryw": 0.1})
+    # Asked again after its text changed: the new answers replace the old ones.
+    s.decisions.save_moment(first, model, "h1", 0.4, {"cg-lag": 0.25})
+    s.decisions.save_item(item, model, "t1", 0.7, {"cg-ryw": 0.8})
+    assert s.decisions.moment_hashes(item, model) == {first: "h1"}
+    assert s.decisions.item_hash(item, model) == "t1"
+    got = s.decisions.read(item, model)
+    assert got.moments == {first: (0.4, {"cg-lag": 0.25})}
+    assert (got.item, got.item_difficulty) == ({"cg-ryw": 0.8}, 0.7)
+    assert s.decisions.read(item, "another/model") == ItemDecisions({}, {})
+    with pytest.raises(ValueError, match="no concept"):
+        s.decisions.save_moment(first, model, "h2", 1.0, {"cg-nobody": 0.5})
 
 
 def test_a_loaded_graph_answers_recursive_prerequisites(

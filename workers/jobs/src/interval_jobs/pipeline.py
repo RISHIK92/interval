@@ -38,6 +38,7 @@ from interval_db.messages import (
 )
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
+from interval_jobs.concept_vectors import concept_text, text_hash
 from interval_jobs.embedding import embed_item
 from interval_jobs.feed.notes import polish_note, queue_polish
 from interval_jobs.feed.precompute import recompute_user_feed
@@ -47,6 +48,7 @@ from interval_jobs.link_health import check_link
 from interval_jobs.normalize import page_canonical, simhash
 from interval_jobs.polling import MIN_INTERVAL, next_interval
 from interval_jobs.ports import (
+    ConceptGraph,
     Delivery,
     Extractor,
     Fetcher,
@@ -55,11 +57,20 @@ from interval_jobs.ports import (
     RobotsDisallowed,
     SourceRecord,
     Store,
+    TagInput,
     Validators,
 )
 from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
 from interval_jobs.segment import segment_item
-from interval_jobs.tagging import PROMPT_VERSION, active_concepts, tag_item
+from interval_jobs.tagging import (
+    DECISIONS_PREFIX,
+    PROMPT_VERSION,
+    TaggingError,
+    active_concepts,
+    tag_item,
+)
+from interval_jobs.tagging_decide import decide
+from interval_jobs.tagging_rollup import rollup
 
 # Every queue the consumer serves: ingestion in the order an item moves through it,
 # then the per-user feed recompute (CACHE-1, P1-W4-S04) and its notes' polish (W4-S06),
@@ -387,6 +398,97 @@ class Pipeline:
         key = f"tag-{item_id}-v{PROMPT_VERSION}"
         return [("tag_item", {"content_item_id": item_id}, key)]
 
+    def _tag_by_decisions(
+        self, item_id: int, item: TagInput, graph: ConceptGraph
+    ) -> None:
+        """Tagging v3 (2026-10-27): ask the decision model about moments whose content
+        changed (a shortlist of concepts each), keep the raw answers, roll them up."""
+        assert self._tagging is not None
+        if self._embedding is None:
+            log.warn(
+                "pipeline: decision tagging needs EMBEDDING_MODEL for its shortlist",
+                content_item_id=item_id,
+            )
+            return
+        decider = self._tagging.model.removeprefix(DECISIONS_PREFIX)
+        active = {c.slug for c in graph.concepts if not c.retired}
+        with self._unit() as services:
+            stored = services.store.concepts.vectors(self._embedding.model)
+            known = services.store.decisions.moment_hashes(item_id, decider)
+            known_item = services.store.decisions.item_hash(item_id, decider)
+        by_slug = {c.slug: c for c in graph.concepts}
+        vectors = {slug: v for slug, (_, v) in stored.items() if slug in active}
+        fresh = [
+            slug
+            for slug, (digest, _) in stored.items()
+            if slug in active
+            and digest
+            == text_hash(concept_text(by_slug[slug].name, by_slug[slug].description))
+        ]
+        if len(fresh) < len(active):
+            # Missing or stale vectors make the shortlist worse, quietly: say so; the
+            # fix is embed-concepts.
+            log.warn(
+                "pipeline: concept vectors missing or stale; run embed-concepts",
+                missing_or_stale=len(active) - len(fresh),
+            )
+        with self._tagging.gateway() as gateway:
+            asked = decide(
+                gateway,
+                decider,
+                self._embedding.model,
+                item,
+                graph,
+                vectors,
+                known,
+                known_item,
+            )
+        with self._unit() as services:
+            now = services.store.tags.input(item_id)
+            if now is None or now.moments != item.moments:
+                log.info(
+                    "pipeline: moments changed; answers dropped",
+                    content_item_id=item_id,
+                )
+                return
+            decisions = services.store.decisions
+            for moment_id, answer in asked.moments.items():
+                decisions.save_moment(
+                    moment_id,
+                    decider,
+                    answer.content_hash,
+                    answer.difficulty,
+                    answer.probabilities,
+                )
+            if asked.item is not None:
+                decisions.save_item(
+                    item_id,
+                    decider,
+                    asked.item.content_hash,
+                    asked.item.difficulty,
+                    asked.item.probabilities,
+                )
+            # Answers paid for are kept even when the pass stopped part way: the hash
+            # skip resumes from them next time.
+            if asked.refused is None and asked.stopped is None:
+                services.store.tags.save(
+                    item_id,
+                    rollup(
+                        decisions.read(item_id, decider), active, current=asked.current
+                    ),
+                    self._tagging.model,
+                    PROMPT_VERSION,
+                )
+        if asked.refused is not None:
+            # LOAD-5: degrade, observably; the next poll queues it again.
+            log.warn(
+                "pipeline: tagging over budget",
+                content_item_id=item_id,
+                scope=asked.refused.scope,
+            )
+        elif asked.stopped is not None:
+            raise TaggingError(asked.stopped)  # the queue retries; answers are kept
+
     def _tag_stage(self, message: BaseModel, delivery: Delivery) -> None:
         """Read, then call the model with no transaction open, then save in a second
         unit of work only if the item's moments didn't change meanwhile."""
@@ -401,10 +503,13 @@ class Pipeline:
         # Once per item (AI-4): not again at this prompt version, not for duplicates.
         if item is None or item.duplicate or item.tagged_version == PROMPT_VERSION:
             return
-        if not active_concepts(graph):
+        if graph is None or not active_concepts(graph):
             log.warn(
                 "pipeline: no concept graph loaded; not tagged", content_item_id=item_id
             )
+            return
+        if self._tagging.model.startswith(DECISIONS_PREFIX):
+            self._tag_by_decisions(item_id, item, graph)
             return
         with self._tagging.gateway() as gateway:
             tagged = tag_item(gateway, self._tagging.model, item, graph)

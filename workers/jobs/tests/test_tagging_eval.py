@@ -182,3 +182,68 @@ def test_shortlist_recall_is_measured_per_variant_and_size() -> None:
     store.concepts.save_vector("c", "v", "stale", [0.0, 1.0])
     with pytest.raises(EvalError, match="embed-concepts"):
         run_shortlist_eval(gateway, "v", store, labels, sizes=(1,))
+
+
+def test_a_decision_model_is_asked_once_stored_and_swept_over_cut_offs() -> None:
+    from .test_tagging_decide import Decider, NearWal
+
+    store = InMemoryStore()
+    sync_concepts(
+        store,
+        parse_concepts(
+            "version: 1\nconcepts:\n"
+            "  - {slug: write-ahead-log, name: Write-ahead log, topic: databases}\n"
+            "  - {slug: transactions, name: Transactions, topic: databases}\n",
+            "c.yaml",
+        ),
+    )
+    store.concepts.save_vector(
+        "write-ahead-log", "v", text_hash("Write-ahead log"), [1.0, 0.0, 0.0]
+    )
+    store.concepts.save_vector(
+        "transactions", "v", text_hash("Transactions"), [0.0, 1.0, 0.0]
+    )
+    sid = store.sources.upsert(
+        name="s",
+        feed_url="https://s.test/f",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    store.sources.set_moments_enabled(sid, True)
+    entry = FeedEntry(
+        guid="g",
+        link=URL,
+        title="T",
+        author=None,
+        published_at=None,
+        updated_at=None,
+        summary=None,
+    )
+    item = store.items.upsert_from_feed(sid, entry, keep_excerpt=False)
+    store.items.store_full_text(item, "intro\nH\nbody")
+    store.moments.replace(
+        item,
+        [
+            MomentRow(0, "T", 1, URL, "page_top"),
+            MomentRow(1, "H", 1, URL + "#h", "anchor"),
+        ],
+    )
+    decider = Decider()
+    gateway = AiGateway(
+        InMemoryAi(store.users), ScriptedLlm({}), NearWal(), decisions=decider
+    )
+    labels = [
+        Label(URL, None, "intermediate", frozenset({"write-ahead-log"})),
+        Label(URL, "H", "intermediate", frozenset({"write-ahead-log"})),
+    ]
+    first = run_eval(gateway, "decisions:pplx", store, labels, embedding_model="v")
+    assert (first.precision, first.recall, first.difficulty_accuracy) == (1.0, 1.0, 1.0)
+    assert len(first.sweep) == 6
+    asked = len(decider.asked)
+    assert asked == 3  # two moments and the title pass
+    # A second run reads the stored answers: free, and the same scores.
+    again = run_eval(gateway, "decisions:pplx", store, labels, embedding_model="v")
+    assert len(decider.asked) == asked
+    assert again.f1 == first.f1 and again.cost_usd == 0
+    with pytest.raises(EvalError, match="embedding model"):
+        run_eval(gateway, "decisions:pplx", store, labels)

@@ -245,6 +245,21 @@ export interface ItemConcept {
   content_item_id: Int8;
 }
 
+export interface ItemConceptProbability {
+  concept_id: Int8;
+  content_item_id: Int8;
+  model: string;
+  probability: number;
+}
+
+export interface ItemDecision {
+  content_hash: string;
+  content_item_id: Int8;
+  decided_at: Generated<Timestamp>;
+  difficulty: number;
+  model: string;
+}
+
 export interface ItemEmbedding {
   content_item_id: Int8;
   embedded_at: Generated<Timestamp>;
@@ -287,6 +302,21 @@ export interface MomentBoundaryOverride {
 
 export interface MomentConcept {
   concept_id: Int8;
+  moment_id: Int8;
+}
+
+export interface MomentConceptProbability {
+  concept_id: Int8;
+  model: string;
+  moment_id: Int8;
+  probability: number;
+}
+
+export interface MomentDecision {
+  content_hash: string;
+  decided_at: Generated<Timestamp>;
+  difficulty: number;
+  model: string;
   moment_id: Int8;
 }
 
@@ -520,12 +550,16 @@ export interface DB {
   graph_version: GraphVersion;
   invite_code: InviteCode;
   item_concept: ItemConcept;
+  item_concept_probability: ItemConceptProbability;
+  item_decision: ItemDecision;
   item_embedding: ItemEmbedding;
   item_feedback: ItemFeedback;
   item_tagging: ItemTagging;
   moment: Moment;
   moment_boundary_override: MomentBoundaryOverride;
   moment_concept: MomentConcept;
+  moment_concept_probability: MomentConceptProbability;
+  moment_decision: MomentDecision;
   moment_embedding: MomentEmbedding;
   moment_tagging: MomentTagging;
   plan: Plan;

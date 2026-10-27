@@ -21,6 +21,7 @@ from interval_jobs.ports import (
     DecisionAnswer,
     DecisionState,
     ModelError,
+    NoulAnswer,
     ScoreAnswer,
 )
 
@@ -39,6 +40,11 @@ class _Score(BaseModel):
     score: float
 
 
+class _Noul(BaseModel):
+    type: Literal["noul"]
+    noul: float
+
+
 class _Usage(BaseModel):
     input_tokens: int
     output_tokens: int
@@ -46,14 +52,16 @@ class _Usage(BaseModel):
 
 
 class _Response(BaseModel):
-    answers: dict[str, Annotated[_Choice | _Score, Field(discriminator="type")]]
+    answers: dict[str, Annotated[_Choice | _Score | _Noul, Field(discriminator="type")]]
     usage: _Usage
 
 
-def _answer(raw: _Choice | _Score) -> DecisionAnswer:
+def _answer(raw: _Choice | _Score | _Noul) -> DecisionAnswer:
     if isinstance(raw, _Choice):
         return ChoiceAnswer(raw.choice, raw.probabilities)
-    return ScoreAnswer(raw.score)
+    if isinstance(raw, _Score):
+        return ScoreAnswer(raw.score)
+    return NoulAnswer(raw.noul)
 
 
 class OpenRouterDecisions:

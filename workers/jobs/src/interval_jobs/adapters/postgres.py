@@ -42,6 +42,7 @@ from interval_jobs.ports import (
     FetchInput,
     Finished,
     GrantResult,
+    ItemDecisions,
     MomentLink,
     MomentRow,
     NoteInput,
@@ -1689,6 +1690,134 @@ class PostgresRankingInputs:
         return [CandidateArticle(int(r[0]), int(r[1])) for r in rows]
 
 
+class PostgresDecisions:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def _known(self, probabilities: dict[str, float]) -> None:
+        found = {
+            str(r[0])
+            for r in self._conn.execute(
+                "select slug from concept where slug = any(%s)", (list(probabilities),)
+            ).fetchall()
+        }
+        unknown = sorted(set(probabilities) - found)
+        if unknown:
+            raise ValueError(f"no concept {unknown[0]}")
+
+    def moment_hashes(self, item_id: int, model: str) -> dict[int, str]:
+        rows = self._conn.execute(
+            "select d.moment_id, d.content_hash from moment_decision d "
+            "join moment m on m.id = d.moment_id "
+            "where m.content_item_id = %s and d.model = %s",
+            (item_id, model),
+        ).fetchall()
+        return {int(r[0]): str(r[1]) for r in rows}
+
+    def save_moment(
+        self,
+        moment_id: int,
+        model: str,
+        content_hash: str,
+        difficulty: float,
+        probabilities: dict[str, float],
+    ) -> None:
+        self._known(probabilities)
+        self._conn.execute(
+            "delete from moment_decision where moment_id = %s and model = %s",
+            (moment_id, model),
+        )
+        self._conn.execute(
+            "insert into moment_decision (moment_id, model, content_hash, difficulty) "
+            "values (%s, %s, %s, %s)",
+            (moment_id, model, content_hash, difficulty),
+        )
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                """
+                insert into moment_concept_probability
+                  (moment_id, model, concept_id, probability)
+                select %s, %s, id, %s from concept where slug = %s
+                """,
+                [(moment_id, model, p, slug) for slug, p in probabilities.items()],
+            )
+
+    def item_hash(self, item_id: int, model: str) -> str | None:
+        row = self._conn.execute(
+            "select content_hash from item_decision "
+            "where content_item_id = %s and model = %s",
+            (item_id, model),
+        ).fetchone()
+        return None if row is None else str(row[0])
+
+    def save_item(
+        self,
+        item_id: int,
+        model: str,
+        content_hash: str,
+        difficulty: float,
+        probabilities: dict[str, float],
+    ) -> None:
+        self._known(probabilities)
+        self._conn.execute(
+            "delete from item_decision where content_item_id = %s and model = %s",
+            (item_id, model),
+        )
+        self._conn.execute(
+            "insert into item_decision (content_item_id, model, content_hash, "
+            "difficulty) values (%s, %s, %s, %s)",
+            (item_id, model, content_hash, difficulty),
+        )
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                """
+                insert into item_concept_probability
+                  (content_item_id, model, concept_id, probability)
+                select %s, %s, id, %s from concept where slug = %s
+                """,
+                [(item_id, model, p, slug) for slug, p in probabilities.items()],
+            )
+
+    def read(self, item_id: int, model: str) -> ItemDecisions:
+        moments: dict[int, tuple[float, dict[str, float]]] = {
+            int(r[0]): (float(r[1]), {})
+            for r in self._conn.execute(
+                "select d.moment_id, d.difficulty from moment_decision d "
+                "join moment m on m.id = d.moment_id "
+                "where m.content_item_id = %s and d.model = %s",
+                (item_id, model),
+            ).fetchall()
+        }
+        for moment_id, slug, probability in self._conn.execute(
+            """
+            select p.moment_id, c.slug, p.probability
+            from moment_concept_probability p
+            join concept c on c.id = p.concept_id
+            join moment m on m.id = p.moment_id
+            where m.content_item_id = %s and p.model = %s
+            """,
+            (item_id, model),
+        ).fetchall():
+            moments[int(moment_id)][1][str(slug)] = float(probability)
+        found = self._conn.execute(
+            "select difficulty from item_decision "
+            "where content_item_id = %s and model = %s",
+            (item_id, model),
+        ).fetchone()
+        item = {
+            str(r[0]): float(r[1])
+            for r in self._conn.execute(
+                """
+                select c.slug, p.probability from item_concept_probability p
+                join concept c on c.id = p.concept_id
+                where p.content_item_id = %s and p.model = %s
+                """,
+                (item_id, model),
+            ).fetchall()
+        }
+        return ItemDecisions(moments, item, None if found is None else float(found[0]))
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.sources = PostgresSources(conn)
@@ -1704,6 +1833,7 @@ class PostgresStore:
         self.tags = PostgresItemTags(conn)
         self.embeddings = PostgresEmbeddings(conn)
         self.ranking = PostgresRankingInputs(conn)
+        self.decisions = PostgresDecisions(conn)
 
 
 @contextmanager
