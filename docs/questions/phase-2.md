@@ -112,3 +112,14 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: DB-5, Phase 2 "done when" (30% of finished moments lead to a quiz; quiz takers return more often than non-takers), Q-P1-20.
 - Suggested default: `quiz_started` (moment or article, or review), `quiz_answered` (question, correct, time to answer), `quiz_finished` (answered, correct), `question_flagged`; metric queries for the two "done when" lines next to the Phase 1 ones.
 
+### Q-P2-21 Week 9's overnight defaults to confirm (P1)
+- Cite: Q-P2-14..19, PER-2, Q-2, Q-3, REC-1, §5B; docs/progress.md, 2026-10-28 overnight entries.
+- Built on suggested defaults while the owner slept (owner: "use them"); each is easy to change:
+  1. FSRS short-term steps off: a concept first comes back in days, not 10 minutes after the quiz (Q-P2-16 said default parameters).
+  2. A review idle for 30 minutes since its last question is over: closed then, answered concepts rated, the next review takes the due list fresh (Q-P2-17 is silent).
+  3. With an empty feed, no review card shows (Q-P2-17 says position 2; there is none). Should it show alone?
+  4. Difficulty levels: below −0.5 logits beginner, above +0.5 advanced, a typical user at 0 (about 62% and 38% right) (Q-P2-19 is silent on the mapping).
+  5. Anomalies (over 98% or under 20% right, 30+ answers): queued once, never again after an admin decides one; they stay in quizzes while waiting, unlike flagged questions (Q-3: "pulled for review").
+  6. A question flagged by someone else while it's another user's open question can still be answered and count toward mastery, as with retiring (Q-2).
+  7. Metric definitions: a finished moment "leads to a quiz" when its user starts Test 60s on it within a day either side; the flag rate is over answered questions, all time to yesterday; quiz return compares last full week's takers and non-takers on the following week (Phase 2 "done when").
+
