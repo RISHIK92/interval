@@ -4,7 +4,7 @@ Adapters in `interval_jobs.adapters` implement these; `compose.py` wires them. L
 never imports a driver or SDK, so a service is swapped by replacing one adapter.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
@@ -432,8 +432,11 @@ class AiLedger(Protocol):
         None means no limit."""
         ...
 
-    def spent_usd(self, user_id: str | None, day: date) -> Decimal:
-        """Spend on a UTC day: one user's calls, or the offline calls for None."""
+    def spent_usd(
+        self, user_id: str | None, day: date, *, excluding: Collection[AiProvider]
+    ) -> Decimal:
+        """Spend on a UTC day: one user's calls, or the offline calls for None; calls
+        to the `excluding` providers left out."""
         ...
 
     def record(self, usage: Usage) -> None: ...

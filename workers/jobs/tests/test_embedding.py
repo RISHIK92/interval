@@ -93,8 +93,13 @@ def test_moments_already_embedded_are_skipped() -> None:
     assert voyage.batches[0][0] == ["Writes first.\nRecovery\nReplay."]
 
 
+class MeteredEmbeddings(FakeVoyage):
+    # Voyage is never budgeted (owner, 2026-10-28); a metered provider still is.
+    provider: AiProvider = "openrouter"
+
+
 def test_a_budget_stop_keeps_the_batches_already_paid_for() -> None:
-    voyage = FakeVoyage(cost=Decimal(6))  # one batch spends the $5 global budget
+    voyage = MeteredEmbeddings(cost=Decimal(6))  # one batch spends the $5 budget
     gateway = AiGateway(InMemoryAi(InMemoryStore().users), NoLlm(), voyage)
     lines = ["intro"] + [line for i in range(BATCH + 3) for line in (f"H{i}", f"b{i}")]
     moments = [TagMoment(0, 0, None)] + [
@@ -103,3 +108,15 @@ def test_a_budget_stop_keeps_the_batches_already_paid_for() -> None:
     got = embed_item(gateway, "voyage-3.5", item(moments, "\n".join(lines)), set())
     assert got.refused == OverBudget("global")
     assert len(got.vectors) == BATCH
+
+
+def test_voyage_embeds_every_batch_past_the_budget() -> None:
+    voyage = FakeVoyage(cost=Decimal(6))
+    gateway = AiGateway(InMemoryAi(InMemoryStore().users), NoLlm(), voyage)
+    lines = ["intro"] + [line for i in range(BATCH + 3) for line in (f"H{i}", f"b{i}")]
+    moments = [TagMoment(0, 0, None)] + [
+        TagMoment(i + 1, i + 1, f"H{i}") for i in range(BATCH + 3)
+    ]
+    got = embed_item(gateway, "voyage-3.5", item(moments, "\n".join(lines)), set())
+    assert got.refused is None
+    assert len(got.vectors) == len(moments)

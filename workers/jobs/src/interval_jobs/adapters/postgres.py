@@ -4,7 +4,7 @@ One `PostgresStore` is one unit of work; `unit_of_work` commits it on success an
 it back on error. The database's own triggers still guard ING-2 behind these queries.
 """
 
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Collection, Generator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import asdict
 from datetime import UTC, date, datetime, time, timedelta
@@ -16,6 +16,7 @@ from psycopg.rows import class_row
 from psycopg.types.json import Jsonb
 
 from interval_db.generated import (
+    AiProvider,
     BetaGroup,
     BreakLength,
     Capability,
@@ -839,7 +840,9 @@ class PostgresAi:
             return 0  # no plan grants it: no AI for this user
         return None if row[0] is None else int(row[0])
 
-    def spent_usd(self, user_id: str | None, day: date) -> Decimal:
+    def spent_usd(
+        self, user_id: str | None, day: date, *, excluding: Collection[AiProvider]
+    ) -> Decimal:
         start = datetime.combine(day, time(), tzinfo=UTC)
         end = start + timedelta(days=1)
         # Two queries, so each one matches its own index (ai_usage_user_day and
@@ -847,14 +850,16 @@ class PostgresAi:
         if user_id is None:
             row = self._conn.execute(
                 "select coalesce(sum(cost_usd), 0) from ai_usage "
-                "where is_offline and occurred_at >= %s and occurred_at < %s",
-                (start, end),
+                "where is_offline and occurred_at >= %s and occurred_at < %s "
+                "and provider <> all(%s::ai_provider[])",
+                (start, end, list(excluding)),
             ).fetchone()
         else:
             row = self._conn.execute(
                 "select coalesce(sum(cost_usd), 0) from ai_usage "
-                "where user_id = %s and occurred_at >= %s and occurred_at < %s",
-                (user_id, start, end),
+                "where user_id = %s and occurred_at >= %s and occurred_at < %s "
+                "and provider <> all(%s::ai_provider[])",
+                (user_id, start, end, list(excluding)),
             ).fetchone()
         assert row is not None  # an aggregate always returns one row
         return Decimal(row[0])

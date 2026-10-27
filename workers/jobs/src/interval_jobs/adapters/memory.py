@@ -9,13 +9,14 @@ switching moments off purges what the source no longer allows.
 import math
 import random
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from typing import Literal
 
 from interval_db.generated import (
+    AiProvider,
     BetaGroup,
     BreakLength,
     Capability,
@@ -752,12 +753,16 @@ class InMemoryAi:
             return GLOBAL_DAILY_BUDGET_CENTS
         return BETA_DAILY_BUDGET_CENTS if user_id in self._users.rows else 0
 
-    def spent_usd(self, user_id: str | None, day: date) -> Decimal:
+    def spent_usd(
+        self, user_id: str | None, day: date, *, excluding: Collection[AiProvider]
+    ) -> Decimal:
         return sum(
             (
                 u.cost_usd
                 for u in self.rows
-                if u.user_id == user_id and u.occurred_at.astimezone(UTC).date() == day
+                if u.user_id == user_id
+                and u.occurred_at.astimezone(UTC).date() == day
+                and u.provider not in excluding
             ),
             Decimal(0),
         )

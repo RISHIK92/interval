@@ -1950,3 +1950,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `Progress.explored()` → `concepts()` (`ConceptsByTopic`), each with its state; Profile's "Your concepts" shows the state in words (`STATE_WORDS`, shared with the quiz results).
 - Checked live on the local test account: one right answer put the question's 4 concepts at 0.3, explored.
 - Reviewer: the same-day case and the wrong-first case tested (owner decided the latter), the explored naming fixed, a snapshot limit on counting days noted as a shortcut. For S04: S03 recomputes `concept_mastery.state` on every answer, so due for review should come from the FSRS card's due date, not a stored state, or S03 would overwrite it. Untested: two concurrent answers on one concept (as with reading's credit).
+
+### 2026-10-28 — Voyage embeddings unmetered (owner)
+- Owner: "no limit on voyage embeddings". `UNMETERED = {"voyage"}` in the AI gateway: Voyage calls are still recorded in `ai_usage` but never refused, and the budget check leaves their spend out (`AiLedger.spent_usd(..., excluding=)`). Other embedding providers would still be budgeted.
+- Overnight (owner, temporary): the global offline cap is local data only, not code. 171 cents for the rest of 2026-10-27 UTC (that day's metered spend plus $0.30), then 30 cents from 2026-10-28 00:00 UTC. The seed is 500; put it back with `update ai_budget set daily_cents = 500 where scope = 'global'`. `test_db_guards` checks the seed, so overnight `pnpm check` runs pause the worker and restore the seed for the run.

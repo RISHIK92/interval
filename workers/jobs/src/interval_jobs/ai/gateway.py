@@ -32,6 +32,11 @@ from interval_jobs.ports import (
     Usage,
 )
 
+# Owner, 2026-10-28: "no limit on voyage embeddings" (its tokens cost the owner
+# nothing). Their calls are still recorded, but never refused and never counted
+# against a budget (OPS-4).
+UNMETERED: frozenset[AiProvider] = frozenset({"voyage"})
+
 
 @dataclass(frozen=True)
 class OverBudget:
@@ -179,9 +184,10 @@ class AiGateway:
         texts: list[str],
         purpose: EmbeddingPurpose,
     ) -> Embedded | OverBudget:
-        refused = self._over_budget(feature, user_id)
-        if refused is not None:
-            return refused
+        if self._embeddings.provider not in UNMETERED:
+            refused = self._over_budget(feature, user_id)
+            if refused is not None:
+                return refused
         result = self._embeddings.embed(model, texts, purpose)
         usage = self._record(
             feature,
@@ -213,7 +219,9 @@ class AiGateway:
         budget_cents = self._ledger.daily_budget_cents(user_id)
         if budget_cents is None:
             return None
-        spent = self._ledger.spent_usd(user_id, self._clock().astimezone(UTC).date())
+        spent = self._ledger.spent_usd(
+            user_id, self._clock().astimezone(UTC).date(), excluding=UNMETERED
+        )
         if spent * 100 < budget_cents:
             return None
         scope: Literal["user", "global"] = "global" if user_id is None else "user"

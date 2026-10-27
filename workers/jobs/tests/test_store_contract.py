@@ -983,9 +983,24 @@ def test_ai_spend_is_summed_per_user_and_per_utc_day(
     ai.record(usage("ai-user", "0.10", datetime(2099, 1, 2, 0, 5, tzinfo=UTC)))
     ai.record(usage("ai-user", "0.05", datetime(2099, 1, 1, 23, 59, tzinfo=UTC)))
     ai.record(usage(None, "1.25", datetime(2099, 1, 2, 12, 0, tzinfo=UTC)))
-    assert ai.spent_usd("ai-user", day) == Decimal("0.10")
-    assert ai.spent_usd(None, day) == Decimal("1.25")
-    assert ai.spent_usd("ai-user", date(2099, 1, 3)) == Decimal("0")
+    assert ai.spent_usd("ai-user", day, excluding=()) == Decimal("0.10")
+    assert ai.spent_usd(None, day, excluding=()) == Decimal("1.25")
+    assert ai.spent_usd("ai-user", date(2099, 1, 3), excluding=()) == Decimal("0")
+    # Owner, 2026-10-28: Voyage's spend can be left out of a budget.
+    ai.record(
+        Usage(
+            user_id=None,
+            feature="embeddings",
+            provider="voyage",
+            model="voyage-4",
+            input_tokens=100,
+            output_tokens=0,
+            cost_usd=Decimal("0.75"),
+            occurred_at=datetime(2099, 1, 2, 13, 0, tzinfo=UTC),
+        )
+    )
+    assert ai.spent_usd(None, day, excluding=()) == Decimal("2.00")
+    assert ai.spent_usd(None, day, excluding={"voyage"}) == Decimal("1.25")
 
 
 def test_a_deleted_users_spend_never_counts_as_offline_spend(
@@ -995,7 +1010,7 @@ def test_a_deleted_users_spend_never_counts_as_offline_spend(
     probe.add_user("ai-gone", False, [])
     ai.record(usage("ai-gone", "0.40", datetime(2099, 1, 4, 9, 0, tzinfo=UTC)))
     probe.delete_user("ai-gone")
-    assert ai.spent_usd(None, date(2099, 1, 4)) == Decimal("0")
+    assert ai.spent_usd(None, date(2099, 1, 4), excluding=()) == Decimal("0")
 
 
 def test_ai_budgets_come_from_the_plan_and_the_global_row(

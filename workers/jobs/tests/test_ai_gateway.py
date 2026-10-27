@@ -81,12 +81,18 @@ def gateway(ledger: InMemoryAi, llm: FakeLlm | None = None) -> AiGateway:
     return AiGateway(ledger, llm or FakeLlm(), FakeEmbeddings(), clock=lambda: NOW)
 
 
-def spend(ledger: InMemoryAi, user_id: str | None, cost: str, at: datetime) -> None:
+def spend(
+    ledger: InMemoryAi,
+    user_id: str | None,
+    cost: str,
+    at: datetime,
+    provider: AiProvider = "openrouter",
+) -> None:
     ledger.record(
         Usage(
             user_id=user_id,
             feature="tagging",
-            provider="openrouter",
+            provider=provider,
             model="m",
             input_tokens=0,
             output_tokens=0,
@@ -168,7 +174,11 @@ def test_a_failed_call_records_nothing_and_propagates(ledger: InMemoryAi) -> Non
     assert ledger.rows == []
 
 
-def test_embeddings_follow_the_same_budget_rules(ledger: InMemoryAi) -> None:
+# Owner, 2026-10-28: "no limit on voyage embeddings" (its tokens cost the owner
+# nothing). Voyage calls are recorded, never refused, and don't count toward a budget.
+def test_voyage_embeddings_are_never_refused_and_never_spend_a_budget(
+    ledger: InMemoryAi,
+) -> None:
     result = gateway(ledger).embed(
         feature="embeddings",
         user_id=None,
@@ -181,13 +191,25 @@ def test_embeddings_follow_the_same_budget_rules(ledger: InMemoryAi) -> None:
     assert result.usage.provider == "voyage"
     assert result.usage.output_tokens == 0
     spend(ledger, None, "5.00", NOW)
-    assert gateway(ledger).embed(
-        feature="embeddings",
-        user_id=None,
-        model="voyage-x",
-        texts=["a"],
-        purpose="query",
-    ) == OverBudget("global")
+    assert isinstance(
+        gateway(ledger).embed(
+            feature="embeddings",
+            user_id=None,
+            model="voyage-x",
+            texts=["a"],
+            purpose="query",
+        ),
+        Embedded,
+    )
+    # And Voyage's own spend leaves the budget to the other providers.
+    fresh = InMemoryAi(InMemoryStore().users)
+    spend(fresh, None, "50.00", NOW, provider="voyage")
+    assert isinstance(
+        gateway(fresh).complete(
+            feature="tagging", user_id=None, model="small", messages=MESSAGES
+        ),
+        Completed,
+    )
 
 
 class UnlimitedLedger(InMemoryAi):
