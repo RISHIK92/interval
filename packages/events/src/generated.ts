@@ -11,6 +11,8 @@ export const EVENT_NAMES = [
   "feedback_undone",
   "guest_merged",
   "item_saved",
+  "note_deleted",
+  "note_saved",
   "onboarding_completed",
   "outbound_click",
   "pwa_installed",
@@ -31,6 +33,8 @@ export const EVENT_VERSIONS = {
   feedback_undone: 1,
   guest_merged: 1,
   item_saved: 1,
+  note_deleted: 1,
+  note_saved: 1,
   onboarding_completed: 1,
   outbound_click: 1,
   pwa_installed: 1,
@@ -65,6 +69,20 @@ export const propsSchemas = {
   feedback_undone: z.strictObject({ kind: z.enum(["not_interested"]) }),
   guest_merged: z.strictObject({}),
   item_saved: z.strictObject({}),
+  note_deleted: z.strictObject({
+    item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    moment_id: z
+      .string()
+      .regex(/^[1-9][0-9]{0,18}$/)
+      .nullable(),
+  }),
+  note_saved: z.strictObject({
+    item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    moment_id: z
+      .string()
+      .regex(/^[1-9][0-9]{0,18}$/)
+      .nullable(),
+  }),
   onboarding_completed: z.strictObject({}),
   outbound_click: z.strictObject({
     link_type: z.enum(["anchor", "text_fragment", "page_top", "article"]),
@@ -150,6 +168,18 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("item_saved"),
     version: z.literal(1),
     props: propsSchemas.item_saved,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("note_deleted"),
+    version: z.literal(1),
+    props: propsSchemas.note_deleted,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("note_saved"),
+    version: z.literal(1),
+    props: propsSchemas.note_saved,
   }),
   z.strictObject({
     ...base,

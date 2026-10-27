@@ -524,6 +524,17 @@ export interface UserMomentOpened {
   user_id: string;
 }
 
+export interface UserNote {
+  body: string;
+  content_item_id: Int8;
+  created_at: Generated<Timestamp>;
+  id: Generated<Int8>;
+  moment_id: Int8 | null;
+  section_title: string | null;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface UserPreferences {
   break_length: BreakLength;
   goals: ArrayType<LearningGoal>;
@@ -594,6 +605,7 @@ export interface DB {
   user_inferred_reset: UserInferredReset;
   user_moment_finished: UserMomentFinished;
   user_moment_opened: UserMomentOpened;
+  user_note: UserNote;
   user_preferences: UserPreferences;
   user_save: UserSave;
 }

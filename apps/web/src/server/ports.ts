@@ -231,6 +231,29 @@ export interface Feedback {
   resetInferred(userId: string): Promise<void>;
 }
 
+// Notes (§5I, Q-P2-01, P2-W7-S03): a user's private note on a section, or on the
+// article when momentId is null. Never shown to anyone else.
+export interface Notes {
+  get(
+    userId: string,
+    itemId: string,
+    momentId: string | null,
+  ): Promise<string | null>;
+  // Writes or replaces it; false when the ids name no section of that article.
+  save(
+    userId: string,
+    itemId: string,
+    momentId: string | null,
+    body: string,
+  ): Promise<boolean>;
+  // False when there was none.
+  remove(
+    userId: string,
+    itemId: string,
+    momentId: string | null,
+  ): Promise<boolean>;
+}
+
 export interface DatabasePing {
   // Resolves when the database answers; rejects otherwise.
   ping(): Promise<void>;

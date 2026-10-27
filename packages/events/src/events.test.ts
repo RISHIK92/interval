@@ -8,7 +8,7 @@ const spec = JSON.parse(
 ) as Spec;
 
 describe("the event list (Q-P1-20)", () => {
-  test("holds exactly the accepted Phase 1 names", () => {
+  test("holds exactly the accepted names", () => {
     expect([...EVENT_NAMES].sort()).toEqual(
       [
         "session_started",
@@ -28,6 +28,9 @@ describe("the event list (Q-P1-20)", () => {
         "guest_merged",
         "pwa_installed",
         "outbound_click",
+        // Phase 2, in the owner-approved Week 7 plan (2026-10-27, P2-W7-S03).
+        "note_saved",
+        "note_deleted",
       ].sort(),
     );
   });

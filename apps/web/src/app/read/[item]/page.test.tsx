@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { SlowBar } from "./ReaderFrame";
 import type {
   Actor,
+  Notes,
   OutboundLinks,
   Progress,
   ReaderPage,
@@ -12,6 +13,7 @@ import type {
 // header above it and the overlay below it.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const reader = vi.fn<OutboundLinks["reader"]>();
+const getNote = vi.fn<Notes["get"]>(() => Promise.resolve(null));
 const emit = vi.fn();
 const recordOpen = vi.fn<Progress["recordOpen"]>(() => Promise.resolve());
 const countExploreOpen = vi.fn<Progress["countExploreOpen"]>(() =>
@@ -21,6 +23,7 @@ vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
   outboundLinks: () => ({ reader }),
   progress: () => ({ recordOpen, countExploreOpen }),
+  notes: () => ({ get: getNote }),
   events: () => ({ emit }),
 }));
 vi.mock("next/headers", () => ({
@@ -306,4 +309,15 @@ test("the slow-page bar offers the publisher's site in the browser, and closes",
     /<a href="\/out\?item=5" target="_blank" rel="noopener noreferrer"[^>]*>Open on pub\.test<\/a>/,
   );
   expect(html).toMatch(/<button[^>]*aria-label="Dismiss slow-load notice"/);
+});
+
+// Q-P2-01, P2-W7-S03: the reader's note box, on the section it reached.
+test("the reader offers a note on the section, empty until one is written", async () => {
+  current.mockResolvedValue(guest);
+  reader.mockResolvedValue(page);
+  const html = await render(card);
+  expect(getNote).toHaveBeenCalledWith("g1", "5", "9");
+  expect(html).toContain("Add a note");
+  expect(html).toMatch(/<textarea[^>]*name="body"[^>]*><\/textarea>/);
+  expect(html).not.toMatch(/<button[^>]*value="delete"/);
 });

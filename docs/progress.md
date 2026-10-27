@@ -1869,3 +1869,10 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `Progress.explored(userId)`: the user's mastery rows grouped by topic, the topic of the newest row first, concepts newest first then by name; retired concepts hidden, as crediting skips them (Q-P2-06, suggested default). Topics checked against `TOPICS` at the boundary.
 - Profile: a "Concepts you've explored" card after Inferred, topic names from `TOPIC_NAMES` (now exported from ChoicesFields); an empty state. Checked in Chrome (empty state; the owner's account has no mastery yet, since finishes before S01 weren't credited).
 - Reviewer: retired concepts, the ordering fixture, the tie-break, and the empty-state wording fixed. Open: Q-P2-06; the heading will also cover practiced and mastered concepts once Weeks 9-10 write them.
+
+### 2026-10-27 — P2-W7-S03 (notes: storage and writing, Q-P2-01, DB-5)
+- Migration `20261027100000_user_notes.sql`: `user_note` (user, item, moment or null, section title, body 1–2,000). A section deleted by re-segmenting leaves its note on the article with its title (`on delete set null`); two partial unique indexes keep one note per section and per article, and a fallen-back note (title kept, never null) can't collide with either.
+- `Notes` port and `kysely-notes.ts`: `get`, `save` (one upsert per target, section title refreshed), `remove`; every query scoped to the user; a moment must be the item's.
+- `noteAction`: save or delete; an empty save deletes; CRLF counted as the text area counts it; a refused input or a save with nothing to attach to is logged; events `note_saved` / `note_deleted` with ids only (events guard test lists them as owner-approved with the Week 7 plan).
+- UI (owner, 2026-10-27): a small note icon at the top right of Home's Now reading card and the reader's footer opens the text area; a dot marks an existing note. Checked in Chrome (opened, not saved).
+- Reviewer: unique indexes + upsert (replacing the select-then-insert race), CRLF, logging, the shared target filter, the section-title refresh and the Delete note label fixed. Noted: saving from the reader reloads the publisher's frame at its anchor (a no-script form).

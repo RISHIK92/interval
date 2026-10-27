@@ -24,6 +24,7 @@ import { kyselyRanking } from "./adapters/kysely-ranking";
 import { kyselyFeedback } from "./adapters/kysely-feedback";
 import { kyselyLibrary } from "./adapters/kysely-library";
 import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
+import { kyselyNotes } from "./adapters/kysely-notes";
 import { kyselyProgress } from "./adapters/kysely-progress";
 import { kyselyPreferences } from "./adapters/kysely-preferences";
 import { fileSink } from "./adapters/file-sink";
@@ -46,6 +47,7 @@ import type {
   Library,
   OutboundLinks,
   PreferencesStore,
+  Notes,
   Progress,
   SessionReader,
 } from "./ports";
@@ -89,6 +91,10 @@ export function outboundLinks(): OutboundLinks {
 
 export function progress(): Progress {
   return kyselyProgress(db());
+}
+
+export function notes(): Notes {
+  return kyselyNotes(db());
 }
 
 export function adminSources(): AdminSources {

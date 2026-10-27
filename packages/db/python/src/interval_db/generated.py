@@ -490,6 +490,17 @@ class UserMomentOpened(TypedDict):
     opened_at: datetime
 
 
+class UserNote(TypedDict):
+    id: int
+    user_id: str
+    content_item_id: int
+    moment_id: int | None
+    section_title: str | None
+    body: str
+    created_at: datetime
+    updated_at: datetime
+
+
 class UserPreferences(TypedDict):
     user_id: str
     topics: list[Topic]

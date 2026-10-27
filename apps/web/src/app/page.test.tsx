@@ -1,6 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, FeedCard, FeedReader, Progress } from "../server/ports";
+import type {
+  Actor,
+  FeedCard,
+  FeedReader,
+  Notes,
+  Progress,
+} from "../server/ports";
 
 const getFeed = vi.fn<FeedReader["read"]>();
 const feedOf = (cards: FeedCard[]) => ({ computed: true, cards });
@@ -26,6 +32,7 @@ vi.mock("../server/container", () => ({
   preferences: () => ({ get: getPreferences }),
   feedback: () => ({ notInterested }),
   progress: () => ({ describe: describe_, nextMoment, continueCards }),
+  notes: () => ({ get: getNote }),
   feedReader: () => ({ read: getFeed, starter: vi.fn() }),
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
@@ -34,6 +41,7 @@ vi.mock("../server/container", () => ({
 let chipCookie: string | undefined;
 let readingCookie: string | undefined;
 const describe_ = vi.fn<Progress["describe"]>(() => Promise.resolve(null));
+const getNote = vi.fn<Notes["get"]>(() => Promise.resolve(null));
 const nextMoment = vi.fn<Progress["nextMoment"]>(() => Promise.resolve(null));
 const continueCards = vi.fn<Progress["continueCards"]>(() =>
   Promise.resolve([]),
@@ -562,4 +570,24 @@ test("the feed leaves out articles already in Continue reading", async () => {
   const feed = (await render()).split('aria-label="Your feed"')[1] ?? "";
   expect(feed).toContain("Why consensus");
   expect(feed).not.toContain("Raft again");
+});
+
+// Q-P2-01, P2-W7-S03: a note on what's being read, written from the panel.
+test("Now reading offers a note on the section, filled in when there is one", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  readingCookie = "10.1";
+  describe_.mockResolvedValueOnce({
+    articleTitle: "Consensus in practice",
+    sectionTitle: "Why consensus",
+  });
+  getNote.mockResolvedValueOnce("Terms are epochs");
+  const html = await render();
+  expect(getNote).toHaveBeenCalledWith("u1", "10", "1");
+  expect(html).toContain("Your note");
+  expect(html).toMatch(
+    /<textarea[^>]*name="body"[^>]*>Terms are epochs<\/textarea>/,
+  );
+  expect(html).toMatch(/<input[^>]*name="momentId"[^>]*value="1"/);
+  expect(html).toMatch(/<button[^>]*value="delete"/);
 });

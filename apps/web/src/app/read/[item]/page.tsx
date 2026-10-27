@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { z } from "zod";
 import { CHIPS } from "../../../server/chips";
-import { outboundLinks, sessionReader } from "../../../server/container";
+import { notes, outboundLinks, sessionReader } from "../../../server/container";
 import { attributed, countOpen } from "../../../server/opens";
 import { outHref, readHref } from "../../../server/outbound";
 import { BIGINT_ID, type ReaderPage } from "../../../server/ports";
@@ -11,6 +11,7 @@ import { formatReading } from "../../../server/reading";
 import { visitId } from "../../../server/visits";
 import { feedbackAction } from "../../feedback/actions";
 import { finishAction } from "../../finish/actions";
+import { NoteBox } from "../../NoteBox";
 import { WhyNote } from "../../WhyNote";
 import { ReaderFrame } from "./ReaderFrame";
 
@@ -102,6 +103,7 @@ export default async function ReadPage({
   const closeHref = library
     ? `/library?ask=${asked}`
     : `/?chip=${chip}&ask=${asked}`;
+  const note = await notes().get(actor.userId, item, reached);
   const here = readHref({
     itemId: item,
     ...(moment === undefined ? {} : { momentId: moment }),
@@ -149,8 +151,12 @@ export default async function ReadPage({
         domain={domain}
         browserHref={leaveHref}
       />
-      <footer className="flex shrink-0 flex-col gap-3 border-t border-hairline bg-page px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-        <Why note={page.note} />
+      <footer className="relative flex shrink-0 flex-col gap-3 border-t border-hairline bg-page px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        {/* Room for the note icon at the footer's top right, Why or not. */}
+        <div className="min-h-9 pr-12">
+          <Why note={page.note} />
+        </div>
+        <NoteBox itemId={item} momentId={reached} note={note} back={here} />
         <div className="flex items-center gap-2">
           <form action={feedbackAction}>
             <input type="hidden" name="itemId" value={item} />

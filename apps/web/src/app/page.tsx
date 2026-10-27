@@ -6,6 +6,7 @@ import {
   events,
   feedback,
   feedReader,
+  notes,
   progress,
   preferences,
   sessionReader,
@@ -122,10 +123,13 @@ export default async function HomePage({
       : null;
   // The card opened last (C-22), checked against what exists: the cookie is only ids.
   const reading = parseReading(jar.get(READING_COOKIE)?.value);
-  const readingTitles =
+  const [readingTitles, readingNote] =
     reading === null
-      ? null
-      : await progress().describe(reading.itemId, reading.momentId);
+      ? [null, null]
+      : await Promise.all([
+          progress().describe(reading.itemId, reading.momentId),
+          notes().get(actor.userId, reading.itemId, reading.momentId),
+        ]);
   // After Yes or Mark done on a section: the next section, or the end (owner).
   const finished = parseReading(
     typeof params["finished"] === "string" ? params["finished"] : undefined,
@@ -236,7 +240,12 @@ export default async function HomePage({
         {/* The panel steps aside while the prompt asks (owner, 2026-10-26). */}
         <ReturnPrompt chip={chip} initialAsk={ask}>
           {reading === null || readingTitles === null ? null : (
-            <NowReading reading={reading} titles={readingTitles} chip={chip} />
+            <NowReading
+              reading={reading}
+              titles={readingTitles}
+              chip={chip}
+              note={readingNote}
+            />
           )}
         </ReturnPrompt>
         {finished === null || next === undefined ? null : next === null ? (
