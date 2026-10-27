@@ -29,13 +29,18 @@ export default async function ResultsPage({
   const attempt = await quizzes().attempt(actor.userId, attemptId);
   if (attempt === null) redirect("/");
   if (attempt.finishedAt === null) redirect(`/quiz/${attemptId}?chip=${chip}`);
+  const { itemId, momentId } = attempt;
+  // A review (P2-W9-S05) has no section to continue.
   const next =
-    attempt.momentId === null
+    itemId === null || momentId === null
       ? null
-      : await progress().nextMoment(attempt.itemId, attempt.momentId);
+      : await progress().nextMoment(itemId, momentId);
+  // A sprint ends at its clock at the latest; a review whenever it was finished.
   const usedMs =
-    Math.min(attempt.finishedAt.getTime(), attempt.endsAt.getTime()) -
-    attempt.startedAt.getTime();
+    Math.min(
+      attempt.finishedAt.getTime(),
+      attempt.endsAt?.getTime() ?? Infinity,
+    ) - attempt.startedAt.getTime();
   const stats = [
     {
       value: `${String(Math.round((attempt.correct / Math.max(1, attempt.answered)) * 100))}%`,
@@ -52,17 +57,17 @@ export default async function ResultsPage({
     },
   ];
   const nextHref =
-    next === null
+    next === null || itemId === null
       ? null
       : next.frameable
         ? readHref({
-            itemId: attempt.itemId,
+            itemId,
             momentId: next.momentId,
             chip,
             from: "continue",
           })
         : outHref({
-            itemId: attempt.itemId,
+            itemId,
             momentId: next.momentId,
             from: "continue",
             target: "section",
@@ -76,7 +81,7 @@ export default async function ResultsPage({
             : `${String(attempt.correct)} of ${String(attempt.answered)} correct`}
         </h1>
         <p className="text-sm text-ink-muted">
-          Test yourself · {attempt.title}
+          {attempt.review ? "Review" : `Test yourself · ${attempt.title}`}
         </p>
       </header>
       {attempt.concepts.length === 0 ? null : (
@@ -134,10 +139,10 @@ export default async function ResultsPage({
           </a>
         )}
         <a
-          href={`/?chip=${chip}`}
+          href={attempt.review ? "/library" : `/?chip=${chip}`}
           className="inline-flex items-center justify-center rounded-full border border-hairline px-5 py-3 font-semibold"
         >
-          Back to feed
+          {attempt.review ? "Back to Library" : "Back to feed"}
         </a>
       </div>
     </main>

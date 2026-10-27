@@ -284,6 +284,16 @@ export interface Quizzes {
   ): Promise<Set<string>>;
   // The attempt's header and results; null when it isn't the user's.
   attempt(userId: string, attemptId: string): Promise<QuizAttempt | null>;
+  // P2-W9-S05 (Q-P2-17): the concepts due for review that have a live question to
+  // ask, most overdue first, up to 10 (one session's worth).
+  dueReviews(userId: string): Promise<{ conceptId: string; name: string }[]>;
+  // A review session over them, untimed; the running one if there is one; null when
+  // nothing is due.
+  startReview(userId: string): Promise<{
+    attemptId: string;
+    concepts: number;
+    firstTime: boolean;
+  } | null>;
   // A question answered in the user's attempt, key included, for its feedback.
   answered(
     userId: string,
@@ -295,13 +305,16 @@ export interface Quizzes {
 export const quizKey = (itemId: string, momentId: string | null): string =>
   `${itemId}.${momentId ?? ""}`;
 export type QuizAttempt = {
-  itemId: string;
+  // A review session (P2-W9-S05) has no article and no clock.
+  review: boolean;
+  itemId: string | null;
   momentId: string | null;
-  title: string; // the section's, else the article's
+  title: string; // the section's, else the article's; "Review" for a review
   startedAt: Date;
-  endsAt: Date;
-  // By the database's clock, which holds the sprint's (0 once it has run out).
-  secondsLeft: number;
+  endsAt: Date | null;
+  // By the database's clock, which holds the sprint's (0 once it has run out); null
+  // for an untimed review.
+  secondsLeft: number | null;
   finishedAt: Date | null;
   answered: number;
   correct: number;

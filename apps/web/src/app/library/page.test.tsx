@@ -6,6 +6,7 @@ import type {
   NoteEntry,
   Notes,
   Preferences,
+  Quizzes,
 } from "../../server/ports";
 
 // §4.1, §5I, C-06, Q-P1-19, P1-W5-S05: what you saved and what you finished.
@@ -22,11 +23,13 @@ const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
 const saves = vi.fn<Library["saves"]>(() => Promise.resolve([]));
 const history = vi.fn<Library["history"]>(() => Promise.resolve([]));
 const list = vi.fn<Notes["list"]>(() => Promise.resolve([]));
+const dueReviews = vi.fn<Quizzes["dueReviews"]>(() => Promise.resolve([]));
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
   library: () => ({ saves, history }),
   notes: () => ({ list }),
+  quizzes: () => ({ dueReviews }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -313,4 +316,33 @@ test("note links follow the page: the browser when it can't be framed, or Link b
   expect(notes).toContain('aria-label="Open section: Raft in one page"');
   expect(notes).toContain('aria-label="Note on Raft in one page"');
   expect(notes).toContain('aria-label="Note on Consensus in practice"');
+});
+
+// P2-W9-S05 (Q-P2-17, wireframe 08): the review queue is the top card.
+test("the review queue comes first, with the count, the concepts and a time", async () => {
+  current.mockResolvedValue(guest);
+  dueReviews.mockResolvedValueOnce([
+    { conceptId: "1", name: "Raft" },
+    { conceptId: "2", name: "Quorum" },
+    { conceptId: "3", name: "Write-ahead log" },
+    { conceptId: "4", name: "MVCC" },
+  ]);
+  const html = await page();
+  expect(dueReviews).toHaveBeenCalledWith("g1");
+  const words = text(html);
+  expect(words.indexOf("Review queue")).toBeLessThan(
+    words.indexOf("Everything you kept"),
+  );
+  expect(words).toContain("4 concepts due · about 2 min");
+  expect(words).toMatch(/Raft[^]*Quorum[^]*Write-ahead log[^]*MVCC/);
+  expect(html).toMatch(
+    /<form[^>]*>(?:(?!<\/form>)[^])*name="chip" value="3-8"(?:(?!<\/form>)[^])*Start review/,
+  );
+});
+
+test("with nothing due, the queue says so and offers no review", async () => {
+  current.mockResolvedValue(guest);
+  const words = text(await page());
+  expect(words).toContain("Nothing due for review.");
+  expect(words).not.toContain("Start review");
 });

@@ -7,6 +7,7 @@ import {
   notes,
   preferences,
   sessionReader,
+  quizzes,
 } from "../../server/container";
 import type { Chip } from "../../server/chips";
 import { outHref, readHref } from "../../server/outbound";
@@ -17,7 +18,11 @@ import { ReturnPrompt } from "../ReturnPrompt";
 import { TabBar } from "../TabBar";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { startReviewAction } from "../quiz/actions";
 import { libraryUnsaveAction } from "./actions";
+
+// About 20 seconds a question: the review queue's time estimate (wireframe 08).
+const REVIEW_SECONDS_EACH = 20;
 
 export const dynamic = "force-dynamic";
 
@@ -209,11 +214,13 @@ export default async function LibraryPage({
   const ask = parseReading(
     typeof params["ask"] === "string" ? params["ask"] : undefined,
   );
-  const [saved, finished, written] = await Promise.all([
+  const [saved, finished, written, due] = await Promise.all([
     library().saves(actor.userId, LIMIT),
     library().history(actor.userId, LIMIT),
     notes().list(actor.userId, LIMIT),
+    quizzes().dueReviews(actor.userId),
   ]);
+  const minutes = Math.ceil((due.length * REVIEW_SECONDS_EACH) / 60);
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[52rem] lg:pt-10 lg:pl-64">
       <div className="flex items-center justify-between">
@@ -223,6 +230,42 @@ export default async function LibraryPage({
         </Link>
       </div>
       <TabBar current="library" firstName={chosen.firstName} />
+
+      {/* P2-W9-S05 (Q-P2-17, wireframe 08): the review queue is the top card. */}
+      <section aria-label="Review queue">
+        <h2 className="mb-3 text-section">Review queue</h2>
+        <Card className="flex flex-col gap-3 p-5">
+          {due.length === 0 ? (
+            <p className="text-ink-muted">
+              Nothing due for review. Concepts you test come back here when
+              it&apos;s time to recall them.
+            </p>
+          ) : (
+            <>
+              <p className="font-semibold">
+                {due.length === 1
+                  ? "1 concept"
+                  : `${String(due.length)} concepts`}{" "}
+                due · about {minutes} min
+              </p>
+              <ul className="flex flex-wrap gap-2">
+                {due.map((concept) => (
+                  <li
+                    key={concept.conceptId}
+                    className="rounded-full bg-well px-3 py-1 text-sm"
+                  >
+                    {concept.name}
+                  </li>
+                ))}
+              </ul>
+              <form action={startReviewAction}>
+                <input type="hidden" name="chip" value={chip} />
+                <Button type="submit">Start review</Button>
+              </form>
+            </>
+          )}
+        </Card>
+      </section>
 
       <section aria-label="Everything you kept">
         <h2 className="mb-3 text-section">Everything you kept</h2>

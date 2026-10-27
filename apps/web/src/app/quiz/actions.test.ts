@@ -7,10 +7,11 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const start = vi.fn<Quizzes["start"]>();
 const answer = vi.fn<Quizzes["answer"]>();
 const finish = vi.fn<Quizzes["finish"]>();
+const startReview = vi.fn<Quizzes["startReview"]>();
 const emit = vi.fn();
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
-  quizzes: () => ({ start, answer, finish }),
+  quizzes: () => ({ start, answer, finish, startReview }),
   events: () => ({ emit }),
 }));
 vi.mock("next/headers", () => ({
@@ -60,7 +61,7 @@ test("starting a section's sprint records it and opens the quiz", async () => {
   expect(start).toHaveBeenCalledWith("u1", "5", "9");
   expect(emit).toHaveBeenCalledWith(
     "quiz_started",
-    { attempt_id: "41", item_id: "5", moment_id: "9" },
+    { attempt_id: "41", kind: "test", item_id: "5", moment_id: "9" },
     context,
   );
   // A double-tap returns the running sprint (LOAD-5): opened, not recorded again.
@@ -181,12 +182,52 @@ test.each([
   },
 );
 
+// P2-W9-S05 (Q-P2-17): a review session over the concepts that have come due.
+test("starting a review records it once and opens it; nothing due goes back", async () => {
+  const { startReviewAction } = await actions();
+  startReview.mockResolvedValue({
+    attemptId: "52",
+    concepts: 3,
+    firstTime: true,
+  });
+  await expect(startReviewAction(form({ chip: "1-3" }))).rejects.toThrow(
+    "redirect:/quiz/52?chip=1-3",
+  );
+  expect(startReview).toHaveBeenCalledWith("u1");
+  expect(emit).toHaveBeenCalledWith(
+    "quiz_started",
+    { attempt_id: "52", kind: "review", item_id: null, moment_id: null },
+    context,
+  );
+  emit.mockClear();
+  startReview.mockResolvedValue({
+    attemptId: "52",
+    concepts: 3,
+    firstTime: false,
+  });
+  await expect(startReviewAction(form({ chip: "1-3" }))).rejects.toThrow(
+    "redirect:/quiz/52?chip=1-3",
+  );
+  expect(emit).not.toHaveBeenCalled();
+  startReview.mockResolvedValue(null);
+  await expect(startReviewAction(form({ chip: "1-3" }))).rejects.toThrow(
+    "redirect:/library",
+  );
+  await expect(startReviewAction(form({ chip: "huge" }))).rejects.toThrow(
+    "redirect:/library",
+  );
+});
+
 test("Close finishes and goes back to the feed", async () => {
   const { finishQuizAction } = await actions();
   finish.mockResolvedValue({ answered: 1, correct: 1, firstTime: true });
   await expect(
-    finishQuizAction(form({ attemptId: "41", chip: "1-3", leave: "1" })),
+    finishQuizAction(form({ attemptId: "41", chip: "1-3", leave: "feed" })),
   ).rejects.toThrow("redirect:/?chip=1-3");
+  // Leaving a review goes back to the Library, where it started (P2-W9-S05).
+  await expect(
+    finishQuizAction(form({ attemptId: "41", chip: "1-3", leave: "library" })),
+  ).rejects.toThrow("redirect:/library");
 });
 
 test("signed out goes to join", async () => {

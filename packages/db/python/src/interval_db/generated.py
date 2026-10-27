@@ -414,11 +414,18 @@ class QuizAnswer(TypedDict):
 class QuizAttempt(TypedDict):
     id: int
     user_id: str
-    content_item_id: int
+    content_item_id: int | None
     moment_id: int | None
     started_at: datetime
-    ends_at: datetime
+    ends_at: datetime | None
     finished_at: datetime | None
+    review: bool
+
+
+class QuizAttemptConcept(TypedDict):
+    attempt_id: int
+    concept_id: int
+    ordinal: int
 
 
 class RankingConfig(TypedDict):

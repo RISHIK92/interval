@@ -70,9 +70,14 @@
       "props": { "item_id": "id", "moment_id": "id?" }
     },
     "quiz_started": {
-      "version": 1,
-      "description": "A Test 60s sprint started on a section or a whole article (P2-W9-S01, Q-P2-14, Q-P2-20).",
-      "props": { "attempt_id": "id", "item_id": "id", "moment_id": "id?" }
+      "version": 2,
+      "description": "A quiz started: Test 60s on a section or a whole article (P2-W9-S01, Q-P2-14), or a review session (P2-W9-S05, Q-P2-17). Version 2 adds kind; a review has no item.",
+      "props": {
+        "attempt_id": "id",
+        "kind": ["test", "review"],
+        "item_id": "id?",
+        "moment_id": "id?"
+      }
     },
     "quiz_answered": {
       "version": 1,

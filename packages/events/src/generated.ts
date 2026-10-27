@@ -43,7 +43,7 @@ export const EVENT_VERSIONS = {
   pwa_installed: 1,
   quiz_answered: 1,
   quiz_finished: 1,
-  quiz_started: 1,
+  quiz_started: 2,
   section_finished: 2,
   session_started: 1,
   signup_completed: 1,
@@ -108,7 +108,11 @@ export const propsSchemas = {
   }),
   quiz_started: z.strictObject({
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
-    item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    kind: z.enum(["test", "review"]),
+    item_id: z
+      .string()
+      .regex(/^[1-9][0-9]{0,18}$/)
+      .nullable(),
     moment_id: z
       .string()
       .regex(/^[1-9][0-9]{0,18}$/)
@@ -239,7 +243,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("quiz_started"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.quiz_started,
   }),
   z.strictObject({

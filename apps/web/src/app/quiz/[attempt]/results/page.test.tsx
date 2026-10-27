@@ -28,6 +28,7 @@ vi.mock("next/navigation", () => ({
 const user: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
 const started = new Date("2026-10-28T10:00:00Z");
 const done: QuizAttempt = {
+  review: false,
   itemId: "5",
   momentId: "9",
   title: "Raft",
@@ -101,4 +102,24 @@ test("an attempt still running goes back to it; another's goes home", async () =
     "redirect:/quiz/41?chip=3-8",
   );
   await expect(render(null)).rejects.toThrow("redirect:/");
+});
+
+test("a review's results: no section to continue, time from start to finish", async () => {
+  const html = await render({
+    ...done,
+    review: true,
+    itemId: null,
+    momentId: null,
+    title: "Review",
+    endsAt: null,
+    secondsLeft: null,
+  });
+  expect(nextMoment).not.toHaveBeenCalled();
+  expect(html).toContain("3 of 4 correct");
+  expect(html).toContain(">Review<");
+  expect(html).not.toContain("Test yourself");
+  expect(html).toContain("41s");
+  expect(html).not.toContain("Queued next");
+  expect(html).toContain('href="/library"');
+  expect(html).toContain("Back to Library");
 });

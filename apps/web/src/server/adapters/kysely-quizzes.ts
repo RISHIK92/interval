@@ -157,12 +157,64 @@ type Open = {
   over: boolean;
 };
 
+// The concepts due for review with a live question its rights allow (ING-2), most
+// overdue first: one session's worth (Q-P2-17).
+const REVIEW_SIZE = 10;
+// A review left this long since its last question is over (suggested default,
+// 2026-10-28): what was answered is rated, and the next review takes the due list
+// as it is then.
+const REVIEW_IDLE = sql.raw(`interval '30 minutes'`);
+const dueConcepts = (userId: string) => sql<{ id: string; name: string }>`
+  select c.id, c.name from concept_review r
+  join concept c on c.id = r.concept_id and c.retired_at is null
+  where r.user_id = ${userId} and r.due <= now()
+    and exists (
+      select 1 from ${LIVE}
+      join question_concept qc on qc.question_id = q.id
+      where q.status = 'live' and qc.concept_id = r.concept_id
+    )
+  order by r.due, c.id
+  limit ${REVIEW_SIZE}
+`;
+
 export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
+  // Q-P2-16: a card is made by a quiz answer, so a quiz left behind (the tab closed
+  // before the finish) is closed and rated: a sprint at its clock's end, a review at
+  // its last activity once it has been idle for REVIEW_IDLE.
+  const closeStale = async (userId: string): Promise<void> => {
+    // greatest() skips nulls: a review's last activity is its newest serve or answer,
+    // or its start.
+    const { rows: stale } = await sql<{ id: string; ended: Date }>`
+      select a.id, coalesce(a.ends_at, last.at) as ended
+      from quiz_attempt a
+      cross join lateral (
+        select greatest(a.started_at, max(qa.served_at), max(qa.answered_at)) as at
+        from quiz_answer qa where qa.attempt_id = a.id
+      ) last
+      where a.user_id = ${userId} and a.finished_at is null
+        and case when a.review then last.at + ${REVIEW_IDLE}
+                 else a.ends_at + ${GRACE} end < now()
+    `.execute(db);
+    for (const { id, ended } of stale)
+      await inTransaction(db, async (trx) => {
+        const closed = await trx
+          .updateTable("quiz_attempt")
+          .set({ finished_at: ended })
+          .where("id", "=", id)
+          .where("finished_at", "is", null)
+          .returning("finished_at")
+          .executeTakeFirst();
+        if (closed?.finished_at != null)
+          await rateConcepts(trx, userId, id, closed.finished_at);
+      });
+  };
+
   // The attempt's open (served, unanswered) question, with whether the clock is out.
   const open = async (attemptId: string): Promise<Open | undefined> => {
     const { rows } = await sql<Open>`
       select qa.question_id, q.stem, q.options, qa.served_at,
-             (now() > a.ends_at + ${GRACE} or a.finished_at is not null) as over
+             (coalesce(now() > a.ends_at + ${GRACE}, false)
+               or a.finished_at is not null) as over
       from quiz_answer qa
       join quiz_attempt a on a.id = qa.attempt_id
       join question q on q.id = qa.question_id
@@ -179,30 +231,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
 
   return {
     start: async (userId, itemId, momentId) => {
-      // Q-P2-16: a card is made by a quiz answer, so a quiz left running past its clock
-      // (the tab closed before the finish) is closed at its own end and rated now.
-      const stale = await db
-        .selectFrom("quiz_attempt")
-        .select("id")
-        .where("user_id", "=", userId)
-        .where("finished_at", "is", null)
-        .where(sql<boolean>`ends_at + ${GRACE} < now()`)
-        .execute();
-      for (const { id } of stale)
-        await inTransaction(db, async (trx) => {
-          const closed = await trx
-            .updateTable("quiz_attempt")
-            .set({ finished_at: sql<Date>`ends_at` })
-            .where("id", "=", id)
-            .where("finished_at", "is", null)
-            .returning("finished_at")
-            .executeTakeFirst();
-          if (closed?.finished_at != null)
-            await rateConcepts(trx, userId, id, closed.finished_at);
-        });
+      await closeStale(userId);
       const running = await db
         .selectFrom("quiz_attempt")
-        .select(["id", "ends_at"])
+        // A sprint (content_item_id set) always has an end.
+        .select(["id", sql<Date>`ends_at`.as("ends_at")])
         .where("user_id", "=", userId)
         .where("content_item_id", "=", itemId)
         .where((eb) =>
@@ -239,9 +272,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     next: async (userId, attemptId) => {
       const attempt = await db
         .selectFrom("quiz_attempt")
-        .select(
-          sql<boolean>`now() > ends_at or finished_at is not null`.as("ended"),
-        )
+        .select([
+          "review",
+          sql<boolean>`coalesce(now() > ends_at, false)
+            or finished_at is not null`.as("ended"),
+        ])
         .where("id", "=", attemptId)
         .where("user_id", "=", userId)
         .executeTakeFirst();
@@ -250,6 +285,36 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       if (current !== undefined)
         return current.over ? "over" : asQuestion(current);
       if (attempt.ended) return "over";
+      if (attempt.review) {
+        // Q-P2-17: the session's first concept no served question tests yet, with a
+        // live question on it at random; a concept with none left is passed over.
+        await sql`
+          with covered as (
+            select qc.concept_id from quiz_answer qa
+            join question_concept qc on qc.question_id = qa.question_id
+            where qa.attempt_id = ${attemptId}
+          ),
+          pick as (
+            select q.id
+            from ${LIVE}
+            join question_concept qc on qc.question_id = q.id
+            join quiz_attempt_concept ac on ac.concept_id = qc.concept_id
+            join concept c on c.id = ac.concept_id and c.retired_at is null
+            where ac.attempt_id = ${attemptId}
+              and q.status = 'live'
+              and ac.concept_id not in (select concept_id from covered)
+            order by ac.ordinal, random()
+            limit 1
+          )
+          insert into quiz_answer (attempt_id, question_id)
+          select ${attemptId}, id from pick
+          on conflict do nothing
+        `.execute(db);
+        const served = await open(attemptId);
+        return served === undefined || served.over
+          ? "over"
+          : asQuestion(served);
+      }
       // The target's own questions in order, then live questions on the same (live)
       // concepts at random; never one already served in this attempt. A second
       // request racing this one serves nothing (one open question per attempt).
@@ -313,7 +378,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             and qa.answered_at is null
             and q.id = qa.question_id
             and a.id = qa.attempt_id and a.user_id = ${userId}
-            and now() <= a.ends_at + ${GRACE}
+            and coalesce(now() <= a.ends_at + ${GRACE}, true)
             -- Not locked: an answer committing while its quiz's finish is rating can
             -- count toward mastery but not the rating. Only a racing double submit;
             -- the page finishes after the last answer's redirect.
@@ -447,16 +512,18 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     attempt: async (userId, attemptId) => {
       const row = await db
         .selectFrom("quiz_attempt as a")
-        .innerJoin("content_item as ci", "ci.id", "a.content_item_id")
+        .leftJoin("content_item as ci", "ci.id", "a.content_item_id")
         .leftJoin("moment as m", "m.id", "a.moment_id")
         .select([
+          "a.review",
           "a.content_item_id",
           "a.moment_id",
           "a.started_at",
           "a.ends_at",
           "a.finished_at",
-          sql<string>`coalesce(m.title, ci.title)`.as("title"),
-          sql<number>`greatest(0, ceil(extract(epoch from a.ends_at - now())))::int`.as(
+          sql<string>`coalesce(m.title, ci.title, 'Review')`.as("title"),
+          sql<number | null>`case when a.ends_at is not null
+            then greatest(0, ceil(extract(epoch from a.ends_at - now())))::int end`.as(
             "seconds_left",
           ),
           sql<number>`(select count(*)::int from quiz_answer qa
@@ -494,6 +561,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .orderBy("c.name")
         .execute();
       return {
+        review: row.review,
         itemId: row.content_item_id,
         momentId: row.moment_id,
         title: row.title,
@@ -506,6 +574,67 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         avgMs: row.avg_ms === null ? null : Math.round(row.avg_ms),
         concepts: concepts.map((c) => ({ name: c.name, state: c.state })),
       };
+    },
+
+    dueReviews: async (userId) => {
+      const { rows } = await dueConcepts(userId).execute(db);
+      return rows.map((r) => ({ conceptId: r.id, name: r.name }));
+    },
+
+    startReview: async (userId) => {
+      await closeStale(userId);
+      return inTransaction(db, async (trx) => {
+        // One running review per user: a double tap, or coming back, continues it.
+        const running = await trx
+          .selectFrom("quiz_attempt as a")
+          .select([
+            "a.id",
+            sql<number>`(select count(*)::int from quiz_attempt_concept ac
+              where ac.attempt_id = a.id)`.as("concepts"),
+          ])
+          .where("a.user_id", "=", userId)
+          .where("a.review", "=", true)
+          .where("a.finished_at", "is", null)
+          .orderBy("a.started_at", "desc")
+          .executeTakeFirst();
+        if (running !== undefined)
+          return {
+            attemptId: running.id,
+            concepts: running.concepts,
+            firstTime: false,
+          };
+        const { rows: due } = await dueConcepts(userId).execute(trx);
+        if (due.length === 0) return null;
+        // A double tap racing this one inserts nothing (one open review per user,
+        // an index): it then meets the one that won.
+        const { rows: made } = await sql<{ id: string }>`
+          insert into quiz_attempt (user_id, review) values (${userId}, true)
+          on conflict (user_id) where review and finished_at is null do nothing
+          returning id
+        `.execute(trx);
+        const attempt = made[0];
+        if (attempt === undefined) {
+          const won = await trx
+            .selectFrom("quiz_attempt")
+            .select("id")
+            .where("user_id", "=", userId)
+            .where("review", "=", true)
+            .where("finished_at", "is", null)
+            .executeTakeFirstOrThrow();
+          return { attemptId: won.id, concepts: due.length, firstTime: false };
+        }
+        await trx
+          .insertInto("quiz_attempt_concept")
+          .values(
+            due.map((c, ordinal) => ({
+              attempt_id: attempt.id,
+              concept_id: c.id,
+              ordinal,
+            })),
+          )
+          .execute();
+        return { attemptId: attempt.id, concepts: due.length, firstTime: true };
+      });
     },
 
     answered: async (userId, attemptId, questionId) => {

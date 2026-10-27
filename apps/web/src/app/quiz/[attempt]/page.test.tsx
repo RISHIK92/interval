@@ -23,6 +23,7 @@ vi.mock("next/navigation", () => ({
 
 const user: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
 const running: QuizAttempt = {
+  review: false,
   itemId: "5",
   momentId: "9",
   title: "Raft",
@@ -109,7 +110,7 @@ test("Close warns before exiting; exiting ends the test and leaves", async () =>
     "Exiting now ends this test and will affect your score.",
   );
   expect(html).toMatch(
-    /<form[^>]*>(?:(?!<\/form>)[^])*name="leave" value="1"(?:(?!<\/form>)[^])*Exit test/,
+    /<form[^>]*>(?:(?!<\/form>)[^])*name="leave" value="feed"(?:(?!<\/form>)[^])*Exit test/,
   );
   expect(html).toContain("Keep going");
 });
@@ -170,4 +171,37 @@ test("feedback for a question not answered goes back to the quiz", async () => {
   await expect(render({ chip: "3-8", answered: "7" })).rejects.toThrow(
     "redirect:/quiz/41?chip=3-8",
   );
+});
+
+// P2-W9-S05: a review is untimed, one question per concept due.
+test("a review has no clock and says when every due concept is done", async () => {
+  const review: QuizAttempt = {
+    ...running,
+    review: true,
+    itemId: null,
+    momentId: null,
+    title: "Review",
+    endsAt: null,
+    secondsLeft: null,
+  };
+  next.mockResolvedValue({
+    questionId: "7",
+    stem: "Q?",
+    options: ["a", "b", "c", "d"],
+    servedAt: new Date(),
+  });
+  const html = await render({ chip: "3-8" }, review);
+  expect(html).toContain("Review");
+  expect(html).not.toContain('role="progressbar"');
+  expect(html).toContain("One question per concept due for review");
+  // Leaving a review: its own words, and back to the Library.
+  expect(html).toContain(
+    "Exiting ends this review. Concepts you haven&#x27;t answered stay due.",
+  );
+  expect(html).toContain('name="leave" value="library"');
+  expect(html).not.toContain("will affect your score");
+  next.mockResolvedValue("over");
+  const done = await render({ chip: "3-8" }, review);
+  expect(done).toContain("That&#x27;s every concept due.");
+  expect(done).toContain("See results");
 });

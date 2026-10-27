@@ -448,13 +448,20 @@ export interface QuizAnswer {
 }
 
 export interface QuizAttempt {
-  content_item_id: Int8;
-  ends_at: Timestamp;
+  content_item_id: Int8 | null;
+  ends_at: Timestamp | null;
   finished_at: Timestamp | null;
   id: Generated<Int8>;
   moment_id: Int8 | null;
+  review: Generated<boolean>;
   started_at: Generated<Timestamp>;
   user_id: string;
+}
+
+export interface QuizAttemptConcept {
+  attempt_id: Int8;
+  concept_id: Int8;
+  ordinal: number;
 }
 
 export interface RankingConfig {
@@ -699,6 +706,7 @@ export interface DB {
   question_review: QuestionReview;
   quiz_answer: QuizAnswer;
   quiz_attempt: QuizAttempt;
+  quiz_attempt_concept: QuizAttemptConcept;
   ranking_config: RankingConfig;
   schema_meta: SchemaMeta;
   source: Source;

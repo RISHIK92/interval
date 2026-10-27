@@ -24,11 +24,12 @@ const Answer = z.object({
   chosen: z.coerce.number().int().min(0).max(3),
   chip: z.enum(CHIPS),
 });
-// Close leaves for the feed; otherwise the results.
+// Close leaves for where the quiz started (the feed, or the Library for a review);
+// otherwise the results.
 const Finish = z.object({
   attemptId: z.string().regex(BIGINT_ID),
   chip: z.enum(CHIPS),
-  leave: z.literal("1").optional(),
+  leave: z.enum(["feed", "library"]).optional(),
 });
 
 async function signedIn() {
@@ -54,12 +55,37 @@ export async function startQuizAction(form: FormData): Promise<void> {
       "quiz_started",
       {
         attempt_id: started.attemptId,
+        kind: "test",
         item_id: itemId,
         moment_id: momentId ?? null,
       },
       context,
     );
   redirect(`/quiz/${started.attemptId}?chip=${chip}`);
+}
+
+// P2-W9-S05 (Q-P2-17): a review session over the concepts that have come due.
+const Review = z.object({ chip: z.enum(CHIPS) });
+
+export async function startReviewAction(form: FormData): Promise<void> {
+  const { actor, context } = await signedIn();
+  const parsed = Review.safeParse({ chip: textField(form, "chip") });
+  if (!parsed.success) redirect("/library");
+  const started = await quizzes().startReview(actor.userId);
+  // Nothing due any more (rated elsewhere meanwhile): the queue shows that.
+  if (started === null) redirect("/library");
+  if (started.firstTime)
+    events().emit(
+      "quiz_started",
+      {
+        attempt_id: started.attemptId,
+        kind: "review",
+        item_id: null,
+        moment_id: null,
+      },
+      context,
+    );
+  redirect(`/quiz/${started.attemptId}?chip=${parsed.data.chip}`);
 }
 
 export async function answerQuizAction(form: FormData): Promise<void> {
@@ -106,6 +132,8 @@ export async function finishQuizAction(form: FormData): Promise<void> {
   redirect(
     leave === undefined
       ? `/quiz/${attemptId}/results?chip=${chip}`
-      : `/?chip=${chip}`,
+      : leave === "library"
+        ? "/library"
+        : `/?chip=${chip}`,
   );
 }

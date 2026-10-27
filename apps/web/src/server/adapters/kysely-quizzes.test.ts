@@ -876,3 +876,289 @@ test("a quiz left running past its clock is rated when the user next starts one"
     expect(closed.finished_at).toEqual(closed.ends_at);
   });
 });
+
+// P2-W9-S05 (Q-P2-17): review sessions over the concepts that have come due.
+async function hiddenQuestion(
+  trx: Transaction<DB>,
+  momentId: string,
+): Promise<string> {
+  const row = await trx
+    .selectFrom("question")
+    .select("id")
+    .where("moment_id", "=", momentId)
+    .executeTakeFirstOrThrow();
+  return row.id;
+}
+
+async function cardFor(
+  trx: Transaction<DB>,
+  userId: string,
+  name: string,
+  due: string,
+) {
+  const concept = await trx
+    .selectFrom("concept")
+    .select("id")
+    .where("name", "=", name)
+    .orderBy("id", "desc")
+    .executeTakeFirstOrThrow();
+  await trx
+    .insertInto("concept_review")
+    .values({
+      user_id: userId,
+      concept_id: concept.id,
+      due: sql<Date>`now() + ${sql.raw(`interval '${due}'`)}`,
+      stability: 3,
+      difficulty: 5,
+      scheduled_days: 3,
+      learning_steps: 0,
+      reps: 1,
+      lapses: 0,
+      state: 2,
+      last_review: sql<Date>`now() - interval '3 days'`,
+    })
+    .execute();
+}
+
+test("due reviews: concepts past due with a live question, most overdue first", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const quizzes = kyselyQuizzes(trx);
+    expect(await quizzes.dueReviews(userId)).toEqual([]);
+    await cardFor(trx, userId, "wal", "-1 hour");
+    await cardFor(trx, userId, "raft", "-2 days");
+    // A retired concept never comes due.
+    await cardFor(trx, userId, "old", "-3 days");
+    expect((await quizzes.dueReviews(userId)).map((d) => d.name)).toEqual([
+      "raft",
+      "wal",
+    ]);
+    // Not due yet.
+    await trx
+      .updateTable("concept_review")
+      .set({ due: sql<Date>`now() + interval '1 day'` })
+      .where("user_id", "=", userId)
+      .execute();
+    expect(await quizzes.dueReviews(userId)).toEqual([]);
+  });
+});
+
+test("a review asks one question per due concept, untimed, then rates them", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const quizzes = kyselyQuizzes(trx);
+    expect(await quizzes.startReview(userId)).toBeNull();
+    await cardFor(trx, userId, "wal", "-1 hour");
+    await cardFor(trx, userId, "raft", "-2 days");
+    const started = await quizzes.startReview(userId);
+    expect(started).toMatchObject({ concepts: 2, firstTime: true });
+    if (started === null) throw new Error("no review");
+    // A second tap continues the same session.
+    expect(await quizzes.startReview(userId)).toMatchObject({
+      attemptId: started.attemptId,
+      firstTime: false,
+    });
+    const attempt = await quizzes.attempt(userId, started.attemptId);
+    expect(attempt).toMatchObject({
+      review: true,
+      itemId: null,
+      endsAt: null,
+      secondsLeft: null,
+      title: "Review",
+    });
+    const stems: string[] = [];
+    for (;;) {
+      const got = await quizzes.next(userId, started.attemptId);
+      if (got === "over") break;
+      stems.push(served(got).stem);
+      await quizzes.answer(
+        userId,
+        started.attemptId,
+        served(got).questionId,
+        0,
+      );
+    }
+    // Most overdue first: one raft question, then wal's only one.
+    expect(stems).toHaveLength(2);
+    expect(["raft-0", "raft-1", "elsewhere"]).toContain(stems[0]);
+    expect(stems[1]).toBe("intro-0");
+    // The answers moved mastery (S03); the finish rates the cards (S04).
+    expect((await mastery(trx, userId)).map((m) => m.name)).toEqual([
+      "raft",
+      "wal",
+    ]);
+    await quizzes.finish(userId, started.attemptId);
+    expect((await cards(trx, userId)).map((c) => [c.name, c.reps])).toEqual([
+      ["raft", 2],
+      ["wal", 2],
+    ]);
+    // Rated: nothing is due now.
+    expect(await quizzes.dueReviews(userId)).toEqual([]);
+  });
+});
+
+test("a due concept with nothing to ask (or only what its rights forbid) waits", async () => {
+  await inRollback(async (trx, { userId, hidden }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const [lonely, forbidden] = await trx
+      .insertInto("concept")
+      .values(
+        ["lonely", "forbidden"].map((name) => ({
+          slug: `${name}-${randomUUID()}`,
+          name,
+          topic: "distributed-systems",
+        })),
+      )
+      .returning("id")
+      .execute();
+    if (!lonely || !forbidden) throw new Error("seed");
+    // Its only question sits in a source whose moments are switched off (ING-2).
+    await trx
+      .insertInto("question_concept")
+      .values({
+        question_id: await hiddenQuestion(trx, hidden.momentId),
+        concept_id: forbidden.id,
+      })
+      .execute();
+    await cardFor(trx, userId, "lonely", "-1 day");
+    await cardFor(trx, userId, "forbidden", "-1 day");
+    expect(await quizzes.dueReviews(userId)).toEqual([]);
+    expect(await quizzes.startReview(userId)).toBeNull();
+  });
+});
+
+test("a question on two due concepts covers both; a concept left with nothing is passed over", async () => {
+  await inRollback(async (trx, { userId, raft, q }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const [a, b, gone] = await trx
+      .insertInto("concept")
+      .values(
+        ["pair-a", "pair-b", "gone"].map((name) => ({
+          slug: `${name}-${randomUUID()}`,
+          name,
+          topic: "distributed-systems",
+        })),
+      )
+      .returning("id")
+      .execute();
+    if (!a || !b || !gone) throw new Error("seed");
+    await question(trx, raft, 20, "both", [a.id, b.id]);
+    const goneQuestion = await question(trx, raft, 21, "soon-gone", [gone.id]);
+    await cardFor(trx, userId, "pair-a", "-3 days");
+    await cardFor(trx, userId, "pair-b", "-2 days");
+    await cardFor(trx, userId, "gone", "-1 day");
+    const started = await quizzes.startReview(userId);
+    if (started === null) throw new Error("no review");
+    expect(started.concepts).toBe(3);
+    // Its only question is retired mid-session.
+    await trx
+      .updateTable("question")
+      .set({ status: "retired" })
+      .where("id", "=", goneQuestion)
+      .execute();
+    const first = served(await quizzes.next(userId, started.attemptId));
+    expect(first.stem).toBe("both");
+    await quizzes.answer(userId, started.attemptId, first.questionId, 0);
+    expect(await quizzes.next(userId, started.attemptId)).toBe("over");
+    await quizzes.finish(userId, started.attemptId);
+    expect((await cards(trx, userId)).map((c) => [c.name, c.reps])).toEqual([
+      ["gone", 1],
+      ["pair-a", 2],
+      ["pair-b", 2],
+    ]);
+    expect(q["raft-0"]).toBeDefined();
+  });
+});
+
+test("a review has no clock: an answer minutes in still counts", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const quizzes = kyselyQuizzes(trx);
+    await cardFor(trx, userId, "raft", "-1 day");
+    const started = await quizzes.startReview(userId);
+    if (started === null) throw new Error("no review");
+    const open = served(await quizzes.next(userId, started.attemptId));
+    await trx
+      .updateTable("quiz_attempt")
+      .set({ started_at: sql<Date>`now() - interval '5 minutes'` })
+      .where("id", "=", started.attemptId)
+      .execute();
+    expect(
+      await quizzes.answer(userId, started.attemptId, open.questionId, 0),
+    ).toMatchObject({ correct: true, firstTime: true });
+  });
+});
+
+test("a review left idle for 30 minutes is over: rated, and the next one is fresh", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const quizzes = kyselyQuizzes(trx);
+    await cardFor(trx, userId, "raft", "-1 day");
+    const old = await quizzes.startReview(userId);
+    if (old === null) throw new Error("no review");
+    const open = served(await quizzes.next(userId, old.attemptId));
+    await quizzes.answer(userId, old.attemptId, open.questionId, 0);
+    await trx
+      .updateTable("quiz_answer")
+      .set({
+        served_at: sql<Date>`served_at - interval '40 minutes'`,
+        answered_at: sql<Date>`answered_at - interval '40 minutes'`,
+      })
+      .where("attempt_id", "=", old.attemptId)
+      .execute();
+    await trx
+      .updateTable("quiz_attempt")
+      .set({ started_at: sql<Date>`started_at - interval '41 minutes'` })
+      .where("id", "=", old.attemptId)
+      .execute();
+    await cardFor(trx, userId, "wal", "-1 hour");
+    const fresh = await quizzes.startReview(userId);
+    expect(fresh?.attemptId).not.toBe(old.attemptId);
+    expect(fresh?.concepts).toBe(1);
+    // The old one was closed at its last answer and rated.
+    const closed = await trx
+      .selectFrom("quiz_attempt")
+      .select("finished_at")
+      .where("id", "=", old.attemptId)
+      .executeTakeFirstOrThrow();
+    expect(closed.finished_at).not.toBeNull();
+    expect(
+      (await cards(trx, userId)).find((c) => c.name === "raft")?.reps,
+    ).toBe(2);
+  });
+});
+
+test("a review a double tap meets is the same one", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const quizzes = kyselyQuizzes(trx);
+    await cardFor(trx, userId, "raft", "-1 day");
+    const [one, two] = await Promise.all([
+      quizzes.startReview(userId),
+      quizzes.startReview(userId),
+    ]);
+    expect(one?.attemptId).toBe(two?.attemptId);
+  });
+});
+
+test("a review takes at most 10 concepts", async () => {
+  await inRollback(async (trx, { userId, raft }) => {
+    const concepts = await trx
+      .insertInto("concept")
+      .values(
+        Array.from({ length: 12 }, (_, i) => ({
+          slug: `many-${String(i)}-${randomUUID()}`,
+          name: `many-${String(i).padStart(2, "0")}`,
+          topic: "distributed-systems",
+        })),
+      )
+      .returning(["id", "name"])
+      .execute();
+    for (const [i, c] of concepts.entries()) {
+      const q = await question(trx, raft, 10 + i, `many-q-${String(i)}`, [
+        c.id,
+      ]);
+      expect(q).toBeTruthy();
+      await cardFor(trx, userId, c.name, `-${String(20 - i)} hours`);
+    }
+    const due = await kyselyQuizzes(trx).dueReviews(userId);
+    expect(due.map((d) => d.name)).toEqual(
+      concepts.slice(0, 10).map((c) => c.name),
+    );
+  });
+});

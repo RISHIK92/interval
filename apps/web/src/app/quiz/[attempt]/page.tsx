@@ -100,9 +100,11 @@ export default async function QuizPage({
         <div className="flex flex-col gap-4">
           <p role="status" className="text-lg font-semibold">
             {/* Out of questions before the clock: the sprint ends early (Q-P2-14). */}
-            {attempt.secondsLeft > 0
-              ? "That's every question for now."
-              : "Time's up."}
+            {attempt.review
+              ? "That's every concept due."
+              : attempt.secondsLeft !== null && attempt.secondsLeft > 0
+                ? "That's every question for now."
+                : "Time's up."}
           </p>
           <button
             type="submit"
@@ -165,21 +167,27 @@ export default async function QuizPage({
           className="m-auto w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-hairline bg-page p-5 text-ink shadow-card backdrop:bg-black/40"
         >
           <p id={`${EXIT}-title`} className="font-semibold">
-            Exit the test?
+            {attempt.review ? "Exit the review?" : "Exit the test?"}
           </p>
           <p className="mt-1 text-sm text-ink-muted">
-            Exiting now ends this test and will affect your score.
+            {attempt.review
+              ? "Exiting ends this review. Concepts you haven't answered stay due."
+              : "Exiting now ends this test and will affect your score."}
           </p>
           <div className="mt-4 flex flex-col gap-2">
             <form action={finishQuizAction}>
               <input type="hidden" name="attemptId" value={attemptId} />
               <input type="hidden" name="chip" value={chip} />
-              <input type="hidden" name="leave" value="1" />
+              <input
+                type="hidden"
+                name="leave"
+                value={attempt.review ? "library" : "feed"}
+              />
               <button
                 type="submit"
                 className="w-full cursor-pointer rounded-full border border-wrong px-5 py-3 font-semibold"
               >
-                Exit test
+                {attempt.review ? "Exit review" : "Exit test"}
               </button>
             </form>
             <button
@@ -192,20 +200,27 @@ export default async function QuizPage({
             </button>
           </div>
         </div>
-        <p className="flex-1 font-semibold">Test yourself · 60s</p>
+        <p className="flex-1 font-semibold">
+          {attempt.review ? "Review" : "Test yourself · 60s"}
+        </p>
         <p className="text-sm text-ink-muted">{attempt.answered} answered</p>
       </header>
-      {/* An answer taken in the grace shows its feedback before the results. */}
-      <Countdown
-        endsAt={attempt.endsAt.toISOString()}
-        finishForm={answered === undefined ? FINISH_FORM : null}
-      />
+      {/* An answer taken in the grace shows its feedback before the results; a
+        review has no clock. */}
+      {attempt.endsAt === null ? null : (
+        <Countdown
+          endsAt={attempt.endsAt.toISOString()}
+          finishForm={answered === undefined ? FINISH_FORM : null}
+        />
+      )}
       <p className="text-sm text-ink-muted">{attempt.title}</p>
       {body}
       <p className="mt-auto text-center text-xs text-ink-muted">
-        {attempt.momentId === null
-          ? "Questions from this article"
-          : "Questions from this section"}
+        {attempt.review
+          ? "One question per concept due for review"
+          : attempt.momentId === null
+            ? "Questions from this article"
+            : "Questions from this section"}
       </p>
     </main>
   );
