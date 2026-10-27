@@ -1,0 +1,34 @@
+# Phase 2 questions
+
+Gaps, ambiguities and underspecified points that block or risk Phase 2 (docs/roadmap/phase-2.md). Each has a suggested default that applies only if the owner accepts it. None of the defaults are decisions. Questions are added week by week as each week starts.
+
+Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P2** a risk, not a blocker.
+
+## Week 7: notes and the mastery table
+
+### Q-P2-01 What a note attaches to (P0)
+
+- Cite: §5I ("The library holds saves, notes, highlights…"), §5D (the native reader's "note" control), §3.1 (learner state "updated by reading, notes, quizzes, and games"), Phase 2 Week 7 ("notes").
+- Why it matters: the docs name notes but never say what one is attached to, who sees it, or where it is written.
+- **Answer (owner, 2026-10-27):** a private free-text note on a moment or a whole article, kept with its URL and attribution; listed under Library → Notes and on the card. Highlights wait for the native apps: the PWA cannot select text on the publisher's page.
+- Suggested default (D3, not yet confirmed): written from a note box on the reader page (`/read/[item]`) and on Home's Now reading panel, where the user has just read; at most 2,000 characters; editable and deletable; one note per user per moment or article.
+
+### Q-P2-02 Which reading events count as mastery evidence (P0)
+
+- Cite: PER-2 ("Mastery is a probability updated by evidence. Reading counts weakly"), Phase 2 Week 7 ("the mastery table updated by reading").
+- Why it matters: opening, finishing and writing a note are all "reading" in some sense.
+- **Answer (owner, 2026-10-27):** finishing only. A moment finish (return prompt or Mark section done) raises that moment's tagged concepts; an article finish raises the article's tagged concepts. Opening does not count; an untagged item changes nothing.
+- Suggested defaults (not yet confirmed):
+  - D1, the update: `p ← p + 0.1 × (1 − p)` per new finish, never above 0.3 from reading alone. One finish counts once (the finish row's primary key already makes a repeat a no-op).
+  - D2, which concepts: an admin's correction replaces the model's tags, as ranking already does (P1-W3-S05).
+
+### Q-P2-03 How the probability maps to learner states before quizzes (P0)
+
+- Cite: §3.1 (unseen, explored, practiced, mastered, due for review), PER-2, glossary "Learner state", Q-P1-05.
+- Why it matters: the mapping is unspecified, and quizzes (Week 9) and checkpoints (Week 10) don't exist yet.
+- **Answer (owner, 2026-10-27):** reading caps at explored. No evidence is unseen (no row); any reading evidence is explored. Practiced and mastered need quizzes or checkpoints. The probability is stored now so quizzes can build on it.
+
+### Q-P2-04 Where mastery shows or is used in Week 7 (P1)
+
+- Cite: §5I (knowledge map), REC-1 ("concept gaps"), PER-1 (three layers that never overwrite each other), Q-P1-05.
+- **Answer (owner, 2026-10-27):** shown on Profile as the concepts the user has explored. Ranking keeps its Phase 1 seen-concepts rule (Q-P1-05). Profile's "reset inferred" does not wipe mastery: PER-1 keeps mastery a separate layer.
