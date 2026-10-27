@@ -12,7 +12,9 @@ MAX_OUTPUT_USD_PER_MILLION = Decimal("0.80")
 def refuse_over_cap(
     provider: str, model: str, output_usd_per_million: Decimal | None
 ) -> None:
-    if output_usd_per_million is None:
+    # A negative listed price means "variable" (a router picking a model per call):
+    # as good as unknown.
+    if output_usd_per_million is None or output_usd_per_million < 0:
         raise ModelError(
             f"{provider} {model}: no output price known, so refused "
             f"(cap ${MAX_OUTPUT_USD_PER_MILLION} per million output tokens)"

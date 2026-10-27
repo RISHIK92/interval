@@ -31,6 +31,7 @@ MODELS = {
             "pricing": {"prompt": "0.0000001", "completion": "0.0000008"},
         },
         {"id": "some/model:free", "pricing": {"prompt": "0", "completion": "0"}},
+        {"id": "router/model", "pricing": {"prompt": "-1", "completion": "-1"}},
     ]
 }
 
@@ -90,3 +91,11 @@ def test_groq_and_google_refuse_a_model_priced_over_the_cap() -> None:
     with pytest.raises(ModelError, match="cap"):
         client.complete(dear[0], MESSAGES)
     assert called == []
+
+
+def test_a_variable_negative_price_counts_as_unknown() -> None:
+    # OpenRouter lists routers that pick a model per request at -1 (2026-10-27).
+    client, chats = openrouter()
+    with pytest.raises(ModelError, match="no output price"):
+        client.complete("router/model", MESSAGES)
+    assert chats == []
