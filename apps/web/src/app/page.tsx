@@ -206,7 +206,7 @@ export default async function HomePage({
   };
   return (
     <div className="mx-auto max-w-xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-8 lg:pt-10 lg:pr-8 lg:pb-10 lg:pl-68">
-      <main className="min-w-0 lg:w-full lg:max-w-2xl lg:justify-self-center">
+      <main className="min-w-0 lg:w-full lg:max-w-[46rem] lg:justify-self-center lg:pl-16">
         <div className="lg:flex lg:items-end lg:justify-between lg:gap-6">
           {header(chip, continuing[0]?.sectionTitle ?? null)}
           <nav
