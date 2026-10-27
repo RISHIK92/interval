@@ -1844,3 +1844,9 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `eval-shortlist` recall@15, embeddings alone / with aliases: 3.5-lite 0.85 / 0.977, 4-lite 0.89 / 0.977, 4 0.94 / 0.989, 4-large 0.95 / 0.989.
 - Decider tagging with the voyage-4 shortlist: F1 0.67 at 0.5, 0.69 at 0.4 ($0.0086), the same as with 3.5-lite. Tagging quality is limited by the Decider and the draft labels, not the shortlist.
 - Recommendation: `EMBEDDING_MODEL=voyage-4` (same as large on our evals at half the price, inside the free tier). Concept vectors for all four models are stored; switching means re-embedding the moments.
+
+## 2026-10-27: Tagging v3 switched on and backfilled locally
+- `.env`: `TAGGING_MODEL=decisions:perplexity/pplx-decider-v1.2`, `EMBEDDING_MODEL=voyage-4`. All 879 non-duplicate items tagged (1,018 item tags, 1.2 per item); 8 items keep a moment without a vector (no text). $0.25 at list prices: Decider ~$0.05, Voyage ~$0.20 (inside voyage-4's free tokens).
+- Fixes found by the run: model settings are stripped of whitespace (`854bcc3`); decision tagging skips moments with no text, which Voyage refused with a 400 (`e3e4a01`).
+- A poll only re-queues items still in a feed's newest entries, so the older ~480 were queued by a one-off script (tag and embed jobs by idempotency key).
+- Follow-ups: the tag stage re-embeds moments the embed stage already stored (reuse them to halve Voyage use); 1.2 tags per item looks sparse next to the labels, check after the owner corrects them.
