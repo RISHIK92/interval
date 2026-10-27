@@ -1,6 +1,6 @@
 """Embedding adapter (ADR-0007): Voyage AI's embeddings API. Only ai/gateway.py calls
 it. Voyage reports tokens, not cost, so the cost comes from its published per-token
-prices (owner to confirm against voyageai.com/pricing, 2026-10-26)."""
+prices (docs.voyageai.com/docs/pricing, 2026-10-27)."""
 
 from decimal import Decimal
 

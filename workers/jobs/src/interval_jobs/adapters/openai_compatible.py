@@ -31,12 +31,12 @@ GROQ = Provider(
     "groq",
     "https://api.groq.com/openai/v1/chat/completions",
     "GROQ_API_KEY",
-    # shortcut: from memory on 2026-10-27, not checked against groq.com/pricing (its
-    # page is script-rendered); the owner confirms before budgets rely on them.
+    # From console.groq.com/docs/models, 2026-10-27. Llama 3.x and MiniMax are
+    # "contact sales" there, so they stay unpriced and refused (OPS-4).
     {
-        "openai/gpt-oss-120b": (Decimal("0.15"), Decimal("0.75")),
-        "openai/gpt-oss-20b": (Decimal("0.10"), Decimal("0.50")),
-        "qwen/qwen3.8-27b": (Decimal("0.30"), Decimal("1.20")),
+        "openai/gpt-oss-120b": (Decimal("0.15"), Decimal("0.60")),
+        "openai/gpt-oss-20b": (Decimal("0.075"), Decimal("0.30")),
+        "qwen/qwen3.8-27b": (Decimal("0.80"), Decimal("4.00")),
     },
 )
 
@@ -48,8 +48,8 @@ GOOGLE = Provider(
     {
         "gemma-4-31b-it": (Decimal(0), Decimal(0)),
         "gemma-4-26b-a4b-it": (Decimal(0), Decimal(0)),
-        # shortcut: OpenRouter's listed price for Gemini 3 Pro (2026-10-27), used for
-        # the tagging ceiling check; confirm on Google's pricing page before relying.
+        # ai.google.dev/gemini-api/docs/pricing, 2026-10-27: prompts up to 200k
+        # tokens (ours are far shorter); over the output cap, so refused anyway.
         "gemini-3.1-pro-preview": (Decimal("2.00"), Decimal("12.00")),
     },
 )
