@@ -38,8 +38,9 @@ vi.mock("../server/container", () => ({
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
   entitlements: () => ({ can }),
-  quizzes: () => ({ offered }),
+  quizzes: () => ({ offered, dueReviews }),
 }));
+const dueReviews = vi.fn<Quizzes["dueReviews"]>(() => Promise.resolve([]));
 const offered = vi.fn<Quizzes["offered"]>(() => Promise.resolve(new Set()));
 let chipCookie: string | undefined;
 let readingCookie: string | undefined;
@@ -674,4 +675,39 @@ test("after finishing a section with live questions, the feed offers its test", 
   );
   describe_.mockReset();
   describe_.mockResolvedValue(null);
+});
+
+// P2-W9-S06 (Q-P2-17): when anything is due, the feed's second card is the review.
+test("with concepts due, the second card is the review queue, saying why", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(
+    feedOf([card, { ...card, momentId: "2" }, { ...card, momentId: "3" }]),
+  );
+  dueReviews.mockResolvedValueOnce([
+    { conceptId: "1", name: "Raft" },
+    { conceptId: "2", name: "Quorum" },
+    { conceptId: "3", name: "MVCC" },
+    { conceptId: "4", name: "Indexes" },
+  ]);
+  const html = await render();
+  expect(dueReviews).toHaveBeenCalledWith("u1");
+  const items = html.split("<li").slice(1);
+  const reviewAt = items.findIndex((li) => li.includes("Review 4 concepts"));
+  const firstCard = items.findIndex((li) => li.includes('data-moment="1"'));
+  const secondCard = items.findIndex((li) => li.includes('data-moment="2"'));
+  expect(firstCard).toBeLessThan(reviewAt);
+  expect(reviewAt).toBeLessThan(secondCard);
+  expect(html).toContain("Review 4 concepts · about 2 min");
+  // Every card says why it's there (§5B).
+  expect(html).toContain("Due for review: Raft, Quorum, MVCC and 1 more");
+  expect(html).toContain('href="/library#review-queue"');
+  // The ranked cards keep their positions: the second is still position 2.
+  expect(html).toMatch(/moment=2[^"]*pos=2/);
+  expect(html).toMatch(/moment=3[^"]*pos=3/);
+});
+
+test("with nothing due, the feed has no review card", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  expect(await render()).not.toContain("Due for review");
 });

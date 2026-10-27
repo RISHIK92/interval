@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
+import { Fragment } from "react";
 import { redirect } from "next/navigation";
 import {
   entitlements,
@@ -37,6 +38,7 @@ import { TabBar } from "./TabBar";
 import { UndoNotInterested } from "./UndoNotInterested";
 import { MomentCard } from "./MomentCard";
 import { StartQuiz, ZAP } from "./quiz/StartQuiz";
+import { ReviewCard } from "./ReviewCard";
 import { Card } from "./ui/Card";
 
 export const dynamic = "force-dynamic";
@@ -188,9 +190,14 @@ export default async function HomePage({
     itemId: card.itemId,
     momentId: card.kind === "moment" ? card.momentId : null,
   });
-  const testable = await quizzes().offered([
-    ...cards.map(target),
-    ...(finished === null || next === undefined ? [] : [finished]),
+  // P2-W9-S06: due reviews are read when the feed is served; they change by the
+  // minute.
+  const [due, testable] = await Promise.all([
+    quizzes().dueReviews(actor.userId),
+    quizzes().offered([
+      ...cards.map(target),
+      ...(finished === null || next === undefined ? [] : [finished]),
+    ]),
   ]);
   const yourNote = (card: FeedCard) =>
     yours.get(quizKey(target(card).itemId, target(card).momentId)) ?? null;
@@ -361,16 +368,24 @@ export default async function HomePage({
           <FeedRow>
             <ul className="flex gap-2">
               {cards.map((card, index) => (
-                <li
+                <Fragment
                   key={
                     card.kind === "moment"
                       ? `m${card.momentId}`
                       : `a${card.itemId}`
                   }
-                  className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full"
                 >
-                  {renderCard(card, index)}
-                </li>
+                  <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
+                    {renderCard(card, index)}
+                  </li>
+                  {/* P2-W9-S06 (Q-P2-17): the review takes the second slot; the
+                    cards keep their ranked positions. */}
+                  {index === 0 && due.length > 0 ? (
+                    <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
+                      <ReviewCard due={due} />
+                    </li>
+                  ) : null}
+                </Fragment>
               ))}
             </ul>
           </FeedRow>
