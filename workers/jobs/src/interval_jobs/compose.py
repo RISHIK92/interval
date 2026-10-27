@@ -211,7 +211,7 @@ def model_job(variable: str) -> Generator[ModelJob | None]:
     set. Each call gets a short
     autocommit ledger connection: a paid call is recorded even if its stage then
     fails (OPS-4)."""
-    model = os.environ.get(variable)
+    model = os.environ.get(variable, "").strip()
     if not model:
         log.info(f"{variable}: off (not set)")
         yield None

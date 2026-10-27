@@ -6,7 +6,7 @@ import psycopg
 import pytest
 
 from interval_jobs.adapters.postgres import unit_of_work
-from interval_jobs.compose import database_url
+from interval_jobs.compose import database_url, model_job
 
 URL = os.environ.get("DATABASE_URL", "")
 NAME = "uow-test-source"
@@ -239,3 +239,19 @@ def test_an_unknown_queue_transport_stops_the_worker(
     monkeypatch.setenv("QUEUE_TRANSPORT", "elasticmq")
     with pytest.raises(SystemExit, match="QUEUE_TRANSPORT"):
         queue_consumer()
+
+
+@pytest.mark.parametrize("value", ["voyage-4 ", "voyage-4\r", " voyage-4"])
+def test_a_model_setting_ignores_surrounding_whitespace(
+    monkeypatch: pytest.MonkeyPatch, value: str
+) -> None:
+    # A stray space or CRLF in .env made every call ask for an unknown model.
+    monkeypatch.setenv("EMBEDDING_MODEL", value)
+    with model_job("EMBEDDING_MODEL") as job:
+        assert job is not None and job.model == "voyage-4"
+
+
+def test_a_blank_model_setting_is_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("EMBEDDING_MODEL", "  ")
+    with model_job("EMBEDDING_MODEL") as job:
+        assert job is None
