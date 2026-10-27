@@ -24,7 +24,7 @@ _LEVELS: tuple[str, ...] = get_args(Difficulty.__value__)
 
 @dataclass(frozen=True)
 class Cutoffs:
-    moment: float = 0.5
+    moment: float = 0.7
     strong: float = 0.85
     title: float = 0.5
 

@@ -35,7 +35,7 @@ _RUBRIC = [
 
 # Bump when the questions, rubric or shortlist rules change: every moment is asked
 # again under the new wording.
-DECIDE_VERSION = 1
+DECIDE_VERSION = 2
 
 
 def content_hash(text: str, graph_version: int, embedding_model: str, size: int) -> str:
@@ -72,15 +72,19 @@ def _questions(slugs: Sequence[str], graph: ConceptGraph) -> dict[str, object]:
     questions: dict[str, object] = {
         slug: {
             "type": "noul",
-            "instructions": f"Does this text substantively teach {by_slug[slug].name}?",
+            "instructions": (
+                f"Would a software engineer learn something about "
+                f"{by_slug[slug].name} from this text?"
+            ),
             "criteria": {
-                "true": f"It explains {by_slug[slug].name}"
+                "true": f"It explains, applies, compares or works through "
+                f"{by_slug[slug].name}"
                 + (
                     f": {by_slug[slug].description}"
                     if by_slug[slug].description
                     else ""
                 ),
-                "false": "It only mentions it in passing, or not at all.",
+                "false": "It names it only in passing, or not at all.",
             },
         }
         for slug in slugs

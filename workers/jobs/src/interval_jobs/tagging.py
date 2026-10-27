@@ -33,7 +33,7 @@ from interval_jobs.ports import (
 
 # 2: half the article text per call; 3: decision models tag through a shortlist
 # (2026-10-27).
-PROMPT_VERSION = 3
+PROMPT_VERSION = 4
 MAX_CONCEPTS = 5
 MOMENT_CHARS = 4000  # per moment: enough to judge it
 # Per call: bounds the cost of a long article, and keeps a call with the full
