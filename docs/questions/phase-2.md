@@ -74,4 +74,40 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P2-13 Questions through the batch API (P1)
 - Cite: Q-P2-10, AI-4 ("Offline jobs use batch processing"), OPS-4.
 - **Answer (owner, 2026-10-27):** draft and validate with `anthropic/claude-haiku-5.5` through OpenRouter's Batch API, at the batch tier's half price ($0.05 / $0.25 per 1M tokens): "batch path costs literally half". Set as `QUESTIONS_MODEL=batch:anthropic/claude-haiku-5.5`; the free per-moment path stays for a non-`batch:` model.
+- **Update (owner, 2026-10-27):** after a 10-moment trial of both on the same moments (DeepSeek 10/10 drafted, 20/20 validated, $0.0029; Haiku 9/10, 18/18, $0.0032): "use deepseek". `QUESTIONS_MODEL=batch:deepseek/deepseek-v4.1-flash` ($0.05 / $0.15 per 1M on the batch tier).
 - Suggested defaults (as built in P2-W8-S05): `question-batches` every 30 minutes collects, then submits; a failed batch frees its items; a broken reply counts toward the cap of 5 (drafts per moment, validations per question); up to 1,000 requests per batch; Haiku's reasoning effort low (its thinking is billed as output).
+
+## Week 9: test yourself, mastery from quizzes, the review queue
+
+### Q-P2-14 What a Test 60s quiz contains (P0)
+- Cite: Phase 2 Week 9 ("the 60-second 'test yourself' after moments and articles"), §5D, wireframes 03 (variant `end`: "test or continue") and 12 (variant `test`: "Each answer gets instant feedback"), §6 (60-second sprint: "Most correct in 60 seconds").
+- **Answer (owner, 2026-10-27):** a sprint: questions on the moment's concepts keep coming until 60 seconds run out, as many as the user answers.
+- Suggested defaults: the moment's own live questions first, then other live questions on the same concepts; after an article, the concepts of all its moments; no question twice in one quiz; instant feedback after each answer (right or wrong, and the right option); the server holds the clock (a quiz ends 60 seconds after it starts, with a few seconds' grace for the last answer in flight); offered only when the moment or article has at least one live question; the quiz ends early when the questions run out.
+
+### Q-P2-15 How quiz answers move mastery (P0)
+- Cite: PER-2 ("quizzes and games count strongly"), §3.1 (unseen, explored, practiced, mastered, due for review), Q-P2-03, §8 ("how many concepts reach mastered").
+- **Answer (owner, 2026-10-27):** a correct answer moves p ← p + 0.3(1 − p), a wrong one p ← 0.7p, per concept the question tests. Practiced at p ≥ 0.5; mastered at p ≥ 0.85 with at least 2 correct reviews on separate days. Reading's cap at 0.3 stays.
+- Suggested defaults: the state follows the probability both ways (a wrong answer can move mastered back to practiced, or practiced back to explored), so the stored state is never out of step with p; reading never lowers a state a quiz earned; "correct reviews on separate days" counts correct answers on the concept in a review (Q-P2-16) on two different UTC days.
+
+### Q-P2-16 What FSRS schedules (P0)
+- Cite: PER-2 ("FSRS schedules reviews"), §5I ("The review queue is scheduled by FSRS and fed by reading, quizzes, games, and checkpoints"), glossary "FSRS", "Review queue".
+- **Answer (owner, 2026-10-27):** one review card per user and concept, created by a quiz answer on that concept; a review asks a live question on the concept, and right or wrong rates it Good or Again. Scheduling uses the `ts-fsrs` library in the web app (owner-approved dependency).
+- Suggested defaults: one rating per concept per quiz or review (all its answers right: Good; any wrong: Again); "due for review" means the card is due now, shown alongside the mastery state rather than replacing it; reading doesn't create cards in Week 9 (§5I's "fed by reading" comes when reading has a question to ask); default FSRS parameters (90% target retention) until there are answers to fit them to.
+
+### Q-P2-17 Review slots in the feed (P1)
+- Cite: Phase 2 Week 9 ("review slots in the feed"), REC-1 ("due reviews"), §5B ("due reviews" among feed items), wireframe 08 ("The review queue is the top card, with a count, where items came from and a time estimate").
+- **Answer (owner, 2026-10-27):** when anything is due, one card ("Review N concepts · ~1 min") in position 2 of the feed, linking to the Library's review queue. Ranking otherwise unchanged.
+- Suggested defaults: the card is added when the feed is served (due reviews change by the minute; precomputed feeds don't); a review session asks one question per due concept, the most overdue first, up to 10, untimed, with the same question card and instant feedback; the Library's review queue is its top card, with the count, the concepts and a time estimate.
+
+### Q-P2-18 Flagging a question (P1)
+- Cite: Q-2 ("plus everything flagged"), §7 ("Questions that get flagged or behave oddly are pulled for review"), Phase 2 "done when" ("under 2% of questions get flagged").
+- Suggested default: a Flag control on each answered question, with a reason (wrong answer key, unclear, not in the section, other); a flagged question leaves quizzes and goes to the spot-check queue (P2-W8-S03), and Keep there puts it back; one flag per user per question; an event for the metric.
+
+### Q-P2-19 Recalibrating difficulty (P1)
+- Cite: Q-3 ("Difficulty is recalibrated from real answers using item response theory. Anomalies are pulled for review.").
+- Suggested default: a weekly Python job fits a one-parameter (Rasch) model to the answers and moves a question's level once it has at least 30 answers; a question almost everyone gets right (over 98%) or wrong (under 20%) with at least 30 answers goes to the spot-check queue. Until then the starting difficulty (Q-P2-11) stands.
+
+### Q-P2-20 Quiz events (P1)
+- Cite: DB-5, Phase 2 "done when" (30% of finished moments lead to a quiz; quiz takers return more often than non-takers), Q-P1-20.
+- Suggested default: `quiz_started` (moment or article, or review), `quiz_answered` (question, correct, time to answer), `quiz_finished` (answered, correct), `question_flagged`; metric queries for the two "done when" lines next to the Phase 1 ones.
+

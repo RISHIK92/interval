@@ -83,3 +83,70 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - Acceptance: an `OpenRouterBatches` adapter (submit with `requests` last, status, results by custom_id, cost required, the price cap on the `:batch` listing) behind `AiGateway.submit_batch` / `collect_batch` (budget before, cost recorded at collection); `question_batch` / `question_batch_item`; `question-batches` collects then submits, freeing failed batches and capping broken replies; batch mode keeps tagging from queuing per-moment drafting; a VM timer and an AWS schedule every 30 minutes.
 - Out of scope: other features' batching.
 - Q: Q-P2-13.
+
+## Week 9: test yourself, mastery from quizzes, the review queue
+
+### P2-W9-S01 Quiz attempts and answers
+- IDs: PER-2, Q-1, LOAD-5, DB-5
+- Needs: P2-W8-S02 (live questions)
+- Goal: the server runs a 60-second sprint for a moment or an article: it picks the next live question, checks each answer, and records it.
+- Acceptance: migration `quiz_attempt` (user, moment or article or review, started at, ends at) and `quiz_answer` (attempt, question, chosen, correct, answered at; one per question per attempt, idempotency key); next-question selection (the moment's own first, then the same concepts; never twice in an attempt; none after the clock, with a few seconds' grace); `question.answer_count` and `correct_count` updated; events `quiz_started`, `quiz_answered`, `quiz_finished`.
+- Out of scope: the UI (S02), mastery (S03), FSRS (S04).
+- Q: Q-P2-14, Q-P2-20.
+
+### P2-W9-S02 Test 60s
+- IDs: PER-2, ING-2
+- Needs: S01
+- Goal: a user can take Test 60s at the end of a section, from a card, and from the article sheet, with instant feedback and a results screen.
+- Acceptance: the end-of-section sheet offers test or continue; the card's Test 60s and the article sheet open the quiz when live questions exist; one question card (stem, 4 options, a countdown) shows right or wrong and the right option after each answer; results show answered, correct and the concepts' new states; works on a phone.
+- Out of scope: flagging (S07), reviews (S05).
+- Q: Q-P2-14.
+
+### P2-W9-S03 Mastery from quiz answers
+- IDs: PER-2, PER-1
+- Needs: S01, P2-W7-S01
+- Goal: each answer updates its concepts' probability and state strongly, reaching practiced and mastered.
+- Acceptance: p ← p + 0.3(1 − p) when right, 0.7p when wrong, in the same statement that records the answer; practiced at p ≥ 0.5, mastered at p ≥ 0.85 with 2 correct reviews on separate days; reading never lowers a quiz-earned state; Profile shows each state.
+- Out of scope: due for review (S04).
+- Q: Q-P2-15.
+
+### P2-W9-S04 FSRS review cards
+- IDs: PER-2
+- Needs: S01
+- Goal: each concept a user is quizzed on gets an FSRS card, rated once per quiz, so it comes due on a spaced schedule.
+- Acceptance: `ts-fsrs` (owner-approved); migration `concept_review` (user, concept, the FSRS card's fields, due); a finished quiz or review rates each concept it tested (all right Good, any wrong Again); default parameters; "due for review" when due ≤ now.
+- Out of scope: the queue UI (S05), feed slots (S06).
+- Q: Q-P2-16.
+
+### P2-W9-S05 The review queue
+- IDs: PER-2, §5I
+- Needs: S04, S02
+- Goal: the Library's top card is the review queue, and a review session asks one question per due concept.
+- Acceptance: the top Library card shows the due count, the concepts and a time estimate; a session asks one live question per due concept, most overdue first, up to 10, untimed, with the S02 card; the session rates the cards (S04) and updates mastery (S03).
+- Out of scope: feed slots (S06).
+- Q: Q-P2-17.
+
+### P2-W9-S06 Review slot in the feed
+- IDs: REC-1, PER-2
+- Needs: S05
+- Goal: when anything is due, the feed's second card is "Review N concepts · ~1 min", linking to the review queue.
+- Acceptance: added when the feed is served, not precomputed; only when something is due; says why it's there (Every card says why it was recommended, §5B); ranking otherwise unchanged.
+- Out of scope: per-concept review cards in the feed.
+- Q: Q-P2-17.
+
+### P2-W9-S07 Flagging questions
+- IDs: Q-2
+- Needs: S02, P2-W8-S03
+- Goal: a user can flag an answered question with a reason; it leaves quizzes and goes to the spot-check queue.
+- Acceptance: a Flag control with reasons on the answered card; one flag per user per question; a flagged question isn't served; the admin's Keep returns it; event `question_flagged`.
+- Out of scope: penalties or anti-cheat.
+- Q: Q-P2-18, Q-P2-20.
+
+### P2-W9-S08 Difficulty recalibration
+- IDs: Q-3
+- Needs: S01, P2-W8-S04
+- Goal: a weekly job recalibrates difficulty from answers and pulls anomalies for review.
+- Acceptance: a Python job fits a one-parameter IRT model; a question with at least 30 answers gets a recalibrated level and `calibrated_at`; one over 98% or under 20% correct goes to the spot-check queue; a VM timer and an AWS schedule weekly; metric queries for the Phase 2 "done when" lines.
+- Out of scope: per-user ability in ranking.
+- Q: Q-P2-19, Q-P2-20.
+
