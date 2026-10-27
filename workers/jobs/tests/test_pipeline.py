@@ -821,6 +821,8 @@ def test_a_decision_model_tags_from_the_shortlist_once_per_prompt_version() -> N
     world.run()
     asked = len(decider.asked)
     assert asked > 0
+    # Embedded first, then tagged: the shortlist reuses the stored moment vectors.
+    assert voyage.texts and len(voyage.texts) == len(set(voyage.texts))
     for item_id in world.store.items.rows:
         tags, moments = world.store.tags.for_item(item_id)
         assert tags is not None and tags.concepts == frozenset({"write-ahead-log"})

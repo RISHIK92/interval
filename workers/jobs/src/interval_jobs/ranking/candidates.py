@@ -95,7 +95,7 @@ def candidates_for(
         # otherwise fill every slot.
         skip_items = gone | set(anchors)
         for anchor in anchors:
-            for vector in store.embeddings.vectors_of_item(anchor, model):
+            for vector in store.embeddings.vectors_of_item(anchor, model).values():
                 for hit in store.embeddings.similar(
                     vector,
                     PER_ANCHOR,

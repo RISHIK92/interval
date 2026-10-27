@@ -1017,13 +1017,13 @@ class InMemoryEmbeddings:
         if complete:
             self.complete.add((item_id, model))
 
-    def vectors_of_item(self, item_id: int, model: str) -> list[list[float]]:
-        return [
-            vector
+    def vectors_of_item(self, item_id: int, model: str) -> dict[int, list[float]]:
+        return {
+            m.id: vector
             for m in self._moments.for_item(item_id)
             for their_model, vector in [self.rows.get(m.id, ("", []))]
             if their_model == model
-        ]
+        }
 
     def clear(self, item_id: int) -> None:
         for m in self._moments.for_item(item_id):

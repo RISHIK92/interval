@@ -104,6 +104,7 @@ def decide(
     known_item: str | None,
     *,
     size: int = SHORTLIST,
+    embedded: Mapping[int, Sequence[float]] | None = None,
 ) -> DecidePass:
     texts = moment_texts(item.full_text, item.moments) if item.full_text else {}
     # A heading with nothing under it has no text to embed or ask about.
@@ -136,9 +137,16 @@ def decide(
         return DecidePass({}, None, Decimal(0), current)
 
     cost = Decimal(0)
-    embedded: list[list[float]] = []
-    for start in range(0, len(todo), _EMBED_BATCH):
-        batch = todo[start : start + _EMBED_BATCH]
+    # A vector the embed stage stored for a moment is reused when it embedded the same
+    # text: that stage cuts at 16000 characters, this one at MOMENT_CHARS.
+    vector_of: dict[int | None, Sequence[float]] = {
+        moment_id: vector
+        for moment_id, vector in (embedded or {}).items()
+        if len(texts.get(moment_id, "")) <= MOMENT_CHARS
+    }
+    unembedded = [entry for entry in todo if entry[0] not in vector_of]
+    for start in range(0, len(unembedded), _EMBED_BATCH):
+        batch = unembedded[start : start + _EMBED_BATCH]
         result = gateway.embed(
             feature="tagging",
             user_id=None,
@@ -149,11 +157,13 @@ def decide(
         if isinstance(result, OverBudget):
             return DecidePass({}, None, cost, current, refused=result)
         cost += result.usage.cost_usd
-        embedded.extend(result.vectors)
+        for (moment_id, _, _, _), vector in zip(batch, result.vectors, strict=True):
+            vector_of[moment_id] = vector
 
     moments: dict[int, Answered] = {}
     title_answer: Answered | None = None
-    for (moment_id, state, text, digest), vector in zip(todo, embedded, strict=True):
+    for moment_id, state, text, digest in todo:
+        vector = vector_of[moment_id]
         candidates = shortlist(
             vector, None, text, vectors, graph, size=size, prior_size=0
         )

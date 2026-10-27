@@ -1720,7 +1720,7 @@ def test_similar_moments_filter_by_rights_source_and_difficulty(
     # Vectors from another model aren't comparable, so they never match (P1-W4-S02).
     other = s.embeddings.similar(query, 50, model="voyage-3-large")
     assert not [h for h in other if h.moment_id in ours]
-    assert s.embeddings.vectors_of_item(item_b, "voyage-3.5")[0][:2] == [0.9, 0.1]
+    assert s.embeddings.vectors_of_item(item_b, "voyage-3.5")[b0][:2] == [0.9, 0.1]
     by_source = s.embeddings.similar(query, 50, source_ids=[b])
     assert [h.moment_id for h in by_source] == [b0]
     by_level = s.embeddings.similar(query, 50, difficulties=["beginner"])

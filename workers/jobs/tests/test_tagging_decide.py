@@ -14,7 +14,9 @@ from interval_jobs.ports import (
     Embeddings,
     NoulAnswer,
     ScoreAnswer,
+    TagMoment,
 )
+from interval_jobs.tagging import MOMENT_CHARS
 from interval_jobs.tagging_decide import DecidePass, content_hash, decide
 
 from .test_tagging import GRAPH, ScriptedLlm, item
@@ -204,3 +206,48 @@ def test_a_moment_with_no_text_is_neither_embedded_nor_asked() -> None:
     assert all(text.strip() for text in voyage.texts)
     assert set(result.moments) == {10, 12}
     assert result.current == frozenset({10, 12})
+
+
+def test_a_stored_moment_vector_is_reused_for_its_shortlist() -> None:
+    voyage, decider = NearWal(), Decider()
+    # Moment 10's stored vector points at replication, unlike Voyage's fresh ones.
+    stored = {10: [0.0, 0.0, 1.0], 11: [1.0, 0.2, 0.0]}
+    result = decide(
+        gateway(decider, voyage),
+        "pplx",
+        "voyage-x",
+        item(),
+        GRAPH,
+        VECTORS,
+        {},
+        None,
+        size=1,
+        embedded=stored,
+    )
+    assert isinstance(result, DecidePass)
+    assert set(result.moments) == {10, 11, 12}
+    assert len(voyage.texts) == 2  # moment 12 and the title pass
+    assert voyage.texts[0] == "Replay the log after a crash."
+    state, questions = decider.asked[0]
+    assert state["section"] == "Introduction"
+    assert set(questions) == {"replication", "difficulty"}
+
+
+def test_a_stored_vector_of_a_longer_text_than_tagging_reads_is_not_reused() -> None:
+    voyage, decider = NearWal(), Decider()
+    long = "Intro paragraph about logs. " + "x" * MOMENT_CHARS + "\n"
+    result = decide(
+        gateway(decider, voyage),
+        "pplx",
+        "voyage-x",
+        item(full_text=long, moments=[TagMoment(id=10, ordinal=0, heading=None)]),
+        GRAPH,
+        VECTORS,
+        {},
+        None,
+        size=1,
+        embedded={10: [0.0, 0.0, 1.0]},
+    )
+    assert isinstance(result, DecidePass)
+    assert len(voyage.texts) == 2  # the moment, cut to MOMENT_CHARS, and the title
+    assert len(voyage.texts[0]) == MOMENT_CHARS

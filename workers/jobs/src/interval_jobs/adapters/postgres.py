@@ -1366,14 +1366,17 @@ class PostgresEmbeddings:
             SimilarMoment(int(r[0]), int(r[1]), int(r[2]), float(r[3])) for r in rows
         ]
 
-    def vectors_of_item(self, item_id: int, model: str) -> list[list[float]]:
+    def vectors_of_item(self, item_id: int, model: str) -> dict[int, list[float]]:
         rows = self._conn.execute(
-            "select e.embedding::text from moment_embedding e "
+            "select m.id, e.embedding::text from moment_embedding e "
             "join moment m on m.id = e.moment_id "
             "where m.content_item_id = %s and e.model = %s order by m.ordinal",
             (item_id, model),
         ).fetchall()
-        return [[float(x) for x in str(r[0]).strip("[]").split(",")] for r in rows]
+        return {
+            int(r[0]): [float(x) for x in str(r[1]).strip("[]").split(",")]
+            for r in rows
+        }
 
 
 # An item's concepts: the admin's correction replaces the model's tags (P1-W3-S05).

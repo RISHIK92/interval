@@ -337,12 +337,12 @@ class Pipeline:
         # segment_item checks the profile and the moments switch itself (ING-2, §3.2)
         # and stores nothing when they don't allow moments.
         segment_item(store, item_id)
-        # Moments are tagged and embedded once they exist; they reach users' feeds at
-        # each user's next recompute (hourly, or after feedback, Q-P1-17).
-        return [
-            *self._tag_if_needed(store, item_id),
-            *self._embed_if_needed(store, item_id),
-        ]
+        # Moments are embedded, then tagged (the shortlist reuses their vectors); they
+        # reach users' feeds at each user's next recompute (hourly, or after
+        # feedback, Q-P1-17).
+        return self._embed_if_needed(store, item_id) or self._tag_if_needed(
+            store, item_id
+        )
 
     def _embed_if_needed(self, store: Store, item_id: int) -> list[Next]:
         job = self._embedding
@@ -362,8 +362,10 @@ class Pipeline:
             item = services.store.tags.input(item_id)
             missing = services.store.embeddings.missing(item_id, job.model)
             done = services.store.embeddings.done(item_id, job.model)
+            then = self._tag_if_needed(services.store, item_id)
         # Once per item and model (AI-4); duplicates aren't shown, so not embedded.
         if item is None or not missing:
+            self._enqueue(then)
             return
         with job.gateway() as gateway:
             embedded = embed_item(gateway, job.model, item, skip=done)
@@ -389,6 +391,7 @@ class Pipeline:
                 job.model,
                 complete=embedded.refused is None,
             )
+        self._enqueue(then)
 
     def _tag_if_needed(self, store: Store, item_id: int) -> list[Next]:
         if self._tagging is None or not store.tags.needs_tagging(
@@ -416,6 +419,17 @@ class Pipeline:
             stored = services.store.concepts.vectors(self._embedding.model)
             known = services.store.decisions.moment_hashes(item_id, decider)
             known_item = services.store.decisions.item_hash(item_id, decider)
+            embedded = services.store.embeddings.vectors_of_item(
+                item_id, self._embedding.model
+            )
+            # Re-fetched since the tag stage read it: these vectors may be of the new
+            # text, and re-segmenting queues a fresh pass.
+            if services.store.tags.input(item_id) != item:
+                log.info(
+                    "pipeline: item changed; tagging left to the next pass",
+                    content_item_id=item_id,
+                )
+                return
         by_slug = {c.slug: c for c in graph.concepts}
         vectors = {slug: v for slug, (_, v) in stored.items() if slug in active}
         fresh = [
@@ -442,6 +456,7 @@ class Pipeline:
                 vectors,
                 known,
                 known_item,
+                embedded=embedded,
             )
         with self._unit() as services:
             now = services.store.tags.input(item_id)

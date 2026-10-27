@@ -639,8 +639,9 @@ class MomentEmbeddings(Protocol):
 
     def clear(self, item_id: int) -> None: ...
 
-    def vectors_of_item(self, item_id: int, model: str) -> list[list[float]]:
-        """The item's moment vectors from this model (ranking's anchors)."""
+    def vectors_of_item(self, item_id: int, model: str) -> dict[int, list[float]]:
+        """The item's moment vectors from this model by moment id (ranking's
+        anchors; tagging's shortlist)."""
         ...
 
     def similar(
