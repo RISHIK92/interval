@@ -1850,3 +1850,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Fixes found by the run: model settings are stripped of whitespace (`854bcc3`); decision tagging skips moments with no text, which Voyage refused with a 400 (`e3e4a01`).
 - A poll only re-queues items still in a feed's newest entries, so the older ~480 were queued by a one-off script (tag and embed jobs by idempotency key).
 - Follow-ups: the tag stage re-embeds moments the embed stage already stored (reuse them to halve Voyage use); 1.2 tags per item looks sparse next to the labels, check after the owner corrects them.
+
+## 2026-10-27: Notes model deferred to project-aware notes (owner)
+- Owner: why-this-matters notes stay on their templates; the notes model (and its eval) waits for the GitHub integration, when notes can use the user's projects (docs/roadmap/phase-2.md, week 12: "GitHub dependency mapping and project-aware notes"). `NOTES_MODEL` stays unset.
+- Done the same day: price tables checked against the providers' pages (`181cd53`); Gemini and Groq aren't in use for now (owner).
