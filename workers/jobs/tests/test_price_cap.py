@@ -36,12 +36,29 @@ MODELS = {
 }
 
 
+# Some models are left out of the main list but have their own endpoints listing
+# (TypeSafe's Jev 1.14, 2026-10-27).
+HIDDEN = {
+    "data": {
+        "id": "hidden/model",
+        "endpoints": [
+            {"pricing": {"prompt": "0.000000042", "completion": "0"}},
+            {"pricing": {"prompt": "0.0000001", "completion": "0.0000006"}},
+        ],
+    }
+}
+
+
 def openrouter(models: object = MODELS) -> tuple[OpenRouterClient, list[str]]:
     chats: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.endswith("/models"):
             return httpx.Response(200, json=models)
+        if request.url.path.endswith("/endpoints"):
+            if "hidden/model" in request.url.path:
+                return httpx.Response(200, json=HIDDEN)
+            return httpx.Response(404, json={"error": {"message": "not found"}})
         chats.append(request.url.path)
         return httpx.Response(200, json=CHAT)
 
@@ -99,3 +116,11 @@ def test_a_variable_negative_price_counts_as_unknown() -> None:
     with pytest.raises(ModelError, match="no output price"):
         client.complete("router/model", MESSAGES)
     assert chats == []
+
+
+def test_a_model_missing_from_the_list_is_priced_from_its_endpoints() -> None:
+    client, chats = openrouter()
+    assert client.complete("hidden/model", MESSAGES).text == "ok"  # dearest: $0.60
+    with pytest.raises(ModelError, match="no output price"):
+        client.complete("nobody/model", MESSAGES)
+    assert len(chats) == 1

@@ -51,9 +51,23 @@ class _Models(BaseModel):
     data: list[_Listed]
 
 
+class _Endpoint(BaseModel):
+    pricing: _Pricing
+
+
+class _ModelEndpoints(BaseModel):
+    endpoints: list[_Endpoint]
+
+
+class _EndpointsResponse(BaseModel):
+    data: _ModelEndpoints
+
+
 class ListedOutputPrices:
     """Each model's listed output price per million tokens, read once from OpenRouter
-    (for the price cap). Unreadable or unlisted means unknown, and so refused."""
+    (for the price cap). A model left out of that list is priced from its own
+    endpoints listing, at its dearest provider. Unreadable or unlisted means unknown,
+    and so refused."""
 
     def __init__(self, http: httpx.Client) -> None:
         self._http = http
@@ -68,7 +82,28 @@ class ListedOutputPrices:
                 self._prices = {m.id: m.pricing.completion * 1_000_000 for m in listed}
             except (httpx.HTTPError, ValidationError):
                 return None  # tried again on the next call
-        return self._prices.get(model)
+        if model not in self._prices:
+            found = self._from_endpoints(model)
+            if found is None:
+                return None
+            self._prices[model] = found
+        return self._prices[model]
+
+    def _from_endpoints(self, model: str) -> Decimal | None:
+        try:
+            response = self._http.get(
+                f"https://openrouter.ai/api/v1/models/{model}/endpoints",
+                timeout=TIMEOUT_S,
+            )
+            response.raise_for_status()
+            endpoints = _EndpointsResponse.model_validate_json(
+                response.content
+            ).data.endpoints
+        except (httpx.HTTPError, ValidationError):
+            return None
+        if not endpoints:
+            return None
+        return max(e.pricing.completion for e in endpoints) * 1_000_000
 
 
 class OpenRouterClient:
