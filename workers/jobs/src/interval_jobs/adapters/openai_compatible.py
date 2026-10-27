@@ -47,6 +47,9 @@ GOOGLE = Provider(
     {
         "gemma-4-31b-it": (Decimal(0), Decimal(0)),
         "gemma-4-26b-a4b-it": (Decimal(0), Decimal(0)),
+        # shortcut: OpenRouter's listed price for Gemini 3 Pro (2026-10-27), used for
+        # the tagging ceiling check; confirm on Google's pricing page before relying.
+        "gemini-3.1-pro-preview": (Decimal("2.00"), Decimal("12.00")),
     },
 )
 

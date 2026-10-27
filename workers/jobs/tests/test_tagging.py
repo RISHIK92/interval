@@ -197,3 +197,24 @@ def test_no_concept_graph_means_no_call() -> None:
     with pytest.raises(TaggingError, match="graph"):
         tag_item(gateway(llm), "m", item(None), None)
     assert llm.prompts == []
+
+
+def test_a_call_sends_at_most_twelve_thousand_characters_of_text() -> None:
+    # Small enough for free tiers' per-minute caps (owner, 2026-10-27).
+    long_text = "\n".join(
+        part for i in range(1, 9) for part in (f"Section {i}", "x" * 5000)
+    )
+    moments = [TagMoment(id=i, ordinal=i, heading=f"Section {i}") for i in range(1, 9)]
+    llm = ScriptedLlm(answer(*range(1, 9)))
+    tag_item(gateway(llm), "m", item(full_text=long_text, moments=moments), GRAPH)
+    sent = "\n".join(m["content"] for m in llm.prompts[0])
+    assert sent.count("x") <= 12_000
+
+
+def test_the_prompt_names_every_section_the_answer_must_cover() -> None:
+    # Models skipped sections the prompt didn't name (Claude Haiku 5.5, 2026-10-27).
+    llm = ScriptedLlm(answer(0, 1, 2))
+    tag_item(gateway(llm), "m", item(), GRAPH)
+    system = llm.prompts[0][0]["content"]
+    assert "ordinals 0, 1, 2" in system
+    assert "none skipped" in system
