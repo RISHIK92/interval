@@ -14,7 +14,10 @@ import pytest
 QUERIES = Path(__file__).parents[3] / "packages" / "events" / "queries"
 TODAY = datetime(2026, 11, 30, tzinfo=UTC)
 # The props the queries read; the Glue table declares the same struct (aws-stack.ts).
-PROPS = "STRUCT(kind VARCHAR, item_id VARCHAR, moment_id VARCHAR, method VARCHAR)"
+PROPS = (
+    "STRUCT(kind VARCHAR, item_id VARCHAR, moment_id VARCHAR, method VARCHAR, "
+    "question_id VARCHAR)"
+)
 
 type Row = tuple[str, int, int, float]
 
@@ -233,3 +236,72 @@ def test_a_moment_card_that_landed_on_the_article_counts_the_article_finish(
     landed["props"] = {**landed["props"], "kind": "moment"}  # type: ignore[dict-item]
     events = [landed, finished_article("u", "1", OPENED + days(1))]
     assert run("finished_rate.sql", events, tmp_path) == [("student", 1, 1, 1.0)]
+
+
+# Phase 2 "done when" (P2-W9-S08, Q-P2-20): quizzes after finished moments, flags,
+# and whether quiz takers come back more.
+def quiz_started(user: str, moment: str, at: datetime) -> dict[str, object]:
+    return event(
+        "quiz_started", user, at, version=2, kind="test", item_id="1", moment_id=moment
+    )
+
+
+def test_a_finished_moment_leads_to_a_quiz_on_it_within_a_day(tmp_path: Path) -> None:
+    done = TODAY - days(5)
+    events = [
+        finished_section("u", "1", "11", done),
+        quiz_started("u", "11", done + days(0.5)),  # after: counts
+        finished_section("u", "1", "12", done),
+        quiz_started("u", "12", done - days(0.1)),  # just before (reader): counts
+        finished_section("u", "1", "13", done),
+        quiz_started("u", "14", done),  # another moment
+        finished_section("u", "1", "15", done),
+        quiz_started("u", "15", done + days(1.5)),  # too late
+        finished_section("v", "1", "11", done),  # someone else's quiz doesn't count
+        finished_section("w", "1", "16", TODAY - days(0.5)),  # window still open
+        quiz_started("w", "16", TODAY - days(0.4)),
+    ]
+    assert run("quiz_rate.sql", events, tmp_path) == [("student", 5, 2, 0.4)]
+
+
+def test_a_review_isnt_a_quiz_on_the_moment(tmp_path: Path) -> None:
+    done = TODAY - days(5)
+    events = [
+        finished_section("u", "1", "11", done),
+        event("quiz_started", "u", done, version=2, kind="review"),
+        event("quiz_started", "u", done, version=1, item_id="1", moment_id="11"),
+    ]
+    assert run("quiz_rate.sql", events, tmp_path) == [("student", 1, 0, 0.0)]
+
+
+def test_the_flag_rate_is_flagged_questions_over_answered_ones(tmp_path: Path) -> None:
+    def answered(user: str, question: str) -> dict[str, object]:
+        return event("quiz_answered", user, TODAY - days(1), question_id=question)
+
+    def flagged(user: str, question: str) -> dict[str, object]:
+        return event("question_flagged", user, TODAY - days(1), question_id=question)
+
+    events = [
+        *(answered(u, q) for u in "ab" for q in ("1", "2", "3", "4")),
+        flagged("a", "2"),
+        flagged("b", "2"),  # one question, flagged twice: one flagged question
+    ]
+    assert run("flag_rate.sql", events, tmp_path) == [("all", 4, 1, 0.25)]
+
+
+def test_quiz_takers_and_non_takers_each_get_a_return_rate(tmp_path: Path) -> None:
+    week = TODAY - days(14)
+    events = [
+        *(event("session_started", u, week + days(1)) for u in "abcde"),
+        event("quiz_finished", "a", week + days(1)),
+        event("quiz_finished", "b", week + days(2)),
+        event("session_started", "a", week + days(8)),  # a taker comes back
+        event("session_started", "c", week + days(9)),  # a non-taker comes back
+        event("quiz_finished", "d", week - days(3)),  # before the week: not a taker
+        event("session_started", "g", week + days(1), guest=True),  # guests: out
+        event("session_started", "late", week + days(7)),  # not active that week
+    ]
+    assert run("quiz_return.sql", events, tmp_path) == [
+        ("non-takers", 3, 1, 0.3333),
+        ("takers", 2, 1, 0.5),
+    ]

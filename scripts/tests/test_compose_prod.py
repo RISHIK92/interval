@@ -285,3 +285,19 @@ def test_a_systemd_timer_runs_question_batches_every_half_hour() -> None:
     assert "Requisite=interval.service" in service
     deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
     assert re.search(r"systemctl enable --now interval-question-batches\.timer", deploy)
+
+
+# Q-3 (P2-W9-S08): the weekly difficulty recalibration, as EventBridge Scheduler does
+# in AWS.
+def test_a_systemd_timer_runs_recalibrate_difficulty_weekly() -> None:
+    timer = (SYSTEMD / "interval-recalibrate.timer").read_text()
+    service = (SYSTEMD / "interval-recalibrate.service").read_text()
+    # Weekly, three hours after the spot checks, so their logs don't interleave.
+    assert re.search(r"^OnCalendar=Mon \*-\*-\* 03:00:00$", timer, re.MULTILINE)
+    assert "Persistent=true" in timer
+    assert re.search(
+        r"^ExecStart=.*stack\.sh run recalibrate-difficulty$", service, re.MULTILINE
+    )
+    assert "Requisite=interval.service" in service
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert re.search(r"systemctl enable --now interval-recalibrate\.timer", deploy)

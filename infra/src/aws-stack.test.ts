@@ -248,8 +248,8 @@ describe("containers", () => {
   test("ARM64 tasks get secrets only through ECS secrets, never plain env", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
     // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due,
-    // spot-check-due, question-batches
-    expect(tasks.length).toBe(9);
+    // spot-check-due, question-batches, recalibrate-difficulty
+    expect(tasks.length).toBe(10);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -488,7 +488,7 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(5);
+    expect(runTask).toHaveLength(6);
     const targets = runTask.map((st) => JSON.stringify(st.Resource));
     expect(targets.filter((t) => t.includes("PollDueTask"))).toHaveLength(1);
     expect(targets.filter((t) => t.includes("RecomputeDueTask"))).toHaveLength(
@@ -659,7 +659,15 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     "../../packages/events/queries",
   );
   const PROPS =
-    "struct<kind:string,item_id:string,moment_id:string,method:string>";
+    "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string>";
+  // Phase 1 (Q-P1-21) and Phase 2 (P2-W9-S08, Q-P2-20) "done when".
+  const FILES = [
+    "return_rate.sql",
+    "finished_rate.sql",
+    "quiz_rate.sql",
+    "flag_rate.sql",
+    "quiz_return.sql",
+  ];
 
   test("a Glue table reads the Firehose events by day, with partition projection", () => {
     const [table] = all("AWS::Glue::Table");
@@ -710,7 +718,7 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     const declared = new Set(
       [...PROPS.matchAll(/(\w+):string/g)].map((m) => m[1]),
     );
-    for (const file of ["return_rate.sql", "finished_rate.sql"]) {
+    for (const file of FILES) {
       const sql = readFileSync(path.join(QUERIES, file), "utf8");
       for (const [, prop] of sql.matchAll(/props\.(\w+)/g)) {
         expect(declared).toContain(prop);
@@ -750,7 +758,7 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     });
   });
 
-  test("both metrics are saved queries carrying the repo's SQL", () => {
+  test("every metric is a saved query carrying the repo's SQL", () => {
     const saved = all("AWS::Athena::NamedQuery").map(
       ([, q]) =>
         q.Properties as {
@@ -759,8 +767,8 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
           WorkGroup: string;
         },
     );
-    expect(saved).toHaveLength(2);
-    for (const file of ["return_rate.sql", "finished_rate.sql"]) {
+    expect(saved).toHaveLength(FILES.length);
+    for (const file of FILES) {
       const sql = readFileSync(path.join(QUERIES, file), "utf8");
       expect(saved.map((q) => q.QueryString)).toContain(sql);
     }
@@ -878,6 +886,32 @@ describe("dashboards and alarms (W6-S05, OPS-2, OPS-4)", () => {
     for (const [, alarm] of all("AWS::CloudWatch::Alarm")) {
       expect(alarm.Properties["AlarmActions"]).toBeUndefined();
     }
+  });
+});
+
+describe("weekly difficulty recalibration (P2-W9-S08, Q-3)", () => {
+  test("EventBridge Scheduler runs recalibrate-difficulty weekly, with only the database", () => {
+    const schedule = scheduleFor("RecalibrateDifficultyTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe("rate(7 days)");
+    const container = containerNamed("recalibrate-difficulty");
+    expect(container?.Command).toEqual(["recalibrate-difficulty"]);
+    expect((container?.Secrets ?? []).map((s) => s.Name)).toEqual([
+      "DB_PASSWORD",
+    ]);
+    const actions = all("AWS::IAM::Policy")
+      .filter(([, policy]) =>
+        (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
+          r.Ref.startsWith("RecalibrateDifficultyTaskTaskRole"),
+        ),
+      )
+      .flatMap(([, policy]) =>
+        (
+          policy.Properties["PolicyDocument"] as {
+            Statement: { Action: string | string[] }[];
+          }
+        ).Statement.flatMap((st) => [st.Action].flat()),
+      );
+    expect(actions.some((a) => a.startsWith("sqs:"))).toBe(false);
   });
 });
 

@@ -26,6 +26,7 @@ from interval_db.generated import (
     Topic,
 )
 from interval_jobs.concepts.graph import TOPICS
+from interval_jobs.irt import Answer
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
     VALIDATORS_MAX_AGE,
@@ -2031,6 +2032,49 @@ class PostgresQuestions:
             {"id": question_id, "model": model, "answer": answer},
         ).fetchone()
         return row is not None
+
+    def calibration_answers(self) -> list[Answer]:
+        rows = self._conn.execute(
+            """
+            select a.user_id, qa.question_id, qa.correct
+            from quiz_answer qa
+            join quiz_attempt a on a.id = qa.attempt_id
+            join question q on q.id = qa.question_id
+            -- Test 60s answers only: a review repeats questions the user has seen,
+            -- spaced to be recalled, which would make them look easier.
+            where qa.answered_at is not null and not a.review
+              and q.status in ('live', 'flagged')
+            """
+        ).fetchall()
+        return [Answer(str(user), int(qid), bool(right)) for user, qid, right in rows]
+
+    def save_levels(self, levels: Mapping[int, Difficulty]) -> int:
+        if not levels:
+            return 0
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                "update question set difficulty = %s::difficulty, "
+                "calibrated_at = now() where id = %s",
+                [(level, qid) for qid, level in levels.items()],
+            )
+            return cur.rowcount
+
+    def queue_anomalies(self, question_ids: Collection[int]) -> int:
+        rows = self._conn.execute(
+            """
+            insert into question_review (question_id, reason)
+            select id, 'anomaly' from unnest(%s::bigint[]) as ids(id)
+            where not exists (
+              select 1 from question_review r
+              where r.question_id = ids.id
+                and (r.decision is null or r.reason = 'anomaly')
+            )
+            on conflict (question_id) where decision is null do nothing
+            returning question_id
+            """,
+            (list(question_ids),),
+        ).fetchall()
+        return len(rows)
 
     def queue_spot_checks(self, since: datetime, share: float) -> tuple[int, int]:
         # Two runs at once would sample the same window twice.

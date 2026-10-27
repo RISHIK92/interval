@@ -1,0 +1,16 @@
+# VM mode (ADR-0011), Q-3 (P2-W9-S08): recalibrate question difficulty from the week's
+# answers and pull anomalies for review. Started by interval-recalibrate.timer; the
+# AWS stack runs the same command weekly from EventBridge Scheduler.
+[Unit]
+Description=Interval recalibrate-difficulty
+# Requisite, not Requires: a stack stopped for maintenance skips the run instead of
+# being started again by the timer.
+Requisite=interval.service
+After=interval.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/interval
+ExecStart=/opt/interval/deploy/bin/stack.sh run recalibrate-difficulty
+# A oneshot has no start timeout by default: a hung run would stop the timer for good.
+TimeoutStartSec=10min

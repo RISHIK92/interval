@@ -29,7 +29,7 @@ type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type QuestionBatchKind = Literal["draft", "validate"]
 type QuestionStatus = Literal["pending", "live", "rejected", "flagged", "retired"]
 type ReviewDecision = Literal["keep", "retire"]
-type ReviewReason = Literal["sample", "flagged"]
+type ReviewReason = Literal["sample", "flagged", "anomaly"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
 ]

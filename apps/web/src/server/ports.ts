@@ -9,6 +9,7 @@ import type {
   FlagReason,
   LearnerState,
   LearningGoal,
+  ReviewReason,
   Topic,
 } from "@interval/db";
 import type { MessageName, Messages } from "@interval/db/messages";
@@ -616,7 +617,7 @@ export interface RankingInspection {
 export type ReviewDecision = "keep" | "retire";
 export type ReviewQuestion = {
   questionId: string;
-  reason: "sample" | "flagged";
+  reason: ReviewReason;
   stem: string;
   options: string[];
   correct: number;

@@ -26,6 +26,7 @@ from interval_db.generated import (
     Topic,
 )
 from interval_jobs.concepts.graph import refuse_cycles
+from interval_jobs.irt import Answer
 from interval_jobs.normalize import near_duplicates
 from interval_jobs.polling import START_INTERVAL
 from interval_jobs.ports import (
@@ -1423,6 +1424,7 @@ class StoredQuestion:
     validator_answer: int | None = None
     validated_at: datetime | None = None
     difficulty: Difficulty | None = None
+    calibrated_at: datetime | None = None
 
 
 class InMemoryQuestions:
@@ -1446,6 +1448,9 @@ class InMemoryQuestions:
         self.retries: dict[int, tuple[int, datetime]] = {}
         # Q-2 reviews, oldest first: (question id, reason, decided)
         self.reviews: list[tuple[int, str, bool]] = []
+        # Quiz answers (not reviews), which the web app writes (P2-W9-S01);
+        # P2-W9-S08 reads them.
+        self.answers: list[Answer] = []
         # Q-P2-13 batches: id -> (kind, open?), their claimed costs, and entries with
         # their result
         self.batches: dict[str, tuple[BatchKind, bool, datetime]] = {}
@@ -1564,6 +1569,26 @@ class InMemoryQuestions:
         q.validator_model, q.validator_answer = model, answer
         q.validated_at = datetime.now(UTC)
         return True
+
+    def calibration_answers(self) -> list[Answer]:
+        counted = {q.id for q in self.rows if q.status in ("live", "flagged")}
+        return [a for a in self.answers if a.item in counted]
+
+    def save_levels(self, levels: Mapping[int, Difficulty]) -> int:
+        changed = 0
+        for q in self.rows:
+            if q.id in levels:
+                q.difficulty = levels[q.id]
+                q.calibrated_at = datetime.now(UTC)
+                changed += 1
+        return changed
+
+    def queue_anomalies(self, question_ids: Collection[int]) -> int:
+        open_ids = {qid for qid, _, decided in self.reviews if not decided}
+        seen = {qid for qid, reason, _ in self.reviews if reason == "anomaly"}
+        queued = [q for q in question_ids if q not in open_ids and q not in seen]
+        self.reviews += [(q, "anomaly", False) for q in queued]
+        return len(queued)
 
     def queue_spot_checks(self, since: datetime, share: float) -> tuple[int, int]:
         window = [

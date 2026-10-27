@@ -28,6 +28,7 @@ from interval_db.generated import (
 )
 from interval_db.messages import MessageName
 from interval_jobs.events.generated import Envelope
+from interval_jobs.irt import Answer
 
 type FetchKind = Literal["feed", "article"]
 
@@ -592,6 +593,20 @@ class Questions(Protocol):
     def record_verdict(self, question_id: int, model: str, answer: int) -> bool:
         """Live when the validator's answer is the key, rejected when not, keeping
         the answer; false (nothing changed) unless the question was pending."""
+        ...
+
+    def calibration_answers(self) -> list[Answer]:
+        """Q-3 (P2-W9-S08): every Test 60s answer (not reviews) to a live or flagged
+        question, by user."""
+        ...
+
+    def save_levels(self, levels: Mapping[int, Difficulty]) -> int:
+        """Each question's recalibrated level, stamped calibrated now; how many."""
+        ...
+
+    def queue_anomalies(self, question_ids: Collection[int]) -> int:
+        """Q-3: queue each for review as an anomaly, unless it is already waiting for
+        a review or was reviewed as one before; how many were queued."""
         ...
 
     def queue_spot_checks(self, since: datetime, share: float) -> tuple[int, int]:

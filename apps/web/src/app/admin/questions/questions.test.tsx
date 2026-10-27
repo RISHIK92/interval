@@ -85,6 +85,14 @@ test("the queue shows each question with its key, the validator's answer, its qu
   expect(html).toContain('href="https://pub.test/post#raft"');
   expect(html).toMatch(/<button[^>]*value="keep"/);
   expect(html).toMatch(/<button[^>]*value="retire"/);
+  // Each reason says why it's here (Q-3, P2-W9-S08: answers looked unusual).
+  open.mockResolvedValueOnce([
+    { ...question, reason: "sample" },
+    { ...question, questionId: "43", reason: "anomaly" },
+  ]);
+  const reasons = await page();
+  expect(reasons).toContain("Weekly sample");
+  expect(reasons).toContain("Unusual answers");
   open.mockResolvedValueOnce([]);
   expect(await page()).toContain("Nothing to check");
 });

@@ -65,7 +65,7 @@ export type QuestionStatus = "flagged" | "live" | "pending" | "rejected" | "reti
 
 export type ReviewDecision = "keep" | "retire";
 
-export type ReviewReason = "flagged" | "sample";
+export type ReviewReason = "anomaly" | "flagged" | "sample";
 
 export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
 

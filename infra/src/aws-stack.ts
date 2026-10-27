@@ -221,7 +221,7 @@ export class AwsStack extends Stack {
             { name: "version", type: "int" },
             {
               name: "props",
-              type: "struct<kind:string,item_id:string,moment_id:string,method:string>",
+              type: "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string>",
             },
           ],
         },
@@ -247,8 +247,9 @@ export class AwsStack extends Stack {
         },
       },
     });
-    // Phase 1 "done when" (Q-P1-21), by beta group: the SQL lives in the repo, tested
-    // with DuckDB on fixture events (workers/jobs/tests/test_metric_queries.py).
+    // Phase 1 (Q-P1-21) and Phase 2 (P2-W9-S08, Q-P2-20) "done when": the SQL lives in
+    // the repo, tested with DuckDB on fixture events
+    // (workers/jobs/tests/test_metric_queries.py).
     for (const [id, file, description] of [
       [
         "ReturnRateQuery",
@@ -259,6 +260,17 @@ export class AwsStack extends Stack {
         "FinishedRateQuery",
         "finished_rate.sql",
         "Opened items marked finished",
+      ],
+      [
+        "QuizRateQuery",
+        "quiz_rate.sql",
+        "Finished moments that lead to a quiz",
+      ],
+      ["FlagRateQuery", "flag_rate.sql", "Answered questions that get flagged"],
+      [
+        "QuizReturnQuery",
+        "quiz_return.sql",
+        "Return rate of quiz takers and non-takers",
       ],
     ] as const) {
       const query = new athena.CfnNamedQuery(this, id, {
@@ -565,6 +577,31 @@ export class AwsStack extends Stack {
         securityGroups: [appSg],
         vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
         // A missed run would skip a week's sample; a rerun queues nothing twice.
+        retryAttempts: 2,
+        maxEventAge: Duration.hours(1),
+      }),
+    });
+
+    // Q-3 (P2-W9-S08): EventBridge Scheduler runs `recalibrate-difficulty` weekly. It
+    // reads answers and writes levels and reviews in the database: no queue, no model.
+    const recalibrateTask = taskDefinition("RecalibrateDifficulty");
+    recalibrateTask.addContainer("recalibrate-difficulty", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["recalibrate-difficulty"],
+      environment,
+      secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
+      logging: logging("recalibrate-difficulty"),
+    });
+    new scheduler.Schedule(this, "RecalibrateDifficultySchedule", {
+      schedule: scheduler.ScheduleExpression.rate(Duration.days(7)),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: recalibrateTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // A missed week leaves levels a week older; a rerun only refits.
         retryAttempts: 2,
         maxEventAge: Duration.hours(1),
       }),

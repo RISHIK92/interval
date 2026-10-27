@@ -1,8 +1,17 @@
+import type { ReviewReason } from "@interval/db";
 import { adminQuestions } from "../../../server/container";
 import { Card } from "../../ui/Card";
 import { requireAdmin } from "../guard";
 import { ACT, ADMIN_MAIN, SECONDARY } from "../style";
 import { decideAction } from "./actions";
+
+// Why a question is in the queue (Q-2, Q-3): a user's flag, the weekly sample, or
+// answers almost everyone gets right or wrong (P2-W9-S08).
+const REASONS: Record<ReviewReason, string> = {
+  flagged: "Flagged",
+  sample: "Weekly sample",
+  anomaly: "Unusual answers",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +47,7 @@ export default async function QuestionsPage(props: {
             <li key={q.questionId}>
               <Card className="flex flex-col gap-3 p-5 text-sm">
                 <p className="text-ink-muted">
-                  {q.reason === "flagged" ? "Flagged" : "Weekly sample"} ·{" "}
+                  {REASONS[q.reason]} ·{" "}
                   <a
                     href={q.link}
                     target="_blank"

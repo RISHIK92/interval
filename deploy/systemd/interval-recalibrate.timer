@@ -1,0 +1,12 @@
+# VM mode (ADR-0011), Q-3 (P2-W9-S08): weekly. Persistent, so a VM that was off at the
+# scheduled time runs it once it is back; an extra run only refits the same answers.
+# Monday 03:00, after the spot checks (weekly, Monday 00:00) have run.
+[Unit]
+Description=Interval recalibrate-difficulty every week
+
+[Timer]
+OnCalendar=Mon *-*-* 03:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

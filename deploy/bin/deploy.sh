@@ -46,7 +46,8 @@ for unit in interval.service interval-poll.service interval-poll.timer \
   interval-recompute.service interval-recompute.timer \
   interval-links.service interval-links.timer \
   interval-spot-checks.service interval-spot-checks.timer \
-  interval-question-batches.service interval-question-batches.timer; do
+  interval-question-batches.service interval-question-batches.timer \
+  interval-recalibrate.service interval-recalibrate.timer; do
   install -m 644 "$APP_DIR/deploy/systemd/$unit" "/etc/systemd/system/$unit"
 done
 systemctl daemon-reload
@@ -64,6 +65,8 @@ systemctl enable --now interval-links.timer
 systemctl enable --now interval-spot-checks.timer
 # Q-P2-13: question batches every 30 minutes, as EventBridge Scheduler does in AWS.
 systemctl enable --now interval-question-batches.timer
+# Q-3: recalibrates question difficulty weekly, as EventBridge Scheduler does in AWS.
+systemctl enable --now interval-recalibrate.timer
 docker image prune -f >/dev/null
 
 echo "Deployed $(git -C "$APP_DIR" rev-parse --short HEAD)"

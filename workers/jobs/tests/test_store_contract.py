@@ -26,6 +26,7 @@ from interval_jobs.adapters.memory import (
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore
 from interval_jobs.concepts.graph import ConceptSeedError, parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
+from interval_jobs.irt import Answer
 from interval_jobs.ports import (
     LEARNING_GOALS,
     AiLedger,
@@ -108,6 +109,12 @@ class Probe(Protocol):
         self, item_id: int, heading: str, slugs: list[str]
     ) -> None: ...
     def flag_question(self, question_id: int) -> None: ...
+    # A user's answer to a question in a finished Test 60s, or in a review (which
+    # P2-W9-S08 leaves out).
+    def add_answer(
+        self, user_id: str, question_id: int, correct: bool, review: bool = False
+    ) -> None: ...
+    def question_calibrated(self, question_id: int) -> bool: ...
     def reviews(self) -> list[tuple[int, str, bool]]: ...
     def decide_review(self, question_id: int) -> None: ...
     def question_difficulty(self, question_id: int) -> str | None: ...
@@ -224,6 +231,17 @@ class MemoryProbe:
 
     def flag_question(self, question_id: int) -> None:
         next(q for q in self.s.questions.rows if q.id == question_id).status = "flagged"
+
+    def add_answer(
+        self, user_id: str, question_id: int, correct: bool, review: bool = False
+    ) -> None:
+        # The fake keeps Test 60s answers only, as the job reads them.
+        if not review:
+            self.s.questions.answers.append(Answer(user_id, question_id, correct))
+
+    def question_calibrated(self, question_id: int) -> bool:
+        stored = next(q for q in self.s.questions.rows if q.id == question_id)
+        return stored.calibrated_at is not None
 
     def reviews(self) -> list[tuple[int, str, bool]]:
         return sorted(self.s.questions.reviews)
@@ -483,6 +501,50 @@ class PostgresProbe:
         self.conn.execute(
             "update question set status = 'flagged' where id = %s", (question_id,)
         )
+
+    def add_answer(
+        self, user_id: str, question_id: int, correct: bool, review: bool = False
+    ) -> None:
+        # The web app writes these (P2-W9-S01, S05); here, one finished attempt each.
+        self.conn.execute(
+            """
+            with attempt as (
+              insert into quiz_attempt
+                (user_id, content_item_id, moment_id, started_at, ends_at, finished_at,
+                 review)
+              select %(user)s,
+                     case when %(review)s then null else m.content_item_id end,
+                     case when %(review)s then null else m.id end,
+                     now() - interval '2 minutes',
+                     case when %(review)s then null
+                          else now() - interval '1 minute' end,
+                     now() - interval '1 minute', %(review)s
+              from question q join moment m on m.id = q.moment_id
+              where q.id = %(question)s
+              returning id
+            )
+            insert into quiz_answer
+              (attempt_id, question_id, served_at, chosen, correct, answered_at)
+            select id, %(question)s, now() - interval '2 minutes',
+                   case when %(correct)s then 0 else 1 end, %(correct)s,
+                   now() - interval '90 seconds'
+            from attempt
+            """,
+            {
+                "user": user_id,
+                "question": question_id,
+                "correct": correct,
+                "review": review,
+            },
+        )
+
+    def question_calibrated(self, question_id: int) -> bool:
+        row = self.conn.execute(
+            "select calibrated_at is not null from question where id = %s",
+            (question_id,),
+        ).fetchone()
+        assert row is not None
+        return bool(row[0])
 
     def reviews(self) -> list[tuple[int, str, bool]]:
         return sorted(
@@ -2788,3 +2850,47 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
     s.questions.close_batch("b2", "failed", {})
     assert open_ours() == []
     assert in_ours() == (set(), set())
+
+
+# Q-3 (P2-W9-S08): the weekly recalibration reads the answers, stores levels, and
+# queues anomalies for review.
+def test_calibration_reads_answers_saves_levels_and_queues_anomalies_once(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    _, (_, lag, quorum), _ = _question_item(s, probe)
+    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    a, b = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None)
+    (gone, _) = s.questions.save(
+        quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1", None
+    )
+    for qid in (a, b, gone):
+        s.questions.record_verdict(qid, "v", 2)  # live
+    for user in ("cal-1", "cal-2"):
+        probe.add_user(user, False, [])
+    probe.add_answer("cal-1", a, True)
+    probe.add_answer("cal-2", a, False)
+    probe.add_answer("cal-1", b, True)
+    probe.add_answer("cal-2", gone, True)
+    probe.add_answer("cal-2", b, False, review=True)  # a review: left out
+    probe.retire_question(gone)
+    got = s.questions.calibration_answers()
+    # Live (and flagged) questions' answers; a retired one's are left out.
+    assert sorted(
+        (x.person, x.item, x.correct) for x in got if x.item in (a, b, gone)
+    ) == [("cal-1", a, True), ("cal-1", b, True), ("cal-2", a, False)]
+    assert s.questions.save_levels({a: "advanced", b: "beginner"}) == 2
+    assert probe.question_difficulty(a) == "advanced"
+    assert probe.question_difficulty(b) == "beginner"
+    assert probe.question_calibrated(a) and probe.question_calibrated(b)
+    assert not probe.question_calibrated(gone)
+    # Once per question: queued, then not again while open or after a decision.
+    assert s.questions.queue_anomalies([a]) == 1
+    assert s.questions.queue_anomalies([a]) == 0
+    assert (a, "anomaly", False) in probe.reviews()
+    probe.decide_review(a)
+    assert s.questions.queue_anomalies([a]) == 0
+    # A question already waiting for another review isn't queued twice.
+    probe.flag_question(b)
+    s.questions.queue_spot_checks(datetime.now(UTC) + timedelta(days=1), 0.0)
+    assert s.questions.queue_anomalies([b]) == 0

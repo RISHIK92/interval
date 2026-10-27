@@ -66,6 +66,7 @@ from interval_jobs.question_batches import collect, submit
 from interval_jobs.question_trial import TrialError, run_trial, trial_moments
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.ranking.scoring import BREAK_MINUTES
+from interval_jobs.recalibration import recalibrate
 from interval_jobs.segment import segment_item
 from interval_jobs.tagging import TaggingError
 from interval_jobs.tagging_eval import (
@@ -205,6 +206,10 @@ def main(argv: list[str]) -> None:
         "(its cost would be recorded twice)",
     )
     commands.add_parser(
+        "recalibrate-difficulty",
+        help="refit question difficulty from answers and queue anomalies (Q-3)",
+    )
+    commands.add_parser(
         "spot-check-due",
         help="queue this week's question spot checks: 10%% sampled, plus flagged (Q-2)",
     )
@@ -299,6 +304,14 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
                 except TrialError as error:
                     sys.exit(f"question-trial: {error}")
         print(json.dumps(asdict(report), indent=2, default=str))
+        return
+
+    if args.command == "recalibrate-difficulty":
+        # Q-3 (P2-W9-S08): weekly, from EventBridge Scheduler or the VM's
+        # interval-recalibrate.timer.
+        with services() as s:
+            got = recalibrate(s.store.questions)
+        print(json.dumps(asdict(got)))
         return
 
     if args.command == "spot-check-due":
