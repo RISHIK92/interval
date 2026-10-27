@@ -109,7 +109,8 @@ export interface OutboundLinks {
 export type FinishMethod = "return_prompt" | "mark_done";
 export type ConceptsByTopic = {
   topic: Topic;
-  concepts: { slug: string; name: string; state: LearnerState }[];
+  // due: its FSRS card has come due (P2-W9-S04), shown beside the state.
+  concepts: { slug: string; name: string; state: LearnerState; due: boolean }[];
 };
 export interface Progress {
   // The moment must belong to the item, as the panel and prompt name it.

@@ -291,7 +291,18 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
       const rows = await db
         .selectFrom("concept_mastery as m")
         .innerJoin("concept as c", "c.id", "m.concept_id")
-        .select(["c.slug", "c.name", "c.topic", "m.state"])
+        .leftJoin("concept_review as r", (join) =>
+          join
+            .onRef("r.concept_id", "=", "m.concept_id")
+            .onRef("r.user_id", "=", "m.user_id"),
+        )
+        .select([
+          "c.slug",
+          "c.name",
+          "c.topic",
+          "m.state",
+          sql<boolean>`coalesce(r.due <= now(), false)`.as("due"),
+        ])
         .where("m.user_id", "=", userId)
         // As crediting does (S01); see Q-P2-06.
         .where("c.retired_at", "is", null)
@@ -313,6 +324,7 @@ export function kyselyProgress(db: Kysely<DB>): Progress {
           slug: row.slug,
           name: row.name,
           state: row.state,
+          due: row.due,
         });
       }
       return [...byTopic.values()];

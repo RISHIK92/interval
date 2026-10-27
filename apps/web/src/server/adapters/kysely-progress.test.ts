@@ -938,6 +938,34 @@ test("explored concepts come grouped by topic, newest first, and only the user's
       ["Quorum", "practiced"],
       ["Raft", "explored"],
     ]);
+    // P2-W9-S04: due for review once its FSRS card's due date has passed.
+    const card = (conceptId: string, due: string) => ({
+      user_id: userId,
+      concept_id: conceptId,
+      due: new Date(due),
+      stability: 3,
+      difficulty: 5,
+      scheduled_days: 3,
+      learning_steps: 0,
+      reps: 1,
+      lapses: 0,
+      state: 2,
+      last_review: new Date("2026-10-01T00:00:00Z"),
+    });
+    await trx
+      .insertInto("concept_review")
+      .values([
+        card(quorum, "2026-10-04T00:00:00Z"),
+        card(raft, "2099-01-01T00:00:00Z"),
+      ])
+      .execute();
+    const due = await kyselyProgress(trx).concepts(userId);
+    expect(due.flatMap((g) => g.concepts).map((c) => [c.name, c.due])).toEqual([
+      ["Indexes", false],
+      ["Paxos", false],
+      ["Quorum", true],
+      ["Raft", false],
+    ]);
     expect(await kyselyProgress(trx).concepts("someone-else")).toEqual([]);
   });
 });

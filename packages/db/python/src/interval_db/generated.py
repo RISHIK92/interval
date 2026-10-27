@@ -138,6 +138,20 @@ class ConceptMastery(TypedDict):
     updated_at: datetime
 
 
+class ConceptReview(TypedDict):
+    user_id: str
+    concept_id: int
+    due: datetime
+    stability: float
+    difficulty: float
+    scheduled_days: int
+    learning_steps: int
+    reps: int
+    lapses: int
+    state: int
+    last_review: datetime
+
+
 class ContentItem(TypedDict):
     id: int
     source_id: int

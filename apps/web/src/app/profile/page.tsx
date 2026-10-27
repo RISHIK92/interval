@@ -240,6 +240,7 @@ export default async function ProfilePage(props: {
                       <span>{concept.name}</span>
                       <span className="text-sm text-ink-muted">
                         {STATE_WORDS[concept.state]}
+                        {concept.due ? " · Due for review" : ""}
                       </span>
                     </li>
                   ))}

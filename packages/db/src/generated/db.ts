@@ -174,6 +174,20 @@ export interface ConceptMastery {
   user_id: string;
 }
 
+export interface ConceptReview {
+  concept_id: Int8;
+  difficulty: number;
+  due: Timestamp;
+  lapses: number;
+  last_review: Timestamp;
+  learning_steps: number;
+  reps: number;
+  scheduled_days: number;
+  stability: number;
+  state: number;
+  user_id: string;
+}
+
 export interface ContentItem {
   author: string | null;
   canonical_url: string;
@@ -651,6 +665,7 @@ export interface DB {
   concept_edge: ConceptEdge;
   concept_embedding: ConceptEmbedding;
   concept_mastery: ConceptMastery;
+  concept_review: ConceptReview;
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;

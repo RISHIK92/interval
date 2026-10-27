@@ -6,6 +6,7 @@ import {
   type Quizzes,
   quizKey,
 } from "../ports";
+import { fsrsState, rate } from "../reviews";
 
 // The last answer in flight when the clock runs out still counts (Q-P2-14).
 const GRACE = sql.raw(`interval '5 seconds'`);
@@ -60,6 +61,94 @@ const stateOf = (
     else 'explored'
   end)::learner_state`;
 
+// Kysely can't nest transactions: inside one (as the tests run), use it.
+const inTransaction = <T>(
+  db: Kysely<DB>,
+  body: (trx: Kysely<DB>) => Promise<T>,
+): Promise<T> => (db.isTransaction ? body(db) : db.transaction().execute(body));
+
+// P2-W9-S04 (PER-2, Q-P2-16): each live concept the attempt's answered questions test
+// gets one FSRS rating: Good when all its answers were right, Again when any was
+// wrong. Cards are locked in concept order, like mastery's rows.
+async function rateConcepts(
+  trx: Kysely<DB>,
+  userId: string,
+  attemptId: string,
+  now: Date,
+): Promise<void> {
+  const results = await trx
+    .selectFrom("quiz_answer as qa")
+    .innerJoin("question_concept as qc", "qc.question_id", "qa.question_id")
+    .innerJoin("concept as c", "c.id", "qc.concept_id")
+    .select([
+      "qc.concept_id",
+      sql<boolean>`bool_and(qa.correct)`.as("all_right"),
+    ])
+    .where("qa.attempt_id", "=", attemptId)
+    .where("qa.answered_at", "is not", null)
+    .where("c.retired_at", "is", null)
+    .groupBy("qc.concept_id")
+    .orderBy("qc.concept_id")
+    .execute();
+  if (results.length === 0) return;
+  // Two of the user's quizzes finishing at once would both read "no card" for a new
+  // concept: one at a time per user, for this transaction.
+  await sql`select pg_advisory_xact_lock(hashtext(${`concept_review:${userId}`}))`.execute(
+    trx,
+  );
+  const existing = await trx
+    .selectFrom("concept_review")
+    .selectAll()
+    .where("user_id", "=", userId)
+    .where(
+      "concept_id",
+      "in",
+      results.map((r) => r.concept_id),
+    )
+    .orderBy("concept_id")
+    .forUpdate()
+    .execute();
+  const byConcept = new Map(existing.map((r) => [r.concept_id, r]));
+  for (const { concept_id, all_right } of results) {
+    const was = byConcept.get(concept_id);
+    const next = rate(
+      was === undefined
+        ? null
+        : {
+            due: was.due,
+            stability: was.stability,
+            difficulty: was.difficulty,
+            scheduledDays: was.scheduled_days,
+            learningSteps: was.learning_steps,
+            reps: was.reps,
+            lapses: was.lapses,
+            state: fsrsState(was.state),
+            lastReview: was.last_review,
+          },
+      all_right,
+      now,
+    );
+    const row = {
+      due: next.due,
+      stability: next.stability,
+      difficulty: next.difficulty,
+      scheduled_days: next.scheduledDays,
+      learning_steps: next.learningSteps,
+      reps: next.reps,
+      lapses: next.lapses,
+      state: next.state,
+      last_review: next.lastReview,
+    };
+    await trx
+      .insertInto("concept_review")
+      .values({ user_id: userId, concept_id, ...row })
+      .onConflict((oc) =>
+        oc.columns(["user_id", "concept_id"]).doUpdateSet(row),
+      )
+      .execute();
+  }
+}
+
 type Open = {
   question_id: string;
   stem: string;
@@ -90,6 +179,27 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
 
   return {
     start: async (userId, itemId, momentId) => {
+      // Q-P2-16: a card is made by a quiz answer, so a quiz left running past its clock
+      // (the tab closed before the finish) is closed at its own end and rated now.
+      const stale = await db
+        .selectFrom("quiz_attempt")
+        .select("id")
+        .where("user_id", "=", userId)
+        .where("finished_at", "is", null)
+        .where(sql<boolean>`ends_at + ${GRACE} < now()`)
+        .execute();
+      for (const { id } of stale)
+        await inTransaction(db, async (trx) => {
+          const closed = await trx
+            .updateTable("quiz_attempt")
+            .set({ finished_at: sql<Date>`ends_at` })
+            .where("id", "=", id)
+            .where("finished_at", "is", null)
+            .returning("finished_at")
+            .executeTakeFirst();
+          if (closed?.finished_at != null)
+            await rateConcepts(trx, userId, id, closed.finished_at);
+        });
       const running = await db
         .selectFrom("quiz_attempt")
         .select(["id", "ends_at"])
@@ -204,6 +314,9 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             and q.id = qa.question_id
             and a.id = qa.attempt_id and a.user_id = ${userId}
             and now() <= a.ends_at + ${GRACE}
+            -- Not locked: an answer committing while its quiz's finish is rating can
+            -- count toward mastery but not the rating. Only a racing double submit;
+            -- the page finishes after the last answer's redirect.
             and a.finished_at is null
           returning qa.correct, q.correct as key, qa.served_at, qa.answered_at
         ),
@@ -272,14 +385,20 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     },
 
     finish: async (userId, attemptId) => {
-      const finished = await db
-        .updateTable("quiz_attempt")
-        .set({ finished_at: sql<Date>`now()` })
-        .where("id", "=", attemptId)
-        .where("user_id", "=", userId)
-        .where("finished_at", "is", null)
-        .returning("id")
-        .executeTakeFirst();
+      // The finish and its ratings together: a quiz finished is rated exactly once.
+      const finished = await inTransaction(db, async (trx) => {
+        const done = await trx
+          .updateTable("quiz_attempt")
+          .set({ finished_at: sql<Date>`now()` })
+          .where("id", "=", attemptId)
+          .where("user_id", "=", userId)
+          .where("finished_at", "is", null)
+          .returning(["id", "finished_at"])
+          .executeTakeFirst();
+        if (done?.finished_at != null)
+          await rateConcepts(trx, userId, attemptId, done.finished_at);
+        return done;
+      });
       const row = await db
         .selectFrom("quiz_attempt as a")
         .leftJoin("quiz_answer as qa", (join) =>

@@ -178,13 +178,15 @@ test("Profile lists the user's concepts by topic with their states, or says how 
     {
       topic: "distributed-systems",
       concepts: [
-        { slug: "raft", name: "Raft", state: "mastered" },
-        { slug: "paxos", name: "Paxos", state: "explored" },
+        { slug: "raft", name: "Raft", state: "mastered", due: true },
+        { slug: "paxos", name: "Paxos", state: "explored", due: false },
       ],
     },
     {
       topic: "databases",
-      concepts: [{ slug: "mvcc", name: "MVCC", state: "practiced" }],
+      concepts: [
+        { slug: "mvcc", name: "MVCC", state: "practiced", due: false },
+      ],
     },
   ]);
   const html = await page();
@@ -199,5 +201,8 @@ test("Profile lists the user's concepts by topic with their states, or says how 
   // P2-W9-S03: each concept's state in words (§3.1), not colour alone.
   expect(section).toMatch(/Raft[^]*?Mastered[^]*?Paxos[^]*?Explored/);
   expect(section).toMatch(/MVCC[^]*?Practiced/);
+  // P2-W9-S04: a due card says so beside the state, which it doesn't replace.
+  expect(section).toMatch(/Raft[^]*?Mastered · Due for review[^]*?Paxos/);
+  expect(section).not.toMatch(/Paxos[^]*?Explored · Due/);
   expect(explored).toHaveBeenCalledWith("g1");
 });

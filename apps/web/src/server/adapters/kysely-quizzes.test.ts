@@ -742,3 +742,137 @@ test("a wrong first answer is evidence: explored at p = 0 (owner, 2026-10-28)", 
     ]);
   });
 });
+
+// P2-W9-S04 (PER-2, Q-P2-16): finishing a quiz rates each concept it tested, once.
+async function cards(trx: Transaction<DB>, userId: string) {
+  const rows = await trx
+    .selectFrom("concept_review as r")
+    .innerJoin("concept as c", "c.id", "r.concept_id")
+    .select(["c.name", "r.reps", "r.lapses", "r.due", "r.last_review"])
+    .where("r.user_id", "=", userId)
+    .orderBy("c.name")
+    .execute();
+  return rows.map((r) => ({
+    name: r.name,
+    reps: r.reps,
+    lapses: r.lapses,
+    days: Math.round((r.due.getTime() - r.last_review.getTime()) / 86_400_000),
+  }));
+}
+
+test("a finished quiz rates each concept once: any wrong answer is Again", async () => {
+  await inRollback(async (trx, { userId, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const right = await quizzes.start(userId, itemId, raft);
+    if (right === null) throw new Error("no quiz");
+    await answerStem(quizzes, userId, right.attemptId, true);
+    await answerStem(quizzes, userId, right.attemptId, true);
+    served(await quizzes.next(userId, right.attemptId));
+    expect(await cards(trx, userId)).toEqual([]);
+    await quizzes.finish(userId, right.attemptId);
+    const good = await cards(trx, userId);
+    // The retired concept raft-0 also tests gets no card.
+    expect(good.map((c) => [c.name, c.reps, c.lapses])).toEqual([
+      ["raft", 1, 0],
+    ]);
+    expect(good[0]?.days).toBeGreaterThanOrEqual(1);
+    // Finishing again rates nothing more.
+    await quizzes.finish(userId, right.attemptId);
+    expect((await cards(trx, userId))[0]?.reps).toBe(1);
+  });
+});
+
+test("a quiz with a wrong answer schedules the concept sooner", async () => {
+  await inRollback(async (trx, { userId, otherUser, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    for (const [user, wrong] of [
+      [userId, false],
+      [otherUser, true],
+    ] as const) {
+      const started = await quizzes.start(user, itemId, raft);
+      if (started === null) throw new Error("no quiz");
+      await answerStem(quizzes, user, started.attemptId, true);
+      await answerStem(quizzes, user, started.attemptId, !wrong);
+      await quizzes.finish(user, started.attemptId);
+    }
+    const [good] = await cards(trx, userId);
+    const [again] = await cards(trx, otherUser);
+    expect(again?.days).toBeLessThan(good?.days ?? 0);
+  });
+});
+
+test("an attempt never finished rates nothing", async () => {
+  await inRollback(async (trx, { userId, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const started = await quizzes.start(userId, itemId, raft);
+    if (started === null) throw new Error("no quiz");
+    await answerStem(quizzes, userId, started.attemptId, true);
+    expect(await cards(trx, userId)).toEqual([]);
+  });
+});
+
+test("a second quiz re-rates the same card: reps 2, and a wrong answer is a lapse", async () => {
+  await inRollback(async (trx, { userId, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const first = await quizzes.start(userId, itemId, raft);
+    if (first === null) throw new Error("no quiz");
+    await answerStem(quizzes, userId, first.attemptId, true);
+    await quizzes.finish(userId, first.attemptId);
+    const [before] = await trx
+      .selectFrom("concept_review")
+      .select(["stability", "difficulty", "state", "due"])
+      .where("user_id", "=", userId)
+      .execute();
+    // Rated again as if at its due date, so the read-back fields all matter.
+    await trx
+      .updateTable("concept_review")
+      .set({
+        last_review: sql<Date>`last_review - interval '3 days'`,
+        due: sql<Date>`now() - interval '1 minute'`,
+      })
+      .where("user_id", "=", userId)
+      .execute();
+    const second = await quizzes.start(userId, itemId, raft);
+    if (second === null) throw new Error("no quiz");
+    await answerStem(quizzes, userId, second.attemptId, false);
+    await quizzes.finish(userId, second.attemptId);
+    const [after] = await cards(trx, userId);
+    expect([after?.reps, after?.lapses]).toEqual([2, 1]);
+    const [row] = await trx
+      .selectFrom("concept_review")
+      .select(["stability", "difficulty", "state"])
+      .where("user_id", "=", userId)
+      .execute();
+    // A lapse: less stable and harder; with short-term steps off it stays in review.
+    expect(row?.stability).toBeLessThan(before?.stability ?? 0);
+    expect(row?.difficulty).toBeGreaterThan(before?.difficulty ?? 0);
+    expect(row?.state).toBe(before?.state);
+  });
+});
+
+test("a quiz left running past its clock is rated when the user next starts one", async () => {
+  await inRollback(async (trx, { userId, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const left = await quizzes.start(userId, itemId, raft);
+    if (left === null) throw new Error("no quiz");
+    await answerStem(quizzes, userId, left.attemptId, true);
+    await trx
+      .updateTable("quiz_attempt")
+      .set({
+        started_at: sql<Date>`now() - interval '10 minutes'`,
+        ends_at: sql<Date>`now() - interval '9 minutes'`,
+      })
+      .where("id", "=", left.attemptId)
+      .execute();
+    expect(await cards(trx, userId)).toEqual([]);
+    await quizzes.start(userId, itemId, null);
+    expect((await cards(trx, userId)).map((c) => c.reps)).toEqual([1]);
+    const closed = await trx
+      .selectFrom("quiz_attempt")
+      .select(["finished_at", "ends_at"])
+      .where("id", "=", left.attemptId)
+      .executeTakeFirstOrThrow();
+    // Closed at its own end, not when it was noticed.
+    expect(closed.finished_at).toEqual(closed.ends_at);
+  });
+});
