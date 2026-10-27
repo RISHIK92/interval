@@ -38,7 +38,7 @@ export const GOAL_TEXT: Record<Goal, [string, string, Topic]> = {
 
 const isLive = (goal: Goal) => LIVE_GOALS.some((live) => live === goal);
 
-const TOPIC_NAMES: Record<Topic, string> = {
+export const TOPIC_NAMES: Record<Topic, string> = {
   "system-design": "System design",
   databases: "Databases",
   "distributed-systems": "Distributed systems",

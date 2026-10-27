@@ -106,6 +106,10 @@ export interface OutboundLinks {
 // Finishing sections and articles (§5D, C-22, Q-P1-35, P1-W5-S02). Each finish
 // returns whether it changed anything: the first is kept, and only it counts.
 export type FinishMethod = "return_prompt" | "mark_done";
+export type ExploredTopic = {
+  topic: Topic;
+  concepts: { slug: string; name: string }[];
+};
 export interface Progress {
   // The moment must belong to the item, as the panel and prompt name it.
   finishMoment(
@@ -125,6 +129,9 @@ export interface Progress {
     itemId: string,
     momentId: string | null,
   ): Promise<{ articleTitle: string; sectionTitle: string | null } | null>;
+  // Q-P2-04, P2-W7-S02: the concepts the user has evidence for (PER-2), grouped by
+  // topic; the most recently read topic and concept first.
+  explored(userId: string): Promise<ExploredTopic[]>;
   // The section after this one, by order; null after the last.
   nextMoment(
     itemId: string,

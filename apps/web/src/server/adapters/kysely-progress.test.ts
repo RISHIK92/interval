@@ -573,7 +573,7 @@ async function concepts<const N extends readonly string[]>(
     .insertInto("concept")
     .values(
       names.map((name) => ({
-        slug: `mastery-${name}-${randomUUID().slice(0, 8)}`,
+        slug: `mastery-${name.toLowerCase()}-${randomUUID().slice(0, 8)}`,
         name,
         topic: "distributed-systems",
       })),
@@ -867,5 +867,68 @@ test("corrections: the intro can't be overridden by heading; an article's, even 
     expect(await mastery(trx, userId)).toEqual([
       { name: "model", p: 0.1, state: "explored", evidence: 1 },
     ]);
+  });
+});
+
+// Q-P2-04, P2-W7-S02: Profile lists the concepts a user has explored, by topic, the
+// most recently read topic and concept first.
+test("explored concepts come grouped by topic, newest first, and only the user's own", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const [raft, paxos, quorum, retired] = await concepts(trx, [
+      "Raft",
+      "Paxos",
+      "Quorum",
+      "Retired",
+    ]);
+    const indexes = await trx
+      .insertInto("concept")
+      .values({
+        slug: `mastery-indexes-${randomUUID().slice(0, 8)}`,
+        name: "Indexes",
+        topic: "databases",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .updateTable("concept")
+      .set({ retired_at: sql<Date>`now()` })
+      .where("id", "=", retired)
+      .execute();
+    const row = (conceptId: string, at: string) => ({
+      user_id: userId,
+      concept_id: conceptId,
+      probability: 0.1,
+      state: "explored" as const,
+      evidence_count: 1,
+      updated_at: new Date(at),
+    });
+    // Databases holds the newest row, so it comes first; Paxos and Quorum, credited
+    // by one finish, tie and come by name.
+    await trx
+      .insertInto("concept_mastery")
+      .values([
+        row(raft, "2026-10-01T00:00:00Z"),
+        row(quorum, "2026-10-02T00:00:00Z"),
+        row(paxos, "2026-10-02T00:00:00Z"),
+        row(indexes.id, "2026-10-03T00:00:00Z"),
+        row(retired, "2026-10-04T00:00:00Z"),
+      ])
+      .execute();
+    const got = await kyselyProgress(trx).explored(userId);
+    expect(
+      got.map((g) => ({
+        topic: g.topic,
+        names: g.concepts.map((c) => c.name),
+      })),
+    ).toEqual([
+      { topic: "databases", names: ["Indexes"] },
+      { topic: "distributed-systems", names: ["Paxos", "Quorum", "Raft"] },
+    ]);
+    expect(
+      got
+        .flatMap((g) => g.concepts)
+        .every((c) => c.slug.startsWith("mastery-")),
+    ).toBe(true);
+    expect(await kyselyProgress(trx).explored("someone-else")).toEqual([]);
   });
 });

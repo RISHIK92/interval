@@ -1,9 +1,14 @@
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { feedback, preferences, sessionReader } from "../../server/container";
+import {
+  feedback,
+  preferences,
+  progress,
+  sessionReader,
+} from "../../server/container";
 import { parseTheme, THEME_COOKIE, THEMES } from "../../server/theme";
-import { ChoicesFields, GOAL_TEXT } from "../ChoicesFields";
+import { ChoicesFields, GOAL_TEXT, TOPIC_NAMES } from "../ChoicesFields";
 import { setThemeAction } from "../theme/actions";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
@@ -42,9 +47,10 @@ export default async function ProfilePage(props: {
   if (actor === null) redirect("/join");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
-  const [hidden, inferred] = await Promise.all([
+  const [hidden, inferred, explored] = await Promise.all([
     feedback().hiddenSources(actor.userId),
     feedback().inferred(actor.userId),
+    progress().explored(actor.userId),
   ]);
   const { saved, missing } = await props.searchParams;
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
@@ -209,6 +215,29 @@ export default async function ProfilePage(props: {
               Reset inferred interests
             </Button>
           </form>
+        </section>
+      </Card>
+
+      <Card className="p-5">
+        <section className="flex flex-col gap-3">
+          <h2 className="text-section">Concepts you&apos;ve explored</h2>
+          {explored.length === 0 ? (
+            <p className="text-ink-muted">
+              Finish a section or an article to start: the concepts it teaches
+              show up here.
+            </p>
+          ) : (
+            explored.map((group) => (
+              <div key={group.topic}>
+                <h3 className="font-semibold">{TOPIC_NAMES[group.topic]}</h3>
+                <ul className="list-disc pl-5">
+                  {group.concepts.map((concept) => (
+                    <li key={concept.slug}>{concept.name}</li>
+                  ))}
+                </ul>
+              </div>
+            ))
+          )}
         </section>
       </Card>
     </main>

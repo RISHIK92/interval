@@ -37,3 +37,8 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: Q-P2-02 (each new finish counts), D1, Q-P1-35 (the last section's finish finishes the article).
 - Why it matters: an article read section by section credits each section's concepts once per section, then the article's concepts again when the last section completes it. One "Mark article done" credits the article's concepts once. A concept tagged on the article and on n sections gets n + 1 weak bumps one way and 1 the other. Reading still caps at explored and 0.3, so the difference only shows in the probability quizzes later build on.
 - Suggested default: keep it (as built in P2-W7-S01). Section-by-section reading is more evidence; the cap bounds it.
+
+### Q-P2-06 Retired concepts on Profile (P2)
+- Cite: Q-P1-04 (retired concepts are never deleted; tags are migrated by script), Q-P2-04.
+- Why it matters: a concept retired or merged after a user explored it would still be listed, under its old name.
+- Suggested default (as built in P2-W7-S02): hide it, as crediting already skips retired concepts (P2-W7-S01). Folding a merged concept into its target waits for the knowledge map.

@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, Feedback, Preferences } from "../../server/ports";
+import type {
+  Actor,
+  Feedback,
+  Preferences,
+  Progress,
+} from "../../server/ports";
 
 // §5A, Q-P1-36, P1-W4-S08: choices, hidden sources, and what was inferred.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
@@ -15,10 +20,12 @@ const inferred = vi.fn<Feedback["inferred"]>(() =>
     avoidedConcepts: [{ slug: "wal", name: "Write-ahead log" }],
   }),
 );
+const explored = vi.fn<Progress["explored"]>(() => Promise.resolve([]));
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
   feedback: () => ({ hiddenSources, inferred }),
+  progress: () => ({ explored }),
 }));
 const themeCookie = vi.fn<(name: string) => { value: string } | undefined>();
 vi.mock("next/headers", () => ({
@@ -153,4 +160,38 @@ test("appearance offers light, dark and the device's own, this device's marked",
     /aria-pressed="true"[^>]*value="dark"|value="dark"[^>]*aria-pressed="true"/,
   );
   expect(html).toMatch(/<input[^>]*name="back"[^>]*value="\/profile"/);
+});
+
+// Q-P2-04, P2-W7-S02: what reading has explored, by topic (§3.1 learner state).
+test("Profile lists explored concepts by topic, or says how to start", async () => {
+  current.mockResolvedValue(guest);
+  get.mockResolvedValue({
+    goals: [],
+    topics: ["databases"],
+    level: "beginner",
+    breakLength: "3-8",
+  });
+  const empty = await page();
+  expect(empty).toContain("Concepts you&#x27;ve explored");
+  expect(empty).toContain("Finish a section or an article to start");
+  explored.mockResolvedValueOnce([
+    {
+      topic: "distributed-systems",
+      concepts: [
+        { slug: "raft", name: "Raft" },
+        { slug: "paxos", name: "Paxos" },
+      ],
+    },
+    { topic: "databases", concepts: [{ slug: "mvcc", name: "MVCC" }] },
+  ]);
+  const html = await page();
+  // The choices form names every topic too: look only at this section.
+  const section = html.slice(html.indexOf("Concepts you&#x27;ve explored"));
+  expect(section.indexOf("Raft")).toBeLessThan(section.indexOf("Paxos"));
+  expect(section.indexOf("Distributed systems")).toBeGreaterThan(-1);
+  expect(section.indexOf("Distributed systems")).toBeLessThan(
+    section.indexOf("Databases"),
+  );
+  expect(section).toContain("MVCC");
+  expect(explored).toHaveBeenCalledWith("g1");
 });
