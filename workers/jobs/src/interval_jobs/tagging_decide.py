@@ -106,7 +106,12 @@ def decide(
     size: int = SHORTLIST,
 ) -> DecidePass:
     texts = moment_texts(item.full_text, item.moments) if item.full_text else {}
-    sent = [m for m in sorted(item.moments, key=lambda m: m.ordinal) if m.id in texts]
+    # A heading with nothing under it has no text to embed or ask about.
+    sent = [
+        m
+        for m in sorted(item.moments, key=lambda m: m.ordinal)
+        if texts.get(m.id, "").strip()
+    ]
     todo: list[tuple[int | None, DecisionState, str, str]] = []  # id, state, text, hash
     for m in sent:
         text = texts[m.id][:MOMENT_CHARS]

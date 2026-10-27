@@ -183,3 +183,24 @@ def test_a_spent_budget_stops_before_asking() -> None:
     assert isinstance(result, DecidePass)
     assert isinstance(result.refused, OverBudget)
     assert decider.asked == [] and result.moments == {}
+
+
+def test_a_moment_with_no_text_is_neither_embedded_nor_asked() -> None:
+    # Voyage answers 400 to an empty input, which failed the whole item's tagging.
+    voyage, decider = NearWal(), Decider()
+    empty = "Intro paragraph about logs.\nWhy a log\nRecovery\nReplay the log.\n"
+    result = decide(
+        gateway(decider, voyage),
+        "pplx",
+        "voyage-x",
+        item(full_text=empty),
+        GRAPH,
+        VECTORS,
+        {},
+        None,
+        size=2,
+    )
+    assert isinstance(result, DecidePass)
+    assert all(text.strip() for text in voyage.texts)
+    assert set(result.moments) == {10, 12}
+    assert result.current == frozenset({10, 12})
