@@ -31,7 +31,11 @@ def test_openrouter_returns_text_tokens_and_the_reported_cost() -> None:
             },
         )
 
-    llm = OpenRouterClient(client(httpx.MockTransport(handle)), api_key="k")
+    llm = OpenRouterClient(
+        client(httpx.MockTransport(handle)),
+        api_key="k",
+        output_price=lambda _m: Decimal("0.5"),  # under the cap (price_cap.py)
+    )
     got = llm.complete("vendor/model", MESSAGES)
     assert (got.text, got.input_tokens, got.output_tokens) == ("hello", 12, 3)
     assert got.cost_usd == Decimal("0.00042")
@@ -54,6 +58,7 @@ def test_openrouter_failures_are_model_errors(response: httpx.Response) -> None:
         client(httpx.MockTransport(lambda _r: response)),
         api_key="k",
         sleep=lambda _s: None,  # a 429 is waited out first (rate_limited.py)
+        output_price=lambda _m: Decimal("0.5"),
     )
     with pytest.raises(ModelError):
         llm.complete("vendor/model", MESSAGES)

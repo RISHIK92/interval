@@ -10,10 +10,12 @@ import httpx
 from pydantic import BaseModel, ValidationError
 
 from interval_db.generated import AiProvider
+from interval_jobs.adapters.price_cap import refuse_over_cap
 from interval_jobs.adapters.rate_limited import post_until_allowed
 from interval_jobs.ports import Completion, Message, ModelError
 
 URL = "https://openrouter.ai/api/v1/chat/completions"
+MODELS_URL = "https://openrouter.ai/api/v1/models"
 TIMEOUT_S = 120.0
 
 
@@ -36,6 +38,39 @@ class _Response(BaseModel):
     usage: _Usage
 
 
+class _Pricing(BaseModel):
+    completion: Decimal  # USD per token
+
+
+class _Listed(BaseModel):
+    id: str
+    pricing: _Pricing
+
+
+class _Models(BaseModel):
+    data: list[_Listed]
+
+
+class ListedOutputPrices:
+    """Each model's listed output price per million tokens, read once from OpenRouter
+    (for the price cap). Unreadable or unlisted means unknown, and so refused."""
+
+    def __init__(self, http: httpx.Client) -> None:
+        self._http = http
+        self._prices: dict[str, Decimal] | None = None
+
+    def __call__(self, model: str) -> Decimal | None:
+        if self._prices is None:
+            try:
+                response = self._http.get(MODELS_URL, timeout=TIMEOUT_S)
+                response.raise_for_status()
+                listed = _Models.model_validate_json(response.content).data
+                self._prices = {m.id: m.pricing.completion * 1_000_000 for m in listed}
+            except (httpx.HTTPError, ValidationError):
+                return None  # tried again on the next call
+        return self._prices.get(model)
+
+
 class OpenRouterClient:
     provider: AiProvider = "openrouter"
 
@@ -44,12 +79,15 @@ class OpenRouterClient:
         http: httpx.Client,
         api_key: str,
         sleep: Callable[[float], None] = time.sleep,
+        output_price: Callable[[str], Decimal | None] | None = None,
     ) -> None:
         self._http = http
         self._api_key = api_key
         self._sleep = sleep
+        self._output_price = output_price or ListedOutputPrices(http)
 
     def complete(self, model: str, messages: list[Message]) -> Completion:
+        refuse_over_cap("openrouter", model, self._output_price(model))
         try:
             response = post_until_allowed(
                 self._http,

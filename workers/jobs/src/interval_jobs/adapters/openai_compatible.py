@@ -11,6 +11,7 @@ import httpx
 from pydantic import BaseModel, ValidationError
 
 from interval_db.generated import AiProvider
+from interval_jobs.adapters.price_cap import refuse_over_cap
 from interval_jobs.adapters.rate_limited import post_until_allowed
 from interval_jobs.ports import Completion, Message, ModelError
 
@@ -97,6 +98,7 @@ class OpenAiCompatibleClient:
         price = self._spec.prices.get(model)
         if price is None:
             raise ModelError(f"{name} {model}: no price on record for this model")
+        refuse_over_cap(name, model, price[1])
         try:
             response = post_until_allowed(
                 self._http,
