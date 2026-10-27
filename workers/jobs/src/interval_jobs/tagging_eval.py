@@ -11,6 +11,7 @@ accuracy. The default thresholds (F1 0.7, difficulty 0.6) are overnight picks fo
 owner to set (2026-10-26).
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import cast
@@ -19,9 +20,11 @@ import yaml
 
 from interval_db.generated import Difficulty
 from interval_jobs.ai.gateway import AiGateway, OverBudget
+from interval_jobs.concept_vectors import concept_text, text_hash
 from interval_jobs.headings import heading_key
 from interval_jobs.ports import Store, Tags
-from interval_jobs.tagging import DIFFICULTIES, tag_item
+from interval_jobs.tagging import DIFFICULTIES, MOMENT_CHARS, moment_texts, tag_item
+from interval_jobs.tagging_shortlist import alias_hits, recall, shortlist
 
 MIN_F1 = 0.7
 MIN_DIFFICULTY = 0.6
@@ -147,3 +150,119 @@ def run_eval(
         for moment_id, tags in tagged.result.moments.items():
             predicted[_key(url, headings[moment_id])] = tags
     return score(labels, predicted, cost, min_f1, min_difficulty)
+
+
+@dataclass(frozen=True)
+class ShortlistReport:
+    moments: int
+    # variant -> shortlist size -> share of labelled concepts kept
+    recall: dict[str, dict[int, float]]
+    mean_text_hits: float  # concepts per moment found by name or alias
+    cost_usd: Decimal
+
+
+SHORTLIST_SIZES = (10, 15, 20, 25)
+_EMBED_BATCH = 32  # Voyage caps texts and tokens per request
+
+
+def run_shortlist_eval(
+    gateway: AiGateway,
+    model: str,
+    store: Store,
+    labels: list[Label],
+    sizes: tuple[int, ...] = SHORTLIST_SIZES,
+) -> ShortlistReport:
+    """How many labelled concepts each variant of the shortlist keeps (2026-10-27):
+    embeddings alone, plus name and alias hits, plus the article prior. Moments and
+    titles are embedded through the gateway (`model`, the concepts' model); nothing is
+    stored. Missing or stale concept vectors, and labels naming no active concept, are
+    refused: both would only lower recall without saying why."""
+    graph = store.concepts.state()
+    vectors = {slug: v for slug, (_, v) in store.concepts.vectors(model).items()}
+    stored = store.concepts.vectors(model)
+    active = {c.slug: c for c in graph.concepts if not c.retired} if graph else {}
+    stale = [
+        slug
+        for slug, c in active.items()
+        if stored.get(slug, ("",))[0] != text_hash(concept_text(c.name, c.description))
+    ]
+    if graph is None or not vectors or stale:
+        raise EvalError(
+            f"{len(stale) or 'all'} concept vectors missing or stale for {model}: "
+            "run embed-concepts first"
+        )
+    unknown = sorted({s for label in labels for s in label.concepts} - set(active))
+    if unknown:
+        raise EvalError(f"labels name unknown concepts: {', '.join(unknown[:10])}")
+    cases: list[tuple[set[str], str, int]] = []  # labelled, section text, item
+    priors: dict[int, str] = {}
+    for label in labels:
+        item_id = store.tags.find(label.url)
+        item = store.tags.input(item_id) if item_id is not None else None
+        if item is None or item_id is None:
+            raise EvalError(f"labelled item {label.url} is not in this database")
+        texts = moment_texts(item.full_text, item.moments) if item.full_text else {}
+        moment = next(
+            (
+                m
+                for m in item.moments
+                if _key(label.url, m.heading) == _key(label.url, label.moment)
+            ),
+            None,
+        )
+        if moment is None or moment.id not in texts:
+            raise EvalError(f"{label.url}: no text for moment {label.moment!r}")
+        cases.append((set(label.concepts), texts[moment.id][:MOMENT_CHARS], item_id))
+        priors[item_id] = f"{item.title}\n{item.summary or ''}".strip()
+
+    cost = Decimal(0)
+
+    def embedded(texts: list[str]) -> list[list[float]]:
+        nonlocal cost
+        out: list[list[float]] = []
+        for start in range(0, len(texts), _EMBED_BATCH):
+            result = gateway.embed(
+                feature="embeddings",
+                user_id=None,
+                model=model,
+                texts=texts[start : start + _EMBED_BATCH],
+                purpose="document",
+            )
+            if isinstance(result, OverBudget):
+                raise EvalError(f"the {result.scope} AI budget is spent for today")
+            cost += result.usage.cost_usd
+            out.extend(result.vectors)
+        return out
+
+    moments = embedded([text for _, text, _ in cases])
+    prior_ids = sorted(priors)
+    prior_vectors = dict(
+        zip(prior_ids, embedded([priors[i] for i in prior_ids]), strict=True)
+    )
+    variants: dict[str, Callable[[int, int], list[str]]] = {
+        "embeddings": lambda i, size: shortlist(
+            moments[i], None, "", vectors, graph, size=size, prior_size=0
+        ),
+        "embeddings+aliases": lambda i, size: shortlist(
+            moments[i], None, cases[i][1], vectors, graph, size=size, prior_size=0
+        ),
+        "embeddings+aliases+prior": lambda i, size: shortlist(
+            moments[i],
+            prior_vectors[cases[i][2]],
+            cases[i][1],
+            vectors,
+            graph,
+            size=size,
+        ),
+    }
+    report = {
+        name: {
+            size: recall(
+                (labelled, pick(i, size)) for i, (labelled, _, _) in enumerate(cases)
+            )
+            for size in sizes
+        }
+        for name, pick in variants.items()
+    }
+    hits = sum(len(alias_hits(text, graph)) for _, text, _ in cases)
+    return ShortlistReport(len(cases), report, hits / len(cases), cost)

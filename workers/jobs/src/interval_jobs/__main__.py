@@ -36,6 +36,7 @@ from interval_jobs.compose import (
     services,
     stage_units,
 )
+from interval_jobs.concept_vectors import embed_concepts
 from interval_jobs.concepts.draft import DraftError, draft_concepts
 from interval_jobs.concepts.graph import TOPICS, ConceptSeedError, parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
@@ -66,6 +67,7 @@ from interval_jobs.tagging_eval import (
     EvalError,
     parse_labels,
     run_eval,
+    run_shortlist_eval,
 )
 from interval_jobs.tracing import run_span, setup
 
@@ -146,6 +148,19 @@ def main(argv: list[str]) -> None:
     vectors.add_argument("--model", required=True, help="Voyage model id")
     vectors.add_argument("--min-recall", type=float, default=MIN_RECALL)
     vectors.add_argument("--min-pool", type=int, default=MIN_POOL)
+    concept_vectors = commands.add_parser(
+        "embed-concepts",
+        help="embed each active concept for the tagging shortlist (changed ones only)",
+    )
+    concept_vectors.add_argument("--model", required=True, help="Voyage model id")
+    shortlisted = commands.add_parser(
+        "eval-shortlist",
+        help="how many labelled concepts the tagging shortlist keeps (recall@K)",
+    )
+    shortlisted.add_argument("--labels", type=Path, required=True)
+    shortlisted.add_argument(
+        "--model", required=True, help="the concepts' Voyage model"
+    )
     consume = commands.add_parser(
         "consume", help="run the ingestion pipeline's stages until stopped"
     )
@@ -287,6 +302,30 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         print(json.dumps({"model": args.model, **asdict(report)}, default=str))
         if not report.passed:
             sys.exit(1)
+        return
+
+    if args.command == "embed-concepts":
+        with services() as s, httpx.Client() as http:
+            done = embed_concepts(ai_gateway(s.ai, http), s.store, args.model)
+        print(json.dumps(asdict(done), default=str))
+        if done.refused is not None:
+            sys.exit(f"stopped: the {done.refused.scope} AI budget is spent")
+        if done.failed is not None:
+            sys.exit(f"stopped: {done.failed} (the batches before it are kept)")
+        return
+
+    if args.command == "eval-shortlist":
+        try:
+            labels = parse_labels(
+                args.labels.read_text(encoding="utf-8"), str(args.labels)
+            )
+            with services() as s, httpx.Client() as http:
+                shortlist_report = run_shortlist_eval(
+                    ai_gateway(s.ai, http), args.model, s.store, labels
+                )
+        except (OSError, EvalError, ModelError) as error:
+            sys.exit(str(error))
+        print(json.dumps(asdict(shortlist_report), default=str))
         return
 
     if args.command == "eval-embeddings":

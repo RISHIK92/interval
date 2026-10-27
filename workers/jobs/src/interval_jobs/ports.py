@@ -455,6 +455,8 @@ class ConceptSeed:
     description: str | None
     retired: bool
     merged_into: str | None  # slug
+    # Abbreviations and other spellings, matched in text for the tagging shortlist.
+    aliases: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -486,6 +488,15 @@ class Concepts(Protocol):
         """Every concept learned before this one, transitively; retired ones left out
         (a path through one still counts)."""
         ...
+
+    def vectors(self, model: str) -> dict[str, tuple[str, list[float]]]:
+        """Each concept's vector from this model, with the hash of the text embedded
+        (the tagging shortlist, 2026-10-27)."""
+        ...
+
+    def save_vector(
+        self, slug: str, model: str, text_hash: str, vector: list[float]
+    ) -> None: ...
 
 
 @dataclass(frozen=True)

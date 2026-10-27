@@ -105,12 +105,21 @@ class Concept(TypedDict):
     created_at: datetime
     retired_at: datetime | None
     merged_into: int | None
+    aliases: list[str]
 
 
 class ConceptEdge(TypedDict):
     from_id: int
     to_id: int
     type: ConceptEdgeType
+
+
+class ConceptEmbedding(TypedDict):
+    concept_id: int
+    model: str
+    text_hash: str
+    embedding: str
+    embedded_at: datetime
 
 
 class ContentItem(TypedDict):

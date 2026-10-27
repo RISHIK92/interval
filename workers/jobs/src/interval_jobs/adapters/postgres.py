@@ -911,7 +911,9 @@ class PostgresConcepts:
             return None
         version: int = row[0]
         concepts = [
-            ConceptSeed(slug, name, topic, description, retired, merged_into)
+            ConceptSeed(
+                slug, name, topic, description, retired, merged_into, tuple(aliases)
+            )
             for (
                 slug,
                 name,
@@ -919,10 +921,11 @@ class PostgresConcepts:
                 description,
                 retired,
                 merged_into,
+                aliases,
             ) in self._conn.execute(
                 """
                 select c.slug, c.name, c.topic, c.description, c.retired_at is not null,
-                       m.slug
+                       m.slug, c.aliases
                 from concept c left join concept m on m.id = c.merged_into
                 order by c.slug
                 """
@@ -947,13 +950,15 @@ class PostgresConcepts:
             cur.execute("lock table graph_version in exclusive mode")
             cur.executemany(
                 """
-                insert into concept (slug, name, topic, description, retired_at)
-                values (%(slug)s, %(name)s, %(topic)s, %(description)s,
+                insert into concept (slug, name, topic, description, aliases,
+                                     retired_at)
+                values (%(slug)s, %(name)s, %(topic)s, %(description)s, %(aliases)s,
                         case when %(retired)s then now() end)
                 on conflict (slug) do update
                   set name = excluded.name,
                       topic = excluded.topic,
                       description = excluded.description,
+                      aliases = excluded.aliases,
                       -- Keep the first retirement time; clear it on reactivation.
                       retired_at = case
                         when %(retired)s then coalesce(concept.retired_at, now())
@@ -967,6 +972,7 @@ class PostgresConcepts:
                         "name": c.name,
                         "topic": c.topic,
                         "description": c.description,
+                        "aliases": list(c.aliases),
                         "retired": c.retired,
                     }
                     for c in graph.concepts
@@ -1001,17 +1007,49 @@ class PostgresConcepts:
                 (graph.version,),
             )
 
+    def vectors(self, model: str) -> dict[str, tuple[str, list[float]]]:
+        rows = self._conn.execute(
+            "select c.slug, e.text_hash, e.embedding::text from concept_embedding e "
+            "join concept c on c.id = e.concept_id where e.model = %s",
+            (model,),
+        ).fetchall()
+        return {
+            str(r[0]): (str(r[1]), [float(x) for x in str(r[2]).strip("[]").split(",")])
+            for r in rows
+        }
+
+    def save_vector(
+        self, slug: str, model: str, text_hash: str, vector: list[float]
+    ) -> None:
+        saved = self._conn.execute(
+            """
+            insert into concept_embedding (concept_id, model, text_hash, embedding)
+            select id, %s, %s, %s::vector from concept where slug = %s
+            on conflict (concept_id, model) do update
+              set text_hash = excluded.text_hash, embedding = excluded.embedding,
+                  embedded_at = now()
+            """,
+            (model, text_hash, _vector(vector), slug),
+        )
+        if saved.rowcount != 1:
+            raise ValueError(f"no concept {slug}")
+
     def get(self, slug: str) -> ConceptSeed | None:
         row = self._conn.execute(
             """
             select c.slug, c.name, c.topic, c.description, c.retired_at is not null,
-                   m.slug
+                   m.slug, c.aliases
             from concept c left join concept m on m.id = c.merged_into
             where c.slug = %s
             """,
             (slug,),
         ).fetchone()
-        return None if row is None else ConceptSeed(*row)
+        if row is None:
+            return None
+        slug_, name, topic, description, retired, merged_into, aliases = row
+        return ConceptSeed(
+            slug_, name, topic, description, retired, merged_into, tuple(aliases)
+        )
 
     def prerequisites(self, slug: str) -> set[str]:
         rows = self._conn.execute(

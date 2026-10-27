@@ -33,6 +33,7 @@ _KEYS = frozenset(
         "applied_in",
         "retired",
         "merged_into",
+        "aliases",
     }
 )
 _EDGE_LISTS: dict[str, tuple[ConceptEdgeType, Literal["in", "out"]]] = {
@@ -70,6 +71,25 @@ def _slugs(fields: dict[str, object], key: str, where: str) -> list[str]:
     if not all(isinstance(v, str) for v in items):
         raise ConceptSeedError(f"{where}: {key} must be a list of slugs")
     return [str(v) for v in items]
+
+
+_MAX_ALIAS = 100
+
+
+def _aliases(fields: dict[str, object], name: str, where: str) -> tuple[str, ...]:
+    value = fields.get("aliases", [])
+    if not isinstance(value, list):
+        raise ConceptSeedError(f"{where}: aliases must be a list of text")
+    items = cast(list[object], value)
+    if not all(isinstance(v, str) and v.strip() for v in items):
+        raise ConceptSeedError(f"{where}: aliases must be a list of non-empty text")
+    aliases = tuple(str(v).strip() for v in items)
+    if any(len(a) > _MAX_ALIAS for a in aliases):
+        raise ConceptSeedError(f"{where}: aliases are at most {_MAX_ALIAS} characters")
+    folded = [a.casefold() for a in (name, *aliases)]
+    if len(set(folded)) != len(folded):
+        raise ConceptSeedError(f"{where}: an alias repeats the name or another alias")
+    return aliases
 
 
 def _concept(
@@ -110,6 +130,7 @@ def _concept(
         description=description,
         retired=retired or merged_into is not None,
         merged_into=merged_into,
+        aliases=_aliases(fields, name, where),
     )
     edges: list[tuple[str, ConceptEdge]] = []
     for key, (edge_type, direction) in _EDGE_LISTS.items():

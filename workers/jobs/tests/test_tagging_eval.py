@@ -5,12 +5,21 @@ from decimal import Decimal
 
 import pytest
 
+from interval_db.generated import AiProvider
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore
 from interval_jobs.ai.gateway import AiGateway
+from interval_jobs.concept_vectors import text_hash
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
-from interval_jobs.ports import FeedEntry, MomentRow, Tags
-from interval_jobs.tagging_eval import EvalError, Label, parse_labels, run_eval, score
+from interval_jobs.ports import EmbeddingPurpose, Embeddings, FeedEntry, MomentRow, Tags
+from interval_jobs.tagging_eval import (
+    EvalError,
+    Label,
+    parse_labels,
+    run_eval,
+    run_shortlist_eval,
+    score,
+)
 
 from .test_tagging import NoEmbeddings, ScriptedLlm
 
@@ -100,3 +109,76 @@ def test_the_eval_tags_through_the_gateway_and_stores_nothing() -> None:
     assert (report.f1, report.difficulty_accuracy, report.passed) == (1.0, 1.0, True)
     assert report.cost_usd == Decimal("0.002")
     assert store.tags.version(item) is None
+
+
+class FlatVoyage:
+    """Every text lands on the first axis: only text hits and the cap tell sections
+    apart."""
+
+    provider: AiProvider = "voyage"
+
+    def embed(
+        self, model: str, texts: list[str], purpose: EmbeddingPurpose
+    ) -> Embeddings:
+        return Embeddings([[1.0, 0.0] for _ in texts], 10, Decimal("0.0001"))
+
+
+def test_shortlist_recall_is_measured_per_variant_and_size() -> None:
+    store = InMemoryStore()
+    sync_concepts(
+        store,
+        parse_concepts(
+            "version: 1\nconcepts:\n"
+            "  - {slug: a, name: Alpha, topic: backend}\n"
+            "  - {slug: c, name: Gamma, topic: backend, aliases: [gam]}\n",
+            "c.yaml",
+        ),
+    )
+    store.concepts.save_vector("a", "v", text_hash("Alpha"), [1.0, 0.0])
+    store.concepts.save_vector("c", "v", text_hash("Gamma"), [0.0, 1.0])
+    sid = store.sources.upsert(
+        name="s",
+        feed_url="https://s.test/f",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    store.sources.set_moments_enabled(sid, True)
+    entry = FeedEntry(
+        guid="g",
+        link=URL,
+        title="T",
+        author=None,
+        published_at=None,
+        updated_at=None,
+        summary=None,
+    )
+    item = store.items.upsert_from_feed(sid, entry, keep_excerpt=False)
+    store.items.store_full_text(item, "intro\nH\nthe gam part")
+    store.moments.replace(
+        item,
+        [
+            MomentRow(0, "T", 1, URL, "page_top"),
+            MomentRow(1, "H", 1, URL + "#h", "anchor"),
+        ],
+    )
+    gateway = AiGateway(InMemoryAi(store.users), ScriptedLlm({}), FlatVoyage())
+    labels = [
+        Label(URL, None, "beginner", frozenset({"a"})),
+        Label(URL, "H", "advanced", frozenset({"c"})),
+    ]
+    report = run_shortlist_eval(gateway, "v", store, labels, sizes=(1, 2))
+    # Embeddings alone, one candidate: both sections get "a"; "c" is missed.
+    assert report.recall["embeddings"] == {1: 0.5, 2: 1.0}
+    # The alias "gam" in section H puts "c" first there.
+    assert report.recall["embeddings+aliases"] == {1: 1.0, 2: 1.0}
+    assert report.recall["embeddings+aliases+prior"] == {1: 1.0, 2: 1.0}
+    assert report.moments == 2
+    assert report.mean_text_hits == 0.5  # "gam" in H, nothing in the intro
+    # A concept without a current vector, or a label naming no concept, is refused.
+    with pytest.raises(EvalError, match="unknown concept"):
+        run_shortlist_eval(
+            gateway, "v", store, [Label(URL, None, "beginner", frozenset({"zz"}))]
+        )
+    store.concepts.save_vector("c", "v", "stale", [0.0, 1.0])
+    with pytest.raises(EvalError, match="embed-concepts"):
+        run_shortlist_eval(gateway, "v", store, labels, sizes=(1,))

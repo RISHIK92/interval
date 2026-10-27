@@ -778,6 +778,17 @@ class InMemoryValidators:
 class InMemoryConcepts:
     def __init__(self) -> None:
         self.graph: ConceptGraph | None = None
+        self._vectors: dict[tuple[str, str], tuple[str, list[float]]] = {}
+
+    def vectors(self, model: str) -> dict[str, tuple[str, list[float]]]:
+        return {slug: v for (slug, m), v in self._vectors.items() if m == model}
+
+    def save_vector(
+        self, slug: str, model: str, text_hash: str, vector: list[float]
+    ) -> None:
+        if self.get(slug) is None:
+            raise ValueError(f"no concept {slug}")
+        self._vectors[(slug, model)] = (text_hash, vector)
 
     def state(self) -> ConceptGraph | None:
         return self.graph

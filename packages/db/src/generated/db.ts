@@ -130,6 +130,7 @@ export interface AuthVerification {
 }
 
 export interface Concept {
+  aliases: Generated<string[]>;
   created_at: Generated<Timestamp>;
   description: string | null;
   id: Generated<Int8>;
@@ -144,6 +145,14 @@ export interface ConceptEdge {
   from_id: Int8;
   to_id: Int8;
   type: ConceptEdgeType;
+}
+
+export interface ConceptEmbedding {
+  concept_id: Int8;
+  embedded_at: Generated<Timestamp>;
+  embedding: string;
+  model: string;
+  text_hash: string;
 }
 
 export interface ContentItem {
@@ -499,6 +508,7 @@ export interface DB {
   auth_verification: AuthVerification;
   concept: Concept;
   concept_edge: ConceptEdge;
+  concept_embedding: ConceptEmbedding;
   content_item: ContentItem;
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;

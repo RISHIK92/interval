@@ -88,3 +88,34 @@ def test_merged_into_implies_retired_and_must_name_a_live_concept() -> None:
 def test_the_repo_seed_file_is_valid() -> None:
     # Whatever the owner puts in it, the repo's file must load.
     parse_concepts(SEED.read_text(encoding="utf-8"), str(SEED))
+
+
+def test_aliases_are_read_trimmed_and_checked() -> None:
+    # Abbreviations and other spellings, for the tagging shortlist (2026-10-27).
+    graph = parse_concepts(
+        seed(
+            "  - {slug: write-ahead-log, name: Write-ahead log, topic: databases, "
+            "aliases: [' WAL ', write ahead log]}\n"
+        ),
+        "c.yaml",
+    )
+    assert graph.concepts[0].aliases == ("WAL", "write ahead log")
+    assert parse_concepts(seed(TWO), "c.yaml").concepts[0].aliases == ()
+    for bad in ("aliases: WAL", "aliases: ['']", "aliases: [1]"):
+        with pytest.raises(ConceptSeedError, match="aliases"):
+            parse_concepts(
+                seed(f"  - {{slug: wal, name: WAL, topic: databases, {bad}}}\n"),
+                "c.yaml",
+            )
+
+
+def test_a_repeated_alias_or_one_equal_to_the_name_is_refused() -> None:
+    for bad in ("aliases: [WAL, wal]", "aliases: [Write-ahead log]"):
+        with pytest.raises(ConceptSeedError, match="alias"):
+            parse_concepts(
+                seed(
+                    "  - {slug: write-ahead-log, name: Write-ahead log, "
+                    f"topic: databases, {bad}}}\n"
+                ),
+                "c.yaml",
+            )

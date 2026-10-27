@@ -1422,6 +1422,41 @@ CHAIN = """
 """
 
 
+def test_a_concepts_aliases_are_stored_and_read_back(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(
+        s,
+        graph(
+            1,
+            "  - {slug: cg-wal, name: Write-ahead log, topic: databases, "
+            "aliases: [WAL, write ahead log]}\n",
+        ),
+    )
+    state = s.concepts.state()
+    assert state is not None
+    assert state.concepts[0].aliases == ("WAL", "write ahead log")
+    found = s.concepts.get("cg-wal")
+    assert found is not None and found.aliases == ("WAL", "write ahead log")
+
+
+def test_concept_vectors_are_stored_per_model_with_their_texts_hash(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(s, graph(1, CHAIN))
+    vector = [0.0] * 1023 + [1.0]
+    s.concepts.save_vector("cg-lag", "voyage-x", "h1", vector)
+    s.concepts.save_vector("cg-lag", "voyage-x", "h2", vector)  # the text changed
+    assert s.concepts.vectors("voyage-x") == {"cg-lag": ("h2", vector)}
+    assert s.concepts.vectors("other-model") == {}
+    with pytest.raises(ValueError, match="no concept"):
+        s.concepts.save_vector("cg-nobody", "voyage-x", "h", vector)
+
+
 def test_a_loaded_graph_answers_recursive_prerequisites(
     store: tuple[Store, Probe],
 ) -> None:
