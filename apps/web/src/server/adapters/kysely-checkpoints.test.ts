@@ -518,3 +518,26 @@ test("a broken link doesn't hold a checkpoint back; a paused path doesn't start 
     expect(await quizzes.startCheckpoint(userId, first)).toBeNull();
   });
 });
+
+test("checkpoints follow the user's copy: a skipped section has none, a moved one opens first", async () => {
+  await inRollback(async (trx, { userId, first, second, m1, m2 }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const paths = kyselyPaths(trx);
+    await finish(trx, userId, m1);
+    await finish(trx, userId, m2);
+    // Section 2 moved ahead: open, and section 1 now waits for it.
+    await paths.moveSection(userId, second, "up");
+    expect(await quizzes.startCheckpoint(userId, first)).toBeNull();
+    const two = await quizzes.startCheckpoint(userId, second);
+    expect(two?.firstTime).toBe(true);
+    await take(trx, userId, two?.attemptId ?? "", () => true);
+    await quizzes.finish(userId, two?.attemptId ?? "");
+    // Skipped: no checkpoint, until it's unskipped.
+    await paths.skipSection(userId, first);
+    expect(await quizzes.startCheckpoint(userId, first)).toBeNull();
+    await paths.unskipSection(userId, first);
+    expect(await quizzes.startCheckpoint(userId, first)).toMatchObject({
+      firstTime: true,
+    });
+  });
+});

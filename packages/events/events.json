@@ -107,6 +107,16 @@
       "description": "A user started (or resumed) a topic path, making it their active one (P2-W10-S03, Q-P2-27, Q-P2-28).",
       "props": { "path_id": "id" }
     },
+    "path_paused": {
+      "version": 1,
+      "description": "A user's active path was paused: by them, or by their starting another (P2-W10-S05, Q-P2-23, Q-P2-28).",
+      "props": { "path_id": "id", "cause": ["user", "started_other"] }
+    },
+    "path_section_skipped": {
+      "version": 1,
+      "description": "A user skipped a section of their path: no practiced credit, the next sections open (P2-W10-S05, Q-P2-23, Q-P2-28).",
+      "props": { "path_id": "id", "section_id": "id" }
+    },
     "checkpoint_started": {
       "version": 1,
       "description": "A checkpoint on a path section started, once per attempt (P2-W10-S04, Q-P2-26, Q-P2-28).",

@@ -659,6 +659,22 @@ class UserPath(TypedDict):
     updated_at: datetime
 
 
+class UserPathSection(TypedDict):
+    user_id: str
+    path_id: int
+    section_id: int
+    ordinal: int
+    skipped_at: datetime | None
+    unskipped_at: datetime | None
+
+
+class UserPathSession(TypedDict):
+    user_id: str
+    section_id: int
+    ordinal: int
+    moment_id: int
+
+
 class UserPreferences(TypedDict):
     user_id: str
     topics: list[Topic]

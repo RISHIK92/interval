@@ -14,6 +14,7 @@ import {
   readingsDone,
   sectionOpen,
   sectionPassed,
+  skipped,
 } from "./checkpoints";
 
 // The last answer in flight when the clock runs out still counts (Q-P2-14).
@@ -409,7 +410,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             )
           ),
           pick as (
-            select id from (${checkpointQuestions(sql`${section}`)}) cq
+            select id from (${checkpointQuestions(userId, sql`${section}`)}) cq
             where id not in (
               select question_id from quiz_answer where attempt_id = ${attemptId}
             )
@@ -776,7 +777,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           (user_id, path_section_id, checkpoint_size, ends_at)
         select ${userId}, s.id,
                least(${CHECKPOINT_SIZE},
-                 (select count(*) from (${checkpointQuestions(sql`s.id`)}) cq)),
+                 (select count(*) from (${checkpointQuestions(userId, sql`s.id`)}) cq)),
                now() + ${DURATION}
         from path_section s
         join path p on p.id = s.path_id and p.status = 'live'
@@ -786,7 +787,8 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           and ${sectionOpen(userId, sql`s.id`)}
           and ${readingsDone(userId, sql`s.id`)}
           and not ${sectionPassed(userId, sql`s.id`)}
-          and exists (${checkpointQuestions(sql`s.id`)})
+          and not ${skipped(userId, sql`s.id`)}
+          and exists (${checkpointQuestions(userId, sql`s.id`)})
         on conflict (user_id, path_section_id)
           where path_section_id is not null and finished_at is null
         do nothing

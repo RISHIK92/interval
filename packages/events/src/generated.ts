@@ -17,6 +17,8 @@ export const EVENT_NAMES = [
   "note_saved",
   "onboarding_completed",
   "outbound_click",
+  "path_paused",
+  "path_section_skipped",
   "path_started",
   "pwa_installed",
   "question_flagged",
@@ -46,6 +48,8 @@ export const EVENT_VERSIONS = {
   note_saved: 1,
   onboarding_completed: 1,
   outbound_click: 1,
+  path_paused: 1,
+  path_section_skipped: 1,
   path_started: 1,
   pwa_installed: 1,
   question_flagged: 1,
@@ -114,6 +118,14 @@ export const propsSchemas = {
   outbound_click: z.strictObject({
     link_type: z.enum(["anchor", "text_fragment", "page_top", "article"]),
     target: z.enum(["section", "original"]),
+  }),
+  path_paused: z.strictObject({
+    path_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    cause: z.enum(["user", "started_other"]),
+  }),
+  path_section_skipped: z.strictObject({
+    path_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    section_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   path_started: z.strictObject({
     path_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -261,6 +273,18 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("outbound_click"),
     version: z.literal(1),
     props: propsSchemas.outbound_click,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("path_paused"),
+    version: z.literal(1),
+    props: propsSchemas.path_paused,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("path_section_skipped"),
+    version: z.literal(1),
+    props: propsSchemas.path_section_skipped,
   }),
   z.strictObject({
     ...base,

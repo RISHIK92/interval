@@ -19,10 +19,11 @@ const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
   }),
 );
 const path = vi.fn<Paths["path"]>();
+const alternatives = vi.fn<Paths["alternatives"]>(() => Promise.resolve([]));
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
-  paths: () => ({ path }),
+  paths: () => ({ path, alternatives }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -62,6 +63,9 @@ const timeline: PathTimeline = {
       checkpoint: "reading",
       size: 5,
       passMark: 4,
+      skipped: false,
+      warning: null,
+      holdsBack: true,
       readings: [
         {
           ...reading,
@@ -70,6 +74,7 @@ const timeline: PathTimeline = {
           sectionTitle: "Leaders",
           frameable: true,
           finished: true,
+          ordinal: 0,
         },
         {
           ...reading,
@@ -78,6 +83,7 @@ const timeline: PathTimeline = {
           sectionTitle: "Followers",
           frameable: false,
           finished: false,
+          ordinal: 1,
         },
       ],
     },
@@ -88,6 +94,9 @@ const timeline: PathTimeline = {
       checkpoint: "locked",
       size: 2,
       passMark: 1,
+      skipped: false,
+      warning: null,
+      holdsBack: true,
       readings: [
         {
           ...reading,
@@ -96,6 +105,7 @@ const timeline: PathTimeline = {
           sectionTitle: "Majorities",
           frameable: true,
           finished: false,
+          ordinal: 0,
         },
       ],
     },
@@ -202,4 +212,85 @@ test("an unknown path is not found; bad ids go to the list", async () => {
   path.mockResolvedValueOnce(null);
   await expect(page()).rejects.toThrow("notFound");
   await expect(page({}, "x")).rejects.toThrow("redirect:/paths");
+});
+
+// P2-W10-S05 (C-25, Q-P2-23): Edit mode on the user's own copy.
+test("Edit shows its controls only to a follower of a live path", async () => {
+  current.mockResolvedValue(user);
+  path.mockResolvedValue(timeline);
+  const view = await page();
+  expect(view).toContain('href="/paths/6?edit=1"');
+  expect(view).not.toContain("Skip section");
+  const html = await page({ edit: "1" });
+  expect(html).toContain("Done editing");
+  expect(html).toContain('name="edit" value="pause"');
+  // No Up on the first section, no Down on the last.
+  expect(html).not.toContain(
+    'aria-label="Move Leader-follower replication up"',
+  );
+  expect(html).toContain('aria-label="Move Leader-follower replication down"');
+  expect(html).toContain('aria-label="Move Quorums up"');
+  expect(html).not.toContain('aria-label="Move Quorums down"');
+  // Skip asks first; a finished reading has no Swap.
+  expect(html).toContain('popover="auto"');
+  expect(html).toContain("Skip Leader-follower replication?");
+  expect(html).toContain(
+    'aria-label="Skip section Leader-follower replication"',
+  );
+  expect(html).toContain('aria-label="Swap Followers"');
+  expect(html).not.toContain('aria-label="Swap Leaders"');
+  for (const other of [
+    { ...timeline, mine: null },
+    { ...timeline, retired: true, mine: "paused" as const },
+  ]) {
+    path.mockResolvedValueOnce(other);
+    const shown = await page({ edit: "1" });
+    expect(shown).not.toContain("Edit path");
+    expect(shown).not.toContain("Skip section");
+  }
+});
+
+test("a skipped section can be unskipped; a moved one is flagged; swap lists alternatives", async () => {
+  current.mockResolvedValue(user);
+  const [one, two] = timeline.sections;
+  if (!one || !two) throw new Error("fixture");
+  path.mockResolvedValue({
+    ...timeline,
+    sections: [
+      {
+        ...two,
+        open: true,
+        checkpoint: "reading",
+        warning: ["Leader-follower replication"],
+      },
+      { ...one, skipped: true, checkpoint: "skipped" },
+    ],
+  });
+  alternatives.mockResolvedValueOnce([
+    {
+      momentId: "905",
+      sectionTitle: "Read quorums",
+      articleTitle: "Dynamo",
+      sourceName: "Pub",
+      minutes: 6,
+    },
+  ]);
+  const html = await page({ edit: "1", swap: "60.1" });
+  expect(html).toContain('aria-label="Swap Followers for"');
+  expect(html).toContain('aria-label="Use this: Read quorums"');
+  expect(alternatives).toHaveBeenCalledWith("u1", "60", 1);
+  expect(html).toContain(
+    "Moved ahead of Leader-follower replication, which this path teaches first.",
+  );
+  expect(html).toContain("Skipped · no checkpoint");
+  expect(html).toContain('aria-label="Unskip Leader-follower replication"');
+  expect(html).toMatch(
+    /name="edit" value="swap"[^]*?name="sectionId" value="60"[^]*?name="ordinal" value="1"[^]*?name="momentId" value="905"[^]*?Use this/,
+  );
+  // A bad swap key lists nothing.
+  alternatives.mockClear();
+  await page({ edit: "1", swap: "x" });
+  // Past a smallint: no session, and no query that would fail.
+  await page({ edit: "1", swap: "60.40000" });
+  expect(alternatives).not.toHaveBeenCalled();
 });

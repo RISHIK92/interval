@@ -2022,3 +2022,41 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Pages: Take the checkpoint on the path page; the quiz page ("Checkpoint · 60s", "Pass 4 of 5 to unlock …", Exit goes back to the path); results (Passed: … unlocked / Not yet: 4 of 5 needed, what's in review now, Try again). Events `checkpoint_started` and `checkpoint_finished` (instead of quiz_started and quiz_finished for checkpoints); `quiz_return.sql` counts checkpoint takers; recalibration takes Test 60s answers only.
 - Tests: `kysely-checkpoints.test.ts` (9), plus page and action tests. `pnpm check` passes (25/25).
 - Reviewer: the stored pass (above), quiz_return, calibration, the missing tests (broken link, paused path, a pass surviving deletes). Noted for S06 (Q-P2-28): a checkpoint closed at its clock emits no `checkpoint_finished`. Not tested: two concurrent starts racing into the unique index (the `on conflict` branch). Not seen in Chrome: still no live path.
+
+### 2026-10-28 — P2-W10-S05 (editing your path, C-25, §5F, Q-P2-23, Q-P2-28)
+- Migration `20261028170000_user_path_edits.sql`:
+  - `user_path_section` holds the user's order and skips. The first move or skip copies every section. Its place constraint is deferred, so a move swaps two places in one transaction.
+  - `user_path_session` holds swapped sessions. A deleted moment cascades, so the session falls back to the approved one. The approved path never changes.
+- `adapters/checkpoints.ts` now reads the user's copy:
+  - `sessions`: a swapped moment while its rights allow it, else the approved one.
+  - `place`, `skipped` and `everSkipped`.
+  - `sectionOpen`: every earlier section in the user's order is passed or was skipped.
+  - `checkpointQuestions` and `readingsDone` use the user's sessions.
+  - S04's checkpoints follow all of this, and `startCheckpoint` refuses a skipped section.
+- `Paths`:
+  - `start` returns `{firstTime, paused}`;
+  - `pause`, `moveSection`, `skipSection`, `unskipSection`;
+  - `alternatives`: the approved moment first while swapped away, then up to 5 others on the section's live concepts (the tag override counts), rights allowing and link working, for an unfinished reading only;
+  - `swapSession`.
+  - Every edit runs on a live path the user follows, under the same per-user lock as start.
+- The timeline follows the user's order. It flags "Moved ahead of …, which this path teaches first" and shows "Skipped · no checkpoint".
+- Path page:
+  - Edit path (`?edit=1`) for a follower of a live path: Pause, ↑/↓ (none at the ends), Skip section (a popover asks first), Unskip, and Swap (`&swap=<section>.<ordinal>`) with its list.
+  - "Next" leaves skipped sections out.
+- `editPathAction` validates input with a zod discriminated union.
+- Events: `path_paused` (cause `user`, or `started_other` from Start) and `path_section_skipped`.
+- Owner: unskip is allowed. It brings the checkpoint back, and the sections the skip opened stay open (Q-P2-23). Implementation defaults are recorded there too.
+- Tests: kysely-paths (pause, move with the deferred constraint checked, skip and unskip, swap and swap back, fallback on delete and on lowered rights), kysely-checkpoints (a reordered section and a skipped one), and the page and action tests. `pnpm check` passes (25/25).
+- Reviewer fixed:
+  - `?swap=` ordinals over a smallint;
+  - the Locked label naming an unskipped section (`holdsBack`);
+  - no way to swap back;
+  - the rights fallback;
+  - the deferred constraint never being checked;
+  - accessible names (WCAG 2.5.3) and focus in the skip popover.
+- Reviewer, not fixed:
+  - `firstTime` is also true on a resume, as in S03;
+  - a skip or swap during a running checkpoint (harmless: a pass still counts);
+  - "to unlock X" when X is already open after a skip;
+  - the copy tables don't enforce that a section belongs to its path, and swaps aren't tied to `user_path` (only the adapter writes them).
+- Not seen in Chrome: no path is live.

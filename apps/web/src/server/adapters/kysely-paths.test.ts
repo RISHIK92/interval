@@ -198,16 +198,26 @@ test("live paths are listed with their size and the user's status", async () => 
 test("starting a path makes it active and pauses the other", async () => {
   await inRollback(async (trx, { userId, live, other, draft }) => {
     const paths = kyselyPaths(trx);
-    expect(await paths.start(userId, live)).toBe(true);
-    expect(await paths.start(userId, live)).toBe(false);
-    expect(await paths.start(userId, other)).toBe(true);
+    expect(await paths.start(userId, live)).toEqual({
+      firstTime: true,
+      paused: null,
+    });
+    expect(await paths.start(userId, live)).toEqual({
+      firstTime: false,
+      paused: null,
+    });
+    // It reports the path it paused (the continuity metric counts it, Q-P2-28).
+    expect(await paths.start(userId, other)).toEqual({
+      firstTime: true,
+      paused: live,
+    });
     const mine = Object.fromEntries(
       (await paths.live(userId)).map((p) => [p.pathId, p.mine]),
     );
     expect(mine[live]).toBe("paused");
     expect(mine[other]).toBe("active");
     // Resuming a paused path makes it active again.
-    expect(await paths.start(userId, live)).toBe(true);
+    expect(await paths.start(userId, live)).toMatchObject({ firstTime: true });
     expect(await paths.start(userId, draft)).toBeNull();
   });
 });
@@ -294,5 +304,266 @@ test("a draft isn't readable; a retired path stays, read-only, for those who fol
     ).toBe(false);
     // And it can't be resumed.
     expect(await paths.start(userId, live)).toBeNull();
+  });
+});
+
+// P2-W10-S05 (C-25, Q-P2-23): edits to the user's own copy; the approved path never
+// changes.
+async function sectionsOf(
+  trx: Transaction<DB>,
+  userId: string,
+  pathId: string,
+): Promise<[string, string]> {
+  const timeline = await kyselyPaths(trx).path(userId, pathId);
+  const [one, two] = timeline?.sections ?? [];
+  if (!one || !two) throw new Error("seed");
+  return [one.sectionId, two.sectionId];
+}
+
+test("pause pauses the active path once", async () => {
+  await inRollback(async (trx, { userId, live }) => {
+    const paths = kyselyPaths(trx);
+    expect(await paths.pause(userId, live)).toBe(false);
+    await paths.start(userId, live);
+    expect(await paths.pause(userId, live)).toBe(true);
+    expect(await paths.pause(userId, live)).toBe(false);
+    expect((await paths.path(userId, live))?.mine).toBe("paused");
+  });
+});
+
+test("moving a section reorders the user's copy, flags it, and leaves the approved path", async () => {
+  await inRollback(async (trx, { userId, live }) => {
+    const paths = kyselyPaths(trx);
+    const [one, two] = await sectionsOf(trx, userId, live);
+    // Not on a path the user doesn't follow.
+    expect(await paths.moveSection(userId, two, "up")).toBeNull();
+    await paths.start(userId, live);
+    expect(await paths.moveSection(userId, one, "up")).toBeNull();
+    expect(await paths.moveSection(userId, two, "up")).toBe(live);
+    // The deferred place constraint holds at what would be the commit.
+    await sql`set constraints all immediate`.execute(trx);
+    await sql`set constraints all deferred`.execute(trx);
+    const timeline = await paths.path(userId, live);
+    expect(timeline?.sections.map((s) => [s.concepts, s.warning])).toEqual([
+      [["Concept 2"], ["Concept 1"]],
+      [["Concept 1"], null],
+    ]);
+    // First now, so open; the one moved down waits for it.
+    expect(timeline?.sections.map((s) => s.open)).toEqual([true, false]);
+    expect(
+      (
+        await trx
+          .selectFrom("path_section")
+          .select(["id", "ordinal"])
+          .where("path_id", "=", live)
+          .orderBy("ordinal")
+          .execute()
+      ).map((r) => r.id),
+    ).toEqual([one, two]);
+    // And back, which is in order again.
+    expect(await paths.moveSection(userId, two, "down")).toBe(live);
+    expect(
+      (await paths.path(userId, live))?.sections.map((s) => s.warning),
+    ).toEqual([null, null]);
+    // Someone else's view of the path is the approved one.
+    expect(await paths.moveSection("someone-else", two, "up")).toBeNull();
+  });
+});
+
+test("a skip opens the next section with no credit; an unskip brings its checkpoint back", async () => {
+  await inRollback(async (trx, { userId, live }) => {
+    const paths = kyselyPaths(trx);
+    const [one, two] = await sectionsOf(trx, userId, live);
+    await paths.start(userId, live);
+    expect(await paths.skipSection(userId, one)).toBe(live);
+    expect(await paths.skipSection(userId, one)).toBeNull();
+    let timeline = await paths.path(userId, live);
+    expect(
+      timeline?.sections.map((s) => [s.skipped, s.open, s.checkpoint]),
+    ).toEqual([
+      [true, true, "skipped"],
+      [false, true, "reading"],
+    ]);
+    expect(
+      await trx
+        .selectFrom("concept_mastery")
+        .select("concept_id")
+        .where("user_id", "=", userId)
+        .execute(),
+    ).toEqual([]);
+    expect(await paths.unskipSection(userId, one)).toBe(live);
+    expect(await paths.unskipSection(userId, one)).toBeNull();
+    timeline = await paths.path(userId, live);
+    // The checkpoint is back; the next section stays open (owner, 2026-10-28).
+    expect(
+      timeline?.sections.map((s) => [s.skipped, s.open, s.checkpoint]),
+    ).toEqual([
+      [false, true, "reading"],
+      [false, true, "reading"],
+    ]);
+    expect(await paths.skipSection(userId, one)).toBe(live);
+    expect(await paths.unskipSection(userId, two)).toBeNull();
+  });
+});
+
+test("a session swaps for another moment on its concepts, and falls back when that goes", async () => {
+  await inRollback(async (trx, { userId, live, moments }) => {
+    const paths = kyselyPaths(trx);
+    const [one] = await sectionsOf(trx, userId, live);
+    const [m1, , m3] = moments;
+    if (!m1 || !m3) throw new Error("seed");
+    await paths.start(userId, live);
+    const source = await trx
+      .selectFrom("content_item")
+      .innerJoin("moment", "moment.content_item_id", "content_item.id")
+      .select("content_item.source_id")
+      .where("moment.id", "=", m1)
+      .executeTakeFirstOrThrow();
+    const concepts = await trx
+      .selectFrom("path_section_concept as pc")
+      .innerJoin("path_section as s", "s.id", "pc.section_id")
+      .select(["pc.concept_id", "s.ordinal"])
+      .where("s.path_id", "=", live)
+      .orderBy("s.ordinal")
+      .execute();
+    const [c1, c2] = concepts.map((c) => c.concept_id);
+    if (!c1 || !c2) throw new Error("seed");
+    // On Concept 1, on Concept 2, and on Concept 1 behind a broken link.
+    const made: string[] = [];
+    for (const [n, concept, broken] of [
+      [0, c1, false],
+      [1, c2, false],
+      [2, c1, true],
+    ] as const) {
+      const item = await trx
+        .insertInto("content_item")
+        .values({
+          source_id: source.source_id,
+          guid: randomUUID(),
+          canonical_url: `https://follow.example.test/swap-${String(n)}`,
+          title: `Swap ${String(n)}`,
+          link_broken_at: broken ? sql<Date>`now()` : null,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const moment = await trx
+        .insertInto("moment")
+        .values({
+          content_item_id: item.id,
+          ordinal: 0,
+          title: `S${String(n)}`,
+          estimated_minutes: 5,
+          link: `https://follow.example.test/swap-${String(n)}#a`,
+          link_type: "anchor",
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await trx
+        .insertInto("moment_tagging")
+        .values({ moment_id: moment.id, difficulty: "beginner" })
+        .execute();
+      await trx
+        .insertInto("moment_concept")
+        .values({ moment_id: moment.id, concept_id: concept })
+        .execute();
+      made.push(moment.id);
+    }
+    const [onC1, onC2] = made;
+    if (!onC1 || !onC2) throw new Error("seed");
+    // The approved session's own moment is on Concept 1 too.
+    await trx
+      .insertInto("moment_tagging")
+      .values({ moment_id: m1, difficulty: "beginner" })
+      .execute();
+    await trx
+      .insertInto("moment_concept")
+      .values({ moment_id: m1, concept_id: c1 })
+      .execute();
+    const offered = await paths.alternatives(userId, one, 0);
+    expect(offered.map((o) => o.momentId)).toEqual([onC1]);
+    expect(offered[0]).toMatchObject({
+      sectionTitle: "S0",
+      articleTitle: "Swap 0",
+      minutes: 5,
+    });
+    expect(await paths.swapSession(userId, one, 0, onC2)).toBeNull();
+    expect(await paths.swapSession(userId, one, 0, onC1)).toBe(live);
+    const titles = async () =>
+      (await paths.path(userId, live))?.sections[0]?.readings.map((r) => [
+        r.ordinal,
+        r.sectionTitle,
+      ]);
+    expect(await titles()).toEqual([
+      [0, "S0"],
+      [1, "A2"],
+    ]);
+    // The approved moment is offered first, untagged or not, to swap back.
+    await trx
+      .deleteFrom("moment_concept")
+      .where("moment_id", "=", m1)
+      .execute();
+    expect((await paths.alternatives(userId, one, 0))[0]?.momentId).toBe(m1);
+    expect(await paths.swapSession(userId, one, 0, m1)).toBe(live);
+    expect(
+      await trx
+        .selectFrom("user_path_session")
+        .select("moment_id")
+        .where("user_id", "=", userId)
+        .execute(),
+    ).toEqual([]);
+    expect(await titles()).toEqual([
+      [0, "A1"],
+      [1, "A2"],
+    ]);
+    // Its rights lowered, a swapped moment gives way to the approved one (ING-2),
+    // and comes back with them.
+    expect(await paths.swapSession(userId, one, 0, onC1)).toBe(live);
+    const own = await trx
+      .insertInto("source")
+      .values({
+        name: `follow-swap-${randomUUID()}`,
+        feed_url: `https://follow.example.test/${randomUUID()}.xml`,
+        rights_profile: "full_text_internal",
+        moments_seeded: true,
+        moments_enabled: true,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .updateTable("content_item")
+      .set({ source_id: own.id })
+      .where("title", "=", "Swap 0")
+      .execute();
+    const rights = async (to: "metadata_only" | "full_text_internal") => {
+      await sql`set local session_replication_role = replica`.execute(trx);
+      await trx
+        .updateTable("source")
+        .set({ rights_profile: to })
+        .where("id", "=", own.id)
+        .execute();
+      await sql`set local session_replication_role = origin`.execute(trx);
+    };
+    await rights("metadata_only");
+    expect(await titles()).toEqual([
+      [0, "A1"],
+      [1, "A2"],
+    ]);
+    await rights("full_text_internal");
+    expect(await titles()).toEqual([
+      [0, "S0"],
+      [1, "A2"],
+    ]);
+    // A finished reading isn't swapped.
+    await trx
+      .insertInto("user_moment_finished")
+      .values({ user_id: userId, moment_id: m3, method: "mark_done" })
+      .execute();
+    expect(await paths.alternatives(userId, one, 1)).toEqual([]);
+    // Its moment deleted (a re-split), the session is the approved one again.
+    await trx.deleteFrom("moment").where("id", "=", onC1).execute();
+    expect(await titles()).toEqual([
+      [0, "A1"],
+      [1, "A2"],
+    ]);
   });
 });

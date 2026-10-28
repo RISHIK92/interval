@@ -29,6 +29,8 @@ type EventName = Literal[
     "note_saved",
     "onboarding_completed",
     "outbound_click",
+    "path_paused",
+    "path_section_skipped",
     "path_started",
     "pwa_installed",
     "question_flagged",
@@ -59,6 +61,8 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "note_saved": 1,
     "onboarding_completed": 1,
     "outbound_click": 1,
+    "path_paused": 1,
+    "path_section_skipped": 1,
     "path_started": 1,
     "pwa_installed": 1,
     "question_flagged": 1,
@@ -150,6 +154,16 @@ class OnboardingCompletedProps(_Model):
 class OutboundClickProps(_Model):
     link_type: Literal["anchor", "text_fragment", "page_top", "article"]
     target: Literal["section", "original"]
+
+
+class PathPausedProps(_Model):
+    path_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    cause: Literal["user", "started_other"]
+
+
+class PathSectionSkippedProps(_Model):
+    path_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    section_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class PathStartedProps(_Model):
@@ -309,6 +323,18 @@ class OutboundClickEvent(_EnvelopeBase):
     props: OutboundClickProps
 
 
+class PathPausedEvent(_EnvelopeBase):
+    name: Literal["path_paused"]
+    version: Literal[1]
+    props: PathPausedProps
+
+
+class PathSectionSkippedEvent(_EnvelopeBase):
+    name: Literal["path_section_skipped"]
+    version: Literal[1]
+    props: PathSectionSkippedProps
+
+
 class PathStartedEvent(_EnvelopeBase):
     name: Literal["path_started"]
     version: Literal[1]
@@ -386,6 +412,8 @@ type Envelope = Annotated[
     | NoteSavedEvent
     | OnboardingCompletedEvent
     | OutboundClickEvent
+    | PathPausedEvent
+    | PathSectionSkippedEvent
     | PathStartedEvent
     | PwaInstalledEvent
     | QuestionFlaggedEvent

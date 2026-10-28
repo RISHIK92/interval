@@ -40,6 +40,8 @@ describe("the event list (Q-P1-20)", () => {
         "path_started",
         "checkpoint_started",
         "checkpoint_finished",
+        "path_paused",
+        "path_section_skipped",
       ].sort(),
     );
   });

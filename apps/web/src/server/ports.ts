@@ -732,6 +732,7 @@ export type PathReading = {
   frameable: boolean;
   linkBroken: boolean;
   finished: boolean;
+  ordinal: number; // the session's place in its section (a swap's key)
 };
 export type PathStep = {
   sectionId: string;
@@ -741,7 +742,14 @@ export type PathStep = {
   open: boolean;
   // P2-W10-S04 (Q-P2-26): "reading" until every reading (with a working link) is
   // finished; "ready" to take; "no_questions" while none is live to ask.
-  checkpoint: "locked" | "reading" | "ready" | "no_questions" | "passed";
+  checkpoint:
+    "locked" | "reading" | "ready" | "no_questions" | "passed" | "skipped";
+  // P2-W10-S05 (Q-P2-23): skipped by the user (until an unskip); moved ahead of
+  // sections the approved order teaches first, their concepts (null: in order).
+  skipped: boolean;
+  warning: string[] | null;
+  // Not passed and never skipped: the sections after it wait for it.
+  holdsBack: boolean;
   // The questions it would ask now (0: none) and the pass mark that makes.
   size: number;
   passMark: number;
@@ -760,10 +768,45 @@ export interface Paths {
   // A live path, or one the user follows that was retired since; readings its
   // rights no longer allow are left out (ING-2). Null otherwise.
   path(userId: string, pathId: string): Promise<PathTimeline | null>;
-  // Makes it the user's active path, pausing any other; true when newly started,
-  // false when it was already active, null when it isn't live.
-  start(userId: string, pathId: string): Promise<boolean | null>;
+  // Makes it the user's active path, pausing any other; firstTime false when it was
+  // already active; paused, the path its start paused; null when it isn't live.
+  start(
+    userId: string,
+    pathId: string,
+  ): Promise<{ firstTime: boolean; paused: string | null } | null>;
+  // P2-W10-S05 (C-25, Q-P2-23): edits to the user's own copy of a live path they
+  // follow; the approved path never changes. Each is false (or null) when refused.
+  pause(userId: string, pathId: string): Promise<boolean>;
+  moveSection(
+    userId: string,
+    sectionId: string,
+    direction: "up" | "down",
+  ): Promise<string | null>; // the path's id
+  // Not a passed or skipped section; no practiced credit, and the next ones open.
+  skipSection(userId: string, sectionId: string): Promise<string | null>;
+  unskipSection(userId: string, sectionId: string): Promise<string | null>;
+  // Up to 5 other moments on the section's concepts, rights allowing, link working,
+  // not already in the section; empty when the session can't be swapped.
+  alternatives(
+    userId: string,
+    sectionId: string,
+    ordinal: number,
+  ): Promise<PathAlternative[]>;
+  // Only to one of its alternatives, and only while the reading isn't finished.
+  swapSession(
+    userId: string,
+    sectionId: string,
+    ordinal: number,
+    momentId: string,
+  ): Promise<string | null>;
 }
+export type PathAlternative = {
+  momentId: string;
+  sectionTitle: string;
+  articleTitle: string;
+  sourceName: string;
+  minutes: number;
+};
 
 export interface AdminSources {
   list(): Promise<SourceSwitch[]>;

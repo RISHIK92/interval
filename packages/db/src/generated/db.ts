@@ -698,6 +698,22 @@ export interface UserPath {
   user_id: string;
 }
 
+export interface UserPathSection {
+  ordinal: number;
+  path_id: Int8;
+  section_id: Int8;
+  skipped_at: Timestamp | null;
+  unskipped_at: Timestamp | null;
+  user_id: string;
+}
+
+export interface UserPathSession {
+  moment_id: Int8;
+  ordinal: number;
+  section_id: Int8;
+  user_id: string;
+}
+
 export interface UserPreferences {
   break_length: BreakLength;
   goals: ArrayType<LearningGoal>;
@@ -785,6 +801,8 @@ export interface DB {
   user_moment_opened: UserMomentOpened;
   user_note: UserNote;
   user_path: UserPath;
+  user_path_section: UserPathSection;
+  user_path_session: UserPathSession;
   user_preferences: UserPreferences;
   user_save: UserSave;
 }
