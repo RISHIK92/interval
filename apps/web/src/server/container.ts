@@ -24,6 +24,7 @@ import { kyselyRanking } from "./adapters/kysely-ranking";
 import { kyselyFeedback } from "./adapters/kysely-feedback";
 import { kyselyLibrary } from "./adapters/kysely-library";
 import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
+import { kyselyAdminPaths } from "./adapters/kysely-admin-paths";
 import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
 import { kyselyNotes } from "./adapters/kysely-notes";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
@@ -36,6 +37,7 @@ import { sqsQueue } from "./adapters/sqs-queue";
 import { createEmitter, type Emitter } from "./events";
 import type {
   Accounts,
+  AdminPaths,
   AdminReview,
   AdminQuestions,
   AdminSources,
@@ -99,6 +101,10 @@ export function progress(): Progress {
 
 export function notes(): Notes {
   return kyselyNotes(db());
+}
+
+export function adminPaths(): AdminPaths {
+  return kyselyAdminPaths(db());
 }
 
 export function quizzes(): Quizzes {

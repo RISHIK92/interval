@@ -639,6 +639,43 @@ export interface AdminQuestions {
   ): Promise<boolean>;
 }
 
+// Topic paths under review (§5F, Q-P2-23, Q-P2-24, P2-W10-S02).
+export type PathStatus = "draft" | "live" | "retired";
+export type ReviewPathSession = {
+  ordinal: number;
+  momentId: string;
+  sectionTitle: string;
+  articleTitle: string;
+  sourceName: string;
+  link: string;
+  // The moment's rights now (ING-2): its source may have been switched off since.
+  allowed: boolean;
+};
+export type ReviewPathSection = {
+  sectionId: string;
+  concepts: string[];
+  sessions: ReviewPathSession[];
+};
+export type ReviewPath = {
+  pathId: string;
+  name: string;
+  why: string;
+  status: PathStatus;
+  sections: ReviewPathSection[];
+};
+export interface AdminPaths {
+  // Drafts first, then live, then retired; sections and sessions in order.
+  list(): Promise<ReviewPath[]>;
+  // Edits change drafts only (a live path changes under no one); false otherwise.
+  rename(pathId: string, name: string, why: string): Promise<boolean>;
+  moveSection(sectionId: string, direction: "up" | "down"): Promise<boolean>;
+  removeSection(sectionId: string): Promise<boolean>;
+  removeSession(sectionId: string, ordinal: number): Promise<boolean>;
+  // Live only with 2+ sections, each with an allowed session; false otherwise.
+  approve(pathId: string): Promise<boolean>;
+  retire(pathId: string): Promise<boolean>;
+}
+
 export interface AdminSources {
   list(): Promise<SourceSwitch[]>;
   get(id: string): Promise<SourceSwitch | null>;
