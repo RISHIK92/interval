@@ -109,6 +109,7 @@ def decide(
     *,
     size: int = SHORTLIST,
     embedded: Mapping[int, Sequence[float]] | None = None,
+    user_id: str | None = None,  # a book's owner pays for its tagging (OPS-4)
 ) -> DecidePass:
     texts = moment_texts(item.full_text, item.moments) if item.full_text else {}
     # A heading with nothing under it has no text to embed or ask about.
@@ -153,7 +154,7 @@ def decide(
         batch = unembedded[start : start + _EMBED_BATCH]
         result = gateway.embed(
             feature="tagging",
-            user_id=None,
+            user_id=user_id,
             model=embedding_model,
             texts=[text for _, _, text, _ in batch],
             purpose="document",
@@ -174,7 +175,7 @@ def decide(
         try:
             decided = gateway.decide(
                 feature="tagging",
-                user_id=None,
+                user_id=user_id,
                 model=model,
                 state=state,
                 questions=_questions(candidates, graph),

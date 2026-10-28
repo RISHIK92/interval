@@ -2,6 +2,10 @@
 import { z } from "zod";
 
 export const messageSchemas = {
+  // Make one book chapter's checkpoint: tag its sessions, draft and validate its questions (§5F, Q-P2-35, P2-W11-S06).
+  book_checkpoint: z.strictObject({
+    chapter_id: z.number().int().min(1),
+  }),
   // Process one uploaded PDF book into chapters and sessions (ING-5, P2-W11-S01, S02).
   book_process: z.strictObject({
     book_id: z.number().int().min(1),

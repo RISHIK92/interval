@@ -240,82 +240,121 @@ function ReadyBook({
             Read again
           </Link>
         </p>
-      ) : (
-        <ol aria-label="Chapters" className="flex flex-col gap-2">
-          {outline.chapters.map((chapter, i) => {
-            const finished = chapter.sessions.every((s) => s.finished);
-            return (
-              <li
-                key={i}
-                className={i > current ? "text-ink-muted" : undefined}
-              >
-                <p className="flex items-baseline justify-between gap-3">
-                  <span className={i === current ? "font-semibold" : undefined}>
-                    <Mark
-                      state={
-                        finished ? "done" : i === current ? "now" : "later"
-                      }
-                    />
-                    {finished ? (
-                      <span className="sr-only">Finished: </span>
-                    ) : i === current ? (
-                      <span className="sr-only">Reading now: </span>
-                    ) : null}
-                    {chapter.title}
+      ) : null}
+      {/* A finished book keeps its timeline: its chapters' checkpoints (S06). */}
+      <ol aria-label="Chapters" className="flex flex-col gap-2">
+        {outline.chapters.map((chapter, i) => {
+          const finished = chapter.sessions.every((s) => s.finished);
+          return (
+            <li
+              key={chapter.chapterId}
+              className={
+                current !== -1 && i > current ? "text-ink-muted" : undefined
+              }
+            >
+              <p className="flex items-baseline justify-between gap-3">
+                <span className={i === current ? "font-semibold" : undefined}>
+                  <Mark
+                    state={finished ? "done" : i === current ? "now" : "later"}
+                  />
+                  {finished ? (
+                    <span className="sr-only">Finished: </span>
+                  ) : i === current ? (
+                    <span className="sr-only">Reading now: </span>
+                  ) : null}
+                  {chapter.title}
+                </span>
+                {i === current ? null : (
+                  <span className="shrink-0 text-sm text-ink-muted">
+                    {sessions(chapter.sessions.length)}
                   </span>
-                  {i === current ? null : (
-                    <span className="shrink-0 text-sm text-ink-muted">
-                      {sessions(chapter.sessions.length)}
-                    </span>
-                  )}
-                </p>
-                {i === current ? (
-                  <ol className="mt-2 flex flex-col gap-2 pl-6">
-                    {chapter.sessions.map((s) => (
-                      <li
-                        key={s.sessionId}
-                        className="flex flex-wrap items-center justify-between gap-2"
-                      >
-                        <span>
-                          <Mark
-                            state={
-                              s.finished
-                                ? "done"
-                                : s.sessionId === next
-                                  ? "now"
-                                  : "later"
-                            }
-                          />
-                          {s.finished ? (
-                            <span className="sr-only">Finished: </span>
-                          ) : null}
-                          {s.sessionId === next ? (
-                            <span className="sr-only">Up next: </span>
-                          ) : null}
-                          {s.title}
-                          <span className="text-sm text-ink-muted">
-                            {" "}
-                            · {s.minutes} min
-                          </span>
-                        </span>
-                        {s.sessionId === next ? (
-                          <Link
-                            href={href(s.sessionId)}
-                            className="rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-page"
-                          >
-                            {outline.started ? "Resume" : "Start"}
-                          </Link>
+                )}
+              </p>
+              {i === current ? (
+                <ol className="mt-2 flex flex-col gap-2 pl-6">
+                  {chapter.sessions.map((s) => (
+                    <li
+                      key={s.sessionId}
+                      className="flex flex-wrap items-center justify-between gap-2"
+                    >
+                      <span>
+                        <Mark
+                          state={
+                            s.finished
+                              ? "done"
+                              : s.sessionId === next
+                                ? "now"
+                                : "later"
+                          }
+                        />
+                        {s.finished ? (
+                          <span className="sr-only">Finished: </span>
                         ) : null}
-                      </li>
-                    ))}
-                  </ol>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
-      )}
+                        {s.sessionId === next ? (
+                          <span className="sr-only">Up next: </span>
+                        ) : null}
+                        {s.title}
+                        <span className="text-sm text-ink-muted">
+                          {" "}
+                          · {s.minutes} min
+                        </span>
+                      </span>
+                      {s.sessionId === next ? (
+                        <Link
+                          href={href(s.sessionId)}
+                          className="rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-page"
+                        >
+                          {outline.started ? "Resume" : "Start"}
+                        </Link>
+                      ) : null}
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
+              {finished ? (
+                <ChapterCheckpoint
+                  href={`/books/${outline.bookId}/checkpoint/${chapter.chapterId}`}
+                  checkpoint={chapter.checkpoint}
+                />
+              ) : null}
+            </li>
+          );
+        })}
+      </ol>
     </Card>
+  );
+}
+
+// P2-W11-S06 (Q-P2-35): a finished chapter's checkpoint, as wireframe 05's timeline
+// shows a section's; its end page makes it, takes it, or tries again.
+function ChapterCheckpoint({
+  href,
+  checkpoint,
+}: {
+  href: string;
+  checkpoint: BookOutline["chapters"][number]["checkpoint"];
+}) {
+  const label =
+    checkpoint === null
+      ? "Make the checkpoint"
+      : checkpoint.state === "preparing"
+        ? "Checkpoint · Preparing…"
+        : checkpoint.state === "failed"
+          ? "Checkpoint couldn't be made · Try again"
+          : checkpoint.passed === true
+            ? "Checkpoint passed"
+            : checkpoint.passed === false
+              ? "Checkpoint · Not yet · Retry"
+              : "Take the checkpoint";
+  return (
+    <p className="mt-1 pl-6 text-sm">
+      <Link href={href} className="font-semibold text-select">
+        <span aria-hidden="true" className="mr-2">
+          ⚑
+        </span>
+        {label}
+      </Link>
+    </p>
   );
 }
 

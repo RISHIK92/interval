@@ -111,3 +111,10 @@ export const readingsDone = (
       where f.user_id = ${userId} and f.moment_id = ps.moment_id
     )
 )`;
+
+// P2-W11-S06 (Q-P2-35): a book chapter's checkpoint questions, its own live ones,
+// made from its text for the book's owner alone.
+export const chapterQuestions = (chapter: Ref) => sql`
+  select q.id, 0 as tier, 0 as ro, q.ordinal as qo from question q
+  where q.book_chapter_id = ${chapter} and q.status = 'live'
+`;

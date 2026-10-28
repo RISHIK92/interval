@@ -3,6 +3,8 @@ import { z } from "zod";
 
 export const EVENT_NAMES = [
   "article_finished",
+  "book_checkpoint_finished",
+  "book_checkpoint_started",
   "book_deleted",
   "book_opened",
   "book_session_finished",
@@ -38,6 +40,8 @@ export type EventName = (typeof EVENT_NAMES)[number];
 
 export const EVENT_VERSIONS = {
   article_finished: 2,
+  book_checkpoint_finished: 1,
+  book_checkpoint_started: 1,
   book_deleted: 1,
   book_opened: 1,
   book_session_finished: 1,
@@ -74,6 +78,19 @@ export const propsSchemas = {
   article_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+  }),
+  book_checkpoint_finished: z.strictObject({
+    attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    book_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    chapter_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    answered: z.number().int().nonnegative(),
+    correct: z.number().int().nonnegative(),
+    passed: z.boolean(),
+  }),
+  book_checkpoint_started: z.strictObject({
+    attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    book_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    chapter_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   book_deleted: z.strictObject({
     book_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -213,6 +230,18 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("article_finished"),
     version: z.literal(2),
     props: propsSchemas.article_finished,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("book_checkpoint_finished"),
+    version: z.literal(1),
+    props: propsSchemas.book_checkpoint_finished,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("book_checkpoint_started"),
+    version: z.literal(1),
+    props: propsSchemas.book_checkpoint_started,
   }),
   z.strictObject({
     ...base,

@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CHIPS } from "../../server/chips";
 import { events, quizzes, sessionReader } from "../../server/container";
-import { BIGINT_ID, type QuizFinish } from "../../server/ports";
+import { BIGINT_ID, checkpointHome, type QuizFinish } from "../../server/ports";
 import { visitId } from "../../server/visits";
 import { sameSitePath, textField } from "../form";
 import { FLAG_REASON_KEYS } from "./flagReasons";
@@ -49,21 +49,33 @@ function recordFinish(
   context: Context,
 ): void {
   const { checkpoint } = done;
+  const counts = { answered: done.answered, correct: done.correct };
   if (checkpoint === null)
     events().emit(
       "quiz_finished",
-      { attempt_id: attemptId, answered: done.answered, correct: done.correct },
+      { attempt_id: attemptId, ...counts },
       context,
     );
-  else
+  else if (checkpoint.at.kind === "path")
     events().emit(
       "checkpoint_finished",
       {
         attempt_id: attemptId,
-        path_id: checkpoint.pathId,
-        section_id: checkpoint.sectionId,
-        answered: done.answered,
-        correct: done.correct,
+        path_id: checkpoint.at.pathId,
+        section_id: checkpoint.at.sectionId,
+        ...counts,
+        passed: checkpoint.passed,
+      },
+      context,
+    );
+  else
+    events().emit(
+      "book_checkpoint_finished",
+      {
+        attempt_id: attemptId,
+        book_id: checkpoint.at.bookId,
+        chapter_id: checkpoint.at.chapterId,
+        ...counts,
         passed: checkpoint.passed,
       },
       context,
@@ -160,6 +172,38 @@ export async function startCheckpointAction(form: FormData): Promise<void> {
   redirect(`/quiz/${started.attemptId}?chip=${chip}`);
 }
 
+// P2-W11-S06 (Q-P2-35): a chapter checkpoint of the user's book.
+const BookCheckpoint = z.object({
+  chapterId: z.string().regex(BIGINT_ID),
+  chip: z.enum(CHIPS),
+});
+
+export async function startBookCheckpointAction(form: FormData): Promise<void> {
+  const { actor, context } = await signedIn();
+  const parsed = BookCheckpoint.safeParse({
+    chapterId: textField(form, "chapterId"),
+    chip: textField(form, "chip"),
+  });
+  if (!parsed.success) redirect("/paths#your-books");
+  const { chapterId, chip } = parsed.data;
+  await closeLeftOpen(actor.userId, context);
+  const started = await quizzes().startBookCheckpoint(actor.userId, chapterId);
+  // Not ready (or not theirs): the chapter's end says where it stands.
+  if (started === null)
+    redirect(sameSitePath(textField(form, "back"), "/paths#your-books"));
+  if (started.firstTime)
+    events().emit(
+      "book_checkpoint_started",
+      {
+        attempt_id: started.attemptId,
+        book_id: started.bookId,
+        chapter_id: chapterId,
+      },
+      context,
+    );
+  redirect(`/quiz/${started.attemptId}?chip=${chip}`);
+}
+
 export async function answerQuizAction(form: FormData): Promise<void> {
   const { actor, context } = await signedIn();
   const parsed = Answer.safeParse(Object.fromEntries(form));
@@ -225,7 +269,7 @@ export async function finishQuizAction(form: FormData): Promise<void> {
       : leave === "library"
         ? "/library"
         : leave === "path" && checkpoint !== null
-          ? `/paths/${checkpoint.pathId}`
+          ? checkpointHome(checkpoint.at)
           : `/?chip=${chip}`,
   );
 }

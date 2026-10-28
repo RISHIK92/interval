@@ -25,6 +25,13 @@ class _Message(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
 
+class BookCheckpoint(_Message):
+    """Make one book chapter's checkpoint: tag its sessions, draft and validate its
+    questions (§5F, Q-P2-35, P2-W11-S06)."""
+
+    chapter_id: Annotated[int, Field(ge=1)]
+
+
 class BookProcess(_Message):
     """Process one uploaded PDF book into chapters and sessions (ING-5, P2-W11-S01,
     S02)."""
@@ -121,6 +128,7 @@ class ValidateQuestion(_Message):
 
 
 type MessageName = Literal[
+    "book_checkpoint",
     "book_process",
     "check_link",
     "discover_source",
@@ -137,6 +145,7 @@ type MessageName = Literal[
 ]
 
 MESSAGES: dict[MessageName, type[_Message]] = {
+    "book_checkpoint": BookCheckpoint,
     "book_process": BookProcess,
     "check_link": CheckLink,
     "discover_source": DiscoverSource,

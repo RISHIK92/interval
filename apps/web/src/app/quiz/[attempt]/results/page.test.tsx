@@ -131,8 +131,8 @@ const checkpoint = {
   momentId: null,
   title: "Quorums",
   checkpoint: {
-    pathId: "6",
-    sectionId: "60",
+    at: { kind: "path" as const, pathId: "6", sectionId: "60" },
+    title: "Quorums",
     concepts: ["Quorums"],
     size: 5,
     passMark: 4,

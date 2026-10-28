@@ -19,6 +19,8 @@ export type ArrayTypeImpl<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export type BetaGroup = "developer" | "student";
 
+export type BookCheckpointStatus = "failed" | "preparing" | "ready";
+
 export type BookStatus = "failed" | "ocr" | "processing" | "ready";
 
 export type BreakLength = "1-3" | "3-8" | "8-15";
@@ -164,6 +166,20 @@ export interface BookChapter {
   id: Generated<Int8>;
   ordinal: number;
   title: string;
+}
+
+export interface BookChapterCheckpoint {
+  chapter_id: Int8;
+  failure: string | null;
+  ready_at: Timestamp | null;
+  requested_at: Generated<Timestamp>;
+  requests: Generated<number>;
+  status: Generated<BookCheckpointStatus>;
+}
+
+export interface BookChapterConcept {
+  chapter_id: Int8;
+  concept_id: Int8;
 }
 
 export interface BookPage {
@@ -464,6 +480,7 @@ export interface PlanCapability {
 
 export interface Question {
   answer_count: Generated<number>;
+  book_chapter_id: Int8 | null;
   calibrated_at: Timestamp | null;
   citation: string;
   content_hash: string;
@@ -473,7 +490,7 @@ export interface Question {
   difficulty: Difficulty | null;
   generator_model: string;
   id: Generated<Int8>;
-  moment_id: Int8;
+  moment_id: Int8 | null;
   options: string[];
   ordinal: number;
   prompt_version: number;
@@ -541,6 +558,7 @@ export interface QuizAnswer {
 }
 
 export interface QuizAttempt {
+  book_chapter_id: Int8 | null;
   checkpoint_passed: boolean | null;
   checkpoint_size: number | null;
   content_item_id: Int8 | null;
@@ -791,6 +809,8 @@ export interface DB {
   auth_verification: AuthVerification;
   book: Book;
   book_chapter: BookChapter;
+  book_chapter_checkpoint: BookChapterCheckpoint;
+  book_chapter_concept: BookChapterConcept;
   book_page: BookPage;
   book_position: BookPosition;
   book_session: BookSession;

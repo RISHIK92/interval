@@ -12,7 +12,7 @@ import { Card } from "../../ui/Card";
 export const dynamic = "force-dynamic";
 
 // §5F, Q-P2-34, Q-P2-38 (P2-W11-S01): add a PDF book. It stays private; the notice says
-// what leaves for the AI provider before anything is sent.
+// what leaves for the AI providers before anything is sent.
 export default async function NewBookPage(props: {
   searchParams: Promise<{ error?: string }>;
 }) {
@@ -47,7 +47,7 @@ export default async function NewBookPage(props: {
         </p>
         <p className="text-sm">
           Your PDF stays private. Checkpoints send a chapter&apos;s text to our
-          AI provider to write questions.
+          AI providers to write questions.
         </p>
         {message === null ? null : (
           <p role="alert" className="text-sm font-semibold text-wrong">

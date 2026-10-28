@@ -286,9 +286,11 @@ export default async function QuizPage({
       <p className="mt-auto text-center text-xs text-ink-muted">
         {checkpoint !== null
           ? `Pass ${String(checkpoint.passMark)} of ${String(checkpoint.size)} ${
-              checkpoint.next === null
-                ? "to finish the path"
-                : `to unlock ${checkpoint.next.join(", ")}`
+              checkpoint.at.kind === "book"
+                ? "on this chapter"
+                : checkpoint.next === null
+                  ? "to finish the path"
+                  : `to unlock ${checkpoint.next.join(", ")}`
             }`
           : attempt.review
             ? "One question per concept due for review"

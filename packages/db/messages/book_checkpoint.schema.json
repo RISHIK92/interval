@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Make one book chapter's checkpoint: tag its sessions, draft and validate its questions (§5F, Q-P2-35, P2-W11-S06).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["chapter_id"],
+  "properties": {
+    "chapter_id": { "type": "integer", "minimum": 1 }
+  }
+}

@@ -38,8 +38,10 @@ from interval_jobs.ports import (
     BookChapterRow,
     BookJob,
     BookPageText,
+    BookQuestion,
     CandidateArticle,
     CandidateMoment,
+    ChapterForCheckpoint,
     ConceptCoverage,
     ConceptGraph,
     ConceptSeed,
@@ -1891,11 +1893,24 @@ class StoredBook:
     ocr_read: set[int] = field(default_factory=set[int])
 
 
+@dataclass
+class StoredCheckpoint:
+    """A chapter's checkpoint (P2-W11-S06): book_id's chapters[index]."""
+
+    book_id: int
+    index: int
+    status: str = "preparing"
+    failure: str | None = None
+    concepts: frozenset[str] = frozenset()
+    questions: list[BookQuestion] = field(default_factory=list[BookQuestion])
+
+
 class InMemoryBooks:
     """PDF books (P2-W11-S02), as PostgresBooks."""
 
     def __init__(self) -> None:
         self.rows: dict[int, StoredBook] = {}
+        self.checkpoints: dict[int, StoredCheckpoint] = {}  # by chapter id
         # OPS-3: the plan's books.max_pages per user; none granted unless set, as in
         # Postgres without a plan row.
         self.max_pages_by_user: dict[str, int | None] = {}
@@ -1966,6 +1981,45 @@ class InMemoryBooks:
 
     def pages(self, book_id: int) -> list[BookPageText]:
         return list(self.rows[book_id].pages)
+
+    def checkpoint_input(self, chapter_id: int) -> ChapterForCheckpoint | None:
+        checkpoint = self.checkpoints.get(chapter_id)
+        book = None if checkpoint is None else self.rows.get(checkpoint.book_id)
+        if checkpoint is None or book is None or checkpoint.status != "preparing":
+            return None
+        if book.status != "ready":
+            return None
+        chapter = book.chapters[checkpoint.index]
+        return ChapterForCheckpoint(
+            chapter_id,
+            book.user_id,
+            book.title,
+            chapter.title,
+            [(s.title, s.text) for s in chapter.sessions],
+        )
+
+    def save_checkpoint(
+        self,
+        chapter_id: int,
+        concepts: frozenset[str],
+        questions: list[BookQuestion],
+        generator_model: str,
+        validator_model: str,
+    ) -> Literal["ready", "empty", "gone"]:
+        checkpoint = self.checkpoints.get(chapter_id)
+        if checkpoint is None or checkpoint.status != "preparing":
+            return "gone"
+        checkpoint.concepts = concepts
+        checkpoint.questions = [q for q in checkpoint.questions if q.live] + questions
+        if not any(q.live for q in checkpoint.questions):
+            return "empty"
+        checkpoint.status, checkpoint.failure = "ready", None
+        return "ready"
+
+    def fail_checkpoint(self, chapter_id: int, reason: str) -> None:
+        checkpoint = self.checkpoints.get(chapter_id)
+        if checkpoint is not None and checkpoint.status == "preparing":
+            checkpoint.status, checkpoint.failure = "failed", reason[:200]
 
 
 class InMemoryOcr:

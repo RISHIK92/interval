@@ -216,8 +216,16 @@ test("a book opens where the user left off, else the first unfinished, else the 
       finished: false,
       fraction: null,
     });
-    expect(await books.finish(me, s1)).toEqual({ bookId, firstTime: true });
-    expect(await books.finish(me, s1)).toEqual({ bookId, firstTime: false });
+    expect(await books.finish(me, s1)).toEqual({
+      bookId,
+      firstTime: true,
+      chapterDone: null,
+    });
+    expect(await books.finish(me, s1)).toEqual({
+      bookId,
+      firstTime: false,
+      chapterDone: null,
+    });
     expect((await books.reading(me, bookId, null))?.sessionId).toBe(s2);
     // Across chapters, and a saved place wins.
     expect(await books.savePosition(me, bookId, s3, 0.4)).toBe(true);
@@ -298,7 +306,9 @@ test("a book's outline: chapters, sessions ticked, and where it opens", async ()
         next: s2,
         chapters: [
           {
+            chapterId: expect.stringMatching(/^\d+$/) as unknown,
             title: "Replication",
+            checkpoint: null,
             sessions: [
               {
                 sessionId: s1,
@@ -315,7 +325,9 @@ test("a book's outline: chapters, sessions ticked, and where it opens", async ()
             ],
           },
           {
+            chapterId: expect.stringMatching(/^\d+$/) as unknown,
             title: "Partitioning",
+            checkpoint: null,
             sessions: [
               {
                 sessionId: s3,
@@ -433,5 +445,72 @@ test("the feed's book: a tie goes to the newer book; its place is the saved sess
       chapterTitle: "Partitioning",
       place: 4,
     });
+  });
+});
+
+// P2-W11-S06 (Q-P2-35): a finished chapter's checkpoint, asked for and read.
+test("finishing a chapter's last session says so; its checkpoint can then be asked for", async () => {
+  await inRollback(async (trx, [me, other]) => {
+    const books = kyselyBooks(trx);
+    const { bookId, sessions } = await aReadyBook(trx, me);
+    const [s1, s2] = sessions;
+    if (!s1 || !s2) throw new Error("seed");
+    const chapter = await trx
+      .selectFrom("book_session")
+      .select("chapter_id")
+      .where("id", "=", s1)
+      .executeTakeFirstOrThrow();
+    const chapterId = chapter.chapter_id;
+    // Not finished yet: nothing to ask for.
+    expect(await books.requestCheckpoint(me, chapterId)).toBeNull();
+    expect((await books.finish(me, s1))?.chapterDone).toBeNull();
+    expect((await books.finish(me, s2))?.chapterDone).toBe(chapterId);
+    expect(await books.requestCheckpoint(other, chapterId)).toBeNull();
+    expect(await books.requestCheckpoint(me, chapterId)).toBe(1);
+    // Being made: not asked twice.
+    expect(await books.requestCheckpoint(me, chapterId)).toBeNull();
+    expect(await books.checkpoint(me, chapterId)).toMatchObject({
+      bookId,
+      title: "Replication",
+      finished: true,
+      state: "preparing",
+      stuck: false,
+      size: 0,
+      last: null,
+      next: { sessionId: sessions[2], title: "Partitioning 1" },
+    });
+    expect(await books.checkpoint(other, chapterId)).toBeNull();
+    expect((await books.outlines(me))[0]?.chapters[0]?.checkpoint).toEqual({
+      state: "preparing",
+      passed: null,
+    });
+    // Stuck past STUCK_MINUTES, or failed: asked again, numbered on.
+    await trx
+      .updateTable("book_chapter_checkpoint")
+      .set({ requested_at: sql<Date>`now() - interval '11 minutes'` })
+      .where("chapter_id", "=", chapterId)
+      .execute();
+    expect((await books.checkpoint(me, chapterId))?.stuck).toBe(true);
+    expect(await books.requestCheckpoint(me, chapterId)).toBe(2);
+    await trx
+      .updateTable("book_chapter_checkpoint")
+      .set({
+        status: "failed",
+        failure: "Couldn't make questions for this chapter.",
+      })
+      .where("chapter_id", "=", chapterId)
+      .execute();
+    expect(await books.checkpoint(me, chapterId)).toMatchObject({
+      state: "failed",
+      failure: "Couldn't make questions for this chapter.",
+    });
+    expect(await books.requestCheckpoint(me, chapterId)).toBe(3);
+    // Ready: never made twice.
+    await trx
+      .updateTable("book_chapter_checkpoint")
+      .set({ status: "ready" })
+      .where("chapter_id", "=", chapterId)
+      .execute();
+    expect(await books.requestCheckpoint(me, chapterId)).toBeNull();
   });
 });

@@ -1237,6 +1237,30 @@ class BookChapterRow:
     sessions: list[BookSessionRow]
 
 
+@dataclass(frozen=True)
+class ChapterForCheckpoint:
+    chapter_id: int
+    user_id: str  # the book's owner: the model calls are on their budget (OPS-4)
+    book_title: str
+    title: str
+    sessions: list[tuple[str, str]]  # title, text; in reading order
+
+
+@dataclass(frozen=True)
+class BookQuestion:
+    """A drafted question of a book chapter, already answered blind (Q-1)."""
+
+    draft: QuestionDraft
+    concepts: frozenset[str]  # slugs
+    validator_answer: int | None  # None: the validator's reply was unreadable
+    difficulty: Difficulty | None
+    content_hash: str
+
+    @property
+    def live(self) -> bool:
+        return self.validator_answer == self.draft.correct
+
+
 class Books(Protocol):
     def for_processing(self, book_id: int) -> BookJob | None:
         """The book while it waits to be processed; None once done or deleted."""
@@ -1276,6 +1300,28 @@ class Books(Protocol):
         ...
 
     def pages(self, book_id: int) -> list[BookPageText]: ...
+
+    # P2-W11-S06 (Q-P2-35): a chapter's checkpoint, made on demand.
+    def checkpoint_input(self, chapter_id: int) -> ChapterForCheckpoint | None:
+        """The chapter while its checkpoint is being prepared and its book is ready."""
+        ...
+
+    def save_checkpoint(
+        self,
+        chapter_id: int,
+        concepts: frozenset[str],
+        questions: list[BookQuestion],
+        generator_model: str,
+        validator_model: str,
+    ) -> Literal["ready", "empty", "gone"]:
+        """Stores the chapter's concepts and questions: "ready" with a live question;
+        "empty" with none (the caller fails it); "gone", storing nothing, when it is
+        no longer being prepared (another run made it, or it failed meanwhile)."""
+        ...
+
+    def fail_checkpoint(self, chapter_id: int, reason: str) -> None:
+        """Only while it is being prepared."""
+        ...
 
 
 class Ocr(Protocol):

@@ -1,6 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, Books, Paths, Preferences } from "../../server/ports";
+import type {
+  Actor,
+  BookOutline,
+  Books,
+  Paths,
+  Preferences,
+} from "../../server/ports";
 
 // §4, §5F, Q-P2-27 (P2-W10-S03): the Paths tab lists live paths.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
@@ -161,13 +167,17 @@ const outline = {
   next: "72",
   chapters: [
     {
+      chapterId: "90",
       title: "Storage",
+      checkpoint: { state: "ready" as const, passed: true },
       sessions: [
         { sessionId: "70", title: "Logs", minutes: 4, finished: true },
       ],
     },
     {
+      chapterId: "91",
       title: "Replication",
+      checkpoint: null,
       sessions: [
         { sessionId: "71", title: "Leaders", minutes: 5, finished: true },
         { sessionId: "72", title: "Followers", minutes: 6, finished: false },
@@ -175,7 +185,9 @@ const outline = {
       ],
     },
     {
+      chapterId: "92",
       title: "Partitioning",
+      checkpoint: null,
       sessions: [
         { sessionId: "74", title: "Keys", minutes: 4, finished: false },
       ],
@@ -235,4 +247,42 @@ test("a book not started says Start; a finished one offers to read it again", as
   expect(html).toContain("Finished");
   expect(html).toMatch(/href="\/books\/7\?session=70"[^>]*>Read again<\/a>/);
   list.mockReset();
+});
+
+// P2-W11-S06 (Q-P2-35): a finished chapter's checkpoint, on its timeline.
+test("a finished chapter's checkpoint row says where it stands and leads to its end", async () => {
+  current.mockResolvedValue(user);
+  const row = async (
+    checkpoint: BookOutline["chapters"][number]["checkpoint"],
+  ) => {
+    list.mockResolvedValueOnce([ready]);
+    outlines.mockResolvedValueOnce([
+      {
+        ...outline,
+        chapters: outline.chapters.map((c, i) =>
+          i === 0 ? { ...c, checkpoint } : c,
+        ),
+      },
+    ]);
+    const html = await page();
+    const at = html.indexOf('href="/books/7/checkpoint/90"');
+    expect(at).toBeGreaterThan(-1);
+    return html.slice(at, html.indexOf("</a>", at));
+  };
+  expect(await row({ state: "ready", passed: true })).toContain(
+    "Checkpoint passed",
+  );
+  expect(await row({ state: "ready", passed: false })).toContain("Not yet");
+  expect(await row({ state: "ready", passed: null })).toContain(
+    "Take the checkpoint",
+  );
+  expect(await row({ state: "preparing", passed: null })).toContain(
+    "Preparing",
+  );
+  expect(await row({ state: "failed", passed: null })).toContain("Try again");
+  expect(await row(null)).toContain("Make the checkpoint");
+  // An unfinished chapter has no row.
+  list.mockResolvedValueOnce([ready]);
+  outlines.mockResolvedValueOnce([outline]);
+  expect(await page()).not.toContain("/books/7/checkpoint/91");
 });

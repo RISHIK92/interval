@@ -3,6 +3,7 @@ import { type Kysely, type RawBuilder, sql } from "kysely";
 import {
   CHECKPOINT_SIZE,
   QUIZ_SECONDS,
+  type CheckpointAt,
   type CheckpointInfo,
   type QuizFinish,
   type QuizQuestion,
@@ -11,6 +12,7 @@ import {
 } from "../ports";
 import { fsrsState, rate } from "../reviews";
 import {
+  chapterQuestions,
   checkpointQuestions,
   readingsDone,
   sectionOpen,
@@ -160,8 +162,9 @@ async function rateConcepts(
 }
 
 // P2-W10-S04 (§5F, Q-P2-26), after the ratings: a passed checkpoint raises each of
-// its section's live concepts to at least practiced (a mastered one stays mastered);
-// the concepts of its wrong answers, passed or not, are due for review now.
+// its section's (or, P2-W11-S06, its book chapter's) live concepts to at least
+// practiced (a mastered one stays mastered); the concepts of its wrong answers,
+// passed or not, are due for review now.
 async function settleCheckpoint(
   trx: Kysely<DB>,
   userId: string,
@@ -172,13 +175,25 @@ async function settleCheckpoint(
     .selectFrom("quiz_attempt as a")
     .select([
       "a.path_section_id",
+      "a.book_chapter_id",
       "a.pass_mark",
       sql<number>`(select count(*)::int from quiz_answer qa
         where qa.attempt_id = a.id and qa.correct)`.as("correct"),
     ])
     .where("a.id", "=", attemptId)
     .executeTakeFirstOrThrow();
-  if (attempt.path_section_id === null || attempt.pass_mark === null) return;
+  // Not a checkpoint. (pass_mark isn't null then: greatest() skips the null size.)
+  if (
+    (attempt.path_section_id === null && attempt.book_chapter_id === null) ||
+    attempt.pass_mark === null
+  )
+    return;
+  const concepts =
+    attempt.path_section_id !== null
+      ? sql`select concept_id from path_section_concept
+          where section_id = ${attempt.path_section_id}`
+      : sql`select concept_id from book_chapter_concept
+          where chapter_id = ${attempt.book_chapter_id}`;
   const passed = attempt.correct >= attempt.pass_mark;
   await trx
     .updateTable("quiz_attempt")
@@ -191,9 +206,8 @@ async function settleCheckpoint(
       insert into concept_mastery
         (user_id, concept_id, probability, state, evidence_count)
       select ${userId}, pc.concept_id, ${PRACTICED}::float8, 'practiced', 1
-      from path_section_concept pc
+      from (${concepts}) pc
       join concept c on c.id = pc.concept_id and c.retired_at is null
-      where pc.section_id = ${attempt.path_section_id}
       order by pc.concept_id
       on conflict (user_id, concept_id) do update set
         probability = greatest(concept_mastery.probability, ${PRACTICED}::float8),
@@ -212,6 +226,28 @@ async function settleCheckpoint(
       where qa.attempt_id = ${attemptId} and not qa.correct
     )
   `.execute(trx);
+}
+
+// Where an attempt's checkpoint belongs; null when it isn't one.
+function checkpointAt(row: {
+  path_section_id: string | null;
+  path_id: string | null;
+  book_chapter_id: string | null;
+  book_id: string | null;
+}): CheckpointAt | null {
+  if (row.path_section_id !== null && row.path_id !== null)
+    return {
+      kind: "path",
+      pathId: row.path_id,
+      sectionId: row.path_section_id,
+    };
+  if (row.book_chapter_id !== null && row.book_id !== null)
+    return {
+      kind: "book",
+      bookId: row.book_id,
+      chapterId: row.book_chapter_id,
+    };
+  return null;
 }
 
 type Open = {
@@ -255,6 +291,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     const row = await db
       .selectFrom("quiz_attempt as a")
       .leftJoin("path_section as s", "s.id", "a.path_section_id")
+      .leftJoin("book_chapter as bc", "bc.id", "a.book_chapter_id")
       .leftJoin("quiz_answer as qa", (join) =>
         join
           .onRef("qa.attempt_id", "=", "a.id")
@@ -262,30 +299,27 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       )
       .select([
         "a.path_section_id",
+        "a.book_chapter_id",
         "a.checkpoint_passed",
         "s.path_id",
+        "bc.book_id",
         sql<number>`count(qa.question_id)::int`.as("answered"),
         sql<number>`count(*) filter (where qa.correct)::int`.as("correct"),
       ])
       .where("a.id", "=", attemptId)
       .where("a.user_id", "=", userId)
-      .groupBy(["a.id", "s.path_id"])
+      .groupBy(["a.id", "s.path_id", "bc.book_id"])
       .executeTakeFirst();
     if (row === undefined) return null;
+    const at = checkpointAt(row);
     return {
       answered: row.answered,
       correct: row.correct,
       firstTime,
       checkpoint:
-        row.path_section_id === null ||
-        row.path_id === null ||
-        row.checkpoint_passed === null
+        at === null || row.checkpoint_passed === null
           ? null
-          : {
-              pathId: row.path_id,
-              sectionId: row.path_section_id,
-              passed: row.checkpoint_passed,
-            },
+          : { at, passed: row.checkpoint_passed },
     };
   };
 
@@ -348,10 +382,38 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
   });
 
   const checkpointInfo = async (
-    userId: string,
     attemptId: string,
-    at: { sectionId: string; size: number; passMark: number; passed: boolean },
+    at: CheckpointAt,
+    taken: { size: number; passMark: number; passed: boolean },
   ): Promise<CheckpointInfo> => {
+    const { rows: missed } = await sql<{ name: string }>`
+      select distinct c.name from quiz_answer qa
+      join question_concept qc on qc.question_id = qa.question_id
+      join concept c on c.id = qc.concept_id and c.retired_at is null
+      where qa.attempt_id = ${attemptId} and not qa.correct
+      order by c.name
+    `.execute(db);
+    if (at.kind === "book") {
+      const chapter = await db
+        .selectFrom("book_chapter as bc")
+        .select([
+          "bc.title",
+          sql<string[]>`array(
+            select c.name from book_chapter_concept k
+            join concept c on c.id = k.concept_id and c.retired_at is null
+            where k.chapter_id = bc.id order by c.name)`.as("concepts"),
+        ])
+        .where("bc.id", "=", at.chapterId)
+        .executeTakeFirstOrThrow();
+      return {
+        at,
+        title: chapter.title,
+        concepts: chapter.concepts,
+        ...taken,
+        next: null,
+        missed: missed.map((m) => m.name),
+      };
+    }
     const names = (section: RawBuilder<unknown>) => sql<string[]>`array(
       select c.name from path_section_concept pc
       join concept c on c.id = pc.concept_id
@@ -359,30 +421,21 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     const row = await db
       .selectFrom("path_section as s")
       .select([
-        "s.path_id",
         names(sql`s.id`).as("concepts"),
         sql<string[] | null>`(
           select ${names(sql`n.id`)} from path_section n
           where n.path_id = s.path_id and n.ordinal > s.ordinal
           order by n.ordinal limit 1)`.as("next"),
-        sql<string[]>`array(
-          select distinct c.name from quiz_answer qa
-          join question_concept qc on qc.question_id = qa.question_id
-          join concept c on c.id = qc.concept_id and c.retired_at is null
-          where qa.attempt_id = ${attemptId} and not qa.correct
-          order by c.name)`.as("missed"),
       ])
       .where("s.id", "=", at.sectionId)
       .executeTakeFirstOrThrow();
     return {
-      pathId: row.path_id,
-      sectionId: at.sectionId,
+      at,
+      title: row.concepts.join(", "),
       concepts: row.concepts,
-      size: at.size,
-      passMark: at.passMark,
-      passed: at.passed,
+      ...taken,
       next: row.next,
-      missed: row.missed,
+      missed: missed.map((m) => m.name),
     };
   };
 
@@ -433,6 +486,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .select([
           "review",
           "path_section_id",
+          "book_chapter_id",
           "checkpoint_size",
           sql<boolean>`coalesce(now() > ends_at, false)
             or finished_at is not null`.as("ended"),
@@ -445,25 +499,34 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       if (current !== undefined)
         return current.over ? "over" : asQuestion(current);
       if (attempt.ended) return "over";
-      if (attempt.path_section_id !== null) {
+      const section = attempt.path_section_id;
+      const chapter = attempt.book_chapter_id;
+      if (section !== null || chapter !== null) {
         // P2-W10-S04: up to its size; the section's own readings' questions first,
-        // then its concepts' at random. Questions the user's last checkpoint on the
-        // section asked come after all the rest (own or not), so a retry isn't the
-        // same quiz.
-        const section = attempt.path_section_id;
+        // then its concepts' at random (a book chapter: its own, P2-W11-S06).
+        // Questions the user's last checkpoint on it asked come after all the rest
+        // (own or not), so a retry isn't the same quiz.
+        const same =
+          section !== null
+            ? sql`path_section_id = ${section}`
+            : sql`book_chapter_id = ${chapter}`;
+        const candidates =
+          section !== null
+            ? checkpointQuestions(userId, sql`${section}`)
+            : chapterQuestions(sql`${chapter}`);
         await sql`
           with last as (
             select qa.question_id from quiz_answer qa
             where qa.attempt_id = (
               select id from quiz_attempt
-              where user_id = ${userId} and path_section_id = ${section}
+              where user_id = ${userId} and ${same}
                 and id <> ${attemptId} and finished_at is not null
               order by started_at desc
               limit 1
             )
           ),
           pick as (
-            select id from (${checkpointQuestions(userId, sql`${section}`)}) cq
+            select id from (${candidates}) cq
             where id not in (
               select question_id from quiz_answer where attempt_id = ${attemptId}
             )
@@ -700,6 +763,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           "a.ends_at",
           "a.finished_at",
           "a.path_section_id",
+          "a.book_chapter_id",
+          sql<string | null>`(select s.path_id from path_section s
+            where s.id = a.path_section_id)`.as("path_id"),
+          sql<string | null>`(select bc.book_id from book_chapter bc
+            where bc.id = a.book_chapter_id)`.as("book_id"),
           "a.checkpoint_size",
           "a.pass_mark",
           "a.checkpoint_passed",
@@ -742,13 +810,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .where("c.retired_at", "is", null)
         .orderBy("c.name")
         .execute();
+      const at = checkpointAt(row);
       const checkpoint =
-        row.path_section_id === null ||
-        row.checkpoint_size === null ||
-        row.pass_mark === null
+        at === null || row.checkpoint_size === null || row.pass_mark === null
           ? null
-          : await checkpointInfo(userId, attemptId, {
-              sectionId: row.path_section_id,
+          : await checkpointInfo(attemptId, at, {
               size: row.checkpoint_size,
               passMark: row.pass_mark,
               passed: row.checkpoint_passed === true,
@@ -757,7 +823,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         review: row.review,
         itemId: row.content_item_id,
         momentId: row.moment_id,
-        title: checkpoint === null ? row.title : checkpoint.concepts.join(", "),
+        title: checkpoint === null ? row.title : checkpoint.title,
         startedAt: row.started_at,
         endsAt: row.ends_at,
         secondsLeft: row.seconds_left,
@@ -819,6 +885,54 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       return won === undefined
         ? null
         : { attemptId: won.id, pathId: section.path_id, firstTime: false };
+    },
+
+    // P2-W11-S06 (Q-P2-35): the same insert-or-meet-the-winner as a section's, for a
+    // ready chapter checkpoint of the user's own ready book. Its chapters don't lock
+    // (owner, 2026-10-29), and a passed one can be taken again.
+    startBookCheckpoint: async (userId, chapterId) => {
+      const chapter = await db
+        .selectFrom("book_chapter as bc")
+        .innerJoin("book as b", "b.id", "bc.book_id")
+        .select("bc.book_id")
+        .where("bc.id", "=", chapterId)
+        .where("b.user_id", "=", userId)
+        .where("b.status", "=", "ready")
+        .executeTakeFirst();
+      if (chapter === undefined) return null;
+      const running = () =>
+        db
+          .selectFrom("quiz_attempt")
+          .select("id")
+          .where("user_id", "=", userId)
+          .where("book_chapter_id", "=", chapterId)
+          .where("finished_at", "is", null)
+          .executeTakeFirst();
+      const was = await running();
+      if (was !== undefined)
+        return { attemptId: was.id, bookId: chapter.book_id, firstTime: false };
+      const { rows } = await sql<{ id: string }>`
+        insert into quiz_attempt
+          (user_id, book_chapter_id, checkpoint_size, ends_at)
+        select ${userId}, k.chapter_id,
+               least(${CHECKPOINT_SIZE},
+                 (select count(*) from (${chapterQuestions(sql`k.chapter_id`)}) cq)),
+               now() + ${DURATION}
+        from book_chapter_checkpoint k
+        where k.chapter_id = ${chapterId} and k.status = 'ready'
+          and exists (${chapterQuestions(sql`k.chapter_id`)})
+        on conflict (user_id, book_chapter_id)
+          where book_chapter_id is not null and finished_at is null
+        do nothing
+        returning id
+      `.execute(db);
+      const made = rows[0];
+      if (made !== undefined)
+        return { attemptId: made.id, bookId: chapter.book_id, firstTime: true };
+      const won = await running();
+      return won === undefined
+        ? null
+        : { attemptId: won.id, bookId: chapter.book_id, firstTime: false };
     },
 
     dueReviews: async (userId) => {
@@ -899,9 +1013,12 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           on conflict (user_id, question_id) do nothing
           returning question_id
         ),
+        -- A book chapter's question (P2-W11-S06) is its owner's alone: the flag is
+        -- kept as their feedback, but no one else may review it, and it stays in
+        -- their checkpoint.
         marked as (
           update question set status = 'flagged'
-          where id = ${questionId} and status = 'live'
+          where id = ${questionId} and status = 'live' and moment_id is not null
             and exists (select 1 from flagged)
         ),
         -- A question in this week's sample is now there because it was flagged;
@@ -913,6 +1030,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             and exists (
               select 1 from question
               where id = ${questionId} and status in ('live', 'flagged')
+                and moment_id is not null
             )
           on conflict (question_id) where decision is null
           do update set reason = 'flagged'

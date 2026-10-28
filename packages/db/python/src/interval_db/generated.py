@@ -12,6 +12,7 @@ type AiFeature = Literal[
 ]
 type AiProvider = Literal["openrouter", "voyage", "groq", "google"]
 type BetaGroup = Literal["student", "developer"]
+type BookCheckpointStatus = Literal["preparing", "ready", "failed"]
 type BookStatus = Literal["processing", "ocr", "ready", "failed"]
 type BreakLength = Literal["1-3", "3-8", "8-15"]
 type Capability = Literal[
@@ -130,6 +131,20 @@ class BookChapter(TypedDict):
     book_id: int
     ordinal: int
     title: str
+
+
+class BookChapterCheckpoint(TypedDict):
+    chapter_id: int
+    status: BookCheckpointStatus
+    failure: str | None
+    requests: int
+    requested_at: datetime
+    ready_at: datetime | None
+
+
+class BookChapterConcept(TypedDict):
+    chapter_id: int
+    concept_id: int
 
 
 class BookPage(TypedDict):
@@ -430,7 +445,7 @@ class PlanCapability(TypedDict):
 
 class Question(TypedDict):
     id: int
-    moment_id: int
+    moment_id: int | None
     ordinal: int
     stem: str
     options: list[str]
@@ -448,6 +463,7 @@ class Question(TypedDict):
     answer_count: int
     correct_count: int
     calibrated_at: datetime | None
+    book_chapter_id: int | None
 
 
 class QuestionBatch(TypedDict):
@@ -519,6 +535,7 @@ class QuizAttempt(TypedDict):
     checkpoint_size: int | None
     pass_mark: int | None
     checkpoint_passed: bool | None
+    book_chapter_id: int | None
 
 
 class QuizAttemptConcept(TypedDict):

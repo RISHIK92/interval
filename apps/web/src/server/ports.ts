@@ -308,6 +308,12 @@ export interface Quizzes {
     pathId: string;
     firstTime: boolean;
   } | null>;
+  // P2-W11-S06 (Q-P2-35): a chapter checkpoint of the user's ready book, once it's
+  // ready; the running one if there is one (LOAD-5); null otherwise.
+  startBookCheckpoint(
+    userId: string,
+    chapterId: string,
+  ): Promise<{ attemptId: string; bookId: string; firstTime: boolean } | null>;
   // P2-W9-S07 (Q-2, Q-P2-18): flag a question answered in the user's attempt, once
   // per user; true when this was the user's first flag on it.
   flag(
@@ -328,8 +334,18 @@ export type QuizFinish = {
   answered: number;
   correct: number;
   firstTime: boolean;
-  checkpoint: { pathId: string; sectionId: string; passed: boolean } | null;
+  checkpoint: { at: CheckpointAt; passed: boolean } | null;
 };
+// Where a checkpoint belongs: a section of a topic path (P2-W10-S04) or a chapter of
+// the user's book (P2-W11-S06).
+export type CheckpointAt =
+  | { kind: "path"; pathId: string; sectionId: string }
+  | { kind: "book"; bookId: string; chapterId: string };
+// Where a checkpoint's Close and Back lead: its path, or its chapter's end.
+export const checkpointHome = (at: CheckpointAt): string =>
+  at.kind === "path"
+    ? `/paths/${at.pathId}`
+    : `/books/${at.bookId}/checkpoint/${at.chapterId}`;
 
 export const quizKey = (itemId: string, momentId: string | null): string =>
   `${itemId}.${momentId ?? ""}`;
@@ -358,13 +374,15 @@ export const CHECKPOINT_SIZE = 5;
 export const passMark = (size: number): number =>
   size >= CHECKPOINT_SIZE ? 4 : Math.max(size - 1, 1);
 export type CheckpointInfo = {
-  pathId: string;
-  sectionId: string;
-  concepts: string[]; // the section's
+  at: CheckpointAt;
+  title: string; // the section's concepts, or the chapter's title
+  concepts: string[]; // the section's or chapter's
   size: number;
   passMark: number;
   passed: boolean; // this attempt reached its pass mark
-  next: string[] | null; // the next section's concepts; null after the last section
+  // The next section's concepts; null after the last section, and for a book (its
+  // chapters don't lock: owner, 2026-10-29).
+  next: string[] | null;
   missed: string[]; // concepts of its wrong answers, due for review now
 };
 export type QuizFeedback = {
@@ -961,11 +979,17 @@ export interface Books {
     bookId: string,
     sessionId: string | null,
   ): Promise<BookReading | null>;
-  // True the first time; the book's id, for its event. Null when not the user's.
+  // True the first time; the book's id, for its event; the chapter's id when this
+  // finished its last session (S06: its checkpoint is then made). Null when not the
+  // user's.
   finish(
     userId: string,
     sessionId: string,
-  ): Promise<{ bookId: string; firstTime: boolean } | null>;
+  ): Promise<{
+    bookId: string;
+    firstTime: boolean;
+    chapterDone: string | null;
+  } | null>;
   // False when the session isn't in the user's ready book.
   savePosition(
     userId: string,
@@ -980,7 +1004,31 @@ export interface Books {
   // The feed's book card: the next session of the ready book read last (or added
   // last); null when no ready book has a session left.
   nextSession(userId: string): Promise<BookNext | null>;
+  // P2-W11-S06 (Q-P2-35): a finished chapter's checkpoint asked for, or asked again
+  // after a failure (or a request stuck for STUCK_MINUTES); the request's number, to
+  // key its job. Null when it isn't the user's finished chapter of a ready book, or
+  // it is being made or made already.
+  requestCheckpoint(userId: string, chapterId: string): Promise<number | null>;
+  // The chapter's end: its checkpoint and the way on. Null when not the user's.
+  checkpoint(userId: string, chapterId: string): Promise<ChapterEnd | null>;
 }
+export type CheckpointState = "none" | "preparing" | "ready" | "failed";
+// A checkpoint still preparing after this long (its job lost) can be asked for again.
+export const STUCK_MINUTES = 10;
+export type ChapterEnd = {
+  bookId: string;
+  bookTitle: string;
+  chapterId: string;
+  title: string;
+  finished: boolean; // every session marked done
+  state: CheckpointState;
+  stuck: boolean; // preparing for STUCK_MINUTES: it can be asked for again
+  failure: string | null;
+  size: number; // questions it will ask (up to 5)
+  concepts: string[];
+  last: { passed: boolean; correct: number; size: number } | null; // latest taken
+  next: { sessionId: string; title: string } | null; // the next chapter's first
+};
 export type BookOutline = {
   bookId: string;
   title: string;
@@ -990,7 +1038,10 @@ export type BookOutline = {
   started: boolean; // a place saved or a session finished: Resume, not Start
   next: string | null; // where the book opens; null once every session is finished
   chapters: {
+    chapterId: string;
     title: string;
+    // S06: its checkpoint, once asked for; whether its latest attempt passed.
+    checkpoint: { state: CheckpointState; passed: boolean | null } | null;
     sessions: {
       sessionId: string;
       title: string;

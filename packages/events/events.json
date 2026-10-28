@@ -158,6 +158,23 @@
         "passed": "boolean"
       }
     },
+    "book_checkpoint_started": {
+      "version": 1,
+      "description": "A checkpoint on a chapter of the user's book started, once per attempt (P2-W11-S06, Q-P2-35).",
+      "props": { "attempt_id": "id", "book_id": "id", "chapter_id": "id" }
+    },
+    "book_checkpoint_finished": {
+      "version": 1,
+      "description": "A book chapter's checkpoint was finished, once per attempt (P2-W11-S06, Q-P2-35). passed: it reached its pass mark.",
+      "props": {
+        "attempt_id": "id",
+        "book_id": "id",
+        "chapter_id": "id",
+        "answered": "count",
+        "correct": "count",
+        "passed": "boolean"
+      }
+    },
     "item_saved": {
       "version": 1,
       "description": "An item was saved (W4-S07; listed by the W5-S04 Library).",

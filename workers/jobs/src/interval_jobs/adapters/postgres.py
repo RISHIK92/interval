@@ -37,8 +37,10 @@ from interval_jobs.ports import (
     BookChapterRow,
     BookJob,
     BookPageText,
+    BookQuestion,
     CandidateArticle,
     CandidateMoment,
+    ChapterForCheckpoint,
     ConceptCoverage,
     ConceptCycleError,
     ConceptEdge,
@@ -81,6 +83,7 @@ from interval_jobs.ports import (
     ValidatedQuestion,
     Validators,
 )
+from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 
 
 @contextmanager
@@ -2088,12 +2091,14 @@ class PostgresQuestions:
         # Two runs at once would sample the same window twice.
         self._conn.execute("select pg_advisory_xact_lock(hashtext('spot-checks'))")
         # The window is what went live since `since` (validated, whatever it is now), so
-        # retiring a sampled question doesn't make a rerun draw another.
+        # retiring a sampled question doesn't make a rerun draw another. A book
+        # chapter's questions are its owner's alone (P2-W11-S06): never sampled.
         sampled = self._conn.execute(
             """
             with window_q as (
               select id, status from question
               where validated_at >= %(since)s and status <> 'rejected'
+                and book_chapter_id is null
             ), taken as (
               select count(distinct r.question_id) as n from question_review r
               join window_q w on w.id = r.question_id where r.reason = 'sample'
@@ -2120,7 +2125,7 @@ class PostgresQuestions:
             """
             insert into question_review (question_id, reason)
             select id, 'flagged' from question q
-            where q.status = 'flagged' and not exists (
+            where q.status = 'flagged' and q.book_chapter_id is null and not exists (
               select 1 from question_review r
               where r.question_id = q.id and r.decision is null
             )
@@ -2241,13 +2246,14 @@ class PostgresQuestions:
             str(status): int(n)
             for status, n in self._conn.execute(
                 "select status, count(*) from question "
-                "where status <> 'retired' group by status"
+                "where status <> 'retired' and book_chapter_id is null group by status"
             ).fetchall()
         }
         rows = self._conn.execute(
             """
             select id, stem, options, correct, citation, validator_answer, status
             from question where validated_at is not null and status <> 'retired'
+              and book_chapter_id is null
             order by random() limit %s
             """,
             (sample,),
@@ -2514,6 +2520,130 @@ class PostgresBooks:
             (book_id,),
         ).fetchall()
         return [BookPageText(int(n), str(t), bool(s)) for n, t, s in rows]
+
+    def checkpoint_input(self, chapter_id: int) -> ChapterForCheckpoint | None:
+        head = self._conn.execute(
+            """
+            select b.user_id, b.title, c.title from book_chapter_checkpoint k
+            join book_chapter c on c.id = k.chapter_id
+            join book b on b.id = c.book_id and b.status = 'ready'
+            where k.chapter_id = %s and k.status = 'preparing'
+            """,
+            (chapter_id,),
+        ).fetchone()
+        if head is None:
+            return None
+        sessions = self._conn.execute(
+            "select title, text from book_session where chapter_id = %s "
+            "order by ordinal",
+            (chapter_id,),
+        ).fetchall()
+        return ChapterForCheckpoint(
+            chapter_id,
+            str(head[0]),
+            str(head[1]),
+            str(head[2]),
+            [(str(t), str(x)) for t, x in sessions],
+        )
+
+    def save_checkpoint(
+        self,
+        chapter_id: int,
+        concepts: frozenset[str],
+        questions: list[BookQuestion],
+        generator_model: str,
+        validator_model: str,
+    ) -> Literal["ready", "empty", "gone"]:
+        conn = self._conn
+        # Locked: a second delivery waits, then finds it no longer preparing.
+        if (
+            conn.execute(
+                "select 1 from book_chapter_checkpoint "
+                "where chapter_id = %s and status = 'preparing' for update",
+                (chapter_id,),
+            ).fetchone()
+            is None
+        ):
+            return "gone"
+        # A try after a failure replaces the rejected drafts; nothing was answered.
+        conn.execute(
+            "delete from question where book_chapter_id = %s and status <> 'live'",
+            (chapter_id,),
+        )
+        conn.execute(
+            "delete from book_chapter_concept where chapter_id = %s", (chapter_id,)
+        )
+        conn.execute(
+            """
+            insert into book_chapter_concept (chapter_id, concept_id)
+            select %s, id from concept where slug = any(%s)
+            """,
+            (chapter_id, sorted(concepts)),
+        )
+        row = conn.execute(
+            "select coalesce(max(ordinal) + 1, 0) from question "
+            "where book_chapter_id = %s",
+            (chapter_id,),
+        ).fetchone()
+        first = 0 if row is None else int(row[0])
+        for ordinal, question in enumerate(questions, start=first):
+            draft = question.draft
+            inserted = conn.execute(
+                """
+                insert into question (book_chapter_id, ordinal, stem, options,
+                  correct, citation, generator_model, prompt_version, content_hash,
+                  difficulty, status, validator_model, validator_answer, validated_at)
+                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                  %s::question_status, %s, %s,
+                  case when %s then now() end)
+                returning id
+                """,
+                (
+                    chapter_id,
+                    ordinal,
+                    draft.stem,
+                    list(draft.options),
+                    draft.correct,
+                    draft.citation,
+                    generator_model,
+                    QUESTIONS_PROMPT_VERSION,
+                    question.content_hash,
+                    question.difficulty,
+                    "live" if question.live else "rejected",
+                    # An unreadable verdict is no verdict: rejected, unvalidated.
+                    None if question.validator_answer is None else validator_model,
+                    question.validator_answer,
+                    question.validator_answer is not None,
+                ),
+            ).fetchone()
+            assert inserted is not None  # insert ... returning always returns the row
+            conn.execute(
+                """
+                insert into question_concept (question_id, concept_id)
+                select %s, id from concept where slug = any(%s)
+                """,
+                (inserted[0], sorted(question.concepts)),
+            )
+        live = conn.execute(
+            "select exists (select 1 from question "
+            "where book_chapter_id = %s and status = 'live')",
+            (chapter_id,),
+        ).fetchone()
+        if live is None or not live[0]:
+            return "empty"
+        conn.execute(
+            "update book_chapter_checkpoint set status = 'ready', ready_at = now(), "
+            "failure = null where chapter_id = %s",
+            (chapter_id,),
+        )
+        return "ready"
+
+    def fail_checkpoint(self, chapter_id: int, reason: str) -> None:
+        self._conn.execute(
+            "update book_chapter_checkpoint set status = 'failed', failure = %s "
+            "where chapter_id = %s and status = 'preparing'",
+            (reason[:200], chapter_id),
+        )
 
 
 class PostgresStore:

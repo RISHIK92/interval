@@ -47,6 +47,8 @@ describe("the event list (Q-P1-20)", () => {
         "book_deleted",
         "book_session_finished",
         "book_opened", // P2-W11-S05
+        "book_checkpoint_started", // P2-W11-S06
+        "book_checkpoint_finished",
       ].sort(),
     );
   });

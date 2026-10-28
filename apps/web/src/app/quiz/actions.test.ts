@@ -339,7 +339,10 @@ test("a checkpoint's finish reports whether it passed; Close goes back to the pa
     answered: 5,
     correct: 4,
     firstTime: true,
-    checkpoint: { pathId: "6", sectionId: "60", passed: true },
+    checkpoint: {
+      at: { kind: "path", pathId: "6", sectionId: "60" },
+      passed: true,
+    },
   });
   await expect(
     finishQuizAction(form({ attemptId: "41", chip: "3-8", leave: "path" })),
@@ -375,7 +378,10 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       answered: 5,
       correct: 4,
       firstTime: true,
-      checkpoint: { pathId: "6", sectionId: "60", passed: true },
+      checkpoint: {
+        at: { kind: "path", pathId: "6", sectionId: "60" },
+        passed: true,
+      },
     },
   ]);
   startCheckpoint.mockResolvedValue({

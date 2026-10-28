@@ -4,9 +4,12 @@ import { z } from "zod";
 import { CHIPS } from "../../../../server/chips";
 import { progress, quizzes, sessionReader } from "../../../../server/container";
 import { outHref, readHref } from "../../../../server/outbound";
-import { BIGINT_ID } from "../../../../server/ports";
+import { BIGINT_ID, checkpointHome } from "../../../../server/ports";
 import { STATE_WORDS } from "../../../learnerState";
-import { startCheckpointAction } from "../../actions";
+import {
+  startBookCheckpointAction,
+  startCheckpointAction,
+} from "../../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +17,8 @@ const Query = z.object({ chip: z.enum(CHIPS) });
 
 // Test 60s results (P2-W9-S02; wireframe 14, variant test): how it went, each
 // concept's state, and the next section. A checkpoint's (P2-W10-S04, Q-P2-26) says
-// whether it passed and what that unlocked, or offers another try.
+// whether it passed and what that unlocked (a book chapter's, P2-W11-S06: what is now
+// practiced), or offers another try.
 export default async function ResultsPage({
   params,
   searchParams,
@@ -96,9 +100,13 @@ export default async function ResultsPage({
           className="flex flex-col gap-1 rounded-2xl bg-go-soft px-4 py-3"
         >
           <p className="font-semibold">
-            {checkpoint.next === null
-              ? "Passed. That's the whole path."
-              : `Passed: ${checkpoint.next.join(", ")} unlocked.`}
+            {checkpoint.at.kind === "book"
+              ? checkpoint.concepts.length === 0
+                ? "Passed."
+                : `Passed: ${checkpoint.concepts.join(", ")} practiced.`
+              : checkpoint.next === null
+                ? "Passed. That's the whole path."
+                : `Passed: ${checkpoint.next.join(", ")} unlocked.`}
           </p>
           {/* Owner, 2026-10-28: a pass's misses go to review too; say which. */}
           {checkpoint.missed.length === 0 ? null : (
@@ -166,17 +174,31 @@ export default async function ResultsPage({
       )}
       <div className="mt-auto flex flex-col gap-2">
         {checkpoint === null || checkpoint.passed ? null : (
-          <form action={startCheckpointAction}>
-            <input
-              type="hidden"
-              name="sectionId"
-              value={checkpoint.sectionId}
-            />
+          <form
+            action={
+              checkpoint.at.kind === "path"
+                ? startCheckpointAction
+                : startBookCheckpointAction
+            }
+          >
+            {checkpoint.at.kind === "path" ? (
+              <input
+                type="hidden"
+                name="sectionId"
+                value={checkpoint.at.sectionId}
+              />
+            ) : (
+              <input
+                type="hidden"
+                name="chapterId"
+                value={checkpoint.at.chapterId}
+              />
+            )}
             <input type="hidden" name="chip" value={chip} />
             <input
               type="hidden"
               name="back"
-              value={`/paths/${checkpoint.pathId}`}
+              value={checkpointHome(checkpoint.at)}
             />
             <button
               type="submit"
@@ -200,7 +222,7 @@ export default async function ResultsPage({
         <a
           href={
             checkpoint !== null
-              ? `/paths/${checkpoint.pathId}`
+              ? checkpointHome(checkpoint.at)
               : attempt.review
                 ? "/library"
                 : `/?chip=${chip}`
@@ -212,7 +234,9 @@ export default async function ResultsPage({
           }`}
         >
           {checkpoint !== null
-            ? "Back to the path"
+            ? checkpoint.at.kind === "path"
+              ? "Back to the path"
+              : "Back to the book"
             : attempt.review
               ? "Back to Library"
               : "Back to feed"}

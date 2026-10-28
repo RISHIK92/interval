@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { addBook, removeBook, titleOf } from "./books";
+import { addBook, removeBook, requestCheckpoint, titleOf } from "./books";
 import type { Books, Entitlements, FileStore, JobQueue } from "./ports";
 import { prepare } from "./queue";
 
@@ -18,6 +18,7 @@ function fakes(
   const stored = new Map<string, Uint8Array>();
   const queued: { name: string; message: unknown; key: string }[] = [];
   let next = 1;
+  let requests = 0;
   const books: Books = {
     list: () => Promise.resolve([]),
     reading: () => Promise.resolve(null),
@@ -26,6 +27,10 @@ function fakes(
     fileKey: () => Promise.resolve(null),
     outlines: () => Promise.resolve([]),
     nextSession: () => Promise.resolve(null),
+    // The chapter "7" is u1's, finished; each request is numbered.
+    requestCheckpoint: (userId, chapterId) =>
+      Promise.resolve(userId === "u1" && chapterId === "7" ? ++requests : null),
+    checkpoint: () => Promise.resolve(null),
     create: (userId, _title, _size, key) => {
       const mine = [...rows.values()].filter((r) => r.userId === userId);
       if (mine.length >= (opts.limit ?? 5)) return Promise.resolve("limit");
@@ -163,4 +168,30 @@ test("the title is the file name until processing reads the PDF's own", () => {
   );
   expect(titleOf(".pdf")).toBe("Untitled book");
   expect(titleOf(`${"x".repeat(400)}.pdf`)).toHaveLength(300);
+});
+
+// P2-W11-S06 (Q-P2-35): a finished chapter's checkpoint, queued to be made.
+test("a checkpoint asked for is queued with its request's number; anyone else's isn't", async () => {
+  const { deps, queued } = fakes();
+  expect(await requestCheckpoint(deps, "u2", "7")).toBe(false);
+  expect(queued).toEqual([]);
+  expect(await requestCheckpoint(deps, "u1", "7")).toBe(true);
+  expect(await requestCheckpoint(deps, "u1", "7")).toBe(true);
+  expect(queued).toEqual([
+    {
+      name: "book_checkpoint",
+      message: { chapter_id: 7 },
+      key: "book-checkpoint-7-1",
+    },
+    {
+      name: "book_checkpoint",
+      message: { chapter_id: 7 },
+      key: "book-checkpoint-7-2",
+    },
+  ]);
+});
+
+test("a checkpoint that can't be queued is still asked for, and logged", async () => {
+  const { deps } = fakes({ failQueue: true });
+  expect(await requestCheckpoint(deps, "u1", "7")).toBe(true);
 });

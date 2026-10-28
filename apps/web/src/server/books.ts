@@ -104,3 +104,26 @@ export async function removeBook(
     return { removed: true, fileLeft: { key, error } };
   }
 }
+
+// P2-W11-S06 (Q-P2-35): a finished chapter's checkpoint asked for, and queued to be
+// made. A job that can't be queued is logged and leaves the checkpoint preparing;
+// after STUCK_MINUTES the chapter's end offers to ask again (LOAD-5). False when
+// there was nothing to ask for (not the user's, or made or being made).
+export async function requestCheckpoint(
+  deps: { books: Books; queue: JobQueue },
+  userId: string,
+  chapterId: string,
+): Promise<boolean> {
+  const request = await deps.books.requestCheckpoint(userId, chapterId);
+  if (request === null) return false;
+  try {
+    await deps.queue.enqueue(
+      "book_checkpoint",
+      { chapter_id: Number(chapterId) },
+      { idempotencyKey: `book-checkpoint-${chapterId}-${String(request)}` },
+    );
+  } catch (error) {
+    log.error("books: checkpoint not queued", { chapterId, error });
+  }
+  return true;
+}

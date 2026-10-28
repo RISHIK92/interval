@@ -15,6 +15,8 @@ from pydantic import (
 
 type EventName = Literal[
     "article_finished",
+    "book_checkpoint_finished",
+    "book_checkpoint_started",
     "book_deleted",
     "book_opened",
     "book_session_finished",
@@ -51,6 +53,8 @@ type Source = Literal["web", "jobs"]
 
 EVENT_VERSIONS: dict[EventName, int] = {
     "article_finished": 2,
+    "book_checkpoint_finished": 1,
+    "book_checkpoint_started": 1,
     "book_deleted": 1,
     "book_opened": 1,
     "book_session_finished": 1,
@@ -91,6 +95,21 @@ class _Model(BaseModel):
 class ArticleFinishedProps(_Model):
     method: Literal["return_prompt", "mark_done"]
     item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class BookCheckpointFinishedProps(_Model):
+    attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    book_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    chapter_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    answered: int = Field(ge=0, strict=True)
+    correct: int = Field(ge=0, strict=True)
+    passed: StrictBool
+
+
+class BookCheckpointStartedProps(_Model):
+    attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    book_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    chapter_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class BookDeletedProps(_Model):
@@ -265,6 +284,18 @@ class ArticleFinishedEvent(_EnvelopeBase):
     name: Literal["article_finished"]
     version: Literal[2]
     props: ArticleFinishedProps
+
+
+class BookCheckpointFinishedEvent(_EnvelopeBase):
+    name: Literal["book_checkpoint_finished"]
+    version: Literal[1]
+    props: BookCheckpointFinishedProps
+
+
+class BookCheckpointStartedEvent(_EnvelopeBase):
+    name: Literal["book_checkpoint_started"]
+    version: Literal[1]
+    props: BookCheckpointStartedProps
 
 
 class BookDeletedEvent(_EnvelopeBase):
@@ -450,6 +481,8 @@ class SourceHiddenEvent(_EnvelopeBase):
 # Q-P1-20: every event carries the same envelope; name and version pick its props.
 type Envelope = Annotated[
     ArticleFinishedEvent
+    | BookCheckpointFinishedEvent
+    | BookCheckpointStartedEvent
     | BookDeletedEvent
     | BookOpenedEvent
     | BookSessionFinishedEvent

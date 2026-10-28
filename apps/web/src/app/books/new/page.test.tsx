@@ -50,7 +50,7 @@ test("the form takes a PDF, says the plan's size limit, and the AI notice", asyn
   expect(html).toContain('accept="application/pdf,.pdf"');
   expect(html).toContain("Up to 50 MB");
   expect(html).toContain(
-    "Checkpoints send a chapter&#x27;s text to our AI provider to write questions.",
+    "Checkpoints send a chapter&#x27;s text to our AI providers to write questions.",
   );
   expect(html).not.toContain('role="alert"');
 });

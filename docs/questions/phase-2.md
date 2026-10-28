@@ -192,6 +192,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P2-35 Book checkpoints (P1)
 - Cite: §5F (checkpoints), Q-P2-26.
 - **Answer (owner, 2026-10-28):** per chapter, generated on demand when the user reaches the chapter's end, so unread chapters cost nothing; the same rules as topic path checkpoints.
+- **Update (owner, 2026-10-29, P2-W11-S06):** a book's chapters don't lock: the checkpoint is offered at the chapter's end and records its result (concepts practiced, misses due for review), but the next chapter is always open, and a passed checkpoint can be taken again. Concepts come from the W3 decision tagger run on the chapter's sessions (at most 6, spread through it); the user meets the checkpoint at the chapter's end page and on the Paths timeline.
 
 ### Q-P2-36 The "Finally finish that book" goal (P2)
 - Cite: ADR-0015.
@@ -207,6 +208,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Question: book checkpoints (S06) need the chapter's text sent to the model provider (OpenRouter's DeepSeek, as the W8 generator uses) to write and check questions, and to tag concepts. Is that acceptable for private uploads, and with what conditions (a provider with zero data retention, a notice at upload, opt-in per book)?
 - Suggested default: allowed through the gateway only, with a one-line notice at upload ("Checkpoints send a chapter's text to our AI provider to write questions"), and only providers that don't train on or retain API data.
 - **Answer (owner, 2026-10-28):** allowed through the gateway only, with a one-line notice at upload, and only providers that don't train on or retain API data.
+- **Update (owner, 2026-10-29, P2-W11-S06):** book checkpoints use the same `QUESTIONS_MODEL` without a zero-data-retention flag ("its okay"), and the W3 tagger (Voyage embeddings, OpenRouter's decision model) also sees the chapter's text. Still only through the gateway, on the owner's budget; the notice at upload names "our AI providers".
 
 ### Q-P2-39 Books and guests; files when an account goes (P1)
 - Cite: §5F, DB-6, ING-5; the P2-W11-S01 review.

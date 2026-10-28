@@ -27,6 +27,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from interval_db.messages import (
+    BookCheckpoint,
     BookProcess,
     CheckLink,
     DiscoverSource,
@@ -44,6 +45,14 @@ from interval_db.messages import (
 )
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
+from interval_jobs.books.checkpoint import (
+    GAVE_UP as CHECKPOINT_GAVE_UP,
+)
+from interval_jobs.books.checkpoint import (
+    NOT_CONFIGURED,
+    CheckpointModels,
+    make_checkpoint,
+)
 from interval_jobs.books.ocr import GAVE_UP, give_up, read_page
 from interval_jobs.books.process import process_book
 from interval_jobs.concept_vectors import concept_text, text_hash
@@ -113,6 +122,7 @@ STAGES: tuple[MessageName, ...] = (
     "remove_file",
     "book_process",
     "ocr_page",
+    "book_checkpoint",
 )
 
 # Q-P2-10: the free question model is an unimportant background task. A rate limit or
@@ -207,6 +217,7 @@ class Pipeline:
             "remove_file": self._remove_file_stage,
             "book_process": self._book_stage,
             "ocr_page": self._ocr_stage,
+            "book_checkpoint": self._book_checkpoint_stage,
         }
 
     # P2-W11-S02: an uploaded PDF read into chapters and sessions.
@@ -264,6 +275,58 @@ class Pipeline:
                 error=type(error).__name__,
             )
             give_up(stores, message.book_id, GAVE_UP)
+
+    # P2-W11-S06 (Q-P2-35): a chapter's checkpoint, made when the user reaches its end.
+    # A model error is retried by the queue; on the last attempt the checkpoint fails
+    # with a reason rather than preparing for ever, logged and offered again.
+    def _book_checkpoint_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, BookCheckpoint)
+
+        @contextmanager
+        def stores() -> Generator[Store]:
+            with self._unit() as services:
+                yield services.store
+
+        models = self._checkpoint_models()
+        if models is None:
+            # Configuration, not a passing fault: no retry would help.
+            log.error(
+                "books: checkpoints need TAGGING_MODEL (decisions:), EMBEDDING_MODEL "
+                "and QUESTIONS_MODEL",
+                chapter_id=message.chapter_id,
+            )
+            with stores() as store:
+                store.books.fail_checkpoint(message.chapter_id, NOT_CONFIGURED)
+            return
+        try:
+            make_checkpoint(stores, models, message.chapter_id)
+        except Exception as error:
+            if delivery.attempt < ATTEMPTS:
+                raise
+            log.error(
+                "books: checkpoint gave up",
+                chapter_id=message.chapter_id,
+                error=type(error).__name__,
+            )
+            with stores() as store:
+                store.books.fail_checkpoint(message.chapter_id, CHECKPOINT_GAVE_UP)
+
+    def _checkpoint_models(self) -> CheckpointModels | None:
+        tagging, embedding, questions = self._tagging, self._embedding, self._questions
+        if (
+            tagging is None
+            or embedding is None
+            or questions is None
+            or not tagging.model.startswith(DECISIONS_PREFIX)
+        ):
+            return None
+        return CheckpointModels(
+            tagger=tagging.model.removeprefix(DECISIONS_PREFIX),
+            embedding=embedding.model,
+            # On demand: the batch tier's results come too late (Q-P2-13).
+            questions=questions.model.removeprefix(BATCH_PREFIX),
+            gateway=questions.gateway,
+        )
 
     # P2-W11-S01 (LOAD-5): a deleted book's file, removed with the queue's retries.
     # Only under books/: the message names a key, and nothing else is the user's to

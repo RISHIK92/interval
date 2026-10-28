@@ -1,6 +1,11 @@
 import type { DB } from "@interval/db";
-import { type Kysely, sql } from "kysely";
-import type { BookOutline, Books } from "../ports";
+import { type Kysely, type RawBuilder, sql } from "kysely";
+import {
+  type BookOutline,
+  type Books,
+  CHECKPOINT_SIZE,
+  STUCK_MINUTES,
+} from "../ports";
 
 // A user's private PDF books (§5F, DB-6, P2-W11-S01).
 // Kysely can't nest transactions: inside one (as the tests run), use it.
@@ -102,7 +107,15 @@ export function kyselyBooks(db: Kysely<DB>): Books {
         for (const s of book.sessions) {
           if (s.chapter_id !== chapterId) {
             chapterId = s.chapter_id;
-            chapters.push({ title: s.chapter_title, sessions: [] });
+            chapters.push({
+              chapterId: s.chapter_id,
+              title: s.chapter_title,
+              checkpoint:
+                s.checkpoint_state === null
+                  ? null
+                  : { state: s.checkpoint_state, passed: s.last_passed },
+              sessions: [],
+            });
           }
           chapters.at(-1)?.sessions.push({
             sessionId: s.id,
@@ -157,9 +170,13 @@ export function kyselyBooks(db: Kysely<DB>): Books {
 
     // One statement: only a session of the user's ready book is marked, once (LOAD-5).
     finish: async (userId, sessionId) => {
-      const { rows } = await sql<{ book_id: string; added: boolean }>`
+      const { rows } = await sql<{
+        book_id: string;
+        added: boolean;
+        chapter_done: string | null;
+      }>`
         with owned as (
-          select b.id as book_id from book_session s
+          select b.id as book_id, c.id as chapter_id from book_session s
           join book_chapter c on c.id = s.chapter_id
           join book b on b.id = c.book_id
           where s.id = ${sessionId} and b.user_id = ${userId}
@@ -171,12 +188,27 @@ export function kyselyBooks(db: Kysely<DB>): Books {
           on conflict (session_id) do nothing
           returning session_id
         )
-        select book_id, exists (select 1 from added) as added from owned
+        -- The insert isn't visible here: every other session of the chapter done.
+        -- Two last sessions marked at the same instant each miss the other's row,
+        -- so neither asks for the checkpoint; the chapter's end offers it then.
+        select book_id, exists (select 1 from added) as added,
+          case when not exists (
+            select 1 from book_session o
+            where o.chapter_id = owned.chapter_id and o.id <> ${sessionId}
+              and not exists (
+                select 1 from book_session_finished f where f.session_id = o.id
+              )
+          ) then chapter_id end as chapter_done
+        from owned
       `.execute(db);
       const row = rows[0];
       return row === undefined
         ? null
-        : { bookId: row.book_id, firstTime: row.added };
+        : {
+            bookId: row.book_id,
+            firstTime: row.added,
+            chapterDone: row.chapter_done,
+          };
     },
 
     savePosition: async (userId, bookId, sessionId, fraction) => {
@@ -205,6 +237,106 @@ export function kyselyBooks(db: Kysely<DB>): Books {
         .where("status", "=", "ready")
         .executeTakeFirst();
       return row?.file_key ?? null;
+    },
+
+    requestCheckpoint: async (userId, chapterId) => {
+      const { rows } = await sql<{ requests: number }>`
+        insert into book_chapter_checkpoint (chapter_id)
+        select c.id from book_chapter c
+        join book b on b.id = c.book_id
+        where c.id = ${chapterId} and b.user_id = ${userId} and b.status = 'ready'
+          and ${chapterFinished(sql`c.id`)}
+        on conflict (chapter_id) do update set
+          status = 'preparing', failure = null, ready_at = null,
+          requests = book_chapter_checkpoint.requests + 1, requested_at = now()
+        where book_chapter_checkpoint.status = 'failed'
+          or (book_chapter_checkpoint.status = 'preparing'
+            and book_chapter_checkpoint.requested_at
+              < now() - make_interval(mins => ${STUCK_MINUTES}))
+        returning requests
+      `.execute(db);
+      return rows[0]?.requests ?? null;
+    },
+
+    checkpoint: async (userId, chapterId) => {
+      const { rows } = await sql<{
+        book_id: string;
+        book_title: string;
+        title: string;
+        finished: boolean;
+        state: "preparing" | "ready" | "failed" | null;
+        stuck: boolean;
+        failure: string | null;
+        size: number;
+        concepts: string[];
+        last_passed: boolean | null;
+        last_correct: number | null;
+        last_size: number | null;
+        next_id: string | null;
+        next_title: string | null;
+      }>`
+        select b.id as book_id, b.title as book_title, c.title,
+          ${chapterFinished(sql`c.id`)} as finished,
+          k.status as state,
+          coalesce(k.status = 'preparing' and k.requested_at
+            < now() - make_interval(mins => ${STUCK_MINUTES}), false) as stuck,
+          k.failure,
+          least(${CHECKPOINT_SIZE}, (select count(*)::int from question q
+            where q.book_chapter_id = c.id and q.status = 'live')) as size,
+          array(select n.name from book_chapter_concept bc
+            join concept n on n.id = bc.concept_id and n.retired_at is null
+            where bc.chapter_id = c.id order by n.name) as concepts,
+          last.checkpoint_passed as last_passed, last.correct as last_correct,
+          last.checkpoint_size as last_size,
+          next.id as next_id, next.title as next_title
+        from book_chapter c
+        join book b on b.id = c.book_id and b.status = 'ready'
+        left join book_chapter_checkpoint k on k.chapter_id = c.id
+        left join lateral (
+          select a.checkpoint_passed, a.checkpoint_size,
+            (select count(*)::int from quiz_answer qa
+              where qa.attempt_id = a.id and qa.correct) as correct
+          from quiz_attempt a
+          where a.user_id = ${userId} and a.book_chapter_id = c.id
+            and a.finished_at is not null
+          order by a.finished_at desc limit 1
+        ) last on true
+        left join lateral (
+          select s.id, s.title from book_chapter nc
+          join book_session s on s.chapter_id = nc.id
+          where nc.book_id = c.book_id and nc.ordinal > c.ordinal
+          order by nc.ordinal, s.ordinal limit 1
+        ) next on true
+        where c.id = ${chapterId} and b.user_id = ${userId}
+      `.execute(db);
+      const row = rows[0];
+      if (row === undefined) return null;
+      return {
+        bookId: row.book_id,
+        bookTitle: row.book_title,
+        chapterId,
+        title: row.title,
+        finished: row.finished,
+        state: row.state ?? "none",
+        stuck: row.stuck,
+        failure: row.failure,
+        size: row.size,
+        concepts: row.concepts,
+        last:
+          row.last_passed === null ||
+          row.last_correct === null ||
+          row.last_size === null
+            ? null
+            : {
+                passed: row.last_passed,
+                correct: row.last_correct,
+                size: row.last_size,
+              },
+        next:
+          row.next_id === null || row.next_title === null
+            ? null
+            : { sessionId: row.next_id, title: row.next_title },
+      };
     },
 
     remove: async (userId, bookId) => {
@@ -243,6 +375,14 @@ async function readyBooks(
       "s.first_page",
       "s.last_page",
       "f.finished_at",
+      sql<"preparing" | "ready" | "failed" | null>`(
+        select k.status from book_chapter_checkpoint k
+        where k.chapter_id = c.id)`.as("checkpoint_state"),
+      sql<boolean | null>`(
+        select a.checkpoint_passed from quiz_attempt a
+        where a.user_id = ${userId} and a.book_chapter_id = c.id
+          and a.finished_at is not null
+        order by a.finished_at desc limit 1)`.as("last_passed"),
     ])
     .where("b.user_id", "=", userId)
     .where("b.status", "=", "ready");
@@ -289,6 +429,8 @@ type ReadyBook = {
     first_page: number;
     last_page: number;
     finished_at: Date | null;
+    checkpoint_state: "preparing" | "ready" | "failed" | null;
+    last_passed: boolean | null; // the user's latest attempt at its checkpoint
   }[];
 };
 
@@ -300,3 +442,12 @@ function opensAt(book: ReadyBook): ReadyBook["sessions"][number] | undefined {
     ? place
     : book.sessions.find((s) => s.finished_at === null);
 }
+
+// Every session of the chapter marked done (Q-P2-35: its checkpoint is made then).
+const chapterFinished = (
+  chapter: RawBuilder<unknown>,
+) => sql<boolean>`not exists (
+  select 1 from book_session s
+  where s.chapter_id = ${chapter}
+    and not exists (select 1 from book_session_finished f where f.session_id = s.id)
+)`;

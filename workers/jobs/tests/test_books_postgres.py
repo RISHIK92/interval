@@ -3,11 +3,19 @@
 import os
 import threading
 import time
+from datetime import UTC, datetime
 
 import psycopg
+import pytest
 
-from interval_jobs.adapters.postgres import PostgresBooks
-from interval_jobs.ports import BookChapterRow, BookPageText, BookSessionRow
+from interval_jobs.adapters.postgres import PostgresBooks, PostgresQuestions
+from interval_jobs.ports import (
+    BookChapterRow,
+    BookPageText,
+    BookQuestion,
+    BookSessionRow,
+    QuestionDraft,
+)
 
 from .test_db_guards import a_user
 
@@ -207,3 +215,152 @@ def test_a_deleted_book_or_a_page_read_twice_records_nothing(
     conn.execute("delete from book where id = %s", (book_id,))
     assert books.record_ocr(book_id, 2, "two") is None
     assert books.unread_scanned(book_id) == []
+
+
+# P2-W11-S06 (Q-P2-35): a chapter's checkpoint, made on demand.
+def _preparing(conn: psycopg.Connection, user_id: str) -> int:
+    book_id = a_book(conn, user_id)
+    PostgresBooks(conn).save(book_id, None, PAGES, CHAPTERS, "ready")
+    row = conn.execute(
+        "select id from book_chapter where book_id = %s and ordinal = 0", (book_id,)
+    ).fetchone()
+    assert row is not None
+    conn.execute(
+        "insert into book_chapter_checkpoint (chapter_id) values (%s)", (row[0],)
+    )
+    conn.execute(
+        "insert into concept (slug, name, topic) values "
+        "('bk-leaders', 'Leaders', 'databases') on conflict do nothing"
+    )
+    return int(row[0])
+
+
+def _question(answer: int | None) -> BookQuestion:
+    draft = QuestionDraft(
+        "Who takes writes?", ("One node", "All", "None", "Any"), 0, "x"
+    )
+    return BookQuestion(draft, frozenset({"bk-leaders"}), answer, "beginner", "h")
+
+
+def test_a_checkpoint_is_read_while_preparing_and_saved_ready_with_its_concepts(
+    conn: psycopg.Connection,
+) -> None:
+    books = PostgresBooks(conn)
+    chapter_id = _preparing(conn, "bk6")
+    wanted = books.checkpoint_input(chapter_id)
+    assert wanted is not None
+    assert (wanted.user_id, wanted.book_title, wanted.title) == (
+        "bk6",
+        "ddia",
+        "Replication",
+    )
+    assert wanted.sessions == [
+        ("Leaders", "One node takes writes."),
+        ("Followers", "Others copy them."),
+    ]
+    assert (
+        books.save_checkpoint(
+            chapter_id,
+            frozenset({"bk-leaders"}),
+            [_question(0), _question(2)],
+            "g",
+            "v",
+        )
+        == "ready"
+    )
+    assert conn.execute(
+        "select status, failure from book_chapter_checkpoint where chapter_id = %s",
+        (chapter_id,),
+    ).fetchone() == ("ready", None)
+    rows = conn.execute(
+        "select q.moment_id, q.ordinal, q.status, q.validator_answer, "
+        "array(select c.slug from question_concept qc join concept c "
+        "on c.id = qc.concept_id where qc.question_id = q.id) "
+        "from question q where q.book_chapter_id = %s order by q.ordinal",
+        (chapter_id,),
+    ).fetchall()
+    assert rows == [
+        (None, 0, "live", 0, ["bk-leaders"]),
+        (None, 1, "rejected", 2, ["bk-leaders"]),
+    ]
+    assert conn.execute(
+        "select c.slug from book_chapter_concept bc join concept c "
+        "on c.id = bc.concept_id where bc.chapter_id = %s",
+        (chapter_id,),
+    ).fetchall() == [("bk-leaders",)]
+    # Ready now: not read again, and a second run's save stores nothing.
+    assert books.checkpoint_input(chapter_id) is None
+    assert (
+        books.save_checkpoint(chapter_id, frozenset(), [_question(1)], "g", "v")
+        == "gone"
+    )
+    assert conn.execute(
+        "select count(*) from question where book_chapter_id = %s", (chapter_id,)
+    ).fetchone() == (2,)
+    assert conn.execute(
+        "select count(*) from book_chapter_concept where chapter_id = %s",
+        (chapter_id,),
+    ).fetchone() == (1,)
+
+
+def test_no_live_question_leaves_it_to_fail_and_a_retry_replaces_the_drafts(
+    conn: psycopg.Connection,
+) -> None:
+    books = PostgresBooks(conn)
+    chapter_id = _preparing(conn, "bk7")
+    assert (
+        books.save_checkpoint(
+            chapter_id, frozenset(), [_question(1), _question(None)], "g", "v"
+        )
+        == "empty"
+    )
+    books.fail_checkpoint(chapter_id, "Couldn't make questions for this chapter.")
+    assert conn.execute(
+        "select status from book_chapter_checkpoint where chapter_id = %s",
+        (chapter_id,),
+    ).fetchone() == ("failed",)
+    # Asked again (the web resets it to preparing): the rejected drafts are replaced.
+    conn.execute(
+        "update book_chapter_checkpoint set status = 'preparing', failure = null "
+        "where chapter_id = %s",
+        (chapter_id,),
+    )
+    assert (
+        books.save_checkpoint(chapter_id, frozenset(), [_question(0)], "g", "v")
+        == "ready"
+    )
+    assert conn.execute(
+        "select ordinal, status from question where book_chapter_id = %s",
+        (chapter_id,),
+    ).fetchall() == [(0, "live")]
+
+
+def test_a_question_has_one_home(conn: psycopg.Connection) -> None:
+    with pytest.raises(psycopg.errors.CheckViolation):
+        conn.execute(
+            "insert into question (ordinal, stem, options, correct, citation, "
+            "generator_model, prompt_version, content_hash) "
+            "values (0, 's', array['a','b','c','d'], 0, 'c', 'g', 1, 'h')"
+        )
+
+
+def test_a_chapters_questions_never_reach_the_admin_review(
+    conn: psycopg.Connection,
+) -> None:
+    books = PostgresBooks(conn)
+    chapter_id = _preparing(conn, "bk9")
+    books.save_checkpoint(
+        chapter_id, frozenset(), [_question(0), _question(0)], "g", "v"
+    )
+    ids = [
+        int(r[0])
+        for r in conn.execute(
+            "select id from question where book_chapter_id = %s order by ordinal",
+            (chapter_id,),
+        ).fetchall()
+    ]
+    conn.execute("update question set status = 'flagged' where id = %s", (ids[1],))
+    PostgresQuestions(conn).queue_spot_checks(datetime(2000, 1, 1, tzinfo=UTC), 1.0)
+    assert conn.execute(
+        "select count(*) from question_review where question_id = any(%s)", (ids,)
+    ).fetchone() == (0,)

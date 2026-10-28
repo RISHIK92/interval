@@ -288,7 +288,12 @@ test("a checkpoint starts once its section is open and its readings are finished
         review: false,
         itemId: null,
         title: "C1, C3, C4",
-        checkpoint: { sectionId: first, size: 5, passMark: 4, next: ["C2"] },
+        checkpoint: {
+          at: { kind: "path", sectionId: first },
+          size: 5,
+          passMark: 4,
+          next: ["C2"],
+        },
       });
       expect(attempt?.secondsLeft).toBeGreaterThan(55);
     },
@@ -327,7 +332,10 @@ test("4 of 5 passes: its concepts practiced, misses due now, the next section op
       expect(await quizzes.finish(userId, attemptId)).toMatchObject({
         answered: 5,
         correct: 4,
-        checkpoint: { pathId, sectionId: first, passed: true },
+        checkpoint: {
+          at: { kind: "path", pathId, sectionId: first },
+          passed: true,
+        },
       });
       const mastery = Object.fromEntries(
         (
@@ -574,10 +582,255 @@ test("next offers a ready checkpoint; closeStale returns the checkpoint it close
         answered: 5,
         correct: 5,
         firstTime: true,
-        checkpoint: { pathId, sectionId: first, passed: true },
+        checkpoint: {
+          at: { kind: "path", pathId, sectionId: first },
+          passed: true,
+        },
       },
     ]);
     // Closed once: a second call has nothing.
     expect(await quizzes.closeStale(userId)).toEqual([]);
+  });
+});
+
+// P2-W11-S06 (§5F, Q-P2-35): a book chapter's checkpoint, its questions made from the
+// chapter for its owner alone. Its concept here is c3, which has no public question.
+async function aBookChapter(
+  trx: Transaction<DB>,
+  userId: string,
+  concept: string,
+  live: number,
+): Promise<{ bookId: string; chapterId: string; questions: string[] }> {
+  const book = await trx
+    .insertInto("book")
+    .values({
+      user_id: userId,
+      title: "Designing Data Systems",
+      file_key: `books/${userId}/${randomUUID()}.pdf`,
+      size_bytes: 100,
+      status: "ready",
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  const chapter = await trx
+    .insertInto("book_chapter")
+    .values({ book_id: book.id, ordinal: 0, title: "Replication" })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await trx
+    .insertInto("book_chapter_checkpoint")
+    .values({ chapter_id: chapter.id, status: "ready" })
+    .execute();
+  await trx
+    .insertInto("book_chapter_concept")
+    .values({ chapter_id: chapter.id, concept_id: concept })
+    .execute();
+  const questions: string[] = [];
+  for (let n = 0; n < live; n++) {
+    const row = await trx
+      .insertInto("question")
+      .values({
+        book_chapter_id: chapter.id,
+        ordinal: n,
+        stem: `Book ${String(n)}`,
+        options: ["right", "w1", "w2", "w3"],
+        correct: 0,
+        citation: "a b c",
+        status: "live",
+        generator_model: "m",
+        prompt_version: 1,
+        content_hash: "h",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("question_concept")
+      .values({ question_id: row.id, concept_id: concept })
+      .execute();
+    questions.push(row.id);
+  }
+  return { bookId: book.id, chapterId: chapter.id, questions };
+}
+
+test("a book chapter's checkpoint asks its own questions; a pass marks its concepts practiced", async () => {
+  await inRollback(async (trx, { userId, otherUser, concept }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const { bookId, chapterId } = await aBookChapter(
+      trx,
+      userId,
+      concept.c3,
+      3,
+    );
+    // Not the user's book: nothing.
+    expect(await quizzes.startBookCheckpoint(otherUser, chapterId)).toBeNull();
+    const started = await quizzes.startBookCheckpoint(userId, chapterId);
+    expect(started).toMatchObject({ bookId, firstTime: true });
+    if (started === null) throw new Error("started");
+    // A double tap meets the same one.
+    expect(await quizzes.startBookCheckpoint(userId, chapterId)).toMatchObject({
+      attemptId: started.attemptId,
+      firstTime: false,
+    });
+    const info = await quizzes.attempt(userId, started.attemptId);
+    expect(info?.title).toBe("Replication");
+    expect(info?.checkpoint).toMatchObject({
+      at: { kind: "book", bookId, chapterId },
+      size: 3,
+      passMark: 2,
+      next: null,
+      concepts: ["C3"],
+    });
+    // Three of its own questions, then over; one wrong.
+    const stems = await take(trx, userId, started.attemptId, (_, i) => i !== 2);
+    expect(stems.sort()).toEqual(["Book 0", "Book 1", "Book 2"]);
+    const done = await quizzes.finish(userId, started.attemptId);
+    expect(done?.checkpoint).toEqual({
+      at: { kind: "book", bookId, chapterId },
+      passed: true,
+    });
+    const c3 = await trx
+      .selectFrom("concept_mastery")
+      .select("state")
+      .where("user_id", "=", userId)
+      .where("concept_id", "=", concept.c3)
+      .executeTakeFirstOrThrow();
+    expect(c3.state).not.toBe("explored");
+    // Its miss is due for review, but only its owner could be asked it: the review
+    // queue reads public questions, and c3 has none.
+    const review = await trx
+      .selectFrom("concept_review")
+      .select(sql<boolean>`due <= now()`.as("due"))
+      .where("user_id", "=", userId)
+      .where("concept_id", "=", concept.c3)
+      .executeTakeFirstOrThrow();
+    expect(review.due).toBe(true);
+    // A pass can be taken again (chapters don't lock).
+    expect(await quizzes.startBookCheckpoint(userId, chapterId)).toMatchObject({
+      firstTime: true,
+    });
+  });
+});
+
+test("a chapter checkpoint not ready, or of a book not ready, doesn't start", async () => {
+  await inRollback(async (trx, { userId, concept }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const { bookId, chapterId } = await aBookChapter(
+      trx,
+      userId,
+      concept.c3,
+      2,
+    );
+    await trx
+      .updateTable("book_chapter_checkpoint")
+      .set({ status: "preparing" })
+      .where("chapter_id", "=", chapterId)
+      .execute();
+    expect(await quizzes.startBookCheckpoint(userId, chapterId)).toBeNull();
+    await trx
+      .updateTable("book_chapter_checkpoint")
+      .set({ status: "ready" })
+      .where("chapter_id", "=", chapterId)
+      .execute();
+    await trx
+      .updateTable("book")
+      .set({ status: "ocr" })
+      .where("id", "=", bookId)
+      .execute();
+    expect(await quizzes.startBookCheckpoint(userId, chapterId)).toBeNull();
+  });
+});
+
+test("a book's questions never reach anyone else's quiz or review", async () => {
+  await inRollback(async (trx, { userId, otherUser, concept, first, m1 }) => {
+    const quizzes = kyselyQuizzes(trx);
+    // The owner's book tests c1, which the public section 1 also tests.
+    const { questions } = await aBookChapter(trx, userId, concept.c1, 3);
+    const leaked = (asked: string[]) => {
+      expect(asked.filter((id) => questions.includes(id))).toEqual([]);
+    };
+    // Another user's review of c1, due now.
+    await trx
+      .insertInto("concept_review")
+      .values({
+        user_id: otherUser,
+        concept_id: concept.c1,
+        due: sql<Date>`now() - interval '1 day'`,
+        stability: 3,
+        difficulty: 5,
+        scheduled_days: 3,
+        learning_steps: 0,
+        reps: 1,
+        lapses: 0,
+        state: 2,
+        last_review: sql<Date>`now() - interval '3 days'`,
+      })
+      .execute();
+    const review = await quizzes.startReview(otherUser);
+    if (review === null) throw new Error("review");
+    const asked: string[] = [];
+    for (;;) {
+      const got = await quizzes.next(otherUser, review.attemptId);
+      if (got === "over" || got === null) break;
+      asked.push(got.questionId);
+      await quizzes.answer(otherUser, review.attemptId, got.questionId, 0);
+    }
+    leaked(asked);
+    // The owner's own Test 60s on a public moment, and the path checkpoint on c1.
+    const item = await trx
+      .selectFrom("moment")
+      .select("content_item_id")
+      .where("id", "=", m1)
+      .executeTakeFirstOrThrow();
+    const sprint = await quizzes.start(userId, item.content_item_id, m1);
+    if (sprint === null) throw new Error("sprint");
+    const sprinted: string[] = [];
+    for (;;) {
+      const got = await quizzes.next(userId, sprint.attemptId);
+      if (got === "over" || got === null) break;
+      sprinted.push(got.questionId);
+      await quizzes.answer(userId, sprint.attemptId, got.questionId, 0);
+    }
+    leaked(sprinted);
+    await finish(trx, userId, m1);
+    const checkpoint = await quizzes.startCheckpoint(userId, first);
+    if (checkpoint === null) throw new Error("checkpoint");
+    const stems = await take(trx, userId, checkpoint.attemptId, () => true);
+    expect(stems.some((stem) => stem.startsWith("Book"))).toBe(false);
+  });
+});
+
+test("a flag on a book's question is kept, but the question stays and no one reviews it", async () => {
+  await inRollback(async (trx, { userId, concept }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const { chapterId, questions } = await aBookChapter(
+      trx,
+      userId,
+      concept.c3,
+      2,
+    );
+    const started = await quizzes.startBookCheckpoint(userId, chapterId);
+    if (started === null) throw new Error("started");
+    const asked = served(await quizzes.next(userId, started.attemptId));
+    await quizzes.answer(userId, started.attemptId, asked.questionId, 0);
+    expect(
+      await quizzes.flag(
+        userId,
+        started.attemptId,
+        asked.questionId,
+        "wrong_key",
+      ),
+    ).toBe(true);
+    const row = await trx
+      .selectFrom("question")
+      .select("status")
+      .where("id", "=", asked.questionId)
+      .executeTakeFirstOrThrow();
+    expect(row.status).toBe("live");
+    const reviews = await trx
+      .selectFrom("question_review")
+      .select("question_id")
+      .where("question_id", "in", questions)
+      .execute();
+    expect(reviews).toEqual([]);
   });
 });
