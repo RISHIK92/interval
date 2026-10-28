@@ -1,15 +1,10 @@
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import type { Chip } from "../../../server/chips";
 import { paths, preferences, sessionReader } from "../../../server/container";
-import { outHref, readHref } from "../../../server/outbound";
-import {
-  BIGINT_ID,
-  type PathAlternative,
-  type PathReading,
-} from "../../../server/ports";
+import { BIGINT_ID, type PathAlternative } from "../../../server/ports";
 import { parseReading } from "../../../server/reading";
 import { ReturnPrompt } from "../../ReturnPrompt";
+import { ReadingLink } from "../ReadingLink";
 import { TabBar } from "../../TabBar";
 import { Card } from "../../ui/Card";
 import { startCheckpointAction } from "../../quiz/actions";
@@ -431,49 +426,5 @@ function SwapList(props: {
         </li>
       ))}
     </ul>
-  );
-}
-
-// A reading in the in-app reader when its page can be framed, else in the browser
-// through /out; both count as a path open (no feed event) and lead back here.
-function ReadingLink(props: {
-  reading: PathReading;
-  pathId: string;
-  chip: Chip;
-}) {
-  const { reading: r, pathId, chip } = props;
-  if (r.linkBroken)
-    return (
-      <span className="font-semibold text-ink-muted">
-        {r.sectionTitle} (link broken)
-      </span>
-    );
-  const className = "font-semibold text-select";
-  return r.frameable ? (
-    <a
-      href={readHref({
-        itemId: r.itemId,
-        momentId: r.momentId,
-        chip,
-        from: { path: pathId },
-      })}
-      className={className}
-    >
-      {r.sectionTitle}
-    </a>
-  ) : (
-    <a
-      href={outHref({
-        itemId: r.itemId,
-        momentId: r.momentId,
-        from: "path",
-        target: "section",
-      })}
-      target="_blank"
-      rel="noopener noreferrer"
-      className={className}
-    >
-      {r.sectionTitle}
-    </a>
   );
 }

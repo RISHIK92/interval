@@ -1,6 +1,6 @@
 # Progress
 
-Status: Phase 1 built (W1-S12 superseded by ADR-0016). Phase 2 Weeks 7, 8 and 9 built, committed and pushed: notes and reading mastery (W7), the question pipeline with a DeepSeek batch backfill of 1,022 live questions (W8), Test 60s, quiz mastery, FSRS review cards, the review queue and feed slot, flagging, and weekly difficulty recalibration with the Phase 2 metric queries (W9). Next: owner review of tonight's suggested defaults (Q-P2-21), then Week 10 (topic paths and checkpoints) planning. Everything is built locally; deploy once all is built (ADR-0013).
+Status: Phase 1 built (W1-S12 superseded by ADR-0016). Phase 2 Weeks 7–10 built, committed and pushed: notes and reading mastery (W7), the question pipeline (W8), Test 60s, quiz mastery, FSRS reviews and the review queue (W9), topic paths with owner review, the Paths tab, checkpoints, user edits and the feed's path card with a path-progress metric (W10). Next: the owner approves 5–8 launch paths for a Chrome check, then Week 11 planning. Everything is built locally; deploy once all is built (ADR-0013).
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 
@@ -2060,3 +2060,11 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - "to unlock X" when X is already open after a skip;
   - the copy tables don't enforce that a section belongs to its path, and swaps aren't tied to `user_path` (only the adapter writes them).
 - Not seen in Chrome: no path is live.
+
+### 2026-10-28 — P2-W10-S06 (the next session in the feed, path metrics, REC-1, §5B, §8, DB-5)
+- `Paths.next(userId)`, built from the active path's timeline (so it follows the user's own copy): the first unfinished reading with a working link in an open, non-skipped section, else a checkpoint ready to take; none for a paused path. `app/PathCard.tsx` is the feed's first card ("Next in your path: …", the reading opened as a path open, or Take the checkpoint); it shows alone on an empty feed, and the ranked cards keep their positions. `ReadingLink` moved to `app/paths/ReadingLink.tsx`, shared with the path page.
+- Owner (Q-P2-28): a quiz or checkpoint left open is now recorded when it's closed. `Quizzes.closeStale` is a port method returning what it closed; the three start actions call it first and emit `quiz_finished` / `checkpoint_finished` (also fixes the Week 9 quiz metrics). The starts no longer close anything themselves, so no close goes unreported.
+- `packages/events/queries/path_progress.sql`: sections passed per active path in the last full week, by beta group (active: started during the week, or last start/pause before it was a start). Known limit, in its header: a finished path stays active until paused. Saved as the `PathProgressQuery` named query; the Glue props struct gains `path_id`, `section_id`, `passed`. DuckDB-tested.
+- Tests: kysely-paths (`next`), kysely-checkpoints (a ready checkpoint as next; closeStale returns it once), quiz actions (closed finishes recorded before the start), feed page (first card, why, the path-open link, checkpoint form, alone on an empty feed), metric fixtures, the infra struct test. `pnpm check` passes (25/25); CDK synth passes.
+- Reviewer: the lost-event window (start methods' own close removed), the active-path limit (documented), missing fixtures (paused during the week, resumed during it), `QUIZ_SECONDS`, the card's link label. Not fixed: `next` offers a later open section's reading before an earlier ready checkpoint (only after an unskip; the slice says reading, then checkpoint); `closeStale`'s `firstTime` is always true; `summary` failing after a close loses that event (rare error path).
+- Week 10 is built. Not seen in Chrome: no path is live yet.

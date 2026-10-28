@@ -5,6 +5,7 @@ import type {
   FeedCard,
   FeedReader,
   Notes,
+  Paths,
   Progress,
   Quizzes,
 } from "../server/ports";
@@ -39,7 +40,9 @@ vi.mock("../server/container", () => ({
   events: () => ({ emit }),
   entitlements: () => ({ can }),
   quizzes: () => ({ offered, dueReviews }),
+  paths: () => ({ next: pathNext }),
 }));
+const pathNext = vi.fn<Paths["next"]>(() => Promise.resolve(null));
 const dueReviews = vi.fn<Quizzes["dueReviews"]>(() => Promise.resolve([]));
 const offered = vi.fn<Quizzes["offered"]>(() => Promise.resolve(new Set()));
 let chipCookie: string | undefined;
@@ -720,4 +723,75 @@ test("with nothing due, the feed has no review card", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(feedOf([card]));
   expect(await render()).not.toContain("Due for review");
+});
+
+// P2-W10-S06 (REC-1, Q-P2-27): the active path's next step is the first card.
+const reading = {
+  momentId: "900",
+  itemId: "50",
+  sectionTitle: "Leaders",
+  articleTitle: "Designing data systems",
+  sourceName: "Pub",
+  minutes: 4,
+  frameable: true,
+  linkBroken: false,
+  finished: false,
+  ordinal: 0,
+};
+
+test("the path's next reading is the first card, saying why, as a path open", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
+  pathNext.mockResolvedValueOnce({
+    kind: "reading",
+    pathId: "6",
+    pathName: "Replication",
+    concepts: ["Leader-follower replication"],
+    reading,
+    n: 2,
+    of: 3,
+  });
+  const html = await render();
+  expect(pathNext).toHaveBeenCalledWith("u1");
+  const items = html.split("<li").slice(1);
+  const pathAt = items.findIndex((li) => li.includes("Next in your path"));
+  const firstCard = items.findIndex((li) => li.includes('data-moment="1"'));
+  expect(pathAt).toBeGreaterThanOrEqual(0);
+  expect(pathAt).toBeLessThan(firstCard);
+  expect(html.replace(/<[^>]+>/g, "")).toContain(
+    "Next in your path: Replication",
+  );
+  expect(html).toContain(
+    "Leader-follower replication · reading 2 of 3 · 4 min",
+  );
+  expect(html).toContain(
+    'href="/read/50?moment=900&amp;chip=3-8&amp;from=path&amp;path=6"',
+  );
+  // The ranked cards keep their positions.
+  expect(html).toMatch(/moment=2[^"]*pos=2/);
+});
+
+test("a checkpoint ready to take is the first card; none without a next step", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  pathNext.mockResolvedValueOnce({
+    kind: "checkpoint",
+    pathId: "6",
+    pathName: "Replication",
+    sectionId: "60",
+    concepts: ["Quorums"],
+    size: 5,
+    passMark: 4,
+    next: ["Leases"],
+  });
+  // Alone on an empty feed, as the review is.
+  const html = await render();
+  expect(html).toContain("No moments yet.");
+  expect(html).toContain("Checkpoint · Quorums");
+  expect(html).toContain("Pass 4 of 5 to unlock Leases.");
+  expect(html).toMatch(
+    /name="sectionId" value="60"[^]*?name="back" value="\/\?chip=3-8"[^]*?Take the checkpoint/,
+  );
+  getFeed.mockResolvedValue(feedOf([card]));
+  expect(await render()).not.toContain("Next in your path");
 });

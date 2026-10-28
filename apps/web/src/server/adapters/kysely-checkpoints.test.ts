@@ -450,7 +450,8 @@ test("a checkpoint left behind closes at its clock and still counts", async () =
       })
       .where("id", "=", attemptId)
       .execute();
-    // The next start closes it (and settles it): passed, so nothing new starts.
+    // Closed before the next start (and settled): passed, so nothing new starts.
+    await quizzes.closeStale(userId);
     expect(await quizzes.startCheckpoint(userId, first)).toBeNull();
     expect(
       (await kyselyPaths(trx).path(userId, pathId))?.sections[0]?.checkpoint,
@@ -539,5 +540,44 @@ test("checkpoints follow the user's copy: a skipped section has none, a moved on
     expect(await quizzes.startCheckpoint(userId, first)).toMatchObject({
       firstTime: true,
     });
+  });
+});
+
+test("next offers a ready checkpoint; closeStale returns the checkpoint it closed", async () => {
+  await inRollback(async (trx, { userId, pathId, first, m1 }) => {
+    const quizzes = kyselyQuizzes(trx);
+    await finish(trx, userId, m1);
+    expect(await kyselyPaths(trx).next(userId)).toMatchObject({
+      kind: "checkpoint",
+      pathId,
+      sectionId: first,
+      concepts: ["C1", "C3", "C4"],
+      size: 5,
+      passMark: 4,
+      next: ["C2"],
+    });
+    const one = await quizzes.startCheckpoint(userId, first);
+    const attemptId = one?.attemptId ?? "";
+    await take(trx, userId, attemptId, () => true);
+    expect(await quizzes.closeStale(userId)).toEqual([]);
+    await trx
+      .updateTable("quiz_attempt")
+      .set({
+        started_at: sql<Date>`now() - interval '2 minutes'`,
+        ends_at: sql<Date>`now() - interval '1 minute'`,
+      })
+      .where("id", "=", attemptId)
+      .execute();
+    expect(await quizzes.closeStale(userId)).toEqual([
+      {
+        attemptId,
+        answered: 5,
+        correct: 5,
+        firstTime: true,
+        checkpoint: { pathId, sectionId: first, passed: true },
+      },
+    ]);
+    // Closed once: a second call has nothing.
+    expect(await quizzes.closeStale(userId)).toEqual([]);
   });
 });

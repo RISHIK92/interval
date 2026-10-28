@@ -10,10 +10,12 @@ const finish = vi.fn<Quizzes["finish"]>();
 const startReview = vi.fn<Quizzes["startReview"]>();
 const flag = vi.fn<Quizzes["flag"]>();
 const startCheckpoint = vi.fn<Quizzes["startCheckpoint"]>();
+const closeStale = vi.fn<Quizzes["closeStale"]>(() => Promise.resolve([]));
 const emit = vi.fn();
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   quizzes: () => ({
+    closeStale,
     start,
     answer,
     finish,
@@ -353,6 +355,72 @@ test("a checkpoint's finish reports whether it passed; Close goes back to the pa
       correct: 4,
       passed: true,
     },
+    context,
+  );
+});
+
+// Owner, 2026-10-28 (Q-P2-28): a start closes quizzes left open, and records them.
+test("a start records the finishes of the quizzes it closed, then its own start", async () => {
+  const { startCheckpointAction, startReviewAction } = await actions();
+  closeStale.mockResolvedValueOnce([
+    {
+      attemptId: "30",
+      answered: 3,
+      correct: 2,
+      firstTime: true,
+      checkpoint: null,
+    },
+    {
+      attemptId: "31",
+      answered: 5,
+      correct: 4,
+      firstTime: true,
+      checkpoint: { pathId: "6", sectionId: "60", passed: true },
+    },
+  ]);
+  startCheckpoint.mockResolvedValue({
+    attemptId: "41",
+    pathId: "6",
+    firstTime: true,
+  });
+  await expect(
+    startCheckpointAction(form({ sectionId: "61", chip: "3-8" })),
+  ).rejects.toThrow("redirect:/quiz/41?chip=3-8");
+  expect(closeStale).toHaveBeenCalledWith("u1");
+  expect(emit.mock.calls.map((c): unknown => c[0])).toEqual([
+    "quiz_finished",
+    "checkpoint_finished",
+    "checkpoint_started",
+  ]);
+  expect(emit).toHaveBeenCalledWith(
+    "checkpoint_finished",
+    {
+      attempt_id: "31",
+      path_id: "6",
+      section_id: "60",
+      answered: 5,
+      correct: 4,
+      passed: true,
+    },
+    context,
+  );
+  emit.mockClear();
+  closeStale.mockResolvedValueOnce([
+    {
+      attemptId: "32",
+      answered: 1,
+      correct: 1,
+      firstTime: true,
+      checkpoint: null,
+    },
+  ]);
+  startReview.mockResolvedValue(null);
+  await expect(startReviewAction(form({ chip: "3-8" }))).rejects.toThrow(
+    "redirect:/library",
+  );
+  expect(emit).toHaveBeenCalledWith(
+    "quiz_finished",
+    { attempt_id: "32", answered: 1, correct: 1 },
     context,
   );
 });

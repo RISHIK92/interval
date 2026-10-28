@@ -853,6 +853,7 @@ test("a second quiz re-rates the same card: reps 2, and a wrong answer is a laps
   });
 });
 
+// The start actions close what's left open first (P2-W10-S06), as these do.
 test("a quiz left running past its clock is rated when the user next starts one", async () => {
   await inRollback(async (trx, { userId, itemId, raft }) => {
     const quizzes = kyselyQuizzes(trx);
@@ -868,6 +869,7 @@ test("a quiz left running past its clock is rated when the user next starts one"
       .where("id", "=", left.attemptId)
       .execute();
     expect(await cards(trx, userId)).toEqual([]);
+    await quizzes.closeStale(userId);
     await quizzes.start(userId, itemId, null);
     expect((await cards(trx, userId)).map((c) => c.reps)).toEqual([1]);
     const closed = await trx
@@ -1111,6 +1113,7 @@ test("a review left idle for 30 minutes is over: rated, and the next one is fres
       .where("id", "=", old.attemptId)
       .execute();
     await cardFor(trx, userId, "wal", "-1 hour");
+    await quizzes.closeStale(userId);
     const fresh = await quizzes.startReview(userId);
     expect(fresh?.attemptId).not.toBe(old.attemptId);
     expect(fresh?.concepts).toBe(1);

@@ -567,3 +567,49 @@ test("a session swaps for another moment on its concepts, and falls back when th
     ]);
   });
 });
+
+// P2-W10-S06 (REC-1, Q-P2-27): the active path's next step, for the feed.
+test("next is the first unfinished reading of the active path, then its checkpoint", async () => {
+  await inRollback(async (trx, { userId, live, moments }) => {
+    const paths = kyselyPaths(trx);
+    const [one] = await sectionsOf(trx, userId, live);
+    const [m1, , m3] = moments;
+    if (!m1 || !m3) throw new Error("seed");
+    expect(await paths.next(userId)).toBeNull();
+    await paths.start(userId, live);
+    expect(await paths.next(userId)).toMatchObject({
+      kind: "reading",
+      pathId: live,
+      pathName: "Replication",
+      concepts: ["Concept 1"],
+      reading: { momentId: m1 },
+      n: 1,
+      of: 2,
+    });
+    await trx
+      .insertInto("user_moment_finished")
+      .values({ user_id: userId, moment_id: m1, method: "mark_done" })
+      .execute();
+    expect(await paths.next(userId)).toMatchObject({
+      reading: { momentId: m3 },
+      n: 2,
+    });
+    // Readings done but no live question: no checkpoint to offer, so nothing.
+    await trx
+      .insertInto("user_moment_finished")
+      .values({ user_id: userId, moment_id: m3, method: "mark_done" })
+      .execute();
+    expect(await paths.next(userId)).toBeNull();
+    // Skipped, the next section's first reading is next.
+    await paths.skipSection(userId, one);
+    expect(await paths.next(userId)).toMatchObject({
+      kind: "reading",
+      concepts: ["Concept 2"],
+      reading: { sectionTitle: "B1" },
+      n: 1,
+    });
+    // A paused path has no next step in the feed.
+    await paths.pause(userId, live);
+    expect(await paths.next(userId)).toBeNull();
+  });
+});

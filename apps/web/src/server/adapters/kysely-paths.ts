@@ -21,7 +21,7 @@ const inTransaction = <T>(
 ): Promise<T> => (db.isTransaction ? body(db) : db.transaction().execute(body));
 
 export function kyselyPaths(db: Kysely<DB>): Paths {
-  return {
+  const paths: Paths = {
     live: async (userId) => {
       const rows = await db
         .selectFrom("path as p")
@@ -244,6 +244,52 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
         return { firstTime: true, paused: paused?.path_id ?? null };
       }),
 
+    // From the timeline, so it follows the user's own copy (P2-W10-S06).
+    next: async (userId) => {
+      const active = await db
+        .selectFrom("user_path as up")
+        .innerJoin("path as p", "p.id", "up.path_id")
+        .select("p.id")
+        .where("up.user_id", "=", userId)
+        .where("up.status", "=", "active")
+        .where("p.status", "=", "live")
+        .executeTakeFirst();
+      if (active === undefined) return null;
+      const timeline = await paths.path(userId, active.id);
+      if (timeline === null) return null;
+      const going = timeline.sections.filter((s) => s.open && !s.skipped);
+      for (const section of going) {
+        const i = section.readings.findIndex(
+          (r) => !r.finished && !r.linkBroken,
+        );
+        const reading = section.readings[i];
+        if (reading !== undefined)
+          return {
+            kind: "reading",
+            pathId: timeline.pathId,
+            pathName: timeline.name,
+            concepts: section.concepts,
+            reading,
+            n: i + 1,
+            of: section.readings.length,
+          };
+      }
+      const ready = going.find((s) => s.checkpoint === "ready");
+      if (ready === undefined) return null;
+      const after =
+        timeline.sections[timeline.sections.indexOf(ready) + 1] ?? null;
+      return {
+        kind: "checkpoint",
+        pathId: timeline.pathId,
+        pathName: timeline.name,
+        sectionId: ready.sectionId,
+        concepts: ready.concepts,
+        size: ready.size,
+        passMark: ready.passMark,
+        next: after === null ? null : after.concepts,
+      };
+    },
+
     pause: async (userId, pathId) => {
       const paused = await db
         .updateTable("user_path")
@@ -357,6 +403,7 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
         return pathId;
       }),
   };
+  return paths;
 }
 
 // An edit, in one transaction and one at a time per user (as start): only on a live

@@ -16,7 +16,7 @@ TODAY = datetime(2026, 11, 30, tzinfo=UTC)
 # The props the queries read; the Glue table declares the same struct (aws-stack.ts).
 PROPS = (
     "STRUCT(kind VARCHAR, item_id VARCHAR, moment_id VARCHAR, method VARCHAR, "
-    "question_id VARCHAR)"
+    "question_id VARCHAR, path_id VARCHAR, section_id VARCHAR, passed BOOLEAN)"
 )
 
 type Row = tuple[str, int, int, float]
@@ -29,7 +29,7 @@ def event(
     group: str = "student",
     guest: bool = False,
     version: int = 1,
-    **props: str | None,
+    **props: str | bool | None,
 ) -> dict[str, object]:
     return {
         "event_id": str(uuid4()),
@@ -304,4 +304,62 @@ def test_quiz_takers_and_non_takers_each_get_a_return_rate(tmp_path: Path) -> No
     assert run("quiz_return.sql", events, tmp_path) == [
         ("non-takers", 3, 1, 0.3333),
         ("takers", 2, 1, 0.5),
+    ]
+
+
+def test_path_progress_is_sections_passed_per_active_path_last_week(
+    tmp_path: Path,
+) -> None:
+    week = TODAY - days(14)
+
+    def passed(user: str, path: str, section: str, at: datetime) -> dict[str, object]:
+        return event(
+            "checkpoint_finished",
+            user,
+            at,
+            path_id=path,
+            section_id=section,
+            passed=True,
+        )
+
+    events = [
+        # a: started before the week, still active; two sections, one passed twice
+        event("path_started", "a", week - days(5), path_id="1"),
+        passed("a", "1", "10", week + days(1)),
+        passed("a", "1", "10", week + days(2)),
+        passed("a", "1", "11", week + days(3)),
+        passed("a", "1", "12", week + days(8)),  # after the week: not counted
+        # b: paused before the week; resumes another during it, passes nothing
+        event("path_started", "b", week - days(6), path_id="2"),
+        event("path_paused", "b", week - days(2), path_id="2"),
+        event("path_started", "b", week + days(4), path_id="3"),
+        # c: a fail doesn't count; paused before the week, a pass on it doesn't either
+        event("path_started", "c", week + days(1), path_id="1"),
+        event(
+            "checkpoint_finished",
+            "c",
+            week + days(2),
+            path_id="1",
+            section_id="10",
+            passed=False,
+        ),
+        event("path_started", "c", week - days(9), path_id="4"),
+        event("path_paused", "c", week - days(8), path_id="4"),
+        passed("c", "4", "40", week + days(2)),
+        # e: started before the week and paused during it: active that week
+        event("path_started", "e", week - days(3), path_id="6"),
+        event("path_paused", "e", week + days(2), path_id="6"),
+        passed("e", "6", "60", week + days(1)),
+        # f: paused before the week and resumed during it: one active path
+        event("path_started", "f", week - days(9), path_id="7"),
+        event("path_paused", "f", week - days(4), path_id="7"),
+        event("path_started", "f", week + days(3), path_id="7"),
+        # d: a developer, active from before the week
+        event("path_started", "d", week - days(1), group="developer", path_id="5"),
+        passed("d", "5", "50", week + days(5)),
+    ]
+    # Students: a's path 1 (2), b's 3 (0), c's 1 (0), e's 6 (1), f's 7 (0).
+    assert run("path_progress.sql", events, tmp_path) == [
+        ("developer", 1, 1, 1.0),
+        ("student", 5, 3, 0.6),
     ]

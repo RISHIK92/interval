@@ -161,4 +161,5 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: DB-5, §8 ("Continuity: path progress"), Q-P1-20.
 - Suggested default: events `path_started`, `path_paused`, `path_section_skipped`, `checkpoint_started`, `checkpoint_finished` (passed or not, correct); a metric query for path progress (sections passed per active path per week).
 - Note (P2-W10-S04): a checkpoint left open (the tab closed) is closed and settled at its clock by the user's next quiz start, with no `checkpoint_finished` event, as with `quiz_finished` since W9. S06's progress query should count passes from the database, or that close should emit; to decide in S06.
+- **Answer (owner, 2026-10-28, P2-W10-S06):** emit on that close: a start that closes quizzes left open records their `quiz_finished` / `checkpoint_finished` first, which also fixes the Week 9 quiz metrics. The progress query (`path_progress.sql`) counts passed sections per active path in the last full week, by beta group. Known limit: no event marks a path finished or retired, so a finished path counts as active (0 a week) until paused or replaced.
 

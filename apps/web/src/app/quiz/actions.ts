@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CHIPS } from "../../server/chips";
 import { events, quizzes, sessionReader } from "../../server/container";
-import { BIGINT_ID } from "../../server/ports";
+import { BIGINT_ID, type QuizFinish } from "../../server/ports";
 import { visitId } from "../../server/visits";
 import { sameSitePath, textField } from "../form";
 import { FLAG_REASON_KEYS } from "./flagReasons";
@@ -39,6 +39,43 @@ async function signedIn() {
   return { actor, context: { ...actor, sessionId: visitId(await cookies()) } };
 }
 
+type Context = Awaited<ReturnType<typeof signedIn>>["context"];
+
+// The finish of a quiz, once: on the page, or when a start closes one left open (owner,
+// 2026-10-28, Q-P2-28), so the metrics count both.
+function recordFinish(
+  attemptId: string,
+  done: QuizFinish,
+  context: Context,
+): void {
+  const { checkpoint } = done;
+  if (checkpoint === null)
+    events().emit(
+      "quiz_finished",
+      { attempt_id: attemptId, answered: done.answered, correct: done.correct },
+      context,
+    );
+  else
+    events().emit(
+      "checkpoint_finished",
+      {
+        attempt_id: attemptId,
+        path_id: checkpoint.pathId,
+        section_id: checkpoint.sectionId,
+        answered: done.answered,
+        correct: done.correct,
+        passed: checkpoint.passed,
+      },
+      context,
+    );
+}
+
+// Before a start: the user's quizzes left open are closed, and their finishes recorded.
+async function closeLeftOpen(userId: string, context: Context): Promise<void> {
+  for (const closed of await quizzes().closeStale(userId))
+    recordFinish(closed.attemptId, closed, context);
+}
+
 export async function startQuizAction(form: FormData): Promise<void> {
   const { actor, context } = await signedIn();
   const parsed = Start.safeParse({
@@ -48,6 +85,7 @@ export async function startQuizAction(form: FormData): Promise<void> {
   });
   if (!parsed.success) redirect("/");
   const { itemId, momentId, chip } = parsed.data;
+  await closeLeftOpen(actor.userId, context);
   const started = await quizzes().start(actor.userId, itemId, momentId ?? null);
   // No live question (yet, or its rights changed): back where it was offered.
   if (started === null) redirect(sameSitePath(textField(form, "back"), "/"));
@@ -72,6 +110,7 @@ export async function startReviewAction(form: FormData): Promise<void> {
   const { actor, context } = await signedIn();
   const parsed = Review.safeParse({ chip: textField(form, "chip") });
   if (!parsed.success) redirect("/library");
+  await closeLeftOpen(actor.userId, context);
   const started = await quizzes().startReview(actor.userId);
   // Nothing due any more (rated elsewhere meanwhile): the queue shows that.
   if (started === null) redirect("/library");
@@ -103,6 +142,7 @@ export async function startCheckpointAction(form: FormData): Promise<void> {
   });
   if (!parsed.success) redirect("/paths");
   const { sectionId, chip } = parsed.data;
+  await closeLeftOpen(actor.userId, context);
   const started = await quizzes().startCheckpoint(actor.userId, sectionId);
   // Not ready (or passed meanwhile): the path shows where it stands.
   if (started === null)
@@ -178,30 +218,7 @@ export async function finishQuizAction(form: FormData): Promise<void> {
   const done = await quizzes().finish(actor.userId, attemptId);
   if (done === null) redirect("/");
   const { checkpoint } = done;
-  if (done.firstTime)
-    if (checkpoint === null)
-      events().emit(
-        "quiz_finished",
-        {
-          attempt_id: attemptId,
-          answered: done.answered,
-          correct: done.correct,
-        },
-        context,
-      );
-    else
-      events().emit(
-        "checkpoint_finished",
-        {
-          attempt_id: attemptId,
-          path_id: checkpoint.pathId,
-          section_id: checkpoint.sectionId,
-          answered: done.answered,
-          correct: done.correct,
-          passed: checkpoint.passed,
-        },
-        context,
-      );
+  if (done.firstTime) recordFinish(attemptId, done, context);
   redirect(
     leave === undefined
       ? `/quiz/${attemptId}/results?chip=${chip}`

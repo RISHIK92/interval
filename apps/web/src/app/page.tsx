@@ -8,6 +8,7 @@ import {
   feedback,
   feedReader,
   notes,
+  paths,
   progress,
   preferences,
   quizzes,
@@ -38,6 +39,7 @@ import { TabBar } from "./TabBar";
 import { UndoNotInterested } from "./UndoNotInterested";
 import { MomentCard } from "./MomentCard";
 import { StartQuiz, ZAP } from "./quiz/StartQuiz";
+import { PathCard } from "./PathCard";
 import { ReviewCard } from "./ReviewCard";
 import { Card } from "./ui/Card";
 
@@ -192,12 +194,14 @@ export default async function HomePage({
   });
   // P2-W9-S06: due reviews are read when the feed is served; they change by the
   // minute.
-  const [due, testable] = await Promise.all([
+  // P2-W10-S06: so is the active path's next step (the first card).
+  const [due, testable, pathNext] = await Promise.all([
     quizzes().dueReviews(actor.userId),
     quizzes().offered([
       ...cards.map(target),
       ...(finished === null || next === undefined ? [] : [finished]),
     ]),
+    paths().next(actor.userId),
   ]);
   const yourNote = (card: FeedCard) =>
     yours.get(quizKey(target(card).itemId, target(card).momentId)) ?? null;
@@ -361,6 +365,11 @@ export default async function HomePage({
             <Card className="mt-6 p-8 text-center text-ink-muted">
               <p>No moments yet.</p>
             </Card>
+            {pathNext === null ? null : (
+              <div className="mt-4">
+                <PathCard next={pathNext} chip={chip} />
+              </div>
+            )}
             {/* With no cards to sit behind, the review shows alone (owner,
               2026-10-28, Q-P2-21). */}
             {due.length > 0 ? (
@@ -376,6 +385,13 @@ export default async function HomePage({
           // being clipped by the scroller.
           <FeedRow>
             <ul className="flex gap-2">
+              {/* P2-W10-S06 (Q-P2-27): the path's next step comes first; the
+                ranked cards keep their positions. */}
+              {pathNext === null ? null : (
+                <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
+                  <PathCard next={pathNext} chip={chip} />
+                </li>
+              )}
               {cards.map((card, index) => (
                 <Fragment
                   key={

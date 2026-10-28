@@ -221,7 +221,7 @@ export class AwsStack extends Stack {
             { name: "version", type: "int" },
             {
               name: "props",
-              type: "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string>",
+              type: "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean>",
             },
           ],
         },
@@ -271,6 +271,11 @@ export class AwsStack extends Stack {
         "QuizReturnQuery",
         "quiz_return.sql",
         "Return rate of quiz takers and non-takers",
+      ],
+      [
+        "PathProgressQuery",
+        "path_progress.sql",
+        "Sections passed per active path in the last full week",
       ],
     ] as const) {
       const query = new athena.CfnNamedQuery(this, id, {

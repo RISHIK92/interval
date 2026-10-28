@@ -276,15 +276,11 @@ export interface Quizzes {
     questionId: string,
     chosen: number,
   ): Promise<QuizResult | "late" | null>;
-  finish(
-    userId: string,
-    attemptId: string,
-  ): Promise<{
-    answered: number;
-    correct: number;
-    firstTime: boolean;
-    checkpoint: { pathId: string; sectionId: string; passed: boolean } | null;
-  } | null>;
+  finish(userId: string, attemptId: string): Promise<QuizFinish | null>;
+  // Q-P2-16: the user's quizzes left open (a sprint past its clock, a review idle 30
+  // minutes) closed and rated; what it closed, so its finish can be recorded (owner,
+  // 2026-10-28, Q-P2-28). Callers close before a start: the starts don't.
+  closeStale(userId: string): Promise<(QuizFinish & { attemptId: string })[]>;
   // P2-W9-S02: which of these targets would start a quiz, as `quizKey` keys.
   offered(
     targets: { itemId: string; momentId: string | null }[],
@@ -327,6 +323,13 @@ export interface Quizzes {
     questionId: string,
   ): Promise<QuizFeedback | null>;
 }
+
+export type QuizFinish = {
+  answered: number;
+  correct: number;
+  firstTime: boolean;
+  checkpoint: { pathId: string; sectionId: string; passed: boolean } | null;
+};
 
 export const quizKey = (itemId: string, momentId: string | null): string =>
   `${itemId}.${momentId ?? ""}`;
@@ -777,6 +780,9 @@ export interface Paths {
   // P2-W10-S05 (C-25, Q-P2-23): edits to the user's own copy of a live path they
   // follow; the approved path never changes. Each is false (or null) when refused.
   pause(userId: string, pathId: string): Promise<boolean>;
+  // The first unfinished reading of the first open section, else a checkpoint ready
+  // to take; null without an active path or with nothing left to do.
+  next(userId: string): Promise<PathNext | null>;
   moveSection(
     userId: string,
     sectionId: string,
@@ -800,6 +806,27 @@ export interface Paths {
     momentId: string,
   ): Promise<string | null>;
 }
+// P2-W10-S06 (REC-1, Q-P2-27): the active path's next step, the feed's first card.
+export type PathNext =
+  | {
+      kind: "reading";
+      pathId: string;
+      pathName: string;
+      concepts: string[];
+      reading: PathReading;
+      n: number; // its place among the section's readings
+      of: number;
+    }
+  | {
+      kind: "checkpoint";
+      pathId: string;
+      pathName: string;
+      sectionId: string;
+      concepts: string[];
+      size: number;
+      passMark: number;
+      next: string[] | null; // the concepts it unlocks; null for the last section
+    };
 export type PathAlternative = {
   momentId: string;
   sectionTitle: string;

@@ -4,6 +4,7 @@ import {
   CHECKPOINT_SIZE,
   QUIZ_SECONDS,
   type CheckpointInfo,
+  type QuizFinish,
   type QuizQuestion,
   type Quizzes,
   quizKey,
@@ -245,7 +246,52 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
   // Q-P2-16: a card is made by a quiz answer, so a quiz left behind (the tab closed
   // before the finish) is closed and rated: a sprint at its clock's end, a review at
   // its last activity once it has been idle for REVIEW_IDLE.
-  const closeStale = async (userId: string): Promise<void> => {
+  // A finished attempt's counts, and for a checkpoint whether it passed.
+  const summary = async (
+    userId: string,
+    attemptId: string,
+    firstTime: boolean,
+  ): Promise<QuizFinish | null> => {
+    const row = await db
+      .selectFrom("quiz_attempt as a")
+      .leftJoin("path_section as s", "s.id", "a.path_section_id")
+      .leftJoin("quiz_answer as qa", (join) =>
+        join
+          .onRef("qa.attempt_id", "=", "a.id")
+          .on("qa.answered_at", "is not", null),
+      )
+      .select([
+        "a.path_section_id",
+        "a.checkpoint_passed",
+        "s.path_id",
+        sql<number>`count(qa.question_id)::int`.as("answered"),
+        sql<number>`count(*) filter (where qa.correct)::int`.as("correct"),
+      ])
+      .where("a.id", "=", attemptId)
+      .where("a.user_id", "=", userId)
+      .groupBy(["a.id", "s.path_id"])
+      .executeTakeFirst();
+    if (row === undefined) return null;
+    return {
+      answered: row.answered,
+      correct: row.correct,
+      firstTime,
+      checkpoint:
+        row.path_section_id === null ||
+        row.path_id === null ||
+        row.checkpoint_passed === null
+          ? null
+          : {
+              pathId: row.path_id,
+              sectionId: row.path_section_id,
+              passed: row.checkpoint_passed,
+            },
+    };
+  };
+
+  const closeStale = async (
+    userId: string,
+  ): Promise<(QuizFinish & { attemptId: string })[]> => {
     // greatest() skips nulls: a review's last activity is its newest serve or answer,
     // or its start.
     const { rows: stale } = await sql<{ id: string; ended: Date }>`
@@ -259,20 +305,26 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         and case when a.review then last.at + ${REVIEW_IDLE}
                  else a.ends_at + ${GRACE} end < now()
     `.execute(db);
-    for (const { id, ended } of stale)
-      await inTransaction(db, async (trx) => {
-        const closed = await trx
+    const done: (QuizFinish & { attemptId: string })[] = [];
+    for (const { id, ended } of stale) {
+      const closed = await inTransaction(db, async (trx) => {
+        const row = await trx
           .updateTable("quiz_attempt")
           .set({ finished_at: ended })
           .where("id", "=", id)
           .where("finished_at", "is", null)
           .returning("finished_at")
           .executeTakeFirst();
-        if (closed?.finished_at != null) {
-          await rateConcepts(trx, userId, id, closed.finished_at);
-          await settleCheckpoint(trx, userId, id, closed.finished_at);
-        }
+        if (row?.finished_at == null) return false;
+        await rateConcepts(trx, userId, id, row.finished_at);
+        await settleCheckpoint(trx, userId, id, row.finished_at);
+        return true;
       });
+      // Another request closed it first: that one reports it.
+      const counts = closed ? await summary(userId, id, true) : null;
+      if (counts !== null) done.push({ ...counts, attemptId: id });
+    }
+    return done;
   };
 
   // The attempt's open (served, unanswered) question, with whether the clock is out.
@@ -335,8 +387,9 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
   };
 
   return {
+    closeStale,
+
     start: async (userId, itemId, momentId) => {
-      await closeStale(userId);
       const running = await db
         .selectFrom("quiz_attempt")
         // A sprint (content_item_id set) always has an end.
@@ -609,41 +662,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         }
         return done;
       });
-      const row = await db
-        .selectFrom("quiz_attempt as a")
-        .leftJoin("path_section as s", "s.id", "a.path_section_id")
-        .leftJoin("quiz_answer as qa", (join) =>
-          join
-            .onRef("qa.attempt_id", "=", "a.id")
-            .on("qa.answered_at", "is not", null),
-        )
-        .select([
-          "a.path_section_id",
-          "a.checkpoint_passed",
-          "s.path_id",
-          sql<number>`count(qa.question_id)::int`.as("answered"),
-          sql<number>`count(*) filter (where qa.correct)::int`.as("correct"),
-        ])
-        .where("a.id", "=", attemptId)
-        .where("a.user_id", "=", userId)
-        .groupBy(["a.id", "s.path_id"])
-        .executeTakeFirst();
-      if (row === undefined) return null;
-      return {
-        answered: row.answered,
-        correct: row.correct,
-        firstTime: finished !== undefined,
-        checkpoint:
-          row.path_section_id === null ||
-          row.path_id === null ||
-          row.checkpoint_passed === null
-            ? null
-            : {
-                pathId: row.path_id,
-                sectionId: row.path_section_id,
-                passed: row.checkpoint_passed,
-              },
-      };
+      return summary(userId, attemptId, finished !== undefined);
     },
 
     offered: async (targets) => {
@@ -752,7 +771,6 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     },
 
     startCheckpoint: async (userId, sectionId) => {
-      await closeStale(userId);
       const section = await db
         .selectFrom("path_section")
         .select("path_id")
@@ -809,7 +827,6 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     },
 
     startReview: async (userId) => {
-      await closeStale(userId);
       return inTransaction(db, async (trx) => {
         // One running review per user: a double tap, or coming back, continues it.
         const running = await trx

@@ -659,7 +659,7 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     "../../packages/events/queries",
   );
   const PROPS =
-    "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string>";
+    "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean>";
   // Phase 1 (Q-P1-21) and Phase 2 (P2-W9-S08, Q-P2-20) "done when".
   const FILES = [
     "return_rate.sql",
@@ -667,6 +667,7 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     "quiz_rate.sql",
     "flag_rate.sql",
     "quiz_return.sql",
+    "path_progress.sql",
   ];
 
   test("a Glue table reads the Firehose events by day, with partition projection", () => {
@@ -716,7 +717,7 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
 
   test("every prop the queries read is in the table's props struct", () => {
     const declared = new Set(
-      [...PROPS.matchAll(/(\w+):string/g)].map((m) => m[1]),
+      [...PROPS.matchAll(/(\w+):\w+/g)].map((m) => m[1]),
     );
     for (const file of FILES) {
       const sql = readFileSync(path.join(QUERIES, file), "utf8");
