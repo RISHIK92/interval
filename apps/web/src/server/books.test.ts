@@ -24,6 +24,8 @@ function fakes(
     finish: () => Promise.resolve(null),
     savePosition: () => Promise.resolve(false),
     fileKey: () => Promise.resolve(null),
+    outlines: () => Promise.resolve([]),
+    nextSession: () => Promise.resolve(null),
     create: (userId, _title, _size, key) => {
       const mine = [...rows.values()].filter((r) => r.userId === userId);
       if (mine.length >= (opts.limit ?? 5)) return Promise.resolve("limit");

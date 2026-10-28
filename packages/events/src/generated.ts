@@ -4,6 +4,7 @@ import { z } from "zod";
 export const EVENT_NAMES = [
   "article_finished",
   "book_deleted",
+  "book_opened",
   "book_session_finished",
   "book_uploaded",
   "card_impression",
@@ -38,6 +39,7 @@ export type EventName = (typeof EVENT_NAMES)[number];
 export const EVENT_VERSIONS = {
   article_finished: 2,
   book_deleted: 1,
+  book_opened: 1,
   book_session_finished: 1,
   book_uploaded: 1,
   card_impression: 1,
@@ -75,6 +77,10 @@ export const propsSchemas = {
   }),
   book_deleted: z.strictObject({
     book_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+  }),
+  book_opened: z.strictObject({
+    book_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    session_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   book_session_finished: z.strictObject({
     book_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -213,6 +219,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("book_deleted"),
     version: z.literal(1),
     props: propsSchemas.book_deleted,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("book_opened"),
+    version: z.literal(1),
+    props: propsSchemas.book_opened,
   }),
   z.strictObject({
     ...base,

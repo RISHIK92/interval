@@ -1,8 +1,14 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { books, preferences, sessionReader } from "../../../server/container";
+import {
+  books,
+  events,
+  preferences,
+  sessionReader,
+} from "../../../server/container";
 import { BIGINT_ID } from "../../../server/ports";
+import { visitId } from "../../../server/visits";
 import { TabBar } from "../../TabBar";
 import { finishSessionAction } from "../actions";
 import { BookPages } from "../BookPages";
@@ -38,6 +44,11 @@ export default async function BookPage(props: {
     if (mine.some((b) => b.bookId === id)) redirect("/paths#your-books");
     notFound();
   }
+  events().emit(
+    "book_opened",
+    { book_id: reading.bookId, session_id: reading.sessionId },
+    { ...actor, sessionId: visitId(await cookies()) },
+  );
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[46rem] lg:pt-10 lg:pl-64">
       <TabBar current="paths" firstName={chosen.firstName} />

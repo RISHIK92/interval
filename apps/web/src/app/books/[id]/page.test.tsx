@@ -20,9 +20,16 @@ vi.mock("../../../server/container", () => ({
       }),
   }),
   books: () => ({ reading, list }),
+  events: () => ({ emit }),
 }));
+const emit = vi.fn();
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
+  cookies: () =>
+    Promise.resolve({
+      get: (name: string) =>
+        name === "iv_visit" ? { name, value: "visit-1.1790000000" } : undefined,
+    }),
 }));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
@@ -103,4 +110,19 @@ test("someone else's book is not found; the user's own not ready goes to the lis
   ]);
   await expect(page()).rejects.toThrow("redirect:/paths#your-books");
   await expect(page({}, "x")).rejects.toThrow("notFound");
+});
+
+// P2-W11-S05 (DB-5): each open of a session, from wherever.
+test("opening a session emits book_opened with the ids and the visit", async () => {
+  reading.mockResolvedValueOnce(session);
+  await page({ session: "71" });
+  expect(emit).toHaveBeenCalledWith(
+    "book_opened",
+    { book_id: "7", session_id: "71" },
+    expect.objectContaining({ userId: "u1", sessionId: "visit-1" }),
+  );
+  emit.mockClear();
+  reading.mockResolvedValueOnce(null);
+  await expect(page()).rejects.toThrow("notFound");
+  expect(emit).not.toHaveBeenCalled();
 });

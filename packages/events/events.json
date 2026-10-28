@@ -131,6 +131,11 @@
       "description": "A user marked a session of their book done, once per session (P2-W11-S04, §5F).",
       "props": { "book_id": "id", "session_id": "id" }
     },
+    "book_opened": {
+      "version": 1,
+      "description": "The reader showed a session of the user's book: every render, a reload included (P2-W11-S05, §5F).",
+      "props": { "book_id": "id", "session_id": "id" }
+    },
     "book_deleted": {
       "version": 1,
       "description": "A user deleted one of their books, its file and rows (P2-W11-S01).",

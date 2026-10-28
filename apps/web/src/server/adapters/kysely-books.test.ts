@@ -271,3 +271,167 @@ test("someone else's book, a book not ready, or a session not in it: nothing", a
     expect(await books.fileKey(me, bookId)).toBeNull();
   });
 });
+
+// P2-W11-S05 (§5F, Q-P2-33): books followed like paths.
+test("a book's outline: chapters, sessions ticked, and where it opens", async () => {
+  await inRollback(async (trx, [me, other]) => {
+    const books = kyselyBooks(trx);
+    const { bookId, sessions } = await aReadyBook(trx, me);
+    const [s1, s2, s3, s4] = sessions;
+    if (!s1 || !s2 || !s3 || !s4) throw new Error("seed");
+    expect((await books.outlines(me))[0]).toMatchObject({
+      started: false,
+      next: s1,
+    });
+    // A saved place alone counts as started.
+    await books.savePosition(me, bookId, s1, 0.1);
+    expect((await books.outlines(me))[0]?.started).toBe(true);
+    await books.finish(me, s1);
+    expect(await books.outlines(me)).toEqual([
+      {
+        bookId,
+        title: "Designing Data Systems",
+        done: 1,
+        of: 4,
+        first: s1,
+        started: true,
+        next: s2,
+        chapters: [
+          {
+            title: "Replication",
+            sessions: [
+              {
+                sessionId: s1,
+                title: "Replication 1",
+                minutes: 4,
+                finished: true,
+              },
+              {
+                sessionId: s2,
+                title: "Replication 2",
+                minutes: 4,
+                finished: false,
+              },
+            ],
+          },
+          {
+            title: "Partitioning",
+            sessions: [
+              {
+                sessionId: s3,
+                title: "Partitioning 1",
+                minutes: 4,
+                finished: false,
+              },
+              {
+                sessionId: s4,
+                title: "Partitioning 2",
+                minutes: 4,
+                finished: false,
+              },
+            ],
+          },
+        ],
+      },
+    ]);
+    // The saved place wins, until that section is marked done.
+    await books.savePosition(me, bookId, s4, 0.3);
+    expect((await books.outlines(me))[0]?.next).toBe(s4);
+    await books.finish(me, s4);
+    expect((await books.outlines(me))[0]?.next).toBe(s2);
+    for (const s of [s2, s3]) await books.finish(me, s);
+    expect((await books.outlines(me))[0]).toMatchObject({
+      done: 4,
+      next: null,
+    });
+    // Someone else's, or a book not ready: not listed.
+    expect(await books.outlines(other)).toEqual([]);
+    await trx
+      .updateTable("book")
+      .set({ status: "ocr" })
+      .where("id", "=", bookId)
+      .execute();
+    expect(await books.outlines(me)).toEqual([]);
+  });
+});
+
+test("the feed's book: the one read last, a new one counting from when it was added", async () => {
+  await inRollback(async (trx, [me, other]) => {
+    const books = kyselyBooks(trx);
+    const older = await aReadyBook(trx, me);
+    const newer = await aReadyBook(trx, me);
+    const at = (iso: string) => sql<Date>`${iso}::timestamptz`;
+    await trx
+      .updateTable("book")
+      .set({ created_at: at("2026-10-01") })
+      .where("id", "=", older.bookId)
+      .execute();
+    await trx
+      .updateTable("book")
+      .set({ created_at: at("2026-10-10") })
+      .where("id", "=", newer.bookId)
+      .execute();
+    // Not opened yet: the newer book, from its first session.
+    expect(await books.nextSession(me)).toMatchObject({
+      bookId: newer.bookId,
+      sessionId: newer.sessions[0],
+      chapterTitle: "Replication",
+      title: "Replication 1",
+      firstPage: 1,
+      lastPage: 2,
+      place: 1,
+      of: 4,
+    });
+    // Reading the older book later makes it the one.
+    const [o1, o2, o3, o4] = older.sessions;
+    if (!o1 || !o2 || !o3 || !o4) throw new Error("seed");
+    await books.finish(me, o1);
+    await trx
+      .updateTable("book_session_finished")
+      .set({ finished_at: at("2026-10-20") })
+      .where("session_id", "=", o1)
+      .execute();
+    expect(await books.nextSession(me)).toMatchObject({
+      bookId: older.bookId,
+      sessionId: o2,
+      place: 2,
+    });
+    // A saved place counts as reading too.
+    await books.savePosition(me, newer.bookId, newer.sessions[2] ?? "", 0.5);
+    await trx
+      .updateTable("book_position")
+      .set({ updated_at: at("2026-10-21") })
+      .where("book_id", "=", newer.bookId)
+      .execute();
+    expect(await books.nextSession(me)).toMatchObject({
+      bookId: newer.bookId,
+      sessionId: newer.sessions[2],
+    });
+    // A finished book is passed over.
+    for (const s of newer.sessions) await books.finish(me, s);
+    expect((await books.nextSession(me))?.bookId).toBe(older.bookId);
+    expect(await books.nextSession(other)).toBeNull();
+  });
+});
+
+test("the feed's book: a tie goes to the newer book; its place is the saved session", async () => {
+  await inRollback(async (trx, [me]) => {
+    const books = kyselyBooks(trx);
+    const first = await aReadyBook(trx, me);
+    const second = await aReadyBook(trx, me);
+    // Same moment for both (one transaction): the later-added one wins.
+    expect((await books.nextSession(me))?.bookId).toBe(second.bookId);
+    // A place saved in the second chapter while the first is unfinished.
+    await books.savePosition(me, first.bookId, first.sessions[3] ?? "", 0.2);
+    await trx
+      .updateTable("book_position")
+      .set({ updated_at: sql<Date>`now() + interval '1 minute'` })
+      .execute();
+    expect(await books.nextSession(me)).toMatchObject({
+      bookId: first.bookId,
+      sessionId: first.sessions[3],
+      chapterTitle: "Partitioning",
+      place: 4,
+    });
+  });
+});

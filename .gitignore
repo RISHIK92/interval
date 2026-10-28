@@ -25,6 +25,8 @@ cdk.out/
 
 # Local event files (EVENTS_DIR)
 .data/
+# Copied from pdfjs-dist by `pnpm pdf-worker` (dev and build), so it matches the package.
+apps/web/public/pdf.worker.min.mjs
 
 # Env files
 .env

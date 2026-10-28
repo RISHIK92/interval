@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, Preferences } from "../../server/ports";
+import type { Actor, Books, Preferences } from "../../server/ports";
 
 // §5A, PER-1, C-21, P1-W4-S01.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
@@ -15,7 +15,9 @@ vi.mock("../../server/container", () => ({
   preferences: () => ({ get, createIfAbsent }),
   events: () => ({ emit }),
   jobQueue: () => ({ enqueue }),
+  books: () => ({ list }),
 }));
+const list = vi.fn<Books["list"]>(() => Promise.resolve([]));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
   cookies: () =>
@@ -200,8 +202,9 @@ test("a failed recompute enqueue is logged, and onboarding still completes", asy
   vi.restoreAllMocks();
 });
 
-// ADR-0015: goals first; the two that need Phase 2 are shown but can't be picked.
-test("onboarding asks for goals first, with the coming-soon ones disabled", async () => {
+// ADR-0015: goals first; the one that still needs Phase 2 (GitHub) is shown but can't
+// be picked. The book goal is live with books (Q-P2-36, P2-W11-S05).
+test("onboarding asks for goals first, with the coming-soon one disabled", async () => {
   current.mockResolvedValue(guest);
   get.mockResolvedValue(null);
   const html = await page();
@@ -209,12 +212,49 @@ test("onboarding asks for goals first, with the coming-soon ones disabled", asyn
     html.indexOf('name="topic"'),
   );
   expect(html.match(/name="goal"/g)).toHaveLength(4);
-  for (const goal of ["stack-i-use", "finish-that-book"]) {
-    expect(html).toMatch(
-      new RegExp(
-        `<input[^>]*disabled=""[^>]*value="${goal}"|<input[^>]*value="${goal}"[^>]*disabled=""`,
-      ),
+  const disabled = (goal: string) =>
+    new RegExp(
+      `<input[^>]*disabled=""[^>]*value="${goal}"|<input[^>]*value="${goal}"[^>]*disabled=""`,
     );
-  }
-  expect(html.match(/Coming soon/g)).toHaveLength(2);
+  expect(html).toMatch(disabled("stack-i-use"));
+  expect(html).not.toMatch(disabled("finish-that-book"));
+  expect(html.match(/Coming soon/g)).toHaveLength(1);
+});
+
+// Q-P2-36 (owner): choosing the book goal leads to adding a book.
+test("choosing the book goal goes on to Add a book, unless there is one already", async () => {
+  const account: Actor = { ...guest, userId: "a1", isGuest: false };
+  current.mockResolvedValue(account);
+  const { onboardingAction } = await import("./actions");
+  const answers = form({
+    goal: ["finish-that-book", "stay-sharp"],
+    topic: "backend",
+    level: "beginner",
+    breakLength: "3-8",
+  });
+  await expect(onboardingAction(answers)).rejects.toThrow(
+    /^redirect:\/books\/new$/,
+  );
+  expect(list).toHaveBeenCalledWith("a1");
+  // The first feed is still queued.
+  expect(enqueue).toHaveBeenCalledWith(
+    "recompute_feed",
+    { user_id: "a1" },
+    expect.anything(),
+  );
+  list.mockResolvedValueOnce([
+    {
+      bookId: "7",
+      title: "Mine",
+      status: "ready",
+      failure: null,
+      createdAt: new Date(),
+    },
+  ]);
+  await expect(onboardingAction(answers)).rejects.toThrow(/^redirect:\/$/);
+  // A guest too: Add a book says books need an account.
+  current.mockResolvedValue(guest);
+  await expect(onboardingAction(answers)).rejects.toThrow(
+    /^redirect:\/books\/new$/,
+  );
 });

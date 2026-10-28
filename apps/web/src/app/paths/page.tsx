@@ -7,7 +7,12 @@ import {
   preferences,
   sessionReader,
 } from "../../server/container";
-import type { BookStatus, BookSummary, PathSummary } from "../../server/ports";
+import type {
+  BookOutline,
+  BookStatus,
+  BookSummary,
+  PathSummary,
+} from "../../server/ports";
 import { deleteBookAction } from "../books/actions";
 import { TabBar } from "../TabBar";
 import { Card } from "../ui/Card";
@@ -22,9 +27,10 @@ export default async function PathsPage() {
   if (actor === null) redirect("/join");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
-  const [all, mine] = await Promise.all([
+  const [all, mine, outlines] = await Promise.all([
     paths().live(actor.userId),
     books().list(actor.userId),
+    books().outlines(actor.userId),
   ]);
   const active = all.filter((p) => p.mine === "active");
   const rest = all.filter((p) => p.mine !== "active");
@@ -32,7 +38,7 @@ export default async function PathsPage() {
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[52rem] lg:pt-10 lg:pl-64">
       <h1 className="text-display">Paths</h1>
       <TabBar current="paths" firstName={chosen.firstName} />
-      <YourBooks books={mine} />
+      <YourBooks books={mine} outlines={outlines} />
       {all.length === 0 ? (
         <Card className="p-8 text-center text-ink-muted">
           <p>No paths yet. Guided paths through a topic arrive here soon.</p>
@@ -116,8 +122,15 @@ const STATUS: Record<BookStatus, string> = {
   failed: "Couldn't be read",
 };
 
-// §5F, P2-W11-S01: the user's private PDF books. Reading them arrives with S04.
-function YourBooks({ books: list }: { books: BookSummary[] }) {
+// §5F, P2-W11-S01: the user's private PDF books; a ready one is followed like a path
+// (S05, Q-P2-33).
+function YourBooks({
+  books: list,
+  outlines,
+}: {
+  books: BookSummary[];
+  outlines: BookOutline[];
+}) {
   return (
     <section
       id="your-books"
@@ -136,34 +149,184 @@ function YourBooks({ books: list }: { books: BookSummary[] }) {
         </p>
       ) : (
         <ul className="flex flex-col gap-3">
-          {list.map((book) => (
-            <li key={book.bookId}>
-              <Card className="flex items-center justify-between gap-3 p-4">
-                <span className="min-w-0">
-                  {book.status === "ready" ? (
-                    <Link
-                      href={`/books/${book.bookId}`}
-                      className="block truncate font-semibold text-select"
-                    >
-                      {book.title}
-                    </Link>
-                  ) : (
-                    <span className="block truncate font-semibold">
-                      {book.title}
+          {list.map((book) => {
+            const outline = outlines.find((o) => o.bookId === book.bookId);
+            return outline === undefined ? (
+              <li key={book.bookId}>
+                <Card className="flex items-center justify-between gap-3 p-4">
+                  <span className="min-w-0">
+                    {book.status === "ready" ? (
+                      <Link
+                        href={`/books/${book.bookId}`}
+                        className="block truncate font-semibold text-select"
+                      >
+                        {book.title}
+                      </Link>
+                    ) : (
+                      <span className="block truncate font-semibold">
+                        {book.title}
+                      </span>
+                    )}
+                    <span className="block text-sm text-ink-muted">
+                      {STATUS[book.status]}
+                      {book.failure === null ? null : `: ${book.failure}`}
                     </span>
-                  )}
-                  <span className="block text-sm text-ink-muted">
-                    {STATUS[book.status]}
-                    {book.failure === null ? null : `: ${book.failure}`}
                   </span>
-                </span>
-                <DeleteBook book={book} />
-              </Card>
-            </li>
-          ))}
+                  <DeleteBook book={book} />
+                </Card>
+              </li>
+            ) : (
+              <li key={book.bookId}>
+                <ReadyBook book={book} outline={outline} />
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
+  );
+}
+
+const sessions = (n: number) => `${String(n)} session${n === 1 ? "" : "s"}`;
+
+// Wireframe 05: progress, then the chapters. Finished ones ticked; the one holding the
+// next session open, its sessions ticked and the next to resume; the rest a count.
+function ReadyBook({
+  book,
+  outline,
+}: {
+  book: BookSummary;
+  outline: BookOutline;
+}) {
+  const { done, of, next } = outline;
+  const href = (sessionId: string) =>
+    `/books/${outline.bookId}?session=${sessionId}`;
+  const current = outline.chapters.findIndex((c) =>
+    c.sessions.some((s) => s.sessionId === next),
+  );
+  return (
+    <Card className="flex flex-col gap-4 p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h3 className="truncate text-title">
+            <Link href={`/books/${book.bookId}`}>{book.title}</Link>
+          </h3>
+          <p className="text-sm text-ink-muted">
+            Your PDF · {done} of {of} sessions
+          </p>
+        </div>
+        <DeleteBook book={book} />
+      </div>
+      <div
+        role="progressbar"
+        aria-label="Sessions finished"
+        aria-valuemin={0}
+        aria-valuenow={done}
+        aria-valuemax={of}
+        className="h-1.5 overflow-hidden rounded-full bg-hairline"
+      >
+        <div
+          className="h-full rounded-full bg-select"
+          style={{ width: `${String(of === 0 ? 0 : (100 * done) / of)}%` }}
+        />
+      </div>
+      {next === null ? (
+        <p className="flex items-center gap-3">
+          <span className="font-semibold">Finished</span>
+          <Link
+            href={href(outline.first)}
+            className="text-sm font-semibold text-select"
+          >
+            Read again
+          </Link>
+        </p>
+      ) : (
+        <ol aria-label="Chapters" className="flex flex-col gap-2">
+          {outline.chapters.map((chapter, i) => {
+            const finished = chapter.sessions.every((s) => s.finished);
+            return (
+              <li
+                key={i}
+                className={i > current ? "text-ink-muted" : undefined}
+              >
+                <p className="flex items-baseline justify-between gap-3">
+                  <span className={i === current ? "font-semibold" : undefined}>
+                    <Mark
+                      state={
+                        finished ? "done" : i === current ? "now" : "later"
+                      }
+                    />
+                    {finished ? (
+                      <span className="sr-only">Finished: </span>
+                    ) : i === current ? (
+                      <span className="sr-only">Reading now: </span>
+                    ) : null}
+                    {chapter.title}
+                  </span>
+                  {i === current ? null : (
+                    <span className="shrink-0 text-sm text-ink-muted">
+                      {sessions(chapter.sessions.length)}
+                    </span>
+                  )}
+                </p>
+                {i === current ? (
+                  <ol className="mt-2 flex flex-col gap-2 pl-6">
+                    {chapter.sessions.map((s) => (
+                      <li
+                        key={s.sessionId}
+                        className="flex flex-wrap items-center justify-between gap-2"
+                      >
+                        <span>
+                          <Mark
+                            state={
+                              s.finished
+                                ? "done"
+                                : s.sessionId === next
+                                  ? "now"
+                                  : "later"
+                            }
+                          />
+                          {s.finished ? (
+                            <span className="sr-only">Finished: </span>
+                          ) : null}
+                          {s.sessionId === next ? (
+                            <span className="sr-only">Up next: </span>
+                          ) : null}
+                          {s.title}
+                          <span className="text-sm text-ink-muted">
+                            {" "}
+                            · {s.minutes} min
+                          </span>
+                        </span>
+                        {s.sessionId === next ? (
+                          <Link
+                            href={href(s.sessionId)}
+                            className="rounded-full bg-ink px-4 py-1.5 text-sm font-semibold text-page"
+                          >
+                            {outline.started ? "Resume" : "Start"}
+                          </Link>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ol>
+                ) : null}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </Card>
+  );
+}
+
+function Mark({ state }: { state: "done" | "now" | "later" }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`mr-2 inline-block w-4 text-center ${state === "later" ? "text-ink-muted" : "text-select"}`}
+    >
+      {state === "done" ? "✓" : state === "now" ? "●" : "○"}
+    </span>
   );
 }
 

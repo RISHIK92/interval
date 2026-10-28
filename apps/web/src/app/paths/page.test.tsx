@@ -15,11 +15,12 @@ const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
 );
 const live = vi.fn<Paths["live"]>(() => Promise.resolve([]));
 const list = vi.fn<Books["list"]>(() => Promise.resolve([]));
+const outlines = vi.fn<Books["outlines"]>(() => Promise.resolve([]));
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
   paths: () => ({ live }),
-  books: () => ({ list }),
+  books: () => ({ list, outlines }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -140,4 +141,98 @@ test("Your books lists the user's books with their status, and Add a book", asyn
 test("with no books, it says what a book is for", async () => {
   current.mockResolvedValue(user);
   expect(await page()).toContain("Upload a PDF to read it in short sessions.");
+});
+
+// P2-W11-S05 (§5F, Q-P2-33): a ready book is followed like a path.
+const ready = {
+  bookId: "7",
+  title: "Designing Data Systems",
+  status: "ready" as const,
+  failure: null,
+  createdAt: new Date(),
+};
+const outline = {
+  bookId: "7",
+  title: "Designing Data Systems",
+  done: 2,
+  of: 5,
+  first: "70",
+  started: true,
+  next: "72",
+  chapters: [
+    {
+      title: "Storage",
+      sessions: [
+        { sessionId: "70", title: "Logs", minutes: 4, finished: true },
+      ],
+    },
+    {
+      title: "Replication",
+      sessions: [
+        { sessionId: "71", title: "Leaders", minutes: 5, finished: true },
+        { sessionId: "72", title: "Followers", minutes: 6, finished: false },
+        { sessionId: "73", title: "Lag", minutes: 3, finished: false },
+      ],
+    },
+    {
+      title: "Partitioning",
+      sessions: [
+        { sessionId: "74", title: "Keys", minutes: 4, finished: false },
+      ],
+    },
+  ],
+};
+
+test("a ready book shows its progress and a chapter timeline, the next session to resume", async () => {
+  current.mockResolvedValue(user);
+  list.mockResolvedValueOnce([ready]);
+  outlines.mockResolvedValueOnce([outline]);
+  const html = await page();
+  expect(outlines).toHaveBeenCalledWith("u1");
+  expect(html).toContain("Your PDF · 2 of 5 sessions");
+  expect(html).toMatch(
+    /role="progressbar"[^>]*aria-valuenow="2"[^>]*aria-valuemax="5"/,
+  );
+  // Finished chapters ticked with a count; the current one open, its sessions ticked.
+  expect(html).toMatch(/Finished: <\/span>Storage[^]*?1 session\b/);
+  expect(html).toMatch(/Reading now: <\/span>Replication/);
+  expect(html).toMatch(
+    /Finished: <\/span>Leaders[^]*?Up next: <\/span>Followers/,
+  );
+  expect(html).toContain('href="/books/7?session=72"');
+  expect(html).toMatch(/Resume<\/a>/);
+  expect(html).toContain("Lag");
+  // A later chapter shows only its count.
+  expect(html).toMatch(/Partitioning[^]*?1 session\b/);
+  expect(html).not.toContain("Keys");
+});
+
+test("a book not started says Start; a finished one offers to read it again", async () => {
+  current.mockResolvedValue(user);
+  list.mockResolvedValue([ready]);
+  outlines.mockResolvedValueOnce([
+    {
+      ...outline,
+      done: 0,
+      started: false,
+      next: "70",
+      chapters: outline.chapters.map((c) => ({
+        ...c,
+        sessions: c.sessions.map((x) => ({ ...x, finished: false })),
+      })),
+    },
+  ]);
+  expect(await page()).toMatch(/href="\/books\/7\?session=70"[^>]*>Start<\/a>/);
+  // A place saved, nothing finished yet: Resume.
+  outlines.mockResolvedValueOnce([
+    { ...outline, done: 0, started: true, next: "70" },
+  ]);
+  expect(await page()).toMatch(
+    /href="\/books\/7\?session=70"[^>]*>Resume<\/a>/,
+  );
+  outlines.mockResolvedValueOnce([{ ...outline, done: 5, next: null }]);
+  const html = await page();
+  expect(html).toContain("Finished");
+  expect(html).toMatch(/href="\/books\/7\?session=70"[^>]*>Read again<\/a>/);
+  list.mockReset();
 });

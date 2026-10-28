@@ -3,6 +3,7 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import {
+  books,
   events,
   jobQueue,
   preferences,
@@ -39,5 +40,12 @@ export async function onboardingAction(form: FormData): Promise<void> {
     `onboarding-recompute-${actor.userId}`,
     "feed: first recompute not queued",
   );
+  // Q-P2-36 (owner): the book goal leads to adding a book; a guest finds there that
+  // books need an account.
+  if (
+    form.getAll("goal").includes("finish-that-book") && // validated above
+    (await books().list(actor.userId)).length === 0
+  )
+    redirect("/books/new");
   redirect("/");
 }

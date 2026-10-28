@@ -881,8 +881,9 @@ export const BREAK_LENGTHS = [
   "8-15",
 ] as const satisfies readonly BreakLength[];
 
-// ADR-0015: learning goals, in the enum's order. Stack and book goals are coming soon
-// until Phase 2 (GitHub, PDF books): shown, not selectable (owner, 2026-10-26).
+// ADR-0015: learning goals, in the enum's order. The stack goal is coming soon until
+// GitHub (Phase 2): shown, not selectable (owner, 2026-10-26). The book goal is live
+// with PDF books (Q-P2-36, P2-W11-S05).
 export const GOALS = [
   "system-design-interviews",
   "stack-i-use",
@@ -891,6 +892,7 @@ export const GOALS = [
 ] as const satisfies readonly LearningGoal[];
 export const LIVE_GOALS = [
   "system-design-interviews",
+  "finish-that-book",
   "stay-sharp",
 ] as const satisfies readonly LearningGoal[];
 
@@ -973,7 +975,42 @@ export interface Books {
   ): Promise<boolean>;
   // The PDF's key, for the user's own ready book; null otherwise.
   fileKey(userId: string, bookId: string): Promise<string | null>;
+  // P2-W11-S05 (§5F, Q-P2-33): the user's ready books, chapter by chapter.
+  outlines(userId: string): Promise<BookOutline[]>;
+  // The feed's book card: the next session of the ready book read last (or added
+  // last); null when no ready book has a session left.
+  nextSession(userId: string): Promise<BookNext | null>;
 }
+export type BookOutline = {
+  bookId: string;
+  title: string;
+  done: number;
+  of: number;
+  first: string; // the first session, to read again
+  started: boolean; // a place saved or a session finished: Resume, not Start
+  next: string | null; // where the book opens; null once every session is finished
+  chapters: {
+    title: string;
+    sessions: {
+      sessionId: string;
+      title: string;
+      minutes: number;
+      finished: boolean;
+    }[];
+  }[];
+};
+export type BookNext = {
+  bookId: string;
+  bookTitle: string;
+  chapterTitle: string;
+  sessionId: string;
+  title: string;
+  minutes: number;
+  firstPage: number;
+  lastPage: number;
+  place: number; // 1-based, across the book
+  of: number;
+};
 export type BookReading = {
   bookId: string;
   bookTitle: string;

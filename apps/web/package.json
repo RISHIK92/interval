@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "../../scripts/with-env.sh next dev --port 3100",
-    "build": "next build",
+    "dev": "pnpm pdf-worker && ../../scripts/with-env.sh next dev --port 3100",
+    "build": "pnpm pdf-worker && next build",
+    "pdf-worker": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs",
     "start": "next start",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

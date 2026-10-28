@@ -1,6 +1,6 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import type { Books } from "../ports";
+import type { BookOutline, Books } from "../ports";
 
 // A user's private PDF books (§5F, DB-6, P2-W11-S01).
 // Kysely can't nest transactions: inside one (as the tests run), use it.
@@ -69,59 +69,89 @@ export function kyselyBooks(db: Kysely<DB>): Books {
       }),
 
     reading: async (userId, bookId, sessionId) => {
-      const sessions = await db
-        .selectFrom("book_session as s")
-        .innerJoin("book_chapter as c", "c.id", "s.chapter_id")
-        .innerJoin("book as b", "b.id", "c.book_id")
-        .leftJoin("book_session_finished as f", "f.session_id", "s.id")
-        .select([
-          "s.id",
-          "s.title",
-          "s.estimated_minutes",
-          "s.first_page",
-          "s.last_page",
-          "c.title as chapter_title",
-          "b.title as book_title",
-          sql<boolean>`f.session_id is not null`.as("finished"),
-        ])
-        .where("b.id", "=", bookId)
-        .where("b.user_id", "=", userId)
-        .where("b.status", "=", "ready")
-        .orderBy("c.ordinal")
-        .orderBy("s.ordinal")
-        .execute();
-      if (sessions.length === 0) return null;
-      const saved = await db
-        .selectFrom("book_position")
-        .select(["session_id", "fraction"])
-        .where("book_id", "=", bookId)
-        .executeTakeFirst();
+      const book = (await readyBooks(db, userId, bookId))[0];
+      if (book === undefined) return null;
+      const { sessions, saved } = book;
       // A session named that isn't in the book (a stale link) is ignored.
-      const named = sessions.some((s) => s.id === sessionId) ? sessionId : null;
-      // A place in a section since finished (Mark done) gives way to what's next.
-      const place = sessions.find((s) => s.id === saved?.session_id);
-      const chosen =
-        named ??
-        (place !== undefined && !place.finished ? place.id : undefined) ??
-        (sessions.find((s) => !s.finished) ?? sessions[0])?.id;
-      const i = sessions.findIndex((s) => s.id === chosen);
-      const session = sessions[i];
+      const named = sessions.find((s) => s.id === sessionId);
+      const session = named ?? opensAt(book) ?? sessions[0];
       if (session === undefined) return null;
+      const i = sessions.indexOf(session);
       return {
         bookId,
-        bookTitle: session.book_title,
+        bookTitle: book.title,
         chapterTitle: session.chapter_title,
         sessionId: session.id,
         title: session.title,
         minutes: session.estimated_minutes,
         firstPage: session.first_page,
         lastPage: session.last_page,
-        finished: session.finished,
+        finished: session.finished_at !== null,
         fraction: saved?.session_id === session.id ? saved.fraction : null,
         previous: sessions[i - 1]?.id ?? null,
         next: sessions[i + 1]?.id ?? null,
         place: i + 1,
         of: sessions.length,
+      };
+    },
+
+    outlines: async (userId) =>
+      (await readyBooks(db, userId, null)).map((book) => {
+        const chapters: BookOutline["chapters"] = [];
+        let chapterId: string | null = null;
+        for (const s of book.sessions) {
+          if (s.chapter_id !== chapterId) {
+            chapterId = s.chapter_id;
+            chapters.push({ title: s.chapter_title, sessions: [] });
+          }
+          chapters.at(-1)?.sessions.push({
+            sessionId: s.id,
+            title: s.title,
+            minutes: s.estimated_minutes,
+            finished: s.finished_at !== null,
+          });
+        }
+        return {
+          bookId: book.id,
+          title: book.title,
+          done: book.sessions.filter((s) => s.finished_at !== null).length,
+          of: book.sessions.length,
+          first: book.sessions[0]?.id ?? "",
+          started:
+            book.saved !== undefined ||
+            book.sessions.some((s) => s.finished_at !== null),
+          next: opensAt(book)?.id ?? null,
+          chapters,
+        };
+      }),
+
+    nextSession: async (userId) => {
+      // The book read last: its newest saved place or Mark done; a book not yet
+      // opened counts from when it was added.
+      const active = (book: ReadyBook) =>
+        Math.max(
+          book.createdAt.getTime(),
+          book.saved?.updated_at.getTime() ?? 0,
+          ...book.sessions.map((s) => s.finished_at?.getTime() ?? 0),
+        );
+      const candidates = (await readyBooks(db, userId, null))
+        .map((book) => ({ book, session: opensAt(book) }))
+        .filter((c) => c.session !== undefined)
+        .sort((x, y) => active(y.book) - active(x.book));
+      const top = candidates[0];
+      if (top?.session === undefined) return null;
+      const { book, session } = top;
+      return {
+        bookId: book.id,
+        bookTitle: book.title,
+        chapterTitle: session.chapter_title,
+        sessionId: session.id,
+        title: session.title,
+        minutes: session.estimated_minutes,
+        firstPage: session.first_page,
+        lastPage: session.last_page,
+        place: book.sessions.indexOf(session) + 1,
+        of: book.sessions.length,
       };
     },
 
@@ -187,4 +217,86 @@ export function kyselyBooks(db: Kysely<DB>): Books {
       return gone?.file_key ?? null;
     },
   };
+}
+
+// A user's ready books (one, or all), each with its sessions in reading order (never
+// their text: a book's sessions can run to megabytes) and its saved place.
+async function readyBooks(
+  db: Kysely<DB>,
+  userId: string,
+  bookId: string | null,
+) {
+  let query = db
+    .selectFrom("book as b")
+    .innerJoin("book_chapter as c", "c.book_id", "b.id")
+    .innerJoin("book_session as s", "s.chapter_id", "c.id")
+    .leftJoin("book_session_finished as f", "f.session_id", "s.id")
+    .select([
+      "b.id as book_id",
+      "b.title as book_title",
+      "b.created_at as book_created_at",
+      "c.id as chapter_id",
+      "c.title as chapter_title",
+      "s.id",
+      "s.title",
+      "s.estimated_minutes",
+      "s.first_page",
+      "s.last_page",
+      "f.finished_at",
+    ])
+    .where("b.user_id", "=", userId)
+    .where("b.status", "=", "ready");
+  if (bookId !== null) query = query.where("b.id", "=", bookId);
+  const [rows, places] = await Promise.all([
+    query
+      .orderBy("b.created_at", "desc")
+      .orderBy("b.id", "desc")
+      .orderBy("c.ordinal")
+      .orderBy("s.ordinal")
+      .execute(),
+    db
+      .selectFrom("book_position as p")
+      .innerJoin("book as b", "b.id", "p.book_id")
+      .select(["p.book_id", "p.session_id", "p.fraction", "p.updated_at"])
+      .where("b.user_id", "=", userId) // one row a book, at most five
+      .execute(),
+  ]);
+  const books = new Map<string, ReadyBook>();
+  for (const row of rows) {
+    const book = books.get(row.book_id) ?? {
+      id: row.book_id,
+      title: row.book_title,
+      createdAt: row.book_created_at,
+      saved: places.find((p) => p.book_id === row.book_id),
+      sessions: [],
+    };
+    books.set(row.book_id, book);
+    book.sessions.push(row);
+  }
+  return [...books.values()];
+}
+type ReadyBook = {
+  id: string;
+  title: string;
+  createdAt: Date;
+  saved: { session_id: string; fraction: number; updated_at: Date } | undefined;
+  sessions: {
+    id: string;
+    chapter_id: string;
+    chapter_title: string;
+    title: string;
+    estimated_minutes: number;
+    first_page: number;
+    last_page: number;
+    finished_at: Date | null;
+  }[];
+};
+
+// Where a book opens with no session named (§5F): the saved place, unless that
+// section has since been marked done, else the first unfinished; none once all are.
+function opensAt(book: ReadyBook): ReadyBook["sessions"][number] | undefined {
+  const place = book.sessions.find((s) => s.id === book.saved?.session_id);
+  return place !== undefined && place.finished_at === null
+    ? place
+    : book.sessions.find((s) => s.finished_at === null);
 }

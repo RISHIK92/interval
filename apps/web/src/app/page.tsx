@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { redirect } from "next/navigation";
 import {
+  books,
   entitlements,
   events,
   feedback,
@@ -39,6 +40,7 @@ import { TabBar } from "./TabBar";
 import { UndoNotInterested } from "./UndoNotInterested";
 import { MomentCard } from "./MomentCard";
 import { StartQuiz, ZAP } from "./quiz/StartQuiz";
+import { BookCard } from "./BookCard";
 import { PathCard } from "./PathCard";
 import { ReviewCard } from "./ReviewCard";
 import { Card } from "./ui/Card";
@@ -194,14 +196,16 @@ export default async function HomePage({
   });
   // P2-W9-S06: due reviews are read when the feed is served; they change by the
   // minute.
-  // P2-W10-S06: so is the active path's next step (the first card).
-  const [due, testable, pathNext] = await Promise.all([
+  // P2-W10-S06: so is the active path's next step (the first card), and (S05) the
+  // next session of the book read last; guests have no books.
+  const [due, testable, pathNext, bookNext] = await Promise.all([
     quizzes().dueReviews(actor.userId),
     quizzes().offered([
       ...cards.map(target),
       ...(finished === null || next === undefined ? [] : [finished]),
     ]),
     paths().next(actor.userId),
+    actor.isGuest ? null : books().nextSession(actor.userId),
   ]);
   const yourNote = (card: FeedCard) =>
     yours.get(quizKey(target(card).itemId, target(card).momentId)) ?? null;
@@ -370,6 +374,11 @@ export default async function HomePage({
                 <PathCard next={pathNext} chip={chip} />
               </div>
             )}
+            {bookNext === null ? null : (
+              <div className="mt-4">
+                <BookCard next={bookNext} />
+              </div>
+            )}
             {/* With no cards to sit behind, the review shows alone (owner,
               2026-10-28, Q-P2-21). */}
             {due.length > 0 ? (
@@ -390,6 +399,11 @@ export default async function HomePage({
               {pathNext === null ? null : (
                 <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
                   <PathCard next={pathNext} chip={chip} />
+                </li>
+              )}
+              {bookNext === null ? null : (
+                <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
+                  <BookCard next={bookNext} />
                 </li>
               )}
               {cards.map((card, index) => (

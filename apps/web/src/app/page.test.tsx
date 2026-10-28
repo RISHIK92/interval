@@ -2,6 +2,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
 import type {
   Actor,
+  Books,
   FeedCard,
   FeedReader,
   Notes,
@@ -41,7 +42,9 @@ vi.mock("../server/container", () => ({
   entitlements: () => ({ can }),
   quizzes: () => ({ offered, dueReviews }),
   paths: () => ({ next: pathNext }),
+  books: () => ({ nextSession }),
 }));
+const nextSession = vi.fn<Books["nextSession"]>(() => Promise.resolve(null));
 const pathNext = vi.fn<Paths["next"]>(() => Promise.resolve(null));
 const dueReviews = vi.fn<Quizzes["dueReviews"]>(() => Promise.resolve([]));
 const offered = vi.fn<Quizzes["offered"]>(() => Promise.resolve(new Set()));
@@ -76,6 +79,7 @@ const redirect = vi.fn((url: string) => {
 vi.mock("next/navigation", () => ({ redirect }));
 
 const guest: Actor = { userId: "u1", isGuest: true, betaGroup: "student" };
+const user: Actor = { ...guest, isGuest: false };
 
 afterEach(() => {
   chipCookie = undefined;
@@ -826,4 +830,72 @@ test("a path card on a section you've mastered offers to skip it (Q-P2-29)", asy
   expect(html).toMatch(
     /name="sectionId" value="60"[^]*?name="reason" value="mastered"[^]*?name="back" value="\/\?chip=3-8"/,
   );
+});
+
+// P2-W11-S05 (§5F, Q-P2-33): the book read last, after the path's card.
+const bookNext = {
+  bookId: "7",
+  bookTitle: "Designing Data Systems",
+  chapterTitle: "Replication",
+  sessionId: "72",
+  title: "Followers",
+  minutes: 6,
+  firstPage: 41,
+  lastPage: 46,
+  place: 9,
+  of: 18,
+};
+
+test("the next book session is a card after the path's, saying why", async () => {
+  current.mockResolvedValue(user);
+  getFeed.mockResolvedValue(feedOf([card]));
+  pathNext.mockResolvedValueOnce({
+    kind: "checkpoint",
+    pathId: "6",
+    pathName: "Replication",
+    sectionId: "60",
+    concepts: ["Quorums"],
+    size: 5,
+    passMark: 4,
+    next: null,
+  });
+  nextSession.mockResolvedValueOnce(bookNext);
+  const html = await render();
+  expect(nextSession).toHaveBeenCalledWith("u1");
+  const items = html.split("<li").slice(1);
+  const pathAt = items.findIndex((li) => li.includes("Next in your path"));
+  const bookAt = items.findIndex((li) => li.includes("Next in your book"));
+  const firstCard = items.findIndex((li) => li.includes('data-moment="1"'));
+  expect(pathAt).toBeGreaterThanOrEqual(0);
+  expect([bookAt, firstCard]).toEqual([pathAt + 1, pathAt + 2]);
+  expect(html.replace(/<[^>]+>/g, "")).toContain(
+    "Next in your book: Designing Data Systems",
+  );
+  expect(html).toContain("Replication · session 9 of 18 · pages 41–46 · 6 min");
+  expect(html).toMatch(/href="\/books\/7\?session=72"[^>]*>Read Followers/);
+  expect(html).toMatch(/moment=1[^"]*pos=1/);
+});
+
+test("without a path the book card comes first; an empty feed still shows it", async () => {
+  current.mockResolvedValue(user);
+  getFeed.mockResolvedValue(feedOf([card]));
+  nextSession.mockResolvedValue(bookNext);
+  const items = (await render()).split("<li").slice(1);
+  const bookAt = items.findIndex((li) => li.includes("Next in your book"));
+  expect(bookAt).toBeGreaterThanOrEqual(0);
+  expect(items[bookAt + 1]).toContain('data-moment="1"');
+  getFeed.mockResolvedValue(feedOf([]));
+  const html = await render();
+  expect(html).toContain("No moments yet.");
+  expect(html).toContain("Next in your book");
+  nextSession.mockReset();
+  nextSession.mockResolvedValue(null);
+  expect(await render()).not.toContain("Next in your book");
+});
+
+test("a guest has no books to ask about", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  await render();
+  expect(nextSession).not.toHaveBeenCalled();
 });

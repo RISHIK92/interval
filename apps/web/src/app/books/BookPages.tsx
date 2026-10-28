@@ -76,10 +76,10 @@ export function BookPages(props: {
     void (async () => {
       const pdfjs = await import("pdfjs-dist");
       if (stopped()) return;
-      pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-        "pdfjs-dist/build/pdf.worker.min.mjs",
-        import.meta.url,
-      ).toString();
+      // A plain static file (public/, copied from the package by `pnpm pdf-worker`):
+      // bundled, Turbopack's dev server rebuilt on its request and reloaded the page
+      // every second. The version keeps a cached copy from outliving an upgrade.
+      pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.min.mjs?v=${pdfjs.version}`;
       const task = pdfjs.getDocument({ url: `/api/books/${bookId}/file` });
       close = () => void task.destroy();
       const pdf = await task.promise;
