@@ -706,6 +706,16 @@ test("with concepts due, the second card is the review queue, saying why", async
   expect(html).toMatch(/moment=3[^"]*pos=3/);
 });
 
+test("an empty feed still shows the review when something is due (owner, 2026-10-28)", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([]));
+  dueReviews.mockResolvedValueOnce([{ conceptId: "1", name: "Raft" }]);
+  const html = await render();
+  expect(html).toContain("No moments yet.");
+  expect(html).toContain("Review 1 concept · about 1 min");
+  expect(html).toContain("Due for review: Raft.");
+});
+
 test("with nothing due, the feed has no review card", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(feedOf([card]));

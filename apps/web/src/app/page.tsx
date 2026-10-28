@@ -357,9 +357,18 @@ export default async function HomePage({
           <UndoNotInterested itemId={undoable} chip={chip} />
         )}
         {cards.length === 0 ? (
-          <Card className="mt-6 p-8 text-center text-ink-muted">
-            <p>No moments yet.</p>
-          </Card>
+          <>
+            <Card className="mt-6 p-8 text-center text-ink-muted">
+              <p>No moments yet.</p>
+            </Card>
+            {/* With no cards to sit behind, the review shows alone (owner,
+              2026-10-28, Q-P2-21). */}
+            {due.length > 0 ? (
+              <div className="mt-4">
+                <ReviewCard due={due} />
+              </div>
+            ) : null}
+          </>
         ) : (
           // ADR-0019: one full-size card at a time, sideways; only a sliver of the next
           // card's edge says there is more. Arrow keys scroll it once it has focus. The

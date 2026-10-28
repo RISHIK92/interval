@@ -1992,3 +1992,6 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Surprises: `pnpm check`'s `test_db_guards` reads the live global budget, so the owner's overnight cap needs the check wrapped (pause worker, restore seed, run, restore cap); OpenRouter answers 404 for a moment after accepting a batch; Postgres `greatest()` skips nulls (an untimed review showed 0 seconds left); joint maximum likelihood needs the per-person correction on sparse quiz data.
 - Needs ADR: none. The overnight budget is local data: restore with `update ai_budget set daily_cents = 500 where scope = 'global'` (a background script sets 30 cents at 00:00 UTC; if that session ended first, it is still 171).
 
+
+### 2026-10-28 — Q-P2-21 answered (owner)
+- The owner kept six of tonight's defaults (FSRS days, 30-minute idle reviews, ±0.5 logit levels, anomalies stay in quizzes and are queued once, a mid-quiz flag doesn't void an answer, the metric definitions) and changed one: the review card now shows alone on an empty feed (`page.test.tsx`). `pnpm check` green.

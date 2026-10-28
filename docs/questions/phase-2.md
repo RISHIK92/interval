@@ -122,4 +122,5 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   5. Anomalies (over 98% or under 20% right, 30+ answers): queued once, never again after an admin decides one; they stay in quizzes while waiting, unlike flagged questions (Q-3: "pulled for review").
   6. A question flagged by someone else while it's another user's open question can still be answered and count toward mastery, as with retiring (Q-2).
   7. Metric definitions: a finished moment "leads to a quiz" when its user starts Test 60s on it within a day either side; the flag rate is over answered questions, all time to yesterday; quiz return compares last full week's takers and non-takers on the following week (Phase 2 "done when").
+- **Answers (owner, 2026-10-28):** 1 yes (days); 2 yes (30 minutes idle); 3 show the review card alone on an empty feed (changed: built); 4 yes (±0.5 logits); 5 yes (stay in quizzes, queued once); 6 yes (still counts); 7 keep the metric definitions as built.
 
