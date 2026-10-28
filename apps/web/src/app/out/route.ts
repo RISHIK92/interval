@@ -21,7 +21,8 @@ const Open = z.object({
   pos: z.coerce.number().int().min(1).max(200).optional(),
   // "reader": Open in browser from inside the in-app reader, after a move there
   // (ADR-0018); it records the section and the outbound click only.
-  from: z.enum(["continue", "library", "reader"]).optional(),
+  // "path": a path's reading (P2-W10-S03), counted as a Library open is.
+  from: z.enum(["continue", "library", "reader", "path"]).optional(),
   target: z.enum(["section", "original"]),
 });
 
@@ -67,8 +68,9 @@ export async function GET(request: Request): Promise<Response> {
       ...visitCookieOptions(env().BETTER_AUTH_URL),
       maxAge: undefined,
     };
-    // Not for a Library open: the panel is about what the feed sent you to (owner).
-    if (from !== "library")
+    // Not for a Library or path open: the panel is about what the feed sent you to
+    // (owner).
+    if (from !== "library" && from !== "path")
       jar.set(
         READING_COOKIE,
         formatReading({

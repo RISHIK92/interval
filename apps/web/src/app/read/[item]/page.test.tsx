@@ -314,6 +314,39 @@ test("a Library open counts nothing and comes back to the Library", async () => 
   );
 });
 
+// P2-W10-S03: opened from a path (Q-P2-27): no feed event, and closing or Mark done
+// goes back to the path, which asks.
+test("a path open counts nothing and comes back to the path", async () => {
+  current.mockResolvedValue(guest);
+  reader.mockResolvedValue(page);
+  const html = await render({
+    moment: "9",
+    chip: "3-8",
+    from: "path",
+    path: "6",
+  });
+  expect(emit).not.toHaveBeenCalled();
+  expect(countExploreOpen).not.toHaveBeenCalled();
+  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
+  expect(html).toMatch(
+    /<a href="\/paths\/6\?ask=5\.9"[^>]*aria-label="Close reader"/,
+  );
+  expect(html).toContain('name="back" value="/paths/6"');
+  expect(html).toContain(
+    'name="back" value="/read/5?moment=9&amp;chip=3-8&amp;from=path&amp;path=6"',
+  );
+  expect(html).toMatch(
+    /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;from=path&amp;path=6"[^>]*>[^]*?Next section<\/span><\/a>/,
+  );
+  // A path open without its path, or a path id on another open, goes home.
+  await expect(
+    render({ moment: "9", chip: "3-8", from: "path" }),
+  ).rejects.toThrow("redirect:/");
+  await expect(
+    render({ moment: "9", chip: "3-8", from: "library", path: "6" }),
+  ).rejects.toThrow("redirect:/");
+});
+
 // A slow page gets a slim bar below the frame, never over it (owner, 2026-10-26).
 test("the slow-page bar offers the publisher's site in the browser, and closes", () => {
   const html = renderToStaticMarkup(

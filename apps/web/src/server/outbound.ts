@@ -11,7 +11,7 @@ export function outHref(
     target: "section" | "original";
   } & (
     | { from: { position: number }; chip: Chip }
-    | { from: "continue" | "library" | "reader"; chip?: never }
+    | { from: "continue" | "library" | "reader" | "path"; chip?: never }
   ),
 ): string {
   const query = new URLSearchParams({ item: link.itemId });
@@ -29,18 +29,23 @@ export function outHref(
 // ADR-0018: a link into Interval's in-app reader, for a page that allows framing. /read
 // records the open as /out does; the chip takes the reader back to the same feed.
 // "reader" is a move inside the reader (Next section, or back after Save); "library"
-// an open from the Library, which counts no feed event (owner, 2026-10-26).
+// an open from the Library, which counts no feed event (owner, 2026-10-26); a path's
+// reading names its path, to come back to (P2-W10-S03), and counts none either.
 export function readHref(link: {
   itemId: string;
   momentId?: string;
   chip: Chip;
-  from: { position: number } | "continue" | "reader" | "library";
+  from:
+    { position: number } | { path: string } | "continue" | "reader" | "library";
 }): string {
   const query = new URLSearchParams();
   if (link.momentId !== undefined) query.set("moment", link.momentId);
   query.set("chip", link.chip);
   if (typeof link.from === "string") {
     query.set("from", link.from);
+  } else if ("path" in link.from) {
+    query.set("from", "path");
+    query.set("path", link.from.path);
   } else {
     query.set("pos", String(link.from.position));
   }

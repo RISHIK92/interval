@@ -15,6 +15,7 @@ export const EVENT_NAMES = [
   "note_saved",
   "onboarding_completed",
   "outbound_click",
+  "path_started",
   "pwa_installed",
   "question_flagged",
   "quiz_answered",
@@ -41,6 +42,7 @@ export const EVENT_VERSIONS = {
   note_saved: 1,
   onboarding_completed: 1,
   outbound_click: 1,
+  path_started: 1,
   pwa_installed: 1,
   question_flagged: 1,
   quiz_answered: 1,
@@ -95,6 +97,9 @@ export const propsSchemas = {
   outbound_click: z.strictObject({
     link_type: z.enum(["anchor", "text_fragment", "page_top", "article"]),
     target: z.enum(["section", "original"]),
+  }),
+  path_started: z.strictObject({
+    path_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   pwa_installed: z.strictObject({}),
   question_flagged: z.strictObject({
@@ -227,6 +232,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("outbound_click"),
     version: z.literal(1),
     props: propsSchemas.outbound_click,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("path_started"),
+    version: z.literal(1),
+    props: propsSchemas.path_started,
   }),
   z.strictObject({
     ...base,

@@ -36,6 +36,8 @@ describe("the event list (Q-P1-20)", () => {
         "quiz_answered",
         "quiz_finished",
         "question_flagged",
+        // The owner-approved Week 10 plan (2026-10-28, Q-P2-28, P2-W10-S03).
+        "path_started",
       ].sort(),
     );
   });

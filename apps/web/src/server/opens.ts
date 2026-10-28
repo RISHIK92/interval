@@ -22,7 +22,7 @@ export function attributed(stored: string): string | null {
 
 // What an open records, whether it opened in the browser (/out) or in Interval's
 // reader (/read, ADR-0018). A feed card has a chip and position; `from` names the
-// other links: Continue, Library, or a move inside the reader.
+// other links: Continue, Library, a path's reading, or a move inside the reader.
 export async function countOpen(
   context: EventContext,
   open: {
@@ -30,7 +30,7 @@ export async function countOpen(
     momentId: string | undefined;
     link: OutboundLink;
     card: { chip: Chip; pos: number } | null;
-    from: "continue" | "library" | "reader" | undefined;
+    from: "continue" | "library" | "reader" | "path" | undefined;
     surface: "in_app" | "browser";
   },
 ): Promise<void> {

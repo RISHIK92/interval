@@ -26,12 +26,15 @@ export const dynamic = "force-dynamic";
 // As /out's query, with the chip always there: the reader goes back to that feed. A
 // feed card has a position; "continue" is a Continue card, "reader" a move inside the
 // reader (back after Save), which counts no event, and "library" an open from the
-// Library, which counts none either and goes back there (owner, 2026-10-26).
+// Library, which counts none either and goes back there (owner, 2026-10-26). "path"
+// is a path's reading (P2-W10-S03): it names its path, counts nothing, and goes back
+// to the path.
 const Read = z.object({
   moment: z.string().regex(BIGINT_ID).optional(),
   chip: z.enum(CHIPS),
   pos: z.coerce.number().int().min(1).max(200).optional(),
-  from: z.enum(["continue", "reader", "library"]).optional(),
+  from: z.enum(["continue", "reader", "library", "path"]).optional(),
+  path: z.string().regex(BIGINT_ID).optional(),
 });
 
 // Smaller than the feed's round buttons: the reader's bars stay out of the page's way
@@ -54,8 +57,10 @@ export default async function ReadPage({
   const { item } = await params;
   const parsed = Read.safeParse(await searchParams);
   if (!BIGINT_ID.test(item) || !parsed.success) redirect("/");
-  const { moment, chip, pos, from } = parsed.data;
+  const { moment, chip, pos, from, path } = parsed.data;
   if ((from === undefined) === (pos === undefined)) redirect("/");
+  // A path's reading names its path; nothing else does.
+  if ((from === "path") !== (path !== undefined)) redirect("/");
   const card = pos === undefined ? null : { chip, pos };
   const origin = card === null ? (from ?? "continue") : { position: card.pos };
   const browserHref = outHref({
@@ -64,6 +69,12 @@ export default async function ReadPage({
     target: "section",
     ...(typeof origin === "string" ? { from: origin } : { chip, from: origin }),
   });
+  // Where Next section keeps going from: a path's reading stays one.
+  const nextFrom =
+    path !== undefined
+      ? { path }
+      : // "path" always comes with its path (checked above).
+        (origin as Exclude<typeof origin, "path">);
   // Leaving for the browser from inside the reader: the open is already counted, so
   // only the outbound click is recorded (from=reader).
   const leaveHref = outHref({
@@ -103,12 +114,13 @@ export default async function ReadPage({
       : `${page.sectionTitle} — ${page.articleTitle}`;
   const domain = new URL(publisher).hostname.replace(/^www\./, "");
   // Back to where it was opened, asking "Finished?" about what was shown (C-22's
-  // prompt): the feed, or the Library.
+  // prompt): the feed, the Library, or the path.
   const library = from === "library";
+  const back =
+    path !== undefined ? `/paths/${path}` : library ? "/library" : null;
   const asked = formatReading({ itemId: item, momentId: reached });
-  const closeHref = library
-    ? `/library?ask=${asked}`
-    : `/?chip=${chip}&ask=${asked}`;
+  const closeHref =
+    back === null ? `/?chip=${chip}&ask=${asked}` : `${back}?ask=${asked}`;
   const note = await notes().get(actor.userId, item, reached);
   // Test 60s on what's shown (P2-W9-S02), once it has a live question.
   const testable = (
@@ -118,7 +130,7 @@ export default async function ReadPage({
     itemId: item,
     ...(moment === undefined ? {} : { momentId: moment }),
     chip,
-    from: library ? "library" : "reader",
+    from: path !== undefined ? { path } : library ? "library" : "reader",
   });
   return (
     <main className="flex h-dvh flex-col">
@@ -232,8 +244,8 @@ export default async function ReadPage({
               )}
               <input type="hidden" name="method" value="mark_done" />
               <input type="hidden" name="chip" value={chip} />
-              {library ? (
-                <input type="hidden" name="back" value="/library" />
+              {back !== null ? (
+                <input type="hidden" name="back" value={back} />
               ) : null}
               <button
                 type="submit"
@@ -251,7 +263,7 @@ export default async function ReadPage({
                   chip,
                   // An open of the next section from the same card, counted like one
                   // (owner, 2026-10-26); after Save the card is unknown, so none.
-                  from: origin,
+                  from: nextFrom,
                 })}
                 className="inline-flex size-11 items-center justify-center rounded-full bg-ink font-semibold text-page sm:size-auto sm:px-4 sm:py-2.5"
               >

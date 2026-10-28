@@ -152,6 +152,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P2-27 Following a path (P1)
 - Cite: §4 (Paths tab), §5B (feed items), REC-1 ("continue items"), wireframe 05.
 - **Answer (owner, 2026-10-28):** the Paths tab lists the approved paths; Start makes one the user's active path (one at a time; starting another pauses the current one); its next session shows as a card in the feed.
+- **Update (owner, 2026-10-28):** a path the owner retires stays, read-only, for those who followed it: marked Retired in their Paths tab with their progress, paused (out of the feed, never resumed), and they can start another.
 - Suggested defaults: the path's next-session card is the feed's first card (before the review card), saying why ("Next in your path: Replication, session 3 of 3"); the Paths tab shows the active path's timeline (sections, sessions, checkpoints with the pass mark and what they unlock, locked sections saying what unlocks them), as wireframe 05.
 
 ### Q-P2-28 Path events and the continuity metric (P1)

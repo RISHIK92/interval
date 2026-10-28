@@ -35,6 +35,7 @@ type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
 ]
 type Topic = Literal["system-design", "databases", "distributed-systems", "backend"]
+type UserPathStatus = Literal["active", "paused"]
 
 
 class AiBudget(TypedDict):
@@ -643,6 +644,14 @@ class UserNote(TypedDict):
     section_title: str | None
     body: str
     created_at: datetime
+    updated_at: datetime
+
+
+class UserPath(TypedDict):
+    user_id: str
+    path_id: int
+    status: UserPathStatus
+    started_at: datetime
     updated_at: datetime
 
 

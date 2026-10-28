@@ -320,3 +320,42 @@ test("a reading from a duplicate article isn't allowed", async () => {
     expect(await kyselyAdminPaths(trx).approve(pathId)).toBe(false);
   });
 });
+
+test("retiring a live path pauses everyone following it (owner, 2026-10-28)", async () => {
+  await inRollback(async (trx, { pathId }) => {
+    const admin = kyselyAdminPaths(trx);
+    expect(await admin.approve(pathId)).toBe(true);
+    const code = await trx
+      .insertInto("invite_code")
+      .values({
+        code: `RETIRE${randomUUID().replaceAll("-", "").slice(0, 10).toUpperCase()}`,
+        beta_group: "student",
+        max_uses: 1,
+        expires_at: sql<Date>`now() + interval '1 day'`,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const follower = randomUUID();
+    await trx
+      .insertInto("app_user")
+      .values({
+        id: follower,
+        name: "n",
+        email: `${follower}@example.test`,
+        beta_group: "student",
+        invite_code_id: code.id,
+      })
+      .execute();
+    await trx
+      .insertInto("user_path")
+      .values({ user_id: follower, path_id: pathId, status: "active" })
+      .execute();
+    expect(await admin.retire(pathId)).toBe(true);
+    const row = await trx
+      .selectFrom("user_path")
+      .select("status")
+      .where("user_id", "=", follower)
+      .executeTakeFirstOrThrow();
+    expect(row.status).toBe("paused");
+  });
+});

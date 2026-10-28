@@ -102,6 +102,11 @@
         "reason": ["wrong_key", "unclear", "not_in_section", "other"]
       }
     },
+    "path_started": {
+      "version": 1,
+      "description": "A user started (or resumed) a topic path, making it their active one (P2-W10-S03, Q-P2-27, Q-P2-28).",
+      "props": { "path_id": "id" }
+    },
     "item_saved": {
       "version": 1,
       "description": "An item was saved (W4-S07; listed by the W5-S04 Library).",

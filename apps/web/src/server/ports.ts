@@ -676,6 +676,57 @@ export interface AdminPaths {
   retire(pathId: string): Promise<boolean>;
 }
 
+// Following topic paths (§5F, Q-P2-27, P2-W10-S03).
+export type UserPathStatus = "active" | "paused";
+export type PathSummary = {
+  pathId: string;
+  name: string;
+  why: string;
+  sections: number;
+  readings: number;
+  minutes: number;
+  mine: UserPathStatus | null;
+  // Retired since the user started it: shown read-only, never resumed (owner,
+  // 2026-10-28).
+  retired: boolean;
+};
+export type PathReading = {
+  momentId: string;
+  itemId: string;
+  sectionTitle: string;
+  articleTitle: string;
+  sourceName: string;
+  minutes: number;
+  frameable: boolean;
+  linkBroken: boolean;
+  finished: boolean;
+};
+export type PathStep = {
+  sectionId: string;
+  concepts: string[];
+  readings: PathReading[];
+  // S03: the first section is open, the rest wait for their checkpoint (S04).
+  open: boolean;
+};
+export type PathTimeline = {
+  pathId: string;
+  name: string;
+  why: string;
+  retired: boolean;
+  mine: UserPathStatus | null;
+  sections: PathStep[];
+};
+export interface Paths {
+  // Live paths, and retired ones the user followed; the user's status on each.
+  live(userId: string): Promise<PathSummary[]>;
+  // A live path, or one the user follows that was retired since; readings its
+  // rights no longer allow are left out (ING-2). Null otherwise.
+  path(userId: string, pathId: string): Promise<PathTimeline | null>;
+  // Makes it the user's active path, pausing any other; true when newly started,
+  // false when it was already active, null when it isn't live.
+  start(userId: string, pathId: string): Promise<boolean | null>;
+}
+
 export interface AdminSources {
   list(): Promise<SourceSwitch[]>;
   get(id: string): Promise<SourceSwitch | null>;

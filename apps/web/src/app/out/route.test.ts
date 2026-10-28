@@ -415,3 +415,22 @@ test("a Library open of a section goes to it and records the outbound click only
   expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
   expect(setCookie).not.toHaveBeenCalled();
 });
+
+// P2-W10-S03: a path's reading the reader can't frame opens through /out as a Library
+// one does: the outbound click only, no Now reading cookie.
+test("a path open of a section records the outbound click only", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://pub.test/post#raft",
+    linkType: "anchor",
+  });
+  const response = await open("item=5&moment=9&from=path&target=section");
+  expect(response.headers.get("location")).toBe(
+    "https://pub.test/post?utm_source=interval#raft",
+  );
+  expect(emit.mock.calls.map((c) => c[0] as string)).toEqual([
+    "outbound_click",
+  ]);
+  expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
+  expect(setCookie).not.toHaveBeenCalled();
+});

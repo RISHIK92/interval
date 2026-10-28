@@ -27,6 +27,7 @@ import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
 import { kyselyAdminPaths } from "./adapters/kysely-admin-paths";
 import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
 import { kyselyNotes } from "./adapters/kysely-notes";
+import { kyselyPaths } from "./adapters/kysely-paths";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
 import { kyselyProgress } from "./adapters/kysely-progress";
 import { kyselyPreferences } from "./adapters/kysely-preferences";
@@ -53,6 +54,7 @@ import type {
   OutboundLinks,
   PreferencesStore,
   Notes,
+  Paths,
   Progress,
   Quizzes,
   SessionReader,
@@ -105,6 +107,10 @@ export function notes(): Notes {
 
 export function adminPaths(): AdminPaths {
   return kyselyAdminPaths(db());
+}
+
+export function paths(): Paths {
+  return kyselyPaths(db());
 }
 
 export function quizzes(): Quizzes {

@@ -27,6 +27,7 @@ type EventName = Literal[
     "note_saved",
     "onboarding_completed",
     "outbound_click",
+    "path_started",
     "pwa_installed",
     "question_flagged",
     "quiz_answered",
@@ -54,6 +55,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "note_saved": 1,
     "onboarding_completed": 1,
     "outbound_click": 1,
+    "path_started": 1,
     "pwa_installed": 1,
     "question_flagged": 1,
     "quiz_answered": 1,
@@ -129,6 +131,10 @@ class OnboardingCompletedProps(_Model):
 class OutboundClickProps(_Model):
     link_type: Literal["anchor", "text_fragment", "page_top", "article"]
     target: Literal["section", "original"]
+
+
+class PathStartedProps(_Model):
+    path_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class PwaInstalledProps(_Model):
@@ -272,6 +278,12 @@ class OutboundClickEvent(_EnvelopeBase):
     props: OutboundClickProps
 
 
+class PathStartedEvent(_EnvelopeBase):
+    name: Literal["path_started"]
+    version: Literal[1]
+    props: PathStartedProps
+
+
 class PwaInstalledEvent(_EnvelopeBase):
     name: Literal["pwa_installed"]
     version: Literal[1]
@@ -341,6 +353,7 @@ type Envelope = Annotated[
     | NoteSavedEvent
     | OnboardingCompletedEvent
     | OutboundClickEvent
+    | PathStartedEvent
     | PwaInstalledEvent
     | QuestionFlaggedEvent
     | QuizAnsweredEvent

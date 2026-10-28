@@ -188,7 +188,7 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - IDs: C-25, §5F
 - Needs: S03
 - Goal: a user can pause and resume their path, reorder sections, skip a section, and swap a session's moment.
-- Acceptance: an Edit control on the path page; pause/resume (a paused path leaves the feed); move a section up or down (a prerequisite now later shows a warning); skip (no practiced credit, next unlocks); swap a session for another allowed moment on the same concept; the approved path never changes; events `path_paused`, `path_section_skipped`.
+- Acceptance: an Edit control on the path page; pause/resume (a paused path leaves the feed; `path_paused` also covers the pause that starting another path causes, so the continuity metric counts it); move a section up or down (a prerequisite now later shows a warning); skip (no practiced credit, next unlocks); swap a session for another allowed moment on the same concept; the approved path never changes; events `path_paused`, `path_section_skipped`.
 - Out of scope: creating paths.
 - Q: Q-P2-23.
 

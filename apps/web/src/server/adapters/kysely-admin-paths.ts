@@ -1,14 +1,9 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
 import type { AdminPaths, PathStatus, ReviewPath } from "../ports";
+import { ALLOWED } from "./path-rights";
 
 const ORDER: Record<PathStatus, number> = { draft: 0, live: 1, retired: 2 };
-
-// A reading its rights allow now (ING-2), over `so` (source) and `ci` (content item):
-// the page's flag and approval's check read the same rule.
-const ALLOWED = sql<boolean>`(so.moments_enabled
-  and so.rights_profile in ('full_text_internal', 'full_text_display')
-  and ci.duplicate_of is null)`;
 
 // Kysely can't nest transactions: inside one (as the tests run), use it.
 const inTransaction = <T>(
@@ -194,14 +189,24 @@ export function kyselyAdminPaths(db: Kysely<DB>): AdminPaths {
         return rows.length > 0;
       }),
 
-    retire: async (pathId) => {
-      const updated = await db
-        .updateTable("path")
-        .set({ status: "retired", decided_at: sql<Date>`now()` })
-        .where("id", "=", pathId)
-        .where("status", "in", ["draft", "live"])
-        .executeTakeFirst();
-      return updated.numUpdatedRows > 0n;
-    },
+    // Retired, and paused for everyone following it: it stays in their list,
+    // read-only, and leaves their feed (owner, 2026-10-28).
+    retire: (pathId) =>
+      inTransaction(db, async (trx) => {
+        const updated = await trx
+          .updateTable("path")
+          .set({ status: "retired", decided_at: sql<Date>`now()` })
+          .where("id", "=", pathId)
+          .where("status", "in", ["draft", "live"])
+          .executeTakeFirst();
+        if (updated.numUpdatedRows === 0n) return false;
+        await trx
+          .updateTable("user_path")
+          .set({ status: "paused", updated_at: sql<Date>`now()` })
+          .where("path_id", "=", pathId)
+          .where("status", "=", "active")
+          .execute();
+        return true;
+      }),
   };
 }

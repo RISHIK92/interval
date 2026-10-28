@@ -75,6 +75,8 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
 export type Topic = "backend" | "databases" | "distributed-systems" | "system-design";
 
+export type UserPathStatus = "active" | "paused";
+
 export interface AiBudget {
   daily_cents: number;
   scope: string;
@@ -684,6 +686,14 @@ export interface UserNote {
   user_id: string;
 }
 
+export interface UserPath {
+  path_id: Int8;
+  started_at: Generated<Timestamp>;
+  status: UserPathStatus;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface UserPreferences {
   break_length: BreakLength;
   goals: ArrayType<LearningGoal>;
@@ -770,6 +780,7 @@ export interface DB {
   user_moment_finished: UserMomentFinished;
   user_moment_opened: UserMomentOpened;
   user_note: UserNote;
+  user_path: UserPath;
   user_preferences: UserPreferences;
   user_save: UserSave;
 }
