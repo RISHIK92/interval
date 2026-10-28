@@ -15,6 +15,10 @@ case "${1:?usage: stack.sh up|down|build|run COMMAND...}" in
   up)
     if files_on_vm; then
       compose --profile local-s3 up -d --wait --remove-orphans
+      # P2-W11-S01: the private content bucket, made once (a second create fails).
+      compose --profile local-s3 exec -T seaweedfs sh -c \
+        "echo s3.bucket.list | weed shell | grep -qw '${LOCAL_BUCKET}' \
+          || echo 's3.bucket.create -name ${LOCAL_BUCKET}' | weed shell"
     else
       # Switching back to S3 must stop SeaweedFS; --remove-orphans ignores profiled services.
       compose --profile local-s3 rm --stop --force seaweedfs

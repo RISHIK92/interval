@@ -1859,3 +1859,13 @@ class FakeFetcher:
         if known is not None and known == page.validators:
             return None
         return page
+
+
+class InMemoryFiles:
+    """The Files port for tests (P2-W11-S01)."""
+
+    def __init__(self) -> None:
+        self.stored: dict[str, bytes] = {}
+
+    def remove(self, key: str) -> None:
+        self.stored.pop(key, None)

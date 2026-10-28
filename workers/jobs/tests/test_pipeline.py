@@ -10,10 +10,11 @@ from decimal import Decimal
 import pytest
 
 from interval_db.generated import AiProvider, RightsProfile
-from interval_db.messages import MessageName
+from interval_db.messages import MessageName, RemoveFile
 from interval_jobs.adapters.memory import (
     FakeFetcher,
     InMemoryAi,
+    InMemoryFiles,
     InMemoryStore,
     StoredUser,
 )
@@ -25,6 +26,7 @@ from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.pipeline import STAGES, ModelJob, Pipeline, StageServices
 from interval_jobs.ports import (
     Completion,
+    Delivery,
     EmbeddingPurpose,
     Embeddings,
     Fetched,
@@ -872,3 +874,35 @@ def test_decision_tagging_over_budget_keeps_no_tags_and_logs_it(
     for item_id in world.store.items.rows:
         assert world.store.tags.for_item(item_id)[0] is None
     assert "pipeline: tagging over budget" in capsys.readouterr().out
+
+
+# P2-W11-S01 (LOAD-5): a deleted book's file is removed by the worker, retried.
+def test_remove_file_removes_a_books_file_and_nothing_else() -> None:
+    files = InMemoryFiles()
+    key = "books/u1/0b0e3c2a-6d0c-4c4b-9a8e-2f8f0c6a1b2c.pdf"
+    files.stored = {key: b"%PDF-", "events/x.json": b"{}"}
+    queue = InMemoryQueue()
+
+    @contextmanager
+    def unit() -> Generator[StageServices]:
+        yield StageServices(InMemoryStore(), web(), TrafilaturaExtractor())
+
+    pipeline = Pipeline(unit, queue, files=files)
+    for k in (key, "events/x.json", "books/../events/x.json"):
+        queue.enqueue("remove_file", {"key": k}, idempotency_key=f"remove/{k}")
+    queue.consume("remove_file", pipeline.handlers()["remove_file"], threading.Event())
+    assert files.stored == {"events/x.json": b"{}"}
+    assert queue.pending("remove_file") == 0
+
+
+def test_remove_file_without_storage_configured_fails_to_be_retried() -> None:
+    queue = InMemoryQueue()
+
+    @contextmanager
+    def unit() -> Generator[StageServices]:
+        yield StageServices(InMemoryStore(), web(), TrafilaturaExtractor())
+
+    handler = Pipeline(unit, queue).handlers()["remove_file"]
+    message = RemoveFile(key="books/u1/0b0e3c2a-6d0c-4c4b-9a8e-2f8f0c6a1b2c.pdf")
+    with pytest.raises(RuntimeError, match="PRIVATE_CONTENT_BUCKET"):
+        handler(message, Delivery(attempt=1, idempotency_key="remove/1"))

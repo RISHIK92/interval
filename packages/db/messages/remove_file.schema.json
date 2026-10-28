@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Remove one private file, retried until done (LOAD-5): a deleted PDF book's (P2-W11-S01, DB-6). The stage removes only keys under books/.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["key"],
+  "properties": {
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Checked by the stage: only keys under books/ are removed."
+    }
+  }
+}

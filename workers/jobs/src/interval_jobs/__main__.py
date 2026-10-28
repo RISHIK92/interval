@@ -34,6 +34,7 @@ from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs.compose import (
     ai_gateway,
     database_url,
+    files,
     model_job,
     queue_consumer,
     queue_for_enqueue,
@@ -569,6 +570,7 @@ def _consume(max_entries: int | None) -> None:
                 max_entries=max_entries,
                 notes=notes,
                 questions=questions,
+                files=files(),
             )
             run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
     finally:

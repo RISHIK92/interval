@@ -2,6 +2,10 @@
 import { z } from "zod";
 
 export const messageSchemas = {
+  // Process one uploaded PDF book into chapters and sessions (ING-5, P2-W11-S01, S02).
+  book_process: z.strictObject({
+    book_id: z.number().int().min(1),
+  }),
   // Check one item's own URL for the weekly link health check (ING-6, P1-W6-S03).
   check_link: z.strictObject({
     content_item_id: z.number().int().min(1),
@@ -31,6 +35,10 @@ export const messageSchemas = {
   // Rank one user's feed again and store it (CACHE-1, Q-P1-17, ADR-0008).
   recompute_feed: z.strictObject({
     user_id: z.string().min(1),
+  }),
+  // Remove one private file, retried until done (LOAD-5): a deleted PDF book's (P2-W11-S01, DB-6). The stage removes only keys under books/.
+  remove_file: z.strictObject({
+    key: z.string().min(1),
   }),
   // Split one stored item into moments (ING-1 segment, ING-4).
   segment_item: z.strictObject({

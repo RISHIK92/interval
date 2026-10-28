@@ -35,6 +35,7 @@ from interval_db.messages import (
     MessageName,
     PolishNote,
     RecomputeFeed,
+    RemoveFile,
     SegmentItem,
     TagItem,
     ValidateQuestion,
@@ -55,6 +56,7 @@ from interval_jobs.ports import (
     Delivery,
     Extractor,
     Fetcher,
+    Files,
     JobQueue,
     ModelError,
     QuestionTarget,
@@ -102,6 +104,7 @@ STAGES: tuple[MessageName, ...] = (
     "check_link",
     "generate_questions",
     "validate_question",
+    "remove_file",
 )
 
 # Q-P2-10: the free question model is an unimportant background task. A rate limit or
@@ -164,8 +167,11 @@ class Pipeline:
         max_entries: int | None = None,
         notes: ModelJob | None = None,
         questions: ModelJob | None = None,
+        files: Files | None = None,
     ) -> None:
         self._unit = unit_of_work
+        # DB-6: None when file storage isn't configured; a removal then fails, retried.
+        self._files = files
         self._queue = queue
         self._clock = clock
         self._tagging = tagging
@@ -187,7 +193,20 @@ class Pipeline:
             "check_link": self._stage(self._check_link),
             "generate_questions": self._questions_stage,
             "validate_question": self._validate_stage,
+            "remove_file": self._remove_file_stage,
         }
+
+    # P2-W11-S01 (LOAD-5): a deleted book's file, removed with the queue's retries.
+    # Only under books/: the message names a key, and nothing else is the user's to
+    # delete.
+    def _remove_file_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, RemoveFile)
+        if not message.key.startswith("books/") or ".." in message.key:
+            log.error("files: removal refused", key=message.key)
+            return
+        if self._files is None:
+            raise RuntimeError("file storage isn't configured (PRIVATE_CONTENT_BUCKET)")
+        self._files.remove(message.key)
 
     def _stage(
         self, work: Callable[[StageServices, BaseModel], list[Next]]

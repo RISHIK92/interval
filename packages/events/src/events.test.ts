@@ -42,6 +42,9 @@ describe("the event list (Q-P1-20)", () => {
         "checkpoint_finished",
         "path_paused",
         "path_section_skipped",
+        // The owner-approved Week 11 plan (2026-10-28, P2-W11-S01).
+        "book_uploaded",
+        "book_deleted",
       ].sort(),
     );
   });

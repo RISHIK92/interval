@@ -15,6 +15,8 @@ from pydantic import (
 
 type EventName = Literal[
     "article_finished",
+    "book_deleted",
+    "book_uploaded",
     "card_impression",
     "card_opened",
     "checkpoint_finished",
@@ -47,6 +49,8 @@ type Source = Literal["web", "jobs"]
 
 EVENT_VERSIONS: dict[EventName, int] = {
     "article_finished": 2,
+    "book_deleted": 1,
+    "book_uploaded": 1,
     "card_impression": 1,
     "card_opened": 3,
     "checkpoint_finished": 1,
@@ -83,6 +87,15 @@ class _Model(BaseModel):
 class ArticleFinishedProps(_Model):
     method: Literal["return_prompt", "mark_done"]
     item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class BookDeletedProps(_Model):
+    book_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class BookUploadedProps(_Model):
+    book_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    size_bytes: int = Field(ge=0, strict=True)
 
 
 class CardImpressionProps(_Model):
@@ -238,6 +251,18 @@ class ArticleFinishedEvent(_EnvelopeBase):
     name: Literal["article_finished"]
     version: Literal[2]
     props: ArticleFinishedProps
+
+
+class BookDeletedEvent(_EnvelopeBase):
+    name: Literal["book_deleted"]
+    version: Literal[1]
+    props: BookDeletedProps
+
+
+class BookUploadedEvent(_EnvelopeBase):
+    name: Literal["book_uploaded"]
+    version: Literal[1]
+    props: BookUploadedProps
 
 
 class CardImpressionEvent(_EnvelopeBase):
@@ -399,6 +424,8 @@ class SourceHiddenEvent(_EnvelopeBase):
 # Q-P1-20: every event carries the same envelope; name and version pick its props.
 type Envelope = Annotated[
     ArticleFinishedEvent
+    | BookDeletedEvent
+    | BookUploadedEvent
     | CardImpressionEvent
     | CardOpenedEvent
     | CheckpointFinishedEvent

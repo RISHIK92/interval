@@ -915,3 +915,32 @@ export interface PreferencesStore {
   // The Profile page's edit (P1-W4-S08); false before onboarding (nothing to edit).
   update(userId: string, preferences: Preferences): Promise<boolean>;
 }
+
+// DB-6, P2-W11-S01: private files (PDF books) in S3, or SeaweedFS locally (ADR-0011).
+export interface FileStore {
+  put(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
+  // Nothing at the key is not an error.
+  remove(key: string): Promise<void>;
+}
+
+// §5F, Q-P2-34 (P2-W11-S01): a user's private PDF books.
+export type BookStatus = "processing" | "ocr" | "ready" | "failed";
+export type BookSummary = {
+  bookId: string;
+  title: string;
+  status: BookStatus;
+  failure: string | null;
+  createdAt: Date;
+};
+export interface Books {
+  list(userId: string): Promise<BookSummary[]>;
+  // "limit" when the user already has as many books as the plan allows (OPS-3).
+  create(
+    userId: string,
+    title: string,
+    sizeBytes: number,
+    fileKey: string,
+  ): Promise<{ bookId: string } | "limit">;
+  // The removed book's file key; null when it isn't the user's.
+  remove(userId: string, bookId: string): Promise<string | null>;
+}

@@ -53,7 +53,7 @@ The VM's domain is `interval.rishiklabs.tech` (owner, 2026-10-25). Set it before
 4. Check: `curl https://interval.rishiklabs.tech/api/health`. The bare IP no longer matches the site.
 
 ## Keep files on the VM instead of S3
-`echo local-s3 > /var/lib/interval/pgdata/etc/files-backend`, then run deploy.sh again. SeaweedFS starts with its data in `/var/lib/interval/pgdata/files`, and apps get `S3_ENDPOINT=http://seaweedfs:8333`. Remove the file and deploy again to go back to S3 (SeaweedFS is stopped). These files are **not** in the database backup below; back them up separately.
+`echo local-s3 > /var/lib/interval/pgdata/etc/files-backend`, then run deploy.sh again. With files in S3 (the default), write the stack's `PrivateContentBucket` output once: `echo <PrivateContentBucket> > /var/lib/interval/pgdata/etc/private-content-bucket` (write-env.sh refuses to run without it, P2-W11-S01). On the VM, `stack.sh up` creates SeaweedFS's `interval-private` bucket. SeaweedFS starts with its data in `/var/lib/interval/pgdata/files`, and apps get `S3_ENDPOINT=http://seaweedfs:8333`. Remove the file and deploy again to go back to S3 (SeaweedFS is stopped). These files are **not** in the database backup below; back them up separately.
 
 ## Backup (manual, owner choice)
 ```

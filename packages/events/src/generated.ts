@@ -3,6 +3,8 @@ import { z } from "zod";
 
 export const EVENT_NAMES = [
   "article_finished",
+  "book_deleted",
+  "book_uploaded",
   "card_impression",
   "card_opened",
   "checkpoint_finished",
@@ -34,6 +36,8 @@ export type EventName = (typeof EVENT_NAMES)[number];
 
 export const EVENT_VERSIONS = {
   article_finished: 2,
+  book_deleted: 1,
+  book_uploaded: 1,
   card_impression: 1,
   card_opened: 3,
   checkpoint_finished: 1,
@@ -66,6 +70,13 @@ export const propsSchemas = {
   article_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+  }),
+  book_deleted: z.strictObject({
+    book_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+  }),
+  book_uploaded: z.strictObject({
+    book_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    size_bytes: z.number().int().nonnegative(),
   }),
   card_impression: z.strictObject({}),
   card_opened: z.strictObject({
@@ -190,6 +201,18 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("article_finished"),
     version: z.literal(2),
     props: propsSchemas.article_finished,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("book_deleted"),
+    version: z.literal(1),
+    props: propsSchemas.book_deleted,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("book_uploaded"),
+    version: z.literal(1),
+    props: propsSchemas.book_uploaded,
   }),
   z.strictObject({
     ...base,

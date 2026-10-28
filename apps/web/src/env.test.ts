@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseEnv } from "./env";
+import { parseEnv, parseFilesEnv } from "./env";
 
 const valid = {
   DATABASE_URL: "postgres://user:s3cret@localhost:5432/interval",
@@ -120,5 +120,26 @@ describe("parseEnv", () => {
     }
     expect(message).toMatch(/DATABASE_URL/);
     expect(message).not.toContain("s3cret");
+  });
+});
+
+describe("parseFilesEnv (P2-W11-S01)", () => {
+  const files = {
+    PRIVATE_CONTENT_BUCKET: "interval-private",
+    AWS_REGION: "us-east-1",
+  };
+  test("takes the bucket and region, and an optional endpoint (SeaweedFS)", () => {
+    expect(parseFilesEnv(files)).toEqual(files);
+    expect(
+      parseFilesEnv({ ...files, S3_ENDPOINT: "http://127.0.0.1:8333" }),
+    ).toMatchObject({ S3_ENDPOINT: "http://127.0.0.1:8333" });
+  });
+  test("names what's missing or wrong", () => {
+    expect(() => parseFilesEnv({ AWS_REGION: "us-east-1" })).toThrow(
+      /PRIVATE_CONTENT_BUCKET/,
+    );
+    expect(() => parseFilesEnv({ ...files, S3_ENDPOINT: "ftp://x" })).toThrow(
+      /S3_ENDPOINT/,
+    );
   });
 });

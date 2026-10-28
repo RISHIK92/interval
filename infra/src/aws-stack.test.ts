@@ -965,3 +965,47 @@ describe("question batches (P2-W8-S05, Q-P2-13)", () => {
     expect(actions.some((a) => a.startsWith("sqs:"))).toBe(false);
   });
 });
+
+describe("PDF books (P2-W11-S01)", () => {
+  test("only the web app and the worker delete, only books, only as a marker", () => {
+    const policies = Object.values(
+      template.findResources("AWS::IAM::Policy"),
+    ) as {
+      Properties: {
+        PolicyDocument: { Statement: { Action: unknown; Resource: unknown }[] };
+        Roles: unknown[];
+      };
+    }[];
+    const deleting = policies.filter((p) =>
+      p.Properties.PolicyDocument.Statement.some((st) =>
+        JSON.stringify(st.Action).includes("s3:Delete"),
+      ),
+    );
+    // The web task's role (its undo) and the jobs task's (remove_file).
+    expect(
+      deleting.map((p) => JSON.stringify(p.Properties.Roles)).sort(),
+    ).toEqual([
+      expect.stringContaining("JobsTaskTaskRole"),
+      expect.stringContaining("WebTaskTaskRole"),
+    ]);
+    for (const policy of deleting)
+      for (const st of policy.Properties.PolicyDocument.Statement.filter((x) =>
+        JSON.stringify(x.Action).includes("s3:Delete"),
+      )) {
+        expect(st.Action).toBe("s3:DeleteObject");
+        expect(JSON.stringify(st.Resource)).toMatch(/\/books\/\*"\]\]\}$/);
+      }
+  });
+
+  test("a book file left behind is counted", () => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "books: file not removed" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Books",
+          MetricName: "FilesNotRemoved",
+        }),
+      ],
+    });
+  });
+});

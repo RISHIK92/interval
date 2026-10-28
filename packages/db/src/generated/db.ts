@@ -19,9 +19,11 @@ export type ArrayTypeImpl<T> = T extends ColumnType<infer S, infer I, infer U>
 
 export type BetaGroup = "developer" | "student";
 
+export type BookStatus = "failed" | "ocr" | "processing" | "ready";
+
 export type BreakLength = "1-3" | "3-8" | "8-15";
 
-export type Capability = "admin.review" | "ai.budget.daily_cents" | "ai.notes.daily" | "feed.read";
+export type Capability = "admin.review" | "ai.budget.daily_cents" | "ai.notes.daily" | "books.count" | "books.max_mb" | "books.max_pages" | "feed.read";
 
 export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
 
@@ -143,6 +145,17 @@ export interface AuthVerification {
   identifier: string;
   updated_at: Generated<Timestamp>;
   value: string;
+}
+
+export interface Book {
+  created_at: Generated<Timestamp>;
+  failure: string | null;
+  file_key: string;
+  id: Generated<Int8>;
+  size_bytes: number;
+  status: Generated<BookStatus>;
+  title: string;
+  user_id: string;
 }
 
 export interface Concept {
@@ -737,6 +750,7 @@ export interface DB {
   auth_account: AuthAccount;
   auth_session: AuthSession;
   auth_verification: AuthVerification;
+  book: Book;
   concept: Concept;
   concept_edge: ConceptEdge;
   concept_embedding: ConceptEmbedding;

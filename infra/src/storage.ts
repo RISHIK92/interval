@@ -34,6 +34,21 @@ export function createBuckets(scope: Construct): Buckets {
   return { privateContent, events };
 }
 
+// P2-W11-S01: a user deletes their own PDF book. Only s3:DeleteObject, under books/:
+// in the versioned bucket that adds a delete marker, so the old version stays
+// recoverable until the lifecycle rule expires it; never s3:DeleteObjectVersion.
+export function grantBookDeletes(
+  bucket: s3.IBucket,
+  grantee: iam.IGrantable,
+): void {
+  grantee.grantPrincipal.addToPrincipalPolicy(
+    new iam.PolicyStatement({
+      actions: ["s3:DeleteObject"],
+      resources: [bucket.arnForObjects("books/*")],
+    }),
+  );
+}
+
 // DB-5: events from both apps into the Events bucket as JSON lines, one prefix per day
 // so Athena can prune by date (W6-S04). Five minutes or 5 MB per object keeps the object
 // count low at beta volume. The bucket's S3-managed key encrypts the objects.

@@ -12,9 +12,16 @@ type AiFeature = Literal[
 ]
 type AiProvider = Literal["openrouter", "voyage", "groq", "google"]
 type BetaGroup = Literal["student", "developer"]
+type BookStatus = Literal["processing", "ocr", "ready", "failed"]
 type BreakLength = Literal["1-3", "3-8", "8-15"]
 type Capability = Literal[
-    "feed.read", "admin.review", "ai.notes.daily", "ai.budget.daily_cents"
+    "feed.read",
+    "admin.review",
+    "ai.notes.daily",
+    "ai.budget.daily_cents",
+    "books.count",
+    "books.max_mb",
+    "books.max_pages",
 ]
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type Difficulty = Literal["beginner", "intermediate", "advanced"]
@@ -104,6 +111,17 @@ class AuthVerification(TypedDict):
     expires_at: datetime
     created_at: datetime
     updated_at: datetime
+
+
+class Book(TypedDict):
+    id: int
+    user_id: str
+    title: str
+    file_key: str
+    size_bytes: int
+    status: BookStatus
+    failure: str | None
+    created_at: datetime
 
 
 class Concept(TypedDict):

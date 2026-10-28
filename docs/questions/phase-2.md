@@ -206,3 +206,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Suggested default: allowed through the gateway only, with a one-line notice at upload ("Checkpoints send a chapter's text to our AI provider to write questions"), and only providers that don't train on or retain API data.
 - **Answer (owner, 2026-10-28):** allowed through the gateway only, with a one-line notice at upload, and only providers that don't train on or retain API data.
 
+### Q-P2-39 Books and guests; files when an account goes (P1)
+- Cite: §5F, DB-6, ING-5; the P2-W11-S01 review.
+- **Answer (owner, 2026-10-28):** books are for accounts only: a guest sees "Create an account to add a book". When an account is deleted, its files under `books/<user>/` are removed too (the worker's `remove_file`, retried). There is no account deletion flow yet; whatever builds it must queue that removal.
+

@@ -264,9 +264,12 @@ describe("user data", () => {
 });
 
 describe("permissions", () => {
-  test("the VM can read and add private files but never delete them", () => {
+  test("the VM reads and adds private files, and deletes only books, as a marker", () => {
     const policies = JSON.stringify(template.findResources("AWS::IAM::Policy"));
-    expect(policies).not.toMatch(/s3:DeleteObject/);
+    // Old versions stay recoverable: never a version delete, never outside books/.
+    expect(policies).not.toMatch(/s3:DeleteObjectVersion/);
+    expect(policies).toMatch(/"s3:DeleteObject"/);
+    expect(policies).toMatch(/books\/\*/);
     expect(policies).toMatch(/s3:PutObject/);
     expect(policies).toMatch(/s3:GetObject/);
   });

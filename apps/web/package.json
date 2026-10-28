@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@aws-sdk/client-firehose": "3.1149.0",
+    "@aws-sdk/client-s3": "3.1149.0",
     "@aws-sdk/client-sqs": "3.1149.0",
     "@interval/db": "workspace:*",
     "@interval/events": "workspace:*",

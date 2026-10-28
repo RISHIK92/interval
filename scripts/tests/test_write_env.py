@@ -46,11 +46,17 @@ esac
 def run(
     tmp: Path, aws: Path, etc: Path | None = None, http_port: str | None = None
 ) -> subprocess.CompletedProcess[str]:
+    if etc is None:
+        # Files in S3 by default: the stack's bucket name, as the runbook says to write.
+        etc = tmp / "etc"
+        etc.mkdir(exist_ok=True)
+        if not (etc / "files-backend").exists():
+            (etc / "private-content-bucket").write_text("prod-bucket-1\n", "utf-8")
     env = {
         "PATH": os.environ["PATH"],
         "AWS_CLI": str(aws),
         "ENV_DIR": str(tmp / "out"),
-        "INTERVAL_ETC": str(etc or tmp / "etc"),
+        "INTERVAL_ETC": str(etc),
     }
     if http_port is not None:
         env["HTTP_PORT"] = http_port
@@ -80,7 +86,8 @@ def test_writes_three_env_files_each_with_only_its_keys_and_mode_600(
         "ALLOWED_DB_HOSTS": "postgres",
         "QUEUE_TRANSPORT": "bullmq",
         "VALKEY_URL": "redis://valkey:6379",
-        "S3_ENDPOINT": "",
+        "AWS_REGION": "ap-south-1",
+        "PRIVATE_CONTENT_BUCKET": "prod-bucket-1",
         "BETTER_AUTH_SECRET": "authSecret456",
         "BETTER_AUTH_URL": "http://localhost",
         "MAIL_TRANSPORT": "log",
@@ -108,6 +115,7 @@ def test_site_address_and_local_s3_come_from_etc(tmp_path: Path) -> None:
     assert parse(out / "caddy.env")["SITE_ADDRESS"] == "interval.example.com"
     assert parse(out / "app.env")["BETTER_AUTH_URL"] == "https://interval.example.com"
     assert parse(out / "app.env")["S3_ENDPOINT"] == "http://seaweedfs:8333"
+    assert parse(out / "app.env")["PRIVATE_CONTENT_BUCKET"] == "interval-private"
     # Mail is logged only without a domain; a public site needs a real transport.
     assert "MAIL_TRANSPORT" not in parse(out / "app.env")
     # DB-5: the VM sends events to its Firehose stream (infra/src/prod-stack.ts).
@@ -145,5 +153,16 @@ def test_a_secret_that_would_corrupt_the_env_file_or_url_is_refused(
     result = run(tmp_path, aws)
     assert result.returncode != 0
     assert "interval/prod/openrouter" in result.stderr
+    out = tmp_path / "out"
+    assert not out.exists() or list(out.iterdir()) == []
+
+
+# P2-W11-S01: with files in S3, the bucket's name must be written first.
+def test_files_in_s3_need_the_bucket_name(tmp_path: Path) -> None:
+    etc = tmp_path / "etc"
+    etc.mkdir()
+    result = run(tmp_path, fake_aws(tmp_path), etc)
+    assert result.returncode != 0
+    assert "private-content-bucket" in result.stderr
     out = tmp_path / "out"
     assert not out.exists() or list(out.iterdir()) == []

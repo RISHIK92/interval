@@ -13,6 +13,9 @@ read_setting() {
   if [ -f "$file" ]; then tr -d '[:space:]' < "$file"; fi
 }
 
+# The private content bucket in SeaweedFS when files live on the VM (P2-W11-S01).
+LOCAL_BUCKET="interval-private"
+
 files_on_vm() {
   [ "$(read_setting files-backend)" = "local-s3" ]
 }

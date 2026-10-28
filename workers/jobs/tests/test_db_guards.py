@@ -238,6 +238,9 @@ def test_a_new_user_is_on_the_beta_plan(conn: psycopg.Connection) -> None:
     assert entitlements(conn, "plan1") == [
         ("ai.budget.daily_cents", 50),
         ("ai.notes.daily", 20),
+        ("books.count", 5),
+        ("books.max_mb", 50),
+        ("books.max_pages", 1000),
         ("feed.read", None),
     ]
 
@@ -264,6 +267,9 @@ def test_per_user_grants_add_to_the_plan_without_duplicating_it(
         ("admin.review", None),
         ("ai.budget.daily_cents", 50),
         ("ai.notes.daily", 20),
+        ("books.count", 5),
+        ("books.max_mb", 50),
+        ("books.max_pages", 1000),
         ("feed.read", None),
     ]
 

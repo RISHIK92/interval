@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Process one uploaded PDF book into chapters and sessions (ING-5, P2-W11-S01, S02).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["book_id"],
+  "properties": {
+    "book_id": { "type": "integer", "minimum": 1 }
+  }
+}

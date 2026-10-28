@@ -52,11 +52,23 @@ if [ "$site_address" = ":80" ]; then
 EVENTS_DIR=/tmp/interval-events"
 else
   events_lines="EVENTS_TRANSPORT=firehose
-EVENTS_STREAM=interval-prod-events
-AWS_REGION=${REGION}"
+EVENTS_STREAM=interval-prod-events"
 fi
-s3_endpoint=""
-if files_on_vm; then s3_endpoint="http://seaweedfs:8333"; fi
+# DB-6, P2-W11-S01: private files (PDF books) in SeaweedFS on the VM, or in the stack's
+# S3 bucket, whose name the operator writes from its PrivateContentBucket output.
+if files_on_vm; then
+  files_lines="PRIVATE_CONTENT_BUCKET=${LOCAL_BUCKET}
+S3_ENDPOINT=http://seaweedfs:8333
+AWS_ACCESS_KEY_ID=local
+AWS_SECRET_ACCESS_KEY=local"
+else
+  bucket="$(read_setting private-content-bucket)"
+  if [ -z "$bucket" ]; then
+    echo "write the stack's PrivateContentBucket output to $INTERVAL_ETC/private-content-bucket" >&2
+    exit 1
+  fi
+  files_lines="PRIVATE_CONTENT_BUCKET=${bucket}"
+fi
 
 umask 077
 mkdir -p "$ENV_DIR"
@@ -69,7 +81,8 @@ DATABASE_URL=postgres://interval:${postgres_password}@postgres:5432/interval?ssl
 ALLOWED_DB_HOSTS=postgres
 QUEUE_TRANSPORT=bullmq
 VALKEY_URL=redis://valkey:6379
-S3_ENDPOINT=${s3_endpoint}
+AWS_REGION=${REGION}
+${files_lines}
 BETTER_AUTH_SECRET=${better_auth}
 BETTER_AUTH_URL=${public_url}
 ${mail_transport_line}

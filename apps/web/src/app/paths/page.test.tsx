@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, Paths, Preferences } from "../../server/ports";
+import type { Actor, Books, Paths, Preferences } from "../../server/ports";
 
 // §4, §5F, Q-P2-27 (P2-W10-S03): the Paths tab lists live paths.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
@@ -14,10 +14,12 @@ const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
   }),
 );
 const live = vi.fn<Paths["live"]>(() => Promise.resolve([]));
+const list = vi.fn<Books["list"]>(() => Promise.resolve([]));
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
   paths: () => ({ live }),
+  books: () => ({ list }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -102,4 +104,40 @@ test("signed out goes to join; not onboarded goes to onboarding", async () => {
   current.mockResolvedValue(user);
   get.mockResolvedValueOnce(null);
   await expect(page()).rejects.toThrow("redirect:/onboarding");
+});
+
+// P2-W11-S01: the user's private PDF books.
+test("Your books lists the user's books with their status, and Add a book", async () => {
+  current.mockResolvedValue(user);
+  list.mockResolvedValueOnce([
+    {
+      bookId: "3",
+      title: "Designing Data-Intensive Applications",
+      status: "processing",
+      failure: null,
+      createdAt: new Date(),
+    },
+    {
+      bookId: "2",
+      title: "Scanned notes",
+      status: "failed",
+      failure: "protected PDFs can't be read",
+      createdAt: new Date(),
+    },
+  ]);
+  const html = await page();
+  expect(list).toHaveBeenCalledWith("u1");
+  expect(html).toContain('href="/books/new"');
+  expect(html).toMatch(/Designing Data-Intensive Applications[^]*?Processing/);
+  expect(html).toContain(
+    "Couldn&#x27;t be read: protected PDFs can&#x27;t be read",
+  );
+  // Delete asks first.
+  expect(html).toMatch(/popover[tT]arget="delete-book-3"/);
+  expect(html).toMatch(/name="bookId" value="3"[^]*?Delete book/);
+});
+
+test("with no books, it says what a book is for", async () => {
+  current.mockResolvedValue(user);
+  expect(await page()).toContain("Upload a PDF to read it in short sessions.");
 });

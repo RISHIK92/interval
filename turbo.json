@@ -24,7 +24,16 @@
     "test": {
       "dependsOn": ["transit", "@interval/db#db:apply"],
       "cache": false,
-      "env": ["DATABASE_URL", "VALKEY_URL", "CI"]
+      "env": [
+        "DATABASE_URL",
+        "VALKEY_URL",
+        "CI",
+        "PRIVATE_CONTENT_BUCKET",
+        "AWS_REGION",
+        "S3_ENDPOINT",
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY"
+      ]
     },
     "//#format:check": {
       "inputs": [

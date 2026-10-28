@@ -121,6 +121,16 @@
         "reason": ["user", "mastered"]
       }
     },
+    "book_uploaded": {
+      "version": 1,
+      "description": "A user uploaded a PDF book, stored privately and queued for processing (P2-W11-S01, §5F).",
+      "props": { "book_id": "id", "size_bytes": "count" }
+    },
+    "book_deleted": {
+      "version": 1,
+      "description": "A user deleted one of their books, its file and rows (P2-W11-S01).",
+      "props": { "book_id": "id" }
+    },
     "checkpoint_started": {
       "version": 1,
       "description": "A checkpoint on a path section started, once per attempt (P2-W10-S04, Q-P2-26, Q-P2-28).",

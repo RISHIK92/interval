@@ -25,6 +25,13 @@ class _Message(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
 
+class BookProcess(_Message):
+    """Process one uploaded PDF book into chapters and sessions (ING-5, P2-W11-S01,
+    S02)."""
+
+    book_id: Annotated[int, Field(ge=1)]
+
+
 class CheckLink(_Message):
     """Check one item's own URL for the weekly link health check (ING-6, P1-W6-S03)."""
 
@@ -74,6 +81,13 @@ class RecomputeFeed(_Message):
     user_id: Annotated[str, Field(min_length=1)]
 
 
+class RemoveFile(_Message):
+    """Remove one private file, retried until done (LOAD-5): a deleted PDF book's
+    (P2-W11-S01, DB-6). The stage removes only keys under books/."""
+
+    key: Annotated[str, Field(min_length=1)]
+
+
 class SegmentItem(_Message):
     """Split one stored item into moments (ING-1 segment, ING-4)."""
 
@@ -99,6 +113,7 @@ class ValidateQuestion(_Message):
 
 
 type MessageName = Literal[
+    "book_process",
     "check_link",
     "discover_source",
     "embed_item",
@@ -106,12 +121,14 @@ type MessageName = Literal[
     "generate_questions",
     "polish_note",
     "recompute_feed",
+    "remove_file",
     "segment_item",
     "tag_item",
     "validate_question",
 ]
 
 MESSAGES: dict[MessageName, type[_Message]] = {
+    "book_process": BookProcess,
     "check_link": CheckLink,
     "discover_source": DiscoverSource,
     "embed_item": EmbedItem,
@@ -119,6 +136,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "generate_questions": GenerateQuestions,
     "polish_note": PolishNote,
     "recompute_feed": RecomputeFeed,
+    "remove_file": RemoveFile,
     "segment_item": SegmentItem,
     "tag_item": TagItem,
     "validate_question": ValidateQuestion,

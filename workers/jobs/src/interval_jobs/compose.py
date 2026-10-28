@@ -32,13 +32,14 @@ from interval_jobs.adapters.openrouter_batches import OpenRouterBatches
 from interval_jobs.adapters.openrouter_decisions import OpenRouterDecisions
 from interval_jobs.adapters.polite_fetcher import PoliteFetcher
 from interval_jobs.adapters.postgres import PostgresAi, PostgresStore, unit_of_work
+from interval_jobs.adapters.s3_files import S3Client, S3Files
 from interval_jobs.adapters.sqs_queue import SqsClient, SqsConsumer, SqsQueue
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.adapters.voyage import VoyageClient
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.events.emitter import Emitter
 from interval_jobs.pipeline import ModelJob, StageServices, UnitOfWork
-from interval_jobs.ports import AiLedger, EventSink, JobQueue, QueueConsumer
+from interval_jobs.ports import AiLedger, EventSink, Files, JobQueue, QueueConsumer
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 USER_AGENT = "Interval/0.0 (personal learning platform; feed reader)"
@@ -94,6 +95,23 @@ def event_sink() -> EventSink:
         )
         return FirehoseEventSink(client, stream)
     sys.exit("EVENTS_TRANSPORT must be file or firehose; see .env.example")
+
+
+def files() -> Files | None:
+    """DB-6, ADR-0011: the private content bucket, S3 or SeaweedFS (S3_ENDPOINT); None
+    without PRIVATE_CONTENT_BUCKET, so a worker without it still runs the rest."""
+    bucket = os.environ.get("PRIVATE_CONTENT_BUCKET")
+    if not bucket:
+        return None
+    endpoint = os.environ.get("S3_ENDPOINT") or None
+    # boto3 is untyped; the adapter's protocol names the calls it makes.
+    client = cast(
+        S3Client,
+        boto3.client(  # pyright: ignore[reportUnknownMemberType]
+            "s3", region_name=_required("AWS_REGION"), endpoint_url=endpoint
+        ),
+    )
+    return S3Files(client, bucket)
 
 
 def _sqs_client() -> SqsClient:

@@ -24,7 +24,11 @@ import * as targets from "aws-cdk-lib/aws-scheduler-targets";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import type { Construct } from "constructs";
-import { createBuckets, createEventStream } from "./storage.ts";
+import {
+  createBuckets,
+  createEventStream,
+  grantBookDeletes,
+} from "./storage.ts";
 
 // Full-AWS deployment mode (ADR-0011): Fargate, RDS, ElastiCache (Valkey), SQS, S3,
 // behind CloudFront. Same env contract as the VM mode, so the apps do not change.
@@ -320,6 +324,17 @@ export class AwsStack extends Stack {
       metricName: "EmitFailures",
       metricValue: "$.count",
     });
+    // P2-W11-S01: a deleted book whose file couldn't be removed (it expires anyway).
+    logGroup.addMetricFilter("BookFilesNotRemoved", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "books: file not removed",
+      ),
+      metricNamespace: "Interval/Books",
+      metricName: "FilesNotRemoved",
+      metricValue: "1",
+    });
     // LOAD-5 (W4-S04): a failed feed recompute keeps the last feed and is counted.
     const recomputeFailures = logGroup.addMetricFilter(
       "FeedRecomputeFailures",
@@ -430,6 +445,7 @@ export class AwsStack extends Stack {
     });
     privateContent.grantRead(webTask.taskRole);
     privateContent.grantPut(webTask.taskRole);
+    grantBookDeletes(privateContent, webTask.taskRole);
     eventStream.grantPutRecords(webTask.taskRole);
     // ADR-0014: the web app enqueues; only the worker consumes.
     for (const queue of queues) queue.grantSendMessages(webTask.taskRole);
@@ -461,6 +477,8 @@ export class AwsStack extends Stack {
     });
     privateContent.grantRead(jobsTask.taskRole);
     privateContent.grantPut(jobsTask.taskRole);
+    // The worker removes a deleted book's file (remove_file), with the queue's retries.
+    grantBookDeletes(privateContent, jobsTask.taskRole);
     eventStream.grantPutRecords(jobsTask.taskRole);
     for (const queue of queues) {
       queue.grantSendMessages(jobsTask.taskRole);

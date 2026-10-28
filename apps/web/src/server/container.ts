@@ -1,8 +1,9 @@
 import { FirehoseClient } from "@aws-sdk/client-firehose";
+import { S3Client } from "@aws-sdk/client-s3";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import type { DB } from "@interval/db";
 import type { Kysely } from "kysely";
-import { env } from "../env";
+import { env, filesEnv } from "../env";
 import {
   type Auth,
   accounts as betterAuthAccounts,
@@ -26,6 +27,7 @@ import { kyselyLibrary } from "./adapters/kysely-library";
 import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
 import { kyselyAdminPaths } from "./adapters/kysely-admin-paths";
 import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
+import { kyselyBooks } from "./adapters/kysely-books";
 import { kyselyNotes } from "./adapters/kysely-notes";
 import { kyselyPaths } from "./adapters/kysely-paths";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
@@ -34,9 +36,12 @@ import { kyselyPreferences } from "./adapters/kysely-preferences";
 import { fileSink } from "./adapters/file-sink";
 import { firehoseSink } from "./adapters/firehose-sink";
 import { logMailer } from "./adapters/log-mailer";
+import { s3Files } from "./adapters/s3-files";
 import { sqsQueue } from "./adapters/sqs-queue";
 import { createEmitter, type Emitter } from "./events";
 import type {
+  Books,
+  FileStore,
   Accounts,
   AdminPaths,
   AdminReview,
@@ -199,4 +204,28 @@ export function jobQueue(): JobQueue {
           );
   }
   return queue;
+}
+
+// P2-W11-S01: private PDF books.
+export function books(): Books {
+  return kyselyBooks(db());
+}
+
+let fileStore: FileStore | undefined;
+
+// DB-6, ADR-0011: one client per process; SeaweedFS (S3_ENDPOINT) needs path-style URLs.
+export function files(): FileStore {
+  if (fileStore === undefined) {
+    const config = filesEnv();
+    fileStore = s3Files(
+      new S3Client({
+        region: config.AWS_REGION,
+        ...(config.S3_ENDPOINT === undefined
+          ? {}
+          : { endpoint: config.S3_ENDPOINT, forcePathStyle: true }),
+      }),
+      config.PRIVATE_CONTENT_BUCKET,
+    );
+  }
+  return fileStore;
 }

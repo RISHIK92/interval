@@ -1,8 +1,14 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { paths, preferences, sessionReader } from "../../server/container";
-import type { PathSummary } from "../../server/ports";
+import {
+  books,
+  paths,
+  preferences,
+  sessionReader,
+} from "../../server/container";
+import type { BookStatus, BookSummary, PathSummary } from "../../server/ports";
+import { deleteBookAction } from "../books/actions";
 import { TabBar } from "../TabBar";
 import { Card } from "../ui/Card";
 import { startPathAction } from "./actions";
@@ -16,13 +22,17 @@ export default async function PathsPage() {
   if (actor === null) redirect("/join");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
-  const all = await paths().live(actor.userId);
+  const [all, mine] = await Promise.all([
+    paths().live(actor.userId),
+    books().list(actor.userId),
+  ]);
   const active = all.filter((p) => p.mine === "active");
   const rest = all.filter((p) => p.mine !== "active");
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[52rem] lg:pt-10 lg:pl-64">
       <h1 className="text-display">Paths</h1>
       <TabBar current="paths" firstName={chosen.firstName} />
+      <YourBooks books={mine} />
       {all.length === 0 ? (
         <Card className="p-8 text-center text-ink-muted">
           <p>No paths yet. Guided paths through a topic arrive here soon.</p>
@@ -96,5 +106,107 @@ function PathHead({ path }: { path: PathSummary }) {
         {path.minutes} min
       </p>
     </div>
+  );
+}
+
+const STATUS: Record<BookStatus, string> = {
+  processing: "Processing",
+  ocr: "Reading scanned pages",
+  ready: "Ready",
+  failed: "Couldn't be read",
+};
+
+// §5F, P2-W11-S01: the user's private PDF books. Reading them arrives with S04.
+function YourBooks({ books: list }: { books: BookSummary[] }) {
+  return (
+    <section
+      id="your-books"
+      aria-label="Your books"
+      className="flex flex-col gap-3"
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="text-section">Your books</h2>
+        <Link href="/books/new" className="text-sm font-semibold text-select">
+          Add a book
+        </Link>
+      </div>
+      {list.length === 0 ? (
+        <p className="text-ink-muted">
+          Upload a PDF to read it in short sessions.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {list.map((book) => (
+            <li key={book.bookId}>
+              <Card className="flex items-center justify-between gap-3 p-4">
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">
+                    {book.title}
+                  </span>
+                  <span className="block text-sm text-ink-muted">
+                    {STATUS[book.status]}
+                    {book.failure === null ? null : `: ${book.failure}`}
+                  </span>
+                </span>
+                <DeleteBook book={book} />
+              </Card>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+// Deleting removes the file and everything made from it, so a native popover asks
+// first: no script, no browser dialog.
+function DeleteBook({ book }: { book: BookSummary }) {
+  const confirm = `delete-book-${book.bookId}`;
+  return (
+    <>
+      <button
+        type="button"
+        popoverTarget={confirm}
+        aria-label={`Delete ${book.title}`}
+        className="shrink-0 cursor-pointer rounded-full border border-hairline px-3 py-1.5 text-sm font-semibold"
+      >
+        Delete
+      </button>
+      <div
+        id={confirm}
+        popover="auto"
+        role="alertdialog"
+        aria-labelledby={`${confirm}-title`}
+        className="m-auto w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-hairline bg-page p-5 text-ink shadow-card backdrop:bg-black/40"
+      >
+        <p id={`${confirm}-title`} className="font-semibold">
+          Delete {book.title}?
+        </p>
+        <p className="mt-1 text-sm text-ink-muted">
+          The PDF and your progress in it are removed. This can&apos;t be
+          undone.
+        </p>
+        <div className="mt-4 flex flex-col gap-2">
+          <form action={deleteBookAction}>
+            <input type="hidden" name="bookId" value={book.bookId} />
+            <button
+              type="submit"
+              className="w-full cursor-pointer rounded-full border border-wrong px-5 py-3 font-semibold"
+            >
+              Delete book
+            </button>
+          </form>
+          <button
+            type="button"
+            autoFocus
+            popoverTarget={confirm}
+            popoverTargetAction="hide"
+            className="w-full cursor-pointer rounded-full bg-ink px-5 py-3 font-semibold text-page"
+          >
+            Keep it
+          </button>
+        </div>
+      </div>
+    </>
   );
 }

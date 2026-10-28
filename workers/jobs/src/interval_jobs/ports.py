@@ -1191,6 +1191,14 @@ class Store(Protocol):
     def paths(self) -> Paths: ...
 
 
+class Files(Protocol):
+    """DB-6, P2-W11-S01: private files (PDF books) in S3, or SeaweedFS (ADR-0011)."""
+
+    def remove(self, key: str) -> None:
+        """Nothing at the key is not an error."""
+        ...
+
+
 class Fetcher(Protocol):
     def fetch(self, url: str, kind: FetchKind) -> Fetched: ...
 

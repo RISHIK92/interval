@@ -71,3 +71,37 @@ export function env(): Env {
   cached ??= parseEnv(process.env);
   return cached;
 }
+
+// DB-6, ADR-0011: private files (PDF books, P2-W11-S01) in S3, or SeaweedFS on a local
+// machine or the VM (S3_ENDPOINT). Parsed on first use of the file store, so the rest
+// of the app runs without it. Credentials come from the SDK's usual chain: the task
+// role on AWS, AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY elsewhere.
+const files = z.object({
+  PRIVATE_CONTENT_BUCKET: z.string().min(3),
+  AWS_REGION: z.string().min(1),
+  S3_ENDPOINT: z.url({ protocol: /^https?$/ }).optional(),
+});
+
+export type FilesEnv = z.infer<typeof files>;
+
+export function parseFilesEnv(
+  source: Record<string, string | undefined>,
+): FilesEnv {
+  const result = files.safeParse(source);
+  if (!result.success) {
+    const problems = result.error.issues.map(
+      (issue) => `${issue.path.join(".")}: ${issue.message}`,
+    );
+    throw new Error(
+      `Invalid file storage environment:\n  ${problems.join("\n  ")}`,
+    );
+  }
+  return result.data;
+}
+
+let cachedFiles: FilesEnv | undefined;
+
+export function filesEnv(): FilesEnv {
+  cachedFiles ??= parseFilesEnv(process.env);
+  return cachedFiles;
+}

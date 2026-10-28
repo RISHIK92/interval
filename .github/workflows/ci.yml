@@ -47,6 +47,12 @@ jobs:
       CI: "true"
       DATABASE_URL: postgres://interval:interval@localhost:5432/interval?sslmode=disable
       VALKEY_URL: redis://localhost:6379
+      # Private files (DB-6, P2-W11-S01): SeaweedFS as S3, as locally (ADR-0011).
+      PRIVATE_CONTENT_BUCKET: interval-private
+      AWS_REGION: us-east-1
+      S3_ENDPOINT: http://localhost:8333
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
       DBMATE_VERSION: v2.37.0
       DBMATE_SHA256: f855e99a0f0a81322014bf686b1cb820d2b4d8074e4eadafd64b851b80ecb15a
     steps:
@@ -54,6 +60,13 @@ jobs:
         with:
           fetch-depth: 0 # the migration check diffs against the base commit
           persist-credentials: false # nothing after checkout needs the token
+
+      # Services can't take a command, and SeaweedFS needs one to serve S3.
+      - name: Start SeaweedFS
+        run: |
+          docker run -d -p 8333:8333 chrislusf/seaweedfs:4.50 server -s3 -dir=/data
+          for _ in $(seq 60); do curl -sf -o /dev/null localhost:8333 && exit 0; sleep 1; done
+          exit 1
 
       # corepack first, so setup-node finds the pinned pnpm and caches its store.
       - name: Enable corepack
