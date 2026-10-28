@@ -36,6 +36,7 @@ from interval_jobs.ports import (
     BatchKind,
     CandidateArticle,
     CandidateMoment,
+    ConceptCoverage,
     ConceptCycleError,
     ConceptEdge,
     ConceptGraph,
@@ -52,6 +53,7 @@ from interval_jobs.ports import (
     NoteInput,
     NoteKey,
     NoteRef,
+    PathDraft,
     QuestionBatchEntry,
     QuestionDraft,
     QuestionSummary,
@@ -62,6 +64,7 @@ from interval_jobs.ports import (
     Section,
     SectionRow,
     SegmentationInput,
+    SessionCandidate,
     SimilarMoment,
     SourceRecord,
     SourceSettings,
@@ -2260,8 +2263,118 @@ class PostgresQuestions:
         )
 
 
+# Allowed moments (as question targets: ING-2, not a duplicate's) with their live
+# concepts (an admin's tag correction winning), one row per moment and concept.
+_PATH_MOMENTS = f"""
+    select m.id as moment_id, ci.source_id, coalesce(ci.frameable, false) as frameable,
+           c.slug
+    from moment m
+    join content_item ci on ci.id = m.content_item_id
+    join source s on s.id = ci.source_id
+    cross join lateral ({_MOMENT_LIVE_CONCEPTS}) c
+    where ci.duplicate_of is null and s.moments_enabled
+      and s.rights_profile in ('full_text_internal', 'full_text_display')
+"""
+
+
+class PostgresPaths:
+    """Path proposals (§5F, P2-W10-S01)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def coverage(self) -> list[ConceptCoverage]:
+        rows = self._conn.execute(
+            f"""
+            with allowed as ({_PATH_MOMENTS})
+            select c.slug, c.name, c.topic,
+                   count(distinct a.moment_id), count(distinct a.source_id)
+            from concept c
+            left join allowed a on a.slug = c.slug
+            where c.retired_at is null
+            group by c.slug, c.name, c.topic
+            order by c.slug
+            """
+        ).fetchall()
+        return [
+            ConceptCoverage(str(slug), str(name), str(topic), int(n), int(sources))
+            for slug, name, topic, n, sources in rows
+        ]
+
+    def prerequisites(self) -> set[tuple[str, str]]:
+        rows = self._conn.execute(
+            """
+            select a.slug, b.slug from concept_edge e
+            join concept a on a.id = e.from_id and a.retired_at is null
+            join concept b on b.id = e.to_id and b.retired_at is null
+            where e.type = 'prerequisite_of'
+            """
+        ).fetchall()
+        return {(str(a), str(b)) for a, b in rows}
+
+    def session_candidates(self, slugs: Collection[str]) -> list[SessionCandidate]:
+        rows = self._conn.execute(
+            f"""
+            with allowed as ({_PATH_MOMENTS})
+            select a.moment_id, a.source_id, a.frameable, array_agg(a.slug),
+                   exists (select 1 from question q
+                           where q.moment_id = a.moment_id and q.status = 'live')
+            from allowed a
+            where a.moment_id in (
+              select moment_id from allowed where slug = any(%s)
+            )
+            group by a.moment_id, a.source_id, a.frameable
+            order by a.moment_id
+            """,
+            (list(slugs),),
+        ).fetchall()
+        return [
+            SessionCandidate(
+                int(moment),
+                frozenset(str(s) for s in concepts),
+                int(source),
+                bool(frameable),
+                bool(live),
+            )
+            for moment, source, frameable, concepts, live in rows
+        ]
+
+    def save_draft(self, draft: PathDraft, model: str, prompt_version: int) -> int:
+        row = self._conn.execute(
+            "insert into path (name, why, model, prompt_version) "
+            "values (%s, %s, %s, %s) returning id",
+            (draft.name, draft.why, model, prompt_version),
+        ).fetchone()
+        assert row is not None  # insert ... returning gives one row
+        path_id = int(row[0])
+        for ordinal, section in enumerate(draft.sections):
+            found = self._conn.execute(
+                "insert into path_section (path_id, ordinal) values (%s, %s) "
+                "returning id",
+                (path_id, ordinal),
+            ).fetchone()
+            assert found is not None
+            section_id = int(found[0])
+            linked = self._conn.execute(
+                "insert into path_section_concept (section_id, concept_id) "
+                "select %s, id from concept where slug = any(%s)",
+                (section_id, list(section.concepts)),
+            )
+            # The proposer checked these against the live concepts moments ago.
+            if linked.rowcount != len(set(section.concepts)):
+                raise ValueError(f"unknown concepts in {section.concepts}")
+            with self._conn.cursor() as cur:
+                cur.executemany(
+                    "insert into path_session (section_id, ordinal, moment_id) "
+                    "values (%s, %s, %s)",
+                    [(section_id, i, m) for i, m in enumerate(section.moment_ids)],
+                )
+        return path_id
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
+        self.paths = PostgresPaths(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)
         self.moments = PostgresMoments(conn)

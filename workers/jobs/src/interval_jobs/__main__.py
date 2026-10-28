@@ -59,6 +59,7 @@ from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.link_check import check_links
 from interval_jobs.link_health import queue_link_checks
+from interval_jobs.path_proposer import propose
 from interval_jobs.pipeline import BATCH_PREFIX, Pipeline
 from interval_jobs.polling import enqueue_due
 from interval_jobs.ports import ConceptCycleError, ModelError, Store
@@ -205,6 +206,12 @@ def main(argv: list[str]) -> None:
         help="resume this submitted draft batch, one no trial has finished reading "
         "(its cost would be recorded twice)",
     )
+    paths = commands.add_parser(
+        "propose-paths",
+        help="ask PATHS_MODEL for candidate topic paths and save them as drafts "
+        "for review (§5F, Q-P2-24)",
+    )
+    paths.add_argument("--count", type=_path_count, default=10)
     commands.add_parser(
         "recalibrate-difficulty",
         help="refit question difficulty from answers and queue anomalies (Q-3)",
@@ -304,6 +311,10 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
                 except TrialError as error:
                     sys.exit(f"question-trial: {error}")
         print(json.dumps(asdict(report), indent=2, default=str))
+        return
+
+    if args.command == "propose-paths":
+        _propose_paths(args.count)
         return
 
     if args.command == "recalibrate-difficulty":
@@ -571,6 +582,29 @@ def _draft_count(value: str) -> int:
     if not 1 <= count <= 50:
         raise argparse.ArgumentTypeError("count must be between 1 and 50")
     return count
+
+
+def _path_count(value: str) -> int:
+    count = int(value)
+    if not 1 <= count <= 20:
+        raise argparse.ArgumentTypeError("--count must be 1-20")
+    return count
+
+
+def _propose_paths(count: int) -> None:
+    """§5F (P2-W10-S01): drafts for the owner to review on /admin/paths. Run by hand."""
+
+    @contextmanager
+    def unit() -> Generator[Store]:
+        with services() as s:
+            yield s.store
+
+    with model_job("PATHS_MODEL") as job:
+        if job is None:
+            sys.exit("propose-paths needs PATHS_MODEL (Q-P2-25)")
+        with job.gateway() as gateway:
+            got = propose(unit, gateway, job.model, count)
+    print(json.dumps(asdict(got), indent=2))
 
 
 def _question_batches() -> None:

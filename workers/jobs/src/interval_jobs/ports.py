@@ -539,6 +539,69 @@ type BatchKind = Literal["draft", "validate"]
 type BatchItemResult = Literal["saved", "decided", "broken", "error", "skipped"]
 
 
+# Topic paths (§5F, Q-P2-22, Q-P2-24, P2-W10-S01).
+@dataclass(frozen=True)
+class ConceptCoverage:
+    """A live concept and how much there is to read on it: moments the rights allow,
+    and how many sources they come from."""
+
+    slug: str
+    name: str
+    topic: str
+    moments: int
+    sources: int
+
+
+@dataclass(frozen=True)
+class PathCandidate:
+    name: str
+    why: str
+    concepts: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class SessionCandidate:
+    """A moment a path session could be: its live concepts, its source, whether the
+    reader can frame it and whether it has live questions (for the checkpoint)."""
+
+    moment_id: int
+    concepts: frozenset[str]
+    source_id: int
+    frameable: bool
+    live_questions: bool
+
+
+@dataclass(frozen=True)
+class DraftSection:
+    concepts: tuple[str, ...]
+    moment_ids: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class PathDraft:
+    name: str
+    why: str
+    sections: tuple[DraftSection, ...]
+
+
+class Paths(Protocol):
+    """Path proposals (P2-W10-S01): what there is to propose from, and drafts."""
+
+    def coverage(self) -> list[ConceptCoverage]:
+        """Every live concept, with the moments and sources the rights allow."""
+        ...
+
+    def prerequisites(self) -> set[tuple[str, str]]:
+        """(a, b) when a is a prerequisite of b, both live."""
+        ...
+
+    def session_candidates(self, slugs: Collection[str]) -> list[SessionCandidate]:
+        """Allowed moments tagged with any of these live concepts."""
+        ...
+
+    def save_draft(self, draft: PathDraft, model: str, prompt_version: int) -> int: ...
+
+
 class Questions(Protocol):
     """The question bank (Q-1, P2-W8-S01)."""
 
@@ -1123,6 +1186,9 @@ class Store(Protocol):
 
     @property
     def questions(self) -> Questions: ...
+
+    @property
+    def paths(self) -> Paths: ...
 
 
 class Fetcher(Protocol):

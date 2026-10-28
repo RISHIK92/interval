@@ -8,7 +8,7 @@ type JsonScalar = str | int | float | bool | None
 type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
 
 type AiFeature = Literal[
-    "tagging", "notes", "embeddings", "concept_drafting", "questions"
+    "tagging", "notes", "embeddings", "concept_drafting", "questions", "paths"
 ]
 type AiProvider = Literal["openrouter", "voyage", "groq", "google"]
 type BetaGroup = Literal["student", "developer"]
@@ -26,6 +26,7 @@ type LearningGoal = Literal[
     "system-design-interviews", "stack-i-use", "finish-that-book", "stay-sharp"
 ]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
+type PathStatus = Literal["draft", "live", "retired"]
 type QuestionBatchKind = Literal["draft", "validate"]
 type QuestionStatus = Literal["pending", "live", "rejected", "flagged", "retired"]
 type ReviewDecision = Literal["keep", "retire"]
@@ -328,6 +329,34 @@ class MomentEmbedding(TypedDict):
 class MomentTagging(TypedDict):
     moment_id: int
     difficulty: Difficulty
+
+
+class Path(TypedDict):
+    id: int
+    name: str
+    why: str
+    status: PathStatus
+    model: str
+    prompt_version: int
+    created_at: datetime
+    decided_at: datetime | None
+
+
+class PathSection(TypedDict):
+    id: int
+    path_id: int
+    ordinal: int
+
+
+class PathSectionConcept(TypedDict):
+    section_id: int
+    concept_id: int
+
+
+class PathSession(TypedDict):
+    section_id: int
+    ordinal: int
+    moment_id: int
 
 
 class Plan(TypedDict):

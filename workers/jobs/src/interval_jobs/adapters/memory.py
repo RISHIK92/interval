@@ -37,6 +37,7 @@ from interval_jobs.ports import (
     BatchKind,
     CandidateArticle,
     CandidateMoment,
+    ConceptCoverage,
     ConceptGraph,
     ConceptSeed,
     DuplicateInviteCode,
@@ -54,6 +55,7 @@ from interval_jobs.ports import (
     NoteInput,
     NoteKey,
     NoteRef,
+    PathDraft,
     QuestionBatchEntry,
     QuestionDraft,
     QuestionSummary,
@@ -64,6 +66,7 @@ from interval_jobs.ports import (
     Section,
     SectionRow,
     SegmentationInput,
+    SessionCandidate,
     SimilarMoment,
     SourceRecord,
     SourceSettings,
@@ -1712,6 +1715,83 @@ class InMemoryQuestions:
         self.reviews = [r for r in self.reviews if r[0] in kept]
 
 
+@dataclass
+class SavedPath:
+    draft: PathDraft
+    model: str
+    prompt_version: int
+    status: str = "draft"
+
+
+class InMemoryPaths:
+    """Path proposals (P2-W10-S01), as PostgresPaths: allowed moments and their live
+    concepts are the question targets' (ING-2, an admin's tag correction winning)."""
+
+    def __init__(
+        self,
+        questions: InMemoryQuestions,
+        items: InMemoryItems,
+        concepts: InMemoryConcepts,
+    ) -> None:
+        self._questions = questions
+        self._items = items
+        self._concepts = concepts
+        self.rows: dict[int, SavedPath] = {}
+
+    def _allowed(self) -> list[tuple[int, int, frozenset[str], bool]]:
+        """(moment, source, live concept slugs, frameable) per allowed moment."""
+        found: list[tuple[int, int, frozenset[str], bool]] = []
+        for moment_id in self._questions.targets(None):
+            target = self._questions.target(moment_id)
+            assert target is not None  # targets() lists only these
+            item = self._items.rows[target.item_id]
+            slugs = frozenset(s for s, _ in target.concepts)
+            found.append((moment_id, item.source_id, slugs, item.frameable is True))
+        return found
+
+    def coverage(self) -> list[ConceptCoverage]:
+        graph = self._concepts.state()
+        if graph is None:
+            return []
+        allowed = self._allowed()
+        return [
+            ConceptCoverage(
+                c.slug,
+                c.name,
+                c.topic,
+                sum(c.slug in slugs for _, _, slugs, _ in allowed),
+                len({source for _, source, slugs, _ in allowed if c.slug in slugs}),
+            )
+            for c in sorted(graph.concepts, key=lambda c: c.slug)
+            if not c.retired
+        ]
+
+    def prerequisites(self) -> set[tuple[str, str]]:
+        graph = self._concepts.state()
+        if graph is None:
+            return set()
+        live = {c.slug for c in graph.concepts if not c.retired}
+        return {
+            (a, b)
+            for a, b, kind in graph.edges
+            if kind == "prerequisite_of" and a in live and b in live
+        }
+
+    def session_candidates(self, slugs: Collection[str]) -> list[SessionCandidate]:
+        wanted = set(slugs)
+        live = {q.moment_id for q in self._questions.rows if q.status == "live"}
+        return [
+            SessionCandidate(moment_id, concepts, source, frameable, moment_id in live)
+            for moment_id, source, concepts, frameable in self._allowed()
+            if concepts & wanted
+        ]
+
+    def save_draft(self, draft: PathDraft, model: str, prompt_version: int) -> int:
+        path_id = len(self.rows) + 1
+        self.rows[path_id] = SavedPath(draft, model, prompt_version)
+        return path_id
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -1734,6 +1814,7 @@ class InMemoryStore:
         self.questions = InMemoryQuestions(
             self.items, self.sources, self.moments, self.tags, self.concepts
         )
+        self.paths = InMemoryPaths(self.questions, self.items, self.concepts)
         drop_feed = self.feed.drop_missing
 
         def drop_missing() -> None:

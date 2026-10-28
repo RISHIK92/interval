@@ -5,7 +5,7 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "questions" | "tagging";
+export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "paths" | "questions" | "tagging";
 
 export type AiProvider = "google" | "groq" | "openrouter" | "voyage";
 
@@ -58,6 +58,8 @@ export type LearningGoal = "finish-that-book" | "stack-i-use" | "stay-sharp" | "
 export type MomentLinkType = "anchor" | "page_top" | "text_fragment";
 
 export type Numeric = ColumnType<string, number | string, number | string>;
+
+export type PathStatus = "draft" | "live" | "retired";
 
 export type QuestionBatchKind = "draft" | "validate";
 
@@ -365,6 +367,34 @@ export interface MomentEmbedding {
 export interface MomentTagging {
   difficulty: Difficulty;
   moment_id: Int8;
+}
+
+export interface Path {
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  id: Generated<Int8>;
+  model: string;
+  name: string;
+  prompt_version: number;
+  status: Generated<PathStatus>;
+  why: string;
+}
+
+export interface PathSection {
+  id: Generated<Int8>;
+  ordinal: number;
+  path_id: Int8;
+}
+
+export interface PathSectionConcept {
+  concept_id: Int8;
+  section_id: Int8;
+}
+
+export interface PathSession {
+  moment_id: Int8;
+  ordinal: number;
+  section_id: Int8;
 }
 
 export interface Plan {
@@ -705,6 +735,10 @@ export interface DB {
   moment_decision: MomentDecision;
   moment_embedding: MomentEmbedding;
   moment_tagging: MomentTagging;
+  path: Path;
+  path_section: PathSection;
+  path_section_concept: PathSectionConcept;
+  path_session: PathSession;
   plan: Plan;
   plan_capability: PlanCapability;
   question: Question;

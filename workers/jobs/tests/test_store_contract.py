@@ -35,6 +35,7 @@ from interval_jobs.ports import (
     ConceptCycleError,
     ConceptEdge,
     ConceptGraph,
+    DraftSection,
     DuplicateInviteCode,
     FeedEntry,
     Finished,
@@ -43,12 +44,14 @@ from interval_jobs.ports import (
     NoteInput,
     NoteKey,
     NoteRef,
+    PathDraft,
     QuestionBatchEntry,
     QuestionDraft,
     RankedEntry,
     RightsViolation,
     Section,
     SectionRow,
+    SessionCandidate,
     SourceSettings,
     Store,
     TagResult,
@@ -115,6 +118,10 @@ class Probe(Protocol):
         self, user_id: str, question_id: int, correct: bool, review: bool = False
     ) -> None: ...
     def question_calibrated(self, question_id: int) -> bool: ...
+    # A saved path: status, name, and each section's concepts (sorted) and moments.
+    def path(
+        self, path_id: int
+    ) -> tuple[str, str, list[tuple[tuple[str, ...], tuple[int, ...]]]]: ...
     def reviews(self) -> list[tuple[int, str, bool]]: ...
     def decide_review(self, question_id: int) -> None: ...
     def question_difficulty(self, question_id: int) -> str | None: ...
@@ -242,6 +249,19 @@ class MemoryProbe:
     def question_calibrated(self, question_id: int) -> bool:
         stored = next(q for q in self.s.questions.rows if q.id == question_id)
         return stored.calibrated_at is not None
+
+    def path(
+        self, path_id: int
+    ) -> tuple[str, str, list[tuple[tuple[str, ...], tuple[int, ...]]]]:
+        saved = self.s.paths.rows[path_id]
+        return (
+            saved.status,
+            saved.draft.name,
+            [
+                (tuple(sorted(sec.concepts)), sec.moment_ids)
+                for sec in saved.draft.sections
+            ],
+        )
 
     def reviews(self) -> list[tuple[int, str, bool]]:
         return sorted(self.s.questions.reviews)
@@ -545,6 +565,31 @@ class PostgresProbe:
         ).fetchone()
         assert row is not None
         return bool(row[0])
+
+    def path(
+        self, path_id: int
+    ) -> tuple[str, str, list[tuple[tuple[str, ...], tuple[int, ...]]]]:
+        head = self.conn.execute(
+            "select status, name from path where id = %s", (path_id,)
+        ).fetchone()
+        assert head is not None
+        sections = self.conn.execute(
+            """
+            select
+              array(select c.slug from path_section_concept pc
+                    join concept c on c.id = pc.concept_id
+                    where pc.section_id = s.id order by c.slug),
+              array(select ps.moment_id from path_session ps
+                    where ps.section_id = s.id order by ps.ordinal)
+            from path_section s where s.path_id = %s order by s.ordinal
+            """,
+            (path_id,),
+        ).fetchall()
+        return (
+            str(head[0]),
+            str(head[1]),
+            [(tuple(c), tuple(int(m) for m in ms)) for c, ms in sections],
+        )
 
     def reviews(self) -> list[tuple[int, str, bool]]:
         return sorted(
@@ -2894,3 +2939,60 @@ def test_calibration_reads_answers_saves_levels_and_queues_anomalies_once(
     probe.flag_question(b)
     s.questions.queue_spot_checks(datetime.now(UTC) + timedelta(days=1), 0.0)
     assert s.questions.queue_anomalies([b]) == 0
+
+
+# §5F, Q-P2-22 (P2-W10-S01): what a path can be proposed from, and saving a draft.
+def test_paths_read_coverage_prerequisites_and_candidates_and_save_drafts(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    item, (_, lag, quorum), sid = _question_item(s, probe)
+    s.items.set_frameable(item, True)
+    draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    (live, _) = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None)
+    s.questions.record_verdict(live, "v", 2)
+    cover = {c.slug: c for c in s.paths.coverage()}
+    assert (cover["cg-lag"].moments, cover["cg-lag"].sources) == (1, 1)
+    assert cover["cg-replication"].moments == 1
+    assert cover["cg-quorum"].moments == 1
+    assert cover["cg-ryw"].moments == 0  # known, nothing to read
+    assert (
+        cover["cg-lag"].name == "Lag" and cover["cg-lag"].topic == "distributed-systems"
+    )
+    prerequisites = s.paths.prerequisites()
+    assert {("cg-replication", "cg-lag"), ("cg-lag", "cg-ryw")} <= prerequisites
+    assert not any("cg-quorum" in pair for pair in prerequisites)  # related only
+    found = {
+        c.moment_id: c for c in s.paths.session_candidates(["cg-lag", "cg-quorum"])
+    }
+    assert found[lag] == SessionCandidate(
+        lag, frozenset({"cg-lag", "cg-replication"}), sid, True, True
+    )
+    assert found[quorum].live_questions is False
+    # An admin's correction replaces the model's tags.
+    probe.correct_moment_concepts(item, "Quorum", ["cg-ryw"])
+    assert quorum not in {
+        c.moment_id for c in s.paths.session_candidates(["cg-quorum"])
+    }
+    assert {c.slug: c.moments for c in s.paths.coverage()}["cg-ryw"] == 1
+    pid = s.paths.save_draft(
+        PathDraft(
+            "Replication basics",
+            "Why replicas fall behind.",
+            (
+                DraftSection(("cg-replication", "cg-lag"), (lag,)),
+                DraftSection(("cg-ryw",), (quorum,)),
+            ),
+        ),
+        "m",
+        1,
+    )
+    assert probe.path(pid) == (
+        "draft",
+        "Replication basics",
+        [(("cg-lag", "cg-replication"), (lag,)), (("cg-ryw",), (quorum,))],
+    )
+    # A source whose moments are switched off has nothing to read (ING-2).
+    probe.switch_moments_off(sid, True)
+    assert {c.slug: c.moments for c in s.paths.coverage()}["cg-lag"] == 0
+    assert s.paths.session_candidates(["cg-lag"]) == []
