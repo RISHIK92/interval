@@ -613,3 +613,93 @@ test("next is the first unfinished reading of the active path, then its checkpoi
     expect(await paths.next(userId)).toBeNull();
   });
 });
+
+// P2-W10-S07 (Q-P2-29): a section whose live concepts are all mastered.
+test("a section is mastered when every live concept in it is, for this user", async () => {
+  await inRollback(async (trx, { userId, live }) => {
+    const paths = kyselyPaths(trx);
+    await paths.start(userId, live);
+    const concepts = await trx
+      .selectFrom("path_section_concept as pc")
+      .innerJoin("path_section as s", "s.id", "pc.section_id")
+      .select(["pc.concept_id", "pc.section_id"])
+      .where("s.path_id", "=", live)
+      .orderBy("s.ordinal")
+      .execute();
+    const [c1, c2] = concepts;
+    if (!c1 || !c2) throw new Error("seed");
+    const mastered = async () =>
+      (await paths.path(userId, live))?.sections.map((s) => s.mastered);
+    const set = (state: "practiced" | "mastered") =>
+      trx
+        .insertInto("concept_mastery")
+        .values({
+          user_id: userId,
+          concept_id: c1.concept_id,
+          probability: state === "mastered" ? 0.9 : 0.6,
+          state,
+          evidence_count: 3,
+        })
+        .onConflict((oc) =>
+          oc.columns(["user_id", "concept_id"]).doUpdateSet({ state }),
+        )
+        .execute();
+    expect(await mastered()).toEqual([false, false]);
+    await set("practiced");
+    expect(await mastered()).toEqual([false, false]);
+    await set("mastered");
+    expect(await mastered()).toEqual([true, false]);
+    expect(await paths.next(userId)).toMatchObject({
+      kind: "reading",
+      sectionId: c1.section_id,
+      mastered: true,
+    });
+    // A passed section with a reading left (a swap) isn't offered for skipping.
+    await trx
+      .insertInto("quiz_attempt")
+      .values({
+        user_id: userId,
+        path_section_id: c1.section_id,
+        checkpoint_size: 1,
+        ends_at: sql<Date>`now() + interval '1 minute'`,
+        finished_at: sql<Date>`now()`,
+        checkpoint_passed: true,
+      })
+      .execute();
+    expect(await paths.next(userId)).toMatchObject({
+      sectionId: c1.section_id,
+      mastered: false,
+    });
+    await trx
+      .deleteFrom("quiz_attempt")
+      .where("path_section_id", "=", c1.section_id)
+      .execute();
+    // Someone else's mastery doesn't count.
+    expect(
+      (await paths.path("someone-else", live))?.sections[0]?.mastered,
+    ).toBe(false);
+    // A retired concept in the section doesn't hold it back.
+    const old = await trx
+      .insertInto("concept")
+      .values({
+        slug: `old-${randomUUID()}`,
+        name: "Old",
+        topic: "distributed-systems",
+        retired_at: sql<Date>`now()`,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("path_section_concept")
+      .values({ section_id: c1.section_id, concept_id: old.id })
+      .execute();
+    expect(await mastered()).toEqual([true, false]);
+    // Its only live concept retired too, the section has none: not mastered.
+    await trx
+      .updateTable("concept")
+      .set({ retired_at: sql<Date>`now()` })
+      .where("id", "=", c1.concept_id)
+      .execute();
+    expect(await mastered()).toEqual([false, false]);
+  });
+});

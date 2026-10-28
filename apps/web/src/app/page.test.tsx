@@ -746,6 +746,8 @@ test("the path's next reading is the first card, saying why, as a path open", as
     kind: "reading",
     pathId: "6",
     pathName: "Replication",
+    sectionId: "60",
+    mastered: false,
     concepts: ["Leader-follower replication"],
     reading,
     n: 2,
@@ -794,4 +796,25 @@ test("a checkpoint ready to take is the first card; none without a next step", a
   );
   getFeed.mockResolvedValue(feedOf([card]));
   expect(await render()).not.toContain("Next in your path");
+});
+
+test("a path card on a section you've mastered offers to skip it (Q-P2-29)", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(feedOf([card]));
+  pathNext.mockResolvedValueOnce({
+    kind: "reading",
+    pathId: "6",
+    pathName: "Replication",
+    sectionId: "60",
+    mastered: true,
+    concepts: ["Leader-follower replication"],
+    reading,
+    n: 1,
+    of: 2,
+  });
+  const html = await render();
+  expect(html).toContain("You know this");
+  expect(html).toMatch(
+    /name="sectionId" value="60"[^]*?name="reason" value="mastered"[^]*?name="back" value="\/\?chip=3-8"/,
+  );
 });

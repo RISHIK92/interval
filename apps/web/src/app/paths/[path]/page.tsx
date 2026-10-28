@@ -5,6 +5,7 @@ import { BIGINT_ID, type PathAlternative } from "../../../server/ports";
 import { parseReading } from "../../../server/reading";
 import { ReturnPrompt } from "../../ReturnPrompt";
 import { ReadingLink } from "../ReadingLink";
+import { SkipSection } from "../SkipSection";
 import { TabBar } from "../../TabBar";
 import { Card } from "../../ui/Card";
 import { startCheckpointAction } from "../../quiz/actions";
@@ -133,6 +134,29 @@ export default async function PathPage(props: {
                     teaches first.
                   </p>
                 )}
+                {/* Q-P2-29: a section the user has mastered suggests skipping it. */}
+                {!editing &&
+                editable &&
+                section.mastered &&
+                section.open &&
+                section.checkpoint !== "passed" &&
+                !section.skipped ? (
+                  <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-go-soft px-4 py-3">
+                    <p
+                      id={`known-${section.sectionId}`}
+                      className="text-sm font-semibold"
+                    >
+                      You&apos;ve mastered this.
+                    </p>
+                    <SkipSection
+                      describedBy={`known-${section.sectionId}`}
+                      sectionId={section.sectionId}
+                      name={section.concepts.join(", ")}
+                      reason="mastered"
+                      back={here}
+                    />
+                  </div>
+                ) : null}
                 {editing ? (
                   <SectionControls
                     sectionId={section.sectionId}
@@ -143,6 +167,7 @@ export default async function PathPage(props: {
                       section.checkpoint !== "passed" && !section.skipped
                     }
                     skipped={section.skipped}
+                    back={here}
                   />
                 ) : null}
                 <ul className="flex flex-col gap-2">
@@ -277,8 +302,8 @@ function SectionControls(props: {
   last: boolean;
   skippable: boolean;
   skipped: boolean;
+  back: string;
 }) {
-  const confirm = `skip-${props.sectionId}`;
   return (
     <div className="flex flex-wrap gap-2">
       {props.first ? null : (
@@ -308,53 +333,12 @@ function SectionControls(props: {
           Unskip
         </Edit>
       ) : props.skippable ? (
-        <>
-          {/* A native popover asks first: no script, no browser dialog. */}
-          <button
-            type="button"
-            popoverTarget={confirm}
-            aria-label={`Skip section ${props.name}`}
-            className={SECONDARY}
-          >
-            Skip section
-          </button>
-          <div
-            id={confirm}
-            popover="auto"
-            role="alertdialog"
-            aria-labelledby={`${confirm}-title`}
-            className="m-auto w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-hairline bg-page p-5 text-ink shadow-card backdrop:bg-black/40"
-          >
-            <p id={`${confirm}-title`} className="font-semibold">
-              Skip {props.name}?
-            </p>
-            <p className="mt-1 text-sm text-ink-muted">
-              The next section opens. Skipping doesn&apos;t mark these concepts
-              practiced; you can unskip it later.
-            </p>
-            <div className="mt-4 flex flex-col gap-2">
-              <form action={editPathAction}>
-                <input type="hidden" name="edit" value="skip" />
-                <input type="hidden" name="sectionId" value={props.sectionId} />
-                <button
-                  type="submit"
-                  className="w-full cursor-pointer rounded-full border border-wrong px-5 py-3 font-semibold"
-                >
-                  Skip section
-                </button>
-              </form>
-              <button
-                type="button"
-                autoFocus
-                popoverTarget={confirm}
-                popoverTargetAction="hide"
-                className="w-full cursor-pointer rounded-full bg-ink px-5 py-3 font-semibold text-page"
-              >
-                Keep it
-              </button>
-            </div>
-          </div>
-        </>
+        <SkipSection
+          sectionId={props.sectionId}
+          name={props.name}
+          reason="user"
+          back={`${props.back}?edit=1`}
+        />
       ) : null}
     </div>
   );

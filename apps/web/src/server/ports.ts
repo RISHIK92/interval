@@ -753,6 +753,8 @@ export type PathStep = {
   warning: string[] | null;
   // Not passed and never skipped: the sections after it wait for it.
   holdsBack: boolean;
+  // P2-W10-S07 (Q-P2-29): every live concept in it is mastered for the user.
+  mastered: boolean;
   // The questions it would ask now (0: none) and the pass mark that makes.
   size: number;
   passMark: number;
@@ -812,6 +814,8 @@ export type PathNext =
       kind: "reading";
       pathId: string;
       pathName: string;
+      sectionId: string;
+      mastered: boolean; // to suggest skipping it (Q-P2-29)
       concepts: string[];
       reading: PathReading;
       n: number; // its place among the section's readings

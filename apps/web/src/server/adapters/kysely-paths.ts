@@ -106,6 +106,15 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
           skipped(userId, sql`s.id`).as("skipped"),
           everSkipped(userId, sql`s.id`).as("ever_skipped"),
           readingsDone(userId, sql`s.id`).as("read"),
+          // Q-P2-29: every live concept mastered for the user (none: not mastered).
+          sql<boolean>`coalesce((
+              select bool_and(cm.state is not distinct from 'mastered')
+              from path_section_concept pc
+              join concept c on c.id = pc.concept_id and c.retired_at is null
+              left join concept_mastery cm on cm.concept_id = c.id
+                and cm.user_id = ${userId}
+              where pc.section_id = s.id
+            ), false)`.as("mastered"),
           sql<number>`least(${CHECKPOINT_SIZE},
             (select count(*) from (${checkpointQuestions(userId, sql`s.id`)}) cq))::int`.as(
             "size",
@@ -176,6 +185,7 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
           skipped: s.skipped,
           warning: ahead.length > 0 ? ahead : null,
           holdsBack: !s.passed && !s.ever_skipped,
+          mastered: s.mastered,
         };
       });
       const byId = new Map(steps.map((s) => [s.sectionId, s]));
@@ -268,6 +278,9 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
             kind: "reading",
             pathId: timeline.pathId,
             pathName: timeline.name,
+            sectionId: section.sectionId,
+            // As the path page: a passed section isn't offered for skipping.
+            mastered: section.mastered && section.checkpoint !== "passed",
             concepts: section.concepts,
             reading,
             n: i + 1,

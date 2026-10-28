@@ -6,7 +6,7 @@ import { z } from "zod";
 import { events, paths, sessionReader } from "../../server/container";
 import { BIGINT_ID } from "../../server/ports";
 import { visitId } from "../../server/visits";
-import { textField } from "../form";
+import { sameSitePath, textField } from "../form";
 
 // §5F, Q-P2-27 (P2-W10-S03): Start (or Resume) makes a live path the user's active
 // one, pausing any other.
@@ -42,7 +42,13 @@ export async function startPathAction(form: FormData): Promise<void> {
 const Section = z.object({ sectionId: z.string().regex(BIGINT_ID) });
 const Edit = z.discriminatedUnion("edit", [
   z.object({ edit: z.literal("pause"), pathId: z.string().regex(BIGINT_ID) }),
-  Section.extend({ edit: z.enum(["up", "down", "skip", "unskip"]) }),
+  Section.extend({ edit: z.enum(["up", "down", "unskip"]) }),
+  // P2-W10-S07 (Q-P2-29): a skip from Edit mode, or from a mastered section's
+  // suggestion, which returns where it was offered.
+  Section.extend({
+    edit: z.literal("skip"),
+    reason: z.enum(["user", "mastered"]).default("user"),
+  }),
   Section.extend({
     edit: z.literal("swap"),
     ordinal: z.coerce.number().int().min(0).max(32767),
@@ -83,8 +89,13 @@ export async function editPathAction(form: FormData): Promise<void> {
   if (edit.edit === "skip")
     events().emit(
       "path_section_skipped",
-      { path_id: pathId, section_id: edit.sectionId },
+      { path_id: pathId, section_id: edit.sectionId, reason: edit.reason },
       context,
     );
-  redirect(`/paths/${pathId}?edit=1`);
+  const edited = `/paths/${pathId}?edit=1`;
+  redirect(
+    edit.edit === "skip"
+      ? sameSitePath(textField(form, "back"), edited)
+      : edited,
+  );
 }

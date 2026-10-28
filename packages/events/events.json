@@ -113,9 +113,13 @@
       "props": { "path_id": "id", "cause": ["user", "started_other"] }
     },
     "path_section_skipped": {
-      "version": 1,
-      "description": "A user skipped a section of their path: no practiced credit, the next sections open (P2-W10-S05, Q-P2-23, Q-P2-28).",
-      "props": { "path_id": "id", "section_id": "id" }
+      "version": 2,
+      "description": "A user skipped a section of their path: no practiced credit, the next sections open (P2-W10-S05, Q-P2-23, Q-P2-28). Version 2 adds reason: from Edit mode (user), or a mastered section's suggestion (mastered, P2-W10-S07, Q-P2-29).",
+      "props": {
+        "path_id": "id",
+        "section_id": "id",
+        "reason": ["user", "mastered"]
+      }
     },
     "checkpoint_started": {
       "version": 1,

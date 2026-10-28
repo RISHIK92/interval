@@ -66,6 +66,7 @@ const timeline: PathTimeline = {
       skipped: false,
       warning: null,
       holdsBack: true,
+      mastered: false,
       readings: [
         {
           ...reading,
@@ -97,6 +98,7 @@ const timeline: PathTimeline = {
       skipped: false,
       warning: null,
       holdsBack: true,
+      mastered: false,
       readings: [
         {
           ...reading,
@@ -293,4 +295,55 @@ test("a skipped section can be unskipped; a moved one is flagged; swap lists alt
   // Past a smallint: no session, and no query that would fail.
   await page({ edit: "1", swap: "60.40000" });
   expect(alternatives).not.toHaveBeenCalled();
+});
+
+// P2-W10-S07 (Q-P2-29): a mastered section suggests skipping it.
+test("an open section you've mastered suggests skipping it; nothing else does", async () => {
+  current.mockResolvedValue(user);
+  const [one, two] = timeline.sections;
+  if (!one || !two) throw new Error("fixture");
+  const mastered = {
+    ...timeline,
+    sections: [{ ...one, mastered: true }, two],
+  };
+  path.mockResolvedValueOnce(mastered);
+  const html = await page();
+  expect(html).toContain("You&#x27;ve mastered this.");
+  expect(html).toMatch(
+    /name="edit" value="skip"[^]*?name="sectionId" value="60"[^]*?name="reason" value="mastered"[^]*?name="back" value="\/paths\/6"/,
+  );
+  for (const other of [
+    {
+      ...mastered,
+      sections: [
+        { ...one, mastered: true, checkpoint: "passed" as const },
+        two,
+      ],
+    },
+    {
+      ...mastered,
+      sections: [
+        {
+          ...one,
+          mastered: true,
+          skipped: true,
+          checkpoint: "skipped" as const,
+        },
+        two,
+      ],
+    },
+    { ...mastered, sections: [one, { ...two, mastered: true }] }, // locked
+    { ...mastered, retired: true, mine: "paused" as const },
+    { ...mastered, mine: null },
+  ]) {
+    path.mockResolvedValueOnce(other);
+    expect(await page()).not.toContain("mastered this");
+  }
+  // Edit mode has its own Skip, from the user.
+  path.mockResolvedValueOnce(mastered);
+  const editing = await page({ edit: "1" });
+  expect(editing).not.toContain("mastered this");
+  expect(editing).toMatch(
+    /name="reason" value="user"[^]*?name="back" value="\/paths\/6\?edit=1"/,
+  );
 });

@@ -2068,3 +2068,13 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Tests: kysely-paths (`next`), kysely-checkpoints (a ready checkpoint as next; closeStale returns it once), quiz actions (closed finishes recorded before the start), feed page (first card, why, the path-open link, checkpoint form, alone on an empty feed), metric fixtures, the infra struct test. `pnpm check` passes (25/25); CDK synth passes.
 - Reviewer: the lost-event window (start methods' own close removed), the active-path limit (documented), missing fixtures (paused during the week, resumed during it), `QUIZ_SECONDS`, the card's link label. Not fixed: `next` offers a later open section's reading before an earlier ready checkpoint (only after an unskip; the slice says reading, then checkpoint); `closeStale`'s `firstTime` is always true; `summary` failing after a close loses that event (rare error path).
 - Week 10 is built. Not seen in Chrome: no path is live yet.
+
+### 2026-10-28 — P2-W10-S07 (skip what you know, PER-1, PER-2, §5F, Q-P2-29)
+- The timeline gets `mastered` per section: every live concept in it is mastered for the user (a section with none isn't). `Paths.next` carries `sectionId` and `mastered`; a passed section isn't offered.
+- `app/paths/SkipSection.tsx`: S05's skip with its confirming popover, now shared. It posts `reason` (user or mastered) and `back`, and the suggestion's reason is wired to the button with `aria-describedby`.
+- Path page: outside Edit mode, an open, unpassed, unskipped section you've mastered says "You've mastered this." with Skip section; Edit mode keeps its own skip (reason user).
+- Feed card: on such a section, "You know this" and Skip section, back to the feed.
+- Nothing is skipped without a tap (PER-1), and Keep it stores nothing (no dismiss, as answered).
+- `editPathAction`: a skip takes `reason` (default user) and `back` (same-site only; other edits return to Edit mode). `path_section_skipped` is version 2 with `reason`.
+- Tests: kysely-paths (mastered vs practiced, someone else's mastery, a retired concept, no live concept, a passed section not offered by next), path page (who sees the suggestion; Edit mode's own skip), feed card, action (reason, back, off-site fallback). `pnpm check` passes (25/25).
+- Reviewer: the passed-section guard on the feed card, `back` only for skips, one aggregate for mastered, `aria-describedby`. Not seen in Chrome: no path is live.

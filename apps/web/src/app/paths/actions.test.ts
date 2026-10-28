@@ -152,7 +152,7 @@ test("a skip is recorded; a refused edit or bad input goes to the list", async (
   ).rejects.toThrow("redirect:/paths/6?edit=1");
   expect(emit).toHaveBeenCalledWith(
     "path_section_skipped",
-    { path_id: "6", section_id: "60" },
+    { path_id: "6", section_id: "60", reason: "user" },
     context,
   );
   emit.mockClear();
@@ -166,5 +166,36 @@ test("a skip is recorded; a refused edit or bad input goes to the list", async (
   ).rejects.toThrow(/^redirect:\/paths$/);
   await expect(
     editPathAction(form({ edit: "swap", sectionId: "60", ordinal: "x" })),
+  ).rejects.toThrow(/^redirect:\/paths$/);
+});
+
+// P2-W10-S07 (Q-P2-29): a skip from a mastered section's suggestion.
+test("a suggested skip is recorded as mastered and returns where it was offered", async () => {
+  const { editPathAction } = await import("./actions");
+  current.mockResolvedValue(user);
+  skipSection.mockResolvedValue("6");
+  await expect(
+    editPathAction(
+      form({
+        edit: "skip",
+        sectionId: "60",
+        reason: "mastered",
+        back: "/?chip=3-8",
+      }),
+    ),
+  ).rejects.toThrow(/^redirect:\/\?chip=3-8$/);
+  expect(emit).toHaveBeenCalledWith(
+    "path_section_skipped",
+    { path_id: "6", section_id: "60", reason: "mastered" },
+    context,
+  );
+  // Somewhere else: back to Edit mode.
+  await expect(
+    editPathAction(
+      form({ edit: "skip", sectionId: "60", back: "https://evil.example/x" }),
+    ),
+  ).rejects.toThrow(/^redirect:\/paths\/6\?edit=1$/);
+  await expect(
+    editPathAction(form({ edit: "skip", sectionId: "60", reason: "bored" })),
   ).rejects.toThrow(/^redirect:\/paths$/);
 });

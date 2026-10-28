@@ -62,7 +62,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "onboarding_completed": 1,
     "outbound_click": 1,
     "path_paused": 1,
-    "path_section_skipped": 1,
+    "path_section_skipped": 2,
     "path_started": 1,
     "pwa_installed": 1,
     "question_flagged": 1,
@@ -164,6 +164,7 @@ class PathPausedProps(_Model):
 class PathSectionSkippedProps(_Model):
     path_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
     section_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    reason: Literal["user", "mastered"]
 
 
 class PathStartedProps(_Model):
@@ -331,7 +332,7 @@ class PathPausedEvent(_EnvelopeBase):
 
 class PathSectionSkippedEvent(_EnvelopeBase):
     name: Literal["path_section_skipped"]
-    version: Literal[1]
+    version: Literal[2]
     props: PathSectionSkippedProps
 
 

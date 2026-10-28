@@ -1,6 +1,7 @@
 import type { Chip } from "../server/chips";
 import { type PathNext, QUIZ_SECONDS } from "../server/ports";
 import { ReadingLink } from "./paths/ReadingLink";
+import { SkipSection } from "./paths/SkipSection";
 import { startCheckpointAction } from "./quiz/actions";
 import { Card } from "./ui/Card";
 
@@ -26,13 +27,33 @@ export function PathCard({ next, chip }: { next: PathNext; chip: Chip }) {
               {next.concepts.join(", ")} · reading {next.n} of {next.of} ·{" "}
               {next.reading.minutes} min · {next.reading.articleTitle}
             </p>
-            <ReadingLink
-              reading={next.reading}
-              label={`Read ${next.reading.sectionTitle}`}
-              pathId={next.pathId}
-              chip={chip}
-              className={BUTTON}
-            />
+            <div className="mt-auto flex flex-wrap items-center gap-3">
+              <ReadingLink
+                reading={next.reading}
+                label={`Read ${next.reading.sectionTitle}`}
+                pathId={next.pathId}
+                chip={chip}
+                className={BUTTON}
+              />
+              {/* Q-P2-29: mastered already; nothing is skipped without a tap. */}
+              {next.mastered ? (
+                <>
+                  <span
+                    id={`known-${next.sectionId}`}
+                    className="text-sm font-semibold"
+                  >
+                    You know this
+                  </span>
+                  <SkipSection
+                    describedBy={`known-${next.sectionId}`}
+                    sectionId={next.sectionId}
+                    name={next.concepts.join(", ")}
+                    reason="mastered"
+                    back={`/?chip=${chip}`}
+                  />
+                </>
+              ) : null}
+            </div>
           </>
         ) : (
           <>

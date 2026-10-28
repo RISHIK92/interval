@@ -49,7 +49,7 @@ export const EVENT_VERSIONS = {
   onboarding_completed: 1,
   outbound_click: 1,
   path_paused: 1,
-  path_section_skipped: 1,
+  path_section_skipped: 2,
   path_started: 1,
   pwa_installed: 1,
   question_flagged: 1,
@@ -126,6 +126,7 @@ export const propsSchemas = {
   path_section_skipped: z.strictObject({
     path_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     section_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    reason: z.enum(["user", "mastered"]),
   }),
   path_started: z.strictObject({
     path_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -283,7 +284,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("path_section_skipped"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.path_section_skipped,
   }),
   z.strictObject({
