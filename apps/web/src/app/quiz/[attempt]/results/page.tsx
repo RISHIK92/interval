@@ -91,14 +91,22 @@ export default async function ResultsPage({
         </p>
       </header>
       {checkpoint === null ? null : checkpoint.passed ? (
-        <p
+        <div
           role="status"
-          className="rounded-2xl bg-go-soft px-4 py-3 font-semibold"
+          className="flex flex-col gap-1 rounded-2xl bg-go-soft px-4 py-3"
         >
-          {checkpoint.next === null
-            ? "Passed. That's the whole path."
-            : `Passed: ${checkpoint.next.join(", ")} unlocked.`}
-        </p>
+          <p className="font-semibold">
+            {checkpoint.next === null
+              ? "Passed. That's the whole path."
+              : `Passed: ${checkpoint.next.join(", ")} unlocked.`}
+          </p>
+          {/* Owner, 2026-10-28: a pass's misses go to review too; say which. */}
+          {checkpoint.missed.length === 0 ? null : (
+            <p className="text-sm">
+              In your review queue now: {checkpoint.missed.join(", ")}.
+            </p>
+          )}
+        </div>
       ) : (
         <div
           role="status"

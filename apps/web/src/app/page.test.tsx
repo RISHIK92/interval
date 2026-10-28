@@ -310,11 +310,12 @@ test("every card is full size in one sideways feed", async () => {
 });
 
 // ADR-0019: the design's right column, greyed until its features exist.
-test("the wide layout's column shows four coming-later panels", async () => {
+test("the wide layout's column: path and review live, streak and battle coming later", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render();
-  const column = html.slice(html.indexOf('aria-label="Coming later"'));
+  const start = html.indexOf('aria-label="At a glance"');
+  const column = html.slice(start, html.indexOf("</aside>", start));
   for (const name of [
     "Streak",
     "Your path",
@@ -323,7 +324,9 @@ test("the wide layout's column shows four coming-later panels", async () => {
   ]) {
     expect(column).toContain(name);
   }
-  expect(column.match(/Coming later/g)?.length).toBeGreaterThanOrEqual(4);
+  // No active path's next step: a link to the paths, claiming nothing.
+  expect(column).toMatch(/href="\/paths"[^]*?See the paths/);
+  expect(column.match(/Coming later/g)).toHaveLength(2);
 });
 
 // ADR-0019: the server says a plain hello by first name; the device picks the line.
@@ -701,6 +704,7 @@ test("with concepts due, the second card is the review queue, saying why", async
   expect(firstCard).toBeLessThan(reviewAt);
   expect(reviewAt).toBeLessThan(secondCard);
   expect(html).toContain("Review 4 concepts · about 2 min");
+  expect(html).toContain("4 concepts due");
   // Every card says why it's there (§5B).
   expect(html).toContain("Due for review: Raft, Quorum, MVCC and 1 more");
   expect(html).toContain('href="/library#review-queue"');
@@ -771,6 +775,11 @@ test("the path's next reading is the first card, saying why, as a path open", as
   );
   // The ranked cards keep their positions.
   expect(html).toMatch(/moment=2[^"]*pos=2/);
+  // The right rail links the path, and the review queue, now both live.
+  const rail = html.slice(html.indexOf('aria-label="At a glance"'));
+  expect(rail).toMatch(/href="\/paths\/6"[^]*?Your path[^]*?Replication/);
+  expect(rail).toMatch(/href="\/library#review-queue"[^]*?Nothing due/);
+  expect(rail).not.toMatch(/Your path<\/span><span[^>]*>Coming later/);
 });
 
 test("a checkpoint ready to take is the first card; none without a next step", async () => {

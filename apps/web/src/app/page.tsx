@@ -416,7 +416,14 @@ export default async function HomePage({
           </FeedRow>
         )}
       </main>
-      <ComingLater />
+      <ComingLater
+        path={
+          pathNext === null
+            ? null
+            : { pathId: pathNext.pathId, name: pathNext.pathName }
+        }
+        due={due.length}
+      />
       <TabBar current="home" firstName={chosen.firstName} />
     </div>
   );

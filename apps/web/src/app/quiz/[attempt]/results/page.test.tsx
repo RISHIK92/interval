@@ -149,6 +149,7 @@ test("a passed checkpoint says what it unlocked and leads back to the path", asy
     answered: 5,
     checkpoint: { ...checkpoint.checkpoint, passed: true, missed: [] },
   });
+  expect(html).not.toContain("review queue");
   expect(nextMoment).not.toHaveBeenCalled();
   expect(html).toContain("Checkpoint · Quorums");
   expect(html).toContain("Passed: Leases unlocked.");
@@ -171,4 +172,15 @@ test("a failed checkpoint says what it needs, what's in review, and offers a ret
     /name="sectionId" value="60"[^]*?name="back" value="\/paths\/6"[^]*?Try again/,
   );
   expect(html).toContain("Back to the path");
+});
+
+test("a passed checkpoint still names what it put in review (owner, 2026-10-28)", async () => {
+  const html = await render({
+    ...checkpoint,
+    correct: 4,
+    answered: 5,
+    checkpoint: { ...checkpoint.checkpoint, passed: true, missed: ["Quorums"] },
+  });
+  expect(html).toContain("Passed: Leases unlocked.");
+  expect(html).toContain("In your review queue now: Quorums.");
 });

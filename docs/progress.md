@@ -2087,3 +2087,9 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: tests that couldn't fail (locked section, ordering), ING-2 coverage, keys by concept id, one shared type. Not fixed: the lateral reading lookup runs for locked sections too (discarded in TS; fine at this size).
 - Noticed, not fixed: `kysely-progress.ts` still has its own copy of the moment-concept rule; it could use `momentTeaches()`.
 - Week 10 and its follow-ups (S07, S08) are built. Not seen in Chrome: no path is live yet.
+
+### 2026-10-28 — Week 10 Chrome check and two fixes (no slice)
+- Checked in Chrome on the local test account (127.0.0.1, onboarding redone since its preferences were gone): the Paths tab with the 10 live paths; Start; the timeline; the feed's path card opening the reader as a path open; Mark done back to the path; Take the checkpoint once readings are done; a failed checkpoint (Not yet, Try again; the retry began with a question not asked before); a pass at 4 of 5 unlocking the next section; Edit mode (Pause, Up/Down, Skip, Swap list). Three readings were marked finished in the DB and the second attempt's clock was extended, to get through faster than a person would.
+- Owner: 60 seconds for 5 questions being hard is expected.
+- Fixed: the right rail's "Your path" and "Review queue" were still "Coming later"; they now link the active path (or the Paths tab) and the review queue with its due count (`ComingLater` takes `path` and `due`). A passed checkpoint now also names the concepts it put in review. Tests: feed rail, results page. `pnpm check` passes (25/25).
+- Noted for the owner: some path readings fit their section loosely (moment tagging quality), e.g. "Sequential SSD read" under Caching.
