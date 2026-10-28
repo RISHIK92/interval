@@ -216,3 +216,94 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - Out of scope: a prompt on Start; prerequisites more than one hop away; per-user generated paths (§5F: a person approves each path).
 - Q: Q-P2-30.
 
+## Week 11: PDF books
+
+Owner answers: Q-P2-31..37 (2026-10-28). ADR-0022 (Tesseract OCR) is PROPOSED; S03 waits for it.
+
+### P2-W11-S01 Upload a book, privately
+- IDs: §5F, DB-6, ING-5, OPS-3, C-11
+- Needs: none
+- Goal: a user uploads a PDF; it is stored privately and queued for processing.
+- Acceptance:
+  - "Add a book" on the Paths tab (Your books);
+  - a PDF only (checked by its header, not its name), at most 50 MB;
+  - at most 5 books per user (entitlement limits, OPS-3);
+  - stored with server-side encryption under a per-user key prefix in S3 (SeaweedFS locally, ADR-0011) through `@aws-sdk/client-s3` (approved);
+  - a `book` row (title from the file name until processing, status `processing`) and a `book_process` job on Valkey;
+  - the user can delete a book, which removes its file and every row;
+  - events `book_uploaded` and `book_deleted`;
+  - no one else can see or reach it.
+- Out of scope: processing (S02).
+- Q: Q-P2-34, Q-P2-37.
+
+### P2-W11-S02 Text, chapters and sessions
+- IDs: §5F, ING-5, ING-4, §3.2
+- Needs: S01
+- Goal: a digital PDF becomes chapters and sessions.
+- Acceptance:
+  - the worker reads the PDF with pdfplumber (approved);
+  - an encrypted (DRM) PDF fails with a message ("protected PDFs can't be read", §5F: never bypasses DRM);
+  - more than 1,000 pages fails;
+  - each page's text is kept privately; a page with no extractable text is marked `scanned` (S03 reads it);
+  - chapters come from the PDF's bookmarks, else from heading detection (larger font, short line, top of a block);
+  - each chapter's text is split at its headings into sessions of 2–8 minutes, as moments are (ING-4), with the title from the heading;
+  - status becomes `ready` (or `ocr` while scanned pages wait);
+  - the title comes from the PDF's metadata when present.
+- Out of scope: OCR (S03), the reader (S04).
+- Q: Q-P2-31.
+
+### P2-W11-S03 Scanned pages through Tesseract
+- IDs: ING-5, ADR-0022 (PROPOSED: needs ACCEPTED first), ADR-0011, ADR-0014
+- Needs: S02
+- Goal: scanned pages get their text from a Tesseract service.
+- Acceptance:
+  - an `ocr` container (`deploy/ocr/`: Tesseract with English plus a stdlib HTTP server, `mem_limit: 512m`) in docker-compose and the VM stack;
+  - `OCR_URL` from env;
+  - an `Ocr` port with an HTTP adapter and a fake;
+  - an `ocr_page` BullMQ stage, one page per job, with retries;
+  - the worker renders each scanned page to an image and stores its text;
+  - when a book's last page is done, its chapters and sessions are rebuilt and it becomes `ready`;
+  - the Fargate service is in the AWS stack (synth only).
+- Out of scope: other languages.
+- Q: Q-P2-32.
+
+### P2-W11-S04 The reader and saved position
+- IDs: §5F, §3.2
+- Needs: S02
+- Goal: a book's session is read in the app, and the place is kept.
+- Acceptance:
+  - `/books/[id]?session=` shows the session's extracted text, sized to the break length, for the owner only;
+  - the scroll position within the session is saved, and the book opens where the user left off;
+  - Previous and Next session;
+  - "Finished?" marks a session done, as moments are;
+  - text only: figures and tables appear as their extracted text.
+- Out of scope: highlights and notes on books.
+- Q: Q-P2-31.
+
+### P2-W11-S05 Books in the Paths tab and the feed; the goal
+- IDs: §5F, REC-1, §4, ADR-0015
+- Needs: S04
+- Goal: books are followed like paths.
+- Acceptance:
+  - "Your books" in the Paths tab with status (processing, reading pages, ready, failed, with the reason);
+  - a book's chapter timeline: sessions ticked as finished, the next one first;
+  - the next book session is a feed card after the topic path's card ("Next in your book: …");
+  - the onboarding and Profile goal "Finally finish that book" is enabled, and choosing it leads to "Add a book" after onboarding;
+  - events `book_session_finished` and `book_opened`.
+- Out of scope: ranking by goal (ADR-0015).
+- Q: Q-P2-33, Q-P2-36.
+
+### P2-W11-S06 Book checkpoints, made on demand
+- IDs: §5F, Q-1, Q-2, AI-3, OPS-4, Q-P2-26
+- Needs: S05, W10-S04
+- Goal: a chapter's end offers a 60-second checkpoint built from that chapter.
+- Acceptance:
+  - when the user finishes a chapter's sessions, its questions are generated then (owner: on demand) by the W8 generator-validator pipeline from the chapter's text, through the gateway (ADR-0008) and against the user's budget (OPS-4);
+  - "Preparing your checkpoint…" until they're ready;
+  - the questions are private to that user and book (never in anyone else's quiz or the admin spot-check of public sources);
+  - the checkpoint follows Q-P2-26 (5 questions, 60 seconds, 4 of 5, retry);
+  - the concepts to mark practiced come from the chapter, tagged by the W3 tagger when the questions are made;
+  - missed concepts are due for review.
+- Out of scope: book paths shared between users.
+- Q: Q-P2-35, Q-P2-38 (open: blocks this slice).
+

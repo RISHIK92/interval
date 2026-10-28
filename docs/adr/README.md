@@ -43,3 +43,4 @@ An ADR records one decision that the blueprint does not settle, or changes one i
 | [0019](0019-web-home-layout.md)                         | Web Home layout: sidebar with Leagues, sideways feed, "Coming later" column, greeting | ACCEPTED | design pass: Home (amends ADR-0017) |
 | [0020](0020-groq-as-a-second-llm-provider.md) | Groq as a second LLM provider, chosen per model | ACCEPTED | tagging model pick (amends ADR-0007) |
 | [0021](0021-google-gemini-api-as-an-llm-provider.md) | Google's Gemini API as an LLM provider, chosen per model like Groq | ACCEPTED | tagging model pick (extends ADR-0020) |
+| [0022](0022-tesseract-ocr-service.md) | OCR for scanned book pages: a Tesseract container, not Textract | PROPOSED | Week 11 PDF books (amends ING-5) |

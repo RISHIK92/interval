@@ -172,3 +172,37 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - **Answer (owner, 2026-10-28):** a missing foundation is a direct (one-hop) prerequisite of a section's concepts that isn't in the path and that the user has never explored. It shows on each open section of the path page ("Builds on X, which you haven't read yet", with one reading on X) until the user has explored X; no dismiss, no prompt on Start.
 - Suggested defaults: at most 3 foundations per section, fewest first by name; the reading follows the swap list's rule (rights allowing, link working, newest first) and opens as a path open; a section the user skipped shows none.
 
+### Q-P2-31 The book reader (P0)
+- Cite: §5F ("an in-app reader saves position"), C-11.
+- **Answer (owner, 2026-10-28):** the reader shows the book's extracted text, split into sessions sized to the break length, like moments; the position is the session and the scroll within it. No PDF page rendering.
+
+### Q-P2-32 OCR engine (P0)
+- Cite: ING-5 ("Textract OCR for scanned pages"), ADR-0011, ADR-0013.
+- **Answer (owner, 2026-10-28):** Tesseract in its own Docker container with a 512 MB memory cap, as a separate OCR service the worker calls; jobs queue on the existing Valkey. Digital pages use the PDF's own text; only scanned pages are OCR'd. Recorded as ADR-0022 (PROPOSED), since it amends ING-5.
+
+### Q-P2-33 Where books live (P0)
+- Cite: §4 ("Paths: topic paths and books"), §5F.
+- **Answer (owner, 2026-10-28):** the Paths tab ("Your books") and the feed (the next session as a card), with chapter checkpoints this week.
+
+### Q-P2-34 Upload limits (P1)
+- Cite: OPS-3, OPS-4, DB-6.
+- **Answer (owner, 2026-10-28):** 50 MB and 1,000 pages per file, 5 books per user, as entitlement limits; encrypted (DRM) PDFs refused.
+
+### Q-P2-35 Book checkpoints (P1)
+- Cite: §5F (checkpoints), Q-P2-26.
+- **Answer (owner, 2026-10-28):** per chapter, generated on demand when the user reaches the chapter's end, so unread chapters cost nothing; the same rules as topic path checkpoints.
+
+### Q-P2-36 The "Finally finish that book" goal (P2)
+- Cite: ADR-0015.
+- **Answer (owner, 2026-10-28):** enable it once books ship; choosing it leads to adding a book.
+
+### Q-P2-37 New dependencies (P1)
+- Cite: CLAUDE.md ("No new dependency without asking").
+- **Answer (owner, 2026-10-28):** pdfplumber in the worker (not PyMuPDF: AGPL); `@aws-sdk/client-s3` in the web app for the upload. No presigner: uploads go through the web server.
+
+### Q-P2-38 Private book text and the model provider (P0, open)
+- Cite: ING-5 ("a private pipeline"), AI-3, ADR-0007, ADR-0008, Q-P2-35.
+- Question: book checkpoints (S06) need the chapter's text sent to the model provider (OpenRouter's DeepSeek, as the W8 generator uses) to write and check questions, and to tag concepts. Is that acceptable for private uploads, and with what conditions (a provider with zero data retention, a notice at upload, opt-in per book)?
+- Suggested default: allowed through the gateway only, with a one-line notice at upload ("Checkpoints send a chapter's text to our AI provider to write questions"), and only providers that don't train on or retain API data.
+- Blocks S06 only.
+
