@@ -124,3 +124,37 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   7. Metric definitions: a finished moment "leads to a quiz" when its user starts Test 60s on it within a day either side; the flag rate is over answered questions, all time to yesterday; quiz return compares last full week's takers and non-takers on the following week (Phase 2 "done when").
 - **Answers (owner, 2026-10-28):** 1 yes (days); 2 yes (30 minutes idle); 3 show the review card alone on an empty feed (changed: built); 4 yes (±0.5 logits); 5 yes (stay in quizzes, queued once); 6 yes (still counts); 7 keep the metric definitions as built.
 
+## Week 10: topic paths, launch paths, checkpoints
+
+### Q-P2-22 What a topic path is made of (P0)
+- Cite: §5F ("ordered sections built from moments across sources"), glossary "Topic path", DB-2 (prerequisite edges), wireframe 05 ("Books and topics split into sessions, with checkpoints between sections").
+- **Answer (owner, 2026-10-28):** a path covers a set of concepts. Each section is one concept (or a small group), ordered by prerequisites; its sessions are tagged moments on that concept from different sources; a checkpoint follows each section.
+- Suggested defaults: 2 to 4 sessions a section, one moment each, from different sources where there are, preferring moments the reader can frame and moments with live questions (so the checkpoint has something to ask); only moments the source's rights allow (ING-2); a section with no usable moment is left out of the proposal.
+
+### Q-P2-23 Approval and user edits (P0)
+- Cite: §5F ("An LLM proposes the order from concept prerequisites, and a person approves it"), C-25 (HTML: "pause, reorder, skip or change a path from the Edit control").
+- **Answer (owner, 2026-10-28):** the owner approves each path's order on an admin page (reorder, edit, approve) before it goes live. Users get full edits on their own copy: pause and resume, reorder sections, skip a section, swap a session's moment for another on the same concept. Resolves C-25.
+- Suggested defaults: a reordered section whose prerequisites now come later shows a warning but is allowed; a skipped section gives no practiced credit and unlocks the next; a user's edits never change the approved path, and a path the owner edits later keeps users' progress on sections that still exist.
+
+### Q-P2-24 The launch paths (P0)
+- Cite: Phase 2 Week 10 ("5 to 8 launch paths").
+- **Answer (owner, 2026-10-28):** the model proposes about 10 candidate paths from the concept graph and the moments we have (name, concepts, why); the owner picks 5 to 8 on the admin page.
+
+### Q-P2-25 The path model (P1)
+- Cite: AI-2, OPS-4, ADR-0008, Q-P2-13.
+- **Answer (owner, 2026-10-28):** DeepSeek V4.1 Flash through OpenRouter (synchronous; a handful of calls), under the $0.80/M output cap.
+
+### Q-P2-26 Checkpoints (P0)
+- Cite: §5F ("60-second quizzes between path sections. Passing marks those concepts as practiced and unlocks the next section. Missed concepts go to the review queue."), wireframe 12 variant `cp` ("Pass 4 of 5 to unlock Partitioning").
+- **Answer (owner, 2026-10-28):** 5 questions on the section's concepts, 60 seconds, pass with 4 of 5. Passing marks those concepts practiced and unlocks the next section; missed concepts go to the review queue (due now); failing allows a retry.
+- Suggested defaults: questions from the section's own sessions' moments first, then other live questions on its concepts; "marks practiced" raises a concept to at least practiced (p at least 0.5) and never lowers one already mastered; answers also move mastery as Test 60s answers do (P2-W9-S03); a retry draws questions not asked in the last attempt where it can; a checkpoint is offered once every session in the section is finished or skipped.
+
+### Q-P2-27 Following a path (P1)
+- Cite: §4 (Paths tab), §5B (feed items), REC-1 ("continue items"), wireframe 05.
+- **Answer (owner, 2026-10-28):** the Paths tab lists the approved paths; Start makes one the user's active path (one at a time; starting another pauses the current one); its next session shows as a card in the feed.
+- Suggested defaults: the path's next-session card is the feed's first card (before the review card), saying why ("Next in your path: Replication, session 3 of 3"); the Paths tab shows the active path's timeline (sections, sessions, checkpoints with the pass mark and what they unlock, locked sections saying what unlocks them), as wireframe 05.
+
+### Q-P2-28 Path events and the continuity metric (P1)
+- Cite: DB-5, §8 ("Continuity: path progress"), Q-P1-20.
+- Suggested default: events `path_started`, `path_paused`, `path_section_skipped`, `checkpoint_started`, `checkpoint_finished` (passed or not, correct); a metric query for path progress (sections passed per active path per week).
+

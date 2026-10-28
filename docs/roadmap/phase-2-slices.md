@@ -150,3 +150,53 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - Out of scope: per-user ability in ranking.
 - Q: Q-P2-19, Q-P2-20.
 
+## Week 10: topic paths, launch paths, checkpoints
+
+### P2-W10-S01 Paths and the proposer
+- IDs: §5F, DB-2, AI-2, OPS-4, ING-2
+- Needs: P1-W3-S01 (concept graph), P1-W3-S02 (tags)
+- Goal: the model proposes about 10 candidate topic paths and orders each into sections by prerequisites, saved as drafts.
+- Acceptance: migration `path`, `path_section` (ordinal, concepts), `path_session` (ordinal, moment); `ai_feature` 'paths'; `propose-paths` through the gateway (DeepSeek V4.1 Flash): candidates (name, concepts, why) from the concept graph and moment coverage, then each candidate's order from prerequisite edges (the model proposes; edges are checked, a cycle or unknown concept refused); sessions picked deterministically per section (2 to 4 allowed moments, different sources, frameable and with live questions first); drafts never shown to users.
+- Out of scope: the admin page (S02), anything users see.
+- Q: Q-P2-22, Q-P2-24, Q-P2-25.
+
+### P2-W10-S02 Path review page
+- IDs: §5F, Q-2 pattern (admin.review)
+- Needs: S01
+- Goal: the owner reorders, edits and approves (or retires) proposed paths on an admin page.
+- Acceptance: `/admin/paths` behind `admin.review`: each draft's name, why, sections with their concepts and sessions; move a section up or down, rename, remove a section or session, approve (live) or retire; a path needs at least 2 sections to go live.
+- Out of scope: users following paths (S03).
+- Q: Q-P2-23, Q-P2-24.
+
+### P2-W10-S03 The Paths tab
+- IDs: §4, §5F, wireframe 05
+- Needs: S02
+- Goal: users see the approved paths, start one (one active at a time), and follow its timeline.
+- Acceptance: the Paths tab replaces the coming-later placeholder; a list of live paths; Start (pausing any other active path); the path page's timeline: sections in the user's order, sessions with finished state (from section finishes), checkpoint steps with "Pass 4 of 5 to unlock …", locked sections saying what unlocks them; a session opens in the reader; event `path_started`.
+- Out of scope: checkpoints themselves (S04), edits (S05), the feed card (S06).
+- Q: Q-P2-27, Q-P2-28.
+
+### P2-W10-S04 Checkpoints
+- IDs: §5F, PER-2, Q-1
+- Needs: S03, P2-W9-S02, P2-W9-S04
+- Goal: a 60-second checkpoint of 5 questions after a section; 4 of 5 passes, marks its concepts practiced and unlocks the next section; misses go to review.
+- Acceptance: a checkpoint is a quiz attempt on the section (offered once every session is finished or skipped); 5 questions from the section's moments first; the same question card and clock; pass at 4 of 5: concepts raised to at least practiced, the next section opens; missed concepts' FSRS cards due now; retry allowed; events `checkpoint_started`, `checkpoint_finished`.
+- Out of scope: book checkpoints (Week 11).
+- Q: Q-P2-26, Q-P2-28.
+
+### P2-W10-S05 Editing your path
+- IDs: C-25, §5F
+- Needs: S03
+- Goal: a user can pause and resume their path, reorder sections, skip a section, and swap a session's moment.
+- Acceptance: an Edit control on the path page; pause/resume (a paused path leaves the feed); move a section up or down (a prerequisite now later shows a warning); skip (no practiced credit, next unlocks); swap a session for another allowed moment on the same concept; the approved path never changes; events `path_paused`, `path_section_skipped`.
+- Out of scope: creating paths.
+- Q: Q-P2-23.
+
+### P2-W10-S06 The next session in the feed, and path metrics
+- IDs: REC-1, §5B, §8, DB-5
+- Needs: S03, S04
+- Goal: the active path's next session (or checkpoint) is the feed's first card, and path progress is measured.
+- Acceptance: the card says why ("Next in your path: …"), opens the session or the checkpoint; none for a paused path; read when the feed is served; a metric query for path progress (sections passed per active path per week), DuckDB-tested and saved in the AWS stack.
+- Out of scope: path reminders (notifications).
+- Q: Q-P2-27, Q-P2-28.
+

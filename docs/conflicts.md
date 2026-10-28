@@ -207,6 +207,7 @@ Precedence: Oct 23 > HTML for product and technical behavior. HTML wins only on 
 - **Oct 23**: "An LLM proposes the order from concept prerequisites, and a person approves it." (§5F).
 - **Wins**: Oct 23 for authoring. Oct 23 is silent on per-user edits.
 - **Changes build**: Phase 2 Week 10. Needs confirmation.
+- **Resolved (owner, 2026-10-28)**: the owner approves each path's order; users get full edits on their own copy (pause and resume, reorder, skip, swap a session's moment). Q-P2-23.
 
 ### C-26 Where the simulation engine runs
 - **HTML**: "the simulation engine and test runner run in isolated sandboxes" (§9, Real-time notes).
