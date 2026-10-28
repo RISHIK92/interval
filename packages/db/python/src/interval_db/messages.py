@@ -68,6 +68,14 @@ class GenerateQuestions(_Message):
     moment_id: Annotated[int, Field(ge=1)]
 
 
+class OcrPage(_Message):
+    """Read one scanned page of a book through the OCR service (ADR-0022,
+    P2-W11-S03)."""
+
+    book_id: Annotated[int, Field(ge=1)]
+    page_no: Annotated[int, Field(ge=1)]
+
+
 class PolishNote(_Message):
     """Polish one why-this-matters note with the notes model, once (REC-5, AI-2,
     AI-4, P1-W4-S06)."""
@@ -119,6 +127,7 @@ type MessageName = Literal[
     "embed_item",
     "fetch_item",
     "generate_questions",
+    "ocr_page",
     "polish_note",
     "recompute_feed",
     "remove_file",
@@ -134,6 +143,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "embed_item": EmbedItem,
     "fetch_item": FetchItem,
     "generate_questions": GenerateQuestions,
+    "ocr_page": OcrPage,
     "polish_note": PolishNote,
     "recompute_feed": RecomputeFeed,
     "remove_file": RemoveFile,

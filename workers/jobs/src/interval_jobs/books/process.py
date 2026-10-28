@@ -17,31 +17,33 @@ def too_many_pages(limit: int) -> str:
     return f"Over {limit:,} pages."
 
 
-def process_book(store: Store, files: Files, book_id: int) -> None:
+def process_book(store: Store, files: Files, book_id: int) -> list[int]:
+    """The book processed; the scanned pages to read by OCR (ADR-0022), if any."""
     books = store.books
-    # LOAD-5: a book already processed (or deleted) is left as it is.
+    # LOAD-5: a book already processed (or deleted) is left as it is. One waiting for
+    # OCR gives its unread pages again: a retry after their queueing failed.
     job = books.for_processing(book_id)
     if job is None:
-        return
+        return books.unread_scanned(book_id)
     data = files.get(job.file_key)
     if data is None:
         books.fail(book_id, MISSING)
-        return
+        return []
     limit = books.max_pages(job.user_id)
     if limit == 0:  # S01 checks the plan at upload; this is a plan changed since
         books.fail(book_id, NOT_ON_PLAN)
-        return
+        return []
     try:
         with open_pdf(data) as pdf:
             if limit is not None and pdf.page_count > limit:
                 books.fail(book_id, too_many_pages(limit))
-                return
+                return []
             title = pdf.title()
             marks = pdf.bookmarks()
             pages = list(pdf.pages())
     except ProtectedPdf:
         books.fail(book_id, PROTECTED)  # §5F: never bypasses DRM
-        return
+        return []
     except UnreadablePdf as error:
         # The error's type only: a parser's message can quote the private text.
         log.warn(
@@ -50,17 +52,19 @@ def process_book(store: Store, files: Files, book_id: int) -> None:
             error=type(error.__cause__).__name__,
         )
         books.fail(book_id, UNREADABLE)
-        return
+        return []
     texts = [_text(page) for page in pages]
-    if any(t.scanned for t in texts):
-        # S03 reads the scanned pages, then builds the chapters from every page.
+    scanned = [t.page_no for t in texts if t.scanned]
+    if scanned:
+        # The OCR stage reads them, then builds the chapters from every page.
         books.save(book_id, title, texts, [], "ocr")
-        return
+        return scanned
     chapters = structure(pages, marks, title or job.title)
     if not chapters:
         books.fail(book_id, NO_TEXT)
-        return
+        return []
     books.save(book_id, title, texts, chapters, "ready")
+    return []
 
 
 def _text(page: Page) -> BookPageText:

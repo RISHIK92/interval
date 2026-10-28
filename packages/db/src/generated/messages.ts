@@ -28,6 +28,11 @@ export const messageSchemas = {
     broken: z.number().int().min(0),
     moment_id: z.number().int().min(1),
   }),
+  // Read one scanned page of a book through the OCR service (ADR-0022, P2-W11-S03).
+  ocr_page: z.strictObject({
+    book_id: z.number().int().min(1),
+    page_no: z.number().int().min(1),
+  }),
   // Polish one why-this-matters note with the notes model, once (REC-5, AI-2, AI-4, P1-W4-S06).
   polish_note: z.strictObject({
     note_id: z.number().int().min(1),

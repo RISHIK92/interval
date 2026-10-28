@@ -83,6 +83,7 @@ QUEUE_TRANSPORT=bullmq
 VALKEY_URL=redis://valkey:6379
 AWS_REGION=${REGION}
 ${files_lines}
+OCR_URL=http://ocr:8080
 BETTER_AUTH_SECRET=${better_auth}
 BETTER_AUTH_URL=${public_url}
 ${mail_transport_line}

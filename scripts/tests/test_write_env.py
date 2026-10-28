@@ -88,6 +88,7 @@ def test_writes_three_env_files_each_with_only_its_keys_and_mode_600(
         "VALKEY_URL": "redis://valkey:6379",
         "AWS_REGION": "ap-south-1",
         "PRIVATE_CONTENT_BUCKET": "prod-bucket-1",
+        "OCR_URL": "http://ocr:8080",
         "BETTER_AUTH_SECRET": "authSecret456",
         "BETTER_AUTH_URL": "http://localhost",
         "MAIL_TRANSPORT": "log",

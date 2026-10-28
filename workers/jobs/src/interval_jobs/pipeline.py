@@ -18,8 +18,8 @@ tracking parameters, fetch refines the canonical URL from the page and fingerpri
 full text, and both link duplicates to the earliest-published item.
 """
 
-from collections.abc import Callable
-from contextlib import AbstractContextManager
+from collections.abc import Callable, Generator
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Literal
@@ -34,6 +34,7 @@ from interval_db.messages import (
     FetchItem,
     GenerateQuestions,
     MessageName,
+    OcrPage,
     PolishNote,
     RecomputeFeed,
     RemoveFile,
@@ -43,6 +44,7 @@ from interval_db.messages import (
 )
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
+from interval_jobs.books.ocr import GAVE_UP, give_up, read_page
 from interval_jobs.books.process import process_book
 from interval_jobs.concept_vectors import concept_text, text_hash
 from interval_jobs.embedding import embed_item
@@ -61,6 +63,7 @@ from interval_jobs.ports import (
     Files,
     JobQueue,
     ModelError,
+    Ocr,
     QuestionTarget,
     QueueHandler,
     RobotsDisallowed,
@@ -79,6 +82,7 @@ from interval_jobs.questions import (
     shuffled,
     validation_prompt,
 )
+from interval_jobs.queue import ATTEMPTS
 from interval_jobs.rights import EXCERPT_MAX_CHARS, allowed
 from interval_jobs.segment import segment_item
 from interval_jobs.tagging import (
@@ -108,6 +112,7 @@ STAGES: tuple[MessageName, ...] = (
     "validate_question",
     "remove_file",
     "book_process",
+    "ocr_page",
 )
 
 # Q-P2-10: the free question model is an unimportant background task. A rate limit or
@@ -171,10 +176,13 @@ class Pipeline:
         notes: ModelJob | None = None,
         questions: ModelJob | None = None,
         files: Files | None = None,
+        ocr: Ocr | None = None,
     ) -> None:
         self._unit = unit_of_work
         # DB-6: None when file storage isn't configured; a removal then fails, retried.
         self._files = files
+        # ADR-0022: None when OCR_URL isn't set; a scanned page then waits, retried.
+        self._ocr = ocr
         self._queue = queue
         self._clock = clock
         self._tagging = tagging
@@ -198,6 +206,7 @@ class Pipeline:
             "validate_question": self._validate_stage,
             "remove_file": self._remove_file_stage,
             "book_process": self._book_stage,
+            "ocr_page": self._ocr_stage,
         }
 
     # P2-W11-S02: an uploaded PDF read into chapters and sessions.
@@ -206,7 +215,55 @@ class Pipeline:
         if self._files is None:
             raise RuntimeError("file storage isn't configured (PRIVATE_CONTENT_BUCKET)")
         with self._unit() as services:
-            process_book(services.store, self._files, message.book_id)
+            scanned = process_book(services.store, self._files, message.book_id)
+        # After the commit, so each page job finds the book waiting for it.
+        self._enqueue(
+            [
+                (
+                    "ocr_page",
+                    {"book_id": message.book_id, "page_no": page_no},
+                    f"ocr-{message.book_id}-{page_no}",
+                )
+                for page_no in scanned
+            ]
+        )
+
+    # P2-W11-S03 (ADR-0022): a scanned page read by the OCR service. On the last
+    # attempt nothing leaves the book waiting for ever: an OCR error records the page
+    # empty (read_page); anything else (OCR or files not configured, storage, the
+    # database) fails the book with a reason. Both are logged and counted.
+    def _ocr_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, OcrPage)
+        last_attempt = delivery.attempt >= ATTEMPTS
+
+        @contextmanager
+        def stores() -> Generator[Store]:
+            with self._unit() as services:
+                yield services.store
+
+        try:
+            if self._files is None or self._ocr is None:
+                raise RuntimeError(
+                    "OCR isn't configured (PRIVATE_CONTENT_BUCKET, OCR_URL)"
+                )
+            read_page(
+                stores,
+                self._files,
+                self._ocr,
+                message.book_id,
+                message.page_no,
+                last_attempt,
+            )
+        except Exception as error:
+            if not last_attempt:
+                raise
+            log.error(
+                "books: ocr gave up",
+                book_id=message.book_id,
+                page_no=message.page_no,
+                error=type(error).__name__,
+            )
+            give_up(stores, message.book_id, GAVE_UP)
 
     # P2-W11-S01 (LOAD-5): a deleted book's file, removed with the queue's retries.
     # Only under books/: the message names a key, and nothing else is the user's to

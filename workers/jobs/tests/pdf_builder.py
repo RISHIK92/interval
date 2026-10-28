@@ -19,14 +19,16 @@ class Spec:
     outline: list[tuple[str, int]] = field(default_factory=list[tuple[str, int]])
     title: str | None = None
     encrypted: bool = False
+    # 1-based pages given a filled box: ink without text, as a scanned page reads.
+    inked: list[int] = field(default_factory=list[int])
 
 
 def _escape(text: str) -> str:
     return text.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
 
 
-def _content(lines: list[TextLine]) -> bytes:
-    parts: list[str] = []
+def _content(lines: list[TextLine], inked: bool) -> bytes:
+    parts: list[str] = ["0 g 72 500 400 120 re f"] if inked else []
     y = PAGE_HEIGHT - 72.0
     for line in lines:
         y -= line.size * 1.4
@@ -44,7 +46,7 @@ def build(spec: Spec) -> bytes:
     objects[3] = b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"
     for i, lines in enumerate(spec.pages):
         page_id, content_id = page_ids[i], page_ids[i] + 1
-        stream = _content(lines)
+        stream = _content(lines, i + 1 in spec.inked)
         objects[content_id] = (
             f"<< /Length {len(stream)} >>\nstream\n".encode() + stream + b"\nendstream"
         )

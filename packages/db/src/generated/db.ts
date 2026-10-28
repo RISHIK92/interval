@@ -168,6 +168,7 @@ export interface BookChapter {
 
 export interface BookPage {
   book_id: Int8;
+  ocr_read_at: Timestamp | null;
   page_no: number;
   scanned: boolean;
   text: string;

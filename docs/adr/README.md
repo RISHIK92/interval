@@ -44,3 +44,4 @@ An ADR records one decision that the blueprint does not settle, or changes one i
 | [0020](0020-groq-as-a-second-llm-provider.md) | Groq as a second LLM provider, chosen per model | ACCEPTED | tagging model pick (amends ADR-0007) |
 | [0021](0021-google-gemini-api-as-an-llm-provider.md) | Google's Gemini API as an LLM provider, chosen per model like Groq | ACCEPTED | tagging model pick (extends ADR-0020) |
 | [0022](0022-tesseract-ocr-service.md) | OCR for scanned book pages: a Tesseract container, not Textract | ACCEPTED | Week 11 PDF books (amends ING-5) |
+| [0023](0023-ocr-as-a-worker-sidecar-in-aws.md) | OCR in AWS mode: a sidecar in the worker's task | ACCEPTED | P2-W11-S03 (amends ADR-0022) |

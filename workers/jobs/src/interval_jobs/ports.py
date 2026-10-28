@@ -1258,6 +1258,30 @@ class Books(Protocol):
 
     def fail(self, book_id: int, reason: str) -> None: ...
 
+    # P2-W11-S03 (ADR-0022): scanned pages read by OCR.
+    def for_ocr(self, book_id: int, page_no: int) -> BookJob | None:
+        """The book while it waits for OCR and this scanned page is still unread."""
+        ...
+
+    def record_ocr(self, book_id: int, page_no: int, text: str) -> int | None:
+        """Stores the page's text; the scanned pages still unread. Holds the book's
+        lock until the unit commits, so only one page sees 0 (and builds the book).
+        None, storing nothing, when the book no longer waits for OCR (deleted, or
+        built) or this page was already read (a second delivery)."""
+        ...
+
+    def unread_scanned(self, book_id: int) -> list[int]:
+        """While the book waits for OCR: its scanned pages not read yet."""
+        ...
+
+    def pages(self, book_id: int) -> list[BookPageText]: ...
+
+
+class Ocr(Protocol):
+    """ADR-0022: the Tesseract service. A page image (PNG) in, its text out."""
+
+    def read(self, png: bytes) -> str: ...
+
 
 class Fetcher(Protocol):
     def fetch(self, url: str, kind: FetchKind) -> Fetched: ...

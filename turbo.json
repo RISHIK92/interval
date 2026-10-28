@@ -78,7 +78,7 @@
     "//#test:py": {
       "dependsOn": ["@interval/db#db:apply"],
       "cache": false,
-      "env": ["DATABASE_URL", "VALKEY_URL", "CI"]
+      "env": ["DATABASE_URL", "VALKEY_URL", "CI", "OCR_URL"]
     },
     "check": {
       "dependsOn": [

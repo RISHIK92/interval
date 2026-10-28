@@ -22,6 +22,7 @@ from interval_jobs.adapters.bullmq_queue import BullmqConsumer, BullmqQueue
 from interval_jobs.adapters.file_sink import FileEventSink
 from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSink
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
+from interval_jobs.adapters.http_ocr import HttpOcr
 from interval_jobs.adapters.openai_compatible import (
     GOOGLE,
     GROQ,
@@ -39,7 +40,14 @@ from interval_jobs.adapters.voyage import VoyageClient
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.events.emitter import Emitter
 from interval_jobs.pipeline import ModelJob, StageServices, UnitOfWork
-from interval_jobs.ports import AiLedger, EventSink, Files, JobQueue, QueueConsumer
+from interval_jobs.ports import (
+    AiLedger,
+    EventSink,
+    Files,
+    JobQueue,
+    Ocr,
+    QueueConsumer,
+)
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 USER_AGENT = "Interval/0.0 (personal learning platform; feed reader)"
@@ -112,6 +120,12 @@ def files() -> Files | None:
         ),
     )
     return S3Files(client, bucket)
+
+
+def ocr() -> Ocr | None:
+    """ADR-0022: the Tesseract service; None without OCR_URL (scanned pages wait)."""
+    url = os.environ.get("OCR_URL")
+    return HttpOcr(url) if url else None
 
 
 def _sqs_client() -> SqsClient:

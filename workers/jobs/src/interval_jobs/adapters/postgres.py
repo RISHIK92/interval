@@ -2459,6 +2459,60 @@ class PostgresBooks:
             (reason, book_id),
         )
 
+    def for_ocr(self, book_id: int, page_no: int) -> BookJob | None:
+        row = self._conn.execute(
+            "select b.user_id, b.file_key, b.title from book b "
+            "join book_page p on p.book_id = b.id and p.page_no = %s "
+            "where b.id = %s and b.status = 'ocr' and p.scanned "
+            "and p.ocr_read_at is null",
+            (page_no, book_id),
+        ).fetchone()
+        if row is None:
+            return None
+        return BookJob(book_id, str(row[0]), str(row[1]), str(row[2]))
+
+    def record_ocr(self, book_id: int, page_no: int, text: str) -> int | None:
+        # The book's lock first: two pages finishing at once take turns, so exactly
+        # one of them sees none left.
+        waiting = self._conn.execute(
+            "select 1 from book where id = %s and status = 'ocr' for update",
+            (book_id,),
+        ).fetchone()
+        if waiting is None:  # deleted, or built already
+            return None
+        updated = self._conn.execute(
+            "update book_page set text = %s, ocr_read_at = now() "
+            "where book_id = %s and page_no = %s and scanned "
+            "and ocr_read_at is null",
+            (text, book_id, page_no),
+        )
+        if updated.rowcount == 0:  # read by an earlier delivery
+            return None
+        row = self._conn.execute(
+            "select count(*) from book_page "
+            "where book_id = %s and scanned and ocr_read_at is null",
+            (book_id,),
+        ).fetchone()
+        assert row is not None
+        return int(row[0])
+
+    def unread_scanned(self, book_id: int) -> list[int]:
+        rows = self._conn.execute(
+            "select p.page_no from book_page p join book b on b.id = p.book_id "
+            "where p.book_id = %s and b.status = 'ocr' and p.scanned "
+            "and p.ocr_read_at is null order by p.page_no",
+            (book_id,),
+        ).fetchall()
+        return [int(r[0]) for r in rows]
+
+    def pages(self, book_id: int) -> list[BookPageText]:
+        rows = self._conn.execute(
+            "select page_no, text, scanned from book_page "
+            "where book_id = %s order by page_no",
+            (book_id,),
+        ).fetchall()
+        return [BookPageText(int(n), str(t), bool(s)) for n, t, s in rows]
+
 
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:

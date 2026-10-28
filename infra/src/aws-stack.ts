@@ -324,6 +324,17 @@ export class AwsStack extends Stack {
       metricName: "EmitFailures",
       metricValue: "$.count",
     });
+    // P2-W11-S03: a scanned page (or book) OCR gave up on; the book finishes without it.
+    logGroup.addMetricFilter("BookOcrGaveUp", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "books: ocr gave up",
+      ),
+      metricNamespace: "Interval/Books",
+      metricName: "OcrGaveUp",
+      metricValue: "1",
+    });
     // P2-W11-S01: a deleted book whose file couldn't be removed (it expires anyway).
     logGroup.addMetricFilter("BookFilesNotRemoved", {
       filterPattern: logs.FilterPattern.stringValue(
@@ -417,10 +428,13 @@ export class AwsStack extends Stack {
       VOYAGE_API_KEY: ecs.Secret.fromSecretsManager(voyage),
     };
 
-    const taskDefinition = (name: string): ecs.FargateTaskDefinition =>
+    const taskDefinition = (
+      name: string,
+      memoryLimitMiB = 1024,
+    ): ecs.FargateTaskDefinition =>
       new ecs.FargateTaskDefinition(this, `${name}Task`, {
         cpu: 512,
-        memoryLimitMiB: 1024,
+        memoryLimitMiB,
         runtimePlatform: {
           cpuArchitecture: ecs.CpuArchitecture.ARM64,
           operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
@@ -662,14 +676,16 @@ export class AwsStack extends Stack {
 
     // The ingestion pipeline's consumer (W2-S02b): one always-on task serving every
     // stage queue. Same image and grants as the one-off jobs.
-    const workerTask = taskDefinition("Worker");
+    // 2 GB: the consumer plus the OCR sidecar's 512 MB (ADR-0022).
+    const workerTask = taskDefinition("Worker", 2048);
     workerTask.addContainer("worker", {
       image: image("workers/jobs/Dockerfile"),
       entryPoint: withDatabaseUrl(
         '/app/.venv/bin/python -m interval_jobs "$@"',
       ),
       command: ["consume"],
-      environment,
+      // ADR-0022: the OCR sidecar, on the task's own network.
+      environment: { ...environment, OCR_URL: "http://localhost:8080" },
       secrets,
       logging: logging("worker"),
       // Let in-flight stages finish, as on the VM (compose stop_grace_period).
@@ -687,7 +703,21 @@ export class AwsStack extends Stack {
         startPeriod: Duration.seconds(60),
       },
     });
-    // No S3: stages keep fetched pages in memory.
+    // ADR-0022, ADR-0023, P2-W11-S03: Tesseract beside the consumer, which alone calls
+    // it; one page at a time, capped at 512 MB as on the VM.
+    workerTask.addContainer("ocr", {
+      image: ecs.ContainerImage.fromAsset(path.join(REPO_ROOT, "deploy/ocr"), {
+        platform: Platform.LINUX_ARM64,
+      }),
+      memoryLimitMiB: 512,
+      // ADR-0023: a crashed OCR container holds up scanned pages only, as on the VM;
+      // the consumer keeps serving every other stage.
+      essential: false,
+      logging: logging("ocr"),
+    });
+    // P2-W11: books read (book_process, ocr_page) and removed (remove_file) here.
+    privateContent.grantRead(workerTask.taskRole);
+    grantBookDeletes(privateContent, workerTask.taskRole);
     eventStream.grantPutRecords(workerTask.taskRole);
     for (const queue of queues) {
       queue.grantSendMessages(workerTask.taskRole);

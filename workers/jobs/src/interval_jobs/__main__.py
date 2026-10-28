@@ -36,6 +36,7 @@ from interval_jobs.compose import (
     database_url,
     files,
     model_job,
+    ocr,
     queue_consumer,
     queue_for_enqueue,
     services,
@@ -571,6 +572,7 @@ def _consume(max_entries: int | None) -> None:
                 notes=notes,
                 questions=questions,
                 files=files(),
+                ocr=ocr(),
             )
             run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
     finally:

@@ -74,6 +74,14 @@ services:
       retries: 20
     restart: unless-stopped
 
+  # OCR for scanned book pages (ADR-0022): Tesseract, one page at a time, 512 MB cap;
+  # only the worker calls it, on the compose network.
+  ocr:
+    <<: *logging
+    build: ./ocr
+    mem_limit: 512m  # its health check is the image's (deploy/ocr/Dockerfile)
+    restart: unless-stopped
+
   # Migrations run to completion before the app starts (ADR-0002).
   migrate:
     <<: [*logging, *app-env]
@@ -145,6 +153,9 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
+      # Started, not healthy: a broken OCR service holds up scanned pages only.
+      ocr:
+        condition: service_started
     # Liveness: the consumer touches this file every 30 s. Compose only reports the
     # container unhealthy; a process that exits is restarted (restart below).
     healthcheck:

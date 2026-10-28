@@ -137,6 +137,7 @@ class BookPage(TypedDict):
     page_no: int
     text: str
     scanned: bool
+    ocr_read_at: datetime | None
 
 
 class BookSession(TypedDict):

@@ -1888,6 +1888,7 @@ class StoredBook:
     page_count: int | None = None
     pages: list[BookPageText] = field(default_factory=list[BookPageText])
     chapters: list[BookChapterRow] = field(default_factory=list[BookChapterRow])
+    ocr_read: set[int] = field(default_factory=set[int])
 
 
 class InMemoryBooks:
@@ -1931,3 +1932,52 @@ class InMemoryBooks:
         if book is None:
             return
         book.status, book.failure = "failed", reason
+
+    def for_ocr(self, book_id: int, page_no: int) -> BookJob | None:
+        book = self.rows.get(book_id)
+        if book is None or book.status != "ocr" or page_no in book.ocr_read:
+            return None
+        if not any(p.page_no == page_no and p.scanned for p in book.pages):
+            return None
+        return BookJob(book_id, book.user_id, book.file_key, book.title)
+
+    def record_ocr(self, book_id: int, page_no: int, text: str) -> int | None:
+        book = self.rows.get(book_id)
+        if book is None or book.status != "ocr" or page_no in book.ocr_read:
+            return None
+        book.pages = [
+            BookPageText(p.page_no, text, p.scanned) if p.page_no == page_no else p
+            for p in book.pages
+        ]
+        book.ocr_read.add(page_no)
+        return sum(
+            1 for p in book.pages if p.scanned and p.page_no not in book.ocr_read
+        )
+
+    def unread_scanned(self, book_id: int) -> list[int]:
+        book = self.rows.get(book_id)
+        if book is None or book.status != "ocr":
+            return []
+        return [
+            p.page_no
+            for p in book.pages
+            if p.scanned and p.page_no not in book.ocr_read
+        ]
+
+    def pages(self, book_id: int) -> list[BookPageText]:
+        return list(self.rows[book_id].pages)
+
+
+class InMemoryOcr:
+    """The Ocr port for tests: answers each image with the next scripted text."""
+
+    def __init__(self, texts: list[str | Exception]) -> None:
+        self._texts = list(texts)
+        self.calls = 0
+
+    def read(self, png: bytes) -> str:
+        self.calls += 1
+        answer = self._texts.pop(0)
+        if isinstance(answer, Exception):
+            raise answer
+        return answer

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Read one scanned page of a book through the OCR service (ADR-0022, P2-W11-S03).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["book_id", "page_no"],
+  "properties": {
+    "book_id": { "type": "integer", "minimum": 1 },
+    "page_no": { "type": "integer", "minimum": 1 }
+  }
+}

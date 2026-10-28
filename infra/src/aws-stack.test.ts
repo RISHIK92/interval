@@ -255,10 +255,17 @@ describe("containers", () => {
         CpuArchitecture: "ARM64",
       });
       const containers = task.Properties["ContainerDefinitions"] as {
+        Name: string;
         Environment?: { Name: string }[];
         Secrets?: { Name: string }[];
       }[];
       for (const c of containers) {
+        // The OCR sidecar (ADR-0022) reads page images only: no secrets, no env.
+        if (c.Name === "ocr") {
+          expect(c.Secrets).toBeUndefined();
+          expect(c.Environment).toBeUndefined();
+          continue;
+        }
         const names = (c.Environment ?? []).map((e) => e.Name);
         expect(names).not.toContain("DB_PASSWORD");
         expect(names).not.toContain("BETTER_AUTH_SECRET");
@@ -981,12 +988,13 @@ describe("PDF books (P2-W11-S01)", () => {
         JSON.stringify(st.Action).includes("s3:Delete"),
       ),
     );
-    // The web task's role (its undo) and the jobs task's (remove_file).
+    // The web task's role (its undo), and the jobs and worker tasks' (remove_file).
     expect(
       deleting.map((p) => JSON.stringify(p.Properties.Roles)).sort(),
     ).toEqual([
       expect.stringContaining("JobsTaskTaskRole"),
       expect.stringContaining("WebTaskTaskRole"),
+      expect.stringContaining("WorkerTaskTaskRole"),
     ]);
     for (const policy of deleting)
       for (const st of policy.Properties.PolicyDocument.Statement.filter((x) =>
@@ -1007,5 +1015,58 @@ describe("PDF books (P2-W11-S01)", () => {
         }),
       ],
     });
+  });
+});
+
+describe("OCR (ADR-0022, P2-W11-S03)", () => {
+  test("Tesseract runs beside the consumer, capped at 512 MB, which calls it locally", () => {
+    template.hasResourceProperties("AWS::ECS::TaskDefinition", {
+      Memory: "2048",
+      ContainerDefinitions: Match.arrayWith([
+        Match.objectLike({
+          Name: "worker",
+          Environment: Match.arrayWith([
+            { Name: "OCR_URL", Value: "http://localhost:8080" },
+          ]),
+        }),
+        // ADR-0023: a crashed OCR container holds up scanned pages only.
+        Match.objectLike({ Name: "ocr", Memory: 512, Essential: false }),
+      ]),
+    });
+  });
+
+  test("the consumer reads private files (book_process, ocr_page)", () => {
+    const policies = Object.values(
+      template.findResources("AWS::IAM::Policy"),
+    ) as { Properties: { Roles: unknown[]; PolicyDocument: unknown } }[];
+    const worker = policies.filter((p) =>
+      JSON.stringify(p.Properties.Roles).includes("WorkerTaskTaskRole"),
+    );
+    const statements = worker.flatMap(
+      (p) =>
+        (
+          p.Properties.PolicyDocument as {
+            Statement: { Action: unknown; Resource: unknown }[];
+          }
+        ).Statement,
+    );
+    const reads = statements.filter((st) =>
+      JSON.stringify(st.Action).includes("s3:GetObject"),
+    );
+    expect(reads.length).toBeGreaterThan(0);
+    for (const st of reads)
+      expect(JSON.stringify(st.Resource)).toContain("PrivateContent");
+  });
+});
+
+test("a page OCR gave up on is counted (P2-W11-S03)", () => {
+  template.hasResourceProperties("AWS::Logs::MetricFilter", {
+    FilterPattern: '{ $.msg = "books: ocr gave up" }',
+    MetricTransformations: [
+      Match.objectLike({
+        MetricNamespace: "Interval/Books",
+        MetricName: "OcrGaveUp",
+      }),
+    ],
   });
 });

@@ -5,11 +5,13 @@ at a time. A protected (encrypted) PDF is refused: Interval never bypasses DRM (
 import io
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import cast
 
 import pdfplumber
 from pdfminer.pdfdocument import PDFDocument, PDFEncryptionError, PDFPasswordIncorrect
 from pdfminer.pdftypes import resolve1
+from pdfplumber.page import Page as PdfPage
 from pdfplumber.pdf import PDF
 
 from interval_jobs import log
@@ -64,6 +66,9 @@ class OpenPdf:
             return []
         return marks
 
+    def page(self, page_no: int) -> PdfPage:
+        return self._pages[page_no - 1]
+
     def pages(self) -> Iterator[Page]:
         for n, page in enumerate(self._pages, 1):
             try:
@@ -82,6 +87,44 @@ class OpenPdf:
             ]
             yield Page(no=n, lines=lines)
             page.close()  # frees the page's parsed objects: one page at a time
+
+
+RENDER_DPI = 200  # enough for Tesseract on book text; a page is a few MB as a PNG
+MIN_DPI = 72  # a page that would need less to fit the pixel limit is refused
+# A page whose share of inked pixels (anything darker than light gray, so a faint scan
+# still counts) is under this is blank: a cover's back, a verso.
+BLANK_INK = 0.0005
+INK = 200
+
+
+@dataclass(frozen=True)
+class Rendered:
+    png: bytes
+    blank: bool
+
+
+def render(pdf: OpenPdf, page_no: int, max_pixels: int) -> Rendered:
+    """One page as an image, for OCR (ADR-0022, P2-W11-S03). The PDF is the user's: a
+    page's size can be anything, so the resolution drops to keep the image within
+    `max_pixels`, and a page that would still be too big is refused."""
+    page = pdf.page(page_no)
+    try:
+        inches = (float(page.width) / 72) * (float(page.height) / 72)
+        dpi = min(RENDER_DPI, int((max_pixels / max(inches, 1e-6)) ** 0.5))
+        if dpi < MIN_DPI:
+            raise UnreadablePdf(f"page {page_no} is too large")
+        image = page.to_image(resolution=dpi).original
+    except UnreadablePdf:
+        raise
+    except Exception as error:
+        raise UnreadablePdf(f"page {page_no}") from error
+    gray = image.convert("L")
+    histogram = gray.histogram()
+    dark = sum(histogram[:INK])
+    blank = dark < BLANK_INK * gray.width * gray.height
+    out = io.BytesIO()
+    gray.save(out, format="PNG")
+    return Rendered(png=out.getvalue(), blank=blank)
 
 
 def _title(pdf: PDF) -> str | None:
