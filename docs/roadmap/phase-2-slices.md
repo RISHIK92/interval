@@ -200,3 +200,19 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 - Out of scope: path reminders (notifications).
 - Q: Q-P2-27, Q-P2-28.
 
+### P2-W10-S07 Skip what you know
+- IDs: PER-1, PER-2, §5F, Q-P2-23
+- Needs: S05, S06
+- Goal: a path section whose concepts the user has all mastered is suggested for skipping.
+- Acceptance: on the path page, an open, unpassed, unskipped section whose every live concept is mastered for the user says "You've mastered this" with Skip section (S05's skip, asked first) and Keep it; the feed's path card on such a section adds "You know this" and a Skip button; nothing is skipped without a tap (PER-1); `path_section_skipped` gains `reason` (`user` or `mastered`), version 2.
+- Out of scope: skipping automatically; suggestions from practiced (not mastered) concepts.
+- Q: Q-P2-29.
+
+### P2-W10-S08 Missing-foundation warning
+- IDs: §5F, Q-1 (the concept graph), ING-2, ING-6
+- Needs: S05
+- Goal: an open section that builds on a concept the user has never explored, outside the path, says so and offers one reading on it.
+- Acceptance: on the path page, each open section lists its missing foundations: direct prerequisites (one hop, `concept_edge` prerequisite_of) of its live concepts that aren't among the path's concepts and that the user has never explored (no mastery row); each with one reading (rights allowing, link working, the swap list's rule), opened as a path open so it comes back to the path; the note goes once the concept is explored; no dismiss; at most 3 foundations per section.
+- Out of scope: a prompt on Start; prerequisites more than one hop away; per-user generated paths (§5F: a person approves each path).
+- Q: Q-P2-30.
+

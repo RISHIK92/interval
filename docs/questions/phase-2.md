@@ -163,3 +163,12 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Note (P2-W10-S04): a checkpoint left open (the tab closed) is closed and settled at its clock by the user's next quiz start, with no `checkpoint_finished` event, as with `quiz_finished` since W9. S06's progress query should count passes from the database, or that close should emit; to decide in S06.
 - **Answer (owner, 2026-10-28, P2-W10-S06):** emit on that close: a start that closes quizzes left open records their `quiz_finished` / `checkpoint_finished` first, which also fixes the Week 9 quiz metrics. The progress query (`path_progress.sql`) counts passed sections per active path in the last full week, by beta group. Known limit: no event marks a path finished or retired, so a finished path counts as active (0 a week) until paused or replaced.
 
+### Q-P2-29 Skip what you know (P1)
+- Cite: §5F (paths), PER-1 ("Explicit user choices always override inferred interests"), PER-2 (mastery), Q-P2-23 (skip).
+- **Answer (owner, 2026-10-28):** suggest skipping a section when every one of its concepts is mastered for the user (not merely practiced). The path page shows the suggestion with Skip and Keep; the feed's path card, on such a section, adds "You know this" and a Skip button. Nothing is skipped without a tap.
+
+### Q-P2-30 Missing-foundation warning (P1)
+- Cite: §5F (paths ordered by concept prerequisites), the concept graph (`concept_edge`, Q-P1-04).
+- **Answer (owner, 2026-10-28):** a missing foundation is a direct (one-hop) prerequisite of a section's concepts that isn't in the path and that the user has never explored. It shows on each open section of the path page ("Builds on X, which you haven't read yet", with one reading on X) until the user has explored X; no dismiss, no prompt on Start.
+- Suggested defaults: at most 3 foundations per section, fewest first by name; the reading follows the swap list's rule (rights allowing, link working, newest first) and opens as a path open; a section the user skipped shows none.
+
