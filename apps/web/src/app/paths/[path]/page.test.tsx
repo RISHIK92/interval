@@ -67,6 +67,7 @@ const timeline: PathTimeline = {
       warning: null,
       holdsBack: true,
       mastered: false,
+      foundations: [],
       readings: [
         {
           ...reading,
@@ -99,6 +100,7 @@ const timeline: PathTimeline = {
       warning: null,
       holdsBack: true,
       mastered: false,
+      foundations: [],
       readings: [
         {
           ...reading,
@@ -345,5 +347,46 @@ test("an open section you've mastered suggests skipping it; nothing else does", 
   expect(editing).not.toContain("mastered this");
   expect(editing).toMatch(
     /name="reason" value="user"[^]*?name="back" value="\/paths\/6\?edit=1"/,
+  );
+});
+
+// P2-W10-S08 (Q-P2-30): a section's missing foundations.
+test("a section names the foundations you haven't read, with a reading on each", async () => {
+  current.mockResolvedValue(user);
+  const [one, two] = timeline.sections;
+  if (!one || !two) throw new Error("fixture");
+  path.mockResolvedValueOnce({
+    ...timeline,
+    sections: [
+      {
+        ...one,
+        foundations: [
+          {
+            conceptId: "1",
+            name: "Transactions",
+            reading: {
+              itemId: "70",
+              momentId: "970",
+              sectionTitle: "ACID in practice",
+              frameable: true,
+              linkBroken: false,
+            },
+          },
+          { conceptId: "2", name: "Write-ahead logging", reading: null },
+        ],
+      },
+      two,
+    ],
+  });
+  const html = await page();
+  const text = html.replace(/<[^>]+>/g, "");
+  expect(text).toContain(
+    "Builds on Transactions, which you haven&#x27;t read yet: ACID in practice",
+  );
+  expect(html).toContain(
+    'href="/read/70?moment=970&amp;chip=3-8&amp;from=path&amp;path=6"',
+  );
+  expect(text).toContain(
+    "Builds on Write-ahead logging, which you haven&#x27;t read yet.",
   );
 });

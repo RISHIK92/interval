@@ -1,11 +1,11 @@
 import type { Chip } from "../../server/chips";
 import { outHref, readHref } from "../../server/outbound";
-import type { PathReading } from "../../server/ports";
+import type { ReadingTarget } from "../../server/ports";
 
 // A reading in the in-app reader when its page can be framed, else in the browser
 // through /out; both count as a path open (no feed event) and lead back to the path.
 export function ReadingLink(props: {
-  reading: PathReading;
+  reading: ReadingTarget;
   pathId: string;
   chip: Chip;
   // The feed's card shows it as its button, with its own words.

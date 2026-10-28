@@ -10,7 +10,7 @@ import {
   sessions,
   skipped,
 } from "./checkpoints";
-import { ALLOWED } from "./path-rights";
+import { ALLOWED, momentTeaches } from "./path-rights";
 
 // Following topic paths (§5F, Q-P2-27, P2-W10-S03): live paths, a path's timeline with
 // what the user finished, and starting one (one active at a time).
@@ -154,6 +154,46 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
         where s.path_id = ${pathId} and ${ALLOWED}
         order by ps.ordinal
       `.execute(db);
+      // Q-P2-30: a section's direct prerequisites outside the path, never explored, each
+      // with its newest reading (rights allowing, link working, as the swap list).
+      const { rows: foundations } = await sql<{
+        section_id: string;
+        concept_id: string;
+        name: string;
+        moment_id: string | null;
+        item_id: string | null;
+        title: string | null;
+        frameable: boolean | null;
+      }>`
+        select distinct on (pc.section_id, f.id)
+               pc.section_id, f.id as concept_id, f.name, r.moment_id, r.item_id, r.title, r.frameable
+        from path_section s
+        join path_section_concept pc on pc.section_id = s.id
+        join concept c on c.id = pc.concept_id and c.retired_at is null
+        join concept_edge e on e.to_id = c.id and e.type = 'prerequisite_of'
+        join concept f on f.id = e.from_id and f.retired_at is null
+        left join lateral (
+          select m.id as moment_id, ci.id as item_id, m.title, ci.frameable
+          from moment m
+          join content_item ci on ci.id = m.content_item_id
+          join source so on so.id = ci.source_id
+          where ${ALLOWED} and ci.link_broken_at is null
+            and ${momentTeaches(sql`f.id`)}
+          order by m.id desc
+          limit 1
+        ) r on true
+        where s.path_id = ${pathId}
+          and f.id not in (
+            select own.concept_id from path_section_concept own
+            join path_section os on os.id = own.section_id
+            where os.path_id = ${pathId}
+          )
+          and not exists (
+            select 1 from concept_mastery cm
+            where cm.user_id = ${userId} and cm.concept_id = f.id
+          )
+        order by pc.section_id, f.id
+      `.execute(db);
       // Open once every section before it is passed or was skipped (the user's
       // order); a section ahead of one the approved order teaches first is flagged.
       const steps: PathStep[] = sections.map((s, i) => {
@@ -186,6 +226,29 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
           warning: ahead.length > 0 ? ahead : null,
           holdsBack: !s.passed && !s.ever_skipped,
           mastered: s.mastered,
+          foundations:
+            open && !s.skipped
+              ? foundations
+                  .filter((f) => f.section_id === s.id)
+                  .sort((a, b) => a.name.localeCompare(b.name))
+                  .slice(0, 3)
+                  .map((f) => ({
+                    conceptId: f.concept_id,
+                    name: f.name,
+                    reading:
+                      f.moment_id === null ||
+                      f.item_id === null ||
+                      f.title === null
+                        ? null
+                        : {
+                            itemId: f.item_id,
+                            momentId: f.moment_id,
+                            sectionTitle: f.title,
+                            frameable: f.frameable === true,
+                            linkBroken: false,
+                          },
+                  }))
+              : [],
         };
       });
       const byId = new Map(steps.map((s) => [s.sectionId, s]));
@@ -508,14 +571,7 @@ async function alternativesOf(
       -- The approved moment, while swapped away, is always offered (to swap back).
       and (m.id = (${approvedAt}) or exists (
         select 1 from path_section_concept pc
-        join concept c on c.id = pc.concept_id and c.retired_at is null
-        where pc.section_id = ${sectionId} and c.slug = any(coalesce(
-          (select o.concepts from tag_override o
-           where o.content_item_id = m.content_item_id
-             and o.heading = m.title and m.link_type <> 'page_top'),
-          array(select c2.slug from moment_concept mc
-                join concept c2 on c2.id = mc.concept_id where mc.moment_id = m.id)
-        ))
+        where pc.section_id = ${sectionId} and ${momentTeaches(sql`pc.concept_id`)}
       ))
     order by m.id = (${approvedAt}) desc, m.id desc
     limit 5

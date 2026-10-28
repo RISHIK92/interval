@@ -134,6 +134,27 @@ export default async function PathPage(props: {
                     teaches first.
                   </p>
                 )}
+                {/* Q-P2-30: a direct prerequisite outside the path, never explored;
+                  gone once it's explored. */}
+                {section.foundations.length === 0 ? null : (
+                  <ul className="flex flex-col gap-1 text-sm">
+                    {section.foundations.map((f) => (
+                      <li key={f.conceptId}>
+                        <span className="text-ink-muted">
+                          Builds on {f.name}, which you haven&apos;t read yet
+                          {f.reading === null ? "." : ": "}
+                        </span>
+                        {f.reading === null ? null : (
+                          <ReadingLink
+                            reading={f.reading}
+                            pathId={path.pathId}
+                            chip={chip}
+                          />
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                )}
                 {/* Q-P2-29: a section the user has mastered suggests skipping it. */}
                 {!editing &&
                 editable &&

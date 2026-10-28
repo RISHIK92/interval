@@ -703,3 +703,142 @@ test("a section is mastered when every live concept in it is, for this user", as
     expect(await mastered()).toEqual([false, false]);
   });
 });
+
+// P2-W10-S08 (Q-P2-30): direct prerequisites outside the path, never explored.
+test("an open section lists its missing foundations, each with a reading if one is allowed", async () => {
+  await inRollback(async (trx, { userId, live, moments }) => {
+    const paths = kyselyPaths(trx);
+    const [one] = await sectionsOf(trx, userId, live);
+    const [m1] = moments;
+    if (!m1) throw new Error("seed");
+    await paths.start(userId, live);
+    const inPath = await trx
+      .selectFrom("path_section_concept as pc")
+      .innerJoin("path_section as s", "s.id", "pc.section_id")
+      .select("pc.concept_id")
+      .where("s.path_id", "=", live)
+      .orderBy("s.ordinal")
+      .execute();
+    const [c1, c2] = inPath.map((c) => c.concept_id);
+    if (!c1 || !c2) throw new Error("seed");
+    const made = await trx
+      .insertInto("concept")
+      .values(
+        // Ids out of name order, so the listing's order is by name.
+        ["F3", "F1", "F4", "F2", "Deeper", "Retired"].map((name) => ({
+          slug: `${name.toLowerCase()}-${randomUUID()}`,
+          name,
+          topic: "databases" as const,
+          retired_at: name === "Retired" ? sql<Date>`now()` : null,
+        })),
+      )
+      .returning(["id", "name"])
+      .execute();
+    const id = (name: string) => made.find((c) => c.name === name)?.id ?? "0";
+    const edge = (from: string, to: string) =>
+      trx
+        .insertInto("concept_edge")
+        .values({ from_id: from, to_id: to, type: "prerequisite_of" })
+        .execute();
+    for (const f of ["F1", "F2", "F3", "F4", "Retired"]) await edge(id(f), c1);
+    await edge(id("Deeper"), id("F1")); // two hops: not listed
+    await edge(c2, c1); // taught by the path itself: not listed
+    await edge(id("F4"), c2); // section two's, listed only once it opens
+    // F1 has a reading; F2's only reading is behind a broken link (ING-6), F3's in a
+    // source whose rights were lowered since (ING-2).
+    const source = await trx
+      .selectFrom("moment")
+      .innerJoin("content_item", "content_item.id", "moment.content_item_id")
+      .select("content_item.source_id")
+      .where("moment.id", "=", m1)
+      .executeTakeFirstOrThrow();
+    const lowered = await trx
+      .insertInto("source")
+      .values({
+        name: `foundation-${randomUUID()}`,
+        feed_url: `https://follow.example.test/${randomUUID()}.xml`,
+        rights_profile: "full_text_internal",
+        moments_seeded: true,
+        moments_enabled: true,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    for (const [f, broken, sourceId] of [
+      ["F1", false, source.source_id],
+      ["F2", true, source.source_id],
+      ["F3", false, lowered.id],
+    ] as const) {
+      const item = await trx
+        .insertInto("content_item")
+        .values({
+          source_id: sourceId,
+          guid: randomUUID(),
+          canonical_url: `https://follow.example.test/${f}`,
+          title: `On ${f}`,
+          frameable: true,
+          link_broken_at: broken ? sql<Date>`now()` : null,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const moment = await trx
+        .insertInto("moment")
+        .values({
+          content_item_id: item.id,
+          ordinal: 0,
+          title: `${f} basics`,
+          estimated_minutes: 4,
+          link: `https://follow.example.test/${f}#a`,
+          link_type: "anchor",
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await trx
+        .insertInto("moment_tagging")
+        .values({ moment_id: moment.id, difficulty: "beginner" })
+        .execute();
+      await trx
+        .insertInto("moment_concept")
+        .values({ moment_id: moment.id, concept_id: id(f) })
+        .execute();
+    }
+    await sql`set local session_replication_role = replica`.execute(trx);
+    await trx
+      .updateTable("source")
+      .set({ rights_profile: "metadata_only" })
+      .where("id", "=", lowered.id)
+      .execute();
+    await sql`set local session_replication_role = origin`.execute(trx);
+    const listed = async () =>
+      (await paths.path(userId, live))?.sections.map((s) =>
+        s.foundations.map((f) => [f.name, f.reading?.sectionTitle ?? null]),
+      );
+    // Up to 3 by name; the locked second section lists none.
+    expect(await listed()).toEqual([
+      [
+        ["F1", "F1 basics"],
+        ["F2", null],
+        ["F3", null],
+      ],
+      [],
+    ]);
+    // Explored (any mastery row): gone, and the fourth shows.
+    await trx
+      .insertInto("concept_mastery")
+      .values({
+        user_id: userId,
+        concept_id: id("F1"),
+        probability: 0.2,
+        state: "explored",
+        evidence_count: 1,
+      })
+      .execute();
+    expect((await listed())?.[0]?.map(([name]) => name)).toEqual([
+      "F2",
+      "F3",
+      "F4",
+    ]);
+    // A skipped section lists none; the second, open now, lists its own.
+    await paths.skipSection(userId, one);
+    expect(await listed()).toEqual([[], [["F4", null]]]);
+  });
+});

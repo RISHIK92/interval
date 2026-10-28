@@ -2078,3 +2078,12 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - `editPathAction`: a skip takes `reason` (default user) and `back` (same-site only; other edits return to Edit mode). `path_section_skipped` is version 2 with `reason`.
 - Tests: kysely-paths (mastered vs practiced, someone else's mastery, a retired concept, no live concept, a passed section not offered by next), path page (who sees the suggestion; Edit mode's own skip), feed card, action (reason, back, off-site fallback). `pnpm check` passes (25/25).
 - Reviewer: the passed-section guard on the feed card, `back` only for skips, one aggregate for mastered, `aria-describedby`. Not seen in Chrome: no path is live.
+
+### 2026-10-28 — P2-W10-S08 (missing-foundation warning, §5F, Q-1, ING-2, ING-6, Q-P2-30)
+- The timeline gives each open, unskipped section its `foundations`: live direct `prerequisite_of` concepts of its live concepts that the path doesn't teach and the user has never explored (no mastery row), up to 3 by name, each with its newest reading (rights allowing, link working) or none.
+- `momentTeaches()` in `adapters/path-rights.ts` is the shared rule for what a moment teaches (an admin's correction first); S05's swap list now uses it. `ReadingTarget` (ports) is what `ReadingLink` needs.
+- Path page: "Builds on X, which you haven't read yet:" with the reading as a path open, or by name when no reading is allowed; no dismiss, gone once explored.
+- Tests: kysely-paths (listing order by name with ids out of order, the cap of 3, explored drops one, two hops and retired and in-path not listed, a locked section with its own candidate lists none until it opens, a skipped one lists none, broken link and lowered rights give no reading), path page (note, link, name only). `pnpm check` passes (25/25).
+- Reviewer: tests that couldn't fail (locked section, ordering), ING-2 coverage, keys by concept id, one shared type. Not fixed: the lateral reading lookup runs for locked sections too (discarded in TS; fine at this size).
+- Noticed, not fixed: `kysely-progress.ts` still has its own copy of the moment-concept rule; it could use `momentTeaches()`.
+- Week 10 and its follow-ups (S07, S08) are built. Not seen in Chrome: no path is live yet.

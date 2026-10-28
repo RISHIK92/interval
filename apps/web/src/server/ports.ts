@@ -737,6 +737,16 @@ export type PathReading = {
   finished: boolean;
   ordinal: number; // the session's place in its section (a swap's key)
 };
+// What a link to a reading needs (ReadingLink).
+export type ReadingTarget = Pick<
+  PathReading,
+  "itemId" | "momentId" | "sectionTitle" | "frameable" | "linkBroken"
+>;
+export type PathFoundation = {
+  conceptId: string;
+  name: string;
+  reading: ReadingTarget | null;
+};
 export type PathStep = {
   sectionId: string;
   concepts: string[];
@@ -755,6 +765,9 @@ export type PathStep = {
   holdsBack: boolean;
   // P2-W10-S07 (Q-P2-29): every live concept in it is mastered for the user.
   mastered: boolean;
+  // P2-W10-S08 (Q-P2-30), on an open, unskipped section: direct prerequisites outside
+  // the path the user has never explored, up to 3, each with one reading if any.
+  foundations: PathFoundation[];
   // The questions it would ask now (0: none) and the pass mark that makes.
   size: number;
   passMark: number;
