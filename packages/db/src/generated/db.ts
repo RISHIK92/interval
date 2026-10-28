@@ -489,11 +489,15 @@ export interface QuizAnswer {
 }
 
 export interface QuizAttempt {
+  checkpoint_passed: boolean | null;
+  checkpoint_size: number | null;
   content_item_id: Int8 | null;
   ends_at: Timestamp | null;
   finished_at: Timestamp | null;
   id: Generated<Int8>;
   moment_id: Int8 | null;
+  pass_mark: Generated<number | null>;
+  path_section_id: Int8 | null;
   review: Generated<boolean>;
   started_at: Generated<Timestamp>;
   user_id: string;

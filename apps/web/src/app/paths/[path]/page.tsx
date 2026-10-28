@@ -8,16 +8,15 @@ import { parseReading } from "../../../server/reading";
 import { ReturnPrompt } from "../../ReturnPrompt";
 import { TabBar } from "../../TabBar";
 import { Card } from "../../ui/Card";
+import { startCheckpointAction } from "../../quiz/actions";
 import { startPathAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
-// The pass mark of a checkpoint (Q-P2-26; checkpoints themselves arrive in S04).
-const PASS = "Pass 4 of 5";
-
 // §5F, wireframe 05, Q-P2-27 (P2-W10-S03): a path's timeline. Sections in order, each
 // with its readings (finished ones ticked) and a checkpoint after it; locked sections
-// say what unlocks them. A reading opens in the reader (or the browser) as a path
+// say what unlocks them. A section's checkpoint opens once its readings are finished
+// (P2-W10-S04). A reading opens in the reader (or the browser) as a path
 // open, which comes back here and asks "Finished?".
 export default async function PathPage(props: {
   params: Promise<{ path: string }>;
@@ -127,24 +126,56 @@ export default async function PathPage(props: {
                   ))}
                 </ul>
               </Card>
-              <p className="flex items-center gap-2 px-2 text-sm text-ink-muted">
-                <svg
-                  aria-hidden="true"
-                  viewBox="0 0 24 24"
-                  className="size-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M5 21V4h11l-2 4 2 4H5" />
-                </svg>
-                Checkpoint · {PASS}{" "}
-                {after === undefined
-                  ? "to finish the path"
-                  : `to unlock ${after.concepts.join(", ")}`}
-              </p>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-2">
+                <p className="flex items-center gap-2 text-sm text-ink-muted">
+                  <svg
+                    aria-hidden="true"
+                    viewBox="0 0 24 24"
+                    className="size-4"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M5 21V4h11l-2 4 2 4H5" />
+                  </svg>
+                  {section.checkpoint === "passed"
+                    ? "Checkpoint passed"
+                    : section.size === 0
+                      ? "Checkpoint"
+                      : `Checkpoint · Pass ${String(section.passMark)} of ${String(section.size)} ${
+                          after === undefined
+                            ? "to finish the path"
+                            : `to unlock ${after.concepts.join(", ")}`
+                        }`}
+                </p>
+                {section.checkpoint === "ready" && path.mine === "active" ? (
+                  <form action={startCheckpointAction}>
+                    <input
+                      type="hidden"
+                      name="sectionId"
+                      value={section.sectionId}
+                    />
+                    <input type="hidden" name="chip" value={chip} />
+                    <input
+                      type="hidden"
+                      name="back"
+                      value={`/paths/${path.pathId}`}
+                    />
+                    <button
+                      type="submit"
+                      className="cursor-pointer rounded-full bg-ink px-4 py-2 text-sm font-semibold text-page"
+                    >
+                      Take the checkpoint
+                    </button>
+                  </form>
+                ) : section.checkpoint === "no_questions" ? (
+                  <span className="text-sm text-ink-muted">
+                    Checkpoint not ready yet
+                  </span>
+                ) : null}
+              </div>
             </li>
           );
         })}

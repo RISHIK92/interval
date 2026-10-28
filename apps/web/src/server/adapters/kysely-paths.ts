@@ -1,6 +1,11 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import type { PathStep, Paths } from "../ports";
+import { CHECKPOINT_SIZE, type PathStep, type Paths, passMark } from "../ports";
+import {
+  checkpointQuestions,
+  readingsDone,
+  sectionPassed,
+} from "./checkpoints";
 import { ALLOWED } from "./path-rights";
 
 // Following topic paths (§5F, Q-P2-27, P2-W10-S03): live paths, a path's timeline with
@@ -91,6 +96,12 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
             select c.name from path_section_concept pc
             join concept c on c.id = pc.concept_id
             where pc.section_id = s.id order by c.name)`.as("concepts"),
+          sectionPassed(userId, sql`s.id`).as("passed"),
+          readingsDone(userId, sql`s.id`).as("read"),
+          sql<number>`least(${CHECKPOINT_SIZE},
+            (select count(*) from (${checkpointQuestions(sql`s.id`)}) cq))::int`.as(
+            "size",
+          ),
         ])
         .where("s.path_id", "=", pathId)
         .orderBy("s.ordinal")
@@ -119,13 +130,26 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
         .where(ALLOWED)
         .orderBy("ps.ordinal")
         .execute();
-      const steps: PathStep[] = sections.map((s, i) => ({
-        sectionId: s.id,
-        concepts: s.concepts,
-        readings: [],
-        // S04 opens the next section when its checkpoint is passed.
-        open: i === 0,
-      }));
+      const steps: PathStep[] = sections.map((s, i) => {
+        const open = i === 0 || sections[i - 1]?.passed === true;
+        return {
+          sectionId: s.id,
+          concepts: s.concepts,
+          readings: [],
+          open,
+          checkpoint: s.passed
+            ? "passed"
+            : !open
+              ? "locked"
+              : !s.read
+                ? "reading"
+                : s.size > 0
+                  ? "ready"
+                  : "no_questions",
+          size: s.size,
+          passMark: passMark(s.size),
+        };
+      });
       const byId = new Map(steps.map((s) => [s.sectionId, s]));
       for (const r of readings)
         byId.get(r.section_id)?.readings.push({

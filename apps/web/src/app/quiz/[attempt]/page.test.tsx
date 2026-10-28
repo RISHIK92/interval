@@ -35,6 +35,7 @@ const running: QuizAttempt = {
   correct: 1,
   avgMs: 4000,
   concepts: [{ name: "Raft", state: "explored" }],
+  checkpoint: null,
 };
 
 afterEach(() => {
@@ -241,4 +242,37 @@ test("an answered question can be flagged with a reason, then says it was", asyn
   const done = await render({ chip: "3-8", answered: "7" });
   expect(done).not.toContain("Send report");
   expect(done).toContain("Thanks. This question is out of quizzes until it");
+});
+
+test("a checkpoint says what passing unlocks, and Close goes back to the path", async () => {
+  next.mockResolvedValue({
+    questionId: "7",
+    stem: "What does a quorum need?",
+    options: ["A majority", "Everyone", "One", "None"],
+    servedAt: new Date(),
+  });
+  const html = await render(
+    { chip: "3-8" },
+    {
+      ...running,
+      itemId: null,
+      momentId: null,
+      title: "Quorums",
+      checkpoint: {
+        pathId: "6",
+        sectionId: "60",
+        concepts: ["Quorums"],
+        size: 5,
+        passMark: 4,
+        passed: false,
+        next: ["Leases"],
+        missed: ["Quorums"],
+      },
+    },
+  );
+  expect(html).toContain("Checkpoint · 60s");
+  expect(html).toContain("Pass 4 of 5 to unlock Leases");
+  expect(html).toContain("Exit the checkpoint?");
+  expect(html).toContain('name="leave" value="path"');
+  expect(html).not.toContain("Test yourself");
 });

@@ -25,12 +25,12 @@ const Answer = z.object({
   chosen: z.coerce.number().int().min(0).max(3),
   chip: z.enum(CHIPS),
 });
-// Close leaves for where the quiz started (the feed, or the Library for a review);
-// otherwise the results.
+// Close leaves for where the quiz started (the feed, the Library for a review, the
+// path for a checkpoint); otherwise the results.
 const Finish = z.object({
   attemptId: z.string().regex(BIGINT_ID),
   chip: z.enum(CHIPS),
-  leave: z.enum(["feed", "library"]).optional(),
+  leave: z.enum(["feed", "library", "path"]).optional(),
 });
 
 async function signedIn() {
@@ -87,6 +87,37 @@ export async function startReviewAction(form: FormData): Promise<void> {
       context,
     );
   redirect(`/quiz/${started.attemptId}?chip=${parsed.data.chip}`);
+}
+
+// P2-W10-S04 (§5F, Q-P2-26): a checkpoint on a section of the user's active path.
+const Checkpoint = z.object({
+  sectionId: z.string().regex(BIGINT_ID),
+  chip: z.enum(CHIPS),
+});
+
+export async function startCheckpointAction(form: FormData): Promise<void> {
+  const { actor, context } = await signedIn();
+  const parsed = Checkpoint.safeParse({
+    sectionId: textField(form, "sectionId"),
+    chip: textField(form, "chip"),
+  });
+  if (!parsed.success) redirect("/paths");
+  const { sectionId, chip } = parsed.data;
+  const started = await quizzes().startCheckpoint(actor.userId, sectionId);
+  // Not ready (or passed meanwhile): the path shows where it stands.
+  if (started === null)
+    redirect(sameSitePath(textField(form, "back"), "/paths"));
+  if (started.firstTime)
+    events().emit(
+      "checkpoint_started",
+      {
+        attempt_id: started.attemptId,
+        path_id: started.pathId,
+        section_id: sectionId,
+      },
+      context,
+    );
+  redirect(`/quiz/${started.attemptId}?chip=${chip}`);
 }
 
 export async function answerQuizAction(form: FormData): Promise<void> {
@@ -146,17 +177,38 @@ export async function finishQuizAction(form: FormData): Promise<void> {
   const { attemptId, chip, leave } = parsed.data;
   const done = await quizzes().finish(actor.userId, attemptId);
   if (done === null) redirect("/");
+  const { checkpoint } = done;
   if (done.firstTime)
-    events().emit(
-      "quiz_finished",
-      { attempt_id: attemptId, answered: done.answered, correct: done.correct },
-      context,
-    );
+    if (checkpoint === null)
+      events().emit(
+        "quiz_finished",
+        {
+          attempt_id: attemptId,
+          answered: done.answered,
+          correct: done.correct,
+        },
+        context,
+      );
+    else
+      events().emit(
+        "checkpoint_finished",
+        {
+          attempt_id: attemptId,
+          path_id: checkpoint.pathId,
+          section_id: checkpoint.sectionId,
+          answered: done.answered,
+          correct: done.correct,
+          passed: checkpoint.passed,
+        },
+        context,
+      );
   redirect(
     leave === undefined
       ? `/quiz/${attemptId}/results?chip=${chip}`
       : leave === "library"
         ? "/library"
-        : `/?chip=${chip}`,
+        : leave === "path" && checkpoint !== null
+          ? `/paths/${checkpoint.pathId}`
+          : `/?chip=${chip}`,
   );
 }

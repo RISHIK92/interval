@@ -43,6 +43,7 @@ const done: QuizAttempt = {
     { name: "Leader election", state: "explored" },
     { name: "Raft", state: null },
   ],
+  checkpoint: null,
 };
 
 afterEach(() => {
@@ -122,4 +123,52 @@ test("a review's results: no section to continue, time from start to finish", as
   expect(html).not.toContain("Queued next");
   expect(html).toContain('href="/library"');
   expect(html).toContain("Back to Library");
+});
+
+const checkpoint = {
+  ...done,
+  itemId: null,
+  momentId: null,
+  title: "Quorums",
+  checkpoint: {
+    pathId: "6",
+    sectionId: "60",
+    concepts: ["Quorums"],
+    size: 5,
+    passMark: 4,
+    passed: false,
+    next: ["Leases"],
+    missed: ["Quorums"],
+  },
+};
+
+test("a passed checkpoint says what it unlocked and leads back to the path", async () => {
+  const html = await render({
+    ...checkpoint,
+    correct: 4,
+    answered: 5,
+    checkpoint: { ...checkpoint.checkpoint, passed: true, missed: [] },
+  });
+  expect(nextMoment).not.toHaveBeenCalled();
+  expect(html).toContain("Checkpoint · Quorums");
+  expect(html).toContain("Passed: Leases unlocked.");
+  expect(html).toContain('href="/paths/6"');
+  expect(html).not.toContain("Try again");
+  // The last section's: the path is done.
+  expect(
+    await render({
+      ...checkpoint,
+      checkpoint: { ...checkpoint.checkpoint, passed: true, next: null },
+    }),
+  ).toContain("That&#x27;s the whole path.");
+});
+
+test("a failed checkpoint says what it needs, what's in review, and offers a retry", async () => {
+  const html = await render(checkpoint);
+  expect(html).toContain("Not yet: 4 of 5 needed.");
+  expect(html).toContain("In your review queue now: Quorums.");
+  expect(html).toMatch(
+    /name="sectionId" value="60"[^]*?name="back" value="\/paths\/6"[^]*?Try again/,
+  );
+  expect(html).toContain("Back to the path");
 });

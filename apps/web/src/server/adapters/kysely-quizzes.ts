@@ -1,12 +1,20 @@
 import type { DB } from "@interval/db";
 import { type Kysely, type RawBuilder, sql } from "kysely";
 import {
+  CHECKPOINT_SIZE,
   QUIZ_SECONDS,
+  type CheckpointInfo,
   type QuizQuestion,
   type Quizzes,
   quizKey,
 } from "../ports";
 import { fsrsState, rate } from "../reviews";
+import {
+  checkpointQuestions,
+  readingsDone,
+  sectionOpen,
+  sectionPassed,
+} from "./checkpoints";
 
 // The last answer in flight when the clock runs out still counts (Q-P2-14).
 const GRACE = sql.raw(`interval '5 seconds'`);
@@ -149,6 +157,61 @@ async function rateConcepts(
   }
 }
 
+// P2-W10-S04 (§5F, Q-P2-26), after the ratings: a passed checkpoint raises each of
+// its section's live concepts to at least practiced (a mastered one stays mastered);
+// the concepts of its wrong answers, passed or not, are due for review now.
+async function settleCheckpoint(
+  trx: Kysely<DB>,
+  userId: string,
+  attemptId: string,
+  now: Date,
+): Promise<void> {
+  const attempt = await trx
+    .selectFrom("quiz_attempt as a")
+    .select([
+      "a.path_section_id",
+      "a.pass_mark",
+      sql<number>`(select count(*)::int from quiz_answer qa
+        where qa.attempt_id = a.id and qa.correct)`.as("correct"),
+    ])
+    .where("a.id", "=", attemptId)
+    .executeTakeFirstOrThrow();
+  if (attempt.path_section_id === null || attempt.pass_mark === null) return;
+  const passed = attempt.correct >= attempt.pass_mark;
+  await trx
+    .updateTable("quiz_attempt")
+    .set({ checkpoint_passed: passed })
+    .where("id", "=", attemptId)
+    .execute();
+  if (passed)
+    // In concept order, like the answers' mastery rows (PER-2).
+    await sql`
+      insert into concept_mastery
+        (user_id, concept_id, probability, state, evidence_count)
+      select ${userId}, pc.concept_id, ${PRACTICED}::float8, 'practiced', 1
+      from path_section_concept pc
+      join concept c on c.id = pc.concept_id and c.retired_at is null
+      where pc.section_id = ${attempt.path_section_id}
+      order by pc.concept_id
+      on conflict (user_id, concept_id) do update set
+        probability = greatest(concept_mastery.probability, ${PRACTICED}::float8),
+        state = case when concept_mastery.state = 'mastered'
+          then 'mastered'::learner_state else 'practiced'::learner_state end,
+        evidence_count = concept_mastery.evidence_count + 1,
+        updated_at = now()
+    `.execute(trx);
+  // The cards were just made or rated (rateConcepts), so each missed concept has one.
+  await sql`
+    update concept_review set due = ${now}
+    where user_id = ${userId} and concept_id in (
+      select qc.concept_id from quiz_answer qa
+      join question_concept qc on qc.question_id = qa.question_id
+      join concept c on c.id = qc.concept_id and c.retired_at is null
+      where qa.attempt_id = ${attemptId} and not qa.correct
+    )
+  `.execute(trx);
+}
+
 type Open = {
   question_id: string;
   stem: string;
@@ -204,8 +267,10 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           .where("finished_at", "is", null)
           .returning("finished_at")
           .executeTakeFirst();
-        if (closed?.finished_at != null)
+        if (closed?.finished_at != null) {
           await rateConcepts(trx, userId, id, closed.finished_at);
+          await settleCheckpoint(trx, userId, id, closed.finished_at);
+        }
       });
   };
 
@@ -228,6 +293,45 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     options: row.options,
     servedAt: row.served_at,
   });
+
+  const checkpointInfo = async (
+    userId: string,
+    attemptId: string,
+    at: { sectionId: string; size: number; passMark: number; passed: boolean },
+  ): Promise<CheckpointInfo> => {
+    const names = (section: RawBuilder<unknown>) => sql<string[]>`array(
+      select c.name from path_section_concept pc
+      join concept c on c.id = pc.concept_id
+      where pc.section_id = ${section} order by c.name)`;
+    const row = await db
+      .selectFrom("path_section as s")
+      .select([
+        "s.path_id",
+        names(sql`s.id`).as("concepts"),
+        sql<string[] | null>`(
+          select ${names(sql`n.id`)} from path_section n
+          where n.path_id = s.path_id and n.ordinal > s.ordinal
+          order by n.ordinal limit 1)`.as("next"),
+        sql<string[]>`array(
+          select distinct c.name from quiz_answer qa
+          join question_concept qc on qc.question_id = qa.question_id
+          join concept c on c.id = qc.concept_id and c.retired_at is null
+          where qa.attempt_id = ${attemptId} and not qa.correct
+          order by c.name)`.as("missed"),
+      ])
+      .where("s.id", "=", at.sectionId)
+      .executeTakeFirstOrThrow();
+    return {
+      pathId: row.path_id,
+      sectionId: at.sectionId,
+      concepts: row.concepts,
+      size: at.size,
+      passMark: at.passMark,
+      passed: at.passed,
+      next: row.next,
+      missed: row.missed,
+    };
+  };
 
   return {
     start: async (userId, itemId, momentId) => {
@@ -274,6 +378,8 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .selectFrom("quiz_attempt")
         .select([
           "review",
+          "path_section_id",
+          "checkpoint_size",
           sql<boolean>`coalesce(now() > ends_at, false)
             or finished_at is not null`.as("ended"),
         ])
@@ -285,6 +391,42 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       if (current !== undefined)
         return current.over ? "over" : asQuestion(current);
       if (attempt.ended) return "over";
+      if (attempt.path_section_id !== null) {
+        // P2-W10-S04: up to its size; the section's own readings' questions first,
+        // then its concepts' at random. Questions the user's last checkpoint on the
+        // section asked come after all the rest (own or not), so a retry isn't the
+        // same quiz.
+        const section = attempt.path_section_id;
+        await sql`
+          with last as (
+            select qa.question_id from quiz_answer qa
+            where qa.attempt_id = (
+              select id from quiz_attempt
+              where user_id = ${userId} and path_section_id = ${section}
+                and id <> ${attemptId} and finished_at is not null
+              order by started_at desc
+              limit 1
+            )
+          ),
+          pick as (
+            select id from (${checkpointQuestions(sql`${section}`)}) cq
+            where id not in (
+              select question_id from quiz_answer where attempt_id = ${attemptId}
+            )
+            order by id in (select question_id from last), tier, ro, qo, random()
+            limit 1
+          )
+          insert into quiz_answer (attempt_id, question_id)
+          select ${attemptId}, id from pick
+          where (select count(*) from quiz_answer where attempt_id = ${attemptId})
+            < ${attempt.checkpoint_size}
+          on conflict do nothing
+        `.execute(db);
+        const served = await open(attemptId);
+        return served === undefined || served.over
+          ? "over"
+          : asQuestion(served);
+      }
       if (attempt.review) {
         // Q-P2-17: the session's first concept no served question tests yet, with a
         // live question on it at random; a concept with none left is passed over.
@@ -460,30 +602,46 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           .where("finished_at", "is", null)
           .returning(["id", "finished_at"])
           .executeTakeFirst();
-        if (done?.finished_at != null)
+        if (done?.finished_at != null) {
           await rateConcepts(trx, userId, attemptId, done.finished_at);
+          await settleCheckpoint(trx, userId, attemptId, done.finished_at);
+        }
         return done;
       });
       const row = await db
         .selectFrom("quiz_attempt as a")
+        .leftJoin("path_section as s", "s.id", "a.path_section_id")
         .leftJoin("quiz_answer as qa", (join) =>
           join
             .onRef("qa.attempt_id", "=", "a.id")
             .on("qa.answered_at", "is not", null),
         )
         .select([
+          "a.path_section_id",
+          "a.checkpoint_passed",
+          "s.path_id",
           sql<number>`count(qa.question_id)::int`.as("answered"),
           sql<number>`count(*) filter (where qa.correct)::int`.as("correct"),
         ])
         .where("a.id", "=", attemptId)
         .where("a.user_id", "=", userId)
-        .groupBy("a.id")
+        .groupBy(["a.id", "s.path_id"])
         .executeTakeFirst();
       if (row === undefined) return null;
       return {
         answered: row.answered,
         correct: row.correct,
         firstTime: finished !== undefined,
+        checkpoint:
+          row.path_section_id === null ||
+          row.path_id === null ||
+          row.checkpoint_passed === null
+            ? null
+            : {
+                pathId: row.path_id,
+                sectionId: row.path_section_id,
+                passed: row.checkpoint_passed,
+              },
       };
     },
 
@@ -521,6 +679,10 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           "a.started_at",
           "a.ends_at",
           "a.finished_at",
+          "a.path_section_id",
+          "a.checkpoint_size",
+          "a.pass_mark",
+          "a.checkpoint_passed",
           sql<string>`coalesce(m.title, ci.title, 'Review')`.as("title"),
           sql<number | null>`case when a.ends_at is not null
             then greatest(0, ceil(extract(epoch from a.ends_at - now())))::int end`.as(
@@ -560,11 +722,22 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .where("c.retired_at", "is", null)
         .orderBy("c.name")
         .execute();
+      const checkpoint =
+        row.path_section_id === null ||
+        row.checkpoint_size === null ||
+        row.pass_mark === null
+          ? null
+          : await checkpointInfo(userId, attemptId, {
+              sectionId: row.path_section_id,
+              size: row.checkpoint_size,
+              passMark: row.pass_mark,
+              passed: row.checkpoint_passed === true,
+            });
       return {
         review: row.review,
         itemId: row.content_item_id,
         momentId: row.moment_id,
-        title: row.title,
+        title: checkpoint === null ? row.title : checkpoint.concepts.join(", "),
         startedAt: row.started_at,
         endsAt: row.ends_at,
         secondsLeft: row.seconds_left,
@@ -573,7 +746,59 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         correct: row.correct,
         avgMs: row.avg_ms === null ? null : Math.round(row.avg_ms),
         concepts: concepts.map((c) => ({ name: c.name, state: c.state })),
+        checkpoint,
       };
+    },
+
+    startCheckpoint: async (userId, sectionId) => {
+      await closeStale(userId);
+      const section = await db
+        .selectFrom("path_section")
+        .select("path_id")
+        .where("id", "=", sectionId)
+        .executeTakeFirst();
+      if (section === undefined) return null;
+      const running = () =>
+        db
+          .selectFrom("quiz_attempt")
+          .select("id")
+          .where("user_id", "=", userId)
+          .where("path_section_id", "=", sectionId)
+          .where("finished_at", "is", null)
+          .executeTakeFirst();
+      const was = await running();
+      if (was !== undefined)
+        return { attemptId: was.id, pathId: section.path_id, firstTime: false };
+      // A double tap racing this one inserts nothing (one running checkpoint per user
+      // and section, an index): it then meets the one that won.
+      const { rows } = await sql<{ id: string }>`
+        insert into quiz_attempt
+          (user_id, path_section_id, checkpoint_size, ends_at)
+        select ${userId}, s.id,
+               least(${CHECKPOINT_SIZE},
+                 (select count(*) from (${checkpointQuestions(sql`s.id`)}) cq)),
+               now() + ${DURATION}
+        from path_section s
+        join path p on p.id = s.path_id and p.status = 'live'
+        join user_path up on up.path_id = p.id
+          and up.user_id = ${userId} and up.status = 'active'
+        where s.id = ${sectionId}
+          and ${sectionOpen(userId, sql`s.id`)}
+          and ${readingsDone(userId, sql`s.id`)}
+          and not ${sectionPassed(userId, sql`s.id`)}
+          and exists (${checkpointQuestions(sql`s.id`)})
+        on conflict (user_id, path_section_id)
+          where path_section_id is not null and finished_at is null
+        do nothing
+        returning id
+      `.execute(db);
+      const made = rows[0];
+      if (made !== undefined)
+        return { attemptId: made.id, pathId: section.path_id, firstTime: true };
+      const won = await running();
+      return won === undefined
+        ? null
+        : { attemptId: won.id, pathId: section.path_id, firstTime: false };
     },
 
     dueReviews: async (userId) => {

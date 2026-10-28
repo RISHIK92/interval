@@ -15,7 +15,8 @@ with active as (
 takers as (
   select distinct user_id
   from events
-  where name = 'quiz_finished'
+  -- A checkpoint (P2-W10-S04) is a 60-second quiz too (§5F).
+  where name in ('quiz_finished', 'checkpoint_finished')
     and from_iso8601_timestamp(occurred_at)
         >= cast(current_date as timestamp) - interval '14' day
     and from_iso8601_timestamp(occurred_at)

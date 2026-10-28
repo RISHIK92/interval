@@ -9,10 +9,18 @@ const answer = vi.fn<Quizzes["answer"]>();
 const finish = vi.fn<Quizzes["finish"]>();
 const startReview = vi.fn<Quizzes["startReview"]>();
 const flag = vi.fn<Quizzes["flag"]>();
+const startCheckpoint = vi.fn<Quizzes["startCheckpoint"]>();
 const emit = vi.fn();
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
-  quizzes: () => ({ start, answer, finish, startReview, flag }),
+  quizzes: () => ({
+    start,
+    answer,
+    finish,
+    startReview,
+    flag,
+    startCheckpoint,
+  }),
   events: () => ({ emit }),
 }));
 vi.mock("next/headers", () => ({
@@ -141,7 +149,12 @@ test("a late or foreign answer records nothing", async () => {
 
 test("finishing reports once", async () => {
   const { finishQuizAction } = await actions();
-  finish.mockResolvedValue({ answered: 6, correct: 4, firstTime: true });
+  finish.mockResolvedValue({
+    answered: 6,
+    correct: 4,
+    firstTime: true,
+    checkpoint: null,
+  });
   await expect(
     finishQuizAction(form({ attemptId: "41", chip: "3-8" })),
   ).rejects.toThrow("redirect:/quiz/41/results?chip=3-8");
@@ -151,7 +164,12 @@ test("finishing reports once", async () => {
     context,
   );
   emit.mockClear();
-  finish.mockResolvedValue({ answered: 6, correct: 4, firstTime: false });
+  finish.mockResolvedValue({
+    answered: 6,
+    correct: 4,
+    firstTime: false,
+    checkpoint: null,
+  });
   await expect(
     finishQuizAction(form({ attemptId: "41", chip: "3-8" })),
   ).rejects.toThrow("redirect:/quiz/41/results?chip=3-8");
@@ -253,7 +271,12 @@ test("a flag is recorded once and goes back to the question's feedback", async (
 
 test("Close finishes and goes back to the feed", async () => {
   const { finishQuizAction } = await actions();
-  finish.mockResolvedValue({ answered: 1, correct: 1, firstTime: true });
+  finish.mockResolvedValue({
+    answered: 1,
+    correct: 1,
+    firstTime: true,
+    checkpoint: null,
+  });
   await expect(
     finishQuizAction(form({ attemptId: "41", chip: "1-3", leave: "feed" })),
   ).rejects.toThrow("redirect:/?chip=1-3");
@@ -269,4 +292,67 @@ test("signed out goes to join", async () => {
   await expect(
     startQuizAction(form({ itemId: "5", chip: "3-8" })),
   ).rejects.toThrow("redirect:/join");
+});
+
+// P2-W10-S04 (§5F, Q-P2-26, Q-P2-28): checkpoints.
+test("a checkpoint starts once, recorded, and opens the quiz; not ready goes back", async () => {
+  const { startCheckpointAction } = await actions();
+  const fields = { sectionId: "60", chip: "3-8", back: "/paths/6" };
+  startCheckpoint.mockResolvedValue({
+    attemptId: "41",
+    pathId: "6",
+    firstTime: true,
+  });
+  await expect(startCheckpointAction(form(fields))).rejects.toThrow(
+    "redirect:/quiz/41?chip=3-8",
+  );
+  expect(startCheckpoint).toHaveBeenCalledWith("u1", "60");
+  expect(emit).toHaveBeenCalledWith(
+    "checkpoint_started",
+    { attempt_id: "41", path_id: "6", section_id: "60" },
+    context,
+  );
+  emit.mockClear();
+  startCheckpoint.mockResolvedValue({
+    attemptId: "41",
+    pathId: "6",
+    firstTime: false,
+  });
+  await expect(startCheckpointAction(form(fields))).rejects.toThrow(
+    "redirect:/quiz/41?chip=3-8",
+  );
+  expect(emit).not.toHaveBeenCalled();
+  startCheckpoint.mockResolvedValue(null);
+  await expect(startCheckpointAction(form(fields))).rejects.toThrow(
+    "redirect:/paths/6",
+  );
+  await expect(
+    startCheckpointAction(form({ ...fields, sectionId: "x" })),
+  ).rejects.toThrow("redirect:/paths");
+});
+
+test("a checkpoint's finish reports whether it passed; Close goes back to the path", async () => {
+  const { finishQuizAction } = await actions();
+  finish.mockResolvedValue({
+    answered: 5,
+    correct: 4,
+    firstTime: true,
+    checkpoint: { pathId: "6", sectionId: "60", passed: true },
+  });
+  await expect(
+    finishQuizAction(form({ attemptId: "41", chip: "3-8", leave: "path" })),
+  ).rejects.toThrow("redirect:/paths/6");
+  expect(emit).toHaveBeenCalledTimes(1);
+  expect(emit).toHaveBeenCalledWith(
+    "checkpoint_finished",
+    {
+      attempt_id: "41",
+      path_id: "6",
+      section_id: "60",
+      answered: 5,
+      correct: 4,
+      passed: true,
+    },
+    context,
+  );
 });

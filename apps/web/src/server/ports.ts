@@ -279,7 +279,12 @@ export interface Quizzes {
   finish(
     userId: string,
     attemptId: string,
-  ): Promise<{ answered: number; correct: number; firstTime: boolean } | null>;
+  ): Promise<{
+    answered: number;
+    correct: number;
+    firstTime: boolean;
+    checkpoint: { pathId: string; sectionId: string; passed: boolean } | null;
+  } | null>;
   // P2-W9-S02: which of these targets would start a quiz, as `quizKey` keys.
   offered(
     targets: { itemId: string; momentId: string | null }[],
@@ -294,6 +299,17 @@ export interface Quizzes {
   startReview(userId: string): Promise<{
     attemptId: string;
     concepts: number;
+    firstTime: boolean;
+  } | null>;
+  // P2-W10-S04 (§5F, Q-P2-26): a checkpoint on a section of the user's active path,
+  // once it's open and its readings are finished, not yet passed, with a live
+  // question; the running one if there is one (LOAD-5); null otherwise.
+  startCheckpoint(
+    userId: string,
+    sectionId: string,
+  ): Promise<{
+    attemptId: string;
+    pathId: string;
     firstTime: boolean;
   } | null>;
   // P2-W9-S07 (Q-2, Q-P2-18): flag a question answered in the user's attempt, once
@@ -331,6 +347,22 @@ export type QuizAttempt = {
   avgMs: number | null; // from serving to answering; null before any answer
   // The concepts its answered questions test, with the user's state (null: unseen).
   concepts: { name: string; state: LearnerState | null }[];
+  checkpoint: CheckpointInfo | null;
+};
+// P2-W10-S04 (Q-P2-26): up to 5 questions; 4 of 5 pass, all but one of fewer.
+export const CHECKPOINT_SIZE = 5;
+// The same rule as quiz_attempt.pass_mark, which settles a taken checkpoint.
+export const passMark = (size: number): number =>
+  size >= CHECKPOINT_SIZE ? 4 : Math.max(size - 1, 1);
+export type CheckpointInfo = {
+  pathId: string;
+  sectionId: string;
+  concepts: string[]; // the section's
+  size: number;
+  passMark: number;
+  passed: boolean; // this attempt reached its pass mark
+  next: string[] | null; // the next section's concepts; null after the last section
+  missed: string[]; // concepts of its wrong answers, due for review now
 };
 export type QuizFeedback = {
   stem: string;
@@ -705,8 +737,14 @@ export type PathStep = {
   sectionId: string;
   concepts: string[];
   readings: PathReading[];
-  // S03: the first section is open, the rest wait for their checkpoint (S04).
+  // The first section is open; each next one once the one before is passed (S04).
   open: boolean;
+  // P2-W10-S04 (Q-P2-26): "reading" until every reading (with a working link) is
+  // finished; "ready" to take; "no_questions" while none is live to ask.
+  checkpoint: "locked" | "reading" | "ready" | "no_questions" | "passed";
+  // The questions it would ask now (0: none) and the pass mark that makes.
+  size: number;
+  passMark: number;
 };
 export type PathTimeline = {
   pathId: string;

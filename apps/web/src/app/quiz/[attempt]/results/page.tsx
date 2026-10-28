@@ -6,13 +6,15 @@ import { progress, quizzes, sessionReader } from "../../../../server/container";
 import { outHref, readHref } from "../../../../server/outbound";
 import { BIGINT_ID } from "../../../../server/ports";
 import { STATE_WORDS } from "../../../learnerState";
+import { startCheckpointAction } from "../../actions";
 
 export const dynamic = "force-dynamic";
 
 const Query = z.object({ chip: z.enum(CHIPS) });
 
 // Test 60s results (P2-W9-S02; wireframe 14, variant test): how it went, each
-// concept's state, and the next section.
+// concept's state, and the next section. A checkpoint's (P2-W10-S04, Q-P2-26) says
+// whether it passed and what that unlocked, or offers another try.
 export default async function ResultsPage({
   params,
   searchParams,
@@ -29,7 +31,7 @@ export default async function ResultsPage({
   const attempt = await quizzes().attempt(actor.userId, attemptId);
   if (attempt === null) redirect("/");
   if (attempt.finishedAt === null) redirect(`/quiz/${attemptId}?chip=${chip}`);
-  const { itemId, momentId } = attempt;
+  const { itemId, momentId, checkpoint } = attempt;
   // A review (P2-W9-S05) has no section to continue.
   const next =
     itemId === null || momentId === null
@@ -81,9 +83,37 @@ export default async function ResultsPage({
             : `${String(attempt.correct)} of ${String(attempt.answered)} correct`}
         </h1>
         <p className="text-sm text-ink-muted">
-          {attempt.review ? "Review" : `Test yourself · ${attempt.title}`}
+          {attempt.review
+            ? "Review"
+            : checkpoint === null
+              ? `Test yourself · ${attempt.title}`
+              : `Checkpoint · ${attempt.title}`}
         </p>
       </header>
+      {checkpoint === null ? null : checkpoint.passed ? (
+        <p
+          role="status"
+          className="rounded-2xl bg-go-soft px-4 py-3 font-semibold"
+        >
+          {checkpoint.next === null
+            ? "Passed. That's the whole path."
+            : `Passed: ${checkpoint.next.join(", ")} unlocked.`}
+        </p>
+      ) : (
+        <div
+          role="status"
+          className="flex flex-col gap-1 rounded-2xl bg-well px-4 py-3"
+        >
+          <p className="font-semibold">
+            Not yet: {checkpoint.passMark} of {checkpoint.size} needed.
+          </p>
+          {checkpoint.missed.length === 0 ? null : (
+            <p className="text-sm">
+              In your review queue now: {checkpoint.missed.join(", ")}.
+            </p>
+          )}
+        </div>
+      )}
       {attempt.concepts.length === 0 ? null : (
         <ul className="flex flex-col gap-2">
           {attempt.concepts.map((c) => (
@@ -127,6 +157,27 @@ export default async function ResultsPage({
         </section>
       )}
       <div className="mt-auto flex flex-col gap-2">
+        {checkpoint === null || checkpoint.passed ? null : (
+          <form action={startCheckpointAction}>
+            <input
+              type="hidden"
+              name="sectionId"
+              value={checkpoint.sectionId}
+            />
+            <input type="hidden" name="chip" value={chip} />
+            <input
+              type="hidden"
+              name="back"
+              value={`/paths/${checkpoint.pathId}`}
+            />
+            <button
+              type="submit"
+              className="inline-flex w-full cursor-pointer items-center justify-center rounded-full bg-ink px-5 py-3 font-semibold text-page"
+            >
+              Try again
+            </button>
+          </form>
+        )}
         {nextHref === null ? null : (
           <a
             href={nextHref}
@@ -139,10 +190,24 @@ export default async function ResultsPage({
           </a>
         )}
         <a
-          href={attempt.review ? "/library" : `/?chip=${chip}`}
-          className="inline-flex items-center justify-center rounded-full border border-hairline px-5 py-3 font-semibold"
+          href={
+            checkpoint !== null
+              ? `/paths/${checkpoint.pathId}`
+              : attempt.review
+                ? "/library"
+                : `/?chip=${chip}`
+          }
+          className={`inline-flex items-center justify-center rounded-full px-5 py-3 font-semibold ${
+            checkpoint?.passed === true
+              ? "bg-ink text-page"
+              : "border border-hairline"
+          }`}
         >
-          {attempt.review ? "Back to Library" : "Back to feed"}
+          {checkpoint !== null
+            ? "Back to the path"
+            : attempt.review
+              ? "Back to Library"
+              : "Back to feed"}
         </a>
       </div>
     </main>

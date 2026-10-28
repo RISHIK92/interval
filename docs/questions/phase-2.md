@@ -148,6 +148,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: §5F ("60-second quizzes between path sections. Passing marks those concepts as practiced and unlocks the next section. Missed concepts go to the review queue."), wireframe 12 variant `cp` ("Pass 4 of 5 to unlock Partitioning").
 - **Answer (owner, 2026-10-28):** 5 questions on the section's concepts, 60 seconds, pass with 4 of 5. Passing marks those concepts practiced and unlocks the next section; missed concepts go to the review queue (due now); failing allows a retry.
 - Suggested defaults: questions from the section's own sessions' moments first, then other live questions on its concepts; "marks practiced" raises a concept to at least practiced (p at least 0.5) and never lowers one already mastered; answers also move mastery as Test 60s answers do (P2-W9-S03); a retry draws questions not asked in the last attempt where it can; a checkpoint is offered once every session in the section is finished or skipped.
+- **Update (owner, 2026-10-28, P2-W10-S04):** a section with fewer than 5 live questions asks what it has and passes with all but one (at least 1); a section with none shows "Checkpoint not ready yet". The size and pass mark are fixed when the checkpoint starts, so running out the clock doesn't lower them. A reading whose link is broken (ING-6) doesn't hold the checkpoint back (implementation default; the broken-link question from S02 is still open).
 
 ### Q-P2-27 Following a path (P1)
 - Cite: §4 (Paths tab), §5B (feed items), REC-1 ("continue items"), wireframe 05.
@@ -158,4 +159,5 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P2-28 Path events and the continuity metric (P1)
 - Cite: DB-5, §8 ("Continuity: path progress"), Q-P1-20.
 - Suggested default: events `path_started`, `path_paused`, `path_section_skipped`, `checkpoint_started`, `checkpoint_finished` (passed or not, correct); a metric query for path progress (sections passed per active path per week).
+- Note (P2-W10-S04): a checkpoint left open (the tab closed) is closed and settled at its clock by the user's next quiz start, with no `checkpoint_finished` event, as with `quiz_finished` since W9. S06's progress query should count passes from the database, or that close should emit; to decide in S06.
 

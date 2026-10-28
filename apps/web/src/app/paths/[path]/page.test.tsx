@@ -59,6 +59,9 @@ const timeline: PathTimeline = {
       sectionId: "60",
       concepts: ["Leader-follower replication"],
       open: true,
+      checkpoint: "reading",
+      size: 5,
+      passMark: 4,
       readings: [
         {
           ...reading,
@@ -82,6 +85,9 @@ const timeline: PathTimeline = {
       sectionId: "61",
       concepts: ["Quorums"],
       open: false,
+      checkpoint: "locked",
+      size: 2,
+      passMark: 1,
       readings: [
         {
           ...reading,
@@ -134,6 +140,43 @@ test("the timeline ticks finished readings, offers the next, and shows checkpoin
   );
   // A locked section's readings aren't links yet.
   expect(html).not.toContain("/read/52");
+});
+
+test("a section's checkpoint is offered once its readings are finished, on the active path", async () => {
+  current.mockResolvedValue(user);
+  const [one, two] = timeline.sections;
+  if (!one || !two) throw new Error("fixture");
+  const ready = {
+    ...timeline,
+    sections: [{ ...one, checkpoint: "ready" as const }, two],
+  };
+  path.mockResolvedValueOnce(ready);
+  const html = await page();
+  expect(html).toMatch(
+    /name="sectionId" value="60"[^]*?name="chip" value="3-8"[^]*?Take the checkpoint/,
+  );
+  // Not while the readings are unfinished, nor on a path that isn't active.
+  path.mockResolvedValueOnce(timeline);
+  expect(await page()).not.toContain("Take the checkpoint");
+  path.mockResolvedValueOnce({ ...ready, mine: "paused" });
+  expect(await page()).not.toContain("Take the checkpoint");
+  // Passed: the next section opens, its smaller checkpoint needing all but one.
+  path.mockResolvedValueOnce({
+    ...timeline,
+    sections: [
+      { ...one, checkpoint: "passed" },
+      { ...two, open: true, checkpoint: "reading" },
+    ],
+  });
+  const passed = await page();
+  expect(passed).toContain("Checkpoint passed");
+  expect(passed).toContain("Checkpoint · Pass 1 of 2 to finish the path");
+  expect(passed).not.toContain("Locked");
+  path.mockResolvedValueOnce({
+    ...timeline,
+    sections: [{ ...one, checkpoint: "no_questions", size: 0 }, two],
+  });
+  expect(await page()).toContain("Checkpoint not ready yet");
 });
 
 test("a path the user hasn't started offers Start; a retired one says so", async () => {

@@ -17,6 +17,8 @@ type EventName = Literal[
     "article_finished",
     "card_impression",
     "card_opened",
+    "checkpoint_finished",
+    "checkpoint_started",
     "continue_clicked",
     "feed_viewed",
     "feedback_given",
@@ -45,6 +47,8 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "article_finished": 2,
     "card_impression": 1,
     "card_opened": 3,
+    "checkpoint_finished": 1,
+    "checkpoint_started": 1,
     "continue_clicked": 1,
     "feed_viewed": 1,
     "feedback_given": 1,
@@ -88,6 +92,21 @@ class CardOpenedProps(_Model):
     item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
     moment_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
     surface: Literal["in_app", "browser"]
+
+
+class CheckpointFinishedProps(_Model):
+    attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    path_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    section_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    answered: int = Field(ge=0, strict=True)
+    correct: int = Field(ge=0, strict=True)
+    passed: StrictBool
+
+
+class CheckpointStartedProps(_Model):
+    attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    path_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    section_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class ContinueClickedProps(_Model):
@@ -218,6 +237,18 @@ class CardOpenedEvent(_EnvelopeBase):
     props: CardOpenedProps
 
 
+class CheckpointFinishedEvent(_EnvelopeBase):
+    name: Literal["checkpoint_finished"]
+    version: Literal[1]
+    props: CheckpointFinishedProps
+
+
+class CheckpointStartedEvent(_EnvelopeBase):
+    name: Literal["checkpoint_started"]
+    version: Literal[1]
+    props: CheckpointStartedProps
+
+
 class ContinueClickedEvent(_EnvelopeBase):
     name: Literal["continue_clicked"]
     version: Literal[1]
@@ -343,6 +374,8 @@ type Envelope = Annotated[
     ArticleFinishedEvent
     | CardImpressionEvent
     | CardOpenedEvent
+    | CheckpointFinishedEvent
+    | CheckpointStartedEvent
     | ContinueClickedEvent
     | FeedViewedEvent
     | FeedbackGivenEvent

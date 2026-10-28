@@ -20,6 +20,26 @@ const Query = z.object({
 });
 
 const LETTERS = ["A", "B", "C", "D"];
+const EXIT_TEXT = {
+  test: {
+    title: "Exit the test?",
+    body: "Exiting now ends this test and will affect your score.",
+    button: "Exit test",
+    leave: "feed",
+  },
+  review: {
+    title: "Exit the review?",
+    body: "Exiting ends this review. Concepts you haven't answered stay due.",
+    button: "Exit review",
+    leave: "library",
+  },
+  checkpoint: {
+    title: "Exit the checkpoint?",
+    body: "Exiting now ends this checkpoint and counts what you answered. You can try again.",
+    button: "Exit checkpoint",
+    leave: "path",
+  },
+} as const;
 const OPTION =
   "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left";
 const FINISH_FORM = "quiz-finish";
@@ -46,6 +66,12 @@ export default async function QuizPage({
   if (attempt.finishedAt !== null)
     redirect(`/quiz/${attemptId}/results?chip=${chip}`);
   const here = `/quiz/${attemptId}?chip=${chip}`;
+  const { checkpoint } = attempt;
+  const kind = attempt.review
+    ? "review"
+    : checkpoint === null
+      ? "test"
+      : "checkpoint";
 
   let body;
   if (answered !== undefined) {
@@ -185,7 +211,10 @@ export default async function QuizPage({
 
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-      <h1 className="sr-only">Test yourself: {attempt.title}</h1>
+      <h1 className="sr-only">
+        {kind === "checkpoint" ? "Checkpoint" : "Test yourself"}:{" "}
+        {attempt.title}
+      </h1>
       <form id={FINISH_FORM} action={finishQuizAction}>
         <input type="hidden" name="attemptId" value={attemptId} />
         <input type="hidden" name="chip" value={chip} />
@@ -210,27 +239,19 @@ export default async function QuizPage({
           className="m-auto w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-hairline bg-page p-5 text-ink shadow-card backdrop:bg-black/40"
         >
           <p id={`${EXIT}-title`} className="font-semibold">
-            {attempt.review ? "Exit the review?" : "Exit the test?"}
+            {EXIT_TEXT[kind].title}
           </p>
-          <p className="mt-1 text-sm text-ink-muted">
-            {attempt.review
-              ? "Exiting ends this review. Concepts you haven't answered stay due."
-              : "Exiting now ends this test and will affect your score."}
-          </p>
+          <p className="mt-1 text-sm text-ink-muted">{EXIT_TEXT[kind].body}</p>
           <div className="mt-4 flex flex-col gap-2">
             <form action={finishQuizAction}>
               <input type="hidden" name="attemptId" value={attemptId} />
               <input type="hidden" name="chip" value={chip} />
-              <input
-                type="hidden"
-                name="leave"
-                value={attempt.review ? "library" : "feed"}
-              />
+              <input type="hidden" name="leave" value={EXIT_TEXT[kind].leave} />
               <button
                 type="submit"
                 className="w-full cursor-pointer rounded-full border border-wrong px-5 py-3 font-semibold"
               >
-                {attempt.review ? "Exit review" : "Exit test"}
+                {EXIT_TEXT[kind].button}
               </button>
             </form>
             <button
@@ -244,7 +265,11 @@ export default async function QuizPage({
           </div>
         </div>
         <p className="flex-1 font-semibold">
-          {attempt.review ? "Review" : "Test yourself · 60s"}
+          {kind === "review"
+            ? "Review"
+            : kind === "checkpoint"
+              ? "Checkpoint · 60s"
+              : "Test yourself · 60s"}
         </p>
         <p className="text-sm text-ink-muted">{attempt.answered} answered</p>
       </header>
@@ -259,11 +284,17 @@ export default async function QuizPage({
       <p className="text-sm text-ink-muted">{attempt.title}</p>
       {body}
       <p className="mt-auto text-center text-xs text-ink-muted">
-        {attempt.review
-          ? "One question per concept due for review"
-          : attempt.momentId === null
-            ? "Questions from this article"
-            : "Questions from this section"}
+        {checkpoint !== null
+          ? `Pass ${String(checkpoint.passMark)} of ${String(checkpoint.size)} ${
+              checkpoint.next === null
+                ? "to finish the path"
+                : `to unlock ${checkpoint.next.join(", ")}`
+            }`
+          : attempt.review
+            ? "One question per concept due for review"
+            : attempt.momentId === null
+              ? "Questions from this article"
+              : "Questions from this section"}
       </p>
     </main>
   );

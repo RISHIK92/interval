@@ -107,6 +107,23 @@
       "description": "A user started (or resumed) a topic path, making it their active one (P2-W10-S03, Q-P2-27, Q-P2-28).",
       "props": { "path_id": "id" }
     },
+    "checkpoint_started": {
+      "version": 1,
+      "description": "A checkpoint on a path section started, once per attempt (P2-W10-S04, Q-P2-26, Q-P2-28).",
+      "props": { "attempt_id": "id", "path_id": "id", "section_id": "id" }
+    },
+    "checkpoint_finished": {
+      "version": 1,
+      "description": "A checkpoint was finished, once per attempt (P2-W10-S04, Q-P2-26, Q-P2-28). passed: it reached its pass mark (4 of 5; all but one of a smaller one).",
+      "props": {
+        "attempt_id": "id",
+        "path_id": "id",
+        "section_id": "id",
+        "answered": "count",
+        "correct": "count",
+        "passed": "boolean"
+      }
+    },
     "item_saved": {
       "version": 1,
       "description": "An item was saved (W4-S07; listed by the W5-S04 Library).",

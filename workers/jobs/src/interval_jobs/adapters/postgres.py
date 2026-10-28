@@ -2043,9 +2043,11 @@ class PostgresQuestions:
             from quiz_answer qa
             join quiz_attempt a on a.id = qa.attempt_id
             join question q on q.id = qa.question_id
-            -- Test 60s answers only: a review repeats questions the user has seen,
-            -- spaced to be recalled, which would make them look easier.
-            where qa.answered_at is not null and not a.review
+            -- Test 60s answers only (sprints have an article): a review repeats
+            -- questions the user has seen, spaced to be recalled, and a checkpoint
+            -- comes right after the readings and repeats its small pool on a retry;
+            -- both would make questions look easier.
+            where qa.answered_at is not null and a.content_item_id is not null
               and q.status in ('live', 'flagged')
             """
         ).fetchall()

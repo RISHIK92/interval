@@ -458,6 +458,10 @@ class QuizAttempt(TypedDict):
     ends_at: datetime | None
     finished_at: datetime | None
     review: bool
+    path_section_id: int | None
+    checkpoint_size: int | None
+    pass_mark: int | None
+    checkpoint_passed: bool | None
 
 
 class QuizAttemptConcept(TypedDict):

@@ -388,6 +388,7 @@ test("an answer is checked and counted once; a resubmit gets the stored result",
       answered: 2,
       correct: 1,
       firstTime: true,
+      checkpoint: null,
     });
     expect(await quizzes.finish(userId, started.attemptId)).toMatchObject({
       firstTime: false,
