@@ -34,6 +34,9 @@ from interval_jobs.ports import (
     ArmOutcome,
     BatchItemResult,
     BatchKind,
+    BookChapterRow,
+    BookJob,
+    BookPageText,
     CandidateArticle,
     CandidateMoment,
     ConceptCoverage,
@@ -2374,9 +2377,93 @@ class PostgresPaths:
         return path_id
 
 
+class PostgresBooks:
+    """PDF books (§5F, ING-5, P2-W11-S02): a user's private pages, chapters and
+    sessions, read from their PDF by the book_process stage."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def for_processing(self, book_id: int) -> BookJob | None:
+        row = self._conn.execute(
+            # A second delivery while the first still runs skips it, not parses twice.
+            "select user_id, file_key, title from book "
+            "where id = %s and status = 'processing' for update skip locked",
+            (book_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        return BookJob(book_id, str(row[0]), str(row[1]), str(row[2]))
+
+    def max_pages(self, user_id: str) -> int | None:
+        row = self._conn.execute(
+            "select limit_value from user_entitlement "
+            "where user_id = %s and capability = 'books.max_pages'",
+            (user_id,),
+        ).fetchone()
+        # No row: not granted (OPS-3); a null limit: no limit.
+        if row is None:
+            return 0
+        return None if row[0] is None else int(row[0])
+
+    def save(
+        self,
+        book_id: int,
+        title: str | None,
+        pages: list[BookPageText],
+        chapters: list[BookChapterRow],
+        status: Literal["ready", "ocr"],
+    ) -> None:
+        conn = self._conn
+        # A rerun (or S03's rebuild after OCR) replaces what an earlier run made.
+        conn.execute("delete from book_chapter where book_id = %s", (book_id,))
+        conn.execute("delete from book_page where book_id = %s", (book_id,))
+        with conn.cursor() as cur:
+            cur.executemany(
+                "insert into book_page (book_id, page_no, text, scanned) "
+                "values (%s, %s, %s, %s)",
+                [(book_id, p.page_no, p.text, p.scanned) for p in pages],
+            )
+        for ordinal, chapter in enumerate(chapters):
+            chapter_row = conn.execute(
+                "insert into book_chapter (book_id, ordinal, title) "
+                "values (%s, %s, %s) returning id",
+                (book_id, ordinal, chapter.title[:300]),
+            ).fetchone()
+            assert chapter_row is not None
+            with conn.cursor() as cur:
+                cur.executemany(
+                    "insert into book_session (chapter_id, ordinal, title, text, "
+                    "estimated_minutes, first_page) values (%s, %s, %s, %s, %s, %s)",
+                    [
+                        (
+                            chapter_row[0],
+                            n,
+                            s.title[:300],
+                            s.text,
+                            max(1, s.minutes),
+                            s.first_page,
+                        )
+                        for n, s in enumerate(chapter.sessions)
+                    ],
+                )
+        conn.execute(
+            "update book set status = %s, page_count = %s, failure = null, "
+            "title = coalesce(left(%s, 300), title) where id = %s",
+            (status, len(pages), title, book_id),
+        )
+
+    def fail(self, book_id: int, reason: str) -> None:
+        self._conn.execute(
+            "update book set status = 'failed', failure = %s where id = %s",
+            (reason, book_id),
+        )
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
+        self.books = PostgresBooks(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)
         self.moments = PostgresMoments(conn)

@@ -151,6 +151,17 @@ def _by_boundaries(
     return intro + groups
 
 
+def plan_units(sections: list[SectionRow]) -> list[list[SectionRow]]:
+    """Sections grouped into 2 to 8 minute units (ING-4): the intro alone, then each
+    heading with what's under it, split at its subheadings when too long and merged
+    with a neighbour when too short. Shared by moments and book sessions (P2-W11-S02).
+    """
+    roots = _tree(sections)
+    intro = [[r.section] for r in roots if r.section.heading is None]
+    headed = [u for r in roots if r.section.heading is not None for u in _units(r)]
+    return intro + _merge_short(headed)
+
+
 def plan_moments(
     title: str,
     url: str,
@@ -161,10 +172,7 @@ def plan_moments(
         return []  # no headings with content: whole article only (Q-P1-06)
     units = _by_boundaries(sections, boundaries) if boundaries else None
     if units is None:
-        roots = _tree(sections)
-        intro = [[r.section] for r in roots if r.section.heading is None]
-        headed = [u for r in roots if r.section.heading is not None for u in _units(r)]
-        units = intro + _merge_short(headed)
+        units = plan_units(sections)
     rows: list[MomentRow] = []
     for unit in units:
         words = _words(unit)

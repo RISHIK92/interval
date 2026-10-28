@@ -152,10 +152,35 @@ export interface Book {
   failure: string | null;
   file_key: string;
   id: Generated<Int8>;
+  page_count: number | null;
   size_bytes: number;
   status: Generated<BookStatus>;
   title: string;
   user_id: string;
+}
+
+export interface BookChapter {
+  book_id: Int8;
+  id: Generated<Int8>;
+  ordinal: number;
+  title: string;
+}
+
+export interface BookPage {
+  book_id: Int8;
+  page_no: number;
+  scanned: boolean;
+  text: string;
+}
+
+export interface BookSession {
+  chapter_id: Int8;
+  estimated_minutes: number;
+  first_page: number;
+  id: Generated<Int8>;
+  ordinal: number;
+  text: string;
+  title: string;
 }
 
 export interface Concept {
@@ -751,6 +776,9 @@ export interface DB {
   auth_session: AuthSession;
   auth_verification: AuthVerification;
   book: Book;
+  book_chapter: BookChapter;
+  book_page: BookPage;
+  book_session: BookSession;
   concept: Concept;
   concept_edge: ConceptEdge;
   concept_embedding: ConceptEmbedding;

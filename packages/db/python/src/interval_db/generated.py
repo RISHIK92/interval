@@ -122,6 +122,31 @@ class Book(TypedDict):
     status: BookStatus
     failure: str | None
     created_at: datetime
+    page_count: int | None
+
+
+class BookChapter(TypedDict):
+    id: int
+    book_id: int
+    ordinal: int
+    title: str
+
+
+class BookPage(TypedDict):
+    book_id: int
+    page_no: int
+    text: str
+    scanned: bool
+
+
+class BookSession(TypedDict):
+    id: int
+    chapter_id: int
+    ordinal: int
+    title: str
+    text: str
+    estimated_minutes: int
+    first_page: int
 
 
 class Concept(TypedDict):

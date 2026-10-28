@@ -1190,13 +1190,73 @@ class Store(Protocol):
     @property
     def paths(self) -> Paths: ...
 
+    @property
+    def books(self) -> "Books": ...
+
 
 class Files(Protocol):
     """DB-6, P2-W11-S01: private files (PDF books) in S3, or SeaweedFS (ADR-0011)."""
 
+    def get(self, key: str) -> bytes | None:
+        """None when nothing is at the key."""
+        ...
+
     def remove(self, key: str) -> None:
         """Nothing at the key is not an error."""
         ...
+
+
+# PDF books (§5F, ING-5, P2-W11-S02): a user's private PDF into chapters and sessions.
+@dataclass(frozen=True)
+class BookJob:
+    book_id: int
+    user_id: str
+    file_key: str
+    title: str  # the file name until the PDF's own title replaces it
+
+
+@dataclass(frozen=True)
+class BookPageText:
+    page_no: int
+    text: str
+    scanned: bool  # no text could be extracted: OCR reads it (S03)
+
+
+@dataclass(frozen=True)
+class BookSessionRow:
+    title: str
+    text: str
+    minutes: int
+    first_page: int
+
+
+@dataclass(frozen=True)
+class BookChapterRow:
+    title: str
+    sessions: list[BookSessionRow]
+
+
+class Books(Protocol):
+    def for_processing(self, book_id: int) -> BookJob | None:
+        """The book while it waits to be processed; None once done or deleted."""
+        ...
+
+    def max_pages(self, user_id: str) -> int | None:
+        """The plan's books.max_pages (OPS-3): None for no limit, 0 when not granted."""
+        ...
+
+    def save(
+        self,
+        book_id: int,
+        title: str | None,
+        pages: list[BookPageText],
+        chapters: list[BookChapterRow],
+        status: Literal["ready", "ocr"],
+    ) -> None:
+        """Replaces the book's pages, chapters and sessions; the title when given."""
+        ...
+
+    def fail(self, book_id: int, reason: str) -> None: ...
 
 
 class Fetcher(Protocol):

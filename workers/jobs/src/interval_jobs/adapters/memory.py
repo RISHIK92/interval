@@ -35,6 +35,9 @@ from interval_jobs.ports import (
     ArmOutcome,
     BatchItemResult,
     BatchKind,
+    BookChapterRow,
+    BookJob,
+    BookPageText,
     CandidateArticle,
     CandidateMoment,
     ConceptCoverage,
@@ -1815,6 +1818,7 @@ class InMemoryStore:
             self.items, self.sources, self.moments, self.tags, self.concepts
         )
         self.paths = InMemoryPaths(self.questions, self.items, self.concepts)
+        self.books = InMemoryBooks()
         drop_feed = self.feed.drop_missing
 
         def drop_missing() -> None:
@@ -1867,5 +1871,63 @@ class InMemoryFiles:
     def __init__(self) -> None:
         self.stored: dict[str, bytes] = {}
 
+    def get(self, key: str) -> bytes | None:
+        return self.stored.get(key)
+
     def remove(self, key: str) -> None:
         self.stored.pop(key, None)
+
+
+@dataclass
+class StoredBook:
+    user_id: str
+    file_key: str
+    title: str
+    status: str = "processing"
+    failure: str | None = None
+    page_count: int | None = None
+    pages: list[BookPageText] = field(default_factory=list[BookPageText])
+    chapters: list[BookChapterRow] = field(default_factory=list[BookChapterRow])
+
+
+class InMemoryBooks:
+    """PDF books (P2-W11-S02), as PostgresBooks."""
+
+    def __init__(self) -> None:
+        self.rows: dict[int, StoredBook] = {}
+        # OPS-3: the plan's books.max_pages per user; none granted unless set, as in
+        # Postgres without a plan row.
+        self.max_pages_by_user: dict[str, int | None] = {}
+
+    def for_processing(self, book_id: int) -> BookJob | None:
+        book = self.rows.get(book_id)
+        if book is None or book.status != "processing":
+            return None
+        return BookJob(book_id, book.user_id, book.file_key, book.title)
+
+    def max_pages(self, user_id: str) -> int | None:
+        return self.max_pages_by_user.get(user_id, 0)
+
+    def save(
+        self,
+        book_id: int,
+        title: str | None,
+        pages: list[BookPageText],
+        chapters: list[BookChapterRow],
+        status: Literal["ready", "ocr"],
+    ) -> None:
+        book = self.rows.get(book_id)
+        if book is None:  # deleted meanwhile: Postgres updates no row
+            return
+        book.pages = list(pages)
+        book.chapters = list(chapters)
+        book.page_count = len(pages)
+        book.status = status
+        if title is not None:
+            book.title = title[:300]
+
+    def fail(self, book_id: int, reason: str) -> None:
+        book = self.rows.get(book_id)
+        if book is None:
+            return
+        book.status, book.failure = "failed", reason

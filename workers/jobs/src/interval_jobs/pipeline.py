@@ -27,6 +27,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from interval_db.messages import (
+    BookProcess,
     CheckLink,
     DiscoverSource,
     EmbedItem,
@@ -42,6 +43,7 @@ from interval_db.messages import (
 )
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
+from interval_jobs.books.process import process_book
 from interval_jobs.concept_vectors import concept_text, text_hash
 from interval_jobs.embedding import embed_item
 from interval_jobs.feed.notes import polish_note, queue_polish
@@ -105,6 +107,7 @@ STAGES: tuple[MessageName, ...] = (
     "generate_questions",
     "validate_question",
     "remove_file",
+    "book_process",
 )
 
 # Q-P2-10: the free question model is an unimportant background task. A rate limit or
@@ -194,7 +197,16 @@ class Pipeline:
             "generate_questions": self._questions_stage,
             "validate_question": self._validate_stage,
             "remove_file": self._remove_file_stage,
+            "book_process": self._book_stage,
         }
+
+    # P2-W11-S02: an uploaded PDF read into chapters and sessions.
+    def _book_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, BookProcess)
+        if self._files is None:
+            raise RuntimeError("file storage isn't configured (PRIVATE_CONTENT_BUCKET)")
+        with self._unit() as services:
+            process_book(services.store, self._files, message.book_id)
 
     # P2-W11-S01 (LOAD-5): a deleted book's file, removed with the queue's retries.
     # Only under books/: the message names a key, and nothing else is the user's to
