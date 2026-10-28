@@ -16,6 +16,7 @@ from pydantic import (
 type EventName = Literal[
     "article_finished",
     "book_deleted",
+    "book_session_finished",
     "book_uploaded",
     "card_impression",
     "card_opened",
@@ -50,6 +51,7 @@ type Source = Literal["web", "jobs"]
 EVENT_VERSIONS: dict[EventName, int] = {
     "article_finished": 2,
     "book_deleted": 1,
+    "book_session_finished": 1,
     "book_uploaded": 1,
     "card_impression": 1,
     "card_opened": 3,
@@ -91,6 +93,11 @@ class ArticleFinishedProps(_Model):
 
 class BookDeletedProps(_Model):
     book_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class BookSessionFinishedProps(_Model):
+    book_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    session_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class BookUploadedProps(_Model):
@@ -259,6 +266,12 @@ class BookDeletedEvent(_EnvelopeBase):
     props: BookDeletedProps
 
 
+class BookSessionFinishedEvent(_EnvelopeBase):
+    name: Literal["book_session_finished"]
+    version: Literal[1]
+    props: BookSessionFinishedProps
+
+
 class BookUploadedEvent(_EnvelopeBase):
     name: Literal["book_uploaded"]
     version: Literal[1]
@@ -425,6 +438,7 @@ class SourceHiddenEvent(_EnvelopeBase):
 type Envelope = Annotated[
     ArticleFinishedEvent
     | BookDeletedEvent
+    | BookSessionFinishedEvent
     | BookUploadedEvent
     | CardImpressionEvent
     | CardOpenedEvent

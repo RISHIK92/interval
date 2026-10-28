@@ -917,8 +917,16 @@ export interface PreferencesStore {
 }
 
 // DB-6, P2-W11-S01: private files (PDF books) in S3, or SeaweedFS locally (ADR-0011).
+export type StoredFile = {
+  body: ReadableStream<Uint8Array>;
+  etag: string | null;
+  size: number | null;
+};
 export interface FileStore {
   put(key: string, bytes: Uint8Array, contentType: string): Promise<void>;
+  // The file as a stream (the reader, P2-W11-S04), with its version; "unchanged" when
+  // it still matches `etag` (the browser's copy); null when nothing is at the key.
+  get(key: string, etag?: string): Promise<StoredFile | "unchanged" | null>;
   // Nothing at the key is not an error.
   remove(key: string): Promise<void>;
 }
@@ -943,4 +951,44 @@ export interface Books {
   ): Promise<{ bookId: string } | "limit">;
   // The removed book's file key; null when it isn't the user's.
   remove(userId: string, bookId: string): Promise<string | null>;
+  // P2-W11-S04 (§5F, Q-P2-31): a ready book's session to read; with no session named,
+  // where the user left off, else the first unfinished, else the first. Null when the
+  // book isn't the user's or isn't ready; a session not in the book is ignored.
+  reading(
+    userId: string,
+    bookId: string,
+    sessionId: string | null,
+  ): Promise<BookReading | null>;
+  // True the first time; the book's id, for its event. Null when not the user's.
+  finish(
+    userId: string,
+    sessionId: string,
+  ): Promise<{ bookId: string; firstTime: boolean } | null>;
+  // False when the session isn't in the user's ready book.
+  savePosition(
+    userId: string,
+    bookId: string,
+    sessionId: string,
+    fraction: number,
+  ): Promise<boolean>;
+  // The PDF's key, for the user's own ready book; null otherwise.
+  fileKey(userId: string, bookId: string): Promise<string | null>;
 }
+export type BookReading = {
+  bookId: string;
+  bookTitle: string;
+  chapterTitle: string;
+  sessionId: string;
+  title: string;
+  text: string;
+  minutes: number;
+  // The section's own pages in the PDF, shown by the reader (Q-P2-31, updated).
+  firstPage: number;
+  lastPage: number;
+  finished: boolean;
+  fraction: number | null; // where the user left off in this session
+  previous: string | null;
+  next: string | null;
+  place: number; // 1-based, across the book
+  of: number;
+};

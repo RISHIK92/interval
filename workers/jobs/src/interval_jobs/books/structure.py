@@ -8,7 +8,7 @@ breaks. Headings are found by font size: a short line clearly larger than the bo
 
 import re
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from interval_jobs.ports import BookChapterRow, BookSessionRow, SectionRow
 from interval_jobs.segment import MAX_WORDS, MIN_WORDS, minutes, plan_units
@@ -47,6 +47,11 @@ class _Para:
     page_no: int
     lines: list[str]
     heading_level: int | None  # a heading is a paragraph of its own
+    pages: list[int]  # each line's page: a paragraph can run across a page break
+
+    @property
+    def last_page(self) -> int:
+        return self.pages[-1] if self.pages else self.page_no
 
     def text(self) -> str:
         out = ""
@@ -166,8 +171,9 @@ def _paragraphs(pages: list[Page]) -> list[_Para]:
         )
         if joins and current is not None:
             current.lines.append(text)
+            current.pages.append(page_no)
         else:
-            paras.append(_Para(page_no, [text], level))
+            paras.append(_Para(page_no, [text], level, [page_no]))
         previous = (page_no, line)
     return paras
 
@@ -182,12 +188,13 @@ def _split_long(para: _Para) -> list[_Para]:
     if para.words() <= MAX_WORDS:
         return [para]
     parts: list[_Para] = []
-    for line in para.lines:
+    for line, page in zip(para.lines, para.pages, strict=True):
         current = parts[-1] if parts else None
         if current is None or current.words() >= TARGET_WORDS:
-            parts.append(_Para(para.page_no, [line], para.heading_level))
+            parts.append(_Para(page, [line], para.heading_level, [page]))
         else:
             current.lines.append(line)
+            current.pages.append(page)
     return parts
 
 
@@ -216,6 +223,7 @@ def _cut(paras: list[_Para], title: str) -> list[BookSessionRow]:
                 text=text,
                 minutes=minutes(len(text.split())),
                 first_page=piece[0].page_no,
+                last_page=max(p.last_page for p in piece),
             )
         )
     return sessions
@@ -269,6 +277,7 @@ def _sessions(
                 text=text,
                 minutes=minutes(len(text.split())),
                 first_page=parts[0].page_no,
+                last_page=max(p.last_page for p in parts),
             )
         )
     return sessions
@@ -318,4 +327,19 @@ def structure(
         sessions = _sessions(body, title, depth)
         if sessions:
             result.append(BookChapterRow(title=title or "Chapter", sessions=sessions))
-    return result
+    return _cover_every_page(result, max(p.no for p in pages))
+
+
+def _cover_every_page(
+    chapters: list[BookChapterRow], last_page: int
+) -> list[BookChapterRow]:
+    """Pages with no text (a full-page figure, a blank page) belong to the session
+    before them, and the book's last pages to its last session: the reader shows a
+    session's PDF pages, so none goes missing."""
+    flat = [s for c in chapters for s in c.sessions]
+    ends = [nxt.first_page - 1 for nxt in flat[1:]] + [last_page]
+    covered = iter(
+        replace(s, last_page=max(s.last_page, end))
+        for s, end in zip(flat, ends, strict=True)
+    )
+    return [replace(c, sessions=[next(covered) for _ in c.sessions]) for c in chapters]

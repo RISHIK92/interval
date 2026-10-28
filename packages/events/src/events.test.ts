@@ -45,6 +45,7 @@ describe("the event list (Q-P1-20)", () => {
         // The owner-approved Week 11 plan (2026-10-28, P2-W11-S01).
         "book_uploaded",
         "book_deleted",
+        "book_session_finished",
       ].sort(),
     );
   });

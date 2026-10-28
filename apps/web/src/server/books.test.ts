@@ -20,6 +20,10 @@ function fakes(
   let next = 1;
   const books: Books = {
     list: () => Promise.resolve([]),
+    reading: () => Promise.resolve(null),
+    finish: () => Promise.resolve(null),
+    savePosition: () => Promise.resolve(false),
+    fileKey: () => Promise.resolve(null),
     create: (userId, _title, _size, key) => {
       const mine = [...rows.values()].filter((r) => r.userId === userId);
       if (mine.length >= (opts.limit ?? 5)) return Promise.resolve("limit");
@@ -35,6 +39,7 @@ function fakes(
     },
   };
   const files: FileStore = {
+    get: () => Promise.resolve(null),
     // A put that fails may still have stored the file (a timeout): it's kept here.
     put: (key, bytes) => {
       stored.set(key, bytes);

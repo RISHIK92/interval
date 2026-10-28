@@ -189,3 +189,43 @@ def test_a_heading_wrapped_onto_two_lines_is_one_heading() -> None:
         "Chapter 1 On Systems",
         "Chapter 2",
     ]
+
+
+def test_a_session_knows_its_pages_and_neighbours_can_share_one() -> None:
+    # The reader shows a session's own PDF pages (owner, Q-P2-31 updated).
+    pages = [
+        page(1, heading("Leaders", 40, 16), para(300, 70)),
+        page(2, para(300, 50)),
+        page(3, para(200, 50), heading("Followers", 400, 16), para(300, 430)),
+        page(4, para(300, 50)),
+    ]
+    sessions = [s for c in structure(pages, [], "B") for s in c.sessions]
+    assert [(s.title, s.first_page, s.last_page) for s in sessions] == [
+        ("Leaders", 1, 3),
+        ("Followers", 3, 4),
+    ]
+
+
+def test_a_paragraph_running_over_a_page_break_ends_on_the_later_page() -> None:
+    pages = [
+        page(1, [Line(words(12), BODY, 700 + i * 12) for i in range(3)]),
+        page(2, [Line(words(12), BODY, 40 + i * 12) for i in range(3)]),
+    ]
+    (session,) = structure(pages, [], "B")[0].sessions
+    assert (session.first_page, session.last_page) == (1, 2)
+
+
+def test_pages_without_text_belong_to_the_session_before_them() -> None:
+    # A full-page figure (page 2) and a blank last page (5) still reach the reader.
+    pages = [
+        page(1, heading("Leaders", 40, 16), para(300, 70)),
+        page(2),
+        page(3, heading("Followers", 40, 16), para(300, 70)),
+        page(4, para(300, 50)),
+        page(5),
+    ]
+    sessions = [s for c in structure(pages, [], "B") for s in c.sessions]
+    assert [(s.title, s.first_page, s.last_page) for s in sessions] == [
+        ("Leaders", 1, 2),
+        ("Followers", 3, 5),
+    ]

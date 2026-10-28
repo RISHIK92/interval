@@ -174,14 +174,27 @@ export interface BookPage {
   text: string;
 }
 
+export interface BookPosition {
+  book_id: Int8;
+  fraction: number;
+  session_id: Int8;
+  updated_at: Generated<Timestamp>;
+}
+
 export interface BookSession {
   chapter_id: Int8;
   estimated_minutes: number;
   first_page: number;
   id: Generated<Int8>;
+  last_page: number;
   ordinal: number;
   text: string;
   title: string;
+}
+
+export interface BookSessionFinished {
+  finished_at: Generated<Timestamp>;
+  session_id: Int8;
 }
 
 export interface Concept {
@@ -779,7 +792,9 @@ export interface DB {
   book: Book;
   book_chapter: BookChapter;
   book_page: BookPage;
+  book_position: BookPosition;
   book_session: BookSession;
+  book_session_finished: BookSessionFinished;
   concept: Concept;
   concept_edge: ConceptEdge;
   concept_embedding: ConceptEmbedding;

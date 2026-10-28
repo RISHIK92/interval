@@ -10,7 +10,8 @@ import { BIGINT_ID } from "../../server/ports";
 import { visitId } from "../../server/visits";
 import { textField } from "../form";
 
-// PDF books (§5F, P2-W11-S01): delete one of your own. Uploads go through api/books.
+// PDF books (§5F, P2-W11-S01, S04): delete one of your own, or mark a session done.
+// Uploads go through api/books.
 async function signedIn() {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
@@ -41,4 +42,34 @@ export async function deleteBookAction(form: FormData): Promise<void> {
     events().emit("book_deleted", { book_id: bookId }, context);
   }
   redirect("/paths#your-books");
+}
+
+// P2-W11-S04 (§5F): a session marked done, once; on to the next one, or back to the
+// user's books after the last.
+const Finish = z.object({
+  sessionId: z.string().regex(BIGINT_ID),
+  next: z.string().regex(BIGINT_ID).optional(),
+});
+
+export async function finishSessionAction(form: FormData): Promise<void> {
+  const { actor, context } = await signedIn();
+  const parsed = Finish.safeParse({
+    sessionId: textField(form, "sessionId"),
+    next: textField(form, "next") || undefined,
+  });
+  if (!parsed.success) redirect("/paths#your-books");
+  const { sessionId, next } = parsed.data;
+  const done = await books().finish(actor.userId, sessionId);
+  if (done === null) redirect("/paths#your-books");
+  if (done.firstTime)
+    events().emit(
+      "book_session_finished",
+      { book_id: done.bookId, session_id: sessionId },
+      context,
+    );
+  redirect(
+    next === undefined
+      ? "/paths#your-books"
+      : `/books/${done.bookId}?session=${next}`,
+  );
 }

@@ -140,9 +140,18 @@ function YourBooks({ books: list }: { books: BookSummary[] }) {
             <li key={book.bookId}>
               <Card className="flex items-center justify-between gap-3 p-4">
                 <span className="min-w-0">
-                  <span className="block truncate font-semibold">
-                    {book.title}
-                  </span>
+                  {book.status === "ready" ? (
+                    <Link
+                      href={`/books/${book.bookId}`}
+                      className="block truncate font-semibold text-select"
+                    >
+                      {book.title}
+                    </Link>
+                  ) : (
+                    <span className="block truncate font-semibold">
+                      {book.title}
+                    </span>
+                  )}
                   <span className="block text-sm text-ink-muted">
                     {STATUS[book.status]}
                     {book.failure === null ? null : `: ${book.failure}`}

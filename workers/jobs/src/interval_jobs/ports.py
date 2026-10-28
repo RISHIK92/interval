@@ -1228,6 +1228,7 @@ class BookSessionRow:
     text: str
     minutes: int
     first_page: int
+    last_page: int  # the reader shows first_page to last_page (Q-P2-31, updated)
 
 
 @dataclass(frozen=True)

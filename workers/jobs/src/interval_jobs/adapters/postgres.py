@@ -2434,7 +2434,8 @@ class PostgresBooks:
             with conn.cursor() as cur:
                 cur.executemany(
                     "insert into book_session (chapter_id, ordinal, title, text, "
-                    "estimated_minutes, first_page) values (%s, %s, %s, %s, %s, %s)",
+                    "estimated_minutes, first_page, last_page) "
+                    "values (%s, %s, %s, %s, %s, %s, %s)",
                     [
                         (
                             chapter_row[0],
@@ -2443,6 +2444,7 @@ class PostgresBooks:
                             s.text,
                             max(1, s.minutes),
                             s.first_page,
+                            s.last_page,
                         )
                         for n, s in enumerate(chapter.sessions)
                     ],

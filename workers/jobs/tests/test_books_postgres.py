@@ -27,11 +27,11 @@ CHAPTERS = [
     BookChapterRow(
         "Replication",
         [
-            BookSessionRow("Leaders", "One node takes writes.", 3, 1),
-            BookSessionRow("Followers", "Others copy them.", 4, 2),
+            BookSessionRow("Leaders", "One node takes writes.", 3, 1, 2),
+            BookSessionRow("Followers", "Others copy them.", 4, 2, 3),
         ],
     ),
-    BookChapterRow("Partitioning", [BookSessionRow("Keys", "Split by key.", 2, 3)]),
+    BookChapterRow("Partitioning", [BookSessionRow("Keys", "Split by key.", 2, 3, 3)]),
 ]
 PAGES = [BookPageText(n, f"page {n}", False) for n in (1, 2, 3)]
 
@@ -55,14 +55,15 @@ def test_a_processed_book_is_saved_and_a_rerun_replaces_it(
     ).fetchone() == ("Designing Data-Intensive Applications", "ready", 3, None)
     rows = conn.execute(
         "select c.ordinal, c.title, s.ordinal, s.title, s.estimated_minutes, "
-        "s.first_page from book_session s join book_chapter c on c.id = s.chapter_id "
+        "s.first_page, s.last_page from book_session s "
+        "join book_chapter c on c.id = s.chapter_id "
         "where c.book_id = %s order by c.ordinal, s.ordinal",
         (book_id,),
     ).fetchall()
     assert rows == [
-        (0, "Replication", 0, "Leaders", 3, 1),
-        (0, "Replication", 1, "Followers", 4, 2),
-        (1, "Partitioning", 0, "Keys", 2, 3),
+        (0, "Replication", 0, "Leaders", 3, 1, 2),
+        (0, "Replication", 1, "Followers", 4, 2, 3),
+        (1, "Partitioning", 0, "Keys", 2, 3, 3),
     ]
     # Saving again (S03's rebuild after OCR) replaces, never duplicates; no title
     # keeps the one there.

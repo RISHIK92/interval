@@ -140,6 +140,13 @@ class BookPage(TypedDict):
     ocr_read_at: datetime | None
 
 
+class BookPosition(TypedDict):
+    book_id: int
+    session_id: int
+    fraction: float
+    updated_at: datetime
+
+
 class BookSession(TypedDict):
     id: int
     chapter_id: int
@@ -148,6 +155,12 @@ class BookSession(TypedDict):
     text: str
     estimated_minutes: int
     first_page: int
+    last_page: int
+
+
+class BookSessionFinished(TypedDict):
+    session_id: int
+    finished_at: datetime
 
 
 class Concept(TypedDict):

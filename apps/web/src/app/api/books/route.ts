@@ -9,7 +9,7 @@ import {
 } from "../../../server/container";
 import { addBook } from "../../../server/books";
 import { visitId } from "../../../server/visits";
-import { env } from "../../../env";
+import { sameOrigin } from "../../../server/same-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -57,14 +57,4 @@ export async function POST(request: Request): Promise<Response> {
 // A form post, answered like a server action's redirect.
 function see(location: string): Response {
   return new Response(null, { status: 303, headers: { Location: location } });
-}
-
-// Same origin only, so another site can't upload into a signed-in user's books. In
-// development the site is also reached on 127.0.0.1 beside localhost (next.config).
-function sameOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  return (
-    origin === new URL(env().BETTER_AUTH_URL).origin ||
-    (env().NODE_ENV === "development" && origin === new URL(request.url).origin)
-  );
 }

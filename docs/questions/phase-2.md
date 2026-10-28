@@ -175,6 +175,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P2-31 The book reader (P0)
 - Cite: §5F ("an in-app reader saves position"), C-11.
 - **Answer (owner, 2026-10-28):** the reader shows the book's extracted text, split into sessions sized to the break length, like moments; the position is the session and the scroll within it. No PDF page rendering.
+- **Update (owner, 2026-10-28, P2-W11-S04):** reversed: the reader shows the section's own PDF pages (PDF.js), so diagrams, tables and code stay as printed; each session is a page range. The extracted text stays in the database for the checkpoints (S06), and is offered under the pages ("Show the text") for screen readers and copying. Only the reader's scrolling moves the saved place; opening a section doesn't.
 
 ### Q-P2-32 OCR engine (P0)
 - Cite: ING-5 ("Textract OCR for scanned pages"), ADR-0011, ADR-0013.
@@ -199,6 +200,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P2-37 New dependencies (P1)
 - Cite: CLAUDE.md ("No new dependency without asking").
 - **Answer (owner, 2026-10-28):** pdfplumber in the worker (not PyMuPDF: AGPL); `@aws-sdk/client-s3` in the web app for the upload. No presigner: uploads go through the web server.
+- **Update (owner, 2026-10-28, P2-W11-S04):** `pdfjs-dist` (6.4.299) in the web app, loaded only by the reader.
 
 ### Q-P2-38 Private book text and the model provider (P0)
 - Cite: ING-5 ("a private pipeline"), AI-3, ADR-0007, ADR-0008, Q-P2-35.

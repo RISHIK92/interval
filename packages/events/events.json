@@ -126,6 +126,11 @@
       "description": "A user uploaded a PDF book, stored privately and queued for processing (P2-W11-S01, §5F).",
       "props": { "book_id": "id", "size_bytes": "count" }
     },
+    "book_session_finished": {
+      "version": 1,
+      "description": "A user marked a session of their book done, once per session (P2-W11-S04, §5F).",
+      "props": { "book_id": "id", "session_id": "id" }
+    },
     "book_deleted": {
       "version": 1,
       "description": "A user deleted one of their books, its file and rows (P2-W11-S01).",
