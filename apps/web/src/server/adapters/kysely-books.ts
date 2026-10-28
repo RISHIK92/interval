@@ -107,19 +107,12 @@ export function kyselyBooks(db: Kysely<DB>): Books {
       const i = sessions.findIndex((s) => s.id === chosen);
       const session = sessions[i];
       if (session === undefined) return null;
-      // The text only for the session shown: a book's sessions can run to megabytes.
-      const { text } = await db
-        .selectFrom("book_session")
-        .select("text")
-        .where("id", "=", session.id)
-        .executeTakeFirstOrThrow();
       return {
         bookId,
         bookTitle: session.book_title,
         chapterTitle: session.chapter_title,
         sessionId: session.id,
         title: session.title,
-        text,
         minutes: session.estimated_minutes,
         firstPage: session.first_page,
         lastPage: session.last_page,

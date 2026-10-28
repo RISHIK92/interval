@@ -181,7 +181,7 @@ export function BookPages(props: {
       ) : null}
       {state === "failed" ? (
         <p role="alert" className="text-wrong">
-          This book&apos;s pages couldn&apos;t be shown. The text is below.
+          This book&apos;s pages couldn&apos;t be shown. Try reloading the page.
         </p>
       ) : null}
       <div

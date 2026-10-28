@@ -175,7 +175,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P2-31 The book reader (P0)
 - Cite: §5F ("an in-app reader saves position"), C-11.
 - **Answer (owner, 2026-10-28):** the reader shows the book's extracted text, split into sessions sized to the break length, like moments; the position is the session and the scroll within it. No PDF page rendering.
-- **Update (owner, 2026-10-28, P2-W11-S04):** reversed: the reader shows the section's own PDF pages (PDF.js), so diagrams, tables and code stay as printed; each session is a page range. The extracted text stays in the database for the checkpoints (S06), and is offered under the pages ("Show the text") for screen readers and copying. Only the reader's scrolling moves the saved place; opening a section doesn't.
+- **Update (owner, 2026-10-28, P2-W11-S04):** reversed: the reader shows the section's own PDF pages (PDF.js), so diagrams, tables and code stay as printed; each session is a page range. The extracted text stays in the database for the checkpoints (S06) and is not shown (owner removed the "Show the text" disclosure the same day). Only the reader's scrolling moves the saved place; opening a section doesn't.
 
 ### Q-P2-32 OCR engine (P0)
 - Cite: ING-5 ("Textract OCR for scanned pages"), ADR-0011, ADR-0013.

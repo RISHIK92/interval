@@ -13,8 +13,8 @@ const LINK =
   "rounded-full border border-hairline px-4 py-2 text-sm font-semibold";
 
 // §5F, Q-P2-31 updated (owner, 2026-10-28; P2-W11-S04): a book's session in the app,
-// shown as its own PDF pages, with the extracted text beside them (never as markup),
-// the user's place kept and the way on.
+// shown as its own PDF pages, with the user's place kept and the way on. The extracted
+// text is for checkpoints (S06), not shown (owner, 2026-10-28).
 export default async function BookPage(props: {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ session?: string }>;
@@ -38,9 +38,6 @@ export default async function BookPage(props: {
     if (mine.some((b) => b.bookId === id)) redirect("/paths#your-books");
     notFound();
   }
-  const paragraphs = reading.text.split(/\n\s*\n/).filter((p) => p.trim());
-  // A session's text starts with its heading, already shown as the title.
-  if (paragraphs[0]?.trim() === reading.title) paragraphs.shift();
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[46rem] lg:pt-10 lg:pl-64">
       <TabBar current="paths" firstName={chosen.firstName} />
@@ -69,18 +66,6 @@ export default async function BookPage(props: {
         lastPage={reading.lastPage}
         fraction={reading.fraction}
       />
-      {/* The section's text, as read from the PDF: for screen readers and copying. */}
-      <details className="rounded-2xl border border-hairline px-4 py-3">
-        <summary className="cursor-pointer font-semibold">
-          Show the text
-        </summary>
-        <div className="mt-3 flex flex-col gap-3 leading-relaxed">
-          {paragraphs.map((p, i) => (
-            // The book's own text, in order; React escapes it.
-            <p key={i}>{p}</p>
-          ))}
-        </div>
-      </details>
       <footer className="flex flex-col gap-4 border-t border-hairline pt-6">
         {reading.finished ? null : (
           <form

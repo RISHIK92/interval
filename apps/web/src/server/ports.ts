@@ -980,7 +980,6 @@ export type BookReading = {
   chapterTitle: string;
   sessionId: string;
   title: string;
-  text: string;
   minutes: number;
   // The section's own pages in the PDF, shown by the reader (Q-P2-31, updated).
   firstPage: number;
