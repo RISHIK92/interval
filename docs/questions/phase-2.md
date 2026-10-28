@@ -200,9 +200,9 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: CLAUDE.md ("No new dependency without asking").
 - **Answer (owner, 2026-10-28):** pdfplumber in the worker (not PyMuPDF: AGPL); `@aws-sdk/client-s3` in the web app for the upload. No presigner: uploads go through the web server.
 
-### Q-P2-38 Private book text and the model provider (P0, open)
+### Q-P2-38 Private book text and the model provider (P0)
 - Cite: ING-5 ("a private pipeline"), AI-3, ADR-0007, ADR-0008, Q-P2-35.
 - Question: book checkpoints (S06) need the chapter's text sent to the model provider (OpenRouter's DeepSeek, as the W8 generator uses) to write and check questions, and to tag concepts. Is that acceptable for private uploads, and with what conditions (a provider with zero data retention, a notice at upload, opt-in per book)?
 - Suggested default: allowed through the gateway only, with a one-line notice at upload ("Checkpoints send a chapter's text to our AI provider to write questions"), and only providers that don't train on or retain API data.
-- Blocks S06 only.
+- **Answer (owner, 2026-10-28):** allowed through the gateway only, with a one-line notice at upload, and only providers that don't train on or retain API data.
 

@@ -218,7 +218,7 @@ Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that 
 
 ## Week 11: PDF books
 
-Owner answers: Q-P2-31..37 (2026-10-28). ADR-0022 (Tesseract OCR) is PROPOSED; S03 waits for it.
+Owner answers: Q-P2-31..37 (2026-10-28). ADR-0022 (Tesseract OCR) ACCEPTED by the owner the same day.
 
 ### P2-W11-S01 Upload a book, privately
 - IDs: §5F, DB-6, ING-5, OPS-3, C-11
@@ -253,7 +253,7 @@ Owner answers: Q-P2-31..37 (2026-10-28). ADR-0022 (Tesseract OCR) is PROPOSED; S
 - Q: Q-P2-31.
 
 ### P2-W11-S03 Scanned pages through Tesseract
-- IDs: ING-5, ADR-0022 (PROPOSED: needs ACCEPTED first), ADR-0011, ADR-0014
+- IDs: ING-5, ADR-0022, ADR-0011, ADR-0014
 - Needs: S02
 - Goal: scanned pages get their text from a Tesseract service.
 - Acceptance:
@@ -305,5 +305,5 @@ Owner answers: Q-P2-31..37 (2026-10-28). ADR-0022 (Tesseract OCR) is PROPOSED; S
   - the concepts to mark practiced come from the chapter, tagged by the W3 tagger when the questions are made;
   - missed concepts are due for review.
 - Out of scope: book paths shared between users.
-- Q: Q-P2-35, Q-P2-38 (open: blocks this slice).
+- Q: Q-P2-35, Q-P2-38 (a notice at upload).
 

@@ -1,6 +1,6 @@
 # 0022. OCR for scanned book pages: a Tesseract container, not Textract
 
-- Status: PROPOSED
+- Status: ACCEPTED (owner, 2026-10-28)
 - Date: 2026-10-28
 - Supersedes: none (amends ING-5's OCR engine)
 - Superseded by: none
