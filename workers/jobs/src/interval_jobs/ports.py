@@ -28,6 +28,7 @@ from interval_db.generated import (
 )
 from interval_db.messages import MessageName
 from interval_jobs.events.generated import Envelope
+from interval_jobs.github.manifests import Dependency
 from interval_jobs.irt import Answer
 
 type FetchKind = Literal["feed", "article"]
@@ -1192,6 +1193,92 @@ class Store(Protocol):
 
     @property
     def books(self) -> "Books": ...
+
+    @property
+    def github(self) -> "GitHubStore": ...
+
+
+# GitHub projects (§5H, ADR-0024, P2-W12-S02): a connected user's repositories, read by
+# the App: metadata and dependency names only, never code.
+class GitHubGone(Exception):
+    """An installation or repository the App can no longer reach (uninstalled, removed
+    from the installation): its rows go."""
+
+
+class GitHubError(Exception):
+    """A rate limit or GitHub failing: the queue retries."""
+
+
+@dataclass(frozen=True)
+class GitHubRepo:
+    repo_id: int
+    full_name: str  # owner/name
+    description: str | None
+    default_branch: str
+    pushed_at: datetime | None
+    fork: bool
+    archived: bool
+
+
+class GitHubApp(Protocol):
+    def installation_token(self, installation_id: int) -> str:
+        """A token for one installation, good for an hour; GitHubGone when the App was
+        uninstalled there."""
+        ...
+
+    def repositories(self, token: str) -> list[GitHubRepo]: ...
+
+    def languages(self, token: str, full_name: str) -> list[str]:
+        """Largest first."""
+        ...
+
+    def tree(
+        self, token: str, full_name: str, ref: str
+    ) -> tuple[list[tuple[str, str]], bool]:
+        """The branch's file paths and blob shas; whether GitHub truncated the list."""
+        ...
+
+    def blob(self, token: str, full_name: str, sha: str) -> str: ...
+
+
+@dataclass(frozen=True)
+class GitHubSyncInput:
+    login: str  # the user's own GitHub account
+    installations: list[tuple[int, str]]  # id, the account it's installed on
+    # For an installation on any account but their own (an organisation's, or one
+    # they collaborate on): the repositories this user can reach.
+    reachable: dict[int, frozenset[int]]
+
+    def allowed(self, installation_id: int, repo_id: int) -> bool:
+        account = dict(self.installations).get(installation_id)
+        if account is None:
+            return False
+        if account.lower() == self.login.lower():
+            return True
+        return repo_id in self.reachable.get(installation_id, frozenset())
+
+
+@dataclass(frozen=True)
+class RepoRead:
+    installation_id: int
+    repo: GitHubRepo
+    languages: list[str]
+    dependencies: list[Dependency]
+
+
+class GitHubStore(Protocol):
+    def sync_input(self, user_id: str) -> GitHubSyncInput | None:
+        """None when the user isn't connected (any more)."""
+        ...
+
+    def save_sync(self, user_id: str, repos: list[RepoRead]) -> None:
+        """Replaces the user's repositories and dependencies; marks the read. Nothing
+        when they disconnected meanwhile."""
+        ...
+
+    def due_for_sync(self, active_days: int) -> list[str]:
+        """Connected users with a session in the last `active_days` days."""
+        ...
 
 
 class Files(Protocol):

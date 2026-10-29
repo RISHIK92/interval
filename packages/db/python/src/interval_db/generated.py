@@ -25,6 +25,7 @@ type Capability = Literal[
     "books.max_pages",
 ]
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
+type DependencyEcosystem = Literal["npm", "pypi", "go"]
 type Difficulty = Literal["beginner", "intermediate", "advanced"]
 type FeedbackKind = Literal["more_like_this", "less_like_this", "not_interested"]
 type FinishMethod = Literal["return_prompt", "mark_done"]
@@ -296,6 +297,16 @@ class GithubAccount(TypedDict):
     github_user_id: int
     login: str
     connected_at: datetime
+    synced_at: datetime | None
+
+
+class GithubDependency(TypedDict):
+    user_id: str
+    repo_id: int
+    ecosystem: DependencyEcosystem
+    name: str
+    path: str
+    dev: bool
 
 
 class GithubInstallation(TypedDict):
@@ -303,6 +314,24 @@ class GithubInstallation(TypedDict):
     installation_id: int
     account_login: str
     account_type: str
+
+
+class GithubReachableRepository(TypedDict):
+    user_id: str
+    installation_id: int
+    repo_id: int
+
+
+class GithubRepository(TypedDict):
+    user_id: str
+    repo_id: int
+    installation_id: int
+    full_name: str
+    description: str | None
+    languages: list[str]
+    default_branch: str
+    pushed_at: datetime | None
+    synced_at: datetime
 
 
 class GoalConcept(TypedDict):

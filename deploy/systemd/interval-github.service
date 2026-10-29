@@ -1,0 +1,16 @@
+# VM mode (ADR-0011), Q-P2-40 (P2-W12-S02): queue a read of each connected user's
+# repositories, if active this week. Started by interval-github.timer; the AWS stack
+# runs the same command daily from EventBridge Scheduler.
+[Unit]
+Description=Interval sync-github-due
+# Requisite, not Requires: a stack stopped for maintenance skips the run instead of
+# being started again by the timer.
+Requisite=interval.service
+After=interval.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/interval
+ExecStart=/opt/interval/deploy/bin/stack.sh run sync-github-due
+# A oneshot has no start timeout by default: a hung run would stop the timer for good.
+TimeoutStartSec=10min

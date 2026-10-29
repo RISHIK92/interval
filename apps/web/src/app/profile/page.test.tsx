@@ -250,6 +250,8 @@ describe("GitHub", () => {
           accountType: "Organization",
         },
       ],
+      syncedMinutesAgo: null,
+      repositories: [],
     });
     const html = await page();
     expect(html).toContain("Connected as @octo");
@@ -291,4 +293,41 @@ describe("GitHub", () => {
     );
     expect(await page({ github: "<b>x</b>" })).not.toContain("<b>x</b>");
   });
+});
+
+// P2-W12-S02: what the worker read, and Refresh.
+test("connected and read: the repositories with their languages and dependencies, and Refresh", async () => {
+  current.mockResolvedValue(user);
+  get.mockResolvedValue(preferences);
+  githubConnection.mockResolvedValueOnce({
+    login: "octo",
+    connectedAt: new Date(),
+    installations: [
+      { installationId: "11", accountLogin: "octo", accountType: "User" },
+    ],
+    syncedMinutesAgo: 5,
+    repositories: [
+      {
+        fullName: "octo/api",
+        languages: ["TypeScript", "Go"],
+        dependencies: 12,
+      },
+    ],
+  });
+  const html = await page();
+  expect(html).toContain("octo/api");
+  expect(html).toContain("TypeScript, Go · 12 dependencies");
+  expect(html).toMatch(/Read \d+ min ago/);
+  expect(html).toMatch(/<form[^>]*>[^]*?Refresh<\/button>/);
+  // Before the first read.
+  githubConnection.mockResolvedValueOnce({
+    login: "octo",
+    connectedAt: new Date(),
+    installations: [
+      { installationId: "11", accountLogin: "octo", accountType: "User" },
+    ],
+    syncedMinutesAgo: null,
+    repositories: [],
+  });
+  expect(await page()).toContain("Reading your repositories…");
 });

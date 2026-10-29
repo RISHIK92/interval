@@ -57,6 +57,9 @@ export const SECRET_NAMES = [
   "interval/prod/github-app-slug",
   "interval/prod/github-app-client-id",
   "interval/prod/github-app-client-secret",
+  // S02: the worker's App id and private key (base64 PEM).
+  "interval/prod/github-app-id",
+  "interval/prod/github-app-private-key",
 ];
 
 export class ProdStack extends Stack {

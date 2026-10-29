@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { log } from "../log";
 import type { GitHub } from "../ports";
 
 // P2-W12-S01 (§5H, ADR-0024): GitHub's OAuth code exchange for the App, and the two
@@ -13,6 +14,15 @@ const Exchanged = z.object({
 });
 const User = z.object({ id: z.number().int(), login: z.string().min(1) });
 // An enterprise's installation has no login: it's skipped, not a reason to fail.
+const Repositories = z.object({
+  repositories: z.array(z.object({ id: z.number().int() })),
+});
+// GitHub pages with a Link header; the next page's URL, if any.
+const nextPage = (response: Response): string | null =>
+  /<([^>]+)>;\s*rel="next"/.exec(response.headers.get("link") ?? "")?.[1] ??
+  null;
+const MAX_PAGES = 10; // shortcut: 1,000 repositories per installation; page on past it
+
 const Installations = z.object({
   installations: z.array(
     z.object({
@@ -26,8 +36,8 @@ export function fetchGitHub(
   app: { clientId: string; clientSecret: string },
   request: typeof fetch = fetch,
 ): GitHub {
-  const read = async (token: string, path: string): Promise<unknown> => {
-    const response = await request(`${API}${path}`, {
+  const fetchPage = async (token: string, url: string): Promise<Response> => {
+    const response = await request(url, {
       headers: {
         accept: "application/vnd.github+json",
         authorization: `Bearer ${token}`,
@@ -36,9 +46,13 @@ export function fetchGitHub(
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
     if (!response.ok)
-      throw new Error(`github: ${path} answered ${String(response.status)}`);
-    return response.json();
+      throw new Error(
+        `github: ${new URL(url).pathname} answered ${String(response.status)}`,
+      );
+    return response;
   };
+  const read = async (token: string, path: string): Promise<unknown> =>
+    (await fetchPage(token, `${API}${path}`)).json();
   return {
     exchange: async (code) => {
       const response = await request(
@@ -90,6 +104,23 @@ export function fetchGitHub(
             ]
           : [],
       ),
+    reachableRepositories: async (token, installationId) => {
+      const ids: string[] = [];
+      let url: string | null =
+        `${API}/user/installations/${installationId}/repositories?per_page=100`;
+      for (let page = 0; url !== null && page < MAX_PAGES; page++) {
+        const response = await fetchPage(token, url);
+        const body = Repositories.parse(await response.json());
+        ids.push(...body.repositories.map((r) => String(r.id)));
+        url = nextPage(response);
+      }
+      if (url !== null)
+        log.warn("github: reachable repositories capped", {
+          installationId,
+          kept: ids.length,
+        });
+      return ids;
+    },
     revoke: async (token) => {
       const basic = Buffer.from(`${app.clientId}:${app.clientSecret}`).toString(
         "base64",

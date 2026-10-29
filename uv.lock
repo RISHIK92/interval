@@ -397,6 +397,7 @@ source = { editable = "workers/jobs" }
 dependencies = [
     { name = "boto3" },
     { name = "bullmq" },
+    { name = "cryptography" },
     { name = "feedparser" },
     { name = "httpx" },
     { name = "interval-db" },
@@ -413,6 +414,7 @@ dependencies = [
 requires-dist = [
     { name = "boto3", specifier = "==1.43.111" },
     { name = "bullmq", specifier = "==3.3.3" },
+    { name = "cryptography", specifier = "==50.0.2" },
     { name = "feedparser", specifier = "==6.0.14" },
     { name = "httpx", specifier = "==0.28.1" },
     { name = "interval-db", editable = "packages/db/python" },

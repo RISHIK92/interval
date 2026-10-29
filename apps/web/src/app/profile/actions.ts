@@ -14,6 +14,7 @@ import {
 import { queueRecompute } from "../../server/recompute";
 import { BIGINT_ID } from "../../server/ports";
 import { updatePreferences } from "../../server/preferences";
+import { log } from "../../server/log";
 import { visitId } from "../../server/visits";
 import { textField } from "../form";
 
@@ -62,6 +63,27 @@ export async function unhideSourceAction(form: FormData): Promise<void> {
   if (!BIGINT_ID.test(sourceId)) redirect("/profile");
   if (await feedback().unhideSource(userId, sourceId)) await recompute(userId);
   redirect("/profile?saved=unhidden");
+}
+
+// P2-W12-S02: the user's repositories read again, at most once a minute (the key).
+export async function refreshGitHubAction(): Promise<void> {
+  const found = await sessionReader().current(await headers());
+  if (found === null) redirect("/join");
+  if (found.isGuest || (await githubAccounts().get(found.userId)) === null)
+    redirect("/profile");
+  const minute = Math.floor(Date.now() / 60_000);
+  try {
+    await jobQueue().enqueue(
+      "github_sync",
+      { user_id: found.userId },
+      { idempotencyKey: `github-sync-${found.userId}-m${String(minute)}` },
+    );
+  } catch (error) {
+    // LOAD-5: the daily read catches up; said, not hidden.
+    log.error("github: refresh not queued", { userId: found.userId, error });
+    redirect("/profile?github=refresh-failed");
+  }
+  redirect("/profile?saved=github-refresh");
 }
 
 // P2-W12-S01 (§5H, ADR-0024): Interval's copy of the user's GitHub data is deleted; the

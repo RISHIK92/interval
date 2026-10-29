@@ -8,6 +8,12 @@ const exchange = vi.fn<GitHub["exchange"]>();
 const githubUser = vi.fn<GitHub["user"]>();
 const installations = vi.fn<GitHub["installations"]>();
 const revoke = vi.fn<GitHub["revoke"]>(() => Promise.resolve());
+const reachableRepositories = vi.fn<GitHub["reachableRepositories"]>(() =>
+  Promise.resolve(["21"]),
+);
+const enqueue = vi.fn<(...args: unknown[]) => Promise<void>>(() =>
+  Promise.resolve(),
+);
 const connect = vi.fn<GitHubAccounts["connect"]>(() => Promise.resolve());
 const emit = vi.fn();
 const warn = vi.fn();
@@ -20,10 +26,17 @@ vi.mock("../../../../server/container", () => ({
           slug: "interval-dev",
           clientId: "Iv23liAbC",
           secureCookies: false,
-          github: { exchange, user: githubUser, installations, revoke },
+          github: {
+            exchange,
+            user: githubUser,
+            installations,
+            revoke,
+            reachableRepositories,
+          },
         }
       : null,
   githubAccounts: () => ({ connect }),
+  jobQueue: () => ({ enqueue }),
   events: () => ({ emit }),
 }));
 vi.mock("../../../../server/log", () => ({ log: { warn } }));
@@ -76,6 +89,7 @@ test("the user's installations come from GitHub's answer; the query's installati
     "u1",
     { githubUserId: "42", login: "octo" },
     [mine],
+    {},
   );
   expect(response.headers.get("location")).toBe("/profile?saved=github");
   // The nonce is spent.
@@ -120,6 +134,7 @@ test("no nonce, a wrong one, no code, or GitHub refusing: nothing stored", async
     "u1",
     { githubUserId: "42", login: "octo" },
     [],
+    {},
   );
   expect(emit).not.toHaveBeenCalled();
 });
@@ -163,4 +178,52 @@ test("repositories changed on GitHub (no code) just go back to Profile", async (
     ),
   ).toBe("/profile");
   expect(exchange).not.toHaveBeenCalled();
+});
+
+// P2-W12-S02: an organisation's reachable repositories, read before the revoke; the
+// first read queued.
+test("an organisation's reachable repositories are read with the user's token, then the read is queued", async () => {
+  current.mockResolvedValue(user);
+  exchange.mockResolvedValue("ghu_abc");
+  githubUser.mockResolvedValue({ id: "42", login: "octo" });
+  const org = {
+    installationId: "12",
+    accountLogin: "acme",
+    accountType: "Organization" as const,
+  };
+  installations.mockResolvedValue([mine, org]);
+  await callback(`code=c1&state=${NONCE}`);
+  expect(reachableRepositories).toHaveBeenCalledWith("ghu_abc", "12");
+  expect(reachableRepositories).toHaveBeenCalledTimes(1); // not for the user's own
+  expect(connect).toHaveBeenCalledWith(
+    "u1",
+    { githubUserId: "42", login: "octo" },
+    [mine, org],
+    { "12": ["21"] },
+  );
+  expect(revoke.mock.invocationCallOrder[0] ?? 0).toBeGreaterThan(
+    reachableRepositories.mock.invocationCallOrder[0] ?? 0,
+  );
+  expect(enqueue).toHaveBeenCalledWith(
+    "github_sync",
+    { user_id: "u1" },
+    {
+      idempotencyKey: expect.stringMatching(/^github-sync-u1-\d+$/) as unknown,
+    },
+  );
+});
+
+test("someone else's personal account they collaborate on is filtered too; their own isn't", async () => {
+  current.mockResolvedValue(user);
+  exchange.mockResolvedValue("ghu_abc");
+  githubUser.mockResolvedValue({ id: "42", login: "Octo" });
+  const friend = {
+    installationId: "13",
+    accountLogin: "friend",
+    accountType: "User" as const,
+  };
+  installations.mockResolvedValue([mine, friend]);
+  await callback(`code=c1&state=${NONCE}`);
+  expect(reachableRepositories).toHaveBeenCalledTimes(1);
+  expect(reachableRepositories).toHaveBeenCalledWith("ghu_abc", "13");
 });

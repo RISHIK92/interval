@@ -75,6 +75,13 @@ class GenerateQuestions(_Message):
     moment_id: Annotated[int, Field(ge=1)]
 
 
+class GithubSync(_Message):
+    """Read one connected user's repositories: metadata and dependency files, never
+    code (§5H, ADR-0024, P2-W12-S02)."""
+
+    user_id: Annotated[str, Field(min_length=1)]
+
+
 class OcrPage(_Message):
     """Read one scanned page of a book through the OCR service (ADR-0022,
     P2-W11-S03)."""
@@ -135,6 +142,7 @@ type MessageName = Literal[
     "embed_item",
     "fetch_item",
     "generate_questions",
+    "github_sync",
     "ocr_page",
     "polish_note",
     "recompute_feed",
@@ -152,6 +160,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "embed_item": EmbedItem,
     "fetch_item": FetchItem,
     "generate_questions": GenerateQuestions,
+    "github_sync": GithubSync,
     "ocr_page": OcrPage,
     "polish_note": PolishNote,
     "recompute_feed": RecomputeFeed,

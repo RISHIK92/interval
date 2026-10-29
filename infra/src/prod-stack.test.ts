@@ -139,7 +139,7 @@ describe("buckets", () => {
 });
 
 describe("secrets", () => {
-  test("seven generated secrets, retained", () => {
+  test("nine generated secrets, retained", () => {
     const secrets = template.findResources("AWS::SecretsManager::Secret");
     const names = Object.values(secrets).map(
       (s) => (s["Properties"] as { Name: string }).Name,
@@ -153,6 +153,8 @@ describe("secrets", () => {
         "interval/prod/github-app-slug",
         "interval/prod/github-app-client-id",
         "interval/prod/github-app-client-secret",
+        "interval/prod/github-app-id",
+        "interval/prod/github-app-private-key",
       ]),
     );
     for (const secret of Object.values(secrets)) {

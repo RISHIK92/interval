@@ -301,3 +301,18 @@ def test_a_systemd_timer_runs_recalibrate_difficulty_weekly() -> None:
     assert "Requisite=interval.service" in service
     deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
     assert re.search(r"systemctl enable --now interval-recalibrate\.timer", deploy)
+
+
+# Q-P2-40 (P2-W12-S02): the daily GitHub read, as EventBridge Scheduler does in AWS.
+def test_a_systemd_timer_runs_sync_github_due_daily() -> None:
+    timer = (SYSTEMD / "interval-github.timer").read_text()
+    service = (SYSTEMD / "interval-github.service").read_text()
+    assert "OnCalendar=daily" in timer
+    assert "Persistent=true" in timer
+    assert re.search(
+        r"^ExecStart=.*stack\.sh run sync-github-due$", service, re.MULTILINE
+    )
+    assert "Requisite=interval.service" in service
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert "interval-github.timer" in deploy
+    assert re.search(r"systemctl enable --now interval-github\.timer", deploy)

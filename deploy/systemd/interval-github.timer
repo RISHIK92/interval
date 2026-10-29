@@ -1,0 +1,11 @@
+# VM mode (ADR-0011), Q-P2-40 (P2-W12-S02): daily. Persistent, so a VM that was off at
+# the scheduled time runs it once it is back; an extra run asks for the same day's jobs.
+[Unit]
+Description=Interval sync-github-due every day
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

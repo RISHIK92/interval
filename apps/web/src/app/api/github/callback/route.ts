@@ -5,6 +5,7 @@ import {
   events,
   githubAccounts,
   githubApp,
+  jobQueue,
   sessionReader,
 } from "../../../../server/container";
 import { log } from "../../../../server/log";
@@ -83,12 +84,29 @@ async function connect(
       github.user(token),
       github.installations(token),
     ]);
+    // S02: on any account but their own (an organisation's, or one they collaborate
+    // on) the App reads more than this user may see; what they can reach is read
+    // now, while their token is in hand.
+    const reachableRepos: Record<string, string[]> = {};
+    for (const installation of reachable)
+      if (installation.accountLogin.toLowerCase() !== who.login.toLowerCase())
+        reachableRepos[installation.installationId] =
+          await github.reachableRepositories(
+            token,
+            installation.installationId,
+          );
     // Stored even when empty: installations GitHub no longer shows them are gone.
     await githubAccounts().connect(
       actor.userId,
       { githubUserId: who.id, login: who.login },
       reachable,
+      reachableRepos,
     );
+    if (reachable.length > 0)
+      await queueSync(
+        actor.userId,
+        `github-sync-${actor.userId}-${String(Date.now())}`,
+      );
     if (reachable.length === 0) return "github=none";
     events().emit(
       "github_connected",
@@ -101,6 +119,20 @@ async function connect(
     await github.revoke(token).catch((error: unknown) => {
       log.warn("github: token not revoked", { error });
     });
+  }
+}
+
+// S02: the worker reads the repositories (LOAD-5: a queue that's down is logged; the
+// daily read and Refresh catch up).
+async function queueSync(userId: string, key: string): Promise<void> {
+  try {
+    await jobQueue().enqueue(
+      "github_sync",
+      { user_id: userId },
+      { idempotencyKey: key },
+    );
+  } catch (error) {
+    log.error("github: sync not queued", { userId, error });
   }
 }
 

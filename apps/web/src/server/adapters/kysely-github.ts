@@ -1,5 +1,5 @@
 import type { DB } from "@interval/db";
-import type { Kysely } from "kysely";
+import { type Kysely, sql } from "kysely";
 import type { GitHubAccounts } from "../ports";
 
 // P2-W12-S01 (§5H, ADR-0024): a user's GitHub connection: who they are on GitHub and
@@ -11,7 +11,7 @@ const inTransaction = <T>(
 
 export function kyselyGitHub(db: Kysely<DB>): GitHubAccounts {
   return {
-    connect: (userId, account, installations) =>
+    connect: (userId, account, installations, reachable) =>
       inTransaction(db, async (trx) => {
         // The GitHub account was someone else's connection: it moves here, and what
         // was read for them goes with it.
@@ -39,6 +39,34 @@ export function kyselyGitHub(db: Kysely<DB>): GitHubAccounts {
           .deleteFrom("github_installation")
           .where("user_id", "=", userId)
           .execute();
+        await trx
+          .deleteFrom("github_reachable_repository")
+          .where("user_id", "=", userId)
+          .execute();
+        // S02: what was read under the old access goes; Profile says it's reading
+        // until the queued read lands.
+        await trx
+          .deleteFrom("github_repository")
+          .where("user_id", "=", userId)
+          .execute();
+        await trx
+          .updateTable("github_account")
+          .set({ synced_at: null })
+          .where("user_id", "=", userId)
+          .execute();
+        const rows = Object.entries(reachable).flatMap(
+          ([installationId, ids]) =>
+            ids.map((repoId) => ({
+              user_id: userId,
+              installation_id: installationId,
+              repo_id: repoId,
+            })),
+        );
+        if (rows.length > 0)
+          await trx
+            .insertInto("github_reachable_repository")
+            .values(rows)
+            .execute();
         if (installations.length > 0)
           await trx
             .insertInto("github_installation")
@@ -64,7 +92,15 @@ export function kyselyGitHub(db: Kysely<DB>): GitHubAccounts {
     get: async (userId) => {
       const account = await db
         .selectFrom("github_account")
-        .select(["login", "connected_at"])
+        .select([
+          "login",
+          "connected_at",
+          sql<
+            number | null
+          >`floor(extract(epoch from now() - synced_at) / 60)::int`.as(
+            "synced_minutes_ago",
+          ),
+        ])
         .where("user_id", "=", userId)
         .executeTakeFirst();
       if (account === undefined) return null;
@@ -75,9 +111,29 @@ export function kyselyGitHub(db: Kysely<DB>): GitHubAccounts {
         .orderBy("account_type", "desc") // the user's own account first
         .orderBy("account_login")
         .execute();
+      const repositories = await db
+        .selectFrom("github_repository as r")
+        .select([
+          "r.full_name",
+          "r.languages",
+          sql<number>`(select count(*)::int from github_dependency d
+            where d.user_id = r.user_id and d.repo_id = r.repo_id)`.as(
+            "dependencies",
+          ),
+        ])
+        .where("r.user_id", "=", userId)
+        .orderBy("r.pushed_at", "desc")
+        .orderBy("r.full_name")
+        .execute();
       return {
         login: account.login,
         connectedAt: account.connected_at,
+        syncedMinutesAgo: account.synced_minutes_ago,
+        repositories: repositories.map((r) => ({
+          fullName: r.full_name,
+          languages: r.languages,
+          dependencies: r.dependencies,
+        })),
         installations: installations.map((i) => ({
           installationId: i.installation_id,
           accountLogin: i.account_login,

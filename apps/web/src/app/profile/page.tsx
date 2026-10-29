@@ -18,6 +18,7 @@ import { Card } from "../ui/Card";
 import { STATE_WORDS } from "../learnerState";
 import {
   disconnectGitHubAction,
+  refreshGitHubAction,
   resetInferredAction,
   unhideSourceAction,
   updatePreferencesAction,
@@ -37,6 +38,7 @@ const NOTICES: Record<string, string> = {
   reset: "Inferred interests reset.",
   unhidden: "Source shown again. Your feed updates in a moment.",
   github: "GitHub connected.",
+  "github-refresh": "Reading your repositories again; this takes a minute.",
   "github-off":
     "GitHub disconnected; what Interval read from it is deleted. Uninstall Interval on GitHub to revoke its access.",
 };
@@ -44,6 +46,8 @@ const NOTICES: Record<string, string> = {
 const GITHUB_PROBLEMS: Record<string, string> = {
   failed: "GitHub couldn't be connected. Try again.",
   none: "Install Interval on at least one repository, then connect again.",
+  "refresh-failed":
+    "Your repositories couldn't be read again just now. Try later.",
 };
 const MISSING: Record<string, string> = {
   goal: "Pick at least one goal.",
@@ -373,9 +377,7 @@ function GitHubSection({
               ))}
             </ul>
           )}
-          <p className="text-sm text-ink-muted">
-            Your repositories appear here after Interval first reads them.
-          </p>
+          <Repositories connection={connection} />
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -431,5 +433,53 @@ function GitHubSection({
         </>
       )}
     </section>
+  );
+}
+
+// P2-W12-S02: what the worker last read from the user's repositories.
+function Repositories({ connection }: { connection: GitHubConnection }) {
+  if (connection.syncedMinutesAgo === null)
+    return (
+      <p role="status" className="text-sm text-ink-muted">
+        Reading your repositories…
+      </p>
+    );
+  const minutes = Math.max(1, connection.syncedMinutesAgo);
+  const ago =
+    minutes < 60
+      ? `${String(minutes)} min ago`
+      : minutes < 48 * 60
+        ? `${String(Math.round(minutes / 60))} h ago`
+        : `${String(Math.round(minutes / 1440))} days ago`;
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="text-sm font-semibold">Your repositories</h3>
+      {connection.repositories.length === 0 ? (
+        <p className="text-sm text-ink-muted">No repositories to read yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-1 text-sm">
+          {connection.repositories.map((r) => (
+            <li key={r.fullName}>
+              <span className="font-semibold">{r.fullName}</span>
+              <span className="text-ink-muted">
+                {" "}
+                · {r.languages.slice(0, 3).join(", ")}
+                {r.languages.length > 0 ? " · " : ""}
+                {r.dependencies} dependencies
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <form action={refreshGitHubAction} className="flex items-center gap-3">
+        <span className="text-xs text-ink-muted">Read {ago}</span>
+        <button
+          type="submit"
+          className="cursor-pointer text-sm font-semibold text-select"
+        >
+          Refresh
+        </button>
+      </form>
+    </div>
   );
 }

@@ -314,6 +314,9 @@ export class AwsStack extends Stack {
     const githubClientSecret = appSecret(
       "interval/aws/github-app-client-secret",
     );
+    // S02: the App's id and private key, for the worker's reads (base64 PEM for the key).
+    const githubAppId = appSecret("interval/aws/github-app-id");
+    const githubPrivateKey = appSecret("interval/aws/github-app-private-key");
 
     const cluster = new ecs.Cluster(this, "Cluster", { vpc });
     const logGroup = new logs.LogGroup(this, "Logs", {
@@ -607,6 +610,37 @@ export class AwsStack extends Stack {
       }),
     });
 
+    // Q-P2-40 (P2-W12-S02): EventBridge Scheduler runs `sync-github-due` daily. It
+    // queues a read per connected user active this week; it may only send to the
+    // github_sync queue.
+    const syncGitHubDueTask = taskDefinition("SyncGitHubDue");
+    syncGitHubDueTask.addContainer("sync-github-due", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["sync-github-due"],
+      environment,
+      secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
+      logging: logging("sync-github-due"),
+    });
+    const githubSyncQueue = queues[MESSAGE_NAMES.indexOf("github_sync")];
+    if (githubSyncQueue === undefined) {
+      throw new Error("packages/db/messages has no github_sync schema");
+    }
+    githubSyncQueue.grantSendMessages(syncGitHubDueTask.taskRole);
+    new scheduler.Schedule(this, "SyncGitHubDueSchedule", {
+      schedule: scheduler.ScheduleExpression.rate(Duration.days(1)),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: syncGitHubDueTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // A missed day only means yesterday's repositories a day longer.
+        retryAttempts: 2,
+        maxEventAge: Duration.hours(1),
+      }),
+    });
+
     // Q-2 (P2-W8-S03): EventBridge Scheduler runs `spot-check-due` weekly. It only
     // marks questions for review in the database: no queue to send to.
     const spotCheckDueTask = taskDefinition("SpotCheckDue");
@@ -699,7 +733,11 @@ export class AwsStack extends Stack {
       command: ["consume"],
       // ADR-0022: the OCR sidecar, on the task's own network.
       environment: { ...environment, OCR_URL: "http://localhost:8080" },
-      secrets,
+      secrets: {
+        ...secrets,
+        GITHUB_APP_ID: ecs.Secret.fromSecretsManager(githubAppId),
+        GITHUB_APP_PRIVATE_KEY: ecs.Secret.fromSecretsManager(githubPrivateKey),
+      },
       logging: logging("worker"),
       // Let in-flight stages finish, as on the VM (compose stop_grace_period).
       stopTimeout: Duration.seconds(60),

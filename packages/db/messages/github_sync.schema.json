@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Read one connected user's repositories: metadata and dependency files, never code (§5H, ADR-0024, P2-W12-S02).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["user_id"],
+  "properties": {
+    "user_id": { "type": "string", "minLength": 1 }
+  }
+}

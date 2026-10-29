@@ -1095,6 +1095,12 @@ export interface GitHub {
   // This App's installations the user can reach, by GitHub's own answer (a callback's
   // installation_id can be forged).
   installations(token: string): Promise<GitHubInstallation[]>;
+  // S02: the repositories on an installation this user can reach (for an
+  // organisation's, the App reads more than a member may see).
+  reachableRepositories(
+    token: string,
+    installationId: string,
+  ): Promise<string[]>;
   // Done with the user's token: GitHub forgets it (nothing long-lived, ADR-0024).
   revoke(token: string): Promise<void>;
 }
@@ -1102,6 +1108,14 @@ export type GitHubConnection = {
   login: string;
   connectedAt: Date;
   installations: GitHubInstallation[];
+  // S02: what the worker last read, and how long ago (by the database's clock); null
+  // before the first read.
+  syncedMinutesAgo: number | null;
+  repositories: {
+    fullName: string;
+    languages: string[];
+    dependencies: number;
+  }[];
 };
 export interface GitHubAccounts {
   // Replaces the user's GitHub account and installations; a GitHub account connected
@@ -1110,6 +1124,8 @@ export interface GitHubAccounts {
     userId: string,
     account: { githubUserId: string; login: string },
     installations: GitHubInstallation[],
+    // S02: per organisation installation, the repository ids this user can reach.
+    reachable: Record<string, string[]>,
   ): Promise<void>;
   // True when there was a connection to remove.
   disconnect(userId: string): Promise<boolean>;

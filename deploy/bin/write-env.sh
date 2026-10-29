@@ -17,8 +17,10 @@ secret() {
     --query SecretString --output text)"
   # Values go into env files and a URL unquoted: compose rewrites `$`, ` #` and newlines,
   # and a password must not need URL-encoding. Generated values always match.
-  if [ -z "$value" ] || [ "$value" = "None" ] || ! [[ "$value" =~ ^[A-Za-z0-9_-]+$ ]]; then
-    echo "secret $1 is empty or has characters other than A-Z a-z 0-9 _ -" >&2
+  local allowed='^[A-Za-z0-9_-]+$'
+  if [ "${2:-}" = "b64" ]; then allowed='^[A-Za-z0-9_+/=-]+$'; fi
+  if [ -z "$value" ] || [ "$value" = "None" ] || ! [[ "$value" =~ $allowed ]]; then
+    echo "secret $1 is empty or has characters it may not hold" >&2
     return 1
   fi
   printf '%s' "$value"
@@ -32,6 +34,10 @@ voyage="$(secret interval/prod/voyage)"
 github_slug="$(secret interval/prod/github-app-slug)"
 github_client_id="$(secret interval/prod/github-app-client-id)"
 github_client_secret="$(secret interval/prod/github-app-client-secret)"
+# S02: the worker's App id, and its private key as base64 of the PEM (base64's + / =
+# are safe in an env file; nothing else beyond the usual characters is accepted).
+github_app_id="$(secret interval/prod/github-app-id)"
+github_private_key="$(secret interval/prod/github-app-private-key b64)"
 
 site_address="$(read_setting site-address)"
 site_address="${site_address:-:80}"
@@ -97,6 +103,8 @@ VOYAGE_API_KEY=${voyage}
 GITHUB_APP_SLUG=${github_slug}
 GITHUB_APP_CLIENT_ID=${github_client_id}
 GITHUB_APP_CLIENT_SECRET=${github_client_secret}
+GITHUB_APP_ID=${github_app_id}
+GITHUB_APP_PRIVATE_KEY=${github_private_key}
 ENV
 printf 'POSTGRES_PASSWORD=%s\n' "$postgres_password" > "$tmp/postgres.env"
 printf 'SITE_ADDRESS=%s\n' "$site_address" > "$tmp/caddy.env"

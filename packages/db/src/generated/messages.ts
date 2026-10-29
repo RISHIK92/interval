@@ -32,6 +32,10 @@ export const messageSchemas = {
     broken: z.number().int().min(0),
     moment_id: z.number().int().min(1),
   }),
+  // Read one connected user's repositories: metadata and dependency files, never code (§5H, ADR-0024, P2-W12-S02).
+  github_sync: z.strictObject({
+    user_id: z.string().min(1),
+  }),
   // Read one scanned page of a book through the OCR service (ADR-0022, P2-W11-S03).
   ocr_page: z.strictObject({
     book_id: z.number().int().min(1),

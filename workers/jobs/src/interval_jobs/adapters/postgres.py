@@ -51,6 +51,7 @@ from interval_jobs.ports import (
     FeedEntry,
     FetchInput,
     Finished,
+    GitHubSyncInput,
     GrantResult,
     ItemDecisions,
     MomentLink,
@@ -64,6 +65,7 @@ from interval_jobs.ports import (
     QuestionSummary,
     QuestionTarget,
     RankedEntry,
+    RepoRead,
     RevokeResult,
     RightsViolation,
     Section,
@@ -2646,10 +2648,119 @@ class PostgresBooks:
         )
 
 
+class PostgresGitHub:
+    """A connected user's repositories (§5H, ADR-0024, P2-W12-S02): metadata and
+    dependency names only, never code."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def sync_input(self, user_id: str) -> GitHubSyncInput | None:
+        account = self._conn.execute(
+            "select login from github_account where user_id = %s", (user_id,)
+        ).fetchone()
+        if account is None:
+            return None
+        installations = self._conn.execute(
+            "select installation_id, account_login from github_installation "
+            "where user_id = %s order by installation_id",
+            (user_id,),
+        ).fetchall()
+        reachable: dict[int, set[int]] = {}
+        for installation_id, repo_id in self._conn.execute(
+            "select installation_id, repo_id from github_reachable_repository "
+            "where user_id = %s",
+            (user_id,),
+        ).fetchall():
+            reachable.setdefault(int(installation_id), set()).add(int(repo_id))
+        return GitHubSyncInput(
+            str(account[0]),
+            [(int(i), str(a)) for i, a in installations],
+            {i: frozenset(r) for i, r in reachable.items()},
+        )
+
+    def save_sync(self, user_id: str, repos: list[RepoRead]) -> None:
+        conn = self._conn
+        # Locked: a disconnect meanwhile leaves nothing to save into.
+        if (
+            conn.execute(
+                "select 1 from github_account where user_id = %s for update",
+                (user_id,),
+            ).fetchone()
+            is None
+        ):
+            return
+        # Access as it is now, under the lock: a reconnect while GitHub was read may
+        # have narrowed it, and only what's still allowed is kept.
+        now = self.sync_input(user_id)
+        assert now is not None  # the row is locked
+        repos = [r for r in repos if now.allowed(r.installation_id, r.repo.repo_id)]
+        conn.execute("delete from github_repository where user_id = %s", (user_id,))
+        for read in repos:
+            repo = read.repo
+            conn.execute(
+                """
+                insert into github_repository (user_id, repo_id, installation_id,
+                  full_name, description, languages, default_branch, pushed_at)
+                values (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    user_id,
+                    repo.repo_id,
+                    read.installation_id,
+                    repo.full_name[:200],
+                    None if repo.description is None else repo.description[:500],
+                    read.languages[:5],
+                    repo.default_branch,
+                    repo.pushed_at,
+                ),
+            )
+            with conn.cursor() as cur:
+                cur.executemany(
+                    """
+                    insert into github_dependency
+                      (user_id, repo_id, ecosystem, name, path, dev)
+                    values (%s, %s, %s::dependency_ecosystem, %s, %s, %s)
+                    on conflict (user_id, repo_id, ecosystem, name) do update
+                      set dev = github_dependency.dev and excluded.dev
+                    """,
+                    [
+                        (
+                            user_id,
+                            repo.repo_id,
+                            d.ecosystem,
+                            d.name[:214],
+                            d.path,
+                            d.dev,
+                        )
+                        for d in read.dependencies
+                    ],
+                )
+        conn.execute(
+            "update github_account set synced_at = now() where user_id = %s", (user_id,)
+        )
+
+    def due_for_sync(self, active_days: int) -> list[str]:
+        rows = self._conn.execute(
+            """
+            select a.user_id from github_account a
+            where exists (
+              select 1 from auth_session s
+              where s.user_id = a.user_id
+                and s.updated_at >= now() - make_interval(days => %s)
+            )
+            order by a.user_id
+            """,
+            (active_days,),
+        ).fetchall()
+        return [str(r[0]) for r in rows]
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
         self.books = PostgresBooks(conn)
+        self.github = PostgresGitHub(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)
         self.moments = PostgresMoments(conn)

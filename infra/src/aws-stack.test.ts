@@ -248,8 +248,8 @@ describe("containers", () => {
   test("ARM64 tasks get secrets only through ECS secrets, never plain env", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
     // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due,
-    // spot-check-due, question-batches, recalibrate-difficulty
-    expect(tasks.length).toBe(10);
+    // spot-check-due, question-batches, recalibrate-difficulty, sync-github-due
+    expect(tasks.length).toBe(11);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -503,7 +503,7 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(6);
+    expect(runTask).toHaveLength(7);
     const targets = runTask.map((st) => JSON.stringify(st.Resource));
     expect(targets.filter((t) => t.includes("PollDueTask"))).toHaveLength(1);
     expect(targets.filter((t) => t.includes("RecomputeDueTask"))).toHaveLength(
@@ -513,6 +513,9 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
       1,
     );
     expect(targets.filter((t) => t.includes("SpotCheckDueTask"))).toHaveLength(
+      1,
+    );
+    expect(targets.filter((t) => t.includes("SyncGitHubDueTask"))).toHaveLength(
       1,
     );
   });
@@ -665,6 +668,45 @@ describe("weekly link health checks (W6-S03, ING-6)", () => {
     expect(
       (containerNamed("check-links-due")?.Secrets ?? []).map((x) => x.Name),
     ).toEqual(["DB_PASSWORD"]);
+  });
+});
+
+describe("daily GitHub reads (P2-W12-S02, Q-P2-40)", () => {
+  test("sync-github-due runs daily, sending only to github_sync with only the DB secret", () => {
+    const schedule = scheduleFor("SyncGitHubDueTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe("rate(1 day)");
+    expect(containerNamed("sync-github-due")?.Command).toEqual([
+      "sync-github-due",
+    ]);
+    expect(
+      (containerNamed("sync-github-due")?.Secrets ?? []).map((x) => x.Name),
+    ).toEqual(["DB_PASSWORD"]);
+    const sends = all("AWS::IAM::Policy")
+      .filter(([, policy]) =>
+        (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
+          r.Ref.startsWith("SyncGitHubDueTaskTaskRole"),
+        ),
+      )
+      .flatMap(
+        ([, policy]) =>
+          (
+            policy.Properties["PolicyDocument"] as {
+              Statement: { Action: string | string[]; Resource: unknown }[];
+            }
+          ).Statement,
+      );
+    expect(JSON.stringify(sends.map((st) => st.Resource))).toContain(
+      "githubsync",
+    );
+  });
+
+  test("the worker gets the App's id and key; the web app doesn't", () => {
+    const names = (name: string) =>
+      (containerNamed(name)?.Secrets ?? []).map((x) => x.Name);
+    expect(names("worker")).toEqual(
+      expect.arrayContaining(["GITHUB_APP_ID", "GITHUB_APP_PRIVATE_KEY"]),
+    );
+    expect(names("web")).not.toContain("GITHUB_APP_PRIVATE_KEY");
   });
 });
 

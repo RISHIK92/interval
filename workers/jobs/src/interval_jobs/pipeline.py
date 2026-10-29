@@ -34,6 +34,7 @@ from interval_db.messages import (
     EmbedItem,
     FetchItem,
     GenerateQuestions,
+    GithubSync,
     MessageName,
     OcrPage,
     PolishNote,
@@ -60,6 +61,7 @@ from interval_jobs.embedding import embed_item
 from interval_jobs.feed.notes import polish_note, queue_polish
 from interval_jobs.feed.precompute import recompute_user_feed
 from interval_jobs.frameable import framed_at
+from interval_jobs.github.sync import sync_user
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.link_health import check_link
 from interval_jobs.normalize import page_canonical, simhash
@@ -70,6 +72,7 @@ from interval_jobs.ports import (
     Extractor,
     Fetcher,
     Files,
+    GitHubApp,
     JobQueue,
     ModelError,
     Ocr,
@@ -123,6 +126,7 @@ STAGES: tuple[MessageName, ...] = (
     "book_process",
     "ocr_page",
     "book_checkpoint",
+    "github_sync",
 )
 
 # Q-P2-10: the free question model is an unimportant background task. A rate limit or
@@ -187,12 +191,15 @@ class Pipeline:
         questions: ModelJob | None = None,
         files: Files | None = None,
         ocr: Ocr | None = None,
+        github: GitHubApp | None = None,
     ) -> None:
         self._unit = unit_of_work
         # DB-6: None when file storage isn't configured; a removal then fails, retried.
         self._files = files
         # ADR-0022: None when OCR_URL isn't set; a scanned page then waits, retried.
         self._ocr = ocr
+        # ADR-0024: None without the App's id and key; reads are then skipped.
+        self._github = github
         self._queue = queue
         self._clock = clock
         self._tagging = tagging
@@ -218,6 +225,7 @@ class Pipeline:
             "book_process": self._book_stage,
             "ocr_page": self._ocr_stage,
             "book_checkpoint": self._book_checkpoint_stage,
+            "github_sync": self._github_stage,
         }
 
     # P2-W11-S02: an uploaded PDF read into chapters and sessions.
@@ -327,6 +335,24 @@ class Pipeline:
             questions=questions.model.removeprefix(BATCH_PREFIX),
             gateway=questions.gateway,
         )
+
+    # P2-W12-S02 (§5H, ADR-0024): a connected user's repositories read. A rate limit
+    # or GitHub failing raises for the queue to retry; a missing App is configuration.
+    def _github_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, GithubSync)
+        if self._github is None:
+            log.error(
+                "github: sync skipped; the App isn't configured",
+                user_id=message.user_id,
+            )
+            return
+
+        @contextmanager
+        def stores() -> Generator[Store]:
+            with self._unit() as services:
+                yield services.store
+
+        sync_user(stores, self._github, message.user_id)
 
     # P2-W11-S01 (LOAD-5): a deleted book's file, removed with the queue's retries.
     # Only under books/: the message names a key, and nothing else is the user's to

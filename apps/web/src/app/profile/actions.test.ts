@@ -22,13 +22,22 @@ vi.mock("../../server/container", () => ({
   preferences: () => ({ update }),
   feedback: () => ({ resetInferred, unhideSource, give }),
   jobQueue: () => ({ enqueue }),
-  githubAccounts: () => ({ disconnect }),
+  githubAccounts: () => ({ disconnect, get: githubGet }),
   events: () => ({ emit }),
 }));
 const disconnect = vi.fn<GitHubAccounts["disconnect"]>(() =>
   Promise.resolve(true),
 );
 const emit = vi.fn();
+const githubGet = vi.fn<GitHubAccounts["get"]>(() =>
+  Promise.resolve({
+    login: "octo",
+    connectedAt: new Date(),
+    installations: [],
+    syncedMinutesAgo: null,
+    repositories: [],
+  }),
+);
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
   cookies: () =>
@@ -183,4 +192,31 @@ test("disconnect deletes the user's GitHub connection and says how to revoke on 
   disconnect.mockResolvedValueOnce(false);
   await expect(disconnectGitHubAction()).rejects.toThrow("redirect:/profile");
   expect(emit).not.toHaveBeenCalled();
+});
+
+test("refresh queues a read of the user's repositories, one a minute", async () => {
+  const { refreshGitHubAction } = await import("./actions");
+  current.mockResolvedValue({ ...guest, isGuest: false });
+  await expect(refreshGitHubAction()).rejects.toThrow(
+    "redirect:/profile?saved=github-refresh",
+  );
+  expect(enqueue).toHaveBeenCalledWith(
+    "github_sync",
+    { user_id: "g1" },
+    {
+      idempotencyKey: expect.stringMatching(/^github-sync-g1-m\d+$/) as unknown,
+    },
+  );
+});
+
+test("refresh does nothing for someone not connected, and says so when the queue is down", async () => {
+  const { refreshGitHubAction } = await import("./actions");
+  current.mockResolvedValue({ ...guest, isGuest: false });
+  githubGet.mockResolvedValueOnce(null);
+  await expect(refreshGitHubAction()).rejects.toThrow("redirect:/profile");
+  expect(enqueue).not.toHaveBeenCalled();
+  enqueue.mockRejectedValueOnce(new Error("valkey down"));
+  await expect(refreshGitHubAction()).rejects.toThrow(
+    "redirect:/profile?github=refresh-failed",
+  );
 });

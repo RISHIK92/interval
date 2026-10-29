@@ -53,6 +53,7 @@ from interval_jobs.ports import (
     FetchInput,
     FetchKind,
     Finished,
+    GitHubSyncInput,
     GrantResult,
     ItemDecisions,
     MomentLink,
@@ -66,6 +67,7 @@ from interval_jobs.ports import (
     QuestionSummary,
     QuestionTarget,
     RankedEntry,
+    RepoRead,
     RevokeResult,
     RightsViolation,
     Section,
@@ -1821,6 +1823,7 @@ class InMemoryStore:
         )
         self.paths = InMemoryPaths(self.questions, self.items, self.concepts)
         self.books = InMemoryBooks()
+        self.github = InMemoryGitHub()
         drop_feed = self.feed.drop_missing
 
         def drop_missing() -> None:
@@ -2020,6 +2023,48 @@ class InMemoryBooks:
         checkpoint = self.checkpoints.get(chapter_id)
         if checkpoint is not None and checkpoint.status == "preparing":
             checkpoint.status, checkpoint.failure = "failed", reason[:200]
+
+
+@dataclass
+class StoredGitHub:
+    """A connected user's GitHub (P2-W12-S02), as the github_* tables hold it."""
+
+    installations: list[tuple[int, str]]  # id, the account it's installed on
+    login: str = "octo"
+    reachable: dict[int, frozenset[int]] = field(
+        default_factory=dict[int, frozenset[int]]
+    )
+    repos: list[RepoRead] = field(default_factory=list[RepoRead])
+    synced: bool = False
+    active: bool = True  # a session in the last week
+
+
+class InMemoryGitHub:
+    def __init__(self) -> None:
+        self.accounts: dict[str, StoredGitHub] = {}
+
+    def sync_input(self, user_id: str) -> GitHubSyncInput | None:
+        account = self.accounts.get(user_id)
+        if account is None:
+            return None
+        return GitHubSyncInput(
+            account.login, list(account.installations), dict(account.reachable)
+        )
+
+    def save_sync(self, user_id: str, repos: list[RepoRead]) -> None:
+        account = self.accounts.get(user_id)
+        if account is None:  # disconnected meanwhile
+            return
+        # Access as it is now: a reconnect meanwhile may have narrowed it.
+        now = self.sync_input(user_id)
+        assert now is not None
+        account.repos = [
+            r for r in repos if now.allowed(r.installation_id, r.repo.repo_id)
+        ]
+        account.synced = True
+
+    def due_for_sync(self, active_days: int) -> list[str]:
+        return sorted(u for u, a in self.accounts.items() if a.active)
 
 
 class InMemoryOcr:

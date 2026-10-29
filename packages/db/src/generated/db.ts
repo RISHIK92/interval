@@ -29,6 +29,8 @@ export type Capability = "admin.review" | "ai.budget.daily_cents" | "ai.notes.da
 
 export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
 
+export type DependencyEcosystem = "go" | "npm" | "pypi";
+
 export type Difficulty = "advanced" | "beginner" | "intermediate";
 
 export type FeedbackKind = "less_like_this" | "more_like_this" | "not_interested";
@@ -330,6 +332,16 @@ export interface GithubAccount {
   connected_at: Generated<Timestamp>;
   github_user_id: Int8;
   login: string;
+  synced_at: Timestamp | null;
+  user_id: string;
+}
+
+export interface GithubDependency {
+  dev: Generated<boolean>;
+  ecosystem: DependencyEcosystem;
+  name: string;
+  path: string;
+  repo_id: Int8;
   user_id: string;
 }
 
@@ -337,6 +349,24 @@ export interface GithubInstallation {
   account_login: string;
   account_type: string;
   installation_id: Int8;
+  user_id: string;
+}
+
+export interface GithubReachableRepository {
+  installation_id: Int8;
+  repo_id: Int8;
+  user_id: string;
+}
+
+export interface GithubRepository {
+  default_branch: string;
+  description: string | null;
+  full_name: string;
+  installation_id: Int8;
+  languages: Generated<string[]>;
+  pushed_at: Timestamp | null;
+  repo_id: Int8;
+  synced_at: Generated<Timestamp>;
   user_id: string;
 }
 
@@ -842,7 +872,10 @@ export interface DB {
   feed_note: FeedNote;
   fetch_validator: FetchValidator;
   github_account: GithubAccount;
+  github_dependency: GithubDependency;
   github_installation: GithubInstallation;
+  github_reachable_repository: GithubReachableRepository;
+  github_repository: GithubRepository;
   goal_concept: GoalConcept;
   graph_version: GraphVersion;
   invite_code: InviteCode;

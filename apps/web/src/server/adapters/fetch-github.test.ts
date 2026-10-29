@@ -123,3 +123,38 @@ test("an exchange with neither a token nor an error throws; the token is revoked
   );
   await expect(fetchGitHub(app, refused).revoke("x")).rejects.toThrow(/422/);
 });
+
+test("an installation's repositories this user can reach, page by page", async () => {
+  const request = vi.fn<typeof fetch>((input) => {
+    const url = new URL(
+      typeof input === "string"
+        ? input
+        : input instanceof URL
+          ? input.href
+          : input.url,
+    );
+    const page = url.searchParams.get("page") ?? "1";
+    return Promise.resolve(
+      new Response(
+        JSON.stringify({
+          repositories: page === "1" ? [{ id: 21 }, { id: 22 }] : [{ id: 23 }],
+        }),
+        {
+          headers:
+            page === "1"
+              ? {
+                  link: `<${url.origin}${url.pathname}?per_page=100&page=2>; rel="next"`,
+                }
+              : {},
+        },
+      ),
+    );
+  });
+  expect(
+    await fetchGitHub(app, request).reachableRepositories("ghu_abc", "12"),
+  ).toEqual(["21", "22", "23"]);
+  const [first] = request.mock.calls[0] ?? [];
+  expect(first).toBe(
+    "https://api.github.com/user/installations/12/repositories?per_page=100",
+  );
+});

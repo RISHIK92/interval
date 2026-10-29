@@ -16,6 +16,8 @@ SECRETS = {
     "interval/prod/github-app-slug": "interval-dev",
     "interval/prod/github-app-client-id": "Iv23liAbC",
     "interval/prod/github-app-client-secret": "ghSecret111",
+    "interval/prod/github-app-id": "123456",
+    "interval/prod/github-app-private-key": "LS0tLS1CRUdJTi+/key==",
 }
 
 
@@ -102,6 +104,8 @@ def test_writes_three_env_files_each_with_only_its_keys_and_mode_600(
         "GITHUB_APP_SLUG": "interval-dev",
         "GITHUB_APP_CLIENT_ID": "Iv23liAbC",
         "GITHUB_APP_CLIENT_SECRET": "ghSecret111",
+        "GITHUB_APP_ID": "123456",
+        "GITHUB_APP_PRIVATE_KEY": "LS0tLS1CRUdJTi+/key==",
     }
     assert parse(out / "postgres.env") == {"POSTGRES_PASSWORD": "pgSecret123"}
     assert parse(out / "caddy.env") == {"SITE_ADDRESS": ":80"}
@@ -173,3 +177,20 @@ def test_files_in_s3_need_the_bucket_name(tmp_path: Path) -> None:
     assert "private-content-bucket" in result.stderr
     out = tmp_path / "out"
     assert not out.exists() or list(out.iterdir()) == []
+
+
+# P2-W12-S02: only the App's private key (base64 of a PEM) may hold + / =.
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [
+        ("interval/prod/github-app-private-key", "key with spaces"),
+        ("interval/prod/github-app-private-key", "key$HOME"),
+        ("interval/prod/openrouter", "or+key="),
+    ],
+)
+def test_base64_characters_only_for_the_private_key(
+    tmp_path: Path, name: str, value: str
+) -> None:
+    result = run(tmp_path, fake_aws(tmp_path, overrides={name: value}))
+    assert result.returncode != 0
+    assert name in result.stderr

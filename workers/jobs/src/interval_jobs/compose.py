@@ -22,6 +22,7 @@ from interval_jobs.adapters.bullmq_queue import BullmqConsumer, BullmqQueue
 from interval_jobs.adapters.file_sink import FileEventSink
 from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSink
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
+from interval_jobs.adapters.http_github_app import HttpGitHubApp
 from interval_jobs.adapters.http_ocr import HttpOcr
 from interval_jobs.adapters.openai_compatible import (
     GOOGLE,
@@ -39,11 +40,13 @@ from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.adapters.voyage import VoyageClient
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.events.emitter import Emitter
+from interval_jobs.github.app_token import AppKeyError, load_private_key
 from interval_jobs.pipeline import ModelJob, StageServices, UnitOfWork
 from interval_jobs.ports import (
     AiLedger,
     EventSink,
     Files,
+    GitHubApp,
     JobQueue,
     Ocr,
     QueueConsumer,
@@ -126,6 +129,21 @@ def ocr() -> Ocr | None:
     """ADR-0022: the Tesseract service; None without OCR_URL (scanned pages wait)."""
     url = os.environ.get("OCR_URL")
     return HttpOcr(url) if url else None
+
+
+def github_app() -> GitHubApp | None:
+    """ADR-0024, P2-W12-S02: Interval's GitHub App; None without its id and key, or with
+    a key that can't be used (a deployment's placeholder): reads are then skipped."""
+    app_id = os.environ.get("GITHUB_APP_ID", "").strip()
+    key = os.environ.get("GITHUB_APP_PRIVATE_KEY", "").strip()
+    if not app_id or not key:
+        log.info("github: off (GITHUB_APP_ID / GITHUB_APP_PRIVATE_KEY not set)")
+        return None
+    try:
+        return HttpGitHubApp(app_id, load_private_key(key))
+    except AppKeyError as error:
+        log.error("github: the App's private key can't be used", error=str(error))
+        return None
 
 
 def _sqs_client() -> SqsClient:

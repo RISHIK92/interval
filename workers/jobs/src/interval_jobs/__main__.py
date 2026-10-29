@@ -35,6 +35,7 @@ from interval_jobs.compose import (
     ai_gateway,
     database_url,
     files,
+    github_app,
     model_job,
     ocr,
     queue_consumer,
@@ -56,6 +57,7 @@ from interval_jobs.feed.precompute import (
     enqueue_recomputes,
     recompute_starter,
 )
+from interval_jobs.github.sync import enqueue_syncs
 from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
@@ -234,6 +236,11 @@ def main(argv: list[str]) -> None:
         "check-links-due",
         help="queue this week's link health check of every item (P1-W6-S03)",
     )
+    commands.add_parser(
+        "sync-github-due",
+        help="queue a read of each connected user's repositories, if active this week "
+        "(P2-W12-S02)",
+    )
     args = parser.parse_args(argv)
     setup()
     if args.command == "consume":
@@ -273,6 +280,12 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         with services() as s:
             enqueued = enqueue_due(s.store, queue_for_enqueue(), datetime.now(UTC))
         print(json.dumps({"enqueued": enqueued}))
+        return
+
+    if args.command == "sync-github-due":
+        with services() as s:
+            queued = enqueue_syncs(s.store, queue_for_enqueue(), datetime.now(UTC))
+        print(json.dumps({"queued": queued}))
         return
 
     if args.command == "check-links-due":
@@ -573,6 +586,7 @@ def _consume(max_entries: int | None) -> None:
                 questions=questions,
                 files=files(),
                 ocr=ocr(),
+                github=github_app(),
             )
             run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
     finally:
