@@ -21,6 +21,7 @@ const card = (id: string): FeedCard => ({
   saved: false,
   frameable: false,
   topic: null,
+  difficulty: null,
 });
 
 const NOW = new Date("2026-10-26T12:00:00Z");

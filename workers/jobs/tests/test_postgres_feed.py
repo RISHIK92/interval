@@ -316,8 +316,8 @@ def test_an_entry_cannot_pair_a_moment_with_another_items_title(
         )
 
 
-# ADR-0026: the "Shown for" line is stored per entry and read through the view; a
-# starter feed's too.
+# ADR-0027: the card's explanation, its kind and its difficulty are stored per entry and
+# read through the views; a starter feed's too.
 def test_a_cards_reasons_are_stored_and_shown(conn: psycopg.Connection) -> None:
     src = source(conn, "feedtest-j")
     item = add_item(conn, src, "reasoned", datetime(2026, 10, 1, tzinfo=UTC), 2)
@@ -332,8 +332,9 @@ def test_a_cards_reasons_are_stored_and_shown(conn: psycopg.Connection) -> None:
                     item,
                     first,
                     "topic_match",
-                    "Shown for: your topics",
-                    reason_kinds=("topic_match", "level_fit"),
+                    "Homework for velox: Transactions.",
+                    reason_kinds=("project_match",),
+                    difficulty="intermediate",
                 ),
                 RankedEntry(item, second, "quality", None),
             ]
@@ -341,24 +342,25 @@ def test_a_cards_reasons_are_stored_and_shown(conn: psycopg.Connection) -> None:
         datetime.now(UTC),
     )
     assert conn.execute(
-        "select reasons, reason_kinds from user_feed_visible where user_id = %s "
-        "order by rank",
+        "select reasons, reason_kinds, difficulty from user_feed_visible "
+        "where user_id = %s order by rank",
         (me,),
     ).fetchall() == [
-        ("Shown for: your topics", ["topic_match", "level_fit"]),
-        (None, []),
+        ("Homework for velox: Transactions.", ["project_match"], "intermediate"),
+        (None, [], None),
     ]
     store.feed.replace_starter(
         "databases",
         "beginner",
         "3-8",
-        [RankedEntry(item, first, "topic_match", "Why it's here: databases")],
+        [RankedEntry(item, first, "quality", "Worth a look.", difficulty="beginner")],
     )
     assert conn.execute(
-        "select reasons from starter_feed_visible where topic = 'databases' "
+        "select reasons, difficulty from starter_feed_visible "
+        "where topic = 'databases' "
         "and level = 'beginner' and chip = '3-8' and content_item_id = %s",
         (item,),
-    ).fetchall() == [("Why it's here: databases",)]
+    ).fetchall() == [("Worth a look.", "beginner")]
 
 
 def test_an_explored_entry_is_stored_with_its_arm(conn: psycopg.Connection) -> None:

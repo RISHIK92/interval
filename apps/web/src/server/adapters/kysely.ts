@@ -59,6 +59,7 @@ const CARD_COLUMNS = [
   "reason_kinds",
   "frameable",
   "source_topic",
+  "difficulty",
 ] as const;
 type CardRow = Pick<
   Selectable<UserFeedVisible>,
@@ -83,7 +84,12 @@ function savedBy(userId: string, itemColumn: string) {
 }
 
 // Columns any row may leave null: no known author, no reason that counted.
-const NULLABLE_ON_EVERY_ROW = ["author", "reasons", "source_topic"];
+const NULLABLE_ON_EVERY_ROW = [
+  "author",
+  "reasons",
+  "source_topic",
+  "difficulty",
+];
 // Columns an article row also leaves null: it has no moment, and maybe no length.
 const ARTICLE_NULLS = new Set([
   ...NULLABLE_ON_EVERY_ROW,
@@ -133,6 +139,7 @@ export function toCard(row: CardRow): FeedCard | null {
       saved: row.saved,
       frameable: row.frameable === true,
       topic: row.source_topic,
+      difficulty: row.difficulty,
     };
     if (kind === "article") {
       return { kind, ...base, estimatedMinutes: estimated_minutes };

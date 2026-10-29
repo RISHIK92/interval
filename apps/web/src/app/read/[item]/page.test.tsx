@@ -52,7 +52,7 @@ const page: ReaderPage = {
   articleTitle: "Consensus in practice",
   sectionTitle: "Raft",
   sourceName: "Pub Engineering",
-  reasons: "Shown for: your topics distributed systems",
+  reasons: "Good prep for system design interviews: Caching.",
   saved: false,
   nextMomentId: "10",
 };
@@ -229,7 +229,7 @@ test("the overlay: why it's here, Save that stays, Mark done, Next section, and 
   reader.mockResolvedValue(page);
   const html = await render(card);
   // ADR-0026: why the ranking showed it, the app's own words (no AI label).
-  expect(html).toContain("Shown for: your topics distributed systems");
+  expect(html).toContain("Good prep for system design interviews: Caching.");
   expect(html).not.toContain(">AI</span>");
   // Save posts the feedback control and comes back to this reader.
   expect(html).toMatch(/<button[^>]*value="save"[^>]*name="control"/);
@@ -282,12 +282,12 @@ test("the last section has no Next section; a saved item says Saved; its reasons
     ...page,
     nextMomentId: null,
     saved: true,
-    reasons: "Why it's here: a classic",
+    reasons: "An idea worth investigating.",
   });
   const html = await render(card);
   expect(html).not.toContain("Next section");
   expect(html).toMatch(/<button[^>]*value="unsave"[^>]*name="control"/);
-  expect(html).toContain("Why it&#x27;s here: a classic");
+  expect(html).toContain("An idea worth investigating.");
 });
 
 // Opened from the Library (owner, 2026-10-26): no feed event, and closing or Mark done

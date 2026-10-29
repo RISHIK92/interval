@@ -559,9 +559,9 @@ class PostgresMoments:
 # is skipped.
 _RANKED_ROWS = """
 from unnest(%s::bigint[], %s::bigint[], %s::text[], %s::text[], %s::text[],
-            %s::text[], %s::jsonb[], %s::text[]) with ordinality
+            %s::text[], %s::jsonb[], %s::text[], %s::difficulty[]) with ordinality
   as r(item_id, moment_id, top_signal, reasons, explore_kind, explore_arm,
-       score_parts, reason_kinds, rank)
+       score_parts, reason_kinds, difficulty, rank)
 where exists (select 1 from content_item ci where ci.id = r.item_id)
   and (r.moment_id is null
        or exists (select 1 from moment m where m.id = r.moment_id))
@@ -579,6 +579,7 @@ def _ranked_arrays(
     list[str | None],
     list[Jsonb | None],
     list[str],
+    list[str | None],
 ]:
     return (
         [r.item_id for r in ranked],
@@ -591,6 +592,7 @@ def _ranked_arrays(
         # One array literal per entry: unnest can't take an array of arrays of
         # differing lengths.
         ["{" + ",".join(r.reason_kinds) + "}" for r in ranked],
+        [r.difficulty for r in ranked],
     )
 
 
@@ -630,10 +632,10 @@ class PostgresFeed:
                     insert into user_feed_entry
                       (user_id, chip, content_item_id, moment_id, rank, top_signal,
                        reasons, explore_kind, explore_arm, score_parts,
-                       reason_kinds)
+                       reason_kinds, difficulty)
                     select %s, %s::break_length, r.item_id, r.moment_id, r.rank,
                            r.top_signal, r.reasons, r.explore_kind, r.explore_arm,
-                           r.score_parts, r.reason_kinds::text[]
+                           r.score_parts, r.reason_kinds::text[], r.difficulty
                     {_RANKED_ROWS}
                     """,
                     (user_id, chip, *_ranked_arrays(ranked)),
@@ -667,9 +669,9 @@ class PostgresFeed:
                 f"""
                 insert into starter_feed_entry
                   (topic, level, chip, content_item_id, moment_id, rank, reasons,
-                   reason_kinds)
+                   reason_kinds, difficulty)
                 select %s, %s, %s::break_length, r.item_id, r.moment_id, r.rank,
-                       r.reasons, r.reason_kinds::text[]
+                       r.reasons, r.reason_kinds::text[], r.difficulty
                 {_RANKED_ROWS}
                 """,
                 (topic, level, chip, *_ranked_arrays(ranked)),

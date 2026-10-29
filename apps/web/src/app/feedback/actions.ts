@@ -16,7 +16,7 @@ import { type Actor, BIGINT_ID, REASON_KINDS } from "../../server/ports";
 import { visitId } from "../../server/visits";
 import { sameSitePath, textField } from "../form";
 
-// ADR-0026: "a reason is wrong" rides the card's one form as control
+// ADR-0026/0027: "a reason is wrong" rides the card's one form as control
 // "wrong_reason:<kind>", like the other menu buttons (no second form, no script).
 const WRONG_REASON = "wrong_reason:";
 const Reason = z.enum(REASON_KINDS);
@@ -98,7 +98,7 @@ export async function feedbackAction(form: FormData): Promise<void> {
   );
 }
 
-// ADR-0026: one of the card's "Shown for" reasons is wrong (a tag, a mapping): kept for
+// ADR-0027: the card's stated reason is wrong (a tag, a mapping): kept for
 // the admin's review queue; the ranking doesn't change from it.
 async function reportReason(
   actor: Actor,

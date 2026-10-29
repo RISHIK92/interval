@@ -327,14 +327,16 @@ class RankedEntry:
     item_id: int
     moment_id: int | None
     top_signal: str  # the rule that counted most (ranking inspection)
-    # ADR-0026: why the ranking showed it, in words; None when nothing counted.
+    # ADR-0027: the card's one explanation, in words.
     reasons: str | None
     # The exploration arm that placed it (REC-4); None for a main pick. Opens and
     # finishes of it count toward that arm (P1-W5-S03).
     arm: "Arm | None" = None
     breakdown: "Breakdown | None" = None  # a starter feed's entries keep none
-    # Which reasons the line states, in its order, for "a reason is wrong".
+    # The reason the line states (none for a neutral phrase), for "a reason is wrong".
     reason_kinds: tuple[str, ...] = ()
+    # ADR-0027: the card's difficulty label (the admin's correction, else the model's).
+    difficulty: "Difficulty | None" = None
 
 
 class Feed(Protocol):
@@ -1028,8 +1030,8 @@ class RankingInputs(Protocol):
         ...
 
     def project_repositories(self, user_id: str) -> dict[str, tuple[str, ...]]:
-        """ADR-0026: each technology of the user's projects (by slug), with the
-        repositories that use it, for the user's own "Shown for" line."""
+        """ADR-0027: each technology of the user's projects (by slug), with the
+        repositories that use it, for the user's own card explanations."""
         ...
 
     def concept_moments(

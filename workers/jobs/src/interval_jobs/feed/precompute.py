@@ -13,14 +13,7 @@ from typing import get_args
 from interval_db.generated import BreakLength, Difficulty, Topic
 from interval_jobs import log
 from interval_jobs.feed.project_notes import PROJECT_NOTES_PER_RECOMPUTE
-from interval_jobs.feed.reasons import (
-    STARTER_KINDS,
-    Chooser,
-    concept_map,
-    reasons_for,
-    render,
-    seeded,
-)
+from interval_jobs.feed.reasons import concept_map, explain
 from interval_jobs.ports import (
     JobQueue,
     RankedEntry,
@@ -59,42 +52,28 @@ def _with_reasons(
     now: datetime,
     done: Recomputed,
     user_id: str | None,
-    feed: str,
 ) -> dict[BreakLength, list[RankedEntry]]:
-    """Every chip's entries with their "Shown for" line (ADR-0026), worded fresh each
-    recompute hour and least-used first across the feed, so cards differ."""
+    """Every chip's entries with their one explanation (ADR-0027). A starter feed has
+    no user: no goals, projects or repositories, so it states none of them."""
     projects = store.ranking.project_concepts(user_id) if user_id else {}
     repositories = store.ranking.project_repositories(user_id) if user_id else {}
-    goals = goal_sets(store.ranking, preferences, projects)
+    goals = goal_sets(store.ranking, preferences, projects) if user_id else ()
     concepts = concept_map(store.concepts.state())
-    chooser = Chooser()
-    hour = now.strftime("%Y%m%d%H")
     by_chip: dict[BreakLength, list[RankedEntry]] = {}
     for chip, scored in ranked.items():
         entries: list[RankedEntry] = []
         for s in scored:
-            found = reasons_for(
-                s,
-                preferences.topics,
-                preferences.level,
-                now,
-                goals,
-                projects,
-                repositories,
-                concepts,
-            )
-            if user_id is None:
-                found = [r for r in found if r.kind in STARTER_KINDS]
-            line = render(found, chooser, seeded(feed, s.item_id, chip, hour))
+            found = explain(s, now, goals, projects, repositories, concepts)
             entries.append(
                 RankedEntry(
                     s.item_id,
                     s.moment_id,
                     s.top_signal,
-                    line,
+                    found.text,
                     s.arm,
                     s.breakdown,
-                    tuple(r.kind for r in found),
+                    () if found.kind is None else (found.kind,),
+                    s.facts.difficulty,
                 )
             )
         by_chip[chip] = entries
@@ -119,7 +98,7 @@ def recompute_user_feed(
         ranked = rank_for_user(store, user_id, model, now, FEED_LIMIT, rng)
         preferences = store.ranking.preferences(user_id)
         by_chip: dict[BreakLength, list[RankedEntry]] = (
-            _with_reasons(store, ranked, preferences, now, done, user_id, user_id)
+            _with_reasons(store, ranked, preferences, now, done, user_id)
             if preferences
             else {chip: [] for chip in ranked}
         )
@@ -157,7 +136,7 @@ def recompute_starter(
     try:
         ranked = rank_for_preferences(store, preferences, None, model, now, FEED_LIMIT)
         for chip, entries in _with_reasons(
-            store, ranked, preferences, now, done, None, f"starter:{topic}:{level}"
+            store, ranked, preferences, now, done, None
         ).items():
             store.feed.replace_starter(topic, level, chip, entries)
     except Exception as error:

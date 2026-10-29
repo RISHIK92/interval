@@ -15,7 +15,7 @@ import type {
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 
-// The reasons a "Shown for" line can state (ADR-0026), as the worker names them.
+// The reasons a card explanation can state (ADR-0026/0027), as the worker names them.
 export const REASON_KINDS = [
   "topic_match",
   "goal_match",
@@ -38,8 +38,8 @@ type CardBase = {
   articleTitle: string;
   author: string | null;
   sourceName: string;
-  // ADR-0026: why the ranking showed it ("Shown for: …"), and which reasons it states,
-  // for "a reason is wrong"; null when no reason counted.
+  // ADR-0027: the card's one explanation, and the reason it states for "a reason is
+  // wrong" (none for a neutral phrase); null on an entry from before ADR-0026.
   reasons: { text: string; kinds: ReasonKind[] } | null;
   // P2-W12-S05 (§5B, AI-3): the notes model's line on why it matters to the user's
   // own repositories; only ever in that user's feed.
@@ -49,6 +49,8 @@ type CardBase = {
   // (false while unknown).
   frameable: boolean;
   topic: Topic | null; // its source's first known topic, for the picture (ADR-0019)
+  // ADR-0027: its difficulty label, as the ranking saw it (an admin's tag first).
+  difficulty: Difficulty | null;
 };
 export type MomentFeedCard = CardBase & {
   kind: "moment";
@@ -108,7 +110,7 @@ export type ReaderPage = {
   articleTitle: string;
   sectionTitle: string | null; // null when the link is the article's page
   sourceName: string;
-  // Why the ranking showed this entry in the user's feed (ADR-0026), if it did.
+  // The entry's explanation in the user's feed (ADR-0027), if it is in it.
   reasons: string | null;
   saved: boolean;
   nextMomentId: string | null; // the section after the one reached, by order
@@ -246,7 +248,7 @@ export interface Feedback {
   hideSource(userId: string, itemId: string): Promise<boolean>;
   save(userId: string, itemId: string): Promise<boolean>;
   unsave(userId: string, itemId: string): Promise<boolean>;
-  // ADR-0026: one of the card's "Shown for" reasons is wrong; once per user, item and
+  // ADR-0027: the card's stated reason is wrong; once per user, item and
   // reason. False when already reported (or the item is gone).
   reportReason(
     userId: string,

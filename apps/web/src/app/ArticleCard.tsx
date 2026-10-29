@@ -49,6 +49,7 @@ export function ArticleCard({
         inApp: card.frameable,
       }}
       topic={card.topic}
+      difficulty={card.difficulty}
       controls={controls}
       yourNote={yourNote}
     />

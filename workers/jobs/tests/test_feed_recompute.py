@@ -548,10 +548,11 @@ def test_a_goal_lifts_its_items_and_names_itself_in_the_note() -> None:
     assert entry.breakdown is not None
     assert entry.breakdown.values["goal_match"] == 1.0
     assert entry.top_signal == "goal_match"
-    # ADR-0026: the line names the goal and the concept that made the pick.
+    # ADR-0027: the goal line names the concept that made the pick.
     assert entry.reasons is not None
-    assert "pass system design interviews" in entry.reasons
     assert "Indexes" in entry.reasons
+    assert entry.reason_kinds == ("goal_match",)
+    assert entry.difficulty == "intermediate"
 
 
 # P2-W12-S04 (REC-1, ADR-0015): a connected user's projects reach the feed through the
@@ -577,14 +578,15 @@ def test_project_concepts_reach_the_feed_and_its_note() -> None:
     assert entry.breakdown.values["project_match"] == 1.0
     assert entry.breakdown.values["goal_match"] == 1.0  # the stack goal's set
     assert entry.top_signal == "project_match"
-    # The user's own line may name their repository (ADR-0026: private to them).
+    # The user's own line names their repository (private to them), by short name.
     assert entry.reasons is not None
-    assert all(f in entry.reasons for f in ("PostgreSQL", "octo/velox", "Indexes"))
+    assert "velox" in entry.reasons and "Indexes" in entry.reasons
+    assert entry.reason_kinds == ("project_match",)
 
 
-# ADR-0026: a starter feed has no user and is shown under every chip, so its lines state
-# only topic and level, never a project, a goal or a repository.
-def test_starter_reasons_state_only_topic_and_level() -> None:
+# ADR-0027: a starter feed has no user, so its lines never state a project, a goal or a
+# repository.
+def test_starter_reasons_state_nothing_personal() -> None:
     w = World()
     w.store.ranking.projects["u1"] = {"indexes": (("postgresql", "PostgreSQL"),)}
     w.store.ranking.repositories["u1"] = {"postgresql": ("octo/velox",)}
@@ -601,5 +603,6 @@ def test_starter_reasons_state_only_topic_and_level() -> None:
     ]
     assert entries
     for entry in entries:
-        assert set(entry.reason_kinds) <= {"topic_match", "level_fit"}
+        assert not {"project_match", "goal_match", "explore"} & set(entry.reason_kinds)
+        assert entry.difficulty == "beginner"
         assert "octo/velox" not in (entry.reasons or "")

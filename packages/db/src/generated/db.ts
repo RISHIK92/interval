@@ -690,6 +690,7 @@ export interface Source {
 export interface StarterFeedEntry {
   chip: BreakLength;
   content_item_id: Int8;
+  difficulty: Difficulty | null;
   level: Difficulty;
   moment_id: Int8 | null;
   note_id: Int8 | null;
@@ -704,6 +705,7 @@ export interface StarterFeedVisible {
   author: string | null;
   chip: BreakLength | null;
   content_item_id: Int8 | null;
+  difficulty: Difficulty | null;
   estimated_minutes: number | null;
   frameable: boolean | null;
   kind: string | null;
@@ -813,6 +815,7 @@ export interface UserExploreOpen {
 export interface UserFeedEntry {
   chip: BreakLength;
   content_item_id: Int8;
+  difficulty: Difficulty | null;
   explore_arm: string | null;
   explore_kind: string | null;
   moment_id: Int8 | null;
@@ -835,6 +838,7 @@ export interface UserFeedVisible {
   author: string | null;
   chip: BreakLength | null;
   content_item_id: Int8 | null;
+  difficulty: Difficulty | null;
   estimated_minutes: number | null;
   frameable: boolean | null;
   kind: string | null;

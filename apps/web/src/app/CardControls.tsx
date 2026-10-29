@@ -9,7 +9,8 @@ const ROUND =
 const MENU_ITEM =
   "w-full rounded-xl px-3 py-2 text-left hover:bg-well focus-visible:bg-well";
 
-// ADR-0026: how each "Shown for" reason is named when reporting it.
+// ADR-0026/0027: how each reason is named when reporting it. Kinds the worker no
+// longer states (topic, level, length) stay for reports made before ADR-0027.
 const REASON_LABELS: Record<ReasonKind, string> = {
   explore: "Something new to try",
   topic_match: "Your topics",
@@ -41,7 +42,7 @@ export function CardControls({
   originalHref: string | null;
   // P2-W9-S02: Test 60s on the card's section (or article), when it has questions.
   test: { momentId: string | null } | null;
-  // ADR-0026: the reasons the card's "Shown for" line states, to report one as wrong.
+  // ADR-0027: the reason the card's explanation states, to report it as wrong.
   reasons?: ReasonKind[];
 }) {
   // Every card has these buttons: the title tells them apart for a screen reader. The

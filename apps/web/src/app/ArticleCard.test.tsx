@@ -16,6 +16,7 @@ const card: ArticleFeedCard = {
   saved: false,
   frameable: false,
   topic: null,
+  difficulty: null,
 };
 
 function textOf(html: string): string {
@@ -73,14 +74,14 @@ test("shows its reasons like a moment card does", () => {
     <ArticleCard
       card={{
         ...card,
-        reasons: { text: "Picked for: a beginner read", kinds: ["level_fit"] },
+        reasons: { text: "Worth a look.", kinds: [] },
       }}
       chip="8-15"
       position={1}
       controls={null}
     />,
   );
-  expect(textOf(html)).toContain("Picked for: a beginner read");
+  expect(textOf(html)).toContain("Worth a look.");
   expect(html).not.toContain("border-dashed"); // the app's words, not AI
 });
 

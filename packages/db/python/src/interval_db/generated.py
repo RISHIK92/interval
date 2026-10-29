@@ -668,6 +668,7 @@ class StarterFeedEntry(TypedDict):
     note_id: int | None
     reasons: str | None
     reason_kinds: list[str]
+    difficulty: Difficulty | None
 
 
 class StarterFeedVisible(TypedDict):
@@ -692,6 +693,7 @@ class StarterFeedVisible(TypedDict):
     source_topic: Topic | None
     reasons: str | None
     reason_kinds: list[str] | None
+    difficulty: Difficulty | None
 
 
 class TagOverride(TypedDict):
@@ -794,6 +796,7 @@ class UserFeedEntry(TypedDict):
     score_parts: JsonValue | None
     reasons: str | None
     reason_kinds: list[str]
+    difficulty: Difficulty | None
 
 
 class UserFeedState(TypedDict):
@@ -824,6 +827,7 @@ class UserFeedVisible(TypedDict):
     project_note_repositories: list[str] | None
     reasons: str | None
     reason_kinds: list[str] | None
+    difficulty: Difficulty | None
 
 
 class UserHiddenSource(TypedDict):

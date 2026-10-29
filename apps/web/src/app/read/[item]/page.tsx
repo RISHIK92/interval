@@ -329,7 +329,7 @@ function ComingLater({
   );
 }
 
-// ADR-0026: why the ranking showed it, one line until opened.
+// ADR-0027: the card's explanation, one line until opened.
 function Why({ reasons }: { reasons: ReaderPage["reasons"] }) {
   if (reasons === null) return null;
   return (

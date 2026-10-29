@@ -19,6 +19,7 @@ const card: MomentFeedCard = {
   saved: false,
   frameable: false,
   topic: null,
+  difficulty: null,
 };
 
 function textOf(html: string): string {
@@ -75,8 +76,8 @@ test("shows the card's reasons, never labelled AI", () => {
       card={{
         ...card,
         reasons: {
-          text: "Shown for: your topics backend · 3 min",
-          kinds: ["topic_match", "time_fit"],
+          text: "System design interviews ask about Caching.",
+          kinds: ["goal_match"],
         },
       }}
       chip="3-8"
@@ -84,7 +85,7 @@ test("shows the card's reasons, never labelled AI", () => {
       controls={null}
     />,
   );
-  expect(textOf(html)).toContain("Shown for: your topics backend · 3 min");
+  expect(textOf(html)).toContain("System design interviews ask about Caching.");
   expect(html).not.toContain("border-dashed");
 });
 
@@ -146,7 +147,10 @@ test("a project note shows under the reasons, in an AI box naming the repository
     <MomentCard
       card={{
         ...card,
-        reasons: { text: "Shown for: your project", kinds: ["project_match"] },
+        reasons: {
+          text: "Homework for velox: Transactions.",
+          kinds: ["project_match"],
+        },
         projectNote: {
           text: "Velox elects its leader the same way.",
           repositories: ["octo/velox"],
@@ -157,7 +161,7 @@ test("a project note shows under the reasons, in an AI box naming the repository
       controls={null}
     />,
   );
-  expect(textOf(html)).toContain("Shown for: your project");
+  expect(textOf(html)).toContain("Homework for velox: Transactions.");
   expect(html).toMatch(
     /<div class="[^"]*border-dashed[^"]*"><span class="font-semibold">For your project octo\/velox:<\/span> Velox elects its leader the same way\. <span[^>]*>AI<\/span><\/div>/,
   );
@@ -168,6 +172,28 @@ test("a card with no reasons and no project line shows no explanation", () => {
   const html = renderToStaticMarkup(
     <MomentCard card={card} chip="3-8" position={1} controls={null} />,
   );
-  expect(textOf(html)).not.toContain("Shown for");
+  // The explanation's line is absent: only the length line is muted body text.
+  expect(html).not.toMatch(/<p class="mt-2 text-sm text-ink-muted">/);
   expect(html).not.toContain("border-dashed");
+});
+
+// ADR-0027: small difficulty and topic labels beside the length.
+test("shows difficulty and topic labels when known", () => {
+  const html = renderToStaticMarkup(
+    <MomentCard
+      card={{
+        ...card,
+        difficulty: "intermediate",
+        topic: "distributed-systems",
+      }}
+      chip="3-8"
+      position={1}
+      controls={null}
+    />,
+  );
+  expect(textOf(html)).toContain("Intermediate · Distributed systems");
+  const none = renderToStaticMarkup(
+    <MomentCard card={card} chip="3-8" position={1} controls={null} />,
+  );
+  expect(textOf(none)).not.toContain(" · Distributed");
 });

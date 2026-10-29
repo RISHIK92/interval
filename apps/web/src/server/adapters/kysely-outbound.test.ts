@@ -182,7 +182,7 @@ test("the reader gets the link, titles, the user's note and save, and the next s
         moment_id: momentId,
         rank: 1,
         top_signal: "topic_match",
-        reasons: "Shown for: your topics distributed systems",
+        reasons: "Good prep for system design interviews: Caching.",
       })
       .execute();
     await trx
@@ -202,7 +202,7 @@ test("the reader gets the link, titles, the user's note and save, and the next s
       articleTitle: "Post",
       sectionTitle: "Raft",
       sourceName: source.name,
-      reasons: "Shown for: your topics distributed systems",
+      reasons: "Good prep for system design interviews: Caching.",
       saved: true,
       nextMomentId: next.id,
     });

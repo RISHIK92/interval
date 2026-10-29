@@ -20,7 +20,7 @@ const REASON_NAMES: Record<ReasonKind, string> = {
 };
 
 // ING-6: the items most recently fetched, to pick one to review; items users reported
-// a "Shown for" reason on first (ADR-0026), to fix their tags or the seed mapping.
+// a card's reason on first (ADR-0026/0027), to fix their tags or the seed mapping.
 export default async function ReviewListPage() {
   await requireAdmin();
   const items = await adminReview().recent(LIMIT);

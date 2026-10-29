@@ -200,6 +200,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
           saved: false,
           frameable: false,
           topic: null,
+          difficulty: null,
         },
       ],
     });
@@ -256,6 +257,7 @@ test("a whole article reads as an article card, before or after moments", async 
       saved: false,
       frameable: false,
       topic: null,
+      difficulty: null,
     });
     expect(cards.map((c) => c.kind)).toEqual(["article", "moment"]);
   });
@@ -370,6 +372,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     saved: false,
     frameable: false,
     source_topic: null,
+    difficulty: null,
   });
 
   expect(card).toBeNull();
@@ -386,11 +389,12 @@ test("toCard drops a row with missing fields and logs only its id and column nam
       article_title: "Article",
       author: null,
       source_name: "Source",
-      reasons: "Shown for: new this week (Source)",
+      reasons: "New this week from Source.",
       reason_kinds: ["freshness", "not_a_kind"],
       saved: false,
       frameable: false,
       source_topic: null,
+      difficulty: null,
     }),
   ).toEqual({
     kind: "article",
@@ -401,13 +405,14 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     sourceName: "Source",
     // A kind the web doesn't know is dropped, never shown as a report choice.
     reasons: {
-      text: "Shown for: new this week (Source)",
+      text: "New this week from Source.",
       kinds: ["freshness"],
     },
     projectNote: null,
     saved: false,
     frameable: false,
     topic: null,
+    difficulty: null,
   });
   expect(lines).toHaveLength(1);
   const logged = JSON.parse(lines[0] ?? "") as Record<string, unknown>;
@@ -622,8 +627,9 @@ test("cards say whether their page can be framed, unknown reading as no", async 
   });
 });
 
-// ADR-0019: a card's picture comes from its source's first topic Interval knows.
-test("cards carry their source's first known topic, or none", async () => {
+// ADR-0019: a card's picture comes from its source's first topic Interval knows; ADR-0027:
+// it carries the difficulty the ranking stored for its label.
+test("cards carry their source's first known topic, or none, and their difficulty", async () => {
   await inRollback(async (trx, { userId, itemId, momentIds }) => {
     const [first] = momentIds;
     if (first === undefined) throw new Error("seed");
@@ -636,12 +642,15 @@ test("cards carry their source's first known topic, or none", async () => {
         moment_id: first,
         rank: 1,
         top_signal: "quality",
+        difficulty: "intermediate",
       })
       .execute();
     await trx
       .insertInto("user_feed_state")
       .values({ user_id: userId, computed_at: new Date() })
       .execute();
+    const [card] = (await kyselyFeedReader(trx).read(userId, "3-8", 50)).cards;
+    expect(card?.difficulty).toBe("intermediate");
     const topic = async (topics: string[]) => {
       await trx
         .updateTable("source")

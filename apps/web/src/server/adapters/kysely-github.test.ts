@@ -235,7 +235,7 @@ test("a fresh connect clears what was read under the old access", async () => {
   });
 });
 
-// ADR-0026: disconnecting clears any "Shown for" line naming the user's repositories.
+// ADR-0027: disconnecting clears any explanation naming the user's repositories.
 test("disconnect clears reasons that name the user's repositories", async () => {
   await inRollback(async (trx, [me]) => {
     const github = kyselyGitHub(trx);
@@ -268,7 +268,7 @@ test("disconnect clears reasons that name the user's repositories", async () => 
           content_item_id: item.id,
           rank: 1,
           top_signal: "project_match",
-          reasons: "Shown for: Next.js in octo/api",
+          reasons: "Homework for api: Stateless services.",
           reason_kinds: ["project_match"],
         },
         {
@@ -277,7 +277,7 @@ test("disconnect clears reasons that name the user's repositories", async () => 
           content_item_id: item.id,
           rank: 1,
           top_signal: "topic_match",
-          reasons: "Shown for: your topics backend",
+          reasons: "Worth a look.",
           reason_kinds: ["topic_match"],
         },
       ])
@@ -290,7 +290,7 @@ test("disconnect clears reasons that name the user's repositories", async () => 
       .orderBy("chip")
       .execute();
     expect(left).toEqual([
-      { chip: "1-3", reasons: "Shown for: your topics backend" },
+      { chip: "1-3", reasons: "Worth a look." },
       { chip: "3-8", reasons: null },
     ]);
   });

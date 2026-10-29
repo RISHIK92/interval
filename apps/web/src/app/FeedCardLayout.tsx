@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import type { Topic } from "@interval/db";
+import type { Difficulty, Topic } from "@interval/db";
+import { LEVEL_NAMES, TOPIC_NAMES } from "./ChoicesFields";
 import type { FeedCard } from "../server/ports";
 import { SectionProgress } from "./SectionProgress";
 import { AiBox } from "./ui/AiBox";
@@ -21,6 +22,7 @@ export function FeedCardLayout({
   projectNote = null,
   read,
   topic,
+  difficulty = null,
   controls,
   yourNote = null,
 }: {
@@ -39,6 +41,8 @@ export function FeedCardLayout({
     inApp: boolean;
   };
   topic: Topic | null;
+  // ADR-0027: small labels beside the length.
+  difficulty?: Difficulty | null;
   controls: ReactNode;
   // P2-W7-S04: the user's own note on this section or article (Q-P2-01).
   yourNote?: string | null;
@@ -85,8 +89,18 @@ export function FeedCardLayout({
             <SectionProgress number={section.number} count={section.count} />
           )}
           <p className="mt-3 text-ink-muted">{length}</p>
+          {difficulty === null && topic === null ? null : (
+            <p className="text-sm text-ink-muted">
+              {[
+                difficulty === null ? null : LEVEL_NAMES[difficulty],
+                topic === null ? null : TOPIC_NAMES[topic],
+              ]
+                .filter((label) => label !== null)
+                .join(" · ")}
+            </p>
+          )}
           {reasons === null ? null : (
-            // ADR-0026: why the ranking showed it, every reason that counted.
+            // ADR-0027: the card's one explanation, from the ranking.
             <p className="mt-2 text-sm text-ink-muted">{reasons.text}</p>
           )}
           {projectNote === null ? null : (

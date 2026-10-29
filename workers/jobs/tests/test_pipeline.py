@@ -681,8 +681,8 @@ def recompute(world: World, key: str) -> None:
     world.run()
 
 
-# ADR-0025, ADR-0026: with a notes model set, a recompute still calls no model for the
-# cards' "Shown for" lines: they're rendered from the ranking.
+# ADR-0025, ADR-0027: with a notes model set, a recompute still calls no model for the
+# cards' explanations: they're rendered from the ranking.
 def test_card_reasons_never_call_the_notes_model() -> None:
     world, llm = notes_world()
     recompute(world, "r-1")

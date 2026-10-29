@@ -82,7 +82,7 @@ export function kyselyGitHub(db: Kysely<DB>): GitHubAccounts {
       }),
 
     disconnect: async (userId) => {
-      // One statement, so both happen or neither. ADR-0026: a "Shown for" line that
+      // One statement, so both happen or neither. ADR-0027: an explanation that
       // names the user's repositories goes at once; the recompute the disconnect
       // queues writes it again without them.
       const result = await sql<{ gone: number }>`

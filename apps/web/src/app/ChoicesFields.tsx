@@ -45,7 +45,7 @@ export const TOPIC_NAMES: Record<Topic, string> = {
   backend: "Backend",
 };
 
-const LEVEL_NAMES: Record<(typeof LEVELS)[number], string> = {
+export const LEVEL_NAMES: Record<(typeof LEVELS)[number], string> = {
   beginner: "Beginner",
   intermediate: "Intermediate",
   advanced: "Advanced",

@@ -107,6 +107,7 @@ const card: FeedCard = {
   saved: false,
   frameable: false,
   topic: null,
+  difficulty: null,
 };
 
 async function render(
@@ -230,6 +231,7 @@ test("the 8–15 chip renders whole-article cards next to moments", async () => 
         saved: false,
         frameable: false,
         topic: null,
+        difficulty: null,
       },
       card,
     ]),
@@ -272,16 +274,16 @@ test("a card shows its reasons, and each can be reported as wrong", async () => 
       {
         ...card,
         reasons: {
-          text: "Shown for: your topics backend · 3 min",
-          kinds: ["topic_match", "time_fit"],
+          text: "System design interviews ask about Caching.",
+          kinds: ["goal_match"],
         },
       },
     ]),
   );
   const html = await render({});
-  expect(html).toContain("Shown for: your topics backend · 3 min");
+  expect(html).toContain("System design interviews ask about Caching.");
   expect(html).toContain("A reason is wrong");
-  for (const reason of ["topic_match", "time_fit"]) {
+  for (const reason of ["goal_match"]) {
     expect(html).toMatch(
       new RegExp(
         `<button[^>]*value="wrong_reason:${reason}"[^>]*name="control"`,
@@ -665,6 +667,7 @@ test("an article card shows the article's note; a section card never does", asyn
         saved: false,
         frameable: false,
         topic: null,
+        difficulty: null,
       },
       card,
     ]),

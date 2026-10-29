@@ -110,6 +110,8 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         # ADR-0026: why the ranking showed it, from its breakdown; no source text.
         "reasons",
         "reason_kinds",
+        # ADR-0027: the card's difficulty label; no source text.
+        "difficulty",
     }
     for view, keys in (
         # P2-W12-S05: the user's own project line, from titles and repository
