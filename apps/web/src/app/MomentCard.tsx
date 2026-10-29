@@ -39,6 +39,7 @@ export function MomentCard({
       length={`${String(card.estimatedMinutes)} min reading`}
       fits={`Fits your ${chipLabel(chip)} break`}
       note={card.note}
+      projectNote={card.projectNote}
       read={{
         // ADR-0018: in Interval's reader when the publisher allows framing.
         href: card.frameable

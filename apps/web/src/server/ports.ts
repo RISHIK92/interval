@@ -24,6 +24,9 @@ type CardBase = {
   sourceName: string;
   // Why this matters (§5E, P1-W4-S06): `ai` once the notes model wrote it (AI-3).
   note: { text: string; ai: boolean } | null;
+  // P2-W12-S05 (§5B, AI-3): the notes model's line on why it matters to the user's
+  // own repositories; only ever in that user's feed.
+  projectNote: { text: string; repositories: string[] } | null;
   saved: boolean; // the user saved its article (P1-W5-S04)
   // ADR-0018: the publisher's page allows Interval's in-app reader to frame it
   // (false while unknown).

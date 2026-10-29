@@ -13,6 +13,7 @@ from typing import get_args
 from interval_db.generated import BreakLength, Difficulty, Topic
 from interval_jobs import log
 from interval_jobs.feed.notes import note_for
+from interval_jobs.feed.project_notes import PROJECT_NOTES_PER_RECOMPUTE
 from interval_jobs.ports import (
     JobQueue,
     NoteKey,
@@ -43,6 +44,9 @@ class Recomputed:
     entries: int
     # Notes still in their template wording: the notes model polishes them, if set.
     unpolished: set[int] = field(default_factory=set[int])
+    # P2-W12-S05: items on the user's projects still without a line for the
+    # repositories matching them now, highest-ranked first.
+    project_notes: list[int] = field(default_factory=list[int])
 
 
 def _with_notes(
@@ -123,6 +127,16 @@ def recompute_user_feed(
             else {chip: [] for chip in ranked}
         )
         store.feed.replace_user(user_id, by_chip, now)
+        # Best position in any chip first: the highest-ranked across the chips.
+        best: dict[int, int] = {}
+        for entries in by_chip.values():
+            for position, e in enumerate(entries):
+                if e.breakdown and e.breakdown.values.get("project_match", 0) > 0:
+                    best[e.item_id] = min(position, best.get(e.item_id, position))
+        if best:
+            done.project_notes = store.github.project_notes_missing(
+                user_id, sorted(best, key=best.__getitem__), PROJECT_NOTES_PER_RECOMPUTE
+            )
     except Exception as error:
         log.error("feed: recompute failed", user_id=user_id, error=error)
         raise

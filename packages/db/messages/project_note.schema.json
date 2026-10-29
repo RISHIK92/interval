@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Write a user's line on why an item matters to their project, once per repository set (§5B, AI-3, OPS-4, P2-W12-S05).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["user_id", "content_item_id"],
+  "properties": {
+    "user_id": { "type": "string", "minLength": 1 },
+    "content_item_id": { "type": "integer", "minimum": 1 }
+  }
+}

@@ -15,6 +15,7 @@ type AiFeature = Literal[
     "questions",
     "paths",
     "technologies",
+    "project_notes",
 ]
 type AiProvider = Literal["openrouter", "voyage", "groq", "google"]
 type BetaGroup = Literal["student", "developer"]
@@ -505,6 +506,17 @@ class PlanCapability(TypedDict):
     limit_value: int | None
 
 
+class ProjectNote(TypedDict):
+    id: int
+    user_id: str
+    content_item_id: int
+    repositories: list[str]
+    technologies: list[str]
+    text: str | None
+    model: str
+    created_at: datetime
+
+
 class Question(TypedDict):
     id: int
     moment_id: int | None
@@ -794,6 +806,8 @@ class UserFeedVisible(TypedDict):
     note_ai: bool | None
     frameable: bool | None
     source_topic: Topic | None
+    project_note_text: str | None
+    project_note_repositories: list[str] | None
 
 
 class UserHiddenSource(TypedDict):

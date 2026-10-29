@@ -12,6 +12,7 @@ const card: ArticleFeedCard = {
   author: "Rae Writer",
   sourceName: "Example Engineering",
   note: null,
+  projectNote: null,
   saved: false,
   frameable: false,
   topic: null,

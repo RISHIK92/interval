@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import type { Topic } from "@interval/db";
 import type { FeedCard } from "../server/ports";
 import { SectionProgress } from "./SectionProgress";
+import { AiBox } from "./ui/AiBox";
 import { Card } from "./ui/Card";
 import { TopicArt } from "./ui/TopicArt";
 import { WhyNote } from "./WhyNote";
@@ -19,6 +20,7 @@ export function FeedCardLayout({
   length,
   fits,
   note,
+  projectNote = null,
   read,
   topic,
   controls,
@@ -31,6 +33,7 @@ export function FeedCardLayout({
   length: string;
   fits: string | null;
   note: FeedCard["note"];
+  projectNote?: FeedCard["projectNote"];
   read: {
     href: string;
     label: string;
@@ -89,6 +92,20 @@ export function FeedCardLayout({
           <div className="mt-3 empty:hidden">
             <WhyNote note={note} />
           </div>
+          {projectNote === null ? null : (
+            // P2-W12-S05 (AI-1, AI-3): apart from the note, labelled AI, naming the
+            // repositories it is about.
+            <div className="mt-2">
+              <AiBox>
+                <span className="font-semibold">
+                  For your{" "}
+                  {projectNote.repositories.length > 1 ? "projects" : "project"}{" "}
+                  {projectNote.repositories.join(", ")}:
+                </span>{" "}
+                {projectNote.text}
+              </AiBox>
+            </div>
+          )}
           {yourNote === null ? null : (
             <p className="mt-2 line-clamp-2 text-sm whitespace-pre-line">
               <span className="font-semibold">Your note: </span>

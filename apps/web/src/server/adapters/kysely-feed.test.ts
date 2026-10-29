@@ -196,6 +196,7 @@ test("read returns the user's own cards in rank order, in one query", async () =
           author: "Rae Writer",
           sourceName: "webfeed-test",
           note: null,
+          projectNote: null,
           saved: false,
           frameable: false,
           topic: null,
@@ -251,6 +252,7 @@ test("a whole article reads as an article card, before or after moments", async 
       author: "Rae Writer",
       sourceName: "webfeed-test",
       note: null,
+      projectNote: null,
       saved: false,
       frameable: false,
       topic: null,
@@ -398,6 +400,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
     author: null,
     sourceName: "Source",
     note: { text: "New this week.", ai: true },
+    projectNote: null,
     saved: false,
     frameable: false,
     topic: null,
@@ -676,5 +679,96 @@ test("cards say whether the user saved their article", async () => {
       .values({ user_id: userId, content_item_id: itemId })
       .execute();
     expect((await reader.read(userId, "3-8", 50)).cards[0]?.saved).toBe(true);
+  });
+});
+
+// P2-W12-S05 (§5B, AI-3): a user's line about their own project shows only in their
+// own feed, never in another user's with the same item, nor in a starter feed.
+test("a project note shows only in its own user's feed", async () => {
+  await inRollback(async (trx, { userId, otherId, itemId, momentIds }) => {
+    const [first] = momentIds;
+    if (first === undefined) throw new Error("seed");
+    for (const user of [userId, otherId]) {
+      await trx
+        .insertInto("user_feed_entry")
+        .values({
+          user_id: user,
+          chip: "3-8",
+          content_item_id: itemId,
+          moment_id: first,
+          rank: 1,
+          top_signal: "project_match",
+        })
+        .execute();
+      await trx
+        .insertInto("user_feed_state")
+        .values({ user_id: user, computed_at: new Date() })
+        .execute();
+    }
+    await trx
+      .insertInto("github_account")
+      .values({ user_id: userId, github_user_id: "77", login: "octo" })
+      .execute();
+    await trx
+      .insertInto("github_repository")
+      .values({
+        user_id: userId,
+        repo_id: "1",
+        installation_id: "11",
+        full_name: "octo/velox",
+        default_branch: "main",
+      })
+      .execute();
+    await trx
+      .insertInto("project_note")
+      .values({
+        user_id: userId,
+        content_item_id: itemId,
+        repositories: ["octo/velox"],
+        technologies: ["etcd"],
+        text: "Velox elects its leader the same way.",
+        model: "m",
+      })
+      .execute();
+    const reader = kyselyFeedReader(trx);
+    const [mine] = (await reader.read(userId, "3-8", 50)).cards;
+    expect(mine?.projectNote).toEqual({
+      text: "Velox elects its leader the same way.",
+      repositories: ["octo/velox"],
+    });
+    const [theirs] = (await reader.read(otherId, "3-8", 50)).cards;
+    expect(theirs?.projectNote).toBeNull();
+    // Once the repository is no longer shared, its line is gone at once.
+    await trx
+      .deleteFrom("github_repository")
+      .where("user_id", "=", userId)
+      .execute();
+    const [unshared] = (await reader.read(userId, "3-8", 50)).cards;
+    expect(unshared?.projectNote).toBeNull();
+    // A starter feed holding the same item carries no project note either.
+    await trx
+      .deleteFrom("starter_feed_entry")
+      .where("topic", "=", "databases")
+      .where("level", "=", "beginner")
+      .execute();
+    await trx
+      .insertInto("starter_feed_entry")
+      .values({
+        topic: "databases",
+        level: "beginner",
+        chip: "3-8",
+        content_item_id: itemId,
+        moment_id: first,
+        rank: 1,
+      })
+      .execute();
+    const starter = await reader.starter(
+      userId,
+      "databases",
+      "beginner",
+      "3-8",
+      50,
+    );
+    expect(starter.map((c) => c.projectNote)).toEqual([null]);
   });
 });

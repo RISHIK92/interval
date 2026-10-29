@@ -61,6 +61,7 @@ from interval_jobs.ports import (
     NoteRef,
     PathDraft,
     ProjectConcepts,
+    ProjectNoteInput,
     QuestionBatchEntry,
     QuestionDraft,
     QuestionSummary,
@@ -2802,6 +2803,15 @@ class PostgresGitHub:
                         for d in read.dependencies
                     ],
                 )
+        # P2-W12-S05: a line naming a repository no longer shared goes with it.
+        conn.execute(
+            """
+            delete from project_note
+            where user_id = %(user)s and not repositories <@ array(
+              select full_name from github_repository where user_id = %(user)s)
+            """,
+            {"user": user_id},
+        )
         conn.execute(
             "update github_account set synced_at = now() where user_id = %s", (user_id,)
         )
@@ -2820,6 +2830,102 @@ class PostgresGitHub:
             (active_days,),
         ).fetchall()
         return [str(r[0]) for r in rows]
+
+    # P2-W12-S05: the technologies of the user's projects on the item's concepts, and
+    # the repositories behind them now.
+    def _matches(
+        self, user_id: str, item_id: int
+    ) -> tuple[tuple[str, ...], tuple[str, ...]]:
+        rows = self._conn.execute(
+            f"""
+            select u.technology, u.repositories
+            from user_technology_concepts(%(user)s) u
+            join concept c on c.id = u.concept_id
+            where c.slug in ({_ITEM_CONCEPTS.format(item="%(item)s")})
+            """,
+            {"user": user_id, "item": item_id},
+        ).fetchall()
+        technologies = tuple(sorted({str(r[0]) for r in rows}))
+        repositories = tuple(sorted({str(name) for r in rows for name in r[1]}))
+        return technologies, repositories
+
+    def project_note_input(self, user_id: str, item_id: int) -> ProjectNoteInput | None:
+        technologies, names = self._matches(user_id, item_id)
+        if not names:
+            return None
+        item = self._conn.execute(
+            """
+            select ci.title, s.name from content_item ci
+            join source s on s.id = ci.source_id where ci.id = %s
+            """,
+            (item_id,),
+        ).fetchone()
+        if item is None:
+            return None
+        described = dict(
+            self._conn.execute(
+                """
+                select full_name, description from github_repository
+                where user_id = %s and full_name = any(%s)
+                """,
+                (user_id, list(names)),
+            ).fetchall()
+        )
+        return ProjectNoteInput(
+            str(item[0]),
+            str(item[1]),
+            technologies,
+            tuple((name, described.get(name)) for name in names),
+        )
+
+    def project_notes_missing(
+        self, user_id: str, item_ids: list[int], limit: int
+    ) -> list[int]:
+        missing: list[int] = []
+        for item_id in item_ids:
+            if len(missing) >= limit:
+                break
+            _, names = self._matches(user_id, item_id)
+            if (
+                names
+                and not self._conn.execute(
+                    """
+                select 1 from project_note
+                where user_id = %s and content_item_id = %s and repositories = %s
+                """,
+                    (user_id, item_id, list(names)),
+                ).fetchone()
+            ):
+                missing.append(item_id)
+        return missing
+
+    def save_project_note(
+        self,
+        user_id: str,
+        item_id: int,
+        note: ProjectNoteInput,
+        text: str | None,
+        model: str,
+    ) -> None:
+        names = [name for name, _ in note.repositories]
+        self._conn.execute(
+            """
+            delete from project_note
+            where user_id = %s and content_item_id = %s and repositories <> %s
+            """,
+            (user_id, item_id, names),
+        )
+        # Disconnected meanwhile: no account, nothing stored.
+        self._conn.execute(
+            """
+            insert into project_note
+              (user_id, content_item_id, repositories, technologies, text, model)
+            select a.user_id, %s, %s, %s, %s, %s from github_account a
+            where a.user_id = %s
+            on conflict (user_id, content_item_id, repositories) do nothing
+            """,
+            (item_id, names, list(note.technologies), text, model, user_id),
+        )
 
 
 # Go module hosts whose paths are public (anything else may be a private module).

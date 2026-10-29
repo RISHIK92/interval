@@ -15,6 +15,7 @@ const card: MomentFeedCard = {
   author: "Rae Writer",
   sourceName: "Example Engineering",
   note: null,
+  projectNote: null,
   saved: false,
   frameable: false,
   topic: null,
@@ -142,4 +143,30 @@ test("a card with the user's note shows it, and one without shows nothing", () =
       <MomentCard card={card} chip="3-8" position={4} controls={null} />,
     ),
   ).not.toContain("Your note");
+});
+
+// P2-W12-S05 (AI-1, AI-3): the project line sits apart from the note, labelled AI and
+// naming the user's repository.
+test("a project note shows in its own AI box, naming the repository", () => {
+  const html = renderToStaticMarkup(
+    <MomentCard
+      card={{
+        ...card,
+        note: { text: "Uses etcd, from your projects.", ai: false },
+        projectNote: {
+          text: "Velox elects its leader the same way.",
+          repositories: ["octo/velox"],
+        },
+      }}
+      chip="3-8"
+      position={1}
+      controls={null}
+    />,
+  );
+  expect(textOf(html)).toContain(
+    "Why this matters: Uses etcd, from your projects.",
+  );
+  expect(html).toMatch(
+    /<div class="[^"]*border-dashed[^"]*"><span class="font-semibold">For your project octo\/velox:<\/span> Velox elects its leader the same way\. <span[^>]*>AI<\/span><\/div>/,
+  );
 });

@@ -1306,6 +1306,46 @@ class GitHubStore(Protocol):
         """Connected users with a session in the last `active_days` days."""
         ...
 
+    # P2-W12-S05: project-aware notes, one per user, item and repository set.
+    def project_note_input(
+        self, user_id: str, item_id: int
+    ) -> "ProjectNoteInput | None":
+        """What the notes model may see; None when no project of the user's matches
+        the item (any more)."""
+        ...
+
+    def project_notes_missing(
+        self, user_id: str, item_ids: list[int], limit: int
+    ) -> list[int]:
+        """Of the items, in their order, the first `limit` matching the user's projects
+        with no note (or refused reply) for the repositories matching them now."""
+        ...
+
+    def save_project_note(
+        self,
+        user_id: str,
+        item_id: int,
+        note: "ProjectNoteInput",
+        text: str | None,
+        model: str,
+    ) -> None:
+        """Stores the line, or None when the reply was refused (not asked again for
+        this set); drops the user's lines on the item for other repository sets.
+        Nothing when they disconnected meanwhile."""
+        ...
+
+
+@dataclass(frozen=True)
+class ProjectNoteInput:
+    """All the notes model may see for a project note (Q-P2-43, AI-1): the item's
+    title and source, and the matching repositories' names, descriptions and
+    technologies. Never code, never the article's text."""
+
+    title: str
+    source_name: str
+    technologies: tuple[str, ...]  # sorted names
+    repositories: tuple[tuple[str, str | None], ...]  # sorted (full name, description)
+
 
 # The curated technology table (PER-4, P2-W12-S03).
 @dataclass(frozen=True)

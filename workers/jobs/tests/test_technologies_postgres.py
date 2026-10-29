@@ -1,10 +1,16 @@
 """PostgresTechnologies (P2-W12-S03) on the real schema: the seed sync, the resolution
 of dependencies to technologies and concepts, unclaimed packages and suggestions."""
 
+from datetime import UTC, datetime
+
 import psycopg
 
-from interval_jobs.adapters.postgres import PostgresRankingInputs, PostgresTechnologies
-from interval_jobs.ports import TechnologySuggestion
+from interval_jobs.adapters.postgres import (
+    PostgresRankingInputs,
+    PostgresStore,
+    PostgresTechnologies,
+)
+from interval_jobs.ports import FeedEntry, TagResult, Tags, TechnologySuggestion
 from interval_jobs.technologies import Package, TechnologySeed
 
 from .test_db_guards import a_user
@@ -197,3 +203,82 @@ def test_project_concepts_name_each_concepts_technologies(
     assert found["t-mvcc"] == (("t-postgres", "PostgreSQL"),)
     assert found["t-indexes"] == (("t-nestjs", "NestJS"), ("t-postgres", "PostgreSQL"))
     assert PostgresRankingInputs(conn).project_concepts("nobody") == {}
+
+
+# P2-W12-S05: what a project note may send, which items still need one, and a line
+# replaced when the repositories matching its item change.
+def test_project_notes_follow_the_repositories_matching_the_item(
+    conn: psycopg.Connection,
+) -> None:
+    concepts(conn)
+    PostgresTechnologies(conn).sync_seed([PG, NEST])
+    repo_with(conn, "tc9", [("npm", "pg")])
+    conn.execute(
+        "update github_repository set description = 'Orders API' where user_id = 'tc9'"
+    )
+    store = PostgresStore(conn)
+    source = store.sources.upsert(
+        name="pn-source",
+        feed_url="https://pn.example.test/feed.xml",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+
+    def item(guid: str, concept: str) -> int:
+        found = store.items.upsert_from_feed(
+            source,
+            FeedEntry(
+                guid=f"pn-{guid}",
+                link=f"https://pn.example.test/{guid}",
+                title=f"About {concept}",
+                author=None,
+                published_at=datetime(2026, 10, 1, tzinfo=UTC),
+                updated_at=None,
+                summary=None,
+            ),
+            keep_excerpt=False,
+        )
+        store.tags.save(
+            found, TagResult(Tags("beginner", frozenset({concept})), {}), "m", 1
+        )
+        return found
+
+    on_mvcc, elsewhere = item("a", "t-mvcc"), item("b", "nothing")
+    github = store.github
+    note = github.project_note_input("tc9", on_mvcc)
+    assert note is not None
+    assert (note.title, note.source_name) == ("About t-mvcc", "pn-source")
+    assert note.technologies == ("PostgreSQL",)
+    assert note.repositories == (("tc9/api", "Orders API"),)
+    assert github.project_note_input("tc9", elsewhere) is None
+    assert github.project_notes_missing("tc9", [elsewhere, on_mvcc], 10) == [on_mvcc]
+    github.save_project_note("tc9", on_mvcc, note, "Orders API keeps MVCC.", "m")
+    assert github.project_notes_missing("tc9", [on_mvcc], 10) == []
+    # A second repository on the same concept: a new set, a new line, the old one gone.
+    conn.execute(
+        "insert into github_repository (user_id, repo_id, installation_id, full_name, "
+        "default_branch) values ('tc9', 2, 1, 'tc9/web', 'main')"
+    )
+    conn.execute(
+        "insert into github_dependency (user_id, repo_id, ecosystem, name, path) "
+        "values ('tc9', 2, 'npm', 'pg', 'package.json')"
+    )
+    assert github.project_notes_missing("tc9", [on_mvcc], 10) == [on_mvcc]
+    wider = github.project_note_input("tc9", on_mvcc)
+    assert wider is not None
+    github.save_project_note("tc9", on_mvcc, wider, "Both use MVCC.", "m")
+    rows = conn.execute(
+        "select repositories, text from project_note where user_id = 'tc9'"
+    ).fetchall()
+    assert rows == [(["tc9/api", "tc9/web"], "Both use MVCC.")]
+    # A repository no longer shared takes its lines with it at the next sync.
+    github.save_sync("tc9", [])
+    assert conn.execute(
+        "select count(*) from project_note where user_id = 'tc9'"
+    ).fetchone() == (0,)
+    github.save_project_note("tc9", on_mvcc, note, "Orders API keeps MVCC.", "m")
+    # Disconnecting takes the lines with it.
+    conn.execute("delete from github_account where user_id = 'tc9'")
+    assert conn.execute(
+        "select count(*) from project_note where user_id = 'tc9'"
+    ).fetchone() == (0,)

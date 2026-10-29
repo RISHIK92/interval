@@ -109,7 +109,12 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         "source_topic",
     }
     for view, keys in (
-        ("user_feed_visible", {"user_id", "chip"}),
+        # P2-W12-S05: the user's own project line, from titles and repository
+        # metadata only; never in a starter feed.
+        (
+            "user_feed_visible",
+            {"user_id", "chip", "project_note_text", "project_note_repositories"},
+        ),
         ("starter_feed_visible", {"topic", "level", "chip"}),
     ):
         columns = {

@@ -62,9 +62,16 @@ const CARD_COLUMNS = [
 type CardRow = Pick<
   Selectable<UserFeedVisible>,
   (typeof CARD_COLUMNS)[number]
-> & {
-  saved: boolean;
-};
+> &
+  // Only the user's own feed has project notes (P2-W12-S05).
+  Partial<
+    Pick<
+      Selectable<UserFeedVisible>,
+      "project_note_text" | "project_note_repositories"
+    >
+  > & {
+    saved: boolean;
+  };
 
 // Whether the user saved the card's article (P1-W5-S04), in the same query.
 function savedBy(userId: string, itemColumn: string) {
@@ -117,6 +124,13 @@ export function toCard(row: CardRow): FeedCard | null {
         row.note_text === null
           ? null
           : { text: row.note_text, ai: row.note_ai === true },
+      projectNote:
+        row.project_note_text == null || row.project_note_repositories == null
+          ? null
+          : {
+              text: row.project_note_text,
+              repositories: row.project_note_repositories,
+            },
       saved: row.saved,
       frameable: row.frameable === true,
       topic: row.source_topic,
@@ -205,6 +219,7 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
             .on(notFinishedBy(userId, "v.moment_id", "v.content_item_id")),
         )
         .select(CARD_COLUMNS.map((column) => `v.${column}` as const))
+        .select(["v.project_note_text", "v.project_note_repositories"])
         .select(savedBy(userId, "v.content_item_id"))
         .where("s.user_id", "=", userId)
         .orderBy("v.rank")

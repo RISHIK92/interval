@@ -5,7 +5,7 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "paths" | "questions" | "tagging" | "technologies";
+export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "paths" | "project_notes" | "questions" | "tagging" | "technologies";
 
 export type AiProvider = "google" | "groq" | "openrouter" | "voyage";
 
@@ -535,6 +535,17 @@ export interface PlanCapability {
   plan_id: string;
 }
 
+export interface ProjectNote {
+  content_item_id: Int8;
+  created_at: Generated<Timestamp>;
+  id: Generated<Int8>;
+  model: string;
+  repositories: string[];
+  technologies: string[];
+  text: string | null;
+  user_id: string;
+}
+
 export interface Question {
   answer_count: Generated<number>;
   book_chapter_id: Int8 | null;
@@ -817,6 +828,8 @@ export interface UserFeedVisible {
   moment_id: Int8 | null;
   note_ai: boolean | null;
   note_text: string | null;
+  project_note_repositories: string[] | null;
+  project_note_text: string | null;
   rank: number | null;
   section_count: number | null;
   section_number: number | null;
@@ -956,6 +969,7 @@ export interface DB {
   path_session: PathSession;
   plan: Plan;
   plan_capability: PlanCapability;
+  project_note: ProjectNote;
   question: Question;
   question_batch: QuestionBatch;
   question_batch_item: QuestionBatchItem;

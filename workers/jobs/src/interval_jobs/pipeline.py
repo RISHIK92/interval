@@ -38,6 +38,7 @@ from interval_db.messages import (
     MessageName,
     OcrPage,
     PolishNote,
+    ProjectNote,
     RecomputeFeed,
     RemoveFile,
     SegmentItem,
@@ -60,6 +61,7 @@ from interval_jobs.concept_vectors import concept_text, text_hash
 from interval_jobs.embedding import embed_item
 from interval_jobs.feed.notes import polish_note, queue_polish
 from interval_jobs.feed.precompute import recompute_user_feed
+from interval_jobs.feed.project_notes import queue_project_notes, write_project_note
 from interval_jobs.frameable import framed_at
 from interval_jobs.github.sync import sync_user
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
@@ -127,6 +129,7 @@ STAGES: tuple[MessageName, ...] = (
     "ocr_page",
     "book_checkpoint",
     "github_sync",
+    "project_note",
 )
 
 # Q-P2-10: the free question model is an unimportant background task. A rate limit or
@@ -226,6 +229,7 @@ class Pipeline:
             "ocr_page": self._ocr_stage,
             "book_checkpoint": self._book_checkpoint_stage,
             "github_sync": self._github_stage,
+            "project_note": self._project_note_stage,
         }
 
     # P2-W11-S02: an uploaded PDF read into chapters and sessions.
@@ -399,6 +403,7 @@ class Pipeline:
         # their template wording stands (Q-P1-18).
         if self._notes is not None:
             queue_polish(self._queue, done.unpolished)
+            queue_project_notes(self._queue, message.user_id, done.project_notes)
 
     def _polish_stage(self, message: BaseModel, delivery: Delivery) -> None:
         """Read, call the model with no transaction open, then store (as tagging)."""
@@ -420,6 +425,33 @@ class Pipeline:
         # A refused reply (None) is recorded too: tried once, never paid for again.
         with self._unit() as services:
             services.store.notes.polish(note.note_id, text, self._notes.model)
+
+    # P2-W12-S05 (§5B, OPS-4): the user's line on why an item matters to their
+    # project. Read, call with no transaction open, then store, as polishing does.
+    def _project_note_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, ProjectNote)
+        if self._notes is None:
+            log.info("pipeline: notes are off (no model)", user_id=message.user_id)
+            return
+        user_id, item_id = message.user_id, message.content_item_id
+        with self._unit() as services:
+            if not services.store.github.project_notes_missing(user_id, [item_id], 1):
+                return  # written already, or the item no longer matches
+            note = services.store.github.project_note_input(user_id, item_id)
+        if note is None:
+            return
+        with self._notes.gateway() as gateway:
+            text = write_project_note(gateway, self._notes.model, user_id, note)
+        if isinstance(text, OverBudget):
+            # OPS-4, LOAD-5: the line is left out, observably; a later recompute that
+            # shows the item asks again.
+            log.warn("project notes: over budget", user_id=user_id, scope=text.scope)
+            return
+        # A refused reply (None) is recorded too: not paid for again for this set.
+        with self._unit() as services:
+            services.store.github.save_project_note(
+                user_id, item_id, note, text, self._notes.model
+            )
 
     def _discover_stage(self, message: BaseModel, delivery: Delivery) -> None:
         with self._unit() as services:

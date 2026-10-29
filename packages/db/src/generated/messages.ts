@@ -45,6 +45,11 @@ export const messageSchemas = {
   polish_note: z.strictObject({
     note_id: z.number().int().min(1),
   }),
+  // Write a user's line on why an item matters to their project, once per repository set (§5B, AI-3, OPS-4, P2-W12-S05).
+  project_note: z.strictObject({
+    content_item_id: z.number().int().min(1),
+    user_id: z.string().min(1),
+  }),
   // Rank one user's feed again and store it (CACHE-1, Q-P1-17, ADR-0008).
   recompute_feed: z.strictObject({
     user_id: z.string().min(1),

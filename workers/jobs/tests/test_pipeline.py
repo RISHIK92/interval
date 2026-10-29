@@ -1,6 +1,7 @@
 """The staged ingestion pipeline (ING-1, LOAD-3, LOAD-5) on in-memory ports: every
 stage retryable and idempotent, failures to the failed store, rights checked first."""
 
+import json
 import threading
 from collections.abc import Generator, Mapping
 from contextlib import contextmanager
@@ -16,6 +17,7 @@ from interval_jobs.adapters.memory import (
     InMemoryAi,
     InMemoryFiles,
     InMemoryStore,
+    StoredGitHub,
     StoredUser,
 )
 from interval_jobs.adapters.memory_queue import InMemoryQueue
@@ -23,6 +25,7 @@ from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
+from interval_jobs.feed import precompute
 from interval_jobs.pipeline import STAGES, ModelJob, Pipeline, StageServices
 from interval_jobs.ports import (
     Completion,
@@ -34,7 +37,10 @@ from interval_jobs.ports import (
     FetchStatusError,
     Message,
     MomentRow,
+    ProjectNoteInput,
     RobotsDisallowed,
+    TagResult,
+    Tags,
     Usage,
     UserPreferences,
     Validators,
@@ -640,9 +646,12 @@ class NoteLlm:
     def __init__(self) -> None:
         self.calls = 0
         self.reply = "A polished note."
+        self.project_prompts: list[str] = []  # P2-W12-S05's, by their system prompt
 
     def complete(self, model: str, messages: list[Message]) -> Completion:
         self.calls += 1
+        if "their own project" in messages[0]["content"]:
+            self.project_prompts.append(messages[-1]["content"])
         return Completion(self.reply, 100, 10, Decimal("0.0001"))
 
 
@@ -906,3 +915,124 @@ def test_remove_file_without_storage_configured_fails_to_be_retried() -> None:
     message = RemoveFile(key="books/u1/0b0e3c2a-6d0c-4c4b-9a8e-2f8f0c6a1b2c.pdf")
     with pytest.raises(RuntimeError, match="PRIVATE_CONTENT_BUCKET"):
         handler(message, Delivery(attempt=1, idempotency_key="remove/1"))
+
+
+# Project-aware notes (§5B, AI-1, AI-3, OPS-4, Q-P2-43, P2-W12-S05).
+def _velox(repos: tuple[tuple[str, str | None], ...]) -> ProjectNoteInput:
+    return ProjectNoteInput("Raft in practice", "Example", ("etcd",), repos)
+
+
+VELOX = (("octo/velox", "A key-value store"),)
+
+
+def project_world(
+    on: bool = True, spent: Decimal = Decimal(0)
+) -> tuple[World, NoteLlm, list[int]]:
+    """u1's feed, every item on raft, which u1's project uses through etcd."""
+    llm = NoteLlm()
+    llm.reply = "Velox elects its leader with etcd, built on Raft."
+    users = InMemoryStore().users
+    users.rows["u1"] = StoredUser("u1", is_anonymous=False)
+    ledger = InMemoryAi(users)
+    if spent:
+        ledger.record(Usage("u1", "project_notes", "openrouter", "m", 0, 0, spent, NOW))
+
+    @contextmanager
+    def gateway() -> Generator[AiGateway]:
+        yield AiGateway(ledger, llm, NoEmbeddings(), clock=lambda: NOW)
+
+    world = World(notes=ModelJob("small-notes", gateway) if on else None)
+    world.store.sources.rows[world.source_id].topics = ("databases",)
+    world.store.users.rows["u1"] = StoredUser("u1", is_anonymous=False)
+    world.store.ranking.preferences_by_user["u1"] = UserPreferences(
+        topics=["databases"], level="intermediate", break_length="3-8"
+    )
+    world.discover()
+    world.run()
+    items = sorted(world.store.items.rows)
+    for item in items:
+        world.store.tags.save(
+            item, TagResult(Tags("intermediate", frozenset({"raft"})), {}), "m", 1
+        )
+        world.store.github.project_inputs[("u1", item)] = _velox(VELOX)
+    world.store.ranking.projects["u1"] = {"raft": (("etcd", "etcd"),)}
+    world.store.github.accounts["u1"] = StoredGitHub(installations=[(11, "octo")])
+    llm.calls = 0  # the shared notes' polish isn't what these tests count
+    return world, llm, items
+
+
+def test_a_matching_item_gets_one_line_per_repository_set_on_the_users_budget() -> None:
+    world, llm, items = project_world()
+    recompute(world, "r-1")
+    notes = world.store.github.project_notes
+    assert {item for _, item in notes} == set(items)
+    _, text, model = notes[("u1", items[0])]
+    assert (text, model) == (
+        "Velox elects its leader with etcd, built on Raft.",
+        "small-notes",
+    )
+    # Q-P2-43: only the title, source, technologies and repositories' name and
+    # description reach the model, as data.
+    prompt = llm.project_prompts[0]
+    assert json.loads(prompt) == {
+        "title": "Raft in practice",
+        "source": "Example",
+        "technologies": ["etcd"],
+        "repositories": [{"name": "octo/velox", "description": "A key-value store"}],
+    }
+    asked = len(llm.project_prompts)
+    recompute(world, "r-2")  # cached: the same set is never asked twice
+    assert len(llm.project_prompts) == asked
+    # A new repository set asks again, and its line replaces the old one.
+    both = (*VELOX, ("octo/zeta", None))
+    world.store.github.project_inputs[("u1", items[0])] = _velox(both)
+    recompute(world, "r-3")
+    assert len(llm.project_prompts) == asked + 1
+    assert notes[("u1", items[0])][0].repositories == both
+
+
+def test_the_cap_takes_the_highest_ranked_lines_per_recompute(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    world, _, _ = project_world()
+    monkeypatch.setattr(precompute, "PROJECT_NOTES_PER_RECOMPUTE", 1)
+    world.queue.enqueue("recompute_feed", {"user_id": "u1"}, idempotency_key="r-1")
+    world.queue.consume(
+        "recompute_feed", world.pipeline.handlers()["recompute_feed"], threading.Event()
+    )
+    (queued,) = [m for _, m in world.queue.pending_messages("project_note")]
+    # A chip's first entry: no item ranks higher anywhere.
+    firsts = {c[0].item_id for c in world.store.feed.users["u1"].values() if c}
+    assert queued["content_item_id"] in firsts
+
+
+def test_with_notes_off_or_no_project_nothing_is_asked() -> None:
+    world, llm, _ = project_world(on=False)
+    recompute(world, "r-1")
+    assert world.queue.pending("project_note") == 0 and llm.project_prompts == []
+    world, llm, _ = project_world()
+    world.store.ranking.projects["u1"] = {}
+    recompute(world, "r-1")
+    assert llm.project_prompts == []
+
+
+def test_over_the_users_budget_the_line_is_left_out(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    world, llm, _ = project_world(spent=Decimal(1000))
+    recompute(world, "r-1")
+    assert llm.project_prompts == []
+    assert world.store.github.project_notes == {}
+    assert "project notes: over budget" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("reply", ["", "Line one.\nLine two.", "x" * 161])
+def test_a_refused_reply_is_recorded_and_not_paid_for_again(reply: str) -> None:
+    world, llm, _ = project_world()
+    llm.reply = reply
+    recompute(world, "r-1")
+    notes = world.store.github.project_notes
+    assert notes and all(text is None for _, text, _ in notes.values())
+    asked = len(llm.project_prompts)
+    recompute(world, "r-2")
+    assert len(llm.project_prompts) == asked

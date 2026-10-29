@@ -97,6 +97,14 @@ class PolishNote(_Message):
     note_id: Annotated[int, Field(ge=1)]
 
 
+class ProjectNote(_Message):
+    """Write a user's line on why an item matters to their project, once per
+    repository set (§5B, AI-3, OPS-4, P2-W12-S05)."""
+
+    content_item_id: Annotated[int, Field(ge=1)]
+    user_id: Annotated[str, Field(min_length=1)]
+
+
 class RecomputeFeed(_Message):
     """Rank one user's feed again and store it (CACHE-1, Q-P1-17, ADR-0008)."""
 
@@ -145,6 +153,7 @@ type MessageName = Literal[
     "github_sync",
     "ocr_page",
     "polish_note",
+    "project_note",
     "recompute_feed",
     "remove_file",
     "segment_item",
@@ -163,6 +172,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "github_sync": GithubSync,
     "ocr_page": OcrPage,
     "polish_note": PolishNote,
+    "project_note": ProjectNote,
     "recompute_feed": RecomputeFeed,
     "remove_file": RemoveFile,
     "segment_item": SegmentItem,
