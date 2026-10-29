@@ -86,7 +86,7 @@ test("shows the why-this-matters note in body type, never labelled AI", () => {
     />,
   );
   expect(html).toContain(
-    '<p class="mt-3 text-ink">System design interviews ask about Caching.</p>',
+    '<p class="mt-3 rounded-xl border border-hairline px-3 py-2 text-ink">System design interviews ask about Caching.</p>',
   );
   expect(html).not.toContain("border-dashed");
 });
@@ -174,7 +174,9 @@ test("a card with no reasons and no project line shows no explanation", () => {
   const html = renderToStaticMarkup(
     <MomentCard card={card} chip="3-8" position={1} controls={null} />,
   );
-  expect(html).not.toMatch(/<p class="mt-3 text-ink">/);
+  expect(html).not.toMatch(
+    /<p class="mt-3 rounded-xl border border-hairline px-3 py-2 text-ink">/,
+  );
   expect(html).not.toContain("border-dashed");
 });
 

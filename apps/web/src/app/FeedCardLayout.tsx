@@ -114,9 +114,12 @@ export function FeedCardLayout({
               </AiBox>
             </div>
           ) : reasons === null ? null : (
-            // ADR-0027: the why-this-matters note, in the project note's type (owner,
-            // 2026-10-29), without its dashed box: that box marks AI text (AI-1).
-            <p className="mt-3 text-ink">{reasons.text}</p>
+            // ADR-0027: the why-this-matters note, in the project note's type and
+            // shape (owner, 2026-10-29). Solid line, no AI label: the dashed box marks
+            // AI text (AI-1).
+            <p className="mt-3 rounded-xl border border-hairline px-3 py-2 text-ink">
+              {reasons.text}
+            </p>
           )}
           {yourNote === null ? null : (
             <p className="mt-2 line-clamp-2 text-sm whitespace-pre-line">
