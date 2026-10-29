@@ -40,7 +40,15 @@ FACTS = EntryFacts(
 )
 
 
-ALL = ("topic_match", "level_fit", "quality", "freshness", "time_fit", "goal_match")
+ALL = (
+    "topic_match",
+    "level_fit",
+    "quality",
+    "freshness",
+    "time_fit",
+    "goal_match",
+    "project_match",
+)
 
 
 def scored(signal: str, facts: EntryFacts = FACTS) -> Scored:
@@ -197,3 +205,38 @@ def test_no_goal_note_when_the_item_serves_none() -> None:
     )
     # Falls to the next true signal instead (the item is fresh and on a topic).
     assert found is not None and found[0].signal != "goal_match"
+
+
+# P2-W12-S04: a project note names the technology, never a repository (notes are
+# shared between users).
+def test_a_project_note_names_the_technology_the_user_uses() -> None:
+    facts = replace(FACTS, concepts=frozenset({"caching", "cache-aside"}))
+    projects = {"cache-aside": (("redis", "Redis"),)}
+    found = note_for(
+        scored("project_match", facts),
+        ["databases"],
+        "intermediate",
+        "3-8",
+        NOW,
+        (),
+        projects,
+    )
+    assert found == (
+        NoteKey(70, "project_match", "intermediate", "redis"),
+        "Uses Redis, from your projects.",
+    )
+    # No project concept on the item: the next true signal speaks instead.
+    other = note_for(
+        scored("project_match"), ["databases"], "intermediate", "3-8", NOW, (), projects
+    )
+    assert other is not None and other[0].signal != "project_match"
+
+
+def test_the_stack_goal_reads_as_the_users_stack() -> None:
+    facts = replace(FACTS, concepts=frozenset({"cache-aside"}))
+    goals: GoalSets = (("stack-i-use", frozenset({"cache-aside"})),)
+    found = note_for(
+        scored("goal_match", facts), ["databases"], "intermediate", "3-8", NOW, goals
+    )
+    assert found is not None
+    assert found[1] == "Toward your goal: get better at the stack you use."

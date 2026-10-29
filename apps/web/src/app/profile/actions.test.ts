@@ -187,6 +187,12 @@ test("disconnect deletes the user's GitHub connection and says how to revoke on 
     {},
     expect.objectContaining({ userId: "g1", sessionId: "visit-1" }),
   );
+  // P2-W12-S04: the feed drops its project picks on the recompute.
+  expect(enqueue).toHaveBeenCalledWith(
+    "recompute_feed",
+    { user_id: "g1" },
+    expect.anything(),
+  );
   // Nothing was connected: nothing recorded.
   emit.mockClear();
   disconnect.mockResolvedValueOnce(false);

@@ -314,7 +314,7 @@ function GitHubSection({
 }) {
   const confirm = "disconnect-github";
   return (
-    <section aria-label="GitHub" className="flex flex-col gap-3">
+    <section id="github" aria-label="GitHub" className="flex flex-col gap-3">
       <h2 className="text-section">GitHub</h2>
       {guest ? (
         <p className="text-ink-muted">Create an account to connect GitHub.</p>
@@ -467,6 +467,11 @@ function Repositories({ connection }: { connection: GitHubConnection }) {
                 {r.languages.length > 0 ? " · " : ""}
                 {r.dependencies} dependencies
               </span>
+              {r.technologies.length === 0 ? null : (
+                <span className="block text-ink-muted">
+                  Uses {r.technologies.join(", ")}
+                </span>
+              )}
             </li>
           ))}
         </ul>

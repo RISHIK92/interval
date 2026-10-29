@@ -92,6 +92,8 @@ export async function disconnectGitHubAction(): Promise<void> {
   const found = await sessionReader().current(await headers());
   if (found === null) redirect("/join");
   if (!(await githubAccounts().disconnect(found.userId))) redirect("/profile");
+  // P2-W12-S04: the feed's project picks go with the data.
+  await recompute(found.userId);
   events().emit(
     "github_disconnected",
     {},

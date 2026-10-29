@@ -2996,3 +2996,68 @@ def test_paths_read_coverage_prerequisites_and_candidates_and_save_drafts(
     probe.switch_moments_off(sid, True)
     assert {c.slug: c.moments for c in s.paths.coverage()}["cg-lag"] == 0
     assert s.paths.session_candidates(["cg-lag"]) == []
+
+
+# P2-W12-S04 (REC-1 "projects"): moments of items tagged with any of the concepts, the
+# admin's correction winning, newest first, with the exclusions.
+def test_concept_moments_follow_the_items_concepts(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    probe.reset_concepts()
+    sync_concepts(
+        s,
+        parse_concepts(
+            "version: 1\nconcepts:\n"
+            "  - {slug: cm-raft, name: Raft, topic: distributed-systems}\n"
+            "  - {slug: cm-index, name: Index, topic: databases}\n",
+            "c.yaml",
+        ),
+    )
+    plain = dup_source(s, "cm-plain")
+    probe.enable_moments(plain)
+    newer = dup_item(s, plain, "cm1", 3)
+    older = dup_item(s, plain, "cm2", 2)
+    corrected = dup_item(s, plain, "cm3", 1)
+    for item in (newer, older, corrected):
+        s.moments.replace(item, [moment(0, f"cm-{item}")])
+    for item in (newer, older, corrected):
+        s.tags.save(
+            item, TagResult(Tags("beginner", frozenset({"cm-raft"})), {}), "m", 1
+        )
+    probe.correct_concepts(corrected, ["cm-index"])  # no longer about raft
+    mine = {newer, older, corrected}
+    rows = s.ranking.concept_moments(
+        frozenset({"cm-raft"}), 1000, exclude_sources=set(), exclude_items=set()
+    )
+    assert [r.item_id for r in rows if r.item_id in mine] == [newer, older]
+    rows = s.ranking.concept_moments(
+        frozenset({"cm-raft"}), 1000, exclude_sources=set(), exclude_items={newer}
+    )
+    assert [r.item_id for r in rows if r.item_id in mine] == [older]
+    # PER-1: a hidden source and a finished moment stay out too.
+    rows = s.ranking.concept_moments(
+        frozenset({"cm-raft"}), 1000, exclude_sources={plain}, exclude_items=set()
+    )
+    assert not [r for r in rows if r.item_id in mine]
+    first = next(
+        r.moment_id
+        for r in s.ranking.concept_moments(
+            frozenset({"cm-raft"}), 1000, exclude_sources=set(), exclude_items=set()
+        )
+        if r.item_id == newer
+    )
+    rows = s.ranking.concept_moments(
+        frozenset({"cm-raft"}),
+        1000,
+        exclude_sources=set(),
+        exclude_items=set(),
+        exclude_moments=frozenset({first}),
+    )
+    assert [r.item_id for r in rows if r.item_id in mine] == [older]
+    assert (
+        s.ranking.concept_moments(
+            frozenset(), 1000, exclude_sources=set(), exclude_items=set()
+        )
+        == []
+    )

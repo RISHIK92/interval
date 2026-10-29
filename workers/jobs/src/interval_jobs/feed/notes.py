@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from interval_db.generated import BreakLength, Difficulty, LearningGoal, Topic
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
-from interval_jobs.ports import JobQueue, Message, NoteInput, NoteKey
+from interval_jobs.ports import JobQueue, Message, NoteInput, NoteKey, ProjectConcepts
 from interval_jobs.ranking.scoring import BREAK_MINUTES, Scored
 
 NOTE_MAX_CHARS = 160  # a card line, not a summary
@@ -33,6 +33,7 @@ FRESH = timedelta(days=7)  # "New this week."
 # concepts can be a card's reason.
 GOAL_WORDS: dict[LearningGoal, str] = {
     "system-design-interviews": "pass system design interviews",
+    "stack-i-use": "get better at the stack you use",
 }
 
 type GoalSets = tuple[tuple[LearningGoal, frozenset[str]], ...]
@@ -46,9 +47,18 @@ def _note(
     chip: BreakLength,
     now: datetime,
     goals: GoalSets,
+    projects: ProjectConcepts,
 ) -> tuple[NoteKey, str] | None:
     """The signal's note, or None when its words wouldn't be true of this entry."""
     facts, item = scored.facts, scored.item_id
+    if signal == "project_match":
+        # P2-W12-S04: names the technology, never a repository: notes are shared
+        # between users (the repository's own line is per user, S05).
+        concept = next((c for c in sorted(facts.concepts) if projects.get(c)), None)
+        if concept is None:
+            return None
+        slug, name = projects[concept][0]
+        return NoteKey(item, signal, level, slug), f"Uses {name}, from your projects."
     if signal == "goal_match":
         goal: LearningGoal | None = next(
             (
@@ -105,11 +115,12 @@ def note_for(
     chip: BreakLength,
     now: datetime,
     goals: GoalSets = (),
+    projects: ProjectConcepts | None = None,
 ) -> tuple[NoteKey, str] | None:
     """The cache key and template text for the entry's largest signal whose note is
     true of it (owner, 2026-10-26); None when no note would be."""
     for signal in scored.signals:
-        found = _note(signal, scored, topics, level, chip, now, goals)
+        found = _note(signal, scored, topics, level, chip, now, goals, projects or {})
         if found is not None:
             return found
     return None

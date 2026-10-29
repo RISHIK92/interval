@@ -899,9 +899,8 @@ export const BREAK_LENGTHS = [
   "8-15",
 ] as const satisfies readonly BreakLength[];
 
-// ADR-0015: learning goals, in the enum's order. The stack goal is coming soon until
-// GitHub (Phase 2): shown, not selectable (owner, 2026-10-26). The book goal is live
-// with PDF books (Q-P2-36, P2-W11-S05).
+// ADR-0015: learning goals, in the enum's order. The book goal is live with PDF books
+// (Q-P2-36, P2-W11-S05), the stack goal with GitHub projects (P2-W12-S04).
 export const GOALS = [
   "system-design-interviews",
   "stack-i-use",
@@ -910,6 +909,7 @@ export const GOALS = [
 ] as const satisfies readonly LearningGoal[];
 export const LIVE_GOALS = [
   "system-design-interviews",
+  "stack-i-use",
   "finish-that-book",
   "stay-sharp",
 ] as const satisfies readonly LearningGoal[];
@@ -1115,6 +1115,7 @@ export type GitHubConnection = {
     fullName: string;
     languages: string[];
     dependencies: number;
+    technologies: string[]; // what its dependencies map to (the curated table, PER-4)
   }[];
 };
 export interface GitHubAccounts {

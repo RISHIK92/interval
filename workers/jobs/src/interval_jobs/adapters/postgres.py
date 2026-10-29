@@ -60,6 +60,7 @@ from interval_jobs.ports import (
     NoteKey,
     NoteRef,
     PathDraft,
+    ProjectConcepts,
     QuestionBatchEntry,
     QuestionDraft,
     QuestionSummary,
@@ -1596,6 +1597,67 @@ class PostgresRankingInputs:
             )
             for r in rows
         }
+
+    def project_concepts(self, user_id: str) -> ProjectConcepts:
+        rows = self._conn.execute(
+            """
+            select c.slug, t.slug, t.name
+            from user_technology_concepts(%s) u
+            join technology t on t.id = u.technology_id
+            join concept c on c.id = u.concept_id
+            order by c.slug, t.slug
+            """,
+            (user_id,),
+        ).fetchall()
+        found: dict[str, list[tuple[str, str]]] = {}
+        for concept, slug, name in rows:
+            found.setdefault(str(concept), []).append((str(slug), str(name)))
+        return {concept: tuple(techs) for concept, techs in found.items()}
+
+    def concept_moments(
+        self,
+        concepts: frozenset[str],
+        limit: int,
+        *,
+        exclude_sources: set[int],
+        exclude_items: set[int],
+        exclude_moments: frozenset[int] = frozenset(),
+    ) -> list[CandidateMoment]:
+        if not concepts:
+            return []
+        rows = self._conn.execute(
+            f"""
+            with shown_item as (
+              -- As topic_moments: per duplicate group, the copy the feed shows.
+              select distinct on (coalesce(c.duplicate_of, c.id)) c.id
+              from content_item c
+              where exists (select 1 from moment x where x.content_item_id = c.id)
+                and c.link_broken_at is null
+              order by coalesce(c.duplicate_of, c.id), c.published_at nulls last, c.id
+            )
+            select m.id, ci.id, s.id
+            from moment m
+            join content_item ci on ci.id = m.content_item_id
+            join source s on s.id = ci.source_id
+            where ci.id in (select id from shown_item) and s.active
+              and s.id <> all(%(sources)s) and ci.id <> all(%(items)s)
+              and m.id <> all(%(moments)s)
+              and exists (
+                select 1 from ({_ITEM_CONCEPTS.format(item="ci.id")}) tagged
+                where tagged.slug = any(%(concepts)s)
+              )
+            order by ci.published_at desc nulls last, ci.id desc, m.ordinal
+            limit %(limit)s
+            """,
+            {
+                "concepts": sorted(concepts),
+                "sources": sorted(exclude_sources),
+                "items": sorted(exclude_items),
+                "moments": sorted(exclude_moments),
+                "limit": limit,
+            },
+        ).fetchall()
+        return [CandidateMoment(int(r[0]), int(r[1]), int(r[2])) for r in rows]
 
     def topic_moments(
         self,

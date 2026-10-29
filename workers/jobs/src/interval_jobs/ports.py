@@ -1008,11 +1008,33 @@ class CandidateArticle:
     source_id: int
 
 
+# P2-W12-S04: each concept of a user's projects, with the technologies behind it, as
+# (slug, name), the technology order fixed (the first is the note's).
+type ProjectConcepts = dict[str, tuple[tuple[str, str], ...]]
+
+
 class RankingInputs(Protocol):
     """What ranking reads (REC-1, Q-P1-15): a user's choices and feedback, which the
     web app writes, and the moments that match them."""
 
     def preferences(self, user_id: str) -> UserPreferences | None: ...
+
+    def project_concepts(self, user_id: str) -> ProjectConcepts:
+        """P2-W12-S04 (REC-1, §5H): the concepts the user's connected repositories'
+        technologies map to (S03); empty when they haven't connected GitHub."""
+        ...
+
+    def concept_moments(
+        self,
+        concepts: frozenset[str],
+        limit: int,
+        *,
+        exclude_sources: set[int],
+        exclude_items: set[int],
+        exclude_moments: frozenset[int] = frozenset(),
+    ) -> list[CandidateMoment]:
+        """Moments of shown items tagged with any of the concepts, newest first."""
+        ...
 
     def goal_concepts(
         self, goals: list[LearningGoal]

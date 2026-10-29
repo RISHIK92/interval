@@ -19,6 +19,7 @@ from interval_jobs.ports import (
     Arm,
     EntryFacts,
     EntryKey,
+    ProjectConcepts,
     RankingInputs,
     Store,
     UserPreferences,
@@ -126,10 +127,15 @@ def _candidates(
 
 
 def goal_sets(
-    inputs: RankingInputs, preferences: UserPreferences
+    inputs: RankingInputs,
+    preferences: UserPreferences,
+    projects: ProjectConcepts | None = None,
 ) -> tuple[tuple[LearningGoal, frozenset[str]], ...]:
-    """The user's goals that point at concepts, in their order (ADR-0015)."""
-    sets = inputs.goal_concepts(preferences.goals) if preferences.goals else {}
+    """The user's goals that point at concepts, in their order (ADR-0015). "Get better
+    at the stack I use" points at their projects' concepts (P2-W12-S04)."""
+    sets = dict(inputs.goal_concepts(preferences.goals)) if preferences.goals else {}
+    if projects:
+        sets["stack-i-use"] = frozenset(projects)
     return tuple((g, sets[g]) for g in preferences.goals if sets.get(g))
 
 
@@ -158,13 +164,15 @@ def rank_for_preferences(
     if main is None and adjacent is None:
         return _empty()
     facts = {**(main.facts if main else {}), **(adjacent.facts if adjacent else {})}
+    projects = inputs.project_concepts(user_id) if user_id else {}
     user = UserSignals(
         topics=frozenset(preferences.topics),
         level=preferences.level,
         break_length=preferences.break_length,
         less_liked=frozenset(inputs.less_liked(user_id)) if user_id else frozenset(),
         avoided_concepts=inputs.avoided_concepts(user_id) if user_id else frozenset(),
-        goal_sets=goal_sets(inputs, preferences),
+        goal_sets=goal_sets(inputs, preferences, projects),
+        project_concepts=frozenset(projects),
     )
     outcomes = inputs.arm_outcomes() if exploring else {}
     draw = rng or random.Random()

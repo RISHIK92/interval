@@ -182,6 +182,23 @@ def test_the_stage_reads_and_without_the_app_skips_rather_than_retrying() -> Non
     assert store.github.accounts["u1"].synced
 
 
+def test_a_sync_queues_a_recompute_so_project_picks_follow_it() -> None:
+    store, app = world()
+
+    @contextmanager
+    def unit() -> Generator[StageServices]:
+        yield StageServices(store, web(), TrafilaturaExtractor())
+
+    queue = InMemoryQueue()
+    Pipeline(unit, queue, github=app).handlers()["github_sync"](
+        GithubSync(user_id="u1"),
+        Delivery(attempt=1, idempotency_key="github-sync-u1-1"),
+    )
+    assert queue.pending_messages("recompute_feed") == [
+        ("recompute-github-sync-u1-1", {"user_id": "u1"})
+    ]
+
+
 def test_the_daily_run_queues_active_connected_users_once_a_day() -> None:
     store, _ = world()
     store.github.accounts["u2"] = StoredGitHub(installations=[], active=False)

@@ -322,3 +322,18 @@ def test_on_a_tie_an_article_comes_before_its_own_moments() -> None:
 def test_an_exploration_share_outside_0_to_half_is_refused(share: float) -> None:
     with pytest.raises(RankingConfigError, match=r"explore\.share"):
         RankingConfig.from_rows({**RANKING_DEFAULTS, "explore.share": share})
+
+
+# P2-W12-S04 (REC-1, Q-P2-43): the share of an entry's concepts the user's projects map
+# to, weighted from the config like every signal.
+def test_project_match_is_the_share_of_concepts_the_users_projects_use() -> None:
+    two = replace(BASE, concepts=frozenset({"raft", "quorums"}))
+    plain = ranked(two)
+    with_projects = ranked(two, replace(USER, project_concepts=frozenset({"raft"})))
+    assert with_projects.breakdown.values["project_match"] == 0.5
+    assert with_projects.score - plain.score == pytest.approx(
+        0.5 * CONFIG.weights["project_match"]
+    )
+    without = {k: v for k, v in RANKING_DEFAULTS.items() if k != "weight.project_match"}
+    with pytest.raises(RankingConfigError, match=r"weight\.project_match"):
+        RankingConfig.from_rows(without)

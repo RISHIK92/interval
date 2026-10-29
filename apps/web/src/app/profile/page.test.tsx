@@ -311,12 +311,15 @@ test("connected and read: the repositories with their languages and dependencies
         fullName: "octo/api",
         languages: ["TypeScript", "Go"],
         dependencies: 12,
+        technologies: ["PostgreSQL", "Redis"],
       },
     ],
   });
   const html = await page();
   expect(html).toContain("octo/api");
   expect(html).toContain("TypeScript, Go · 12 dependencies");
+  // P2-W12-S04: what the repository's dependencies map to.
+  expect(html).toContain("Uses PostgreSQL, Redis");
   expect(html).toMatch(/Read \d+ min ago/);
   expect(html).toMatch(/<form[^>]*>[^]*?Refresh<\/button>/);
   // Before the first read.

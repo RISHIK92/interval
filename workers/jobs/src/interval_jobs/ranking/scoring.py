@@ -24,7 +24,15 @@ from interval_jobs import log
 from interval_jobs.ports import Arm, Breakdown, EntryFacts, EntryKey
 from interval_jobs.ranking.candidates import Candidate
 
-SIGNALS = ("topic_match", "goal_match", "level_fit", "quality", "freshness", "time_fit")
+SIGNALS = (
+    "topic_match",
+    "goal_match",
+    "project_match",  # P2-W12-S04
+    "level_fit",
+    "quality",
+    "freshness",
+    "time_fit",
+)
 PENALTIES = ("less_like_this", "not_interested_concepts")
 _LEVELS: dict[Difficulty, int] = {"beginner": 0, "intermediate": 1, "advanced": 2}
 BREAK_MINUTES: dict[BreakLength, tuple[int, int]] = {
@@ -99,6 +107,8 @@ class UserSignals:
     avoided_concepts: frozenset[str]  # concepts of Not interested items
     # ADR-0015: the user's goals that point at concepts, in their order, with the sets.
     goal_sets: tuple[tuple[LearningGoal, frozenset[str]], ...] = ()
+    # P2-W12-S04: the concepts the user's connected projects map to.
+    project_concepts: frozenset[str] = frozenset()
 
 
 @dataclass(frozen=True)
@@ -180,6 +190,12 @@ def score(
             "topic_match": 1.0 if fact.topics & user.topics else 0.0,
             # ADR-0015: the share of the item's concepts in the user's goal sets.
             "goal_match": _goal_share(fact.concepts, user.goal_sets),
+            # P2-W12-S04: the share of its concepts the user's projects map to.
+            "project_match": (
+                len(fact.concepts & user.project_concepts) / len(fact.concepts)
+                if fact.concepts
+                else 0.0
+            ),
             "level_fit": _level_fit(fact.difficulty, user.level),
             "quality": (fact.quality - 1) / 4 if fact.quality is not None else 0.5,
             "freshness": _freshness(fact.published_at, now, config.half_life_days),

@@ -51,14 +51,27 @@ def _with_notes(
     preferences: UserPreferences,
     now: datetime,
     done: Recomputed,
+    user_id: str | None,
 ) -> dict[BreakLength, list[RankedEntry]]:
     """Every chip's entries with their why-this-matters notes (P1-W4-S06): a note is
     written the first time its key comes up and reused after (Q-P1-18). One write
     for the whole feed, so recomputes sharing notes take them in one order."""
-    goals = goal_sets(store.ranking, preferences)
+    projects = store.ranking.project_concepts(user_id) if user_id else {}
+    goals = goal_sets(store.ranking, preferences, projects)
     keyed: dict[BreakLength, list[tuple[Scored, tuple[NoteKey, str] | None]]] = {
         chip: [
-            (s, note_for(s, preferences.topics, preferences.level, chip, now, goals))
+            (
+                s,
+                note_for(
+                    s,
+                    preferences.topics,
+                    preferences.level,
+                    chip,
+                    now,
+                    goals,
+                    projects,
+                ),
+            )
             for s in scored
         ]
         for chip, scored in ranked.items()
@@ -105,7 +118,7 @@ def recompute_user_feed(
         ranked = rank_for_user(store, user_id, model, now, FEED_LIMIT, rng)
         preferences = store.ranking.preferences(user_id)
         by_chip: dict[BreakLength, list[RankedEntry]] = (
-            _with_notes(store, ranked, preferences, now, done)
+            _with_notes(store, ranked, preferences, now, done, user_id)
             if preferences
             else {chip: [] for chip in ranked}
         )
@@ -132,7 +145,9 @@ def recompute_starter(
     )
     try:
         ranked = rank_for_preferences(store, preferences, None, model, now, FEED_LIMIT)
-        for chip, entries in _with_notes(store, ranked, preferences, now, done).items():
+        for chip, entries in _with_notes(
+            store, ranked, preferences, now, done, None
+        ).items():
             store.feed.replace_starter(topic, level, chip, entries)
     except Exception as error:
         log.error("feed: recompute failed", topic=topic, level=level, error=error)

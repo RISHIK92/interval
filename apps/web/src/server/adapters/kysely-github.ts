@@ -120,6 +120,11 @@ export function kyselyGitHub(db: Kysely<DB>): GitHubAccounts {
             where d.user_id = r.user_id and d.repo_id = r.repo_id)`.as(
             "dependencies",
           ),
+          sql<string[]>`array(
+            select distinct t.name from github_dependency_technology dt
+            join technology t on t.id = dt.technology_id
+            where dt.user_id = r.user_id and dt.repo_id = r.repo_id
+            order by t.name)`.as("technologies"),
         ])
         .where("r.user_id", "=", userId)
         .orderBy("r.pushed_at", "desc")
@@ -133,6 +138,7 @@ export function kyselyGitHub(db: Kysely<DB>): GitHubAccounts {
           fullName: r.full_name,
           languages: r.languages,
           dependencies: r.dependencies,
+          technologies: r.technologies,
         })),
         installations: installations.map((i) => ({
           installationId: i.installation_id,

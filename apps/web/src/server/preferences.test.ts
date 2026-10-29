@@ -57,9 +57,9 @@ test.each([
     "goal",
   ],
   [
-    "a coming-soon goal",
+    "an unknown goal",
     {
-      goals: ["stack-i-use"],
+      goals: ["world-peace"],
       topics: ["backend"],
       level: "beginner",
       breakLength: "1-3",

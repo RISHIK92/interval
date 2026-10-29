@@ -7,7 +7,12 @@ from interval_jobs.adapters.memory import InMemoryStore
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.ports import FeedEntry, MomentRow, TagResult, Tags, UserPreferences
-from interval_jobs.ranking.candidates import Candidate, article_candidates, candidates
+from interval_jobs.ranking.candidates import (
+    Candidate,
+    article_candidates,
+    candidates,
+    candidates_for,
+)
 from interval_jobs.ranking.rank import rank_for_user
 
 MODEL = "voyage-3.5"
@@ -185,3 +190,38 @@ def test_finished_moments_and_articles_are_not_candidates() -> None:
     )
     assert whole not in {c.item_id for c in articles}
     assert half in {c.item_id for c in articles}
+
+
+# P2-W12-S04 (REC-1 "projects", §5H): moments on the concepts the user's connected
+# projects map to, with the same exclusions as topic matches.
+def test_moments_on_the_users_project_concepts_are_candidates() -> None:
+    w = World()
+    other = w.source("misc", topics=("backend",))  # not a chosen topic
+    raft_item, on_raft = w.item(other, "raft-in-practice")
+    w.store.tags.save(
+        raft_item, TagResult(Tags("beginner", frozenset({"raft"})), {}), "m", 1
+    )
+    hidden = w.source("hidden", topics=("backend",))
+    hidden_item, from_hidden = w.item(hidden, "raft-hidden")
+    w.store.tags.save(
+        hidden_item, TagResult(Tags("beginner", frozenset({"raft"})), {}), "m", 1
+    )
+    dropped, from_dropped = w.item(other, "raft-dropped")
+    done_item, done = w.item(other, "raft-done")
+    for item in (dropped, done_item):
+        w.store.tags.save(
+            item, TagResult(Tags("beginner", frozenset({"raft"})), {}), "m", 1
+        )
+    w.store.ranking.hidden.add(("u1", hidden))
+    w.store.ranking.feedback.append(("u1", dropped, "not_interested"))
+    w.store.ranking.finished_moments.add(("u1", done))
+    assert on_raft not in ids(candidates(w.store, "u1", None))  # no projects yet
+    w.store.ranking.projects["u1"] = {"raft": (("etcd", "etcd"),)}
+    found = {c.moment_id: c for c in candidates(w.store, "u1", None)}
+    assert on_raft in found and "project" in found[on_raft].generators
+    # PER-1: hidden sources, Not interested and finished stay out.
+    assert not {from_hidden, from_dropped, done} & set(found)
+    # A starter feed has no user, so no projects.
+    preferences = w.store.ranking.preferences("u1")
+    assert preferences is not None
+    assert on_raft not in ids(candidates_for(w.store, preferences, None, None))

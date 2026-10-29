@@ -3,7 +3,7 @@ of dependencies to technologies and concepts, unclaimed packages and suggestions
 
 import psycopg
 
-from interval_jobs.adapters.postgres import PostgresTechnologies
+from interval_jobs.adapters.postgres import PostgresRankingInputs, PostgresTechnologies
 from interval_jobs.ports import TechnologySuggestion
 from interval_jobs.technologies import Package, TechnologySeed
 
@@ -184,3 +184,16 @@ def test_a_single_users_possibly_private_names_are_not_sent(
     # Shared by two users: no longer one person's secret.
     repo_with(conn, "tc7", [("npm", "@zzacme/billing")])
     assert "@zzacme/billing" in {u.package for u in techs.unclaimed(1, 1000)}
+
+
+# P2-W12-S04: the concepts a user's projects map to, with the technologies behind them.
+def test_project_concepts_name_each_concepts_technologies(
+    conn: psycopg.Connection,
+) -> None:
+    concepts(conn)
+    PostgresTechnologies(conn).sync_seed([PG, NEST])
+    repo_with(conn, "tc8", [("npm", "pg"), ("npm", "@nestjs/core")])
+    found = PostgresRankingInputs(conn).project_concepts("tc8")
+    assert found["t-mvcc"] == (("t-postgres", "PostgreSQL"),)
+    assert found["t-indexes"] == (("t-nestjs", "NestJS"), ("t-postgres", "PostgreSQL"))
+    assert PostgresRankingInputs(conn).project_concepts("nobody") == {}

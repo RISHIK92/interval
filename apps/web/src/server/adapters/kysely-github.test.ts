@@ -158,10 +158,30 @@ test("the connection carries what the worker last read", async () => {
         default_branch: "main",
       })
       .execute();
+    // A package no seed claims, so the dev database's seed can't resolve it first.
+    const pkg = `zz-${me.slice(0, 8)}`;
+    const { id } = await trx
+      .insertInto("technology")
+      .values({
+        slug: `t-${me.slice(0, 8).toLowerCase()}`,
+        name: "Tech",
+        source: "seed",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("technology_package")
+      .values({
+        ecosystem: "npm",
+        pattern: pkg,
+        technology_id: id,
+        origin: "seed",
+      })
+      .execute();
     await trx
       .insertInto("github_dependency")
       .values(
-        ["pg", "vitest"].map((name) => ({
+        [pkg, "vitest"].map((name) => ({
           user_id: me,
           repo_id: "1",
           ecosystem: "npm" as const,
@@ -182,6 +202,7 @@ test("the connection carries what the worker last read", async () => {
         fullName: "octo/api",
         languages: ["TypeScript", "Go"],
         dependencies: 2,
+        technologies: ["Tech"],
       },
     ]);
   });

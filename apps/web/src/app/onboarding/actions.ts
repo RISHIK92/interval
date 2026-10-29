@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import {
   books,
   events,
+  githubAccounts,
   jobQueue,
   preferences,
   sessionReader,
@@ -47,5 +48,12 @@ export async function onboardingAction(form: FormData): Promise<void> {
     (await books().list(actor.userId)).length === 0
   )
     redirect("/books/new");
+  // P2-W12-S04 (ADR-0015): the stack goal needs a project; connect GitHub first.
+  if (
+    !actor.isGuest &&
+    form.getAll("goal").includes("stack-i-use") &&
+    (await githubAccounts().get(actor.userId)) === null
+  )
+    redirect("/profile#github");
   redirect("/");
 }

@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, Books, Preferences } from "../../server/ports";
+import type {
+  Actor,
+  Books,
+  GitHubAccounts,
+  Preferences,
+} from "../../server/ports";
 
 // §5A, PER-1, C-21, P1-W4-S01.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
@@ -16,7 +21,9 @@ vi.mock("../../server/container", () => ({
   events: () => ({ emit }),
   jobQueue: () => ({ enqueue }),
   books: () => ({ list }),
+  githubAccounts: () => ({ get: githubGet }),
 }));
+const githubGet = vi.fn<GitHubAccounts["get"]>(() => Promise.resolve(null));
 const list = vi.fn<Books["list"]>(() => Promise.resolve([]));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -202,9 +209,9 @@ test("a failed recompute enqueue is logged, and onboarding still completes", asy
   vi.restoreAllMocks();
 });
 
-// ADR-0015: goals first; the one that still needs Phase 2 (GitHub) is shown but can't
-// be picked. The book goal is live with books (Q-P2-36, P2-W11-S05).
-test("onboarding asks for goals first, with the coming-soon one disabled", async () => {
+// ADR-0015: goals first; every goal is live now (the book goal with W11, the stack goal
+// with GitHub, P2-W12-S04).
+test("onboarding asks for goals first, all of them live", async () => {
   current.mockResolvedValue(guest);
   get.mockResolvedValue(null);
   const html = await page();
@@ -212,13 +219,8 @@ test("onboarding asks for goals first, with the coming-soon one disabled", async
     html.indexOf('name="topic"'),
   );
   expect(html.match(/name="goal"/g)).toHaveLength(4);
-  const disabled = (goal: string) =>
-    new RegExp(
-      `<input[^>]*disabled=""[^>]*value="${goal}"|<input[^>]*value="${goal}"[^>]*disabled=""`,
-    );
-  expect(html).toMatch(disabled("stack-i-use"));
-  expect(html).not.toMatch(disabled("finish-that-book"));
-  expect(html.match(/Coming soon/g)).toHaveLength(1);
+  expect(html).not.toMatch(/<input[^>]*name="goal"[^>]*disabled=""/);
+  expect(html).not.toContain("Coming soon");
 });
 
 // Q-P2-36 (owner): choosing the book goal leads to adding a book.
@@ -255,6 +257,43 @@ test("choosing the book goal goes on to Add a book, unless there is one already"
   // A guest too: Add a book says books need an account.
   current.mockResolvedValue(guest);
   await expect(onboardingAction(answers)).rejects.toThrow(
+    /^redirect:\/books\/new$/,
+  );
+});
+
+// P2-W12-S04 (ADR-0015): the stack goal leads to connecting GitHub; the book goal first.
+test("choosing the stack goal without GitHub goes to connect it; connected or a guest, to the feed", async () => {
+  const account: Actor = { ...guest, userId: "a2", isGuest: false };
+  current.mockResolvedValue(account);
+  const { onboardingAction } = await import("./actions");
+  const answers = form({
+    goal: "stack-i-use",
+    topic: "backend",
+    level: "beginner",
+    breakLength: "3-8",
+  });
+  await expect(onboardingAction(answers)).rejects.toThrow(
+    /^redirect:\/profile#github$/,
+  );
+  githubGet.mockResolvedValueOnce({
+    login: "octo",
+    connectedAt: new Date(),
+    installations: [],
+    syncedMinutesAgo: null,
+    repositories: [],
+  });
+  await expect(onboardingAction(answers)).rejects.toThrow(/^redirect:\/$/);
+  current.mockResolvedValue(guest);
+  await expect(onboardingAction(answers)).rejects.toThrow(/^redirect:\/$/);
+  // Both goals: Add a book first; Profile then offers GitHub.
+  current.mockResolvedValue(account);
+  const both = form({
+    goal: ["finish-that-book", "stack-i-use"],
+    topic: "backend",
+    level: "beginner",
+    breakLength: "3-8",
+  });
+  await expect(onboardingAction(both)).rejects.toThrow(
     /^redirect:\/books\/new$/,
   );
 });

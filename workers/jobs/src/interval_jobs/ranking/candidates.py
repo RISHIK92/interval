@@ -24,12 +24,13 @@ from interval_jobs.ports import (
     UserPreferences,
 )
 
-type Generator = Literal["topic", "similar"]
+type Generator = Literal["topic", "similar", "project"]
 
 # shortcut: counted in moments, newest first, so a few long articles can fill it and
 # older on-topic items never get in; raise it or page by item if W4-S03 needs more.
 TOPIC_LIMIT = 300
 MAX_ANCHORS = 10  # liked items whose moments seed the similarity search
+PROJECT_LIMIT = 200  # P2-W12-S04: moments on the user's projects' concepts
 PER_ANCHOR = 20
 _NOTHING_FINISHED = Finished(frozenset(), frozenset())
 
@@ -89,6 +90,17 @@ def candidates_for(
         exclude_moments=done.moments,
     ):
         add(row, "topic")
+    # P2-W12-S04 (REC-1 "projects", §5H): moments on the concepts the user's connected
+    # repositories' technologies map to; the same exclusions as topic matches (PER-1).
+    projects = inputs.project_concepts(user_id) if user_id else {}
+    for row in inputs.concept_moments(
+        frozenset(projects),
+        PROJECT_LIMIT,
+        exclude_sources=hidden,
+        exclude_items=gone,
+        exclude_moments=done.moments,
+    ):
+        add(row, "project")
     if model is not None and user_id is not None:
         anchors = inputs.anchor_items(user_id, MAX_ANCHORS)
         # Excluded in the query, before its limit: an anchor's own moments would

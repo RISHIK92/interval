@@ -352,7 +352,13 @@ class Pipeline:
             with self._unit() as services:
                 yield services.store
 
-        sync_user(stores, self._github, message.user_id)
+        # P2-W12-S04: the feed's project picks follow what was read, after the commit.
+        if sync_user(stores, self._github, message.user_id) is not None:
+            self._queue.enqueue(
+                "recompute_feed",
+                {"user_id": message.user_id},
+                idempotency_key=f"recompute-{delivery.idempotency_key}",
+            )
 
     # P2-W11-S01 (LOAD-5): a deleted book's file, removed with the queue's retries.
     # Only under books/: the message names a key, and nothing else is the user's to

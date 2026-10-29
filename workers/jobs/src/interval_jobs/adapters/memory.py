@@ -62,6 +62,7 @@ from interval_jobs.ports import (
     NoteKey,
     NoteRef,
     PathDraft,
+    ProjectConcepts,
     QuestionBatchEntry,
     QuestionDraft,
     QuestionSummary,
@@ -1145,6 +1146,7 @@ GOAL_CONCEPTS: dict[LearningGoal, frozenset[str]] = {
 RANKING_DEFAULTS: dict[str, float] = {
     "weight.topic_match": 1.0,
     "weight.goal_match": 0.8,
+    "weight.project_match": 0.8,  # P2-W12-S04, like goal_match
     "weight.level_fit": 0.6,
     "weight.quality": 0.4,
     "weight.freshness": 0.5,
@@ -1199,6 +1201,8 @@ class InMemoryRankingInputs:
 
     def __init__(self, store: "InMemoryStore") -> None:
         self._store = store
+        # P2-W12-S04: per user, the concepts their projects map to (tests set it).
+        self.projects: dict[str, ProjectConcepts] = {}
         self.preferences_by_user: dict[str, UserPreferences] = {}
         self.hidden: set[tuple[str, int]] = set()  # (user, source id)
         # (user, item id, kind), oldest first: the order Postgres reads by given_at
@@ -1386,6 +1390,39 @@ class InMemoryRankingInputs:
             return corrected
         tags, _ = self._store.tags.for_item(item_id)
         return tags.concepts if tags else frozenset()
+
+    def project_concepts(self, user_id: str) -> ProjectConcepts:
+        return dict(self.projects.get(user_id, {}))
+
+    def concept_moments(
+        self,
+        concepts: frozenset[str],
+        limit: int,
+        *,
+        exclude_sources: set[int],
+        exclude_items: set[int],
+        exclude_moments: frozenset[int] = frozenset(),
+    ) -> list[CandidateMoment]:
+        # Mirrors PostgresRankingInputs.concept_moments.
+        store = self._store
+        shown = shown_items(store)
+        found: list[tuple[bool, float, int, int, CandidateMoment]] = []
+        for moment in store.moments.rows:
+            item = store.items.rows[moment.item_id]
+            source = store.sources.rows[item.source_id]
+            if item.id not in shown or not source.active:
+                continue
+            if source.id in exclude_sources or item.id in exclude_items:
+                continue
+            if moment.id in exclude_moments or not concepts & self._item_concepts(
+                item.id
+            ):
+                continue
+            published = item.published_at.timestamp() if item.published_at else 0.0
+            row = CandidateMoment(moment.id, item.id, source.id)
+            undated = item.published_at is None
+            found.append((undated, -published, -item.id, moment.row.ordinal, row))
+        return [f[4] for f in sorted(found, key=lambda f: f[:4])][:limit]
 
     def topic_moments(
         self,

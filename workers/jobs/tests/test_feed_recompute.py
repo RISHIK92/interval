@@ -555,3 +555,31 @@ def test_a_goal_lifts_its_items_and_names_itself_in_the_note() -> None:
     assert w.store.notes.rows[entry.note_id].text == (
         "Toward your goal: pass system design interviews."
     )
+
+
+# P2-W12-S04 (REC-1, ADR-0015): a connected user's projects reach the feed through the
+# recompute: their concepts are candidates, the stack goal's set, and the note's reason.
+def test_project_concepts_reach_the_feed_and_its_note() -> None:
+    w = World()
+    w.store.ranking.preferences_by_user["u1"] = UserPreferences(
+        topics=["databases"],
+        level="intermediate",
+        break_length="3-8",
+        goals=["stack-i-use"],
+    )
+    w.store.ranking.config_rows["weight.project_match"] = 2.0
+    w.store.ranking.projects["u1"] = {"indexes": (("postgresql", "PostgreSQL"),)}
+    item, moment = w.item("idx", 25)
+    w.store.tags.save(
+        item, TagResult(Tags("intermediate", frozenset({"indexes"})), {}), "m", 1
+    )
+    recompute_user_feed(w.store, "u1", None, NOW)
+    (entry,) = [r for r in w.store.feed.users["u1"]["3-8"] if r.moment_id == moment]
+    assert entry.breakdown is not None
+    assert entry.breakdown.values["project_match"] == 1.0
+    assert entry.breakdown.values["goal_match"] == 1.0  # the stack goal's set
+    assert entry.top_signal == "project_match"
+    assert entry.note_id is not None
+    assert w.store.notes.rows[entry.note_id].text == (
+        "Uses PostgreSQL, from your projects."
+    )
