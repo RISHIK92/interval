@@ -254,6 +254,13 @@ def test_project_notes_follow_the_repositories_matching_the_item(
     assert github.project_notes_missing("tc9", [elsewhere, on_mvcc], 10) == [on_mvcc]
     github.save_project_note("tc9", on_mvcc, note, "Orders API keeps MVCC.", "m")
     assert github.project_notes_missing("tc9", [on_mvcc], 10) == []
+    # A line from an older prompt version is asked again (and replaced on save).
+    conn.execute("update project_note set prompt_version = 1 where user_id = 'tc9'")
+    assert github.project_notes_missing("tc9", [on_mvcc], 10) == [on_mvcc]
+    github.save_project_note("tc9", on_mvcc, note, "Orders API keeps MVCC.", "m")
+    assert conn.execute(
+        "select prompt_version from project_note where user_id = 'tc9'"
+    ).fetchall() == [(2,)]
     # A second repository on the same concept: a new set, a new line, the old one gone.
     conn.execute(
         "insert into github_repository (user_id, repo_id, installation_id, full_name, "

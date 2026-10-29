@@ -235,6 +235,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: REC-1, PER-1, ADR-0015, AI-5, OPS-4.
 - Suggested default: the projects generator adds candidates with their own `ranking_config` weight (starting like the concept-gap weight), never above an explicit topic choice; the notes model gets the repository's name, description and matching technologies only (owner: never code), once per user, moment and repository set.
 - **Answer (owner, 2026-10-29):** the suggested default for the weight: the projects generator gets its own `ranking_config` weight, starting equal to the concept-gap weight, tunable on the admin ranking page, never above an explicit choice (PER-1). (What notes send: never code, as already decided.)
+- **Update (owner, 2026-10-29):** a card with the user's own AI project line (P2-W12-S05) comes first in its chip, for every connected user, whatever its rank. This overrides "never above an explicit choice" for those cards. Debated first: the alternative of pinning only for users who chose "Get better at the stack I use" (keeping PER-1) was offered and declined. The line no longer repeats the repository name (the card names it), and the prompt's version keys the line, so a reworded prompt rewrites it.
 
 ### Q-P2-44 Token signing in the worker (P1)
 - Cite: CLAUDE.md ("No new dependency without asking"), ADR-0024 (open question).

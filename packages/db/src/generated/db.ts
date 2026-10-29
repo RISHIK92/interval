@@ -540,6 +540,7 @@ export interface ProjectNote {
   created_at: Generated<Timestamp>;
   id: Generated<Int8>;
   model: string;
+  prompt_version: Generated<number>;
   repositories: string[];
   technologies: string[];
   text: string | null;

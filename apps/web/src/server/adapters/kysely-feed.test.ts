@@ -772,3 +772,92 @@ test("a project note shows only in its own user's feed", async () => {
     expect(starter.map((c) => c.projectNote)).toEqual([null]);
   });
 });
+
+// Owner, 2026-10-29 (Q-P2-43 update): a card with the user's own project line leads
+// the chip, whatever its rank.
+test("a card with the user's project line comes first", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const [first, second] = momentIds;
+    if (first === undefined || second === undefined) throw new Error("seed");
+    const other = await trx
+      .insertInto("content_item")
+      .values({
+        source_id: (
+          await trx
+            .selectFrom("content_item")
+            .select("source_id")
+            .where("id", "=", itemId)
+            .executeTakeFirstOrThrow()
+        ).source_id,
+        guid: "g-other",
+        canonical_url: "https://webfeed.example.test/other",
+        title: "Another post",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const otherMoment = await trx
+      .insertInto("moment")
+      .values({
+        content_item_id: other.id,
+        ordinal: 0,
+        title: "Top of another post",
+        estimated_minutes: 2,
+        link: "https://webfeed.example.test/other",
+        link_type: "page_top",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("user_feed_entry")
+      .values([
+        {
+          user_id: userId,
+          chip: "3-8",
+          content_item_id: other.id,
+          moment_id: otherMoment.id,
+          rank: 1,
+          top_signal: "topic_match",
+        },
+        {
+          user_id: userId,
+          chip: "3-8",
+          content_item_id: itemId,
+          moment_id: second,
+          rank: 2,
+          top_signal: "project_match",
+        },
+      ])
+      .execute();
+    await trx
+      .insertInto("user_feed_state")
+      .values({ user_id: userId, computed_at: new Date() })
+      .execute();
+    await trx
+      .insertInto("github_account")
+      .values({ user_id: userId, github_user_id: "78", login: "octo" })
+      .execute();
+    await trx
+      .insertInto("github_repository")
+      .values({
+        user_id: userId,
+        repo_id: "1",
+        installation_id: "11",
+        full_name: "octo/velox",
+        default_branch: "main",
+      })
+      .execute();
+    await trx
+      .insertInto("project_note")
+      .values({
+        user_id: userId,
+        content_item_id: itemId,
+        repositories: ["octo/velox"],
+        technologies: ["etcd"],
+        text: "Its leader election uses the same idea.",
+        model: "m",
+      })
+      .execute();
+    const { cards } = await kyselyFeedReader(trx).read(userId, "3-8", 50);
+    expect(cards.map((c) => c.itemId)).toEqual([itemId, other.id]);
+  });
+});

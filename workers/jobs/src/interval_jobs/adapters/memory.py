@@ -30,6 +30,7 @@ from interval_jobs.irt import Answer
 from interval_jobs.normalize import near_duplicates
 from interval_jobs.polling import START_INTERVAL
 from interval_jobs.ports import (
+    PROJECT_NOTE_PROMPT_VERSION,
     VALIDATORS_MAX_AGE,
     Arm,
     ArmOutcome,
@@ -2067,7 +2068,7 @@ class InMemoryGitHub:
         # P2-W12-S05: what each (user, item) matches now (tests set it), and the notes.
         self.project_inputs: dict[tuple[str, int], ProjectNoteInput] = {}
         self.project_notes: dict[
-            tuple[str, int], tuple[ProjectNoteInput, str | None, str]
+            tuple[str, int], tuple[ProjectNoteInput, str | None, str, int]
         ] = {}
 
     def project_note_input(self, user_id: str, item_id: int) -> ProjectNoteInput | None:
@@ -2085,7 +2086,9 @@ class InMemoryGitHub:
             now = self.project_note_input(user_id, item_id)
             stored = self.project_notes.get((user_id, item_id))
             if now is not None and (
-                stored is None or stored[0].repositories != now.repositories
+                stored is None
+                or stored[0].repositories != now.repositories
+                or stored[3] != PROJECT_NOTE_PROMPT_VERSION
             ):
                 missing.append(item_id)
         return missing
@@ -2099,7 +2102,12 @@ class InMemoryGitHub:
         model: str,
     ) -> None:
         if user_id in self.accounts:
-            self.project_notes[(user_id, item_id)] = (note, text, model)
+            self.project_notes[(user_id, item_id)] = (
+                note,
+                text,
+                model,
+                PROJECT_NOTE_PROMPT_VERSION,
+            )
 
     def sync_input(self, user_id: str) -> GitHubSyncInput | None:
         account = self.accounts.get(user_id)

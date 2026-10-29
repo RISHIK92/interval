@@ -222,6 +222,9 @@ export function kyselyFeedReader(db: Kysely<DB>): FeedReader {
         .select(["v.project_note_text", "v.project_note_repositories"])
         .select(savedBy(userId, "v.content_item_id"))
         .where("s.user_id", "=", userId)
+        // Owner, 2026-10-29 (Q-P2-43 update): a card with the user's own project line
+        // comes first, then the ranking's order.
+        .orderBy(sql`v.project_note_text is null`)
         .orderBy("v.rank")
         .limit(limit)
         .execute();

@@ -515,6 +515,7 @@ class ProjectNote(TypedDict):
     text: str | None
     model: str
     created_at: datetime
+    prompt_version: int
 
 
 class Question(TypedDict):

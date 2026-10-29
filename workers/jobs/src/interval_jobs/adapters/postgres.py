@@ -29,6 +29,7 @@ from interval_jobs.concepts.graph import TOPICS
 from interval_jobs.irt import Answer
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
+    PROJECT_NOTE_PROMPT_VERSION,
     VALIDATORS_MAX_AGE,
     Arm,
     ArmOutcome,
@@ -2860,16 +2861,17 @@ class PostgresGitHub:
             if len(missing) >= limit:
                 break
             _, names = self._matches(user_id, item_id)
-            if (
-                names
-                and not self._conn.execute(
-                    """
+            if not names:
+                continue
+            kept = self._conn.execute(
+                """
                 select 1 from project_note
                 where user_id = %s and content_item_id = %s and repositories = %s
+                  and prompt_version = %s
                 """,
-                    (user_id, item_id, list(names)),
-                ).fetchone()
-            ):
+                (user_id, item_id, list(names), PROJECT_NOTE_PROMPT_VERSION),
+            ).fetchone()
+            if kept is None:
                 missing.append(item_id)
         return missing
 
@@ -2885,20 +2887,30 @@ class PostgresGitHub:
         self._conn.execute(
             """
             delete from project_note
-            where user_id = %s and content_item_id = %s and repositories <> %s
+            where user_id = %s and content_item_id = %s
+              and (repositories <> %s or prompt_version <> %s)
             """,
-            (user_id, item_id, names),
+            (user_id, item_id, names, PROJECT_NOTE_PROMPT_VERSION),
         )
         # Disconnected meanwhile: no account, nothing stored.
         self._conn.execute(
             """
-            insert into project_note
-              (user_id, content_item_id, repositories, technologies, text, model)
-            select a.user_id, %s, %s, %s, %s, %s from github_account a
+            insert into project_note (user_id, content_item_id, repositories,
+              technologies, text, model, prompt_version)
+            select a.user_id, %s, %s, %s, %s, %s, %s from github_account a
             where a.user_id = %s
-            on conflict (user_id, content_item_id, repositories) do nothing
+            on conflict (user_id, content_item_id, repositories, prompt_version)
+              do nothing
             """,
-            (item_id, names, list(note.technologies), text, model, user_id),
+            (
+                item_id,
+                names,
+                list(note.technologies),
+                text,
+                model,
+                PROJECT_NOTE_PROMPT_VERSION,
+                user_id,
+            ),
         )
 
 

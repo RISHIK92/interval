@@ -647,11 +647,13 @@ class NoteLlm:
         self.calls = 0
         self.reply = "A polished note."
         self.project_prompts: list[str] = []  # P2-W12-S05's, by their system prompt
+        self.system_prompts: list[str] = []
 
     def complete(self, model: str, messages: list[Message]) -> Completion:
         self.calls += 1
         if "their own project" in messages[0]["content"]:
             self.project_prompts.append(messages[-1]["content"])
+            self.system_prompts.append(messages[0]["content"])
         return Completion(self.reply, 100, 10, Decimal("0.0001"))
 
 
@@ -920,7 +922,7 @@ def test_a_matching_item_gets_one_line_per_repository_set_on_the_users_budget() 
     recompute(world, "r-1")
     notes = world.store.github.project_notes
     assert {item for _, item in notes} == set(items)
-    _, text, model = notes[("u1", items[0])]
+    _, text, model, _ = notes[("u1", items[0])]
     assert (text, model) == (
         "Velox elects its leader with etcd, built on Raft.",
         "small-notes",
@@ -986,7 +988,28 @@ def test_a_refused_reply_is_recorded_and_not_paid_for_again(reply: str) -> None:
     llm.reply = reply
     recompute(world, "r-1")
     notes = world.store.github.project_notes
-    assert notes and all(text is None for _, text, _ in notes.values())
+    assert notes and all(text is None for _, text, _, _ in notes.values())
     asked = len(llm.project_prompts)
     recompute(world, "r-2")
     assert len(llm.project_prompts) == asked
+
+
+# A reworded prompt (PROJECT_NOTE_PROMPT_VERSION) asks again; the old line goes.
+def test_a_new_prompt_version_rewrites_the_line(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from interval_jobs.adapters import memory
+
+    world, llm, items = project_world()
+    recompute(world, "r-1")
+    asked = len(llm.project_prompts)
+    monkeypatch.setattr(memory, "PROJECT_NOTE_PROMPT_VERSION", 3)
+    recompute(world, "r-2")
+    assert len(llm.project_prompts) > asked
+    assert world.store.github.project_notes[("u1", items[0])][3] == 3
+
+
+def test_the_prompt_asks_the_model_not_to_repeat_the_repository() -> None:
+    world, llm, _ = project_world()
+    recompute(world, "r-1")
+    assert llm.system_prompts and "don't repeat its name" in llm.system_prompts[0]

@@ -1309,6 +1309,11 @@ class GitHubStore(Protocol):
         ...
 
 
+# The project-line prompt's version (feed/project_notes.py): a line is kept per user,
+# item, repository set and version, so rewording the prompt asks again.
+PROJECT_NOTE_PROMPT_VERSION = 2
+
+
 @dataclass(frozen=True)
 class ProjectNoteInput:
     """All the notes model may see for a project note (Q-P2-43, AI-1): the item's
