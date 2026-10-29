@@ -2760,6 +2760,28 @@ class PostgresGitHub:
         return [str(r[0]) for r in rows]
 
 
+# Go module hosts whose paths are public (anything else may be a private module).
+PUBLIC_GO_HOSTS = (
+    "github.com",
+    "gitlab.com",
+    "bitbucket.org",
+    "golang.org",
+    "google.golang.org",
+    "cloud.google.com",
+    "go.uber.org",
+    "go.opentelemetry.io",
+    "gopkg.in",
+    "k8s.io",
+    "go.mongodb.org",
+    "gorm.io",
+    "modernc.org",
+    "nhooyr.io",
+    "cel.dev",
+    "go.temporal.io",
+    "firebase.google.com",
+)
+
+
 class PostgresTechnologies:
     """The curated technology table (PER-4, P2-W12-S03)."""
 
@@ -2840,10 +2862,18 @@ class PostgresTechnologies:
             """
             select ecosystem, package, users from unclaimed_dependency
             where not asked and users >= %s
+              -- Owner, 2026-10-29: a name that may be private (an npm scope, a Go
+              -- module off the public hosts) goes to the model provider only when
+              -- 2+ users share it.
+              and (users >= 2 or not (
+                (ecosystem = 'npm' and package like '@%%')
+                or (ecosystem = 'go'
+                    and split_part(package, '/', 1) <> all(%s))
+              ))
             order by users desc, ecosystem, package
             limit %s
             """,
-            (min_users, limit),
+            (min_users, list(PUBLIC_GO_HOSTS), limit),
         ).fetchall()
         return [Unclaimed(str(e), str(n), int(u)) for e, n, u in rows]
 

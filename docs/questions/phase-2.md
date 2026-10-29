@@ -229,10 +229,12 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: PER-4 ("A curated table maps technologies to concepts. An LLM can suggest additions, which you review."), §5H.
 - Suggested default: a seed of about 60 common technologies across npm, PyPI and Go (frameworks, databases and their drivers, queues, caches, ORMs, cloud SDKs), each mapped to 1–4 existing concepts, drafted by me for your review like the concept seed; suggestions for unclaimed packages used by at least 2 users (or 1 while the beta is small), reviewed on an admin page.
 - **Answer (owner, 2026-10-29):** the suggested default (a seed of about 60 drafted for review; LLM suggestions accepted or rejected on an admin page).
+- **Answer (owner, 2026-10-29):** (update, owner 2026-10-29, after the S03 review) only public-looking package names go to the model provider from a single user's repositories: npm scoped packages and Go modules off the public hosts are sent only when 2+ users share them.
 
 ### Q-P2-43 Projects' weight, and what project-aware notes send (P1)
 - Cite: REC-1, PER-1, ADR-0015, AI-5, OPS-4.
 - Suggested default: the projects generator adds candidates with their own `ranking_config` weight (starting like the concept-gap weight), never above an explicit topic choice; the notes model gets the repository's name, description and matching technologies only (owner: never code), once per user, moment and repository set.
+- **Answer (owner, 2026-10-29):** the suggested default for the weight: the projects generator gets its own `ranking_config` weight, starting equal to the concept-gap weight, tunable on the admin ranking page, never above an explicit choice (PER-1). (What notes send: never code, as already decided.)
 
 ### Q-P2-44 Token signing in the worker (P1)
 - Cite: CLAUDE.md ("No new dependency without asking"), ADR-0024 (open question).

@@ -161,3 +161,26 @@ def test_an_accepted_package_on_a_seed_technology_survives_a_reload(
     techs.sync_seed([PG])
     repo_with(conn, "tc5", [("npm", "zz-pg-extra")])
     assert resolved(conn, "tc5") == {"zz-pg-extra": "t-postgres"}
+
+
+def test_a_single_users_possibly_private_names_are_not_sent(
+    conn: psycopg.Connection,
+) -> None:
+    concepts(conn)
+    techs = PostgresTechnologies(conn)
+    repo_with(
+        conn,
+        "tc6",
+        [
+            ("npm", "@zzacme/billing"),
+            ("go", "git.zzacme.internal/payments"),
+            ("go", "github.com/zz/public"),
+            ("npm", "zz-plain"),
+        ],
+    )
+    asked = {u.package for u in techs.unclaimed(1, 1000)}
+    assert {"github.com/zz/public", "zz-plain"} <= asked
+    assert not {"@zzacme/billing", "git.zzacme.internal/payments"} & asked
+    # Shared by two users: no longer one person's secret.
+    repo_with(conn, "tc7", [("npm", "@zzacme/billing")])
+    assert "@zzacme/billing" in {u.package for u in techs.unclaimed(1, 1000)}
