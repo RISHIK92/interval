@@ -47,7 +47,7 @@ test("renders only the card fields: attribution, title, article, position, lengt
   );
   expect(textOf(html)).toBe(
     "Example Engineering · Rae Writer / Raft in one page / Consensus in practice / " +
-      "Section 2 of 4 / 3 min reading / Fits your 3–8 min break / Read article",
+      "Section 2 of 4 / 3 min reading / Read article",
   );
   // One progress segment per section (design screen 2): finished ones green, this one
   // light green and gently pulsing, the rest empty (owner, 2026-10-26).

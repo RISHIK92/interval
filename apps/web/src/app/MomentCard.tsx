@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { type Chip, chipLabel } from "../server/chips";
+import type { Chip } from "../server/chips";
 import type { MomentFeedCard } from "../server/ports";
 import { outHref, readHref } from "../server/outbound";
 import { FeedCardLayout } from "./FeedCardLayout";
@@ -37,7 +37,6 @@ export function MomentCard({
       }
       section={{ number: card.sectionNumber, count: card.sectionCount }}
       length={`${String(card.estimatedMinutes)} min reading`}
-      fits={`Fits your ${chipLabel(chip)} break`}
       note={card.note}
       projectNote={card.projectNote}
       read={{

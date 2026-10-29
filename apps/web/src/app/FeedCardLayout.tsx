@@ -18,7 +18,6 @@ export function FeedCardLayout({
   context,
   section,
   length,
-  fits,
   note,
   projectNote = null,
   read,
@@ -31,7 +30,6 @@ export function FeedCardLayout({
   context: string | null;
   section: { number: number; count: number } | null;
   length: string;
-  fits: string | null;
   note: FeedCard["note"];
   projectNote?: FeedCard["projectNote"];
   read: {
@@ -88,7 +86,6 @@ export function FeedCardLayout({
             <SectionProgress number={section.number} count={section.count} />
           )}
           <p className="mt-3 text-ink-muted">{length}</p>
-          {fits === null ? null : <p className="font-semibold">{fits}</p>}
           <div className="mt-3 empty:hidden">
             {projectNote === null ? (
               <WhyNote note={note} />

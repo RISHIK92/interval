@@ -194,7 +194,7 @@ test("renders the three chips as links and marks the onboarding one", async () =
   expect(html.match(/aria-current="true"/g)).toHaveLength(1); // one chip; the tab is "page"
   expect(html.match(/<strong>/g)).toHaveLength(1);
   expect(getFeed).toHaveBeenCalledWith("u1", "3-8", 50);
-  expect(html).toContain("Fits your 3–8 min break");
+  expect(html).toContain("chip=3-8&amp;pos=1");
 });
 
 test("a chip in the link picks that chip's feed", async () => {
@@ -203,7 +203,7 @@ test("a chip in the link picks that chip's feed", async () => {
   const html = await render({ chip: "1-3" });
   expect(getFeed).toHaveBeenCalledWith("u1", "1-3", 50);
   expect(html).toMatch(/<a aria-current="true"[^>]*href="\/\?chip=1-3">/);
-  expect(html).toContain("Fits your 1–3 min break");
+  expect(html).toContain("chip=1-3&amp;pos=1");
 });
 
 test("the chip chosen earlier in the session is kept", async () => {

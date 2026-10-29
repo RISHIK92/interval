@@ -26,13 +26,13 @@ function textOf(html: string): string {
     .join(" / ");
 }
 
-test("an article that fits says so, and links to the publisher's page", () => {
+test("an article shows its length and links to the publisher's page", () => {
   const html = renderToStaticMarkup(
     <ArticleCard card={card} chip="8-15" position={1} controls={null} />,
   );
   expect(textOf(html)).toBe(
     "Example Engineering · Rae Writer / Consensus in practice / " +
-      "Whole article · 12 min / Fits your 8–15 min break / Read article",
+      "Whole article · 12 min / Read article",
   );
   expect(html).toContain(
     'href="/out?item=5&amp;chip=8-15&amp;pos=1&amp;target=original"',
@@ -40,7 +40,7 @@ test("an article that fits says so, and links to the publisher's page", () => {
   expect(html).toContain('rel="noopener noreferrer"');
 });
 
-test("a longer article shows its length and never claims to fit", () => {
+test("a longer article shows its length", () => {
   const html = renderToStaticMarkup(
     <ArticleCard
       card={{ ...card, estimatedMinutes: 22 }}
