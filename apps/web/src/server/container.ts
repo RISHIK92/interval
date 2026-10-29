@@ -27,6 +27,7 @@ import { kyselyLibrary } from "./adapters/kysely-library";
 import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
 import { kyselyAdminPaths } from "./adapters/kysely-admin-paths";
 import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
+import { kyselyAdminTechnologies } from "./adapters/kysely-admin-technologies";
 import { kyselyBooks } from "./adapters/kysely-books";
 import { fetchGitHub } from "./adapters/fetch-github";
 import { kyselyGitHub } from "./adapters/kysely-github";
@@ -42,6 +43,7 @@ import { s3Files } from "./adapters/s3-files";
 import { sqsQueue } from "./adapters/sqs-queue";
 import { createEmitter, type Emitter } from "./events";
 import type {
+  AdminTechnologies,
   Books,
   FileStore,
   GitHub,
@@ -128,6 +130,11 @@ export function quizzes(): Quizzes {
 
 export function adminQuestions(): AdminQuestions {
   return kyselyAdminQuestions(db());
+}
+
+// P2-W12-S03 (PER-4): suggested technologies, reviewed by the owner.
+export function adminTechnologies(): AdminTechnologies {
+  return kyselyAdminTechnologies(db());
 }
 
 export function adminSources(): AdminSources {

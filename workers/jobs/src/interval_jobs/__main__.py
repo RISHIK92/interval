@@ -82,12 +82,15 @@ from interval_jobs.tagging_eval import (
     run_eval,
     run_shortlist_eval,
 )
+from interval_jobs.technologies import TechnologySeedError, parse_technologies
+from interval_jobs.technology_suggestions import suggest_technologies
 from interval_jobs.tracing import run_span, setup
 
 # The owner's seed list (Q-P1-02), relative to where commands run: the repo root
 # locally, /app in the worker image (which copies it to the same path).
 SEED_FILE = Path("workers/jobs/seeds/sources.yaml")
 CONCEPT_FILE = Path("workers/jobs/seeds/concepts.yaml")
+TECHNOLOGY_FILE = Path("workers/jobs/seeds/technologies.yaml")
 
 
 def main(argv: list[str]) -> None:
@@ -235,6 +238,15 @@ def main(argv: list[str]) -> None:
     commands.add_parser(
         "check-links-due",
         help="queue this week's link health check of every item (P1-W6-S03)",
+    )
+    technologies = commands.add_parser(
+        "load-technologies",
+        help="sync the technology seed file (PER-4, P2-W12-S03)",
+    )
+    technologies.add_argument("--file", type=Path, default=TECHNOLOGY_FILE)
+    commands.add_parser(
+        "suggest-technologies",
+        help="ask QUESTIONS_MODEL to map unclaimed packages, for review (P2-W12-S03)",
     )
     commands.add_parser(
         "sync-github-due",
@@ -408,6 +420,45 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         except (ConceptSeedError, ConceptCycleError) as error:
             sys.exit(str(error))
         print(json.dumps({"version": graph.version, **asdict(loaded)}))
+        return
+
+    if args.command == "suggest-technologies":
+
+        @contextmanager
+        def stores() -> Generator[Store]:
+            with services() as s:
+                yield s.store
+
+        with model_job("QUESTIONS_MODEL") as job:
+            if job is None:
+                sys.exit("QUESTIONS_MODEL isn't set")
+            with job.gateway() as gateway:
+                # One call per package, not the batch tier (Q-P2-42: reviewed).
+                outcome = suggest_technologies(
+                    stores, gateway, job.model.removeprefix("batch:")
+                )
+        print(json.dumps(asdict(outcome)))
+        if outcome.stopped is not None:
+            sys.exit(f"suggest-technologies stopped: {outcome.stopped}")
+        return
+
+    if args.command == "load-technologies":
+        path = str(args.file)
+        try:
+            text = args.file.read_text(encoding="utf-8")
+        except OSError as error:
+            sys.exit(f"{path}: {error.strerror}")
+        with services() as s:
+            graph = s.store.concepts.state()
+            if graph is None:
+                sys.exit("no concept graph loaded: run load-concepts first")
+            known = frozenset(c.slug for c in graph.concepts if not c.retired)
+            try:
+                version, seeds = parse_technologies(text, known, path)
+            except TechnologySeedError as error:
+                sys.exit(str(error))
+            synced = s.store.technologies.sync_seed(seeds)
+        print(json.dumps({"version": version, **asdict(synced)}))
         return
 
     if args.command == "draft-concepts":

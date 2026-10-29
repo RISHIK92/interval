@@ -30,6 +30,7 @@ from interval_db.messages import MessageName
 from interval_jobs.events.generated import Envelope
 from interval_jobs.github.manifests import Dependency
 from interval_jobs.irt import Answer
+from interval_jobs.technologies import TechnologySeed
 
 type FetchKind = Literal["feed", "article"]
 
@@ -1197,6 +1198,9 @@ class Store(Protocol):
     @property
     def github(self) -> "GitHubStore": ...
 
+    @property
+    def technologies(self) -> "Technologies": ...
+
 
 # GitHub projects (§5H, ADR-0024, P2-W12-S02): a connected user's repositories, read by
 # the App: metadata and dependency names only, never code.
@@ -1279,6 +1283,48 @@ class GitHubStore(Protocol):
     def due_for_sync(self, active_days: int) -> list[str]:
         """Connected users with a session in the last `active_days` days."""
         ...
+
+
+# The curated technology table (PER-4, P2-W12-S03).
+@dataclass(frozen=True)
+class TechnologiesSynced:
+    added: int
+    updated: int
+    retired: int
+
+
+@dataclass(frozen=True)
+class Unclaimed:
+    ecosystem: str
+    package: str
+    users: int  # connected users whose repositories use it
+
+
+@dataclass(frozen=True)
+class TechnologySuggestion:
+    ecosystem: str
+    package: str
+    users: int
+    model: str
+    # None: nothing worth mapping (the model said so, or named no known concept).
+    name: str | None
+    slug: str | None
+    concepts: tuple[str, ...]
+    unreadable: bool = False  # the reply broke the rules; recorded, not asked again
+
+
+class Technologies(Protocol):
+    def sync_seed(self, technologies: list[TechnologySeed]) -> TechnologiesSynced:
+        """Upserts the seed's technologies with their packages and concepts; retires
+        seed technologies no longer in it. Accepted suggestions are left alone."""
+        ...
+
+    def unclaimed(self, min_users: int, limit: int) -> list[Unclaimed]:
+        """Stored dependencies no live technology claims and never suggested, most
+        used first."""
+        ...
+
+    def save_suggestion(self, suggestion: TechnologySuggestion) -> None: ...
 
 
 class Files(Protocol):

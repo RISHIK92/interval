@@ -80,12 +80,16 @@ from interval_jobs.ports import (
     TagMoment,
     TagResult,
     Tags,
+    TechnologiesSynced,
+    TechnologySuggestion,
+    Unclaimed,
     Usage,
     UserPreferences,
     ValidatedQuestion,
     Validators,
 )
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
+from interval_jobs.technologies import TechnologySeed
 
 
 @contextmanager
@@ -2756,11 +2760,125 @@ class PostgresGitHub:
         return [str(r[0]) for r in rows]
 
 
+class PostgresTechnologies:
+    """The curated technology table (PER-4, P2-W12-S03)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def sync_seed(self, technologies: list[TechnologySeed]) -> TechnologiesSynced:
+        conn = self._conn
+        # One loader at a time: two at once would race on the same slugs.
+        conn.execute("select pg_advisory_xact_lock(hashtext('technology-seed'))")
+        existing = {
+            str(slug)
+            for (slug,) in conn.execute("select slug from technology").fetchall()
+        }
+        added = updated = 0
+        for tech in technologies:
+            row = conn.execute(
+                """
+                insert into technology (slug, name, source)
+                values (%s, %s, 'seed')
+                on conflict (slug) do update
+                  set name = excluded.name, retired_at = null
+                returning id
+                """,
+                (tech.slug, tech.name),
+            ).fetchone()
+            assert row is not None  # insert ... returning always returns the row
+            technology_id = int(row[0])
+            if tech.slug in existing:
+                updated += 1
+            else:
+                added += 1
+            # Only the seed's own: an accepted suggestion on this technology stays.
+            conn.execute(
+                "delete from technology_package "
+                "where technology_id = %s and origin = 'seed'",
+                (technology_id,),
+            )
+            conn.execute(
+                "delete from technology_concept "
+                "where technology_id = %s and origin = 'seed'",
+                (technology_id,),
+            )
+            with conn.cursor() as cur:
+                cur.executemany(
+                    "insert into technology_package "
+                    "(ecosystem, pattern, prefix, technology_id, origin) "
+                    "values (%s::dependency_ecosystem, %s, %s, %s, 'seed') "
+                    # A pattern another seed technology held moves to this one; one
+                    # an accepted suggestion holds stays with it.
+                    "on conflict (ecosystem, pattern, prefix) do update "
+                    "set technology_id = excluded.technology_id "
+                    "where technology_package.origin = 'seed'",
+                    [
+                        (p.ecosystem, p.pattern, p.prefix, technology_id)
+                        for p in tech.packages
+                    ],
+                )
+            conn.execute(
+                """
+                insert into technology_concept (technology_id, concept_id, origin)
+                select %s, id, 'seed' from concept where slug = any(%s)
+                on conflict (technology_id, concept_id) do nothing
+                """,
+                (technology_id, list(tech.concepts)),
+            )
+        retired = conn.execute(
+            """
+            update technology set retired_at = now()
+            where source = 'seed' and retired_at is null and not (slug = any(%s))
+            """,
+            ([t.slug for t in technologies],),
+        ).rowcount
+        return TechnologiesSynced(added, updated, retired)
+
+    def unclaimed(self, min_users: int, limit: int) -> list[Unclaimed]:
+        rows = self._conn.execute(
+            """
+            select ecosystem, package, users from unclaimed_dependency
+            where not asked and users >= %s
+            order by users desc, ecosystem, package
+            limit %s
+            """,
+            (min_users, limit),
+        ).fetchall()
+        return [Unclaimed(str(e), str(n), int(u)) for e, n, u in rows]
+
+    def save_suggestion(self, suggestion: TechnologySuggestion) -> None:
+        self._conn.execute(
+            """
+            insert into technology_suggestion
+              (ecosystem, package, users, name, slug, concepts, model, status)
+            values (%s::dependency_ecosystem, %s, %s, %s, %s, %s, %s,
+                    %s::suggestion_status)
+            on conflict (ecosystem, package) do nothing
+            """,
+            (
+                suggestion.ecosystem,
+                suggestion.package,
+                suggestion.users,
+                suggestion.name,
+                suggestion.slug,
+                list(suggestion.concepts),
+                suggestion.model,
+                "unreadable"
+                if suggestion.unreadable
+                else "skipped"
+                if suggestion.slug is None
+                else "pending",
+            ),
+        )
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
         self.books = PostgresBooks(conn)
         self.github = PostgresGitHub(conn)
+        self.technologies = PostgresTechnologies(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)
         self.moments = PostgresMoments(conn)

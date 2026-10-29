@@ -73,7 +73,7 @@ mypy = "*"
     }
 
 
-def test_go_mod_require_lines_and_blocks() -> None:
+def test_go_mod_direct_requirements_only() -> None:
     text = """module example.com/api
 
 go 1.23
@@ -88,8 +88,7 @@ require (
     assert names("go.mod", text) == {
         ("go", "github.com/jackc/pgx/v5", False),
         ("go", "github.com/redis/go-redis/v9", False),
-        ("go", "golang.org/x/sync", False),
-    }
+    }  # golang.org/x/sync is indirect: someone else's dependency
 
 
 @pytest.mark.parametrize(

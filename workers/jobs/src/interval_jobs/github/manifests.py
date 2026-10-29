@@ -1,4 +1,5 @@
 """Dependency files read for their dependency names (§5H, Q-P2-41, P2-W12-S02).
+go.mod's `// indirect` requirements are left out (transitive, out of scope).
 
 package.json, requirements.txt, pyproject.toml and go.mod, at a repository's root or
 one directory down; lockfiles are not dependency files here. Only names (and whether
@@ -119,6 +120,9 @@ def _go_mod(text: str) -> list[tuple[str, bool]]:
     out: list[tuple[str, bool]] = []
     block = False
     for raw in text.splitlines():
+        # An indirect requirement is someone else's dependency, not this stack's.
+        if "// indirect" in raw:
+            continue
         line = raw.split("//", 1)[0].strip()
         if line.startswith("require ("):
             block = True

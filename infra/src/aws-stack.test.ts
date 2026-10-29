@@ -248,8 +248,9 @@ describe("containers", () => {
   test("ARM64 tasks get secrets only through ECS secrets, never plain env", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
     // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due,
-    // spot-check-due, question-batches, recalibrate-difficulty, sync-github-due
-    expect(tasks.length).toBe(11);
+    // spot-check-due, question-batches, recalibrate-difficulty, sync-github-due,
+    // suggest-technologies
+    expect(tasks.length).toBe(12);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -503,7 +504,7 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(7);
+    expect(runTask).toHaveLength(8);
     const targets = runTask.map((st) => JSON.stringify(st.Resource));
     expect(targets.filter((t) => t.includes("PollDueTask"))).toHaveLength(1);
     expect(targets.filter((t) => t.includes("RecomputeDueTask"))).toHaveLength(
@@ -668,6 +669,18 @@ describe("weekly link health checks (W6-S03, ING-6)", () => {
     expect(
       (containerNamed("check-links-due")?.Secrets ?? []).map((x) => x.Name),
     ).toEqual(["DB_PASSWORD"]);
+  });
+});
+
+describe("weekly technology suggestions (P2-W12-S03, PER-4)", () => {
+  test("suggest-technologies runs weekly with only the DB and model secrets", () => {
+    const schedule = scheduleFor("SuggestTechnologiesTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe("rate(7 days)");
+    expect(
+      (containerNamed("suggest-technologies")?.Secrets ?? []).map(
+        (x) => x.Name,
+      ),
+    ).toEqual(["DB_PASSWORD", "OPENROUTER_API_KEY"]);
   });
 });
 

@@ -1,0 +1,16 @@
+# VM mode (ADR-0011), PER-4 (P2-W12-S03): ask the model about packages the curated
+# technology table doesn't claim, for the owner's review. Started by
+# interval-technologies.timer; the AWS stack runs the same command weekly.
+[Unit]
+Description=Interval suggest-technologies
+# Requisite, not Requires: a stack stopped for maintenance skips the run instead of
+# being started again by the timer.
+Requisite=interval.service
+After=interval.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/interval
+ExecStart=/opt/interval/deploy/bin/stack.sh run suggest-technologies
+# A oneshot has no start timeout by default: a hung run would stop the timer for good.
+TimeoutStartSec=20min

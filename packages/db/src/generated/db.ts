@@ -5,7 +5,7 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "paths" | "questions" | "tagging";
+export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "paths" | "questions" | "tagging" | "technologies";
 
 export type AiProvider = "google" | "groq" | "openrouter" | "voyage";
 
@@ -76,6 +76,10 @@ export type ReviewDecision = "keep" | "retire";
 export type ReviewReason = "anomaly" | "flagged" | "sample";
 
 export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
+
+export type SuggestionStatus = "accepted" | "pending" | "rejected" | "skipped" | "unreadable";
+
+export type TechnologySource = "seed" | "suggestion";
 
 export type Timestamp = ColumnType<Date, Date | string, Date | string>;
 
@@ -343,6 +347,15 @@ export interface GithubDependency {
   path: string;
   repo_id: Int8;
   user_id: string;
+}
+
+export interface GithubDependencyTechnology {
+  dev: boolean | null;
+  ecosystem: DependencyEcosystem | null;
+  name: string | null;
+  repo_id: Int8 | null;
+  technology_id: Int8 | null;
+  user_id: string | null;
 }
 
 export interface GithubInstallation {
@@ -696,6 +709,50 @@ export interface TagOverride {
   updated_by: string;
 }
 
+export interface Technology {
+  id: Generated<Int8>;
+  name: string;
+  retired_at: Timestamp | null;
+  slug: string;
+  source: TechnologySource;
+}
+
+export interface TechnologyConcept {
+  concept_id: Int8;
+  origin: TechnologySource;
+  technology_id: Int8;
+}
+
+export interface TechnologyPackage {
+  ecosystem: DependencyEcosystem;
+  origin: TechnologySource;
+  pattern: string;
+  prefix: Generated<boolean>;
+  technology_id: Int8;
+}
+
+export interface TechnologySuggestion {
+  concepts: Generated<string[]>;
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  decided_by: string | null;
+  ecosystem: DependencyEcosystem;
+  id: Generated<Int8>;
+  model: string;
+  name: string | null;
+  package: string;
+  slug: string | null;
+  status: Generated<SuggestionStatus>;
+  users: number;
+}
+
+export interface UnclaimedDependency {
+  asked: boolean | null;
+  ecosystem: DependencyEcosystem | null;
+  package: string | null;
+  users: number | null;
+}
+
 export interface UserArticleFinished {
   content_item_id: Int8;
   finished_at: Generated<Timestamp>;
@@ -873,6 +930,7 @@ export interface DB {
   fetch_validator: FetchValidator;
   github_account: GithubAccount;
   github_dependency: GithubDependency;
+  github_dependency_technology: GithubDependencyTechnology;
   github_installation: GithubInstallation;
   github_reachable_repository: GithubReachableRepository;
   github_repository: GithubRepository;
@@ -914,6 +972,11 @@ export interface DB {
   starter_feed_entry: StarterFeedEntry;
   starter_feed_visible: StarterFeedVisible;
   tag_override: TagOverride;
+  technology: Technology;
+  technology_concept: TechnologyConcept;
+  technology_package: TechnologyPackage;
+  technology_suggestion: TechnologySuggestion;
+  unclaimed_dependency: UnclaimedDependency;
   user_article_finished: UserArticleFinished;
   user_avoided_concept: UserAvoidedConcept;
   user_capability: UserCapability;

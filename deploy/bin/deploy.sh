@@ -48,7 +48,8 @@ for unit in interval.service interval-poll.service interval-poll.timer \
   interval-spot-checks.service interval-spot-checks.timer \
   interval-question-batches.service interval-question-batches.timer \
   interval-recalibrate.service interval-recalibrate.timer \
-  interval-github.service interval-github.timer; do
+  interval-github.service interval-github.timer \
+  interval-technologies.service interval-technologies.timer; do
   install -m 644 "$APP_DIR/deploy/systemd/$unit" "/etc/systemd/system/$unit"
 done
 systemctl daemon-reload
@@ -64,6 +65,8 @@ systemctl enable --now interval-recompute.timer
 systemctl enable --now interval-links.timer
 # Q-P2-40: reads connected users' repositories daily, as EventBridge Scheduler does.
 systemctl enable --now interval-github.timer
+# PER-4: suggests technologies for unclaimed packages weekly, as EventBridge does.
+systemctl enable --now interval-technologies.timer
 # Q-2: queues the week's question spot checks, as EventBridge Scheduler does in AWS.
 systemctl enable --now interval-spot-checks.timer
 # Q-P2-13: question batches every 30 minutes, as EventBridge Scheduler does in AWS.

@@ -721,6 +721,35 @@ export class AwsStack extends Stack {
       }),
     });
 
+    // PER-4 (P2-W12-S03): EventBridge Scheduler runs `suggest-technologies` weekly: it
+    // asks the model about packages the curated table doesn't claim and stores the
+    // replies for the owner's review; no queue to send to.
+    const suggestTechnologiesTask = taskDefinition("SuggestTechnologies");
+    suggestTechnologiesTask.addContainer("suggest-technologies", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["suggest-technologies"],
+      environment,
+      secrets: {
+        DB_PASSWORD: secrets.DB_PASSWORD,
+        OPENROUTER_API_KEY: secrets.OPENROUTER_API_KEY,
+      },
+      logging: logging("suggest-technologies"),
+    });
+    new scheduler.Schedule(this, "SuggestTechnologiesSchedule", {
+      schedule: scheduler.ScheduleExpression.rate(Duration.days(7)),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: suggestTechnologiesTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // The next week picks up whatever this one missed.
+        retryAttempts: 0,
+        maxEventAge: Duration.hours(1),
+      }),
+    });
+
     // The ingestion pipeline's consumer (W2-S02b): one always-on task serving every
     // stage queue. Same image and grants as the one-off jobs.
     // 2 GB: the consumer plus the OCR sidecar's 512 MB (ADR-0022).

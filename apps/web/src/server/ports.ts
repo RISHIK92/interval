@@ -1131,3 +1131,37 @@ export interface GitHubAccounts {
   disconnect(userId: string): Promise<boolean>;
   get(userId: string): Promise<GitHubConnection | null>;
 }
+
+// P2-W12-S03 (PER-4, AI-3): the owner's review of LLM-suggested technologies for
+// packages the curated table doesn't claim.
+export type TechnologySuggestionRow = {
+  id: string;
+  ecosystem: "npm" | "pypi" | "go";
+  package: string;
+  users: number;
+  name: string;
+  slug: string;
+  concepts: { slug: string; name: string }[];
+  model: string;
+};
+export interface AdminTechnologies {
+  pending(): Promise<TechnologySuggestionRow[]>;
+  // Stored dependencies no live technology claims, most used first.
+  unclaimed(
+    limit: number,
+  ): Promise<{ ecosystem: string; package: string; users: number }[]>;
+  coverage(): Promise<{
+    technologies: number;
+    packages: number;
+    dependencies: number; // distinct stored dependency names
+    resolved: number; // of those, claimed by a live technology
+  }>;
+  // The suggestion's technology (a live slug gains the package), its package and its
+  // concepts. "decided": not pending any more; "conflict": its slug is a retired
+  // technology, or something claims the package now (nothing changes).
+  accept(
+    suggestionId: string,
+    adminUserId: string,
+  ): Promise<"accepted" | "decided" | "conflict">;
+  reject(suggestionId: string, adminUserId: string): Promise<boolean>;
+}

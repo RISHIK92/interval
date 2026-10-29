@@ -82,12 +82,16 @@ from interval_jobs.ports import (
     TagMoment,
     TagResult,
     Tags,
+    TechnologiesSynced,
+    TechnologySuggestion,
+    Unclaimed,
     Usage,
     UserPreferences,
     ValidatedQuestion,
     Validators,
 )
 from interval_jobs.segment import minutes
+from interval_jobs.technologies import TechnologySeed
 
 _FULL_TEXT: frozenset[RightsProfile] = frozenset(
     {"full_text_internal", "full_text_display"}
@@ -1824,6 +1828,7 @@ class InMemoryStore:
         self.paths = InMemoryPaths(self.questions, self.items, self.concepts)
         self.books = InMemoryBooks()
         self.github = InMemoryGitHub()
+        self.technologies = InMemoryTechnologies()
         drop_feed = self.feed.drop_missing
 
         def drop_missing() -> None:
@@ -2065,6 +2070,38 @@ class InMemoryGitHub:
 
     def due_for_sync(self, active_days: int) -> list[str]:
         return sorted(u for u, a in self.accounts.items() if a.active)
+
+
+class InMemoryTechnologies:
+    """The technology table (P2-W12-S03), for the suggestion tests."""
+
+    def __init__(self) -> None:
+        self.seeded: list[TechnologySeed] = []
+        self.unclaimed_rows: list[Unclaimed] = []
+        self.suggestions: list[TechnologySuggestion] = []
+
+    def sync_seed(self, technologies: list[TechnologySeed]) -> TechnologiesSynced:
+        before = {t.slug for t in self.seeded}
+        after = {t.slug for t in technologies}
+        self.seeded = list(technologies)
+        return TechnologiesSynced(
+            len(after - before), len(after & before), len(before - after)
+        )
+
+    def unclaimed(self, min_users: int, limit: int) -> list[Unclaimed]:
+        asked = {(s.ecosystem, s.package) for s in self.suggestions}
+        return [
+            u
+            for u in self.unclaimed_rows
+            if u.users >= min_users and (u.ecosystem, u.package) not in asked
+        ][:limit]
+
+    def save_suggestion(self, suggestion: TechnologySuggestion) -> None:
+        if all(
+            (s.ecosystem, s.package) != (suggestion.ecosystem, suggestion.package)
+            for s in self.suggestions
+        ):
+            self.suggestions.append(suggestion)
 
 
 class InMemoryOcr:

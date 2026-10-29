@@ -8,7 +8,13 @@ type JsonScalar = str | int | float | bool | None
 type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
 
 type AiFeature = Literal[
-    "tagging", "notes", "embeddings", "concept_drafting", "questions", "paths"
+    "tagging",
+    "notes",
+    "embeddings",
+    "concept_drafting",
+    "questions",
+    "paths",
+    "technologies",
 ]
 type AiProvider = Literal["openrouter", "voyage", "groq", "google"]
 type BetaGroup = Literal["student", "developer"]
@@ -43,6 +49,10 @@ type ReviewReason = Literal["sample", "flagged", "anomaly"]
 type RightsProfile = Literal[
     "metadata_only", "excerpt", "full_text_internal", "full_text_display"
 ]
+type SuggestionStatus = Literal[
+    "pending", "accepted", "rejected", "skipped", "unreadable"
+]
+type TechnologySource = Literal["seed", "suggestion"]
 type Topic = Literal["system-design", "databases", "distributed-systems", "backend"]
 type UserPathStatus = Literal["active", "paused"]
 
@@ -307,6 +317,15 @@ class GithubDependency(TypedDict):
     name: str
     path: str
     dev: bool
+
+
+class GithubDependencyTechnology(TypedDict):
+    user_id: str | None
+    repo_id: int | None
+    ecosystem: DependencyEcosystem | None
+    name: str | None
+    dev: bool | None
+    technology_id: int | None
 
 
 class GithubInstallation(TypedDict):
@@ -658,6 +677,50 @@ class TagOverride(TypedDict):
     concepts: list[str]
     updated_by: str
     updated_at: datetime
+
+
+class Technology(TypedDict):
+    id: int
+    slug: str
+    name: str
+    source: TechnologySource
+    retired_at: datetime | None
+
+
+class TechnologyConcept(TypedDict):
+    technology_id: int
+    concept_id: int
+    origin: TechnologySource
+
+
+class TechnologyPackage(TypedDict):
+    ecosystem: DependencyEcosystem
+    pattern: str
+    prefix: bool
+    technology_id: int
+    origin: TechnologySource
+
+
+class TechnologySuggestion(TypedDict):
+    id: int
+    ecosystem: DependencyEcosystem
+    package: str
+    users: int
+    name: str | None
+    slug: str | None
+    concepts: list[str]
+    model: str
+    status: SuggestionStatus
+    decided_by: str | None
+    decided_at: datetime | None
+    created_at: datetime
+
+
+class UnclaimedDependency(TypedDict):
+    ecosystem: DependencyEcosystem | None
+    package: str | None
+    users: int | None
+    asked: bool | None
 
 
 class UserArticleFinished(TypedDict):

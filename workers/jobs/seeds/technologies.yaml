@@ -1,0 +1,357 @@
+# Technology seed (PER-4, §5H, P2-W12-S03). `load-technologies` syncs it into the
+# technology tables. The owner edits and approves this file; bump `version` on every
+# change. Dependencies in connected repositories resolve to technologies by package
+# name, and technologies to the concepts they make worth learning.
+#
+# PROVISIONAL (2026-10-29): Claude drafted these 61 and added 10 after review (2026-10-29). NOT owner-approved yet.
+#
+# Fields per technology:
+#   slug (required, kebab-case, the key; never reuse a retired one), name,
+#   packages: per ecosystem (npm, pypi, go), package names; one ending in `*` is a
+#     prefix (`@nestjs/*`; `github.com/jackc/pgx*` for Go's /vN module paths),
+#   concepts: 1-4 concept slugs from concepts.yaml.
+# A technology removed from this file is retired, never deleted. Technologies accepted
+# from suggestions (the admin page) live in the database and are left alone here.
+
+version: 1
+
+technologies:
+  # --- web frameworks and servers ---------------------------------------------------
+  - slug: nextjs
+    name: Next.js
+    packages: { npm: [next] }
+    concepts: [http-caching-headers, cdn, http-request-lifecycle, stateless-services]
+  - slug: react
+    name: React
+    packages: { npm: [react, react-dom] }
+    concepts: [cross-site-scripting, http-caching-headers]
+  - slug: express
+    name: Express
+    packages: { npm: [express] }
+    concepts: [http-request-lifecycle, rest-api-design, rate-limiting, cors]
+  - slug: nestjs
+    name: NestJS
+    packages: { npm: ["@nestjs/*"] }
+    concepts: [rest-api-design, monoliths-and-microservices, health-checks]
+  - slug: fastify
+    name: Fastify
+    packages: { npm: [fastify] }
+    concepts: [http-request-lifecycle, event-loop, rest-api-design]
+  - slug: hono-koa
+    name: Hono and Koa
+    packages: { npm: [hono, koa] }
+    concepts: [http-request-lifecycle, rest-api-design]
+  - slug: vue-svelte
+    name: Vue, Nuxt and SvelteKit
+    packages: { npm: [vue, nuxt, "@sveltejs/kit"] }
+    concepts: [cross-site-scripting, http-caching-headers]
+  - slug: fiber
+    name: Fiber
+    packages: { go: ["github.com/gofiber/fiber*", github.com/gorilla/mux] }
+    concepts: [http-request-lifecycle, rest-api-design]
+  - slug: gunicorn
+    name: Gunicorn
+    packages: { pypi: [gunicorn] }
+    concepts: [threads-and-processes, graceful-shutdown]
+  - slug: fastapi
+    name: FastAPI
+    packages: { pypi: [fastapi] }
+    concepts: [rest-api-design, event-loop, serialization-formats, api-versioning]
+  - slug: starlette-uvicorn
+    name: Starlette and Uvicorn
+    packages: { pypi: [starlette, uvicorn, sse-starlette] }
+    concepts: [event-loop, server-sent-events, graceful-shutdown]
+  - slug: django
+    name: Django
+    packages: { pypi: [django, djangorestframework] }
+    concepts: [schema-migrations, session-management, csrf, n-plus-one-queries]
+  - slug: flask
+    name: Flask
+    packages: { pypi: [flask] }
+    concepts: [http-request-lifecycle, rest-api-design, session-management]
+  - slug: gin
+    name: Gin
+    packages: { go: [github.com/gin-gonic/gin] }
+    concepts: [http-request-lifecycle, rest-api-design, rate-limiting]
+  - slug: chi
+    name: chi
+    packages: { go: ["github.com/go-chi/chi*"] }
+    concepts: [http-request-lifecycle, rest-api-design, timeouts]
+  - slug: echo
+    name: Echo
+    packages: { go: ["github.com/labstack/echo*"] }
+    concepts: [http-request-lifecycle, rest-api-design]
+
+  # --- HTTP clients ------------------------------------------------------------------
+  - slug: http-clients
+    name: HTTP clients
+    packages: { npm: [axios, got, ky], pypi: [httpx, requests, aiohttp] }
+    concepts: [timeouts, retries-with-backoff, connection-pooling, idempotency]
+  - slug: retry-libraries
+    name: Retry libraries
+    packages:
+      { npm: [p-retry, async-retry], pypi: [tenacity, backoff], go: ["github.com/sethvargo/go-retry*", "github.com/cenkalti/backoff*"] }
+    concepts: [retries-with-backoff, idempotency, metastable-failures]
+
+  # --- databases and drivers -------------------------------------------------------
+  - slug: postgresql
+    name: PostgreSQL
+    packages:
+      npm: [pg, postgres, "@neondatabase/serverless"]
+      pypi: [psycopg, psycopg2, psycopg2-binary, asyncpg, psycopg-pool]
+      go: ["github.com/jackc/pgx*", github.com/lib/pq]
+    concepts: [mvcc, indexes, transactions, connection-pooling]
+  - slug: mysql
+    name: MySQL
+    packages:
+      { npm: [mysql, mysql2], pypi: [pymysql, mysqlclient], go: [github.com/go-sql-driver/mysql] }
+    concepts: [b-tree-index, clustered-index, isolation-levels, read-replicas]
+  - slug: sqlite
+    name: SQLite
+    packages: { npm: [better-sqlite3, sqlite3], go: [github.com/mattn/go-sqlite3, modernc.org/sqlite] }
+    concepts: [write-ahead-log, b-tree-index, durability-and-fsync]
+  - slug: mongodb
+    name: MongoDB
+    packages: { npm: [mongodb, mongoose], pypi: [pymongo, motor], go: [go.mongodb.org/mongo-driver] }
+    concepts: [document-databases, sharding, replication, eventual-consistency]
+  - slug: redis
+    name: Redis
+    packages:
+      npm: [redis, ioredis]
+      pypi: [redis]
+      go: ["github.com/redis/go-redis*", "github.com/go-redis/redis*"]
+    concepts: [in-memory-data-stores, cache-aside, distributed-locks, rate-limiter-design]
+  - slug: dynamodb
+    name: DynamoDB
+    packages:
+      npm: ["@aws-sdk/client-dynamodb", "@aws-sdk/lib-dynamodb"]
+      go: ["github.com/aws/aws-sdk-go-v2/service/dynamodb*"]
+    concepts: [key-value-stores, partitioning, hot-keys, eventual-consistency]
+  - slug: cassandra
+    name: Cassandra
+    packages: { npm: [cassandra-driver], pypi: [cassandra-driver], go: [github.com/gocql/gocql] }
+    concepts: [wide-column-stores, leaderless-replication, quorums, sstables-and-compaction]
+  - slug: elasticsearch
+    name: Elasticsearch and OpenSearch
+    packages:
+      npm: ["@elastic/elasticsearch", "@opensearch-project/opensearch"]
+      pypi: [elasticsearch, opensearch-py]
+      go: ["github.com/elastic/go-elasticsearch*"]
+    concepts: [inverted-index, full-text-search, sharding]
+  - slug: graph-databases
+    name: Graph databases
+    packages: { npm: [neo4j-driver], pypi: [neo4j, falkordb], go: ["github.com/neo4j/neo4j-go-driver*"] }
+    concepts: [graph-databases]
+  - slug: vector-databases
+    name: Vector databases
+    packages:
+      { npm: ["@pinecone-database/pinecone", pgvector], pypi: [pgvector, pinecone, qdrant-client, chromadb, faiss-cpu, pymilvus, weaviate-client] }
+    concepts: [vector-search, approximate-nearest-neighbor]
+  - slug: clickhouse
+    name: ClickHouse
+    packages: { npm: ["@clickhouse/client"], pypi: [clickhouse-connect], go: ["github.com/ClickHouse/clickhouse-go*"] }
+    concepts: [column-oriented-storage, oltp-vs-olap, materialized-views]
+
+  # --- ORMs, query builders, migrations --------------------------------------------
+  - slug: knex-sqlx
+    name: Knex and sqlx
+    packages: { npm: [knex], go: [github.com/jmoiron/sqlx] }
+    concepts: [sql-joins, transactions, sql-injection]
+  - slug: supabase
+    name: Supabase
+    packages: { npm: ["@supabase/supabase-js"], pypi: [supabase] }
+    concepts: [rbac, connection-pooling, authentication-vs-authorization]
+  - slug: prisma
+    name: Prisma
+    packages: { npm: [prisma, "@prisma/client"] }
+    concepts: [schema-migrations, n-plus-one-queries, connection-pooling]
+  - slug: drizzle
+    name: Drizzle
+    packages: { npm: [drizzle-orm, drizzle-kit] }
+    concepts: [schema-migrations, sql-joins, transactions]
+  - slug: kysely
+    name: Kysely
+    packages: { npm: [kysely] }
+    concepts: [sql-joins, transactions, sql-injection]
+  - slug: typeorm-sequelize
+    name: TypeORM and Sequelize
+    packages: { npm: [typeorm, sequelize] }
+    concepts: [n-plus-one-queries, schema-migrations, optimistic-locking]
+  - slug: sqlalchemy
+    name: SQLAlchemy
+    packages: { pypi: [sqlalchemy, sqlmodel, alembic] }
+    concepts: [n-plus-one-queries, schema-migrations, transactions, connection-pooling]
+  - slug: gorm
+    name: GORM
+    packages: { go: [gorm.io/gorm] }
+    concepts: [n-plus-one-queries, schema-migrations, transactions]
+  - slug: go-migrations
+    name: Go migration tools
+    packages: { go: ["github.com/pressly/goose*", "github.com/golang-migrate/migrate*"] }
+    concepts: [schema-migrations, schema-evolution]
+
+  # --- queues, streams, jobs --------------------------------------------------------
+  - slug: bullmq
+    name: BullMQ
+    packages: { npm: [bullmq, bull], pypi: [bullmq] }
+    concepts: [background-jobs, at-least-once-delivery, dead-letter-queues, idempotency-keys]
+  - slug: sqs
+    name: Amazon SQS
+    packages: { npm: ["@aws-sdk/client-sqs"], go: ["github.com/aws/aws-sdk-go-v2/service/sqs*"] }
+    concepts: [message-queues, at-least-once-delivery, dead-letter-queues]
+  - slug: asynq
+    name: Asynq
+    packages: { go: [github.com/hibiken/asynq] }
+    concepts: [background-jobs, retries-with-backoff]
+  - slug: celery
+    name: Celery
+    packages: { pypi: [celery, rq, dramatiq, kombu] }
+    concepts: [background-jobs, message-queues, retries-with-backoff]
+  - slug: kafka
+    name: Kafka
+    packages:
+      npm: [kafkajs]
+      pypi: [confluent-kafka, kafka-python, aiokafka]
+      go: ["github.com/segmentio/kafka-go*", "github.com/confluentinc/confluent-kafka-go*", "github.com/IBM/sarama*"]
+    concepts: [log-based-message-brokers, consumer-groups, exactly-once-processing, message-ordering]
+  - slug: rabbitmq
+    name: RabbitMQ
+    packages: { npm: [amqplib], pypi: [pika, aio-pika], go: ["github.com/rabbitmq/amqp091-go*"] }
+    concepts: [message-queues, at-least-once-delivery, dead-letter-queues, backpressure]
+  - slug: nats
+    name: NATS
+    packages: { npm: [nats], pypi: [nats-py], go: ["github.com/nats-io/nats.go*"] }
+    concepts: [publish-subscribe, message-queues, at-least-once-delivery]
+  - slug: temporal
+    name: Temporal
+    packages: { npm: ["@temporalio/*"], pypi: [temporalio], go: ["go.temporal.io/sdk*"] }
+    concepts: [saga-pattern, job-scheduler-design, idempotency]
+
+  # --- APIs and protocols -----------------------------------------------------------
+  - slug: grpc
+    name: gRPC and Protocol Buffers
+    packages:
+      npm: ["@grpc/grpc-js", "@grpc/proto-loader", google-protobuf, "@bufbuild/protobuf"]
+      pypi: [grpcio, protobuf]
+      go: [google.golang.org/grpc, google.golang.org/protobuf, github.com/golang/protobuf]
+    concepts: [grpc, serialization-formats, http2-and-http3]
+  - slug: graphql
+    name: GraphQL
+    packages:
+      { npm: [graphql, "@apollo/server", "@apollo/client", urql], pypi: [graphene, strawberry-graphql], go: [github.com/99designs/gqlgen] }
+    concepts: [graphql, n-plus-one-queries, api-gateway]
+  - slug: websockets
+    name: WebSockets
+    packages:
+      { npm: [ws, socket.io, socket.io-client], pypi: [websockets], go: [github.com/gorilla/websocket, nhooyr.io/websocket] }
+    concepts: [websockets, chat-system-design, long-polling]
+  - slug: openapi
+    name: OpenAPI and Swagger
+    packages:
+      npm: [swagger-ui-express, "@nestjs/swagger", openapi-typescript]
+      go: ["github.com/swaggo/*", "github.com/go-openapi/*"]
+    concepts: [rest-api-design, api-versioning]
+
+  # --- auth and security ------------------------------------------------------------
+  - slug: jwt-libraries
+    name: JWT libraries
+    packages:
+      npm: [jsonwebtoken, jose]
+      pypi: [pyjwt, python-jose]
+      go: ["github.com/golang-jwt/jwt*", "github.com/go-jose/go-jose*", "github.com/MicahParks/keyfunc*"]
+    concepts: [jwt, authentication-vs-authorization, oauth2-and-oidc]
+  - slug: auth-frameworks
+    name: Auth frameworks
+    packages:
+      { npm: [next-auth, better-auth, passport, "@auth/core", lucia], pypi: [authlib, django-allauth], go: [golang.org/x/oauth2] }
+    concepts: [oauth2-and-oidc, session-management, authentication-vs-authorization]
+  - slug: password-hashing
+    name: Password hashing
+    packages: { npm: [bcrypt, bcryptjs, argon2], pypi: [bcrypt, argon2-cffi, passlib], go: [golang.org/x/crypto] }
+    concepts: [password-hashing]
+  - slug: firebase
+    name: Firebase
+    packages:
+      npm: [firebase, firebase-admin]
+      pypi: [firebase-admin]
+      go: ["firebase.google.com/go*", cloud.google.com/go/firestore]
+    concepts: [document-databases, authentication-vs-authorization, eventual-consistency]
+
+  # --- cloud, storage, infrastructure ---------------------------------------------
+  - slug: aws-sdk
+    name: AWS SDKs
+    packages: { npm: ["@aws-sdk/*", aws-sdk], pypi: [boto3, aioboto3], go: ["github.com/aws/aws-sdk-go*"] }
+    concepts: [object-storage, presigned-urls, secrets-management]
+  - slug: aws-cdk
+    name: AWS CDK
+    packages: { npm: [aws-cdk-lib, aws-cdk], pypi: [aws-cdk-lib] }
+    concepts: [autoscaling, load-balancing, secrets-management]
+  - slug: google-cloud
+    name: Google Cloud client libraries
+    packages: { npm: ["@google-cloud/*"], pypi: [google-cloud-storage, google-cloud-pubsub], go: ["cloud.google.com/go*"] }
+    concepts: [object-storage, publish-subscribe, secrets-management]
+  - slug: kubernetes-clients
+    name: Kubernetes clients
+    packages: { npm: ["@kubernetes/client-node"], pypi: [kubernetes], go: [k8s.io/client-go] }
+    concepts: [service-discovery, rolling-deployments, health-checks]
+
+  # --- observability ----------------------------------------------------------------
+  - slug: opentelemetry
+    name: OpenTelemetry
+    packages:
+      npm: ["@opentelemetry/*"]
+      pypi: [opentelemetry-api, opentelemetry-sdk]
+      go: ["go.opentelemetry.io/*"]
+    concepts: [distributed-tracing, metrics, observability]
+  - slug: logging-libraries
+    name: Structured logging
+    packages: { npm: [pino, winston], pypi: [structlog, loguru], go: [go.uber.org/zap, github.com/rs/zerolog, "github.com/sirupsen/logrus"] }
+    concepts: [structured-logging, observability]
+  - slug: prometheus
+    name: Prometheus
+    packages: { npm: [prom-client], pypi: [prometheus-client], go: ["github.com/prometheus/client_golang*"] }
+    concepts: [metrics, slos-and-error-budgets, tail-latency]
+  - slug: sentry
+    name: Sentry
+    packages: { npm: ["@sentry/*"], pypi: [sentry-sdk], go: [github.com/getsentry/sentry-go] }
+    concepts: [observability, distributed-tracing]
+
+  # --- state, caching, concurrency in the app -----------------------------------
+  - slug: in-process-caches
+    name: In-process caches
+    packages: { npm: [lru-cache, node-cache], pypi: [cachetools], go: ["github.com/hashicorp/golang-lru*", "github.com/dgraph-io/ristretto*"] }
+    concepts: [cache-eviction-policies, cache-invalidation, cache-stampede]
+  - slug: rate-limit-libraries
+    name: Rate-limiting libraries
+    packages: { npm: [express-rate-limit, rate-limiter-flexible], pypi: [slowapi], go: [golang.org/x/time] }
+    concepts: [rate-limiting, token-bucket, sliding-window-rate-limiting]
+  - slug: go-concurrency
+    name: Go concurrency packages
+    packages: { go: [golang.org/x/sync, go.uber.org/atomic] }
+    concepts: [concurrency-vs-parallelism, race-conditions, locks-and-mutexes]
+  - slug: asyncio
+    name: Python async
+    packages: { pypi: [anyio, trio, uvloop] }
+    concepts: [event-loop, concurrency-vs-parallelism, backpressure]
+
+  # --- search, data, AI --------------------------------------------------------------
+  - slug: data-processing
+    name: Data processing
+    packages: { pypi: [pandas, polars, pyspark, apache-beam, duckdb] }
+    concepts: [oltp-vs-olap, column-oriented-storage]
+  - slug: llm-sdks
+    name: LLM SDKs
+    packages: { npm: [openai, "@anthropic-ai/sdk", ai, langchain], pypi: [openai, anthropic, langchain, llama-index, mcp] }
+    concepts: [rate-limiting, retries-with-backoff, timeouts]
+  - slug: payments
+    name: Payment APIs
+    packages: { npm: [stripe], pypi: [stripe], go: ["github.com/stripe/stripe-go*"] }
+    concepts: [idempotency-keys, webhooks, payment-system-design]
+  - slug: data-fetching
+    name: TanStack Query and SWR
+    packages: { npm: ["@tanstack/react-query", swr] }
+    concepts: [caching, cache-invalidation, pagination]
+  - slug: feature-flag-sdks
+    name: Feature flag SDKs
+    packages: { npm: [launchdarkly-node-server-sdk, "@growthbook/growthbook", unleash-client], pypi: [launchdarkly-server-sdk, UnleashClient] }
+    concepts: [feature-flags, canary-releases]

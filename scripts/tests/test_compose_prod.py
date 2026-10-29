@@ -316,3 +316,15 @@ def test_a_systemd_timer_runs_sync_github_due_daily() -> None:
     deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
     assert "interval-github.timer" in deploy
     assert re.search(r"systemctl enable --now interval-github\.timer", deploy)
+
+
+# PER-4 (P2-W12-S03): the weekly technology suggestions, as EventBridge does in AWS.
+def test_a_systemd_timer_runs_suggest_technologies_weekly() -> None:
+    timer = (SYSTEMD / "interval-technologies.timer").read_text()
+    service = (SYSTEMD / "interval-technologies.service").read_text()
+    assert "OnCalendar=weekly" in timer
+    assert re.search(
+        r"^ExecStart=.*stack\.sh run suggest-technologies$", service, re.MULTILINE
+    )
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert re.search(r"systemctl enable --now interval-technologies\.timer", deploy)

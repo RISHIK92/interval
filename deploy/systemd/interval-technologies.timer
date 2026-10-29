@@ -1,0 +1,11 @@
+# VM mode (ADR-0011), PER-4 (P2-W12-S03): weekly. Persistent, so a VM that was off at
+# the scheduled time runs it once it is back; a package is only ever asked about once.
+[Unit]
+Description=Interval suggest-technologies every week
+
+[Timer]
+OnCalendar=weekly
+Persistent=true
+
+[Install]
+WantedBy=timers.target
