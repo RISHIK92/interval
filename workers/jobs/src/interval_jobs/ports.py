@@ -326,12 +326,15 @@ class RankedEntry:
 
     item_id: int
     moment_id: int | None
-    top_signal: str  # the rule that counted most: what the entry's note says
-    note_id: int | None  # its why-this-matters note (P1-W4-S06)
+    top_signal: str  # the rule that counted most (ranking inspection)
+    # ADR-0026: why the ranking showed it, in words; None when nothing counted.
+    reasons: str | None
     # The exploration arm that placed it (REC-4); None for a main pick. Opens and
     # finishes of it count toward that arm (P1-W5-S03).
     arm: "Arm | None" = None
     breakdown: "Breakdown | None" = None  # a starter feed's entries keep none
+    # Which reasons the line states, in its order, for "a reason is wrong".
+    reason_kinds: tuple[str, ...] = ()
 
 
 class Feed(Protocol):
@@ -1024,6 +1027,11 @@ class RankingInputs(Protocol):
         technologies map to (S03); empty when they haven't connected GitHub."""
         ...
 
+    def project_repositories(self, user_id: str) -> dict[str, tuple[str, ...]]:
+        """ADR-0026: each technology of the user's projects (by slug), with the
+        repositories that use it, for the user's own "Shown for" line."""
+        ...
+
     def concept_moments(
         self,
         concepts: frozenset[str],
@@ -1118,25 +1126,6 @@ class FetchValidators(Protocol):
         ...
 
 
-@dataclass(frozen=True)
-class NoteKey:
-    """What a card's explanation is cached by (ADR-0025): the item it cites, its
-    category, the level, and the template and detail its words name."""
-
-    item_id: int
-    signal: str
-    level: Difficulty
-    variant: str
-
-
-class Notes(Protocol):
-    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, int]:
-        """The note for each key, written with its text the first time only. Keys are
-        written in one order, so recomputes sharing notes wait rather than deadlock;
-        one waiting on another's uncommitted note gets that note once it commits."""
-        ...
-
-
 class Store(Protocol):
     """Repositories sharing one unit of work; the composition root commits it."""
 
@@ -1151,9 +1140,6 @@ class Store(Protocol):
 
     @property
     def feed(self) -> Feed: ...
-
-    @property
-    def notes(self) -> Notes: ...
 
     @property
     def invites(self) -> Invites: ...

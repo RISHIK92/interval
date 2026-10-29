@@ -11,7 +11,7 @@ const card: ArticleFeedCard = {
   articleTitle: "Consensus in practice",
   author: "Rae Writer",
   sourceName: "Example Engineering",
-  note: null,
+  reasons: null,
   projectNote: null,
   saved: false,
   frameable: false,
@@ -68,21 +68,20 @@ test("an article with no countable text says its length is unknown", () => {
   );
 });
 
-test("shows its note like a moment card does", () => {
+test("shows its reasons like a moment card does", () => {
   const html = renderToStaticMarkup(
     <ArticleCard
       card={{
         ...card,
-        note: { text: "Pitched at your beginner level.", ai: true },
+        reasons: { text: "Picked for: a beginner read", kinds: ["level_fit"] },
       }}
       chip="8-15"
       position={1}
       controls={null}
     />,
   );
-  expect(html).toMatch(
-    /<div class="[^"]*border-dashed[^"]*">Why this matters: Pitched at your beginner level\. <span[^>]*>AI<\/span><\/div>/,
-  );
+  expect(textOf(html)).toContain("Picked for: a beginner read");
+  expect(html).not.toContain("border-dashed"); // the app's words, not AI
 });
 
 // ADR-0018: a page that allows framing opens in Interval's reader, in this tab.

@@ -45,6 +45,7 @@ type EventName = Literal[
     "quiz_answered",
     "quiz_finished",
     "quiz_started",
+    "reason_reported",
     "section_finished",
     "session_started",
     "signup_completed",
@@ -85,6 +86,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "quiz_answered": 1,
     "quiz_finished": 1,
     "quiz_started": 2,
+    "reason_reported": 1,
     "section_finished": 2,
     "session_started": 1,
     "signup_completed": 1,
@@ -256,6 +258,19 @@ class QuizStartedProps(_Model):
     kind: Literal["test", "review"]
     item_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
     moment_id: str | None = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class ReasonReportedProps(_Model):
+    kind: Literal[
+        "topic_match",
+        "goal_match",
+        "project_match",
+        "level_fit",
+        "time_fit",
+        "quality",
+        "freshness",
+        "explore",
+    ]
 
 
 class SectionFinishedProps(_Model):
@@ -478,6 +493,12 @@ class QuizStartedEvent(_EnvelopeBase):
     props: QuizStartedProps
 
 
+class ReasonReportedEvent(_EnvelopeBase):
+    name: Literal["reason_reported"]
+    version: Literal[1]
+    props: ReasonReportedProps
+
+
 class SectionFinishedEvent(_EnvelopeBase):
     name: Literal["section_finished"]
     version: Literal[2]
@@ -535,6 +556,7 @@ type Envelope = Annotated[
     | QuizAnsweredEvent
     | QuizFinishedEvent
     | QuizStartedEvent
+    | ReasonReportedEvent
     | SectionFinishedEvent
     | SessionStartedEvent
     | SignupCompletedEvent

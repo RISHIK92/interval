@@ -37,7 +37,7 @@ export function MomentCard({
       }
       section={{ number: card.sectionNumber, count: card.sectionCount }}
       length={`${String(card.estimatedMinutes)} min reading`}
-      note={card.note}
+      reasons={card.reasons}
       projectNote={card.projectNote}
       read={{
         // ADR-0018: in Interval's reader when the publisher allows framing.

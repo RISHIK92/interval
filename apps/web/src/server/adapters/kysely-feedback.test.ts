@@ -3,6 +3,7 @@ import type { DB } from "@interval/db";
 import { sql, type Transaction } from "kysely";
 import { afterAll, expect, test } from "vitest";
 import { createDb } from "./kysely";
+import { kyselyAdminReview } from "./kysely-admin-review";
 import { kyselyFeedback } from "./kysely-feedback";
 
 // The feedback controls' writes (§5C, Q-P1-15, P1-W4-S07), each idempotent.
@@ -235,5 +236,33 @@ test("unsave removes a save; a repeat changes nothing", async () => {
       .where("content_item_id", "=", itemId)
       .execute();
     expect(left).toEqual([{ user_id: otherId }]);
+  });
+});
+
+// ADR-0026: a wrong reason is recorded once per user, item and reason, and the admin's
+// list puts reported items first with their counts.
+test("a reported reason is kept once and lifts the item in the admin list", async () => {
+  await inRollback(async (trx, { userId, itemId }) => {
+    const feedback = kyselyFeedback(trx);
+    expect(await feedback.reportReason(userId, itemId, "goal_match")).toBe(
+      true,
+    );
+    expect(await feedback.reportReason(userId, itemId, "goal_match")).toBe(
+      false,
+    );
+    expect(await feedback.reportReason(userId, itemId, "project_match")).toBe(
+      true,
+    );
+    expect(
+      await feedback.reportReason(userId, "999999999999", "goal_match"),
+    ).toBe(false);
+    const [first] = await kyselyAdminReview(trx).recent(5);
+    expect(first?.id).toBe(itemId);
+    expect(first?.reports).toEqual(
+      expect.arrayContaining([
+        { reason: "goal_match", count: 1 },
+        { reason: "project_match", count: 1 },
+      ]),
+    );
   });
 });

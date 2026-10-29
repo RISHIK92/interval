@@ -16,7 +16,7 @@ const card = (id: string): FeedCard => ({
   articleTitle: "Article",
   author: null,
   sourceName: "Source",
-  note: null,
+  reasons: null,
   projectNote: null,
   saved: false,
   frameable: false,

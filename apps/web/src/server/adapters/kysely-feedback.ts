@@ -61,6 +61,22 @@ export function kyselyFeedback(db: Kysely<DB>): Feedback {
         .execute();
       return added.length > 0;
     },
+    reportReason: async (userId, itemId, reason) => {
+      const added = await db
+        .insertInto("reason_report")
+        .columns(["user_id", "content_item_id", "reason"])
+        .expression(
+          item(itemId).select([
+            sql<string>`${userId}`.as("user_id"),
+            "id",
+            sql<string>`${reason}`.as("reason"),
+          ]),
+        )
+        .onConflict((oc) => oc.doNothing())
+        .returning("content_item_id")
+        .execute();
+      return added.length > 0;
+    },
     hiddenSources: async (userId) => {
       const rows = await db
         .selectFrom("user_hidden_source as h")

@@ -185,6 +185,22 @@
       "description": "A user disconnected GitHub; Interval's copy of their GitHub data is deleted (P2-W12-S01).",
       "props": {}
     },
+    "reason_reported": {
+      "version": 1,
+      "description": "A user said one of a card's \"Shown for\" reasons is wrong (ADR-0026).",
+      "props": {
+        "kind": [
+          "topic_match",
+          "goal_match",
+          "project_match",
+          "level_fit",
+          "time_fit",
+          "quality",
+          "freshness",
+          "explore"
+        ]
+      }
+    },
     "item_saved": {
       "version": 1,
       "description": "An item was saved (W4-S07; listed by the W5-S04 Library).",

@@ -173,18 +173,6 @@ test("the reader gets the link, titles, the user's note and save, and the next s
       })
       .returning("id")
       .executeTakeFirstOrThrow();
-    const note = await trx
-      .insertInto("feed_note")
-      .values({
-        content_item_id: itemId,
-        signal: "topic_match",
-        level: "beginner",
-        variant: "v1",
-        text: "Leaders get elected this way.",
-        model: "notes-model",
-      })
-      .returning("id")
-      .executeTakeFirstOrThrow();
     await trx
       .insertInto("user_feed_entry")
       .values({
@@ -194,7 +182,7 @@ test("the reader gets the link, titles, the user's note and save, and the next s
         moment_id: momentId,
         rank: 1,
         top_signal: "topic_match",
-        note_id: note.id,
+        reasons: "Shown for: your topics distributed systems",
       })
       .execute();
     await trx
@@ -214,14 +202,14 @@ test("the reader gets the link, titles, the user's note and save, and the next s
       articleTitle: "Post",
       sectionTitle: "Raft",
       sourceName: source.name,
-      note: { text: "Leaders get elected this way.", ai: true },
+      reasons: "Shown for: your topics distributed systems",
       saved: true,
       nextMomentId: next.id,
     });
-    // The last section has no next; its feed entry has no note here.
+    // The last section has no next; it has no feed entry, so no reasons.
     expect(await links.reader(userId, itemId, next.id)).toMatchObject({
       sectionTitle: "Paxos",
-      note: null,
+      reasons: null,
       nextMomentId: null,
     });
     // The whole article: no section, so no next either.
@@ -239,7 +227,7 @@ test("the reader says unknown frameability is not frameable, and nothing for no 
     const links = kyselyOutboundLinks(trx);
     expect(await links.reader(userId, itemId, null)).toMatchObject({
       frameable: false,
-      note: null,
+      reasons: null,
       saved: false,
     });
     expect(await links.reader(userId, "999999999999", null)).toBeNull();

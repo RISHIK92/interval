@@ -82,11 +82,20 @@ export function kyselyGitHub(db: Kysely<DB>): GitHubAccounts {
       }),
 
     disconnect: async (userId) => {
-      const gone = await db
-        .deleteFrom("github_account")
-        .where("user_id", "=", userId)
-        .executeTakeFirst();
-      return gone.numDeletedRows > 0n;
+      // One statement, so both happen or neither. ADR-0026: a "Shown for" line that
+      // names the user's repositories goes at once; the recompute the disconnect
+      // queues writes it again without them.
+      const result = await sql<{ gone: number }>`
+        with gone as (
+          delete from github_account where user_id = ${userId} returning user_id
+        ), cleared as (
+          update user_feed_entry set reasons = null, reason_kinds = '{}'
+          where user_id in (select user_id from gone)
+            and 'project_match' = any(reason_kinds)
+        )
+        select count(*)::int as gone from gone
+      `.execute(db);
+      return (result.rows[0]?.gone ?? 0) > 0;
     },
 
     get: async (userId) => {

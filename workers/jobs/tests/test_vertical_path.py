@@ -107,6 +107,9 @@ def test_one_feed_becomes_moment_cards_without_source_text(
         "frameable",
         # ADR-0019: the source's topic, for the card's picture; no source text.
         "source_topic",
+        # ADR-0026: why the ranking showed it, from its breakdown; no source text.
+        "reasons",
+        "reason_kinds",
     }
     for view, keys in (
         # P2-W12-S05: the user's own project line, from titles and repository

@@ -41,7 +41,6 @@ from interval_jobs.ports import (
     Finished,
     ItemDecisions,
     MomentRow,
-    NoteKey,
     PathDraft,
     QuestionBatchEntry,
     QuestionDraft,
@@ -2552,21 +2551,6 @@ def test_a_feed_holds_moments_and_whole_articles_in_rank_order(
     # Re-segmenting drops the moment's entry; the whole article stays.
     s.moments.replace(item, [])
     assert probe.feed_entries(user, "8-15") == [(item, None)]
-
-
-# Card explanations (ADR-0025): written once per key, reused after.
-def test_a_note_is_written_once_per_key(store: tuple[Store, Probe]) -> None:
-    s, _ = store
-    src = dup_source(s, "nt")
-    item = dup_item(s, src, "nt1", 3)
-    key = NoteKey(item, "trusted", "beginner", "trusted-1:")
-    other_key = NoteKey(item, "trusted", "advanced", "trusted-1:")
-    first = s.notes.ensure_all(
-        {key: "From dup-nt, one of the most trusted sources here.", other_key: "t"}
-    )
-    # A cache hit: the stored note comes back, whatever text was offered.
-    assert s.notes.ensure_all({key: "other words"}) == {key: first[key]}
-    assert first[key] != first[other_key]
 
 
 # Exploration outcomes (REC-4, P1-W4-S09): written by Week 5, read by ranking.

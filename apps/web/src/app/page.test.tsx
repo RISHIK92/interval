@@ -102,7 +102,7 @@ const card: FeedCard = {
   articleTitle: "Consensus in practice",
   author: null,
   sourceName: "Example Engineering",
-  note: null,
+  reasons: null,
   projectNote: null,
   saved: false,
   frameable: false,
@@ -225,7 +225,7 @@ test("the 8–15 chip renders whole-article cards next to moments", async () => 
         articleTitle: "A whole read",
         author: null,
         sourceName: "Example Engineering",
-        note: null,
+        reasons: null,
         projectNote: null,
         saved: false,
         frameable: false,
@@ -262,6 +262,32 @@ test("every card offers Save and the four other controls", async () => {
     /<details[^>]*><summary[^>]*>.*More options.*<\/summary>/,
   );
   expect(html).toContain('aria-label="Save Why consensus"');
+});
+
+// ADR-0026: the card says why it was shown, and its menu can report a reason as wrong.
+test("a card shows its reasons, and each can be reported as wrong", async () => {
+  current.mockResolvedValue(guest);
+  getFeed.mockResolvedValue(
+    feedOf([
+      {
+        ...card,
+        reasons: {
+          text: "Shown for: your topics backend · 3 min",
+          kinds: ["topic_match", "time_fit"],
+        },
+      },
+    ]),
+  );
+  const html = await render({});
+  expect(html).toContain("Shown for: your topics backend · 3 min");
+  expect(html).toContain("A reason is wrong");
+  for (const reason of ["topic_match", "time_fit"]) {
+    expect(html).toMatch(
+      new RegExp(
+        `<button[^>]*value="wrong_reason:${reason}"[^>]*name="control"`,
+      ),
+    );
+  }
 });
 
 test("after Not interested the page offers Undo for that item only", async () => {
@@ -634,7 +660,7 @@ test("an article card shows the article's note; a section card never does", asyn
         articleTitle: "A whole read",
         author: null,
         sourceName: "Example Engineering",
-        note: null,
+        reasons: null,
         projectNote: null,
         saved: false,
         frameable: false,

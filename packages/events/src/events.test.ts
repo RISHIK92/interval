@@ -51,6 +51,7 @@ describe("the event list (Q-P1-20)", () => {
         "book_checkpoint_finished",
         "github_connected", // P2-W12-S01
         "github_disconnected",
+        "reason_reported", // ADR-0026
       ].sort(),
     );
   });

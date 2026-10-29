@@ -57,7 +57,6 @@ from interval_jobs.ports import (
     ItemDecisions,
     MomentLink,
     MomentRow,
-    NoteKey,
     PathDraft,
     ProjectConcepts,
     ProjectNoteInput,
@@ -559,10 +558,10 @@ class PostgresMoments:
 # The ranked entries as rows, numbered in order; an entry whose item or moment is gone
 # is skipped.
 _RANKED_ROWS = """
-from unnest(%s::bigint[], %s::bigint[], %s::text[], %s::bigint[], %s::text[],
-            %s::text[], %s::jsonb[]) with ordinality
-  as r(item_id, moment_id, top_signal, note_id, explore_kind, explore_arm,
-       score_parts, rank)
+from unnest(%s::bigint[], %s::bigint[], %s::text[], %s::text[], %s::text[],
+            %s::text[], %s::jsonb[], %s::text[]) with ordinality
+  as r(item_id, moment_id, top_signal, reasons, explore_kind, explore_arm,
+       score_parts, reason_kinds, rank)
 where exists (select 1 from content_item ci where ci.id = r.item_id)
   and (r.moment_id is null
        or exists (select 1 from moment m where m.id = r.moment_id))
@@ -575,61 +574,24 @@ def _ranked_arrays(
     list[int],
     list[int | None],
     list[str],
-    list[int | None],
+    list[str | None],
     list[str | None],
     list[str | None],
     list[Jsonb | None],
+    list[str],
 ]:
     return (
         [r.item_id for r in ranked],
         [r.moment_id for r in ranked],
         [r.top_signal for r in ranked],
-        [r.note_id for r in ranked],
+        [r.reasons for r in ranked],
         [r.arm.kind if r.arm else None for r in ranked],
         [r.arm.key if r.arm else None for r in ranked],
         [Jsonb(asdict(r.breakdown)) if r.breakdown else None for r in ranked],
+        # One array literal per entry: unnest can't take an array of arrays of
+        # differing lengths.
+        ["{" + ",".join(r.reason_kinds) + "}" for r in ranked],
     )
-
-
-class PostgresNotes:
-    def __init__(self, conn: psycopg.Connection) -> None:
-        self._conn = conn
-
-    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, int]:
-        if not texts:
-            return {}
-        keys = sorted(texts, key=lambda k: (k.item_id, k.signal, k.level, k.variant))
-        columns = (
-            [k.item_id for k in keys],
-            [k.signal for k in keys],
-            [k.level for k in keys],
-            [k.variant for k in keys],
-        )
-        # Sorted, so two writers lock shared keys in one order. On another's
-        # uncommitted note this waits for its commit and then skips it.
-        self._conn.execute(
-            """
-            insert into feed_note (content_item_id, signal, level, variant, text)
-            select * from unnest(%s::bigint[], %s::text[], %s::difficulty[],
-                                 %s::text[], %s::text[])
-            on conflict (content_item_id, signal, level, variant) do nothing
-            """,
-            (*columns, [texts[k] for k in keys]),
-        )
-        # A second statement: its snapshot sees notes committed while the insert
-        # waited.
-        rows = self._conn.execute(
-            """
-            select n.id, n.content_item_id, n.signal, n.level, n.variant
-            from feed_note n
-            join unnest(%s::bigint[], %s::text[], %s::difficulty[], %s::text[])
-              as k(item, signal, level, variant)
-              on n.content_item_id = k.item and n.signal = k.signal
-              and n.level = k.level and n.variant = k.variant
-            """,
-            columns,
-        ).fetchall()
-        return {NoteKey(int(r[1]), r[2], r[3], r[4]): int(r[0]) for r in rows}
 
 
 class PostgresFeed:
@@ -667,10 +629,11 @@ class PostgresFeed:
                     f"""
                     insert into user_feed_entry
                       (user_id, chip, content_item_id, moment_id, rank, top_signal,
-                       note_id, explore_kind, explore_arm, score_parts)
+                       reasons, explore_kind, explore_arm, score_parts,
+                       reason_kinds)
                     select %s, %s::break_length, r.item_id, r.moment_id, r.rank,
-                           r.top_signal, r.note_id, r.explore_kind, r.explore_arm,
-                           r.score_parts
+                           r.top_signal, r.reasons, r.explore_kind, r.explore_arm,
+                           r.score_parts, r.reason_kinds::text[]
                     {_RANKED_ROWS}
                     """,
                     (user_id, chip, *_ranked_arrays(ranked)),
@@ -703,9 +666,10 @@ class PostgresFeed:
             self._conn.execute(
                 f"""
                 insert into starter_feed_entry
-                  (topic, level, chip, content_item_id, moment_id, rank, note_id)
+                  (topic, level, chip, content_item_id, moment_id, rank, reasons,
+                   reason_kinds)
                 select %s, %s, %s::break_length, r.item_id, r.moment_id, r.rank,
-                       r.note_id
+                       r.reasons, r.reason_kinds::text[]
                 {_RANKED_ROWS}
                 """,
                 (topic, level, chip, *_ranked_arrays(ranked)),
@@ -1589,6 +1553,19 @@ class PostgresRankingInputs:
         for concept, slug, name in rows:
             found.setdefault(str(concept), []).append((str(slug), str(name)))
         return {concept: tuple(techs) for concept, techs in found.items()}
+
+    def project_repositories(self, user_id: str) -> dict[str, tuple[str, ...]]:
+        rows = self._conn.execute(
+            """
+            select t.slug, array_agg(distinct r order by r)
+            from user_technology_concepts(%s) u
+            join technology t on t.id = u.technology_id
+            cross join unnest(u.repositories) r
+            group by t.slug
+            """,
+            (user_id,),
+        ).fetchall()
+        return {str(slug): tuple(str(r) for r in repos) for slug, repos in rows}
 
     def concept_moments(
         self,
@@ -3067,7 +3044,6 @@ class PostgresStore:
         self.items = PostgresItems(conn)
         self.moments = PostgresMoments(conn)
         self.feed = PostgresFeed(conn)
-        self.notes = PostgresNotes(conn)
         self.invites = PostgresInvites(conn)
         self.users = PostgresUsers(conn)
         self.grants = PostgresGrants(conn)

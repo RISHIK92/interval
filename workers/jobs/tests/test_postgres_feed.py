@@ -13,7 +13,7 @@ from psycopg import sql
 
 from interval_db.generated import BreakLength
 from interval_jobs.adapters.postgres import PostgresStore
-from interval_jobs.ports import Arm, Breakdown, NoteKey, RankedEntry
+from interval_jobs.ports import Arm, Breakdown, RankedEntry
 
 
 def add_item(
@@ -316,72 +316,49 @@ def test_an_entry_cannot_pair_a_moment_with_another_items_title(
         )
 
 
-def test_a_card_shows_its_template_note_unlabelled(
-    conn: psycopg.Connection,
-) -> None:
+# ADR-0026: the "Shown for" line is stored per entry and read through the view; a
+# starter feed's too.
+def test_a_cards_reasons_are_stored_and_shown(conn: psycopg.Connection) -> None:
     src = source(conn, "feedtest-j")
-    item = add_item(conn, src, "noted", datetime(2026, 10, 1, tzinfo=UTC), 2)
+    item = add_item(conn, src, "reasoned", datetime(2026, 10, 1, tzinfo=UTC), 2)
     store = PostgresStore(conn)
-    key = NoteKey(item, "fresh", "beginner", "fresh-1:")
-    note_id = store.notes.ensure_all({key: "New this week."})[key]
     me = user(conn)
-    noted, plain = moments_of(conn, item)
+    first, second = moments_of(conn, item)
     store.feed.replace_user(
         me,
         {
             "3-8": [
-                RankedEntry(item, noted, "freshness", note_id),
-                RankedEntry(item, plain, "quality", None),
+                RankedEntry(
+                    item,
+                    first,
+                    "topic_match",
+                    "Shown for: your topics",
+                    reason_kinds=("topic_match", "level_fit"),
+                ),
+                RankedEntry(item, second, "quality", None),
             ]
         },
         datetime.now(UTC),
     )
-
-    def shown() -> list[tuple[str | None, bool]]:
-        return conn.execute(
-            "select note_text, note_ai from user_feed_visible where user_id = %s "
-            "order by rank",
-            (me,),
-        ).fetchall()
-
-    # The app's own words (ADR-0025): no model, no AI label.
-    assert shown() == [("New this week.", False), (None, False)]
-    # A note goes with its item (it cites it, AI-3).
-    conn.execute("delete from content_item where id = %s", (item,))
-    gone = conn.execute(
-        "select count(*) from feed_note where id = %s", (note_id,)
-    ).fetchone()
-    assert gone == (0,)
-
-
-def test_two_recomputes_writing_one_note_agree_on_it(
-    conn: psycopg.Connection,
-) -> None:
-    # The second waits for the first's uncommitted note, then reads it: one note.
-    url = os.environ["DATABASE_URL"]
-    with psycopg.connect(url) as setup:
-        src = source(setup, f"feedtest-k-{uuid4().hex[:6]}")
-        item = add_item(setup, src, "shared", datetime(2026, 10, 1, tzinfo=UTC), 1)
-        setup.commit()
-    key = NoteKey(item, "freshness", "beginner", "")
-    with psycopg.connect(url) as first, psycopg.connect(url) as second:
-        mine = PostgresStore(first).notes.ensure_all({key: "New this week."})[key]
-        theirs: list[int] = []
-
-        def run_second() -> None:
-            theirs.append(PostgresStore(second).notes.ensure_all({key: "other"})[key])
-            second.commit()
-
-        thread = threading.Thread(target=run_second)
-        thread.start()
-        time.sleep(0.3)
-        assert theirs == []  # waiting on the first's uncommitted row
-        first.commit()
-        thread.join(timeout=10)
-        assert theirs == [mine]
-    with psycopg.connect(url) as cleanup:
-        cleanup.execute("delete from content_item where id = %s", (item,))
-        cleanup.execute("delete from source where id = %s", (src,))
+    assert conn.execute(
+        "select reasons, reason_kinds from user_feed_visible where user_id = %s "
+        "order by rank",
+        (me,),
+    ).fetchall() == [
+        ("Shown for: your topics", ["topic_match", "level_fit"]),
+        (None, []),
+    ]
+    store.feed.replace_starter(
+        "databases",
+        "beginner",
+        "3-8",
+        [RankedEntry(item, first, "topic_match", "Why it's here: databases")],
+    )
+    assert conn.execute(
+        "select reasons from starter_feed_visible where topic = 'databases' "
+        "and level = 'beginner' and chip = '3-8' and content_item_id = %s",
+        (item,),
+    ).fetchall() == [("Why it's here: databases",)]
 
 
 def test_an_explored_entry_is_stored_with_its_arm(conn: psycopg.Connection) -> None:

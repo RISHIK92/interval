@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { adminReview } from "../../../server/container";
+import type { ReasonKind } from "../../../server/ports";
 import { requireAdmin } from "../guard";
 import { ADMIN_MAIN, TABLE } from "../style";
 
@@ -7,7 +8,19 @@ export const dynamic = "force-dynamic";
 
 const LIMIT = 100;
 
-// ING-6: the items most recently fetched, to pick one to review.
+const REASON_NAMES: Record<ReasonKind, string> = {
+  explore: "something new",
+  topic_match: "topic",
+  goal_match: "goal",
+  project_match: "project",
+  level_fit: "level",
+  time_fit: "length",
+  quality: "trusted source",
+  freshness: "new this week",
+};
+
+// ING-6: the items most recently fetched, to pick one to review; items users reported
+// a "Shown for" reason on first (ADR-0026), to fix their tags or the seed mapping.
 export default async function ReviewListPage() {
   await requireAdmin();
   const items = await adminReview().recent(LIMIT);
@@ -23,6 +36,7 @@ export default async function ReviewListPage() {
               <th>Item</th>
               <th>Source</th>
               <th>Moments</th>
+              <th>Reported</th>
             </tr>
           </thead>
           <tbody>
@@ -38,6 +52,11 @@ export default async function ReviewListPage() {
                 </td>
                 <td className="text-ink-muted">{item.sourceName}</td>
                 <td>{item.momentCount} moments</td>
+                <td className="text-sm">
+                  {item.reports
+                    .map((r) => `${REASON_NAMES[r.reason]} ×${String(r.count)}`)
+                    .join(", ")}
+                </td>
               </tr>
             ))}
           </tbody>

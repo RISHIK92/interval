@@ -33,6 +33,7 @@ export const EVENT_NAMES = [
   "quiz_answered",
   "quiz_finished",
   "quiz_started",
+  "reason_reported",
   "section_finished",
   "session_started",
   "signup_completed",
@@ -72,6 +73,7 @@ export const EVENT_VERSIONS = {
   quiz_answered: 1,
   quiz_finished: 1,
   quiz_started: 2,
+  reason_reported: 1,
   section_finished: 2,
   session_started: 1,
   signup_completed: 1,
@@ -206,6 +208,18 @@ export const propsSchemas = {
       .string()
       .regex(/^[1-9][0-9]{0,18}$/)
       .nullable(),
+  }),
+  reason_reported: z.strictObject({
+    kind: z.enum([
+      "topic_match",
+      "goal_match",
+      "project_match",
+      "level_fit",
+      "time_fit",
+      "quality",
+      "freshness",
+      "explore",
+    ]),
   }),
   section_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done"]),
@@ -418,6 +432,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("quiz_started"),
     version: z.literal(2),
     props: propsSchemas.quiz_started,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("reason_reported"),
+    version: z.literal(1),
+    props: propsSchemas.reason_reported,
   }),
   z.strictObject({
     ...base,

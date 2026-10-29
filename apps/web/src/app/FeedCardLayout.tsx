@@ -5,7 +5,6 @@ import { SectionProgress } from "./SectionProgress";
 import { AiBox } from "./ui/AiBox";
 import { Card } from "./ui/Card";
 import { TopicArt } from "./ui/TopicArt";
-import { WhyNote } from "./WhyNote";
 
 // A feed card (design screen 2, ADR-0019): every card has the hero's shape, one at a
 // time in Home's sideways row, with its topic's picture when the source names one.
@@ -18,7 +17,7 @@ export function FeedCardLayout({
   context,
   section,
   length,
-  note,
+  reasons,
   projectNote = null,
   read,
   topic,
@@ -30,7 +29,7 @@ export function FeedCardLayout({
   context: string | null;
   section: { number: number; count: number } | null;
   length: string;
-  note: FeedCard["note"];
+  reasons: FeedCard["reasons"];
   projectNote?: FeedCard["projectNote"];
   read: {
     href: string;
@@ -86,12 +85,14 @@ export function FeedCardLayout({
             <SectionProgress number={section.number} count={section.count} />
           )}
           <p className="mt-3 text-ink-muted">{length}</p>
-          <div className="mt-3 empty:hidden">
-            {projectNote === null ? (
-              <WhyNote note={note} />
-            ) : (
-              // ADR-0025: the user's own project line, when written, is the card's
-              // one explanation (AI-1, AI-3: labelled AI, naming the repositories).
+          {reasons === null ? null : (
+            // ADR-0026: why the ranking showed it, every reason that counted.
+            <p className="mt-2 text-sm text-ink-muted">{reasons.text}</p>
+          )}
+          {projectNote === null ? null : (
+            // P2-W12-S05 (AI-1, AI-3): the user's own project line, labelled AI and
+            // naming the repositories.
+            <div className="mt-2">
               <AiBox>
                 <span className="font-semibold">
                   For your{" "}
@@ -100,8 +101,8 @@ export function FeedCardLayout({
                 </span>{" "}
                 {projectNote.text}
               </AiBox>
-            )}
-          </div>
+            </div>
+          )}
           {yourNote === null ? null : (
             <p className="mt-2 line-clamp-2 text-sm whitespace-pre-line">
               <span className="font-semibold">Your note: </span>

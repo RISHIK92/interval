@@ -73,14 +73,14 @@ export function kyselyOutboundLinks(db: Kysely<DB>): OutboundLinks {
               .orderBy("ordinal")
               .limit(1)
               .executeTakeFirst();
-      // An entry may sit in more than one chip; its note is the same entry's.
-      const note = await db
+      // An entry may sit in more than one chip; its reasons are the same entry's.
+      const entry = await db
         .selectFrom("user_feed_entry as fe")
-        .innerJoin("feed_note as n", "n.id", "fe.note_id")
-        .select(["n.text", "n.model"])
+        .select("fe.reasons")
         .where("fe.user_id", "=", userId)
         .where("fe.content_item_id", "=", itemId)
         .where("fe.moment_id", reached === null ? "is" : "=", reached)
+        .where("fe.reasons", "is not", null)
         .limit(1)
         .executeTakeFirst();
       return {
@@ -89,10 +89,7 @@ export function kyselyOutboundLinks(db: Kysely<DB>): OutboundLinks {
         articleTitle: item.title,
         sectionTitle: section?.title ?? null,
         sourceName: item.name,
-        note:
-          note === undefined
-            ? null
-            : { text: note.text, ai: note.model !== null },
+        reasons: entry?.reasons ?? null,
         saved: item.saved,
         nextMomentId: next?.id ?? null,
       };

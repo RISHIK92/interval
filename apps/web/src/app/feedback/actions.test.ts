@@ -13,6 +13,7 @@ const port = {
   save: vi.fn<Feedback["save"]>(() => Promise.resolve(true)),
   unsave: vi.fn<Feedback["unsave"]>(() => Promise.resolve(true)),
   notInterested: vi.fn<Feedback["notInterested"]>(),
+  reportReason: vi.fn<Feedback["reportReason"]>(() => Promise.resolve(true)),
 };
 const emit = vi.fn();
 const enqueue = vi.fn<() => Promise<void>>(() => Promise.resolve());
@@ -210,3 +211,28 @@ test.each(["https://evil.test/read/42", "//evil.test", "/\\evil.test"])(
     expect(error).toEqual(new Error("redirect:/?chip=3-8"));
   },
 );
+
+// ADR-0026: a reported reason is stored once and counted; the feed isn't recomputed.
+test("reporting a wrong reason stores it, emits it once and goes back", async () => {
+  await expect(press("wrong_reason:goal_match")).rejects.toThrow(
+    "redirect:/?chip=3-8",
+  );
+  expect(port.reportReason).toHaveBeenCalledExactlyOnceWith(
+    "g1",
+    "42",
+    "goal_match",
+  );
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "reason_reported",
+    { kind: "goal_match" },
+    context,
+  );
+  expect(enqueue).not.toHaveBeenCalled();
+  emit.mockClear();
+  port.reportReason.mockResolvedValueOnce(false); // already reported: no event
+  await expect(press("wrong_reason:goal_match")).rejects.toThrow(
+    "redirect:/?chip=3-8",
+  );
+  expect(emit).not.toHaveBeenCalled();
+  await expect(press("wrong_reason:nonsense")).rejects.toThrow("redirect:/");
+});

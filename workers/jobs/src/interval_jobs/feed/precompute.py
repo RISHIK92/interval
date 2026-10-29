@@ -12,11 +12,17 @@ from typing import get_args
 
 from interval_db.generated import BreakLength, Difficulty, Topic
 from interval_jobs import log
-from interval_jobs.feed.explain import concept_map, explain
 from interval_jobs.feed.project_notes import PROJECT_NOTES_PER_RECOMPUTE
+from interval_jobs.feed.reasons import (
+    STARTER_KINDS,
+    Chooser,
+    concept_map,
+    reasons_for,
+    render,
+    seeded,
+)
 from interval_jobs.ports import (
     JobQueue,
-    NoteKey,
     RankedEntry,
     Store,
     UserPreferences,
@@ -28,7 +34,6 @@ from interval_jobs.ranking.rank import (
     rank_for_preferences,
     rank_for_user,
 )
-from interval_jobs.ranking.scoring import Scored
 
 FEED_LIMIT = 50
 # Owner, 2026-10-26: active = an auth session used in the last 7 days. Better Auth moves
@@ -47,53 +52,49 @@ class Recomputed:
     project_notes: list[int] = field(default_factory=list[int])
 
 
-def _with_notes(
+def _with_reasons(
     store: Store,
     ranked: Ranked,
     preferences: UserPreferences,
     now: datetime,
     done: Recomputed,
     user_id: str | None,
+    feed: str,
 ) -> dict[BreakLength, list[RankedEntry]]:
-    """Every chip's entries with their explanation, if any (ADR-0025): a note is
-    written the first time its key comes up and reused after. One write for the
-    whole feed, so recomputes sharing notes take them in one order."""
+    """Every chip's entries with their "Shown for" line (ADR-0026), worded fresh each
+    recompute hour and least-used first across the feed, so cards differ."""
     projects = store.ranking.project_concepts(user_id) if user_id else {}
+    repositories = store.ranking.project_repositories(user_id) if user_id else {}
     goals = goal_sets(store.ranking, preferences, projects)
     concepts = concept_map(store.concepts.state())
-    keyed: dict[BreakLength, list[tuple[Scored, tuple[NoteKey, str] | None]]] = {
-        chip: [
-            (
-                s,
-                explain(
-                    s,
-                    preferences.level,
-                    now,
-                    goals,
-                    projects,
-                    concepts,
-                ),
-            )
-            for s in scored
-        ]
-        for chip, scored in ranked.items()
-    }
-    notes = store.notes.ensure_all(
-        {found[0]: found[1] for rows in keyed.values() for _, found in rows if found}
-    )
+    chooser = Chooser()
+    hour = now.strftime("%Y%m%d%H")
     by_chip: dict[BreakLength, list[RankedEntry]] = {}
-    for chip, rows in keyed.items():
+    for chip, scored in ranked.items():
         entries: list[RankedEntry] = []
-        for s, found in rows:
-            note_id = notes[found[0]] if found else None
+        for s in scored:
+            found = reasons_for(
+                s,
+                preferences.topics,
+                preferences.level,
+                now,
+                goals,
+                projects,
+                repositories,
+                concepts,
+            )
+            if user_id is None:
+                found = [r for r in found if r.kind in STARTER_KINDS]
+            line = render(found, chooser, seeded(feed, s.item_id, chip, hour))
             entries.append(
                 RankedEntry(
                     s.item_id,
                     s.moment_id,
                     s.top_signal,
-                    note_id,
+                    line,
                     s.arm,
                     s.breakdown,
+                    tuple(r.kind for r in found),
                 )
             )
         by_chip[chip] = entries
@@ -118,7 +119,7 @@ def recompute_user_feed(
         ranked = rank_for_user(store, user_id, model, now, FEED_LIMIT, rng)
         preferences = store.ranking.preferences(user_id)
         by_chip: dict[BreakLength, list[RankedEntry]] = (
-            _with_notes(store, ranked, preferences, now, done, user_id)
+            _with_reasons(store, ranked, preferences, now, done, user_id, user_id)
             if preferences
             else {chip: [] for chip in ranked}
         )
@@ -155,8 +156,8 @@ def recompute_starter(
     )
     try:
         ranked = rank_for_preferences(store, preferences, None, model, now, FEED_LIMIT)
-        for chip, entries in _with_notes(
-            store, ranked, preferences, now, done, None
+        for chip, entries in _with_reasons(
+            store, ranked, preferences, now, done, None, f"starter:{topic}:{level}"
         ).items():
             store.feed.replace_starter(topic, level, chip, entries)
     except Exception as error:

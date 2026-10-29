@@ -18,7 +18,6 @@ import { feedbackAction } from "../../feedback/actions";
 import { finishAction } from "../../finish/actions";
 import { NoteBox } from "../../NoteBox";
 import { StartQuiz, ZAP } from "../../quiz/StartQuiz";
-import { WhyNote } from "../../WhyNote";
 import { ReaderFrame } from "./ReaderFrame";
 
 export const dynamic = "force-dynamic";
@@ -176,7 +175,7 @@ export default async function ReadPage({
       <footer className="relative flex shrink-0 flex-col gap-3 border-t border-hairline bg-page px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
         {/* Room for the note icon at the footer's top right, Why or not. */}
         <div className="min-h-9 pr-12">
-          <Why note={page.note} />
+          <Why reasons={page.reasons} />
         </div>
         <NoteBox
           on={{ itemId: item, momentId: reached }}
@@ -330,27 +329,18 @@ function ComingLater({
   );
 }
 
-// Why this matters (§5E), one line until opened; AI only once a model wrote it (AI-1).
-function Why({ note }: { note: ReaderPage["note"] }) {
-  if (note === null) return null;
+// ADR-0026: why the ranking showed it, one line until opened.
+function Why({ reasons }: { reasons: ReaderPage["reasons"] }) {
+  if (reasons === null) return null;
   return (
     <details className="group">
-      <summary
-        className={`flex cursor-pointer list-none items-center gap-2 rounded-full border ${note.ai ? "border-dashed " : ""}border-hairline px-3 py-1.5 text-sm [&::-webkit-details-marker]:hidden`}
-      >
-        Why this matters
+      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full border border-hairline px-3 py-1.5 text-sm [&::-webkit-details-marker]:hidden">
         <span className="min-w-0 flex-1 truncate text-ink-muted group-open:hidden">
-          {note.text}
+          {reasons}
         </span>
-        {note.ai ? (
-          <span className="rounded-md bg-well px-1.5 py-0.5 text-xs font-semibold text-ink-muted">
-            AI
-          </span>
-        ) : null}
+        <span className="hidden group-open:inline">Why it&apos;s here</span>
       </summary>
-      <div className="mt-2 max-h-40 overflow-y-auto text-sm">
-        <WhyNote note={note} />
-      </div>
+      <p className="mt-2 max-h-40 overflow-y-auto text-sm">{reasons}</p>
     </details>
   );
 }

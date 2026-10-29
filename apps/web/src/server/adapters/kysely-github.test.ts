@@ -234,3 +234,64 @@ test("a fresh connect clears what was read under the old access", async () => {
     });
   });
 });
+
+// ADR-0026: disconnecting clears any "Shown for" line naming the user's repositories.
+test("disconnect clears reasons that name the user's repositories", async () => {
+  await inRollback(async (trx, [me]) => {
+    const github = kyselyGitHub(trx);
+    await github.connect(me, octo, [mine], {});
+    const source = await trx
+      .insertInto("source")
+      .values({
+        name: `gh-reasons-${me.slice(0, 8)}`,
+        feed_url: `https://gh-${me.slice(0, 8)}.example.test/feed.xml`,
+        rights_profile: "full_text_internal",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const item = await trx
+      .insertInto("content_item")
+      .values({
+        source_id: source.id,
+        guid: "g",
+        canonical_url: `https://gh-${me.slice(0, 8)}.example.test/p`,
+        title: "T",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("user_feed_entry")
+      .values([
+        {
+          user_id: me,
+          chip: "3-8",
+          content_item_id: item.id,
+          rank: 1,
+          top_signal: "project_match",
+          reasons: "Shown for: Next.js in octo/api",
+          reason_kinds: ["project_match"],
+        },
+        {
+          user_id: me,
+          chip: "1-3",
+          content_item_id: item.id,
+          rank: 1,
+          top_signal: "topic_match",
+          reasons: "Shown for: your topics backend",
+          reason_kinds: ["topic_match"],
+        },
+      ])
+      .execute();
+    expect(await github.disconnect(me)).toBe(true);
+    const left = await trx
+      .selectFrom("user_feed_entry")
+      .select(["chip", "reasons"])
+      .where("user_id", "=", me)
+      .orderBy("chip")
+      .execute();
+    expect(left).toEqual([
+      { chip: "1-3", reasons: "Shown for: your topics backend" },
+      { chip: "3-8", reasons: null },
+    ]);
+  });
+});

@@ -52,7 +52,7 @@ const page: ReaderPage = {
   articleTitle: "Consensus in practice",
   sectionTitle: "Raft",
   sourceName: "Pub Engineering",
-  note: { text: "Leaders get elected this way.", ai: true },
+  reasons: "Shown for: your topics distributed systems",
   saved: false,
   nextMomentId: "10",
 };
@@ -224,14 +224,13 @@ test("a section the link fell back from is closed and finished as the article", 
   );
 });
 
-test("the overlay: why this matters, Save that stays, Mark done, Next section, and three coming later", async () => {
+test("the overlay: why it's here, Save that stays, Mark done, Next section, and three coming later", async () => {
   current.mockResolvedValue(guest);
   reader.mockResolvedValue(page);
   const html = await render(card);
-  // AI-1, AI-3: the model's note is labelled AI.
-  expect(html).toContain("Leaders get elected this way.");
-  expect(html).toMatch(/border-dashed[^>]*>[^<]*Why this matters/);
-  expect(html).toContain(">AI</span>");
+  // ADR-0026: why the ranking showed it, the app's own words (no AI label).
+  expect(html).toContain("Shown for: your topics distributed systems");
+  expect(html).not.toContain(">AI</span>");
   // Save posts the feedback control and comes back to this reader.
   expect(html).toMatch(/<button[^>]*value="save"[^>]*name="control"/);
   expect(html).toContain(
@@ -277,19 +276,18 @@ test("with live questions, Test me starts a sprint on the section shown", async 
   expect(html).toContain('name="chip" value="3-8"');
 });
 
-test("the last section has no Next section; a saved item says Saved; a template note is not AI", async () => {
+test("the last section has no Next section; a saved item says Saved; its reasons show", async () => {
   current.mockResolvedValue(guest);
   reader.mockResolvedValue({
     ...page,
     nextMomentId: null,
     saved: true,
-    note: { text: "A classic.", ai: false },
+    reasons: "Why it's here: a classic",
   });
   const html = await render(card);
   expect(html).not.toContain("Next section");
   expect(html).toMatch(/<button[^>]*value="unsave"[^>]*name="control"/);
-  expect(html).toContain("A classic.");
-  expect(html).not.toContain(">AI</span>");
+  expect(html).toContain("Why it&#x27;s here: a classic");
 });
 
 // Opened from the Library (owner, 2026-10-26): no feed event, and closing or Mark done

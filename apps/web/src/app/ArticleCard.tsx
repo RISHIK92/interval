@@ -31,7 +31,7 @@ export function ArticleCard({
       context={null}
       section={null}
       length={`Whole article · ${length}`}
-      note={card.note}
+      reasons={card.reasons}
       projectNote={card.projectNote}
       read={{
         // ADR-0018: in Interval's reader when the publisher allows framing.

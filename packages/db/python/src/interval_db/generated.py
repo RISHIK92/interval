@@ -625,6 +625,13 @@ class RankingConfig(TypedDict):
     note: str
 
 
+class ReasonReport(TypedDict):
+    user_id: str
+    content_item_id: int
+    reason: str
+    reported_at: datetime
+
+
 class SchemaMeta(TypedDict):
     key: str
     value: str
@@ -659,6 +666,8 @@ class StarterFeedEntry(TypedDict):
     chip: BreakLength
     content_item_id: int
     note_id: int | None
+    reasons: str | None
+    reason_kinds: list[str]
 
 
 class StarterFeedVisible(TypedDict):
@@ -681,6 +690,8 @@ class StarterFeedVisible(TypedDict):
     note_ai: bool | None
     frameable: bool | None
     source_topic: Topic | None
+    reasons: str | None
+    reason_kinds: list[str] | None
 
 
 class TagOverride(TypedDict):
@@ -781,6 +792,8 @@ class UserFeedEntry(TypedDict):
     explore_kind: str | None
     explore_arm: str | None
     score_parts: JsonValue | None
+    reasons: str | None
+    reason_kinds: list[str]
 
 
 class UserFeedState(TypedDict):
@@ -809,6 +822,8 @@ class UserFeedVisible(TypedDict):
     source_topic: Topic | None
     project_note_text: str | None
     project_note_repositories: list[str] | None
+    reasons: str | None
+    reason_kinds: list[str] | None
 
 
 class UserHiddenSource(TypedDict):

@@ -1,0 +1,87 @@
+# "Shown for" reasons (ADR-0026): why the ranking showed a card, rendered from its own
+# breakdown. PROVISIONAL: drafted 2026-10-29 for the owner's review.
+#
+# A line is a lead, then one phrase per reason (largest first), joined in one style:
+#   "Shown for: your topics backend and distributed systems · an intermediate read · 3 min"
+#
+# {fact} is a fact from the ranking; {fact.a} puts "a" or "an" before it. Every frame
+# of a reason must use all of that reason's facts and no others (the loader checks):
+#   topic_match    topics                       the user's topics the item is on
+#   goal_match     goal, concept                the goal, and the concept that matched it
+#   project_match  technology, repositories, concept
+#   level_fit      level
+#   time_fit       minutes
+#   quality        source                       only for a source rated 4 or 5
+#   freshness      source                       only when published within 7 days
+#   explore        arm                          an exploration pick: the topic or source
+# #symbol# expands to one of that symbol's options. Frames are noun phrases with no
+# verb agreeing with a fact ("indexes comes" can't happen). About 1 in 5 options is
+# playful; the facts stay the same either way. Goal and project concepts come from
+# the model's tags (AI-3), so their frames say "tagged" (the loader checks).
+leads:
+  - "Shown for:"
+  - "Why it's here:"
+  - "Picked for:"
+  - "In your feed because of:"
+  - "The reasons:"
+  - "Your feed's reasoning:"
+  - "The case for this one:"
+  - "git blame:"
+  - "Exhibit A:"
+
+# sep between reasons, last before the final one.
+joins:
+  - { sep: " · ", last: " · " }
+  - { sep: ", ", last: " and " }
+  - { sep: "; ", last: "; " }
+  - { sep: " + ", last: " + " }
+
+reasons:
+  topic_match:
+    - "your #topicword# {topics}"
+    - "your interest in {topics}"
+    - "being about {topics}"
+    - "{topics}, as you asked"
+    - "{topics}, your kind of thing"
+  goal_match:
+    - "your goal to {goal} (tagged {concept})"
+    - "tagged {concept}, #toward# your goal to {goal}"
+    - "tagged {concept}: an angle on your goal to {goal}"
+    - "tagged {concept}: XP toward your goal to {goal}"
+  project_match:
+    - "{technology} in {repositories} (tagged {concept})"
+    - "tagged {concept}, #via# {technology} in {repositories}"
+    - "your stack: {technology} in {repositories} → tagged {concept}"
+    - "tagged {concept}, relevant to {repositories} ({technology})"
+    - "{repositories} ({technology}) meets tagged {concept}"
+  level_fit:
+    - "your level ({level})"
+    - "{level.a} read"
+    - "pitched at {level}"
+    - "difficulty: {level}"
+  time_fit:
+    - "{minutes} min"
+    - "{minutes.a}-minute read"
+    - "#short# at {minutes} min"
+    - "{minutes} min, coffee-sized"
+    - "{minutes} min, shorter than a standup"
+  quality:
+    - "{source}, #trusted#"
+    - "a #trusted# source ({source})"
+    - "{source}, high signal-to-noise"
+  freshness:
+    - "#fresh# from {source}"
+    - "new this week ({source})"
+    - "{source}, still warm"
+  explore:
+    - "something new: {arm}"
+    - "a detour into {arm}"
+    - "a side quest into {arm}"
+
+symbols:
+  topicword: ["topics", "chosen topics", "topic picks"]
+  via: ["via", "through", "by way of"]
+  toward: ["toward", "a step toward", "on the road to"]
+  short: ["short", "quick", "brief"]
+  trusted: ["top-rated", "one of the most trusted here", "highly rated"]
+  fresh: ["new this week", "fresh this week", "published this week"]

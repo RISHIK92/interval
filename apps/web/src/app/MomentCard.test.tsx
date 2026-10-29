@@ -14,7 +14,7 @@ const card: MomentFeedCard = {
   articleTitle: "Consensus in practice",
   author: "Rae Writer",
   sourceName: "Example Engineering",
-  note: null,
+  reasons: null,
   projectNote: null,
   saved: false,
   frameable: false,
@@ -68,30 +68,24 @@ test("omits the author when unknown", () => {
   expect(textOf(html)).toContain("Example Engineering / Raft in one page");
 });
 
-// P1-W4-S06: why this matters, labelled AI only once a model wrote it (AI-3, owner).
-test("shows the card's note, with an AI label only when a model wrote it", () => {
-  const template = renderToStaticMarkup(
+// ADR-0026: every card says why the ranking showed it, in the app's own words.
+test("shows the card's reasons, never labelled AI", () => {
+  const html = renderToStaticMarkup(
     <MomentCard
-      card={{ ...card, note: { text: "New this week.", ai: false } }}
+      card={{
+        ...card,
+        reasons: {
+          text: "Shown for: your topics backend · 3 min",
+          kinds: ["topic_match", "time_fit"],
+        },
+      }}
       chip="3-8"
       position={1}
       controls={null}
     />,
   );
-  expect(textOf(template)).toContain("Why this matters: New this week.");
-  expect(template).not.toContain("<small>AI</small>");
-  const polished = renderToStaticMarkup(
-    <MomentCard
-      card={{ ...card, note: { text: "Fresh, on your topic.", ai: true } }}
-      chip="3-8"
-      position={1}
-      controls={null}
-    />,
-  );
-  // In the dashed AI box, with its tag (AI-1).
-  expect(polished).toMatch(
-    /<div class="[^"]*border-dashed[^"]*">Why this matters: Fresh, on your topic\. <span[^>]*>AI<\/span><\/div>/,
-  );
+  expect(textOf(html)).toContain("Shown for: your topics backend · 3 min");
+  expect(html).not.toContain("border-dashed");
 });
 
 // Owner, 2026-10-26: a one-section article shows no progress bar, only its words.
@@ -145,14 +139,14 @@ test("a card with the user's note shows it, and one without shows nothing", () =
   ).not.toContain("Your note");
 });
 
-// P2-W12-S05, ADR-0025 (AI-1, AI-3): the user's project line, labelled AI and naming
-// the repository, is the card's one explanation; the template note gives way to it.
-test("a project note replaces the template note, in an AI box naming the repository", () => {
+// P2-W12-S05, ADR-0026 (AI-1, AI-3): the user's project line, labelled AI and naming
+// the repository, sits under the reasons.
+test("a project note shows under the reasons, in an AI box naming the repository", () => {
   const html = renderToStaticMarkup(
     <MomentCard
       card={{
         ...card,
-        note: { text: "Uses etcd, from your projects.", ai: false },
+        reasons: { text: "Shown for: your project", kinds: ["project_match"] },
         projectNote: {
           text: "Velox elects its leader the same way.",
           repositories: ["octo/velox"],
@@ -163,17 +157,17 @@ test("a project note replaces the template note, in an AI box naming the reposit
       controls={null}
     />,
   );
-  expect(textOf(html)).not.toContain("Why this matters");
+  expect(textOf(html)).toContain("Shown for: your project");
   expect(html).toMatch(
     /<div class="[^"]*border-dashed[^"]*"><span class="font-semibold">For your project octo\/velox:<\/span> Velox elects its leader the same way\. <span[^>]*>AI<\/span><\/div>/,
   );
 });
 
-// ADR-0025: a card with nothing to add shows no explanation at all.
-test("a card with no note and no project line shows no explanation", () => {
+// ADR-0026: a card where no reason counted shows no line.
+test("a card with no reasons and no project line shows no explanation", () => {
   const html = renderToStaticMarkup(
     <MomentCard card={card} chip="3-8" position={1} controls={null} />,
   );
-  expect(textOf(html)).not.toContain("Why this matters");
+  expect(textOf(html)).not.toContain("Shown for");
   expect(html).not.toContain("border-dashed");
 });

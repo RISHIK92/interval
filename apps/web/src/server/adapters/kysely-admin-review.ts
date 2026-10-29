@@ -1,10 +1,11 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import type {
-  AdminReview,
-  ReviewItem,
-  ReviewListing,
-  ReviewTags,
+import {
+  isReasonKind,
+  type AdminReview,
+  type ReviewItem,
+  type ReviewListing,
+  type ReviewTags,
 } from "../ports";
 
 // Postgres adapter (ADR-0012) for the admin review page (ING-6, P1-W3-S05). Reads
@@ -20,6 +21,8 @@ function tags(
 export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
   return {
     async recent(limit: number): Promise<ReviewListing[]> {
+      // ADR-0026: items users reported a reason on come first, most reported first;
+      // then the most recently fetched.
       const rows = await db
         .selectFrom("content_item as ci")
         .innerJoin("source as s", "s.id", "ci.source_id")
@@ -32,16 +35,48 @@ export function kyselyAdminReview(db: Kysely<DB>): AdminReview {
             .whereRef("m.content_item_id", "=", "ci.id")
             .select((m) => m.fn.countAll<string>().as("n"))
             .as("momentCount"),
+          eb
+            .selectFrom("reason_report as rr")
+            .whereRef("rr.content_item_id", "=", "ci.id")
+            .select((r) => r.fn.countAll<string>().as("n"))
+            .as("reportCount"),
         ])
+        .orderBy("reportCount", "desc")
         .orderBy("ci.fetched_at", "desc")
         .orderBy("ci.id", "desc")
         .limit(limit)
         .execute();
+      const reported = rows.filter((r) => Number(r.reportCount ?? 0) > 0);
+      const counts =
+        reported.length === 0
+          ? []
+          : await db
+              .selectFrom("reason_report")
+              .select((eb) => [
+                "content_item_id",
+                "reason",
+                eb.fn.countAll<string>().as("n"),
+              ])
+              .where(
+                "content_item_id",
+                "in",
+                reported.map((r) => r.id),
+              )
+              .groupBy(["content_item_id", "reason"])
+              .orderBy("n", "desc")
+              .execute();
       return rows.map((r) => ({
         id: r.id,
         title: r.title,
         sourceName: r.sourceName,
         momentCount: Number(r.momentCount ?? 0),
+        reports: counts
+          .filter((c) => c.content_item_id === r.id)
+          .flatMap((c) =>
+            isReasonKind(c.reason)
+              ? [{ reason: c.reason, count: Number(c.n) }]
+              : [],
+          ),
       }));
     },
 

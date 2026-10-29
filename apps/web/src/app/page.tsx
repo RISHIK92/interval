@@ -217,6 +217,7 @@ export default async function HomePage({
         title={card.kind === "moment" ? card.sectionTitle : card.articleTitle}
         saved={card.saved}
         chip={chip}
+        reasons={card.reasons?.kinds ?? []}
         test={
           testable.has(quizKey(on.itemId, on.momentId))
             ? { momentId: on.momentId }

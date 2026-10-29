@@ -1,4 +1,5 @@
 import type { Chip } from "../server/chips";
+import type { ReasonKind } from "../server/ports";
 import { feedbackAction } from "./feedback/actions";
 import { StartQuiz, ZAP } from "./quiz/StartQuiz";
 
@@ -7,6 +8,18 @@ const ROUND =
   "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-hairline bg-page text-ink";
 const MENU_ITEM =
   "w-full rounded-xl px-3 py-2 text-left hover:bg-well focus-visible:bg-well";
+
+// ADR-0026: how each "Shown for" reason is named when reporting it.
+const REASON_LABELS: Record<ReasonKind, string> = {
+  explore: "Something new to try",
+  topic_match: "Your topics",
+  goal_match: "Your goal",
+  project_match: "Your project",
+  level_fit: "Your level",
+  time_fit: "Its length",
+  quality: "A trusted source",
+  freshness: "New this week",
+};
 
 // ADR-0006 C-20: Save on the card; the other controls in its overflow menu. One form
 // per card: the pressed button names the control (no client script needed).
@@ -17,6 +30,7 @@ export function CardControls({
   chip,
   originalHref,
   test,
+  reasons = [],
 }: {
   itemId: string;
   title: string;
@@ -27,6 +41,8 @@ export function CardControls({
   originalHref: string | null;
   // P2-W9-S02: Test 60s on the card's section (or article), when it has questions.
   test: { momentId: string | null } | null;
+  // ADR-0026: the reasons the card's "Shown for" line states, to report one as wrong.
+  reasons?: ReasonKind[];
 }) {
   // Every card has these buttons: the title tells them apart for a screen reader. The
   // Save button is only an icon, so its label is its whole name.
@@ -132,6 +148,28 @@ export function CardControls({
             >
               Hide this source
             </button>
+            {reasons.length === 0 ? null : (
+              <details>
+                <summary
+                  className={`${MENU_ITEM} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}
+                >
+                  A reason is wrong
+                </summary>
+                <div className="flex flex-col pl-3">
+                  {reasons.map((reason) => (
+                    <button
+                      key={reason}
+                      type="submit"
+                      name="control"
+                      value={`wrong_reason:${reason}`}
+                      className={`${MENU_ITEM} text-sm`}
+                    >
+                      {REASON_LABELS[reason]}
+                    </button>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
         </details>
       </form>

@@ -654,6 +654,13 @@ export interface RankingConfig {
   value: Numeric;
 }
 
+export interface ReasonReport {
+  content_item_id: Int8;
+  reason: string;
+  reported_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface SchemaMeta {
   key: string;
   value: string;
@@ -687,6 +694,8 @@ export interface StarterFeedEntry {
   moment_id: Int8 | null;
   note_id: Int8 | null;
   rank: number;
+  reason_kinds: Generated<string[]>;
+  reasons: string | null;
   topic: string;
 }
 
@@ -704,6 +713,8 @@ export interface StarterFeedVisible {
   note_ai: boolean | null;
   note_text: string | null;
   rank: number | null;
+  reason_kinds: string[] | null;
+  reasons: string | null;
   section_count: number | null;
   section_number: number | null;
   section_title: string | null;
@@ -807,6 +818,8 @@ export interface UserFeedEntry {
   moment_id: Int8 | null;
   note_id: Int8 | null;
   rank: number;
+  reason_kinds: Generated<string[]>;
+  reasons: string | null;
   score_parts: Json | null;
   top_signal: string;
   user_id: string;
@@ -832,6 +845,8 @@ export interface UserFeedVisible {
   project_note_repositories: string[] | null;
   project_note_text: string | null;
   rank: number | null;
+  reason_kinds: string[] | null;
+  reasons: string | null;
   section_count: number | null;
   section_number: number | null;
   section_title: string | null;
@@ -982,6 +997,7 @@ export interface DB {
   quiz_attempt: QuizAttempt;
   quiz_attempt_concept: QuizAttemptConcept;
   ranking_config: RankingConfig;
+  reason_report: ReasonReport;
   schema_meta: SchemaMeta;
   source: Source;
   starter_feed_entry: StarterFeedEntry;

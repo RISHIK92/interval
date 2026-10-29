@@ -59,7 +59,6 @@ from interval_jobs.ports import (
     ItemDecisions,
     MomentLink,
     MomentRow,
-    NoteKey,
     PathDraft,
     ProjectConcepts,
     ProjectNoteInput,
@@ -547,31 +546,6 @@ class InMemoryMoments:
         return sorted(
             (m for m in self.rows if m.item_id == item_id), key=lambda m: m.row.ordinal
         )
-
-
-@dataclass
-class StoredNote:
-    key: NoteKey
-    text: str
-    model: str | None = None  # set on notes a model polished before ADR-0025
-
-
-class InMemoryNotes:
-    def __init__(self) -> None:
-        self.rows: dict[int, StoredNote] = {}
-        self._next_id = 1
-
-    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, int]:
-        by_key = {note.key: note_id for note_id, note in self.rows.items()}
-        ids: dict[NoteKey, int] = {}
-        for key, text in texts.items():
-            note_id = by_key.get(key)
-            if note_id is None:
-                note_id = self._next_id
-                self._next_id += 1
-                self.rows[note_id] = StoredNote(key, text)
-            ids[key] = note_id
-        return ids
 
 
 class InMemoryFeed:
@@ -1184,6 +1158,8 @@ class InMemoryRankingInputs:
         self._store = store
         # P2-W12-S04: per user, the concepts their projects map to (tests set it).
         self.projects: dict[str, ProjectConcepts] = {}
+        # ADR-0026: per user, each technology's repositories (tests set it).
+        self.repositories: dict[str, dict[str, tuple[str, ...]]] = {}
         self.preferences_by_user: dict[str, UserPreferences] = {}
         self.hidden: set[tuple[str, int]] = set()  # (user, source id)
         # (user, item id, kind), oldest first: the order Postgres reads by given_at
@@ -1374,6 +1350,9 @@ class InMemoryRankingInputs:
 
     def project_concepts(self, user_id: str) -> ProjectConcepts:
         return dict(self.projects.get(user_id, {}))
+
+    def project_repositories(self, user_id: str) -> dict[str, tuple[str, ...]]:
+        return dict(self.repositories.get(user_id, {}))
 
     def concept_moments(
         self,
@@ -1829,7 +1808,6 @@ class InMemoryStore:
         self.invites = InMemoryInvites()
         self.users = InMemoryUsers()
         self.feed = InMemoryFeed(self.users, self.moments)
-        self.notes = InMemoryNotes()
         self.grants = InMemoryGrants(self.users)
         self.validators = InMemoryValidators()
         self.concepts = InMemoryConcepts()

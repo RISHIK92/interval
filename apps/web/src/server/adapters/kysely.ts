@@ -2,13 +2,14 @@ import type { Capability, DB, UserFeedVisible } from "@interval/db";
 import { Kysely, PostgresDialect, sql, type Selectable } from "kysely";
 import pg from "pg";
 import { log } from "../log";
-import type {
-  DatabasePing,
-  Entitlements,
-  FeedCard,
-  FeedReader,
-  InviteCodes,
-  Redemption,
+import {
+  isReasonKind,
+  type DatabasePing,
+  type Entitlements,
+  type FeedCard,
+  type FeedReader,
+  type InviteCodes,
+  type Redemption,
 } from "../ports";
 
 // Postgres adapters (ADR-0012) for the server ports.
@@ -54,8 +55,8 @@ const CARD_COLUMNS = [
   "article_title",
   "author",
   "source_name",
-  "note_text",
-  "note_ai",
+  "reasons",
+  "reason_kinds",
   "frameable",
   "source_topic",
 ] as const;
@@ -81,13 +82,8 @@ function savedBy(userId: string, itemColumn: string) {
   )`.as("saved");
 }
 
-// Columns any row may leave null: no known author, no note yet.
-const NULLABLE_ON_EVERY_ROW = [
-  "author",
-  "note_text",
-  "note_ai",
-  "source_topic",
-];
+// Columns any row may leave null: no known author, no reason that counted.
+const NULLABLE_ON_EVERY_ROW = ["author", "reasons", "source_topic"];
 // Columns an article row also leaves null: it has no moment, and maybe no length.
 const ARTICLE_NULLS = new Set([
   ...NULLABLE_ON_EVERY_ROW,
@@ -120,10 +116,13 @@ export function toCard(row: CardRow): FeedCard | null {
       articleTitle: article_title,
       author: row.author,
       sourceName: source_name,
-      note:
-        row.note_text === null
+      reasons:
+        row.reasons === null
           ? null
-          : { text: row.note_text, ai: row.note_ai === true },
+          : {
+              text: row.reasons,
+              kinds: (row.reason_kinds ?? []).filter(isReasonKind),
+            },
       projectNote:
         row.project_note_text == null || row.project_note_repositories == null
           ? null

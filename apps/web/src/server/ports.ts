@@ -15,6 +15,22 @@ import type {
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 
+// The reasons a "Shown for" line can state (ADR-0026), as the worker names them.
+export const REASON_KINDS = [
+  "topic_match",
+  "goal_match",
+  "project_match",
+  "level_fit",
+  "time_fit",
+  "quality",
+  "freshness",
+  "explore",
+] as const;
+export type ReasonKind = (typeof REASON_KINDS)[number];
+export function isReasonKind(kind: string): kind is ReasonKind {
+  return (REASON_KINDS as readonly string[]).includes(kind);
+}
+
 // What a card may show (§3.2, ING-2): no summary or body text. A moment, or in the
 // 8–15 chip a whole article (Q-P1-16, P1-W4-S05b).
 type CardBase = {
@@ -22,8 +38,9 @@ type CardBase = {
   articleTitle: string;
   author: string | null;
   sourceName: string;
-  // Why this matters (§5E, P1-W4-S06): `ai` once the notes model wrote it (AI-3).
-  note: { text: string; ai: boolean } | null;
+  // ADR-0026: why the ranking showed it ("Shown for: …"), and which reasons it states,
+  // for "a reason is wrong"; null when no reason counted.
+  reasons: { text: string; kinds: ReasonKind[] } | null;
   // P2-W12-S05 (§5B, AI-3): the notes model's line on why it matters to the user's
   // own repositories; only ever in that user's feed.
   projectNote: { text: string; repositories: string[] } | null;
@@ -91,8 +108,8 @@ export type ReaderPage = {
   articleTitle: string;
   sectionTitle: string | null; // null when the link is the article's page
   sourceName: string;
-  // The note on this entry in the user's feed, if it has one.
-  note: FeedCard["note"];
+  // Why the ranking showed this entry in the user's feed (ADR-0026), if it did.
+  reasons: string | null;
   saved: boolean;
   nextMomentId: string | null; // the section after the one reached, by order
 };
@@ -229,6 +246,13 @@ export interface Feedback {
   hideSource(userId: string, itemId: string): Promise<boolean>;
   save(userId: string, itemId: string): Promise<boolean>;
   unsave(userId: string, itemId: string): Promise<boolean>;
+  // ADR-0026: one of the card's "Shown for" reasons is wrong; once per user, item and
+  // reason. False when already reported (or the item is gone).
+  reportReason(
+    userId: string,
+    itemId: string,
+    reason: ReasonKind,
+  ): Promise<boolean>;
   notInterested(userId: string, itemId: string): Promise<boolean>;
   // The Profile page (§5A, Q-P1-36, P1-W4-S08).
   hiddenSources(userId: string): Promise<{ sourceId: string; name: string }[]>;
@@ -602,6 +626,8 @@ export type ReviewListing = {
   title: string;
   sourceName: string;
   momentCount: number;
+  // ADR-0026: users' "a reason is wrong" reports on it, by reason, most first.
+  reports: { reason: ReasonKind; count: number }[];
 };
 
 export interface AdminReview {

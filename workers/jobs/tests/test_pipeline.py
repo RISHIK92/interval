@@ -681,18 +681,14 @@ def recompute(world: World, key: str) -> None:
     world.run()
 
 
-# ADR-0025: with a notes model set, a recompute still calls no model for the card
-# explanations: they're the app's own words, never labelled AI.
-def test_card_explanations_never_call_the_notes_model() -> None:
+# ADR-0025, ADR-0026: with a notes model set, a recompute still calls no model for the
+# cards' "Shown for" lines: they're rendered from the ranking.
+def test_card_reasons_never_call_the_notes_model() -> None:
     world, llm = notes_world()
-    # A trusted source leading the ranking, so its cards do get a line.
-    world.store.sources.rows[world.source_id].quality_score = 5
-    world.store.ranking.config_rows["weight.quality"] = 5.0
     recompute(world, "r-1")
     entries = [e for chip in world.store.feed.users["u1"].values() for e in chip]
     assert entries
-    notes = world.store.notes.rows
-    assert notes and all(n.model is None for n in notes.values())
+    assert all(e.reasons for e in entries)
     assert llm.calls == 0
 
 
