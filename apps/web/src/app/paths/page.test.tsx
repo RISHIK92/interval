@@ -429,7 +429,7 @@ test("picking a path previews its sections on the right, to start it", async () 
   expect(html).toMatch(/<aside[^>]*class="fixed inset-0[^"]*lg:static/);
   expect(html).toContain("lg:-mr-6 lg:-ml-1 lg:overflow-y-auto");
   const other = html.slice(html.indexOf('id="path-7"'));
-  expect(other.slice(0, 300)).toContain("lg:opacity-40");
+  expect(other.slice(0, 300)).toContain("lg:opacity-40 lg:grayscale");
   expect(html.slice(html.indexOf('id="path-6"')).slice(0, 120)).not.toContain(
     "opacity-40",
   );

@@ -45,7 +45,8 @@ export function FirstVisit({
       }`}
     >
       {/* With a path open (owner, 2026-10-29): each side scrolls on its own, and the
-      other paths dim until the cursor or focus is on the list. */}
+      other paths dim until the cursor or focus is on the list. Grey as well as faint:
+      a faint white card on a white page hardly changes. */}
       <div
         className={`group/list flex min-w-0 flex-col gap-6 ${
           preview === null
@@ -132,7 +133,7 @@ export function FirstVisit({
                     className={
                       preview === null || preview.pathId === p.pathId
                         ? ""
-                        : "transition-opacity lg:opacity-40 lg:group-focus-within/list:opacity-100 lg:group-hover/list:opacity-100"
+                        : "transition lg:opacity-40 lg:grayscale lg:group-focus-within/list:opacity-100 lg:group-focus-within/list:grayscale-0 lg:group-hover/list:opacity-100 lg:group-hover/list:grayscale-0"
                     }
                   >
                     <Link
