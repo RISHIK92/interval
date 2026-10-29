@@ -351,14 +351,11 @@ def test_an_article_that_fits_stays_whole_when_only_its_moments_were_found(
     assert w.entries("3-8") == [(item, moment)]
 
 
-@pytest.mark.parametrize(
-    ("notes_model", "queued"), [("small-notes", True), ("", False)]
-)
-def test_recompute_due_queues_starter_note_polish_only_with_a_notes_model(
+# ADR-0025: starter notes are the app's own words; nothing is queued to polish them,
+# even with a notes model set (there is no polish message to queue any more).
+def test_recompute_due_queues_no_note_polish(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
-    notes_model: str,
-    queued: bool,
 ) -> None:
     from collections.abc import Generator
     from contextlib import contextmanager
@@ -380,10 +377,10 @@ def test_recompute_due_queues_starter_note_polish_only_with_a_notes_model(
 
     monkeypatch.setattr(cli, "services", services)
     monkeypatch.setattr(cli, "queue_for_enqueue", lambda: queue)
-    monkeypatch.setenv("NOTES_MODEL", notes_model)
+    monkeypatch.setenv("NOTES_MODEL", "small-notes")
     cli.main(["recompute-due"])
-    capsys.readouterr()
-    assert (queue.pending("polish_note") > 0) is queued
+    out = capsys.readouterr().out
+    assert '"starter_feeds": 36' in out
 
 
 # Exploration (REC-4, P1-W4-S09): a share of slots for topics the user didn't choose
@@ -552,9 +549,9 @@ def test_a_goal_lifts_its_items_and_names_itself_in_the_note() -> None:
     assert entry.breakdown.values["goal_match"] == 1.0
     assert entry.top_signal == "goal_match"
     assert entry.note_id is not None
-    assert w.store.notes.rows[entry.note_id].text == (
-        "Toward your goal: pass system design interviews."
-    )
+    # ADR-0025: a goal template naming the goal and the concept that made the pick.
+    text = w.store.notes.rows[entry.note_id].text
+    assert "pass system design interviews" in text and "Indexes" in text
 
 
 # P2-W12-S04 (REC-1, ADR-0015): a connected user's projects reach the feed through the
@@ -580,6 +577,5 @@ def test_project_concepts_reach_the_feed_and_its_note() -> None:
     assert entry.breakdown.values["goal_match"] == 1.0  # the stack goal's set
     assert entry.top_signal == "project_match"
     assert entry.note_id is not None
-    assert w.store.notes.rows[entry.note_id].text == (
-        "Uses PostgreSQL, from your projects."
-    )
+    text = w.store.notes.rows[entry.note_id].text
+    assert "PostgreSQL" in text and "Indexes" in text  # never a repository

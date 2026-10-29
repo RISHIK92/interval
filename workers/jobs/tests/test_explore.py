@@ -51,7 +51,6 @@ def entry(
         score,
         "freshness",
         facts,
-        ("freshness",),
         Breakdown({}, {}, {}, 0),
     )
 

@@ -46,3 +46,4 @@ An ADR records one decision that the blueprint does not settle, or changes one i
 | [0022](0022-tesseract-ocr-service.md) | OCR for scanned book pages: a Tesseract container, not Textract | ACCEPTED | Week 11 PDF books (amends ING-5) |
 | [0023](0023-ocr-as-a-worker-sidecar-in-aws.md) | OCR in AWS mode: a sidecar in the worker's task | ACCEPTED | P2-W11-S03 (amends ADR-0022) |
 | [0024](0024-github-app-for-repository-access.md) | GitHub repository access through a GitHub App; GitHub sign-in deferred | ACCEPTED | Week 12 planning (amends ADR-0010 item 2) |
+| [0025](0025-card-explanations-from-a-template-library.md) | Card explanations from a deterministic template library, not model polishing | ACCEPTED | owner direction 2026-10-29 (amends REC-5, Q-P1-18) |

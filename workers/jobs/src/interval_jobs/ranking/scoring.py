@@ -117,12 +117,9 @@ class Scored:
     item_id: int
     source_id: int
     score: float
-    # The largest weighted part: W4-S06's why-this-matters note says why (REC-5).
+    # The largest weighted part: it picks the card's explanation (ADR-0025).
     top_signal: str
-    facts: EntryFacts  # what the entry's note is built from (P1-W4-S06)
-    # Every signal, largest weighted part first: a note falls to the next when the
-    # top one's words wouldn't be true (owner, 2026-10-26).
-    signals: tuple[str, ...]
+    facts: EntryFacts  # what the explanation is filled from
     breakdown: Breakdown  # for the owner's ranking inspection (P1-W6-S01)
     arm: Arm | None = None  # set by exploration (P1-W4-S09)
 
@@ -213,16 +210,15 @@ def score(
             + config.penalties["not_interested_concepts"] * avoided
         )
         # Stable: on a tie the earlier signal leads, as max() picked before.
-        order = tuple(sorted(weighted, key=lambda name: -weighted[name]))
+        top = max(weighted, key=lambda name: weighted[name])
         scored.append(
             Scored(
                 candidate.moment_id,
                 candidate.item_id,
                 candidate.source_id,
                 sum(weighted.values()) - penalty,
-                order[0],
+                top,
                 fact,
-                order,
                 Breakdown(parts, dict(config.weights), weighted, penalty),
             )
         )

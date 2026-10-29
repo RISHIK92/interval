@@ -41,9 +41,7 @@ from interval_jobs.ports import (
     Finished,
     ItemDecisions,
     MomentRow,
-    NoteInput,
     NoteKey,
-    NoteRef,
     PathDraft,
     QuestionBatchEntry,
     QuestionDraft,
@@ -2556,45 +2554,19 @@ def test_a_feed_holds_moments_and_whole_articles_in_rank_order(
     assert probe.feed_entries(user, "8-15") == [(item, None)]
 
 
-# Why-this-matters notes (REC-5, Q-P1-18, P1-W4-S06).
-def test_a_note_is_written_once_per_key_and_polished_once(
-    store: tuple[Store, Probe],
-) -> None:
+# Card explanations (ADR-0025): written once per key, reused after.
+def test_a_note_is_written_once_per_key(store: tuple[Store, Probe]) -> None:
     s, _ = store
     src = dup_source(s, "nt")
     item = dup_item(s, src, "nt1", 3)
-    key = NoteKey(item, "quality", "beginner", "")
-    other_key = NoteKey(item, "quality", "advanced", "")
+    key = NoteKey(item, "trusted", "beginner", "trusted-1:")
+    other_key = NoteKey(item, "trusted", "advanced", "trusted-1:")
     first = s.notes.ensure_all(
         {key: "From dup-nt, one of the most trusted sources here.", other_key: "t"}
     )
     # A cache hit: the stored note comes back, whatever text was offered.
     assert s.notes.ensure_all({key: "other words"}) == {key: first[key]}
-    assert first[key].needs_polish and first[other_key].needs_polish
-    assert first[key].note_id != first[other_key].note_id
-    note_id = first[key].note_id
-    assert s.notes.input(note_id) == NoteInput(
-        note_id,
-        "Unique title nt1",
-        "dup-nt",
-        "From dup-nt, one of the most trusted sources here.",
-    )
-    s.notes.polish(note_id, "A trusted source on this.", "small-model")
-    s.notes.polish(note_id, "A second delivery's words.", "small-model")  # ignored
-    assert s.notes.ensure_all({key: "x"}) == {key: NoteRef(note_id, needs_polish=False)}
-    assert s.notes.input(note_id) is None  # polished once, never again
-
-
-def test_a_refused_polish_keeps_the_template_and_is_not_tried_again(
-    store: tuple[Store, Probe],
-) -> None:
-    s, _ = store
-    item = dup_item(s, dup_source(s, "nr"), "nr1", 3)
-    key = NoteKey(item, "freshness", "beginner", "")
-    (ref,) = s.notes.ensure_all({key: "New this week."}).values()
-    s.notes.polish(ref.note_id, None, "small-model")  # the reply was refused
-    assert s.notes.input(ref.note_id) is None
-    assert not s.notes.ensure_all({key: "x"})[key].needs_polish
+    assert first[key] != first[other_key]
 
 
 # Exploration outcomes (REC-4, P1-W4-S09): written by Week 5, read by ranking.

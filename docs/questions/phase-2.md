@@ -241,3 +241,15 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Question: minting GitHub App tokens needs an RS256-signed JWT. `cryptography` is already installed (pulled in by another package) and can sign it in a few lines; PyJWT wraps it.
 - Suggested default: declare `cryptography` as the worker's direct dependency and sign the JWT with it (no PyJWT).
 - **Answer (owner, 2026-10-29):** the suggested default: `cryptography` as a direct worker dependency, no PyJWT.
+
+### Q-P2-45 What a card explains, and whether shared notes are polished (P1)
+- Cite: REC-5, Q-P1-18, §5E, AI-1, OPS-4, P2-W12-S05; ADR-0025.
+- Question: should every card show a "Why this matters" line, polished by the notes model, or only explanations that add something?
+- **Answer (owner, 2026-10-29):**
+  - **No polishing:** no LLM polishing of shared notes. `NOTES_MODEL` is used only for personal project lines, which win over any other explanation.
+  - **Project fallback:** until a project line exists, a project template naming the technology and concept (never a repository) shows.
+  - **Other cards:** at most one grounded explanation from a deterministic template library. v1 categories: learning goal, concept connection, topic interest, fresh, trusted source; 2–3 templates each, chosen by a stable hash of the item (owner, after debate: phrasing variety is cosmetic, and neighbour-based choice would change wording as the feed reorders).
+  - **Concept names** (from the tagger): named in goal and project notes as the reason for the pick, not as a claim about the article's content.
+  - **Level- or time-led cards:** a concept connection from the concept graph when a prerequisite exists, otherwise nothing (owner's choice over my suggestion of nothing in v1).
+  - **Kept internally:** the ranking reasons stay stored for debugging and evaluation.
+  - **Later:** skill progression and practical applications.

@@ -37,7 +37,6 @@ from interval_db.messages import (
     GithubSync,
     MessageName,
     OcrPage,
-    PolishNote,
     ProjectNote,
     RecomputeFeed,
     RemoveFile,
@@ -59,7 +58,6 @@ from interval_jobs.books.ocr import GAVE_UP, give_up, read_page
 from interval_jobs.books.process import process_book
 from interval_jobs.concept_vectors import concept_text, text_hash
 from interval_jobs.embedding import embed_item
-from interval_jobs.feed.notes import polish_note, queue_polish
 from interval_jobs.feed.precompute import recompute_user_feed
 from interval_jobs.feed.project_notes import queue_project_notes, write_project_note
 from interval_jobs.frameable import framed_at
@@ -111,7 +109,7 @@ from interval_jobs.tagging_decide import decide
 from interval_jobs.tagging_rollup import rollup
 
 # Every queue the consumer serves: ingestion in the order an item moves through it,
-# then the per-user feed recompute (CACHE-1, P1-W4-S04) and its notes' polish (W4-S06),
+# then the per-user feed recompute (CACHE-1, P1-W4-S04), its project lines (P2-W12-S05),
 # and the weekly link health check (P1-W6-S03).
 STAGES: tuple[MessageName, ...] = (
     "discover_source",
@@ -120,7 +118,6 @@ STAGES: tuple[MessageName, ...] = (
     "tag_item",
     "embed_item",
     "recompute_feed",
-    "polish_note",
     "check_link",
     "generate_questions",
     "validate_question",
@@ -220,7 +217,6 @@ class Pipeline:
             "tag_item": self._tag_stage,
             "embed_item": self._embed_stage,
             "recompute_feed": self._recompute_stage,
-            "polish_note": self._polish_stage,
             "check_link": self._stage(self._check_link),
             "generate_questions": self._questions_stage,
             "validate_question": self._validate_stage,
@@ -399,35 +395,13 @@ class Pipeline:
             done = recompute_user_feed(
                 services.store, message.user_id, model, self._clock()
             )
-        # After the commit, so the stage sees the notes. Nothing while notes are off:
-        # their template wording stands (Q-P1-18).
+        # After the commit, so the stage sees the feed. Nothing while notes are off
+        # (ADR-0025: the model writes project lines only).
         if self._notes is not None:
-            queue_polish(self._queue, done.unpolished)
             queue_project_notes(self._queue, message.user_id, done.project_notes)
 
-    def _polish_stage(self, message: BaseModel, delivery: Delivery) -> None:
-        """Read, call the model with no transaction open, then store (as tagging)."""
-        assert isinstance(message, PolishNote)
-        if self._notes is None:
-            log.info("pipeline: notes are off (no model)", note_id=message.note_id)
-            return
-        with self._unit() as services:
-            note = services.store.notes.input(message.note_id)
-        if note is None:
-            return  # polished already, or its item is gone
-        with self._notes.gateway() as gateway:
-            text = polish_note(gateway, self._notes.model, note)
-        if isinstance(text, OverBudget):
-            # OPS-4, LOAD-5: the template stays, observably; the next recompute that
-            # shows the note queues it again.
-            log.warn("notes: over budget", note_id=note.note_id, scope=text.scope)
-            return
-        # A refused reply (None) is recorded too: tried once, never paid for again.
-        with self._unit() as services:
-            services.store.notes.polish(note.note_id, text, self._notes.model)
-
     # P2-W12-S05 (§5B, OPS-4): the user's line on why an item matters to their
-    # project. Read, call with no transaction open, then store, as polishing does.
+    # project. Read, call with no transaction open, then store.
     def _project_note_stage(self, message: BaseModel, delivery: Delivery) -> None:
         assert isinstance(message, ProjectNote)
         if self._notes is None:

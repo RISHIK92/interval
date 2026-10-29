@@ -15,7 +15,6 @@ Usage:
 
 import argparse
 import json
-import os
 import signal
 import sys
 import threading
@@ -51,7 +50,6 @@ from interval_jobs.consumer import run_consumers
 from interval_jobs.embedding_eval import MIN_POOL, MIN_RECALL, parse_queries
 from interval_jobs.embedding_eval import EvalError as EmbeddingEvalError
 from interval_jobs.embedding_eval import run_eval as run_embedding_eval
-from interval_jobs.feed.notes import queue_polish
 from interval_jobs.feed.precompute import (
     STARTERS,
     enqueue_recomputes,
@@ -277,10 +275,7 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         # behind all 36 feeds.
         for topic, level in STARTERS:
             with services() as s:
-                done = recompute_starter(s.store, topic, level, None, now)
-            if os.environ.get("NOTES_MODEL"):
-                # The consumer polishes the new notes (P1-W4-S06).
-                queue_polish(queue, done.unpolished)
+                recompute_starter(s.store, topic, level, None, now)
         print(
             json.dumps(
                 {"queued": queued, "starter_feeds": len(STARTERS) * len(BREAK_MINUTES)}

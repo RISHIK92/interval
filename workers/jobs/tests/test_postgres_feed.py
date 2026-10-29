@@ -13,7 +13,7 @@ from psycopg import sql
 
 from interval_db.generated import BreakLength
 from interval_jobs.adapters.postgres import PostgresStore
-from interval_jobs.ports import Arm, Breakdown, NoteKey, NoteRef, RankedEntry
+from interval_jobs.ports import Arm, Breakdown, NoteKey, RankedEntry
 
 
 def add_item(
@@ -316,21 +316,21 @@ def test_an_entry_cannot_pair_a_moment_with_another_items_title(
         )
 
 
-def test_a_card_shows_its_note_labelled_ai_only_once_polished(
+def test_a_card_shows_its_template_note_unlabelled(
     conn: psycopg.Connection,
 ) -> None:
     src = source(conn, "feedtest-j")
     item = add_item(conn, src, "noted", datetime(2026, 10, 1, tzinfo=UTC), 2)
     store = PostgresStore(conn)
-    key = NoteKey(item, "freshness", "beginner", "")
-    note = store.notes.ensure_all({key: "New this week."})[key]
+    key = NoteKey(item, "fresh", "beginner", "fresh-1:")
+    note_id = store.notes.ensure_all({key: "New this week."})[key]
     me = user(conn)
     noted, plain = moments_of(conn, item)
     store.feed.replace_user(
         me,
         {
             "3-8": [
-                RankedEntry(item, noted, "freshness", note.note_id),
+                RankedEntry(item, noted, "freshness", note_id),
                 RankedEntry(item, plain, "quality", None),
             ]
         },
@@ -344,13 +344,12 @@ def test_a_card_shows_its_note_labelled_ai_only_once_polished(
             (me,),
         ).fetchall()
 
+    # The app's own words (ADR-0025): no model, no AI label.
     assert shown() == [("New this week.", False), (None, False)]
-    store.notes.polish(note.note_id, "Fresh this week, on your topic.", "small")
-    assert shown() == [("Fresh this week, on your topic.", True), (None, False)]
     # A note goes with its item (it cites it, AI-3).
     conn.execute("delete from content_item where id = %s", (item,))
     gone = conn.execute(
-        "select count(*) from feed_note where id = %s", (note.note_id,)
+        "select count(*) from feed_note where id = %s", (note_id,)
     ).fetchone()
     assert gone == (0,)
 
@@ -367,7 +366,7 @@ def test_two_recomputes_writing_one_note_agree_on_it(
     key = NoteKey(item, "freshness", "beginner", "")
     with psycopg.connect(url) as first, psycopg.connect(url) as second:
         mine = PostgresStore(first).notes.ensure_all({key: "New this week."})[key]
-        theirs: list[NoteRef] = []
+        theirs: list[int] = []
 
         def run_second() -> None:
             theirs.append(PostgresStore(second).notes.ensure_all({key: "other"})[key])

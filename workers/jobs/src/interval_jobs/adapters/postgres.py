@@ -56,9 +56,7 @@ from interval_jobs.ports import (
     ItemDecisions,
     MomentLink,
     MomentRow,
-    NoteInput,
     NoteKey,
-    NoteRef,
     PathDraft,
     ProjectConcepts,
     ProjectNoteInput,
@@ -596,7 +594,7 @@ class PostgresNotes:
     def __init__(self, conn: psycopg.Connection) -> None:
         self._conn = conn
 
-    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, NoteRef]:
+    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, int]:
         if not texts:
             return {}
         keys = sorted(texts, key=lambda k: (k.item_id, k.signal, k.level, k.variant))
@@ -621,8 +619,7 @@ class PostgresNotes:
         # waited.
         rows = self._conn.execute(
             """
-            select n.id, n.content_item_id, n.signal, n.level, n.variant,
-                   n.polished_at is null
+            select n.id, n.content_item_id, n.signal, n.level, n.variant
             from feed_note n
             join unnest(%s::bigint[], %s::text[], %s::difficulty[], %s::text[])
               as k(item, signal, level, variant)
@@ -631,30 +628,7 @@ class PostgresNotes:
             """,
             columns,
         ).fetchall()
-        return {
-            NoteKey(int(r[1]), r[2], r[3], r[4]): NoteRef(int(r[0]), bool(r[5]))
-            for r in rows
-        }
-
-    def input(self, note_id: int) -> NoteInput | None:
-        row = self._conn.execute(
-            "select n.id, ci.title, s.name, n.text from feed_note n "
-            "join content_item ci on ci.id = n.content_item_id "
-            "join source s on s.id = ci.source_id "
-            "where n.id = %s and n.polished_at is null",
-            (note_id,),
-        ).fetchone()
-        return NoteInput(int(row[0]), row[1], row[2], row[3]) if row else None
-
-    def polish(self, note_id: int, text: str | None, model: str) -> None:
-        # Once: a redelivered job finds it tried and changes nothing.
-        self._conn.execute(
-            "update feed_note set polished_at = now(), "
-            "text = coalesce(%s, text), model = case when %s::text is null "
-            "then null else %s end "
-            "where id = %s and polished_at is null",
-            (text, text, model, note_id),
-        )
+        return {NoteKey(int(r[1]), r[2], r[3], r[4]): int(r[0]) for r in rows}
 
 
 class PostgresFeed:

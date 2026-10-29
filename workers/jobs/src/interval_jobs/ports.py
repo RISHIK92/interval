@@ -1120,8 +1120,8 @@ class FetchValidators(Protocol):
 
 @dataclass(frozen=True)
 class NoteKey:
-    """What a why-this-matters note is cached by (Q-P1-18): the item it cites, the
-    signal, the level, and the topic, chip or goal its words name ('' for none)."""
+    """What a card's explanation is cached by (ADR-0025): the item it cites, its
+    category, the level, and the template and detail its words name."""
 
     item_id: int
     signal: str
@@ -1129,37 +1129,11 @@ class NoteKey:
     variant: str
 
 
-@dataclass(frozen=True)
-class NoteRef:
-    note_id: int
-    # No polish tried yet: the notes model may still reword it, once (AI-4).
-    needs_polish: bool
-
-
-@dataclass(frozen=True)
-class NoteInput:
-    """All the notes model may see (AI-1): never the article's text."""
-
-    note_id: int
-    title: str
-    source_name: str
-    text: str
-
-
 class Notes(Protocol):
-    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, NoteRef]:
+    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, int]:
         """The note for each key, written with its text the first time only. Keys are
         written in one order, so recomputes sharing notes wait rather than deadlock;
         one waiting on another's uncommitted note gets that note once it commits."""
-        ...
-
-    def input(self, note_id: int) -> NoteInput | None:
-        """What polishing needs; None when the note is gone or its polish was tried."""
-        ...
-
-    def polish(self, note_id: int, text: str | None, model: str) -> None:
-        """Records the one polish: the model's wording, or None when its reply was
-        refused (the template stays). A second polish of the note changes nothing."""
         ...
 
 

@@ -639,7 +639,7 @@ def test_a_moment_with_no_text_does_not_make_every_poll_re_embed() -> None:
     assert not world.store.embeddings.missing(wal.id, "voyage-3.5")
 
 
-# Why-this-matters notes (REC-5, AI-4, OPS-4, Q-P1-18, P1-W4-S06).
+# The notes model: project lines only (ADR-0025, P2-W12-S05).
 class NoteLlm:
     provider: AiProvider = "openrouter"
 
@@ -655,17 +655,15 @@ class NoteLlm:
         return Completion(self.reply, 100, 10, Decimal("0.0001"))
 
 
-def notes_world(on: bool = True, spent: Decimal = Decimal(0)) -> tuple[World, NoteLlm]:
+def notes_world() -> tuple[World, NoteLlm]:
     llm = NoteLlm()
     ledger = InMemoryAi(InMemoryStore().users)
-    if spent:
-        ledger.record(Usage(None, "notes", "openrouter", "m", 0, 0, spent, NOW))
 
     @contextmanager
     def gateway() -> Generator[AiGateway]:
         yield AiGateway(ledger, llm, NoEmbeddings(), clock=lambda: NOW)
 
-    world = World(notes=ModelJob("small-notes", gateway) if on else None)
+    world = World(notes=ModelJob("small-notes", gateway))
     world.store.sources.rows[world.source_id].topics = ("databases",)
     world.store.users.rows["u1"] = StoredUser("u1", is_anonymous=True)
     world.store.ranking.preferences_by_user["u1"] = UserPreferences(
@@ -681,62 +679,16 @@ def recompute(world: World, key: str) -> None:
     world.run()
 
 
-def test_every_entry_gets_a_note_polished_once_by_the_notes_model() -> None:
+# ADR-0025: with a notes model set, a recompute still calls no model for the card
+# explanations: they're the app's own words, never labelled AI.
+def test_card_explanations_never_call_the_notes_model() -> None:
     world, llm = notes_world()
     recompute(world, "r-1")
     entries = [e for chip in world.store.feed.users["u1"].values() for e in chip]
-    note_ids = {e.note_id for e in entries}
-    assert entries and None not in note_ids
+    assert entries
     notes = world.store.notes.rows
-    assert all(notes[n].model == "small-notes" for n in note_ids if n is not None)
-    assert llm.calls == len(note_ids)
-    recompute(world, "r-2")  # a cache hit: nothing is polished twice (AI-4)
-    assert llm.calls == len(note_ids)
-
-
-def test_with_notes_off_entries_get_template_notes_and_no_polish() -> None:
-    world, llm = notes_world(on=False)
-    world.queue.enqueue("recompute_feed", {"user_id": "u1"}, idempotency_key="r-1")
-    # The recompute stage alone: what it queued is still pending.
-    world.queue.consume(
-        "recompute_feed", world.pipeline.handlers()["recompute_feed"], threading.Event()
-    )
-    entries = world.store.feed.users["u1"]["3-8"]
-    notes = world.store.notes.rows
-    assert entries and all(e.note_id is not None for e in entries)
-    assert all(notes[e.note_id].model is None for e in entries if e.note_id)
-    assert world.queue.pending("polish_note") == 0
+    assert notes and all(n.model is None for n in notes.values())
     assert llm.calls == 0
-
-
-def test_with_notes_on_the_recompute_queues_each_new_note_once() -> None:
-    world, _ = notes_world()
-    world.queue.enqueue("recompute_feed", {"user_id": "u1"}, idempotency_key="r-1")
-    world.queue.consume(
-        "recompute_feed", world.pipeline.handlers()["recompute_feed"], threading.Event()
-    )
-    queued = world.queue.pending_messages("polish_note")
-    assert queued and len({key for key, _ in queued}) == len(queued)
-
-
-def test_a_refused_reply_is_not_paid_for_again() -> None:
-    world, llm = notes_world()
-    llm.reply = "Too long. " * 40
-    recompute(world, "r-1")
-    first = llm.calls
-    assert first > 0
-    recompute(world, "r-2")
-    assert llm.calls == first  # refused once, settled: the template stays
-
-
-def test_a_polish_over_budget_keeps_the_template(
-    capsys: pytest.CaptureFixture[str],
-) -> None:
-    world, llm = notes_world(spent=Decimal(1000))
-    recompute(world, "r-1")
-    assert llm.calls == 0
-    assert all(n.model is None for n in world.store.notes.rows.values())
-    assert "notes: over budget" in capsys.readouterr().out
 
 
 def test_a_link_check_is_retried_after_a_server_error_then_recorded() -> None:
@@ -957,7 +909,6 @@ def project_world(
         world.store.github.project_inputs[("u1", item)] = _velox(VELOX)
     world.store.ranking.projects["u1"] = {"raft": (("etcd", "etcd"),)}
     world.store.github.accounts["u1"] = StoredGitHub(installations=[(11, "octo")])
-    llm.calls = 0  # the shared notes' polish isn't what these tests count
     return world, llm, items
 
 

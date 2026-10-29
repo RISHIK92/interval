@@ -12,7 +12,7 @@ from typing import get_args
 
 from interval_db.generated import BreakLength, Difficulty, Topic
 from interval_jobs import log
-from interval_jobs.feed.notes import note_for
+from interval_jobs.feed.explain import concept_map, explain
 from interval_jobs.feed.project_notes import PROJECT_NOTES_PER_RECOMPUTE
 from interval_jobs.ports import (
     JobQueue,
@@ -42,8 +42,6 @@ STARTER_BREAK: BreakLength = "3-8"
 @dataclass
 class Recomputed:
     entries: int
-    # Notes still in their template wording: the notes model polishes them, if set.
-    unpolished: set[int] = field(default_factory=set[int])
     # P2-W12-S05: items on the user's projects still without a line for the
     # repositories matching them now, highest-ranked first.
     project_notes: list[int] = field(default_factory=list[int])
@@ -57,23 +55,24 @@ def _with_notes(
     done: Recomputed,
     user_id: str | None,
 ) -> dict[BreakLength, list[RankedEntry]]:
-    """Every chip's entries with their why-this-matters notes (P1-W4-S06): a note is
-    written the first time its key comes up and reused after (Q-P1-18). One write
-    for the whole feed, so recomputes sharing notes take them in one order."""
+    """Every chip's entries with their explanation, if any (ADR-0025): a note is
+    written the first time its key comes up and reused after. One write for the
+    whole feed, so recomputes sharing notes take them in one order."""
     projects = store.ranking.project_concepts(user_id) if user_id else {}
     goals = goal_sets(store.ranking, preferences, projects)
+    concepts = concept_map(store.concepts.state())
     keyed: dict[BreakLength, list[tuple[Scored, tuple[NoteKey, str] | None]]] = {
         chip: [
             (
                 s,
-                note_for(
+                explain(
                     s,
                     preferences.topics,
                     preferences.level,
-                    chip,
                     now,
                     goals,
                     projects,
+                    concepts,
                 ),
             )
             for s in scored
@@ -87,15 +86,13 @@ def _with_notes(
     for chip, rows in keyed.items():
         entries: list[RankedEntry] = []
         for s, found in rows:
-            note = notes[found[0]] if found else None
-            if note is not None and note.needs_polish:
-                done.unpolished.add(note.note_id)
+            note_id = notes[found[0]] if found else None
             entries.append(
                 RankedEntry(
                     s.item_id,
                     s.moment_id,
                     s.top_signal,
-                    note.note_id if note else None,
+                    note_id,
                     s.arm,
                     s.breakdown,
                 )

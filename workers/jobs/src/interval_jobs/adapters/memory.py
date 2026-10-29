@@ -58,9 +58,7 @@ from interval_jobs.ports import (
     ItemDecisions,
     MomentLink,
     MomentRow,
-    NoteInput,
     NoteKey,
-    NoteRef,
     PathDraft,
     ProjectConcepts,
     ProjectNoteInput,
@@ -554,44 +552,25 @@ class InMemoryMoments:
 class StoredNote:
     key: NoteKey
     text: str
-    model: str | None = None
-    tried: bool = False  # polished, or the reply was refused
+    model: str | None = None  # set on notes a model polished before ADR-0025
 
 
 class InMemoryNotes:
-    def __init__(self, items: InMemoryItems, sources: InMemorySources) -> None:
-        self._items = items
-        self._sources = sources
+    def __init__(self) -> None:
         self.rows: dict[int, StoredNote] = {}
         self._next_id = 1
 
-    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, NoteRef]:
+    def ensure_all(self, texts: Mapping[NoteKey, str]) -> dict[NoteKey, int]:
         by_key = {note.key: note_id for note_id, note in self.rows.items()}
-        refs: dict[NoteKey, NoteRef] = {}
+        ids: dict[NoteKey, int] = {}
         for key, text in texts.items():
             note_id = by_key.get(key)
             if note_id is None:
                 note_id = self._next_id
                 self._next_id += 1
                 self.rows[note_id] = StoredNote(key, text)
-            refs[key] = NoteRef(note_id, not self.rows[note_id].tried)
-        return refs
-
-    def input(self, note_id: int) -> NoteInput | None:
-        note = self.rows.get(note_id)
-        if note is None or note.tried:
-            return None
-        item = self._items.rows[note.key.item_id]
-        source = self._sources.rows[item.source_id]
-        return NoteInput(note_id, item.title, source.name, note.text)
-
-    def polish(self, note_id: int, text: str | None, model: str) -> None:
-        note = self.rows[note_id]
-        if note.tried:
-            return
-        note.tried = True
-        if text is not None:
-            note.text, note.model = text, model
+            ids[key] = note_id
+        return ids
 
 
 class InMemoryFeed:
@@ -1849,7 +1828,7 @@ class InMemoryStore:
         self.invites = InMemoryInvites()
         self.users = InMemoryUsers()
         self.feed = InMemoryFeed(self.users, self.moments)
-        self.notes = InMemoryNotes(self.items, self.sources)
+        self.notes = InMemoryNotes()
         self.grants = InMemoryGrants(self.users)
         self.validators = InMemoryValidators()
         self.concepts = InMemoryConcepts()

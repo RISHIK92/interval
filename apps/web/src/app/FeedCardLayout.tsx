@@ -90,12 +90,11 @@ export function FeedCardLayout({
           <p className="mt-3 text-ink-muted">{length}</p>
           {fits === null ? null : <p className="font-semibold">{fits}</p>}
           <div className="mt-3 empty:hidden">
-            <WhyNote note={note} />
-          </div>
-          {projectNote === null ? null : (
-            // P2-W12-S05 (AI-1, AI-3): apart from the note, labelled AI, naming the
-            // repositories it is about.
-            <div className="mt-2">
+            {projectNote === null ? (
+              <WhyNote note={note} />
+            ) : (
+              // ADR-0025: the user's own project line, when written, is the card's
+              // one explanation (AI-1, AI-3: labelled AI, naming the repositories).
               <AiBox>
                 <span className="font-semibold">
                   For your{" "}
@@ -104,8 +103,8 @@ export function FeedCardLayout({
                 </span>{" "}
                 {projectNote.text}
               </AiBox>
-            </div>
-          )}
+            )}
+          </div>
           {yourNote === null ? null : (
             <p className="mt-2 line-clamp-2 text-sm whitespace-pre-line">
               <span className="font-semibold">Your note: </span>

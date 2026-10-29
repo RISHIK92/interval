@@ -9,8 +9,9 @@ import json
 
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
-from interval_jobs.feed.notes import NOTE_MAX_CHARS
 from interval_jobs.ports import JobQueue, Message, ProjectNoteInput
+
+NOTE_MAX_CHARS = 160  # a card line, not a summary
 
 # A cost guard: the highest-ranked matching entries of one recompute get a line.
 PROJECT_NOTES_PER_RECOMPUTE = 10

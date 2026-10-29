@@ -591,7 +591,7 @@ describe("precomputed feeds (W4-S04, Q-P1-17)", () => {
     expect(
       (containerNamed("recompute-due")?.Secrets ?? []).map((x) => x.Name),
     ).toEqual(["DB_PASSWORD"]);
-    // Only the recompute_feed and polish_note queues: least privilege.
+    // Only the recompute_feed queue: least privilege.
     const sends = all("AWS::IAM::Policy")
       .filter(([, policy]) =>
         (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
@@ -609,8 +609,8 @@ describe("precomputed feeds (W4-S04, Q-P1-17)", () => {
       );
     const resources = JSON.stringify(sends.map((st) => st.Resource));
     expect(resources).toContain("recomputefeed");
-    expect(resources).toContain("polishnote");
-    expect(sends.flatMap((st) => [st.Resource].flat())).toHaveLength(2);
+    expect(resources).not.toContain("polishnote");
+    expect(sends.flatMap((st) => [st.Resource].flat())).toHaveLength(1);
   });
 
   test("a failed recompute becomes a CloudWatch metric (LOAD-5)", () => {

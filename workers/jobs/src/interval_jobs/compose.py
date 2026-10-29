@@ -259,7 +259,7 @@ def ai_gateway(ledger: AiLedger, http: httpx.Client) -> AiGateway:
 @contextmanager
 def model_job(variable: str) -> Generator[ModelJob | None]:
     """A model-backed stage with the model its eval picked (ADR-0010): TAGGING_MODEL
-    (P1-W3-S02), EMBEDDING_MODEL (P1-W3-S04) or NOTES_MODEL (P1-W4-S06), off until
+    (P1-W3-S02), EMBEDDING_MODEL (P1-W3-S04) or NOTES_MODEL (P2-W12-S05), off until
     set. Each call gets a short
     autocommit ledger connection: a paid call is recorded even if its stage then
     fails (OPS-4)."""

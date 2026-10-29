@@ -90,13 +90,6 @@ class OcrPage(_Message):
     page_no: Annotated[int, Field(ge=1)]
 
 
-class PolishNote(_Message):
-    """Polish one why-this-matters note with the notes model, once (REC-5, AI-2,
-    AI-4, P1-W4-S06)."""
-
-    note_id: Annotated[int, Field(ge=1)]
-
-
 class ProjectNote(_Message):
     """Write a user's line on why an item matters to their project, once per
     repository set (§5B, AI-3, OPS-4, P2-W12-S05)."""
@@ -152,7 +145,6 @@ type MessageName = Literal[
     "generate_questions",
     "github_sync",
     "ocr_page",
-    "polish_note",
     "project_note",
     "recompute_feed",
     "remove_file",
@@ -171,7 +163,6 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "generate_questions": GenerateQuestions,
     "github_sync": GithubSync,
     "ocr_page": OcrPage,
-    "polish_note": PolishNote,
     "project_note": ProjectNote,
     "recompute_feed": RecomputeFeed,
     "remove_file": RemoveFile,

@@ -41,10 +41,6 @@ export const messageSchemas = {
     book_id: z.number().int().min(1),
     page_no: z.number().int().min(1),
   }),
-  // Polish one why-this-matters note with the notes model, once (REC-5, AI-2, AI-4, P1-W4-S06).
-  polish_note: z.strictObject({
-    note_id: z.number().int().min(1),
-  }),
   // Write a user's line on why an item matters to their project, once per repository set (§5B, AI-3, OPS-4, P2-W12-S05).
   project_note: z.strictObject({
     content_item_id: z.number().int().min(1),
