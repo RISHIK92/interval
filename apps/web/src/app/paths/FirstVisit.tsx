@@ -4,6 +4,7 @@ import type { PathSummary, PathTimeline } from "../../server/ports";
 import { Card } from "../ui/Card";
 import { TopicArt } from "../ui/TopicArt";
 import { startPathAction } from "./actions";
+import { CenterPicked } from "./CenterPicked";
 import { UploadDrop } from "./UploadDrop";
 
 // The Paths tab before anything is added (wireframe "Web · Paths, first visit"): bring
@@ -180,7 +181,10 @@ export function FirstVisit({
       {preview === null ? (
         <PathRail />
       ) : (
-        <PathPane path={preview} close={href({ topic })} />
+        <>
+          <PathPane path={preview} close={href({ topic })} />
+          <CenterPicked pathId={preview.pathId} />
+        </>
       )}
     </div>
   );
