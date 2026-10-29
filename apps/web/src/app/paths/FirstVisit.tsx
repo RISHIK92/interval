@@ -49,7 +49,9 @@ export function FirstVisit({
         className={`group/list flex min-w-0 flex-col gap-6 ${
           preview === null
             ? ""
-            : "lg:h-[calc(100dvh-5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-2"
+            : // The negative margin puts the scrollbar out in the gap; the padding
+              // keeps the cards as wide as before.
+              "lg:-mr-6 lg:h-[calc(100dvh-5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-8"
         }`}
       >
         <header>
