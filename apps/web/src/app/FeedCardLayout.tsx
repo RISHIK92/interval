@@ -99,14 +99,11 @@ export function FeedCardLayout({
                 .join(" · ")}
             </p>
           )}
-          {reasons === null ? null : (
-            // ADR-0027: the card's one explanation, from the ranking.
-            <p className="mt-2 text-sm text-ink-muted">{reasons.text}</p>
-          )}
-          {projectNote === null ? null : (
-            // P2-W12-S05 (AI-1, AI-3): the user's own project line, labelled AI and
-            // naming the repositories.
-            <div className="mt-2">
+          {projectNote !== null ? (
+            // P2-W12-S05 (AI-1, AI-3): the user's own project note, labelled AI and
+            // naming the repositories. It replaces the why-this-matters note (owner,
+            // 2026-10-29).
+            <div className="mt-3">
               <AiBox>
                 <span className="font-semibold">
                   For your{" "}
@@ -116,6 +113,10 @@ export function FeedCardLayout({
                 {projectNote.text}
               </AiBox>
             </div>
+          ) : reasons === null ? null : (
+            // ADR-0027: the why-this-matters note, in the project note's type (owner,
+            // 2026-10-29), without its dashed box: that box marks AI text (AI-1).
+            <p className="mt-3 text-ink">{reasons.text}</p>
           )}
           {yourNote === null ? null : (
             <p className="mt-2 line-clamp-2 text-sm whitespace-pre-line">

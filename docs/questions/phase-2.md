@@ -255,3 +255,4 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - **Kept internally:** the ranking reasons stay stored for debugging and evaluation.
   - **Later:** skill progression and practical applications.
 - **Update (owner, 2026-10-29):** the topic category is dropped. In the live feed, topic led almost every card, so its line was the universal line again, telling users a topic they had chosen themselves. Topic-led cards now show nothing. This narrows ADR-0025's v1 category list (the ACCEPTED ADR's text is left as written).
+- **Update (owner, 2026-10-29, after ADR-0027):** a card with a project note shows only the project note; the why-this-matters note is hidden on it (this replaces ADR-0026's "the AI project line goes under it"). The why-this-matters note uses the project note's type (body size, ink colour) without the dashed box and AI tag, since the dashed box marks AI text (AI-1).

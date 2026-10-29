@@ -69,8 +69,8 @@ test("omits the author when unknown", () => {
   expect(textOf(html)).toContain("Example Engineering / Raft in one page");
 });
 
-// ADR-0026: every card says why the ranking showed it, in the app's own words.
-test("shows the card's reasons, never labelled AI", () => {
+// ADR-0027: the why-this-matters note, in the project note's type, never labelled AI.
+test("shows the why-this-matters note in body type, never labelled AI", () => {
   const html = renderToStaticMarkup(
     <MomentCard
       card={{
@@ -85,7 +85,9 @@ test("shows the card's reasons, never labelled AI", () => {
       controls={null}
     />,
   );
-  expect(textOf(html)).toContain("System design interviews ask about Caching.");
+  expect(html).toContain(
+    '<p class="mt-3 text-ink">System design interviews ask about Caching.</p>',
+  );
   expect(html).not.toContain("border-dashed");
 });
 
@@ -140,9 +142,9 @@ test("a card with the user's note shows it, and one without shows nothing", () =
   ).not.toContain("Your note");
 });
 
-// P2-W12-S05, ADR-0026 (AI-1, AI-3): the user's project line, labelled AI and naming
-// the repository, sits under the reasons.
-test("a project note shows under the reasons, in an AI box naming the repository", () => {
+// P2-W12-S05 (AI-1, AI-3): the project note, labelled AI and naming the repository,
+// replaces the why-this-matters note (owner, 2026-10-29).
+test("a project note replaces the why-this-matters note, in an AI box naming the repository", () => {
   const html = renderToStaticMarkup(
     <MomentCard
       card={{
@@ -161,7 +163,7 @@ test("a project note shows under the reasons, in an AI box naming the repository
       controls={null}
     />,
   );
-  expect(textOf(html)).toContain("Homework for velox: Transactions.");
+  expect(textOf(html)).not.toContain("Homework for velox: Transactions.");
   expect(html).toMatch(
     /<div class="[^"]*border-dashed[^"]*"><span class="font-semibold">For your project octo\/velox:<\/span> Velox elects its leader the same way\. <span[^>]*>AI<\/span><\/div>/,
   );
@@ -172,8 +174,7 @@ test("a card with no reasons and no project line shows no explanation", () => {
   const html = renderToStaticMarkup(
     <MomentCard card={card} chip="3-8" position={1} controls={null} />,
   );
-  // The explanation's line is absent: only the length line is muted body text.
-  expect(html).not.toMatch(/<p class="mt-2 text-sm text-ink-muted">/);
+  expect(html).not.toMatch(/<p class="mt-3 text-ink">/);
   expect(html).not.toContain("border-dashed");
 });
 
