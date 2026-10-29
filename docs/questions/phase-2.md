@@ -214,3 +214,28 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: §5F, DB-6, ING-5; the P2-W11-S01 review.
 - **Answer (owner, 2026-10-28):** books are for accounts only: a guest sees "Create an account to add a book". When an account is deleted, its files under `books/<user>/` are removed too (the worker's `remove_file`, retried). There is no account deletion flow yet; whatever builds it must queue that removal.
 
+
+### Q-P2-40 How often a connected user's repositories are read (P1)
+- Cite: §5H, ADR-0024 (open question), LOAD-5.
+- Suggested default: on connect, by a "Refresh" button in Profile, and daily for users active in the last 7 days (like the hourly feed recompute's "active").
+- **Answer (owner, 2026-10-29):** the suggested default.
+
+### Q-P2-41 Which dependency files count (P1)
+- Cite: §5H ("package.json, requirements.txt, go.mod"), ADR-0024 (open question).
+- Suggested default: package.json, requirements.txt, pyproject.toml and go.mod, at a repository's root and one directory down (monorepos); lockfiles ignored; dev dependencies counted (they're part of the stack); repositories that are forks or archived skipped.
+- **Answer (owner, 2026-10-29):** the suggested default.
+
+### Q-P2-42 The technology seed and suggestions (P1)
+- Cite: PER-4 ("A curated table maps technologies to concepts. An LLM can suggest additions, which you review."), §5H.
+- Suggested default: a seed of about 60 common technologies across npm, PyPI and Go (frameworks, databases and their drivers, queues, caches, ORMs, cloud SDKs), each mapped to 1–4 existing concepts, drafted by me for your review like the concept seed; suggestions for unclaimed packages used by at least 2 users (or 1 while the beta is small), reviewed on an admin page.
+- **Answer (owner, 2026-10-29):** the suggested default (a seed of about 60 drafted for review; LLM suggestions accepted or rejected on an admin page).
+
+### Q-P2-43 Projects' weight, and what project-aware notes send (P1)
+- Cite: REC-1, PER-1, ADR-0015, AI-5, OPS-4.
+- Suggested default: the projects generator adds candidates with their own `ranking_config` weight (starting like the concept-gap weight), never above an explicit topic choice; the notes model gets the repository's name, description and matching technologies only (owner: never code), once per user, moment and repository set.
+
+### Q-P2-44 Token signing in the worker (P1)
+- Cite: CLAUDE.md ("No new dependency without asking"), ADR-0024 (open question).
+- Question: minting GitHub App tokens needs an RS256-signed JWT. `cryptography` is already installed (pulled in by another package) and can sign it in a few lines; PyJWT wraps it.
+- Suggested default: declare `cryptography` as the worker's direct dependency and sign the JWT with it (no PyJWT).
+- **Answer (owner, 2026-10-29):** the suggested default: `cryptography` as a direct worker dependency, no PyJWT.

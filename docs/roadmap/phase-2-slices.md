@@ -307,3 +307,82 @@ Owner answers: Q-P2-31..37 (2026-10-28). ADR-0022 (Tesseract OCR) ACCEPTED by th
 - Out of scope: book paths shared between users.
 - Q: Q-P2-35, Q-P2-38 (a notice at upload).
 
+
+## Week 12: GitHub projects, project-aware notes, Phase 2 wrap-up
+
+Owner answers (2026-10-29, Week 12 planning): repository access through a GitHub App, connected from Profile; no GitHub sign-in this week; project-aware notes get an AI line with the repo's context (never its code); "release" is a Phase 2 wrap-up with no deploy (ADR-0013). ADR-0024 (GitHub App; sign-in deferred) ACCEPTED by the owner the same day; Q-P2-40..42 and Q-P2-44 answered (defaults). Open: Q-P2-43 (asked at S04).
+
+### P2-W12-S01 Connect GitHub from Profile
+- IDs: §5H, §5A, PER-3, C-30, ADR-0024, ADR-0011
+- Needs: ADR-0024 ACCEPTED; the owner registers the GitHub App and sets its env (ADR-0024 Consequences)
+- Goal: a signed-in user connects GitHub by installing Interval's GitHub App on the repositories they pick.
+- Acceptance:
+  - Profile: "Connect GitHub" (accounts only; guests see "Create an account to connect GitHub"), which starts the App's install with user authorization;
+  - the callback proves which GitHub user installed it (the authorization code) and that the installation is theirs, then stores the installation against the user; a forged or stale callback stores nothing;
+  - Profile shows the connected GitHub login and its repositories once synced (S02), with "Disconnect";
+  - Disconnect deletes the installation row and everything read from it, and says how to uninstall on GitHub;
+  - events `github_connected` and `github_disconnected`;
+  - the App's env from both deployment modes (SSM on AWS, the env file on the VM).
+- Out of scope: sign-in with GitHub (ADR-0024), reading code, webhooks.
+- Q: Q-P2-40, Q-P2-41.
+
+### P2-W12-S02 Read repositories and their dependency files
+- IDs: §5H, PER-3, LOAD-5, ADR-0024
+- Needs: S01
+- Goal: the worker reads each connected repository's metadata and dependency files, never its code.
+- Acceptance:
+  - a `github_sync` stage on Valkey: an installation token minted per run (RS256 JWT, then an installation token), each repository's name, description, languages and dependency files read;
+  - dependency files per Q-P2-41; only dependency names (and the file they came from) stored, never file contents or code;
+  - a repository removed from the installation, or the App uninstalled, removes its rows at the next sync;
+  - queued on connect, by "Refresh" in Profile, and on the schedule in Q-P2-40; rate limits and GitHub errors retried (LOAD-5), logged;
+  - GitHub calls behind a port with an in-memory fake (ADR-0012).
+- Out of scope: code, commit history, webhooks.
+- Q: Q-P2-40, Q-P2-41, Q-P2-43.
+
+### P2-W12-S03 The curated technology table
+- IDs: PER-4, §5H, AI-3
+- Needs: S02
+- Goal: dependencies map to concepts through a table the owner curates.
+- Acceptance:
+  - a seed file (`workers/jobs/seeds/technologies.yaml`, like the concept seed) of technologies: a name, the package names that mean it per ecosystem (npm, PyPI, Go), and the concepts it maps to; loaded by `load-technologies`;
+  - a user's repositories' dependencies resolve to technologies, and technologies to concepts;
+  - dependencies no technology claims are counted; an LLM suggests a technology and concepts for the most common ones (through the gateway), stored apart as suggestions (AI-3);
+  - an admin page lists suggestions to accept (into the table) or reject; nothing is used until accepted (PER-4).
+- Out of scope: versions, transitive dependencies.
+- Q: Q-P2-42.
+
+### P2-W12-S04 Projects in the feed, Profile and the goal
+- IDs: REC-1, PER-1, PER-3, ADR-0015, §5H
+- Needs: S03
+- Goal: a connected user's projects shape their feed, and they can see why.
+- Acceptance:
+  - Profile "Your projects": each repository with its mapped technologies and concepts;
+  - the feed recompute's projects candidate generator (REC-1): moments on the concepts of the user's mapped technologies, with a "Why this" reason naming the technology and repository;
+  - explicit choices still win (PER-1): a hidden source or topic stays hidden;
+  - the goal "Get better at the stack I use" is selectable once GitHub is connected (ADR-0015); choosing it without a connection leads to Connect GitHub;
+  - events: none new beyond S01 (feed reasons are already recorded).
+- Out of scope: ranking by goal (ADR-0015), a Projects onboarding step (C-21).
+- Q: Q-P2-43.
+
+### P2-W12-S05 Project-aware notes
+- IDs: §5B (notes), AI-1, AI-3, AI-5, OPS-4, ADR-0008
+- Needs: S04
+- Goal: a note on a moment that matches the user's project says why it matters to that project.
+- Acceptance:
+  - when a moment's concepts match a connected user's mapped technologies, the note gains one line written by the notes model from the repository's name, description and the matching technologies (never code), through the gateway on the user's budget (OPS-4);
+  - shown apart from the moment's note, labeled as AI and as about the user's project (AI-1, AI-3);
+  - made once per user, moment and repository set, cached; over budget, the line is left out (LOAD-5, observable);
+  - nothing about one user's projects is ever shown to another.
+- Out of scope: code-aware explanations (§5H's separate opt-in).
+- Q: Q-P2-43.
+
+### P2-W12-S06 Phase 2 wrap-up
+- IDs: Phase 2 "Done when", DB-5, ADR-0013
+- Needs: S01–S05
+- Goal: Phase 2 is checked against its "Done when" and marked built, with nothing deployed.
+- Acceptance:
+  - the three "Done when" queries (`quiz_rate.sql`, `flag_rate.sql`, `quiz_return.sql`) checked against fixture events and run on local events;
+  - a Phase 2 checklist (docs/runbooks or docs/roadmap) walked through locally: every Week 7–12 feature end to end, both deployment modes' synth and the VM smoke run;
+  - the drift audit (/audit) run and its findings listed;
+  - docs/progress.md status: Phase 2 built.
+- Out of scope: deploy (ADR-0013), a git tag (owner: wrap-up only).
