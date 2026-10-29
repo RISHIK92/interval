@@ -424,7 +424,10 @@ test("picking a path previews its sections on the right, to start it", async () 
     /aria-current="true"[^>]*href="\/paths\?preview=6#path-6"|href="\/paths\?preview=6#path-6"[^>]*aria-current="true"/,
   );
   // Each side scrolls on its own; the other path dims until the list is hovered.
-  expect(html.match(/lg:overflow-y-auto/g)).toHaveLength(2);
+  expect(html.match(/[\s"](lg:)?overflow-y-auto/g)).toHaveLength(2);
+  // On a phone the path is a sheet over the list; on a wide screen, the side pane.
+  expect(html).toMatch(/<aside[^>]*class="fixed inset-0[^"]*lg:static/);
+  expect(html).toContain("lg:-mr-6 lg:-ml-1 lg:overflow-y-auto");
   const other = html.slice(html.indexOf('id="path-7"'));
   expect(other.slice(0, 300)).toContain("lg:opacity-40");
   expect(html.slice(html.indexOf('id="path-6"')).slice(0, 120)).not.toContain(

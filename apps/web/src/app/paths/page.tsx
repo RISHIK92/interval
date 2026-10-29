@@ -49,7 +49,12 @@ export default async function PathsPage(props: {
       entitlements().limit(actor.userId, "books.max_mb"),
     ]);
     return (
-      <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-none lg:pt-10 lg:pr-8 lg:pl-68">
+      <main
+        // With a path open the page is one screen tall and only its two sides scroll.
+        className={`mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-none lg:pt-10 lg:pr-8 lg:pl-68 ${
+          picked === null ? "" : "lg:h-dvh lg:pb-10"
+        }`}
+      >
         <TabBar current="paths" firstName={chosen.firstName} />
         <FirstVisit
           paths={all}

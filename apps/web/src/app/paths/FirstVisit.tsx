@@ -4,7 +4,7 @@ import type { PathSummary, PathTimeline } from "../../server/ports";
 import { Card } from "../ui/Card";
 import { TopicArt } from "../ui/TopicArt";
 import { startPathAction } from "./actions";
-import { CenterPicked } from "./CenterPicked";
+import { ShowPicked } from "./ShowPicked";
 import { UploadDrop } from "./UploadDrop";
 
 // The Paths tab before anything is added (wireframe "Web · Paths, first visit"): bring
@@ -38,10 +38,10 @@ export function FirstVisit({
     // A picked path opens in a wide pane on the right; the list narrows to one column
     // and the upload steps aside (owner, 2026-10-29).
     <div
-      className={`flex flex-col gap-6 lg:grid lg:items-start lg:gap-8 ${
+      className={`flex flex-col gap-6 lg:grid lg:gap-8 ${
         preview === null
-          ? "lg:grid-cols-[minmax(0,1fr)_18rem]"
-          : "lg:grid-cols-[minmax(0,49fr)_minmax(0,51fr)]"
+          ? "lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start"
+          : "lg:min-h-0 lg:flex-1 lg:grid-cols-[minmax(0,49fr)_minmax(0,51fr)] lg:grid-rows-[minmax(0,1fr)]"
       }`}
     >
       {/* With a path open (owner, 2026-10-29): each side scrolls on its own, and the
@@ -50,9 +50,9 @@ export function FirstVisit({
         className={`group/list flex min-w-0 flex-col gap-6 ${
           preview === null
             ? ""
-            : // The negative margin puts the scrollbar out in the gap; the padding
-              // keeps the cards as wide as before.
-              "lg:-mr-6 lg:h-[calc(100dvh-5rem)] lg:overflow-y-auto lg:overscroll-contain lg:pr-8"
+            : // Negative margins with matching padding: the scrollbar sits out in the
+              // gap, the picked card's ring isn't clipped, the cards keep their place.
+              "lg:-mr-6 lg:-ml-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-8 lg:pb-1 lg:pl-1"
         }`}
       >
         <header>
@@ -183,7 +183,7 @@ export function FirstVisit({
       ) : (
         <>
           <PathPane path={preview} close={href({ topic })} />
-          <CenterPicked pathId={preview.pathId} />
+          <ShowPicked pathId={preview.pathId} paneId={PICKED_PANE} />
         </>
       )}
     </div>
@@ -232,12 +232,17 @@ function PathRail() {
   );
 }
 
-// The picked path, in a pane on the right: its sections and their readings, to start.
+const PICKED_PANE = "picked-path";
+
+// The picked path: a pane on the right on wide screens, a sheet over the paths on a
+// phone (owner, 2026-10-29). Its sections and their readings, to start.
 function PathPane({ path, close }: { path: PathTimeline; close: string }) {
   return (
     <aside
+      id={PICKED_PANE}
+      tabIndex={-1}
       aria-label={`Path: ${path.name}`}
-      className="lg:h-[calc(100dvh-5rem)] lg:overflow-y-auto lg:overscroll-contain"
+      className="fixed inset-0 z-20 overflow-y-auto overscroll-contain bg-ink/40 px-4 pt-16 pb-[calc(1rem+env(safe-area-inset-bottom))] outline-none lg:static lg:z-auto lg:bg-transparent lg:p-0"
     >
       <Card className="flex flex-col gap-4 p-5">
         <div className="flex items-start justify-between gap-3">
