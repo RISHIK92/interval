@@ -291,6 +291,20 @@ class FetchValidator(TypedDict):
     updated_at: datetime
 
 
+class GithubAccount(TypedDict):
+    user_id: str
+    github_user_id: int
+    login: str
+    connected_at: datetime
+
+
+class GithubInstallation(TypedDict):
+    user_id: str
+    installation_id: int
+    account_login: str
+    account_type: str
+
+
 class GoalConcept(TypedDict):
     goal: LearningGoal
     concept_slug: str

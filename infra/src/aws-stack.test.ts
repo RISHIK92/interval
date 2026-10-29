@@ -295,6 +295,14 @@ describe("containers", () => {
     expect((web?.Secrets ?? []).map((s) => s.Name)).toContain(
       "BETTER_AUTH_SECRET",
     );
+    // P2-W12-S01 (ADR-0024): the GitHub App's, for the web app only.
+    expect((web?.Secrets ?? []).map((s) => s.Name)).toEqual(
+      expect.arrayContaining([
+        "GITHUB_APP_SLUG",
+        "GITHUB_APP_CLIENT_ID",
+        "GITHUB_APP_CLIENT_SECRET",
+      ]),
+    );
   });
 
   test("the web service checks /api/health and scales 1 to 3", () => {

@@ -175,6 +175,16 @@
         "passed": "boolean"
       }
     },
+    "github_connected": {
+      "version": 1,
+      "description": "A user connected GitHub: the App's installations they can reach, by GitHub's own answer (P2-W12-S01, §5H, ADR-0024).",
+      "props": { "installations": "count" }
+    },
+    "github_disconnected": {
+      "version": 1,
+      "description": "A user disconnected GitHub; Interval's copy of their GitHub data is deleted (P2-W12-S01).",
+      "props": {}
+    },
     "item_saved": {
       "version": 1,
       "description": "An item was saved (W4-S07; listed by the W5-S04 Library).",

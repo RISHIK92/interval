@@ -1079,3 +1079,39 @@ export type BookReading = {
   place: number; // 1-based, across the book
   of: number;
 };
+
+// P2-W12-S01 (§5H, ADR-0024): GitHub, through Interval's GitHub App. Only who the user
+// is on GitHub and which installations they can reach; never a stored token.
+export type GitHubInstallation = {
+  installationId: string;
+  accountLogin: string; // the user's own account, or an organisation's
+  accountType: "User" | "Organization";
+};
+export interface GitHub {
+  // The authorizing user's access token for a callback's code; throws when GitHub
+  // refuses it.
+  exchange(code: string): Promise<string>;
+  user(token: string): Promise<{ id: string; login: string }>;
+  // This App's installations the user can reach, by GitHub's own answer (a callback's
+  // installation_id can be forged).
+  installations(token: string): Promise<GitHubInstallation[]>;
+  // Done with the user's token: GitHub forgets it (nothing long-lived, ADR-0024).
+  revoke(token: string): Promise<void>;
+}
+export type GitHubConnection = {
+  login: string;
+  connectedAt: Date;
+  installations: GitHubInstallation[];
+};
+export interface GitHubAccounts {
+  // Replaces the user's GitHub account and installations; a GitHub account connected
+  // to another Interval account moves here.
+  connect(
+    userId: string,
+    account: { githubUserId: string; login: string },
+    installations: GitHubInstallation[],
+  ): Promise<void>;
+  // True when there was a connection to remove.
+  disconnect(userId: string): Promise<boolean>;
+  get(userId: string): Promise<GitHubConnection | null>;
+}

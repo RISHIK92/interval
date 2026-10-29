@@ -17,7 +17,7 @@ Per ADR-0013 nothing is deployed until every phase is built. The owner runs ever
 1. `pnpm --filter @interval/infra exec cdk bootstrap` (once per account and region).
 2. `pnpm --filter @interval/infra exec cdk deploy interval-prod-aws`. Note the outputs: SiteDomain, ClusterName, MigrateTaskDefinition, JobsTaskDefinition, AppSecurityGroup, AppSubnets, the queue URLs, DbEndpoint.
 3. Replace the placeholders with real keys (letters, digits, `_` and `-`):
-   `aws secretsmanager put-secret-value --secret-id interval/aws/openrouter --secret-string '<key>'`, and the same for `interval/aws/voyage`.
+   `aws secretsmanager put-secret-value --secret-id interval/aws/openrouter --secret-string '<key>'`, and the same for `interval/aws/voyage`. The GitHub App's (ADR-0024; its callback URL `https://<domain>/api/github/callback`): `interval/aws/github-app-slug`, `interval/aws/github-app-client-id` and `interval/aws/github-app-client-secret`.
 4. Run migrations (ADR-0002) before the web service serves traffic:
    ```
    aws ecs run-task --cluster <ClusterName> --launch-type FARGATE \

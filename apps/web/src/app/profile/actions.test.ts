@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
-import type { Actor, Feedback, PreferencesStore } from "../../server/ports";
+import type {
+  Actor,
+  Feedback,
+  GitHubAccounts,
+  PreferencesStore,
+} from "../../server/ports";
 
 // §5A, PER-1, Q-P1-36, P1-W4-S08: the Profile page's three actions.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
@@ -17,9 +22,20 @@ vi.mock("../../server/container", () => ({
   preferences: () => ({ update }),
   feedback: () => ({ resetInferred, unhideSource, give }),
   jobQueue: () => ({ enqueue }),
+  githubAccounts: () => ({ disconnect }),
+  events: () => ({ emit }),
 }));
+const disconnect = vi.fn<GitHubAccounts["disconnect"]>(() =>
+  Promise.resolve(true),
+);
+const emit = vi.fn();
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
+  cookies: () =>
+    Promise.resolve({
+      get: (name: string) =>
+        name === "iv_visit" ? { name, value: "visit-1.1790000000" } : undefined,
+    }),
 }));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
@@ -147,4 +163,24 @@ test("without a session every action sends the visitor to /join", async () => {
   expect(update).not.toHaveBeenCalled();
   expect(resetInferred).not.toHaveBeenCalled();
   expect(unhideSource).not.toHaveBeenCalled();
+});
+
+// P2-W12-S01 (§5H, ADR-0024): disconnecting deletes Interval's copy, recorded once.
+test("disconnect deletes the user's GitHub connection and says how to revoke on GitHub", async () => {
+  const { disconnectGitHubAction } = await import("./actions");
+  current.mockResolvedValue({ ...guest, isGuest: false });
+  await expect(disconnectGitHubAction()).rejects.toThrow(
+    "redirect:/profile?saved=github-off",
+  );
+  expect(disconnect).toHaveBeenCalledWith("g1");
+  expect(emit).toHaveBeenCalledWith(
+    "github_disconnected",
+    {},
+    expect.objectContaining({ userId: "g1", sessionId: "visit-1" }),
+  );
+  // Nothing was connected: nothing recorded.
+  emit.mockClear();
+  disconnect.mockResolvedValueOnce(false);
+  await expect(disconnectGitHubAction()).rejects.toThrow("redirect:/profile");
+  expect(emit).not.toHaveBeenCalled();
 });

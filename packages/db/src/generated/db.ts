@@ -326,6 +326,20 @@ export interface FetchValidator {
   url: string;
 }
 
+export interface GithubAccount {
+  connected_at: Generated<Timestamp>;
+  github_user_id: Int8;
+  login: string;
+  user_id: string;
+}
+
+export interface GithubInstallation {
+  account_login: string;
+  account_type: string;
+  installation_id: Int8;
+  user_id: string;
+}
+
 export interface GoalConcept {
   concept_slug: string;
   goal: LearningGoal;
@@ -827,6 +841,8 @@ export interface DB {
   explore_arm_outcome: ExploreArmOutcome;
   feed_note: FeedNote;
   fetch_validator: FetchValidator;
+  github_account: GithubAccount;
+  github_installation: GithubInstallation;
   goal_concept: GoalConcept;
   graph_version: GraphVersion;
   invite_code: InviteCode;

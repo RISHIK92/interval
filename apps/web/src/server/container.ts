@@ -3,7 +3,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import type { DB } from "@interval/db";
 import type { Kysely } from "kysely";
-import { env, filesEnv } from "../env";
+import { env, filesEnv, githubEnv } from "../env";
 import {
   type Auth,
   accounts as betterAuthAccounts,
@@ -28,6 +28,8 @@ import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
 import { kyselyAdminPaths } from "./adapters/kysely-admin-paths";
 import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
 import { kyselyBooks } from "./adapters/kysely-books";
+import { fetchGitHub } from "./adapters/fetch-github";
+import { kyselyGitHub } from "./adapters/kysely-github";
 import { kyselyNotes } from "./adapters/kysely-notes";
 import { kyselyPaths } from "./adapters/kysely-paths";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
@@ -42,6 +44,8 @@ import { createEmitter, type Emitter } from "./events";
 import type {
   Books,
   FileStore,
+  GitHub,
+  GitHubAccounts,
   Accounts,
   AdminPaths,
   AdminReview,
@@ -204,6 +208,31 @@ export function jobQueue(): JobQueue {
           );
   }
   return queue;
+}
+
+// P2-W12-S01 (§5H, ADR-0024): Interval's GitHub App; null when it isn't configured,
+// and connecting GitHub isn't offered.
+export function githubApp(): {
+  slug: string;
+  clientId: string;
+  secureCookies: boolean; // as the visit cookie: the public origin is https
+  github: GitHub;
+} | null {
+  const app = githubEnv();
+  if (app === null) return null;
+  return {
+    slug: app.GITHUB_APP_SLUG,
+    clientId: app.GITHUB_APP_CLIENT_ID,
+    secureCookies: new URL(env().BETTER_AUTH_URL).protocol === "https:",
+    github: fetchGitHub({
+      clientId: app.GITHUB_APP_CLIENT_ID,
+      clientSecret: app.GITHUB_APP_CLIENT_SECRET,
+    }),
+  };
+}
+
+export function githubAccounts(): GitHubAccounts {
+  return kyselyGitHub(db());
 }
 
 // P2-W11-S01: private PDF books.

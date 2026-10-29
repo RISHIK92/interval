@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseEnv, parseFilesEnv } from "./env";
+import { parseEnv, parseFilesEnv, parseGitHubEnv } from "./env";
 
 const valid = {
   DATABASE_URL: "postgres://user:s3cret@localhost:5432/interval",
@@ -141,5 +141,35 @@ describe("parseFilesEnv (P2-W11-S01)", () => {
     expect(() => parseFilesEnv({ ...files, S3_ENDPOINT: "ftp://x" })).toThrow(
       /S3_ENDPOINT/,
     );
+  });
+});
+
+describe("parseGitHubEnv (P2-W12-S01)", () => {
+  const app = {
+    GITHUB_APP_SLUG: "interval-dev",
+    GITHUB_APP_CLIENT_ID: "Iv23liAbC",
+    GITHUB_APP_CLIENT_SECRET: "f".repeat(40),
+  };
+  test("takes the App's slug, client id and secret; none set means not offered", () => {
+    expect(parseGitHubEnv(app)).toEqual(app);
+    expect(parseGitHubEnv({})).toBeNull();
+    // The stacks' generated placeholders, before the App is registered.
+    expect(
+      parseGitHubEnv({
+        GITHUB_APP_SLUG: "aB3dE5gH7jK9mN1pQ3sT5vW7yZ9bC1dE3fG5hJ7kL9mN1pQ3",
+        GITHUB_APP_CLIENT_ID:
+          "xY1zA2bC3dE4fG5hJ6kL7mN8pQ9rS0tU1vW2xY3zA4bC5dE6",
+        GITHUB_APP_CLIENT_SECRET:
+          "qW1eR2tY3uI4oP5aS6dF7gH8jK9lZ0xC1vB2nM3qW4eR5tY6",
+      }),
+    ).toBeNull();
+  });
+  test("some but not all set is a mistake, named", () => {
+    expect(() => parseGitHubEnv({ GITHUB_APP_SLUG: "interval-dev" })).toThrow(
+      /GITHUB_APP_CLIENT_ID/,
+    );
+    expect(() =>
+      parseGitHubEnv({ ...app, GITHUB_APP_SLUG: "has spaces" }),
+    ).toThrow(/GITHUB_APP_SLUG/);
   });
 });

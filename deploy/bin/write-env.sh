@@ -28,6 +28,10 @@ postgres_password="$(secret interval/prod/postgres)"
 better_auth="$(secret interval/prod/better-auth)"
 openrouter="$(secret interval/prod/openrouter)"
 voyage="$(secret interval/prod/voyage)"
+# P2-W12-S01 (ADR-0024): the GitHub App, for connecting GitHub from Profile.
+github_slug="$(secret interval/prod/github-app-slug)"
+github_client_id="$(secret interval/prod/github-app-client-id)"
+github_client_secret="$(secret interval/prod/github-app-client-secret)"
 
 site_address="$(read_setting site-address)"
 site_address="${site_address:-:80}"
@@ -90,6 +94,9 @@ ${mail_transport_line}
 ${events_lines}
 OPENROUTER_API_KEY=${openrouter}
 VOYAGE_API_KEY=${voyage}
+GITHUB_APP_SLUG=${github_slug}
+GITHUB_APP_CLIENT_ID=${github_client_id}
+GITHUB_APP_CLIENT_SECRET=${github_client_secret}
 ENV
 printf 'POSTGRES_PASSWORD=%s\n' "$postgres_password" > "$tmp/postgres.env"
 printf 'SITE_ADDRESS=%s\n' "$site_address" > "$tmp/caddy.env"

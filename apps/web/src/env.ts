@@ -105,3 +105,43 @@ export function filesEnv(): FilesEnv {
   cachedFiles ??= parseFilesEnv(process.env);
   return cachedFiles;
 }
+
+// P2-W12-S01 (§5H, ADR-0024): Interval's GitHub App, for connecting GitHub from Profile.
+// Optional: with none of it set, connecting isn't offered; some but not all is a
+// mistake. The App's id and private key are the worker's (S02).
+const github = z.object({
+  GITHUB_APP_SLUG: z.string().regex(/^[A-Za-z0-9-]{1,100}$/),
+  GITHUB_APP_CLIENT_ID: z.string().regex(/^[A-Za-z0-9_.-]{1,100}$/),
+  GITHUB_APP_CLIENT_SECRET: z.string().min(20),
+});
+
+export type GitHubEnv = z.infer<typeof github>;
+
+export function parseGitHubEnv(
+  source: Record<string, string | undefined>,
+): GitHubEnv | null {
+  const keys = Object.keys(github.shape) as (keyof GitHubEnv)[];
+  if (keys.every((key) => !source[key])) return null;
+  // A deployment's generated placeholder (mixed case) until the owner registers the
+  // App: not offered, rather than a Connect that leads to GitHub's 404. Real slugs are
+  // lower case.
+  const slug = source["GITHUB_APP_SLUG"];
+  if (slug !== undefined && /[A-Z]/.test(slug)) return null;
+  const result = github.safeParse(source);
+  if (!result.success) {
+    const problems = result.error.issues.map(
+      (issue) => `${issue.path.join(".")}: ${issue.message}`,
+    );
+    throw new Error(
+      `Invalid GitHub App environment:\n  ${problems.join("\n  ")}`,
+    );
+  }
+  return result.data;
+}
+
+let cachedGitHub: GitHubEnv | null | undefined;
+
+export function githubEnv(): GitHubEnv | null {
+  if (cachedGitHub === undefined) cachedGitHub = parseGitHubEnv(process.env);
+  return cachedGitHub;
+}

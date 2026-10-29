@@ -53,6 +53,10 @@ export const SECRET_NAMES = [
   // Generated placeholders: the owner replaces them with the real API keys (ADR-0007).
   "interval/prod/openrouter",
   "interval/prod/voyage",
+  // P2-W12-S01 (ADR-0024): the GitHub App's, placeholders until the owner registers it.
+  "interval/prod/github-app-slug",
+  "interval/prod/github-app-client-id",
+  "interval/prod/github-app-client-secret",
 ];
 
 export class ProdStack extends Stack {

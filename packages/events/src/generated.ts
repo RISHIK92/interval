@@ -17,6 +17,8 @@ export const EVENT_NAMES = [
   "feed_viewed",
   "feedback_given",
   "feedback_undone",
+  "github_connected",
+  "github_disconnected",
   "guest_merged",
   "item_saved",
   "note_deleted",
@@ -54,6 +56,8 @@ export const EVENT_VERSIONS = {
   feed_viewed: 1,
   feedback_given: 1,
   feedback_undone: 1,
+  github_connected: 1,
+  github_disconnected: 1,
   guest_merged: 1,
   item_saved: 1,
   note_deleted: 1,
@@ -138,6 +142,10 @@ export const propsSchemas = {
     kind: z.enum(["more_like_this", "less_like_this", "not_interested"]),
   }),
   feedback_undone: z.strictObject({ kind: z.enum(["not_interested"]) }),
+  github_connected: z.strictObject({
+    installations: z.number().int().nonnegative(),
+  }),
+  github_disconnected: z.strictObject({}),
   guest_merged: z.strictObject({}),
   item_saved: z.strictObject({}),
   note_deleted: z.strictObject({
@@ -314,6 +322,18 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("feedback_undone"),
     version: z.literal(1),
     props: propsSchemas.feedback_undone,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("github_connected"),
+    version: z.literal(1),
+    props: propsSchemas.github_connected,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("github_disconnected"),
+    version: z.literal(1),
+    props: propsSchemas.github_disconnected,
   }),
   z.strictObject({
     ...base,

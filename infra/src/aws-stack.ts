@@ -307,6 +307,13 @@ export class AwsStack extends Stack {
     const openrouter = appSecret("interval/aws/openrouter");
     const voyage = appSecret("interval/aws/voyage");
     const originVerify = appSecret("interval/aws/origin-verify");
+    // P2-W12-S01 (ADR-0024): the GitHub App's, placeholders until the owner registers it;
+    // the web app alone connects GitHub (the worker's App id and key come with S02).
+    const githubSlug = appSecret("interval/aws/github-app-slug");
+    const githubClientId = appSecret("interval/aws/github-app-client-id");
+    const githubClientSecret = appSecret(
+      "interval/aws/github-app-client-secret",
+    );
 
     const cluster = new ecs.Cluster(this, "Cluster", { vpc });
     const logGroup = new logs.LogGroup(this, "Logs", {
@@ -453,7 +460,13 @@ export class AwsStack extends Stack {
       image: image("apps/web/Dockerfile"),
       command: withDatabaseUrl("node apps/web/server.js"),
       environment,
-      secrets,
+      secrets: {
+        ...secrets,
+        GITHUB_APP_SLUG: ecs.Secret.fromSecretsManager(githubSlug),
+        GITHUB_APP_CLIENT_ID: ecs.Secret.fromSecretsManager(githubClientId),
+        GITHUB_APP_CLIENT_SECRET:
+          ecs.Secret.fromSecretsManager(githubClientSecret),
+      },
       portMappings: [{ containerPort: 3000 }],
       logging: logging("web"),
     });

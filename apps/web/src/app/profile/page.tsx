@@ -3,10 +3,13 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   feedback,
+  githubAccounts,
+  githubApp,
   preferences,
   progress,
   sessionReader,
 } from "../../server/container";
+import type { GitHubConnection } from "../../server/ports";
 import { parseTheme, THEME_COOKIE, THEMES } from "../../server/theme";
 import { ChoicesFields, GOAL_TEXT, TOPIC_NAMES } from "../ChoicesFields";
 import { setThemeAction } from "../theme/actions";
@@ -14,6 +17,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { STATE_WORDS } from "../learnerState";
 import {
+  disconnectGitHubAction,
   resetInferredAction,
   unhideSourceAction,
   updatePreferencesAction,
@@ -32,6 +36,14 @@ const NOTICES: Record<string, string> = {
   choices: "Your choices are saved. Your feed updates in a moment.",
   reset: "Inferred interests reset.",
   unhidden: "Source shown again. Your feed updates in a moment.",
+  github: "GitHub connected.",
+  "github-off":
+    "GitHub disconnected; what Interval read from it is deleted. Uninstall Interval on GitHub to revoke its access.",
+};
+// P2-W12-S01: the GitHub callback's outcomes.
+const GITHUB_PROBLEMS: Record<string, string> = {
+  failed: "GitHub couldn't be connected. Try again.",
+  none: "Install Interval on at least one repository, then connect again.",
 };
 const MISSING: Record<string, string> = {
   goal: "Pick at least one goal.",
@@ -42,18 +54,22 @@ const MISSING: Record<string, string> = {
 
 // §5A ("view, edit, or reset anything inferred"), PER-1, Q-P1-36, P1-W4-S08.
 export default async function ProfilePage(props: {
-  searchParams: Promise<{ saved?: string; missing?: string }>;
+  searchParams: Promise<{ saved?: string; missing?: string; github?: string }>;
 }) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
-  const [hidden, inferred, concepts] = await Promise.all([
+  const offered = githubApp() !== null;
+  const [hidden, inferred, concepts, connection] = await Promise.all([
     feedback().hiddenSources(actor.userId),
     feedback().inferred(actor.userId),
     progress().concepts(actor.userId),
+    offered && !actor.isGuest
+      ? githubAccounts().get(actor.userId)
+      : Promise.resolve(null),
   ]);
-  const { saved, missing } = await props.searchParams;
+  const { saved, missing, github } = await props.searchParams;
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-24">
@@ -99,6 +115,13 @@ export default async function ProfilePage(props: {
           <p role="status">{NOTICES[saved]}</p>
         </Card>
       ) : null}
+      {github !== undefined && Object.hasOwn(GITHUB_PROBLEMS, github) ? (
+        <Card className="px-5 py-3">
+          <p role="alert" className="text-wrong">
+            {GITHUB_PROBLEMS[github]}
+          </p>
+        </Card>
+      ) : null}
       {missing !== undefined && Object.hasOwn(MISSING, missing) ? (
         <Card className="px-5 py-3">
           <p role="alert" className="text-wrong">
@@ -118,6 +141,14 @@ export default async function ProfilePage(props: {
             ))}
           </ul>
         </section>
+      </Card>
+
+      <Card className="p-5">
+        <GitHubSection
+          guest={actor.isGuest}
+          offered={offered}
+          connection={connection}
+        />
       </Card>
 
       {/* This device's theme (owner, 2026-10-26). */}
@@ -262,5 +293,143 @@ function TitleList({ items }: { items: { itemId: string; title: string }[] }) {
         <li key={item.itemId}>{item.title}</li>
       ))}
     </ul>
+  );
+}
+
+// P2-W12-S01 (§5H, ADR-0024): GitHub, a data connection for accounts. Interval's App
+// reads repository names and dependency files, never code; it's installed (and
+// revoked) on GitHub, repository by repository.
+function GitHubSection({
+  guest,
+  offered,
+  connection,
+}: {
+  guest: boolean;
+  offered: boolean;
+  connection: GitHubConnection | null;
+}) {
+  const confirm = "disconnect-github";
+  return (
+    <section aria-label="GitHub" className="flex flex-col gap-3">
+      <h2 className="text-section">GitHub</h2>
+      {guest ? (
+        <p className="text-ink-muted">Create an account to connect GitHub.</p>
+      ) : !offered ? (
+        <p className="text-ink-muted">
+          Connecting GitHub isn&apos;t available yet.
+        </p>
+      ) : connection === null ? (
+        <>
+          <p className="text-ink-muted">
+            Interval reads your repositories&apos; names and dependency files to
+            pick what fits your stack, never your code. You choose the
+            repositories on GitHub.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <a
+              href="/api/github/connect"
+              className="rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+            >
+              Connect GitHub
+            </a>
+            <a
+              href="/api/github/connect?link=1"
+              className="text-sm font-semibold text-select"
+            >
+              Already installed? Link it
+            </a>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="font-semibold">Connected as @{connection.login}</p>
+          {connection.installations.length === 0 ? (
+            <p className="text-sm text-ink-muted">
+              Interval isn&apos;t installed on any repository you can reach.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1 text-sm">
+              {connection.installations.map((i) => (
+                <li key={i.installationId}>
+                  <span className="text-ink-muted">
+                    {i.accountType === "User"
+                      ? "On your account"
+                      : `On ${i.accountLogin}`}
+                  </span>{" "}
+                  ·{" "}
+                  <a
+                    href={
+                      i.accountType === "User"
+                        ? `https://github.com/settings/installations/${i.installationId}`
+                        : `https://github.com/organizations/${i.accountLogin}/settings/installations/${i.installationId}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-select"
+                  >
+                    Choose repositories
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="text-sm text-ink-muted">
+            Your repositories appear here after Interval first reads them.
+          </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              popoverTarget={confirm}
+              className="cursor-pointer rounded-full border border-hairline px-4 py-2 text-sm font-semibold"
+            >
+              Disconnect
+            </button>
+          </div>
+          <div
+            id={confirm}
+            popover="auto"
+            role="alertdialog"
+            aria-labelledby={`${confirm}-title`}
+            className="m-auto w-[min(22rem,calc(100vw-2rem))] rounded-2xl border border-hairline bg-page p-5 text-ink shadow-card backdrop:bg-black/40"
+          >
+            <p id={`${confirm}-title`} className="font-semibold">
+              Disconnect GitHub?
+            </p>
+            <p className="mt-1 text-sm text-ink-muted">
+              What Interval read from your repositories is deleted. To revoke
+              its access too,{" "}
+              <a
+                href="https://github.com/settings/installations"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-select"
+              >
+                uninstall Interval on GitHub
+              </a>
+              .
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              <form action={disconnectGitHubAction}>
+                <button
+                  type="submit"
+                  className="w-full cursor-pointer rounded-full border border-wrong px-5 py-3 font-semibold"
+                >
+                  Disconnect GitHub
+                </button>
+              </form>
+              <button
+                type="button"
+                autoFocus
+                popoverTarget={confirm}
+                popoverTargetAction="hide"
+                className="w-full cursor-pointer rounded-full bg-ink px-5 py-3 font-semibold text-page"
+              >
+                Keep it
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </section>
   );
 }

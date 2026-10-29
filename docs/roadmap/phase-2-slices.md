@@ -335,7 +335,8 @@ Owner answers (2026-10-29, Week 12 planning): repository access through a GitHub
   - dependency files per Q-P2-41; only dependency names (and the file they came from) stored, never file contents or code;
   - a repository removed from the installation, or the App uninstalled, removes its rows at the next sync;
   - queued on connect, by "Refresh" in Profile, and on the schedule in Q-P2-40; rate limits and GitHub errors retried (LOAD-5), logged;
-  - GitHub calls behind a port with an in-memory fake (ADR-0012).
+  - GitHub calls behind a port with an in-memory fake (ADR-0012);
+  - per user: an installation token reads every repository selected on an installation, so for an organisation's installation only the repositories that user can reach are kept for them (`GET /user/installations/{id}/repositories` with their token at connect, or the org-owner rule decided then) (S01 review).
 - Out of scope: code, commit history, webhooks.
 - Q: Q-P2-40, Q-P2-41, Q-P2-43.
 

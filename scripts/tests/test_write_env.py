@@ -13,6 +13,9 @@ SECRETS = {
     "interval/prod/better-auth": "authSecret456",
     "interval/prod/openrouter": "orKey789",
     "interval/prod/voyage": "voyageKey000",
+    "interval/prod/github-app-slug": "interval-dev",
+    "interval/prod/github-app-client-id": "Iv23liAbC",
+    "interval/prod/github-app-client-secret": "ghSecret111",
 }
 
 
@@ -96,6 +99,9 @@ def test_writes_three_env_files_each_with_only_its_keys_and_mode_600(
         "EVENTS_DIR": "/tmp/interval-events",
         "OPENROUTER_API_KEY": "orKey789",
         "VOYAGE_API_KEY": "voyageKey000",
+        "GITHUB_APP_SLUG": "interval-dev",
+        "GITHUB_APP_CLIENT_ID": "Iv23liAbC",
+        "GITHUB_APP_CLIENT_SECRET": "ghSecret111",
     }
     assert parse(out / "postgres.env") == {"POSTGRES_PASSWORD": "pgSecret123"}
     assert parse(out / "caddy.env") == {"SITE_ADDRESS": ":80"}

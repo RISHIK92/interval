@@ -1,10 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, expect, test, vi } from "vitest";
+import { afterEach, describe, expect, test, vi } from "vitest";
 import type {
   Actor,
   Feedback,
   Preferences,
   Progress,
+  GitHubAccounts,
 } from "../../server/ports";
 
 // §5A, Q-P1-36, P1-W4-S08: choices, hidden sources, and what was inferred.
@@ -21,11 +22,17 @@ const inferred = vi.fn<Feedback["inferred"]>(() =>
   }),
 );
 const explored = vi.fn<Progress["concepts"]>(() => Promise.resolve([]));
+let githubOffered = true;
+const githubConnection = vi.fn<GitHubAccounts["get"]>(() =>
+  Promise.resolve(null),
+);
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
   feedback: () => ({ hiddenSources, inferred }),
   progress: () => ({ concepts: explored }),
+  githubApp: () => (githubOffered ? {} : null),
+  githubAccounts: () => ({ get: githubConnection }),
 }));
 const themeCookie = vi.fn<(name: string) => { value: string } | undefined>();
 vi.mock("next/headers", () => ({
@@ -39,9 +46,18 @@ vi.mock("next/navigation", () => ({
 }));
 
 const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
+const user: Actor = { ...guest, userId: "u1", isGuest: false };
+const preferences = {
+  goals: ["stay-sharp" as const],
+  topics: ["databases" as const],
+  level: "beginner" as const,
+  breakLength: "3-8" as const,
+  firstName: null,
+};
 
 afterEach(() => {
   vi.clearAllMocks();
+  githubOffered = true;
 });
 
 async function page(query: Record<string, string> = {}): Promise<string> {
@@ -205,4 +221,74 @@ test("Profile lists the user's concepts by topic with their states, or says how 
   expect(section).toMatch(/Raft[^]*?Mastered · Due for review[^]*?Paxos/);
   expect(section).not.toMatch(/Paxos[^]*?Explored · Due/);
   expect(explored).toHaveBeenCalledWith("g1");
+});
+
+// P2-W12-S01 (§5H, ADR-0024): connecting GitHub, accounts only.
+describe("GitHub", () => {
+  test("an account not connected can connect, or link an App installed before", async () => {
+    current.mockResolvedValue(user);
+    get.mockResolvedValue(preferences);
+    const html = await page();
+    expect(html).toContain('href="/api/github/connect"');
+    expect(html).toContain('href="/api/github/connect?link=1"');
+    expect(html).toContain(
+      "Interval reads your repositories&#x27; names and dependency files",
+    );
+  });
+
+  test("connected: who, where, and Disconnect with how to revoke on GitHub", async () => {
+    current.mockResolvedValue(user);
+    get.mockResolvedValue(preferences);
+    githubConnection.mockResolvedValueOnce({
+      login: "octo",
+      connectedAt: new Date(),
+      installations: [
+        { installationId: "11", accountLogin: "octo", accountType: "User" },
+        {
+          installationId: "12",
+          accountLogin: "acme",
+          accountType: "Organization",
+        },
+      ],
+    });
+    const html = await page();
+    expect(html).toContain("Connected as @octo");
+    expect(html).toContain("On your account");
+    expect(html).toContain("On acme");
+    expect(html).toMatch(/popover[tT]arget="disconnect-github"/);
+    expect(html).toContain("Disconnect GitHub");
+    expect(html).toContain(
+      'href="https://github.com/settings/installations/11"',
+    );
+    expect(html).toContain(
+      'href="https://github.com/organizations/acme/settings/installations/12"',
+    );
+    expect(html).toContain('href="https://github.com/settings/installations"');
+  });
+
+  test("a guest is asked to create an account; not configured says so", async () => {
+    current.mockResolvedValue(guest);
+    get.mockResolvedValue(preferences);
+    let html = await page();
+    expect(html).toContain("Create an account to connect GitHub");
+    expect(html).not.toContain("/api/github/connect");
+    expect(githubConnection).not.toHaveBeenCalled();
+    current.mockResolvedValue(user);
+    githubOffered = false;
+    html = await page();
+    expect(html).toContain("Connecting GitHub isn&#x27;t available yet.");
+  });
+
+  test("the callback's outcomes are told in fixed words", async () => {
+    current.mockResolvedValue(user);
+    get.mockResolvedValue(preferences);
+    expect(await page({ saved: "github" })).toContain("GitHub connected.");
+    expect(await page({ github: "failed" })).toContain(
+      "GitHub couldn&#x27;t be connected. Try again.",
+    );
+    expect(await page({ github: "none" })).toContain(
+      "Install Interval on at least one repository",
+    );
+    expect(await page({ github: "<b>x</b>" })).not.toContain("<b>x</b>");
+  });
 });

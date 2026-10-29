@@ -18,9 +18,9 @@ Never paste the output of `docker inspect` or `docker compose config`: both prin
 ## First deploy
 1. `pnpm --filter @interval/infra exec cdk bootstrap` (once per account and region).
 2. `pnpm --filter @interval/infra exec cdk deploy interval-prod`. Note the outputs: InstanceId, PublicIp, bucket names, secret ARNs.
-3. Replace the two placeholders with real keys (letters, digits, `_` and `-` only; anything else is refused at deploy):
+3. Replace the placeholders with real keys (letters, digits, `_` and `-` only; anything else is refused at deploy):
    `aws secretsmanager put-secret-value --secret-id interval/prod/openrouter --secret-string '<key>'`
-   and the same for `interval/prod/voyage`.
+   and the same for `interval/prod/voyage`, and the GitHub App's (ADR-0024; its callback URL `https://<domain>/api/github/callback`): `interval/prod/github-app-slug`, `interval/prod/github-app-client-id`, `interval/prod/github-app-client-secret`. On the VM every service reads `app.env`, so the worker and migrations also see the GitHub client secret (as they do the OpenRouter and Voyage keys); AWS mode gives it to the web task only.
    Never change `interval/prod/postgres`: Postgres sets its password only when the data directory is first created, so a new value would lock the app out.
 4. Open a shell: `aws ssm start-session --target <InstanceId>`, then `sudo -i`.
 5. `git clone https://github.com/RISHIK92/interval.git /opt/interval`

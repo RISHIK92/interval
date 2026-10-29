@@ -29,6 +29,8 @@ type EventName = Literal[
     "feed_viewed",
     "feedback_given",
     "feedback_undone",
+    "github_connected",
+    "github_disconnected",
     "guest_merged",
     "item_saved",
     "note_deleted",
@@ -67,6 +69,8 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "feed_viewed": 1,
     "feedback_given": 1,
     "feedback_undone": 1,
+    "github_connected": 1,
+    "github_disconnected": 1,
     "guest_merged": 1,
     "item_saved": 1,
     "note_deleted": 1,
@@ -173,6 +177,14 @@ class FeedbackGivenProps(_Model):
 
 class FeedbackUndoneProps(_Model):
     kind: Literal["not_interested"]
+
+
+class GithubConnectedProps(_Model):
+    installations: int = Field(ge=0, strict=True)
+
+
+class GithubDisconnectedProps(_Model):
+    pass
 
 
 class GuestMergedProps(_Model):
@@ -370,6 +382,18 @@ class FeedbackUndoneEvent(_EnvelopeBase):
     props: FeedbackUndoneProps
 
 
+class GithubConnectedEvent(_EnvelopeBase):
+    name: Literal["github_connected"]
+    version: Literal[1]
+    props: GithubConnectedProps
+
+
+class GithubDisconnectedEvent(_EnvelopeBase):
+    name: Literal["github_disconnected"]
+    version: Literal[1]
+    props: GithubDisconnectedProps
+
+
 class GuestMergedEvent(_EnvelopeBase):
     name: Literal["guest_merged"]
     version: Literal[1]
@@ -495,6 +519,8 @@ type Envelope = Annotated[
     | FeedViewedEvent
     | FeedbackGivenEvent
     | FeedbackUndoneEvent
+    | GithubConnectedEvent
+    | GithubDisconnectedEvent
     | GuestMergedEvent
     | ItemSavedEvent
     | NoteDeletedEvent
