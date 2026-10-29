@@ -842,3 +842,57 @@ test("an open section lists its missing foundations, each with a reading if one 
     expect(await listed()).toEqual([[], [["F4", null]]]);
   });
 });
+
+// The Paths first visit (wireframe): each path's topic, and whether it fits the user's
+// goal (any of its concepts among user_goal_concepts, ADR-0015).
+test("paths carry their topic and whether they fit the user's goal", async () => {
+  await inRollback(async (trx, { userId, live, other }) => {
+    const paths = kyselyPaths(trx);
+    const fits = async () =>
+      Object.fromEntries(
+        (await paths.live(userId))
+          .filter((p) => [live, other].includes(p.pathId))
+          .map((p) => [p.pathId, [p.topic, p.fitsGoal]]),
+      );
+    // No preferences yet: nothing fits.
+    expect(await fits()).toEqual({
+      [live]: ["distributed-systems", false],
+      [other]: ["distributed-systems", false],
+    });
+    const concept = await trx
+      .selectFrom("concept")
+      .select("slug")
+      .where("name", "=", "Concept 1")
+      .orderBy("id", "desc")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("goal_concept")
+      .values({ goal: "system-design-interviews", concept_slug: concept.slug })
+      .execute();
+    await trx
+      .insertInto("user_preferences")
+      .values({
+        user_id: userId,
+        goals: ["system-design-interviews"],
+        topics: ["backend"],
+        level: "beginner",
+        break_length: "3-8",
+      })
+      .execute();
+    // Both paths' first sections teach Concept 1.
+    expect(await fits()).toEqual({
+      [live]: ["distributed-systems", true],
+      [other]: ["distributed-systems", true],
+    });
+    // "Stay sharp" points at no concepts.
+    await trx
+      .updateTable("user_preferences")
+      .set({ goals: ["stay-sharp"] })
+      .where("user_id", "=", userId)
+      .execute();
+    expect(Object.values(await fits()).map(([, fit]) => fit)).toEqual([
+      false,
+      false,
+    ]);
+  });
+});

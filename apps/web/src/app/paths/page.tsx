@@ -3,26 +3,32 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   books,
+  entitlements,
   paths,
   preferences,
   sessionReader,
 } from "../../server/container";
-import type {
-  BookOutline,
-  BookStatus,
-  BookSummary,
-  PathSummary,
+import {
+  BIGINT_ID,
+  isTopic,
+  type BookOutline,
+  type BookStatus,
+  type BookSummary,
+  type PathSummary,
 } from "../../server/ports";
 import { deleteBookAction } from "../books/actions";
 import { TabBar } from "../TabBar";
 import { Card } from "../ui/Card";
 import { startPathAction } from "./actions";
+import { FirstVisit } from "./FirstVisit";
 
 export const dynamic = "force-dynamic";
 
 // §4, §5F, Q-P2-27 (P2-W10-S03): the Paths tab. The owner's live topic paths; the
 // user's active one first, to continue. Start makes a path active (pausing another).
-export default async function PathsPage() {
+export default async function PathsPage(props: {
+  searchParams: Promise<{ topic?: string; preview?: string }>;
+}) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
   const chosen = await preferences().get(actor.userId);
@@ -32,6 +38,29 @@ export default async function PathsPage() {
     books().list(actor.userId),
     books().outlines(actor.userId),
   ]);
+  // Nothing added yet (no book, no path followed): the first visit (wireframe).
+  if (mine.length === 0 && all.every((p) => p.mine === null)) {
+    const { topic, preview } = await props.searchParams;
+    const [picked, maxMb] = await Promise.all([
+      preview !== undefined && BIGINT_ID.test(preview)
+        ? paths().path(actor.userId, preview)
+        : null,
+      // OPS-3: the plan's limit, said before the upload starts.
+      entitlements().limit(actor.userId, "books.max_mb"),
+    ]);
+    return (
+      <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-none lg:pt-10 lg:pr-8 lg:pl-68">
+        <TabBar current="paths" firstName={chosen.firstName} />
+        <FirstVisit
+          paths={all}
+          topic={topic !== undefined && isTopic(topic) ? topic : null}
+          preview={picked}
+          guest={actor.isGuest}
+          maxMb={maxMb}
+        />
+      </main>
+    );
+  }
   const active = all.filter((p) => p.mine === "active");
   const rest = all.filter((p) => p.mine !== "active");
   return (

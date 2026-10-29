@@ -1,6 +1,12 @@
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import { CHECKPOINT_SIZE, type PathStep, type Paths, passMark } from "../ports";
+import {
+  CHECKPOINT_SIZE,
+  isTopic,
+  type PathStep,
+  type Paths,
+  passMark,
+} from "../ports";
 import {
   checkpointQuestions,
   everSkipped,
@@ -50,6 +56,19 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
             join content_item ci on ci.id = m.content_item_id
             join source so on so.id = ci.source_id
             where s.path_id = p.id and ${ALLOWED})`.as("minutes"),
+          // The topic most of its concepts are on: the card's tag and filter.
+          sql<string | null>`(select c.topic from path_section s
+            join path_section_concept sc on sc.section_id = s.id
+            join concept c on c.id = sc.concept_id and c.retired_at is null
+            where s.path_id = p.id
+            group by c.topic order by count(*) desc, c.topic limit 1)`.as(
+            "topic",
+          ),
+          // Any of its concepts among the user's goal concepts (ADR-0015).
+          sql<boolean>`exists (select 1 from path_section s
+            join path_section_concept sc on sc.section_id = s.id
+            join user_goal_concepts(${userId}) g on g.concept_id = sc.concept_id
+            where s.path_id = p.id)`.as("fits_goal"),
         ])
         // A retired path stays for those who followed it (owner, 2026-10-28).
         .where((eb) =>
@@ -73,6 +92,8 @@ export function kyselyPaths(db: Kysely<DB>): Paths {
         minutes: r.minutes,
         mine: r.mine,
         retired: r.status === "retired",
+        topic: r.topic !== null && isTopic(r.topic) ? r.topic : null,
+        fitsGoal: r.fits_goal,
       }));
     },
 

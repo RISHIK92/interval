@@ -337,3 +337,32 @@ def test_project_note_candidates_come_from_connected_users_project_cards(
     found = store.github.project_note_candidates()
     assert found.get("tc10") == [items[1], items[0]]
     assert "tc11" not in found
+
+
+# user_goal_concepts (the Paths page's "Fits your goal"): the stack goal points at the
+# concepts the user's projects map to; without it, they don't count.
+def test_user_goal_concepts_include_projects_only_with_the_stack_goal(
+    conn: psycopg.Connection,
+) -> None:
+    concepts(conn)
+    PostgresTechnologies(conn).sync_seed([PG])
+    repo_with(conn, "tc12", [("npm", "pg")])
+
+    def goal_concepts() -> set[str]:
+        return {
+            str(r[0])
+            for r in conn.execute(
+                "select c.slug from user_goal_concepts('tc12') g "
+                "join concept c on c.id = g.concept_id"
+            ).fetchall()
+        }
+
+    conn.execute(
+        "insert into user_preferences (user_id, goals, topics, level, break_length) "
+        "values ('tc12', '{stay-sharp}', '{backend}', 'beginner', '3-8')"
+    )
+    assert goal_concepts() == set()
+    conn.execute(
+        "update user_preferences set goals = '{stack-i-use}' where user_id = 'tc12'"
+    )
+    assert goal_concepts() == {"t-mvcc", "t-indexes"}

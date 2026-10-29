@@ -773,6 +773,11 @@ export type PathSummary = {
   // Retired since the user started it: shown read-only, never resumed (owner,
   // 2026-10-28).
   retired: boolean;
+  // The topic most of its concepts are on (null: no concepts yet), and whether any
+  // of them is among the user's goal concepts (ADR-0015): the Paths page's tag,
+  // filter and "Fits your goal".
+  topic: Topic | null;
+  fitsGoal: boolean;
 };
 export type PathReading = {
   momentId: string;
@@ -919,6 +924,9 @@ export const TOPICS = [
   "distributed-systems",
   "backend",
 ] as const satisfies readonly Topic[];
+export function isTopic(value: string): value is Topic {
+  return (TOPICS as readonly string[]).includes(value);
+}
 export const LEVELS = [
   "beginner",
   "intermediate",

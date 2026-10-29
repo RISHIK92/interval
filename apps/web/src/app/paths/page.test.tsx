@@ -5,6 +5,8 @@ import type {
   BookOutline,
   Books,
   Paths,
+  PathSummary,
+  PathTimeline,
   Preferences,
 } from "../../server/ports";
 
@@ -20,12 +22,15 @@ const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
   }),
 );
 const live = vi.fn<Paths["live"]>(() => Promise.resolve([]));
+const path = vi.fn<Paths["path"]>(() => Promise.resolve(null));
 const list = vi.fn<Books["list"]>(() => Promise.resolve([]));
 const outlines = vi.fn<Books["outlines"]>(() => Promise.resolve([]));
+const limit = vi.fn(() => Promise.resolve(25));
 vi.mock("../../server/container", () => ({
+  entitlements: () => ({ limit }),
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
-  paths: () => ({ live }),
+  paths: () => ({ live, path }),
   books: () => ({ list, outlines }),
 }));
 vi.mock("next/headers", () => ({
@@ -43,9 +48,13 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-async function page(): Promise<string> {
+async function page(
+  search: { topic?: string; preview?: string } = {},
+): Promise<string> {
   const { default: PathsPage } = await import("./page");
-  return renderToStaticMarkup(await PathsPage());
+  return renderToStaticMarkup(
+    await PathsPage({ searchParams: Promise.resolve(search) }),
+  );
 }
 
 const summary = {
@@ -53,6 +62,8 @@ const summary = {
   sections: 3,
   readings: 9,
   minutes: 31,
+  topic: null,
+  fitsGoal: false,
 };
 
 test("the active path comes first to continue; the others can be started or resumed", async () => {
@@ -144,9 +155,11 @@ test("Your books lists the user's books with their status, and Add a book", asyn
   expect(html).toMatch(/name="bookId" value="3"[^]*?Delete book/);
 });
 
-test("with no books, it says what a book is for", async () => {
+test("with no books and no path, the first visit says what a book is for", async () => {
   current.mockResolvedValue(user);
-  expect(await page()).toContain("Upload a PDF to read it in short sessions.");
+  expect(await page()).toContain(
+    "We split it into short sessions, with a 60-second checkpoint",
+  );
 });
 
 // P2-W11-S05 (§5F, Q-P2-33): a ready book is followed like a path.
@@ -285,4 +298,186 @@ test("a finished chapter's checkpoint row says where it stands and leads to its 
   list.mockResolvedValueOnce([ready]);
   outlines.mockResolvedValueOnce([outline]);
   expect(await page()).not.toContain("/books/7/checkpoint/91");
+});
+
+// Wireframe "Web · Paths, first visit": nothing added yet (no book, no path followed).
+const fresh: PathSummary[] = [
+  {
+    ...summary,
+    pathId: "6",
+    name: "Caching",
+    mine: null,
+    retired: false,
+    topic: "system-design",
+    fitsGoal: true,
+  },
+  {
+    ...summary,
+    pathId: "7",
+    name: "Indexes",
+    mine: null,
+    retired: false,
+    topic: "databases",
+  },
+];
+
+test("a first visit offers a PDF upload and the ready-made paths", async () => {
+  current.mockResolvedValue(user);
+  live.mockResolvedValueOnce(fresh);
+  const html = await page();
+  expect(html).toContain("Bring your own reading");
+  expect(html).toContain('action="/api/books"');
+  expect(html).toContain('accept="application/pdf,.pdf"');
+  expect(html).not.toContain("EPUB");
+  // The honest notice (Q-P2-38), not the wireframe's "nothing is shared".
+  expect(html).toContain("Checkpoints send a chapter&#x27;s text to our");
+  expect(html).not.toContain("nothing is shared");
+  expect(html).toContain("Or start a ready-made path");
+  expect(html).toContain("How a path works");
+  expect(html).toContain("Your plan shows up here");
+  // "Fits your goal" only on the path that overlaps the user's goal concepts.
+  const caching = html.slice(
+    html.indexOf(">Caching<"),
+    html.indexOf(">Indexes<"),
+  );
+  expect(caching).toContain("Fits your goal");
+  expect(html.slice(html.indexOf(">Indexes<"))).not.toContain("Fits your goal");
+});
+
+test("a guest's first visit asks for an account instead of an upload", async () => {
+  current.mockResolvedValue({ ...user, isGuest: true });
+  live.mockResolvedValueOnce(fresh);
+  const html = await page();
+  expect(html).toContain("Create an account to add a book");
+  expect(html).not.toContain('action="/api/books"');
+});
+
+test("topic chips filter the paths; an unknown topic shows them all", async () => {
+  current.mockResolvedValue(user);
+  live.mockResolvedValue(fresh);
+  const all = await page();
+  expect(all).toContain('href="/paths?topic=system-design"');
+  expect(all).toContain('href="/paths?topic=databases"');
+  const databases = await page({ topic: "databases" });
+  expect(databases).toContain(">Indexes<");
+  expect(databases).not.toContain(">Caching<");
+  expect(databases).toMatch(/aria-current="true"[^>]*>#databases</);
+  const unknown = await page({ topic: "cooking" });
+  expect(unknown).toContain(">Caching<");
+  expect(unknown).toContain(">Indexes<");
+  live.mockReset();
+  live.mockResolvedValue([]);
+});
+
+test("picking a path previews its sections on the right, to start it", async () => {
+  current.mockResolvedValue(user);
+  live.mockResolvedValueOnce(fresh);
+  path.mockResolvedValueOnce({
+    pathId: "6",
+    name: "Caching",
+    why: "Speed things up.",
+    retired: false,
+    mine: null,
+    sections: [
+      {
+        sectionId: "61",
+        concepts: ["Caching", "CDN"],
+        readings: [
+          {
+            momentId: "601",
+            itemId: "60",
+            sectionTitle: "Cache-aside",
+            articleTitle: "Caching patterns",
+            sourceName: "Example Engineering",
+            minutes: 4,
+            frameable: false,
+            linkBroken: false,
+            finished: false,
+            ordinal: 0,
+          },
+        ],
+        open: true,
+        checkpoint: "locked",
+        skipped: false,
+        warning: null,
+        holdsBack: false,
+        mastered: false,
+        foundations: [],
+        size: 0,
+        passMark: 0,
+      },
+    ],
+  } satisfies PathTimeline);
+  const html = await page({ preview: "6" });
+  expect(path).toHaveBeenCalledWith("u1", "6");
+  expect(html).toContain("Speed things up.");
+  expect(html).toContain("Caching, CDN");
+  expect(html).toMatch(/name="pathId" value="6"[^]*?Start this path/);
+  expect(html).not.toContain("Your plan shows up here");
+  // Owner, 2026-10-29: the path opens in a pane on the right with its readings; the
+  // upload steps aside, the list is one column, and the picked card is marked.
+  expect(html).toContain("Cache-aside · Example Engineering · 4 min");
+  expect(html).not.toContain("Bring your own reading");
+  expect(html).not.toContain("sm:grid-cols-2");
+  expect(html).toContain('href="/paths?preview=6#path-6"');
+  expect(html).toMatch(
+    /aria-current="true"[^>]*href="\/paths\?preview=6#path-6"|href="\/paths\?preview=6#path-6"[^>]*aria-current="true"/,
+  );
+  // Each side scrolls on its own; the other path dims until the list is hovered.
+  expect(html.match(/lg:overflow-y-auto/g)).toHaveLength(2);
+  const other = html.slice(html.indexOf('id="path-7"'));
+  expect(other.slice(0, 300)).toContain("lg:opacity-40");
+  expect(html.slice(html.indexOf('id="path-6"')).slice(0, 120)).not.toContain(
+    "opacity-40",
+  );
+  expect(html).toContain('aria-label="Close the path"');
+});
+
+test("a bad preview id shows the empty plan card", async () => {
+  current.mockResolvedValue(user);
+  live.mockResolvedValueOnce(fresh);
+  const html = await page({ preview: "not-an-id" });
+  expect(path).not.toHaveBeenCalled();
+  expect(html).toContain("Your plan shows up here");
+});
+
+test("the upload says the rules before it starts: rights, size and DRM", async () => {
+  current.mockResolvedValue(user);
+  live.mockResolvedValueOnce(fresh);
+  const html = await page();
+  expect(html).toContain("allowed to use, up to 25 MB");
+  expect(html).toContain("protected (DRM)");
+});
+
+test("a preview the user can't see, or a retired path, offers no Start", async () => {
+  current.mockResolvedValue(user);
+  live.mockResolvedValueOnce(fresh);
+  path.mockResolvedValueOnce(null); // a draft or unknown path
+  expect(await page({ preview: "99" })).toContain("Your plan shows up here");
+  live.mockResolvedValueOnce(fresh);
+  path.mockResolvedValueOnce({
+    pathId: "6",
+    name: "Caching",
+    why: "Old.",
+    retired: true,
+    mine: null,
+    sections: [],
+  });
+  expect(await page({ preview: "6" })).not.toContain("Start this path");
+});
+
+test("no books but a followed path keeps the regular page and the book prompt", async () => {
+  current.mockResolvedValue(user);
+  live.mockResolvedValueOnce([
+    {
+      ...summary,
+      pathId: "6",
+      name: "Caching",
+      mine: "paused",
+      retired: false,
+    },
+  ]);
+  const html = await page();
+  expect(html).not.toContain("Bring your own reading");
+  expect(html).toContain("Upload a PDF to read it in short sessions.");
 });
