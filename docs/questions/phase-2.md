@@ -256,3 +256,13 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - **Later:** skill progression and practical applications.
 - **Update (owner, 2026-10-29):** the topic category is dropped. In the live feed, topic led almost every card, so its line was the universal line again, telling users a topic they had chosen themselves. Topic-led cards now show nothing. This narrows ADR-0025's v1 category list (the ACCEPTED ADR's text is left as written).
 - **Update (owner, 2026-10-29, after ADR-0027):** a card with a project note shows only the project note; the why-this-matters note is hidden on it (this replaces ADR-0026's "the AI project line goes under it"). The why-this-matters note uses the project note's type (body size, ink colour) without the dashed box and AI tag, since the dashed box marks AI text (AI-1).
+
+### Q-P2-46 How project notes are produced, and when batches go (P1)
+- Cite: AI-4 ("Offline jobs use batch processing"), OPS-4, Q-P2-13, P2-W12-S05; the owner's review on 2026-10-29.
+- Question: the project note was one direct call per card, at most 10 per recompute; should it use the batch API, and when should a batch go?
+- **Answer (owner, 2026-10-29):**
+  - **Combined batches:** project notes ride the question batches, drafting or validation, so no batch is wasted.
+  - **When a batch goes:** lazily, at 50 requests or more, or once its kind's last batch is 24 hours old. Questions have no fallback, so they can't stall. A run with nothing waiting sends nothing.
+  - **Same model only:** notes are batched only when `NOTES_MODEL` and `QUESTIONS_MODEL` are the same batched model; otherwise notes are direct calls, on the bare model.
+  - **Fallback and budgets:** the why-this-matters note stays the fallback until a card's project note exists. A batch's cost is split by tokens: questions to the global budget, each note to its user.
+- Debated first: a once-a-day project-note runner was planned and replaced by this. Batching live tagging was declined: it's on the ingestion path with no fallback, the Decisions API model isn't a batch model, and its cost is small.

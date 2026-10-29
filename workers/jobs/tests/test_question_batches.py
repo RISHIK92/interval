@@ -7,24 +7,32 @@ import re
 from collections.abc import Callable, Generator, Sequence
 from contextlib import AbstractContextManager, contextmanager
 from datetime import timedelta
-from decimal import Decimal
+from decimal import ROUND_DOWN, Decimal
 
 import pytest
 
-from interval_db.generated import AiProvider
-from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore
+from interval_db.generated import AiFeature, AiProvider
+from interval_jobs import question_batches
+from interval_jobs.adapters.memory import (
+    InMemoryAi,
+    InMemoryStore,
+    StoredGitHub,
+    StoredUser,
+)
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
-from interval_jobs.pipeline import ModelJob, moment_text
+from interval_jobs.pipeline import ModelJob, moment_text, notes_batched
 from interval_jobs.ports import (
     BatchItem,
     BatchNotFound,
     BatchRequest,
     BatchStatus,
+    ProjectNoteInput,
     Store,
+    Usage,
 )
-from interval_jobs.question_batches import collect, submit
+from interval_jobs.question_batches import Submitted, collect, submit
 
 from .test_pipeline import NOW, NoEmbeddings, World
 from .test_question_stage import QuestionLlm, question_world
@@ -47,6 +55,8 @@ class FakeBatches:
 
     def _reply(self, request: BatchRequest) -> str:
         content = request.messages[1]["content"]
+        if "their own project" in request.messages[0]["content"]:
+            return "Its leader election uses the same idea."
         if request.messages[0]["content"].startswith("You answer a multiple-choice"):
             lines = content.splitlines()
             right = next(
@@ -109,6 +119,13 @@ def unit_of(store: InMemoryStore) -> Callable[[], AbstractContextManager[Store]]
 
 
 MODEL = "anthropic/claude-haiku-5.5"
+
+
+# These tests are about what a batch does, not when it goes: one request is enough.
+# The Q-P2-46 rule (50 requests, or a day since the kind's last batch) has its own.
+@pytest.fixture(autouse=True)
+def send_any_size(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(question_batches, "MIN_BATCH", 1)
 
 
 def test_a_draft_batch_then_a_validation_batch_make_questions_live() -> None:
@@ -271,3 +288,238 @@ def test_a_validation_that_keeps_breaking_stops_after_five() -> None:
         collect(unit, gateway, MODEL)
     assert submit(unit, gateway, MODEL).validations == 0
     assert all(q.status == "pending" for q in store.questions.rows)
+
+
+# Q-P2-46: project notes ride the question batches, which go lazily.
+def notes_setup(
+    users: tuple[str, ...] = ("u1",), items: int = 3
+) -> tuple[InMemoryStore, AiGateway, FakeBatches, InMemoryAi]:
+    store, _, batches, _ = batch_setup()
+    people = InMemoryStore().users
+    for user in users:
+        people.rows[user] = StoredUser(user, is_anonymous=False)
+        store.github.accounts[user] = StoredGitHub(installations=[(11, "octo")])
+        store.github.note_candidates[user] = list(range(100, 100 + items))
+        for item in range(100, 100 + items):
+            store.github.project_inputs[(user, item)] = ProjectNoteInput(
+                f"Post {item}", "Example", ("etcd",), (("octo/velox", "A store"),)
+            )
+    ledger = InMemoryAi(people)
+    gateway = AiGateway(
+        ledger, QuestionLlm(), NoEmbeddings(), clock=lambda: NOW, batches=batches
+    )
+    return store, gateway, batches, ledger
+
+
+def drain(store: InMemoryStore, gateway: AiGateway) -> None:
+    """Draft and validate everything once, so only notes are left waiting."""
+    unit = unit_of(store)
+    for _ in range(2):
+        submit(unit, gateway, MODEL)
+        collect(unit, gateway, MODEL)
+
+
+def age_batches(store: InMemoryStore, by: timedelta) -> None:
+    store.questions.batches = {
+        b: (kind, is_open, at - by)
+        for b, (kind, is_open, at) in store.questions.batches.items()
+    }
+
+
+def test_a_few_notes_wait_for_fifty_requests_or_a_day(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(question_batches, "MIN_BATCH", 50)
+    store, gateway, batches, ledger = notes_setup(users=("UserWithCaps",), items=3)
+    drain(store, gateway)
+    sent_before = len(batches.submitted)
+    unit = unit_of(store)
+    # Three notes, recent batches of both kinds: nothing goes.
+    assert submit(unit, gateway, MODEL, notes=True).notes == 0
+    assert len(batches.submitted) == sent_before
+    # A day later the drafting batch is due, and the notes ride it.
+    age_batches(store, timedelta(hours=24))
+    sent = submit(unit, gateway, MODEL, notes=True)
+    assert (sent.drafts, sent.notes) == (0, 3)
+    batch_id = max(batches.submitted)
+    assert store.questions.batches[batch_id][0] == "draft"
+    # The provider takes only [a-z0-9_-] ids; user ids have capitals.
+    assert all(
+        re.fullmatch(r"[a-z0-9_-]+", r.custom_id) for r in batches.submitted[batch_id]
+    )
+    ledger.rows.clear()
+    got = collect(unit, gateway, MODEL)
+    assert got.notes_saved == 3
+    saved = store.github.project_notes
+    assert {item for _, item in saved} == {100, 101, 102}
+    assert all(
+        text == "Its leader election uses the same idea."
+        for _, text, _, _ in saved.values()
+    )
+    # The notes' share of the cost went to the user, under project notes.
+    assert {(u.feature, u.user_id) for u in ledger.rows} == {
+        ("project_notes", "UserWithCaps")
+    }
+    assert sum(u.cost_usd for u in ledger.rows) == Decimal("0.0001")
+    # Written once: nothing is asked again.
+    age_batches(store, timedelta(hours=24))
+    assert submit(unit, gateway, MODEL, notes=True).notes == 0
+
+
+def test_fifty_requests_go_at_once_and_each_user_is_capped(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(question_batches, "MIN_BATCH", 50)
+    monkeypatch.setattr(question_batches, "NOTES_PER_USER", 30)
+    store, gateway, _, _ = notes_setup(users=("u1", "u2"), items=40)
+    drain(store, gateway)
+    sent = submit(unit_of(store), gateway, MODEL, notes=True)
+    assert sent.notes == 60  # 30 each: 50 or more, so it goes without waiting
+
+
+def test_a_user_over_budget_adds_no_notes() -> None:
+    store, gateway, _, ledger = notes_setup(users=("u1", "u2"), items=2)
+    drain(store, gateway)
+    ledger.record(
+        Usage("u1", "project_notes", "openrouter", "m", 0, 0, Decimal(1), NOW)
+    )
+    age_batches(store, timedelta(hours=24))
+    unit = unit_of(store)
+    assert submit(unit, gateway, MODEL, notes=True).notes == 2
+    entries = store.questions.note_entries(max(store.questions.batches))
+    assert {e.user_id for e in entries} == {"u2"}
+
+
+def test_a_changed_repository_skips_and_a_failed_batch_frees_notes() -> None:
+    store, gateway, batches, _ = notes_setup(items=2)
+    drain(store, gateway)
+    age_batches(store, timedelta(hours=24))
+    unit = unit_of(store)
+    assert submit(unit, gateway, MODEL, notes=True).notes == 2
+    # Still in an open batch: not sent twice.
+    age_batches(store, timedelta(hours=24))
+    assert submit(unit, gateway, MODEL, notes=True).notes == 0
+    batches.mode = "failed"
+    collect(unit, gateway, MODEL)
+    assert store.github.project_notes == {}
+    batches.mode = "good"
+    age_batches(store, timedelta(hours=24))
+    assert submit(unit, gateway, MODEL, notes=True).notes == 2  # freed
+    store.github.project_inputs[("u1", 100)] = ProjectNoteInput(
+        "Post 100", "Example", ("etcd",), (("octo/zeta", None),)
+    )
+    collect(unit, gateway, MODEL)
+    assert {item for _, item in store.github.project_notes} == {101}
+
+
+def test_notes_ride_batches_only_when_both_models_are_the_same_batched_one() -> None:
+    assert notes_batched("batch:m", "batch:m")
+    assert not notes_batched("batch:m", "batch:other")
+    assert not notes_batched("m", "batch:m")
+    assert not notes_batched("batch:m", None)
+    assert not notes_batched(None, "batch:m")
+
+
+def test_nothing_waiting_means_no_batch() -> None:
+    store, gateway, batches, _ = notes_setup(items=0)
+    drain(store, gateway)
+    before = len(batches.submitted)
+    age_batches(store, timedelta(hours=48))
+    assert submit(unit_of(store), gateway, MODEL, notes=True) == Submitted(0, 0, 0)
+    assert len(batches.submitted) == before
+
+
+def test_notes_ride_the_validation_batch_when_drafting_is_open() -> None:
+    store, gateway, _, _ = notes_setup(items=2)
+    drain(store, gateway)
+    store.questions.record_batch("open-draft", "draft", MODEL, [])
+    age_batches(store, timedelta(hours=24))
+    assert submit(unit_of(store), gateway, MODEL, notes=True).notes == 2
+    assert store.questions.note_entries("open-draft") == []
+    ridden = [b for b in store.questions.batches if store.questions.note_entries(b)]
+    assert [store.questions.batches[b][0] for b in ridden] == ["validate"]
+
+
+def test_a_mixed_batch_splits_its_cost_by_tokens() -> None:
+    store, gateway, _, ledger = notes_setup(items=2)
+    unit = unit_of(store)
+    drafts = len(store.questions.targets(None))
+    sent = submit(unit, gateway, MODEL, notes=True)
+    assert (sent.drafts, sent.notes) == (drafts, 2)
+    collect(unit, gateway, MODEL)
+    by_payer = {(u.feature, u.user_id): u.cost_usd for u in ledger.rows}
+    # Every request costs the same tokens: the user pays 2 of drafts + 2 shares,
+    # rounded down; the global group takes the remainder.
+    expected = (Decimal("0.0001") * 2 / (drafts + 2)).quantize(
+        Decimal("0.000001"), rounding=ROUND_DOWN
+    )
+    assert by_payer[("project_notes", "u1")] == expected
+    assert sum(by_payer.values()) == Decimal("0.0001")
+    assert by_payer[("questions", None)] >= 0
+
+
+def test_many_small_shares_never_go_negative() -> None:
+    ledger = InMemoryAi(InMemoryStore().users)
+    gateway = AiGateway(
+        ledger, QuestionLlm(), NoEmbeddings(), clock=lambda: NOW, batches=FakeBatches()
+    )
+    items = [BatchItem(f"note-{n}-1", "x", None, 10, 10) for n in range(60)]
+    payers: dict[str, tuple[AiFeature, str | None]] = {
+        i.custom_id: ("project_notes", f"user{n}") for n, i in enumerate(items)
+    }
+    status = BatchStatus("completed", items, Decimal("0.0001"), None)
+    gateway.record_batch_cost(
+        feature="questions", model=MODEL, status=status, payers=payers
+    )
+    assert all(u.cost_usd >= 0 for u in ledger.rows)
+    assert sum(u.cost_usd for u in ledger.rows) == Decimal("0.0001")
+
+
+def test_a_refused_note_is_recorded_and_an_errored_one_goes_again() -> None:
+    store, gateway, batches, _ = notes_setup(items=1)
+    drain(store, gateway)
+    unit = unit_of(store)
+    age_batches(store, timedelta(hours=24))
+    batches.mode = "provider-error"
+    assert submit(unit, gateway, MODEL, notes=True).notes == 1
+    collect(unit, gateway, MODEL)
+    assert store.github.project_notes == {}
+    age_batches(store, timedelta(hours=24))
+    batches.mode = "broken"  # "not json": one line, but say it is too long
+    assert submit(unit, gateway, MODEL, notes=True).notes == 1  # the error goes again
+
+
+def test_a_too_long_reply_is_refused_and_not_asked_again(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store, gateway, _, _ = notes_setup(items=1)
+    drain(store, gateway)
+
+    def too_long(self: FakeBatches, request: BatchRequest) -> str:
+        return "Too long. " * 40
+
+    monkeypatch.setattr(FakeBatches, "_reply", too_long)
+    unit = unit_of(store)
+    age_batches(store, timedelta(hours=24))
+    assert submit(unit, gateway, MODEL, notes=True).notes == 1
+    collect(unit, gateway, MODEL)
+    ((_, text, _, _),) = store.github.project_notes.values()
+    assert text is None
+    age_batches(store, timedelta(hours=24))
+    assert submit(unit, gateway, MODEL, notes=True).notes == 0
+
+
+def test_questions_alone_wait_for_fifty_or_a_day(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(question_batches, "MIN_BATCH", 50)
+    store, gateway, batches, _ = batch_setup()
+    unit = unit_of(store)
+    assert 0 < len(store.questions.targets(None)) < 50
+    # A drafting batch went recently (now closed): a few drafts wait.
+    store.questions.record_batch("recent", "draft", MODEL, [])
+    store.questions.close_batch("recent", "completed", {})
+    assert submit(unit, gateway, MODEL).drafts == 0
+    assert list(batches.submitted) == []
+    age_batches(store, timedelta(hours=24))
+    assert submit(unit, gateway, MODEL).drafts == len(store.questions.targets(None))

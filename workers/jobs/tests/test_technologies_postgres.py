@@ -289,3 +289,51 @@ def test_project_notes_follow_the_repositories_matching_the_item(
     assert conn.execute(
         "select count(*) from project_note where user_id = 'tc9'"
     ).fetchone() == (0,)
+
+
+# Q-P2-46: the cards a batch may write project notes for: connected users' visible feed
+# entries whose explanation is a project one, once per item, best-ranked first.
+def test_project_note_candidates_come_from_connected_users_project_cards(
+    conn: psycopg.Connection,
+) -> None:
+    repo_with(conn, "tc10", [("npm", "pg")])
+    a_user(conn, "tc11")  # not connected
+    store = PostgresStore(conn)
+    source = store.sources.upsert(
+        name="cand-source",
+        feed_url="https://cand.example.test/feed.xml",
+        rights_profile="full_text_internal",
+        homepage=None,
+    )
+    items = [
+        store.items.upsert_from_feed(
+            source,
+            FeedEntry(
+                guid=f"cand-{n}",
+                link=f"https://cand.example.test/{n}",
+                title=f"Post {n}",
+                author=None,
+                published_at=datetime(2026, 10, 1, tzinfo=UTC),
+                updated_at=None,
+                summary=None,
+            ),
+            keep_excerpt=False,
+        )
+        for n in range(3)
+    ]
+    rows = [
+        ("tc10", "3-8", items[1], 1, ["project_match"]),
+        ("tc10", "8-15", items[1], 4, ["project_match"]),  # the same item again
+        ("tc10", "3-8", items[0], 2, ["project_match"]),
+        ("tc10", "3-8", items[2], 3, ["goal_match"]),  # not a project card
+        ("tc11", "3-8", items[0], 1, ["project_match"]),  # not connected
+    ]
+    for user, chip, item, rank, kinds in rows:
+        conn.execute(
+            "insert into user_feed_entry (user_id, chip, content_item_id, rank, "
+            "top_signal, reason_kinds) values (%s, %s, %s, %s, 'project_match', %s)",
+            (user, chip, item, rank, kinds),
+        )
+    found = store.github.project_note_candidates()
+    assert found.get("tc10") == [items[1], items[0]]
+    assert "tc11" not in found

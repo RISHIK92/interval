@@ -542,6 +542,18 @@ class QuestionBatchEntry:
     content_hash: str | None
 
 
+@dataclass(frozen=True)
+class NoteBatchEntry:
+    """A project note riding a question batch (Q-P2-46): whose, which card, and the
+    repositories (full names) it was asked about."""
+
+    custom_id: str
+    user_id: str
+    item_id: int
+    repositories: tuple[str, ...]
+    prompt_version: int
+
+
 type BatchKind = Literal["draft", "validate"]
 type BatchItemResult = Literal["saved", "decided", "broken", "error", "skipped"]
 
@@ -696,7 +708,18 @@ class Questions(Protocol):
         kind: BatchKind,
         model: str,
         entries: Sequence[QuestionBatchEntry],
+        notes: Sequence[NoteBatchEntry] = (),
     ) -> None: ...
+
+    def last_submitted(self, kind: BatchKind) -> datetime | None:
+        """When the last batch of this kind was submitted (Q-P2-46's 24-hour wait)."""
+        ...
+
+    def note_entries(self, batch_id: str) -> list[NoteBatchEntry]: ...
+
+    def notes_in_open_batches(self) -> set[tuple[str, int]]:
+        """The (user, item) project notes an open batch is working on."""
+        ...
 
     def open_batches(self) -> list[tuple[str, BatchKind, datetime]]:
         """Batches not yet closed, oldest first: (id, kind, submitted at)."""
@@ -1274,6 +1297,11 @@ class GitHubStore(Protocol):
     ) -> "ProjectNoteInput | None":
         """What the notes model may see; None when no project of the user's matches
         the item (any more)."""
+        ...
+
+    def project_note_candidates(self) -> dict[str, list[int]]:
+        """Q-P2-46: per connected user, the items in their feed whose explanation is
+        a project one, best-ranked first: what a batch may write project notes for."""
         ...
 
     def project_notes_missing(

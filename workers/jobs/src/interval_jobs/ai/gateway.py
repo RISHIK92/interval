@@ -11,7 +11,7 @@ OverBudget).
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from decimal import Decimal
+from decimal import ROUND_DOWN, Decimal
 from typing import Literal
 
 from interval_db.generated import AiFeature, AiProvider
@@ -156,23 +156,71 @@ class AiGateway:
             raise ModelError("no batch client configured")
         return self._batches.status(batch_id)
 
+    def over_budget(self, feature: AiFeature, user_id: str | None) -> bool:
+        """Whether the budget is spent: checked before a user's work joins a batch
+        (OPS-4), since a batch is paid for only once it completes."""
+        return self._over_budget(feature, user_id) is not None
+
     def record_batch_cost(
-        self, *, feature: AiFeature, model: str, status: BatchStatus
+        self,
+        *,
+        feature: AiFeature,
+        model: str,
+        status: BatchStatus,
+        payers: Mapping[str, tuple[AiFeature, str | None]] | None = None,
     ) -> None:
         """A finished batch's cost and tokens (OPS-4). The caller claims the batch
-        first so a retried collection never records it twice."""
+        first so a retried collection never records it twice. `payers` names, by
+        custom_id, the feature and user a request is charged to (Q-P2-46: project
+        notes go to their user); the rest go to `feature`, globally. The cost is
+        split by each group's tokens."""
         if self._batches is None:
             raise ModelError("no batch client configured")
         if status.cost_usd is None:
             raise ModelError("a finished batch without a cost can't be recorded")
+        groups: dict[tuple[AiFeature, str | None], list[int]] = {}
+        for item in status.items:
+            key = (payers or {}).get(item.custom_id, (feature, None))
+            tokens = groups.setdefault(key, [0, 0])
+            tokens[0] += item.input_tokens
+            tokens[1] += item.output_tokens
+        total = sum(i + o for i, o in groups.values())
+        global_key: tuple[AiFeature, str | None] = (feature, None)
+        recorded = Decimal(0)
+        for key, (in_tokens, out_tokens) in groups.items():
+            if key == global_key:
+                continue
+            # Rounded down, so the shares never exceed the cost; the global
+            # group takes the remainder, never a user.
+            share = (
+                (status.cost_usd * (in_tokens + out_tokens) / total).quantize(
+                    Decimal("0.000001"), rounding=ROUND_DOWN
+                )
+                if total
+                else Decimal(0)
+            )
+            recorded += share
+            self._record(
+                key[0],
+                key[1],
+                self._batches.provider,
+                model,
+                in_tokens,
+                out_tokens,
+                share,
+            )
+        remainder = status.cost_usd - recorded
+        if global_key not in groups and not remainder:
+            return  # every request had its payer, and nothing was left over
+        in_tokens, out_tokens = groups.get(global_key, [0, 0])
         self._record(
             feature,
             None,
             self._batches.provider,
             model,
-            sum(item.input_tokens for item in status.items),
-            sum(item.output_tokens for item in status.items),
-            status.cost_usd,
+            in_tokens,
+            out_tokens,
+            remainder,
         )
 
     def embed(

@@ -518,6 +518,16 @@ class ProjectNote(TypedDict):
     prompt_version: int
 
 
+class ProjectNoteBatchItem(TypedDict):
+    batch_id: str
+    custom_id: str
+    user_id: str
+    content_item_id: int
+    repositories: list[str]
+    prompt_version: int
+    result: str | None
+
+
 class Question(TypedDict):
     id: int
     moment_id: int | None

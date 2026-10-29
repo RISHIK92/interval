@@ -547,6 +547,16 @@ export interface ProjectNote {
   user_id: string;
 }
 
+export interface ProjectNoteBatchItem {
+  batch_id: string;
+  content_item_id: Int8;
+  custom_id: string;
+  prompt_version: number;
+  repositories: string[];
+  result: string | null;
+  user_id: string;
+}
+
 export interface Question {
   answer_count: Generated<number>;
   book_chapter_id: Int8 | null;
@@ -990,6 +1000,7 @@ export interface DB {
   plan: Plan;
   plan_capability: PlanCapability;
   project_note: ProjectNote;
+  project_note_batch_item: ProjectNoteBatchItem;
   question: Question;
   question_batch: QuestionBatch;
   question_batch_item: QuestionBatchItem;

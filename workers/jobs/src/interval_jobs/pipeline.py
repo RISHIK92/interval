@@ -138,6 +138,18 @@ QUESTION_RETRY_SECONDS = 300
 # Q-P2-13: QUESTIONS_MODEL=batch:<model> drafts and validates through the provider's
 # batch API (question_batches.py) instead of one call per moment here.
 BATCH_PREFIX = "batch:"
+
+
+def notes_batched(notes_model: str | None, questions_model: str | None) -> bool:
+    """Q-P2-46: project notes ride the question batches only when both models are
+    batched and the same (a batch holds one model); otherwise they're direct calls."""
+    return (
+        notes_model is not None
+        and notes_model.startswith(BATCH_PREFIX)
+        and notes_model == questions_model
+    )
+
+
 QUESTION_BROKEN_REPLIES = 5
 # A retry this far past due was lost (a flushed queue): a fresh start is taken.
 QUESTION_RETRY_LOST = timedelta(minutes=30)
@@ -396,9 +408,16 @@ class Pipeline:
                 services.store, message.user_id, model, self._clock()
             )
         # After the commit, so the stage sees the feed. Nothing while notes are off
-        # (ADR-0025: the model writes project lines only).
-        if self._notes is not None:
+        # (ADR-0025: the model writes project lines only), nor when they ride the
+        # question batches (Q-P2-46).
+        if self._notes is not None and not self._notes_batched():
             queue_project_notes(self._queue, message.user_id, done.project_notes)
+
+    def _notes_batched(self) -> bool:
+        return notes_batched(
+            self._notes.model if self._notes else None,
+            self._questions.model if self._questions else None,
+        )
 
     # P2-W12-S05 (§5B, OPS-4): the user's line on why an item matters to their
     # project. Read, call with no transaction open, then store.
@@ -407,6 +426,10 @@ class Pipeline:
         if self._notes is None:
             log.info("pipeline: notes are off (no model)", user_id=message.user_id)
             return
+        if self._notes_batched():
+            # Q-P2-46: a job queued before the switch; the batches write it now.
+            log.info("pipeline: project notes are batched", user_id=message.user_id)
+            return
         user_id, item_id = message.user_id, message.content_item_id
         with self._unit() as services:
             if not services.store.github.project_notes_missing(user_id, [item_id], 1):
@@ -414,8 +437,10 @@ class Pipeline:
             note = services.store.github.project_note_input(user_id, item_id)
         if note is None:
             return
+        # Direct calls take the bare model: "batch:" means nothing to the gateway.
+        model = self._notes.model.removeprefix(BATCH_PREFIX)
         with self._notes.gateway() as gateway:
-            text = write_project_note(gateway, self._notes.model, user_id, note)
+            text = write_project_note(gateway, model, user_id, note)
         if isinstance(text, OverBudget):
             # OPS-4, LOAD-5: the line is left out, observably; a later recompute that
             # shows the item asks again.
@@ -423,9 +448,7 @@ class Pipeline:
             return
         # A refused reply (None) is recorded too: not paid for again for this set.
         with self._unit() as services:
-            services.store.github.save_project_note(
-                user_id, item_id, note, text, self._notes.model
-            )
+            services.store.github.save_project_note(user_id, item_id, note, text, model)
 
     def _discover_stage(self, message: BaseModel, delivery: Delivery) -> None:
         with self._unit() as services:

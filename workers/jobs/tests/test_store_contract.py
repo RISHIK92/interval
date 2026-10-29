@@ -41,6 +41,7 @@ from interval_jobs.ports import (
     Finished,
     ItemDecisions,
     MomentRow,
+    NoteBatchEntry,
     PathDraft,
     QuestionBatchEntry,
     QuestionDraft,
@@ -2804,7 +2805,7 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
         moments, questions = s.questions.in_open_batches()
         return moments - held_moments, questions - held_questions
 
-    _, (_, lag, quorum), _ = _question_item(s, probe)
+    item, (_, lag, quorum), _ = _question_item(s, probe)
     draft = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
     (pending, _) = s.questions.save(
         quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1", None
@@ -2851,6 +2852,18 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
     s.questions.close_batch("b2", "failed", {})
     assert open_ours() == []
     assert in_ours() == (set(), set())
+
+    # Q-P2-46: project notes ride a batch; their items are listed, held while it's
+    # open, closed with it, and its kind's last submission is known.
+    probe.add_user("note-rider", False, [])
+    note = NoteBatchEntry("note-0-1", "note-rider", item, ("octo/velox",), 2)
+    s.questions.record_batch("b3", "draft", "haiku", [], [note])
+    assert s.questions.note_entries("b3") == [note]
+    assert ("note-rider", item) in s.questions.notes_in_open_batches()
+    last = s.questions.last_submitted("draft")
+    assert last is not None and last.tzinfo is not None
+    s.questions.close_batch("b3", "completed", {note.custom_id: "saved"})
+    assert ("note-rider", item) not in s.questions.notes_in_open_batches()
 
 
 # Q-3 (P2-W9-S08): the weekly recalibration reads the answers, stores levels, and

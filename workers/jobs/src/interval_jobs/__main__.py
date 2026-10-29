@@ -15,6 +15,7 @@ Usage:
 
 import argparse
 import json
+import os
 import signal
 import sys
 import threading
@@ -62,7 +63,7 @@ from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.link_check import check_links
 from interval_jobs.link_health import queue_link_checks
 from interval_jobs.path_proposer import propose
-from interval_jobs.pipeline import BATCH_PREFIX, Pipeline
+from interval_jobs.pipeline import BATCH_PREFIX, Pipeline, notes_batched
 from interval_jobs.polling import enqueue_due
 from interval_jobs.ports import ConceptCycleError, ModelError, Store
 from interval_jobs.question_batches import collect, submit
@@ -695,9 +696,11 @@ def _question_batches() -> None:
             print(json.dumps({"skipped": "another run holds the lock"}))
             return
         model = job.model.removeprefix(BATCH_PREFIX)
+        # Q-P2-46: project notes ride these batches when NOTES_MODEL is the same.
+        notes = notes_batched(os.environ.get("NOTES_MODEL", "").strip(), job.model)
         with job.gateway() as gateway:
             collected = collect(unit, gateway, model)
-            submitted = submit(unit, gateway, model)
+            submitted = submit(unit, gateway, model, notes)
     print(json.dumps({"collected": asdict(collected), "submitted": asdict(submitted)}))
 
 

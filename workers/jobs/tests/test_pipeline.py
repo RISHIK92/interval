@@ -879,7 +879,10 @@ VELOX = (("octo/velox", "A key-value store"),)
 
 
 def project_world(
-    on: bool = True, spent: Decimal = Decimal(0)
+    on: bool = True,
+    spent: Decimal = Decimal(0),
+    notes_model: str = "small-notes",
+    questions_model: str | None = None,
 ) -> tuple[World, NoteLlm, list[int]]:
     """u1's feed, every item on raft, which u1's project uses through etcd."""
     llm = NoteLlm()
@@ -894,7 +897,12 @@ def project_world(
     def gateway() -> Generator[AiGateway]:
         yield AiGateway(ledger, llm, NoEmbeddings(), clock=lambda: NOW)
 
-    world = World(notes=ModelJob("small-notes", gateway) if on else None)
+    world = World(
+        notes=ModelJob(notes_model, gateway) if on else None,
+        questions=None
+        if questions_model is None
+        else ModelJob(questions_model, gateway),
+    )
     world.store.sources.rows[world.source_id].topics = ("databases",)
     world.store.users.rows["u1"] = StoredUser("u1", is_anonymous=False)
     world.store.ranking.preferences_by_user["u1"] = UserPreferences(
@@ -1009,3 +1017,27 @@ def test_the_prompt_asks_the_model_not_to_repeat_the_repository() -> None:
     world, llm, _ = project_world()
     recompute(world, "r-1")
     assert llm.system_prompts and "don't repeat its name" in llm.system_prompts[0]
+
+
+# Q-P2-46: with notes riding the question batches, the recompute queues no direct
+# project-note jobs; with different models, notes stay direct, on the bare model.
+def test_batched_notes_queue_no_direct_jobs() -> None:
+    world, llm, _ = project_world(
+        notes_model="batch:shared", questions_model="batch:shared"
+    )
+    world.queue.enqueue("recompute_feed", {"user_id": "u1"}, idempotency_key="r-1")
+    world.queue.consume(
+        "recompute_feed", world.pipeline.handlers()["recompute_feed"], threading.Event()
+    )
+    assert world.queue.pending("project_note") == 0
+    assert llm.project_prompts == []
+
+
+def test_direct_notes_drop_the_batch_prefix() -> None:
+    world, llm, items = project_world(
+        notes_model="batch:small-notes", questions_model="batch:other"
+    )
+    recompute(world, "r-1")
+    assert llm.project_prompts
+    _, _, model, _ = world.store.github.project_notes[("u1", items[0])]
+    assert model == "small-notes"

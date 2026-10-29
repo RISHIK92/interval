@@ -57,6 +57,7 @@ from interval_jobs.ports import (
     ItemDecisions,
     MomentLink,
     MomentRow,
+    NoteBatchEntry,
     PathDraft,
     ProjectConcepts,
     ProjectNoteInput,
@@ -2169,11 +2170,31 @@ class PostgresQuestions:
         kind: BatchKind,
         model: str,
         entries: Sequence[QuestionBatchEntry],
+        notes: Sequence[NoteBatchEntry] = (),
     ) -> None:
         self._conn.execute(
             "insert into question_batch (id, kind, model) values (%s, %s, %s)",
             (batch_id, kind, model),
         )
+        with self._conn.cursor() as cur:
+            cur.executemany(
+                """
+                insert into project_note_batch_item (batch_id, custom_id, user_id,
+                  content_item_id, repositories, prompt_version)
+                values (%s, %s, %s, %s, %s, %s)
+                """,
+                [
+                    (
+                        batch_id,
+                        n.custom_id,
+                        n.user_id,
+                        n.item_id,
+                        list(n.repositories),
+                        n.prompt_version,
+                    )
+                    for n in notes
+                ],
+            )
         with self._conn.cursor() as cur:
             cur.executemany(
                 """
@@ -2224,6 +2245,36 @@ class PostgresQuestions:
             {int(q) for _, q in rows if q is not None},
         )
 
+    def last_submitted(self, kind: BatchKind) -> datetime | None:
+        row = self._conn.execute(
+            "select max(submitted_at) from question_batch where kind = %s", (kind,)
+        ).fetchone()
+        return None if row is None else row[0]
+
+    def note_entries(self, batch_id: str) -> list[NoteBatchEntry]:
+        rows = self._conn.execute(
+            """
+            select custom_id, user_id, content_item_id, repositories, prompt_version
+            from project_note_batch_item where batch_id = %s order by custom_id
+            """,
+            (batch_id,),
+        ).fetchall()
+        return [
+            NoteBatchEntry(
+                str(c), str(u), int(i), tuple(str(r) for r in repos), int(version)
+            )
+            for c, u, i, repos, version in rows
+        ]
+
+    def notes_in_open_batches(self) -> set[tuple[str, int]]:
+        rows = self._conn.execute(
+            """
+            select i.user_id, i.content_item_id from project_note_batch_item i
+            join question_batch b on b.id = i.batch_id where b.closed_at is null
+            """
+        ).fetchall()
+        return {(str(u), int(i)) for u, i in rows}
+
     def claim_batch_cost(self, batch_id: str, cost_usd: Decimal) -> bool:
         row = self._conn.execute(
             "update question_batch set cost_usd = %s "
@@ -2245,6 +2296,11 @@ class PostgresQuestions:
         with self._conn.cursor() as cur:
             cur.executemany(
                 "update question_batch_item set result = %s "
+                "where batch_id = %s and custom_id = %s",
+                [(result, batch_id, cid) for cid, result in results.items()],
+            )
+            cur.executemany(
+                "update project_note_batch_item set result = %s "
                 "where batch_id = %s and custom_id = %s",
                 [(result, batch_id, cid) for cid, result in results.items()],
             )
@@ -2831,6 +2887,22 @@ class PostgresGitHub:
             technologies,
             tuple((name, described.get(name)) for name in names),
         )
+
+    def project_note_candidates(self) -> dict[str, list[int]]:
+        rows = self._conn.execute(
+            """
+            select fe.user_id, fe.content_item_id
+            from user_feed_visible fe
+            join github_account a on a.user_id = fe.user_id
+            where 'project_match' = any(fe.reason_kinds)
+            group by fe.user_id, fe.content_item_id
+            order by fe.user_id, min(fe.rank), fe.content_item_id
+            """
+        ).fetchall()
+        found: dict[str, list[int]] = {}
+        for user_id, item_id in rows:
+            found.setdefault(str(user_id), []).append(int(item_id))
+        return found
 
     def project_notes_missing(
         self, user_id: str, item_ids: list[int], limit: int

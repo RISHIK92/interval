@@ -38,10 +38,9 @@ def queue_project_notes(queue: JobQueue, user_id: str, item_ids: list[int]) -> N
         )
 
 
-def write_project_note(
-    gateway: AiGateway, model: str, user_id: str, note: ProjectNoteInput
-) -> str | OverBudget | None:
-    """The model's line, or None when its reply isn't one short sentence."""
+def note_messages(note: ProjectNoteInput) -> list[Message]:
+    """The request for one project note, direct or batched (Q-P2-46): the same facts
+    either way."""
     # JSON: the descriptions are the user's own words and may hold anything.
     facts = {
         "title": note.title,
@@ -52,17 +51,31 @@ def write_project_note(
             for name, description in note.repositories
         ],
     }
-    messages: list[Message] = [
+    return [
         {"role": "system", "content": _SYSTEM},
         {"role": "user", "content": json.dumps(facts)},
     ]
-    result = gateway.complete(
-        feature="project_notes", user_id=user_id, model=model, messages=messages
-    )
-    if isinstance(result, OverBudget):
-        return result
-    text = result.text.strip()
+
+
+def accepted(reply: str, user_id: str) -> str | None:
+    """The model's line, or None when its reply isn't one short sentence."""
+    text = reply.strip()
     if not text or "\n" in text or len(text) > NOTE_MAX_CHARS:
         log.warn("project notes: reply refused", user_id=user_id)
         return None
     return text
+
+
+def write_project_note(
+    gateway: AiGateway, model: str, user_id: str, note: ProjectNoteInput
+) -> str | OverBudget | None:
+    """The model's line, or None when its reply isn't one short sentence."""
+    result = gateway.complete(
+        feature="project_notes",
+        user_id=user_id,
+        model=model,
+        messages=note_messages(note),
+    )
+    if isinstance(result, OverBudget):
+        return result
+    return accepted(result.text, user_id)

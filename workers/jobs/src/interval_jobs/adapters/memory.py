@@ -59,6 +59,7 @@ from interval_jobs.ports import (
     ItemDecisions,
     MomentLink,
     MomentRow,
+    NoteBatchEntry,
     PathDraft,
     ProjectConcepts,
     ProjectNoteInput,
@@ -1467,6 +1468,7 @@ class InMemoryQuestions:
         self.batches: dict[str, tuple[BatchKind, bool, datetime]] = {}
         self.batch_costs: dict[str, Decimal] = {}
         self.batch_items: dict[str, list[tuple[QuestionBatchEntry, str | None]]] = {}
+        self.note_items: dict[str, list[tuple[NoteBatchEntry, str | None]]] = {}
 
     def target(self, moment_id: int) -> QuestionTarget | None:
         moment = next((m for m in self._moments.rows if m.id == moment_id), None)
@@ -1635,9 +1637,29 @@ class InMemoryQuestions:
         kind: BatchKind,
         model: str,
         entries: Sequence[QuestionBatchEntry],
+        notes: Sequence[NoteBatchEntry] = (),
     ) -> None:
         self.batches[batch_id] = (kind, True, datetime.now(UTC))
         self.batch_items[batch_id] = [(e, None) for e in entries]
+        self.note_items[batch_id] = [(n, None) for n in notes]
+
+    def last_submitted(self, kind: BatchKind) -> datetime | None:
+        times = [at for k, _, at in self.batches.values() if k == kind]
+        return max(times, default=None)
+
+    def note_entries(self, batch_id: str) -> list[NoteBatchEntry]:
+        return sorted(
+            (n for n, _ in self.note_items.get(batch_id, [])),
+            key=lambda n: n.custom_id,
+        )
+
+    def notes_in_open_batches(self) -> set[tuple[str, int]]:
+        return {
+            (n.user_id, n.item_id)
+            for b, (_, is_open, _) in self.batches.items()
+            if is_open
+            for n, _ in self.note_items.get(b, [])
+        }
 
     def open_batches(self) -> list[tuple[str, BatchKind, datetime]]:
         return [
@@ -1678,6 +1700,10 @@ class InMemoryQuestions:
         self.batches[batch_id] = (kind, False, at)
         self.batch_items[batch_id] = [
             (e, results.get(e.custom_id, r)) for e, r in self.batch_items[batch_id]
+        ]
+        self.note_items[batch_id] = [
+            (n, results.get(n.custom_id, r))
+            for n, r in self.note_items.get(batch_id, [])
         ]
 
     def broken_counts(self) -> tuple[dict[tuple[int, str], int], dict[int, int]]:
@@ -2043,6 +2069,8 @@ class StoredGitHub:
 class InMemoryGitHub:
     def __init__(self) -> None:
         self.accounts: dict[str, StoredGitHub] = {}
+        # Q-P2-46: per user, the project-explained items in their feed (tests set it).
+        self.note_candidates: dict[str, list[int]] = {}
         # P2-W12-S05: what each (user, item) matches now (tests set it), and the notes.
         self.project_inputs: dict[tuple[str, int], ProjectNoteInput] = {}
         self.project_notes: dict[
@@ -2053,6 +2081,13 @@ class InMemoryGitHub:
         if user_id not in self.accounts:
             return None
         return self.project_inputs.get((user_id, item_id))
+
+    def project_note_candidates(self) -> dict[str, list[int]]:
+        return {
+            user: list(items)
+            for user, items in self.note_candidates.items()
+            if user in self.accounts
+        }
 
     def project_notes_missing(
         self, user_id: str, item_ids: list[int], limit: int
