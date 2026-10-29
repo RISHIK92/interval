@@ -253,3 +253,4 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - **Level- or time-led cards:** a concept connection from the concept graph when a prerequisite exists, otherwise nothing (owner's choice over my suggestion of nothing in v1).
   - **Kept internally:** the ranking reasons stay stored for debugging and evaluation.
   - **Later:** skill progression and practical applications.
+- **Update (owner, 2026-10-29):** the topic category is dropped. In the live feed, topic led almost every card, so its line was the universal line again, telling users a topic they had chosen themselves. Topic-led cards now show nothing. This narrows ADR-0025's v1 category list (the ACCEPTED ADR's text is left as written).

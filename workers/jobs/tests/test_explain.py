@@ -3,11 +3,9 @@ filled only from stored data, chosen by a stable hash of the item; no model."""
 
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from typing import get_args
 
 import pytest
 
-from interval_db.generated import Topic
 from interval_jobs.feed.explain import (
     LIBRARY_FILE,
     ConceptMap,
@@ -53,14 +51,10 @@ def scored(signal: str, facts: EntryFacts = FACTS) -> Scored:
 
 
 def text_for(
-    signal: str,
-    facts: EntryFacts = FACTS,
-    topics: list[Topic] | None = None,
-    concepts: ConceptMap = CONCEPTS,
+    signal: str, facts: EntryFacts = FACTS, concepts: ConceptMap = CONCEPTS
 ) -> str | None:
     found = explain(
         scored(signal, facts),
-        ["databases"] if topics is None else topics,
         "intermediate",
         NOW,
         GOALS,
@@ -72,7 +66,7 @@ def text_for(
 
 def test_the_real_library_loads_with_every_category() -> None:
     templates = library()
-    assert set(templates) == {"project", "goal", "concept", "topic", "fresh", "trusted"}
+    assert set(templates) == {"project", "goal", "concept", "fresh", "trusted"}
     assert LIBRARY_FILE.name == "explanations.yaml"
 
 
@@ -80,7 +74,7 @@ def test_the_real_library_loads_with_every_category() -> None:
     ("body", "error"),
     [
         (
-            "templates: [{id: a, category: topic, text: 'On {nope}.'}]",
+            "templates: [{id: a, category: fresh, text: 'On {nope}.'}]",
             "not supplied",
         ),
         (
@@ -88,11 +82,11 @@ def test_the_real_library_loads_with_every_category() -> None:
             "unknown category",
         ),
         (
-            "templates: [{id: a, category: topic, text: 'x'},"
-            " {id: a, category: topic, text: 'y'}]",
+            "templates: [{id: a, category: fresh, text: 'x'},"
+            " {id: a, category: fresh, text: 'y'}]",
             "repeated id",
         ),
-        ("templates: [{id: a, category: topic, text: 'x'}]", "at least 2"),
+        ("templates: [{id: a, category: fresh, text: 'x'}]", "at least 2"),
     ],
 )
 def test_a_bad_library_is_refused(body: str, error: str) -> None:
@@ -106,8 +100,7 @@ def test_each_reason_reads_from_its_own_category_and_grounded_values() -> None:
     goal = text_for("goal_match")
     assert goal is not None and "pass system design interviews" in goal
     assert "Caching" in goal  # the goal's concept the item has: the pick's reason
-    topic = text_for("topic_match")
-    assert topic is not None and "databases" in topic
+    assert text_for("topic_match") is None  # a chosen topic tells the reader nothing
     assert "PlanetScale" in (text_for("freshness") or "")
     assert "PlanetScale" in (text_for("quality") or "")
     for signal in ("level_fit", "time_fit"):
@@ -123,7 +116,6 @@ def test_nothing_is_said_that_the_data_does_not_hold() -> None:
     for signal in (
         "project_match",
         "goal_match",
-        "topic_match",
         "freshness",
         "quality",
         "level_fit",
@@ -148,7 +140,6 @@ def test_no_template_leaves_a_placeholder_and_none_names_a_repository() -> None:
         for signal in (
             "project_match",
             "goal_match",
-            "topic_match",
             "freshness",
             "quality",
             "level_fit",
@@ -158,19 +149,17 @@ def test_no_template_leaves_a_placeholder_and_none_names_a_repository() -> None:
 
 
 def test_the_same_item_always_reads_the_same_and_items_vary() -> None:
-    assert text_for("topic_match") == text_for("topic_match")
-    seen = {text_for("topic_match", replace(FACTS, item_id=i)) for i in range(1, 40)}
+    assert text_for("freshness") == text_for("freshness")
+    seen = {text_for("freshness", replace(FACTS, item_id=i)) for i in range(1, 40)}
     assert len(seen) > 1  # the hash spreads the templates
 
 
 def test_the_key_names_the_category_template_and_detail() -> None:
-    found = explain(
-        scored("topic_match"), ["databases"], "beginner", NOW, (), {}, CONCEPTS
-    )
+    found = explain(scored("freshness"), "beginner", NOW, (), {}, CONCEPTS)
     assert found is not None
     key = found[0]
-    assert (key.item_id, key.signal, key.level) == (70, "topic", "beginner")
-    assert key.variant.startswith("topic-") and key.variant.endswith(":databases")
+    assert (key.item_id, key.signal, key.level) == (70, "fresh", "beginner")
+    assert key.variant.startswith("fresh-") and key.variant.endswith(":")
 
 
 def test_the_concept_map_keeps_live_concepts_and_direct_prerequisites() -> None:
@@ -189,21 +178,16 @@ def test_the_concept_map_keeps_live_concepts_and_direct_prerequisites() -> None:
     assert concept_map(None) == ConceptMap({}, {})
 
 
-def test_topics_are_the_ones_the_user_chose() -> None:
-    assert text_for("topic_match", topics=["backend"]) is None
-    assert set(get_args(Topic.__value__)) >= {"databases"}
-
-
 def test_a_placeholder_its_category_cannot_fill_is_refused() -> None:
     body = (
-        "templates: [{id: a, category: topic, text: 'From {source}.'},"
-        " {id: b, category: topic, text: 'On {topic}.'}]"
+        "templates: [{id: a, category: fresh, text: 'On {topic}.'},"
+        " {id: b, category: fresh, text: 'From {source}.'}]"
     )
     with pytest.raises(LibraryError, match="not supplied"):
         parse_library(body, "t.yaml")
     with pytest.raises(LibraryError, match="stray brace"):
         parse_library(
-            "templates: [{id: a, category: topic, text: 'On {topic}}.'}]", "t.yaml"
+            "templates: [{id: a, category: fresh, text: 'From {source}}.'}]", "t.yaml"
         )
 
 
@@ -213,7 +197,6 @@ def test_project_and_goal_notes_key_the_concept_they_name() -> None:
     facts = replace(FACTS, concepts=frozenset({"mvcc", "caching"}))
     mine = explain(
         scored("project_match", facts),
-        [],
         "beginner",
         NOW,
         (),
@@ -222,7 +205,6 @@ def test_project_and_goal_notes_key_the_concept_they_name() -> None:
     )
     theirs = explain(
         scored("project_match", facts),
-        [],
         "beginner",
         NOW,
         (),

@@ -67,7 +67,6 @@ def _with_notes(
                 s,
                 explain(
                     s,
-                    preferences.topics,
                     preferences.level,
                     now,
                     goals,

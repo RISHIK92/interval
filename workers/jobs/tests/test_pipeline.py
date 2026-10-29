@@ -683,6 +683,9 @@ def recompute(world: World, key: str) -> None:
 # explanations: they're the app's own words, never labelled AI.
 def test_card_explanations_never_call_the_notes_model() -> None:
     world, llm = notes_world()
+    # A trusted source leading the ranking, so its cards do get a line.
+    world.store.sources.rows[world.source_id].quality_score = 5
+    world.store.ranking.config_rows["weight.quality"] = 5.0
     recompute(world, "r-1")
     entries = [e for chip in world.store.feed.users["u1"].values() for e in chip]
     assert entries

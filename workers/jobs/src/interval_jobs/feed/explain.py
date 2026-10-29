@@ -15,19 +15,18 @@ from typing import Literal, cast, get_args
 
 import yaml
 
-from interval_db.generated import Difficulty, LearningGoal, Topic
+from interval_db.generated import Difficulty, LearningGoal
 from interval_jobs import log
 from interval_jobs.ports import ConceptGraph, NoteKey, ProjectConcepts
 from interval_jobs.ranking.scoring import Scored
 
-type Category = Literal["project", "goal", "concept", "topic", "fresh", "trusted"]
+type Category = Literal["project", "goal", "concept", "fresh", "trusted"]
 CATEGORIES: tuple[str, ...] = get_args(Category.__value__)
 # What each category's evidence supplies: a template may use only these.
 VARIABLES: dict[Category, frozenset[str]] = {
     "project": frozenset({"technology", "concept"}),
     "goal": frozenset({"goal", "concept"}),
     "concept": frozenset({"concept", "prerequisite"}),
-    "topic": frozenset({"topic"}),
     "fresh": frozenset({"source"}),
     "trusted": frozenset({"source"}),
 }
@@ -38,11 +37,11 @@ NOTE_MAX_CHARS = 300  # feed_note's own limit
 LIBRARY_FILE = Path("workers/jobs/seeds/explanations.yaml")
 
 # The top reason's category. Level and break length are on the card already, so those
-# cards get a concept-graph connection or nothing.
+# cards get a concept-graph connection or nothing; a topic the user chose tells them
+# nothing new, so topic-led cards get nothing (owner, Q-P2-45).
 SIGNAL_CATEGORY: dict[str, Category] = {
     "project_match": "project",
     "goal_match": "goal",
-    "topic_match": "topic",
     "freshness": "fresh",
     "quality": "trusted",
     "level_fit": "concept",
@@ -139,14 +138,9 @@ def concept_map(graph: ConceptGraph | None) -> ConceptMap:
     return ConceptMap(names, {b: tuple(sorted(a)) for b, a in before.items()})
 
 
-def _words(slug: str) -> str:
-    return slug.replace("-", " ")
-
-
 def _values(
     category: Category,
     scored: Scored,
-    topics: list[Topic],
     now: datetime,
     goals: GoalSets,
     projects: ProjectConcepts,
@@ -184,9 +178,6 @@ def _values(
             "concept": concepts.names[concept],
             "prerequisite": concepts.names[before],
         }
-    if category == "topic":
-        topic = next((t for t in topics if t in facts.topics), None)
-        return None if topic is None else (topic, {"topic": _words(topic)})
     if category == "fresh":
         if facts.published_at is None or now - facts.published_at > FRESH:
             return None
@@ -198,7 +189,6 @@ def _values(
 
 def explain(
     scored: Scored,
-    topics: list[Topic],
     level: Difficulty,
     now: datetime,
     goals: GoalSets,
@@ -209,7 +199,7 @@ def explain(
     category = SIGNAL_CATEGORY.get(scored.top_signal)
     if category is None:
         return None
-    found = _values(category, scored, topics, now, goals, projects, concepts)
+    found = _values(category, scored, now, goals, projects, concepts)
     if found is None:
         return None
     detail, values = found

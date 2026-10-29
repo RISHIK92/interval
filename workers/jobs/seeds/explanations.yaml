@@ -1,11 +1,11 @@
 # Card explanations (ADR-0025, Q-P2-45): one per card at most, filled only from stored
 # data. PROVISIONAL: drafted 2026-10-29 for the owner's review.
 #
-# Categories (which the card's top ranking reason picks):
+# Categories (which the card's top ranking reason picks; topic-led cards get none,
+# Q-P2-45):
 #   project  technology, concept   the fallback until the AI project line exists
 #   goal     goal, concept         the concept is the reason for the pick
 #   concept  concept, prerequisite level- and break-length-led cards; a graph fact
-#   topic    topic
 #   fresh    source
 #   trusted  source
 # A template is used only when every {placeholder} in it has a value. The choice is a
@@ -18,10 +18,8 @@ templates:
   - {id: goal-1, category: goal, text: "Toward your goal: {goal} ({concept})."}
   - {id: goal-2, category: goal, text: "Picked for your goal to {goal}: {concept}."}
   - {id: goal-3, category: goal, text: "Part of your goal to {goal}, through {concept}."}
-  - {id: concept-1, category: concept, text: "{concept} builds on {prerequisite}."}
-  - {id: concept-2, category: concept, text: "{concept} comes after {prerequisite} in Interval's concept map."}
-  - {id: topic-1, category: topic, text: "On {topic}, a topic you chose."}
-  - {id: topic-2, category: topic, text: "Picked for your interest in {topic}."}
+  - {id: concept-1, category: concept, text: "{prerequisite} comes first, then {concept}."}
+  - {id: concept-2, category: concept, text: "In Interval's concept map, {prerequisite} comes before {concept}."}
   - {id: fresh-1, category: fresh, text: "New this week from {source}."}
   - {id: fresh-2, category: fresh, text: "Fresh from {source}: published this week."}
   - {id: trusted-1, category: trusted, text: "From {source}, one of the most trusted sources here."}
