@@ -21,3 +21,11 @@ test("one, two, three and more concepts read naturally", () => {
     "Due for review: Raft, Quorum, MVCC and 2 more.",
   );
 });
+
+// Owner (2026-10-30): the card has the feed cards' shape, with a picture in the design
+// system's Review family, decorative only.
+test("the card leads with a Review-coloured picture, hidden from screen readers", () => {
+  const html = renderToStaticMarkup(<ReviewCard due={names("Raft")} />);
+  expect(html).toMatch(/<svg aria-hidden="true"[^>]*var\(--review-tint\)/);
+  expect(html.indexOf("<svg")).toBeLessThan(html.indexOf("Spaced review"));
+});

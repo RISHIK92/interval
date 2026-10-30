@@ -36,7 +36,8 @@
   /* A chosen segment: lifted white in light, a raised grey in dark (no shadows). */
   --lift: light-dark(#ffffff, #2a2e36);
   /* Topic families (design system): tint, top face, left face, right face, lines.
-     Backend has no family in the design yet: it borrows Review's purple. */
+     Review is the design's family for cards and memory strength; backend has none yet
+     and borrows it. */
   --distributed-systems-tint: light-dark(#e9eeff, #161f3d);
   --distributed-systems-top: light-dark(#a9beff, #9db4ff);
   --distributed-systems-left: light-dark(#5b86ff, #5b82f5);
@@ -52,11 +53,16 @@
   --system-design-left: light-dark(#ff9440, #ee8430);
   --system-design-right: light-dark(#e2711a, #b85f15);
   --system-design-line: light-dark(#b5560b, #ffcfa3);
-  --backend-tint: light-dark(#f1ebff, #241b42);
-  --backend-top: light-dark(#cdb8ff, #cab5ff);
-  --backend-left: light-dark(#9468f7, #8457f0);
-  --backend-right: light-dark(#7444e0, #5f36c4);
-  --backend-line: light-dark(#5b32c2, #d4c2ff);
+  --review-tint: light-dark(#f1ebff, #241b42);
+  --review-top: light-dark(#cdb8ff, #cab5ff);
+  --review-left: light-dark(#9468f7, #8457f0);
+  --review-right: light-dark(#7444e0, #5f36c4);
+  --review-line: light-dark(#5b32c2, #d4c2ff);
+  --backend-tint: var(--review-tint);
+  --backend-top: var(--review-top);
+  --backend-left: var(--review-left);
+  --backend-right: var(--review-right);
+  --backend-line: var(--review-line);
 }
 
 [data-theme="light"] {
