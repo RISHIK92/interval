@@ -3,7 +3,7 @@ import { startReviewAction } from "./quiz/actions";
 import { reviewMinutes } from "./reviewTime";
 import { Card } from "./ui/Card";
 
-const NAMED = 3; // then "and N more": more would outgrow the feed cards beside it
+const NAMED = 2; // then "and N more" (owner, 2026-10-30)
 
 const recalled = (days: number | null) =>
   days === null

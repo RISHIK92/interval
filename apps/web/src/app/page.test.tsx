@@ -748,9 +748,9 @@ test("with concepts due, the second card is the review queue, saying why", async
   expect(html).toContain("Due for review");
   const words = text(html);
   expect(words).toContain("Raftlast recalled 2 days ago");
-  expect(words).toContain("MVCClast recalled 4 days ago");
-  expect(words).not.toContain("Indexeslast recalled");
-  expect(words).toContain("and 1 more");
+  expect(words).toContain("Quorumlast recalled 3 days ago");
+  expect(words).not.toContain("MVCClast recalled");
+  expect(words).toContain("and 2 more");
   // The button starts the review itself, in the user's words (owner, 2026-10-30).
   expect(html).not.toContain("review queue");
   expect(words).toContain("Start quiz");
