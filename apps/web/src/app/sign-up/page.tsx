@@ -16,7 +16,7 @@ export default async function SignUpPage() {
     <main className="mx-auto max-w-md px-4 pt-10 pb-12">
       <h1 className="text-display">Create your account</h1>
       <p className="mt-2 text-ink-muted">
-        Keep your progress and use Interval on any device.
+        Keep your games and progress, and use all of Interval on any device.
       </p>
       <AuthForm
         action={signUpAction}

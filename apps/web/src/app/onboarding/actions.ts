@@ -18,6 +18,8 @@ import { textField } from "../form";
 export async function onboardingAction(form: FormData): Promise<void> {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play.
+  if (actor.isGuest) redirect("/sign-up");
   const result = await completeOnboarding(preferences(), actor.userId, {
     goals: form.getAll("goal").filter((v) => typeof v === "string"),
     topics: form.getAll("topic").filter((v) => typeof v === "string"),
@@ -41,8 +43,7 @@ export async function onboardingAction(form: FormData): Promise<void> {
     `onboarding-recompute-${actor.userId}`,
     "feed: first recompute not queued",
   );
-  // Q-P2-36 (owner): the book goal leads to adding a book; a guest finds there that
-  // books need an account.
+  // Q-P2-36 (owner): the book goal leads to adding a book.
   if (
     form.getAll("goal").includes("finish-that-book") && // validated above
     (await books().list(actor.userId)).length === 0
@@ -50,7 +51,6 @@ export async function onboardingAction(form: FormData): Promise<void> {
     redirect("/books/new");
   // P2-W12-S04 (ADR-0015): the stack goal needs a project; connect GitHub first.
   if (
-    !actor.isGuest &&
     form.getAll("goal").includes("stack-i-use") &&
     (await githubAccounts().get(actor.userId)) === null
   )

@@ -20,7 +20,8 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
+const user: Actor = { userId: "g1", isGuest: false, betaGroup: "student" };
+const guest: Actor = { ...user, isGuest: true };
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -34,7 +35,7 @@ function form(itemId: string): FormData {
 
 test("unsave from the Library returns to the Library and queues a recompute", async () => {
   const { libraryUnsaveAction } = await import("./actions");
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   await expect(libraryUnsaveAction(form("7"))).rejects.toThrow(
     /^redirect:\/library$/,
   );
@@ -48,7 +49,7 @@ test("unsave from the Library returns to the Library and queues a recompute", as
 
 test("a bad id or no session changes nothing", async () => {
   const { libraryUnsaveAction } = await import("./actions");
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   await expect(libraryUnsaveAction(form("7x"))).rejects.toThrow(
     /^redirect:\/library$/,
   );
@@ -57,4 +58,13 @@ test("a bad id or no session changes nothing", async () => {
     "redirect:/join",
   );
   expect(unsave).not.toHaveBeenCalled();
+});
+
+// ADR-0029: guests play, and only play; this action is for accounts.
+test("a guest is sent to sign up before anything is written", async () => {
+  current.mockResolvedValue(guest);
+  const all = await import("./actions");
+  await expect(all.libraryUnsaveAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
 });

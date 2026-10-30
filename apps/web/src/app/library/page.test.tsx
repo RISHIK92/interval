@@ -40,7 +40,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
+const user: Actor = { userId: "g1", isGuest: false, betaGroup: "student" };
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -68,7 +68,7 @@ const fresh = {
 const text = (html: string) => html.replace(/<[^>]+>/g, "");
 
 test("empty states say so", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   const html = await page();
   expect(html).toContain("Nothing saved yet.");
   expect(html).toContain("Nothing here yet.");
@@ -83,7 +83,7 @@ test("empty states say so", async () => {
 // section, Open article when none is done, Read again when finished; in Interval's
 // reader when the page can be framed, else the browser.
 test("saves and history link by progress, in the reader when the page allows", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   saves.mockResolvedValueOnce([
     {
       ...fresh,
@@ -153,7 +153,7 @@ test("saves and history link by progress, in the reader when the page allows", a
 
 // Closing a reader opened here comes back asking (owner, 2026-10-26).
 test("ask= opens the finish prompt, which comes back to the Library", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   const html = await page({ ask: "9.93" });
   expect(html).toContain("Finished this section?");
   expect(html).toContain('name="back" value="/library"');
@@ -162,7 +162,7 @@ test("ask= opens the finish prompt, which comes back to the Library", async () =
 });
 
 test("an item whose link broke stays, marked, with no link to follow", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   saves.mockResolvedValueOnce([
     {
       ...fresh,
@@ -199,7 +199,7 @@ test("an item whose link broke stays, marked, with no link to follow", async () 
 
 // Highlights, notes and audio arrive in later phases (owner, 2026-10-26).
 test("the shelf counts saves and notes; highlights and audio are disabled for later", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   saves.mockResolvedValueOnce([
     {
       ...fresh,
@@ -225,7 +225,7 @@ test("the shelf counts saves and notes; highlights and audio are disabled for la
 });
 
 test("the Library tab is marked current", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   const html = await page();
   expect(html).toMatch(
     /<a aria-current="page"[^>]*href="\/library">.*?Library<\/a>/,
@@ -236,14 +236,14 @@ test("the Library tab is marked current", async () => {
 test("no session goes to /join; not onboarded goes to /onboarding", async () => {
   current.mockResolvedValue(null);
   await expect(page()).rejects.toThrow("redirect:/join");
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValueOnce(null);
   await expect(page()).rejects.toThrow("redirect:/onboarding");
 });
 
 // P2-W7-S04 (§5I, Q-P2-01): the Notes section, each note back to its section.
 test("Notes lists each note with its article, section and an edit by its id", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   const note: NoteEntry = {
     noteId: "42",
     itemId: "70",
@@ -279,14 +279,14 @@ test("Notes lists each note with its article, section and an edit by its id", as
 });
 
 test("no notes yet says how to start", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   expect(text(await page())).toContain(
     "No notes yet. Add one from the note icon while you read.",
   );
 });
 
 test("note links follow the page: the browser when it can't be framed, or Link broken", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   const note: NoteEntry = {
     noteId: "42",
     itemId: "70",
@@ -320,7 +320,7 @@ test("note links follow the page: the browser when it can't be framed, or Link b
 
 // P2-W9-S05 (Q-P2-17, wireframe 08): the review queue is the top card.
 test("the review queue comes first, with the count, the concepts and a time", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   dueReviews.mockResolvedValueOnce([
     { conceptId: "1", name: "Raft", daysSince: 2 },
     { conceptId: "2", name: "Quorum", daysSince: 3 },
@@ -341,7 +341,7 @@ test("the review queue comes first, with the count, the concepts and a time", as
 });
 
 test("with nothing due, the queue says so and offers no review", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   const words = text(await page());
   expect(words).toContain("Nothing due for review.");
   expect(words).not.toContain("Start review");

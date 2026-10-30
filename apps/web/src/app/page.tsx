@@ -57,16 +57,12 @@ export default async function HomePage({
   // Private beta (Q-P1-24): no session, no app.
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play; the rest is for accounts.
+  if (actor.isGuest) redirect("/sign-up");
   // Guest-first onboarding (§5A, P1-W4-S01): topics, level and break length first.
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
-  const account = actor.isGuest ? (
-    <p className="text-sm text-ink-muted">
-      <Link href="/sign-up" className="underline underline-offset-2">
-        Sign up to keep your progress
-      </Link>
-    </p>
-  ) : (
+  const account = (
     <form action={signOutAction} className="text-sm text-ink-muted">
       <button type="submit" className="underline underline-offset-2">
         Sign out
@@ -197,7 +193,7 @@ export default async function HomePage({
   // P2-W9-S06: due reviews are read when the feed is served; they change by the
   // minute.
   // P2-W10-S06: so is the active path's next step (the first card), and (S05) the
-  // next session of the book read last; guests have no books.
+  // next session of the book read last.
   const [due, testable, pathNext, bookNext] = await Promise.all([
     quizzes().dueReviews(actor.userId),
     quizzes().offered([
@@ -205,7 +201,7 @@ export default async function HomePage({
       ...(finished === null || next === undefined ? [] : [finished]),
     ]),
     paths().next(actor.userId),
-    actor.isGuest ? null : books().nextSession(actor.userId),
+    books().nextSession(actor.userId),
   ]);
   const yourNote = (card: FeedCard) =>
     yours.get(quizKey(target(card).itemId, target(card).momentId)) ?? null;

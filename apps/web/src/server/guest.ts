@@ -13,7 +13,7 @@ export type GuestStart =
 
 // Q-P1-24: a guest exists only through a redeemed invite code. The use is spent first;
 // if creating the guest then fails, it is given back (owner choice, 2026-10-25).
-// Dormant since ADR-0016 (account first, option B): nothing calls it now.
+// ADR-0029: guests are for Play only (app/play/actions.ts).
 export async function startGuest(
   deps: { codes: InviteCodes; guests: GuestSessions },
   rawCode: string,

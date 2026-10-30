@@ -180,3 +180,12 @@ test("an empty edit deletes; someone else's note id changes and counts nothing",
   });
   expect(await act({ control: "save", noteId: "x", body: "a" })).toBe("/");
 });
+
+// ADR-0029: guests play, and only play; this action is for accounts.
+test("a guest is sent to sign up before anything is written", async () => {
+  current.mockResolvedValue({ ...user, isGuest: true });
+  const all = await import("./actions");
+  await expect(all.noteAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
+});

@@ -32,6 +32,8 @@ export default async function ChapterEndPage(props: {
 }) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play; the rest is for accounts.
+  if (actor.isGuest) redirect("/sign-up");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
   const { id, chapter } = await props.params;

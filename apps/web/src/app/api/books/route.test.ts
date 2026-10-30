@@ -94,8 +94,9 @@ test("too large by its declared length: refused before the body is read", async 
 
 test("guests, the signed out, other sites and refusals", async () => {
   current.mockResolvedValue({ ...user, isGuest: true });
+  // ADR-0029: guests play, and only play.
   expect(await location(post(pdf(), { "content-length": "300" }))).toBe(
-    "/books/new?error=guest",
+    "/sign-up",
   );
   current.mockResolvedValue(null);
   expect(await location(post(pdf(), { "content-length": "300" }))).toBe(

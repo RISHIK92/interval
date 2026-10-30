@@ -30,6 +30,10 @@ type Capability = Literal[
     "books.count",
     "books.max_mb",
     "books.max_pages",
+    "play.daily",
+    "play.sprint",
+    "play.estimation",
+    "play.live",
 ]
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type DependencyEcosystem = Literal["npm", "pypi", "go"]

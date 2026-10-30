@@ -24,7 +24,8 @@ export async function GET(request: Request): Promise<Response> {
   if (app === null) return new Response(null, { status: 404 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return see("/join");
-  if (actor.isGuest) return see("/profile");
+  // ADR-0029: guests play, and only play.
+  if (actor.isGuest) return see("/sign-up");
   const query = new URL(request.url).searchParams;
   const code = query.get("code");
   const state = query.get("state");

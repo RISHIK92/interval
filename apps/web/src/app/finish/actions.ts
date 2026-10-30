@@ -22,6 +22,8 @@ const Finish = z.object({
 export async function finishAction(form: FormData): Promise<void> {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play.
+  if (actor.isGuest) redirect("/sign-up");
   const parsed = Finish.safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect("/");
   const { control, itemId, momentId, method, chip } = parsed.data;
@@ -80,6 +82,8 @@ const Dismiss = z.object({
 export async function continueAction(form: FormData): Promise<void> {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play.
+  if (actor.isGuest) redirect("/sign-up");
   const parsed = Dismiss.safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect("/");
   await progress().dismissContinue(actor.userId, parsed.data.itemId);

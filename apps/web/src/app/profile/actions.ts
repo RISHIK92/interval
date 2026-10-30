@@ -24,6 +24,8 @@ import { textField } from "../form";
 async function actor(): Promise<string> {
   const found = await sessionReader().current(await headers());
   if (found === null) redirect("/join");
+  // ADR-0029: guests play, and only play.
+  if (found.isGuest) redirect("/sign-up");
   return found.userId;
 }
 
@@ -69,8 +71,9 @@ export async function unhideSourceAction(form: FormData): Promise<void> {
 export async function refreshGitHubAction(): Promise<void> {
   const found = await sessionReader().current(await headers());
   if (found === null) redirect("/join");
-  if (found.isGuest || (await githubAccounts().get(found.userId)) === null)
-    redirect("/profile");
+  // ADR-0029: guests play, and only play.
+  if (found.isGuest) redirect("/sign-up");
+  if ((await githubAccounts().get(found.userId)) === null) redirect("/profile");
   const minute = Math.floor(Date.now() / 60_000);
   try {
     await jobQueue().enqueue(
@@ -91,6 +94,8 @@ export async function refreshGitHubAction(): Promise<void> {
 export async function disconnectGitHubAction(): Promise<void> {
   const found = await sessionReader().current(await headers());
   if (found === null) redirect("/join");
+  // ADR-0029: guests play, and only play.
+  if (found.isGuest) redirect("/sign-up");
   if (!(await githubAccounts().disconnect(found.userId))) redirect("/profile");
   // P2-W12-S04: the feed's project picks go with the data.
   await recompute(found.userId);

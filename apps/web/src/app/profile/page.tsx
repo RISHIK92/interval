@@ -62,6 +62,8 @@ export default async function ProfilePage(props: {
 }) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play; the rest is for accounts.
+  if (actor.isGuest) redirect("/sign-up");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
   const offered = githubApp() !== null;
@@ -69,9 +71,7 @@ export default async function ProfilePage(props: {
     feedback().hiddenSources(actor.userId),
     feedback().inferred(actor.userId),
     progress().concepts(actor.userId),
-    offered && !actor.isGuest
-      ? githubAccounts().get(actor.userId)
-      : Promise.resolve(null),
+    offered ? githubAccounts().get(actor.userId) : Promise.resolve(null),
   ]);
   const { saved, missing, github } = await props.searchParams;
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
@@ -148,11 +148,7 @@ export default async function ProfilePage(props: {
       </Card>
 
       <Card className="p-5">
-        <GitHubSection
-          guest={actor.isGuest}
-          offered={offered}
-          connection={connection}
-        />
+        <GitHubSection offered={offered} connection={connection} />
       </Card>
 
       {/* This device's theme (owner, 2026-10-26). */}
@@ -304,11 +300,9 @@ function TitleList({ items }: { items: { itemId: string; title: string }[] }) {
 // reads repository names and dependency files, never code; it's installed (and
 // revoked) on GitHub, repository by repository.
 function GitHubSection({
-  guest,
   offered,
   connection,
 }: {
-  guest: boolean;
   offered: boolean;
   connection: GitHubConnection | null;
 }) {
@@ -316,9 +310,7 @@ function GitHubSection({
   return (
     <section id="github" aria-label="GitHub" className="flex flex-col gap-3">
       <h2 className="text-section">GitHub</h2>
-      {guest ? (
-        <p className="text-ink-muted">Create an account to connect GitHub.</p>
-      ) : !offered ? (
+      {!offered ? (
         <p className="text-ink-muted">
           Connecting GitHub isn&apos;t available yet.
         </p>

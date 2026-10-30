@@ -25,6 +25,8 @@ export default async function PathPage(props: {
 }) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play; the rest is for accounts.
+  if (actor.isGuest) redirect("/sign-up");
   const { path: pathId } = await props.params;
   if (!BIGINT_ID.test(pathId)) redirect("/paths");
   const chosen = await preferences().get(actor.userId);

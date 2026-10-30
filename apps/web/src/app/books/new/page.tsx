@@ -18,6 +18,8 @@ export default async function NewBookPage(props: {
 }) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play; the rest is for accounts.
+  if (actor.isGuest) redirect("/sign-up");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
   const { error } = await props.searchParams;
@@ -28,7 +30,6 @@ export default async function NewBookPage(props: {
   ]);
   const errors: Record<string, string> = {
     not_pdf: "That file isn't a PDF.",
-    guest: "Create an account to add a book.",
     too_large: `That PDF is over ${String(maxMb)} MB.`,
     limit: `You have ${String(count)} books, the most for now. Delete one to add another.`,
   };
@@ -54,44 +55,34 @@ export default async function NewBookPage(props: {
             {message}
           </p>
         )}
-        {/* Owner, 2026-10-28: books are for accounts. */}
-        {actor.isGuest ? (
-          <Link
-            href="/join"
-            className="self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
-          >
-            Create an account to add a book
-          </Link>
-        ) : (
-          <form
-            action="/api/books"
-            method="post"
-            encType="multipart/form-data"
-            className="flex flex-col gap-4"
-          >
-            <label className="flex flex-col gap-2 font-semibold">
-              PDF file
-              <input
-                type="file"
-                name="file"
-                accept="application/pdf,.pdf"
-                required
-                className="text-sm font-normal"
-              />
-            </label>
-            <div className="flex items-center gap-3">
-              <button
-                type="submit"
-                className="cursor-pointer rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
-              >
-                Upload
-              </button>
-              <Link href="/paths" className="text-sm font-semibold text-select">
-                Cancel
-              </Link>
-            </div>
-          </form>
-        )}
+        <form
+          action="/api/books"
+          method="post"
+          encType="multipart/form-data"
+          className="flex flex-col gap-4"
+        >
+          <label className="flex flex-col gap-2 font-semibold">
+            PDF file
+            <input
+              type="file"
+              name="file"
+              accept="application/pdf,.pdf"
+              required
+              className="text-sm font-normal"
+            />
+          </label>
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              className="cursor-pointer rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+            >
+              Upload
+            </button>
+            <Link href="/paths" className="text-sm font-semibold text-select">
+              Cancel
+            </Link>
+          </div>
+        </form>
       </Card>
     </main>
   );

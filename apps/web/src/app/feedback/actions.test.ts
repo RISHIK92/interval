@@ -46,8 +46,9 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
-const context = { ...guest, sessionId: "visit-1" };
+const user: Actor = { userId: "g1", isGuest: false, betaGroup: "student" };
+const guest: Actor = { ...user, isGuest: true };
+const context = { ...user, sessionId: "visit-1" };
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -61,7 +62,7 @@ function form(fields: Record<string, string>): FormData {
 
 async function press(control: string, itemId = "42", chip = "3-8") {
   const { feedbackAction } = await import("./actions");
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   return feedbackAction(form({ control, itemId, chip }));
 }
 
@@ -160,7 +161,7 @@ test.each([
   ["a bad item id", { control: "save", itemId: "42; drop", chip: "3-8" }],
 ])("%s is refused without a write", async (_name, fields) => {
   const { feedbackAction } = await import("./actions");
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   await expect(feedbackAction(form(fields))).rejects.toThrow(/^redirect:\/$/);
   expect(port.give).not.toHaveBeenCalled();
   expect(port.save).not.toHaveBeenCalled();
@@ -192,7 +193,7 @@ test("an unsave that changes nothing queues nothing", async () => {
 // ADR-0018: Save in the in-app reader goes back to the reader, only ever on this site.
 test("back is honoured when it is a path on this site", async () => {
   const { feedbackAction } = await import("./actions");
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   const back = "/read/42?moment=9&chip=3-8&from=reader";
   await expect(
     feedbackAction(form({ control: "save", itemId: "42", chip: "3-8", back })),
@@ -204,7 +205,7 @@ test.each(["https://evil.test/read/42", "//evil.test", "/\\evil.test"])(
   "back %j off the site is ignored",
   async (back) => {
     const { feedbackAction } = await import("./actions");
-    current.mockResolvedValue(guest);
+    current.mockResolvedValue(user);
     const error = await feedbackAction(
       form({ control: "save", itemId: "42", chip: "3-8", back }),
     ).catch((caught: unknown) => caught);
@@ -235,4 +236,13 @@ test("reporting a wrong reason stores it, emits it once and goes back", async ()
   );
   expect(emit).not.toHaveBeenCalled();
   await expect(press("wrong_reason:nonsense")).rejects.toThrow("redirect:/");
+});
+
+// ADR-0029: guests play, and only play; this action is for accounts.
+test("a guest is sent to sign up before anything is written", async () => {
+  current.mockResolvedValue(guest);
+  const all = await import("./actions");
+  await expect(all.feedbackAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
 });

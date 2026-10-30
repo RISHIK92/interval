@@ -15,6 +15,8 @@ import { textField } from "../form";
 async function signedIn() {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play.
+  if (actor.isGuest) redirect("/sign-up");
   return { actor, context: { ...actor, sessionId: visitId(await cookies()) } };
 }
 

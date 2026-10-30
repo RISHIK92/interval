@@ -68,9 +68,8 @@ test("signed out goes to join", async () => {
   await expect(page()).rejects.toThrow("redirect:/join");
 });
 
-test("a guest is asked to create an account instead of uploading", async () => {
+// ADR-0029: guests play, and only play; books are for accounts (owner, 2026-10-28).
+test("a guest is sent to sign up", async () => {
   current.mockResolvedValue({ ...user, isGuest: true });
-  const html = await page();
-  expect(html).toContain("Create an account to add a book");
-  expect(html).not.toContain('type="file"');
+  await expect(page()).rejects.toThrow("redirect:/sign-up");
 });

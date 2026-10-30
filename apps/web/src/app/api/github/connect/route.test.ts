@@ -57,12 +57,12 @@ test("linking an App installed before goes through GitHub's authorize page", asy
   expect(target.searchParams.get("state")).toMatch(/^[A-Za-z0-9_-]{20,}$/);
 });
 
-test("signed out goes to join; a guest back to Profile; not configured is not found", async () => {
+test("signed out goes to join; a guest to sign up (ADR-0029); not configured is not found", async () => {
   githubApp.mockReturnValue(app);
   current.mockResolvedValue(null);
   expect((await connect()).headers.get("location")).toBe("/join");
   current.mockResolvedValue({ ...user, isGuest: true });
-  expect((await connect()).headers.get("location")).toBe("/profile");
+  expect((await connect()).headers.get("location")).toBe("/sign-up");
   current.mockResolvedValue(user);
   githubApp.mockReturnValue(null);
   expect((await connect()).status).toBe(404);

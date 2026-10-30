@@ -52,7 +52,8 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
+const user: Actor = { userId: "g1", isGuest: false, betaGroup: "student" };
+const guest: Actor = { ...user, isGuest: true };
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -69,7 +70,7 @@ function form(fields: [string, string][]): FormData {
 }
 
 async function actions() {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   return import("./actions");
 }
 
@@ -177,7 +178,7 @@ test("without a session every action sends the visitor to /join", async () => {
 // P2-W12-S01 (§5H, ADR-0024): disconnecting deletes Interval's copy, recorded once.
 test("disconnect deletes the user's GitHub connection and says how to revoke on GitHub", async () => {
   const { disconnectGitHubAction } = await import("./actions");
-  current.mockResolvedValue({ ...guest, isGuest: false });
+  current.mockResolvedValue(user);
   await expect(disconnectGitHubAction()).rejects.toThrow(
     "redirect:/profile?saved=github-off",
   );
@@ -202,7 +203,7 @@ test("disconnect deletes the user's GitHub connection and says how to revoke on 
 
 test("refresh queues a read of the user's repositories, one a minute", async () => {
   const { refreshGitHubAction } = await import("./actions");
-  current.mockResolvedValue({ ...guest, isGuest: false });
+  current.mockResolvedValue(user);
   await expect(refreshGitHubAction()).rejects.toThrow(
     "redirect:/profile?saved=github-refresh",
   );
@@ -217,12 +218,29 @@ test("refresh queues a read of the user's repositories, one a minute", async () 
 
 test("refresh does nothing for someone not connected, and says so when the queue is down", async () => {
   const { refreshGitHubAction } = await import("./actions");
-  current.mockResolvedValue({ ...guest, isGuest: false });
+  current.mockResolvedValue(user);
   githubGet.mockResolvedValueOnce(null);
   await expect(refreshGitHubAction()).rejects.toThrow("redirect:/profile");
   expect(enqueue).not.toHaveBeenCalled();
   enqueue.mockRejectedValueOnce(new Error("valkey down"));
   await expect(refreshGitHubAction()).rejects.toThrow(
     "redirect:/profile?github=refresh-failed",
+  );
+});
+
+// ADR-0029: guests play, and only play; this action is for accounts.
+test("a guest is sent to sign up before anything is written", async () => {
+  current.mockResolvedValue(guest);
+  const all = await import("./actions");
+  await expect(all.updatePreferencesAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
+  await expect(all.resetInferredAction()).rejects.toThrow("redirect:/sign-up");
+  await expect(all.unhideSourceAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
+  await expect(all.refreshGitHubAction()).rejects.toThrow("redirect:/sign-up");
+  await expect(all.disconnectGitHubAction()).rejects.toThrow(
+    "redirect:/sign-up",
   );
 });

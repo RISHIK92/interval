@@ -199,3 +199,15 @@ test("a suggested skip is recorded as mastered and returns where it was offered"
     editPathAction(form({ edit: "skip", sectionId: "60", reason: "bored" })),
   ).rejects.toThrow(/^redirect:\/paths$/);
 });
+
+// ADR-0029: guests play, and only play; this action is for accounts.
+test("a guest is sent to sign up before anything is written", async () => {
+  current.mockResolvedValue({ ...user, isGuest: true });
+  const all = await import("./actions");
+  await expect(all.startPathAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
+  await expect(all.editPathAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
+});

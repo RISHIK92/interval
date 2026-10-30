@@ -139,11 +139,11 @@ test("no nonce, a wrong one, no code, or GitHub refusing: nothing stored", async
   expect(emit).not.toHaveBeenCalled();
 });
 
-test("signed out goes to join, a guest to Profile, and not configured is not found", async () => {
+test("signed out goes to join, a guest to sign up (ADR-0029), and not configured is not found", async () => {
   current.mockResolvedValue(null);
   expect((await callback("code=c1")).headers.get("location")).toBe("/join");
   current.mockResolvedValue({ ...user, isGuest: true });
-  expect((await callback("code=c1")).headers.get("location")).toBe("/profile");
+  expect((await callback("code=c1")).headers.get("location")).toBe("/sign-up");
   current.mockResolvedValue(user);
   configured = false;
   expect((await callback("code=c1")).status).toBe(404);

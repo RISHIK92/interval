@@ -43,8 +43,8 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
-const context = { ...guest, sessionId: "visit-1" };
+const user: Actor = { userId: "g1", isGuest: false, betaGroup: "student" };
+const context = { ...user, sessionId: "visit-1" };
 
 const page: ReaderPage = {
   link: { url: "https://pub.test/post#raft", linkType: "anchor" },
@@ -93,7 +93,7 @@ test.each([
   ["an unknown from", { chip: "3-8", from: "elsewhere" }, "5"],
   ["a repeated chip", { ...card, chip: ["3-8", "1-3"] }, "5"],
 ])("%s goes home with no lookup or events", async (_name, query, item) => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   await expect(render(query, item)).rejects.toThrow(/^redirect:\/$/);
   expect(reader).not.toHaveBeenCalled();
   expect(emit).not.toHaveBeenCalled();
@@ -110,7 +110,7 @@ test.each([
 ])(
   "an item %s opens in the browser through /out instead",
   async (_name, found) => {
-    current.mockResolvedValue(guest);
+    current.mockResolvedValue(user);
     reader.mockResolvedValue(found);
     await expect(render(card)).rejects.toThrow(
       "redirect:/out?item=5&moment=9&chip=3-8&pos=4&target=section",
@@ -121,7 +121,7 @@ test.each([
 );
 
 test("a feed card's open is recorded as in_app, with no outbound click", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
   await render(card);
   expect(reader).toHaveBeenCalledWith("g1", "5", "9");
@@ -147,7 +147,7 @@ test("a feed card's open is recorded as in_app, with no outbound click", async (
 });
 
 test("a Continue open counts as continue_clicked; a move inside the reader counts nothing", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
   await render({ moment: "9", chip: "3-8", from: "continue" });
   expect(emit).toHaveBeenCalledExactlyOnceWith("continue_clicked", {}, context);
@@ -160,7 +160,7 @@ test("a Continue open counts as continue_clicked; a move inside the reader count
 });
 
 test("Next section from a Continue card stays a Continue open; after Save it counts nothing", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
   expect(await render({ moment: "9", chip: "3-8", from: "continue" })).toMatch(
     /<a href="\/read\/5\?moment=10&amp;chip=3-8&amp;from=continue"[^>]*>[^]*?Next section<\/span><\/a>/,
@@ -171,7 +171,7 @@ test("Next section from a Continue card stays a Continue open; after Save it cou
 });
 
 test("frames the attributed publisher page in a sandbox", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
   const html = await render(card);
   // The frame mounts after hydration (so its load can't be missed); the page hands it
@@ -193,7 +193,7 @@ test("the frame itself is sandboxed and keeps the publisher's referrer policy", 
 });
 
 test("the header closes to the feed asking about this section, and opens it in the browser", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
   const html = await render(card);
   expect(html).toMatch(/<a href="\/\?chip=3-8&amp;ask=5\.9"[^>]*>/);
@@ -207,7 +207,7 @@ test("the header closes to the feed asking about this section, and opens it in t
 });
 
 test("a section the link fell back from is closed and finished as the article", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue({
     ...page,
     link: { url: "https://pub.test/post", linkType: "article" },
@@ -225,7 +225,7 @@ test("a section the link fell back from is closed and finished as the article", 
 });
 
 test("the overlay: one row of Save, the note, Mark done, Next section, and three coming later", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
   const html = await render(card);
   // The card's why stays on the card; the reader's bar is one compact row (owner,
@@ -267,7 +267,7 @@ test("the overlay: one row of Save, the note, Mark done, Next section, and three
 });
 
 test("with live questions, Test me starts a sprint on the section shown", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
   offered.mockResolvedValue(new Set(["5.9"]));
   const html = await render(card);
@@ -281,7 +281,7 @@ test("with live questions, Test me starts a sprint on the section shown", async 
 });
 
 test("the last section has no Next section; a saved item says Saved", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue({
     ...page,
     nextMomentId: null,
@@ -296,7 +296,7 @@ test("the last section has no Next section; a saved item says Saved", async () =
 // Opened from the Library (owner, 2026-10-26): no feed event, and closing or Mark done
 // goes back to the Library, which asks.
 test("a Library open counts nothing and comes back to the Library", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
   const html = await render({ moment: "9", chip: "3-8", from: "library" });
   expect(emit).not.toHaveBeenCalled();
@@ -318,7 +318,7 @@ test("a Library open counts nothing and comes back to the Library", async () => 
 // P2-W10-S03: opened from a path (Q-P2-27): no feed event, and closing or Mark done
 // goes back to the path, which asks.
 test("a path open counts nothing and comes back to the path", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
   const html = await render({
     moment: "9",
@@ -366,7 +366,7 @@ test("the slow-page bar offers the publisher's site in the browser, and closes",
 
 // Q-P2-01, P2-W7-S03: the reader's note box, on the section it reached.
 test("the reader offers a note on the section, empty until one is written", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   reader.mockResolvedValue(page);
   const html = await render(card);
   expect(getNote).toHaveBeenCalledWith("g1", "5", "9");

@@ -39,7 +39,8 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
+const user: Actor = { userId: "g1", isGuest: false, betaGroup: "student" };
+const guest: Actor = { ...user, isGuest: true };
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -75,7 +76,7 @@ function steps(html: string): { shown: boolean; html: string }[] {
 }
 
 test("a new account gets four steps of one form, every field posted together", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue(null);
   const html = await page();
   // One form holds every step, so the four answers post at once.
@@ -94,13 +95,13 @@ test("a new account gets four steps of one form, every field posted together", a
 
 // ADR-0016: the account exists before onboarding starts.
 test("the first step says the account was created", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue(null);
   expect(await page()).toContain("Account created");
 });
 
 test("a server refusal opens the step it names, with its message", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue(null);
   const shown = steps(await page({ missing: "topic" })).filter(
     (step) => step.shown,
@@ -111,8 +112,8 @@ test("a server refusal opens the step it names, with its message", async () => {
   expect(await page({ missing: "constructor" })).not.toContain('role="alert"');
 });
 
-test("a returning guest skips onboarding", async () => {
-  current.mockResolvedValue(guest);
+test("a returning user skips onboarding", async () => {
+  current.mockResolvedValue(user);
   get.mockResolvedValue({
     goals: ["system-design-interviews"],
     topics: ["backend"],
@@ -127,8 +128,21 @@ test("without a session there is no onboarding", async () => {
   await expect(page()).rejects.toThrow("redirect:/join");
 });
 
-test("choices are saved, onboarding_completed is emitted, and the feed follows", async () => {
+// ADR-0029: guests play, and only play.
+test("a guest is sent to sign up, from the page and the action", async () => {
   current.mockResolvedValue(guest);
+  await expect(page()).rejects.toThrow("redirect:/sign-up");
+  const { onboardingAction } = await import("./actions");
+  await expect(
+    onboardingAction(
+      form({ topic: "backend", level: "beginner", breakLength: "3-8" }),
+    ),
+  ).rejects.toThrow("redirect:/sign-up");
+  expect(createIfAbsent).not.toHaveBeenCalled();
+});
+
+test("choices are saved, onboarding_completed is emitted, and the feed follows", async () => {
+  current.mockResolvedValue(user);
   const { onboardingAction } = await import("./actions");
   await expect(
     onboardingAction(
@@ -159,7 +173,7 @@ test("choices are saved, onboarding_completed is emitted, and the feed follows",
 });
 
 test("a resubmit after onboarding changes and counts nothing", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   createIfAbsent.mockResolvedValueOnce(false);
   const { onboardingAction } = await import("./actions");
   await expect(
@@ -171,7 +185,7 @@ test("a resubmit after onboarding changes and counts nothing", async () => {
 });
 
 test("there is no way past it without a topic", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   const { onboardingAction } = await import("./actions");
   await expect(
     onboardingAction(form({ level: "beginner", breakLength: "1-3" })),
@@ -187,7 +201,7 @@ test("there is no way past it without a topic", async () => {
 // LOAD-5: the queue being down must not lose the onboarding or its event; the starter
 // feed shows meanwhile and the hourly pass computes the user's feed.
 test("a failed recompute enqueue is logged, and onboarding still completes", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   enqueue.mockRejectedValueOnce(new Error("valkey down"));
   const lines: string[] = [];
   vi.spyOn(process.stdout, "write").mockImplementation((chunk) => {
@@ -212,7 +226,7 @@ test("a failed recompute enqueue is logged, and onboarding still completes", asy
 // ADR-0015: goals first; every goal is live now (the book goal with W11, the stack goal
 // with GitHub, P2-W12-S04).
 test("onboarding asks for goals first, all of them live", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue(null);
   const html = await page();
   expect(html.indexOf('name="goal"')).toBeLessThan(
@@ -225,7 +239,7 @@ test("onboarding asks for goals first, all of them live", async () => {
 
 // Q-P2-36 (owner): choosing the book goal leads to adding a book.
 test("choosing the book goal goes on to Add a book, unless there is one already", async () => {
-  const account: Actor = { ...guest, userId: "a1", isGuest: false };
+  const account: Actor = { ...user, userId: "a1" };
   current.mockResolvedValue(account);
   const { onboardingAction } = await import("./actions");
   const answers = form({
@@ -254,16 +268,11 @@ test("choosing the book goal goes on to Add a book, unless there is one already"
     },
   ]);
   await expect(onboardingAction(answers)).rejects.toThrow(/^redirect:\/$/);
-  // A guest too: Add a book says books need an account.
-  current.mockResolvedValue(guest);
-  await expect(onboardingAction(answers)).rejects.toThrow(
-    /^redirect:\/books\/new$/,
-  );
 });
 
 // P2-W12-S04 (ADR-0015): the stack goal leads to connecting GitHub; the book goal first.
-test("choosing the stack goal without GitHub goes to connect it; connected or a guest, to the feed", async () => {
-  const account: Actor = { ...guest, userId: "a2", isGuest: false };
+test("choosing the stack goal without GitHub goes to connect it; connected, to the feed", async () => {
+  const account: Actor = { ...user, userId: "a2" };
   current.mockResolvedValue(account);
   const { onboardingAction } = await import("./actions");
   const answers = form({
@@ -282,8 +291,6 @@ test("choosing the stack goal without GitHub goes to connect it; connected or a 
     syncedMinutesAgo: null,
     repositories: [],
   });
-  await expect(onboardingAction(answers)).rejects.toThrow(/^redirect:\/$/);
-  current.mockResolvedValue(guest);
   await expect(onboardingAction(answers)).rejects.toThrow(/^redirect:\/$/);
   // Both goals: Add a book first; Profile then offers GitHub.
   current.mockResolvedValue(account);

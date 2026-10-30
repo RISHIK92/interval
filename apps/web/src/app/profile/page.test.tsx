@@ -68,7 +68,7 @@ async function page(query: Record<string, string> = {}): Promise<string> {
 }
 
 test("the choices form is filled in with the user's choices", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue({
     goals: ["system-design-interviews"],
     topics: ["databases"],
@@ -89,7 +89,7 @@ test("the choices form is filled in with the user's choices", async () => {
 });
 
 test("hidden sources and inferred interests are listed with their actions", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue({
     goals: ["system-design-interviews"],
     topics: ["databases"],
@@ -108,7 +108,7 @@ test("hidden sources and inferred interests are listed with their actions", asyn
 
 // ADR-0015: the goals read as they were picked; the way back is the feed.
 test("the user's goals are listed by their labels, with a way back to the feed", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue({
     goals: ["system-design-interviews", "stay-sharp"],
     topics: ["databases"],
@@ -127,17 +127,20 @@ test("the user's goals are listed by their labels, with a way back to the feed",
   );
 });
 
-test("no session goes to /join; not onboarded goes to /onboarding", async () => {
+test("no session goes to /join, a guest to /sign-up, not onboarded to /onboarding", async () => {
   current.mockResolvedValue(null);
   await expect(page()).rejects.toThrow("redirect:/join");
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue(null);
   await expect(page()).rejects.toThrow("redirect:/onboarding");
+  // ADR-0029: guests play, and only play.
+  current.mockResolvedValue(guest);
+  await expect(page()).rejects.toThrow("redirect:/sign-up");
 });
 
 // The query string picks a fixed message; it is never shown itself.
 test("notices come from fixed text, never from the query string", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue({
     goals: ["system-design-interviews"],
     topics: ["databases"],
@@ -155,7 +158,7 @@ test("notices come from fixed text, never from the query string", async () => {
 
 // The device's theme (owner, 2026-10-26): three choices, the current one pressed.
 test("appearance offers light, dark and the device's own, this device's marked", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue({
     goals: ["system-design-interviews"],
     topics: ["databases"],
@@ -180,7 +183,7 @@ test("appearance offers light, dark and the device's own, this device's marked",
 
 // Q-P2-04, P2-W7-S02: what reading has explored, by topic (§3.1 learner state).
 test("Profile lists the user's concepts by topic with their states, or says how to start", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   get.mockResolvedValue({
     goals: [],
     topics: ["databases"],
@@ -220,7 +223,7 @@ test("Profile lists the user's concepts by topic with their states, or says how 
   // P2-W9-S04: a due card says so beside the state, which it doesn't replace.
   expect(section).toMatch(/Raft[^]*?Mastered · Due for review[^]*?Paxos/);
   expect(section).not.toMatch(/Paxos[^]*?Explored · Due/);
-  expect(explored).toHaveBeenCalledWith("g1");
+  expect(explored).toHaveBeenCalledWith("u1");
 });
 
 // P2-W12-S01 (§5H, ADR-0024): connecting GitHub, accounts only.
@@ -268,17 +271,13 @@ describe("GitHub", () => {
     expect(html).toContain('href="https://github.com/settings/installations"');
   });
 
-  test("a guest is asked to create an account; not configured says so", async () => {
-    current.mockResolvedValue(guest);
-    get.mockResolvedValue(preferences);
-    let html = await page();
-    expect(html).toContain("Create an account to connect GitHub");
-    expect(html).not.toContain("/api/github/connect");
-    expect(githubConnection).not.toHaveBeenCalled();
+  test("not configured says so", async () => {
     current.mockResolvedValue(user);
+    get.mockResolvedValue(preferences);
     githubOffered = false;
-    html = await page();
+    const html = await page();
     expect(html).toContain("Connecting GitHub isn&#x27;t available yet.");
+    expect(html).not.toContain("/api/github/connect");
   });
 
   test("the callback's outcomes are told in fixed words", async () => {

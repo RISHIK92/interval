@@ -39,6 +39,8 @@ const Control = z.object({
 export async function feedbackAction(form: FormData): Promise<void> {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play.
+  if (actor.isGuest) redirect("/sign-up");
   const raw = Object.fromEntries(form);
   if (
     typeof raw["control"] === "string" &&

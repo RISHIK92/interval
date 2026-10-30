@@ -54,6 +54,20 @@ test("the beta plan grants feed.read", async () => {
   });
 });
 
+test("the beta plan grants every quick game, with no limit (OPS-3, P3-W13-S01)", async () => {
+  await rolledBack(async (trx, userId) => {
+    const entitlements = kyselyEntitlements(trx);
+    for (const game of [
+      "play.daily",
+      "play.sprint",
+      "play.estimation",
+      "play.live",
+    ] as const) {
+      expect(await entitlements.limit(userId, game)).toBeNull();
+    }
+  });
+});
+
 test("admin.review is granted per user, on top of the plan (Q-P1-29)", async () => {
   await rolledBack(async (trx, userId) => {
     const entitlements = kyselyEntitlements(trx);

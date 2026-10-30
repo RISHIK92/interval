@@ -90,7 +90,7 @@ export async function joinWithInvite(
   return result;
 }
 
-// Dormant since ADR-0016 (option B): there are no guests to upgrade.
+// A Play guest (ADR-0029) becomes an account in place, keeping its user id.
 export async function signUp(
   accounts: Accounts,
   headers: Headers,

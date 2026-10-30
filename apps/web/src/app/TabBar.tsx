@@ -1,11 +1,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-// The design's five tabs (ADR-0017). Home, Paths (P2-W10-S03) and Library work; Explore and Play
-// arrive with their phases and show disabled until then. On wide screens the bar is
+// The design's five tabs (ADR-0017). Home, Paths (P2-W10-S03), Play (P3-W13-S01) and
+// Library work; Explore arrives with its phase and shows disabled until then. On wide screens the bar is
 // the design's sidebar (ADR-0019): the wordmark, Leagues (web only, disabled) and the
 // profile at the bottom; on phones Profile is reached from the header (Q-P1-19).
-type Current = "home" | "library" | "paths";
+type Current = "home" | "library" | "paths" | "play";
 
 const icon = (path: ReactNode) => (
   <svg
@@ -127,7 +127,12 @@ export function TabBar({
         current={current === "paths"}
         icon={ICONS.paths}
       />
-      <Later name="Play" icon={ICONS.play} />
+      <Live
+        href="/play"
+        name="Play"
+        current={current === "play"}
+        icon={ICONS.play}
+      />
       <Later name="Leagues" icon={ICONS.leagues} wideOnly />
       <Live
         href="/library"

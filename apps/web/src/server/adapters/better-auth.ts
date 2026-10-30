@@ -53,8 +53,8 @@ export function createAuth(opts: {
     emailAndPassword: {
       enabled: true,
       // Accounts are made only from an invite redemption (Accounts.create, ADR-0016),
-      // never through the public endpoint, which would skip the invite code. The guest
-      // upgrade (Accounts.signUp) is dormant.
+      // never through the public endpoint, which would skip the invite code, or by a
+      // Play guest's upgrade (Accounts.signUp, ADR-0029).
       disableSignUp: true,
       minPasswordLength: 8,
       maxPasswordLength: 128,

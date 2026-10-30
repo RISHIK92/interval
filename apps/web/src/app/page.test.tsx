@@ -126,7 +126,7 @@ test("without a session the visitor is sent to /join", async () => {
 });
 
 test("renders one card per feed entry", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(
     feedOf([card, { ...card, momentId: "2", sectionNumber: 2 }]),
   );
@@ -140,37 +140,42 @@ test("renders one card per feed entry", async () => {
 });
 
 test("viewing the feed emits feed_viewed with the card count and the visit", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
   await render();
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "feed_viewed",
     { card_count: 2 },
-    { userId: "u1", isGuest: true, betaGroup: "student", sessionId: "visit-9" },
+    {
+      userId: "u1",
+      isGuest: false,
+      betaGroup: "student",
+      sessionId: "visit-9",
+    },
   );
 });
 
 test("renders an empty state when the feed is empty", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   expect(await render()).toContain("No moments yet.");
 });
 
 // OPS-3: the feed is a capability; a plan without it sees a message, not the feed.
 test("without feed.read the page says so and never reads the feed", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   can.mockResolvedValueOnce(false);
   const html = await render();
   expect(html).toContain("Your plan doesn&#x27;t include the feed.");
-  // The way out (sign up, for a guest) stays on the page.
-  expect(html).toContain('href="/sign-up"');
+  // The way out (sign out) stays on the page.
+  expect(html).toContain("Sign out");
   expect(can).toHaveBeenCalledWith("u1", "feed.read");
   expect(getFeed).not.toHaveBeenCalled();
   expect(emit).not.toHaveBeenCalled();
 });
 
 test("a user who hasn't onboarded is sent to /onboarding first", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getPreferences.mockResolvedValueOnce(null);
   await expect(render()).rejects.toThrow("redirect:/onboarding");
   expect(getFeed).not.toHaveBeenCalled();
@@ -178,7 +183,7 @@ test("a user who hasn't onboarded is sent to /onboarding first", async () => {
 
 // Q-P1-16: three time chips; the selected one decides the feed (P1-W4-S05).
 test("renders the three chips as links and marks the onboarding one", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render();
   for (const chip of ["1-3", "3-8", "8-15"]) {
@@ -199,7 +204,7 @@ test("renders the three chips as links and marks the onboarding one", async () =
 });
 
 test("a chip in the link picks that chip's feed", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render({ chip: "1-3" });
   expect(getFeed).toHaveBeenCalledWith("u1", "1-3", 50);
@@ -208,7 +213,7 @@ test("a chip in the link picks that chip's feed", async () => {
 });
 
 test("the chip chosen earlier in the session is kept", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   chipCookie = "8-15";
   await render();
@@ -216,7 +221,7 @@ test("the chip chosen earlier in the session is kept", async () => {
 });
 
 test("the 8–15 chip renders whole-article cards next to moments", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(
     feedOf([
       {
@@ -246,7 +251,7 @@ test("the 8–15 chip renders whole-article cards next to moments", async () => 
 
 // P1-W4-S07, C-20: Save on the card; the other controls in its overflow menu.
 test("every card offers Save and the four other controls", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render();
   expect(html).toContain('name="itemId" value="10"');
@@ -268,7 +273,7 @@ test("every card offers Save and the four other controls", async () => {
 
 // ADR-0026: the card says why it was shown, and its menu can report a reason as wrong.
 test("a card shows its reasons, and each can be reported as wrong", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(
     feedOf([
       {
@@ -293,7 +298,7 @@ test("a card shows its reasons, and each can be reported as wrong", async () => 
 });
 
 test("after Not interested the page offers Undo for that item only", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   notInterested.mockResolvedValueOnce(true);
   const html = await render({ undo: "77" });
@@ -311,7 +316,7 @@ test("after Not interested the page offers Undo for that item only", async () =>
 
 // P1-W4-S08: the Profile page, from the header until the avatar arrives (C-06).
 test("the header links to the Profile page", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   expect(await render()).toMatch(
     /<a[^>]*href="\/profile"[^>]*aria-label="Profile"|<a[^>]*aria-label="Profile"[^>]*href="\/profile"/,
@@ -321,7 +326,7 @@ test("the header links to the Profile page", async () => {
 // ADR-0019: one full-size card at a time in a sideways row, so each title gets read;
 // no "More for your …" list.
 test("every card is full size in one sideways feed", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(
     feedOf([
       card,
@@ -345,7 +350,7 @@ test("every card is full size in one sideways feed", async () => {
 
 // ADR-0019: the design's right column, greyed until its features exist.
 test("the wide layout's column: path and review live, streak and battle coming later", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render();
   const start = html.indexOf('aria-label="At a glance"');
@@ -365,7 +370,7 @@ test("the wide layout's column: path and review live, streak and battle coming l
 
 // ADR-0019: the server says a plain hello by first name; the device picks the line.
 test("the heading greets by first name before the device picks a line", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   getPreferences.mockResolvedValueOnce({
     goals: ["system-design-interviews"],
@@ -382,7 +387,7 @@ test("the heading greets by first name before the device picks a line", async ()
 
 // P1-W5-S02: the Now reading panel (C-22) and what comes after a finish.
 test("Now reading offers Mark section done and Dismiss for the open card", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   readingCookie = "10.1";
   describe_.mockResolvedValueOnce({
@@ -399,7 +404,7 @@ test("Now reading offers Mark section done and Dismiss for the open card", async
 
 // A section titled like its article (the AWS posts) names it once.
 test("Now reading doesn't repeat a section title that matches the article", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   readingCookie = "10.1";
   describe_.mockResolvedValueOnce({
@@ -412,7 +417,7 @@ test("Now reading doesn't repeat a section title that matches the article", asyn
 });
 
 test("a whole article's panel says Mark article done", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   readingCookie = "20.";
   describe_.mockResolvedValueOnce({
@@ -426,7 +431,7 @@ test("a whole article's panel says Mark article done", async () => {
 });
 
 test("a reading cookie that names nothing real shows no panel", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   readingCookie = "10.1";
   expect(await render()).not.toContain("Now reading");
@@ -437,7 +442,7 @@ test("a reading cookie that names nothing real shows no panel", async () => {
 });
 
 test("after a section is finished the next one is offered, or the end is said", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   describe_.mockResolvedValue({
     articleTitle: "Consensus in practice",
@@ -473,7 +478,7 @@ test("after a section is finished the next one is offered, or the end is said", 
 });
 
 test("a finished param naming nothing real, or a whole article, says nothing more", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   const unknown = await render({ finished: "10.999" });
   expect(unknown).not.toContain("Continue:");
@@ -486,7 +491,7 @@ test("a finished param naming nothing real, or a whole article, says nothing mor
 });
 
 test("card links carry what the return prompt asks about", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render();
   expect(html).toMatch(/<a[^>]*data-item="10"[^>]*data-moment="1"/);
@@ -494,7 +499,7 @@ test("card links carry what the return prompt asks about", async () => {
 
 // P1-W5-S03 (Q-P1-40): half-read articles, above the feed in every chip.
 test("continue cards point at the next section and can be dismissed", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   continueCards.mockResolvedValueOnce([
     {
@@ -520,7 +525,7 @@ test("continue cards point at the next section and can be dismissed", async () =
 });
 
 test("a saved card's button says Saved and unsaves", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([{ ...card, saved: true }]));
   const html = await render();
   // An icon button: its label is its whole name, and says it is saved.
@@ -534,7 +539,7 @@ test("a saved card's button says Saved and unsaves", async () => {
 });
 
 test("the Home tab is marked current", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   const html = await render();
   expect(html).toMatch(/<a aria-current="page"[^>]*href="\/">.*?Home<\/a>/);
@@ -543,7 +548,7 @@ test("the Home tab is marked current", async () => {
 
 // ADR-0018: closing the in-app reader comes back asking about what it showed.
 test("ask= opens the prompt for that card; a bad one is ignored", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   const section = await render({ ask: "10.1" });
   expect(section).toContain("Finished this section?");
@@ -562,7 +567,7 @@ test("ask= opens the prompt for that card; a bad one is ignored", async () => {
 });
 
 test("a frameable card opens in the in-app reader, in this tab", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([{ ...card, frameable: true }]));
   continueCards.mockResolvedValueOnce([
     {
@@ -594,7 +599,7 @@ test("a frameable card opens in the in-app reader, in this tab", async () => {
 // An article in Continue reading isn't offered again in the feed below it (owner,
 // 2026-10-27 beta check).
 test("the feed leaves out articles already in Continue reading", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(
     feedOf([
       card,
@@ -619,7 +624,7 @@ test("the feed leaves out articles already in Continue reading", async () => {
 
 // Q-P2-01, P2-W7-S03: a note on what's being read, written from the panel.
 test("Now reading offers a note on the section, filled in when there is one", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   readingCookie = "10.1";
   describe_.mockResolvedValueOnce({
@@ -639,7 +644,7 @@ test("Now reading offers a note on the section, filled in when there is one", as
 
 // P2-W7-S04: a card shows the user's note on its own section.
 test("cards show the user's notes on their sections, not on other sections", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   onItems.mockResolvedValueOnce([
     { itemId: "10", momentId: "1", body: "Mine on this section" },
@@ -652,7 +657,7 @@ test("cards show the user's notes on their sections, not on other sections", asy
 });
 
 test("an article card shows the article's note; a section card never does", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(
     feedOf([
       {
@@ -683,7 +688,7 @@ test("an article card shows the article's note; a section card never does", asyn
 
 // P2-W9-S02: Test 60s from a card, and after finishing a section.
 test("a card with live questions offers Test 60s on its section", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
   offered.mockResolvedValueOnce(new Set(["10.1"]));
   const html = await render();
@@ -700,7 +705,7 @@ test("a card with live questions offers Test 60s on its section", async () => {
 });
 
 test("after finishing a section with live questions, the feed offers its test", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   describe_.mockResolvedValue({
     articleTitle: "Consensus in practice",
@@ -723,7 +728,7 @@ test("after finishing a section with live questions, the feed offers its test", 
 const text = (html: string) => html.replace(/<[^>]+>/g, "");
 
 test("with concepts due, the second card is the review queue, saying why", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(
     feedOf([card, { ...card, momentId: "2" }, { ...card, momentId: "3" }]),
   );
@@ -761,7 +766,7 @@ test("with concepts due, the second card is the review queue, saying why", async
 });
 
 test("an empty feed still shows the review when something is due (owner, 2026-10-28)", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   dueReviews.mockResolvedValueOnce([
     { conceptId: "1", name: "Raft", daysSince: 2 },
@@ -773,7 +778,7 @@ test("an empty feed still shows the review when something is due (owner, 2026-10
 });
 
 test("with nothing due, the feed has no review card", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   expect(await render()).not.toContain("Due for review");
 });
@@ -793,7 +798,7 @@ const reading = {
 };
 
 test("the path's next reading is the first card, saying why, as a path open", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
   pathNext.mockResolvedValueOnce({
     kind: "reading",
@@ -832,7 +837,7 @@ test("the path's next reading is the first card, saying why, as a path open", as
 });
 
 test("a checkpoint ready to take is the first card; none without a next step", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([]));
   pathNext.mockResolvedValueOnce({
     kind: "checkpoint",
@@ -857,7 +862,7 @@ test("a checkpoint ready to take is the first card; none without a next step", a
 });
 
 test("a path card on a section you've mastered offers to skip it (Q-P2-29)", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   pathNext.mockResolvedValueOnce({
     kind: "reading",
@@ -938,9 +943,9 @@ test("without a path the book card comes first; an empty feed still shows it", a
   expect(await render()).not.toContain("Next in your book");
 });
 
-test("a guest has no books to ask about", async () => {
+// ADR-0029: guests play, and only play; Home is for accounts.
+test("a guest is sent to sign up before anything is read", async () => {
   current.mockResolvedValue(guest);
-  getFeed.mockResolvedValue(feedOf([card]));
-  await render();
-  expect(nextSession).not.toHaveBeenCalled();
+  await expect(render()).rejects.toThrow("redirect:/sign-up");
+  expect(getFeed).not.toHaveBeenCalled();
 });

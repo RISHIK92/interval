@@ -242,6 +242,10 @@ def test_a_new_user_is_on_the_beta_plan(conn: psycopg.Connection) -> None:
         ("books.max_mb", 50),
         ("books.max_pages", 1000),
         ("feed.read", None),
+        ("play.daily", None),
+        ("play.estimation", None),
+        ("play.live", None),
+        ("play.sprint", None),
     ]
 
 
@@ -271,6 +275,10 @@ def test_per_user_grants_add_to_the_plan_without_duplicating_it(
         ("books.max_mb", 50),
         ("books.max_pages", 1000),
         ("feed.read", None),
+        ("play.daily", None),
+        ("play.estimation", None),
+        ("play.live", None),
+        ("play.sprint", None),
     ]
 
 

@@ -344,12 +344,11 @@ test("a first visit offers a PDF upload and the ready-made paths", async () => {
   expect(html.slice(html.indexOf(">Indexes<"))).not.toContain("Fits your goal");
 });
 
-test("a guest's first visit asks for an account instead of an upload", async () => {
+// ADR-0029: guests play, and only play.
+test("a guest is sent to sign up", async () => {
   current.mockResolvedValue({ ...user, isGuest: true });
-  live.mockResolvedValueOnce(fresh);
-  const html = await page();
-  expect(html).toContain("Create an account to add a book");
-  expect(html).not.toContain('action="/api/books"');
+  await expect(page()).rejects.toThrow("redirect:/sign-up");
+  expect(live).not.toHaveBeenCalled();
 });
 
 test("topic chips filter the paths; an unknown topic shows them all", async () => {

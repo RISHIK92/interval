@@ -31,6 +31,8 @@ const Note = z.union([
 export async function noteAction(form: FormData): Promise<void> {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play.
+  if (actor.isGuest) redirect("/sign-up");
   const back = sameSitePath(textField(form, "back"), "/");
   const noteId = textField(form, "noteId");
   const parsed = Note.safeParse({

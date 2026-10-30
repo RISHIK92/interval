@@ -153,3 +153,18 @@ test("asking again for a chapter's checkpoint goes back to its end", async () =>
     "redirect:/paths#your-books",
   );
 });
+
+// ADR-0029: guests play, and only play; this action is for accounts.
+test("a guest is sent to sign up before anything is written", async () => {
+  current.mockResolvedValue({ ...user, isGuest: true });
+  const all = await import("./actions");
+  await expect(all.deleteBookAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
+  await expect(all.finishSessionAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
+  await expect(all.requestCheckpointAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
+});

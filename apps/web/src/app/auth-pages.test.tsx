@@ -85,11 +85,10 @@ describe("home", () => {
     return html(HomePage({ searchParams: Promise.resolve({}) }));
   }
 
-  test("a guest is offered sign-up, not sign-out", async () => {
+  // ADR-0029: guests play, and only play.
+  test("a guest is sent to sign up", async () => {
     current.mockResolvedValue(guest);
-    const page = await home();
-    expect(page).toContain('href="/sign-up"');
-    expect(page).not.toContain("Sign out");
+    await expect(home()).rejects.toThrow("redirect:/sign-up");
   });
 
   test("an account gets a sign-out button", async () => {

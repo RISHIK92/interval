@@ -24,8 +24,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!sameOrigin(request)) return new Response(null, { status: 403 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return see("/join");
-  // Owner, 2026-10-28: books are for accounts, not guests.
-  if (actor.isGuest) return see("/books/new?error=guest");
+  // Owner, 2026-10-28, ADR-0029: books are for accounts, not guests.
+  if (actor.isGuest) return see("/sign-up");
   const maxMb = await entitlements().limit(actor.userId, "books.max_mb");
   const length = Number(request.headers.get("content-length"));
   if (!Number.isFinite(length) || length <= 0)

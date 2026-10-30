@@ -54,8 +54,9 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
-const context = { ...guest, sessionId: "visit-1" };
+const user: Actor = { userId: "g1", isGuest: false, betaGroup: "student" };
+const guest: Actor = { ...user, isGuest: true };
+const context = { ...user, sessionId: "visit-1" };
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -69,7 +70,7 @@ function form(fields: Record<string, string>): FormData {
 
 async function finish(fields: Record<string, string>) {
   const { finishAction } = await import("./actions");
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   return finishAction(form(fields));
 }
 
@@ -224,7 +225,7 @@ test("a repeated section finish doesn't look at the article", async () => {
 
 test("a continue card can be dismissed", async () => {
   const { continueAction } = await import("./actions");
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   await expect(
     continueAction(form({ itemId: "5", chip: "3-8" })),
   ).rejects.toThrow(/^redirect:\/\?chip=3-8$/);
@@ -336,4 +337,16 @@ test("a Library finish keeps Now reading for another article", async () => {
   ).rejects.toThrow("redirect:/library");
   expect(deleteCookie).toHaveBeenCalledWith("iv_reading");
   readingCookie = "5.9";
+});
+
+// ADR-0029: guests play, and only play; this action is for accounts.
+test("a guest is sent to sign up before anything is written", async () => {
+  current.mockResolvedValue(guest);
+  const all = await import("./actions");
+  await expect(all.finishAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
+  await expect(all.continueAction(new FormData())).rejects.toThrow(
+    "redirect:/sign-up",
+  );
 });

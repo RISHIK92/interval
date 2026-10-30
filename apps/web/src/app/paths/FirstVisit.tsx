@@ -14,13 +14,11 @@ export function FirstVisit({
   paths,
   topic,
   preview,
-  guest,
   maxMb,
 }: {
   paths: PathSummary[];
   topic: Topic | null; // the chip filter, from ?topic=
   preview: PathTimeline | null; // from ?preview=
-  guest: boolean;
   maxMb: number | null; // the plan's PDF size limit (OPS-3), shown before upload
 }) {
   const topics = [
@@ -73,16 +71,7 @@ export function FirstVisit({
                 after each chapter.
               </p>
               <div className="mt-4">
-                {guest ? (
-                  <Link
-                    href="/join"
-                    className="inline-block rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
-                  >
-                    Create an account to add a book
-                  </Link>
-                ) : (
-                  <UploadDrop maxMb={maxMb} />
-                )}
+                <UploadDrop maxMb={maxMb} />
               </div>
             </section>
           </Card>

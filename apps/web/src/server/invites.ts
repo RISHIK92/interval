@@ -18,8 +18,8 @@ export const INVITE_MESSAGES = {
   used_up: "That invite code has no uses left.",
 } as const;
 
-// The single entry point for redeeming an invite code (join, and the dormant guest
-// start).
+// The single entry point for redeeming an invite code (join, and a Play guest's start,
+// ADR-0029).
 export async function redeemInvite(
   codes: InviteCodes,
   raw: string,

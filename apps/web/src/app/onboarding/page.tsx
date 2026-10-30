@@ -37,6 +37,8 @@ export default async function OnboardingPage(props: {
 }) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play; the rest is for accounts.
+  if (actor.isGuest) redirect("/sign-up");
   // A returning user skips onboarding; the Profile page edits these (P1-W4-S08).
   if ((await preferences().get(actor.userId)) !== null) redirect("/");
   const { missing } = await props.searchParams;

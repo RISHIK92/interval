@@ -53,6 +53,8 @@ export default async function ReadPage({
 }) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play; the rest is for accounts.
+  if (actor.isGuest) redirect("/sign-up");
   const { item } = await params;
   const parsed = Read.safeParse(await searchParams);
   if (!BIGINT_ID.test(item) || !parsed.success) redirect("/");

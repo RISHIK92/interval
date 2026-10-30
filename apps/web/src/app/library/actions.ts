@@ -12,6 +12,8 @@ import { textField } from "../form";
 export async function libraryUnsaveAction(form: FormData): Promise<void> {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
+  // ADR-0029: guests play, and only play.
+  if (actor.isGuest) redirect("/sign-up");
   const itemId = textField(form, "itemId");
   if (!BIGINT_ID.test(itemId)) redirect("/library");
   // Saves anchor similar picks (Q-P1-13): the feed follows on its next recompute.
