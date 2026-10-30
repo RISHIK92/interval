@@ -224,13 +224,17 @@ test("a section the link fell back from is closed and finished as the article", 
   );
 });
 
-test("the overlay: why it's here, Save that stays, Mark done, Next section, and three coming later", async () => {
+test("the overlay: one row of Save, the note, Mark done, Next section, and three coming later", async () => {
   current.mockResolvedValue(guest);
   reader.mockResolvedValue(page);
   const html = await render(card);
-  // ADR-0026: why the ranking showed it, the app's own words (no AI label).
-  expect(html).toContain("Good prep for system design interviews: Caching.");
-  expect(html).not.toContain(">AI</span>");
+  // The card's why stays on the card; the reader's bar is one compact row (owner,
+  // 2026-10-30, ADR-0028).
+  expect(html).not.toContain(
+    "Good prep for system design interviews: Caching.",
+  );
+  expect(html).not.toContain("Why it&#x27;s here");
+  expect(html).toContain("Add a note on");
   // Save posts the feedback control and comes back to this reader.
   expect(html).toMatch(/<button[^>]*value="save"[^>]*name="control"/);
   expect(html).toContain(
@@ -276,7 +280,7 @@ test("with live questions, Test me starts a sprint on the section shown", async 
   expect(html).toContain('name="chip" value="3-8"');
 });
 
-test("the last section has no Next section; a saved item says Saved; its reasons show", async () => {
+test("the last section has no Next section; a saved item says Saved", async () => {
   current.mockResolvedValue(guest);
   reader.mockResolvedValue({
     ...page,
@@ -287,7 +291,6 @@ test("the last section has no Next section; a saved item says Saved; its reasons
   const html = await render(card);
   expect(html).not.toContain("Next section");
   expect(html).toMatch(/<button[^>]*value="unsave"[^>]*name="control"/);
-  expect(html).toContain("An idea worth investigating.");
 });
 
 // Opened from the Library (owner, 2026-10-26): no feed event, and closing or Mark done

@@ -11,7 +11,7 @@ import {
 } from "../../../server/container";
 import { attributed, countOpen } from "../../../server/opens";
 import { outHref, readHref } from "../../../server/outbound";
-import { BIGINT_ID, quizKey, type ReaderPage } from "../../../server/ports";
+import { BIGINT_ID, quizKey } from "../../../server/ports";
 import { formatReading } from "../../../server/reading";
 import { visitId } from "../../../server/visits";
 import { feedbackAction } from "../../feedback/actions";
@@ -172,18 +172,11 @@ export default async function ReadPage({
         domain={domain}
         browserHref={leaveHref}
       />
-      <footer className="relative flex shrink-0 flex-col gap-3 border-t border-hairline bg-page px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-        {/* Room for the note icon at the footer's top right, Why or not. */}
-        <div className="min-h-9 pr-12">
-          <Why reasons={page.reasons} />
-        </div>
-        <NoteBox
-          on={{ itemId: item, momentId: reached }}
-          about={title}
-          note={note}
-          back={here}
-        />
-        <div className="flex items-center gap-2">
+      {/* One compact row (owner, 2026-10-30, ADR-0028): the card's why stays on the
+        card. The note's icon sits in the row's slot after Test me; its text area opens
+        below the row. */}
+      <footer className="relative flex shrink-0 flex-col gap-2 border-t border-hairline bg-page px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
+        <div className="flex h-11 items-center gap-2">
           <form action={feedbackAction}>
             <input type="hidden" name="itemId" value={item} />
             <input type="hidden" name="chip" value={chip} />
@@ -232,6 +225,8 @@ export default async function ReadPage({
               <Glyph path={ZAP} />
             </ComingLater>
           )}
+          {/* The note's slot. */}
+          <span aria-hidden="true" className="size-9 shrink-0" />
           <div className="ml-auto flex items-center gap-2">
             {/* Mark done goes back where the reader was opened and skips the prompt
               (ADR-0018). */}
@@ -275,6 +270,15 @@ export default async function ReadPage({
             )}
           </div>
         </div>
+        <NoteBox
+          on={{ itemId: item, momentId: reached }}
+          about={title}
+          note={note}
+          back={here}
+          // Below the footer's pt-2, centred in the h-11 row; four 9-wide buttons
+          // and their gaps after px-4.
+          at="top-3 left-48"
+        />
       </footer>
     </main>
   );
@@ -326,21 +330,5 @@ function ComingLater({
       {children}
       <span className="sr-only">{`${name}. ${why}`}</span>
     </button>
-  );
-}
-
-// ADR-0027: the card's explanation, one line until opened.
-function Why({ reasons }: { reasons: ReaderPage["reasons"] }) {
-  if (reasons === null) return null;
-  return (
-    <details className="group">
-      <summary className="flex cursor-pointer list-none items-center gap-2 rounded-full border border-hairline px-3 py-1.5 text-sm [&::-webkit-details-marker]:hidden">
-        <span className="min-w-0 flex-1 truncate text-ink-muted group-open:hidden">
-          {reasons}
-        </span>
-        <span className="hidden group-open:inline">Why it&apos;s here</span>
-      </summary>
-      <p className="mt-2 max-h-40 overflow-y-auto text-sm">{reasons}</p>
-    </details>
   );
 }

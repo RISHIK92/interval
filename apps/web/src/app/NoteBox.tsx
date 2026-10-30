@@ -4,7 +4,7 @@ import { Button } from "./ui/Button";
 // A private note (§5I, Q-P2-01) on a section or article being read, or (the Library)
 // a note by its own id, which also reaches one whose section was re-segmented away. A
 // small icon at its container's top right (the container is `relative`; owner,
-// 2026-10-27) opens the text area below; a dot marks an existing note. A disclosure,
+// 2026-10-27; `at` moves it) opens the text area below; a dot marks an existing note. A disclosure,
 // so it works without script. `about` names what it's on, so a list of them reads
 // apart.
 type On = { itemId: string; momentId: string | null } | { noteId: string };
@@ -14,18 +14,20 @@ export function NoteBox({
   about,
   note,
   back,
+  at = "top-3 right-3",
 }: {
   on: On;
   about: string;
   note: string | null;
   back: string;
+  at?: string;
 }) {
   const action = note === null ? "Add a note" : "Your note";
   return (
     <details className="group">
       <summary
         title={action}
-        className="absolute top-3 right-3 flex size-9 cursor-pointer list-none items-center justify-center rounded-full border border-hairline bg-page text-ink group-open:bg-well [&::-webkit-details-marker]:hidden"
+        className={`absolute ${at} flex size-9 cursor-pointer list-none items-center justify-center rounded-full border border-hairline bg-page text-ink group-open:bg-well [&::-webkit-details-marker]:hidden`}
       >
         <span className="sr-only">{`${action} on ${about}`}</span>
         <svg

@@ -49,3 +49,4 @@ An ADR records one decision that the blueprint does not settle, or changes one i
 | [0025](0025-card-explanations-from-a-template-library.md) | Card explanations from a deterministic template library, not model polishing | ACCEPTED | owner direction 2026-10-29 (amends REC-5, Q-P1-18) |
 | [0026](0026-shown-for-reasons-on-every-card.md) | "Shown for" reasons on every card, rendered from the ranking itself | ACCEPTED | owner direction 2026-10-29 (amends ADR-0025) |
 | [0027](0027-one-plain-explanation-per-card.md) | One plain, stable explanation per card; tag-derived values shown without an AI label | ACCEPTED | owner review 2026-10-29 (amends ADR-0026, AI-3) |
+| [0028](0028-reader-bar-without-why.md) | The reader's bar drops "Why this matters"; one compact row | PROPOSED | owner request 2026-10-30 (amends ADR-0018) |
