@@ -1,6 +1,6 @@
 # Phase 3 slices
 
-DRAFT (2026-10-31), for the owner's approval. Phase 3 (docs/roadmap/phase-3.md) as one-session slices, in the Phase 1 and 2 format. Run a slice with `/slice <ID>`.
+DRAFT (2026-10-31), updated with the owner's answers to docs/questions/phase-3.md the same day. Phase 3 (docs/roadmap/phase-3.md) as one-session slices, in the Phase 1 and 2 format. Run a slice with `/slice <ID>`.
 
 Field key: **IDs** = decision IDs implemented. **Needs** = slices and ADRs that must be done or ACCEPTED first. **Q** = questions in docs/questions/phase-3.md.
 
@@ -12,14 +12,23 @@ Already in place, so not sliced again:
 
 First to slip into a Phase 3.5 (roadmap): friends leaderboards (W14-S05) and 1v1 estimation (never sliced here).
 
+ADRs the answers need, each before its first slice (PROPOSED until the owner accepts):
+
+- guests revived for Play, merged on sign-up, with anti-farming limits (Q-P3-03; amends ADR-0016) — before W13-S01;
+- the daily challenge auto-publishes an unreviewed set (Q-P3-06; amends Q-2) — before W13-S05;
+- university picked from a list, unverified (Q-P3-09; amends §6.7 "verified" and the Week 14 roadmap) — before W14-S03;
+- the game server's shape and match tickets (Q-P3-01) — before W15-S01;
+- ratings in the Python worker (Q-P3-02; amends MATCH-1) — before W16-S01;
+- the agent CLI in Go (Q-P3-17; extends ARCH-2) — before W17-S05.
+
 ## Week 13: the Play tab, solo games, the daily challenge
 
 ### P3-W13-S01 The Play tab
 
 - IDs: §6.1, §6.3, ADR-0017, OPS-3
-- Needs: none
+- Needs: the guests ADR (Q-P3-03)
 - Goal: Play turns from "Coming later" into a tab that lists the quick games, each with a one-line format and win condition; live games (W16) show "Coming later" until built.
-- Acceptance: the tab bar's Play is a link (ADR-0017 updated by a short ADR or noted as its planned change); a Play page with Daily challenge, 60-second sprint, Estimation, Fastest finger; an entitlement check per game (OPS-3); page tests; guests per Q-P3-03.
+- Acceptance: the tab bar's Play is a link (ADR-0017 updated by a short ADR or noted as its planned change); a Play page with Daily challenge, 60-second sprint, Estimation, Fastest finger; an entitlement check per game (OPS-3); page tests; guests play everything, boards and live games included, and their games, ratings and streak merge into the account at sign-up (Q-P3-03), with the ADR's anti-farming limits.
 - Out of scope: leagues (quick games are human-only, §6.2, C-29), battles.
 - Q: Q-P3-03.
 
@@ -55,7 +64,7 @@ First to slip into a Phase 3.5 (roadmap): friends leaderboards (W14-S05) and 1v1
 - IDs: §6.3, Q-2, LOAD-4, CACHE-4, DB-5
 - Needs: S02
 - Goal: one set per day, the same for everyone, reviewed by the owner the day before; one attempt per user; score and streak.
-- Acceptance: a worker job picks tomorrow's set (and queues it for review); `/admin/daily` shows it for approval and swaps a question; an unreviewed set follows Q-P3-06; one attempt enforced by a unique key (LOAD-5); the streak counts consecutive days played; the day boundary per Q-P3-06; the feed shows the challenge card (§6.1); events.
+- Acceptance: a worker job picks tomorrow's set (and queues it for review); `/admin/daily` shows it for approval and swaps a question; an unreviewed set auto-publishes at the day's start (Q-P3-06, its ADR) and the owner is told; one attempt enforced by a unique key (LOAD-5); the streak counts consecutive UTC days played, with a freeze earned every 7 days played covering one missed day (Q-P3-07); the day boundary per Q-P3-06; the feed shows the challenge card (§6.1); events.
 - Out of scope: the share card (S06), boards (W14).
 - Q: Q-P3-06, Q-P3-07.
 
@@ -87,12 +96,12 @@ First to slip into a Phase 3.5 (roadmap): friends leaderboards (W14-S05) and 1v1
 - Acceptance: the country set as Q-P3-08 says; boards per country; Profile shows and changes it; tests.
 - Q: Q-P3-08.
 
-### P3-W14-S03 University verification
+### P3-W14-S03 University
 
-- IDs: OPS-1, §6.7
-- Needs: none
-- Goal: a player verifies a university email with a code; domains on the list verify at once, others go to a manual review queue.
-- Acceptance: a code mailed through the existing mailer port (SES in AWS per OPS-1, the log transport locally); codes expire and are rate-limited (LOAD-6); the domain list per Q-P3-09; `/admin/universities` reviews unknown domains; the verified university shows on Profile; the email address is stored only as Q-P3-09 says.
+- IDs: §6.7
+- Needs: the university ADR (Q-P3-09)
+- Goal: a player picks their university from a list, or types a name that isn't there; admin unifies typed names with listed ones.
+- Acceptance: the list from a public source whose licence is checked first (Hipo's university-domains-list is a candidate), kept in the repo; Profile picks and changes it; `/admin/universities` merges typed names; no email and no verification (Q-P3-09).
 - Out of scope: University Cups (battles, later phases).
 - Q: Q-P3-09.
 
@@ -100,16 +109,16 @@ First to slip into a Phase 3.5 (roadmap): friends leaderboards (W14-S05) and 1v1
 
 - IDs: §6.7, ADR-0006 C-17
 - Needs: S01, S03
-- Goal: players see their university's board, and universities are ranked by the average rating of their verified members (C-17).
-- Acceptance: until ratings exist (W16), universities are ranked on the challenge and sprint boards by members' average score; tests on the aggregation, including a university with one member.
+- Goal: players see their university's board, and universities are ranked by the average rating of their members (C-17; unverified per Q-P3-09).
+- Acceptance: until ratings exist (W16), universities are ranked by members' average challenge score; no minimum size (Q-P3-10); tests on the aggregation, including a university with one member.
 - Q: Q-P3-10.
 
 ### P3-W14-S05 Friends (first to slip)
 
 - IDs: §6.7
 - Needs: S01
-- Goal: friends and a friends board.
-- Acceptance: as Q-P3-11 decides (invite link, mutual accept); unfriend; a friends board; no friend list shown to others.
+- Goal: a player follows others by username (one way, no accept, Q-P3-11), and sees a board of the people they follow.
+- Acceptance: public usernames and a people search (rules open in Q-P3-11); follow and unfollow; the board.
 - Q: Q-P3-11.
 
 ### P3-W14-S06 Boards on Play
@@ -169,7 +178,7 @@ First to slip into a Phase 3.5 (roadmap): friends leaderboards (W14-S05) and 1v1
 - Needs: W15-S05, Q-P3-02 answered
 - Goal: one shared quick-game rating per player (MATCH-2), updated after each 1v1 by Glicko-2 in a worker (MATCH-1).
 - Acceptance: migration for ratings and their history; the update tested against Glickman's worked example; the worker per Q-P3-02; season boards on the leaderboard store.
-- Out of scope: OpenSkill (rooms are battles, later), seasons and soft resets (Q-P3-13).
+- Out of scope: OpenSkill (rooms are battles, later), seasons (S06).
 - Q: Q-P3-02, Q-P3-13.
 
 ### P3-W16-S02 Matchmaking
@@ -202,6 +211,14 @@ First to slip into a Phase 3.5 (roadmap): friends leaderboards (W14-S05) and 1v1
 - Goal: 1v1, 7 rounds; the first correct answer takes each round.
 - Acceptance: ties broken by compensated time (MATCH-5); tests on the round rules.
 
+### P3-W16-S06 Monthly seasons
+
+- IDs: §6.6, §6.7
+- Needs: S01
+- Goal: quick-game ratings run in monthly seasons (Q-P3-13): season boards, and a soft reset toward the mean when a season ends.
+- Acceptance: the reset as a pure function with tests; a job closes the season on the 1st (UTC) and keeps the final board; Play shows the current season's board.
+- Q: Q-P3-13.
+
 ## Week 17: ghosts, bots, challenges, the agent hook
 
 ### P3-W17-S01 Ghosts
@@ -222,8 +239,8 @@ First to slip into a Phase 3.5 (roadmap): friends leaderboards (W14-S05) and 1v1
 
 - IDs: §6.3
 - Needs: S01
-- Goal: a link that challenges someone to beat the sender's run.
-- Acceptance: as Q-P3-16 decides (likely the sender's ghost); the link expires; a guest opening it per Q-P3-03.
+- Goal: a link that opens a private live match with the sender; both must be online (Q-P3-16).
+- Acceptance: the link expires, and fails clearly when the sender isn't online; a guest can open it (Q-P3-03).
 - Q: Q-P3-16, Q-P3-03.
 
 ### P3-W17-S04 Agent hook API
@@ -237,9 +254,9 @@ First to slip into a Phase 3.5 (roadmap): friends leaderboards (W14-S05) and 1v1
 ### P3-W17-S05 Agent hook CLI
 
 - IDs: §7
-- Needs: S04
+- Needs: S04, the agent CLI ADR (Q-P3-17)
 - Goal: `interval start` and `interval stop`, and a notification about 45 seconds after start offering a quick session.
-- Acceptance: the CLI as Q-P3-17 decides (language, distribution); a setup note for Claude Code hooks and other agents; the notification channel per Q-P3-18; the CLI sends nothing but the two events (a test over its request bodies).
+- Acceptance: a Go binary (Q-P3-17), sharing the game server's toolchain and CI; a setup note for Claude Code hooks and other agents; the CLI's own notification plus web push to the PWA (Q-P3-18; a new dependency is asked first); the CLI sends nothing but the two events (a test over its request bodies).
 - Q: Q-P3-17, Q-P3-18.
 
 ## Week 18: load, fair play, launch
