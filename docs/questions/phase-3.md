@@ -26,6 +26,10 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: ADR-0016 (account-first onboarding), guest sessions (Phase 1).
 - Why it matters: guests can read; can they play, appear on boards, open a challenge link?
 - **Answer (owner, 2026-10-31):** guests are revived for Play and can do everything, boards and live games included; on sign-up the guest's games, ratings and streak merge into the account. Reverses part of ADR-0016 (account first), so it needs an ADR before W13-S01, with limits against throwaway-guest farming of boards and ratings (open: which limits).
+- **ADR-0029 open questions, answered (owner, 2026-10-31):**
+  - Invite: the landing page's Play entry asks for an invite code; a challenge link counts as the sender's invite (same group, no code use spent).
+  - Merge conflicts: keep the higher streak; keep the account's rating, the guest's results added as history; each board keeps the better score.
+  - Follows: a guest can't follow or be followed until sign-up.
 - Suggested default: guests can play solo games and the daily challenge but are not on boards; live games and challenges ask them to create an account.
 
 ## Week 13
