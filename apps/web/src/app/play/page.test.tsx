@@ -18,6 +18,7 @@ vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
 }));
 vi.mock("./actions", () => ({ startGuestAction: vi.fn() }));
+vi.mock("../quiz/actions", () => ({ startSprintAction: vi.fn() }));
 
 const account: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
 const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
@@ -26,15 +27,17 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-async function page(): Promise<string> {
+async function page(search: { sprint?: string } = {}): Promise<string> {
   const { default: PlayPage } = await import("./page");
-  return renderToStaticMarkup(await PlayPage());
+  return renderToStaticMarkup(
+    await PlayPage({ searchParams: Promise.resolve(search) }),
+  );
 }
 
 // Tags become "|", so text across elements reads in order.
 const words = (html: string) => html.replace(/<[^>]+>/g, "|");
 
-test("four quick games, each with its format and win condition, none playable yet", async () => {
+test("four quick games, each with its format and win condition; only the sprint playable yet", async () => {
   current.mockResolvedValue(account);
   const html = await page();
   const text = words(html);
@@ -53,12 +56,10 @@ test("four quick games, each with its format and win condition, none playable ye
     ],
   ];
   for (const [name, format, win] of games) {
-    expect(text).toMatch(
-      new RegExp(`${name}\\|[^]*?${format}[^]*?${win}[^]*?Coming later`),
-    );
+    expect(text).toMatch(new RegExp(`${name}\\|[^]*?${format}[^]*?${win}`));
   }
   const list = /<ul[^]*<\/ul>/.exec(html)?.[0] ?? "";
-  expect(list.match(/Coming later/g)).toHaveLength(4);
+  expect(list.match(/Coming later/g)).toHaveLength(3);
   expect(html).toMatch(/<a aria-current="page"[^>]*href="\/play"/);
 });
 
@@ -105,4 +106,28 @@ test("an account sees neither the guest form nor the sign-up line", async () => 
   const html = await page();
   expect(html).not.toMatch(/<input[^>]*name="code"/);
   expect(html).not.toContain("Sign up to keep your progress");
+});
+
+// P3-W13-S02: the sprint is playable; the other games wait for their slices.
+test("the sprint card starts a sprint; without its capability it can't", async () => {
+  current.mockResolvedValue(account);
+  const html = await page();
+  expect(words(html)).toMatch(/60-second sprint\|[^]*?Start a sprint/);
+  expect(html).toMatch(/<form[^>]*>(?:(?!<\/form>)[^])*Start a sprint/);
+  can.mockImplementation((_user, capability) =>
+    Promise.resolve(capability !== "play.sprint"),
+  );
+  const without = await page();
+  expect(without).not.toContain("Start a sprint");
+  expect(words(without)).toMatch(/60-second sprint\|[^]*?Not on your plan/);
+});
+
+// Q-P3-04: nothing the player wasn't asked this week; Start came back here.
+test("a sprint with nothing left to ask says so", async () => {
+  current.mockResolvedValue(account);
+  can.mockResolvedValue(true);
+  expect(await page({ sprint: "none" })).toMatch(
+    /role="status"[^>]*>You&#x27;ve answered every question we have this week/,
+  );
+  expect(await page()).not.toContain("every question we have this week");
 });

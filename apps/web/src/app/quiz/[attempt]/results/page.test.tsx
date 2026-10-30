@@ -29,6 +29,7 @@ const user: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
 const started = new Date("2026-10-28T10:00:00Z");
 const done: QuizAttempt = {
   review: false,
+  sprint: false,
   itemId: "5",
   momentId: "9",
   title: "Raft",
@@ -44,6 +45,7 @@ const done: QuizAttempt = {
     { name: "Raft", state: null },
   ],
   checkpoint: null,
+  missed: [],
 };
 
 afterEach(() => {
@@ -183,4 +185,46 @@ test("a passed checkpoint still names what it put in review (owner, 2026-10-28)"
   });
   expect(html).toContain("Passed: Leases unlocked.");
   expect(html).toContain("In your review queue now: Quorums.");
+});
+
+// P3-W13-S02 (§6.1): a sprint's misses go back to reading, then back to Play.
+const sprintDone: QuizAttempt = {
+  ...done,
+  sprint: true,
+  itemId: null,
+  momentId: null,
+  title: "60-second sprint",
+  missed: [
+    { itemId: "5", momentId: "9", sectionTitle: "Raft", frameable: true },
+    { itemId: "6", momentId: "12", sectionTitle: "Paxos", frameable: false },
+  ],
+};
+
+test("a sprint's results send its misses back to reading, and lead back to Play", async () => {
+  const html = await render(sprintDone);
+  expect(html).toContain("60-second sprint");
+  expect(html).toContain("Read again");
+  expect(html).toMatch(/href="\/read\/5\?moment=9[^"]*"[^>]*>Raft</);
+  expect(html).toMatch(/href="\/out\?[^"]*"[^>]*target="_blank"[^>]*>Paxos</);
+  expect(html).toMatch(/href="\/play"[^>]*>Back to Play</);
+  expect(nextMoment).not.toHaveBeenCalled();
+});
+
+test("a guest's misses open on the publisher's page: the reader is for accounts", async () => {
+  current.mockResolvedValue({ ...user, isGuest: true });
+  attempt.mockResolvedValue(sprintDone);
+  const { default: ResultsPage } = await import("./page");
+  const html = renderToStaticMarkup(
+    await ResultsPage({
+      params: Promise.resolve({ attempt: "41" }),
+      searchParams: Promise.resolve({ chip: "3-8" }),
+    }),
+  );
+  expect(html).not.toContain('href="/read/');
+  expect(html).toMatch(/href="\/out\?[^"]*"[^>]*>Raft</);
+});
+
+test("a sprint with no misses has nothing to read again", async () => {
+  const html = await render({ ...sprintDone, missed: [] });
+  expect(html).not.toContain("Read again");
 });

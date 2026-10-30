@@ -69,8 +69,8 @@ export async function GET(request: Request): Promise<Response> {
       maxAge: undefined,
     };
     // Not for a Library or path open: the panel is about what the feed sent you to
-    // (owner).
-    if (from !== "library" && from !== "path")
+    // (owner). Nor for a guest, whose reading isn't tracked (ADR-0029: guests play).
+    if (from !== "library" && from !== "path" && !actor.isGuest)
       jar.set(
         READING_COOKIE,
         formatReading({
@@ -80,14 +80,15 @@ export async function GET(request: Request): Promise<Response> {
         }),
         session,
       );
-    await countOpen(context, {
-      itemId: item,
-      momentId: moment,
-      link,
-      card,
-      from,
-      surface: "browser",
-    });
+    if (!actor.isGuest)
+      await countOpen(context, {
+        itemId: item,
+        momentId: moment,
+        link,
+        card,
+        from,
+        surface: "browser",
+      });
     events().emit(
       "outbound_click",
       { link_type: link.linkType, target },

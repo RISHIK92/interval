@@ -33,6 +33,12 @@ const EXIT_TEXT = {
     button: "Exit review",
     leave: "library",
   },
+  sprint: {
+    title: "Exit the sprint?",
+    body: "Exiting now ends this sprint and counts what you answered.",
+    button: "Exit sprint",
+    leave: "play",
+  },
   checkpoint: {
     title: "Exit the checkpoint?",
     body: "Exiting now ends this checkpoint and counts what you answered. You can try again.",
@@ -69,9 +75,11 @@ export default async function QuizPage({
   const { checkpoint } = attempt;
   const kind = attempt.review
     ? "review"
-    : checkpoint === null
-      ? "test"
-      : "checkpoint";
+    : attempt.sprint
+      ? "sprint"
+      : checkpoint === null
+        ? "test"
+        : "checkpoint";
 
   let body;
   if (answered !== undefined) {
@@ -122,8 +130,9 @@ export default async function QuizPage({
           </a>
         </div>
         {/* P2-W9-S07 (Q-2, Q-P2-18): a flagged question leaves quizzes until an
-          admin checks it. */}
-        {feedback.flagged ? (
+          admin checks it. Not from guests (ADR-0029): they're free to make, so a few
+          could empty the bank. */}
+        {actor.isGuest ? null : feedback.flagged ? (
           <p role="status" className="text-sm text-ink-muted">
             Thanks. This question is out of quizzes until it&apos;s checked.
           </p>
@@ -212,8 +221,9 @@ export default async function QuizPage({
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <h1 className="sr-only">
-        {kind === "checkpoint" ? "Checkpoint" : "Test yourself"}:{" "}
-        {attempt.title}
+        {kind === "sprint"
+          ? attempt.title
+          : `${kind === "checkpoint" ? "Checkpoint" : "Test yourself"}: ${attempt.title}`}
       </h1>
       <form id={FINISH_FORM} action={finishQuizAction}>
         <input type="hidden" name="attemptId" value={attemptId} />
@@ -267,9 +277,11 @@ export default async function QuizPage({
         <p className="flex-1 font-semibold">
           {kind === "review"
             ? "Review"
-            : kind === "checkpoint"
-              ? "Checkpoint · 60s"
-              : "Test yourself · 60s"}
+            : kind === "sprint"
+              ? "60-second sprint"
+              : kind === "checkpoint"
+                ? "Checkpoint · 60s"
+                : "Test yourself · 60s"}
         </p>
         <p className="text-sm text-ink-muted">{attempt.answered} answered</p>
       </header>
@@ -281,7 +293,10 @@ export default async function QuizPage({
           finishForm={answered === undefined ? FINISH_FORM : null}
         />
       )}
-      <p className="text-sm text-ink-muted">{attempt.title}</p>
+      {/* A sprint's title is its header. */}
+      {kind === "sprint" ? null : (
+        <p className="text-sm text-ink-muted">{attempt.title}</p>
+      )}
       {body}
       <p className="mt-auto text-center text-xs text-ink-muted">
         {checkpoint !== null
@@ -294,9 +309,11 @@ export default async function QuizPage({
             }`
           : attempt.review
             ? "One question per concept due for review"
-            : attempt.momentId === null
-              ? "Questions from this article"
-              : "Questions from this section"}
+            : attempt.sprint
+              ? "Questions picked for you"
+              : attempt.momentId === null
+                ? "Questions from this article"
+                : "Questions from this section"}
       </p>
     </main>
   );

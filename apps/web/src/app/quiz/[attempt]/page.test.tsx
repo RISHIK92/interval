@@ -24,6 +24,7 @@ vi.mock("next/navigation", () => ({
 const user: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
 const running: QuizAttempt = {
   review: false,
+  sprint: false,
   itemId: "5",
   momentId: "9",
   title: "Raft",
@@ -36,6 +37,7 @@ const running: QuizAttempt = {
   avgMs: 4000,
   concepts: [{ name: "Raft", state: "explored" }],
   checkpoint: null,
+  missed: [],
 };
 
 afterEach(() => {
@@ -275,4 +277,56 @@ test("a checkpoint says what passing unlocks, and Close goes back to the path", 
   expect(html).toContain("Exit the checkpoint?");
   expect(html).toContain('name="leave" value="path"');
   expect(html).not.toContain("Test yourself");
+});
+
+// P3-W13-S02 (§6.3): a solo sprint from Play, on the same clock.
+test("a sprint is named as one, and Close goes back to Play", async () => {
+  next.mockResolvedValue({
+    questionId: "7",
+    stem: "What does a quorum need?",
+    options: ["A majority", "Everyone", "One", "None"],
+    servedAt: new Date(),
+  });
+  const html = await render(
+    { chip: "3-8" },
+    {
+      ...running,
+      sprint: true,
+      itemId: null,
+      momentId: null,
+      title: "60-second sprint",
+    },
+  );
+  expect(html).toContain("60-second sprint");
+  expect(html).not.toContain("Test yourself");
+  expect(html).toMatch(/name="leave" value="play"/);
+  expect(html).toContain("Exit the sprint?");
+  expect(html).toContain("Questions picked for you");
+});
+
+test("a guest gets no report form: a flag isn't theirs to make (ADR-0029)", async () => {
+  answered.mockResolvedValue({
+    stem: "Q?",
+    options: ["a", "b", "c", "d"],
+    chosen: 2,
+    correctOption: 2,
+    correct: true,
+    flagged: false,
+  });
+  current.mockResolvedValue({ ...user, isGuest: true });
+  attempt.mockResolvedValue({
+    ...running,
+    sprint: true,
+    itemId: null,
+    momentId: null,
+  });
+  const { default: QuizPage } = await import("./page");
+  const html = renderToStaticMarkup(
+    await QuizPage({
+      params: Promise.resolve({ attempt: "41" }),
+      searchParams: Promise.resolve({ chip: "3-8", answered: "7" }),
+    }),
+  );
+  expect(html).toContain("Next question");
+  expect(html).not.toContain("Report a problem");
 });

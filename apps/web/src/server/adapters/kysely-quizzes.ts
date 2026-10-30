@@ -28,6 +28,15 @@ const WRONG = 0.7;
 const PRACTICED = 0.5;
 const MASTERED = 0.85;
 
+// Q-P3-04: a sprint never asks what the player was served in the last 7 days, this
+// sprint included.
+const notServedThisWeek = (userId: string) => sql`
+  q.id not in (
+    select qa.question_id from quiz_answer qa
+    join quiz_attempt a on a.id = qa.attempt_id
+    where a.user_id = ${userId} and qa.served_at > now() - interval '7 days'
+  )`;
+
 // Live questions in moments their source's rights allow (Q-1, ING-2), as `q` and `m`.
 const LIVE = sql`
   question q
@@ -304,6 +313,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           .on("qa.answered_at", "is not", null),
       )
       .select([
+        "a.sprint",
         "a.path_section_id",
         "a.book_chapter_id",
         "a.checkpoint_passed",
@@ -326,6 +336,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         at === null || row.checkpoint_passed === null
           ? null
           : { at, passed: row.checkpoint_passed },
+      sprint: row.sprint,
     };
   };
 
@@ -491,6 +502,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .selectFrom("quiz_attempt")
         .select([
           "review",
+          "sprint",
           "path_section_id",
           "book_chapter_id",
           "checkpoint_size",
@@ -543,6 +555,51 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           select ${attemptId}, id from pick
           where (select count(*) from quiz_answer where attempt_id = ${attemptId})
             < ${attempt.checkpoint_size}
+          on conflict do nothing
+        `.execute(db);
+        const served = await open(attemptId);
+        return served === undefined || served.over
+          ? "over"
+          : asQuestion(served);
+      }
+      if (attempt.sprint) {
+        // P3-W13-S02, Q-P3-04 (owner, 2026-10-31): a question on a concept the player
+        // has explored or better, then on their goals' concepts, then any (a guest or a
+        // new account has neither); nearest their level (none set: no preference;
+        // a question without a difficulty counts as one step off); never one they
+        // were served in the last 7 days.
+        // shortcut: order by random() over the whole bank, as Test 60s's; sample past
+        // a few thousand questions.
+        await sql`
+          with goals as materialized (
+            select concept_id from user_goal_concepts(${userId})
+          ),
+          pick as (
+            select q.id
+            from ${LIVE}
+            left join user_preferences p on p.user_id = ${userId}
+            cross join lateral (
+              select coalesce(min(case
+                when cm.concept_id is not null then 0
+                when g.concept_id is not null then 1
+              end), 2) as tier
+              from question_concept qc
+              join concept c on c.id = qc.concept_id and c.retired_at is null
+              left join concept_mastery cm
+                on cm.user_id = ${userId} and cm.concept_id = qc.concept_id
+              left join goals g on g.concept_id = qc.concept_id
+              where qc.question_id = q.id
+            ) t
+            where q.status = 'live' and ${notServedThisWeek(userId)}
+            order by t.tier,
+              coalesce(abs(
+                array_position(enum_range(null::difficulty), q.difficulty)
+                - array_position(enum_range(null::difficulty), p.level)), 1),
+              random()
+            limit 1
+          )
+          insert into quiz_answer (attempt_id, question_id)
+          select ${attemptId}, id from pick
           on conflict do nothing
         `.execute(db);
         const served = await open(attemptId);
@@ -763,6 +820,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .leftJoin("moment as m", "m.id", "a.moment_id")
         .select([
           "a.review",
+          "a.sprint",
           "a.content_item_id",
           "a.moment_id",
           "a.started_at",
@@ -777,7 +835,10 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           "a.checkpoint_size",
           "a.pass_mark",
           "a.checkpoint_passed",
-          sql<string>`coalesce(m.title, ci.title, 'Review')`.as("title"),
+          sql<string>`coalesce(m.title, ci.title,
+            case when a.sprint then '60-second sprint' else 'Review' end)`.as(
+            "title",
+          ),
           sql<number | null>`case when a.ends_at is not null
             then greatest(0, ceil(extract(epoch from a.ends_at - now())))::int end`.as(
             "seconds_left",
@@ -816,6 +877,33 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .where("c.retired_at", "is", null)
         .orderBy("c.name")
         .execute();
+      // §6.1: a sprint's misses go back to reading, at the sections their questions
+      // came from, while their source still allows moments (ING-2) and links work.
+      const missed = row.sprint
+        ? await db
+            .selectFrom("quiz_answer as qa")
+            .innerJoin("question as q", "q.id", "qa.question_id")
+            .innerJoin("moment as m", "m.id", "q.moment_id")
+            .innerJoin("content_item as ci", "ci.id", "m.content_item_id")
+            .innerJoin("source as s", "s.id", "ci.source_id")
+            .select([
+              "ci.id as item_id",
+              "m.id as moment_id",
+              "m.title",
+              sql<boolean>`coalesce(ci.frameable, false)`.as("frameable"),
+            ])
+            .distinct()
+            .where("qa.attempt_id", "=", attemptId)
+            .where("qa.correct", "=", false)
+            .where("ci.link_broken_at", "is", null)
+            .where("s.moments_enabled", "=", true)
+            .where("s.rights_profile", "in", [
+              "full_text_internal",
+              "full_text_display",
+            ])
+            .orderBy("m.id")
+            .execute()
+        : [];
       const at = checkpointAt(row);
       const checkpoint =
         at === null || row.checkpoint_size === null || row.pass_mark === null
@@ -827,6 +915,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             });
       return {
         review: row.review,
+        sprint: row.sprint,
         itemId: row.content_item_id,
         momentId: row.moment_id,
         title: checkpoint === null ? row.title : checkpoint.title,
@@ -839,6 +928,12 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         avgMs: row.avg_ms === null ? null : Math.round(row.avg_ms),
         concepts: concepts.map((c) => ({ name: c.name, state: c.state })),
         checkpoint,
+        missed: missed.map((m) => ({
+          itemId: m.item_id,
+          momentId: m.moment_id,
+          sectionTitle: m.title,
+          frameable: m.frameable,
+        })),
       };
     },
 
@@ -891,6 +986,39 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       return won === undefined
         ? null
         : { attemptId: won.id, pathId: section.path_id, firstTime: false };
+    },
+
+    // P3-W13-S02: one running sprint per user (an index); a double tap, or a start
+    // while one runs, meets it. Callers close sprints past their clock first.
+    startSprint: async (userId) => {
+      const running = () =>
+        db
+          .selectFrom("quiz_attempt")
+          .select(["id", sql<Date>`ends_at`.as("ends_at")])
+          .where("user_id", "=", userId)
+          .where("sprint", "=", true)
+          .where("finished_at", "is", null)
+          .executeTakeFirst();
+      const was = await running();
+      if (was !== undefined)
+        return { attemptId: was.id, endsAt: was.ends_at, firstTime: false };
+      const { rows } = await sql<{ id: string; ends_at: Date }>`
+        insert into quiz_attempt (user_id, sprint, ends_at)
+        select ${userId}, true, now() + ${DURATION}
+        where exists (
+          select 1 from ${LIVE}
+          where q.status = 'live' and ${notServedThisWeek(userId)}
+        )
+        on conflict (user_id) where sprint and finished_at is null do nothing
+        returning id, ends_at
+      `.execute(db);
+      const made = rows[0];
+      if (made !== undefined)
+        return { attemptId: made.id, endsAt: made.ends_at, firstTime: true };
+      const won = await running();
+      return won === undefined
+        ? null
+        : { attemptId: won.id, endsAt: won.ends_at, firstTime: false };
     },
 
     // P2-W11-S06 (Q-P2-35): the same insert-or-meet-the-winner as a section's, for a

@@ -389,6 +389,7 @@ test("an answer is checked and counted once; a resubmit gets the stored result",
       correct: 1,
       firstTime: true,
       checkpoint: null,
+      sprint: false,
     });
     expect(await quizzes.finish(userId, started.attemptId)).toMatchObject({
       firstTime: false,
@@ -1316,5 +1317,328 @@ test("a flag on a question retired meanwhile is kept but queues nothing", async 
       .where("question_id", "=", open.questionId)
       .execute();
     expect(reviews).toEqual([]);
+  });
+});
+
+// P3-W13-S02 (§6.3, Q-P3-04): the solo 60-second sprint draws from the player's
+// concepts, then their goals' concepts, then the whole bank, nearest their level, never
+// a question they were served in the last 7 days.
+async function conceptOf(trx: Transaction<DB>, questionId: string) {
+  const row = await trx
+    .selectFrom("question_concept as qc")
+    .innerJoin("concept as c", "c.id", "qc.concept_id")
+    .select(["c.id", "c.slug"])
+    .where("qc.question_id", "=", questionId)
+    .where("c.retired_at", "is", null)
+    .executeTakeFirstOrThrow();
+  return row;
+}
+
+async function explored(
+  trx: Transaction<DB>,
+  userId: string,
+  conceptId: string,
+) {
+  await trx
+    .insertInto("concept_mastery")
+    .values({
+      user_id: userId,
+      concept_id: conceptId,
+      probability: 0.1,
+      state: "explored",
+      evidence_count: 1,
+    })
+    .execute();
+}
+
+async function prefer(
+  trx: Transaction<DB>,
+  userId: string,
+  level: "beginner" | "intermediate" | "advanced",
+  goalSlugs: string[] = [],
+) {
+  await trx
+    .insertInto("user_preferences")
+    .values({
+      user_id: userId,
+      topics: sql`'{distributed-systems}'`,
+      level,
+      break_length: "3-8",
+      // The local database curates concepts for the other goals; this one has none,
+      // so the test's own goal concepts are the only ones.
+      goals: sql`'{stay-sharp}'`,
+    })
+    .execute();
+  for (const slug of goalSlugs)
+    await trx
+      .insertInto("goal_concept")
+      .values({ goal: "stay-sharp", concept_slug: slug })
+      .execute();
+}
+
+async function sprint(
+  quizzes: ReturnType<typeof kyselyQuizzes>,
+  userId: string,
+): Promise<string> {
+  const started = await quizzes.startSprint(userId);
+  if (started === null) throw new Error("no sprint");
+  return started.attemptId;
+}
+
+test("a sprint runs on a 60-second clock; a second start meets the running one", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const first = await quizzes.startSprint(userId);
+    if (first === null) throw new Error("no sprint");
+    expect(first.firstTime).toBe(true);
+    const seconds = (first.endsAt.getTime() - Date.now()) / 1000;
+    expect(seconds).toBeGreaterThan(55);
+    expect(seconds).toBeLessThanOrEqual(61);
+    expect(await quizzes.startSprint(userId)).toEqual({
+      ...first,
+      firstTime: false,
+    });
+    const attempt = await quizzes.attempt(userId, first.attemptId);
+    expect(attempt).toMatchObject({
+      sprint: true,
+      review: false,
+      itemId: null,
+      title: "60-second sprint",
+    });
+  });
+});
+
+test("explored concepts first, then goal concepts, then the whole bank", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const raft = await conceptOf(trx, q["raft-1"] ?? "");
+    await explored(trx, userId, wal.id);
+    await prefer(trx, userId, "intermediate", [raft.slug]);
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await sprint(quizzes, userId);
+    const stems: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const open = served(await quizzes.next(userId, attemptId));
+      stems.push(open.stem);
+      await quizzes.answer(userId, attemptId, open.questionId, 0);
+    }
+    // wal's one question, then raft's three (in any order), then the bank: never a
+    // question its rights forbid or that isn't live.
+    expect(stems[0]).toBe("intro-0");
+    expect(stems.slice(1, 4).sort()).toEqual(["elsewhere", "raft-0", "raft-1"]);
+    expect([
+      "hidden",
+      "pending",
+      "rejected",
+      ...stems.slice(0, 4),
+    ]).not.toContain(stems[4]);
+  });
+});
+
+test("nearest the player's level first", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const raft = await conceptOf(trx, q["raft-1"] ?? "");
+    await explored(trx, userId, raft.id);
+    await prefer(trx, userId, "intermediate");
+    for (const [stem, difficulty] of [
+      ["raft-0", "advanced"],
+      ["raft-1", "intermediate"],
+      ["elsewhere", "beginner"],
+    ] as const)
+      await trx
+        .updateTable("question")
+        .set({ difficulty })
+        .where("id", "=", q[stem] ?? "")
+        .execute();
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await sprint(quizzes, userId);
+    expect(served(await quizzes.next(userId, attemptId)).stem).toBe("raft-1");
+  });
+});
+
+test("a question served to the player in the last 7 days waits; an older one doesn't", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const raft = await conceptOf(trx, q["raft-1"] ?? "");
+    await explored(trx, userId, raft.id);
+    for (const [stem, days] of [
+      ["raft-1", 3],
+      ["raft-0", 8],
+    ] as const) {
+      const old = await trx
+        .insertInto("quiz_attempt")
+        .values({
+          user_id: userId,
+          sprint: true,
+          started_at: sql<Date>`now() - make_interval(days => ${days})`,
+          ends_at: sql<Date>`now() - make_interval(days => ${days}) + interval '60 seconds'`,
+          finished_at: sql<Date>`now() - make_interval(days => ${days}) + interval '60 seconds'`,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await trx
+        .insertInto("quiz_answer")
+        .values({
+          attempt_id: old.id,
+          question_id: q[stem] ?? "",
+          served_at: sql<Date>`now() - make_interval(days => ${days})`,
+          chosen: 0,
+          correct: true,
+          answered_at: sql<Date>`now() - make_interval(days => ${days})`,
+        })
+        .execute();
+    }
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await sprint(quizzes, userId);
+    const stems: string[] = [];
+    for (let i = 0; i < 2; i++) {
+      const open = served(await quizzes.next(userId, attemptId));
+      stems.push(open.stem);
+      await quizzes.answer(userId, attemptId, open.questionId, 0);
+    }
+    expect(stems.sort()).toEqual(["elsewhere", "raft-0"]);
+  });
+});
+
+test("the sprint's clock: after it and its grace, no answer counts and nothing is served", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await sprint(quizzes, userId);
+    const open = served(await quizzes.next(userId, attemptId));
+    await trx
+      .updateTable("quiz_attempt")
+      .set({
+        started_at: sql<Date>`now() - interval '2 minutes'`,
+        ends_at: sql<Date>`now() - interval '1 minute'`,
+      })
+      .where("id", "=", attemptId)
+      .execute();
+    expect(await quizzes.answer(userId, attemptId, open.questionId, 0)).toBe(
+      "late",
+    );
+    expect(await quizzes.next(userId, attemptId)).toBe("over");
+  });
+});
+
+test("a sprint's answers are mastery evidence and its finish rates the concepts", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const raft = await conceptOf(trx, q["raft-1"] ?? "");
+    await explored(trx, userId, raft.id);
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await sprint(quizzes, userId);
+    await answerStem(quizzes, userId, attemptId, true);
+    expect((await mastery(trx, userId))[0]).toMatchObject({
+      name: "raft",
+      evidence: 2,
+    });
+    expect(await quizzes.finish(userId, attemptId)).toMatchObject({
+      answered: 1,
+      correct: 1,
+      firstTime: true,
+      checkpoint: null,
+    });
+    expect((await cards(trx, userId)).length).toBeGreaterThan(0);
+  });
+});
+
+test("a finished sprint lists the sections of its wrong answers, to read again", async () => {
+  await inRollback(async (trx, { userId, q, raft, intro }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const raftConcept = await conceptOf(trx, q["raft-1"] ?? "");
+    await explored(trx, userId, wal.id);
+    await explored(trx, userId, raftConcept.id);
+    // intro-0 at the player's level, so it comes first; raft's next (seeded keys).
+    await prefer(trx, userId, "intermediate");
+    await trx
+      .updateTable("question")
+      .set({ difficulty: "intermediate" })
+      .where("id", "=", q["intro-0"] ?? "")
+      .execute();
+    await trx
+      .updateTable("question")
+      .set({ difficulty: "advanced" })
+      .where("id", "in", [
+        q["raft-0"] ?? "",
+        q["raft-1"] ?? "",
+        q["elsewhere"] ?? "",
+      ])
+      .execute();
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await sprint(quizzes, userId);
+    // intro-0 first, answered wrong; then one of raft's, right.
+    const wrong = served(await quizzes.next(userId, attemptId));
+    expect(wrong.stem).toBe("intro-0");
+    await quizzes.answer(userId, attemptId, wrong.questionId, 1);
+    await answerStem(quizzes, userId, attemptId, true);
+    await quizzes.finish(userId, attemptId);
+    const attempt = await quizzes.attempt(userId, attemptId);
+    expect(attempt?.missed).toEqual([
+      expect.objectContaining({ momentId: intro, sectionTitle: "Intro" }),
+    ]);
+    expect(attempt?.missed.map((m) => m.momentId)).not.toContain(raft);
+  });
+});
+
+test("a sprint has no target: the shape refuses one with an item", async () => {
+  await inRollback(async (trx, { userId, itemId }) => {
+    await expect(
+      trx
+        .insertInto("quiz_attempt")
+        .values({
+          user_id: userId,
+          sprint: true,
+          content_item_id: itemId,
+          ends_at: sql<Date>`now() + interval '60 seconds'`,
+        })
+        .execute(),
+    ).rejects.toThrow(/quiz_attempt_shape/);
+  });
+});
+
+test("Read again leaves out sections whose source no longer allows them, or whose link broke", async () => {
+  await inRollback(async (trx, { userId, q, intro, hidden }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await sprint(quizzes, userId);
+    // Three wrong answers, as if served earlier: one readable, one on a source
+    // switched off (ING-2), one on an article whose link has broken.
+    for (const stem of ["intro-0", "hidden", "elsewhere"])
+      await trx
+        .insertInto("quiz_answer")
+        .values({
+          attempt_id: attemptId,
+          question_id: q[stem] ?? "",
+          chosen: 1,
+          correct: false,
+          answered_at: sql<Date>`now()`,
+        })
+        .execute();
+    await trx
+      .updateTable("content_item")
+      .set({ link_broken_at: sql<Date>`now()` })
+      .where(
+        "id",
+        "=",
+        trx
+          .selectFrom("question as qq")
+          .innerJoin("moment as m", "m.id", "qq.moment_id")
+          .select("m.content_item_id")
+          .where("qq.id", "=", q["elsewhere"] ?? ""),
+      )
+      .execute();
+    await quizzes.finish(userId, attemptId);
+    const missed = (await quizzes.attempt(userId, attemptId))?.missed ?? [];
+    expect(missed.map((m) => m.momentId)).toEqual([intro]);
+    expect(missed.map((m) => m.momentId)).not.toContain(hidden.momentId);
+  });
+});
+
+test("a player with no preferences (a guest) and questions without a difficulty still sprint", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const raft = await conceptOf(trx, q["raft-1"] ?? "");
+    await explored(trx, userId, raft.id);
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await sprint(quizzes, userId);
+    expect(["raft-0", "raft-1", "elsewhere"]).toContain(
+      served(await quizzes.next(userId, attemptId)).stem,
+    );
   });
 });

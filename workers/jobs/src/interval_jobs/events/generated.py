@@ -29,6 +29,8 @@ type EventName = Literal[
     "feed_viewed",
     "feedback_given",
     "feedback_undone",
+    "game_finished",
+    "game_started",
     "github_connected",
     "github_disconnected",
     "guest_merged",
@@ -70,6 +72,8 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "feed_viewed": 1,
     "feedback_given": 1,
     "feedback_undone": 1,
+    "game_finished": 1,
+    "game_started": 1,
     "github_connected": 1,
     "github_disconnected": 1,
     "guest_merged": 1,
@@ -179,6 +183,18 @@ class FeedbackGivenProps(_Model):
 
 class FeedbackUndoneProps(_Model):
     kind: Literal["not_interested"]
+
+
+class GameFinishedProps(_Model):
+    attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    game: Literal["sprint"]
+    answered: int = Field(ge=0, strict=True)
+    correct: int = Field(ge=0, strict=True)
+
+
+class GameStartedProps(_Model):
+    attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    game: Literal["sprint"]
 
 
 class GithubConnectedProps(_Model):
@@ -397,6 +413,18 @@ class FeedbackUndoneEvent(_EnvelopeBase):
     props: FeedbackUndoneProps
 
 
+class GameFinishedEvent(_EnvelopeBase):
+    name: Literal["game_finished"]
+    version: Literal[1]
+    props: GameFinishedProps
+
+
+class GameStartedEvent(_EnvelopeBase):
+    name: Literal["game_started"]
+    version: Literal[1]
+    props: GameStartedProps
+
+
 class GithubConnectedEvent(_EnvelopeBase):
     name: Literal["github_connected"]
     version: Literal[1]
@@ -540,6 +568,8 @@ type Envelope = Annotated[
     | FeedViewedEvent
     | FeedbackGivenEvent
     | FeedbackUndoneEvent
+    | GameFinishedEvent
+    | GameStartedEvent
     | GithubConnectedEvent
     | GithubDisconnectedEvent
     | GuestMergedEvent

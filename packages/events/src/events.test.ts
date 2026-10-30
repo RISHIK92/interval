@@ -52,6 +52,8 @@ describe("the event list (Q-P1-20)", () => {
         "github_connected", // P2-W12-S01
         "github_disconnected",
         "reason_reported", // ADR-0026
+        "game_started", // P3-W13-S02
+        "game_finished",
       ].sort(),
     );
   });

@@ -625,6 +625,7 @@ class QuizAttempt(TypedDict):
     pass_mark: int | None
     checkpoint_passed: bool | None
     book_chapter_id: int | None
+    sprint: bool
 
 
 class QuizAttemptConcept(TypedDict):

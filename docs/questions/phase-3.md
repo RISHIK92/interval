@@ -38,6 +38,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 - Cite: §6.3, MATCH-4 (for two players), PER-1.
 - **Answer (owner, 2026-10-31):** the suggested default: explored-or-better concepts first, then the goals' concepts; difficulty near the player's level; no repeat within 7 days.
+- **Added (owner, 2026-10-31, P3-W13-S02):** when neither tier has a question (a guest, a new account), the whole bank, at the player's level, as for two players (Q-P3-15).
 - Suggested default: the player's explored or better concepts first, then concepts of their goals; difficulty near their estimated ability (Q-3's values); no question repeated within 7 days.
 
 ### Q-P3-05 Where estimation questions come from (P0 for S03)

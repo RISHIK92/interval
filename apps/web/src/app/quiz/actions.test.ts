@@ -11,11 +11,15 @@ const startReview = vi.fn<Quizzes["startReview"]>();
 const flag = vi.fn<Quizzes["flag"]>();
 const startCheckpoint = vi.fn<Quizzes["startCheckpoint"]>();
 const closeStale = vi.fn<Quizzes["closeStale"]>(() => Promise.resolve([]));
+const startSprint = vi.fn<Quizzes["startSprint"]>();
+const can = vi.fn(() => Promise.resolve(true));
 const emit = vi.fn();
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
+  entitlements: () => ({ can }),
   quizzes: () => ({
     closeStale,
+    startSprint,
     start,
     answer,
     finish,
@@ -155,6 +159,7 @@ test("finishing reports once", async () => {
     answered: 6,
     correct: 4,
     firstTime: true,
+    sprint: false,
     checkpoint: null,
   });
   await expect(
@@ -170,6 +175,7 @@ test("finishing reports once", async () => {
     answered: 6,
     correct: 4,
     firstTime: false,
+    sprint: false,
     checkpoint: null,
   });
   await expect(
@@ -277,6 +283,7 @@ test("Close finishes and goes back to the feed", async () => {
     answered: 1,
     correct: 1,
     firstTime: true,
+    sprint: false,
     checkpoint: null,
   });
   await expect(
@@ -339,6 +346,7 @@ test("a checkpoint's finish reports whether it passed; Close goes back to the pa
     answered: 5,
     correct: 4,
     firstTime: true,
+    sprint: false,
     checkpoint: {
       at: { kind: "path", pathId: "6", sectionId: "60" },
       passed: true,
@@ -371,6 +379,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       answered: 3,
       correct: 2,
       firstTime: true,
+      sprint: false,
       checkpoint: null,
     },
     {
@@ -378,6 +387,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       answered: 5,
       correct: 4,
       firstTime: true,
+      sprint: false,
       checkpoint: {
         at: { kind: "path", pathId: "6", sectionId: "60" },
         passed: true,
@@ -417,6 +427,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       answered: 1,
       correct: 1,
       firstTime: true,
+      sprint: false,
       checkpoint: null,
     },
   ]);
@@ -429,4 +440,112 @@ test("a start records the finishes of the quizzes it closed, then its own start"
     { attempt_id: "32", answered: 1, correct: 1 },
     context,
   );
+});
+
+// P3-W13-S02 (§6.3, OPS-3, ADR-0029): a solo sprint from Play, guests included.
+test("a sprint starts from Play, recorded once as a game, and opens the quiz", async () => {
+  const { startSprintAction } = await actions();
+  current.mockResolvedValue({ ...user, isGuest: true });
+  startSprint.mockResolvedValue({
+    attemptId: "61",
+    endsAt: new Date(Date.now() + 60_000),
+    firstTime: true,
+  });
+  await expect(startSprintAction()).rejects.toThrow(
+    "redirect:/quiz/61?chip=3-8",
+  );
+  expect(can).toHaveBeenCalledWith("u1", "play.sprint");
+  expect(closeStale).toHaveBeenCalledWith("u1");
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "game_started",
+    { attempt_id: "61", game: "sprint" },
+    { ...context, isGuest: true },
+  );
+  emit.mockClear();
+  startSprint.mockResolvedValue({
+    attemptId: "61",
+    endsAt: new Date(Date.now() + 60_000),
+    firstTime: false,
+  });
+  await expect(startSprintAction()).rejects.toThrow("redirect:/quiz/61");
+  expect(emit).not.toHaveBeenCalled();
+});
+
+test("without play.sprint, or with nothing left to ask this week, a sprint goes back to Play", async () => {
+  const { startSprintAction } = await actions();
+  can.mockResolvedValueOnce(false);
+  await expect(startSprintAction()).rejects.toThrow(/^redirect:\/play$/);
+  expect(startSprint).not.toHaveBeenCalled();
+  startSprint.mockResolvedValue(null);
+  await expect(startSprintAction()).rejects.toThrow(
+    /^redirect:\/play\?sprint=none$/,
+  );
+  expect(emit).not.toHaveBeenCalled();
+});
+
+test("a sprint's finish is a game_finished, not a quiz_finished; Close goes to Play", async () => {
+  const { finishQuizAction } = await actions();
+  finish.mockResolvedValue({
+    answered: 7,
+    correct: 5,
+    firstTime: true,
+    checkpoint: null,
+    sprint: true,
+  });
+  await expect(
+    finishQuizAction(form({ attemptId: "61", chip: "3-8", leave: "play" })),
+  ).rejects.toThrow("redirect:/play");
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "game_finished",
+    { attempt_id: "61", game: "sprint", answered: 7, correct: 5 },
+    context,
+  );
+});
+
+test("Start just after a sprint's clock ran out finishes it, records it, and starts afresh", async () => {
+  const { startSprintAction } = await actions();
+  startSprint
+    .mockResolvedValueOnce({
+      attemptId: "61",
+      endsAt: new Date(Date.now() - 2_000),
+      firstTime: false,
+    })
+    .mockResolvedValueOnce({
+      attemptId: "62",
+      endsAt: new Date(Date.now() + 60_000),
+      firstTime: true,
+    });
+  finish.mockResolvedValue({
+    answered: 3,
+    correct: 2,
+    firstTime: true,
+    checkpoint: null,
+    sprint: true,
+  });
+  await expect(startSprintAction()).rejects.toThrow(
+    "redirect:/quiz/62?chip=3-8",
+  );
+  expect(finish).toHaveBeenCalledWith("u1", "61");
+  expect(emit.mock.calls.map((c: unknown[]) => c[0])).toEqual([
+    "game_finished",
+    "game_started",
+  ]);
+});
+
+// ADR-0029: guests play, but a flag takes a question out of every quiz.
+test("a guest's flag is refused: nothing recorded, back to the feedback", async () => {
+  const { flagQuestionAction } = await actions();
+  current.mockResolvedValue({ ...user, isGuest: true });
+  await expect(
+    flagQuestionAction(
+      form({
+        attemptId: "61",
+        questionId: "7",
+        reason: "wrong_key",
+        chip: "3-8",
+      }),
+    ),
+  ).rejects.toThrow("redirect:/quiz/61?chip=3-8&answered=7");
+  expect(flag).not.toHaveBeenCalled();
+  expect(emit).not.toHaveBeenCalled();
 });

@@ -3,8 +3,13 @@
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { CHIPS } from "../../server/chips";
-import { events, quizzes, sessionReader } from "../../server/container";
+import { CHIP_COOKIE, CHIPS, parseChip } from "../../server/chips";
+import {
+  entitlements,
+  events,
+  quizzes,
+  sessionReader,
+} from "../../server/container";
 import { BIGINT_ID, checkpointHome, type QuizFinish } from "../../server/ports";
 import { visitId } from "../../server/visits";
 import { sameSitePath, textField } from "../form";
@@ -26,11 +31,11 @@ const Answer = z.object({
   chip: z.enum(CHIPS),
 });
 // Close leaves for where the quiz started (the feed, the Library for a review, the
-// path for a checkpoint); otherwise the results.
+// path for a checkpoint, Play for a game); otherwise the results.
 const Finish = z.object({
   attemptId: z.string().regex(BIGINT_ID),
   chip: z.enum(CHIPS),
-  leave: z.enum(["feed", "library", "path"]).optional(),
+  leave: z.enum(["feed", "library", "path", "play"]).optional(),
 });
 
 async function signedIn() {
@@ -50,7 +55,13 @@ function recordFinish(
 ): void {
   const { checkpoint } = done;
   const counts = { answered: done.answered, correct: done.correct };
-  if (checkpoint === null)
+  if (done.sprint)
+    events().emit(
+      "game_finished",
+      { attempt_id: attemptId, game: "sprint", ...counts },
+      context,
+    );
+  else if (checkpoint === null)
     events().emit(
       "quiz_finished",
       { attempt_id: attemptId, ...counts },
@@ -112,6 +123,35 @@ export async function startQuizAction(form: FormData): Promise<void> {
       },
       context,
     );
+  redirect(`/quiz/${started.attemptId}?chip=${chip}`);
+}
+
+// P3-W13-S02 (§6.3): a solo sprint from Play, for anyone whose plan has it (OPS-3),
+// guests included (ADR-0029).
+export async function startSprintAction(): Promise<void> {
+  const { actor, context } = await signedIn();
+  if (!(await entitlements().can(actor.userId, "play.sprint")))
+    redirect("/play");
+  await closeLeftOpen(actor.userId, context);
+  let started = await quizzes().startSprint(actor.userId);
+  // A sprint whose clock ran out moments ago (still in its grace, so not closed
+  // above): finished and recorded here, so Start starts a fresh one.
+  if (started !== null && started.endsAt.getTime() <= Date.now()) {
+    const done = await quizzes().finish(actor.userId, started.attemptId);
+    if (done?.firstTime === true)
+      recordFinish(started.attemptId, done, context);
+    started = await quizzes().startSprint(actor.userId);
+  }
+  // Nothing the player wasn't asked this week (Q-P3-04): Play says so.
+  if (started === null) redirect("/play?sprint=none");
+  if (started.firstTime)
+    events().emit(
+      "game_started",
+      { attempt_id: started.attemptId, game: "sprint" },
+      context,
+    );
+  // A sprint has no feed to return to; the chip only rides along to the quiz pages.
+  const chip = parseChip((await cookies()).get(CHIP_COOKIE)?.value) ?? "3-8";
   redirect(`/quiz/${started.attemptId}?chip=${chip}`);
 }
 
@@ -244,6 +284,11 @@ export async function flagQuestionAction(form: FormData): Promise<void> {
   const { actor, context } = await signedIn();
   const parsed = Flag.safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect("/");
+  // ADR-0029: a flag takes a question out of every quiz; guests can't.
+  if (actor.isGuest)
+    redirect(
+      `/quiz/${parsed.data.attemptId}?chip=${parsed.data.chip}&answered=${parsed.data.questionId}`,
+    );
   const { attemptId, questionId, reason, chip } = parsed.data;
   if (await quizzes().flag(actor.userId, attemptId, questionId, reason))
     events().emit(
@@ -268,8 +313,10 @@ export async function finishQuizAction(form: FormData): Promise<void> {
       ? `/quiz/${attemptId}/results?chip=${chip}`
       : leave === "library"
         ? "/library"
-        : leave === "path" && checkpoint !== null
-          ? checkpointHome(checkpoint.at)
-          : `/?chip=${chip}`,
+        : leave === "play"
+          ? "/play"
+          : leave === "path" && checkpoint !== null
+            ? checkpointHome(checkpoint.at)
+            : `/?chip=${chip}`,
   );
 }

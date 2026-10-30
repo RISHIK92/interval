@@ -329,6 +329,12 @@ export interface Quizzes {
     concepts: number;
     firstTime: boolean;
   } | null>;
+  // P3-W13-S02 (§6.3, Q-P3-04): a solo 60-second sprint over the player's concepts;
+  // the running one if there is one (LOAD-5), even one whose clock has just run out;
+  // null when there's no live question the player wasn't served this week.
+  startSprint(
+    userId: string,
+  ): Promise<{ attemptId: string; endsAt: Date; firstTime: boolean } | null>;
   // P2-W10-S04 (§5F, Q-P2-26): a checkpoint on a section of the user's active path,
   // once it's open and its readings are finished, not yet passed, with a live
   // question; the running one if there is one (LOAD-5); null otherwise.
@@ -367,6 +373,7 @@ export type QuizFinish = {
   correct: number;
   firstTime: boolean;
   checkpoint: { at: CheckpointAt; passed: boolean } | null;
+  sprint: boolean; // a game from Play (P3-W13-S02), recorded as one
 };
 // Where a checkpoint belongs: a section of a topic path (P2-W10-S04) or a chapter of
 // the user's book (P2-W11-S06).
@@ -384,9 +391,11 @@ export const quizKey = (itemId: string, momentId: string | null): string =>
 export type QuizAttempt = {
   // A review session (P2-W9-S05) has no article and no clock.
   review: boolean;
+  // A solo sprint (P3-W13-S02) has no article, and a clock.
+  sprint: boolean;
   itemId: string | null;
   momentId: string | null;
-  title: string; // the section's, else the article's; "Review" for a review
+  title: string; // the section's, else the article's; "Review", "60-second sprint"
   startedAt: Date;
   endsAt: Date | null;
   // By the database's clock, which holds the sprint's (0 once it has run out); null
@@ -399,6 +408,13 @@ export type QuizAttempt = {
   // The concepts its answered questions test, with the user's state (null: unseen).
   concepts: { name: string; state: LearnerState | null }[];
   checkpoint: CheckpointInfo | null;
+  // A sprint's wrong answers' sections, to read again (§6.1); empty otherwise.
+  missed: {
+    itemId: string;
+    momentId: string;
+    sectionTitle: string;
+    frameable: boolean;
+  }[];
 };
 // P2-W10-S04 (Q-P2-26): up to 5 questions; 4 of 5 pass, all but one of fewer.
 export const CHECKPOINT_SIZE = 5;

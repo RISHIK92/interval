@@ -28,8 +28,9 @@ vi.mock("../../env", () => ({
   env: () => ({ BETTER_AUTH_URL: "http://localhost:3100" }),
 }));
 
-const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
-const context = { ...guest, sessionId: "visit-1" };
+const user: Actor = { userId: "g1", isGuest: false, betaGroup: "student" };
+const guest: Actor = { ...user, isGuest: true };
+const context = { ...user, sessionId: "visit-1" };
 
 afterEach(() => {
   vi.clearAllMocks();
@@ -69,7 +70,7 @@ describe("each link type lands where it points, attributed", () => {
       "https://pub.test/post?q=a%20b&flag&x=a/b&utm_source=interval",
     ],
   ] as const)("%s", async (linkType, stored, expected) => {
-    current.mockResolvedValue(guest);
+    current.mockResolvedValue(user);
     resolve.mockResolvedValue({ url: stored, linkType });
     const moment = linkType === "article" ? "" : "&moment=9";
     const response = await open(
@@ -103,7 +104,7 @@ describe("each link type lands where it points, attributed", () => {
 });
 
 test("Open original website goes to the page itself, not the section", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post",
     linkType: "article",
@@ -141,7 +142,7 @@ test.each([
   ["a position of 0", "item=5&chip=3-8&pos=0&target=section"],
   ["a position past 200", "item=5&chip=3-8&pos=201&target=section"],
 ])("%s goes home without a lookup or events", async (_name, query) => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   const response = await open(query);
   expect(response.status).toBe(302);
   // Relative: behind the proxy the app sees http, and must not downgrade the reader.
@@ -151,7 +152,7 @@ test.each([
 });
 
 test("an unknown item goes home with no events", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue(null);
   const response = await open("item=5&chip=3-8&pos=1&target=section");
   expect(response.headers.get("location")).toBe("/");
@@ -159,7 +160,7 @@ test("an unknown item goes home with no events", async () => {
 });
 
 test("a URL in the query is never followed: only the stored one is", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post",
     linkType: "article",
@@ -176,7 +177,7 @@ test.each(["javascript:alert(1)", "data:text/html,hi", "/relative/path"])(
   "a stored link that isn't http(s) (%s) is never sent; the reader goes home",
   async (stored) => {
     vi.spyOn(process.stdout, "write").mockImplementation(() => true);
-    current.mockResolvedValue(guest);
+    current.mockResolvedValue(user);
     resolve.mockResolvedValue({ url: stored, linkType: "article" });
     const response = await open("item=5&chip=3-8&pos=1&target=original");
     expect(response.headers.get("location")).toBe("/");
@@ -199,7 +200,7 @@ test("without a session the reader still reaches the publisher, unrecorded", asy
 
 // P1-W5-S02: the feed's "Now reading" panel knows what was opened.
 test("an open is remembered for the session's Now reading panel", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post#raft",
     linkType: "anchor",
@@ -229,7 +230,7 @@ test("without a session nothing is remembered", async () => {
 });
 
 test("an open that fell back to the article page is remembered as the article", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post",
     linkType: "article",
@@ -240,7 +241,7 @@ test("an open that fell back to the article page is remembered as the article", 
 
 // Owner, 2026-10-26: Continue after a finish counts as continue_clicked, not a card.
 test("a Continue link counts as continue_clicked, not as a feed card", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post#raft",
     linkType: "anchor",
@@ -264,7 +265,7 @@ test("a Continue link counts as continue_clicked, not as a feed card", async () 
 
 // P1-W5-S03: an open section counts for continue cards (owner, 2026-10-26).
 test("an opened section is recorded; a whole article or fallback is not", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post#raft",
     linkType: "anchor",
@@ -283,7 +284,7 @@ test("an opened section is recorded; a whole article or fallback is not", async 
 
 // P1-W5-S03: a feed card's open counts toward its exploration arm, if it had one.
 test("a feed card's open is counted for exploration; a Continue open is not", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post#raft",
     linkType: "anchor",
@@ -301,7 +302,7 @@ test("a feed card's open is counted for exploration; a Continue open is not", as
 });
 
 test("an article card's open is counted for its whole-article entry", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post",
     linkType: "article",
@@ -317,7 +318,7 @@ test("an article card's open is counted for its whole-article entry", async () =
 
 // P1-W5-S05 (owner): a Library open is attributed and counts as an outbound click only.
 test("a Library open records outbound_click only, and needs no chip", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post",
     linkType: "article",
@@ -333,7 +334,7 @@ test("a Library open records outbound_click only, and needs no chip", async () =
 });
 
 test("a continue open needs no chip; a feed card without one goes home", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post#raft",
     linkType: "anchor",
@@ -360,7 +361,7 @@ test.each([
   ["no from, no chip, no position", "item=5&target=original"],
   ["a chip with no position and no from", "item=5&chip=3-8&target=original"],
 ])("%s goes home without a lookup", async (_name, query) => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   const response = await open(query);
   expect(response.headers.get("location")).toBe("/");
   expect(resolve).not.toHaveBeenCalled();
@@ -368,7 +369,7 @@ test.each([
 
 // Owner, 2026-10-26: Now reading is about what the feed sent you to.
 test("a Library open doesn't feed the Now reading panel", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post",
     linkType: "article",
@@ -379,7 +380,7 @@ test("a Library open doesn't feed the Now reading panel", async () => {
 
 // ADR-0018: Open in browser after moving inside the in-app reader (Next section).
 test("a reader link records the section and the outbound click only", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post#raft",
     linkType: "anchor",
@@ -400,7 +401,7 @@ test("a reader link records the section and the outbound click only", async () =
 // The Library's Continue reading names the next section (owner, 2026-10-26): still an
 // outbound click only, and the section counts as reached.
 test("a Library open of a section goes to it and records the outbound click only", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post#raft",
     linkType: "anchor",
@@ -419,7 +420,7 @@ test("a Library open of a section goes to it and records the outbound click only
 // P2-W10-S03: a path's reading the reader can't frame opens through /out as a Library
 // one does: the outbound click only, no Now reading cookie.
 test("a path open of a section records the outbound click only", async () => {
-  current.mockResolvedValue(guest);
+  current.mockResolvedValue(user);
   resolve.mockResolvedValue({
     url: "https://pub.test/post#raft",
     linkType: "anchor",
@@ -433,4 +434,23 @@ test("a path open of a section records the outbound click only", async () => {
   ]);
   expect(recordOpen).toHaveBeenCalledExactlyOnceWith("g1", "5", "9");
   expect(setCookie).not.toHaveBeenCalled();
+});
+
+// ADR-0029: a guest (from a sprint's Read again) reaches the publisher, and only the
+// outbound click is recorded: no reading progress, no Now reading panel.
+test("a guest's open records the outbound click only", async () => {
+  current.mockResolvedValue(guest);
+  resolve.mockResolvedValue({
+    url: "https://example.test/post#raft",
+    linkType: "anchor",
+  });
+  const response = await open("item=5&moment=9&from=reader&target=section");
+  expect(response.headers.get("location")).toContain("example.test/post");
+  expect(recordOpen).not.toHaveBeenCalled();
+  expect(setCookie).not.toHaveBeenCalled();
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "outbound_click",
+    { link_type: "anchor", target: "section" },
+    { ...guest, sessionId: "visit-1" },
+  );
 });

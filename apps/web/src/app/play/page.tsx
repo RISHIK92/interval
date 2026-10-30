@@ -6,6 +6,7 @@ import {
   preferences,
   sessionReader,
 } from "../../server/container";
+import { startSprintAction } from "../quiz/actions";
 import { TabBar } from "../TabBar";
 import { Card } from "../ui/Card";
 import { GuestForm } from "./GuestForm";
@@ -15,11 +16,13 @@ export const dynamic = "force-dynamic";
 // §6.3: the quick games, as the table words them. Estimation's full points are C-27's
 // 1.25× (ADR-0006). Each game is its own capability (OPS-3), so a plan can leave one
 // out; fastest finger is the live one. In §6.3's order.
+// `playable`: now (P3-W13-S02: the sprint); the rest arrive with their slices.
 const GAMES: {
   name: string;
   format: string;
   win: string;
   capability: Capability;
+  playable?: true;
 }[] = [
   {
     name: "Daily challenge",
@@ -32,6 +35,7 @@ const GAMES: {
     format: "Solo or 1v1",
     win: "Most correct in 60 seconds",
     capability: "play.sprint",
+    playable: true,
   },
   {
     name: "Fastest finger",
@@ -47,10 +51,13 @@ const GAMES: {
   },
 ];
 
-// P3-W13-S01: the Play tab (§6.1, §6.3). No game is playable yet; each one's own slice
-// links it. Guests play here and only here (ADR-0029); signed-out visitors can start one.
-export default async function PlayPage() {
+// P3-W13-S01: the Play tab (§6.1, §6.3). Each game is playable once its own slice
+// lands. Guests play here and only here (ADR-0029); signed-out visitors can start one.
+export default async function PlayPage(props: {
+  searchParams: Promise<{ sprint?: string | string[] }>;
+}) {
   const actor = await sessionReader().current(await headers());
+  const { sprint } = await props.searchParams;
   const [allowed, chosen] =
     actor === null
       ? [null, null]
@@ -76,6 +83,13 @@ export default async function PlayPage() {
           </Link>
         </p>
       ) : null}
+      {/* Start found nothing the player wasn't asked this week (Q-P3-04). */}
+      {sprint === "none" ? (
+        <p role="status" className="rounded-2xl bg-well px-4 py-3 text-sm">
+          You&apos;ve answered every question we have this week. New ones arrive
+          as articles come in.
+        </p>
+      ) : null}
       <ul className="grid gap-3 sm:grid-cols-2">
         {GAMES.map((game, index) => (
           <li key={game.name}>
@@ -83,11 +97,26 @@ export default async function PlayPage() {
               <h2 className="text-title">{game.name}</h2>
               <p className="text-sm font-semibold">{game.format}</p>
               <p className="text-sm text-ink-muted">{game.win}</p>
-              <p className="mt-auto pt-2 text-sm text-ink-muted">
-                {allowed !== null && allowed[index] === false
-                  ? "Not on your plan"
-                  : "Coming later"}
-              </p>
+              {allowed !== null && allowed[index] === false ? (
+                <p className="mt-auto pt-2 text-sm text-ink-muted">
+                  Not on your plan
+                </p>
+              ) : game.playable === true && actor !== null ? (
+                <form action={startSprintAction} className="mt-auto pt-2">
+                  <button
+                    type="submit"
+                    className="cursor-pointer rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+                  >
+                    Start a sprint
+                  </button>
+                </form>
+              ) : (
+                <p className="mt-auto pt-2 text-sm text-ink-muted">
+                  {game.playable === true
+                    ? "Play as a guest below, or sign in"
+                    : "Coming later"}
+                </p>
+              )}
             </Card>
           </li>
         ))}

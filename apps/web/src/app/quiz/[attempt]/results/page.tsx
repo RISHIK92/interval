@@ -89,9 +89,11 @@ export default async function ResultsPage({
         <p className="text-sm text-ink-muted">
           {attempt.review
             ? "Review"
-            : checkpoint === null
-              ? `Test yourself · ${attempt.title}`
-              : `Checkpoint · ${attempt.title}`}
+            : attempt.sprint
+              ? attempt.title
+              : checkpoint === null
+                ? `Test yourself · ${attempt.title}`
+                : `Checkpoint · ${attempt.title}`}
         </p>
       </header>
       {checkpoint === null ? null : checkpoint.passed ? (
@@ -157,6 +159,47 @@ export default async function ResultsPage({
             </div>
           ))}
         </dl>
+      )}
+      {/* §6.1: what a sprint missed goes back to reading. The in-app reader is for
+        accounts (ADR-0029), so a guest opens the publisher's page. */}
+      {attempt.missed.length === 0 ? null : (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-ink-muted">Read again</h2>
+          <ul className="flex flex-col gap-2">
+            {attempt.missed.map((m) => {
+              const inApp = m.frameable && !actor.isGuest;
+              return (
+                <li key={m.momentId}>
+                  <a
+                    href={
+                      inApp
+                        ? readHref({
+                            itemId: m.itemId,
+                            momentId: m.momentId,
+                            chip,
+                            // Counts no open event; a "from Play" attribution waits
+                            // for the loop metric (P3-W18-S03).
+                            from: "reader",
+                          })
+                        : outHref({
+                            itemId: m.itemId,
+                            momentId: m.momentId,
+                            from: "reader",
+                            target: "section",
+                          })
+                    }
+                    {...(inApp
+                      ? {}
+                      : { target: "_blank", rel: "noopener noreferrer" })}
+                    className="block rounded-2xl border border-hairline px-4 py-3 font-semibold"
+                  >
+                    {m.sectionTitle}
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
       )}
       {next === null || nextHref === null ? null : (
         <section className="flex flex-col gap-2">
@@ -225,7 +268,9 @@ export default async function ResultsPage({
               ? checkpointHome(checkpoint.at)
               : attempt.review
                 ? "/library"
-                : `/?chip=${chip}`
+                : attempt.sprint
+                  ? "/play"
+                  : `/?chip=${chip}`
           }
           className={`inline-flex items-center justify-center rounded-full px-5 py-3 font-semibold ${
             checkpoint?.passed === true
@@ -239,7 +284,9 @@ export default async function ResultsPage({
               : "Back to the book"
             : attempt.review
               ? "Back to Library"
-              : "Back to feed"}
+              : attempt.sprint
+                ? "Back to Play"
+                : "Back to feed"}
         </a>
       </div>
     </main>

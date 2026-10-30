@@ -586,6 +586,7 @@ test("next offers a ready checkpoint; closeStale returns the checkpoint it close
           at: { kind: "path", pathId, sectionId: first },
           passed: true,
         },
+        sprint: false,
       },
     ]);
     // Closed once: a second call has nothing.
