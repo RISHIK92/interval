@@ -1,6 +1,6 @@
 # 0029. Guests for Play
 
-- Status: PROPOSED
+- Status: ACCEPTED
 - Date: 2026-10-31
 - Supersedes: none (amends ADR-0016, for Play only)
 - Superseded by: none
@@ -18,6 +18,10 @@ What's in the way:
 - **§6.7 boards and MATCH-1/2 ratings:** guests are cheap to create, so one person can make many and farm boards and ratings, or feed their own account wins.
 
 Still built and dormant: Better Auth anonymous users (ADR-0004), guest sessions (P1-W1-S10), `is_guest` in events, `purge-guests`.
+
+## Decision
+
+Accepted by the owner on 2026-10-31: option A. The open questions below still need answers before the slices that depend on them.
 
 ## Options
 

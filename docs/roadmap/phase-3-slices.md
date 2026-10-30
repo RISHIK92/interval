@@ -14,7 +14,7 @@ First to slip into a Phase 3.5 (roadmap): friends leaderboards (W14-S05) and 1v1
 
 ADRs the answers need, each before its first slice (PROPOSED until the owner accepts):
 
-- guests revived for Play, merged on sign-up, with anti-farming limits (Q-P3-03; amends ADR-0016) — before W13-S01;
+- ~~guests revived for Play~~ ADR-0029, ACCEPTED 2026-10-31;
 - the daily challenge auto-publishes an unreviewed set (Q-P3-06; amends Q-2) — before W13-S05;
 - university picked from a list, unverified (Q-P3-09; amends §6.7 "verified" and the Week 14 roadmap) — before W14-S03;
 - the game server's shape and match tickets (Q-P3-01) — before W15-S01;
@@ -26,9 +26,9 @@ ADRs the answers need, each before its first slice (PROPOSED until the owner acc
 ### P3-W13-S01 The Play tab
 
 - IDs: §6.1, §6.3, ADR-0017, OPS-3
-- Needs: the guests ADR (Q-P3-03)
+- Needs: ADR-0029 (ACCEPTED)
 - Goal: Play turns from "Coming later" into a tab that lists the quick games, each with a one-line format and win condition; live games (W16) show "Coming later" until built.
-- Acceptance: the tab bar's Play is a link (ADR-0017 updated by a short ADR or noted as its planned change); a Play page with Daily challenge, 60-second sprint, Estimation, Fastest finger; an entitlement check per game (OPS-3); page tests; guests play everything, boards and live games included, and their games, ratings and streak merge into the account at sign-up (Q-P3-03), with the ADR's anti-farming limits.
+- Acceptance: the tab bar's Play is a link (ADR-0017 updated by a short ADR or noted as its planned change); a Play page with Daily challenge, 60-second sprint, Estimation, Fastest finger; an entitlement check per game (OPS-3); page tests; guests play everything, boards and live games included, and their games, ratings and streak merge into the account at sign-up (Q-P3-03), with ADR-0029's anti-farming limits.
 - Out of scope: leagues (quick games are human-only, §6.2, C-29), battles.
 - Q: Q-P3-03.
 
@@ -76,6 +76,15 @@ ADRs the answers need, each before its first slice (PROPOSED until the owner acc
 - Acceptance: the image route uses Next's built-in `next/og` (no new dependency); a public share URL with the image as its preview; a test that no question text is in the image's inputs.
 - Out of scope: sharing sprint results.
 - Q: Q-P3-07.
+
+### P3-W13-S07 Guest to account merge, for Play
+
+- IDs: ADR-0029, ADR-0004, Q-P1-11, Q-P1-24, PER-2
+- Needs: S01, S02
+- Goal: when a guest signs up, their Play data becomes the account's: games, answers (and so mastery evidence), ratings, streaks and freezes, board entries.
+- Acceptance: the merge in one transaction, idempotent if retried; conflicts per ADR-0029's open question; the account reuses the guest's invite code and group (Q-P1-24); the guest row is gone afterwards; anti-farming rules tested (one guest per browser, guest creation rate-limited per IP, no guest paired with an account from the same browser); tests against Postgres.
+- Out of scope: merging reading history outside Play (P1-W1-S12's full scope).
+- Q: ADR-0029's open questions.
 
 ## Week 14: leaderboards
 
