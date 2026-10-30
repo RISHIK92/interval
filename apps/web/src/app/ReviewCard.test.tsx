@@ -17,6 +17,9 @@ test("each due concept says when it was last recalled", () => {
   expect(w).toContain("|C1||last recalled today|");
   expect(w).toContain("|C2||last recalled yesterday|");
   expect(w).toContain("|C3||last recalled 6 days ago|");
+  // Numbered like a quiz's questions (owner, 2026-10-30), not question marks.
+  expect(w).toMatch(/\|1\|+C1\|.*\|2\|+C2\|.*\|3\|+C3\|/);
+  expect(w).not.toContain("|?|");
   expect(words(due(null))).toContain("|C1||not recalled yet|");
   expect(w).toContain("Due for review: can you still recall these?");
   expect(words(due(2))).toContain("can you still recall this?");

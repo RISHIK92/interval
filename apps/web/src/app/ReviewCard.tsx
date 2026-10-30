@@ -42,7 +42,7 @@ export function ReviewCard({
             Due for review: can you still recall {one ? "this" : "these"}?
           </p>
           <ol className="mt-3 flex flex-col gap-2">
-            {due.slice(0, NAMED).map((concept) => (
+            {due.slice(0, NAMED).map((concept, i) => (
               <li
                 key={concept.name}
                 className="flex items-center gap-3 rounded-2xl border border-hairline px-4 py-3"
@@ -51,7 +51,7 @@ export function ReviewCard({
                   aria-hidden="true"
                   className="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--review-tint) text-sm font-bold text-(--review-line)"
                 >
-                  ?
+                  {i + 1}
                 </span>
                 <span className="flex min-w-0 flex-1 flex-col">
                   <span className="font-semibold">{concept.name}</span>
