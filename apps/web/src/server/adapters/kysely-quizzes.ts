@@ -265,8 +265,14 @@ const REVIEW_SIZE = 10;
 // 2026-10-28): what was answered is rated, and the next review takes the due list
 // as it is then.
 const REVIEW_IDLE = sql.raw(`interval '30 minutes'`);
-const dueConcepts = (userId: string) => sql<{ id: string; name: string }>`
-  select c.id, c.name from concept_review r
+const dueConcepts = (userId: string) => sql<{
+  id: string;
+  name: string;
+  days_since: number | null;
+}>`
+  select c.id, c.name,
+    floor(extract(epoch from now() - r.last_review) / 86400)::int as days_since
+  from concept_review r
   join concept c on c.id = r.concept_id and c.retired_at is null
   where r.user_id = ${userId} and r.due <= now()
     and exists (
@@ -937,7 +943,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
 
     dueReviews: async (userId) => {
       const { rows } = await dueConcepts(userId).execute(db);
-      return rows.map((r) => ({ conceptId: r.id, name: r.name }));
+      return rows.map((r) => ({
+        conceptId: r.id,
+        name: r.name,
+        daysSince: r.days_since,
+      }));
     },
 
     startReview: async (userId) => {

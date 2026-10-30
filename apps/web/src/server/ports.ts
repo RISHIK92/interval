@@ -318,7 +318,10 @@ export interface Quizzes {
   attempt(userId: string, attemptId: string): Promise<QuizAttempt | null>;
   // P2-W9-S05 (Q-P2-17): the concepts due for review that have a live question to
   // ask, most overdue first, up to 10 (one session's worth).
-  dueReviews(userId: string): Promise<{ conceptId: string; name: string }[]>;
+  // daysSince: whole days since the concept was last recalled (null: never).
+  dueReviews(
+    userId: string,
+  ): Promise<{ conceptId: string; name: string; daysSince: number | null }[]>;
   // A review session over them, untimed; the running one if there is one; null when
   // nothing is due.
   startReview(userId: string): Promise<{

@@ -2,19 +2,29 @@ import Link from "next/link";
 import { reviewMinutes } from "./reviewTime";
 import { Card } from "./ui/Card";
 
+const NAMED = 3; // then "and N more": more would outgrow the feed cards beside it
+
+const recalled = (days: number | null) =>
+  days === null
+    ? "not recalled yet"
+    : days === 0
+      ? "last recalled today"
+      : days === 1
+        ? "last recalled yesterday"
+        : `last recalled ${String(days)} days ago`;
+
 // P2-W9-S06 (Q-P2-17, REC-1 "due reviews"): the feed's second card when anything is
 // due, linking to the Library's review queue. Like every card, it says why it's here
 // (§5B).
-export function ReviewCard({ due }: { due: { name: string }[] }) {
-  const shown = due.slice(0, 3).map((c) => c.name);
-  const more = due.length - shown.length;
-  const named =
-    more > 0
-      ? `${shown.join(", ")} and ${String(more)} more`
-      : shown.length > 1
-        ? `${shown.slice(0, -1).join(", ")} and ${shown.at(-1) ?? ""}`
-        : (shown[0] ?? "");
+// Owner (2026-10-30): it looks like a quiz about to start, each due concept a question
+// tile (the quiz's option shape) saying when it was last recalled.
+export function ReviewCard({
+  due,
+}: {
+  due: { name: string; daysSince: number | null }[];
+}) {
   const one = due.length === 1;
+  const more = due.length - NAMED;
   return (
     <article className="h-full">
       <Card className="flex h-full flex-col">
@@ -26,9 +36,32 @@ export function ReviewCard({ due }: { due: { name: string }[] }) {
             about {reviewMinutes(due.length)} min
           </h2>
           <p className="mt-3 text-ink">
-            Due for review: {named}. Recalling {one ? "it" : "them"} now keeps{" "}
-            {one ? "it" : "them"}.
+            Due for review: can you still recall {one ? "this" : "these"}?
           </p>
+          <ol className="mt-3 flex flex-col gap-2">
+            {due.slice(0, NAMED).map((concept) => (
+              <li
+                key={concept.name}
+                className="flex items-center gap-3 rounded-2xl border border-hairline px-4 py-3"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--review-tint) text-sm font-bold text-(--review-line)"
+                >
+                  ?
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="font-semibold">{concept.name}</span>
+                  <span className="text-sm text-ink-muted">
+                    {recalled(concept.daysSince)}
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ol>
+          {more > 0 ? (
+            <p className="mt-2 text-sm text-ink-muted">and {more} more</p>
+          ) : null}
           <div className="mt-auto flex pt-4">
             <Link
               href="/library#review-queue"

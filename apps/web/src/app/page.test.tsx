@@ -720,16 +720,18 @@ test("after finishing a section with live questions, the feed offers its test", 
 });
 
 // P2-W9-S06 (Q-P2-17): when anything is due, the feed's second card is the review.
+const text = (html: string) => html.replace(/<[^>]+>/g, "");
+
 test("with concepts due, the second card is the review queue, saying why", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(
     feedOf([card, { ...card, momentId: "2" }, { ...card, momentId: "3" }]),
   );
   dueReviews.mockResolvedValueOnce([
-    { conceptId: "1", name: "Raft" },
-    { conceptId: "2", name: "Quorum" },
-    { conceptId: "3", name: "MVCC" },
-    { conceptId: "4", name: "Indexes" },
+    { conceptId: "1", name: "Raft", daysSince: 2 },
+    { conceptId: "2", name: "Quorum", daysSince: 3 },
+    { conceptId: "3", name: "MVCC", daysSince: 4 },
+    { conceptId: "4", name: "Indexes", daysSince: 5 },
   ]);
   const html = await render();
   expect(dueReviews).toHaveBeenCalledWith("u1");
@@ -741,8 +743,14 @@ test("with concepts due, the second card is the review queue, saying why", async
   expect(reviewAt).toBeLessThan(secondCard);
   expect(html).toContain("Review 4 concepts · about 2 min");
   expect(html).toContain("4 concepts due");
-  // Every card says why it's there (§5B).
-  expect(html).toContain("Due for review: Raft, Quorum, MVCC and 1 more");
+  // Every card says why it's there (§5B): each due concept, and when it was last
+  // recalled (owner, 2026-10-30: the card felt empty).
+  expect(html).toContain("Due for review");
+  const words = text(html);
+  expect(words).toContain("Raftlast recalled 2 days ago");
+  expect(words).toContain("MVCClast recalled 4 days ago");
+  expect(words).not.toContain("Indexeslast recalled");
+  expect(words).toContain("and 1 more");
   expect(html).toContain('href="/library#review-queue"');
   // The ranked cards keep their positions: the second is still position 2.
   expect(html).toMatch(/moment=2[^"]*pos=2/);
@@ -752,11 +760,13 @@ test("with concepts due, the second card is the review queue, saying why", async
 test("an empty feed still shows the review when something is due (owner, 2026-10-28)", async () => {
   current.mockResolvedValue(guest);
   getFeed.mockResolvedValue(feedOf([]));
-  dueReviews.mockResolvedValueOnce([{ conceptId: "1", name: "Raft" }]);
+  dueReviews.mockResolvedValueOnce([
+    { conceptId: "1", name: "Raft", daysSince: 2 },
+  ]);
   const html = await render();
   expect(html).toContain("No moments yet.");
   expect(html).toContain("Review 1 concept · about 1 min");
-  expect(html).toContain("Due for review: Raft.");
+  expect(text(html)).toContain("Raftlast recalled 2 days ago");
 });
 
 test("with nothing due, the feed has no review card", async () => {

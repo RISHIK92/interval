@@ -937,6 +937,10 @@ test("due reviews: concepts past due with a live question, most overdue first", 
       "raft",
       "wal",
     ]);
+    // Whole days since the last recall, for the feed's review card.
+    expect((await quizzes.dueReviews(userId)).map((d) => d.daysSince)).toEqual([
+      3, 3,
+    ]);
     // Not due yet.
     await trx
       .updateTable("concept_review")

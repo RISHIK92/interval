@@ -322,10 +322,10 @@ test("note links follow the page: the browser when it can't be framed, or Link b
 test("the review queue comes first, with the count, the concepts and a time", async () => {
   current.mockResolvedValue(guest);
   dueReviews.mockResolvedValueOnce([
-    { conceptId: "1", name: "Raft" },
-    { conceptId: "2", name: "Quorum" },
-    { conceptId: "3", name: "Write-ahead log" },
-    { conceptId: "4", name: "MVCC" },
+    { conceptId: "1", name: "Raft", daysSince: 2 },
+    { conceptId: "2", name: "Quorum", daysSince: 3 },
+    { conceptId: "3", name: "Write-ahead log", daysSince: 4 },
+    { conceptId: "4", name: "MVCC", daysSince: 5 },
   ]);
   const html = await page();
   expect(dueReviews).toHaveBeenCalledWith("g1");

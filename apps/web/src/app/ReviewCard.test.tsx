@@ -2,30 +2,35 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 import { ReviewCard } from "./ReviewCard";
 
-// P2-W9-S06: the review card names what is due, as a reader would say it.
-const names = (...list: string[]) => list.map((name) => ({ name }));
-const words = (due: { name: string }[]) =>
-  renderToStaticMarkup(<ReviewCard due={due} />).replace(/<[^>]+>/g, "");
+// P2-W9-S06: the review card says why it's here (§5B): each due concept and when it
+// was last recalled, as quiz tiles (owner, 2026-10-30), three at most, then a count.
+const due = (...days: (number | null)[]) =>
+  days.map((daysSince, i) => ({ name: `C${String(i + 1)}`, daysSince }));
+const words = (list: ReturnType<typeof due>) =>
+  renderToStaticMarkup(<ReviewCard due={list} />).replace(/<[^>]+>/g, "|");
 
-test("one, two, three and more concepts read naturally", () => {
-  expect(words(names("Raft"))).toContain(
-    "Due for review: Raft. Recalling it now keeps it.",
-  );
-  expect(words(names("Raft", "Quorum"))).toContain(
-    "Due for review: Raft and Quorum. Recalling them",
-  );
-  expect(words(names("Raft", "Quorum", "MVCC"))).toContain(
-    "Due for review: Raft, Quorum and MVCC.",
-  );
-  expect(words(names("Raft", "Quorum", "MVCC", "Indexes", "WAL"))).toContain(
-    "Due for review: Raft, Quorum, MVCC and 2 more.",
-  );
+test("each due concept says when it was last recalled", () => {
+  const w = words(due(0, 1, 6));
+  expect(w).toContain("|C1||last recalled today|");
+  expect(w).toContain("|C2||last recalled yesterday|");
+  expect(w).toContain("|C3||last recalled 6 days ago|");
+  expect(words(due(null))).toContain("|C1||not recalled yet|");
+  expect(w).toContain("Due for review: can you still recall these?");
+  expect(words(due(2))).toContain("can you still recall this?");
+});
+
+test("three are named, then the rest are counted", () => {
+  const w = words(due(1, 1, 1, 1, 1));
+  expect(w).toContain("C3");
+  expect(w).not.toContain("C4");
+  expect(w).toContain("and 2 more");
+  expect(words(due(1, 1, 1))).not.toContain("more");
 });
 
 // Owner (2026-10-30): the card has the feed cards' shape, with a picture in the design
 // system's Review family, decorative only.
 test("the card leads with a Review-coloured picture, hidden from screen readers", () => {
-  const html = renderToStaticMarkup(<ReviewCard due={names("Raft")} />);
+  const html = renderToStaticMarkup(<ReviewCard due={due(1)} />);
   expect(html).toMatch(/<svg aria-hidden="true"[^>]*var\(--review-tint\)/);
   expect(html.indexOf("<svg")).toBeLessThan(html.indexOf("Spaced review"));
 });
