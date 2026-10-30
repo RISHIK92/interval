@@ -1,4 +1,5 @@
-import Link from "next/link";
+import type { Chip } from "../server/chips";
+import { startReviewAction } from "./quiz/actions";
 import { reviewMinutes } from "./reviewTime";
 import { Card } from "./ui/Card";
 
@@ -14,14 +15,16 @@ const recalled = (days: number | null) =>
         : `last recalled ${String(days)} days ago`;
 
 // P2-W9-S06 (Q-P2-17, REC-1 "due reviews"): the feed's second card when anything is
-// due, linking to the Library's review queue. Like every card, it says why it's here
+// due; its button starts the review (owner, 2026-10-30), as the Library's does. Like every card, it says why it's here
 // (§5B).
 // Owner (2026-10-30): it looks like a quiz about to start, each due concept a question
 // tile (the quiz's option shape) saying when it was last recalled.
 export function ReviewCard({
   due,
+  chip,
 }: {
   due: { name: string; daysSince: number | null }[];
+  chip: Chip; // the quiz returns to this time chip's feed
 }) {
   const one = due.length === 1;
   const more = due.length - NAMED;
@@ -62,14 +65,15 @@ export function ReviewCard({
           {more > 0 ? (
             <p className="mt-2 text-sm text-ink-muted">and {more} more</p>
           ) : null}
-          <div className="mt-auto flex pt-4">
-            <Link
-              href="/library#review-queue"
-              className="inline-flex flex-1 items-center justify-center rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+          <form action={startReviewAction} className="mt-auto flex pt-4">
+            <input type="hidden" name="chip" value={chip} />
+            <button
+              type="submit"
+              className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
             >
-              Open review queue
-            </Link>
-          </div>
+              Start review
+            </button>
+          </form>
         </div>
       </Card>
     </article>

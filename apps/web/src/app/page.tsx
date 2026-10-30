@@ -384,7 +384,7 @@ export default async function HomePage({
               2026-10-28, Q-P2-21). */}
             {due.length > 0 ? (
               <div className="mt-4">
-                <ReviewCard due={due} />
+                <ReviewCard due={due} chip={chip} />
               </div>
             ) : null}
           </>
@@ -422,7 +422,7 @@ export default async function HomePage({
                     cards keep their ranked positions. */}
                   {index === 0 && due.length > 0 ? (
                     <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
-                      <ReviewCard due={due} />
+                      <ReviewCard due={due} chip={chip} />
                     </li>
                   ) : null}
                 </Fragment>

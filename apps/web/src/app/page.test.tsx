@@ -751,7 +751,10 @@ test("with concepts due, the second card is the review queue, saying why", async
   expect(words).toContain("MVCClast recalled 4 days ago");
   expect(words).not.toContain("Indexeslast recalled");
   expect(words).toContain("and 1 more");
-  expect(html).toContain('href="/library#review-queue"');
+  // The button starts the review itself, in the user's words (owner, 2026-10-30).
+  expect(html).not.toContain("review queue");
+  expect(words).toContain("Start review");
+  expect(html).toMatch(/<input type="hidden" name="chip" value="3-8"\/>/);
   // The ranked cards keep their positions: the second is still position 2.
   expect(html).toMatch(/moment=2[^"]*pos=2/);
   expect(html).toMatch(/moment=3[^"]*pos=3/);

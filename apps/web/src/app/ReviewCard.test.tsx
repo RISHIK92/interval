@@ -7,7 +7,10 @@ import { ReviewCard } from "./ReviewCard";
 const due = (...days: (number | null)[]) =>
   days.map((daysSince, i) => ({ name: `C${String(i + 1)}`, daysSince }));
 const words = (list: ReturnType<typeof due>) =>
-  renderToStaticMarkup(<ReviewCard due={list} />).replace(/<[^>]+>/g, "|");
+  renderToStaticMarkup(<ReviewCard due={list} chip="3-8" />).replace(
+    /<[^>]+>/g,
+    "|",
+  );
 
 test("each due concept says when it was last recalled", () => {
   const w = words(due(0, 1, 6));
@@ -30,7 +33,7 @@ test("three are named, then the rest are counted", () => {
 // Owner (2026-10-30): the card has the feed cards' shape, with a picture in the design
 // system's Review family, decorative only.
 test("the card leads with a Review-coloured picture, hidden from screen readers", () => {
-  const html = renderToStaticMarkup(<ReviewCard due={due(1)} />);
+  const html = renderToStaticMarkup(<ReviewCard due={due(1)} chip="3-8" />);
   expect(html).toMatch(/<svg aria-hidden="true"[^>]*var\(--review-tint\)/);
   expect(html.indexOf("<svg")).toBeLessThan(html.indexOf("Spaced review"));
 });
