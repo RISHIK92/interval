@@ -753,7 +753,7 @@ test("with concepts due, the second card is the review queue, saying why", async
   expect(words).toContain("and 1 more");
   // The button starts the review itself, in the user's words (owner, 2026-10-30).
   expect(html).not.toContain("review queue");
-  expect(words).toContain("Start review");
+  expect(words).toContain("Start quiz");
   expect(html).toMatch(/<input type="hidden" name="chip" value="3-8"\/>/);
   // The ranked cards keep their positions: the second is still position 2.
   expect(html).toMatch(/moment=2[^"]*pos=2/);

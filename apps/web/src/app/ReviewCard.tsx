@@ -71,7 +71,7 @@ export function ReviewCard({
               type="submit"
               className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
             >
-              Start review
+              Start quiz
             </button>
           </form>
         </div>
@@ -80,26 +80,21 @@ export function ReviewCard({
   );
 }
 
-// A stack of cards and one coming back round to be recalled, in the design system's
-// Review family (cards, memory strength), the feed cards' picture band. Decorative.
+// Three cards fanned out, the middle one with lines of a question (owner's design,
+// 2026-10-30), in the design system's Review family (cards, memory strength), the
+// feed cards' picture band. Decorative.
 function ReviewArt() {
   const c = (role: string) => `var(--review-${role})`;
-  // An isometric card: top face, then its two thin edges.
-  const card = (x: number, y: number, a: number, b: number) => (
-    <g key={`${String(x)}-${String(y)}`}>
-      <path
-        d={`M${String(x)} ${String(y)} l${String(a)} ${String(b)} l${String(-a)} ${String(b)} l${String(-a)} ${String(-b)}z`}
-        fill={c("top")}
-      />
-      <path
-        d={`M${String(x - a)} ${String(y + b)} l${String(a)} ${String(b)} v5 l${String(-a)} ${String(-b)}z`}
-        fill={c("left")}
-      />
-      <path
-        d={`M${String(x + a)} ${String(y + b)} l${String(-a)} ${String(b)} v5 l${String(a)} ${String(-b)}z`}
-        fill={c("right")}
-      />
-    </g>
+  const card = (x: number, y: number, turn: number, fill: string) => (
+    <rect
+      x={x - 25}
+      y={y - 28}
+      width="50"
+      height="56"
+      rx="8"
+      fill={fill}
+      transform={`rotate(${String(turn)} ${String(x)} ${String(y)})`}
+    />
   );
   return (
     <svg
@@ -108,16 +103,11 @@ function ReviewArt() {
       className="block h-36 w-full rounded-t-3xl sm:h-44"
       style={{ background: c("tint") }}
     >
-      {[60, 48, 36].map((y) => card(115, y, 44, 24))}
-      <path
-        d="M170 78 C 215 100, 262 82, 248 48"
-        stroke={c("line")}
-        strokeWidth="3"
-        strokeDasharray="2 8"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {card(232, 18, 28, 15)}
+      {card(140, 64, -12, c("top"))}
+      {card(160, 56, 0, c("left"))}
+      <rect x="143" y="40" width="26" height="5" rx="2.5" fill="white" />
+      <rect x="143" y="50" width="18" height="5" rx="2.5" fill="white" />
+      {card(182, 62, 10, c("right"))}
     </svg>
   );
 }
