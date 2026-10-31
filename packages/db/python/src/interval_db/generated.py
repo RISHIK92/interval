@@ -48,6 +48,7 @@ type LearningGoal = Literal[
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type PathStatus = Literal["draft", "live", "retired"]
 type QuestionBatchKind = Literal["draft", "validate"]
+type QuestionKind = Literal["choice", "estimate"]
 type QuestionStatus = Literal["pending", "live", "rejected", "flagged", "retired"]
 type ReviewDecision = Literal["keep", "retire"]
 type ReviewReason = Literal["sample", "flagged", "anomaly"]
@@ -537,13 +538,13 @@ class Question(TypedDict):
     moment_id: int | None
     ordinal: int
     stem: str
-    options: list[str]
-    correct: int
+    options: list[str] | None
+    correct: int | None
     citation: str
     status: QuestionStatus
-    generator_model: str
-    prompt_version: int
-    content_hash: str
+    generator_model: str | None
+    prompt_version: int | None
+    content_hash: str | None
     created_at: datetime
     validator_model: str | None
     validator_answer: int | None
@@ -553,6 +554,11 @@ class Question(TypedDict):
     correct_count: int
     calibrated_at: datetime | None
     book_chapter_id: int | None
+    kind: QuestionKind
+    answer: float | None
+    unit: str | None
+    source_url: str | None
+    source_title: str | None
 
 
 class QuestionBatch(TypedDict):

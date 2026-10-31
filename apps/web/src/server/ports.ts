@@ -722,18 +722,38 @@ export type ReviewQuestion = {
   questionId: string;
   reason: ReviewReason;
   stem: string;
-  options: string[];
-  correct: number;
-  validatorAnswer: number | null;
   citation: string;
+  // A hand-written question's source page has no section (P3-W13-S03).
   articleTitle: string;
-  sectionTitle: string;
+  sectionTitle: string | null;
   link: string;
+} & (
+  | {
+      kind: "choice";
+      options: string[];
+      correct: number;
+      validatorAnswer: number | null;
+    }
+  | { kind: "estimate"; answer: number; unit: string }
+);
+// P3-W13-S03 (Q-P3-05 (b)): an estimation question the owner writes, citing the page
+// that states the number (AI-3).
+export type EstimateDraft = {
+  stem: string;
+  answer: number;
+  unit: string;
+  concepts: string[]; // slugs
+  difficulty: Difficulty;
+  sourceUrl: string;
+  sourceTitle: string;
+  citation: string;
 };
 export interface AdminQuestions {
   // Undecided reviews of questions still live or flagged, the oldest first: one
   // retired meanwhile (a redraft) needs no check.
   open(): Promise<ReviewQuestion[]>;
+  // Live at once; null when a concept isn't a live one.
+  writeEstimate(draft: EstimateDraft): Promise<string | null>;
   // False when there was no undecided review of that question.
   decide(
     questionId: string,

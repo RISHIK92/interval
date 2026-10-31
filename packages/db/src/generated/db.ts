@@ -69,6 +69,8 @@ export type PathStatus = "draft" | "live" | "retired";
 
 export type QuestionBatchKind = "draft" | "validate";
 
+export type QuestionKind = "choice" | "estimate";
+
 export type QuestionStatus = "flagged" | "live" | "pending" | "rejected" | "retired";
 
 export type ReviewDecision = "keep" | "retire";
@@ -558,23 +560,28 @@ export interface ProjectNoteBatchItem {
 }
 
 export interface Question {
+  answer: number | null;
   answer_count: Generated<number>;
   book_chapter_id: Int8 | null;
   calibrated_at: Timestamp | null;
   citation: string;
-  content_hash: string;
-  correct: number;
+  content_hash: string | null;
+  correct: number | null;
   correct_count: Generated<number>;
   created_at: Generated<Timestamp>;
   difficulty: Difficulty | null;
-  generator_model: string;
+  generator_model: string | null;
   id: Generated<Int8>;
+  kind: Generated<QuestionKind>;
   moment_id: Int8 | null;
-  options: string[];
+  options: string[] | null;
   ordinal: number;
-  prompt_version: number;
+  prompt_version: number | null;
+  source_title: string | null;
+  source_url: string | null;
   status: Generated<QuestionStatus>;
   stem: string;
+  unit: string | null;
   validated_at: Timestamp | null;
   validator_answer: number | null;
   validator_model: string | null;

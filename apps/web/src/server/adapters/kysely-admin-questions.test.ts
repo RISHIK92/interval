@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { DB } from "@interval/db";
-import type { Transaction } from "kysely";
+import { sql, type Transaction } from "kysely";
 import { afterAll, expect, test } from "vitest";
 import { createDb } from "./kysely";
 import { kyselyAdminQuestions } from "./kysely-admin-questions";
@@ -158,5 +158,214 @@ test("Keep leaves a sampled live question live; a retired question leaves the qu
       .where("id", "=", sampled)
       .executeTakeFirstOrThrow();
     expect(row.status).toBe("live");
+  });
+});
+
+// P3-W13-S03 (Q-P3-05 (b)): the owner writes estimation questions, citing the source
+// page; they go live at once and are spot-checked like any other.
+const estimate = (concepts: string[]) => ({
+  stem: "How many writes per second can one Postgres box take?",
+  answer: 10_000,
+  unit: "writes per second",
+  concepts,
+  difficulty: "intermediate" as const,
+  sourceUrl: "https://docs.example.test/limits",
+  sourceTitle: "Postgres limits",
+  citation: "A single box takes about ten thousand writes per second.",
+});
+
+async function concept(trx: Transaction<DB>, retired = false) {
+  const row = await trx
+    .insertInto("concept")
+    .values({
+      slug: `aq-${randomUUID()}`,
+      name: "write throughput",
+      topic: "databases",
+      ...(retired ? { retired_at: new Date() } : {}),
+    })
+    .returning(["id", "slug"])
+    .executeTakeFirstOrThrow();
+  return row;
+}
+
+test("a hand-written estimate is stored live with its concepts and source", async () => {
+  await inRollback(async (trx) => {
+    const c = await concept(trx);
+    const id = await kyselyAdminQuestions(trx).writeEstimate(
+      estimate([c.slug, c.slug]),
+    );
+    if (id === null) throw new Error("not saved");
+    const row = await trx
+      .selectFrom("question")
+      .selectAll()
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+    expect(row).toMatchObject({
+      kind: "estimate",
+      status: "live",
+      answer: 10_000,
+      unit: "writes per second",
+      source_url: "https://docs.example.test/limits",
+      source_title: "Postgres limits",
+      difficulty: "intermediate",
+      options: null,
+      correct: null,
+      moment_id: null,
+      generator_model: null,
+    });
+    const concepts = await trx
+      .selectFrom("question_concept")
+      .select("concept_id")
+      .where("question_id", "=", id)
+      .execute();
+    expect(concepts).toEqual([{ concept_id: c.id }]);
+  });
+});
+
+test("an unknown or retired concept saves nothing", async () => {
+  await inRollback(async (trx) => {
+    const live = await concept(trx);
+    const retired = await concept(trx, true);
+    const admin = kyselyAdminQuestions(trx);
+    const before = await trx
+      .selectFrom("question")
+      .select(sql<string>`count(*)`.as("n"))
+      .executeTakeFirstOrThrow();
+    expect(
+      await admin.writeEstimate(estimate([live.slug, "no-such-concept"])),
+    ).toBeNull();
+    expect(
+      await admin.writeEstimate(estimate([live.slug, retired.slug])),
+    ).toBeNull();
+    const after = await trx
+      .selectFrom("question")
+      .select(sql<string>`count(*)`.as("n"))
+      .executeTakeFirstOrThrow();
+    expect(after.n).toBe(before.n);
+  });
+});
+
+test("an estimate in the queue shows its answer, unit and source; Keep and Retire work", async () => {
+  await inRollback(async (trx, { sampled }) => {
+    const c = await concept(trx);
+    const admin = kyselyAdminQuestions(trx);
+    const id = await admin.writeEstimate(estimate([c.slug]));
+    if (id === null) throw new Error("not saved");
+    await trx
+      .insertInto("question_review")
+      .values({ question_id: id, reason: "sample" })
+      .execute();
+    const queue = await admin.open();
+    expect(queue.find((q) => q.questionId === id)).toEqual({
+      questionId: id,
+      reason: "sample",
+      kind: "estimate",
+      stem: "How many writes per second can one Postgres box take?",
+      answer: 10_000,
+      unit: "writes per second",
+      citation: "A single box takes about ten thousand writes per second.",
+      articleTitle: "Postgres limits",
+      sectionTitle: null,
+      link: "https://docs.example.test/limits",
+    });
+    expect(queue.find((q) => q.questionId === sampled)).toMatchObject({
+      kind: "choice",
+    });
+    expect(await admin.decide(id, "retire", "admin-1")).toBe(true);
+    const row = await trx
+      .selectFrom("question")
+      .select("status")
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+    expect(row.status).toBe("retired");
+  });
+});
+
+test("the shape: an estimate has no options, a choice has no answer", async () => {
+  await inRollback(async (trx) => {
+    const insert = (values: Record<string, unknown>) =>
+      sql`savepoint s`
+        .execute(trx)
+        .then(() =>
+          trx
+            .insertInto("question")
+            .values({
+              ordinal: 0,
+              stem: "s",
+              citation: "c",
+              source_url: "https://docs.example.test/x",
+              source_title: "x",
+              status: "live",
+              ...values,
+            })
+            .execute(),
+        )
+        .finally(() => sql`rollback to savepoint s`.execute(trx));
+    await expect(
+      insert({
+        kind: "estimate",
+        answer: 1,
+        unit: "ms",
+        options: ["a", "b", "c", "d"],
+        correct: 0,
+      }),
+    ).rejects.toThrow(/question_shape/);
+    await expect(
+      insert({ kind: "estimate", answer: 0, unit: "ms" }),
+    ).rejects.toThrow(/question_shape/);
+    await expect(
+      insert({ kind: "choice", answer: 1, unit: "ms" }),
+    ).rejects.toThrow(/question_shape/);
+    // Hand-written means no model; a model's question has no source page.
+    await expect(
+      insert({ kind: "estimate", answer: 1, unit: "ms", generator_model: "m" }),
+    ).rejects.toThrow(/question_hand_written/);
+  });
+});
+
+test("a book chapter's question never reaches the review queue, even with a review open", async () => {
+  await inRollback(async (trx) => {
+    const user = await trx
+      .selectFrom("app_user")
+      .select("id")
+      .limit(1)
+      .executeTakeFirstOrThrow();
+    const book = await trx
+      .insertInto("book")
+      .values({
+        user_id: user.id,
+        title: "Private",
+        file_key: `books/${user.id}/${randomUUID()}.pdf`,
+        size_bytes: 100,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const chapter = await trx
+      .insertInto("book_chapter")
+      .values({ book_id: book.id, ordinal: 0, title: "Mine" })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const q = await trx
+      .insertInto("question")
+      .values({
+        book_chapter_id: chapter.id,
+        ordinal: 0,
+        stem: "From my book?",
+        options: ["a", "b", "c", "d"],
+        correct: 0,
+        citation: "my private text",
+        status: "flagged",
+        generator_model: "m",
+        prompt_version: 1,
+        content_hash: "h",
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("question_review")
+      .values({ question_id: q.id, reason: "flagged" })
+      .execute();
+    const queue = await kyselyAdminQuestions(trx).open();
+    expect(queue.some((r) => r.questionId === q.id)).toBe(false);
   });
 });

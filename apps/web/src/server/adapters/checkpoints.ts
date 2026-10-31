@@ -57,6 +57,7 @@ export const checkpointQuestions = (userId: string, section: Ref) => sql`
     join content_item ci on ci.id = m.content_item_id
     join source so on so.id = ci.source_id
     join question q on q.moment_id = m.id and q.status = 'live'
+      and q.kind = 'choice'
     where ${ALLOWED}
     union all
     select q.id, 1, 0, 0
@@ -64,6 +65,7 @@ export const checkpointQuestions = (userId: string, section: Ref) => sql`
     join concept c on c.id = pc.concept_id and c.retired_at is null
     join question_concept qc on qc.concept_id = pc.concept_id
     join question q on q.id = qc.question_id and q.status = 'live'
+      and q.kind = 'choice'
     join moment m on m.id = q.moment_id
     join content_item ci on ci.id = m.content_item_id
     join source so on so.id = ci.source_id
@@ -116,5 +118,5 @@ export const readingsDone = (
 // made from its text for the book's owner alone.
 export const chapterQuestions = (chapter: Ref) => sql`
   select q.id, 0 as tier, 0 as ro, q.ordinal as qo from question q
-  where q.book_chapter_id = ${chapter} and q.status = 'live'
+  where q.book_chapter_id = ${chapter} and q.status = 'live' and q.kind = 'choice'
 `;

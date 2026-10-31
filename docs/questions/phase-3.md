@@ -47,6 +47,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Why it matters: the generator writes multiple-choice questions from a moment's text. Estimation answers (e.g. "requests per second a single Postgres box handles") are often not in any moment, so a citation may not exist.
 - Options: (a) the generator also writes numeric questions, only where the moment states the number (cited, validated like Q-1); (b) hand-written (§6.8 allows it for the daily challenge and seasons); (c) both.
 - **Answer (owner, 2026-10-31):** (c), both: cited generator questions where the article states the number, plus a hand-written set entered in admin.
+- **Addendum (owner, 2026-10-31, P3-W13-S03):** a hand-written question carries its source page's URL and title and the quoted sentence stating the number; it goes live at once (still in the weekly sample, flaggable, retirable). The generated half moved to P3-W13-S03b.
 - Suggested default: (c): cited generator questions where a number is in the text, plus a hand-written set the owner enters in admin.
 
 ### Q-P3-06 The daily challenge's day, size and review fallback (P0 for S05)

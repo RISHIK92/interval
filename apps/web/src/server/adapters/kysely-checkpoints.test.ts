@@ -303,6 +303,8 @@ test("a checkpoint starts once its section is open and its readings are finished
 test("it asks 5: the section's own readings first, never a source its rights forbid", async () => {
   await inRollback(async (trx, { userId, first, m1 }) => {
     await finish(trx, userId, m1);
+    // An estimate is answered with a number: never in a checkpoint (P3-W13-S03).
+    await estimateOn(trx, { moment_id: m1 });
     const started = await kyselyQuizzes(trx).startCheckpoint(userId, first);
     const stems = await take(trx, userId, started?.attemptId ?? "", () => true);
     expect(stems).toHaveLength(5);
@@ -594,6 +596,28 @@ test("next offers a ready checkpoint; closeStale returns the checkpoint it close
   });
 });
 
+async function estimateOn(
+  trx: Transaction<DB>,
+  home: { moment_id: string } | { book_chapter_id: string },
+) {
+  await trx
+    .insertInto("question")
+    .values({
+      ...home,
+      ordinal: 9,
+      kind: "estimate",
+      stem: "an estimate",
+      answer: 300,
+      unit: "ms",
+      citation: "a b c",
+      status: "live",
+      generator_model: "m",
+      prompt_version: 1,
+      content_hash: "h",
+    })
+    .execute();
+}
+
 // P2-W11-S06 (§5F, Q-P2-35): a book chapter's checkpoint, its questions made from the
 // chapter for its owner alone. Its concept here is c3, which has no public question.
 async function aBookChapter(
@@ -662,6 +686,7 @@ test("a book chapter's checkpoint asks its own questions; a pass marks its conce
       concept.c3,
       3,
     );
+    await estimateOn(trx, { book_chapter_id: chapterId });
     // Not the user's book: nothing.
     expect(await quizzes.startBookCheckpoint(otherUser, chapterId)).toBeNull();
     const started = await quizzes.startBookCheckpoint(userId, chapterId);

@@ -47,8 +47,17 @@ ADRs the answers need, each before its first slice (PROPOSED until the owner acc
 - Needs: none
 - Goal: a numeric question type ("how many…", with a unit) and its scoring: full points within 1.25×, falling linearly in log space to 0 at 10× off (C-27).
 - Acceptance: migration for the numeric answer and unit, with generated types; a pure scoring function tested at 1×, 1.25×, 3×, 10× and beyond, both directions; the question source per Q-P3-05; admin review the same as multiple choice.
-- Out of scope: the game itself (S04).
+- Out of scope: the game itself (S04); generated estimation questions (S03b, split by the owner on 2026-10-31).
 - Q: Q-P3-05.
+
+### P3-W13-S03b Generated estimation questions
+
+- IDs: §6.3, Q-1, AI-3, Q-P3-05
+- Needs: S03
+- Goal: the question generator also drafts an estimation question where a moment states the number, cited and validated like multiple choice (Q-1), through the batch path.
+- Acceptance: drafting a moment's estimate doesn't retire its multiple-choice questions (and the reverse); the validator answers the number blind and agrees within 1.25× (C-27's full points); the citation contains the number; batches carry both kinds; the AI budget (OPS-4) holds. S03's `question_shape` keeps `validator_answer` null for an estimate, so this slice adds a numeric validator answer; the worker's `pending`, `record_verdict`, `summary` and `save` (which retires every question on a moment) assume multiple choice today.
+- Out of scope: hand-written questions (S03).
+- Q: Q-P3-05. Split from S03 by the owner (2026-10-31).
 
 ### P3-W13-S04 Solo estimation
 

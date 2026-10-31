@@ -1642,3 +1642,85 @@ test("a player with no preferences (a guest) and questions without a difficulty 
     );
   });
 });
+
+// P3-W13-S03 (§6.3): estimation questions are answered with a number, so the
+// multiple-choice quizzes (Test 60s, reviews, checkpoints, the sprint) never serve one.
+async function estimates(
+  trx: Transaction<DB>,
+  momentId: string,
+  conceptId: string,
+): Promise<string[]> {
+  const rows = await trx
+    .insertInto("question")
+    .values([
+      {
+        moment_id: momentId,
+        ordinal: 5,
+        kind: "estimate",
+        stem: "drafted estimate",
+        answer: 300,
+        unit: "ms",
+        citation: "a b c",
+        generator_model: "m",
+        prompt_version: 1,
+        content_hash: "h",
+        status: "live",
+      },
+      {
+        ordinal: 0,
+        kind: "estimate",
+        stem: "hand-written estimate",
+        answer: 10_000,
+        unit: "requests per second",
+        citation: "about ten thousand requests per second",
+        source_url: "https://docs.example.test/limits",
+        source_title: "Limits",
+        status: "live",
+      },
+    ])
+    .returning("id")
+    .execute();
+  await trx
+    .insertInto("question_concept")
+    .values(rows.map((r) => ({ question_id: r.id, concept_id: conceptId })))
+    .execute();
+  return ["drafted estimate", "hand-written estimate"];
+}
+
+test("no multiple-choice quiz serves an estimation question", async () => {
+  await inRollback(async (trx, { userId, itemId, intro, q }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const left = await estimates(trx, intro, wal.id);
+    const quizzes = kyselyQuizzes(trx);
+    const stems = async (attemptId: string, most: number) => {
+      const seen: string[] = [];
+      for (let i = 0; i < most; i++) {
+        const got = await quizzes.next(userId, attemptId);
+        if (got === "over") break;
+        seen.push(served(got).stem);
+        await quizzes.answer(userId, attemptId, served(got).questionId, 0);
+      }
+      return seen;
+    };
+    // Test 60s on the moment: its one multiple-choice question, then over.
+    const test60 = await quizzes.start(userId, itemId, intro);
+    if (test60 === null) throw new Error("no quiz");
+    expect(await stems(test60.attemptId, 5)).toEqual(["intro-0"]);
+    await quizzes.finish(userId, test60.attemptId);
+    // A review of wal: its multiple-choice question only.
+    await trx
+      .updateTable("concept_review")
+      .set({ due: sql<Date>`now() - interval '1 hour'` })
+      .where("user_id", "=", userId)
+      .execute();
+    const review = await quizzes.startReview(userId);
+    if (review === null) throw new Error("no review");
+    expect(await stems(review.attemptId, 5)).toEqual(["intro-0"]);
+    await quizzes.finish(userId, review.attemptId);
+    // The sprint: wal is explored now, so its estimates would come first.
+    const attemptId = await sprint(quizzes, userId);
+    const sprinted = await stems(attemptId, 5);
+    expect(sprinted).toHaveLength(5);
+    for (const stem of sprinted) expect(left).not.toContain(stem);
+  });
+});

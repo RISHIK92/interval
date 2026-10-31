@@ -282,7 +282,8 @@ export function kyselyBooks(db: Kysely<DB>): Books {
             < now() - make_interval(mins => ${STUCK_MINUTES}), false) as stuck,
           k.failure,
           least(${CHECKPOINT_SIZE}, (select count(*)::int from question q
-            where q.book_chapter_id = c.id and q.status = 'live')) as size,
+            where q.book_chapter_id = c.id and q.status = 'live'
+              and q.kind = 'choice')) as size,
           array(select n.name from book_chapter_concept bc
             join concept n on n.id = bc.concept_id and n.retired_at is null
             where bc.chapter_id = c.id order by n.name) as concepts,

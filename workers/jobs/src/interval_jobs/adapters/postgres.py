@@ -2115,13 +2115,16 @@ class PostgresQuestions:
         # Two runs at once would sample the same window twice.
         self._conn.execute("select pg_advisory_xact_lock(hashtext('spot-checks'))")
         # The window is what went live since `since` (validated, whatever it is now), so
-        # retiring a sampled question doesn't make a rerun draw another. A book
-        # chapter's questions are its owner's alone (P2-W11-S06): never sampled.
+        # retiring a sampled question doesn't make a rerun draw another; a hand-written
+        # one (P3-W13-S03) is live when saved. A book chapter's questions are its
+        # owner's alone (P2-W11-S06): never sampled.
         sampled = self._conn.execute(
             """
             with window_q as (
               select id, status from question
-              where validated_at >= %(since)s and status <> 'rejected'
+              where (case when source_url is null then validated_at
+                       else created_at end) >= %(since)s
+                and status <> 'rejected'
                 and book_chapter_id is null
             ), taken as (
               select count(distinct r.question_id) as n from question_review r

@@ -38,9 +38,10 @@ const notServedThisWeek = (userId: string) => sql`
   )`;
 
 // Live questions in moments their source's rights allow (Q-1, ING-2), as `q` and `m`.
+// Multiple choice only: an estimate is answered with a number (P3-W13-S03).
 const LIVE = sql`
   question q
-  join moment m on m.id = q.moment_id
+  join moment m on m.id = q.moment_id and q.kind = 'choice'
   join content_item ci on ci.id = m.content_item_id
   join source s on s.id = ci.source_id
    and s.moments_enabled
@@ -759,6 +760,9 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .where("qa.attempt_id", "=", attemptId)
         .where("qa.question_id", "=", questionId)
         .where("a.user_id", "=", userId)
+        // Quizzes serve multiple choice only, which always has a key.
+        .where("q.kind", "=", "choice")
+        .$narrowType<{ key: number }>()
         .executeTakeFirst();
       if (stored === undefined) return null;
       if (stored.correct === null || stored.answered_at === null) return "late";
@@ -1197,6 +1201,8 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .where("qa.attempt_id", "=", attemptId)
         .where("qa.question_id", "=", questionId)
         .where("a.user_id", "=", userId)
+        .where("q.kind", "=", "choice")
+        .$narrowType<{ options: string[]; key: number }>()
         .executeTakeFirst();
       if (row === undefined || row.chosen === null || row.correct === null)
         return null;
