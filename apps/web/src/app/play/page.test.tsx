@@ -18,7 +18,10 @@ vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
 }));
 vi.mock("./actions", () => ({ startGuestAction: vi.fn() }));
-vi.mock("../quiz/actions", () => ({ startSprintAction: vi.fn() }));
+vi.mock("../quiz/actions", () => ({
+  startSprintAction: vi.fn(),
+  startEstimationAction: vi.fn(),
+}));
 
 const account: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
 const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
@@ -27,7 +30,9 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-async function page(search: { sprint?: string } = {}): Promise<string> {
+async function page(
+  search: { sprint?: string; estimation?: string } = {},
+): Promise<string> {
   const { default: PlayPage } = await import("./page");
   return renderToStaticMarkup(
     await PlayPage({ searchParams: Promise.resolve(search) }),
@@ -37,7 +42,7 @@ async function page(search: { sprint?: string } = {}): Promise<string> {
 // Tags become "|", so text across elements reads in order.
 const words = (html: string) => html.replace(/<[^>]+>/g, "|");
 
-test("four quick games, each with its format and win condition; only the sprint playable yet", async () => {
+test("four quick games, each with its format and win condition; the sprint and estimation playable yet", async () => {
   current.mockResolvedValue(account);
   const html = await page();
   const text = words(html);
@@ -59,7 +64,7 @@ test("four quick games, each with its format and win condition; only the sprint 
     expect(text).toMatch(new RegExp(`${name}\\|[^]*?${format}[^]*?${win}`));
   }
   const list = /<ul[^]*<\/ul>/.exec(html)?.[0] ?? "";
-  expect(list.match(/Coming later/g)).toHaveLength(3);
+  expect(list.match(/Coming later/g)).toHaveLength(2);
   expect(html).toMatch(/<a aria-current="page"[^>]*href="\/play"/);
 });
 
@@ -130,4 +135,34 @@ test("a sprint with nothing left to ask says so", async () => {
     /role="status"[^>]*>You&#x27;ve answered every question we have this week/,
   );
   expect(await page()).not.toContain("every question we have this week");
+});
+
+// P3-W13-S04 (§6.3): solo estimation is playable too.
+test("the estimation card starts a round; without its capability it can't", async () => {
+  current.mockResolvedValue(account);
+  const html = await page();
+  expect(words(html)).toMatch(/Estimation\|[^]*?Start a round/);
+  expect(html).toMatch(/<form[^>]*>(?:(?!<\/form>)[^])*Start a round/);
+  can.mockImplementation((_user, capability) =>
+    Promise.resolve(capability !== "play.estimation"),
+  );
+  const without = await page();
+  expect(without).not.toContain("Start a round");
+  expect(without).toContain("Start a sprint");
+  expect(words(without)).toMatch(/Estimation\|[^]*?Not on your plan/);
+});
+
+test("a round with nothing left to ask says so", async () => {
+  current.mockResolvedValue(account);
+  can.mockResolvedValue(true);
+  expect(await page({ estimation: "none" })).toMatch(
+    /role="status"[^>]*>You&#x27;ve answered every estimation question we have this week/,
+  );
+  expect(await page()).not.toContain("every estimation question");
+});
+
+test("signed out, both playable games point to the guest form", async () => {
+  current.mockResolvedValue(null);
+  const html = await page();
+  expect(html.match(/Play as a guest below, or sign in/g)).toHaveLength(2);
 });

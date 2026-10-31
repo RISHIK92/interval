@@ -272,8 +272,20 @@ export const QUIZ_SECONDS = 60;
 export type QuizQuestion = {
   questionId: string;
   stem: string;
-  options: string[];
   servedAt: Date;
+} & (
+  | { kind: "choice"; options: string[] }
+  // P3-W13-S04 (§6.3): answered with a number in this unit.
+  | { kind: "estimate"; unit: string }
+);
+// P3-W13-S04 (C-27): an estimate's answer, scored 0 to 1.
+export type EstimateResult = {
+  answer: number;
+  unit: string;
+  score: number;
+  servedAt: Date;
+  answeredAt: Date;
+  firstTime: boolean; // false: a resubmission (LOAD-5) given the stored result
 };
 export type QuizResult = {
   correct: boolean;
@@ -298,13 +310,21 @@ export interface Quizzes {
     attemptId: string,
   ): Promise<QuizQuestion | "over" | null>;
   // "late" after the clock (and its grace); null when the question wasn't served in
-  // the user's attempt.
+  // the user's attempt, or is an estimate.
   answer(
     userId: string,
     attemptId: string,
     questionId: string,
     chosen: number,
   ): Promise<QuizResult | "late" | null>;
+  // P3-W13-S04: the same for an estimate, answered with a positive number; null also
+  // when the question isn't one. Never mastery or review evidence (owner, 2026-10-31).
+  answerEstimate(
+    userId: string,
+    attemptId: string,
+    questionId: string,
+    guess: number,
+  ): Promise<EstimateResult | "late" | null>;
   finish(userId: string, attemptId: string): Promise<QuizFinish | null>;
   // Q-P2-16: the user's quizzes left open (a sprint past its clock, a review idle 30
   // minutes) closed and rated; what it closed, so its finish can be recorded (owner,
@@ -333,6 +353,10 @@ export interface Quizzes {
   // the running one if there is one (LOAD-5), even one whose clock has just run out;
   // null when there's no live question the player wasn't served this week.
   startSprint(
+    userId: string,
+  ): Promise<{ attemptId: string; endsAt: Date; firstTime: boolean } | null>;
+  // P3-W13-S04 (§6.3, owner 2026-10-31): the same over estimation questions.
+  startEstimation(
     userId: string,
   ): Promise<{ attemptId: string; endsAt: Date; firstTime: boolean } | null>;
   // P2-W10-S04 (§5F, Q-P2-26): a checkpoint on a section of the user's active path,
@@ -370,10 +394,11 @@ export interface Quizzes {
 
 export type QuizFinish = {
   answered: number;
-  correct: number;
+  correct: number; // an estimation round's: answers at full points
   firstTime: boolean;
   checkpoint: { at: CheckpointAt; passed: boolean } | null;
   sprint: boolean; // a game from Play (P3-W13-S02), recorded as one
+  estimation: { points: number } | null; // a sprint over estimates (P3-W13-S04)
 };
 // Where a checkpoint belongs: a section of a topic path (P2-W10-S04) or a chapter of
 // the user's book (P2-W11-S06).
@@ -393,6 +418,9 @@ export type QuizAttempt = {
   review: boolean;
   // A solo sprint (P3-W13-S02) has no article, and a clock.
   sprint: boolean;
+  // A sprint over estimates (P3-W13-S04): its points (up to 100 an answer, C-27) and
+  // each answer with the real one and its source (AI-3).
+  estimation: { points: number; answers: EstimateReveal[] } | null;
   itemId: string | null;
   momentId: string | null;
   title: string; // the section's, else the article's; "Review", "60-second sprint"
@@ -433,13 +461,29 @@ export type CheckpointInfo = {
   next: string[] | null;
   missed: string[]; // concepts of its wrong answers, due for review now
 };
-export type QuizFeedback = {
+export type QuizFeedback =
+  | {
+      kind: "choice";
+      stem: string;
+      options: string[];
+      chosen: number;
+      correctOption: number;
+      correct: boolean;
+      flagged: boolean; // by this user (P2-W9-S07)
+    }
+  | ({ kind: "estimate"; flagged: boolean } & EstimateReveal);
+// An answered estimate with the real answer and where it comes from: the quoted
+// sentence and its page, a moment's article or a hand-written question's source.
+export type EstimateReveal = {
+  questionId: string;
   stem: string;
-  options: string[];
-  chosen: number;
-  correctOption: number;
-  correct: boolean;
-  flagged: boolean; // by this user (P2-W9-S07)
+  guess: number;
+  answer: number;
+  unit: string;
+  score: number;
+  citation: string;
+  sourceTitle: string;
+  sourceUrl: string;
 };
 
 // Notes (§5I, Q-P2-01, P2-W7-S03): a user's private note on a section, or on the

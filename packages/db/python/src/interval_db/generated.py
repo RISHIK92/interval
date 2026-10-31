@@ -615,6 +615,8 @@ class QuizAnswer(TypedDict):
     chosen: int | None
     correct: bool | None
     answered_at: datetime | None
+    guess: float | None
+    score: float | None
 
 
 class QuizAttempt(TypedDict):
@@ -632,6 +634,7 @@ class QuizAttempt(TypedDict):
     checkpoint_passed: bool | None
     book_chapter_id: int | None
     sprint: bool
+    estimation: bool
 
 
 class QuizAttemptConcept(TypedDict):

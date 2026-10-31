@@ -12,6 +12,8 @@ const flag = vi.fn<Quizzes["flag"]>();
 const startCheckpoint = vi.fn<Quizzes["startCheckpoint"]>();
 const closeStale = vi.fn<Quizzes["closeStale"]>(() => Promise.resolve([]));
 const startSprint = vi.fn<Quizzes["startSprint"]>();
+const startEstimation = vi.fn<Quizzes["startEstimation"]>();
+const answerEstimate = vi.fn<Quizzes["answerEstimate"]>();
 const can = vi.fn(() => Promise.resolve(true));
 const emit = vi.fn();
 vi.mock("../../server/container", () => ({
@@ -20,6 +22,8 @@ vi.mock("../../server/container", () => ({
   quizzes: () => ({
     closeStale,
     startSprint,
+    startEstimation,
+    answerEstimate,
     start,
     answer,
     finish,
@@ -160,6 +164,7 @@ test("finishing reports once", async () => {
     correct: 4,
     firstTime: true,
     sprint: false,
+    estimation: null,
     checkpoint: null,
   });
   await expect(
@@ -176,6 +181,7 @@ test("finishing reports once", async () => {
     correct: 4,
     firstTime: false,
     sprint: false,
+    estimation: null,
     checkpoint: null,
   });
   await expect(
@@ -284,6 +290,7 @@ test("Close finishes and goes back to the feed", async () => {
     correct: 1,
     firstTime: true,
     sprint: false,
+    estimation: null,
     checkpoint: null,
   });
   await expect(
@@ -347,6 +354,7 @@ test("a checkpoint's finish reports whether it passed; Close goes back to the pa
     correct: 4,
     firstTime: true,
     sprint: false,
+    estimation: null,
     checkpoint: {
       at: { kind: "path", pathId: "6", sectionId: "60" },
       passed: true,
@@ -380,6 +388,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       correct: 2,
       firstTime: true,
       sprint: false,
+      estimation: null,
       checkpoint: null,
     },
     {
@@ -388,6 +397,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       correct: 4,
       firstTime: true,
       sprint: false,
+      estimation: null,
       checkpoint: {
         at: { kind: "path", pathId: "6", sectionId: "60" },
         passed: true,
@@ -428,6 +438,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       correct: 1,
       firstTime: true,
       sprint: false,
+      estimation: null,
       checkpoint: null,
     },
   ]);
@@ -491,13 +502,15 @@ test("a sprint's finish is a game_finished, not a quiz_finished; Close goes to P
     firstTime: true,
     checkpoint: null,
     sprint: true,
+    estimation: null,
   });
   await expect(
     finishQuizAction(form({ attemptId: "61", chip: "3-8", leave: "play" })),
   ).rejects.toThrow("redirect:/play");
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "game_finished",
-    { attempt_id: "61", game: "sprint", answered: 7, correct: 5 },
+    // A sprint's points are its correct count.
+    { attempt_id: "61", game: "sprint", answered: 7, correct: 5, points: 5 },
     context,
   );
 });
@@ -521,6 +534,7 @@ test("Start just after a sprint's clock ran out finishes it, records it, and sta
     firstTime: true,
     checkpoint: null,
     sprint: true,
+    estimation: null,
   });
   await expect(startSprintAction()).rejects.toThrow(
     "redirect:/quiz/62?chip=3-8",
@@ -548,4 +562,156 @@ test("a guest's flag is refused: nothing recorded, back to the feedback", async 
   ).rejects.toThrow("redirect:/quiz/61?chip=3-8&answered=7");
   expect(flag).not.toHaveBeenCalled();
   expect(emit).not.toHaveBeenCalled();
+});
+
+// P3-W13-S04 (§6.3, C-27): a solo estimation round from Play, on the sprint's shell.
+test("an estimation round starts from Play, recorded once as a game, and opens the quiz", async () => {
+  const { startEstimationAction } = await actions();
+  current.mockResolvedValue({ ...user, isGuest: true });
+  startEstimation.mockResolvedValue({
+    attemptId: "71",
+    endsAt: new Date(Date.now() + 60_000),
+    firstTime: true,
+  });
+  await expect(startEstimationAction()).rejects.toThrow(
+    "redirect:/quiz/71?chip=3-8",
+  );
+  expect(can).toHaveBeenCalledWith("u1", "play.estimation");
+  expect(closeStale).toHaveBeenCalledWith("u1");
+  expect(startSprint).not.toHaveBeenCalled();
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "game_started",
+    { attempt_id: "71", game: "estimation" },
+    { ...context, isGuest: true },
+  );
+});
+
+test("without play.estimation, or with nothing left to ask this week, a round goes back to Play", async () => {
+  const { startEstimationAction } = await actions();
+  can.mockResolvedValueOnce(false);
+  await expect(startEstimationAction()).rejects.toThrow(/^redirect:\/play$/);
+  expect(startEstimation).not.toHaveBeenCalled();
+  startEstimation.mockResolvedValue(null);
+  await expect(startEstimationAction()).rejects.toThrow(
+    /^redirect:\/play\?estimation=none$/,
+  );
+  expect(emit).not.toHaveBeenCalled();
+});
+
+test("Start just after a round's clock ran out finishes it, records it, and starts afresh", async () => {
+  const { startEstimationAction } = await actions();
+  startEstimation
+    .mockResolvedValueOnce({
+      attemptId: "71",
+      endsAt: new Date(Date.now() - 2_000),
+      firstTime: false,
+    })
+    .mockResolvedValueOnce({
+      attemptId: "72",
+      endsAt: new Date(Date.now() + 60_000),
+      firstTime: true,
+    });
+  finish.mockResolvedValue({
+    answered: 2,
+    correct: 1,
+    firstTime: true,
+    checkpoint: null,
+    sprint: true,
+    estimation: { points: 158 },
+  });
+  await expect(startEstimationAction()).rejects.toThrow(
+    "redirect:/quiz/72?chip=3-8",
+  );
+  expect(finish).toHaveBeenCalledWith("u1", "71");
+  expect(emit.mock.calls.map((c: unknown[]) => c[0])).toEqual([
+    "game_finished",
+    "game_started",
+  ]);
+});
+
+test("an estimate is answered with a positive number, recorded once with its points", async () => {
+  const { answerEstimateAction } = await actions();
+  const servedAt = new Date("2026-10-31T10:00:00Z");
+  answerEstimate.mockResolvedValue({
+    answer: 300,
+    unit: "ms",
+    score: 0.579,
+    servedAt,
+    answeredAt: new Date(servedAt.getTime() + 4_200),
+    firstTime: true,
+  });
+  await expect(
+    answerEstimateAction(
+      form({ attemptId: "71", questionId: "9", guess: "900", chip: "3-8" }),
+    ),
+  ).rejects.toThrow("redirect:/quiz/71?chip=3-8&answered=9");
+  expect(answerEstimate).toHaveBeenCalledWith("u1", "71", "9", 900);
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "estimate_answered",
+    { attempt_id: "71", question_id: "9", points: 58, ms: 4200 },
+    context,
+  );
+  emit.mockClear();
+  answerEstimate.mockResolvedValue({
+    answer: 300,
+    unit: "ms",
+    score: 0.579,
+    servedAt,
+    answeredAt: servedAt,
+    firstTime: false,
+  });
+  await expect(
+    answerEstimateAction(
+      form({ attemptId: "71", questionId: "9", guess: "1e3", chip: "3-8" }),
+    ),
+  ).rejects.toThrow("redirect:/quiz/71?chip=3-8&answered=9");
+  expect(emit).not.toHaveBeenCalled();
+});
+
+test("a guess that isn't a positive number goes back to the question, untaken", async () => {
+  const { answerEstimateAction } = await actions();
+  for (const guess of ["0", "-5", "lots", "", "Infinity", "1e400"])
+    await expect(
+      answerEstimateAction(
+        form({ attemptId: "71", questionId: "9", guess, chip: "3-8" }),
+      ),
+    ).rejects.toThrow(/^redirect:\/quiz\/71\?chip=3-8$/);
+  expect(answerEstimate).not.toHaveBeenCalled();
+});
+
+test("a late estimate goes back to the round, unrecorded", async () => {
+  const { answerEstimateAction } = await actions();
+  answerEstimate.mockResolvedValue("late");
+  await expect(
+    answerEstimateAction(
+      form({ attemptId: "71", questionId: "9", guess: "10", chip: "3-8" }),
+    ),
+  ).rejects.toThrow(/^redirect:\/quiz\/71\?chip=3-8$/);
+  expect(emit).not.toHaveBeenCalled();
+});
+
+test("a round's finish is a game_finished with its points", async () => {
+  const { finishQuizAction } = await actions();
+  finish.mockResolvedValue({
+    answered: 3,
+    correct: 1,
+    firstTime: true,
+    checkpoint: null,
+    sprint: true,
+    estimation: { points: 158 },
+  });
+  await expect(
+    finishQuizAction(form({ attemptId: "71", chip: "3-8" })),
+  ).rejects.toThrow("redirect:/quiz/71/results?chip=3-8");
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "game_finished",
+    {
+      attempt_id: "71",
+      game: "estimation",
+      answered: 3,
+      correct: 1,
+      points: 158,
+    },
+    context,
+  );
 });

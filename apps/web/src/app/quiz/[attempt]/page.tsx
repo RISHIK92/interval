@@ -3,12 +3,15 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CHIPS } from "../../../server/chips";
 import { quizzes, sessionReader } from "../../../server/container";
+import { points } from "../../../server/estimation";
 import { BIGINT_ID } from "../../../server/ports";
 import {
+  answerEstimateAction,
   answerQuizAction,
   finishQuizAction,
   flagQuestionAction,
 } from "../actions";
+import { amount, verdict } from "../estimateText";
 import { FLAG_REASON_KEYS, FLAG_REASONS } from "../flagReasons";
 import { Countdown } from "./Countdown";
 
@@ -37,6 +40,12 @@ const EXIT_TEXT = {
     title: "Exit the sprint?",
     body: "Exiting now ends this sprint and counts what you answered.",
     button: "Exit sprint",
+    leave: "play",
+  },
+  estimation: {
+    title: "Exit the round?",
+    body: "Exiting now ends this round and counts what you answered.",
+    button: "Exit round",
     leave: "play",
   },
   checkpoint: {
@@ -75,11 +84,13 @@ export default async function QuizPage({
   const { checkpoint } = attempt;
   const kind = attempt.review
     ? "review"
-    : attempt.sprint
-      ? "sprint"
-      : checkpoint === null
-        ? "test"
-        : "checkpoint";
+    : attempt.estimation !== null
+      ? "estimation"
+      : attempt.sprint
+        ? "sprint"
+        : checkpoint === null
+          ? "test"
+          : "checkpoint";
 
   let body;
   if (answered !== undefined) {
@@ -92,35 +103,75 @@ export default async function QuizPage({
     body = (
       <>
         <p className="text-lg font-semibold">{feedback.stem}</p>
-        <ol className="flex flex-col gap-2">
-          {feedback.options.map((option, i) => {
-            const right = i === feedback.correctOption;
-            const chosen = i === feedback.chosen;
-            return (
-              <li
-                key={LETTERS[i]}
-                className={`${OPTION} ${right ? "border-go bg-go-soft" : chosen ? "border-wrong" : "border-hairline"}`}
+        {feedback.kind === "estimate" ? (
+          <>
+            {/* P3-W13-S04 (C-27, AI-3): the real answer and the sentence it comes
+              from, on its page. */}
+            <dl className="grid grid-cols-2 gap-2">
+              <div className="rounded-2xl bg-well px-4 py-3">
+                <dt className="text-sm text-ink-muted">Your guess</dt>
+                <dd className="font-semibold">
+                  {amount(feedback.guess, feedback.unit)}
+                </dd>
+              </div>
+              <div className="rounded-2xl bg-go-soft px-4 py-3">
+                <dt className="text-sm text-ink-muted">Answer</dt>
+                <dd className="font-semibold">
+                  {amount(feedback.answer, feedback.unit)}
+                </dd>
+              </div>
+            </dl>
+            <p
+              role="status"
+              className={`rounded-2xl px-4 py-3 font-semibold ${feedback.score === 1 ? "bg-go-soft" : "bg-well"}`}
+            >
+              {verdict(feedback.score)}: {points(feedback.score)} points
+            </p>
+            <blockquote className="flex flex-col gap-1 border-l-2 border-hairline pl-3 text-sm">
+              <p>&ldquo;{feedback.citation}&rdquo;</p>
+              <a
+                href={feedback.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-ink-muted underline underline-offset-2"
               >
-                <Letter i={i} />
-                <span className="min-w-0 flex-1">{option}</span>
-                {/* An icon and a word, never colour alone (wireframe 12). */}
-                {right ? (
-                  <Mark icon="M5 12l5 5 9-10">
-                    {chosen ? "Correct" : "Right answer"}
-                  </Mark>
-                ) : chosen ? (
-                  <Mark icon="M6 6l12 12M18 6L6 18">Your answer</Mark>
-                ) : null}
-              </li>
-            );
-          })}
-        </ol>
-        <p
-          role="status"
-          className={`rounded-2xl px-4 py-3 font-semibold ${feedback.correct ? "bg-go-soft" : "bg-well"}`}
-        >
-          {feedback.correct ? "Correct." : "Not quite."}
-        </p>
+                {feedback.sourceTitle}
+              </a>
+            </blockquote>
+          </>
+        ) : (
+          <>
+            <ol className="flex flex-col gap-2">
+              {feedback.options.map((option, i) => {
+                const right = i === feedback.correctOption;
+                const chosen = i === feedback.chosen;
+                return (
+                  <li
+                    key={LETTERS[i]}
+                    className={`${OPTION} ${right ? "border-go bg-go-soft" : chosen ? "border-wrong" : "border-hairline"}`}
+                  >
+                    <Letter i={i} />
+                    <span className="min-w-0 flex-1">{option}</span>
+                    {/* An icon and a word, never colour alone (wireframe 12). */}
+                    {right ? (
+                      <Mark icon="M5 12l5 5 9-10">
+                        {chosen ? "Correct" : "Right answer"}
+                      </Mark>
+                    ) : chosen ? (
+                      <Mark icon="M6 6l12 12M18 6L6 18">Your answer</Mark>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ol>
+            <p
+              role="status"
+              className={`rounded-2xl px-4 py-3 font-semibold ${feedback.correct ? "bg-go-soft" : "bg-well"}`}
+            >
+              {feedback.correct ? "Correct." : "Not quite."}
+            </p>
+          </>
+        )}
         <div className="flex flex-col gap-2">
           <a
             href={here}
@@ -192,6 +243,35 @@ export default async function QuizPage({
             See results
           </button>
         </div>
+      ) : question.kind === "estimate" ? (
+        <form action={answerEstimateAction} className="flex flex-col gap-4">
+          <input type="hidden" name="attemptId" value={attemptId} />
+          <input type="hidden" name="questionId" value={question.questionId} />
+          <input type="hidden" name="chip" value={chip} />
+          <label htmlFor="guess" className="text-lg font-semibold">
+            {question.stem}
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              id="guess"
+              name="guess"
+              type="number"
+              inputMode="decimal"
+              step="any"
+              min="0"
+              required
+              autoFocus
+              className="min-w-0 flex-1 rounded-2xl border border-hairline bg-page px-4 py-3 text-lg"
+            />
+            <span className="shrink-0 font-semibold">{question.unit}</span>
+          </div>
+          <button
+            type="submit"
+            className="inline-flex cursor-pointer items-center justify-center rounded-full bg-ink px-5 py-3 font-semibold text-page"
+          >
+            Answer
+          </button>
+        </form>
       ) : (
         <form action={answerQuizAction} className="flex flex-col gap-4">
           <input type="hidden" name="attemptId" value={attemptId} />
@@ -221,7 +301,7 @@ export default async function QuizPage({
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <h1 className="sr-only">
-        {kind === "sprint"
+        {kind === "sprint" || kind === "estimation"
           ? attempt.title
           : `${kind === "checkpoint" ? "Checkpoint" : "Test yourself"}: ${attempt.title}`}
       </h1>
@@ -277,8 +357,8 @@ export default async function QuizPage({
         <p className="flex-1 font-semibold">
           {kind === "review"
             ? "Review"
-            : kind === "sprint"
-              ? "60-second sprint"
+            : kind === "sprint" || kind === "estimation"
+              ? attempt.title
               : kind === "checkpoint"
                 ? "Checkpoint · 60s"
                 : "Test yourself · 60s"}
@@ -293,8 +373,8 @@ export default async function QuizPage({
           finishForm={answered === undefined ? FINISH_FORM : null}
         />
       )}
-      {/* A sprint's title is its header. */}
-      {kind === "sprint" ? null : (
+      {/* A game's title is its header. */}
+      {kind === "sprint" || kind === "estimation" ? null : (
         <p className="text-sm text-ink-muted">{attempt.title}</p>
       )}
       {body}

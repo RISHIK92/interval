@@ -223,8 +223,11 @@ async function inRollback(
   ).rejects.toBeInstanceOf(Rollback);
 }
 
-function served(got: QuizQuestion | "over" | null): QuizQuestion {
-  if (got === null || got === "over") throw new Error(`expected a question`);
+function served(
+  got: QuizQuestion | "over" | null,
+): Extract<QuizQuestion, { kind: "choice" }> {
+  if (got === null || got === "over" || got.kind !== "choice")
+    throw new Error(`expected a multiple-choice question`);
   return got;
 }
 
@@ -241,7 +244,7 @@ test("a moment's sprint serves its own questions, then the same concepts, never 
       const one = served(got);
       // The key never leaves the server before the answer.
       expect(Object.keys(one).sort()).toEqual(
-        ["options", "questionId", "servedAt", "stem"].sort(),
+        ["kind", "options", "questionId", "servedAt", "stem"].sort(),
       );
       // Until it's answered, the same question comes back.
       expect(served(await quizzes.next(userId, started.attemptId))).toEqual(
@@ -390,6 +393,7 @@ test("an answer is checked and counted once; a resubmit gets the stored result",
       firstTime: true,
       checkpoint: null,
       sprint: false,
+      estimation: null,
     });
     expect(await quizzes.finish(userId, started.attemptId)).toMatchObject({
       firstTime: false,
@@ -566,6 +570,7 @@ test("feedback gives the key only once the question is answered", async () => {
     expect(
       await quizzes.answered(userId, started.attemptId, open.questionId),
     ).toEqual({
+      kind: "choice",
       stem: open.stem,
       options: open.options,
       chosen: 2,
@@ -1722,5 +1727,315 @@ test("no multiple-choice quiz serves an estimation question", async () => {
     const sprinted = await stems(attemptId, 5);
     expect(sprinted).toHaveLength(5);
     for (const stem of sprinted) expect(left).not.toContain(stem);
+  });
+});
+
+// P3-W13-S04 (§6.3, C-27, owner 2026-10-31): a solo estimation round is a sprint over
+// estimates: the same clock and pick, each answered with a number and scored 0 to 1,
+// never mastery or review evidence.
+async function handWritten(
+  trx: Transaction<DB>,
+  conceptId: string,
+  stem: string,
+  answer: number,
+  status: "live" | "pending" | "retired" = "live",
+): Promise<string> {
+  const row = await trx
+    .insertInto("question")
+    .values({
+      ordinal: 0,
+      kind: "estimate",
+      stem,
+      answer,
+      unit: "ms",
+      citation: `about ${String(answer)} ms`,
+      source_url: `https://docs.example.test/${stem}`,
+      source_title: `Source of ${stem}`,
+      status,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await trx
+    .insertInto("question_concept")
+    .values({ question_id: row.id, concept_id: conceptId })
+    .execute();
+  return row.id;
+}
+
+function estimate(
+  got: QuizQuestion | "over" | null,
+): Extract<QuizQuestion, { kind: "estimate" }> {
+  if (got === null || got === "over" || got.kind !== "estimate")
+    throw new Error(`expected an estimate`);
+  return got;
+}
+
+async function round(
+  quizzes: ReturnType<typeof kyselyQuizzes>,
+  userId: string,
+): Promise<string> {
+  const started = await quizzes.startEstimation(userId);
+  if (started === null) throw new Error("no round");
+  return started.attemptId;
+}
+
+test("an estimation round needs a live estimate; it runs on the clock and a second start meets it", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const quizzes = kyselyQuizzes(trx);
+    expect(await quizzes.startEstimation(userId)).toBeNull();
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    await handWritten(trx, wal.id, "pending one", 50, "pending");
+    expect(await quizzes.startEstimation(userId)).toBeNull();
+    await handWritten(trx, wal.id, "disk seek", 10);
+    const first = await quizzes.startEstimation(userId);
+    if (first === null) throw new Error("no round");
+    expect(first.firstTime).toBe(true);
+    const seconds = (first.endsAt.getTime() - Date.now()) / 1000;
+    expect(seconds).toBeGreaterThan(55);
+    expect(seconds).toBeLessThanOrEqual(61);
+    expect(await quizzes.startEstimation(userId)).toEqual({
+      ...first,
+      firstTime: false,
+    });
+    // A sprint is its own game: it neither meets the round nor is met by it.
+    const sprinted = await quizzes.startSprint(userId);
+    expect(sprinted?.attemptId).not.toBe(first.attemptId);
+    expect((await quizzes.startEstimation(userId))?.attemptId).toBe(
+      first.attemptId,
+    );
+    expect(await quizzes.attempt(userId, first.attemptId)).toMatchObject({
+      sprint: true,
+      title: "Estimation",
+      estimation: { points: 0, answers: [] },
+    });
+  });
+});
+
+test("a round serves hand-written estimates only, explored concepts first", async () => {
+  await inRollback(async (trx, { userId, q, intro, hidden }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const raft = await conceptOf(trx, q["raft-1"] ?? "");
+    await explored(trx, userId, wal.id);
+    await estimates(trx, intro, raft.id);
+    await handWritten(trx, wal.id, "explored one", 10);
+    await handWritten(trx, raft.id, "retired one", 10, "retired");
+    // An estimate in a moment whose source has moments switched off (ING-2).
+    await trx
+      .insertInto("question")
+      .values({
+        moment_id: hidden.momentId,
+        ordinal: 5,
+        kind: "estimate",
+        stem: "hidden estimate",
+        answer: 1,
+        unit: "ms",
+        citation: "a b c",
+        generator_model: "m",
+        prompt_version: 1,
+        content_hash: "h",
+        status: "live",
+      })
+      .execute();
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await round(quizzes, userId);
+    const stems: string[] = [];
+    for (;;) {
+      const got = await quizzes.next(userId, attemptId);
+      if (got === "over") break;
+      const open = estimate(got);
+      stems.push(open.stem);
+      await quizzes.answerEstimate(userId, attemptId, open.questionId, 1);
+    }
+    // A moment's estimates wait for S03b's rights-gated reveal, switched off or not.
+    expect(stems).toEqual(["explored one", "hand-written estimate"]);
+  });
+});
+
+test("an estimate is scored by C-27 once; a resubmission gets the stored result", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const id = await handWritten(trx, wal.id, "disk seek", 300);
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await round(quizzes, userId);
+    const open = estimate(await quizzes.next(userId, attemptId));
+    expect(open).toMatchObject({ questionId: id, unit: "ms" });
+    // A multiple-choice answer to an estimate does nothing.
+    expect(await quizzes.answer(userId, attemptId, id, 0)).toBeNull();
+    const got = await quizzes.answerEstimate(userId, attemptId, id, 900);
+    expect(got).toMatchObject({ answer: 300, unit: "ms", firstTime: true });
+    if (got === null || got === "late") throw new Error("no result");
+    expect(got.score).toBeCloseTo(0.579, 3);
+    expect(
+      await quizzes.answerEstimate(userId, attemptId, id, 300),
+    ).toMatchObject({ score: got.score, firstTime: false });
+    expect(await quizzes.answered(userId, attemptId, id)).toEqual({
+      kind: "estimate",
+      questionId: id,
+      stem: "disk seek",
+      guess: 900,
+      answer: 300,
+      unit: "ms",
+      score: got.score,
+      citation: "about 300 ms",
+      sourceTitle: "Source of disk seek",
+      sourceUrl: "https://docs.example.test/disk seek",
+      flagged: false,
+    });
+  });
+});
+
+test("an estimate answer to a multiple-choice question does nothing", async () => {
+  await inRollback(async (trx, { userId, itemId, raft }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const started = await quizzes.start(userId, itemId, raft);
+    if (started === null) throw new Error("no quiz");
+    const open = served(await quizzes.next(userId, started.attemptId));
+    expect(
+      await quizzes.answerEstimate(
+        userId,
+        started.attemptId,
+        open.questionId,
+        5,
+      ),
+    ).toBeNull();
+  });
+});
+
+test("after the round's clock and its grace, an estimate doesn't count", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    await handWritten(trx, wal.id, "disk seek", 300);
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await round(quizzes, userId);
+    const open = estimate(await quizzes.next(userId, attemptId));
+    await trx
+      .updateTable("quiz_attempt")
+      .set({
+        started_at: sql<Date>`now() - interval '2 minutes'`,
+        ends_at: sql<Date>`now() - interval '1 minute'`,
+      })
+      .where("id", "=", attemptId)
+      .execute();
+    expect(
+      await quizzes.answerEstimate(userId, attemptId, open.questionId, 300),
+    ).toBe("late");
+    expect(await quizzes.next(userId, attemptId)).toBe("over");
+  });
+});
+
+test("a round is a game score only: no mastery, no review card, no answer counts", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const near = await handWritten(trx, wal.id, "near", 300);
+    const far = await handWritten(trx, wal.id, "far", 300);
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await round(quizzes, userId);
+    for (let i = 0; i < 2; i++) {
+      const open = estimate(await quizzes.next(userId, attemptId));
+      await quizzes.answerEstimate(
+        userId,
+        attemptId,
+        open.questionId,
+        open.questionId === near ? 310 : 9000,
+      );
+    }
+    expect(await quizzes.finish(userId, attemptId)).toEqual({
+      answered: 2,
+      correct: 1,
+      firstTime: true,
+      checkpoint: null,
+      sprint: true,
+      estimation: { points: 100 },
+    });
+    expect(await mastery(trx, userId)).toEqual([]);
+    expect(await cards(trx, userId)).toEqual([]);
+    const counts = await trx
+      .selectFrom("question")
+      .select(["answer_count", "correct_count"])
+      .where("id", "in", [near, far])
+      .execute();
+    expect(counts).toEqual([
+      { answer_count: 0, correct_count: 0 },
+      { answer_count: 0, correct_count: 0 },
+    ]);
+    const attempt = await quizzes.attempt(userId, attemptId);
+    expect(attempt).toMatchObject({ answered: 2, correct: 1, concepts: [] });
+    expect(attempt?.estimation?.points).toBe(100);
+    expect(
+      attempt?.estimation?.answers.map((a) => [a.stem, a.guess, a.score]),
+    ).toEqual(
+      expect.arrayContaining([
+        ["near", 310, 1],
+        ["far", 9000, 0],
+      ]),
+    );
+    // closeStale treats a round like a sprint: it has nothing left to close.
+    expect(await quizzes.closeStale(userId)).toEqual([]);
+  });
+});
+
+test("a flagged hand-written estimate leaves rounds and is queued for review at once", async () => {
+  await inRollback(async (trx, { userId, otherUser, q }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const id = await handWritten(trx, wal.id, "disk seek", 300);
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await round(quizzes, userId);
+    estimate(await quizzes.next(userId, attemptId));
+    await quizzes.answerEstimate(userId, attemptId, id, 300);
+    expect(await quizzes.flag(userId, attemptId, id, "wrong_key")).toBe(true);
+    const question = await trx
+      .selectFrom("question")
+      .select("status")
+      .where("id", "=", id)
+      .executeTakeFirstOrThrow();
+    expect(question.status).toBe("flagged");
+    expect(
+      await trx
+        .selectFrom("question_review")
+        .select(["reason", "decision"])
+        .where("question_id", "=", id)
+        .execute(),
+    ).toEqual([{ reason: "flagged", decision: null }]);
+    expect(await quizzes.startEstimation(otherUser)).toBeNull();
+  });
+});
+
+test("an answer is a choice or an estimate, never both", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    await handWritten(trx, wal.id, "disk seek", 300);
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await round(quizzes, userId);
+    const open = estimate(await quizzes.next(userId, attemptId));
+    await expect(
+      trx
+        .updateTable("quiz_answer")
+        .set({
+          chosen: 0,
+          correct: true,
+          guess: 3,
+          score: 0,
+          answered_at: sql<Date>`now()`,
+        })
+        .where("attempt_id", "=", attemptId)
+        .where("question_id", "=", open.questionId)
+        .execute(),
+    ).rejects.toThrow(/quiz_answer_answered/);
+  });
+});
+
+test("an estimation round is always a sprint", async () => {
+  await inRollback(async (trx, { userId, itemId }) => {
+    await expect(
+      trx
+        .insertInto("quiz_attempt")
+        .values({
+          user_id: userId,
+          estimation: true,
+          ends_at: sql<Date>`now() + interval '60 seconds'`,
+          content_item_id: itemId,
+        })
+        .execute(),
+    ).rejects.toThrow(/quiz_attempt_estimation_is_sprint/);
   });
 });

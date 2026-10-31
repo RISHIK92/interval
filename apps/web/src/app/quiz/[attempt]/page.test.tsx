@@ -25,6 +25,7 @@ const user: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
 const running: QuizAttempt = {
   review: false,
   sprint: false,
+  estimation: null,
   itemId: "5",
   momentId: "9",
   title: "Raft",
@@ -63,6 +64,7 @@ test("a question is four answer buttons and never its key", async () => {
   next.mockResolvedValue({
     questionId: "7",
     stem: "What does a candidate need?",
+    kind: "choice",
     options: ["A majority", "Everyone", "The longest log", "A lease"],
     servedAt: new Date(),
   });
@@ -83,6 +85,7 @@ test("a question is four answer buttons and never its key", async () => {
 test("feedback marks the choice and the right option in words", async () => {
   answered.mockResolvedValue({
     stem: "What does a candidate need?",
+    kind: "choice",
     options: ["A majority", "Everyone", "The longest log", "A lease"],
     chosen: 1,
     correctOption: 0,
@@ -104,6 +107,7 @@ test("Close warns before exiting; exiting ends the test and leaves", async () =>
   next.mockResolvedValue({
     questionId: "7",
     stem: "Q?",
+    kind: "choice",
     options: ["a", "b", "c", "d"],
     servedAt: new Date(),
   });
@@ -122,6 +126,7 @@ test("Close warns before exiting; exiting ends the test and leaves", async () =>
 test("a right answer says so", async () => {
   answered.mockResolvedValue({
     stem: "Q?",
+    kind: "choice",
     options: ["a", "b", "c", "d"],
     chosen: 2,
     correctOption: 2,
@@ -192,6 +197,7 @@ test("a review has no clock and says when every due concept is done", async () =
   next.mockResolvedValue({
     questionId: "7",
     stem: "Q?",
+    kind: "choice",
     options: ["a", "b", "c", "d"],
     servedAt: new Date(),
   });
@@ -215,6 +221,7 @@ test("a review has no clock and says when every due concept is done", async () =
 test("an answered question can be flagged with a reason, then says it was", async () => {
   answered.mockResolvedValue({
     stem: "Q?",
+    kind: "choice",
     options: ["a", "b", "c", "d"],
     chosen: 2,
     correctOption: 2,
@@ -235,6 +242,7 @@ test("an answered question can be flagged with a reason, then says it was", asyn
   );
   answered.mockResolvedValue({
     stem: "Q?",
+    kind: "choice",
     options: ["a", "b", "c", "d"],
     chosen: 2,
     correctOption: 2,
@@ -250,6 +258,7 @@ test("a checkpoint says what passing unlocks, and Close goes back to the path", 
   next.mockResolvedValue({
     questionId: "7",
     stem: "What does a quorum need?",
+    kind: "choice",
     options: ["A majority", "Everyone", "One", "None"],
     servedAt: new Date(),
   });
@@ -284,6 +293,7 @@ test("a sprint is named as one, and Close goes back to Play", async () => {
   next.mockResolvedValue({
     questionId: "7",
     stem: "What does a quorum need?",
+    kind: "choice",
     options: ["A majority", "Everyone", "One", "None"],
     servedAt: new Date(),
   });
@@ -292,6 +302,7 @@ test("a sprint is named as one, and Close goes back to Play", async () => {
     {
       ...running,
       sprint: true,
+      estimation: null,
       itemId: null,
       momentId: null,
       title: "60-second sprint",
@@ -307,6 +318,7 @@ test("a sprint is named as one, and Close goes back to Play", async () => {
 test("a guest gets no report form: a flag isn't theirs to make (ADR-0029)", async () => {
   answered.mockResolvedValue({
     stem: "Q?",
+    kind: "choice",
     options: ["a", "b", "c", "d"],
     chosen: 2,
     correctOption: 2,
@@ -317,6 +329,7 @@ test("a guest gets no report form: a flag isn't theirs to make (ADR-0029)", asyn
   attempt.mockResolvedValue({
     ...running,
     sprint: true,
+    estimation: null,
     itemId: null,
     momentId: null,
   });
@@ -329,4 +342,85 @@ test("a guest gets no report form: a flag isn't theirs to make (ADR-0029)", asyn
   );
   expect(html).toContain("Next question");
   expect(html).not.toContain("Report a problem");
+});
+
+// P3-W13-S04 (§6.3, C-27, AI-3): an estimation round on the sprint's clock; each
+// estimate is a number in its unit, and the reveal cites its source.
+const round: QuizAttempt = {
+  ...running,
+  sprint: true,
+  estimation: { points: 0, answers: [] },
+  itemId: null,
+  momentId: null,
+  title: "Estimation",
+};
+
+test("an estimate asks for a positive number in its unit, named as an estimation round", async () => {
+  next.mockResolvedValue({
+    questionId: "7",
+    stem: "How long is a disk seek?",
+    kind: "estimate",
+    unit: "ms",
+    servedAt: new Date(),
+  });
+  const html = await render({ chip: "3-8" }, round);
+  expect(html).toContain("How long is a disk seek?");
+  const input = /<input[^>]*name="guess"[^>]*>/.exec(html)?.[0] ?? "";
+  for (const attribute of [
+    'type="number"',
+    'step="any"',
+    'min="0"',
+    "required",
+  ])
+    expect(input).toContain(attribute);
+  expect(html).toContain(">ms<");
+  expect(html).toContain('name="questionId" value="7"');
+  expect(html).not.toContain('name="chosen"');
+  expect(html).toContain("Exit the round?");
+  expect(html).toMatch(/name="leave" value="play"/);
+  expect(html).toContain("Questions picked for you");
+  expect(html).not.toContain("60-second sprint");
+});
+
+const reveal = {
+  kind: "estimate" as const,
+  questionId: "7",
+  stem: "How long is a disk seek?",
+  guess: 30,
+  answer: 10,
+  unit: "ms",
+  score: 0.47,
+  citation: "a seek takes about 10 ms",
+  sourceTitle: "Latency numbers",
+  sourceUrl: "https://docs.example.test/latency",
+  flagged: false,
+};
+
+test("the reveal shows the guess, the answer, the points and the cited source", async () => {
+  answered.mockResolvedValue(reveal);
+  const html = await render({ chip: "3-8", answered: "7" }, round);
+  const text = html.replace(/<[^>]+>/g, "|");
+  expect(text).toContain("Your guess");
+  expect(text).toMatch(/30\|?\s*ms/);
+  expect(text).toMatch(/10\|?\s*ms/);
+  expect(text).toContain("47 points");
+  // Words, never colour alone: under half points, way off.
+  expect(text).toContain("Way off");
+  expect(html).toContain("a seek takes about 10 ms");
+  expect(html).toMatch(
+    /<a[^>]*href="https:\/\/docs.example.test\/latency"[^>]*rel="noopener noreferrer"[^>]*>[^<]*Latency numbers/,
+  );
+  expect(html).toContain("Next question");
+  expect(html).toContain("Report a problem");
+});
+
+test("the reveal names full points and close guesses", async () => {
+  answered.mockResolvedValue({ ...reveal, guess: 11, score: 1 });
+  expect(await render({ chip: "3-8", answered: "7" }, round)).toContain(
+    "Full points",
+  );
+  answered.mockResolvedValue({ ...reveal, guess: 25, score: 0.56 });
+  expect(await render({ chip: "3-8", answered: "7" }, round)).toContain(
+    "Close",
+  );
 });

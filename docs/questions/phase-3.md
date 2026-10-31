@@ -48,6 +48,11 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Options: (a) the generator also writes numeric questions, only where the moment states the number (cited, validated like Q-1); (b) hand-written (§6.8 allows it for the daily challenge and seasons); (c) both.
 - **Answer (owner, 2026-10-31):** (c), both: cited generator questions where the article states the number, plus a hand-written set entered in admin.
 - **Addendum (owner, 2026-10-31, P3-W13-S03):** a hand-written question carries its source page's URL and title and the quoted sentence stating the number; it goes live at once (still in the weekly sample, flaggable, retirable). The generated half moved to P3-W13-S03b.
+- **Addendum (owner, 2026-10-31, P3-W13-S04, the solo round):**
+  - a 60-second clock, as many as fit, like the sprint (the reveal after each answer runs on the clock; the results repeat every answer and source);
+  - an answer under half points (about 3.5× off) sends its source back to reading;
+  - a game score only: never mastery, review (FSRS) or difficulty evidence;
+  - questions picked by Q-P3-04's rule, as for the sprint.
 - Suggested default: (c): cited generator questions where a number is in the text, plus a hand-written set the owner enters in admin.
 
 ### Q-P3-06 The daily challenge's day, size and review fallback (P0 for S05)

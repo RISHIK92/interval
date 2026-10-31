@@ -2285,3 +2285,39 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Web: `server/local-request.ts` `isLocalRequest` (Host and any `x-forwarded-host` localhost, 127.0.0.1 or [::1]; every `x-forwarded-for` address loopback, and present; never in a production build). `/forgot-password` there asks for the email and a new password (`quickReset` → `Accounts.setPassword`: Better Auth's hasher, credential accounts only, every session ended, outstanding reset links voided) and goes to sign in; anywhere else, the link flow as before.
 - Tests: the local check (tunnel, rewritten Host, forwarded host, missing or empty forwarding, production), `setPassword` on Postgres (old password, sessions, an earlier link voided, unknown email), the page and action both ways. Live: localhost shows the new form; requests with ngrok's headers get the link flow (the ngrok URL itself wasn't reachable from the shell).
 - Reviewer: a machine on the same network can fake loopback headers (`next dev` listens on all addresses, Next keeps a client's `x-forwarded-for`); owner accepted the risk rather than bind the dev server to loopback, recorded in ADR-0030. Fixed: missing `x-forwarded-for` no longer counts as local, production gate, earlier reset links voided, exact email match.
+
+### 2026-10-31 — P3-W13-S04 (solo estimation; §6.3, §6.1, C-27, AI-3, Q-P3-04, Q-P3-05)
+- Owner (planning, recorded under Q-P3-05):
+  - a 60-second clock, like the sprint;
+  - under half points sends the source back to reading;
+  - a game score only (no mastery, FSRS or difficulty evidence);
+  - the sprint's pick rule.
+- Data: migration `20261031030000_estimation_rounds.sql`:
+  - `quiz_attempt.estimation` (always a sprint), with one open sprint and one open round per user;
+  - `quiz_answer.guess` and `score` (0 to 1), with `correct` left null for an estimate, so nothing that reads `correct` (mastery, ratings, checkpoints, the worker's calibration) counts it. Down tested locally.
+- Events:
+  - `game_started` and `game_finished` v2 add `estimation`;
+  - `game_finished` gains `points` (a sprint's correct count, a round's points);
+  - new `estimate_answered`.
+- Server:
+  - `startEstimation` shares the sprint's insert-or-meet (`startGame`);
+  - `next` runs the sprint's pick over `LIVE_ESTIMATE` (hand-written estimates only);
+  - `answerEstimate` scores with `estimateScore`, first answer only, in time;
+  - `answered` and `attempt` return the reveal (guess, answer, unit, points, quoted sentence, source page);
+  - a flag now takes a hand-written question out at once and queues it (S03's follow-up).
+- Web:
+  - Play's Estimation card starts a round, with `?estimation=none`.
+  - The quiz page asks for a positive number in the question's unit and reveals the answer, the points ("Full points", "Close", "Way off") and the cited source.
+  - Results show the points, each answer against the real one, "Read again" for sources under half points, and Back to Play.
+- Tests:
+  - the adapter on Postgres: start, pick, scoring, resubmission, late answers, no mastery/FSRS/counts, flag, shape checks;
+  - helpers;
+  - actions: start, capability, none left, a just-ended clock, a bad guess, a late guess, events;
+  - Play, quiz and results pages;
+  - the event list.
+- Reviewer:
+  - A moment's estimate would be revealed without rights gating and linked past the reader. Fixed by keeping rounds to hand-written estimates; the gating moved into S03b's acceptance.
+  - Total vs per-answer rounding: fixed, the total is the sum of the shown points.
+  - Capability typing: fixed.
+  - The fallback re-read now filters by user.
+- Not checked live: Chrome is off, and the local bank has no estimates yet (write some at `/admin/questions`).

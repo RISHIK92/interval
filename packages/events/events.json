@@ -95,18 +95,29 @@
       "props": { "attempt_id": "id", "answered": "count", "correct": "count" }
     },
     "game_started": {
-      "version": 1,
-      "description": "A quick game started on Play (P3-W13-S02, §6.3), once per attempt. Ids only.",
-      "props": { "attempt_id": "id", "game": ["sprint"] }
+      "version": 2,
+      "description": "A quick game started on Play (P3-W13-S02, §6.3), once per attempt. Ids only. Version 2 adds estimation (P3-W13-S04).",
+      "props": { "attempt_id": "id", "game": ["sprint", "estimation"] }
     },
     "game_finished": {
-      "version": 1,
-      "description": "A quick game finished, once per attempt, on the page or closed when the next one started (P3-W13-S02). The score is the correct count.",
+      "version": 2,
+      "description": "A quick game finished, once per attempt, on the page or closed when the next one started (P3-W13-S02). points is the score: a sprint's correct count; an estimation round's points, up to 100 an answer (C-27), whose correct counts answers at full points. Version 2 adds estimation and points (P3-W13-S04).",
       "props": {
         "attempt_id": "id",
-        "game": ["sprint"],
+        "game": ["sprint", "estimation"],
         "answered": "count",
-        "correct": "count"
+        "correct": "count",
+        "points": "count"
+      }
+    },
+    "estimate_answered": {
+      "version": 1,
+      "description": "An estimation question was answered in time, first time only (P3-W13-S04). points: 0 to 100 (C-27); ms: from serving to answering.",
+      "props": {
+        "attempt_id": "id",
+        "question_id": "id",
+        "points": "count",
+        "ms": "count"
       }
     },
     "question_flagged": {

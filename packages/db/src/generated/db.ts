@@ -639,7 +639,9 @@ export interface QuizAnswer {
   attempt_id: Int8;
   chosen: number | null;
   correct: boolean | null;
+  guess: number | null;
   question_id: Int8;
+  score: number | null;
   served_at: Generated<Timestamp>;
 }
 
@@ -649,6 +651,7 @@ export interface QuizAttempt {
   checkpoint_size: number | null;
   content_item_id: Int8 | null;
   ends_at: Timestamp | null;
+  estimation: Generated<boolean>;
   finished_at: Timestamp | null;
   id: Generated<Int8>;
   moment_id: Int8 | null;

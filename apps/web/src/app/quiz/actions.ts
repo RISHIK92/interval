@@ -1,5 +1,6 @@
 "use server";
 
+import type { Capability } from "@interval/db";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -10,7 +11,13 @@ import {
   quizzes,
   sessionReader,
 } from "../../server/container";
-import { BIGINT_ID, checkpointHome, type QuizFinish } from "../../server/ports";
+import { points } from "../../server/estimation";
+import {
+  BIGINT_ID,
+  checkpointHome,
+  type QuizFinish,
+  type Quizzes,
+} from "../../server/ports";
 import { visitId } from "../../server/visits";
 import { sameSitePath, textField } from "../form";
 import { FLAG_REASON_KEYS } from "./flagReasons";
@@ -28,6 +35,13 @@ const Answer = z.object({
   attemptId: z.string().regex(BIGINT_ID),
   questionId: z.string().regex(BIGINT_ID),
   chosen: z.coerce.number().int().min(0).max(3),
+  chip: z.enum(CHIPS),
+});
+// P3-W13-S04: an estimate is a positive number (zod 4's numbers are finite).
+const Estimate = z.object({
+  attemptId: z.string().regex(BIGINT_ID),
+  questionId: z.string().regex(BIGINT_ID),
+  guess: z.coerce.number().positive(),
   chip: z.enum(CHIPS),
 });
 // Close leaves for where the quiz started (the feed, the Library for a review, the
@@ -58,7 +72,14 @@ function recordFinish(
   if (done.sprint)
     events().emit(
       "game_finished",
-      { attempt_id: attemptId, game: "sprint", ...counts },
+      {
+        attempt_id: attemptId,
+        ...counts,
+        // The score: a sprint's correct count, an estimation round's points.
+        ...(done.estimation === null
+          ? { game: "sprint", points: done.correct }
+          : { game: "estimation", points: done.estimation.points }),
+      },
       context,
     );
   else if (checkpoint === null)
@@ -126,33 +147,49 @@ export async function startQuizAction(form: FormData): Promise<void> {
   redirect(`/quiz/${started.attemptId}?chip=${chip}`);
 }
 
-// P3-W13-S02 (§6.3): a solo sprint from Play, for anyone whose plan has it (OPS-3),
-// guests included (ADR-0029).
-export async function startSprintAction(): Promise<void> {
+// P3-W13-S02 (§6.3): a solo game from Play, for anyone whose plan has it (OPS-3),
+// guests included (ADR-0029): the sprint, or estimation (P3-W13-S04).
+const GAME_STARTS = {
+  sprint: { capability: "play.sprint", start: "startSprint" },
+  estimation: { capability: "play.estimation", start: "startEstimation" },
+} as const satisfies Record<
+  string,
+  { capability: Capability; start: keyof Quizzes }
+>;
+
+async function startGame(game: keyof typeof GAME_STARTS): Promise<void> {
   const { actor, context } = await signedIn();
-  if (!(await entitlements().can(actor.userId, "play.sprint")))
-    redirect("/play");
+  const { capability, start } = GAME_STARTS[game];
+  if (!(await entitlements().can(actor.userId, capability))) redirect("/play");
   await closeLeftOpen(actor.userId, context);
-  let started = await quizzes().startSprint(actor.userId);
-  // A sprint whose clock ran out moments ago (still in its grace, so not closed
+  let started = await quizzes()[start](actor.userId);
+  // A game whose clock ran out moments ago (still in its grace, so not closed
   // above): finished and recorded here, so Start starts a fresh one.
   if (started !== null && started.endsAt.getTime() <= Date.now()) {
     const done = await quizzes().finish(actor.userId, started.attemptId);
     if (done?.firstTime === true)
       recordFinish(started.attemptId, done, context);
-    started = await quizzes().startSprint(actor.userId);
+    started = await quizzes()[start](actor.userId);
   }
   // Nothing the player wasn't asked this week (Q-P3-04): Play says so.
-  if (started === null) redirect("/play?sprint=none");
+  if (started === null) redirect(`/play?${game}=none`);
   if (started.firstTime)
     events().emit(
       "game_started",
-      { attempt_id: started.attemptId, game: "sprint" },
+      { attempt_id: started.attemptId, game },
       context,
     );
-  // A sprint has no feed to return to; the chip only rides along to the quiz pages.
+  // A game has no feed to return to; the chip only rides along to the quiz pages.
   const chip = parseChip((await cookies()).get(CHIP_COOKIE)?.value) ?? "3-8";
   redirect(`/quiz/${started.attemptId}?chip=${chip}`);
+}
+
+export async function startSprintAction(): Promise<void> {
+  await startGame("sprint");
+}
+
+export async function startEstimationAction(): Promise<void> {
+  await startGame("estimation");
 }
 
 // P2-W9-S05 (Q-P2-17): a review session over the concepts that have come due.
@@ -270,6 +307,45 @@ export async function answerQuizAction(form: FormData): Promise<void> {
       context,
     );
   redirect(`/quiz/${attemptId}?chip=${chip}&answered=${questionId}`);
+}
+
+// P3-W13-S04 (C-27): an estimate, scored by the server; the page then reveals the
+// answer and its source.
+export async function answerEstimateAction(form: FormData): Promise<void> {
+  const { actor, context } = await signedIn();
+  const attemptId = textField(form, "attemptId");
+  const parsed = Estimate.safeParse(Object.fromEntries(form));
+  if (!parsed.success) {
+    const chip = parseChip(textField(form, "chip"));
+    redirect(
+      BIGINT_ID.test(attemptId) && chip !== null
+        ? `/quiz/${attemptId}?chip=${chip}`
+        : "/",
+    );
+  }
+  const { questionId, guess, chip } = parsed.data;
+  const got = await quizzes().answerEstimate(
+    actor.userId,
+    parsed.data.attemptId,
+    questionId,
+    guess,
+  );
+  if (got === null || got === "late")
+    redirect(`/quiz/${parsed.data.attemptId}?chip=${chip}`);
+  if (got.firstTime)
+    events().emit(
+      "estimate_answered",
+      {
+        attempt_id: parsed.data.attemptId,
+        question_id: questionId,
+        points: points(got.score),
+        ms: got.answeredAt.getTime() - got.servedAt.getTime(),
+      },
+      context,
+    );
+  redirect(
+    `/quiz/${parsed.data.attemptId}?chip=${chip}&answered=${questionId}`,
+  );
 }
 
 // P2-W9-S07 (Q-2, Q-P2-18): a flag on an answered question, with its reason.

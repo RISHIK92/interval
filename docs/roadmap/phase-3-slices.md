@@ -55,7 +55,7 @@ ADRs the answers need, each before its first slice (PROPOSED until the owner acc
 - IDs: §6.3, Q-1, AI-3, Q-P3-05
 - Needs: S03
 - Goal: the question generator also drafts an estimation question where a moment states the number, cited and validated like multiple choice (Q-1), through the batch path.
-- Acceptance: drafting a moment's estimate doesn't retire its multiple-choice questions (and the reverse); the validator answers the number blind and agrees within 1.25× (C-27's full points); the citation contains the number; batches carry both kinds; the AI budget (OPS-4) holds. S03's `question_shape` keeps `validator_answer` null for an estimate, so this slice adds a numeric validator answer; the worker's `pending`, `record_verdict`, `summary` and `save` (which retires every question on a moment) assume multiple choice today.
+- Acceptance: drafting a moment's estimate doesn't retire its multiple-choice questions (and the reverse); the validator answers the number blind and agrees within 1.25× (C-27's full points); the citation contains the number; batches carry both kinds; the AI budget (OPS-4) holds. S03's `question_shape` keeps `validator_answer` null for an estimate, so this slice adds a numeric validator answer; the worker's `pending`, `record_verdict`, `summary` and `save` (which retires every question on a moment) assume multiple choice today. Estimation rounds (S04) serve hand-written estimates only (`LIVE_ESTIMATE`); a moment's estimate joins them once its reveal and Read again are rights-gated (ING-2, a broken link left out, like the sprint's misses) and link through `readHref`/`outHref`.
 - Out of scope: hand-written questions (S03).
 - Q: Q-P3-05. Split from S03 by the owner (2026-10-31).
 

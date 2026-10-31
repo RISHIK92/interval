@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CHIPS } from "../../../../server/chips";
 import { progress, quizzes, sessionReader } from "../../../../server/container";
+import { missed, points } from "../../../../server/estimation";
 import { outHref, readHref } from "../../../../server/outbound";
 import { BIGINT_ID, checkpointHome } from "../../../../server/ports";
 import { STATE_WORDS } from "../../../learnerState";
+import { amount, verdict } from "../../estimateText";
 import {
   startBookCheckpointAction,
   startCheckpointAction,
@@ -35,7 +37,7 @@ export default async function ResultsPage({
   const attempt = await quizzes().attempt(actor.userId, attemptId);
   if (attempt === null) redirect("/");
   if (attempt.finishedAt === null) redirect(`/quiz/${attemptId}?chip=${chip}`);
-  const { itemId, momentId, checkpoint } = attempt;
+  const { itemId, momentId, checkpoint, estimation } = attempt;
   // A review (P2-W9-S05) has no section to continue.
   const next =
     itemId === null || momentId === null
@@ -48,10 +50,17 @@ export default async function ResultsPage({
       attempt.endsAt?.getTime() ?? Infinity,
     ) - attempt.startedAt.getTime();
   const stats = [
-    {
-      value: `${String(Math.round((attempt.correct / Math.max(1, attempt.answered)) * 100))}%`,
-      label: "Accuracy",
-    },
+    estimation === null
+      ? {
+          value: `${String(Math.round((attempt.correct / Math.max(1, attempt.answered)) * 100))}%`,
+          label: "Accuracy",
+        }
+      : {
+          value: String(
+            Math.round(estimation.points / Math.max(1, attempt.answered)),
+          ),
+          label: "Points an answer",
+        },
     {
       value:
         attempt.avgMs === null ? "–" : `${(attempt.avgMs / 1000).toFixed(1)}s`,
@@ -78,13 +87,27 @@ export default async function ResultsPage({
             from: "continue",
             target: "section",
           });
+  // §6.1 (owner, 2026-10-31): an estimate under half points sends its source back to
+  // reading, once per page.
+  const readAgain =
+    estimation === null
+      ? []
+      : [
+          ...new Map(
+            estimation.answers
+              .filter((a) => missed(a.score))
+              .map((a) => [a.sourceUrl, a.sourceTitle]),
+          ),
+        ];
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-5 px-4 pt-8 pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <header className="flex flex-col items-center gap-1 text-center">
         <h1 className="text-2xl font-semibold">
           {attempt.answered === 0
             ? "No answers this time"
-            : `${String(attempt.correct)} of ${String(attempt.answered)} correct`}
+            : estimation !== null
+              ? `${String(estimation.points)} points`
+              : `${String(attempt.correct)} of ${String(attempt.answered)} correct`}
         </h1>
         <p className="text-sm text-ink-muted">
           {attempt.review
@@ -159,6 +182,54 @@ export default async function ResultsPage({
             </div>
           ))}
         </dl>
+      )}
+      {/* P3-W13-S04 (C-27, AI-3): each estimate against the real answer, and where
+        it comes from. */}
+      {estimation === null || estimation.answers.length === 0 ? null : (
+        <ol className="flex flex-col gap-2">
+          {estimation.answers.map((a) => (
+            <li
+              key={a.questionId}
+              className="flex flex-col gap-1 rounded-2xl bg-well px-4 py-3"
+            >
+              <p className="font-semibold">{a.stem}</p>
+              <p className="text-sm">
+                Your guess {amount(a.guess, a.unit)} · Answer{" "}
+                {amount(a.answer, a.unit)}
+              </p>
+              <p className="text-sm font-semibold">
+                {verdict(a.score)}: {points(a.score)} points
+              </p>
+              <a
+                href={a.sourceUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-ink-muted underline underline-offset-2"
+              >
+                {a.sourceTitle}
+              </a>
+            </li>
+          ))}
+        </ol>
+      )}
+      {readAgain.length === 0 ? null : (
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold text-ink-muted">Read again</h2>
+          <ul className="flex flex-col gap-2">
+            {readAgain.map(([url, title]) => (
+              <li key={url}>
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block rounded-2xl border border-hairline px-4 py-3 font-semibold"
+                >
+                  {title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       {/* §6.1: what a sprint missed goes back to reading. The in-app reader is for
         accounts (ADR-0029), so a guest opens the publisher's page. */}

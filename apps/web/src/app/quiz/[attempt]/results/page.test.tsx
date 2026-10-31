@@ -30,6 +30,7 @@ const started = new Date("2026-10-28T10:00:00Z");
 const done: QuizAttempt = {
   review: false,
   sprint: false,
+  estimation: null,
   itemId: "5",
   momentId: "9",
   title: "Raft",
@@ -191,6 +192,7 @@ test("a passed checkpoint still names what it put in review (owner, 2026-10-28)"
 const sprintDone: QuizAttempt = {
   ...done,
   sprint: true,
+  estimation: null,
   itemId: null,
   momentId: null,
   title: "60-second sprint",
@@ -227,4 +229,80 @@ test("a guest's misses open on the publisher's page: the reader is for accounts"
 test("a sprint with no misses has nothing to read again", async () => {
   const html = await render({ ...sprintDone, missed: [] });
   expect(html).not.toContain("Read again");
+});
+
+// P3-W13-S04 (§6.3, §6.1, C-27): a round's points, each answer against the real one
+// with its source, and the sources of answers under half points to read again.
+const answer = (
+  stem: string,
+  guess: number,
+  score: number,
+  sourceTitle: string,
+) => ({
+  questionId: stem,
+  stem,
+  guess,
+  answer: 10,
+  unit: "ms",
+  score,
+  citation: "about 10 ms",
+  sourceTitle,
+  sourceUrl: `https://docs.example.test/${sourceTitle}`,
+});
+const roundDone: QuizAttempt = {
+  ...sprintDone,
+  title: "Estimation",
+  answered: 3,
+  correct: 1,
+  missed: [],
+  estimation: {
+    points: 160,
+    answers: [
+      answer("Disk seek?", 11, 1, "Seeks"),
+      answer("Packet round trip?", 25, 0.6, "Networks"),
+      answer("Context switch?", 900, 0, "Kernels"),
+    ],
+  },
+};
+
+test("a round's results: its points, each answer against the real one, and Back to Play", async () => {
+  const html = await render(roundDone);
+  const text = html.replace(/<[^>]+>/g, "|");
+  expect(html).toMatch(/<h1[^>]*>160 points</);
+  expect(text).toContain("Estimation");
+  expect(html).not.toContain("1 of 3 correct");
+  expect(html).not.toContain("Accuracy");
+  for (const stem of ["Disk seek?", "Packet round trip?", "Context switch?"])
+    expect(html).toContain(stem);
+  expect(text).toMatch(/900\|?\s*ms/);
+  expect(text).toMatch(/100 points/);
+  expect(html).toMatch(/href="\/play"[^>]*>Back to Play</);
+});
+
+test("only answers under half points go back to reading, at their source", async () => {
+  const html = await render(roundDone);
+  const again = /Read again[^]*$/.exec(html)?.[0] ?? "";
+  expect(again).toMatch(
+    /href="https:\/\/docs.example.test\/Kernels"[^>]*rel="noopener noreferrer"/,
+  );
+  expect(again).not.toContain("docs.example.test/Seeks");
+  expect(again).not.toContain("docs.example.test/Networks");
+  const close = await render({
+    ...roundDone,
+    estimation: {
+      points: 160,
+      answers: [answer("Disk seek?", 11, 1, "Seeks")],
+    },
+  });
+  expect(close).not.toContain("Read again");
+});
+
+test("a round with no answers says so", async () => {
+  const html = await render({
+    ...roundDone,
+    answered: 0,
+    correct: 0,
+    estimation: { points: 0, answers: [] },
+  });
+  expect(html).toContain("No answers this time");
 });

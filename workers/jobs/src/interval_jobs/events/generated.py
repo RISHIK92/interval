@@ -26,6 +26,7 @@ type EventName = Literal[
     "checkpoint_finished",
     "checkpoint_started",
     "continue_clicked",
+    "estimate_answered",
     "feed_viewed",
     "feedback_given",
     "feedback_undone",
@@ -69,11 +70,12 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "checkpoint_finished": 1,
     "checkpoint_started": 1,
     "continue_clicked": 1,
+    "estimate_answered": 1,
     "feed_viewed": 1,
     "feedback_given": 1,
     "feedback_undone": 1,
-    "game_finished": 1,
-    "game_started": 1,
+    "game_finished": 2,
+    "game_started": 2,
     "github_connected": 1,
     "github_disconnected": 1,
     "guest_merged": 1,
@@ -173,6 +175,13 @@ class ContinueClickedProps(_Model):
     pass
 
 
+class EstimateAnsweredProps(_Model):
+    attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    question_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    points: int = Field(ge=0, strict=True)
+    ms: int = Field(ge=0, strict=True)
+
+
 class FeedViewedProps(_Model):
     card_count: int = Field(ge=0, strict=True)
 
@@ -187,14 +196,15 @@ class FeedbackUndoneProps(_Model):
 
 class GameFinishedProps(_Model):
     attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
-    game: Literal["sprint"]
+    game: Literal["sprint", "estimation"]
     answered: int = Field(ge=0, strict=True)
     correct: int = Field(ge=0, strict=True)
+    points: int = Field(ge=0, strict=True)
 
 
 class GameStartedProps(_Model):
     attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
-    game: Literal["sprint"]
+    game: Literal["sprint", "estimation"]
 
 
 class GithubConnectedProps(_Model):
@@ -395,6 +405,12 @@ class ContinueClickedEvent(_EnvelopeBase):
     props: ContinueClickedProps
 
 
+class EstimateAnsweredEvent(_EnvelopeBase):
+    name: Literal["estimate_answered"]
+    version: Literal[1]
+    props: EstimateAnsweredProps
+
+
 class FeedViewedEvent(_EnvelopeBase):
     name: Literal["feed_viewed"]
     version: Literal[1]
@@ -415,13 +431,13 @@ class FeedbackUndoneEvent(_EnvelopeBase):
 
 class GameFinishedEvent(_EnvelopeBase):
     name: Literal["game_finished"]
-    version: Literal[1]
+    version: Literal[2]
     props: GameFinishedProps
 
 
 class GameStartedEvent(_EnvelopeBase):
     name: Literal["game_started"]
-    version: Literal[1]
+    version: Literal[2]
     props: GameStartedProps
 
 
@@ -565,6 +581,7 @@ type Envelope = Annotated[
     | CheckpointFinishedEvent
     | CheckpointStartedEvent
     | ContinueClickedEvent
+    | EstimateAnsweredEvent
     | FeedViewedEvent
     | FeedbackGivenEvent
     | FeedbackUndoneEvent

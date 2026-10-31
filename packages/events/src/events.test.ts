@@ -54,6 +54,7 @@ describe("the event list (Q-P1-20)", () => {
         "reason_reported", // ADR-0026
         "game_started", // P3-W13-S02
         "game_finished",
+        "estimate_answered", // P3-W13-S04
       ].sort(),
     );
   });

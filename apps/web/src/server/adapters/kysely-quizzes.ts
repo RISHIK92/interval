@@ -5,11 +5,13 @@ import {
   QUIZ_SECONDS,
   type CheckpointAt,
   type CheckpointInfo,
+  type EstimateReveal,
   type QuizFinish,
   type QuizQuestion,
   type Quizzes,
   quizKey,
 } from "../ports";
+import { estimateScore, points } from "../estimation";
 import { fsrsState, rate } from "../reviews";
 import {
   chapterQuestions,
@@ -47,6 +49,17 @@ const LIVE = sql`
    and s.moments_enabled
    and s.rights_profile in ('full_text_internal', 'full_text_display')
 `;
+
+// P3-W13-S04: live hand-written estimates (their home is their source page), as `q`.
+// A moment's estimate (P3-W13-S03b) joins once its reveal is rights-gated (ING-2) and
+// links through the reader like the sprint's misses.
+const LIVE_ESTIMATE = sql`(
+  select * from question where kind = 'estimate' and source_url is not null
+) q`;
+
+// A round's points: what each answer shows, added up (so the list sums to the total).
+const total = (scores: number[]): number =>
+  scores.reduce((sum, score) => sum + points(score), 0);
 
 // Q-P2-15: a right answer moves p by 0.3(1 - p); a wrong one leaves 0.7p. `done` is the answer statement's own row (none for a repeat).
 const moved = (p: RawBuilder<unknown>) => sql`
@@ -107,7 +120,8 @@ async function rateConcepts(
       sql<boolean>`bool_and(qa.correct)`.as("all_right"),
     ])
     .where("qa.attempt_id", "=", attemptId)
-    .where("qa.answered_at", "is not", null)
+    // An estimate's answer has no right or wrong (P3-W13-S04): never a rating.
+    .where("qa.correct", "is not", null)
     .where("c.retired_at", "is", null)
     .groupBy("qc.concept_id")
     .orderBy("qc.concept_id")
@@ -263,7 +277,9 @@ function checkpointAt(row: {
 type Open = {
   question_id: string;
   stem: string;
-  options: string[];
+  kind: "choice" | "estimate";
+  options: string[] | null;
+  unit: string | null;
   served_at: Date;
   over: boolean;
 };
@@ -315,13 +331,18 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       )
       .select([
         "a.sprint",
+        "a.estimation",
         "a.path_section_id",
         "a.book_chapter_id",
         "a.checkpoint_passed",
         "s.path_id",
         "bc.book_id",
         sql<number>`count(qa.question_id)::int`.as("answered"),
-        sql<number>`count(*) filter (where qa.correct)::int`.as("correct"),
+        // An estimate counts as correct at full points (P3-W13-S04).
+        sql<number>`count(*) filter (where qa.correct or qa.score = 1)::int`.as(
+          "correct",
+        ),
+        sql<number[]>`array_remove(array_agg(qa.score), null)`.as("scores"),
       ])
       .where("a.id", "=", attemptId)
       .where("a.user_id", "=", userId)
@@ -338,6 +359,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           ? null
           : { at, passed: row.checkpoint_passed },
       sprint: row.sprint,
+      estimation: row.estimation ? { points: total(row.scores) } : null,
     };
   };
 
@@ -382,7 +404,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
   // The attempt's open (served, unanswered) question, with whether the clock is out.
   const open = async (attemptId: string): Promise<Open | undefined> => {
     const { rows } = await sql<Open>`
-      select qa.question_id, q.stem, q.options, qa.served_at,
+      select qa.question_id, q.stem, q.kind, q.options, q.unit, qa.served_at,
              (coalesce(now() > a.ends_at + ${GRACE}, false)
                or a.finished_at is not null) as over
       from quiz_answer qa
@@ -392,11 +414,67 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     `.execute(db);
     return rows[0];
   };
-  const asQuestion = (row: Open): QuizQuestion => ({
+  // question_shape: a choice has options, an estimate a unit.
+  const asQuestion = (row: Open): QuizQuestion => {
+    const base = {
+      questionId: row.question_id,
+      stem: row.stem,
+      servedAt: row.served_at,
+    };
+    if (row.kind === "estimate" && row.unit !== null)
+      return { ...base, kind: "estimate", unit: row.unit };
+    if (row.kind === "choice" && row.options !== null)
+      return { ...base, kind: "choice", options: row.options };
+    throw new Error(`question ${row.question_id} breaks question_shape`);
+  };
+
+  // P3-W13-S04: an attempt's answered estimates with the real answer and its source
+  // (AI-3): a hand-written question's page (rounds serve no other, LIVE_ESTIMATE).
+  const reveals = (userId: string, attemptId: string) =>
+    db
+      .selectFrom("quiz_answer as qa")
+      .innerJoin("quiz_attempt as a", "a.id", "qa.attempt_id")
+      .innerJoin("question as q", "q.id", "qa.question_id")
+      .select([
+        "q.id as question_id",
+        "q.stem",
+        "qa.guess",
+        "q.answer",
+        "q.unit",
+        "qa.score",
+        "q.citation",
+        "q.source_title",
+        "q.source_url",
+        sql<boolean>`exists (
+          select 1 from question_flag f
+          where f.user_id = ${userId} and f.question_id = q.id
+        )`.as("flagged"),
+      ])
+      .where("qa.attempt_id", "=", attemptId)
+      .where("a.user_id", "=", userId)
+      .where("q.kind", "=", "estimate")
+      .where("qa.guess", "is not", null)
+      .where("q.source_url", "is not", null)
+      .$narrowType<{
+        guess: number;
+        answer: number;
+        unit: string;
+        score: number;
+        source_title: string;
+        source_url: string;
+      }>();
+  const asReveal = (
+    row: Awaited<ReturnType<ReturnType<typeof reveals>["execute"]>>[number],
+  ): EstimateReveal => ({
     questionId: row.question_id,
     stem: row.stem,
-    options: row.options,
-    servedAt: row.served_at,
+    guess: row.guess,
+    answer: row.answer,
+    unit: row.unit,
+    score: row.score,
+    citation: row.citation,
+    sourceTitle: row.source_title,
+    sourceUrl: row.source_url,
   });
 
   const checkpointInfo = async (
@@ -457,6 +535,42 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     };
   };
 
+  // P3-W13-S02, S04: one running sprint, and one running estimation round, per user
+  // (an index); a double tap, or a start while one runs, meets it. Callers close
+  // games past their clock first.
+  const startGame = async (userId: string, estimation: boolean) => {
+    const running = () =>
+      db
+        .selectFrom("quiz_attempt")
+        .select(["id", sql<Date>`ends_at`.as("ends_at")])
+        .where("user_id", "=", userId)
+        .where("sprint", "=", true)
+        .where("estimation", "=", estimation)
+        .where("finished_at", "is", null)
+        .executeTakeFirst();
+    const was = await running();
+    if (was !== undefined)
+      return { attemptId: was.id, endsAt: was.ends_at, firstTime: false };
+    const { rows } = await sql<{ id: string; ends_at: Date }>`
+      insert into quiz_attempt (user_id, sprint, estimation, ends_at)
+      select ${userId}, true, ${estimation}, now() + ${DURATION}
+      where exists (
+        select 1 from ${estimation ? LIVE_ESTIMATE : LIVE}
+        where q.status = 'live' and ${notServedThisWeek(userId)}
+      )
+      on conflict (user_id, estimation) where sprint and finished_at is null
+      do nothing
+      returning id, ends_at
+    `.execute(db);
+    const made = rows[0];
+    if (made !== undefined)
+      return { attemptId: made.id, endsAt: made.ends_at, firstTime: true };
+    const won = await running();
+    return won === undefined
+      ? null
+      : { attemptId: won.id, endsAt: won.ends_at, firstTime: false };
+  };
+
   return {
     closeStale,
 
@@ -504,6 +618,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .select([
           "review",
           "sprint",
+          "estimation",
           "path_section_id",
           "book_chapter_id",
           "checkpoint_size",
@@ -577,7 +692,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           ),
           pick as (
             select q.id
-            from ${LIVE}
+            from ${attempt.estimation ? LIVE_ESTIMATE : LIVE}
             left join user_preferences p on p.user_id = ${userId}
             cross join lateral (
               select coalesce(min(case
@@ -699,7 +814,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           from question q, quiz_attempt a
           where qa.attempt_id = ${attemptId} and qa.question_id = ${questionId}
             and qa.answered_at is null
-            and q.id = qa.question_id
+            and q.id = qa.question_id and q.kind = 'choice'
             and a.id = qa.attempt_id and a.user_id = ${userId}
             and coalesce(now() <= a.ends_at + ${GRACE}, true)
             -- Not locked: an answer committing while its quiz's finish is rating can
@@ -775,6 +890,70 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       };
     },
 
+    answerEstimate: async (userId, attemptId, questionId, guess) => {
+      const served = await db
+        .selectFrom("quiz_answer as qa")
+        .innerJoin("quiz_attempt as a", "a.id", "qa.attempt_id")
+        .innerJoin("question as q", "q.id", "qa.question_id")
+        .select([
+          "q.answer",
+          "q.unit",
+          "qa.score",
+          "qa.served_at",
+          "qa.answered_at",
+        ])
+        .where("qa.attempt_id", "=", attemptId)
+        .where("qa.question_id", "=", questionId)
+        .where("a.user_id", "=", userId)
+        .where("q.kind", "=", "estimate")
+        .$narrowType<{ answer: number; unit: string }>()
+        .executeTakeFirst();
+      if (served === undefined) return null;
+      const result = (score: number, answeredAt: Date, firstTime: boolean) => ({
+        answer: served.answer,
+        unit: served.unit,
+        score,
+        servedAt: served.served_at,
+        answeredAt,
+        firstTime,
+      });
+      if (served.score !== null && served.answered_at !== null)
+        return result(served.score, served.answered_at, false);
+      // C-27's one implementation; the update only takes the first answer, in time
+      // (LOAD-5). No mastery, rating or answer counts: a game score only (owner,
+      // 2026-10-31).
+      const score = estimateScore(guess, served.answer);
+      const { rows } = await sql<{ answered_at: Date }>`
+        update quiz_answer qa
+        set guess = ${guess}, score = ${score}, answered_at = now()
+        from quiz_attempt a
+        where qa.attempt_id = ${attemptId} and qa.question_id = ${questionId}
+          and qa.answered_at is null
+          and a.id = qa.attempt_id and a.user_id = ${userId}
+          and coalesce(now() <= a.ends_at + ${GRACE}, true)
+          and a.finished_at is null
+        returning qa.answered_at
+      `.execute(db);
+      const done = rows[0];
+      if (done !== undefined) return result(score, done.answered_at, true);
+      // A racing resubmission won, or the clock ran out.
+      const stored = await db
+        .selectFrom("quiz_answer")
+        .select(["score", "answered_at"])
+        .where("attempt_id", "=", attemptId)
+        .where("question_id", "=", questionId)
+        .where("attempt_id", "in", (eb) =>
+          eb
+            .selectFrom("quiz_attempt")
+            .select("id")
+            .where("user_id", "=", userId),
+        )
+        .executeTakeFirstOrThrow();
+      return stored.score === null || stored.answered_at === null
+        ? "late"
+        : result(stored.score, stored.answered_at, false);
+    },
+
     finish: async (userId, attemptId) => {
       // The finish and its ratings together: a quiz finished is rated exactly once.
       const finished = await inTransaction(db, async (trx) => {
@@ -825,6 +1004,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .select([
           "a.review",
           "a.sprint",
+          "a.estimation",
           "a.content_item_id",
           "a.moment_id",
           "a.started_at",
@@ -839,10 +1019,10 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           "a.checkpoint_size",
           "a.pass_mark",
           "a.checkpoint_passed",
-          sql<string>`coalesce(m.title, ci.title,
-            case when a.sprint then '60-second sprint' else 'Review' end)`.as(
-            "title",
-          ),
+          sql<string>`coalesce(m.title, ci.title, case
+            when a.estimation then 'Estimation'
+            when a.sprint then '60-second sprint'
+            else 'Review' end)`.as("title"),
           sql<number | null>`case when a.ends_at is not null
             then greatest(0, ceil(extract(epoch from a.ends_at - now())))::int end`.as(
             "seconds_left",
@@ -851,8 +1031,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             where qa.attempt_id = a.id and qa.answered_at is not null)`.as(
             "answered",
           ),
+          // An estimate counts as correct at full points (P3-W13-S04).
           sql<number>`(select count(*)::int from quiz_answer qa
-            where qa.attempt_id = a.id and qa.correct)`.as("correct"),
+            where qa.attempt_id = a.id and (qa.correct or qa.score = 1))`.as(
+            "correct",
+          ),
           sql<number | null>`(select avg(extract(epoch from
               qa.answered_at - qa.served_at) * 1000)::float8
             from quiz_answer qa
@@ -877,7 +1060,8 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .select(["c.name", "cm.state"])
         .distinct()
         .where("qa.attempt_id", "=", attemptId)
-        .where("qa.answered_at", "is not", null)
+        // Estimates are no evidence (P3-W13-S04): their concepts' states don't move.
+        .where("qa.correct", "is not", null)
         .where("c.retired_at", "is", null)
         .orderBy("c.name")
         .execute();
@@ -908,6 +1092,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             .orderBy("m.id")
             .execute()
         : [];
+      const estimates = row.estimation
+        ? (
+            await reveals(userId, attemptId).orderBy("qa.answered_at").execute()
+          ).map(asReveal)
+        : null;
       const at = checkpointAt(row);
       const checkpoint =
         at === null || row.checkpoint_size === null || row.pass_mark === null
@@ -920,6 +1109,13 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       return {
         review: row.review,
         sprint: row.sprint,
+        estimation:
+          estimates === null
+            ? null
+            : {
+                points: total(estimates.map((e) => e.score)),
+                answers: estimates,
+              },
         itemId: row.content_item_id,
         momentId: row.moment_id,
         title: checkpoint === null ? row.title : checkpoint.title,
@@ -992,38 +1188,8 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         : { attemptId: won.id, pathId: section.path_id, firstTime: false };
     },
 
-    // P3-W13-S02: one running sprint per user (an index); a double tap, or a start
-    // while one runs, meets it. Callers close sprints past their clock first.
-    startSprint: async (userId) => {
-      const running = () =>
-        db
-          .selectFrom("quiz_attempt")
-          .select(["id", sql<Date>`ends_at`.as("ends_at")])
-          .where("user_id", "=", userId)
-          .where("sprint", "=", true)
-          .where("finished_at", "is", null)
-          .executeTakeFirst();
-      const was = await running();
-      if (was !== undefined)
-        return { attemptId: was.id, endsAt: was.ends_at, firstTime: false };
-      const { rows } = await sql<{ id: string; ends_at: Date }>`
-        insert into quiz_attempt (user_id, sprint, ends_at)
-        select ${userId}, true, now() + ${DURATION}
-        where exists (
-          select 1 from ${LIVE}
-          where q.status = 'live' and ${notServedThisWeek(userId)}
-        )
-        on conflict (user_id) where sprint and finished_at is null do nothing
-        returning id, ends_at
-      `.execute(db);
-      const made = rows[0];
-      if (made !== undefined)
-        return { attemptId: made.id, endsAt: made.ends_at, firstTime: true };
-      const won = await running();
-      return won === undefined
-        ? null
-        : { attemptId: won.id, endsAt: won.ends_at, firstTime: false };
-    },
+    startSprint: (userId) => startGame(userId, false),
+    startEstimation: (userId) => startGame(userId, true),
 
     // P2-W11-S06 (Q-P2-35): the same insert-or-meet-the-winner as a section's, for a
     // ready chapter checkpoint of the user's own ready book. Its chapters don't lock
@@ -1160,7 +1326,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         -- their checkpoint.
         marked as (
           update question set status = 'flagged'
-          where id = ${questionId} and status = 'live' and moment_id is not null
+          where id = ${questionId} and status = 'live' and book_chapter_id is null
             and exists (select 1 from flagged)
         ),
         -- A question in this week's sample is now there because it was flagged;
@@ -1172,7 +1338,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             and exists (
               select 1 from question
               where id = ${questionId} and status in ('live', 'flagged')
-                and moment_id is not null
+                and book_chapter_id is null
             )
           on conflict (question_id) where decision is null
           do update set reason = 'flagged'
@@ -1183,6 +1349,15 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     },
 
     answered: async (userId, attemptId, questionId) => {
+      const reveal = await reveals(userId, attemptId)
+        .where("qa.question_id", "=", questionId)
+        .executeTakeFirst();
+      if (reveal !== undefined)
+        return {
+          kind: "estimate",
+          flagged: reveal.flagged,
+          ...asReveal(reveal),
+        };
       const row = await db
         .selectFrom("quiz_answer as qa")
         .innerJoin("quiz_attempt as a", "a.id", "qa.attempt_id")
@@ -1207,6 +1382,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       if (row === undefined || row.chosen === null || row.correct === null)
         return null;
       return {
+        kind: "choice",
         stem: row.stem,
         options: row.options,
         chosen: row.chosen,

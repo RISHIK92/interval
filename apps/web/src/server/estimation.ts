@@ -12,3 +12,8 @@ export function estimateScore(guess: number, answer: number): number {
   if (off >= NONE) return 0;
   return 1 - Math.log(off / FULL) / Math.log(NONE / FULL);
 }
+
+// P3-W13-S04 (owner, 2026-10-31): a round shows up to 100 points an answer, and an
+// answer under half points (about 3.5× off) sends its source back to reading (§6.1).
+export const points = (score: number): number => Math.round(score * 100);
+export const missed = (score: number): boolean => score < 0.5;
