@@ -170,9 +170,17 @@ export default async function QuestionsPage(props: {
                 </p>
                 <p className="text-base font-semibold">{q.stem}</p>
                 {q.kind === "estimate" ? (
-                  <p>
-                    Answer: {q.answer.toLocaleString("en-US")} {q.unit}
-                  </p>
+                  <>
+                    <p>
+                      Answer: {q.answer.toLocaleString("en-US")} {q.unit}
+                    </p>
+                    {q.validatorAnswer === null ? null : (
+                      <p>
+                        Validator: {q.validatorAnswer.toLocaleString("en-US")}{" "}
+                        {q.unit}
+                      </p>
+                    )}
+                  </>
                 ) : (
                   <ol className="list-decimal pl-5">
                     {q.options.map((option, i) => (

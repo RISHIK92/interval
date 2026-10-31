@@ -390,9 +390,12 @@ const reveal = {
   answer: 10,
   unit: "ms",
   score: 0.47,
-  citation: "a seek takes about 10 ms",
-  sourceTitle: "Latency numbers",
-  sourceUrl: "https://docs.example.test/latency",
+  source: {
+    kind: "page" as const,
+    citation: "a seek takes about 10 ms",
+    title: "Latency numbers",
+    url: "https://docs.example.test/latency",
+  },
   flagged: false,
 };
 
@@ -412,6 +415,28 @@ test("the reveal shows the guess, the answer, the points and the cited source", 
   );
   expect(html).toContain("Next question");
   expect(html).toContain("Report a problem");
+});
+
+// P3-W13-S03b (Q-P2-12): a moment's estimate links its section, never quotes it.
+test("a moment's estimate reveals its section through the reader, without a quote", async () => {
+  answered.mockResolvedValue({
+    ...reveal,
+    source: {
+      kind: "section",
+      itemId: "5",
+      momentId: "9",
+      sectionTitle: "Replication",
+      frameable: true,
+    },
+  });
+  const html = await render({ chip: "3-8", answered: "7" }, round);
+  expect(html).toMatch(/href="\/read\/5\?moment=9[^"]*"[^>]*>Replication</);
+  expect(html).not.toContain("&ldquo;");
+  expect(html).not.toContain("\u201c");
+  answered.mockResolvedValue({ ...reveal, source: null });
+  const gone = await render({ chip: "3-8", answered: "7" }, round);
+  expect(gone).toContain("47 points");
+  expect(gone).not.toContain("<blockquote");
 });
 
 test("the reveal names full points and close guesses", async () => {

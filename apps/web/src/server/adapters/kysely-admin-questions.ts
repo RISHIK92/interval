@@ -19,6 +19,7 @@ export function kyselyAdminQuestions(db: Kysely<DB>): AdminQuestions {
           "q.options",
           "q.correct",
           "q.validator_answer",
+          "q.validator_estimate",
           "q.answer",
           "q.unit",
           "q.citation",
@@ -50,6 +51,7 @@ export function kyselyAdminQuestions(db: Kysely<DB>): AdminQuestions {
             kind: "estimate",
             answer: r.answer,
             unit: r.unit,
+            validatorAnswer: r.validator_estimate,
           };
         if (r.kind === "choice" && r.options !== null && r.correct !== null)
           return {

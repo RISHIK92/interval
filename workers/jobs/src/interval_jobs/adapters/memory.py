@@ -48,6 +48,7 @@ from interval_jobs.ports import (
     ConceptSeed,
     DuplicateInviteCode,
     EntryFacts,
+    EstimateDraft,
     FeedEntry,
     Fetched,
     FetchError,
@@ -65,6 +66,7 @@ from interval_jobs.ports import (
     ProjectNoteInput,
     QuestionBatchEntry,
     QuestionDraft,
+    QuestionKind,
     QuestionSummary,
     QuestionTarget,
     RankedEntry,
@@ -91,6 +93,7 @@ from interval_jobs.ports import (
     ValidatedQuestion,
     Validators,
 )
+from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.segment import minutes
 from interval_jobs.technologies import TechnologySeed
 
@@ -1426,7 +1429,7 @@ class StoredQuestion:
     id: int
     moment_id: int
     ordinal: int
-    draft: QuestionDraft
+    draft: QuestionDraft | EstimateDraft
     concepts: tuple[str, ...]
     model: str
     prompt_version: int
@@ -1437,6 +1440,11 @@ class StoredQuestion:
     validated_at: datetime | None = None
     difficulty: Difficulty | None = None
     calibrated_at: datetime | None = None
+    validator_estimate: float | None = None
+
+    @property
+    def kind(self) -> QuestionKind:
+        return "estimate" if isinstance(self.draft, EstimateDraft) else "choice"
 
 
 class InMemoryQuestions:
@@ -1458,6 +1466,7 @@ class InMemoryQuestions:
         self.rows: list[StoredQuestion] = []
         self._next_id = 1
         self.retries: dict[int, tuple[int, datetime]] = {}
+        self.estimates_drafted: dict[int, str] = {}  # moment -> hash (P3-W13-S03b)
         # Q-2 reviews, oldest first: (question id, reason, decided)
         self.reviews: list[tuple[int, str, bool]] = []
         # Quiz answers (not reviews), which the web app writes (P2-W9-S01);
@@ -1522,10 +1531,15 @@ class InMemoryQuestions:
             (
                 q.content_hash
                 for q in self.rows
-                if q.moment_id == moment_id and q.status != "retired"
+                if q.moment_id == moment_id
+                and q.status != "retired"
+                and q.kind == "choice"
             ),
             None,
         )
+
+    def estimate_drafted_hash(self, moment_id: int) -> str | None:
+        return self.estimates_drafted.get(moment_id)
 
     def save(
         self,
@@ -1538,7 +1552,7 @@ class InMemoryQuestions:
         difficulty: Difficulty | None,
     ) -> list[int]:
         for q in self.rows:
-            if q.moment_id == moment_id:
+            if q.moment_id == moment_id and q.kind == "choice":
                 q.status = "retired"
         self.clear_retry(moment_id)
         ids: list[int] = []
@@ -1560,26 +1574,76 @@ class InMemoryQuestions:
             self._next_id += 1
         return ids
 
+    def save_estimate(
+        self,
+        moment_id: int,
+        draft: EstimateDraft | None,
+        concepts: Sequence[str],
+        model: str,
+        content_hash: str,
+        difficulty: Difficulty | None,
+    ) -> int | None:
+        for q in self.rows:
+            if q.moment_id == moment_id and q.kind == "estimate":
+                q.status = "retired"
+        self.estimates_drafted[moment_id] = content_hash
+        if draft is None:
+            return None
+        self.rows.append(
+            StoredQuestion(
+                self._next_id,
+                moment_id,
+                0,
+                draft,
+                tuple(c for c in concepts if self._concepts.get(c) is not None),
+                model,
+                ESTIMATE_PROMPT_VERSION,
+                content_hash,
+                difficulty=difficulty,
+            )
+        )
+        self._next_id += 1
+        return self._next_id - 1
+
     def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:
         return self.retries.get(moment_id)
 
     def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
         q = next((q for q in self.rows if q.id == question_id), None)
-        return None if q is None or q.status != "pending" else (q.moment_id, q.draft)
+        if q is None or q.status != "pending" or not isinstance(q.draft, QuestionDraft):
+            return None
+        return q.moment_id, q.draft
+
+    def pending_estimate(self, question_id: int) -> tuple[int, EstimateDraft] | None:
+        q = next((q for q in self.rows if q.id == question_id), None)
+        if q is None or q.status != "pending" or not isinstance(q.draft, EstimateDraft):
+            return None
+        return q.moment_id, q.draft
 
     def pending_ids(self, moment_id: int) -> list[int]:
         return [
             q.id
             for q in sorted(self.rows, key=lambda q: q.ordinal)
-            if q.moment_id == moment_id and q.status == "pending"
+            if q.moment_id == moment_id and q.status == "pending" and q.kind == "choice"
         ]
 
     def record_verdict(self, question_id: int, model: str, answer: int) -> bool:
         q = next((q for q in self.rows if q.id == question_id), None)
-        if q is None or q.status != "pending":
+        if q is None or q.status != "pending" or not isinstance(q.draft, QuestionDraft):
             return False
         q.status = "live" if answer == q.draft.correct else "rejected"
         q.validator_model, q.validator_answer = model, answer
+        q.validated_at = datetime.now(UTC)
+        return True
+
+    def record_estimate_verdict(
+        self, question_id: int, model: str, answer: float, agrees: bool
+    ) -> bool:
+        q = next((q for q in self.rows if q.id == question_id), None)
+        if q is None or q.status != "pending" or q.kind != "estimate":
+            return False
+        q.status = "live" if agrees else "rejected"
+        q.validator_model, q.validator_estimate = model, answer
         q.validated_at = datetime.now(UTC)
         return True
 
@@ -1628,8 +1692,8 @@ class InMemoryQuestions:
         self.reviews += [(q.id, "flagged", False) for q in flagged]
         return len(sampled), len(flagged)
 
-    def pending_questions(self) -> list[int]:
-        return [q.id for q in self.rows if q.status == "pending"]
+    def pending_questions(self) -> list[tuple[int, QuestionKind]]:
+        return [(q.id, q.kind) for q in self.rows if q.status == "pending"]
 
     def record_batch(
         self,
@@ -1672,7 +1736,7 @@ class InMemoryQuestions:
             key=lambda e: e.custom_id,
         )
 
-    def in_open_batches(self) -> tuple[set[int], set[int]]:
+    def in_open_batches(self) -> tuple[set[tuple[int, QuestionKind]], set[int]]:
         entries = [
             e
             for b, (_, is_open, _) in self.batches.items()
@@ -1680,7 +1744,7 @@ class InMemoryQuestions:
             for e, _ in self.batch_items[b]
         ]
         return (
-            {e.moment_id for e in entries if e.moment_id is not None},
+            {(e.moment_id, e.kind) for e in entries if e.moment_id is not None},
             {e.question_id for e in entries if e.question_id is not None},
         )
 
@@ -1728,7 +1792,9 @@ class InMemoryQuestions:
         validated = [
             ValidatedQuestion(q.id, q.draft, q.validator_answer, q.status)
             for q in self.rows
-            if q.validator_answer is not None and q.status != "retired"
+            if q.validator_answer is not None
+            and q.status != "retired"
+            and isinstance(q.draft, QuestionDraft)
         ]
         return QuestionSummary(
             counts, random.sample(validated, min(sample, len(validated)))
@@ -1745,6 +1811,9 @@ class InMemoryQuestions:
         live = {m.id for m in self._moments.rows}
         self.rows = [q for q in self.rows if q.moment_id in live]
         self.retries = {m: r for m, r in self.retries.items() if m in live}
+        self.estimates_drafted = {
+            m: h for m, h in self.estimates_drafted.items() if m in live
+        }
         kept = {q.id for q in self.rows}
         self.reviews = [r for r in self.reviews if r[0] in kept]
 
@@ -1813,7 +1882,12 @@ class InMemoryPaths:
 
     def session_candidates(self, slugs: Collection[str]) -> list[SessionCandidate]:
         wanted = set(slugs)
-        live = {q.moment_id for q in self._questions.rows if q.status == "live"}
+        # A checkpoint asks multiple choice only (P3-W13-S03b).
+        live = {
+            q.moment_id
+            for q in self._questions.rows
+            if q.status == "live" and q.kind == "choice"
+        }
         return [
             SessionCandidate(moment_id, concepts, source, frameable, moment_id in live)
             for moment_id, source, concepts, frameable in self._allowed()

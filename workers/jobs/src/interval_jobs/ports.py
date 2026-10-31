@@ -505,6 +505,20 @@ class QuestionDraft:
 
 
 @dataclass(frozen=True)
+class EstimateDraft:
+    """One drafted estimation question (P3-W13-S03b, Q-P3-05): a positive number in
+    `unit`, which `citation` (the moment's own words, Q-P2-12) states."""
+
+    stem: str
+    answer: float
+    unit: str
+    citation: str
+
+
+type QuestionKind = Literal["choice", "estimate"]
+
+
+@dataclass(frozen=True)
 class QuestionTarget:
     """A moment questions may be drafted for (Q-P2-09): not a duplicate's, its source
     allows full text and moments (ING-2), and it has live concepts (an admin's
@@ -540,6 +554,7 @@ class QuestionBatchEntry:
     moment_id: int | None
     question_id: int | None
     content_hash: str | None
+    kind: QuestionKind = "choice"  # what it drafts or validates (P3-W13-S03b)
 
 
 @dataclass(frozen=True)
@@ -631,7 +646,13 @@ class Questions(Protocol):
         ...
 
     def drafted_hash(self, moment_id: int) -> str | None:
-        """The content hash the moment's questions were drafted from; None if none."""
+        """The content hash the moment's multiple-choice questions were drafted from;
+        None if none."""
+        ...
+
+    def estimate_drafted_hash(self, moment_id: int) -> str | None:
+        """P3-W13-S03b: the hash the moment's estimate was last drafted from, even when
+        the passage stated no number (so it isn't asked again, AI-4); None if never."""
         ...
 
     def save(
@@ -645,8 +666,21 @@ class Questions(Protocol):
         difficulty: Difficulty | None,
     ) -> list[int]:
         """These, pending, starting at `difficulty`, each tagged with the concepts
-        (slugs), in place of the moment's current questions, which are retired, not
-        deleted; clears the moment's retry state. Their ids, in order."""
+        (slugs), in place of the moment's current multiple-choice questions, which are
+        retired, not deleted; clears the moment's retry state. Their ids, in order."""
+        ...
+
+    def save_estimate(
+        self,
+        moment_id: int,
+        draft: EstimateDraft | None,
+        concepts: Sequence[str],
+        model: str,
+        content_hash: str,
+        difficulty: Difficulty | None,
+    ) -> int | None:
+        """P3-W13-S03b: retire the moment's estimate and, given one, save this in its
+        place, pending; its id. Multiple choice is untouched."""
         ...
 
     def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:
@@ -663,18 +697,30 @@ class Questions(Protocol):
 
     # P2-W8-S02 (Q-1): the blind validator.
     def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
-        """A question still waiting for its verdict, with its moment; None once
-        validated, retired, or gone."""
+        """A multiple-choice question still waiting for its verdict, with its moment;
+        None once validated, retired, or gone."""
+        ...
+
+    def pending_estimate(self, question_id: int) -> tuple[int, EstimateDraft] | None:
+        """P3-W13-S03b: as `pending`, for a moment's estimate."""
         ...
 
     def pending_ids(self, moment_id: int) -> list[int]:
-        """The moment's questions still waiting for a verdict (re-queued by a
-        backfill, so none waits forever)."""
+        """The moment's multiple-choice questions still waiting for a verdict
+        (re-queued by a backfill, so none waits forever)."""
         ...
 
     def record_verdict(self, question_id: int, model: str, answer: int) -> bool:
         """Live when the validator's answer is the key, rejected when not, keeping
         the answer; false (nothing changed) unless the question was pending."""
+        ...
+
+    def record_estimate_verdict(
+        self, question_id: int, model: str, answer: float, agrees: bool
+    ) -> bool:
+        """P3-W13-S03b: live when the validator's number agrees with the key
+        (`questions.estimate_agrees`), rejected when not, keeping the number; false
+        unless the estimate was pending."""
         ...
 
     def calibration_answers(self) -> list[Answer]:
@@ -698,8 +744,8 @@ class Questions(Protocol):
         ...
 
     # P2-W8-S05 (Q-P2-13): question batches.
-    def pending_questions(self) -> list[int]:
-        """Every question waiting for its verdict, oldest first."""
+    def pending_questions(self) -> list[tuple[int, QuestionKind]]:
+        """Every question waiting for its verdict, with its kind, oldest first."""
         ...
 
     def record_batch(
@@ -727,8 +773,9 @@ class Questions(Protocol):
 
     def batch_entries(self, batch_id: str) -> list[QuestionBatchEntry]: ...
 
-    def in_open_batches(self) -> tuple[set[int], set[int]]:
-        """The moments and questions an open batch is working on."""
+    def in_open_batches(self) -> tuple[set[tuple[int, QuestionKind]], set[int]]:
+        """The moments (with the kind each is drafted for) and questions an open
+        batch is working on."""
         ...
 
     def claim_batch_cost(self, batch_id: str, cost_usd: Decimal) -> bool:
@@ -754,7 +801,7 @@ class Questions(Protocol):
 
     def summary(self, sample: int) -> QuestionSummary:
         """Counts by status (retired left out) and a random sample of validated
-        questions, for the owner to read (`question-report`)."""
+        multiple-choice questions, for the owner to read (`question-report`)."""
         ...
 
 

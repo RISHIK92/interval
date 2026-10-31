@@ -13,6 +13,7 @@ import {
 } from "../actions";
 import { amount, verdict } from "../estimateText";
 import { FLAG_REASON_KEYS, FLAG_REASONS } from "../flagReasons";
+import { SourceAnchor, sourceLink } from "../sourceLink";
 import { Countdown } from "./Countdown";
 
 export const dynamic = "force-dynamic";
@@ -105,8 +106,9 @@ export default async function QuizPage({
         <p className="text-lg font-semibold">{feedback.stem}</p>
         {feedback.kind === "estimate" ? (
           <>
-            {/* P3-W13-S04 (C-27, AI-3): the real answer and the sentence it comes
-              from, on its page. */}
+            {/* P3-W13-S04, S03b (C-27, AI-3): the real answer and where it comes
+              from: a hand-written question's quoted sentence and page, or a
+              moment's section, never its quote (Q-P2-12). */}
             <dl className="grid grid-cols-2 gap-2">
               <div className="rounded-2xl bg-well px-4 py-3">
                 <dt className="text-sm text-ink-muted">Your guess</dt>
@@ -127,17 +129,17 @@ export default async function QuizPage({
             >
               {verdict(feedback.score)}: {points(feedback.score)} points
             </p>
-            <blockquote className="flex flex-col gap-1 border-l-2 border-hairline pl-3 text-sm">
-              <p>&ldquo;{feedback.citation}&rdquo;</p>
-              <a
-                href={feedback.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-ink-muted underline underline-offset-2"
-              >
-                {feedback.sourceTitle}
-              </a>
-            </blockquote>
+            {feedback.source === null ? null : (
+              <blockquote className="flex flex-col gap-1 border-l-2 border-hairline pl-3 text-sm">
+                {feedback.source.kind === "page" ? (
+                  <p>&ldquo;{feedback.source.citation}&rdquo;</p>
+                ) : null}
+                <SourceAnchor
+                  link={sourceLink(feedback.source, chip, actor.isGuest)}
+                  className="text-ink-muted underline underline-offset-2"
+                />
+              </blockquote>
+            )}
           </>
         ) : (
           <>

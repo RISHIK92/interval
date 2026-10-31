@@ -1811,7 +1811,7 @@ test("an estimation round needs a live estimate; it runs on the clock and a seco
   });
 });
 
-test("a round serves hand-written estimates only, explored concepts first", async () => {
+test("a round serves live estimates in allowed moments and hand-written ones, explored concepts first", async () => {
   await inRollback(async (trx, { userId, q, intro, hidden }) => {
     const wal = await conceptOf(trx, q["intro-0"] ?? "");
     const raft = await conceptOf(trx, q["raft-1"] ?? "");
@@ -1846,8 +1846,12 @@ test("a round serves hand-written estimates only, explored concepts first", asyn
       stems.push(open.stem);
       await quizzes.answerEstimate(userId, attemptId, open.questionId, 1);
     }
-    // A moment's estimates wait for S03b's rights-gated reveal, switched off or not.
-    expect(stems).toEqual(["explored one", "hand-written estimate"]);
+    // P3-W13-S03b: a moment's estimate plays while its source allows moments (ING-2).
+    expect(stems[0]).toBe("explored one");
+    expect(stems.slice(1).sort()).toEqual([
+      "drafted estimate",
+      "hand-written estimate",
+    ]);
   });
 });
 
@@ -1876,11 +1880,170 @@ test("an estimate is scored by C-27 once; a resubmission gets the stored result"
       answer: 300,
       unit: "ms",
       score: got.score,
-      citation: "about 300 ms",
-      sourceTitle: "Source of disk seek",
-      sourceUrl: "https://docs.example.test/disk seek",
+      source: {
+        kind: "page",
+        citation: "about 300 ms",
+        title: "Source of disk seek",
+        url: "https://docs.example.test/disk seek",
+      },
       flagged: false,
     });
+  });
+});
+
+// P3-W13-S03b (Q-P2-12, ING-2): a moment's estimate reveals its section, never the
+// quote, and only while its source allows moments and its link works.
+async function drafted(
+  trx: Transaction<DB>,
+  momentId: string,
+  conceptId: string,
+  ordinal = 0,
+): Promise<string> {
+  const row = await trx
+    .insertInto("question")
+    .values({
+      moment_id: momentId,
+      ordinal,
+      kind: "estimate",
+      stem: "replication lag",
+      answer: 40,
+      unit: "ms",
+      citation: "a lag of 40 ms",
+      generator_model: "m",
+      prompt_version: 1,
+      content_hash: "h",
+      status: "live",
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await trx
+    .insertInto("question_concept")
+    .values({ question_id: row.id, concept_id: conceptId })
+    .execute();
+  return row.id;
+}
+
+test("a moment's estimate reveals its section without the quote, while its rights allow", async () => {
+  await inRollback(async (trx, { userId, q, itemId, intro }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const id = await drafted(trx, intro, wal.id);
+    const moment = await trx
+      .selectFrom("moment")
+      .select("title")
+      .where("id", "=", intro)
+      .executeTakeFirstOrThrow();
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await round(quizzes, userId);
+    expect(estimate(await quizzes.next(userId, attemptId)).questionId).toBe(id);
+    await quizzes.answerEstimate(userId, attemptId, id, 400);
+    const section = {
+      kind: "section",
+      itemId,
+      momentId: intro,
+      sectionTitle: moment.title,
+      frameable: false,
+    };
+    const answered = await quizzes.answered(userId, attemptId, id);
+    expect(answered).toMatchObject({
+      kind: "estimate",
+      score: 0,
+      source: section,
+    });
+    expect(JSON.stringify(answered)).not.toContain("a lag of 40 ms");
+    // Its link breaks: the answer and its points stay, the link goes (ING-6).
+    const itemRow = await trx
+      .selectFrom("content_item")
+      .select("source_id")
+      .where("id", "=", itemId)
+      .executeTakeFirstOrThrow();
+    await trx
+      .updateTable("content_item")
+      .set({ link_broken_at: sql<Date>`now()` })
+      .where("id", "=", itemId)
+      .execute();
+    expect(await quizzes.answered(userId, attemptId, id)).toMatchObject({
+      score: 0,
+      source: null,
+    });
+    expect(
+      (await quizzes.attempt(userId, attemptId))?.estimation,
+    ).toMatchObject({
+      points: 0,
+      answers: [{ questionId: id, guess: 400, source: null }],
+    });
+    // A new round never serves an estimate from it: nothing to cite (AI-3).
+    await quizzes.finish(userId, attemptId);
+    await drafted(trx, intro, wal.id, 1);
+    expect(await quizzes.startEstimation(userId)).toBeNull();
+    await trx
+      .updateTable("content_item")
+      .set({ link_broken_at: null })
+      .where("id", "=", itemId)
+      .execute();
+    // Its source switches moments off (ING-2): its moments are purged, and the
+    // question and its answer with them, so nothing of it is shown.
+    await trx
+      .updateTable("source")
+      .set({ moments_switched_off: true, moments_enabled: false })
+      .where("id", "=", itemRow.source_id)
+      .execute();
+    expect(await quizzes.answered(userId, attemptId, id)).toBeNull();
+    expect((await quizzes.attempt(userId, attemptId))?.estimation).toEqual({
+      points: 0,
+      answers: [],
+    });
+  });
+});
+
+test("a validated question keeps one validator answer of its own kind", async () => {
+  await inRollback(async (trx, { q, intro }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const id = await drafted(trx, intro, wal.id);
+    await expect(
+      trx
+        .updateTable("question")
+        .set({
+          validator_model: "v",
+          validator_estimate: 40,
+          validator_answer: 1,
+          validated_at: sql<Date>`now()`,
+        })
+        .where("id", "=", id)
+        .execute(),
+    ).rejects.toThrow(/question_shape|question_validated_together/);
+  });
+});
+
+test("a multiple-choice question never carries a validator's number", async () => {
+  await inRollback(async (trx, { q }) => {
+    await expect(
+      trx
+        .updateTable("question")
+        .set({
+          validator_model: "v",
+          validator_answer: 0,
+          validator_estimate: 3,
+          validated_at: sql<Date>`now()`,
+        })
+        .where("id", "=", q["intro-0"] ?? "")
+        .execute(),
+    ).rejects.toThrow(
+      /question_validator_estimate_shape|question_validated_together/,
+    );
+  });
+});
+
+test("an estimate's verdict needs its validator's number", async () => {
+  await inRollback(async (trx, { q, intro }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const id = await drafted(trx, intro, wal.id);
+    await expect(
+      trx
+        .updateTable("question")
+        .set({ validator_model: "v", validated_at: sql<Date>`now()` })
+        .where("id", "=", id)
+        .execute(),
+    ).rejects.toThrow(/question_validated_together/);
   });
 });
 

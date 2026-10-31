@@ -153,9 +153,26 @@ test("the page has the estimate form; an estimate in the queue shows its answer 
       articleTitle: "Postgres limits",
       sectionTitle: null,
       link: "https://docs.example.test/limits",
+      validatorAnswer: null,
+    },
+    {
+      questionId: "78",
+      reason: "sample",
+      kind: "estimate",
+      stem: "How long does a follower lag?",
+      answer: 40,
+      unit: "ms",
+      citation: "a lag of 40 ms",
+      articleTitle: "Replication",
+      sectionTitle: "Lag",
+      link: "https://blog.example.test/replication#lag",
+      validatorAnswer: 45,
     },
   ]);
   const html = await page({ written: "1" });
+  // P3-W13-S03b (Q-2): a generated estimate shows what the validator said.
+  expect(html).toContain("Validator: 45 ms");
+  expect(html.match(/Validator:/g)).toHaveLength(1);
   expect(html).toContain("Write an estimation question");
   for (const name of Object.keys(estimateFields))
     expect(html).toContain(`name="${name}"`);

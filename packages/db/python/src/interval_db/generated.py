@@ -559,6 +559,7 @@ class Question(TypedDict):
     unit: str | None
     source_url: str | None
     source_title: str | None
+    validator_estimate: float | None
 
 
 class QuestionBatch(TypedDict):
@@ -578,6 +579,7 @@ class QuestionBatchItem(TypedDict):
     question_id: int | None
     content_hash: str | None
     result: str | None
+    kind: QuestionKind
 
 
 class QuestionConcept(TypedDict):
@@ -589,6 +591,11 @@ class QuestionDrafting(TypedDict):
     moment_id: int
     attempt: int
     retry_at: datetime
+
+
+class QuestionEstimateDrafted(TypedDict):
+    moment_id: int
+    content_hash: str
 
 
 class QuestionFlag(TypedDict):

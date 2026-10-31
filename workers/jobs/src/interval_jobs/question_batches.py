@@ -33,6 +33,7 @@ from interval_jobs.ports import (
     BatchKind,
     BatchNotFound,
     BatchRequest,
+    EstimateDraft,
     ModelError,
     NoteBatchEntry,
     QuestionBatchEntry,
@@ -42,7 +43,14 @@ from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.questions import (
     QuestionReplyError,
     content_hash,
+    estimate_agrees,
+    estimate_hash,
+    estimate_prompt,
+    estimate_validation_prompt,
+    has_number,
     parse_answer,
+    parse_estimate,
+    parse_estimate_answer,
     parse_reply,
     prompt,
     shuffled,
@@ -66,9 +74,10 @@ type StoreUnit = Callable[[], AbstractContextManager[Store]]
 
 @dataclass(frozen=True)
 class Submitted:
-    drafts: int
+    drafts: int  # moments' multiple-choice drafts
     validations: int
     notes: int = 0
+    estimates: int = 0  # moments' estimate drafts, in the same batch (P3-W13-S03b)
 
 
 @dataclass(frozen=True)
@@ -128,54 +137,83 @@ def submit(
         busy_moments, busy_questions = questions.in_open_batches()
         broken_moments, broken_questions = questions.broken_counts()
         for moment_id in [] if "draft" in open_kinds else questions.targets(None):
-            if moment_id in busy_moments:
-                continue
             target = questions.target(moment_id)
             text = moment_text(store, target)
             if target is None or not text:
                 continue
-            digest = content_hash(text, [slug for slug, _ in target.concepts])
+            slugs = [slug for slug, _ in target.concepts]
+            names = [name for _, name in target.concepts]
+            digest = content_hash(text, slugs)
             if (
-                digest == questions.drafted_hash(moment_id)  # AI-4: drafted once
-                or broken_moments.get((moment_id, digest), 0) >= QUESTION_BROKEN_REPLIES
+                (moment_id, "choice") not in busy_moments
+                and digest != questions.drafted_hash(moment_id)  # AI-4: drafted once
+                and broken_moments.get((moment_id, digest), 0) < QUESTION_BROKEN_REPLIES
             ):
-                continue
-            custom_id = f"draft-{moment_id}"
-            drafts.append(
-                (
-                    QuestionBatchEntry(custom_id, moment_id, None, digest),
-                    BatchRequest(
-                        custom_id, prompt(text, [name for _, name in target.concepts])
-                    ),
+                custom_id = f"draft-{moment_id}"
+                drafts.append(
+                    (
+                        QuestionBatchEntry(custom_id, moment_id, None, digest),
+                        BatchRequest(custom_id, prompt(text, names)),
+                    )
                 )
-            )
+            # P3-W13-S03b: its estimate, only where a number could be stated.
+            digest = estimate_hash(text, slugs)
+            if (
+                has_number(text)
+                and (moment_id, "estimate") not in busy_moments
+                and digest != questions.estimate_drafted_hash(moment_id)
+                and broken_moments.get((moment_id, digest), 0) < QUESTION_BROKEN_REPLIES
+            ):
+                custom_id = f"estimate-{moment_id}"
+                drafts.append(
+                    (
+                        QuestionBatchEntry(
+                            custom_id, moment_id, None, digest, "estimate"
+                        ),
+                        BatchRequest(custom_id, estimate_prompt(text, names)),
+                    )
+                )
         pending_ids = [] if "validate" in open_kinds else questions.pending_questions()
-        for question_id in pending_ids:
-            pending = questions.pending(question_id)
+        for question_id, kind in pending_ids:
             if (
                 question_id in busy_questions
-                or pending is None
                 or broken_questions.get(question_id, 0) >= QUESTION_BROKEN_REPLIES
             ):
                 continue
-            text = moment_text(store, questions.target(pending[0]))
+            found = (
+                questions.pending_estimate(question_id)
+                if kind == "estimate"
+                else questions.pending(question_id)
+            )
+            if found is None:
+                continue
+            moment_id, draft = found
+            text = moment_text(store, questions.target(moment_id))
             if not text:
                 continue  # its moment lost its rights meanwhile (ING-2)
+            messages = (
+                estimate_validation_prompt(text, draft.stem, draft.unit)
+                if isinstance(draft, EstimateDraft)
+                else validation_prompt(text, draft)
+            )
             custom_id = f"validate-{question_id}"
             validations.append(
                 (
-                    QuestionBatchEntry(custom_id, None, question_id, None),
-                    BatchRequest(custom_id, validation_prompt(text, pending[1])),
+                    QuestionBatchEntry(custom_id, None, question_id, None, kind),
+                    BatchRequest(custom_id, messages),
                 )
             )
     riders = _note_work(unit, gateway) if notes else []
     # Notes ride the first batch that goes, drafting before validation.
-    sent_drafts, sent_notes = _send(unit, gateway, model, "draft", drafts, riders)
+    sent, sent_notes = _send(unit, gateway, model, "draft", drafts, riders)
     riders = riders[sent_notes:]
     sent_validations, carried = _send(
         unit, gateway, model, "validate", validations, riders
     )
-    return Submitted(sent_drafts, sent_validations, sent_notes + carried)
+    estimates = sum(e.kind == "estimate" for e, _ in drafts[:sent])
+    return Submitted(
+        sent - estimates, sent_validations, sent_notes + carried, estimates
+    )
 
 
 def _send(
@@ -362,8 +400,21 @@ def _save_draft(
     target = store.questions.target(entry.moment_id)
     text = moment_text(store, target)
     slugs = [slug for slug, _ in target.concepts] if target else []
-    if target is None or not text or content_hash(text, slugs) != entry.content_hash:
+    digest = (estimate_hash if entry.kind == "estimate" else content_hash)(text, slugs)
+    if target is None or not text or digest != entry.content_hash:
         return "skipped"  # it changed or lost its rights meanwhile: the next submit
+    if entry.kind == "estimate":
+        if store.questions.estimate_drafted_hash(entry.moment_id) == digest:
+            return "saved"  # saved by an earlier, interrupted collection
+        try:
+            estimate = parse_estimate(reply, text)
+        except QuestionReplyError:
+            return "broken"
+        # Saved even when the passage states no number: not asked again (AI-4).
+        store.questions.save_estimate(
+            entry.moment_id, estimate, slugs, model, digest, target.difficulty
+        )
+        return "saved"
     if store.questions.drafted_hash(entry.moment_id) == entry.content_hash:
         return "saved"  # saved by an earlier, interrupted collection of this batch
     try:
@@ -386,6 +437,21 @@ def _decide(
     store: Store, entry: QuestionBatchEntry, reply: str, model: str
 ) -> BatchItemResult:
     assert entry.question_id is not None  # a validation entry always names one
+    if entry.kind == "estimate":
+        pending = store.questions.pending_estimate(entry.question_id)
+        if pending is None:
+            return "skipped"
+        try:
+            number = parse_estimate_answer(reply)
+        except QuestionReplyError:
+            return "broken"
+        decided = store.questions.record_estimate_verdict(
+            entry.question_id,
+            model,
+            number,
+            estimate_agrees(number, pending[1].answer),
+        )
+        return "decided" if decided else "skipped"
     try:
         answer = parse_answer(reply)
     except QuestionReplyError:

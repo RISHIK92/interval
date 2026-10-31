@@ -37,6 +37,7 @@ from interval_jobs.ports import (
     ConceptGraph,
     DraftSection,
     DuplicateInviteCode,
+    EstimateDraft,
     FeedEntry,
     Finished,
     ItemDecisions,
@@ -45,6 +46,7 @@ from interval_jobs.ports import (
     PathDraft,
     QuestionBatchEntry,
     QuestionDraft,
+    QuestionKind,
     RankedEntry,
     RightsViolation,
     Section,
@@ -2788,6 +2790,54 @@ def test_a_question_starts_at_its_moments_difficulty(
     assert probe.question_difficulty(first) == "advanced"
 
 
+# P3-W13-S03b: a moment's estimate is drafted, held and validated apart from its
+# multiple-choice pair, and neither kind retires the other.
+def test_a_moments_estimate_lives_beside_its_multiple_choice(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    before = set(s.questions.pending_questions())
+    held_moments, _ = s.questions.in_open_batches()
+    _, (_, lag, _), _ = _question_item(s, probe)
+    choice = QuestionDraft("Why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    estimate = EstimateDraft("How many ms?", 40, "ms", "lag of 40 ms")
+    assert s.questions.estimate_drafted_hash(lag) is None
+    choices = s.questions.save(lag, [choice, choice], ["cg-quorum"], "m", 1, "h", None)
+    first = s.questions.save_estimate(lag, estimate, ["cg-quorum"], "m", "e1", None)
+    assert first is not None
+    assert s.questions.estimate_drafted_hash(lag) == "e1"
+    assert s.questions.drafted_hash(lag) == "h"
+    assert s.questions.pending_ids(lag) == choices  # multiple choice only
+    assert s.questions.pending(first) is None
+    assert s.questions.pending_estimate(first) == (lag, estimate)
+    assert s.questions.pending_estimate(choices[0]) is None
+    assert [q for q in s.questions.pending_questions() if q not in before] == [
+        (choices[0], "choice"),
+        (choices[1], "choice"),
+        (first, "estimate"),
+    ]
+    # Redrafting multiple choice leaves the estimate; an estimate's verdict needs it.
+    again = s.questions.save(lag, [choice], ["cg-quorum"], "m", 1, "h2", None)
+    assert s.questions.pending_estimate(first) == (lag, estimate)
+    assert s.questions.record_verdict(first, "v", 2) is False
+    assert s.questions.record_estimate_verdict(again[0], "v", 40, True) is False
+    assert s.questions.record_estimate_verdict(first, "v", 45, True) is True
+    assert s.questions.record_estimate_verdict(first, "v", 45, True) is False
+    assert s.questions.pending_estimate(first) is None
+    assert s.questions.pending_ids(lag) == again
+    # A redraft stating no number retires the estimate and is remembered (AI-4).
+    assert s.questions.save_estimate(lag, None, ["cg-quorum"], "m", "e2", None) is None
+    assert s.questions.estimate_drafted_hash(lag) == "e2"
+    assert s.questions.pending_ids(lag) == again
+    # A batch item knows its kind.
+    entry = QuestionBatchEntry(f"estimate-{lag}", lag, None, "e3", "estimate")
+    s.questions.record_batch("b-est", "draft", "m", [entry])
+    assert s.questions.batch_entries("b-est") == [entry]
+    moments, _ = s.questions.in_open_batches()
+    assert moments - held_moments == {(lag, "estimate")}
+    s.questions.close_batch("b-est", "failed", {})
+
+
 # Q-P2-13 (P2-W8-S05): batches remember what each request was for; an open batch
 # holds its moments and questions; broken replies count per moment.
 def test_question_batches_hold_their_items_until_closed_and_count_broken_replies(
@@ -2801,7 +2851,7 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
     def open_ours() -> list[tuple[str, str]]:
         return [(b, k) for b, k, _ in s.questions.open_batches() if b in ("b1", "b2")]
 
-    def in_ours() -> tuple[set[int], set[int]]:
+    def in_ours() -> tuple[set[tuple[int, QuestionKind]], set[int]]:
         moments, questions = s.questions.in_open_batches()
         return moments - held_moments, questions - held_questions
 
@@ -2810,9 +2860,9 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
     (pending, _) = s.questions.save(
         quorum, [draft, draft], ["cg-quorum"], "m", 1, "h1", None
     )
-    assert [q for q in s.questions.pending_questions() if q not in before] == sorted(
-        s.questions.pending_ids(quorum)
-    )
+    assert [
+        q for q, _ in s.questions.pending_questions() if (q, "choice") not in before
+    ] == sorted(s.questions.pending_ids(quorum))
     s.questions.record_batch(
         "b1",
         "draft",
@@ -2830,7 +2880,7 @@ def test_question_batches_hold_their_items_until_closed_and_count_broken_replies
     )
     assert open_ours() == [("b1", "draft"), ("b2", "validate")]
     assert all(at.tzinfo is not None for _, _, at in s.questions.open_batches())
-    assert in_ours() == ({lag, quorum}, {pending})
+    assert in_ours() == ({(lag, "choice"), (quorum, "choice")}, {pending})
     assert s.questions.batch_entries("b1") == [
         QuestionBatchEntry(f"draft-{lag}", lag, None, "h-lag"),
         QuestionBatchEntry(f"draft-{quorum}", quorum, None, "h-q"),
@@ -2938,6 +2988,14 @@ def test_paths_read_coverage_prerequisites_and_candidates_and_save_drafts(
         lag, frozenset({"cg-lag", "cg-replication"}), sid, True, True
     )
     assert found[quorum].live_questions is False
+    # A live estimate alone gives a checkpoint nothing to ask (P3-W13-S03b).
+    estimate = EstimateDraft("How many?", 3, "replicas", "three replicas")
+    eid = s.questions.save_estimate(quorum, estimate, ["cg-quorum"], "m", "e", None)
+    assert eid is not None
+    s.questions.record_estimate_verdict(eid, "v", 3, True)
+    assert not next(
+        c for c in s.paths.session_candidates(["cg-quorum"]) if c.moment_id == quorum
+    ).live_questions
     # An admin's correction replaces the model's tags.
     probe.correct_moment_concepts(item, "Quorum", ["cg-ryw"])
     assert quorum not in {

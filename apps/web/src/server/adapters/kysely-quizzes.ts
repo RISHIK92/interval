@@ -50,11 +50,22 @@ const LIVE = sql`
    and s.rights_profile in ('full_text_internal', 'full_text_display')
 `;
 
-// P3-W13-S04: live hand-written estimates (their home is their source page), as `q`.
-// A moment's estimate (P3-W13-S03b) joins once its reveal is rights-gated (ING-2) and
-// links through the reader like the sprint's misses.
+// P3-W13-S04, S03b: live estimates, as `q`: hand-written ones (their home is their
+// source page) and those in moments their source's rights allow (ING-2) whose link
+// works, since the section is all their reveal can cite (AI-3).
 const LIVE_ESTIMATE = sql`(
-  select * from question where kind = 'estimate' and source_url is not null
+  select q.* from question q
+  where q.kind = 'estimate' and (
+    q.source_url is not null
+    or exists (
+      select 1 from moment m
+      join content_item ci on ci.id = m.content_item_id
+      join source s on s.id = ci.source_id
+       and s.moments_enabled
+       and s.rights_profile in ('full_text_internal', 'full_text_display')
+      where m.id = q.moment_id and ci.link_broken_at is null
+    )
+  )
 ) q`;
 
 // A round's points: what each answer shows, added up (so the list sums to the total).
@@ -428,13 +439,29 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     throw new Error(`question ${row.question_id} breaks question_shape`);
   };
 
-  // P3-W13-S04: an attempt's answered estimates with the real answer and its source
-  // (AI-3): a hand-written question's page (rounds serve no other, LIVE_ESTIMATE).
+  // P3-W13-S04, S03b: an attempt's answered estimates with the real answer and its
+  // source (AI-3): a hand-written question's page, or a moment's section while its
+  // source allows moments and its link works (ING-2, as the sprint's misses).
   const reveals = (userId: string, attemptId: string) =>
     db
       .selectFrom("quiz_answer as qa")
       .innerJoin("quiz_attempt as a", "a.id", "qa.attempt_id")
       .innerJoin("question as q", "q.id", "qa.question_id")
+      .leftJoin("moment as m", "m.id", "q.moment_id")
+      .leftJoin("content_item as ci", (join) =>
+        join
+          .onRef("ci.id", "=", "m.content_item_id")
+          .on("ci.link_broken_at", "is", null),
+      )
+      .leftJoin("source as s", (join) =>
+        join
+          .onRef("s.id", "=", "ci.source_id")
+          .on("s.moments_enabled", "=", true)
+          .on("s.rights_profile", "in", [
+            "full_text_internal",
+            "full_text_display",
+          ]),
+      )
       .select([
         "q.id as question_id",
         "q.stem",
@@ -445,6 +472,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         "q.citation",
         "q.source_title",
         "q.source_url",
+        "m.id as moment_id",
+        "m.title as section_title",
+        "ci.id as item_id",
+        sql<boolean>`coalesce(ci.frameable, false)`.as("frameable"),
+        sql<boolean>`s.id is not null`.as("allowed"),
         sql<boolean>`exists (
           select 1 from question_flag f
           where f.user_id = ${userId} and f.question_id = q.id
@@ -454,14 +486,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       .where("a.user_id", "=", userId)
       .where("q.kind", "=", "estimate")
       .where("qa.guess", "is not", null)
-      .where("q.source_url", "is not", null)
       .$narrowType<{
         guess: number;
         answer: number;
         unit: string;
         score: number;
-        source_title: string;
-        source_url: string;
       }>();
   const asReveal = (
     row: Awaited<ReturnType<ReturnType<typeof reveals>["execute"]>>[number],
@@ -472,9 +501,26 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
     answer: row.answer,
     unit: row.unit,
     score: row.score,
-    citation: row.citation,
-    sourceTitle: row.source_title,
-    sourceUrl: row.source_url,
+    source:
+      row.source_url !== null && row.source_title !== null
+        ? {
+            kind: "page",
+            url: row.source_url,
+            title: row.source_title,
+            citation: row.citation,
+          }
+        : row.allowed &&
+            row.moment_id !== null &&
+            row.item_id !== null &&
+            row.section_title !== null
+          ? {
+              kind: "section",
+              itemId: row.item_id,
+              momentId: row.moment_id,
+              sectionTitle: row.section_title,
+              frameable: row.frameable,
+            }
+          : null,
   });
 
   const checkpointInfo = async (

@@ -245,9 +245,12 @@ const answer = (
   answer: 10,
   unit: "ms",
   score,
-  citation: "about 10 ms",
-  sourceTitle,
-  sourceUrl: `https://docs.example.test/${sourceTitle}`,
+  source: {
+    kind: "page" as const,
+    title: sourceTitle,
+    url: `https://docs.example.test/${sourceTitle}`,
+    citation: "about 10 ms",
+  },
 });
 const roundDone: QuizAttempt = {
   ...sprintDone,
@@ -295,6 +298,39 @@ test("only answers under half points go back to reading, at their source", async
     },
   });
   expect(close).not.toContain("Read again");
+});
+
+// P3-W13-S03b: a moment's estimate goes back to its section, through the reader as a
+// sprint's miss does; one whose link broke shows its points and no link.
+const section = (momentId: string, frameable: boolean) => ({
+  kind: "section" as const,
+  itemId: "5",
+  momentId,
+  sectionTitle: `Section ${momentId}`,
+  frameable,
+});
+
+test("a moment's missed estimates go back to their sections, once each", async () => {
+  const html = await render({
+    ...roundDone,
+    estimation: {
+      points: 0,
+      answers: [
+        { ...answer("Lag?", 900, 0, "x"), source: section("9", true) },
+        { ...answer("Lag again?", 800, 0, "x"), source: section("9", true) },
+        { ...answer("Quorum?", 900, 0.1, "x"), source: section("12", false) },
+        { ...answer("Gone?", 900, 0, "x"), source: null },
+      ],
+    },
+  });
+  const again = /Read again[^]*$/.exec(html)?.[0] ?? "";
+  expect(again.match(/href="\/read\/5\?moment=9[^"]*"/g)).toHaveLength(1);
+  expect(again).toMatch(
+    /href="\/out\?[^"]*moment=12[^"]*"[^>]*target="_blank"/,
+  );
+  expect(html).toContain("Gone?");
+  // Never the moment's quote (Q-P2-12).
+  expect(html).not.toContain("about 10 ms");
 });
 
 test("a round with no answers says so", async () => {

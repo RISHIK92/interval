@@ -15,7 +15,7 @@ from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.pipeline import ModelJob
-from interval_jobs.ports import Completion, Message, ModelError
+from interval_jobs.ports import Completion, Message, ModelError, QuestionDraft
 
 from .test_pipeline import NOW, NoEmbeddings, World
 
@@ -117,7 +117,11 @@ def test_tagging_queues_a_tagged_moments_questions_and_they_are_drafted_once() -
     saved = world.store.questions.rows
     # Drafted, then validated blind: the validator chose the key, so they're live.
     assert saved and all(q.status == "live" for q in saved)
-    assert all(q.draft.options[q.validator_answer or 0] == "It" for q in saved)
+    assert all(
+        isinstance(q.draft, QuestionDraft)
+        and q.draft.options[q.validator_answer or 0] == "It"
+        for q in saved
+    )
     assert {q.concepts for q in saved} == {("write-ahead-log",)}
     assert all(q.model == "nemotron-free" for q in saved)
     # Q-P2-11: each starts at its moment's level (the fake tags it beginner).
@@ -233,9 +237,12 @@ def test_a_question_the_validator_answers_differently_is_rejected() -> None:
     world.run()
     saved = world.store.questions.rows
     assert saved and all(q.status == "rejected" for q in saved)
-    assert all(q.validator_answer != q.draft.correct for q in saved)
+    drafts = [q.draft for q in saved if isinstance(q.draft, QuestionDraft)]
+    assert len(drafts) == len(saved)
+    pairs = zip(saved, drafts, strict=True)
+    assert all(q.validator_answer != d.correct for q, d in pairs)
     # Options were shuffled when saved: the key isn't always first.
-    assert len({q.draft.correct for q in saved}) > 1 or len(saved) < 4
+    assert len({d.correct for d in drafts}) > 1 or len(saved) < 4
 
 
 def _validate_once(world: World) -> None:

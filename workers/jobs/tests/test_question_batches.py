@@ -17,6 +17,7 @@ from interval_jobs.adapters.memory import (
     InMemoryAi,
     InMemoryStore,
     StoredGitHub,
+    StoredQuestion,
     StoredUser,
 )
 from interval_jobs.ai.gateway import AiGateway
@@ -28,7 +29,9 @@ from interval_jobs.ports import (
     BatchNotFound,
     BatchRequest,
     BatchStatus,
+    EstimateDraft,
     ProjectNoteInput,
+    QuestionDraft,
     Store,
     Usage,
 )
@@ -36,6 +39,10 @@ from interval_jobs.question_batches import Submitted, collect, submit
 
 from .test_pipeline import NOW, NoEmbeddings, World
 from .test_question_stage import QuestionLlm, question_world
+
+
+def no_number(text: str) -> bool:
+    return False
 
 
 class FakeBatches:
@@ -47,6 +54,8 @@ class FakeBatches:
         self.submitted: dict[str, list[BatchRequest]] = {}
         self.mode = "good"  # good | broken | provider-error | running | failed
         self.wrong_answers = False
+        self.estimates = True  # False: every passage "states no number"
+        self.broken_prefix: str | None = None  # break only these custom ids
 
     def submit(self, model: str, requests: Sequence[BatchRequest]) -> str:
         batch_id = f"batch_{len(self.submitted) + 1}"
@@ -57,6 +66,26 @@ class FakeBatches:
         content = request.messages[1]["content"]
         if "their own project" in request.messages[0]["content"]:
             return "Its leader election uses the same idea."
+        passage = content.split("<passage>\n", 1)[1].split("\n</passage>")[0]
+        # P3-W13-S03b: the fixture's passages state a number ("... paragraph 1").
+        stated = re.search(r"\S+ \S+ (\d+)", passage)
+        assert stated is not None
+        if request.messages[0]["content"].startswith("You answer an estimation"):
+            key = int(stated.group(1))
+            return json.dumps({"answer": key * 2 if self.wrong_answers else key})
+        if request.messages[0]["content"].startswith("You write one estimation"):
+            if not self.estimates:
+                return json.dumps({"question": None})
+            return json.dumps(
+                {
+                    "question": {
+                        "stem": "Which paragraph is it?",
+                        "answer": int(stated.group(1)),
+                        "unit": "paragraph",
+                        "citation": stated.group(0),
+                    }
+                }
+            )
         if request.messages[0]["content"].startswith("You answer a multiple-choice"):
             lines = content.splitlines()
             right = next(
@@ -65,7 +94,6 @@ class FakeBatches:
             return json.dumps(
                 {"answer": (right + 1) % 4 if self.wrong_answers else right}
             )
-        passage = content.split("<passage>\n", 1)[1].split("\n</passage>")[0]
         quote = re.split(r"(?<=[.!?])\s", passage.strip())[0][:200]
         one = {
             "stem": "What does the passage say?",
@@ -87,7 +115,10 @@ class FakeBatches:
             if self.mode == "provider-error"
             else BatchItem(
                 r.custom_id,
-                "not json" if self.mode == "broken" else self._reply(r),
+                "not json"
+                if self.mode == "broken"
+                or (self.broken_prefix and r.custom_id.startswith(self.broken_prefix))
+                else self._reply(r),
                 None,
                 1000,
                 300,
@@ -128,7 +159,11 @@ def send_any_size(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(question_batches, "MIN_BATCH", 1)
 
 
-def test_a_draft_batch_then_a_validation_batch_make_questions_live() -> None:
+def test_a_draft_batch_then_a_validation_batch_make_questions_live(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Multiple choice alone; estimates have their own tests (P3-W13-S03b).
+    monkeypatch.setattr(question_batches, "has_number", no_number)
     store, gateway, _, ledger = batch_setup()
     unit = unit_of(store)
     targets = store.questions.targets(None)
@@ -143,7 +178,10 @@ def test_a_draft_batch_then_a_validation_batch_make_questions_live() -> None:
     assert saved and all(q.status == "pending" for q in saved)
     assert {q.difficulty for q in saved} == {"beginner"}
     # Shuffled when saved, the key still on its option.
-    assert all(q.draft.options[q.draft.correct] == "It" for q in saved)
+    assert all(
+        isinstance(q.draft, QuestionDraft) and q.draft.options[q.draft.correct] == "It"
+        for q in saved
+    )
     # The batch's cost was recorded once, at collection.
     assert [u.cost_usd for u in ledger.rows] == [Decimal("0.0001")]
     sent = submit(unit, gateway, MODEL)
@@ -185,17 +223,20 @@ def test_a_batch_not_found_waits_then_is_failed_once_past_its_window() -> None:
 def test_broken_replies_count_toward_the_cap_and_provider_errors_do_not() -> None:
     store, gateway, batches, _ = batch_setup()
     unit = unit_of(store)
+    # Each moment's multiple-choice and estimate drafts (P3-W13-S03b).
     moments = len(store.questions.targets(None))
+    requests = 2 * moments
     batches.mode = "provider-error"
     submit(unit, gateway, MODEL)
-    assert collect(unit, gateway, MODEL).errors == moments
+    assert collect(unit, gateway, MODEL).errors == requests
     assert store.questions.broken_counts() == ({}, {})
     batches.mode = "broken"
     for _ in range(5):
-        assert submit(unit, gateway, MODEL).drafts == moments
-        assert collect(unit, gateway, MODEL).broken == moments
+        sent = submit(unit, gateway, MODEL)
+        assert (sent.drafts, sent.estimates) == (moments, moments)
+        assert collect(unit, gateway, MODEL).broken == requests
     # Five broken replies each: no more drafts for those moments.
-    assert submit(unit, gateway, MODEL).drafts == 0
+    assert submit(unit, gateway, MODEL) == Submitted(0, 0)
 
 
 def test_a_validation_that_disagrees_rejects_the_question() -> None:
@@ -288,6 +329,142 @@ def test_a_validation_that_keeps_breaking_stops_after_five() -> None:
         collect(unit, gateway, MODEL)
     assert submit(unit, gateway, MODEL).validations == 0
     assert all(q.status == "pending" for q in store.questions.rows)
+
+
+# P3-W13-S03b (Q-P3-05): a moment's estimate, drafted and validated in the same
+# batches as its multiple-choice pair, but never in place of it.
+def kinds(store: InMemoryStore, kind: type) -> list[StoredQuestion]:
+    return [q for q in store.questions.rows if isinstance(q.draft, kind)]
+
+
+def test_batches_carry_both_kinds_and_a_close_estimate_goes_live() -> None:
+    store, gateway, batches, _ = batch_setup()
+    unit = unit_of(store)
+    targets = store.questions.targets(None)
+    sent = submit(unit, gateway, MODEL)
+    assert (sent.drafts, sent.estimates) == (len(targets), len(targets))
+    assert len(batches.submitted) == 1  # one draft batch, both kinds in it
+    collect(unit, gateway, MODEL)
+    estimates = kinds(store, EstimateDraft)
+    assert len(estimates) == len(targets)
+    assert {q.moment_id for q in estimates} == set(targets)
+    assert all(q.status == "pending" and q.difficulty == "beginner" for q in estimates)
+    assert {q.concepts for q in estimates} == {("write-ahead-log",)}
+    assert len(kinds(store, QuestionDraft)) == 2 * len(targets)
+    sent = submit(unit, gateway, MODEL)
+    assert sent.validations == 3 * len(targets)  # both kinds in one validate batch
+    collect(unit, gateway, MODEL)
+    assert all(q.status == "live" for q in store.questions.rows)
+    assert all(q.validator_estimate == 1 for q in kinds(store, EstimateDraft))
+    # Nothing left to do: drafted once (AI-4).
+    assert submit(unit, gateway, MODEL) == Submitted(0, 0)
+
+
+def test_an_estimate_off_by_more_than_full_points_is_rejected() -> None:
+    store, gateway, batches, _ = batch_setup()
+    unit = unit_of(store)
+    submit(unit, gateway, MODEL)
+    collect(unit, gateway, MODEL)
+    batches.wrong_answers = True  # the validator says 2 where the key is 1
+    submit(unit, gateway, MODEL)
+    collect(unit, gateway, MODEL)
+    estimates = kinds(store, EstimateDraft)
+    assert estimates and all(q.status == "rejected" for q in estimates)
+    assert all(q.validator_estimate == 2 for q in estimates)
+
+
+def test_redrafting_one_kind_never_retires_the_other() -> None:
+    store, gateway, _, _ = batch_setup()
+    unit = unit_of(store)
+    submit(unit, gateway, MODEL)
+    collect(unit, gateway, MODEL)
+    moment = store.questions.targets(None)[0]
+    choice = [q for q in kinds(store, QuestionDraft) if q.moment_id == moment]
+    estimate = next(q for q in kinds(store, EstimateDraft) if q.moment_id == moment)
+    assert isinstance(choice[0].draft, QuestionDraft)
+    assert isinstance(estimate.draft, EstimateDraft)
+    slugs = ["write-ahead-log"]
+    store.questions.save(moment, [choice[0].draft], slugs, "m", 1, "h", None)
+    assert estimate.status == "pending"
+    assert all(q.status == "retired" for q in choice)
+    store.questions.save_estimate(moment, estimate.draft, slugs, "m", "h2", None)
+    assert estimate.status == "retired"
+    newest = [q for q in kinds(store, QuestionDraft) if q.moment_id == moment][-1]
+    assert newest.status == "pending"
+
+
+def test_a_passage_stating_no_number_is_asked_once() -> None:
+    store, gateway, batches, _ = batch_setup()
+    unit = unit_of(store)
+    batches.estimates = False
+    targets = store.questions.targets(None)
+    assert submit(unit, gateway, MODEL).estimates == len(targets)
+    collect(unit, gateway, MODEL)
+    assert kinds(store, EstimateDraft) == []
+    assert submit(unit, gateway, MODEL).estimates == 0
+
+
+def test_a_passage_without_a_digit_is_never_sent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    store, gateway, _, _ = batch_setup()
+    monkeypatch.setattr(question_batches, "has_number", no_number)
+    sent = submit(unit_of(store), gateway, MODEL)
+    assert sent.drafts > 0 and sent.estimates == 0
+
+
+def test_a_changed_passage_redrafts_its_estimate_and_retires_the_old_one() -> None:
+    store, gateway, _, _ = batch_setup()
+    unit = unit_of(store)
+    submit(unit, gateway, MODEL)
+    collect(unit, gateway, MODEL)
+    moment = store.questions.targets(None)[0]
+    old = next(q for q in kinds(store, EstimateDraft) if q.moment_id == moment)
+    item_id = next(m.item_id for m in store.moments.rows if m.id == moment)
+    item = store.items.rows[item_id]
+    assert item.full_text is not None
+    text = moment_text(store, store.questions.target(moment))
+    first_word = text.split()[0]
+    item.full_text = item.full_text.replace(first_word, first_word + "s", 1)
+    assert submit(unit, gateway, MODEL).estimates >= 1
+    collect(unit, gateway, MODEL)
+    assert old.status == "retired"
+    assert any(
+        q.moment_id == moment and q.status == "pending"
+        for q in kinds(store, EstimateDraft)
+    )
+
+
+def test_broken_estimates_stop_only_the_estimate() -> None:
+    store, gateway, batches, _ = batch_setup()
+    unit = unit_of(store)
+    targets = store.questions.targets(None)
+    batches.broken_prefix = "estimate-"
+    for _ in range(5):
+        assert submit(unit, gateway, MODEL).estimates == len(targets)
+        collect(unit, gateway, MODEL)
+    assert submit(unit, gateway, MODEL).estimates == 0
+    assert len(kinds(store, QuestionDraft)) == 2 * len(targets)
+
+
+def test_an_interrupted_estimate_collection_saves_once() -> None:
+    store, gateway, _, _ = batch_setup()
+    unit = unit_of(store)
+    submit(unit, gateway, MODEL)
+    real_close = store.questions.close_batch
+
+    def crash(*args: object, **kwargs: object) -> None:
+        raise RuntimeError("database went away")
+
+    store.questions.close_batch = crash  # type: ignore[method-assign]
+    with pytest.raises(RuntimeError):
+        collect(unit, gateway, MODEL)
+    store.questions.close_batch = real_close  # type: ignore[method-assign]
+    first = [q.id for q in kinds(store, EstimateDraft)]
+    assert first
+    collect(unit, gateway, MODEL)
+    assert [q.id for q in kinds(store, EstimateDraft)] == first
+    assert all(q.status == "pending" for q in kinds(store, EstimateDraft))
 
 
 # Q-P2-46: project notes ride the question batches, which go lazily.
@@ -443,9 +620,10 @@ def test_notes_ride_the_validation_batch_when_drafting_is_open() -> None:
 def test_a_mixed_batch_splits_its_cost_by_tokens() -> None:
     store, gateway, _, ledger = notes_setup(items=2)
     unit = unit_of(store)
-    drafts = len(store.questions.targets(None))
+    moments = len(store.questions.targets(None))
     sent = submit(unit, gateway, MODEL, notes=True)
-    assert (sent.drafts, sent.notes) == (drafts, 2)
+    assert (sent.drafts, sent.estimates, sent.notes) == (moments, moments, 2)
+    drafts = sent.drafts + sent.estimates
     collect(unit, gateway, MODEL)
     by_payer = {(u.feature, u.user_id): u.cost_usd for u in ledger.rows}
     # Every request costs the same tokens: the user pays 2 of drafts + 2 shares,

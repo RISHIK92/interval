@@ -1,3 +1,5 @@
+// The worker's validator agrees within the same band (workers/jobs questions.py
+// ESTIMATE_AGREES): change both together.
 const FULL = 1.25;
 const NONE = 10;
 

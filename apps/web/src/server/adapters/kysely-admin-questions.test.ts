@@ -267,10 +267,33 @@ test("an estimate in the queue shows its answer, unit and source; Keep and Retir
       articleTitle: "Postgres limits",
       sectionTitle: null,
       link: "https://docs.example.test/limits",
+      validatorAnswer: null, // hand-written: no model checked it
     });
     expect(queue.find((q) => q.questionId === sampled)).toMatchObject({
       kind: "choice",
     });
+    // P3-W13-S03b (Q-2): a generated estimate shows the validator's number.
+    await trx
+      .updateTable("question")
+      .set({
+        source_url: null,
+        source_title: null,
+        moment_id: sql<string>`(select moment_id from question where id = ${sampled})`,
+        generator_model: "m",
+        prompt_version: 1,
+        content_hash: "h",
+        validator_model: "v",
+        validator_estimate: 9_000,
+        validated_at: sql<Date>`now()`,
+      })
+      .where("id", "=", id)
+      .execute();
+    expect((await admin.open()).find((q) => q.questionId === id)).toMatchObject(
+      {
+        kind: "estimate",
+        validatorAnswer: 9_000,
+      },
+    );
     expect(await admin.decide(id, "retire", "admin-1")).toBe(true);
     const row = await trx
       .selectFrom("question")

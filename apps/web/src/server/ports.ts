@@ -472,8 +472,7 @@ export type QuizFeedback =
       flagged: boolean; // by this user (P2-W9-S07)
     }
   | ({ kind: "estimate"; flagged: boolean } & EstimateReveal);
-// An answered estimate with the real answer and where it comes from: the quoted
-// sentence and its page, a moment's article or a hand-written question's source.
+// An answered estimate with the real answer and where it comes from (AI-3).
 export type EstimateReveal = {
   questionId: string;
   stem: string;
@@ -481,10 +480,20 @@ export type EstimateReveal = {
   answer: number;
   unit: string;
   score: number;
-  citation: string;
-  sourceTitle: string;
-  sourceUrl: string;
+  // null: its moment's source no longer allows moments, or its link broke (ING-2).
+  source: EstimateSource | null;
 };
+export type EstimateSource =
+  // A hand-written question's page and the sentence quoted from it (P3-W13-S03).
+  | { kind: "page"; url: string; title: string; citation: string }
+  // A moment's section, read through the reader; never its quote (Q-P2-12).
+  | {
+      kind: "section";
+      itemId: string;
+      momentId: string;
+      sectionTitle: string;
+      frameable: boolean;
+    };
 
 // Notes (§5I, Q-P2-01, P2-W7-S03): a user's private note on a section, or on the
 // article when momentId is null. Never shown to anyone else.
@@ -780,7 +789,13 @@ export type ReviewQuestion = {
       correct: number;
       validatorAnswer: number | null;
     }
-  | { kind: "estimate"; answer: number; unit: string }
+  | {
+      kind: "estimate";
+      answer: number;
+      unit: string;
+      // P3-W13-S03b: a generated estimate's validator number; null hand-written.
+      validatorAnswer: number | null;
+    }
 );
 // P3-W13-S03 (Q-P3-05 (b)): an estimation question the owner writes, citing the page
 // that states the number (AI-3).

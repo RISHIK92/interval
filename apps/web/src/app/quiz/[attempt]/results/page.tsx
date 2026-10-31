@@ -5,9 +5,14 @@ import { CHIPS } from "../../../../server/chips";
 import { progress, quizzes, sessionReader } from "../../../../server/container";
 import { missed, points } from "../../../../server/estimation";
 import { outHref, readHref } from "../../../../server/outbound";
-import { BIGINT_ID, checkpointHome } from "../../../../server/ports";
+import {
+  BIGINT_ID,
+  checkpointHome,
+  type EstimateSource,
+} from "../../../../server/ports";
 import { STATE_WORDS } from "../../../learnerState";
 import { amount, verdict } from "../../estimateText";
+import { SourceAnchor, sourceLink } from "../../sourceLink";
 import {
   startBookCheckpointAction,
   startCheckpointAction,
@@ -87,18 +92,20 @@ export default async function ResultsPage({
             from: "continue",
             target: "section",
           });
+  const link = (source: EstimateSource) =>
+    sourceLink(source, chip, actor.isGuest);
   // §6.1 (owner, 2026-10-31): an estimate under half points sends its source back to
-  // reading, once per page.
-  const readAgain =
-    estimation === null
-      ? []
-      : [
-          ...new Map(
-            estimation.answers
-              .filter((a) => missed(a.score))
-              .map((a) => [a.sourceUrl, a.sourceTitle]),
-          ),
-        ];
+  // reading, once per page or section; a sprint's misses, their sections.
+  const readAgain = [
+    ...new Map(
+      [
+        ...(estimation?.answers ?? []).flatMap((a) =>
+          a.source !== null && missed(a.score) ? [link(a.source)] : [],
+        ),
+        ...attempt.missed.map((m) => link({ kind: "section", ...m })),
+      ].map((l) => [l.href, l]),
+    ).values(),
+  ];
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-5 px-4 pt-8 pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <header className="flex flex-col items-center gap-1 text-center">
@@ -200,75 +207,30 @@ export default async function ResultsPage({
               <p className="text-sm font-semibold">
                 {verdict(a.score)}: {points(a.score)} points
               </p>
-              <a
-                href={a.sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-ink-muted underline underline-offset-2"
-              >
-                {a.sourceTitle}
-              </a>
+              {a.source === null ? null : (
+                <SourceAnchor
+                  link={link(a.source)}
+                  className="text-sm text-ink-muted underline underline-offset-2"
+                />
+              )}
             </li>
           ))}
         </ol>
       )}
+      {/* §6.1: what a game missed goes back to reading. The in-app reader is for
+        accounts (ADR-0029), so a guest opens the publisher's page. */}
       {readAgain.length === 0 ? null : (
         <section className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-ink-muted">Read again</h2>
           <ul className="flex flex-col gap-2">
-            {readAgain.map(([url, title]) => (
-              <li key={url}>
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+            {readAgain.map((l) => (
+              <li key={l.href}>
+                <SourceAnchor
+                  link={l}
                   className="block rounded-2xl border border-hairline px-4 py-3 font-semibold"
-                >
-                  {title}
-                </a>
+                />
               </li>
             ))}
-          </ul>
-        </section>
-      )}
-      {/* §6.1: what a sprint missed goes back to reading. The in-app reader is for
-        accounts (ADR-0029), so a guest opens the publisher's page. */}
-      {attempt.missed.length === 0 ? null : (
-        <section className="flex flex-col gap-2">
-          <h2 className="text-sm font-semibold text-ink-muted">Read again</h2>
-          <ul className="flex flex-col gap-2">
-            {attempt.missed.map((m) => {
-              const inApp = m.frameable && !actor.isGuest;
-              return (
-                <li key={m.momentId}>
-                  <a
-                    href={
-                      inApp
-                        ? readHref({
-                            itemId: m.itemId,
-                            momentId: m.momentId,
-                            chip,
-                            // Counts no open event; a "from Play" attribution waits
-                            // for the loop metric (P3-W18-S03).
-                            from: "reader",
-                          })
-                        : outHref({
-                            itemId: m.itemId,
-                            momentId: m.momentId,
-                            from: "reader",
-                            target: "section",
-                          })
-                    }
-                    {...(inApp
-                      ? {}
-                      : { target: "_blank", rel: "noopener noreferrer" })}
-                    className="block rounded-2xl border border-hairline px-4 py-3 font-semibold"
-                  >
-                    {m.sectionTitle}
-                  </a>
-                </li>
-              );
-            })}
           </ul>
         </section>
       )}

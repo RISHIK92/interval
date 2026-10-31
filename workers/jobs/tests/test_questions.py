@@ -6,13 +6,19 @@ import random
 
 import pytest
 
-from interval_jobs.ports import QuestionDraft
+from interval_jobs.ports import EstimateDraft, QuestionDraft
 from interval_jobs.questions import (
     PROMPT_VERSION,
     QUESTIONS_PER_MOMENT,
     QuestionReplyError,
     content_hash,
+    estimate_agrees,
+    estimate_hash,
+    estimate_validation_prompt,
+    has_number,
     parse_answer,
+    parse_estimate,
+    parse_estimate_answer,
     parse_reply,
     prompt,
     shuffled,
@@ -168,3 +174,159 @@ def test_shuffling_moves_the_options_and_the_key_follows_its_option() -> None:
         assert sorted(got.options) == sorted(draft.options)
         seen.add(got.correct)
     assert len(seen) > 1
+
+
+# P3-W13-S03b (Q-P3-05): estimation questions where the moment states the number.
+NUMBERS = (
+    "A single Postgres box handles about 10,000 simple queries per second. "
+    "A follower lags the leader by 1.5 million log entries at worst."
+)
+
+
+def estimate(**over: object) -> str:
+    base: dict[str, object] = {
+        "stem": "About how many simple queries per second does one Postgres box take?",
+        "answer": 10000,
+        "unit": "queries per second",
+        "citation": "A single Postgres box handles about 10,000 simple queries",
+    }
+    return json.dumps({"question": {**base, **over}})
+
+
+def test_an_estimate_quoting_its_number_is_drafted() -> None:
+    draft = parse_estimate(estimate(), NUMBERS)
+    assert draft == EstimateDraft(
+        "About how many simple queries per second does one Postgres box take?",
+        10000,
+        "queries per second",
+        "A single Postgres box handles about 10,000 simple queries",
+    )
+
+
+def test_a_scale_word_counts_as_the_number() -> None:
+    draft = parse_estimate(
+        estimate(
+            stem="At worst, how many log entries can a follower lag behind?",
+            answer=1_500_000,
+            unit="log entries",
+            citation="lags the leader by 1.5 million log entries at worst",
+        ),
+        NUMBERS,
+    )
+    assert draft is not None and draft.answer == 1_500_000
+
+
+def test_a_passage_without_a_number_drafts_nothing() -> None:
+    assert parse_estimate(json.dumps({"question": None}), TEXT) is None
+    assert not has_number(TEXT)
+    assert has_number(NUMBERS)
+
+
+@pytest.mark.parametrize(
+    ("over", "rule"),
+    [
+        ({"answer": 0}, "positive"),
+        ({"answer": -3}, "positive"),
+        ({"unit": ""}, "unit"),
+        ({"unit": "u" * 41}, "unit"),
+        ({"stem": ""}, "stem"),
+        ({"stem": "Is it 10,000 queries per second?"}, "away"),
+        ({"citation": "Postgres handles 10,000 queries"}, "quote"),
+        ({"citation": "A single Postgres box handles about"}, "state the answer"),
+        ({"answer": 12000}, "state the answer"),
+    ],
+)
+def test_an_estimate_that_breaks_a_rule_is_refused(
+    over: dict[str, object], rule: str
+) -> None:
+    with pytest.raises(QuestionReplyError, match=rule):
+        parse_estimate(estimate(**over), NUMBERS)
+
+
+def test_an_estimate_reply_that_is_not_json_is_refused() -> None:
+    with pytest.raises(QuestionReplyError):
+        parse_estimate("ten thousand", NUMBERS)
+    with pytest.raises(QuestionReplyError):
+        parse_estimate(json.dumps({"question": {"stem": "x"}}), NUMBERS)
+
+
+@pytest.mark.parametrize(
+    ("passage", "citation", "answer"),
+    [
+        ("Replicas lag by 40ms at most here.", "lag by 40ms", 40),
+        ("Each node has 512MB of RAM to spare.", "has 512MB of RAM", 512),
+        ("The index takes 5GB on disk today.", "takes 5GB on", 5),
+        ("Writes are 100x faster in batches.", "are 100x faster", 100),
+        ("It serves 10k requests per second.", "serves 10k requests", 10_000),
+    ],
+)
+def test_a_unit_written_against_its_number_still_states_it(
+    passage: str, citation: str, answer: float
+) -> None:
+    draft = parse_estimate(
+        estimate(stem="How much?", answer=answer, unit="u", citation=citation),
+        passage,
+    )
+    assert draft is not None and draft.answer == answer
+
+
+def test_a_stem_giving_away_a_unit_bound_number_is_refused() -> None:
+    with pytest.raises(QuestionReplyError, match="away"):
+        parse_estimate(
+            estimate(
+                stem="Is the lag 40ms?",
+                answer=40,
+                unit="ms",
+                citation="lag by 40ms",
+            ),
+            "Replicas lag by 40ms at most here.",
+        )
+
+
+def test_commas_separate_thousands_only() -> None:
+    with pytest.raises(QuestionReplyError, match="state the answer"):
+        parse_estimate(
+            estimate(stem="Which?", answer=123, unit="u", citation="steps 1,2,3 run"),
+            "The steps 1,2,3 run in order every time.",
+        )
+
+
+def test_minutes_and_bytes_are_not_scale_words() -> None:
+    passage = "The lease lasts 5m and each record is 512B on disk in this setup."
+    with pytest.raises(QuestionReplyError, match="state the answer"):
+        parse_estimate(
+            estimate(
+                stem="How long is the lease?",
+                answer=5_000_000,
+                unit="units",
+                citation="The lease lasts 5m",
+            ),
+            passage,
+        )
+
+
+def test_the_estimate_hash_never_equals_the_choice_hash() -> None:
+    assert estimate_hash(NUMBERS, CONCEPTS) != content_hash(NUMBERS, CONCEPTS)
+    assert estimate_hash(NUMBERS, CONCEPTS) == estimate_hash(NUMBERS, CONCEPTS)
+
+
+def test_the_estimate_validator_sees_the_unit_but_never_the_key_or_citation() -> None:
+    content = " ".join(
+        m["content"]
+        for m in estimate_validation_prompt(NUMBERS, "How many queries?", "qps")
+    )
+    assert NUMBERS in content and "How many queries?" in content and "qps" in content
+    assert "citation" not in content
+
+
+def test_the_estimate_validators_answer_is_a_positive_number() -> None:
+    assert parse_estimate_answer('{"answer": 9500}') == 9500
+    for bad in ('{"answer": 0}', '{"answer": -1}', "9500", '{"answer": "lots"}'):
+        with pytest.raises(QuestionReplyError):
+            parse_estimate_answer(bad)
+
+
+def test_the_validator_agrees_within_c27s_full_points() -> None:
+    assert estimate_agrees(12_500, 10_000) and estimate_agrees(8_000, 10_000)
+    assert not estimate_agrees(12_600, 10_000)
+    assert not estimate_agrees(7_900, 10_000)

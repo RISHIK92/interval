@@ -2321,3 +2321,34 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - Capability typing: fixed.
   - The fallback re-read now filters by user.
 - Not checked live: Chrome is off, and the local bank has no estimates yet (write some at `/admin/questions`).
+
+### 2026-10-31 — P3-W13-S03b (generated estimation questions; §6.3, Q-1, AI-3, Q-P3-05, Q-P2-12, ING-2, OPS-4)
+- Worker:
+  - The question batch path also drafts one estimate per moment, as its own request with its own hash (`estimate_hash`). Redrafting one kind never retires the other.
+  - Only passages containing a digit are sent.
+  - The reply is checked strictly (`parse_estimate`): a positive answer and a unit; a stem that doesn't give the answer away; a citation quoting the passage and stating the number, which may carry a scale word or sit against its unit ("40ms", "10k", "1.5 million").
+  - A blind validator answers with a number. The question goes live within 1.25× (C-27's full points, `ESTIMATE_AGREES`, tied by comment to `estimation.ts`), otherwise it is rejected.
+  - "No number here" is remembered, so the same text is asked once (AI-4).
+  - Multiple-choice `save`/`drafted_hash`/`pending`/`pending_ids`/`record_verdict` now touch multiple choice only.
+  - The path proposer counts only live multiple choice as checkpoint material.
+- Data: migration `20261031040000_generated_estimates.sql`:
+  - `question.validator_estimate`, with the validated checks rebuilt;
+  - the slot index per kind;
+  - `question_batch_item.kind`;
+  - `question_estimate_drafted`.
+  - Down tested.
+- Web:
+  - Rounds serve a moment's estimate while its source allows moments and its link works.
+  - The reveal shows a moment's section, never its quote (Q-P2-12), through the reader for accounts on frameable pages, else the publisher's page (`app/quiz/sourceLink.tsx`, now shared with the sprint's misses). A hand-written question keeps its quoted sentence and page.
+  - A link that broke after answering keeps the points and drops the link.
+  - "Read again" merges estimate misses and sprint misses, once per link.
+  - Admin review shows a generated estimate's validator number.
+- Found: lowering a source's rights or switching its moments off purges its moments by trigger, and their questions and answers cascade. Results then lose those answers, as the sprint's already do.
+- Reviewer:
+  - Fixed: numbers written against their unit weren't read (paid drafts lost, stem give-aways missed). The path proposer counted estimate-only moments. Rounds served estimates with broken links.
+  - Tests added: interrupted estimate collection, and the estimate's broken cap leaving multiple choice alone.
+  - Nits fixed: thousands commas, the TS-side comment, a docstring, the migration's down.
+  - Skipped:
+    - the early skip for moments busy with both kinds (a small cost);
+    - a "busy with one kind" test: an open draft batch already blocks every draft request, so that state can't happen.
+- Not run live: no batch was submitted (it costs money and takes up to 24h); the local bank has no generated estimates yet.

@@ -49,6 +49,7 @@ from interval_jobs.ports import (
     ConceptSeed,
     DuplicateInviteCode,
     EntryFacts,
+    EstimateDraft,
     FeedEntry,
     FetchInput,
     Finished,
@@ -63,6 +64,7 @@ from interval_jobs.ports import (
     ProjectNoteInput,
     QuestionBatchEntry,
     QuestionDraft,
+    QuestionKind,
     QuestionSummary,
     QuestionTarget,
     RankedEntry,
@@ -89,6 +91,7 @@ from interval_jobs.ports import (
     ValidatedQuestion,
     Validators,
 )
+from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.technologies import TechnologySeed
 
@@ -1952,7 +1955,14 @@ class PostgresQuestions:
     def drafted_hash(self, moment_id: int) -> str | None:
         row = self._conn.execute(
             "select content_hash from question "
-            "where moment_id = %s and status <> 'retired' limit 1",
+            "where moment_id = %s and kind = 'choice' and status <> 'retired' limit 1",
+            (moment_id,),
+        ).fetchone()
+        return None if row is None else str(row[0])
+
+    def estimate_drafted_hash(self, moment_id: int) -> str | None:
+        row = self._conn.execute(
+            "select content_hash from question_estimate_drafted where moment_id = %s",
             (moment_id,),
         ).fetchone()
         return None if row is None else str(row[0])
@@ -1969,7 +1979,7 @@ class PostgresQuestions:
     ) -> list[int]:
         self._conn.execute(
             "update question set status = 'retired' "
-            "where moment_id = %s and status <> 'retired'",
+            "where moment_id = %s and kind = 'choice' and status <> 'retired'",
             (moment_id,),
         )
         self.clear_retry(moment_id)
@@ -2006,6 +2016,59 @@ class PostgresQuestions:
             )
         return ids
 
+    def save_estimate(
+        self,
+        moment_id: int,
+        draft: EstimateDraft | None,
+        concepts: Sequence[str],
+        model: str,
+        content_hash: str,
+        difficulty: Difficulty | None,
+    ) -> int | None:
+        self._conn.execute(
+            "update question set status = 'retired' "
+            "where moment_id = %s and kind = 'estimate' and status <> 'retired'",
+            (moment_id,),
+        )
+        self._conn.execute(
+            """
+            insert into question_estimate_drafted (moment_id, content_hash)
+            values (%s, %s)
+            on conflict (moment_id) do update set content_hash = excluded.content_hash
+            """,
+            (moment_id, content_hash),
+        )
+        if draft is None:
+            return None
+        row = self._conn.execute(
+            """
+            insert into question (kind, moment_id, ordinal, stem, answer, unit,
+              citation, generator_model, prompt_version, content_hash, difficulty)
+            values ('estimate', %s, 0, %s, %s, %s, %s, %s, %s, %s, %s)
+            returning id
+            """,
+            (
+                moment_id,
+                draft.stem,
+                draft.answer,
+                draft.unit,
+                draft.citation,
+                model,
+                ESTIMATE_PROMPT_VERSION,
+                content_hash,
+                difficulty,
+            ),
+        ).fetchone()
+        assert row is not None  # insert ... returning always returns the row
+        self._conn.execute(
+            """
+            insert into question_concept (question_id, concept_id)
+            select %s, id from concept where slug = any(%s)
+            """,
+            (row[0], list(concepts)),
+        )
+        return int(row[0])
+
     def retry_state(self, moment_id: int) -> tuple[int, datetime] | None:
         row = self._conn.execute(
             "select attempt, retry_at from question_drafting where moment_id = %s",
@@ -2032,7 +2095,7 @@ class PostgresQuestions:
     def pending(self, question_id: int) -> tuple[int, QuestionDraft] | None:
         row = self._conn.execute(
             "select moment_id, stem, options, correct, citation from question "
-            "where id = %s and status = 'pending'",
+            "where id = %s and status = 'pending' and kind = 'choice'",
             (question_id,),
         ).fetchone()
         if row is None:
@@ -2042,10 +2105,24 @@ class PostgresQuestions:
             str(stem), tuple(str(o) for o in options), int(correct), str(citation)
         )
 
+    def pending_estimate(self, question_id: int) -> tuple[int, EstimateDraft] | None:
+        row = self._conn.execute(
+            "select moment_id, stem, answer, unit, citation from question "
+            "where id = %s and status = 'pending' and kind = 'estimate' "
+            "and moment_id is not null",
+            (question_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        moment_id, stem, answer, unit, citation = row
+        return int(moment_id), EstimateDraft(
+            str(stem), float(answer), str(unit), str(citation)
+        )
+
     def pending_ids(self, moment_id: int) -> list[int]:
         rows = self._conn.execute(
             "select id from question where moment_id = %s and status = 'pending' "
-            "order by ordinal",
+            "and kind = 'choice' order by ordinal",
             (moment_id,),
         ).fetchall()
         return [int(r[0]) for r in rows]
@@ -2059,10 +2136,28 @@ class PostgresQuestions:
               validator_model = %(model)s,
               validator_answer = %(answer)s,
               validated_at = now()
-            where id = %(id)s and status = 'pending'
+            where id = %(id)s and status = 'pending' and kind = 'choice'
             returning id
             """,
             {"id": question_id, "model": model, "answer": answer},
+        ).fetchone()
+        return row is not None
+
+    def record_estimate_verdict(
+        self, question_id: int, model: str, answer: float, agrees: bool
+    ) -> bool:
+        row = self._conn.execute(
+            """
+            update question set
+              status = case when %(agrees)s then 'live' else 'rejected' end
+                ::question_status,
+              validator_model = %(model)s,
+              validator_estimate = %(answer)s,
+              validated_at = now()
+            where id = %(id)s and status = 'pending' and kind = 'estimate'
+            returning id
+            """,
+            {"id": question_id, "model": model, "answer": answer, "agrees": agrees},
         ).fetchone()
         return row is not None
 
@@ -2161,11 +2256,12 @@ class PostgresQuestions:
         ).fetchall()
         return len(sampled), len(flagged)
 
-    def pending_questions(self) -> list[int]:
+    def pending_questions(self) -> list[tuple[int, QuestionKind]]:
         rows = self._conn.execute(
-            "select id from question where status = 'pending' order by created_at, id"
+            "select id, kind from question where status = 'pending' "
+            "order by created_at, id"
         ).fetchall()
-        return [int(r[0]) for r in rows]
+        return [(int(r[0]), cast(QuestionKind, r[1])) for r in rows]
 
     def record_batch(
         self,
@@ -2202,11 +2298,18 @@ class PostgresQuestions:
             cur.executemany(
                 """
                 insert into question_batch_item
-                  (batch_id, custom_id, moment_id, question_id, content_hash)
-                values (%s, %s, %s, %s, %s)
+                  (batch_id, custom_id, moment_id, question_id, content_hash, kind)
+                values (%s, %s, %s, %s, %s, %s)
                 """,
                 [
-                    (batch_id, e.custom_id, e.moment_id, e.question_id, e.content_hash)
+                    (
+                        batch_id,
+                        e.custom_id,
+                        e.moment_id,
+                        e.question_id,
+                        e.content_hash,
+                        e.kind,
+                    )
                     for e in entries
                 ],
             )
@@ -2221,7 +2324,7 @@ class PostgresQuestions:
     def batch_entries(self, batch_id: str) -> list[QuestionBatchEntry]:
         rows = self._conn.execute(
             """
-            select custom_id, moment_id, question_id, content_hash
+            select custom_id, moment_id, question_id, content_hash, kind
             from question_batch_item where batch_id = %s order by custom_id
             """,
             (batch_id,),
@@ -2232,20 +2335,21 @@ class PostgresQuestions:
                 None if mid is None else int(mid),
                 None if qid is None else int(qid),
                 None if digest is None else str(digest),
+                cast(QuestionKind, kind),
             )
-            for cid, mid, qid, digest in rows
+            for cid, mid, qid, digest, kind in rows
         ]
 
-    def in_open_batches(self) -> tuple[set[int], set[int]]:
+    def in_open_batches(self) -> tuple[set[tuple[int, QuestionKind]], set[int]]:
         rows = self._conn.execute(
             """
-            select i.moment_id, i.question_id from question_batch_item i
+            select i.moment_id, i.question_id, i.kind from question_batch_item i
             join question_batch b on b.id = i.batch_id where b.closed_at is null
             """
         ).fetchall()
         return (
-            {int(m) for m, _ in rows if m is not None},
-            {int(q) for _, q in rows if q is not None},
+            {(int(m), cast(QuestionKind, k)) for m, _, k in rows if m is not None},
+            {int(q) for _, q, _ in rows if q is not None},
         )
 
     def last_submitted(self, kind: BatchKind) -> datetime | None:
@@ -2335,7 +2439,7 @@ class PostgresQuestions:
             """
             select id, stem, options, correct, citation, validator_answer, status
             from question where validated_at is not null and status <> 'retired'
-              and book_chapter_id is null
+              and book_chapter_id is null and kind = 'choice'
             order by random() limit %s
             """,
             (sample,),
@@ -2410,8 +2514,10 @@ class PostgresPaths:
             f"""
             with allowed as ({_PATH_MOMENTS})
             select a.moment_id, a.source_id, a.frameable, array_agg(a.slug),
+                   -- a checkpoint asks multiple choice only (P3-W13-S03b)
                    exists (select 1 from question q
-                           where q.moment_id = a.moment_id and q.status = 'live')
+                           where q.moment_id = a.moment_id and q.status = 'live'
+                             and q.kind = 'choice')
             from allowed a
             where a.moment_id in (
               select moment_id from allowed where slug = any(%s)

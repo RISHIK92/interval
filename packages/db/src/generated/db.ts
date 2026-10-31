@@ -584,6 +584,7 @@ export interface Question {
   unit: string | null;
   validated_at: Timestamp | null;
   validator_answer: number | null;
+  validator_estimate: number | null;
   validator_model: string | null;
 }
 
@@ -601,6 +602,7 @@ export interface QuestionBatchItem {
   batch_id: string;
   content_hash: string | null;
   custom_id: string;
+  kind: Generated<QuestionKind>;
   moment_id: Int8 | null;
   question_id: Int8 | null;
   result: string | null;
@@ -615,6 +617,11 @@ export interface QuestionDrafting {
   attempt: number;
   moment_id: Int8;
   retry_at: Timestamp;
+}
+
+export interface QuestionEstimateDrafted {
+  content_hash: string;
+  moment_id: Int8;
 }
 
 export interface QuestionFlag {
@@ -1017,6 +1024,7 @@ export interface DB {
   question_batch_item: QuestionBatchItem;
   question_concept: QuestionConcept;
   question_drafting: QuestionDrafting;
+  question_estimate_drafted: QuestionEstimateDrafted;
   question_flag: QuestionFlag;
   question_review: QuestionReview;
   quiz_answer: QuizAnswer;
