@@ -334,6 +334,34 @@ test("a reset link sets a new password once and signs out every other session", 
   expect(await sessions.current(elsewhere)).toBeNull();
 });
 
+// ADR-0030: on localhost, an email and a new password reset it outright.
+test("setPassword sets a new password by email and signs out every session", async () => {
+  const account = await newAccount();
+  const elsewhere = await signedIn(account.email, PASSWORD);
+  if (elsewhere === null) throw new Error("second sign-in failed");
+  // A link sent before (logged) must not undo the new password.
+  await port.requestReset(account.email);
+  const token = resetToken();
+  const newPassword = "a quick new passphrase";
+  expect(await port.setPassword(account.email, newPassword)).toBe(true);
+  expect(await port.resetPassword(token, "someone elses passphrase")).toBe(
+    false,
+  );
+  expect(await signedIn(account.email, PASSWORD)).toBeNull();
+  expect(await signedIn(account.email, newPassword)).not.toBeNull();
+  expect(await sessions.current(account.headers)).toBeNull();
+  expect(await sessions.current(elsewhere)).toBeNull();
+});
+
+test("setPassword for an unknown email changes nothing", async () => {
+  expect(
+    await port.setPassword(
+      "nobody@testacct.example.test",
+      "a quick passphrase",
+    ),
+  ).toBe(false);
+});
+
 test("an expired reset link is refused", async () => {
   const account = await newAccount();
   await port.requestReset(account.email);

@@ -11,7 +11,10 @@ const port = {
   signOut: vi.fn<Accounts["signOut"]>(() => Promise.resolve()),
   requestReset: vi.fn<Accounts["requestReset"]>(() => Promise.resolve()),
   resetPassword: vi.fn<Accounts["resetPassword"]>(),
+  setPassword: vi.fn<Accounts["setPassword"]>(() => Promise.resolve(true)),
 };
+// The request's own headers: empty (not local) unless a test sets them.
+const request = { headers: new Headers() };
 const emit = vi.fn();
 const setCookie = vi.fn();
 const deleteCookie = vi.fn();
@@ -45,7 +48,7 @@ vi.mock("../server/container", () => ({
   }),
 }));
 vi.mock("next/headers", () => ({
-  headers: () => Promise.resolve(new Headers()),
+  headers: () => Promise.resolve(request.headers),
   cookies: () =>
     Promise.resolve({
       get: (name: string) =>
@@ -61,6 +64,7 @@ vi.mock("next/navigation", () => ({ redirect }));
 
 afterEach(() => {
   vi.clearAllMocks();
+  request.headers = new Headers();
 });
 
 const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
@@ -213,6 +217,72 @@ describe("password reset", () => {
     expect(port.requestReset).toHaveBeenCalledExactlyOnceWith(
       "ada@example.test",
     );
+  });
+
+  test("away from this machine, the forgot page asks only for the email", async () => {
+    const { default: ForgotPasswordPage } =
+      await import("./forgot-password/page");
+    request.headers = new Headers({ host: "abc.ngrok-free.app" });
+    const page = await html(ForgotPasswordPage());
+    expect(page).toContain("Send reset link");
+    expect(page).not.toContain('name="password"');
+    const { forgotPasswordAction } = await import("./forgot-password/actions");
+    // A password sent anyway from afar is ignored: a link is asked for instead.
+    expect(
+      await forgotPasswordAction(
+        null,
+        form({ email: "ada@example.test", password: PASSWORD }),
+      ),
+    ).toEqual({
+      message: "If an account exists for that email, we've sent a reset link.",
+    });
+    expect(port.setPassword).not.toHaveBeenCalled();
+    expect(port.requestReset).toHaveBeenCalledOnce();
+  });
+
+  // ADR-0030: on localhost, an email and a new password are enough.
+  test("on this machine, an email and a new password reset it outright", async () => {
+    request.headers = new Headers({
+      host: "localhost:3100",
+      "x-forwarded-for": "::1",
+    });
+    const { default: ForgotPasswordPage } =
+      await import("./forgot-password/page");
+    const page = await html(ForgotPasswordPage());
+    expect(page).toContain('name="password"');
+    expect(page).toContain("Set password");
+    const { forgotPasswordAction } = await import("./forgot-password/actions");
+    await expect(
+      forgotPasswordAction(
+        null,
+        form({ email: " Ada@Example.test ", password: PASSWORD }),
+      ),
+    ).rejects.toThrow("redirect:/sign-in?reset=1");
+    expect(port.setPassword).toHaveBeenCalledExactlyOnceWith(
+      "ada@example.test",
+      PASSWORD,
+    );
+    expect(port.requestReset).not.toHaveBeenCalled();
+    port.setPassword.mockResolvedValueOnce(false);
+    expect(
+      await forgotPasswordAction(
+        null,
+        form({ email: "nobody@example.test", password: PASSWORD }),
+      ),
+    ).toEqual({ message: "No account with that email." });
+    expect(
+      await forgotPasswordAction(
+        null,
+        form({ email: "nope", password: PASSWORD }),
+      ),
+    ).toEqual({ message: "Enter a valid email address." });
+    expect(
+      await forgotPasswordAction(
+        null,
+        form({ email: "ada@example.test", password: "short" }),
+      ),
+    ).toEqual({ message: "Use a password of 8 to 128 characters." });
+    expect(port.setPassword).toHaveBeenCalledTimes(2);
   });
 
   test("the reset page without a token says the link is invalid", async () => {

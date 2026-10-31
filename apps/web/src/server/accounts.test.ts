@@ -33,6 +33,7 @@ function fake(
     resetPassword: vi.fn<Accounts["resetPassword"]>(() =>
       Promise.resolve(opts.reset ?? true),
     ),
+    setPassword: vi.fn<Accounts["setPassword"]>(() => Promise.resolve(true)),
   };
   return port satisfies Accounts;
 }

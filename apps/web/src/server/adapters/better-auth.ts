@@ -390,6 +390,33 @@ export function accounts(auth: Auth, db: Kysely<DB>): Accounts {
         body: { email, redirectTo: RESET_PATH },
       });
     },
+    // ADR-0030: the password and the end of every session together.
+    setPassword: async (email, newPassword) => {
+      const hash = await (await auth.$context).password.hash(newPassword);
+      return db.transaction().execute(async (trx) => {
+        const changed = await trx
+          .updateTable("auth_account as a")
+          .set({ password: hash, updated_at: new Date() })
+          .from("app_user as u")
+          .whereRef("u.id", "=", "a.user_id")
+          .where("u.email", "=", email)
+          .where("a.provider_id", "=", "credential")
+          .returning("a.user_id")
+          .executeTakeFirst();
+        if (changed === undefined) return false;
+        await trx
+          .deleteFrom("auth_session")
+          .where("user_id", "=", changed.user_id)
+          .execute();
+        // A reset link already sent (logged) mustn't undo the password just set.
+        await trx
+          .deleteFrom("auth_verification")
+          .where("identifier", "like", "reset-password:%")
+          .where("value", "=", changed.user_id)
+          .execute();
+        return true;
+      });
+    },
     resetPassword: async (token, newPassword) => {
       try {
         await auth.api.resetPassword({ body: { token, newPassword } });

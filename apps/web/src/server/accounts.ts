@@ -24,6 +24,7 @@ const SIGN_UP_REFUSED = {
   not_a_guest: "Join with an invite code first.",
 } as const;
 const BAD_TOKEN = "That reset link is invalid or has expired.";
+const NO_ACCOUNT = "No account with that email.";
 
 const refused = (message: string) => ({ ok: false as const, message });
 
@@ -134,6 +135,21 @@ export async function requestReset(
 ): Promise<void> {
   const parsed = email.safeParse(rawEmail);
   if (parsed.success) await accounts.requestReset(parsed.data);
+}
+
+// ADR-0030: on localhost only (the caller checks), no link: the email and a new
+// password are enough.
+export async function quickReset(
+  accounts: Accounts,
+  rawEmail: string,
+  newPassword: string,
+): Promise<FormResult> {
+  const parsed = email.safeParse(rawEmail);
+  if (!parsed.success) return refused(BAD_EMAIL);
+  if (!password.safeParse(newPassword).success) return refused(BAD_PASSWORD);
+  return (await accounts.setPassword(parsed.data, newPassword))
+    ? { ok: true }
+    : refused(NO_ACCOUNT);
 }
 
 export async function resetPassword(

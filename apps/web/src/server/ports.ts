@@ -583,6 +583,8 @@ export interface Accounts {
   requestReset(email: string): Promise<void>;
   // False for an unknown, used or expired token.
   resetPassword(token: string, newPassword: string): Promise<boolean>;
+  // ADR-0030, local only: no link. False when no account has a password for it.
+  setPassword(email: string, newPassword: string): Promise<boolean>;
 }
 
 // DB-5: where events go. Returns the records it could not deliver, for one retry.
