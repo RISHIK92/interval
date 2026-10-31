@@ -40,8 +40,8 @@ A, as the owner chose it with the risk stated: it meets the request on the machi
 - `apps/web/src/server/local-request.ts` (`isLocalRequest`), `Accounts.setPassword` in `ports.ts` and `adapters/better-auth.ts`, `quickReset` in `server/accounts.ts`, and the forgot page and action branch on it.
 - `/reset-password` and the link flow stay as ADR-0004 has them.
 - Fails closed: never in a production build (`NODE_ENV=production`, so the Docker image and VM never offer it), and a request without `x-forwarded-for` isn't local. Setting the password ends every session and voids reset links already sent.
-- Before beta (the SES adapter, the pre-deploy list): remove this branch, or keep it only where `MAIL_TRANSPORT=log`.
+- It stays, SES or not, until the owner says to change it (owner, 2026-10-31). Production builds never offer it either way.
 
 ## Open questions
 
-- Remove it when SES arrives, or keep it for local development behind `MAIL_TRANSPORT=log`?
+- ~~Remove it when SES arrives, or keep it?~~ Answered (owner, 2026-10-31): keep it until the owner says to change it.
