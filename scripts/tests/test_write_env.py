@@ -96,6 +96,7 @@ def test_writes_three_env_files_each_with_only_its_keys_and_mode_600(
         "OCR_URL": "http://ocr:8080",
         "BETTER_AUTH_SECRET": "authSecret456",
         "BETTER_AUTH_URL": "http://localhost",
+        "TRUSTED_PROXIES": "1",
         "MAIL_TRANSPORT": "log",
         "EVENTS_TRANSPORT": "file",
         "EVENTS_DIR": "/tmp/interval-events",

@@ -285,7 +285,7 @@ describe("containers", () => {
         ([, task]) =>
           task.Properties["ContainerDefinitions"] as {
             Name: string;
-            Environment?: { Name: string }[];
+            Environment?: { Name: string; Value?: unknown }[];
             Secrets?: { Name: string }[];
           }[],
       )
@@ -293,6 +293,11 @@ describe("containers", () => {
     expect((web?.Environment ?? []).map((e) => e.Name)).toContain(
       "BETTER_AUTH_URL",
     );
+    // P3-W13-S07: CloudFront and the ALB each add to X-Forwarded-For, so the visitor
+    // is the second from the right (apps/web/src/server/clientIp.ts).
+    expect(
+      (web?.Environment ?? []).find((e) => e.Name === "TRUSTED_PROXIES")?.Value,
+    ).toBe("2");
     expect((web?.Secrets ?? []).map((s) => s.Name)).toContain(
       "BETTER_AUTH_SECRET",
     );

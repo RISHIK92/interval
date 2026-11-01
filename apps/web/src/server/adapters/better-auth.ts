@@ -6,6 +6,7 @@ import { anonymous } from "better-auth/plugins";
 import type { Kysely } from "kysely";
 import { DatabaseError } from "pg";
 import { z } from "zod";
+import { mergeGuest } from "./kysely-guest-merge";
 import { log } from "../log";
 import {
   AccountNotRemoved,
@@ -30,6 +31,9 @@ type Redeemed = Extract<Redemption, { ok: true }>;
 // outside this scope.
 type PendingGuest = { redemption: Redeemed; userId?: string };
 const pendingGuest = new AsyncLocalStorage<PendingGuest>();
+
+// P3-W13-S07: whether this sign-in merged a guest, for accounts.signIn to report.
+const guestMerge = new AsyncLocalStorage<{ merged: boolean }>();
 
 const betaGroup = z.enum(["student", "developer"]);
 
@@ -151,9 +155,32 @@ export function createAuth(opts: {
     plugins: [
       anonymous({
         schema: { user: { fields: { isAnonymous: "is_anonymous" } } },
-        // A guest who signs in to an existing account is kept for the merge (S12),
-        // and nobody deletes a guest through the API.
+        // Nobody deletes a guest through the API; the merge below removes it.
         disableDeleteAnonymousUser: true,
+        // P3-W13-S07 (ADR-0029): a guest signing in to an existing account brings
+        // their Play data. This hook runs before nextCookies sets the account's
+        // cookie, so if the merge fails the sign-in fails with it, the browser keeps
+        // the guest's session, and a retry merges again (LOAD-5).
+        onLinkAccount: async ({ anonymousUser, newUser }) => {
+          const guestId = anonymousUser.user.id;
+          const accountId = newUser.user.id;
+          if (newUser.user.isAnonymous === true || accountId === guestId)
+            return;
+          try {
+            const merged = await opts.db
+              .transaction()
+              .execute((trx) => mergeGuest(trx, guestId, accountId));
+            const report = guestMerge.getStore();
+            if (report !== undefined) report.merged = merged;
+          } catch (error) {
+            log.error("account: guest not merged on sign-in", {
+              guestId,
+              userId: accountId,
+              error,
+            });
+            throw error;
+          }
+        },
       }),
       // Lets Better Auth set cookies from Next server actions; keep last.
       nextCookies(),
@@ -362,12 +389,15 @@ export function accounts(auth: Auth, db: Kysely<DB>): Accounts {
       }
     },
     signIn: async (headers, email, password) => {
+      const report = { merged: false };
       try {
-        const result = await auth.api.signInEmail({
-          body: { email, password },
-          headers,
-          returnHeaders: true,
-        });
+        const result = await guestMerge.run(report, () =>
+          auth.api.signInEmail({
+            body: { email, password },
+            headers,
+            returnHeaders: true,
+          }),
+        );
         const { user } = result.response;
         return {
           setCookies: result.headers.getSetCookie(),
@@ -376,6 +406,7 @@ export function accounts(auth: Auth, db: Kysely<DB>): Accounts {
             isGuest: user.isAnonymous === true,
             betaGroup: betaGroup.parse(user.betaGroup),
           },
+          mergedGuest: report.merged,
         };
       } catch (error) {
         if (error instanceof APIError && error.statusCode === 401) return null;

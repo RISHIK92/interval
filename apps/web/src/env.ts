@@ -37,6 +37,9 @@ const schema = z
     BETTER_AUTH_URL: z.url({ protocol: /^https?$/ }),
     // Q-P1-33: auth email is logged in development; SES comes before deploy.
     MAIL_TRANSPORT: z.enum(["log"]),
+    // P3-W13-S07: our proxies in front of the app, each adding to X-Forwarded-For
+    // (server/clientIp.ts): 1 on the VM (Caddy), 2 on AWS (CloudFront, the ALB).
+    TRUSTED_PROXIES: z.coerce.number().int().min(0).max(5).default(0),
   })
   .and(events)
   .and(queue)

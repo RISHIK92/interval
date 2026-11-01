@@ -383,6 +383,11 @@ class GraphVersion(TypedDict):
     loaded_at: datetime
 
 
+class GuestStart(TypedDict):
+    ip_key: bytes
+    created_at: datetime
+
+
 class InviteCode(TypedDict):
     id: int
     code: str

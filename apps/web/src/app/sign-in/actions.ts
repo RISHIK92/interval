@@ -3,7 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { signIn } from "../../server/accounts";
-import { accounts } from "../../server/container";
+import { accounts, events } from "../../server/container";
 import { type FormState, textField } from "../form";
 import { startVisit } from "../visit";
 
@@ -17,6 +17,9 @@ export async function signInAction(
   });
   if (!result.ok) return { message: result.message };
   // A new user on this browser, even a guest signing in: a new visit.
-  await startVisit(result.actor);
+  const sessionId = await startVisit(result.actor);
+  // P3-W13-S07 (Q-P1-11, DB-5): the guest's Play data joined the account.
+  if (result.mergedGuest)
+    events().emit("guest_merged", {}, { ...result.actor, sessionId });
   redirect("/");
 }

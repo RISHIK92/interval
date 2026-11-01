@@ -107,7 +107,18 @@ describe("parseEnv", () => {
   });
 
   test("returns typed values for a valid environment", () => {
-    expect(parseEnv(valid)).toEqual(valid);
+    // No proxy in front unless said (P3-W13-S07).
+    expect(parseEnv(valid)).toEqual({ ...valid, TRUSTED_PROXIES: 0 });
+  });
+
+  test("reads how many proxies stand in front, within reason", () => {
+    expect(parseEnv({ ...valid, TRUSTED_PROXIES: "2" }).TRUSTED_PROXIES).toBe(
+      2,
+    );
+    for (const bad of ["-1", "1.5", "9", "many"])
+      expect(() => parseEnv({ ...valid, TRUSTED_PROXIES: bad })).toThrow(
+        /TRUSTED_PROXIES/,
+      );
   });
 
   test("never includes variable values in the error", () => {

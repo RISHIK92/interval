@@ -24,7 +24,9 @@ function fake(
     ),
     signIn: vi.fn<Accounts["signIn"]>(() =>
       Promise.resolve(
-        opts.signIn === false ? null : { setCookies: [], actor: ACCOUNT },
+        opts.signIn === false
+          ? null
+          : { setCookies: [], actor: ACCOUNT, mergedGuest: false },
       ),
     ),
     create: vi.fn<Accounts["create"]>(),
@@ -115,6 +117,7 @@ describe("signIn", () => {
     ).toEqual({
       ok: true,
       actor: ACCOUNT,
+      mergedGuest: false,
     });
     expect(port.signIn).toHaveBeenCalledWith(
       headers,

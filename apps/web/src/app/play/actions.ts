@@ -1,13 +1,17 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { env } from "../../env";
+import { clientIp } from "../../server/clientIp";
 import {
+  guestLimits,
   guestSessions,
   inviteCodes,
   sessionReader,
 } from "../../server/container";
 import { startGuest } from "../../server/guest";
+import { PLAYER_COOKIE } from "../../server/visits";
 import { type FormState, textField } from "../form";
 import { startVisit } from "../visit";
 
@@ -21,10 +25,15 @@ export async function startGuestAction(
   const requestHeaders = await headers();
   if ((await sessionReader().current(requestHeaders)) !== null)
     redirect("/play");
+  // P3-W13-S07: a browser that already had a player (a guest, or an account signed in
+  // here) makes no new guest; clearing cookies gets past this, the network limit not.
+  if ((await cookies()).get(PLAYER_COOKIE) !== undefined)
+    return { message: "This browser already had a player. Sign in instead." };
   const result = await startGuest(
-    { codes: inviteCodes(), guests: guestSessions() },
+    { codes: inviteCodes(), guests: guestSessions(), limits: guestLimits() },
     textField(form, "code"),
     requestHeaders,
+    clientIp(requestHeaders, env().TRUSTED_PROXIES),
   );
   if (!result.ok) return { message: result.message };
   await startVisit(result.actor);

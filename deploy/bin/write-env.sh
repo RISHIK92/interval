@@ -96,6 +96,7 @@ ${files_lines}
 OCR_URL=http://ocr:8080
 BETTER_AUTH_SECRET=${better_auth}
 BETTER_AUTH_URL=${public_url}
+TRUSTED_PROXIES=1
 ${mail_transport_line}
 ${events_lines}
 OPENROUTER_API_KEY=${openrouter}

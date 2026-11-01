@@ -6,6 +6,9 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   oxc: { jsx: { runtime: "automatic" } },
   test: {
+    // Better Auth loads next/headers itself; inlined, a test can stand in for it
+    // (P3-W13-S07: whether a sign-in's cookie goes out).
+    server: { deps: { inline: ["better-auth"] } },
     // DB-backed tests start Better Auth and hash passwords; under `turbo check`, lint,
     // typecheck, synth and pytest share the machine, so 5 s is too tight. Still catches hangs.
     testTimeout: 15_000,

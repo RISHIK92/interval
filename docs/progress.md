@@ -2417,3 +2417,42 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not done:
   - no share event: DB-5's list has none, ask the owner;
   - link previews point at `BETTER_AUTH_URL`, so they only unfurl once deployed.
+
+### 2026-11-02 — P3-W13-S07 (guest to account merge, for Play; ADR-0029, ADR-0004, Q-P1-11, Q-P1-24, PER-2)
+
+- ADR-0029's open questions were already answered (2026-10-31).
+- Owner answers (2026-11-02):
+  - the streak is the union of days, and a day both played keeps the better score;
+  - mastery and review cards keep the further one (higher probability; more reviews, a tie keeps the account's);
+  - 10 guests a day per network;
+  - a 30-day browser mark.
+- A guest who signs up already becomes the account (same user id, code and group; existing test).
+- **Merging into an existing account (`adapters/kysely-guest-merge.ts`, one transaction, idempotent):**
+  - locks the guest row, mastery and review cards, and closes the guest's open games;
+  - on a daily day both played, keeps the better score (the SQL rounds like `dailyPoints`), with a tie keeping the account's;
+  - moves the games and their answers, merges mastery, review cards and flags, and deletes the guest.
+  - It runs in Better Auth's anonymous `onLinkAccount` hook, before `nextCookies` sets the account cookie. A failed merge fails the sign-in, the browser stays the guest, and a retry merges.
+  - `signIn` reports `mergedGuest`; the sign-in action emits `guest_merged`.
+- **Limits:**
+  - **Per network (`GuestLimits`, Kysely adapter plus memory fake; migration `guest_start`):** an HMAC of the address. It is checked before the code is redeemed, and counted only once a guest has started.
+  - **The address (`server/clientIp.ts`):** `X-Forwarded-For` counted from the right by `TRUSTED_PROXIES` (new env: 0 locally, 1 on the VM via write-env, 2 on AWS with a CDK test). IPv6 is keyed by /64.
+  - **Browser mark:** `iv_player`, 30 days, set by `startVisit` (guest start, sign-in, join). Play refuses a new guest in a browser that has it.
+- **Tests:** `vitest.config.ts` now inlines `better-auth`, so a test can stand in for `next/headers` and check whether the account cookie went out.
+- **Reviewer:**
+  - Fixed:
+    - a failed merge still set the account cookie, stranding the guest (reproduced by a test first);
+    - float rounding picked the wrong better day;
+    - mistyped codes counted against a network;
+    - IPv6 escaped the limit;
+    - a tie test that couldn't fail;
+    - a narrow race on mastery and review rows;
+    - the event description and the migration comment.
+  - Not fixed: no test where the guest's open daily meets the account's finished one; the same better-score rule decides it.
+- **Not done:**
+  - ratings and boards merge rules (W14, W16);
+  - the live-game same-browser check (W15);
+  - scheduling `purge-guests`;
+  - the local curl run through a production build. Server actions need Next's action ids, so the flow is covered by the Better Auth adapter tests against the real database instead.
+- **Full check:**
+  - web 1023 and Python 1261 pass;
+  - the infra synth hook timed out under machine load (75 pass alone), as the health and ping tests did in earlier runs.

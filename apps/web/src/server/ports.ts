@@ -619,6 +619,13 @@ export class AccountNotRemoved extends Error {
   override name = "AccountNotRemoved";
 }
 
+// P3-W13-S07 (ADR-0029): at most 10 guests a day from one network. Only a guest that
+// started counts, so mistyped codes don't use up a shared network's day.
+export interface GuestLimits {
+  allow(ip: string): Promise<boolean>;
+  record(ip: string): Promise<void>;
+}
+
 export interface GuestSessions {
   // Creates a guest (anonymous user) in the redemption's beta group and returns it with
   // the Set-Cookie values for its session. If it throws anything but GuestNotRemoved, no
@@ -664,12 +671,17 @@ export interface Accounts {
     headers: Headers,
     input: { name: string; email: string; password: string },
   ): Promise<SignUpResult>;
-  // Null for an unknown email or a wrong password: the caller cannot tell which.
+  // Null for an unknown email or a wrong password: the caller cannot tell which. A
+  // guest signing in to an account is merged into it (P3-W13-S07, ADR-0029).
   signIn(
     headers: Headers,
     email: string,
     password: string,
-  ): Promise<{ setCookies: string[]; actor: Actor } | null>;
+  ): Promise<{
+    setCookies: string[];
+    actor: Actor;
+    mergedGuest: boolean;
+  } | null>;
   signOut(headers: Headers): Promise<void>;
   // Mails a reset link if the account exists; returns the same either way.
   requestReset(email: string): Promise<void>;

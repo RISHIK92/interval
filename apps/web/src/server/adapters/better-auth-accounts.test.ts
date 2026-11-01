@@ -8,6 +8,28 @@ import {
   sessionReader,
 } from "./better-auth";
 import { createDb } from "./kysely";
+import * as merge from "./kysely-guest-merge";
+
+// What Better Auth's nextCookies plugin would set on a server action's response.
+const cookieSet = vi.fn<(name: string, value: string) => void>();
+vi.mock("next/headers.js", () => ({
+  cookies: () => Promise.resolve({ set: cookieSet }),
+  headers: () => Promise.resolve(new Headers()),
+}));
+const sessionCookieSet = () =>
+  cookieSet.mock.calls.some(([name]) => name.includes("session_token"));
+
+// A merge that fails on demand (P3-W13-S07): the sign-in must fail with it.
+let failMerge = false;
+vi.mock("./kysely-guest-merge", async (original) => {
+  const real = await original<typeof merge>();
+  return {
+    mergeGuest: (...args: Parameters<typeof real.mergeGuest>) =>
+      failMerge
+        ? Promise.reject(new Error("merge failed"))
+        : real.mergeGuest(...args),
+  };
+});
 
 // Real Better Auth against the local database. Better Auth commits on its own
 // connections, so every row made here hangs off a TESTACCT code and is removed after.
@@ -431,17 +453,78 @@ test("a made-up reset token is refused", async () => {
   ).toBe(false);
 });
 
-test("a guest who signs in to an existing account is kept for the merge (S12)", async () => {
+// P3-W13-S07 (ADR-0029): their Play data comes along and the guest is gone; the
+// merge's own rules are tested in kysely-guest-merge.test.ts.
+test("a guest who signs in to an existing account is merged into it", async () => {
   const account = await newAccount();
   const guest = await newGuest();
+  await db
+    .insertInto("quiz_attempt")
+    .values({
+      user_id: guest.userId,
+      sprint: true,
+      ends_at: sql<Date>`now() + interval '1 minute'`,
+    })
+    .execute();
   const result = await port.signIn(guest.headers, account.email, PASSWORD);
-  expect(result).not.toBeNull();
-  const row = await db
-    .selectFrom("app_user")
-    .select("is_anonymous")
-    .where("id", "=", guest.userId)
-    .executeTakeFirst();
-  expect(row).toEqual({ is_anonymous: true });
+  expect(result?.mergedGuest).toBe(true);
+  expect(result?.actor.userId).toBe(account.userId);
+  expect(
+    await db
+      .selectFrom("app_user")
+      .select("id")
+      .where("id", "=", guest.userId)
+      .executeTakeFirst(),
+  ).toBeUndefined();
+  const games = await db
+    .selectFrom("quiz_attempt")
+    .select("user_id")
+    .where("user_id", "in", [guest.userId, account.userId])
+    .execute();
+  expect(games).toEqual([{ user_id: account.userId }]);
+  expect(await sessions.current(guest.headers)).toBeNull();
+});
+
+// Better Auth sets the account's cookie after its hooks; the merge runs in one of them
+// (onLinkAccount), so a failure leaves the browser on the guest and a retry merges.
+test("a failed merge fails the sign-in and the guest stays as it was", async () => {
+  const account = await newAccount();
+  const guest = await newGuest();
+  failMerge = true;
+  cookieSet.mockClear();
+  try {
+    await expect(
+      port.signIn(guest.headers, account.email, PASSWORD),
+    ).rejects.toThrow();
+  } finally {
+    failMerge = false;
+  }
+  // No account cookie went out: the browser is still the guest's.
+  expect(sessionCookieSet()).toBe(false);
+  expect((await sessions.current(guest.headers))?.userId).toBe(guest.userId);
+  const retried = await port.signIn(guest.headers, account.email, PASSWORD);
+  expect(retried?.mergedGuest).toBe(true);
+  expect(sessionCookieSet()).toBe(true);
+});
+
+test("a sign-in without a guest merges nothing", async () => {
+  const account = await newAccount();
+  const result = await port.signIn(new Headers(), account.email, PASSWORD);
+  expect(result?.mergedGuest).toBe(false);
+  // Already signed in to the account: nothing to merge either.
+  const again = await port.signIn(
+    cookieHeader(result?.setCookies ?? []),
+    account.email,
+    PASSWORD,
+  );
+  expect(again?.mergedGuest).toBe(false);
+});
+
+test("a guest with a wrong password stays a guest", async () => {
+  const account = await newAccount();
+  const guest = await newGuest();
+  expect(await port.signIn(guest.headers, account.email, "wrong!")).toBeNull();
+  expect((await sessions.current(guest.headers))?.isGuest).toBe(true);
 });
 
 test("passwords are stored hashed and never written to the log", async () => {

@@ -5,6 +5,8 @@ import { events } from "../server/container";
 import type { Actor } from "../server/ports";
 import {
   formatVisit,
+  PLAYER_COOKIE,
+  PLAYER_MARK_SECONDS,
   VISIT_COOKIE,
   visitCookieOptions,
 } from "../server/visits";
@@ -17,11 +19,11 @@ import {
 export async function startVisit(actor: Actor): Promise<string> {
   const id = crypto.randomUUID();
   const lastSeen = Math.floor(Date.now() / 1000);
-  (await cookies()).set(
-    VISIT_COOKIE,
-    formatVisit({ id, lastSeen }),
-    visitCookieOptions(env().BETTER_AUTH_URL),
-  );
+  const jar = await cookies();
+  const options = visitCookieOptions(env().BETTER_AUTH_URL);
+  jar.set(VISIT_COOKIE, formatVisit({ id, lastSeen }), options);
+  // Every start of a visit is a guest starting or a sign-in: this browser has a player.
+  jar.set(PLAYER_COOKIE, "1", { ...options, maxAge: PLAYER_MARK_SECONDS });
   events().emit("session_started", {}, { ...actor, sessionId: id });
   return id;
 }

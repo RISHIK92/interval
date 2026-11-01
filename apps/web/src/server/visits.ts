@@ -18,6 +18,11 @@ export function formatVisit(visit: Visit): string {
 
 // Secure follows the public origin, not the request: behind CloudFront and the ALB the
 // app sees plain http even when the site is https.
+// P3-W13-S07 (owner, 2026-11-02): a browser that started a guest or signed in to an
+// account is marked for 30 days and makes no new guest (ADR-0029's limits).
+export const PLAYER_COOKIE = "iv_player";
+export const PLAYER_MARK_SECONDS = 30 * 86_400;
+
 export function visitCookieOptions(publicUrl: string) {
   return {
     httpOnly: true,

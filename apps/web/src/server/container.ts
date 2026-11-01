@@ -28,6 +28,7 @@ import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
 import { kyselyAdminPaths } from "./adapters/kysely-admin-paths";
 import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
 import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
+import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminTechnologies } from "./adapters/kysely-admin-technologies";
 import { kyselyBooks } from "./adapters/kysely-books";
 import { fetchGitHub } from "./adapters/fetch-github";
@@ -60,6 +61,7 @@ import type {
   Entitlements,
   Feedback,
   FeedReader,
+  GuestLimits,
   GuestSessions,
   InviteCodes,
   JobQueue,
@@ -170,6 +172,10 @@ export function entitlements(): Entitlements {
 
 export function inviteCodes(): InviteCodes {
   return kyselyInviteCodes(db());
+}
+
+export function guestLimits(): GuestLimits {
+  return kyselyGuestLimits(db(), env().BETTER_AUTH_SECRET);
 }
 
 export function guestSessions(): GuestSessions {

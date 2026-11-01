@@ -256,7 +256,7 @@
     },
     "guest_merged": {
       "version": 1,
-      "description": "A guest's activity was merged into an account (S12).",
+      "description": "A guest signed in to an existing account and their Play data was merged into it (P3-W13-S07).",
       "props": {}
     },
     "pwa_installed": {

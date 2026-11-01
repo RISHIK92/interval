@@ -182,7 +182,11 @@ describe("sign-in", () => {
   test("the right password goes home; a wrong one shows the generic message", async () => {
     const { signInAction } = await import("./sign-in/actions");
     const fields = { email: "ada@example.test", password: PASSWORD };
-    port.signIn.mockResolvedValueOnce({ setCookies: [], actor: account });
+    port.signIn.mockResolvedValueOnce({
+      setCookies: [],
+      actor: account,
+      mergedGuest: false,
+    });
     await expect(signInAction(null, form(fields))).rejects.toThrow(
       "redirect:/",
     );
@@ -202,6 +206,29 @@ describe("sign-in", () => {
     expect(await signInAction(null, form(fields))).toEqual({
       message: "Email or password is incorrect.",
     });
+  });
+});
+
+describe("guest merge on sign-in (P3-W13-S07)", () => {
+  test("a guest merged into the account is recorded once, in the new visit", async () => {
+    const { signInAction } = await import("./sign-in/actions");
+    port.signIn.mockResolvedValueOnce({
+      setCookies: [],
+      actor: account,
+      mergedGuest: true,
+    });
+    await expect(
+      signInAction(
+        null,
+        form({ email: "ada@example.test", password: PASSWORD }),
+      ),
+    ).rejects.toThrow("redirect:/");
+    const [, value] = setCookie.mock.calls[0] as [string, string];
+    const context = { ...account, sessionId: value.split(".")[0] };
+    expect(emit.mock.calls).toEqual([
+      ["session_started", {}, context],
+      ["guest_merged", {}, context],
+    ]);
   });
 });
 

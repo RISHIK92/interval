@@ -474,7 +474,8 @@ export class AwsStack extends Stack {
     const webContainer = webTask.addContainer("web", {
       image: image("apps/web/Dockerfile"),
       command: withDatabaseUrl("node apps/web/server.js"),
-      environment,
+      // P3-W13-S07: CloudFront, then the ALB, each add to X-Forwarded-For.
+      environment: { ...environment, TRUSTED_PROXIES: "2" },
       secrets: {
         ...secrets,
         GITHUB_APP_SLUG: ecs.Secret.fromSecretsManager(githubSlug),

@@ -408,6 +408,11 @@ export interface GraphVersion {
   version: number;
 }
 
+export interface GuestStart {
+  created_at: Generated<Timestamp>;
+  ip_key: Buffer;
+}
+
 export interface InviteCode {
   beta_group: BetaGroup;
   code: string;
@@ -1014,6 +1019,7 @@ export interface DB {
   github_repository: GithubRepository;
   goal_concept: GoalConcept;
   graph_version: GraphVersion;
+  guest_start: GuestStart;
   invite_code: InviteCode;
   item_concept: ItemConcept;
   item_concept_probability: ItemConceptProbability;

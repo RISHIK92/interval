@@ -115,7 +115,10 @@ export async function signIn(
   accounts: Accounts,
   headers: Headers,
   raw: { email: string; password: string },
-): Promise<{ ok: true; actor: Actor } | { ok: false; message: string }> {
+): Promise<
+  | { ok: true; actor: Actor; mergedGuest: boolean }
+  | { ok: false; message: string }
+> {
   const parsedEmail = email.safeParse(raw.email);
   if (!parsedEmail.success || raw.password.length > 128) return refused(WRONG);
   const session = await accounts.signIn(
@@ -125,7 +128,7 @@ export async function signIn(
   );
   return session === null
     ? { ok: false, message: WRONG }
-    : { ok: true, actor: session.actor };
+    : { ok: true, actor: session.actor, mergedGuest: session.mergedGuest };
 }
 
 // The page says the same thing whatever happens here, so a malformed email is dropped.
