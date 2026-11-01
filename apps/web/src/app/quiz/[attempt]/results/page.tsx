@@ -13,6 +13,7 @@ import {
 import { STATE_WORDS } from "../../../learnerState";
 import { amount, verdict } from "../../estimateText";
 import { SourceAnchor, sourceLink } from "../../sourceLink";
+import { ShareButton } from "./ShareButton";
 import {
   startBookCheckpointAction,
   startCheckpointAction,
@@ -206,6 +207,8 @@ export default async function ResultsPage({
           {daily.streak.freezes > 0 ? " · a freeze held" : null}
         </p>
       )}
+      {/* P3-W13-S06 (§6.3): the result shares as a card that shows no question. */}
+      {daily === null ? null : <ShareButton shareId={daily.shareId} />}
       {/* P3-W13-S04 (C-27, AI-3): each estimate against the real answer, and where
         it comes from. */}
       {scored === null || scored.answers.length === 0 ? null : (

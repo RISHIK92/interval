@@ -234,10 +234,13 @@ def test_a_started_day_cant_be_swapped(bank: psycopg.Connection) -> None:
     question(bank)
     question(bank)
     daily = PostgresDailyChallenges(bank)
-    today = datetime.now(UTC).date()
-    assert daily.pick(today)
-    assert not swap(bank, today, 0)
-    assert not swap(bank, today + timedelta(days=1), 0)  # no set: nothing to swap
+    # A day long gone: today's may already be picked in the local database.
+    started = date(2020, 1, 1)
+    assert daily.pick(started)
+    assert not swap(bank, started, 0)
+    tomorrow = datetime.now(UTC).date() + timedelta(days=1)
+    bank.execute("delete from daily_challenge where day = %s", (tomorrow,))
+    assert not swap(bank, tomorrow, 0)  # no set: nothing to swap
 
 
 def test_an_unapproved_set_is_queued_for_review_once(bank: psycopg.Connection) -> None:

@@ -368,6 +368,9 @@ export interface Quizzes {
   ): Promise<{ attemptId: string; endsAt: Date; firstTime: boolean } | null>;
   // Today's challenge for the player, and their streak (Q-P3-07).
   dailyStatus(userId: string): Promise<DailyStatus>;
+  // P3-W13-S06 (§6.3): a finished daily challenge's shared card, read by anyone with
+  // its link. Never a question: only the day, points, streak and a dot per question.
+  dailyShare(shareId: string): Promise<DailyShare | null>;
   // P2-W10-S04 (§5F, Q-P2-26): a checkpoint on a section of the user's active path,
   // once it's open and its readings are finished, not yet passed, with a live
   // question; the running one if there is one (LOAD-5); null otherwise.
@@ -428,6 +431,15 @@ export type DailyStatus = {
     "none" | "open" | { attemptId: string; finished: boolean; points: number };
   streak: Streak;
 };
+// A dot per question in set order: 1 a right choice, an estimate's points out of 100,
+// 0 a miss or a question not reached. The streak is as of that day. A question deleted
+// since (purged with its moment, ING-2) loses its dot but keeps its points.
+export type DailyShare = {
+  day: string;
+  points: number;
+  streak: Streak;
+  dots: number[];
+};
 
 export const quizKey = (itemId: string, momentId: string | null): string =>
   `${itemId}.${momentId ?? ""}`;
@@ -440,11 +452,13 @@ export type QuizAttempt = {
   // each answer with the real one and its source (AI-3).
   estimation: { points: number; answers: EstimateReveal[] } | null;
   // The daily challenge (P3-W13-S05): its points (100 a right choice, an estimate's
-  // up to 100), its estimates as a round's, and the player's streak after it.
+  // up to 100), its estimates as a round's, the player's streak after it, and the
+  // id of its share link (P3-W13-S06).
   daily: {
     points: number;
     answers: EstimateReveal[];
     streak: Streak;
+    shareId: string;
   } | null;
   itemId: string | null;
   momentId: string | null;

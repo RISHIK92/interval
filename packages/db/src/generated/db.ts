@@ -679,6 +679,7 @@ export interface QuizAttempt {
   pass_mark: Generated<number | null>;
   path_section_id: Int8 | null;
   review: Generated<boolean>;
+  share_id: Generated<string>;
   sprint: Generated<boolean>;
   started_at: Generated<Timestamp>;
   user_id: string;

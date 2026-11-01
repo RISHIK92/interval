@@ -211,6 +211,8 @@ test("a sprint's results send its misses back to reading, and lead back to Play"
   expect(html).toMatch(/href="\/read\/5\?moment=9[^"]*"[^>]*>Raft</);
   expect(html).toMatch(/href="\/out\?[^"]*"[^>]*target="_blank"[^>]*>Paxos</);
   expect(html).toMatch(/href="\/play"[^>]*>Back to Play</);
+  // Only the daily challenge shares (P3-W13-S06).
+  expect(html).not.toContain("Share your result");
   expect(nextMoment).not.toHaveBeenCalled();
 });
 
@@ -358,6 +360,7 @@ const dailyDone: QuizAttempt = {
     points: 360,
     answers: [answer("Disk seek?", 11, 0.6, "Seeks")],
     streak: { days: 8, freezes: 1 },
+    shareId: "3f2c1a9e-5b7d-4c8e-9a1b-2d3e4f5a6b7c",
   },
 };
 
@@ -369,11 +372,19 @@ test("the daily challenge's results: points, its estimates, the streak, Back to 
   expect(html).toContain("Disk seek?");
   expect(text).toContain("8-day streak");
   expect(text).toContain("a freeze held");
+  // P3-W13-S06: the result shares as a card.
+  expect(html).toContain("Share your result");
+  expect(html).toContain('data-share="3f2c1a9e-5b7d-4c8e-9a1b-2d3e4f5a6b7c"');
   expect(html).toMatch(/href="\/read\/5\?moment=9[^"]*"[^>]*>Raft</);
   expect(html).toMatch(/href="\/play"[^>]*>Back to Play</);
   const one = await render({
     ...dailyDone,
-    daily: { points: 360, answers: [], streak: { days: 1, freezes: 0 } },
+    daily: {
+      points: 360,
+      answers: [],
+      streak: { days: 1, freezes: 0 },
+      shareId: "3f2c1a9e-5b7d-4c8e-9a1b-2d3e4f5a6b7c",
+    },
   });
   expect(one.replace(/<[^>]+>/g, "|")).toContain("1-day streak");
   expect(one).not.toContain("freeze");

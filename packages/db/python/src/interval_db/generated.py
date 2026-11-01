@@ -3,6 +3,7 @@
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Literal, TypedDict
+from uuid import UUID
 
 type JsonScalar = str | int | float | bool | None
 type JsonValue = JsonScalar | list[JsonValue] | dict[str, JsonValue]
@@ -656,6 +657,7 @@ class QuizAttempt(TypedDict):
     sprint: bool
     estimation: bool
     daily_day: date | None
+    share_id: UUID
 
 
 class QuizAttemptConcept(TypedDict):

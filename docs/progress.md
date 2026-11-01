@@ -2388,3 +2388,32 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
     - Play's results link uses the default chip.
 - Found: my first rollback test of this migration rebuilt `review_reason` without `anomaly` on the local DB (no rows used it); the down step is fixed and the local enum restored.
 - Not done: no admin nav exists to link `/admin/daily` from; CACHE-4 (CloudFront) and LOAD-4 (scheduled scaling at 00:00) are deployment work. The CLAUDE.md commands line for `daily-challenge-due` is the owner's to add.
+
+### 2026-11-01 — P3-W13-S06 (share cards; §6.3, Q-P3-07)
+
+- Owner answers (2026-11-01):
+  - no name on the card;
+  - a 5-dot row, one dot per question;
+  - the share sheet on phones, else copy the link.
+- Data: migration `20261102000000_daily_share.sql` gives every `quiz_attempt` a random `share_id` (unique), so a public link can't be guessed by counting attempt ids. Down tested.
+- Web:
+  - **`Quizzes.dailyShare(shareId)`** returns a daily attempt's day, points, streak as of that day, and dots (1 a right choice, an estimate's points/100, 0 a miss or not reached). It reads no stem, choice or source. It gives null for a non-daily attempt, an unknown id, or one still in play.
+  - **`/daily/[share]`:** a public page with the card and "Play today's challenge", plus metadata (description, `metadataBase` from `BETTER_AUTH_URL`).
+  - **`opengraph-image.tsx`:** `next/og` ImageResponse at 1200×630, drawn only from the share.
+  - **Results page:** the Share button (`ShareButton.tsx`) uses the share sheet; when it's missing or fails (other than a cancel), it copies the link.
+  - `streakText` moved to `app/streakText.ts`, shared by the cards.
+- Verified on a production build (port 3199): the page returns 200 with og/twitter image tags, the image is a 200 PNG (looked at), and unknown or malformed ids give 404. The test attempt was removed afterwards.
+- Found:
+  - the long-running dev server on 3100 serves a stale quizzes adapter (`dailyShare is not a function`) until it is restarted. I didn't restart it, because the ngrok tunnel points at it.
+  - S05's `test_a_started_day_cant_be_swapped` failed whenever today's set already existed locally; it now uses a past day.
+  - Two store-contract tests deadlocked once under the parallel check and passed alone.
+- Reviewer:
+  - Fixed: tests for a non-daily id and a past-clock unfinished attempt; the share sheet falling back to copying; one query per request (`cache`).
+  - Not fixed:
+    - `twitter:card` is already emitted by the image convention;
+    - the stems checked in the no-question test are the fixture's real stems;
+    - the results page shows today's streak while the card shows that day's;
+    - a question purged after the day keeps its points but loses its dot (noted in the type's comment).
+- Not done:
+  - no share event: DB-5's list has none, ask the owner;
+  - link previews point at `BETTER_AUTH_URL`, so they only unfurl once deployed.

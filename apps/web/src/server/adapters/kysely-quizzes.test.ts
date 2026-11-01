@@ -2389,3 +2389,110 @@ test("a daily attempt has no target and no sprint, and is one a day", async () =
     ).rejects.toThrow(/quiz_attempt_one_daily/);
   });
 });
+
+// P3-W13-S06 (§6.3): a finished day's result, shared by a link anyone may open.
+test("a shared daily result has the day, points, streak and a dot per question, never a question", async () => {
+  await inRollback(async (trx, { userId, otherUser, q }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const seek = await handWritten(trx, wal.id, "disk seek", 10);
+    // A question that left the bank since the pick is a dot not reached.
+    await todaysSet(trx, [
+      q["intro-0"] ?? "",
+      q["pending"] ?? "",
+      seek,
+      q["raft-1"] ?? "",
+    ]);
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await daily(quizzes, userId);
+    const first = served(await quizzes.next(userId, attemptId));
+    await quizzes.answer(userId, attemptId, first.questionId, 0);
+    estimate(await quizzes.next(userId, attemptId));
+    const scored = await quizzes.answerEstimate(userId, attemptId, seek, 20);
+    if (scored === null || scored === "late") throw new Error("not scored");
+    const third = served(await quizzes.next(userId, attemptId));
+    await quizzes.answer(userId, attemptId, third.questionId, 1);
+    const shareId = (await quizzes.attempt(userId, attemptId))?.daily?.shareId;
+    if (shareId === undefined) throw new Error("no share id");
+    // Still in play: nothing to share yet.
+    expect(await quizzes.dailyShare(shareId)).toBeNull();
+    await quizzes.finish(userId, attemptId);
+    const day = (
+      await sql<{ day: string }>`select ${TODAY}::text as day`.execute(trx)
+    ).rows[0]?.day;
+    const estimatePoints = Math.round(scored.score * 100);
+    const share = await quizzes.dailyShare(shareId);
+    expect(share).toEqual({
+      day,
+      points: 100 + estimatePoints,
+      streak: { days: 1, freezes: 0 },
+      dots: [1, 0, estimatePoints / 100, 0],
+    });
+    for (const text of ["intro-0", "raft-1", "disk seek", "Raft"])
+      expect(JSON.stringify(share)).not.toContain(text);
+    // Each attempt's link is its own.
+    await daily(quizzes, otherUser);
+    const ids = await trx
+      .selectFrom("quiz_attempt")
+      .select("share_id")
+      .where("daily_day", "is not", null)
+      .execute();
+    expect(new Set(ids.map((i) => i.share_id)).size).toBe(ids.length);
+    expect(
+      await quizzes.dailyShare("00000000-0000-4000-8000-000000000000"),
+    ).toBeNull();
+  });
+});
+
+test("a shared result keeps the streak it had on its day", async () => {
+  await inRollback(async (trx, { userId }) => {
+    const share: Record<number, string> = {};
+    for (const back of [4, 2, 1]) {
+      const day = sql<string>`${TODAY} - ${back}::int`;
+      await sql`insert into daily_challenge (day) values (${day})
+        on conflict do nothing`.execute(trx);
+      const { rows } = await sql<{ share_id: string }>`insert into quiz_attempt
+          (user_id, daily_day, started_at, ends_at, finished_at)
+        values (${userId}, ${day}, now() - interval '1 hour', now(), now())
+        returning share_id`.execute(trx);
+      share[back] = rows[0]?.share_id ?? "";
+    }
+    const quizzes = kyselyQuizzes(trx);
+    expect((await quizzes.dailyShare(share[2] ?? ""))?.streak.days).toBe(1);
+    expect((await quizzes.dailyShare(share[1] ?? ""))?.streak.days).toBe(2);
+    // A day with no set questions left still shares its points, with no dots.
+    expect(await quizzes.dailyShare(share[4] ?? "")).toMatchObject({
+      points: 0,
+      dots: [],
+    });
+  });
+});
+
+test("only a daily attempt shares, once finished or past its clock and grace", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    await todaysSet(trx, [q["intro-0"] ?? ""]);
+    const quizzes = kyselyQuizzes(trx);
+    // Every attempt has a share id; a sprint's is never served.
+    const { rows } = await sql<{ share_id: string }>`insert into quiz_attempt
+        (user_id, sprint, started_at, ends_at, finished_at)
+      values (${userId}, true, now() - interval '2 minutes',
+              now() - interval '1 minute', now())
+      returning share_id`.execute(trx);
+    expect(await quizzes.dailyShare(rows[0]?.share_id ?? "")).toBeNull();
+    const attemptId = await daily(quizzes, userId);
+    const { share_id: shareId } = await trx
+      .selectFrom("quiz_attempt")
+      .select("share_id")
+      .where("id", "=", attemptId)
+      .executeTakeFirstOrThrow();
+    expect(await quizzes.dailyShare(shareId)).toBeNull();
+    // Left open (a tab closed mid-game), past its clock and grace: it shares.
+    await sql`update quiz_attempt set started_at = now() - interval '3 minutes',
+        ends_at = now() - interval '10 seconds' where id = ${attemptId}`.execute(
+      trx,
+    );
+    expect(await quizzes.dailyShare(shareId)).toMatchObject({
+      points: 0,
+      dots: [0],
+    });
+  });
+});

@@ -78,6 +78,8 @@ const total = (scores: number[]): number =>
 // day's set on one 2-minute clock. A right choice is worth an estimate's full points.
 const TODAY = sql`(now() at time zone 'utc')::date`;
 const DAILY_DURATION = sql.raw(`interval '120 seconds'`);
+// A daily attempt that counts as played: finished, or past its clock and grace.
+const DAILY_OVER = sql`(finished_at is not null or ends_at + ${GRACE} < now())`;
 const dailyPoints = (choicesRight: number, scores: number[]): number =>
   choicesRight * points(1) + total(scores);
 // The day's questions rounds may still serve (ING-2, Q-1): a question that left the
@@ -401,12 +403,13 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
   };
 
   // Q-P3-07: the UTC days the player finished a daily challenge; one past its clock
-  // and grace counts though nothing has closed it yet (a tab closed mid-game).
-  const streak = async (userId: string): Promise<Streak> => {
+  // and grace counts though nothing has closed it yet (a tab closed mid-game). A
+  // shared card's (P3-W13-S06) is as of its own day.
+  const streak = async (userId: string, asOf?: string): Promise<Streak> => {
+    const day = asOf === undefined ? TODAY : sql`${asOf}::date`;
     const { rows } = await sql<{ day: string; today: string }>`
-      select daily_day::text as day, ${TODAY}::text as today from quiz_attempt
-      where user_id = ${userId} and daily_day is not null
-        and (finished_at is not null or ends_at + ${GRACE} < now())
+      select daily_day::text as day, ${day}::text as today from quiz_attempt
+      where user_id = ${userId} and daily_day <= ${day} and ${DAILY_OVER}
     `.execute(db);
     const today = rows[0]?.today;
     return today === undefined
@@ -1116,6 +1119,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           "a.sprint",
           "a.estimation",
           sql<boolean>`a.daily_day is not null`.as("daily"),
+          "a.share_id",
           "a.content_item_id",
           "a.moment_id",
           "a.started_at",
@@ -1245,6 +1249,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
                 ),
                 answers: estimates,
                 streak: await streak(userId),
+                shareId: row.share_id,
               },
         itemId: row.content_item_id,
         momentId: row.moment_id,
@@ -1383,6 +1388,43 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
               : "none",
         streak: await streak(userId),
       };
+    },
+
+    // Only kinds' outcomes leave here: no stem, choice or source (§6.3).
+    dailyShare: async (shareId) => {
+      const { rows } = await sql<{
+        user_id: string;
+        day: string;
+        choices_right: number;
+        scores: number[];
+        outcomes: { correct: boolean | null; score: number | null }[];
+      }>`
+        select a.user_id, a.daily_day::text as day,
+               (select count(*)::int from quiz_answer qa
+                 where qa.attempt_id = a.id and qa.correct) as choices_right,
+               array(select qa.score from quiz_answer qa
+                 where qa.attempt_id = a.id and qa.score is not null) as scores,
+               (select coalesce(json_agg(json_build_object(
+                         'correct', qa.correct, 'score', qa.score)
+                       order by d.position), '[]')
+                 from daily_challenge_question d
+                 left join quiz_answer qa
+                   on qa.attempt_id = a.id and qa.question_id = d.question_id
+                 where d.day = a.daily_day) as outcomes
+        from quiz_attempt a
+        where a.share_id = ${shareId} and a.daily_day is not null and ${DAILY_OVER}
+      `.execute(db);
+      const row = rows[0];
+      return row === undefined
+        ? null
+        : {
+            day: row.day,
+            points: dailyPoints(row.choices_right, row.scores),
+            streak: await streak(row.user_id, row.day),
+            dots: row.outcomes.map(({ correct, score }) =>
+              correct === true ? 1 : score === null ? 0 : points(score) / 100,
+            ),
+          };
     },
 
     // P2-W11-S06 (Q-P2-35): the same insert-or-meet-the-winner as a section's, for a

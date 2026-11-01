@@ -1,14 +1,10 @@
 import type { DailyStatus, Streak } from "../server/ports";
 import { startDailyAction } from "./quiz/actions";
+import { streakText } from "./streakText";
 import { Card } from "./ui/Card";
 
 const BUTTON =
   "cursor-pointer rounded-full bg-ink px-5 py-2.5 font-semibold text-page";
-
-const streakText = ({ days, freezes }: Streak): string | null =>
-  days === 0
-    ? null
-    : `${days === 1 ? "1-day" : `${String(days)}-day`} streak${freezes > 0 ? " · a freeze held" : ""}`;
 
 // P3-W13-S05 (§6.1): the feed's card for today's challenge, while it's still to play.
 // Like every card, it says why it's here (§5B).

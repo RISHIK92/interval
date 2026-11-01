@@ -465,7 +465,12 @@ test("the daily challenge is named as one, says it's one attempt, and Close goes
     { chip: "3-8" },
     {
       ...running,
-      daily: { points: 0, answers: [], streak: { days: 0, freezes: 0 } },
+      daily: {
+        points: 0,
+        answers: [],
+        streak: { days: 0, freezes: 0 },
+        shareId: "3f2c1a9e-5b7d-4c8e-9a1b-2d3e4f5a6b7c",
+      },
       itemId: null,
       momentId: null,
       title: "Daily challenge",
