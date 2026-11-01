@@ -13,6 +13,7 @@ const startCheckpoint = vi.fn<Quizzes["startCheckpoint"]>();
 const closeStale = vi.fn<Quizzes["closeStale"]>(() => Promise.resolve([]));
 const startSprint = vi.fn<Quizzes["startSprint"]>();
 const startEstimation = vi.fn<Quizzes["startEstimation"]>();
+const startDaily = vi.fn<Quizzes["startDaily"]>();
 const answerEstimate = vi.fn<Quizzes["answerEstimate"]>();
 const can = vi.fn(() => Promise.resolve(true));
 const emit = vi.fn();
@@ -23,6 +24,7 @@ vi.mock("../../server/container", () => ({
     closeStale,
     startSprint,
     startEstimation,
+    startDaily,
     answerEstimate,
     start,
     answer,
@@ -165,6 +167,7 @@ test("finishing reports once", async () => {
     firstTime: true,
     sprint: false,
     estimation: null,
+    daily: null,
     checkpoint: null,
   });
   await expect(
@@ -182,6 +185,7 @@ test("finishing reports once", async () => {
     firstTime: false,
     sprint: false,
     estimation: null,
+    daily: null,
     checkpoint: null,
   });
   await expect(
@@ -291,6 +295,7 @@ test("Close finishes and goes back to the feed", async () => {
     firstTime: true,
     sprint: false,
     estimation: null,
+    daily: null,
     checkpoint: null,
   });
   await expect(
@@ -355,6 +360,7 @@ test("a checkpoint's finish reports whether it passed; Close goes back to the pa
     firstTime: true,
     sprint: false,
     estimation: null,
+    daily: null,
     checkpoint: {
       at: { kind: "path", pathId: "6", sectionId: "60" },
       passed: true,
@@ -389,6 +395,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       firstTime: true,
       sprint: false,
       estimation: null,
+      daily: null,
       checkpoint: null,
     },
     {
@@ -398,6 +405,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       firstTime: true,
       sprint: false,
       estimation: null,
+      daily: null,
       checkpoint: {
         at: { kind: "path", pathId: "6", sectionId: "60" },
         passed: true,
@@ -439,6 +447,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       firstTime: true,
       sprint: false,
       estimation: null,
+      daily: null,
       checkpoint: null,
     },
   ]);
@@ -503,6 +512,7 @@ test("a sprint's finish is a game_finished, not a quiz_finished; Close goes to P
     checkpoint: null,
     sprint: true,
     estimation: null,
+    daily: null,
   });
   await expect(
     finishQuizAction(form({ attemptId: "61", chip: "3-8", leave: "play" })),
@@ -535,6 +545,7 @@ test("Start just after a sprint's clock ran out finishes it, records it, and sta
     checkpoint: null,
     sprint: true,
     estimation: null,
+    daily: null,
   });
   await expect(startSprintAction()).rejects.toThrow(
     "redirect:/quiz/62?chip=3-8",
@@ -618,6 +629,7 @@ test("Start just after a round's clock ran out finishes it, records it, and star
     checkpoint: null,
     sprint: true,
     estimation: { points: 158 },
+    daily: null,
   });
   await expect(startEstimationAction()).rejects.toThrow(
     "redirect:/quiz/72?chip=3-8",
@@ -699,6 +711,7 @@ test("a round's finish is a game_finished with its points", async () => {
     checkpoint: null,
     sprint: true,
     estimation: { points: 158 },
+    daily: null,
   });
   await expect(
     finishQuizAction(form({ attemptId: "71", chip: "3-8" })),
@@ -712,6 +725,80 @@ test("a round's finish is a game_finished with its points", async () => {
       correct: 1,
       points: 158,
     },
+    context,
+  );
+});
+
+// P3-W13-S05 (§6.3): the daily challenge, one attempt a day, guests included.
+test("today's challenge starts from Play once, under play.daily", async () => {
+  const { startDailyAction } = await actions();
+  current.mockResolvedValue({ ...user, isGuest: true });
+  startDaily.mockResolvedValue({
+    attemptId: "71",
+    endsAt: new Date(Date.now() + 120_000),
+    firstTime: true,
+  });
+  await expect(startDailyAction()).rejects.toThrow(
+    "redirect:/quiz/71?chip=3-8",
+  );
+  expect(can).toHaveBeenCalledWith("u1", "play.daily");
+  expect(closeStale).toHaveBeenCalledWith("u1");
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "game_started",
+    { attempt_id: "71", game: "daily" },
+    { ...context, isGuest: true },
+  );
+});
+
+test("a day already played goes to its attempt, which shows the results", async () => {
+  const { startDailyAction } = await actions();
+  const over = {
+    attemptId: "71",
+    endsAt: new Date(Date.now() - 60_000),
+    firstTime: false,
+  };
+  startDaily.mockResolvedValue(over);
+  finish.mockResolvedValue({
+    answered: 5,
+    correct: 4,
+    firstTime: false,
+    checkpoint: null,
+    sprint: false,
+    estimation: null,
+    daily: { points: 430 },
+  });
+  await expect(startDailyAction()).rejects.toThrow("redirect:/quiz/71");
+  expect(emit).not.toHaveBeenCalled();
+});
+
+test("without play.daily, or with no challenge today, Play says so", async () => {
+  const { startDailyAction } = await actions();
+  can.mockResolvedValueOnce(false);
+  await expect(startDailyAction()).rejects.toThrow(/^redirect:\/play$/);
+  expect(startDaily).not.toHaveBeenCalled();
+  startDaily.mockResolvedValue(null);
+  await expect(startDailyAction()).rejects.toThrow(
+    /^redirect:\/play\?daily=none$/,
+  );
+});
+
+test("the daily challenge's finish is a game_finished with its points", async () => {
+  const { finishQuizAction } = await actions();
+  finish.mockResolvedValue({
+    answered: 5,
+    correct: 4,
+    firstTime: true,
+    checkpoint: null,
+    sprint: false,
+    estimation: null,
+    daily: { points: 430 },
+  });
+  await expect(
+    finishQuizAction(form({ attemptId: "71", chip: "3-8", leave: "play" })),
+  ).rejects.toThrow("redirect:/play");
+  expect(emit).toHaveBeenCalledExactlyOnceWith(
+    "game_finished",
+    { attempt_id: "71", game: "daily", answered: 5, correct: 4, points: 430 },
     context,
   );
 });

@@ -26,6 +26,7 @@ const running: QuizAttempt = {
   review: false,
   sprint: false,
   estimation: null,
+  daily: null,
   itemId: "5",
   momentId: "9",
   title: "Raft",
@@ -303,6 +304,7 @@ test("a sprint is named as one, and Close goes back to Play", async () => {
       ...running,
       sprint: true,
       estimation: null,
+      daily: null,
       itemId: null,
       momentId: null,
       title: "60-second sprint",
@@ -330,6 +332,7 @@ test("a guest gets no report form: a flag isn't theirs to make (ADR-0029)", asyn
     ...running,
     sprint: true,
     estimation: null,
+    daily: null,
     itemId: null,
     momentId: null,
   });
@@ -448,4 +451,30 @@ test("the reveal names full points and close guesses", async () => {
   expect(await render({ chip: "3-8", answered: "7" }, round)).toContain(
     "Close",
   );
+});
+
+test("the daily challenge is named as one, says it's one attempt, and Close goes back to Play", async () => {
+  next.mockResolvedValue({
+    questionId: "7",
+    stem: "What does a quorum need?",
+    kind: "choice",
+    options: ["A majority", "Everyone", "One", "None"],
+    servedAt: new Date(),
+  });
+  const html = await render(
+    { chip: "3-8" },
+    {
+      ...running,
+      daily: { points: 0, answers: [], streak: { days: 0, freezes: 0 } },
+      itemId: null,
+      momentId: null,
+      title: "Daily challenge",
+    },
+  );
+  expect(html).toContain("Daily challenge");
+  expect(html).not.toContain("Test yourself");
+  expect(html).toMatch(/name="leave" value="play"/);
+  expect(html).toContain("Exit today&#x27;s challenge?");
+  expect(html).toContain("one attempt a day");
+  expect(html).toContain("the same for everyone");
 });

@@ -462,3 +462,23 @@ def test_check_links_due_queues_every_item(
     main(["check-links-due"])
     assert json.loads(capsys.readouterr().out) == {"queued": 2}
     assert queue.pending("check_link") == 2
+
+
+def test_daily_challenge_due_prints_what_it_did(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    memory = InMemoryStore()
+
+    @contextmanager
+    def services() -> Generator[FakeServices]:
+        yield FakeServices(memory)
+
+    monkeypatch.setattr(cli, "services", services)
+    main(["daily-challenge-due"])
+    # The last line: the auto-publish's warning is logged first.
+    assert json.loads(capsys.readouterr().out.splitlines()[-1]) == {
+        "picked_today": True,
+        "published_unreviewed": 0,
+        "picked_tomorrow": True,
+    }
+    assert len(memory.daily.days) == 2

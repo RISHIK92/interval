@@ -48,6 +48,7 @@ from interval_jobs.concepts.draft import DraftError, draft_concepts
 from interval_jobs.concepts.graph import TOPICS, ConceptSeedError, parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
 from interval_jobs.consumer import run_consumers
+from interval_jobs.daily_challenge import run_daily
 from interval_jobs.embedding_eval import MIN_POOL, MIN_RECALL, parse_queries
 from interval_jobs.embedding_eval import EvalError as EmbeddingEvalError
 from interval_jobs.embedding_eval import run_eval as run_embedding_eval
@@ -235,6 +236,10 @@ def main(argv: list[str]) -> None:
         "poll-due", help="queue a poll of every source whose turn has come (ING-3)"
     )
     commands.add_parser(
+        "daily-challenge-due",
+        help="publish today's daily challenge and pick tomorrow's (P3-W13-S05)",
+    )
+    commands.add_parser(
         "check-links-due",
         help="queue this week's link health check of every item (P1-W6-S03)",
     )
@@ -294,6 +299,11 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         with services() as s:
             queued = enqueue_syncs(s.store, queue_for_enqueue(), datetime.now(UTC))
         print(json.dumps({"queued": queued}))
+        return
+
+    if args.command == "daily-challenge-due":
+        with services() as s:
+            print(json.dumps(run_daily(s.store, datetime.now(UTC))))
         return
 
     if args.command == "check-links-due":

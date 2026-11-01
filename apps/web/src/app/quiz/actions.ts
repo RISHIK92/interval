@@ -69,7 +69,18 @@ function recordFinish(
 ): void {
   const { checkpoint } = done;
   const counts = { answered: done.answered, correct: done.correct };
-  if (done.sprint)
+  if (done.daily !== null)
+    events().emit(
+      "game_finished",
+      {
+        attempt_id: attemptId,
+        ...counts,
+        game: "daily",
+        points: done.daily.points,
+      },
+      context,
+    );
+  else if (done.sprint)
     events().emit(
       "game_finished",
       {
@@ -148,10 +159,12 @@ export async function startQuizAction(form: FormData): Promise<void> {
 }
 
 // P3-W13-S02 (§6.3): a solo game from Play, for anyone whose plan has it (OPS-3),
-// guests included (ADR-0029): the sprint, or estimation (P3-W13-S04).
+// guests included (ADR-0029): the sprint, estimation (P3-W13-S04), or today's daily
+// challenge (P3-W13-S05), whose start after it's played opens its results.
 const GAME_STARTS = {
   sprint: { capability: "play.sprint", start: "startSprint" },
   estimation: { capability: "play.estimation", start: "startEstimation" },
+  daily: { capability: "play.daily", start: "startDaily" },
 } as const satisfies Record<
   string,
   { capability: Capability; start: keyof Quizzes }
@@ -171,7 +184,8 @@ async function startGame(game: keyof typeof GAME_STARTS): Promise<void> {
       recordFinish(started.attemptId, done, context);
     started = await quizzes()[start](actor.userId);
   }
-  // Nothing the player wasn't asked this week (Q-P3-04): Play says so.
+  // Nothing to play: every question asked this week (Q-P3-04), or no daily set
+  // today. Play says so.
   if (started === null) redirect(`/play?${game}=none`);
   if (started.firstTime)
     events().emit(
@@ -190,6 +204,10 @@ export async function startSprintAction(): Promise<void> {
 
 export async function startEstimationAction(): Promise<void> {
   await startGame("estimation");
+}
+
+export async function startDailyAction(): Promise<void> {
+  await startGame("daily");
 }
 
 // P2-W9-S05 (Q-P2-17): a review session over the concepts that have come due.

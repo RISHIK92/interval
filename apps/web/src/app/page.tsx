@@ -41,6 +41,7 @@ import { UndoNotInterested } from "./UndoNotInterested";
 import { MomentCard } from "./MomentCard";
 import { StartQuiz, ZAP } from "./quiz/StartQuiz";
 import { BookCard } from "./BookCard";
+import { DailyCard } from "./DailyCard";
 import { PathCard } from "./PathCard";
 import { ReviewCard } from "./ReviewCard";
 import { Card } from "./ui/Card";
@@ -194,15 +195,23 @@ export default async function HomePage({
   // minute.
   // P2-W10-S06: so is the active path's next step (the first card), and (S05) the
   // next session of the book read last.
-  const [due, testable, pathNext, bookNext] = await Promise.all([
-    quizzes().dueReviews(actor.userId),
-    quizzes().offered([
-      ...cards.map(target),
-      ...(finished === null || next === undefined ? [] : [finished]),
-    ]),
-    paths().next(actor.userId),
-    books().nextSession(actor.userId),
-  ]);
+  // P3-W13-S05 (§6.1): today's challenge while it's still to play, on plans with it.
+  const [due, testable, pathNext, bookNext, daily, playsDaily] =
+    await Promise.all([
+      quizzes().dueReviews(actor.userId),
+      quizzes().offered([
+        ...cards.map(target),
+        ...(finished === null || next === undefined ? [] : [finished]),
+      ]),
+      paths().next(actor.userId),
+      books().nextSession(actor.userId),
+      quizzes().dailyStatus(actor.userId),
+      entitlements().can(actor.userId, "play.daily"),
+    ]);
+  const dailyCard =
+    playsDaily && daily.today === "open" ? (
+      <DailyCard streak={daily.streak} />
+    ) : null;
   const yourNote = (card: FeedCard) =>
     yours.get(quizKey(target(card).itemId, target(card).momentId)) ?? null;
   const renderCard = (card: FeedCard, index: number) => {
@@ -376,6 +385,9 @@ export default async function HomePage({
                 <BookCard next={bookNext} />
               </div>
             )}
+            {dailyCard === null ? null : (
+              <div className="mt-4">{dailyCard}</div>
+            )}
             {/* With no cards to sit behind, the review shows alone (owner,
               2026-10-28, Q-P2-21). */}
             {due.length > 0 ? (
@@ -401,6 +413,13 @@ export default async function HomePage({
               {bookNext === null ? null : (
                 <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
                   <BookCard next={bookNext} />
+                </li>
+              )}
+              {/* P3-W13-S05: after the path and book; the ranked cards keep their
+                positions. */}
+              {dailyCard === null ? null : (
+                <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
+                  {dailyCard}
                 </li>
               )}
               {cards.map((card, index) => (

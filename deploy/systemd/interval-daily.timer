@@ -1,0 +1,11 @@
+# VM mode (ADR-0011), P3-W13-S05 (ADR-0031): at the UTC day's start. Persistent, so a VM
+# that was off at midnight runs it once it is back; a rerun changes nothing twice.
+[Unit]
+Description=Interval daily-challenge-due at 00:00 UTC
+
+[Timer]
+OnCalendar=*-*-* 00:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

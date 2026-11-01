@@ -3096,6 +3096,40 @@ PUBLIC_GO_HOSTS = (
 )
 
 
+class PostgresDailyChallenges:
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def pick(self, day: date) -> bool:
+        row = self._conn.execute("select daily_challenge_pick(%s)", (day,)).fetchone()
+        assert row is not None
+        return row[0]
+
+    def publish_unreviewed(self, day: date) -> list[int] | None:
+        row = self._conn.execute(
+            """
+            with marked as (
+              update daily_challenge set published_unreviewed_at = now()
+              where day = %s and approved_at is null
+                and published_unreviewed_at is null
+              returning day
+            ),
+            queued as (
+              insert into question_review (question_id, reason)
+              select d.question_id, 'daily' from daily_challenge_question d
+              join marked using (day)
+              on conflict do nothing
+              returning question_id
+            )
+            select exists (select 1 from marked),
+                   array(select question_id from queued order by question_id)
+            """,
+            (day,),
+        ).fetchone()
+        assert row is not None
+        return row[1] if row[0] else None
+
+
 class PostgresTechnologies:
     """The curated technology table (PER-4, P2-W12-S03)."""
 
@@ -3223,6 +3257,7 @@ class PostgresStore:
         self.books = PostgresBooks(conn)
         self.github = PostgresGitHub(conn)
         self.technologies = PostgresTechnologies(conn)
+        self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)
         self.moments = PostgresMoments(conn)

@@ -590,6 +590,7 @@ test("next offers a ready checkpoint; closeStale returns the checkpoint it close
         },
         sprint: false,
         estimation: null,
+        daily: null,
       },
     ]);
     // Closed once: a second call has nothing.

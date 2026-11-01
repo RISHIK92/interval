@@ -32,6 +32,8 @@ vi.mock("../server/container", () => ({
   quizzes: () => ({
     offered: () => Promise.resolve(new Set()),
     dueReviews: () => Promise.resolve([]),
+    dailyStatus: () =>
+      Promise.resolve({ today: "none", streak: { days: 0, freezes: 0 } }),
   }),
   paths: () => ({ next: () => Promise.resolve(null) }),
   books: () => ({ nextSession: () => Promise.resolve(null) }),

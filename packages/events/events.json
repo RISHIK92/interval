@@ -95,16 +95,16 @@
       "props": { "attempt_id": "id", "answered": "count", "correct": "count" }
     },
     "game_started": {
-      "version": 2,
-      "description": "A quick game started on Play (P3-W13-S02, §6.3), once per attempt. Ids only. Version 2 adds estimation (P3-W13-S04).",
-      "props": { "attempt_id": "id", "game": ["sprint", "estimation"] }
+      "version": 3,
+      "description": "A quick game started on Play (P3-W13-S02, §6.3), once per attempt. Ids only. Version 2 adds estimation (P3-W13-S04); version 3 the daily challenge (P3-W13-S05).",
+      "props": { "attempt_id": "id", "game": ["sprint", "estimation", "daily"] }
     },
     "game_finished": {
-      "version": 2,
-      "description": "A quick game finished, once per attempt, on the page or closed when the next one started (P3-W13-S02). points is the score: a sprint's correct count; an estimation round's points, up to 100 an answer (C-27), whose correct counts answers at full points. Version 2 adds estimation and points (P3-W13-S04).",
+      "version": 3,
+      "description": "A quick game finished, once per attempt, on the page or closed when the next one started (P3-W13-S02). points is the score: a sprint's correct count; an estimation round's points, up to 100 an answer (C-27), whose correct counts answers at full points; the daily challenge's, 100 a right choice plus its estimates' points. Version 2 adds estimation and points (P3-W13-S04); version 3 the daily challenge (P3-W13-S05).",
       "props": {
         "attempt_id": "id",
-        "game": ["sprint", "estimation"],
+        "game": ["sprint", "estimation", "daily"],
         "answered": "count",
         "correct": "count",
         "points": "count"

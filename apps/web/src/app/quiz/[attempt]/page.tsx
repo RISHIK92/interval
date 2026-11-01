@@ -43,6 +43,12 @@ const EXIT_TEXT = {
     button: "Exit sprint",
     leave: "play",
   },
+  daily: {
+    title: "Exit today's challenge?",
+    body: "Exiting now ends today's challenge and counts what you answered. It's one attempt a day.",
+    button: "Exit challenge",
+    leave: "play",
+  },
   estimation: {
     title: "Exit the round?",
     body: "Exiting now ends this round and counts what you answered.",
@@ -85,14 +91,18 @@ export default async function QuizPage({
   const { checkpoint } = attempt;
   const kind = attempt.review
     ? "review"
-    : attempt.estimation !== null
-      ? "estimation"
-      : attempt.sprint
-        ? "sprint"
-        : checkpoint === null
-          ? "test"
-          : "checkpoint";
+    : attempt.daily !== null
+      ? "daily"
+      : attempt.estimation !== null
+        ? "estimation"
+        : attempt.sprint
+          ? "sprint"
+          : checkpoint === null
+            ? "test"
+            : "checkpoint";
 
+  // A game from Play (P3-W13-S02, S04, S05): its title is its header.
+  const game = kind === "sprint" || kind === "estimation" || kind === "daily";
   let body;
   if (answered !== undefined) {
     const feedback = await quizzes().answered(
@@ -303,7 +313,7 @@ export default async function QuizPage({
   return (
     <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
       <h1 className="sr-only">
-        {kind === "sprint" || kind === "estimation"
+        {game
           ? attempt.title
           : `${kind === "checkpoint" ? "Checkpoint" : "Test yourself"}: ${attempt.title}`}
       </h1>
@@ -359,7 +369,7 @@ export default async function QuizPage({
         <p className="flex-1 font-semibold">
           {kind === "review"
             ? "Review"
-            : kind === "sprint" || kind === "estimation"
+            : game
               ? attempt.title
               : kind === "checkpoint"
                 ? "Checkpoint · 60s"
@@ -376,9 +386,7 @@ export default async function QuizPage({
         />
       )}
       {/* A game's title is its header. */}
-      {kind === "sprint" || kind === "estimation" ? null : (
-        <p className="text-sm text-ink-muted">{attempt.title}</p>
-      )}
+      {game ? null : <p className="text-sm text-ink-muted">{attempt.title}</p>}
       {body}
       <p className="mt-auto text-center text-xs text-ink-muted">
         {checkpoint !== null
@@ -391,11 +399,13 @@ export default async function QuizPage({
             }`
           : attempt.review
             ? "One question per concept due for review"
-            : attempt.sprint
-              ? "Questions picked for you"
-              : attempt.momentId === null
-                ? "Questions from this article"
-                : "Questions from this section"}
+            : attempt.daily !== null
+              ? "Today's set, the same for everyone"
+              : attempt.sprint
+                ? "Questions picked for you"
+                : attempt.momentId === null
+                  ? "Questions from this article"
+                  : "Questions from this section"}
       </p>
     </main>
   );

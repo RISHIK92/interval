@@ -40,13 +40,16 @@ vi.mock("../server/container", () => ({
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
   entitlements: () => ({ can }),
-  quizzes: () => ({ offered, dueReviews }),
+  quizzes: () => ({ offered, dueReviews, dailyStatus }),
   paths: () => ({ next: pathNext }),
   books: () => ({ nextSession }),
 }));
 const nextSession = vi.fn<Books["nextSession"]>(() => Promise.resolve(null));
 const pathNext = vi.fn<Paths["next"]>(() => Promise.resolve(null));
 const dueReviews = vi.fn<Quizzes["dueReviews"]>(() => Promise.resolve([]));
+const dailyStatus = vi.fn<Quizzes["dailyStatus"]>(() =>
+  Promise.resolve({ today: "none", streak: { days: 0, freezes: 0 } }),
+);
 const offered = vi.fn<Quizzes["offered"]>(() => Promise.resolve(new Set()));
 let chipCookie: string | undefined;
 let readingCookie: string | undefined;
@@ -781,6 +784,48 @@ test("with nothing due, the feed has no review card", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   expect(await render()).not.toContain("Due for review");
+});
+
+// P3-W13-S05 (§6.1): today's challenge is a card while it's still to play.
+test("today's challenge is a card, saying why, until it's played", async () => {
+  current.mockResolvedValue(user);
+  getFeed.mockResolvedValue(feedOf([card, { ...card, momentId: "2" }]));
+  dailyStatus.mockResolvedValueOnce({
+    today: "open",
+    streak: { days: 3, freezes: 0 },
+  });
+  const html = await render();
+  expect(dailyStatus).toHaveBeenCalledWith("u1");
+  expect(can).toHaveBeenCalledWith("u1", "play.daily");
+  expect(html).toContain("Today&#x27;s 5 questions · 2 minutes");
+  expect(html).toContain("The same set for everyone today, one attempt.");
+  expect(html).toContain("Keep your 3-day streak.");
+  expect(html).toContain("Start today&#x27;s challenge");
+  // The ranked cards keep their positions.
+  expect(html).toMatch(/moment=2[^"]*pos=2/);
+  for (const today of [
+    "none" as const,
+    { attemptId: "71", finished: true, points: 300 },
+  ]) {
+    dailyStatus.mockResolvedValueOnce({
+      today,
+      streak: { days: 0, freezes: 0 },
+    });
+    expect(await render()).not.toContain("Today&#x27;s 5 questions");
+  }
+});
+
+test("a plan without the daily challenge shows no card for it", async () => {
+  current.mockResolvedValue(user);
+  getFeed.mockResolvedValue(feedOf([]));
+  dailyStatus.mockResolvedValueOnce({
+    today: "open",
+    streak: { days: 0, freezes: 0 },
+  });
+  can.mockImplementation((_user, capability) =>
+    Promise.resolve(capability !== "play.daily"),
+  );
+  expect(await render()).not.toContain("Today&#x27;s 5 questions");
 });
 
 // P2-W10-S06 (REC-1, Q-P2-27): the active path's next step is the first card.

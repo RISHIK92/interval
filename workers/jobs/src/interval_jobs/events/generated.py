@@ -74,8 +74,8 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "feed_viewed": 1,
     "feedback_given": 1,
     "feedback_undone": 1,
-    "game_finished": 2,
-    "game_started": 2,
+    "game_finished": 3,
+    "game_started": 3,
     "github_connected": 1,
     "github_disconnected": 1,
     "guest_merged": 1,
@@ -196,7 +196,7 @@ class FeedbackUndoneProps(_Model):
 
 class GameFinishedProps(_Model):
     attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
-    game: Literal["sprint", "estimation"]
+    game: Literal["sprint", "estimation", "daily"]
     answered: int = Field(ge=0, strict=True)
     correct: int = Field(ge=0, strict=True)
     points: int = Field(ge=0, strict=True)
@@ -204,7 +204,7 @@ class GameFinishedProps(_Model):
 
 class GameStartedProps(_Model):
     attempt_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
-    game: Literal["sprint", "estimation"]
+    game: Literal["sprint", "estimation", "daily"]
 
 
 class GithubConnectedProps(_Model):
@@ -431,13 +431,13 @@ class FeedbackUndoneEvent(_EnvelopeBase):
 
 class GameFinishedEvent(_EnvelopeBase):
     name: Literal["game_finished"]
-    version: Literal[2]
+    version: Literal[3]
     props: GameFinishedProps
 
 
 class GameStartedEvent(_EnvelopeBase):
     name: Literal["game_started"]
-    version: Literal[2]
+    version: Literal[3]
     props: GameStartedProps
 
 

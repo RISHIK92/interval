@@ -394,6 +394,7 @@ test("an answer is checked and counted once; a resubmit gets the stored result",
       checkpoint: null,
       sprint: false,
       estimation: null,
+      daily: null,
     });
     expect(await quizzes.finish(userId, started.attemptId)).toMatchObject({
       firstTime: false,
@@ -2109,6 +2110,7 @@ test("a round is a game score only: no mastery, no review card, no answer counts
       checkpoint: null,
       sprint: true,
       estimation: { points: 100 },
+      daily: null,
     });
     expect(await mastery(trx, userId)).toEqual([]);
     expect(await cards(trx, userId)).toEqual([]);
@@ -2200,5 +2202,190 @@ test("an estimation round is always a sprint", async () => {
         })
         .execute(),
     ).rejects.toThrow(/quiz_attempt_estimation_is_sprint/);
+  });
+});
+
+// P3-W13-S05 (§6.3, Q-P3-06): the daily challenge. Today is the database's UTC day;
+// a set already there (a local run of the job) is replaced inside the rollback.
+const TODAY = sql<string>`(now() at time zone 'utc')::date`;
+
+async function todaysSet(trx: Transaction<DB>, questionIds: string[]) {
+  await sql`insert into daily_challenge (day) values (${TODAY})
+    on conflict do nothing`.execute(trx);
+  await sql`delete from daily_challenge_question where day = ${TODAY}`.execute(
+    trx,
+  );
+  for (const [position, id] of questionIds.entries())
+    await sql`insert into daily_challenge_question (day, position, question_id)
+      values (${TODAY}, ${position}, ${id})`.execute(trx);
+}
+
+async function daily(
+  quizzes: ReturnType<typeof kyselyQuizzes>,
+  userId: string,
+): Promise<string> {
+  const started = await quizzes.startDaily(userId);
+  if (started === null) throw new Error("no daily challenge");
+  return started.attemptId;
+}
+
+test("no daily challenge without a set today a round may serve", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const quizzes = kyselyQuizzes(trx);
+    await todaysSet(trx, []);
+    expect(await quizzes.startDaily(userId)).toBeNull();
+    expect((await quizzes.dailyStatus(userId)).today).toBe("none");
+    // Only what rounds may not serve: a pending question, and one whose source
+    // switched moments off (ING-2).
+    await todaysSet(trx, [q["pending"] ?? "", q["hidden"] ?? ""]);
+    expect(await quizzes.startDaily(userId)).toBeNull();
+    expect((await quizzes.dailyStatus(userId)).today).toBe("none");
+  });
+});
+
+test("the daily challenge serves today's set in order, both kinds, on a 2-minute clock", async () => {
+  await inRollback(async (trx, { userId, q, intro }) => {
+    const wal = await conceptOf(trx, q["intro-0"] ?? "");
+    const seek = await handWritten(trx, wal.id, "disk seek", 10);
+    // A question that left the bank since the pick is passed over.
+    await todaysSet(trx, [
+      q["intro-0"] ?? "",
+      q["pending"] ?? "",
+      seek,
+      q["raft-1"] ?? "",
+    ]);
+    const quizzes = kyselyQuizzes(trx);
+    expect((await quizzes.dailyStatus(userId)).today).toBe("open");
+    const started = await quizzes.startDaily(userId);
+    if (started === null) throw new Error("no daily challenge");
+    expect(started.firstTime).toBe(true);
+    const seconds = (started.endsAt.getTime() - Date.now()) / 1000;
+    expect(seconds).toBeGreaterThan(115);
+    expect(seconds).toBeLessThanOrEqual(121);
+    const { attemptId } = started;
+    const first = served(await quizzes.next(userId, attemptId));
+    expect(first.stem).toBe("intro-0");
+    await quizzes.answer(userId, attemptId, first.questionId, 0);
+    const second = estimate(await quizzes.next(userId, attemptId));
+    expect(second.questionId).toBe(seek);
+    // 20 against 10: 2× off, part points.
+    const scored = await quizzes.answerEstimate(userId, attemptId, seek, 20);
+    if (scored === null || scored === "late") throw new Error("not scored");
+    const third = served(await quizzes.next(userId, attemptId));
+    expect(third.stem).toBe("raft-1");
+    await quizzes.answer(userId, attemptId, third.questionId, 1);
+    expect(await quizzes.next(userId, attemptId)).toBe("over");
+    expect(await quizzes.startDaily(userId)).toEqual({
+      ...started,
+      firstTime: false,
+    });
+    const points = 100 + Math.round(scored.score * 100);
+    expect(await quizzes.dailyStatus(userId)).toEqual({
+      today: { attemptId, finished: false, points },
+      streak: { days: 0, freezes: 0 },
+    });
+    expect(await quizzes.finish(userId, attemptId)).toMatchObject({
+      answered: 3,
+      sprint: false,
+      estimation: null,
+      daily: { points },
+    });
+    // One attempt a day: a finished one is still the day's.
+    expect((await quizzes.startDaily(userId))?.attemptId).toBe(attemptId);
+    expect(await quizzes.dailyStatus(userId)).toEqual({
+      today: { attemptId, finished: true, points },
+      streak: { days: 1, freezes: 0 },
+    });
+    const attempt = await quizzes.attempt(userId, attemptId);
+    expect(attempt).toMatchObject({
+      title: "Daily challenge",
+      sprint: false,
+      estimation: null,
+      daily: { points, streak: { days: 1, freezes: 0 } },
+    });
+    expect(attempt?.daily?.answers.map((a) => a.questionId)).toEqual([seek]);
+    expect(attempt?.missed).toEqual([
+      expect.objectContaining({ sectionTitle: "Raft" }),
+    ]);
+    expect(attempt?.missed.map((m) => m.momentId)).not.toContain(intro);
+    // Multiple choice is mastery evidence, as in a sprint (PER-2).
+    expect((await mastery(trx, userId)).map((m) => m.name)).toContain("wal");
+  });
+});
+
+test("after the daily clock and its grace, nothing is served and no answer counts", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    await todaysSet(trx, [q["intro-0"] ?? "", q["raft-1"] ?? ""]);
+    const quizzes = kyselyQuizzes(trx);
+    const attemptId = await daily(quizzes, userId);
+    const first = served(await quizzes.next(userId, attemptId));
+    await trx
+      .updateTable("quiz_attempt")
+      .set({
+        started_at: sql<Date>`now() - interval '3 minutes'`,
+        ends_at: sql<Date>`now() - interval '10 seconds'`,
+      })
+      .where("id", "=", attemptId)
+      .execute();
+    expect(await quizzes.answer(userId, attemptId, first.questionId, 0)).toBe(
+      "late",
+    );
+    expect(await quizzes.next(userId, attemptId)).toBe("over");
+  });
+});
+
+test("the streak counts the player's finished days, and one left past its clock", async () => {
+  await inRollback(async (trx, { userId, otherUser, q }) => {
+    await todaysSet(trx, [q["intro-0"] ?? ""]);
+    for (const back of [1, 2, 4]) {
+      const day = sql<string>`${TODAY} - ${back}::int`;
+      await sql`insert into daily_challenge (day) values (${day})
+        on conflict do nothing`.execute(trx);
+      for (const user of [userId, otherUser])
+        await sql`insert into quiz_attempt
+            (user_id, daily_day, started_at, ends_at, finished_at)
+          values (${user}, ${day}, now() - interval '1 hour', now(),
+                  case when ${back} = 4 or ${user} = ${userId} then now() end)`.execute(
+          trx,
+        );
+    }
+    const quizzes = kyselyQuizzes(trx);
+    expect(await quizzes.dailyStatus(userId)).toEqual({
+      today: "open",
+      streak: { days: 2, freezes: 0 },
+    });
+    expect((await quizzes.dailyStatus(otherUser)).streak.days).toBe(0);
+    // Yesterday's left open, past its clock: played (today's, running, isn't yet).
+    await sql`update quiz_attempt
+      set finished_at = null, ends_at = now() - interval '1 minute'
+      where user_id = ${userId} and daily_day = ${TODAY} - 1`.execute(trx);
+    await daily(quizzes, userId);
+    expect((await quizzes.dailyStatus(userId)).streak.days).toBe(2);
+    await sql`update quiz_attempt set ends_at = now() + interval '1 minute'
+      where user_id = ${userId} and daily_day = ${TODAY} - 1`.execute(trx);
+    // Yesterday still running doesn't count, so the day before ends the streak.
+    expect((await quizzes.dailyStatus(userId)).streak.days).toBe(0);
+  });
+});
+
+test("a daily attempt has no target and no sprint, and is one a day", async () => {
+  await inRollback(async (trx, { userId, itemId, q }) => {
+    await todaysSet(trx, [q["intro-0"] ?? ""]);
+    const soon = sql`now() + interval '1 minute'`;
+    for (const bad of [
+      sql`insert into quiz_attempt (user_id, daily_day, ends_at, sprint)
+        values (${userId}, ${TODAY}, ${soon}, true)`,
+      sql`insert into quiz_attempt (user_id, daily_day, ends_at, content_item_id)
+        values (${userId}, ${TODAY}, ${soon}, ${itemId})`,
+    ]) {
+      await sql`savepoint s`.execute(trx);
+      await expect(bad.execute(trx)).rejects.toThrow(/quiz_attempt_shape/);
+      await sql`rollback to savepoint s`.execute(trx);
+    }
+    await daily(kyselyQuizzes(trx), userId);
+    await expect(
+      sql`insert into quiz_attempt (user_id, daily_day, ends_at)
+        values (${userId}, ${TODAY}, now() + interval '1 minute')`.execute(trx),
+    ).rejects.toThrow(/quiz_attempt_one_daily/);
   });
 });

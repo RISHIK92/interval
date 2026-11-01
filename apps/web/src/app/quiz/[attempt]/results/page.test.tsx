@@ -31,6 +31,7 @@ const done: QuizAttempt = {
   review: false,
   sprint: false,
   estimation: null,
+  daily: null,
   itemId: "5",
   momentId: "9",
   title: "Raft",
@@ -193,6 +194,7 @@ const sprintDone: QuizAttempt = {
   ...done,
   sprint: true,
   estimation: null,
+  daily: null,
   itemId: null,
   momentId: null,
   title: "60-second sprint",
@@ -341,4 +343,38 @@ test("a round with no answers says so", async () => {
     estimation: { points: 0, answers: [] },
   });
   expect(html).toContain("No answers this time");
+});
+
+// P3-W13-S05: the daily challenge scores in points, lists its estimates, sends its
+// misses back to reading and shows the streak.
+const dailyDone: QuizAttempt = {
+  ...sprintDone,
+  sprint: false,
+  title: "Daily challenge",
+  answered: 5,
+  correct: 3,
+  estimation: null,
+  daily: {
+    points: 360,
+    answers: [answer("Disk seek?", 11, 0.6, "Seeks")],
+    streak: { days: 8, freezes: 1 },
+  },
+};
+
+test("the daily challenge's results: points, its estimates, the streak, Back to Play", async () => {
+  const html = await render(dailyDone);
+  const text = html.replace(/<[^>]+>/g, "|");
+  expect(html).toMatch(/<h1[^>]*>360 points</);
+  expect(text).toContain("Daily challenge");
+  expect(html).toContain("Disk seek?");
+  expect(text).toContain("8-day streak");
+  expect(text).toContain("a freeze held");
+  expect(html).toMatch(/href="\/read\/5\?moment=9[^"]*"[^>]*>Raft</);
+  expect(html).toMatch(/href="\/play"[^>]*>Back to Play</);
+  const one = await render({
+    ...dailyDone,
+    daily: { points: 360, answers: [], streak: { days: 1, freezes: 0 } },
+  });
+  expect(one.replace(/<[^>]+>/g, "|")).toContain("1-day streak");
+  expect(one).not.toContain("freeze");
 });

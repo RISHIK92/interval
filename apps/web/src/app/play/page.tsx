@@ -4,9 +4,15 @@ import Link from "next/link";
 import {
   entitlements,
   preferences,
+  quizzes,
   sessionReader,
 } from "../../server/container";
-import { startEstimationAction, startSprintAction } from "../quiz/actions";
+import { DailyPlay } from "../DailyCard";
+import {
+  startDailyAction,
+  startEstimationAction,
+  startSprintAction,
+} from "../quiz/actions";
 import { TabBar } from "../TabBar";
 import { Card } from "../ui/Card";
 import { GuestForm } from "./GuestForm";
@@ -16,7 +22,8 @@ export const dynamic = "force-dynamic";
 // §6.3: the quick games, as the table words them. Estimation's full points are C-27's
 // 1.25× (ADR-0006). Each game is its own capability (OPS-3), so a plan can leave one
 // out; fastest finger is the live one. In §6.3's order.
-// `start`: playable now (P3-W13-S02: the sprint; S04: estimation); the rest arrive
+// `start`: playable now (P3-W13-S02: the sprint; S04: estimation; S05: the daily
+// challenge, whose card also shows today's result and the streak); the rest arrive
 // with their slices.
 const GAMES: {
   name: string;
@@ -30,6 +37,7 @@ const GAMES: {
     format: "Solo, the same set for everyone, one attempt",
     win: "Score and streak; the result shares as a card that doesn't reveal the questions",
     capability: "play.daily",
+    start: { action: startDailyAction, label: "Start today's challenge" },
   },
   {
     name: "60-second sprint",
@@ -59,18 +67,20 @@ export default async function PlayPage(props: {
   searchParams: Promise<{
     sprint?: string | string[];
     estimation?: string | string[];
+    daily?: string | string[];
   }>;
 }) {
   const actor = await sessionReader().current(await headers());
-  const { sprint, estimation } = await props.searchParams;
-  const [allowed, chosen] =
+  const { sprint, estimation, daily } = await props.searchParams;
+  const [allowed, chosen, today] =
     actor === null
-      ? [null, null]
+      ? [null, null, null]
       : await Promise.all([
           Promise.all(
             GAMES.map((g) => entitlements().can(actor.userId, g.capability)),
           ),
           preferences().get(actor.userId),
+          quizzes().dailyStatus(actor.userId),
         ]);
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[52rem] lg:pt-10 lg:pl-64">
@@ -101,6 +111,11 @@ export default async function PlayPage(props: {
           again in a few days.
         </p>
       ) : null}
+      {daily === "none" ? (
+        <p role="status" className="rounded-2xl bg-well px-4 py-3 text-sm">
+          There&apos;s no daily challenge today.
+        </p>
+      ) : null}
       <ul className="grid gap-3 sm:grid-cols-2">
         {GAMES.map((game, index) => (
           <li key={game.name}>
@@ -112,6 +127,8 @@ export default async function PlayPage(props: {
                 <p className="mt-auto pt-2 text-sm text-ink-muted">
                   Not on your plan
                 </p>
+              ) : game.capability === "play.daily" && today !== null ? (
+                <DailyPlay status={today} />
               ) : game.start !== undefined && actor !== null ? (
                 <form action={game.start.action} className="mt-auto pt-2">
                   <button

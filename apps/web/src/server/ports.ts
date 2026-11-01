@@ -9,6 +9,7 @@ import type {
   FlagReason,
   LearnerState,
   LearningGoal,
+  QuestionStatus,
   ReviewReason,
   Topic,
 } from "@interval/db";
@@ -359,6 +360,14 @@ export interface Quizzes {
   startEstimation(
     userId: string,
   ): Promise<{ attemptId: string; endsAt: Date; firstTime: boolean } | null>;
+  // P3-W13-S05 (§6.3, Q-P3-06): today's daily challenge (UTC), one attempt a day: the
+  // player's attempt if there is one, finished or not; null when today has no set
+  // with a question rounds may serve.
+  startDaily(
+    userId: string,
+  ): Promise<{ attemptId: string; endsAt: Date; firstTime: boolean } | null>;
+  // Today's challenge for the player, and their streak (Q-P3-07).
+  dailyStatus(userId: string): Promise<DailyStatus>;
   // P2-W10-S04 (§5F, Q-P2-26): a checkpoint on a section of the user's active path,
   // once it's open and its readings are finished, not yet passed, with a live
   // question; the running one if there is one (LOAD-5); null otherwise.
@@ -399,6 +408,7 @@ export type QuizFinish = {
   checkpoint: { at: CheckpointAt; passed: boolean } | null;
   sprint: boolean; // a game from Play (P3-W13-S02), recorded as one
   estimation: { points: number } | null; // a sprint over estimates (P3-W13-S04)
+  daily: { points: number } | null; // the daily challenge (P3-W13-S05)
 };
 // Where a checkpoint belongs: a section of a topic path (P2-W10-S04) or a chapter of
 // the user's book (P2-W11-S06).
@@ -411,6 +421,14 @@ export const checkpointHome = (at: CheckpointAt): string =>
     ? `/paths/${at.pathId}`
     : `/books/${at.bookId}/checkpoint/${at.chapterId}`;
 
+export type Streak = { days: number; freezes: number };
+export type DailyStatus = {
+  // "none": no set today, or none of its questions may be served.
+  today:
+    "none" | "open" | { attemptId: string; finished: boolean; points: number };
+  streak: Streak;
+};
+
 export const quizKey = (itemId: string, momentId: string | null): string =>
   `${itemId}.${momentId ?? ""}`;
 export type QuizAttempt = {
@@ -421,6 +439,13 @@ export type QuizAttempt = {
   // A sprint over estimates (P3-W13-S04): its points (up to 100 an answer, C-27) and
   // each answer with the real one and its source (AI-3).
   estimation: { points: number; answers: EstimateReveal[] } | null;
+  // The daily challenge (P3-W13-S05): its points (100 a right choice, an estimate's
+  // up to 100), its estimates as a round's, and the player's streak after it.
+  daily: {
+    points: number;
+    answers: EstimateReveal[];
+    streak: Streak;
+  } | null;
   itemId: string | null;
   momentId: string | null;
   title: string; // the section's, else the article's; "Review", "60-second sprint"
@@ -1284,6 +1309,32 @@ export type TechnologySuggestionRow = {
   concepts: { slug: string; name: string }[];
   model: string;
 };
+// P3-W13-S05 (ADR-0031): the daily challenge's sets, for the owner's review the day
+// before. Days are UTC dates, "YYYY-MM-DD".
+export type DailySetQuestion = {
+  position: number;
+  questionId: string;
+  kind: "choice" | "estimate";
+  stem: string;
+  status: QuestionStatus; // a question that left the bank since is passed over
+  concepts: string[];
+  source: string; // its article's title, or a hand-written question's page's
+};
+export type DailySet = {
+  day: string;
+  approved: boolean;
+  publishedUnreviewed: boolean; // went out without approval (ADR-0031)
+  questions: DailySetQuestion[];
+};
+export interface AdminDaily {
+  // Today's set and tomorrow's; null for a day not picked yet.
+  sets(): Promise<{ today: DailySet | null; tomorrow: DailySet | null }>;
+  // False for a day that has started or has no set.
+  approve(day: string): Promise<boolean>;
+  // Another question of the slot's kind by the pick rule (daily_challenge_swap);
+  // false for a started day, an empty slot, or when nothing fits.
+  swap(day: string, position: number): Promise<boolean>;
+}
 export interface AdminTechnologies {
   pending(): Promise<TechnologySuggestionRow[]>;
   // Stored dependencies no live technology claims, most used first.

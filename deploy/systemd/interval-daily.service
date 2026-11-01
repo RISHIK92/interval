@@ -1,0 +1,17 @@
+# VM mode (ADR-0011), P3-W13-S05 (ADR-0031): publish today's daily challenge (queueing
+# an unapproved set's questions for spot check) and pick tomorrow's. Started by
+# interval-daily.timer; the AWS stack runs the same command at 00:00 UTC from
+# EventBridge Scheduler.
+[Unit]
+Description=Interval daily-challenge-due
+# Requisite, not Requires: a stack stopped for maintenance skips the run instead of
+# being started again by the timer.
+Requisite=interval.service
+After=interval.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/interval
+ExecStart=/opt/interval/deploy/bin/stack.sh run daily-challenge-due
+# A oneshot has no start timeout by default: a hung run would stop the timer for good.
+TimeoutStartSec=10min

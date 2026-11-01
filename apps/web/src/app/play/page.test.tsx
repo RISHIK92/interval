@@ -1,6 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, Entitlements, Preferences } from "../../server/ports";
+import type {
+  Actor,
+  DailyStatus,
+  Entitlements,
+  Preferences,
+} from "../../server/ports";
 
 // §6.3, OPS-3, ADR-0029 (P3-W13-S01): the Play tab lists the quick games, each behind a
 // capability; signed-out visitors can start a guest here.
@@ -9,10 +14,14 @@ const can = vi.fn<Entitlements["can"]>(() => Promise.resolve(true));
 const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
   Promise.resolve(null),
 );
+const dailyStatus = vi.fn<(userId: string) => Promise<DailyStatus>>(() =>
+  Promise.resolve({ today: "open", streak: { days: 0, freezes: 0 } }),
+);
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
   preferences: () => ({ get }),
+  quizzes: () => ({ dailyStatus }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -21,6 +30,7 @@ vi.mock("./actions", () => ({ startGuestAction: vi.fn() }));
 vi.mock("../quiz/actions", () => ({
   startSprintAction: vi.fn(),
   startEstimationAction: vi.fn(),
+  startDailyAction: vi.fn(),
 }));
 
 const account: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
@@ -31,7 +41,7 @@ afterEach(() => {
 });
 
 async function page(
-  search: { sprint?: string; estimation?: string } = {},
+  search: { sprint?: string; estimation?: string; daily?: string } = {},
 ): Promise<string> {
   const { default: PlayPage } = await import("./page");
   return renderToStaticMarkup(
@@ -42,7 +52,7 @@ async function page(
 // Tags become "|", so text across elements reads in order.
 const words = (html: string) => html.replace(/<[^>]+>/g, "|");
 
-test("four quick games, each with its format and win condition; the sprint and estimation playable yet", async () => {
+test("four quick games, each with its format and win condition; all but fastest finger playable yet", async () => {
   current.mockResolvedValue(account);
   const html = await page();
   const text = words(html);
@@ -64,7 +74,7 @@ test("four quick games, each with its format and win condition; the sprint and e
     expect(text).toMatch(new RegExp(`${name}\\|[^]*?${format}[^]*?${win}`));
   }
   const list = /<ul[^]*<\/ul>/.exec(html)?.[0] ?? "";
-  expect(list.match(/Coming later/g)).toHaveLength(2);
+  expect(list.match(/Coming later/g)).toHaveLength(1);
   expect(html).toMatch(/<a aria-current="page"[^>]*href="\/play"/);
 });
 
@@ -161,8 +171,42 @@ test("a round with nothing left to ask says so", async () => {
   expect(await page()).not.toContain("every estimation question");
 });
 
-test("signed out, both playable games point to the guest form", async () => {
+test("signed out, every playable game points to the guest form", async () => {
   current.mockResolvedValue(null);
   const html = await page();
-  expect(html.match(/Play as a guest below, or sign in/g)).toHaveLength(2);
+  expect(html.match(/Play as a guest below, or sign in/g)).toHaveLength(3);
+});
+
+// P3-W13-S05 (§6.3, Q-P3-07): today's challenge, one attempt, and the streak.
+test("the daily challenge card starts today's set, carries on, or shows today's result", async () => {
+  current.mockResolvedValue(account);
+  expect(words(await page())).toMatch(
+    /Daily challenge\|[^]*?Start today&#x27;s challenge/,
+  );
+  dailyStatus.mockResolvedValueOnce({
+    today: { attemptId: "71", finished: false, points: 100 },
+    streak: { days: 0, freezes: 0 },
+  });
+  expect(await page()).toContain("Carry on with today&#x27;s challenge");
+  dailyStatus.mockResolvedValueOnce({
+    today: { attemptId: "71", finished: true, points: 430 },
+    streak: { days: 8, freezes: 1 },
+  });
+  const played = await page();
+  expect(words(played)).toMatch(/Today: 430 points/);
+  expect(played).toMatch(/href="\/quiz\/71\/results\?chip=3-8"/);
+  expect(played).toContain("8-day streak · a freeze held");
+  expect(played).not.toContain("Start today&#x27;s challenge");
+  dailyStatus.mockResolvedValueOnce({
+    today: "none",
+    streak: { days: 0, freezes: 0 },
+  });
+  expect(await page()).toContain("No challenge today");
+});
+
+test("a daily start with no set today says so", async () => {
+  current.mockResolvedValue(account);
+  expect(await page({ daily: "none" })).toMatch(
+    /role="status"[^>]*>There&#x27;s no daily challenge today/,
+  );
 });

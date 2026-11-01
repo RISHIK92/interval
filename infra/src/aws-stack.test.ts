@@ -249,8 +249,8 @@ describe("containers", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
     // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due,
     // spot-check-due, question-batches, recalibrate-difficulty, sync-github-due,
-    // suggest-technologies
-    expect(tasks.length).toBe(12);
+    // suggest-technologies, daily-challenge-due
+    expect(tasks.length).toBe(13);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -504,7 +504,7 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(8);
+    expect(runTask).toHaveLength(9);
     const targets = runTask.map((st) => JSON.stringify(st.Resource));
     expect(targets.filter((t) => t.includes("PollDueTask"))).toHaveLength(1);
     expect(targets.filter((t) => t.includes("RecomputeDueTask"))).toHaveLength(
@@ -997,6 +997,41 @@ describe("weekly question spot checks (P2-W8-S03, Q-2)", () => {
       .filter(([, policy]) =>
         (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
           r.Ref.startsWith("SpotCheckDueTaskTaskRole"),
+        ),
+      )
+      .flatMap(([, policy]) =>
+        (
+          policy.Properties["PolicyDocument"] as {
+            Statement: { Action: string | string[] }[];
+          }
+        ).Statement.flatMap((st) => [st.Action].flat()),
+      );
+    expect(actions.some((a) => a.startsWith("sqs:"))).toBe(false);
+  });
+});
+
+describe("the daily challenge (P3-W13-S05, ADR-0031)", () => {
+  test("EventBridge Scheduler runs daily-challenge-due at 00:00 UTC, with no queue access", () => {
+    const schedule = scheduleFor("DailyChallengeDueTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe("cron(0 0 * * ? *)");
+    expect(schedule.Properties["ScheduleExpressionTimezone"]).toBe("Etc/UTC");
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "daily: published unreviewed" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Daily",
+          MetricName: "PublishedUnreviewed",
+          MetricValue: "1",
+        }),
+      ],
+    });
+    expect(containerNamed("daily-challenge-due")?.Command).toEqual([
+      "daily-challenge-due",
+    ]);
+    const actions = all("AWS::IAM::Policy")
+      .filter(([, policy]) =>
+        (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
+          r.Ref.startsWith("DailyChallengeDueTaskTaskRole"),
         ),
       )
       .flatMap(([, policy]) =>

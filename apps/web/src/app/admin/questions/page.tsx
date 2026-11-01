@@ -16,12 +16,14 @@ const ERRORS: Record<string, string> = {
     "That estimation question wasn't saved: a concept slug isn't a live concept.",
 };
 
-// Why a question is in the queue (Q-2, Q-3): a user's flag, the weekly sample, or
-// answers almost everyone gets right or wrong (P2-W9-S08).
+// Why a question is in the queue (Q-2, Q-3): a user's flag, the weekly sample,
+// answers almost everyone gets right or wrong (P2-W9-S08), or a daily challenge that
+// went out without the owner's approval (ADR-0031).
 const REASONS: Record<ReviewReason, string> = {
   flagged: "Flagged",
   sample: "Weekly sample",
   anomaly: "Unusual answers",
+  daily: "Daily challenge, unreviewed",
 };
 
 export const dynamic = "force-dynamic";

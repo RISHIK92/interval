@@ -9,10 +9,12 @@ import {
   type QuizFinish,
   type QuizQuestion,
   type Quizzes,
+  type Streak,
   quizKey,
 } from "../ports";
 import { estimateScore, points } from "../estimation";
 import { fsrsState, rate } from "../reviews";
+import { dailyStreak } from "../streak";
 import {
   chapterQuestions,
   checkpointQuestions,
@@ -71,6 +73,23 @@ const LIVE_ESTIMATE = sql`(
 // A round's points: what each answer shows, added up (so the list sums to the total).
 const total = (scores: number[]): number =>
   scores.reduce((sum, score) => sum + points(score), 0);
+
+// P3-W13-S05 (§6.3, Q-P3-06; owner, 2026-11-01): the daily challenge runs the UTC
+// day's set on one 2-minute clock. A right choice is worth an estimate's full points.
+const TODAY = sql`(now() at time zone 'utc')::date`;
+const DAILY_DURATION = sql.raw(`interval '120 seconds'`);
+const dailyPoints = (choicesRight: number, scores: number[]): number =>
+  choicesRight * points(1) + total(scores);
+// The day's questions rounds may still serve (ING-2, Q-1): a question that left the
+// bank, or whose source's rights no longer allow it, since the pick is passed over.
+const dailyServable = (day: RawBuilder<unknown>) => sql`
+  select d.question_id, d.position from daily_challenge_question d
+  where d.day = ${day} and (
+    exists (select 1 from ${LIVE} where q.id = d.question_id and q.status = 'live')
+    or exists (
+      select 1 from ${LIVE_ESTIMATE} where q.id = d.question_id and q.status = 'live'
+    )
+  )`;
 
 // Q-P2-15: a right answer moves p by 0.3(1 - p); a wrong one leaves 0.7p. `done` is the answer statement's own row (none for a repeat).
 const moved = (p: RawBuilder<unknown>) => sql`
@@ -343,6 +362,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       .select([
         "a.sprint",
         "a.estimation",
+        sql<boolean>`a.daily_day is not null`.as("daily"),
         "a.path_section_id",
         "a.book_chapter_id",
         "a.checkpoint_passed",
@@ -352,6 +372,9 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         // An estimate counts as correct at full points (P3-W13-S04).
         sql<number>`count(*) filter (where qa.correct or qa.score = 1)::int`.as(
           "correct",
+        ),
+        sql<number>`count(*) filter (where qa.correct)::int`.as(
+          "choices_right",
         ),
         sql<number[]>`array_remove(array_agg(qa.score), null)`.as("scores"),
       ])
@@ -371,7 +394,27 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           : { at, passed: row.checkpoint_passed },
       sprint: row.sprint,
       estimation: row.estimation ? { points: total(row.scores) } : null,
+      daily: row.daily
+        ? { points: dailyPoints(row.choices_right, row.scores) }
+        : null,
     };
+  };
+
+  // Q-P3-07: the UTC days the player finished a daily challenge; one past its clock
+  // and grace counts though nothing has closed it yet (a tab closed mid-game).
+  const streak = async (userId: string): Promise<Streak> => {
+    const { rows } = await sql<{ day: string; today: string }>`
+      select daily_day::text as day, ${TODAY}::text as today from quiz_attempt
+      where user_id = ${userId} and daily_day is not null
+        and (finished_at is not null or ends_at + ${GRACE} < now())
+    `.execute(db);
+    const today = rows[0]?.today;
+    return today === undefined
+      ? { days: 0, freezes: 0 }
+      : dailyStreak(
+          rows.map((r) => r.day),
+          today,
+        );
   };
 
   const closeStale = async (
@@ -665,6 +708,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           "review",
           "sprint",
           "estimation",
+          sql<boolean>`daily_day is not null`.as("daily"),
           "path_section_id",
           "book_chapter_id",
           "checkpoint_size",
@@ -717,6 +761,26 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           select ${attemptId}, id from pick
           where (select count(*) from quiz_answer where attempt_id = ${attemptId})
             < ${attempt.checkpoint_size}
+          on conflict do nothing
+        `.execute(db);
+        const served = await open(attemptId);
+        return served === undefined || served.over
+          ? "over"
+          : asQuestion(served);
+      }
+      if (attempt.daily) {
+        // P3-W13-S05: the day's set in its order, the same for everyone.
+        await sql`
+          insert into quiz_answer (attempt_id, question_id)
+          select ${attemptId}, s.question_id
+          from (${dailyServable(sql`(
+            select daily_day from quiz_attempt where id = ${attemptId}
+          )`)}) s
+          where s.question_id not in (
+            select question_id from quiz_answer where attempt_id = ${attemptId}
+          )
+          order by s.position
+          limit 1
           on conflict do nothing
         `.execute(db);
         const served = await open(attemptId);
@@ -1051,6 +1115,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           "a.review",
           "a.sprint",
           "a.estimation",
+          sql<boolean>`a.daily_day is not null`.as("daily"),
           "a.content_item_id",
           "a.moment_id",
           "a.started_at",
@@ -1066,6 +1131,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           "a.pass_mark",
           "a.checkpoint_passed",
           sql<string>`coalesce(m.title, ci.title, case
+            when a.daily_day is not null then 'Daily challenge'
             when a.estimation then 'Estimation'
             when a.sprint then '60-second sprint'
             else 'Review' end)`.as("title"),
@@ -1082,6 +1148,8 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             where qa.attempt_id = a.id and (qa.correct or qa.score = 1))`.as(
             "correct",
           ),
+          sql<number>`(select count(*)::int from quiz_answer qa
+            where qa.attempt_id = a.id and qa.correct)`.as("choices_right"),
           sql<number | null>`(select avg(extract(epoch from
               qa.answered_at - qa.served_at) * 1000)::float8
             from quiz_answer qa
@@ -1111,38 +1179,43 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .where("c.retired_at", "is", null)
         .orderBy("c.name")
         .execute();
-      // §6.1: a sprint's misses go back to reading, at the sections their questions
-      // came from, while their source still allows moments (ING-2) and links work.
-      const missed = row.sprint
-        ? await db
-            .selectFrom("quiz_answer as qa")
-            .innerJoin("question as q", "q.id", "qa.question_id")
-            .innerJoin("moment as m", "m.id", "q.moment_id")
-            .innerJoin("content_item as ci", "ci.id", "m.content_item_id")
-            .innerJoin("source as s", "s.id", "ci.source_id")
-            .select([
-              "ci.id as item_id",
-              "m.id as moment_id",
-              "m.title",
-              sql<boolean>`coalesce(ci.frameable, false)`.as("frameable"),
-            ])
-            .distinct()
-            .where("qa.attempt_id", "=", attemptId)
-            .where("qa.correct", "=", false)
-            .where("ci.link_broken_at", "is", null)
-            .where("s.moments_enabled", "=", true)
-            .where("s.rights_profile", "in", [
-              "full_text_internal",
-              "full_text_display",
-            ])
-            .orderBy("m.id")
-            .execute()
-        : [];
-      const estimates = row.estimation
-        ? (
-            await reveals(userId, attemptId).orderBy("qa.answered_at").execute()
-          ).map(asReveal)
-        : null;
+      // §6.1: a sprint's (and the daily challenge's) misses go back to reading, at the
+      // sections their questions came from, while their source still allows moments
+      // (ING-2) and links work.
+      const missed =
+        row.sprint || row.daily
+          ? await db
+              .selectFrom("quiz_answer as qa")
+              .innerJoin("question as q", "q.id", "qa.question_id")
+              .innerJoin("moment as m", "m.id", "q.moment_id")
+              .innerJoin("content_item as ci", "ci.id", "m.content_item_id")
+              .innerJoin("source as s", "s.id", "ci.source_id")
+              .select([
+                "ci.id as item_id",
+                "m.id as moment_id",
+                "m.title",
+                sql<boolean>`coalesce(ci.frameable, false)`.as("frameable"),
+              ])
+              .distinct()
+              .where("qa.attempt_id", "=", attemptId)
+              .where("qa.correct", "=", false)
+              .where("ci.link_broken_at", "is", null)
+              .where("s.moments_enabled", "=", true)
+              .where("s.rights_profile", "in", [
+                "full_text_internal",
+                "full_text_display",
+              ])
+              .orderBy("m.id")
+              .execute()
+          : [];
+      const estimates =
+        row.estimation || row.daily
+          ? (
+              await reveals(userId, attemptId)
+                .orderBy("qa.answered_at")
+                .execute()
+            ).map(asReveal)
+          : null;
       const at = checkpointAt(row);
       const checkpoint =
         at === null || row.checkpoint_size === null || row.pass_mark === null
@@ -1156,11 +1229,22 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         review: row.review,
         sprint: row.sprint,
         estimation:
-          estimates === null
+          estimates === null || row.daily
             ? null
             : {
                 points: total(estimates.map((e) => e.score)),
                 answers: estimates,
+              },
+        daily:
+          estimates === null || !row.daily
+            ? null
+            : {
+                points: dailyPoints(
+                  row.choices_right,
+                  estimates.map((e) => e.score),
+                ),
+                answers: estimates,
+                streak: await streak(userId),
               },
         itemId: row.content_item_id,
         momentId: row.moment_id,
@@ -1236,6 +1320,70 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
 
     startSprint: (userId) => startGame(userId, false),
     startEstimation: (userId) => startGame(userId, true),
+
+    // One attempt a day (an index): a double tap, or a start after it's over, meets
+    // the day's attempt (LOAD-5). Callers close games past their clock first.
+    startDaily: async (userId) => {
+      const theirs = () =>
+        db
+          .selectFrom("quiz_attempt")
+          .select(["id", sql<Date>`ends_at`.as("ends_at")])
+          .where("user_id", "=", userId)
+          .where(sql<boolean>`daily_day = ${TODAY}`)
+          .executeTakeFirst();
+      const was = await theirs();
+      if (was !== undefined)
+        return { attemptId: was.id, endsAt: was.ends_at, firstTime: false };
+      const { rows } = await sql<{ id: string; ends_at: Date }>`
+        insert into quiz_attempt (user_id, daily_day, ends_at)
+        select ${userId}, ${TODAY}, now() + ${DAILY_DURATION}
+        where exists (${dailyServable(TODAY)})
+        on conflict (user_id, daily_day) where daily_day is not null do nothing
+        returning id, ends_at
+      `.execute(db);
+      const made = rows[0];
+      if (made !== undefined)
+        return { attemptId: made.id, endsAt: made.ends_at, firstTime: true };
+      const won = await theirs();
+      return won === undefined
+        ? null
+        : { attemptId: won.id, endsAt: won.ends_at, firstTime: false };
+    },
+
+    dailyStatus: async (userId) => {
+      const { rows } = await sql<{
+        id: string | null;
+        finished: boolean;
+        servable: boolean;
+        choices_right: number;
+        scores: number[];
+      }>`
+        select a.id, a.finished_at is not null as finished,
+               exists (${dailyServable(TODAY)}) as servable,
+               (select count(*)::int from quiz_answer qa
+                 where qa.attempt_id = a.id and qa.correct) as choices_right,
+               array(select qa.score from quiz_answer qa
+                 where qa.attempt_id = a.id and qa.score is not null) as scores
+        from (select 1) one
+        left join quiz_attempt a
+          on a.user_id = ${userId} and a.daily_day = ${TODAY}
+      `.execute(db);
+      const row = rows[0];
+      if (row === undefined) throw new Error("dailyStatus reads one row");
+      return {
+        today:
+          row.id !== null
+            ? {
+                attemptId: row.id,
+                finished: row.finished,
+                points: dailyPoints(row.choices_right, row.scores),
+              }
+            : row.servable
+              ? "open"
+              : "none",
+        streak: await streak(userId),
+      };
+    },
 
     // P2-W11-S06 (Q-P2-35): the same insert-or-meet-the-winner as a section's, for a
     // ready chapter checkpoint of the user's own ready book. Its chapters don't lock

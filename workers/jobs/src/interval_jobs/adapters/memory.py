@@ -1925,6 +1925,7 @@ class InMemoryStore:
         self.books = InMemoryBooks()
         self.github = InMemoryGitHub()
         self.technologies = InMemoryTechnologies()
+        self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
 
         def drop_missing() -> None:
@@ -2218,6 +2219,32 @@ class InMemoryGitHub:
 
     def due_for_sync(self, active_days: int) -> list[str]:
         return sorted(u for u, a in self.accounts.items() if a.active)
+
+
+class InMemoryDailyChallenges:
+    """The job's view of the sets; the pick rule itself is the database's, tested on
+    Postgres. Every picked day gets `questions`."""
+
+    def __init__(self) -> None:
+        self.questions: list[int] = []
+        self.days: dict[date, list[int]] = {}
+        self.approved: set[date] = set()
+        self.published: set[date] = set()
+        self.queued: list[int] = []
+
+    def pick(self, day: date) -> bool:
+        if day in self.days:
+            return False
+        self.days[day] = list(self.questions)
+        return True
+
+    def publish_unreviewed(self, day: date) -> list[int] | None:
+        if day not in self.days or day in self.approved | self.published:
+            return None
+        self.published.add(day)
+        fresh = [q for q in self.days[day] if q not in self.queued]
+        self.queued.extend(fresh)
+        return fresh
 
 
 class InMemoryTechnologies:

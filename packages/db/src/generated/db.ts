@@ -75,7 +75,7 @@ export type QuestionStatus = "flagged" | "live" | "pending" | "rejected" | "reti
 
 export type ReviewDecision = "keep" | "retire";
 
-export type ReviewReason = "anomaly" | "flagged" | "sample";
+export type ReviewReason = "anomaly" | "daily" | "flagged" | "sample";
 
 export type RightsProfile = "excerpt" | "full_text_display" | "full_text_internal" | "metadata_only";
 
@@ -306,6 +306,19 @@ export interface ContinueDismissal {
   content_item_id: Int8;
   dismissed_at: Generated<Timestamp>;
   user_id: string;
+}
+
+export interface DailyChallenge {
+  approved_at: Timestamp | null;
+  day: Timestamp;
+  picked_at: Generated<Timestamp>;
+  published_unreviewed_at: Timestamp | null;
+}
+
+export interface DailyChallengeQuestion {
+  day: Timestamp;
+  position: number;
+  question_id: Int8;
 }
 
 export interface ExploreArmOutcome {
@@ -657,6 +670,7 @@ export interface QuizAttempt {
   checkpoint_passed: boolean | null;
   checkpoint_size: number | null;
   content_item_id: Int8 | null;
+  daily_day: Timestamp | null;
   ends_at: Timestamp | null;
   estimation: Generated<boolean>;
   finished_at: Timestamp | null;
@@ -986,6 +1000,8 @@ export interface DB {
   content_item_private_text: ContentItemPrivateText;
   content_item_section: ContentItemSection;
   continue_dismissal: ContinueDismissal;
+  daily_challenge: DailyChallenge;
+  daily_challenge_question: DailyChallengeQuestion;
   explore_arm_outcome: ExploreArmOutcome;
   feed_note: FeedNote;
   fetch_validator: FetchValidator;

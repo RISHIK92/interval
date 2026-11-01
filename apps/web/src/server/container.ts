@@ -27,6 +27,7 @@ import { kyselyLibrary } from "./adapters/kysely-library";
 import { kyselyOutboundLinks } from "./adapters/kysely-outbound";
 import { kyselyAdminPaths } from "./adapters/kysely-admin-paths";
 import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
+import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyAdminTechnologies } from "./adapters/kysely-admin-technologies";
 import { kyselyBooks } from "./adapters/kysely-books";
 import { fetchGitHub } from "./adapters/fetch-github";
@@ -43,6 +44,7 @@ import { s3Files } from "./adapters/s3-files";
 import { sqsQueue } from "./adapters/sqs-queue";
 import { createEmitter, type Emitter } from "./events";
 import type {
+  AdminDaily,
   AdminTechnologies,
   Books,
   FileStore,
@@ -130,6 +132,11 @@ export function quizzes(): Quizzes {
 
 export function adminQuestions(): AdminQuestions {
   return kyselyAdminQuestions(db());
+}
+
+// P3-W13-S05 (ADR-0031): the daily challenge's sets, reviewed by the owner.
+export function adminDaily(): AdminDaily {
+  return kyselyAdminDaily(db());
 }
 
 // P2-W12-S03 (PER-4): suggested technologies, reviewed by the owner.

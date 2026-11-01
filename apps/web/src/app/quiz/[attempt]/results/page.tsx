@@ -42,7 +42,12 @@ export default async function ResultsPage({
   const attempt = await quizzes().attempt(actor.userId, attemptId);
   if (attempt === null) redirect("/");
   if (attempt.finishedAt === null) redirect(`/quiz/${attemptId}?chip=${chip}`);
-  const { itemId, momentId, checkpoint, estimation } = attempt;
+  const { itemId, momentId, checkpoint, estimation, daily } = attempt;
+  // P3-W13-S05: the daily challenge scores in points, as estimation does, and lists
+  // its estimates the same way.
+  const scored = estimation ?? daily;
+  // A game from Play goes back to Play.
+  const game = attempt.sprint || daily !== null;
   // A review (P2-W9-S05) has no section to continue.
   const next =
     itemId === null || momentId === null
@@ -55,14 +60,14 @@ export default async function ResultsPage({
       attempt.endsAt?.getTime() ?? Infinity,
     ) - attempt.startedAt.getTime();
   const stats = [
-    estimation === null
+    scored === null
       ? {
           value: `${String(Math.round((attempt.correct / Math.max(1, attempt.answered)) * 100))}%`,
           label: "Accuracy",
         }
       : {
           value: String(
-            Math.round(estimation.points / Math.max(1, attempt.answered)),
+            Math.round(scored.points / Math.max(1, attempt.answered)),
           ),
           label: "Points an answer",
         },
@@ -99,7 +104,7 @@ export default async function ResultsPage({
   const readAgain = [
     ...new Map(
       [
-        ...(estimation?.answers ?? []).flatMap((a) =>
+        ...(scored?.answers ?? []).flatMap((a) =>
           a.source !== null && missed(a.score) ? [link(a.source)] : [],
         ),
         ...attempt.missed.map((m) => link({ kind: "section", ...m })),
@@ -112,14 +117,14 @@ export default async function ResultsPage({
         <h1 className="text-2xl font-semibold">
           {attempt.answered === 0
             ? "No answers this time"
-            : estimation !== null
-              ? `${String(estimation.points)} points`
+            : scored !== null
+              ? `${String(scored.points)} points`
               : `${String(attempt.correct)} of ${String(attempt.answered)} correct`}
         </h1>
         <p className="text-sm text-ink-muted">
           {attempt.review
             ? "Review"
-            : attempt.sprint
+            : game
               ? attempt.title
               : checkpoint === null
                 ? `Test yourself · ${attempt.title}`
@@ -190,11 +195,22 @@ export default async function ResultsPage({
           ))}
         </dl>
       )}
+      {/* Q-P3-07: the streak after today's challenge, and a freeze once earned. */}
+      {daily === null ? null : (
+        <p role="status" className="rounded-2xl bg-well px-4 py-3 text-center">
+          <span className="font-semibold">
+            {daily.streak.days === 1
+              ? "1-day streak"
+              : `${String(daily.streak.days)}-day streak`}
+          </span>
+          {daily.streak.freezes > 0 ? " · a freeze held" : null}
+        </p>
+      )}
       {/* P3-W13-S04 (C-27, AI-3): each estimate against the real answer, and where
         it comes from. */}
-      {estimation === null || estimation.answers.length === 0 ? null : (
+      {scored === null || scored.answers.length === 0 ? null : (
         <ol className="flex flex-col gap-2">
-          {estimation.answers.map((a) => (
+          {scored.answers.map((a) => (
             <li
               key={a.questionId}
               className="flex flex-col gap-1 rounded-2xl bg-well px-4 py-3"
@@ -301,7 +317,7 @@ export default async function ResultsPage({
               ? checkpointHome(checkpoint.at)
               : attempt.review
                 ? "/library"
-                : attempt.sprint
+                : game
                   ? "/play"
                   : `/?chip=${chip}`
           }
@@ -317,7 +333,7 @@ export default async function ResultsPage({
               : "Back to the book"
             : attempt.review
               ? "Back to Library"
-              : attempt.sprint
+              : game
                 ? "Back to Play"
                 : "Back to feed"}
         </a>

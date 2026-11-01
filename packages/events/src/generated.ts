@@ -61,8 +61,8 @@ export const EVENT_VERSIONS = {
   feed_viewed: 1,
   feedback_given: 1,
   feedback_undone: 1,
-  game_finished: 2,
-  game_started: 2,
+  game_finished: 3,
+  game_started: 3,
   github_connected: 1,
   github_disconnected: 1,
   guest_merged: 1,
@@ -158,14 +158,14 @@ export const propsSchemas = {
   feedback_undone: z.strictObject({ kind: z.enum(["not_interested"]) }),
   game_finished: z.strictObject({
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
-    game: z.enum(["sprint", "estimation"]),
+    game: z.enum(["sprint", "estimation", "daily"]),
     answered: z.number().int().nonnegative(),
     correct: z.number().int().nonnegative(),
     points: z.number().int().nonnegative(),
   }),
   game_started: z.strictObject({
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
-    game: z.enum(["sprint", "estimation"]),
+    game: z.enum(["sprint", "estimation", "daily"]),
   }),
   github_connected: z.strictObject({
     installations: z.number().int().nonnegative(),
@@ -369,13 +369,13 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("game_finished"),
-    version: z.literal(2),
+    version: z.literal(3),
     props: propsSchemas.game_finished,
   }),
   z.strictObject({
     ...base,
     name: z.literal("game_started"),
-    version: z.literal(2),
+    version: z.literal(3),
     props: propsSchemas.game_started,
   }),
   z.strictObject({

@@ -2352,3 +2352,39 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
     - the early skip for moments busy with both kinds (a small cost);
     - a "busy with one kind" test: an open draft batch already blocks every draft request, so that state can't happen.
 - Not run live: no batch was submitted (it costs money and takes up to 24h); the local bank has no generated estimates yet.
+
+### 2026-11-01 — P3-W13-S05 (the daily challenge; §6.3, §6.1, Q-2 via ADR-0031, Q-P3-06, Q-P3-07, LOAD-5, DB-5)
+- Owner:
+  - ADR-0031 accepted: an unapproved set auto-publishes at 00:00 UTC, its questions join the spot-check queue, and the owner is told only by a banner on `/admin/daily`. Hand-written questions are not retired after a challenge uses them (departs from §6.8's "retired after use"; the owner records it).
+  - Q-P3-07: at most 1 freeze held.
+  - Planning answers:
+    - one 2-minute clock for the set;
+    - 3 multiple choice + 2 estimates, with more multiple choice when estimates are short;
+    - 5 different concepts, intermediate first, no repeat within 30 days, at random;
+    - picked at 00:00 UTC for the next day.
+- Data: migration `20261101000000_daily_challenge.sql`:
+  - `daily_challenge` and `daily_challenge_question`;
+  - `quiz_attempt.daily_day`, a shape branch, and one attempt a day per player (`quiz_attempt_one_daily`, finished or not);
+  - `review_reason` 'daily';
+  - the pick rule as SQL functions (`daily_challenge_fit`, `_pick`, `_swap`), shared by the worker's pick and the admin's swap (ARCH-2).
+  - Down tested.
+- Worker: `daily-challenge-due` (`daily_challenge.py`, the `DailyChallenges` port) is idempotent. It:
+  - picks today's set if it's missing;
+  - marks today's set unreviewed when not approved, queues its questions for spot check and logs "daily: published unreviewed";
+  - picks tomorrow's set.
+- Scheduling:
+  - VM: `interval-daily.timer`, 00:00 UTC, Persistent.
+  - AWS: an EventBridge cron, plus the `DailyPublishedUnreviewed` metric filter.
+- Web:
+  - **Serving:** `Quizzes.startDaily` (meets the day's attempt on a double tap or after it's over) and the daily branch of `next` (the set in order, skipping questions no longer live or allowed, ING-2).
+  - **Scoring and streak:** `dailyStatus`; points are 100 a right choice plus C-27 points per estimate. Multiple-choice answers are mastery evidence, as in a sprint. The streak (`server/streak.ts`) counts finished days, or ones left past their clock.
+  - **Pages:** Play's card (start, carry on, today's points and results, streak, "No challenge today"), the Home card while it's still to play, and the quiz and results pages (title, exit text, estimates, Read again, streak, Back to Play). `/admin/daily` shows tomorrow's set (Swap, Approve), today's set, and the unreviewed banner. The review queue labels the 'daily' reason.
+  - **Events:** `game_started` and `game_finished` v3 (`daily`, with points).
+- Reviewer:
+  - Fixed: a day left open past its clock didn't count toward the streak; no metric for the auto-publish; an impossible date crashed admin actions; two concurrent swaps could pick the same question; the freeze wording differed between pages.
+  - Not fixed (follow-ups):
+    - questions with no concepts escape the distinct-concept rule (none exist: generated and hand-written questions always have concepts);
+    - a slot emptied by an ING-2 purge can't be refilled from `/admin/daily`;
+    - Play's results link uses the default chip.
+- Found: my first rollback test of this migration rebuilt `review_reason` without `anomaly` on the local DB (no rows used it); the down step is fixed and the local enum restored.
+- Not done: no admin nav exists to link `/admin/daily` from; CACHE-4 (CloudFront) and LOAD-4 (scheduled scaling at 00:00) are deployment work. The CLAUDE.md commands line for `daily-challenge-due` is the owner's to add.

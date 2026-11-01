@@ -49,7 +49,8 @@ for unit in interval.service interval-poll.service interval-poll.timer \
   interval-question-batches.service interval-question-batches.timer \
   interval-recalibrate.service interval-recalibrate.timer \
   interval-github.service interval-github.timer \
-  interval-technologies.service interval-technologies.timer; do
+  interval-technologies.service interval-technologies.timer \
+  interval-daily.service interval-daily.timer; do
   install -m 644 "$APP_DIR/deploy/systemd/$unit" "/etc/systemd/system/$unit"
 done
 systemctl daemon-reload
@@ -73,6 +74,8 @@ systemctl enable --now interval-spot-checks.timer
 systemctl enable --now interval-question-batches.timer
 # Q-3: recalibrates question difficulty weekly, as EventBridge Scheduler does in AWS.
 systemctl enable --now interval-recalibrate.timer
+# ADR-0031: the daily challenge's day start at 00:00 UTC, as EventBridge does in AWS.
+systemctl enable --now interval-daily.timer
 docker image prune -f >/dev/null
 
 echo "Deployed $(git -C "$APP_DIR" rev-parse --short HEAD)"

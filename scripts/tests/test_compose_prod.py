@@ -328,3 +328,20 @@ def test_a_systemd_timer_runs_suggest_technologies_weekly() -> None:
     )
     deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
     assert re.search(r"systemctl enable --now interval-technologies\.timer", deploy)
+
+
+# P3-W13-S05 (ADR-0031): the daily challenge's day start at 00:00 UTC, as EventBridge
+# Scheduler does in AWS.
+def test_a_systemd_timer_runs_daily_challenge_due_at_utc_midnight() -> None:
+    timer = (SYSTEMD / "interval-daily.timer").read_text()
+    service = (SYSTEMD / "interval-daily.service").read_text()
+    assert "OnCalendar=*-*-* 00:00:00 UTC" in timer
+    assert "Persistent=true" in timer
+    assert re.search(
+        r"^ExecStart=.*stack\.sh run daily-challenge-due$", service, re.MULTILINE
+    )
+    assert "Requisite=interval.service" in service
+    assert re.search(r"^TimeoutStartSec=", service, re.MULTILINE)
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert "interval-daily.timer" in deploy
+    assert re.search(r"systemctl enable --now interval-daily\.timer", deploy)

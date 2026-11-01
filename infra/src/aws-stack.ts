@@ -345,6 +345,18 @@ export class AwsStack extends Stack {
       metricName: "OcrGaveUp",
       metricValue: "1",
     });
+    // ADR-0031 (P3-W13-S05): a daily challenge set that went out without the owner's
+    // approval; its questions are queued for spot check.
+    logGroup.addMetricFilter("DailyPublishedUnreviewed", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "daily: published unreviewed",
+      ),
+      metricNamespace: "Interval/Daily",
+      metricName: "PublishedUnreviewed",
+      metricValue: "1",
+    });
     // P2-W11-S01: a deleted book whose file couldn't be removed (it expires anyway).
     logGroup.addMetricFilter("BookFilesNotRemoved", {
       filterPattern: logs.FilterPattern.stringValue(
@@ -658,6 +670,34 @@ export class AwsStack extends Stack {
         securityGroups: [appSg],
         vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
         // A missed run would skip a week's sample; a rerun queues nothing twice.
+        retryAttempts: 2,
+        maxEventAge: Duration.hours(1),
+      }),
+    });
+
+    // P3-W13-S05 (ADR-0031): EventBridge Scheduler runs `daily-challenge-due` at
+    // 00:00 UTC. It publishes today's set, queues an unapproved one's questions for
+    // review (logged, and counted by the DailyPublishedUnreviewed metric) and picks
+    // tomorrow's, all in the database: no queue to send to.
+    const dailyChallengeDueTask = taskDefinition("DailyChallengeDue");
+    dailyChallengeDueTask.addContainer("daily-challenge-due", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["daily-challenge-due"],
+      environment,
+      secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
+      logging: logging("daily-challenge-due"),
+    });
+    new scheduler.Schedule(this, "DailyChallengeDueSchedule", {
+      schedule: scheduler.ScheduleExpression.cron({ minute: "0", hour: "0" }),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: dailyChallengeDueTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // Today's set serves without the run; a retry only re-attempts a failed
+        // RunTask, and a rerun changes nothing twice.
         retryAttempts: 2,
         maxEventAge: Duration.hours(1),
       }),

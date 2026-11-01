@@ -1255,6 +1255,9 @@ class Store(Protocol):
     @property
     def technologies(self) -> "Technologies": ...
 
+    @property
+    def daily(self) -> "DailyChallenges": ...
+
 
 # GitHub projects (§5H, ADR-0024, P2-W12-S02): a connected user's repositories, read by
 # the App: metadata and dependency names only, never code.
@@ -1415,6 +1418,23 @@ class TechnologySuggestion:
     slug: str | None
     concepts: tuple[str, ...]
     unreadable: bool = False  # the reply broke the rules; recorded, not asked again
+
+
+class DailyChallenges(Protocol):
+    """The daily challenge's sets (P3-W13-S05, Q-P3-06, ADR-0031), one a UTC day. The
+    pick rule lives in the database (`daily_challenge_pick`), shared with the admin's
+    swap (ARCH-2)."""
+
+    def pick(self, day: date) -> bool:
+        """Picks the day's set; False when it already had one."""
+        ...
+
+    def publish_unreviewed(self, day: date) -> list[int] | None:
+        """Marks the day's set as published without the owner's approval and queues its
+        questions for spot check (ADR-0031): the ones newly queued (a question already
+        in review stays as it is). None when there's no set, it was approved, or it was
+        marked already."""
+        ...
 
 
 class Technologies(Protocol):
