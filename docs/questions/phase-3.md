@@ -65,6 +65,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 - Cite: §6.3 ("Score and streak"), §8 ("daily challenge streaks").
 - **Answer (owner, 2026-10-31):** with freezes: consecutive UTC days with a finished challenge; a freeze is earned every 7 days played and covers one missed day (open: how many can be held).
+- **Answer (owner, 2026-11-01):** a player holds at most 1 freeze.
 - Suggested default: consecutive UTC days with a finished challenge; a missed day resets it; no freezes.
 
 ## Week 14
