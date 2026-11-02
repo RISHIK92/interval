@@ -325,3 +325,19 @@ test("unknown query values fall back to the defaults", async () => {
   await page({ game: "chess", scope: "galaxy", period: "tomorrow" });
   expect(top).toHaveBeenCalledWith("daily:2026-11-04", 50, undefined);
 });
+
+// P3-W16-S06 (Q-P3-13): the month's quick-game rating board, rounded ratings, this
+// season or the last.
+test("the season board ranks ratings for this month or the last", async () => {
+  current.mockResolvedValue(account);
+  top.mockResolvedValue([{ userId: "u1", score: 1623.6, rank: 1 }]);
+  const html = await page({ game: "season" });
+  expect(top).toHaveBeenLastCalledWith("season:2026-11", 50, undefined);
+  expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*>Season</);
+  expect(html).toMatch(/<a[^>]*aria-current="page"[^>]*>This season</);
+  expect(html).toContain("1624");
+  expect(html).not.toContain("1623.6");
+  expect(html).toContain("Quick-game rating");
+  await page({ game: "season", period: "previous" });
+  expect(top).toHaveBeenLastCalledWith("season:2026-10", 50, undefined);
+});

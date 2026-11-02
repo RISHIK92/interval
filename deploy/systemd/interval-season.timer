@@ -1,0 +1,12 @@
+# VM mode (ADR-0011), P3-W16-S06 (Q-P3-13): daily at 00:00 UTC. On the 1st it closes
+# last month's season; later days find it closed, or close it if the 1st's run failed.
+# Persistent, so a VM that was off then runs it once it is back; a season closes once.
+[Unit]
+Description=Interval close-season daily at 00:00 UTC
+
+[Timer]
+OnCalendar=*-*-* 00:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

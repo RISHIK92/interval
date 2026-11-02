@@ -5,9 +5,11 @@ import { applyMatchEvidence } from "./evidence";
 // P3-W15-S05: applied on a visit, one event per match; a failure doesn't break the page.
 const apply = vi.fn<Quizzes["applyMatchEvidence"]>(() => Promise.resolve([]));
 const emit = vi.fn();
+const invalidate = vi.fn(() => Promise.resolve());
 vi.mock("../../../server/container", () => ({
   quizzes: () => ({ applyMatchEvidence: apply }),
   events: () => ({ emit }),
+  leaderboards: () => ({ invalidate }),
 }));
 vi.mock("next/headers", () => ({
   cookies: () =>
@@ -42,11 +44,14 @@ test("each applied match is one event", async () => {
       expect.objectContaining({ userId: "u1" }),
     ],
   ]);
+  // P3-W16-S06: the new rating reaches the player's season boards now.
+  expect(invalidate).toHaveBeenCalledExactlyOnceWith("u1");
 });
 
 test("nothing pending: no event; a failure is logged, never thrown", async () => {
   await applyMatchEvidence(actor);
   expect(emit).not.toHaveBeenCalled();
+  expect(invalidate).not.toHaveBeenCalled();
   const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
   apply.mockRejectedValueOnce(new Error("db down"));
   await expect(applyMatchEvidence(actor)).resolves.toBeUndefined();

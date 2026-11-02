@@ -354,3 +354,18 @@ def test_a_systemd_timer_runs_daily_challenge_due_at_utc_midnight() -> None:
     deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
     assert "interval-daily.timer" in deploy
     assert re.search(r"systemctl enable --now interval-daily\.timer", deploy)
+
+
+# P3-W16-S06 (Q-P3-13): close-season runs daily at 00:00 UTC (it closes last month's
+# season on the 1st, or the next day after a failure), as EventBridge does in AWS.
+def test_a_systemd_timer_closes_the_season_daily() -> None:
+    timer = (SYSTEMD / "interval-season.timer").read_text()
+    service = (SYSTEMD / "interval-season.service").read_text()
+    assert "OnCalendar=*-*-* 00:00:00 UTC" in timer
+    assert "Persistent=true" in timer
+    assert re.search(r"^ExecStart=.*stack\.sh run close-season$", service, re.MULTILINE)
+    assert "Requisite=interval.service" in service
+    assert re.search(r"^TimeoutStartSec=", service, re.MULTILINE)
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert "interval-season.timer" in deploy
+    assert re.search(r"systemctl enable --now interval-season\.timer", deploy)

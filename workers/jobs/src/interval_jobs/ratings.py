@@ -80,3 +80,18 @@ def update(player: Glicko, games: list[tuple[Glicko, float]]) -> Glicko:
         _g(phi_j) * (score - _e(mu, mu_j, phi_j)) for mu_j, phi_j, score in opponents
     )
     return Glicko(new_mu * SCALE + 1500, new_phi * SCALE, new_sigma)
+
+
+# P3-W16-S06 (Q-P3-13; owner, 2026-11-03): a season's soft reset.
+SEASON_KEEPS = 0.75  # of the distance from the starting rating
+SEASON_MIN_RD = 150.0  # so a season's first matches move ratings faster
+
+
+def season_reset(player: Glicko) -> Glicko:
+    """The rating a player starts the next season on: three quarters of the way from
+    1500, RD at least 150, volatility as it was."""
+    return Glicko(
+        START.rating + SEASON_KEEPS * (player.rating - START.rating),
+        max(player.rd, SEASON_MIN_RD),
+        player.volatility,
+    )

@@ -817,6 +817,34 @@ export class AwsStack extends Stack {
       }),
     });
 
+    // P3-W16-S06 (Q-P3-13): EventBridge Scheduler runs `close-season` daily at 00:00 UTC.
+    // On the 1st it keeps last month's board and resets ratings in the database; on
+    // other days it finds that month closed, or closes it if the 1st's run failed. No
+    // queue, no model.
+    const closeSeasonTask = taskDefinition("CloseSeason");
+    closeSeasonTask.addContainer("close-season", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["close-season"],
+      environment,
+      secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
+      logging: logging("close-season"),
+    });
+    new scheduler.Schedule(this, "CloseSeasonSchedule", {
+      schedule: scheduler.ScheduleExpression.cron({ minute: "0", hour: "0" }),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: closeSeasonTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // A retry only re-attempts a failed RunTask; a failed close is run again the
+        // next day, and a season closes once.
+        retryAttempts: 2,
+        maxEventAge: Duration.hours(1),
+      }),
+    });
+
     // Q-3 (P2-W9-S08): EventBridge Scheduler runs `recalibrate-difficulty` weekly. It
     // reads answers and writes levels and reviews in the database: no queue, no model.
     const recalibrateTask = taskDefinition("RecalibrateDifficulty");

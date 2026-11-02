@@ -1930,6 +1930,7 @@ class InMemoryStore:
         self.technologies = InMemoryTechnologies()
         self.universities = InMemoryUniversities()
         self.match_results = InMemoryMatchResults()
+        self.seasons = InMemorySeasons()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
 
@@ -2263,6 +2264,19 @@ class InMemoryMatchResults:
         if key in self.recorded:
             return False
         self.recorded[key] = result
+        return True
+
+
+class InMemorySeasons:
+    """Quick-game seasons (P3-W16-S06): which were closed, in order."""
+
+    def __init__(self) -> None:
+        self.closed: list[str] = []
+
+    def close(self, season: str, start: datetime, end: datetime) -> bool:
+        if season in self.closed:
+            return False
+        self.closed.append(season)
         return True
 
 

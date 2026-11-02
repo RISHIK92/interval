@@ -1,0 +1,16 @@
+# VM mode (ADR-0011), P3-W16-S06 (Q-P3-13): close last month's quick-game season (keep
+# its board, soft-reset ratings) once. Started daily by interval-season.timer; the AWS
+# stack runs the same command daily from EventBridge Scheduler.
+[Unit]
+Description=Interval close-season
+# Requisite, not Requires: a stack stopped for maintenance skips the run instead of
+# being started again by the timer.
+Requisite=interval.service
+After=interval.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/interval
+ExecStart=/opt/interval/deploy/bin/stack.sh run close-season
+# A oneshot has no start timeout by default: a hung run would stop the timer for good.
+TimeoutStartSec=10min

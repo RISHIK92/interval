@@ -274,6 +274,7 @@ test("the sprint card links to a live 1v1 sprint, and the rating shows", async (
   const html = await page();
   expect(html).toContain('href="/play/live/sprint"');
   expect(words(html)).toContain("Rating 1612");
+  expect(html).toContain('href="/play/boards?game=season"');
   expect(ratingOf).toHaveBeenCalledWith("g1");
 });
 

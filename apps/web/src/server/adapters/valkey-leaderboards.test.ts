@@ -586,3 +586,102 @@ test("a board evicted while its marker stays is rebuilt, not shown empty", async
     ]);
   });
 });
+
+// P3-W16-S06 (Q-P3-13; owner, 2026-11-03): a season board ranks quick-game ratings: an
+// open season the current rating of each player rated that month, a closed one its kept
+// board.
+async function rated(
+  trx: Transaction<DB>,
+  userId: string,
+  after: number,
+  at: string,
+): Promise<void> {
+  const match = await trx
+    .insertInto("game_match")
+    .values({ server_id: 0 })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  await trx
+    .insertInto("rating_history")
+    .values({
+      user_id: userId,
+      match_id: match.id,
+      rating_before: 1500,
+      rating_after: after,
+      rd_after: 100,
+      volatility_after: 0.06,
+      score: 1,
+      at: new Date(at),
+    })
+    .execute();
+  // The rating it left the player on, as the worker sets it.
+  await sql`insert into player_rating (user_id, rating, rd, volatility, games)
+    values (${userId}, ${after}, 100, 0.06, 1)
+    on conflict (user_id) do update set rating = excluded.rating`.execute(trx);
+}
+
+test("a season board ranks each player's rating that month, by scope and university", async () => {
+  await inRollback(async (trx, prefix) => {
+    const boards = valkeyLeaderboards(trx, redis, prefix);
+    const [a = "", b = "", c = "", d = ""] = await players(trx, 4);
+    await rated(trx, a, 1600, "2031-05-02T00:00:00Z");
+    await rated(trx, a, 1700, "2031-05-20T00:00:00Z");
+    await rated(trx, b, 1450, "2031-05-31T23:00:00Z");
+    await rated(trx, c, 1800, "2031-04-30T00:00:00Z"); // last season only
+    await rated(trx, d, 1550, "2031-05-10T00:00:00Z");
+    await country(trx, d, "ZZ");
+    const u = await university(trx, b, "Season U");
+    await university(trx, d, "Season U");
+
+    expect(await boards.top("season:2031-05", 10)).toEqual([
+      { userId: a, score: 1700, rank: 1 },
+      { userId: d, score: 1550, rank: 2 },
+      { userId: b, score: 1450, rank: 3 },
+    ]);
+    expect(await boards.top("season:2031-05", 10, { country: "ZZ" })).toEqual([
+      { userId: d, score: 1550, rank: 1 },
+    ]);
+    // C-17: a university by its members' average rating.
+    expect(await boards.universityStanding("season:2031-05", u)).toEqual({
+      universityId: u,
+      score: 1500,
+      rank: 1,
+    });
+
+    // An open season ranks the current rating: one reset (or rated) since shows.
+    await sql`update player_rating set rating = 1690 where user_id = ${a}`.execute(
+      trx,
+    );
+    await boards.invalidate(a);
+    expect(await boards.standing("season:2031-05", a)).toMatchObject({
+      score: 1690,
+    });
+
+    // A new rating shows once the player's boards are worked out again (their next
+    // Play visit), not only when the marker lapses.
+    await rated(trx, b, 1525, "2031-05-31T23:30:00Z");
+    await boards.invalidate(b);
+    expect(await boards.standing("season:2031-05", b)).toMatchObject({
+      score: 1525,
+    });
+  });
+});
+
+test("a closed season's board is the one kept at its close", async () => {
+  await inRollback(async (trx, prefix) => {
+    const boards = valkeyLeaderboards(trx, redis, prefix);
+    const [c = ""] = await players(trx, 1);
+    await rated(trx, c, 1800, "2031-04-30T00:00:00Z");
+    await trx
+      .insertInto("season_close")
+      .values({ season: "2031-04" })
+      .execute();
+    await trx
+      .insertInto("season_standing")
+      .values({ season: "2031-04", user_id: c, rating: 1810 })
+      .execute();
+    expect(await boards.top("season:2031-04", 10)).toEqual([
+      { userId: c, score: 1810, rank: 1 },
+    ]);
+  });
+});

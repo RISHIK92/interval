@@ -1266,6 +1266,9 @@ class Store(Protocol):
     def match_results(self) -> "MatchResults": ...
 
     @property
+    def seasons(self) -> "Seasons": ...
+
+    @property
     def daily(self) -> "DailyChallenges": ...
 
 
@@ -1454,6 +1457,16 @@ class MatchResults(Protocol):
         """Records the match's result and each player's answers as a match attempt,
         once: False when it was recorded already. Cancelled and void matches keep no
         answers (no result for anyone)."""
+        ...
+
+
+class Seasons(Protocol):
+    """Quick-game seasons (P3-W16-S06, Q-P3-13)."""
+
+    def close(self, season: str, start: datetime, end: datetime) -> bool:
+        """Keeps the season's final board (each player rated in [start, end), at the
+        rating their last match in it left them on) and soft-resets every rating, once:
+        False when the season was closed already."""
         ...
 
 

@@ -138,6 +138,11 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 - Cite: §6.6 ("with seasons and soft resets"), §6.7 ("season boards for ratings").
 - **Answer (owner, 2026-10-31):** monthly seasons for quick games, with season boards and a soft reset toward the mean (open: how strong the reset is).
+- **Follow-up (owner, 2026-11-03, W16-S06):**
+  - a season ends on the 1st (UTC). Each rating moves to 1500 + 0.75 × (rating − 1500), its RD is raised to at least 150, and volatility stays;
+  - the season board lists anyone with at least one rated live match in the season, ranked by current rating;
+  - its scopes match the other boards': global, country, university and friends; top 50 with your own row; the current season and the one before;
+  - on the season board, universities rank by their members' average rating there (C-17). The daily and weekly boards keep their own scores.
 - Suggested default: no seasons in Phase 3; boards show all-time rating. Seasons arrive with battles.
 
 ### Q-P3-14 Regions (P2)

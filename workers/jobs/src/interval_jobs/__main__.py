@@ -6,6 +6,7 @@ Usage:
   python -m interval_jobs recompute-due
   python -m interval_jobs issue-invites --group student --uses 30 --days 30 [--count N]
   python -m interval_jobs purge-guests
+  python -m interval_jobs close-season
   python -m interval_jobs poll-due
   python -m interval_jobs load-concepts [--file F]
   python -m interval_jobs draft-concepts --topic T --model M --out F
@@ -75,6 +76,7 @@ from interval_jobs.question_trial import TrialError, run_trial, trial_moments
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.ranking.scoring import BREAK_MINUTES
 from interval_jobs.recalibration import recalibrate
+from interval_jobs.seasons import close_season
 from interval_jobs.segment import segment_item
 from interval_jobs.tagging import TaggingError
 from interval_jobs.tagging_eval import (
@@ -248,6 +250,11 @@ def main(argv: list[str]) -> None:
         "check-links-due",
         help="queue this week's link health check of every item (P1-W6-S03)",
     )
+    commands.add_parser(
+        "close-season",
+        help="close last month's quick-game season: keep its board, reset ratings"
+        " (P3-W16-S06)",
+    )
     technologies = commands.add_parser(
         "load-technologies",
         help="sync the technology seed file (PER-4, P2-W12-S03)",
@@ -320,6 +327,11 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         with services() as s:
             queued = queue_link_checks(s.store, queue_for_enqueue(), datetime.now(UTC))
         print(json.dumps({"queued": queued}))
+        return
+
+    if args.command == "close-season":
+        with services() as s:
+            print(json.dumps(close_season(s.store.seasons, datetime.now(UTC))))
         return
 
     if args.command == "enqueue-discover":

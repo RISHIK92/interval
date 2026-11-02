@@ -1,6 +1,6 @@
 import type { DB } from "@interval/db";
 import type { Redis } from "ioredis";
-import { type Kysely, sql } from "kysely";
+import { type Kysely, type RawBuilder, sql } from "kysely";
 import { log } from "../log";
 import type {
   BoardScope,
@@ -70,48 +70,75 @@ export function valkeyLeaderboards(
   const key = (n: string) => `${prefix}${n}`;
   const marker = (n: string) => `${prefix}built:${n}`;
 
-  // The players' totals on a board; on a country's or university's, only the players
+  // Each player's score on a board, of the players `who` admits (given the user id
+  // column). P3-W16-S06 (Q-P3-13): a season's is the quick-game rating, the one kept at
+  // its close or, while open, the current one of each player rated that month; every
+  // other board's is the sum of its games' scores.
+  const scores = (
+    board: string,
+    who: (user: RawBuilder<unknown>) => RawBuilder<unknown>,
+  ) => {
+    const season = /^season:(\d{4})-(\d{2})$/.exec(board);
+    if (season === null)
+      return sql<{ user_id: string; score: number }>`
+        select a.user_id, sum(s.score)::float8 as score
+        from board_score s join quiz_attempt a on a.id = s.attempt_id
+        where s.board = ${board} and ${who(sql.ref("a.user_id"))}
+        group by a.user_id`;
+    const [, year = "", month = ""] = season;
+    const name = `${year}-${month}`;
+    const start = new Date(Date.UTC(Number(year), Number(month) - 1, 1));
+    const end = new Date(Date.UTC(Number(year), Number(month), 1));
+    return sql<{ user_id: string; score: number }>`
+      select k.user_id, k.rating as score from season_standing k
+      where k.season = ${name} and ${who(sql.ref("k.user_id"))}
+      union all
+      select r.user_id, r.rating from player_rating r
+      where ${who(sql.ref("r.user_id"))}
+        and not exists (select 1 from season_close c where c.season = ${name})
+        and exists (select 1 from rating_history h where h.user_id = r.user_id
+          and h.at >= ${start} and h.at < ${end})`;
+  };
+
+  // The players' scores on a board; on a country's or university's, only the players
   // in it now.
   const totals = (
     board: string,
     only: { userId?: string; scope?: BoardScope | undefined },
   ) =>
     sql<{ member: string; score: number }>`
-      select a.user_id as member, sum(s.score)::int as score
-      from board_score s join quiz_attempt a on a.id = s.attempt_id
-      where s.board = ${board}
-        and ${only.userId === undefined ? sql`true` : sql`a.user_id = ${only.userId}`}
-        and ${
-          only.scope === undefined
-            ? sql`true`
-            : "country" in only.scope
-              ? sql`exists (select 1 from player_country c
-                  where c.user_id = a.user_id and c.country = ${only.scope.country})`
-              : sql`exists (select 1 from player_university u
-                  where u.user_id = a.user_id
-                    and u.university_id = ${only.scope.university})`
-        }
-      group by a.user_id
+      select t.user_id as member, t.score
+      from (${scores(
+        board,
+        (
+          user,
+        ) => sql`${only.userId === undefined ? sql`true` : sql`${user} = ${only.userId}`}
+          and ${
+            only.scope === undefined
+              ? sql`true`
+              : "country" in only.scope
+                ? sql`exists (select 1 from player_country c
+                    where c.user_id = ${user} and c.country = ${only.scope.country})`
+                : sql`exists (select 1 from player_university u
+                    where u.user_id = ${user}
+                      and u.university_id = ${only.scope.university})`
+          }`,
+      )}) t
     `.execute(db);
 
-  // Q-P3-10 (owner, 2026-11-02): each university's average total over its players with
-  // a score on the board; one university's when given.
+  // Q-P3-10 (owner, 2026-11-02): each university's average score over its players with
+  // one on the board (C-17: on a season board, their average rating); one university's
+  // when given.
   const averages = (board: string, universityId?: string) =>
     sql<{ member: string; score: number }>`
       select u.university_id::text as member, avg(t.score)::float8 as score
-      from (
-        select a.user_id, sum(s.score) as score
-        from board_score s join quiz_attempt a on a.id = s.attempt_id
-        where s.board = ${board}
-          -- Inside, so one university's average doesn't sum the whole board.
-          and ${
-            universityId === undefined
-              ? sql`true`
-              : sql`a.user_id in (select user_id from player_university
-                  where university_id = ${universityId})`
-          }
-        group by a.user_id
-      ) t join player_university u on u.user_id = t.user_id
+      from (${scores(board, (user) =>
+        // Inside, so one university's average doesn't work out the whole board.
+        universityId === undefined
+          ? sql`true`
+          : sql`${user} in (select user_id from player_university
+              where university_id = ${universityId})`,
+      )}) t join player_university u on u.user_id = t.user_id
       where u.university_id is not null
       group by u.university_id
     `.execute(db);
@@ -284,13 +311,15 @@ export function valkeyLeaderboards(
         // Its global boards, those of its scopes now and before, and the rankings of
         // the universities whose averages it counts in.
         const scopes = [undefined, ...(await scopesOf(userId)), ...former];
-        const boards = await db
-          .selectFrom("board_score as s")
-          .innerJoin("quiz_attempt as a", "a.id", "s.attempt_id")
-          .select("s.board")
-          .distinct()
-          .where("a.user_id", "=", userId)
-          .execute();
+        // P3-W16-S06: and the seasons it was rated in.
+        const { rows: boards } = await sql<{ board: string }>`
+          select s.board from board_score s
+          join quiz_attempt a on a.id = s.attempt_id
+          where a.user_id = ${userId}
+          union
+          select 'season:' || to_char(h.at at time zone 'utc', 'YYYY-MM')
+          from rating_history h where h.user_id = ${userId}
+        `.execute(db);
         const names = boards.flatMap((b) => [
           ranking(b.board),
           ...scopes.map((scope) => name(b.board, scope)),

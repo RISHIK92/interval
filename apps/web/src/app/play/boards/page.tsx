@@ -36,6 +36,7 @@ const GAME_LABELS: Record<Game, string> = {
   daily: "Daily",
   sprint: "Sprint",
   estimation: "Estimation",
+  season: "Season",
 };
 const SCOPE_LABELS: Record<Scope, string> = {
   global: "Global",
@@ -48,16 +49,19 @@ const PERIOD_LABELS: Record<Game, Record<Period, string>> = {
   daily: { current: "Today", previous: "Yesterday" },
   sprint: { current: "This week", previous: "Last week" },
   estimation: { current: "This week", previous: "Last week" },
+  season: { current: "This season", previous: "Last season" },
 };
 const UNITS: Record<Game, string> = {
   daily: "points",
   sprint: "correct answers",
   estimation: "points",
+  season: "rating",
 };
 const UNITS_TEXT: Record<Game, string> = {
   daily: "Points in the day's challenge",
   sprint: "Correct answers over the week's sprints",
   estimation: "Points over the week's estimation rounds",
+  season: "Quick-game rating, for anyone with a rated live match this month",
 };
 // ADR-0029: guests have no Profile, so no country, university or follows.
 const GUEST_SCOPES: readonly Scope[] = ["global", "universities"];
@@ -117,7 +121,8 @@ export default async function BoardsPage(props: {
             : label?.guest === true
               ? guestLabel(s.userId)
               : "Player",
-        score: String(s.score),
+        // A rating is a decimal; every other board's score is whole already.
+        score: String(Math.round(s.score)),
         rank: s.rank,
       };
     });

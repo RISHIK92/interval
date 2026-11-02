@@ -1,5 +1,6 @@
 // P3-W14-S06 (§6.7; owner, 2026-11-02): what /play/boards can show.
-export const GAMES = ["daily", "sprint", "estimation"] as const;
+// P3-W16-S06 (Q-P3-13): "season" is the month's quick-game rating board.
+export const GAMES = ["daily", "sprint", "estimation", "season"] as const;
 export const SCOPES = [
   "global",
   "country",
@@ -14,8 +15,15 @@ export type Period = (typeof PERIODS)[number];
 const DAY_MS = 86_400_000;
 
 // The board's name as P3-W14-S01 makes it in SQL: the UTC day for the daily challenge,
-// the ISO week (UTC) for sprints and estimation rounds; or the day or week before.
+// the ISO week (UTC) for sprints and estimation rounds, the UTC month for the season
+// (P3-W16-S06); or the day, week or month before.
 export function boardName(game: Game, period: Period, now: Date): string {
+  if (game === "season") {
+    // The UTC month, or the one before (the 1st of it, so the day never overflows).
+    const month = now.getUTCMonth() - (period === "previous" ? 1 : 0);
+    const at = new Date(Date.UTC(now.getUTCFullYear(), month, 1));
+    return `season:${at.toISOString().slice(0, 7)}`;
+  }
   if (game === "daily") {
     const day = new Date(now.getTime() - (period === "previous" ? DAY_MS : 0));
     return `daily:${day.toISOString().slice(0, 10)}`;

@@ -50,7 +50,8 @@ for unit in interval.service interval-poll.service interval-poll.timer \
   interval-recalibrate.service interval-recalibrate.timer \
   interval-github.service interval-github.timer \
   interval-technologies.service interval-technologies.timer \
-  interval-daily.service interval-daily.timer; do
+  interval-daily.service interval-daily.timer \
+  interval-season.service interval-season.timer; do
   install -m 644 "$APP_DIR/deploy/systemd/$unit" "/etc/systemd/system/$unit"
 done
 systemctl daemon-reload
@@ -68,6 +69,8 @@ systemctl enable --now interval-links.timer
 systemctl enable --now interval-github.timer
 # PER-4: suggests technologies for unclaimed packages weekly, as EventBridge does.
 systemctl enable --now interval-technologies.timer
+# Q-P3-13: closes last month's quick-game season (daily: a no-op after the 1st).
+systemctl enable --now interval-season.timer
 # Q-2: queues the week's question spot checks, as EventBridge Scheduler does in AWS.
 systemctl enable --now interval-spot-checks.timer
 # Q-P2-13: question batches every 30 minutes, as EventBridge Scheduler does in AWS.

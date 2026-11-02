@@ -3082,3 +3082,42 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - Python 1302;
   - Go race;
   - infra alone 61.
+
+### 2026-11-03 — P3-W16-S06 (monthly seasons; §6.6, §6.7, Q-P3-13, C-17)
+
+- **Owner (Q-P3-13 follow-up):**
+  - seasons are calendar months (UTC);
+  - at close, rating → 1500 + 0.75 × (rating − 1500), RD at least 150, volatility kept;
+  - the board lists anyone with a rated live match in the month, by rating, with the other boards' scopes;
+  - universities rank by members' average rating (C-17).
+- **Python:**
+  - `ratings.season_reset` (pure, tested);
+  - `seasons.season_before` and `close_season`, which closes the month just ended, once;
+  - `PostgresSeasons.close`, in one transaction:
+    - `season_close` (on conflict do nothing);
+    - `season_standing`: each player's last `rating_after` in the month, exact however late it runs;
+    - the reset of every `player_rating`, locked in `user_id` order like rating and the merge.
+  - `close-season` CLI.
+- **Schedule:**
+  - daily at 00:00 UTC: EventBridge `cron(0 0 * * ? *)` with the DB secret only, and the VM's `interval-season.timer` (Persistent);
+  - on the 1st it closes last month; a failed run is retried the next day; other days are no-ops.
+- **DB:** `season_close`, `season_standing`, and the `rating_history (user_id, at)` index.
+- **Web:**
+  - `season:YYYY-MM` boards:
+    - read the kept standings once closed, else the current rating of each player rated in the month;
+    - `scores()` serves every board, so university averages are average ratings;
+    - `invalidate` covers the player's seasons;
+    - `applyMatchEvidence` invalidates after applying, so your new rating shows at your next Play visit (others within the 10 min marker);
+  - `/play/boards` has Season (this season / last season; ratings rounded);
+  - Play links "Season board" by the rating;
+  - the guest merge moves closed-season standings with the surviving rating.
+- **Reviewer, fixed:**
+  - a guest's closed standings were lost at sign-up (blocker);
+  - the close could deadlock with rating (lock order);
+  - a failed close was never retried (now daily);
+  - open boards read the month's last history rating, not the current rating;
+  - a misleading index comment;
+  - redundant `distinct`s.
+- **Accepted (nit):** ranks compare unrounded ratings while the page rounds them, so two players can show the same rating at different ranks.
+- **Known limit:** a month the job misses for the whole next month keeps no board, and the reset applies once.
+- **Full check:** 28/28 tasks green (web 1285, Python 1312, infra 86).

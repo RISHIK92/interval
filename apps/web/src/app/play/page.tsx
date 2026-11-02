@@ -116,8 +116,15 @@ export default async function PlayPage(props: {
           </Link>
         )}
         {rating === null ? null : (
-          <p className="mt-3 text-sm font-semibold tabular-nums">
+          <p className="mt-3 flex items-center gap-3 text-sm font-semibold tabular-nums">
             Rating {Math.round(rating)}
+            {/* P3-W16-S06 (Q-P3-13): this month's quick-game season. */}
+            <Link
+              href="/play/boards?game=season"
+              className="underline underline-offset-2"
+            >
+              Season board
+            </Link>
           </p>
         )}
       </header>

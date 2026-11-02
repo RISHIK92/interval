@@ -96,7 +96,7 @@ from interval_jobs.ports import (
 )
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
-from interval_jobs.ratings import START, Glicko, update
+from interval_jobs.ratings import START, Glicko, season_reset, update
 from interval_jobs.technologies import TechnologySeed
 from interval_jobs.universities import UniversitySeed
 
@@ -3448,6 +3448,54 @@ class PostgresTechnologies:
         )
 
 
+class PostgresSeasons:
+    """Quick-game seasons (P3-W16-S06)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def close(self, season: str, start: datetime, end: datetime) -> bool:
+        conn = self._conn
+        with conn.transaction():
+            closed = conn.execute(
+                "insert into season_close (season) values (%s)"
+                " on conflict (season) do nothing returning season",
+                (season,),
+            ).fetchone()
+            if closed is None:
+                return False
+            # The rating each player's last match of the season left them on: exact
+            # however late this runs.
+            conn.execute(
+                """
+                insert into season_standing (season, user_id, rating)
+                select distinct on (user_id) %s, user_id, rating_after
+                from rating_history
+                where at >= %s and at < %s
+                order by user_id, at desc, id desc
+                """,
+                (season, start, end),
+            )
+            # In user_id order, as rating a match and a guest merge lock: never a
+            # deadlock with a match rated meanwhile.
+            rows = conn.execute(
+                "select user_id, rating, rd, volatility from player_rating"
+                " order by user_id for update"
+            ).fetchall()
+            with conn.cursor() as cur:
+                cur.executemany(
+                    "update player_rating set rating = %s, rd = %s, volatility = %s,"
+                    " updated_at = now() where user_id = %s",
+                    [
+                        (after.rating, after.rd, after.volatility, user)
+                        for user, rating, rd, volatility in rows
+                        for after in [season_reset(Glicko(rating, rd, volatility))]
+                    ],
+                )
+        log.info("game: season closed", season=season, ratings=len(rows))
+        return True
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
@@ -3456,6 +3504,7 @@ class PostgresStore:
         self.technologies = PostgresTechnologies(conn)
         self.universities = PostgresUniversities(conn)
         self.match_results = PostgresMatchResults(conn)
+        self.seasons = PostgresSeasons(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)

@@ -424,7 +424,26 @@ test("the more-played rating stays with the account, with its own history", asyn
     await history(guest, own, 1620);
     await history(guest, shared, 1600);
     await history(account, shared, 1480);
+    // P3-W16-S06: closed seasons' final boards follow the surviving rating too.
+    await trx
+      .insertInto("season_close")
+      .values({ season: "2031-03" })
+      .execute();
+    await trx
+      .insertInto("season_standing")
+      .values([
+        { season: "2031-03", user_id: guest, rating: 1610 },
+        { season: "2031-03", user_id: account, rating: 1470 },
+      ])
+      .execute();
     expect(await mergeGuest(trx, guest, account)).toBe(true);
+    expect(
+      await trx
+        .selectFrom("season_standing")
+        .select(["user_id", "rating"])
+        .where("season", "=", "2031-03")
+        .execute(),
+    ).toEqual([{ user_id: account, rating: 1610 }]);
     expect(
       await trx
         .selectFrom("player_rating")

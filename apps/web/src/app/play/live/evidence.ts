@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { events, quizzes } from "../../../server/container";
+import { events, leaderboards, quizzes } from "../../../server/container";
 import { log } from "../../../server/log";
 import type { Actor } from "../../../server/ports";
 import { visitId } from "../../../server/visits";
@@ -14,6 +14,9 @@ export async function applyMatchEvidence(actor: Actor): Promise<void> {
     const context = { ...actor, sessionId: visitId(await cookies()) };
     for (const match of applied)
       events().emit("match_finished", match, context);
+    // P3-W16-S06: the worker rated these with their results; the player's season
+    // boards show the new rating now, not when their markers lapse. Never throws.
+    await leaderboards().invalidate(actor.userId);
   } catch (error) {
     log.error("game: match evidence not applied", {
       userId: actor.userId,

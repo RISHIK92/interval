@@ -794,6 +794,17 @@ export interface SchemaMeta {
   value: string;
 }
 
+export interface SeasonClose {
+  closed_at: Generated<Timestamp>;
+  season: string;
+}
+
+export interface SeasonStanding {
+  rating: number;
+  season: string;
+  user_id: string;
+}
+
 export interface Source {
   active: Generated<boolean>;
   created_at: Generated<Timestamp>;
@@ -1154,6 +1165,8 @@ export interface DB {
   rating_history: RatingHistory;
   reason_report: ReasonReport;
   schema_meta: SchemaMeta;
+  season_close: SeasonClose;
+  season_standing: SeasonStanding;
   source: Source;
   starter_feed_entry: StarterFeedEntry;
   starter_feed_visible: StarterFeedVisible;

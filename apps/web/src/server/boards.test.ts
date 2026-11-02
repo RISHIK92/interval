@@ -16,6 +16,12 @@ test.each([
   // 2021-01-03 is a Sunday in 2020's week 53.
   ["estimation", "current", "2021-01-03T10:00:00Z", "estimation:2020-W53"],
   ["sprint", "current", "2025-12-29T00:00:00Z", "sprint:2026-W01"],
+  // P3-W16-S06 (Q-P3-13): the season is the UTC month.
+  ["season", "current", "2026-11-30T23:59:59Z", "season:2026-11"],
+  ["season", "current", "2026-12-01T00:00:00Z", "season:2026-12"],
+  ["season", "previous", "2026-12-01T00:00:00Z", "season:2026-11"],
+  ["season", "previous", "2027-01-15T00:00:00Z", "season:2026-12"],
+  ["season", "previous", "2027-03-31T12:00:00Z", "season:2027-02"],
 ] as const)("%s %s at %s is %s", (game, period, at, name) => {
   expect(boardName(game, period, new Date(at))).toBe(name);
 });

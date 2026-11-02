@@ -140,6 +140,16 @@ export async function mergeGuest(
       .set({ user_id: accountId })
       .where("user_id", "=", guestId)
       .execute();
+    // P3-W16-S06: and the closed seasons' final boards, as for the history.
+    await trx
+      .deleteFrom("season_standing")
+      .where("user_id", "=", accountId)
+      .execute();
+    await trx
+      .updateTable("season_standing")
+      .set({ user_id: accountId })
+      .where("user_id", "=", guestId)
+      .execute();
     await sql`
       insert into player_rating
         (user_id, rating, rd, volatility, games, updated_at)
@@ -150,7 +160,7 @@ export async function mergeGuest(
         volatility = excluded.volatility, games = excluded.games,
         updated_at = excluded.updated_at`.execute(trx);
   }
-  // Otherwise the guest's rating and history go with the guest.
+  // Otherwise the guest's rating, history and season standings go with the guest.
 
   await trx.deleteFrom("app_user").where("id", "=", guestId).execute();
   return true;

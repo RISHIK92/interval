@@ -3,7 +3,7 @@ the Glicko-2 system", 2013, section 3)."""
 
 import pytest
 
-from interval_jobs.ratings import Glicko, update
+from interval_jobs.ratings import Glicko, season_reset, update
 
 
 def test_glickmans_worked_example() -> None:
@@ -40,3 +40,19 @@ def test_one_match_moves_equals_apart_by_the_same_amount() -> None:
     # Pinned, so a wrong but symmetric formula can't pass.
     assert won.rating == pytest.approx(1662.31, abs=0.01)
     assert won.rd == pytest.approx(290.32, abs=0.01)
+
+
+# P3-W16-S06 (Q-P3-13; owner, 2026-11-03): a season's soft reset keeps 75% of the
+# distance from 1500, raises RD to at least 150, and leaves volatility.
+@pytest.mark.parametrize(
+    ("rating", "after"), [(1900.0, 1800.0), (1100.0, 1200.0), (1500.0, 1500.0)]
+)
+def test_a_season_reset_keeps_three_quarters_of_the_distance(
+    rating: float, after: float
+) -> None:
+    assert season_reset(Glicko(rating, 200, 0.06)).rating == pytest.approx(after)
+
+
+def test_a_season_reset_widens_a_narrow_rd_and_keeps_volatility() -> None:
+    assert season_reset(Glicko(1500, 80, 0.07)) == Glicko(1500, 150, 0.07)
+    assert season_reset(Glicko(1500, 300, 0.05)).rd == 300

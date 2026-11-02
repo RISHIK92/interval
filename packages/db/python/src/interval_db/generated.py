@@ -769,6 +769,17 @@ class SchemaMeta(TypedDict):
     value: str
 
 
+class SeasonClose(TypedDict):
+    season: str
+    closed_at: datetime
+
+
+class SeasonStanding(TypedDict):
+    season: str
+    user_id: str
+    rating: float
+
+
 class Source(TypedDict):
     id: int
     name: str
