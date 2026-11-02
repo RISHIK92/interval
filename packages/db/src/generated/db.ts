@@ -370,6 +370,12 @@ export interface GameMatchPlayer {
   user_id: string;
 }
 
+export interface GameMatchQuestion {
+  match_id: string;
+  question_id: Int8;
+  round: number;
+}
+
 export interface GithubAccount {
   connected_at: Generated<Timestamp>;
   github_user_id: Int8;
@@ -1065,6 +1071,7 @@ export interface DB {
   follow: Follow;
   game_match: GameMatch;
   game_match_player: GameMatchPlayer;
+  game_match_question: GameMatchQuestion;
   github_account: GithubAccount;
   github_dependency: GithubDependency;
   github_dependency_technology: GithubDependencyTechnology;

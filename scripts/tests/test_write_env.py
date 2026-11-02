@@ -112,8 +112,11 @@ def test_writes_four_env_files_each_with_only_its_keys_and_mode_600(
     }
     assert parse(out / "postgres.env") == {"POSTGRES_PASSWORD": "pgSecret123"}
     assert parse(out / "caddy.env") == {"SITE_ADDRESS": ":80"}
-    # P3-W15-S02 (ADR-0033): the game server's, its one secret alone.
-    assert parse(out / "game.env") == {"GAME_TICKET_SECRET": "gameTicket222"}
+    # P3-W15-S02, S03 (ADR-0033): the game server's: its secret and where matches wait.
+    assert parse(out / "game.env") == {
+        "GAME_TICKET_SECRET": "gameTicket222",
+        "VALKEY_URL": "redis://valkey:6379",
+    }
     assert sorted(p.name for p in out.iterdir()) == [
         "app.env",
         "caddy.env",

@@ -91,7 +91,8 @@ export class AwsStack extends Stack {
     });
     appSg.addIngressRule(albSg, ec2.Port.tcp(3000));
     // The game server (ADR-0033) has its own group: the ALB reaches it on 8080, and it is
-    // not among the app tasks dataSg lets reach Postgres (Go never reads the database).
+    // not among the app tasks dataSg lets reach Postgres (Go never reads the database);
+    // it reaches Valkey only.
     const gameSg = new ec2.SecurityGroup(this, "GameSg", {
       vpc,
       description: "Game servers, reachable from the load balancer only",
@@ -104,6 +105,8 @@ export class AwsStack extends Stack {
     });
     dataSg.addIngressRule(appSg, ec2.Port.tcp(5432));
     dataSg.addIngressRule(appSg, ec2.Port.tcp(6379));
+    // P3-W15-S03 (Q-P3-22): the game server reads its matches from Valkey; never Postgres.
+    dataSg.addIngressRule(gameSg, ec2.Port.tcp(6379));
 
     const db = new rds.DatabaseInstance(this, "Db", {
       engine: rds.DatabaseInstanceEngine.postgres({
@@ -545,7 +548,8 @@ export class AwsStack extends Stack {
         path.join(REPO_ROOT, "services/game"),
         { platform: Platform.LINUX_ARM64 },
       ),
-      environment: { GAME_SERVER_ID: "0" },
+      // P3-W15-S03: each match waits in Valkey for its server (Q-P3-22).
+      environment: { GAME_SERVER_ID: "0", VALKEY_URL: environment.VALKEY_URL },
       secrets: {
         GAME_TICKET_SECRET: ecs.Secret.fromSecretsManager(gameTicket),
       },

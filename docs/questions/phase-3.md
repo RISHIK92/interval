@@ -108,7 +108,18 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 - Cite: ADR-0029 (guests play live; merged on sign-up), ADR-0033 (tickets carry the user id), MATCH-6 (a 10-second reconnect grace period).
 - Why it matters: since P3-W15-S02, merging a guest moves its match rows to the account. But the open socket and any ticket already issued carry the guest's id. Once the match actor tracks players by that id (S03), a player who signs up mid-match would come back as someone else, and if the account was in the same match, the two become one player.
+- **Answer (owner, 2026-11-02):** the suggested default. The match plays on under the guest's id, the result is written to the account when it finishes, and a reconnect after sign-up is the same player.
 - Suggested default: signing up mid-match is allowed. The match plays on under the guest's id, and its result is written to the account when it finishes (S05 maps the guest's id to the account). A reconnect after sign-up gets a ticket for the account, which the actor treats as the same player.
+
+### Q-P3-22 What a live 1v1 match plays (P0 for W15-S03)
+
+- Cite: §6.6 (live games), LOAD-2 (match actor), MATCH-4 (questions from shared concepts), MATCH-5 (server-side timing).
+- **Answer (owner, 2026-11-02):**
+  - 7 rounds of 15 seconds, the same question to both players;
+  - a right answer scores 100 plus up to 50 for speed, on the server's clock (MATCH-5);
+  - the highest total wins, and a tie goes to the lower total answer time;
+  - questions: the web app picks them when the match is made (multiple choice from the live bank) and hands the set to the owning game server through Valkey. Go never reads Postgres, and the client never gets the keys.
+
 ### Q-P3-12 Abandon penalties (P1)
 
 - Cite: MATCH-6 ("abandon penalties").

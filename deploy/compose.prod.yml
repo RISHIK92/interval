@@ -122,9 +122,12 @@ services:
   game:
     <<: *logging
     build: ../services/game
-    env_file: ${ENV_DIR:-/run/interval}/game.env  # the ticket secret only
+    env_file: ${ENV_DIR:-/run/interval}/game.env  # the ticket secret and VALKEY_URL
     environment:
       GAME_SERVER_ID: "0"
+    depends_on:
+      valkey:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "/game", "healthcheck"]
       interval: 10s

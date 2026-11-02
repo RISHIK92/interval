@@ -75,20 +75,29 @@ describe("database", () => {
     expect(db.DeletionPolicy).toBe("Snapshot");
   });
 
-  test("Postgres and Valkey accept connections only from the app security group", () => {
+  test("Postgres accepts the app tasks only; Valkey those and the game server", () => {
     const app = groupId("Web, jobs and migrate tasks");
+    // P3-W15-S03: the game server reads its matches from Valkey (Q-P3-22).
+    const game = groupId("Game servers, reachable from the load balancer only");
     const ingress = all("AWS::EC2::SecurityGroupIngress").map(
       ([, r]) => r.Properties,
     );
-    for (const port of [5432, 6379]) {
+    for (const [port, sources] of [
+      [5432, [app]],
+      [6379, [app, game]],
+    ] as const) {
       const rules = ingress.filter((p) => p["FromPort"] === port);
-      expect(rules.length).toBeGreaterThan(0);
-      for (const rule of rules) {
-        expect(rule["SourceSecurityGroupId"]).toEqual({
-          "Fn::GetAtt": [app, "GroupId"],
-        });
-        expect(rule["CidrIp"]).toBeUndefined();
-      }
+      expect(
+        rules
+          .map(
+            (r) =>
+              (r["SourceSecurityGroupId"] as { "Fn::GetAtt": string[] })[
+                "Fn::GetAtt"
+              ][0],
+          )
+          .sort(),
+      ).toEqual([...sources].sort());
+      for (const rule of rules) expect(rule["CidrIp"]).toBeUndefined();
     }
   });
 });
@@ -273,7 +282,13 @@ describe("game server (ADR-0033)", () => {
 
   test("one ARM64 task runs server 0 on port 8080, with the ticket secret only", () => {
     const game = container();
-    expect(game?.Environment).toEqual([{ Name: "GAME_SERVER_ID", Value: "0" }]);
+    expect(game?.Environment?.map((e) => e.Name).sort()).toEqual([
+      "GAME_SERVER_ID",
+      "VALKEY_URL",
+    ]);
+    expect(
+      game?.Environment?.find((e) => e.Name === "GAME_SERVER_ID")?.Value,
+    ).toBe("0");
     // P3-W15-S02: it checks match tickets; it reads nothing else, least of all the database.
     expect(
       (game?.Secrets as { Name: string }[] | undefined)?.map((s) => s.Name),
@@ -354,7 +369,7 @@ describe("game server (ADR-0033)", () => {
     });
   });
 
-  test("only the ALB reaches the game server, and it can't reach the data stores", () => {
+  test("only the ALB reaches the game server, which reaches Valkey but not Postgres", () => {
     const game = groupId("Game servers, reachable from the load balancer only");
     const ingress = all("AWS::EC2::SecurityGroupIngress").map(([, r]) =>
       JSON.stringify(r.Properties),
@@ -368,12 +383,14 @@ describe("game server (ADR-0033)", () => {
     expect(into[0]).toContain(
       groupId("Public load balancer behind CloudFront"),
     );
-    // Nothing lets the game group into Postgres or Valkey.
-    expect(
-      ingress.filter((r) =>
-        r.includes(`"SourceSecurityGroupId":{"Fn::GetAtt":["${game}"`),
-      ),
-    ).toEqual([]);
+    // P3-W15-S03: into Valkey (6379), where the web app leaves each match; never into
+    // Postgres.
+    const out = ingress.filter((r) =>
+      r.includes(`"SourceSecurityGroupId":{"Fn::GetAtt":["${game}"`),
+    );
+    expect(out).toHaveLength(1);
+    expect(out[0]).toContain('"FromPort":6379');
+    expect(out[0]).toContain('"ToPort":6379');
     expect(JSON.stringify(gameService()[1].Properties)).toContain(game);
   });
 });

@@ -106,6 +106,12 @@ def test_long_running_services_restart_and_report_health(
     assert svc.get("healthcheck", {}).get("test")
 
 
+def test_the_game_server_waits_for_valkey(config: dict[str, Any]) -> None:
+    # P3-W15-S03: matches wait for it in Valkey.
+    depends = services(config)["game"]["depends_on"]
+    assert depends["valkey"]["condition"] == "service_healthy"
+
+
 def test_web_waits_for_migrations_and_healthy_data_services(
     config: dict[str, Any],
 ) -> None:

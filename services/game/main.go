@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 const shutdownGrace = 10 * time.Second
@@ -43,16 +45,23 @@ func main() {
 // Serves until ctx ends, then lets requests in flight finish for up to shutdownGrace;
 // open match sockets are closed with "going away" (players reconnect, P3-W15-S04).
 func run(ctx context.Context, cfg config, logs io.Writer) error {
-	return runAt(ctx, cfg, logs, time.Now)
+	options, err := redis.ParseURL(cfg.valkeyURL)
+	if err != nil {
+		return fmt.Errorf("VALKEY_URL: %w", err)
+	}
+	client := redis.NewClient(options)
+	defer client.Close()
+	return runAt(ctx, cfg, logs, time.Now, redisStore{client})
 }
 
-// run on a given clock, which tickets are checked against.
-func runAt(ctx context.Context, cfg config, logs io.Writer, now func() time.Time) error {
+// run on a given clock, which tickets are checked against, and a given match store.
+func runAt(ctx context.Context, cfg config, logs io.Writer, now func() time.Time, store matchStore) error {
 	log := slog.New(slog.NewJSONHandler(logs, nil)).With("server", cfg.serverID)
 	sockets := newMatchSockets()
+	matches := newRegistry(store, realClock{}, log)
 	server := &http.Server{
 		Addr:              ":" + strconv.Itoa(cfg.port),
-		Handler:           newHandler(cfg, sockets, now),
+		Handler:           newHandler(cfg, sockets, matches, now),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
@@ -72,6 +81,7 @@ func runAt(ctx context.Context, cfg config, logs io.Writer, now func() time.Time
 	shutdown, cancel := context.WithTimeout(context.Background(), shutdownGrace)
 	defer cancel()
 	err = server.Shutdown(shutdown)
+	matches.stopAll()
 	// Shutdown doesn't wait for hijacked connections: the match sockets are closed here,
 	// before run returns, so players get "going away" rather than a dropped line.
 	sockets.closeAll()

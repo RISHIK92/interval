@@ -112,8 +112,9 @@ GAME_TICKET_SECRET=${game_ticket}
 ENV
 printf 'POSTGRES_PASSWORD=%s\n' "$postgres_password" > "$tmp/postgres.env"
 printf 'SITE_ADDRESS=%s\n' "$site_address" > "$tmp/caddy.env"
-# The game server gets its one secret and nothing else (it never reads the database).
-printf 'GAME_TICKET_SECRET=%s\n' "$game_ticket" > "$tmp/game.env"
+# The game server gets its one secret and where matches wait (Valkey), nothing else:
+# it never reads the database.
+printf 'GAME_TICKET_SECRET=%s\nVALKEY_URL=redis://valkey:6379\n' "$game_ticket" > "$tmp/game.env"
 
 # Rename into place only after all four are written.
 for f in app.env postgres.env caddy.env game.env; do

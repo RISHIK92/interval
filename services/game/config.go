@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // Every setting comes from env (ADR-0011); a value it can't use stops it at startup.
@@ -11,6 +13,7 @@ type config struct {
 	serverID     string // which numbered game server this is (ADR-0033)
 	port         int
 	ticketSecret []byte // shared with the web app, which signs match tickets
+	valkeyURL    string // where the web app leaves each match (Q-P3-22)
 }
 
 var serverIDPattern = regexp.MustCompile(`^[0-9]+$`)
@@ -25,6 +28,10 @@ func loadConfig(getenv func(string) string) (config, error) {
 		return config{}, fmt.Errorf("GAME_TICKET_SECRET must be at least 32 characters")
 	}
 	cfg.ticketSecret = []byte(secret)
+	cfg.valkeyURL = getenv("VALKEY_URL")
+	if _, err := redis.ParseURL(cfg.valkeyURL); err != nil {
+		return config{}, fmt.Errorf("VALKEY_URL must be a redis:// or rediss:// URL")
+	}
 	if raw := getenv("PORT"); raw != "" {
 		port, err := strconv.Atoi(raw)
 		if err != nil || port < 1 || port > 65535 {

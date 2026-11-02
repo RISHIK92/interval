@@ -61,7 +61,7 @@ func (s *matchSockets) closeAll() {
 	closing.Wait()
 }
 
-func newHandler(cfg config, sockets *matchSockets, now func() time.Time) http.Handler {
+func newHandler(cfg config, sockets *matchSockets, matches *registry, now func() time.Time) http.Handler {
 	used := newUsedNonces()
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
@@ -102,15 +102,79 @@ func newHandler(cfg config, sockets *matchSockets, now func() time.Time) http.Ha
 			return
 		}
 		defer sockets.remove(conn)
-		joined, _ := json.Marshal(map[string]string{"type": "joined", "match": ticket.M})
-		write, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-		err = conn.Write(write, websocket.MessageText, joined)
+		a, err := matches.get(r.Context(), ticket.M)
+		if errors.Is(err, errMatchOver) {
+			_ = conn.Close(websocket.StatusNormalClosure, "match over")
+			return
+		}
+		if err != nil {
+			// The web app makes the match before it issues tickets, so this is a fault.
+			matches.log.Error("game: match not loaded", "match", ticket.M, "error", err.Error())
+			_ = conn.Close(websocket.StatusInternalError, "match unavailable")
+			return
+		}
+		ctx, cancel := context.WithCancel(r.Context())
+		defer cancel()
+		player := newWSSeat(conn)
+		go safely(matches.log, "writer", func() { player.writeLoop(ctx) })
+		defer player.close("left")
+		player.send(map[string]string{"type": "joined", "match": ticket.M})
+		if !a.join(ticket.U, player) {
+			player.close("match over") // it ended as this player arrived
+			return
+		}
+		go safely(matches.log, "ping", func() {
+			measure(ctx, conn, func(rtt time.Duration) { a.rtt(ticket.U, rtt) })
+		})
+		readAnswers(ctx, conn, func(n, choice int) {
+			a.answerAt(ticket.U, n, choice, matches.clock.Now())
+		})
+	})
+	return mux
+}
+
+// MATCH-5: the round trip, by WebSocket ping, at once and then every 25 s (which also
+// keeps the socket open through the ALB and CloudFront, ADR-0033).
+const pingEvery = 25 * time.Second
+
+func measure(ctx context.Context, conn *websocket.Conn, report func(time.Duration)) {
+	for {
+		start := time.Now()
+		ping, cancel := context.WithTimeout(ctx, 10*time.Second)
+		err := conn.Ping(ping)
 		cancel()
+		if ctx.Err() != nil {
+			return
+		}
+		// A ping that times out (a stalled phone) is skipped, not the end of measuring.
+		if err == nil {
+			report(time.Since(start))
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(pingEvery):
+		}
+	}
+}
+
+// A player's answers: {"type":"answer","n":round,"choice":0-3}. Anything else, or
+// anything over 1 KB, is dropped or ends the socket; the actor checks the rest.
+func readAnswers(ctx context.Context, conn *websocket.Conn, answer func(n, choice int)) {
+	conn.SetReadLimit(1024)
+	for {
+		_, data, err := conn.Read(ctx)
 		if err != nil {
 			return
 		}
-		// Until the player leaves or the server stops; nothing is read yet.
-		<-conn.CloseRead(r.Context()).Done()
-	})
-	return mux
+		var msg struct {
+			Type   string `json:"type"`
+			N      *int   `json:"n"`
+			Choice *int   `json:"choice"`
+		}
+		if json.Unmarshal(data, &msg) != nil || msg.Type != "answer" || msg.N == nil || msg.Choice == nil {
+			continue
+		}
+		answer(*msg.N, *msg.Choice)
+	}
 }

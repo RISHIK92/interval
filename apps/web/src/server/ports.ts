@@ -676,10 +676,35 @@ export interface Leaderboards {
 
 // P3-W15-S02 (ADR-0033; owner, 2026-11-02): live matches and their players, accounts or
 // guests. Matchmaking (W16) creates them; until then `pnpm game:match` does.
+// P3-W15-S03 (Q-P3-22): a live match as its game server receives it, keys included;
+// they never reach a player before the round ends.
+export type LiveRound = {
+  question: string;
+  stem: string;
+  options: string[];
+  correct: number;
+};
+export type LiveMatch = {
+  id: string;
+  serverId: number;
+  players: string[];
+  rounds: LiveRound[];
+};
+export const LIVE_ROUNDS = 7; // owner, 2026-11-02
+
 export interface Matches {
+  // A new match of LIVE_ROUNDS live multiple-choice questions (the sprint's rights rule,
+  // ING-2); null when the bank has fewer than that.
+  create(serverId: number, players: string[]): Promise<LiveMatch | null>;
   // The game server that owns the match, when the player is in it; null otherwise (no
   // such match, or not theirs).
   serverFor(matchId: string, userId: string): Promise<number | null>;
+}
+
+// P3-W15-S03 (Q-P3-22): hands a match to its game server (game:match:<id> in Valkey),
+// which never reads Postgres (ADR-0033).
+export interface MatchHandoff {
+  put(match: LiveMatch): Promise<void>;
 }
 
 // P3-W14-S05 (§6.7, Q-P3-11; owner, 2026-11-02): every account's username, chosen once

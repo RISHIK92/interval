@@ -345,6 +345,12 @@ class GameMatchPlayer(TypedDict):
     user_id: str
 
 
+class GameMatchQuestion(TypedDict):
+    match_id: UUID
+    round: int
+    question_id: int
+
+
 class GithubAccount(TypedDict):
     user_id: str
     github_user_id: int

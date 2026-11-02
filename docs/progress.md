@@ -2784,3 +2784,44 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the local dev server on 3100 doesn't proxy `/game/*`, so locally a socket goes straight to the Go server's port.
 - **Also:** a 9 MB Go binary committed by mistake in S01 is now untracked and ignored. It stays in history, because removing it would need a force-push.
 - **Full check:** Go, web 1187, Python 1276 and infra 81, all pass.
+
+### 2026-11-02 — P3-W15-S03 (match actor and round engine; LOAD-2, MATCH-5, Q-P3-22)
+
+- **Owner (2026-11-02):**
+  - Q-P3-21: a guest who signs up mid-match plays on, and the result goes to the account;
+  - Q-P3-22: 7 rounds of 15 s; 100 plus up to 50 for speed; the highest total wins, and a tie goes to the lower total answer time; the web app picks the questions and hands them over through Valkey;
+  - `go-redis` v9 is approved. I used v9.22.0, because the latest needs Go 1.26 and the owner's local Go is 1.24.
+- **Web:**
+  - `Matches.create` picks 7 live multiple-choice questions under the sprint's rights rule (`LIVE`, now exported) and records `game_match_question` (new migration, with a `question_id` index);
+  - `MatchHandoff` (Valkey) writes `game:match:<id>` for an hour, with the question as a number for Go;
+  - `server/live.ts`, `startLiveMatch`: two different players, or it refuses; a failed handoff is logged and thrown;
+  - `pnpm game:match` now uses it, through `scripts/ts-resolve.mjs`, a Node `module.register` hook (standard library) that lets a script import `src/`. S02's copied SQL is gone.
+- **Go:**
+  - `scoring.go`: compensation (half the RTT, at most 150 ms), points and winner, with table tests;
+  - `match.go`: one actor per match, its state in one goroutine. It waits up to 60 s for both players (otherwise "cancelled"), then plays 7 rounds: the round goes out without its key, the first answer counts, a round ends early when both have answered, the reveal follows, then a 3 s pause, then the final.
+    - Answers are stamped when they arrive. Late ones are refused, and queued ones are handled before the reveal.
+    - `post` is guarded by a lock: an ended match takes nothing, and a join that raced the end is closed.
+  - `store.go`: the go-redis store, `parseMatch` validation (distinct players, a key in range), and a registry that won't replay an ended match for an hour;
+  - `seat.go`: a writer goroutine per player; a full queue drops that player; close codes are normal (over or cancelled), policy (not a player) or going away;
+  - RTT by WebSocket ping, at once and every 25 s (a stalled ping is skipped);
+  - answers limited to 1 KB and validated;
+  - `safely` recovers every connection goroutine, and the actor recovers its own.
+- **Deploy:**
+  - AWS: the game task gets `VALKEY_URL`, and dataSg allows 6379 from gameSg. Postgres is still closed to it, and the tests say so;
+  - VM: `game.env` gains `VALKEY_URL`, and `game` waits for a healthy Valkey.
+- **Checked end to end:** the dev script made a match, a real Go server played it, and two Node clients played all 7 rounds with no keys early and a normal close. A new ticket for the finished match got "match over".
+- **Reviewer, fixed:**
+  - the round-boundary race, where a late answer could still score and queue time counted;
+  - a dead actor handed out, and a finished match playable again;
+  - two flaky test waits;
+  - goroutines without recover;
+  - missing tests: late answer, slow seat, stop mid-match, ended match, `parseMatch`;
+  - the ping loop stopping after one timeout;
+  - duplicate players;
+  - close codes;
+  - the `question_id` index;
+  - the question file's order.
+- **Left for later:**
+  - a reconnect after sign-up as the account (Q-P3-21) is S04's: today the actor refuses the account's id;
+  - `reveal` and `final` carry user ids, and the match UI (W16) will show usernames.
+- **Full check:** Go (race), web 1197, Python 1277 and infra 81 (alone; the usual timeout in the full run), all pass.
