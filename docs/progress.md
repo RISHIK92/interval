@@ -2970,3 +2970,28 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - symmetric-only wait tests.
   - Accepted: `eval` resends the script text each call (EVALSHA through `defineCommand` would trim that); a candidate left out of its band costs nothing extra.
 - **Full check:** web 1217 and Python 1301 pass. Infra's synth hook timed out under load; it passes alone (61).
+
+### 2026-11-03 — P3-W16-S03 (question sets for two; MATCH-4, Q-3, Q-P3-15)
+
+- **`server/live-questions.ts` (pure):**
+  - `levelFor(average)`: under 1400 beginner, 1400–1700 intermediate, over 1700 advanced (owner).
+  - `pickRounds`, in tier order: questions testing a concept both players share, then a goal concept of either player, then any.
+  - Within a tier: the pair's level first, then the nearest level; a question with no difficulty counts as one level off, as the sprint counts it. Ties are broken by an injected `random`.
+- **`Matches.create`:**
+  - reads the live multiple-choice bank under `LIVE`;
+  - shared concepts are the intersection of each player's `concept_mastery` concepts (guests included), with retired concepts excluded;
+  - goal concepts come from `user_goal_concepts()`, as for the solo sprint;
+  - the average rating comes from `player_rating`, at 1500 when none;
+  - returns null when the bank can't make 7.
+  - shortcut: the whole live bank is read per match; narrow it in SQL past about 10,000 questions.
+- **Tests:**
+  - 11 unit tests: thresholds, tiers, the fallback, nearest-level filling, a thin bank, determinism;
+  - the Postgres contract: a retired distractor, goal filling, and a rating-based level.
+- **Reviewer, fixed:**
+  - goals read from topics instead of `user_goal_concepts` (blocker);
+  - retired concepts counted;
+  - a missing difficulty defaulted to intermediate;
+  - ratings indexed by position;
+  - a trivial Postgres test.
+- **Noted:** the tier rule now exists in the solo SQL and here in TS, aligned but in two places.
+- **Full check:** web 1229 pass. Infra's synth hook timed out under load; it passes alone (61). Python is unchanged.

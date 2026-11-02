@@ -151,6 +151,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 - Cite: MATCH-4.
 - **Answer (owner, 2026-10-31):** the suggested default: either player's goal concepts, then the general pool, at the average rating's difficulty.
+- **Follow-up (owner, 2026-11-03, W16-S03):** a player's concepts are those with mastery evidence (a concept_mastery row, guests included). The pair's average rating sets the level: under 1400 beginner, 1400–1700 intermediate, over 1700 advanced. When a level is thin, the nearest level fills the set. (Built as: "goal concepts" are `user_goal_concepts`, as for the solo sprint; retired concepts never count; a question with no difficulty counts as one level off.)
 - Suggested default: concepts of either player's goals, then the general pool, at the average rating's difficulty.
 
 ## Week 17

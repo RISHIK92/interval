@@ -171,6 +171,29 @@ test("Postgres picks seven different live questions and records them in order", 
         })
         .returning("id")
         .executeTakeFirstOrThrow();
+      // MATCH-4 (P3-W16-S03): both have evidence on one concept, which these test.
+      const { id: sharedConcept } = await trx
+        .insertInto("concept")
+        .values({
+          slug: `live-${randomUUID()}`,
+          name: "Shared",
+          topic: "databases",
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await trx
+        .insertInto("concept_mastery")
+        .values(
+          players.map((user_id) => ({
+            user_id,
+            concept_id: sharedConcept,
+            probability: 0.3,
+            state: "explored" as const,
+            evidence_count: 1,
+          })),
+        )
+        .execute();
+      const ours: string[] = [];
       for (let m = 0; m < 4; m += 1) {
         const moment = await trx
           .insertInto("moment")
@@ -199,7 +222,15 @@ test("Postgres picks seven different live questions and records them in order", 
               prompt_version: 1,
               content_hash: "h",
             })
-            .execute();
+            .returning("id")
+            .executeTakeFirstOrThrow()
+            .then(async ({ id }) => {
+              ours.push(id);
+              await trx
+                .insertInto("question_concept")
+                .values({ question_id: id, concept_id: sharedConcept })
+                .execute();
+            });
       }
       const matches = kyselyMatches(trx);
       const made = await matches.create(2, players);
@@ -210,6 +241,8 @@ test("Postgres picks seven different live questions and records them in order", 
       expect(new Set(made.rounds.map((r) => r.question)).size).toBe(
         LIVE_ROUNDS,
       );
+      // Of the whole local bank, the shared concept's questions come first.
+      for (const r of made.rounds) expect(ours).toContain(r.question);
       for (const r of made.rounds) {
         expect(r.options).toHaveLength(4);
         expect(r.correct).toBeGreaterThanOrEqual(0);
@@ -228,6 +261,174 @@ test("Postgres picks seven different live questions and records them in order", 
         serverId: 2,
         playedAs: players[1],
       });
+      throw new Rollback();
+    }),
+  ).rejects.toBeInstanceOf(Rollback);
+});
+
+// P3-W16-S03 (MATCH-4, Q-P3-15) on Postgres: a retired concept both know isn't shared;
+// a goal concept (user_goal_concepts) fills in; two players rated over 1700 play
+// advanced questions first.
+test("Postgres: retired concepts never count, goal concepts fill, the pair's level first", async () => {
+  await expect(
+    db.transaction().execute(async (trx: Transaction<DB>) => {
+      const code = await trx
+        .insertInto("invite_code")
+        .values({
+          code: `MATCH${randomUUID().slice(0, 8).toUpperCase()}`,
+          beta_group: "developer",
+          max_uses: 10,
+          expires_at: sql<Date>`now() + interval '1 day'`,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const players = [0, 1].map(() => `match-${randomUUID()}`);
+      await trx
+        .insertInto("app_user")
+        .values(
+          players.map((id) => ({
+            id,
+            name: "Ada",
+            email: `${id}@match.example.test`,
+            beta_group: "developer" as const,
+            invite_code_id: code.id,
+          })),
+        )
+        .execute();
+      const concept = async (retired: boolean) => {
+        const slug = `tier-${randomUUID()}`;
+        const { id } = await trx
+          .insertInto("concept")
+          .values({
+            slug,
+            name: slug,
+            topic: "databases",
+            retired_at: retired ? sql<Date>`now()` : null,
+          })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        return { id, slug };
+      };
+      const retired = await concept(true);
+      const goal = await concept(false);
+      // Both "know" the retired concept: it must not make its questions shared.
+      await trx
+        .insertInto("concept_mastery")
+        .values(
+          players.map((user_id) => ({
+            user_id,
+            concept_id: retired.id,
+            probability: 0.3,
+            state: "explored" as const,
+            evidence_count: 1,
+          })),
+        )
+        .execute();
+      // One player's goal (stay-sharp) leads to the goal concept.
+      await trx
+        .insertInto("goal_concept")
+        .values({ goal: "stay-sharp", concept_slug: goal.slug })
+        .execute();
+      await trx
+        .insertInto("user_preferences")
+        .values({
+          user_id: players[0] ?? "",
+          topics: ["databases"],
+          level: "intermediate",
+          break_length: "3-8",
+          goals: ["stay-sharp"],
+        })
+        .execute();
+      // Both rated over 1700: advanced.
+      await trx
+        .insertInto("player_rating")
+        .values(
+          players.map((user_id) => ({
+            user_id,
+            rating: 1800,
+            rd: 80,
+            volatility: 0.06,
+            games: 9,
+          })),
+        )
+        .execute();
+      const source = await trx
+        .insertInto("source")
+        .values({
+          name: `tier-${randomUUID()}`,
+          feed_url: `https://tier.example.test/${randomUUID()}.xml`,
+          rights_profile: "full_text_internal",
+          moments_seeded: true,
+          moments_enabled: true,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const item = await trx
+        .insertInto("content_item")
+        .values({
+          source_id: source.id,
+          guid: randomUUID(),
+          canonical_url: `https://tier.example.test/${randomUUID()}`,
+          title: "Tiers",
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      let n = 0;
+      const question = async (
+        conceptId: string,
+        difficulty: "intermediate" | "advanced",
+      ) => {
+        n += 1;
+        const moment = await trx
+          .insertInto("moment")
+          .values({
+            content_item_id: item.id,
+            ordinal: n,
+            title: `M${String(n)}`,
+            estimated_minutes: 3,
+            link: `https://tier.example.test/post#m${String(n)}`,
+            link_type: "anchor",
+          })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        const { id } = await trx
+          .insertInto("question")
+          .values({
+            moment_id: moment.id,
+            ordinal: 0,
+            stem: `Q${String(n)}?`,
+            options: ["right", "w1", "w2", "w3"],
+            correct: 0,
+            citation: "a b c",
+            status: "live",
+            difficulty,
+            generator_model: "m",
+            prompt_version: 1,
+            content_hash: "h",
+          })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        await trx
+          .insertInto("question_concept")
+          .values({ question_id: id, concept_id: conceptId })
+          .execute();
+        return id;
+      };
+      const advancedGoal: string[] = [];
+      for (let i = 0; i < 7; i += 1)
+        advancedGoal.push(await question(goal.id, "advanced"));
+      const intermediateGoal: string[] = [];
+      for (let i = 0; i < 3; i += 1)
+        intermediateGoal.push(await question(goal.id, "intermediate"));
+      const onRetired: string[] = [];
+      for (let i = 0; i < 3; i += 1)
+        onRetired.push(await question(retired.id, "advanced"));
+
+      const made = await kyselyMatches(trx).create(0, players);
+      if (made === null) throw new Error("no match");
+      const picked = made.rounds.map((r) => r.question).sort();
+      // The goal tier, at the pair's level, beats the retired "shared" questions.
+      expect(picked).toEqual([...advancedGoal].sort());
       throw new Rollback();
     }),
   ).rejects.toBeInstanceOf(Rollback);
