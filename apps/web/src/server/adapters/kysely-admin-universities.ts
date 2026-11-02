@@ -51,7 +51,7 @@ export function kyselyAdminUniversities(db: Kysely<DB>): AdminUniversities {
 
     merge: (id, intoId) =>
       inTransaction(async (trx) => {
-        if (id === intoId) return false;
+        if (id === intoId) return null;
         const into = await trx
           .selectFrom("university")
           .select("id")
@@ -60,7 +60,7 @@ export function kyselyAdminUniversities(db: Kysely<DB>): AdminUniversities {
           // players moved onto it.
           .forKeyShare()
           .executeTakeFirst();
-        if (into === undefined) return false;
+        if (into === undefined) return null;
         const moved = await trx
           .selectFrom("university")
           .select("id")
@@ -68,27 +68,34 @@ export function kyselyAdminUniversities(db: Kysely<DB>): AdminUniversities {
           .where("listed", "=", false)
           .forUpdate()
           .executeTakeFirst();
-        if (moved === undefined) return false;
-        await trx
+        if (moved === undefined) return null;
+        const players = await trx
           .updateTable("player_university")
           .set({ university_id: intoId })
           .where("university_id", "=", id)
+          .returning("user_id")
           .execute();
-        const gone = await trx
-          .deleteFrom("university")
-          .where("id", "=", id)
-          .where("listed", "=", false)
-          .returning("id")
-          .executeTakeFirst();
-        return gone !== undefined;
+        await trx.deleteFrom("university").where("id", "=", id).execute();
+        return players.map((p) => p.user_id);
       }),
 
-    remove: async (id) =>
-      (await db
-        .deleteFrom("university")
-        .where("id", "=", id)
-        .where("listed", "=", false)
-        .executeTakeFirst()
-        .then((r) => r.numDeletedRows)) === 1n,
+    remove: (id) =>
+      inTransaction(async (trx) => {
+        const row = await trx
+          .selectFrom("university")
+          .select("id")
+          .where("id", "=", id)
+          .where("listed", "=", false)
+          .forUpdate()
+          .executeTakeFirst();
+        if (row === undefined) return null;
+        const players = await trx
+          .selectFrom("player_university")
+          .select("user_id")
+          .where("university_id", "=", id)
+          .execute();
+        await trx.deleteFrom("university").where("id", "=", id).execute();
+        return players.map((p) => p.user_id);
+      }),
   };
 }

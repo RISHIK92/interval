@@ -472,7 +472,9 @@ describe("university", () => {
     const html = await page({ saved: "university" });
     expect(html).toContain("Indian Institute of Technology Delhi");
     expect(html).toContain("Remove university");
-    expect(html).toContain("University saved.");
+    expect(html).toContain(
+      "University saved. University boards update in a moment.",
+    );
   });
 
   test("inside the month: no search or typing, the day it opens, Remove still there", async () => {

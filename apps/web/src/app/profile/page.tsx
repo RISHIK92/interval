@@ -50,7 +50,7 @@ const NOTICES: Record<string, string> = {
   "github-refresh": "Reading your repositories again; this takes a minute.",
   country: "Country saved. Country boards update in a moment.",
   "country-removed": "Country removed.",
-  university: "University saved.",
+  university: "University saved. University boards update in a moment.",
   "university-removed": "University removed.",
   "github-off":
     "GitHub disconnected; what Interval read from it is deleted. Uninstall Interval on GitHub to revoke its access.",

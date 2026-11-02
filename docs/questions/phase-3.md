@@ -87,12 +87,14 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 - Cite: ADR-0006 C-17 (average rating of verified members).
 - **Answer (owner, 2026-10-31):** average of members' challenge scores until ratings exist, then average rating; no minimum number of members.
+- **Follow-up (owner, 2026-11-02):** every board ranks universities (daily, weekly sprint, weekly estimation), each by the average over the members with a score on that board (who played that day or week).
 - Suggested default: until Week 16, the average of members' challenge scores; afterwards the average rating; a university needs at least 3 verified members to be ranked.
 
 ### Q-P3-11 What a friend is (P1)
 
 - **Answer (owner, 2026-10-31):** one-way follow by username, no accept step. Needs public usernames and a people search, which don't exist yet (open: username rules, and whether a player can hide from search).
 - **Follow-up (owner, 2026-11-02):** usernames are unique, 3–20 characters of a–z, 0–9 and underscore, chosen on Profile; players appear in people search unless they turn it off (following by exact username still works).
+- **Follow-up 2 (owner, 2026-11-02):** a username is required for every account (asked once); it can never be changed; a player sees the full list of who follows them.
 - Suggested default: mutual; added by an invite link; no search for people; friends see each other's board rank only.
 
 ## Week 15

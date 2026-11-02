@@ -2,7 +2,12 @@ import type { DB } from "@interval/db";
 import type { Redis } from "ioredis";
 import { type Kysely, sql } from "kysely";
 import { log } from "../log";
-import type { Leaderboards, Standing } from "../ports";
+import type {
+  BoardScope,
+  Leaderboards,
+  Standing,
+  UniversityStanding,
+} from "../ports";
 
 // P3-W14-S01 (CACHE-3): boards are Valkey sorted sets of player totals; board_score in
 // Postgres is the truth. A board missing from Valkey (never read, expired, evicted,
@@ -22,8 +27,10 @@ const BOARD = sql<string | null>`case
     || to_char(a.started_at at time zone 'utc', 'IYYY-"W"IW')
 end`;
 
-// Sorted highest first; equal totals share a rank, 1 + the players strictly ahead.
-function ranked(entries: { userId: string; score: number }[]): Standing[] {
+// Sorted highest first; equal scores share a rank, 1 + the entries strictly ahead.
+function ranked<T extends { score: number }>(
+  entries: T[],
+): (T & { rank: number })[] {
   let rank = 0;
   return entries.map((entry, index) => {
     if (index === 0 || entry.score !== entries[index - 1]?.score)
@@ -33,41 +40,80 @@ function ranked(entries: { userId: string; score: number }[]): Standing[] {
 }
 
 // Within a tie, as Valkey's ZREVRANGE orders members: by id, descending.
-const byScore = (
-  x: { userId: string; score: number },
-  y: { userId: string; score: number },
-) => y.score - x.score || (y.userId < x.userId ? -1 : 1);
+const byScore =
+  <T extends { score: number }>(id: (entry: T) => string) =>
+  (x: T, y: T) =>
+    y.score - x.score || (id(y) < id(x) ? -1 : 1);
+
+// Valkey's flat [member, score, ...] reply.
+function pairs(flat: string[]): { member: string; score: number }[] {
+  const out: { member: string; score: number }[] = [];
+  for (let i = 0; i + 1 < flat.length; i += 2)
+    out.push({ member: flat[i] ?? "", score: Number(flat[i + 1]) });
+  return out;
+}
 
 export function valkeyLeaderboards(
   db: Kysely<DB>,
   redis: Redis,
   prefix = "board:",
 ): Leaderboards {
-  // P3-W14-S02: a country's board is "<board>@<country>".
-  const name = (board: string, country?: string) =>
-    country === undefined ? board : `${board}@${country}`;
-  const key = (board: string, country?: string) =>
-    `${prefix}${name(board, country)}`;
-  const marker = (board: string, country?: string) =>
-    `${prefix}built:${name(board, country)}`;
+  // P3-W14-S02: a country's board is "<board>@<country>"; P3-W14-S04: a university's
+  // "<board>#<id>", and the universities ranked on a board "<board>/universities".
+  const name = (board: string, scope?: BoardScope) =>
+    scope === undefined
+      ? board
+      : "country" in scope
+        ? `${board}@${scope.country}`
+        : `${board}#${scope.university}`;
+  const ranking = (board: string) => `${board}/universities`;
+  const key = (n: string) => `${prefix}${n}`;
+  const marker = (n: string) => `${prefix}built:${n}`;
 
-  // The players' totals on a board; on a country's, only those whose country it is now.
+  // The players' totals on a board; on a country's or university's, only the players
+  // in it now.
   const totals = (
     board: string,
-    only: { userId?: string; country?: string | undefined } = {},
+    only: { userId?: string; scope?: BoardScope | undefined },
   ) =>
-    sql<{ user_id: string; score: number }>`
-      select a.user_id, sum(s.score)::int as score
+    sql<{ member: string; score: number }>`
+      select a.user_id as member, sum(s.score)::int as score
       from board_score s join quiz_attempt a on a.id = s.attempt_id
       where s.board = ${board}
         and ${only.userId === undefined ? sql`true` : sql`a.user_id = ${only.userId}`}
         and ${
-          only.country === undefined
+          only.scope === undefined
             ? sql`true`
-            : sql`exists (select 1 from player_country c
-                  where c.user_id = a.user_id and c.country = ${only.country})`
+            : "country" in only.scope
+              ? sql`exists (select 1 from player_country c
+                  where c.user_id = a.user_id and c.country = ${only.scope.country})`
+              : sql`exists (select 1 from player_university u
+                  where u.user_id = a.user_id
+                    and u.university_id = ${only.scope.university})`
         }
       group by a.user_id
+    `.execute(db);
+
+  // Q-P3-10 (owner, 2026-11-02): each university's average total over its players with
+  // a score on the board; one university's when given.
+  const averages = (board: string, universityId?: string) =>
+    sql<{ member: string; score: number }>`
+      select u.university_id::text as member, avg(t.score)::float8 as score
+      from (
+        select a.user_id, sum(s.score) as score
+        from board_score s join quiz_attempt a on a.id = s.attempt_id
+        where s.board = ${board}
+          -- Inside, so one university's average doesn't sum the whole board.
+          and ${
+            universityId === undefined
+              ? sql`true`
+              : sql`a.user_id in (select user_id from player_university
+                  where university_id = ${universityId})`
+          }
+        group by a.user_id
+      ) t join player_university u on u.user_id = t.user_id
+      where u.university_id is not null
+      group by u.university_id
     `.execute(db);
 
   // ioredis reports a command's own failure in its reply, not as a rejection.
@@ -79,27 +125,54 @@ export function valkeyLeaderboards(
   // A game recorded between the select and the write is overwritten with the older
   // total until the marker lapses (BUILT_SECONDS). An empty board has no key, so it is
   // worked out at each read: one query that finds nothing.
-  // shortcut: one ZADD of every player, fine to some tens of thousands; batch beyond.
-  const ensure = async (board: string, country?: string): Promise<void> => {
-    const [k, m] = [key(board, country), marker(board, country)];
+  // shortcut: one ZADD of every member, fine to some tens of thousands; batch beyond.
+  const ensure = async (
+    n: string,
+    build: () => Promise<{ rows: { member: string; score: number }[] }>,
+  ): Promise<void> => {
+    const [k, m] = [key(n), marker(n)];
     if ((await redis.exists(m, k)) === 2) return;
-    const { rows } = await totals(board, { country });
+    const { rows } = await build();
     const multi = redis.multi().del(k);
     if (rows.length > 0)
       multi
-        .zadd(k, ...rows.flatMap((r) => [r.score, r.user_id]))
+        .zadd(k, ...rows.flatMap((r) => [r.score, r.member]))
         .expire(k, TTL_SECONDS);
     await exec(multi.set(m, "1", "EX", BUILT_SECONDS));
   };
+  const ensureBoard = (board: string, scope?: BoardScope) =>
+    ensure(name(board, scope), () => totals(board, { scope }));
+  const ensureRanking = (board: string) =>
+    ensure(ranking(board), () => averages(board));
 
-  const countryOf = async (userId: string): Promise<string | undefined> =>
-    (
-      await db
-        .selectFrom("player_country")
-        .select("country")
-        .where("user_id", "=", userId)
-        .executeTakeFirst()
-    )?.country ?? undefined;
+  // ZREVRANGE's stop of -1 would be the whole set.
+  const highest = async (n: string, limit: number) =>
+    limit < 1
+      ? []
+      : pairs(await redis.zrevrange(key(n), 0, limit - 1, "WITHSCORES"));
+  const place = async (n: string, member: string) => {
+    const score = await redis.zscore(key(n), member);
+    if (score === null) return null;
+    const ahead = await redis.zcount(key(n), `(${score}`, "+inf");
+    return { score: Number(score), rank: ahead + 1 };
+  };
+
+  // The player's scopes now.
+  const scopesOf = async (userId: string): Promise<BoardScope[]> => {
+    const row = await db
+      .selectFrom("app_user as p")
+      .leftJoin("player_country as c", "c.user_id", "p.id")
+      .leftJoin("player_university as u", "u.user_id", "p.id")
+      .select(["c.country", "u.university_id"])
+      .where("p.id", "=", userId)
+      .executeTakeFirst();
+    return [
+      ...(row?.country == null ? [] : [{ country: row.country }]),
+      ...(row?.university_id == null
+        ? []
+        : [{ university: row.university_id }]),
+    ];
+  };
 
   return {
     record: async (userId, attemptId, score) => {
@@ -119,62 +192,74 @@ export function valkeyLeaderboards(
         .where("a.user_id", "=", userId)
         .executeTakeFirst();
       if (row === undefined) return;
-      const total = (await totals(row.board, { userId })).rows[0]?.score ?? 0;
-      const country = await countryOf(userId);
+      const board = row.board;
+      const total = (await totals(board, { userId })).rows[0]?.score ?? 0;
+      const scopes = await scopesOf(userId);
+      const university = scopes.find((s) => "university" in s);
+      const average =
+        university === undefined
+          ? undefined
+          : (await averages(board, university.university)).rows[0];
       try {
         // GT: a total only grows, so a stale one written late never wins.
-        const multi = redis
-          .multi()
-          .zadd(key(row.board), "GT", total, userId)
-          .expire(key(row.board), TTL_SECONDS);
-        if (country !== undefined)
+        const multi = redis.multi();
+        for (const scope of [undefined, ...scopes])
           multi
-            .zadd(key(row.board, country), "GT", total, userId)
-            .expire(key(row.board, country), TTL_SECONDS);
+            .zadd(key(name(board, scope)), "GT", total, userId)
+            .expire(key(name(board, scope)), TTL_SECONDS);
+        // An average can fall (a new player joins), so no GT: one written late is
+        // wrong until the ranking's marker lapses.
+        if (average !== undefined)
+          multi
+            .zadd(key(ranking(board)), average.score, average.member)
+            .expire(key(ranking(board)), TTL_SECONDS);
         await exec(multi);
       } catch (error) {
         // LOAD-5: the game is kept in Postgres, and the board rebuilds with it once
         // its marker lapses (a metric in the AWS stack counts these).
-        log.error("boards: write failed", {
-          board: row.board,
-          error,
-        });
+        log.error("boards: write failed", { board, error });
       }
     },
 
-    top: async (board, limit, country) => {
-      await ensure(board, country);
-      const flat = await redis.zrevrange(
-        key(board, country),
-        0,
-        limit - 1,
-        "WITHSCORES",
+    top: async (board, limit, scope) => {
+      await ensureBoard(board, scope);
+      return ranked(
+        (await highest(name(board, scope), limit)).map((p) => ({
+          userId: p.member,
+          score: p.score,
+        })),
       );
-      const entries: { userId: string; score: number }[] = [];
-      for (let i = 0; i + 1 < flat.length; i += 2)
-        entries.push({ userId: flat[i] ?? "", score: Number(flat[i + 1]) });
-      return ranked(entries);
     },
 
-    standing: async (board, userId, country) => {
-      await ensure(board, country);
-      const k = key(board, country);
-      const score = await redis.zscore(k, userId);
-      if (score === null) return null;
-      const ahead = await redis.zcount(k, `(${score}`, "+inf");
-      return { userId, score: Number(score), rank: ahead + 1 };
+    standing: async (board, userId, scope) => {
+      await ensureBoard(board, scope);
+      const found = await place(name(board, scope), userId);
+      return found === null ? null : { userId, ...found };
     },
 
-    // Never throws: it follows a sign-in that has already succeeded. If it fails, the
-    // boards show the guest apart until their markers lapse (BUILT_SECONDS).
-    invalidate: async (userId, formerCountry) => {
+    universities: async (board, limit) => {
+      await ensureRanking(board);
+      return ranked(
+        (await highest(ranking(board), limit)).map((p) => ({
+          universityId: p.member,
+          score: p.score,
+        })),
+      );
+    },
+
+    universityStanding: async (board, universityId) => {
+      await ensureRanking(board);
+      const found = await place(ranking(board), universityId);
+      return found === null ? null : { universityId, ...found };
+    },
+
+    // Never throws: it follows a change that has already succeeded. If it fails, the
+    // boards show the player where they were until their markers lapse (BUILT_SECONDS).
+    invalidate: async (userId, former = []) => {
       try {
-        // Its global boards, and those of its country now and the one it was.
-        const scopes = [
-          undefined,
-          await countryOf(userId),
-          formerCountry ?? undefined,
-        ];
+        // Its global boards, those of its scopes now and before, and the rankings of
+        // the universities whose averages it counts in.
+        const scopes = [undefined, ...(await scopesOf(userId)), ...former];
         const boards = await db
           .selectFrom("board_score as s")
           .innerJoin("quiz_attempt as a", "a.id", "s.attempt_id")
@@ -182,12 +267,12 @@ export function valkeyLeaderboards(
           .distinct()
           .where("a.user_id", "=", userId)
           .execute();
-        if (boards.length > 0)
-          await redis.del(
-            ...boards.flatMap((b) =>
-              scopes.flatMap((c) => [marker(b.board, c), key(b.board, c)]),
-            ),
-          );
+        const names = boards.flatMap((b) => [
+          ranking(b.board),
+          ...scopes.map((scope) => name(b.board, scope)),
+        ]);
+        if (names.length > 0)
+          await redis.del(...names.flatMap((n) => [marker(n), key(n)]));
       } catch (error) {
         log.error("boards: invalidation failed", { userId, error });
       }
@@ -195,27 +280,55 @@ export function valkeyLeaderboards(
   };
 }
 
-// The in-memory fake (ADR-0012): each attempt's player and board are given.
+// The in-memory fake (ADR-0012): each attempt's player and board are given, and each
+// player's country and university.
 export function memoryLeaderboards(
   games: Map<
     string,
     { userId: string; board: string | null; finished: boolean }
   >,
   countries: Map<string, string> = new Map(),
+  universities: Map<string, string> = new Map(),
 ): Leaderboards {
   const scores = new Map<string, number>();
-  const board = (name: string, country?: string) => {
-    const sums = new Map<string, number>();
+  const inScope = (userId: string, scope?: BoardScope) =>
+    scope === undefined ||
+    ("country" in scope
+      ? countries.get(userId) === scope.country
+      : universities.get(userId) === scope.university);
+  const sums = (name: string) => {
+    const out = new Map<string, number>();
     for (const [attemptId, score] of scores) {
       const game = games.get(attemptId);
-      if (
-        game?.board === name &&
-        (country === undefined || countries.get(game.userId) === country)
-      )
-        sums.set(game.userId, (sums.get(game.userId) ?? 0) + score);
+      if (game?.board === name)
+        out.set(game.userId, (out.get(game.userId) ?? 0) + score);
+    }
+    return out;
+  };
+  const board = (name: string, scope?: BoardScope): Standing[] =>
+    ranked(
+      [...sums(name)]
+        .filter(([userId]) => inScope(userId, scope))
+        .map(([userId, score]) => ({ userId, score }))
+        .sort(byScore((s) => s.userId)),
+    );
+  const ranking = (name: string): UniversityStanding[] => {
+    const members = new Map<string, number[]>();
+    for (const [userId, total] of sums(name)) {
+      const universityId = universities.get(userId);
+      if (universityId !== undefined)
+        members.set(universityId, [
+          ...(members.get(universityId) ?? []),
+          total,
+        ]);
     }
     return ranked(
-      [...sums].map(([userId, score]) => ({ userId, score })).sort(byScore),
+      [...members]
+        .map(([universityId, totals]) => ({
+          universityId,
+          score: totals.reduce((x, y) => x + y, 0) / totals.length,
+        }))
+        .sort(byScore((s) => s.universityId)),
     );
   };
   return {
@@ -230,11 +343,17 @@ export function memoryLeaderboards(
         scores.set(attemptId, score);
       return Promise.resolve();
     },
-    top: (name, limit, country) =>
-      Promise.resolve(board(name, country).slice(0, limit)),
-    standing: (name, userId, country) =>
+    top: (name, limit, scope) =>
+      Promise.resolve(board(name, scope).slice(0, limit)),
+    standing: (name, userId, scope) =>
       Promise.resolve(
-        board(name, country).find((s) => s.userId === userId) ?? null,
+        board(name, scope).find((s) => s.userId === userId) ?? null,
+      ),
+    universities: (name, limit) =>
+      Promise.resolve(ranking(name).slice(0, limit)),
+    universityStanding: (name, universityId) =>
+      Promise.resolve(
+        ranking(name).find((s) => s.universityId === universityId) ?? null,
       ),
     invalidate: () => Promise.resolve(),
   };

@@ -98,11 +98,11 @@ test("typed universities are listed, renamed, merged and removed; listed ones ar
 
       // Listed rows come from the seed: none of these touch them.
       expect(await admin.rename(listed, "Anything")).toBe("missing");
-      expect(await admin.merge(listed, big)).toBe(false);
-      expect(await admin.remove(listed)).toBe(false);
+      expect(await admin.merge(listed, big)).toBeNull();
+      expect(await admin.remove(listed)).toBeNull();
       // Into itself, or into nothing.
-      expect(await admin.merge(big, big)).toBe(false);
-      expect(await admin.merge(big, "999999999999")).toBe(false);
+      expect(await admin.merge(big, big)).toBeNull();
+      expect(await admin.merge(big, "999999999999")).toBeNull();
 
       expect(await admin.rename(small, `${token} Smaller`)).toBe("renamed");
       expect(await admin.rename(small, `${token} big`)).toBe("taken");
@@ -119,16 +119,16 @@ test("typed universities are listed, renamed, merged and removed; listed ones ar
       ).toBe(`${token} Smaller`);
 
       // Merged: its players move with their clocks; the typed row is gone.
-      expect(await admin.merge(big, listed)).toBe(true);
+      expect((await admin.merge(big, listed))?.sort()).toEqual([a, b].sort());
       for (const user of [a, b])
         expect(await membership(trx, user)).toEqual({
           university_id: listed,
           clockKept: true,
         });
-      expect(await admin.merge(big, listed)).toBe(false);
+      expect(await admin.merge(big, listed)).toBeNull();
 
       // Removed: its player has none, the clock kept.
-      expect(await admin.remove(small)).toBe(true);
+      expect(await admin.remove(small)).toEqual([c]);
       expect(await membership(trx, c)).toEqual({
         university_id: null,
         clockKept: true,

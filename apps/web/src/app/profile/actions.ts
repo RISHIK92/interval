@@ -77,7 +77,10 @@ export async function setCountryAction(form: FormData): Promise<void> {
   if (!COUNTRY_CODES.has(country)) redirect("/profile");
   const result = await playerCountries().set(found.userId, country);
   if (!result.ok) redirect("/profile?country=soon");
-  await leaderboards().invalidate(found.userId, result.previous);
+  await leaderboards().invalidate(
+    found.userId,
+    result.previous === null ? [] : [{ country: result.previous }],
+  );
   if (result.previous !== country)
     events().emit("country_changed", { action: "set" }, await context(found));
   redirect("/profile?saved=country");
@@ -87,7 +90,10 @@ export async function setCountryAction(form: FormData): Promise<void> {
 export async function removeCountryAction(): Promise<void> {
   const found = await account();
   const previous = await playerCountries().remove(found.userId);
-  await leaderboards().invalidate(found.userId, previous);
+  await leaderboards().invalidate(
+    found.userId,
+    previous === null ? [] : [{ country: previous }],
+  );
   if (previous !== null)
     events().emit(
       "country_changed",
@@ -107,12 +113,18 @@ async function universityChanged(
     redirect(
       result.reason === "soon" ? "/profile?university=soon" : "/profile",
     );
-  if (result.previous?.id !== result.university.id)
+  if (result.previous?.id !== result.university.id) {
+    // P3-W14-S04: its boards, and the averages of both universities.
+    await leaderboards().invalidate(
+      found.userId,
+      result.previous === null ? [] : [{ university: result.previous.id }],
+    );
     events().emit(
       "university_changed",
       { action: "set", listed: result.university.listed },
       await context(found),
     );
+  }
   redirect("/profile?saved=university");
 }
 
@@ -140,12 +152,16 @@ export async function typeUniversityAction(form: FormData): Promise<void> {
 export async function removeUniversityAction(): Promise<void> {
   const found = await account();
   const previous = await playerUniversities().remove(found.userId);
-  if (previous !== null)
+  if (previous !== null) {
+    await leaderboards().invalidate(found.userId, [
+      { university: previous.id },
+    ]);
     events().emit(
       "university_changed",
       { action: "removed", listed: previous.listed },
       await context(found),
     );
+  }
   redirect("/profile?saved=university-removed");
 }
 

@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import type {
   Actor,
   AdminUniversities,
+  Leaderboards,
   PlayerUniversities,
 } from "../../../server/ports";
 
@@ -13,14 +14,20 @@ const typed = vi.fn<AdminUniversities["typed"]>(() => Promise.resolve([]));
 const rename = vi.fn<AdminUniversities["rename"]>(() =>
   Promise.resolve("renamed" as const),
 );
-const merge = vi.fn<AdminUniversities["merge"]>(() => Promise.resolve(true));
-const remove = vi.fn<AdminUniversities["remove"]>(() => Promise.resolve(true));
+const merge = vi.fn<AdminUniversities["merge"]>(() =>
+  Promise.resolve(["p1", "p2"]),
+);
+const remove = vi.fn<AdminUniversities["remove"]>(() =>
+  Promise.resolve(["p3"]),
+);
+const invalidate = vi.fn<Leaderboards["invalidate"]>(() => Promise.resolve());
 const search = vi.fn<PlayerUniversities["search"]>(() => Promise.resolve([]));
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
   adminUniversities: () => ({ typed, rename, merge, remove }),
   playerUniversities: () => ({ search }),
+  leaderboards: () => ({ invalidate }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -117,7 +124,12 @@ test("the actions check access and ids, and say what went wrong", async () => {
     tidyUniversityAction(form({ universityId: "9", op: "merge", intoId: "7" })),
   ).rejects.toThrow("redirect:/admin/universities?saved=1");
   expect(merge).toHaveBeenCalledWith("9", "7");
-  merge.mockResolvedValueOnce(false);
+  // P3-W14-S04: each moved player's boards, with the university they left.
+  expect(invalidate.mock.calls).toEqual([
+    ["p1", [{ university: "9" }]],
+    ["p2", [{ university: "9" }]],
+  ]);
+  merge.mockResolvedValueOnce(null);
   await expect(
     tidyUniversityAction(form({ universityId: "9", op: "merge", intoId: "8" })),
   ).rejects.toThrow("redirect:/admin/universities?error=merge");
@@ -129,7 +141,9 @@ test("the actions check access and ids, and say what went wrong", async () => {
     tidyUniversityAction(form({ universityId: "9", op: "remove" })),
   ).rejects.toThrow("redirect:/admin/universities?saved=1");
   expect(remove).toHaveBeenCalledWith("9");
-  remove.mockResolvedValueOnce(false);
+  expect(invalidate).toHaveBeenLastCalledWith("p3", [{ university: "9" }]);
+  expect(invalidate).toHaveBeenCalledTimes(3);
+  remove.mockResolvedValueOnce(null);
   await expect(
     tidyUniversityAction(form({ universityId: "9", op: "remove" })),
   ).rejects.toThrow("redirect:/admin/universities?error=missing");

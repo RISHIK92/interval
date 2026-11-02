@@ -2588,3 +2588,30 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - university boards and their invalidation (S04);
   - the admin pages still have no shared nav to link from;
   - a live check: Chrome is off.
+
+### 2026-11-02 — P3-W14-S04 (university boards; §6.7, C-17, ADR-0032, Q-P3-10)
+
+- **Owner (2026-11-02):** every board ranks universities: daily, weekly sprint and weekly estimation. A university's score is the average total of its players with a score on that board, with no minimum size.
+- **Port:**
+  - `BoardScope` (`{country}` or `{university}`) replaces the country argument of `top` and `standing`;
+  - `invalidate(userId, former?: BoardScope[])`;
+  - new `universities(board, limit)` and `universityStanding(board, id)`;
+  - the comment says the board name and the scope are checked before they become keys.
+- **Valkey:**
+  - `board:<board>#<id>` holds a university's players;
+  - `board:<board>/universities` holds the averages;
+  - both are rebuilt on read like the country boards. The average query filters by university inside the grouped sum.
+  - `record` writes the player's total into their university's board (`ZADD GT`) and recomputes that university's average (plain ZADD, because an average can fall).
+  - `invalidate` drops the global boards, the current and former scopes, and the rankings of every board the player scored on.
+  - A limit under 1 returns nothing; before, `ZREVRANGE … -1` returned the whole set.
+- **Callers:**
+  - the country and university actions invalidate with the former scope;
+  - the university notice says boards update again;
+  - admin merge and remove return the moved players, and the action invalidates each one (shortcut comment: one invalidation per player).
+- **Reviewer:** no blockers.
+  - Fixed: a single university's average summed the whole board on every game.
+  - Tests added: Valkey down with a university, a falling average while cached, a guest merge into an account with a university, a removed university leaving the ranking.
+  - Nits not fixed:
+    - `invalidate` drops more than a given change needs. It's harmless, at the cost of a rebuild;
+    - the notices name boards Play doesn't show until S06.
+- **Q-P3-11 (owner, 2026-11-02):** a username is required for every account and can never be changed; a player sees the full list of who follows them.

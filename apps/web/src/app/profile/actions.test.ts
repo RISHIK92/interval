@@ -298,7 +298,9 @@ describe("country", () => {
       "redirect:/profile?saved=country",
     );
     expect(setCountry).toHaveBeenCalledExactlyOnceWith("g1", "BR");
-    expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", "IN");
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", [
+      { country: "IN" },
+    ]);
     expect(emit).toHaveBeenCalledExactlyOnceWith(
       "country_changed",
       { action: "set" },
@@ -344,7 +346,9 @@ describe("country", () => {
       "redirect:/profile?saved=country-removed",
     );
     expect(removeCountry).toHaveBeenCalledExactlyOnceWith("g1");
-    expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", "BR");
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", [
+      { country: "BR" },
+    ]);
     expect(emit).toHaveBeenCalledExactlyOnceWith(
       "country_changed",
       { action: "removed" },
@@ -384,6 +388,10 @@ describe("university", () => {
       chooseUniversityAction(fields("universityId", "7")),
     ).rejects.toThrow("redirect:/profile?saved=university");
     expect(setUniversity).toHaveBeenCalledExactlyOnceWith("g1", "7");
+    // P3-W14-S04: its boards, and the averages of the one it left.
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", [
+      { university: "9" },
+    ]);
     expect(emit).toHaveBeenCalledExactlyOnceWith(
       "university_changed",
       { action: "set", listed: true },
@@ -402,6 +410,7 @@ describe("university", () => {
       chooseUniversityAction(fields("universityId", "7")),
     ).rejects.toThrow("redirect:/profile?saved=university");
     expect(emit).not.toHaveBeenCalled();
+    expect(invalidate).not.toHaveBeenCalled();
   });
 
   test.each(["", "x", "7; drop", "-1", "1.5"])(
@@ -458,6 +467,8 @@ describe("university", () => {
       "g1",
       "Night School",
     );
+    // Nothing before: only its own boards.
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", []);
     expect(emit).toHaveBeenCalledExactlyOnceWith(
       "university_changed",
       { action: "set", listed: false },
@@ -489,6 +500,9 @@ describe("university", () => {
       "redirect:/profile?saved=university-removed",
     );
     expect(removeUniversity).toHaveBeenCalledExactlyOnceWith("g1");
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", [
+      { university: "9" },
+    ]);
     expect(emit).toHaveBeenCalledExactlyOnceWith(
       "university_changed",
       { action: "removed", listed: false },

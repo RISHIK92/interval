@@ -631,24 +631,40 @@ export interface GuestLimits {
 // score on a board is the total of their games on it. Boards are named
 // "daily:2026-11-02", "sprint:2026-W45", "estimation:2026-W45".
 // P3-W14-S02 (owner, 2026-11-02): each board also has a board per country, of the
-// players whose country it is now (`country`, ISO 3166-1 alpha-2; a caller checks it
-// against COUNTRY_CODES first, since it becomes a Valkey key).
+// players whose country it is now; P3-W14-S04 likewise per university. A board's name
+// and a scope become a Valkey key, so a caller checks them first: a board against the
+// names above, a country against COUNTRY_CODES, a university id against BIGINT_ID.
+export type BoardScope = { country: string } | { university: string };
 export type Standing = { userId: string; score: number; rank: number };
+// P3-W14-S04 (C-17, Q-P3-10; owner, 2026-11-02): until ratings, a university's score on
+// a board is the average total of its players with a score there.
+export type UniversityStanding = {
+  universityId: string;
+  score: number;
+  rank: number;
+};
 export interface Leaderboards {
   // A finished game's score on its board, once per attempt (LOAD-5); nothing for
   // another player's attempt, an unfinished one, or one that isn't a game.
   record(userId: string, attemptId: string, score: number): Promise<void>;
   // Highest first. Equal totals share a rank: 1 + the players strictly ahead.
-  top(board: string, limit: number, country?: string): Promise<Standing[]>;
+  top(board: string, limit: number, scope?: BoardScope): Promise<Standing[]>;
   standing(
     board: string,
     userId: string,
-    country?: string,
+    scope?: BoardScope,
   ): Promise<Standing | null>;
-  // After a guest merge (P3-W13-S07) or a change of country (with the one it was):
-  // the player's boards are worked out again. Never throws: a failure is logged, and
-  // the boards catch up within minutes.
-  invalidate(userId: string, formerCountry?: string | null): Promise<void>;
+  // Universities on a board, highest average first; ranks as `top`'s.
+  universities(board: string, limit: number): Promise<UniversityStanding[]>;
+  universityStanding(
+    board: string,
+    universityId: string,
+  ): Promise<UniversityStanding | null>;
+  // After a guest merge (P3-W13-S07) or a change of country or university (with the
+  // scopes it was in): the player's boards and the university averages they count in
+  // are worked out again. Never throws: a failure is logged, and the boards catch up
+  // within minutes.
+  invalidate(userId: string, former?: BoardScope[]): Promise<void>;
 }
 
 // P3-W14-S02 (§6.7, Q-P3-08; owner, 2026-11-02): an account's country, optional, set
@@ -1442,9 +1458,10 @@ export interface AdminUniversities {
   // universityName.
   rename(id: string, name: string): Promise<"renamed" | "missing" | "taken">;
   // Its players move to `intoId` with their clocks as they were; the typed row goes.
-  merge(id: string, intoId: string): Promise<boolean>;
-  // Its players are left with none, their clocks as they were.
-  remove(id: string): Promise<boolean>;
+  // The players moved (for their boards, P3-W14-S04); null when refused.
+  merge(id: string, intoId: string): Promise<string[] | null>;
+  // Its players are left with none, their clocks as they were; the players, or null.
+  remove(id: string): Promise<string[] | null>;
 }
 export interface AdminTechnologies {
   pending(): Promise<TechnologySuggestionRow[]>;

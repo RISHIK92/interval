@@ -4,6 +4,6 @@
 // zero-width spaces, NUL), which could spoof or garble a listed name.
 export function universityName(raw: string): string | null {
   const name = raw.trim().replace(/\s+/g, " ");
-  const length = [...name].length;
+  const length = name.match(/./gsu)?.length ?? 0;
   return length >= 2 && length <= 120 && !/\p{C}/u.test(name) ? name : null;
 }
