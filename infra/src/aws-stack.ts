@@ -357,6 +357,18 @@ export class AwsStack extends Stack {
       metricName: "PublishedUnreviewed",
       metricValue: "1",
     });
+    // LOAD-5 (P3-W14-S01): a leaderboard Valkey missed; Postgres keeps the score and
+    // the board catches up within minutes.
+    for (const [id, msg] of [
+      ["WriteFailures", "boards: write failed"],
+      ["InvalidationFailures", "boards: invalidation failed"],
+    ] as const)
+      logGroup.addMetricFilter(`Boards${id}`, {
+        filterPattern: logs.FilterPattern.stringValue("$.msg", "=", msg),
+        metricNamespace: "Interval/Boards",
+        metricName: id,
+        metricValue: "1",
+      });
     // P2-W11-S01: a deleted book whose file couldn't be removed (it expires anyway).
     logGroup.addMetricFilter("BookFilesNotRemoved", {
       filterPattern: logs.FilterPattern.stringValue(

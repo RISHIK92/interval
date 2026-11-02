@@ -626,6 +626,23 @@ export interface GuestLimits {
   record(ip: string): Promise<void>;
 }
 
+// P3-W14-S01 (§6.7, CACHE-3; owner, 2026-11-02): a board per daily challenge, and a
+// weekly board (ISO weeks, UTC) each for sprints and estimation rounds. A player's
+// score on a board is the total of their games on it. Boards are named
+// "daily:2026-11-02", "sprint:2026-W45", "estimation:2026-W45".
+export type Standing = { userId: string; score: number; rank: number };
+export interface Leaderboards {
+  // A finished game's score on its board, once per attempt (LOAD-5); nothing for
+  // another player's attempt, an unfinished one, or one that isn't a game.
+  record(userId: string, attemptId: string, score: number): Promise<void>;
+  // Highest first. Equal totals share a rank: 1 + the players strictly ahead.
+  top(board: string, limit: number): Promise<Standing[]>;
+  standing(board: string, userId: string): Promise<Standing | null>;
+  // After a guest merge (P3-W13-S07): the player's boards are worked out again.
+  // Never throws: a failure is logged, and the boards catch up within minutes.
+  invalidate(userId: string): Promise<void>;
+}
+
 export interface GuestSessions {
   // Creates a guest (anonymous user) in the redemption's beta group and returns it with
   // the Set-Cookie values for its session. If it throws anything but GuestNotRemoved, no

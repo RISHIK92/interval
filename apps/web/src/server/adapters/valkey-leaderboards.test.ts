@@ -1,0 +1,331 @@
+import { randomUUID } from "node:crypto";
+import type { DB } from "@interval/db";
+import { Redis } from "ioredis";
+import { sql, type Transaction } from "kysely";
+import { afterAll, expect, test, vi } from "vitest";
+import type { Leaderboards } from "../ports";
+import { createDb } from "./kysely";
+import { mergeGuest } from "./kysely-guest-merge";
+import { memoryLeaderboards, valkeyLeaderboards } from "./valkey-leaderboards";
+
+// P3-W14-S01 (CACHE-3, §6.7; owner, 2026-11-02): boards in Valkey sorted sets, rows in
+// Postgres the truth; a player's score on a board is the total of their games on it.
+const connectionString = process.env["DATABASE_URL"];
+const valkeyUrl = process.env["VALKEY_URL"];
+if (connectionString === undefined || valkeyUrl === undefined)
+  throw new Error("DATABASE_URL and VALKEY_URL must be set");
+const db = createDb(connectionString);
+const redis = new Redis(valkeyUrl);
+
+afterAll(async () => {
+  await db.destroy();
+  redis.disconnect();
+});
+
+// Daily days are past ones: other suites clear today's and later sets as they run.
+// A game on `board` ("daily:<day>", "sprint:<ISO week>", "estimation:<ISO week>", or
+// "none" for a review), played by `userId`.
+type Harness = {
+  boards: Leaderboards;
+  players(count: number): Promise<string[]>;
+  game(userId: string, board: string, finished?: boolean): Promise<string>;
+};
+
+async function contract(h: Harness): Promise<void> {
+  const [a, b, c, d] = await h.players(4);
+  if (a === undefined || b === undefined || c === undefined || d === undefined)
+    throw new Error("players");
+  const week = "sprint:2091-W02";
+
+  // A week's games add up; recording one again (LOAD-5) changes nothing.
+  const first = await h.game(a, week);
+  const second = await h.game(a, week);
+  await h.boards.record(a, first, 3);
+  await h.boards.record(a, first, 3);
+  await h.boards.record(a, second, 4);
+  expect(await h.boards.standing(week, a)).toEqual({
+    userId: a,
+    score: 7,
+    rank: 1,
+  });
+
+  // Boards stay apart: the next week, estimation rounds, a daily.
+  await h.boards.record(a, await h.game(a, "sprint:2091-W03"), 5);
+  await h.boards.record(a, await h.game(a, "estimation:2091-W02"), 250);
+  await h.boards.record(a, await h.game(a, "daily:1991-01-10"), 380);
+  expect(await h.boards.standing(week, a)).toMatchObject({ score: 7 });
+  expect(await h.boards.standing("sprint:2091-W03", a)).toMatchObject({
+    score: 5,
+  });
+  expect(await h.boards.standing("estimation:2091-W02", a)).toMatchObject({
+    score: 250,
+  });
+  expect(await h.boards.standing("daily:1991-01-10", a)).toMatchObject({
+    score: 380,
+  });
+
+  // Equal totals share a rank, ordered by player; the next rank skips.
+  await h.boards.record(b, await h.game(b, week), 7);
+  await h.boards.record(c, await h.game(c, week), 9);
+  const [low, high] = [a, b].sort();
+  expect(await h.boards.top(week, 10)).toEqual([
+    { userId: c, score: 9, rank: 1 },
+    { userId: high, score: 7, rank: 2 },
+    { userId: low, score: 7, rank: 2 },
+  ]);
+  expect(await h.boards.top(week, 1)).toEqual([
+    { userId: c, score: 9, rank: 1 },
+  ]);
+  expect(await h.boards.standing(week, b)).toEqual({
+    userId: b,
+    score: 7,
+    rank: 2,
+  });
+
+  // Not on the board; nothing recorded for another's game, an unfinished one, or one
+  // that isn't a game.
+  expect(await h.boards.standing(week, d)).toBeNull();
+  await h.boards.record(d, first, 50);
+  await h.boards.record(d, await h.game(d, week, false), 50);
+  await h.boards.record(d, await h.game(d, "none"), 50);
+  expect(await h.boards.standing(week, d)).toBeNull();
+  expect(await h.boards.standing(week, a)).toMatchObject({ score: 7 });
+  expect(await h.boards.top("sprint:2091-W09", 10)).toEqual([]);
+}
+
+test("the in-memory fake keeps the contract", async () => {
+  const games = new Map<
+    string,
+    { userId: string; board: string | null; finished: boolean }
+  >();
+  let n = 0;
+  await contract({
+    boards: memoryLeaderboards(games),
+    players: (count) =>
+      Promise.resolve(Array.from({ length: count }, () => randomUUID())),
+    game: (userId, board, finished = true) => {
+      n += 1;
+      games.set(String(n), {
+        userId,
+        board: board === "none" ? null : board,
+        finished,
+      });
+      return Promise.resolve(String(n));
+    },
+  });
+});
+
+class Rollback extends Error {}
+
+async function inRollback(
+  body: (trx: Transaction<DB>, prefix: string) => Promise<void>,
+): Promise<void> {
+  const prefix = `test-board-${randomUUID()}:`;
+  try {
+    await expect(
+      db.transaction().execute(async (trx) => {
+        await body(trx, prefix);
+        throw new Rollback();
+      }),
+    ).rejects.toBeInstanceOf(Rollback);
+  } finally {
+    const keys = await redis.keys(`${prefix}*`);
+    if (keys.length > 0) await redis.del(...keys);
+  }
+}
+
+async function players(
+  trx: Transaction<DB>,
+  count: number,
+  anonymous = false,
+): Promise<string[]> {
+  const code = await trx
+    .insertInto("invite_code")
+    .values({
+      code: `BOARD${randomUUID().slice(0, 8).toUpperCase()}`,
+      beta_group: "developer",
+      max_uses: 10,
+      expires_at: sql<Date>`now() + interval '1 day'`,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  const ids = Array.from({ length: count }, () => `board-${randomUUID()}`);
+  await trx
+    .insertInto("app_user")
+    .values(
+      ids.map((id) => ({
+        id,
+        name: anonymous ? "" : "Ada",
+        email: `${id}@board.example.test`,
+        is_anonymous: anonymous,
+        beta_group: "developer" as const,
+        invite_code_id: code.id,
+      })),
+    )
+    .execute();
+  return ids;
+}
+
+// An attempt that lands on `board`: a daily on its day, a sprint or estimation round
+// started at `at` (else the Monday of the board's week).
+async function game(
+  trx: Transaction<DB>,
+  userId: string,
+  board: string,
+  finished = true,
+  at?: string,
+): Promise<string> {
+  const [kind, period] = board.split(/:(.*)/);
+  const done = finished ? sql`now()` : sql`null`;
+  const { rows } =
+    kind === "daily"
+      ? await sql<{ id: string }>`with day as (
+            insert into daily_challenge (day) values (${period}::date)
+            on conflict do nothing)
+          insert into quiz_attempt (user_id, daily_day, started_at, ends_at, finished_at)
+          values (${userId}, ${period}::date, now() - interval '1 hour', now(), ${done})
+          returning id`.execute(trx)
+      : kind === "none"
+        ? await sql<{ id: string }>`insert into quiz_attempt
+              (user_id, review, finished_at) values (${userId}, true, now())
+            returning id`.execute(trx)
+        : await sql<{ id: string }>`insert into quiz_attempt
+              (user_id, sprint, estimation, started_at, ends_at, finished_at)
+            select ${userId}, true, ${kind === "estimation"}, s, s + interval '1 minute',
+                   ${done}
+            from (select coalesce(${at ?? null}::timestamptz,
+                    to_date(${period ?? ""}, 'IYYY-"W"IW')::timestamp at time zone 'utc')
+                  as s) start
+            returning id`.execute(trx);
+  const id = rows[0]?.id;
+  if (id === undefined) throw new Error("no attempt");
+  return id;
+}
+
+test("the Valkey adapter keeps the contract", async () => {
+  await inRollback(async (trx, prefix) => {
+    await contract({
+      boards: valkeyLeaderboards(trx, redis, prefix),
+      players: (count) => players(trx, count),
+      game: (userId, board, finished) => game(trx, userId, board, finished),
+    });
+  });
+});
+
+test("a board lost from Valkey is rebuilt from Postgres on its next read", async () => {
+  await inRollback(async (trx, prefix) => {
+    const boards = valkeyLeaderboards(trx, redis, prefix);
+    const [a, b] = await players(trx, 2);
+    if (a === undefined || b === undefined) throw new Error("players");
+    const board = "estimation:2091-W05";
+    await boards.record(a, await game(trx, a, board), 120);
+    await boards.record(b, await game(trx, b, board), 300);
+    const before = await boards.top(board, 10);
+    await redis.del(...(await redis.keys(`${prefix}*`)));
+    expect(await boards.top(board, 10)).toEqual(before);
+    await redis.del(...(await redis.keys(`${prefix}*`)));
+    expect(await boards.standing(board, a)).toEqual({
+      userId: a,
+      score: 120,
+      rank: 2,
+    });
+  });
+});
+
+test("weeks are ISO weeks in UTC, by when the game started", async () => {
+  await inRollback(async (trx, prefix) => {
+    const boards = valkeyLeaderboards(trx, redis, prefix);
+    const [a] = await players(trx, 1);
+    if (a === undefined) throw new Error("players");
+    for (const [at, score] of [
+      ["2026-11-08T23:59:59Z", 1], // Sunday: week 45
+      ["2026-11-09T00:00:00Z", 2], // Monday: week 46
+      ["2026-11-09T00:30:00+05:30", 4], // Sunday 19:00 UTC: week 45
+      ["2027-01-01T12:00:00Z", 8], // A Friday in 2026's week 53
+      ["2027-01-04T00:00:00Z", 16], // 2027's first Monday
+    ] as const)
+      await boards.record(a, await game(trx, a, "sprint:x", true, at), score);
+    const total = async (board: string) =>
+      (await boards.standing(board, a))?.score;
+    expect(await total("sprint:2026-W45")).toBe(5);
+    expect(await total("sprint:2026-W46")).toBe(2);
+    expect(await total("sprint:2026-W53")).toBe(8);
+    expect(await total("sprint:2027-W01")).toBe(16);
+  });
+});
+
+test("after a guest merge the account's boards carry the guest's games, and no guest", async () => {
+  await inRollback(async (trx, prefix) => {
+    const boards = valkeyLeaderboards(trx, redis, prefix);
+    const [guest] = await players(trx, 1, true);
+    const [account] = await players(trx, 1);
+    if (guest === undefined || account === undefined)
+      throw new Error("players");
+    const week = "sprint:2091-W07";
+    await boards.record(guest, await game(trx, guest, week), 6);
+    await boards.record(account, await game(trx, account, week), 4);
+    // Read first, so the stale board is cached.
+    expect(await boards.top(week, 10)).toHaveLength(2);
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    await boards.invalidate(account);
+    expect(await boards.top(week, 10)).toEqual([
+      { userId: account, score: 10, rank: 1 },
+    ]);
+  });
+});
+
+test("with Valkey down a game's score is still kept, and the board catches up", async () => {
+  await inRollback(async (trx, prefix) => {
+    const down = new Redis("redis://127.0.0.1:1", {
+      lazyConnect: true,
+      enableOfflineQueue: false,
+      maxRetriesPerRequest: 0,
+      retryStrategy: () => null,
+    });
+    down.on("error", () => undefined);
+    const healthy = valkeyLeaderboards(trx, redis, prefix);
+    const [a] = await players(trx, 1);
+    if (a === undefined) throw new Error("players");
+    const board = "sprint:2091-W08";
+    await healthy.record(a, await game(trx, a, board), 4);
+    // Built and cached before the outage.
+    expect(await healthy.standing(board, a)).toMatchObject({ score: 4 });
+    const written: string[] = [];
+    const out = vi
+      .spyOn(process.stdout, "write")
+      .mockImplementation((chunk) => {
+        written.push(String(chunk));
+        return true;
+      });
+    const missed = await game(trx, a, board);
+    await valkeyLeaderboards(trx, down, prefix).record(a, missed, 9);
+    out.mockRestore();
+    down.disconnect();
+    expect(written.join("")).toContain("boards: write failed");
+    // Kept in Postgres: the cached board is behind for at most the marker's life
+    // (minutes, not the board's days) ...
+    expect(await redis.ttl(`${prefix}built:${board}`)).toBeLessThanOrEqual(600);
+    // ... and a repeat of the finish (LOAD-5) mends it at once.
+    await healthy.record(a, missed, 9);
+    expect(await healthy.standing(board, a)).toEqual({
+      userId: a,
+      score: 13,
+      rank: 1,
+    });
+  });
+});
+
+test("a board evicted while its marker stays is rebuilt, not shown empty", async () => {
+  await inRollback(async (trx, prefix) => {
+    const boards = valkeyLeaderboards(trx, redis, prefix);
+    const [a] = await players(trx, 1);
+    if (a === undefined) throw new Error("players");
+    const board = "daily:1991-02-01";
+    await boards.record(a, await game(trx, a, board), 300);
+    expect(await boards.top(board, 10)).toHaveLength(1);
+    await redis.del(`${prefix}${board}`);
+    expect(await boards.top(board, 10)).toEqual([
+      { userId: a, score: 300, rank: 1 },
+    ]);
+  });
+});

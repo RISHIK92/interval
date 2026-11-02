@@ -8,6 +8,7 @@ import { CHIP_COOKIE, CHIPS, parseChip } from "../../server/chips";
 import {
   entitlements,
   events,
+  leaderboards,
   quizzes,
   sessionReader,
 } from "../../server/container";
@@ -60,6 +61,30 @@ async function signedIn() {
 
 type Context = Awaited<ReturnType<typeof signedIn>>["context"];
 
+// A game's score: the daily's points, an estimation round's, a sprint's correct count.
+function gameScore(
+  done: QuizFinish,
+): { game: "daily" | "sprint" | "estimation"; points: number } | null {
+  if (done.daily !== null) return { game: "daily", points: done.daily.points };
+  if (!done.sprint) return null;
+  return done.estimation === null
+    ? { game: "sprint", points: done.correct }
+    : { game: "estimation", points: done.estimation.points };
+}
+
+// P3-W14-S01 (§6.7): a game on its board at every finish, not only the first: the
+// store keeps one score per game, and a repeat mends a board a failed write left
+// behind (LOAD-5).
+async function scoreGame(
+  userId: string,
+  attemptId: string,
+  done: QuizFinish,
+): Promise<void> {
+  const score = gameScore(done);
+  if (score !== null)
+    await leaderboards().record(userId, attemptId, score.points);
+}
+
 // The finish of a quiz, once: on the page, or when a start closes one left open (owner,
 // 2026-10-28, Q-P2-28), so the metrics count both.
 function recordFinish(
@@ -69,28 +94,11 @@ function recordFinish(
 ): void {
   const { checkpoint } = done;
   const counts = { answered: done.answered, correct: done.correct };
-  if (done.daily !== null)
+  const score = gameScore(done);
+  if (score !== null)
     events().emit(
       "game_finished",
-      {
-        attempt_id: attemptId,
-        ...counts,
-        game: "daily",
-        points: done.daily.points,
-      },
-      context,
-    );
-  else if (done.sprint)
-    events().emit(
-      "game_finished",
-      {
-        attempt_id: attemptId,
-        ...counts,
-        // The score: a sprint's correct count, an estimation round's points.
-        ...(done.estimation === null
-          ? { game: "sprint", points: done.correct }
-          : { game: "estimation", points: done.estimation.points }),
-      },
+      { attempt_id: attemptId, ...counts, ...score },
       context,
     );
   else if (checkpoint === null)
@@ -127,8 +135,10 @@ function recordFinish(
 
 // Before a start: the user's quizzes left open are closed, and their finishes recorded.
 async function closeLeftOpen(userId: string, context: Context): Promise<void> {
-  for (const closed of await quizzes().closeStale(userId))
+  for (const closed of await quizzes().closeStale(userId)) {
     recordFinish(closed.attemptId, closed, context);
+    await scoreGame(userId, closed.attemptId, closed);
+  }
 }
 
 export async function startQuizAction(form: FormData): Promise<void> {
@@ -182,6 +192,7 @@ async function startGame(game: keyof typeof GAME_STARTS): Promise<void> {
     const done = await quizzes().finish(actor.userId, started.attemptId);
     if (done?.firstTime === true)
       recordFinish(started.attemptId, done, context);
+    if (done !== null) await scoreGame(actor.userId, started.attemptId, done);
     started = await quizzes()[start](actor.userId);
   }
   // Nothing to play: every question asked this week (Q-P3-04), or no daily set
@@ -402,6 +413,7 @@ export async function finishQuizAction(form: FormData): Promise<void> {
   if (done === null) redirect("/");
   const { checkpoint } = done;
   if (done.firstTime) recordFinish(attemptId, done, context);
+  await scoreGame(actor.userId, attemptId, done);
   redirect(
     leave === undefined
       ? `/quiz/${attemptId}/results?chip=${chip}`

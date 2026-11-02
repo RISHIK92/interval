@@ -2,6 +2,7 @@ import { FirehoseClient } from "@aws-sdk/client-firehose";
 import { S3Client } from "@aws-sdk/client-s3";
 import { SQSClient } from "@aws-sdk/client-sqs";
 import type { DB } from "@interval/db";
+import { Redis } from "ioredis";
 import type { Kysely } from "kysely";
 import { env, filesEnv, githubEnv } from "../env";
 import {
@@ -43,7 +44,9 @@ import { firehoseSink } from "./adapters/firehose-sink";
 import { logMailer } from "./adapters/log-mailer";
 import { s3Files } from "./adapters/s3-files";
 import { sqsQueue } from "./adapters/sqs-queue";
+import { valkeyLeaderboards } from "./adapters/valkey-leaderboards";
 import { createEmitter, type Emitter } from "./events";
+import { log } from "./log";
 import type {
   AdminDaily,
   AdminTechnologies,
@@ -65,6 +68,7 @@ import type {
   GuestSessions,
   InviteCodes,
   JobQueue,
+  Leaderboards,
   Library,
   OutboundLinks,
   PreferencesStore,
@@ -228,6 +232,25 @@ export function jobQueue(): JobQueue {
           );
   }
   return queue;
+}
+
+let valkey: Redis | undefined;
+
+// P3-W14-S01 (CACHE-3): boards on Valkey in every mode (ADR-0014). A Valkey that's
+// down fails a command in about a second rather than holding a game's finish.
+export function leaderboards(): Leaderboards {
+  if (valkey === undefined) {
+    valkey = new Redis(env().VALKEY_URL, {
+      maxRetriesPerRequest: 1,
+      commandTimeout: 1_000,
+    });
+    // Each failed command is logged where it fails; this keeps ioredis's own
+    // connection errors in the structured log rather than bare on the console.
+    valkey.on("error", (error: Error) => {
+      log.warn("valkey connection error", { error });
+    });
+  }
+  return valkeyLeaderboards(db(), valkey);
 }
 
 // P2-W12-S01 (§5H, ADR-0024): Interval's GitHub App; null when it isn't configured,

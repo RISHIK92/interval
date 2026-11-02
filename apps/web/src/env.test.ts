@@ -94,7 +94,7 @@ describe("parseEnv", () => {
   });
 
   test("the SQS queue needs a URL prefix and a region", () => {
-    const sqs = { ...valid, QUEUE_TRANSPORT: "sqs", VALKEY_URL: undefined };
+    const sqs = { ...valid, QUEUE_TRANSPORT: "sqs" };
     expect(() => parseEnv(sqs)).toThrow(/SQS_QUEUE_URL_PREFIX/);
     expect(
       parseEnv({
@@ -104,6 +104,20 @@ describe("parseEnv", () => {
         AWS_REGION: "ap-south-1",
       }),
     ).toMatchObject({ QUEUE_TRANSPORT: "sqs" });
+  });
+
+  // P3-W14-S01: leaderboards live in Valkey whichever queue is used.
+  test("Valkey is needed with SQS too", () => {
+    expect(() =>
+      parseEnv({
+        ...valid,
+        QUEUE_TRANSPORT: "sqs",
+        VALKEY_URL: undefined,
+        SQS_QUEUE_URL_PREFIX:
+          "https://sqs.ap-south-1.amazonaws.com/1/interval-",
+        AWS_REGION: "ap-south-1",
+      }),
+    ).toThrow(/VALKEY_URL/);
   });
 
   test("returns typed values for a valid environment", () => {

@@ -2456,3 +2456,39 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Full check:**
   - web 1023 and Python 1261 pass;
   - the infra synth hook timed out under machine load (75 pass alone), as the health and ping tests did in earlier runs.
+
+### 2026-11-02 — P3-W14-S01 (leaderboard store; CACHE-3, CACHE-2, ADR-0012, ADR-0014, §6.7)
+
+- Owner answers (2026-11-02):
+  - a weekly board's score is the **total** of the week's games (the bank caps it: a sprint serves only questions unseen that week);
+  - estimation rounds get their own weekly board;
+  - weeks are ISO weeks from Monday 00:00 UTC, by when the game started.
+- **Postgres is the truth (migration `board_score`):** one row per finished game (attempt id, board, score). The player comes from the attempt, so a guest merge carries the scores, and the merge's daily-conflict delete cascades.
+  - Boards: `daily:<day>`, `sprint:<ISO week>`, `estimation:<ISO week>`, named in SQL in the adapter.
+- **`Leaderboards` port:** `record`, `top`, `standing`, `invalidate`. Equal totals share a rank.
+  - **Valkey adapter (`adapters/valkey-leaderboards.ts`):**
+    - `record` inserts once per attempt, then `ZADD GT` with the player's total recomputed from Postgres;
+    - reads rebuild a board from Postgres when its sorted set or its 10-minute "built" marker is missing;
+    - the sorted sets expire after 8 days, as memory hygiene only.
+  - **In-memory fake:** the same file, with one contract suite run against both.
+- **Wiring:**
+  - every game finish records its score: on the page, at a restart past the clock, or when a start closes games left open. Repeats are no-ops that mend a board;
+  - sign-in after a guest merge invalidates the account's boards;
+  - `container.leaderboards()` uses an ioredis client with a 1 s command timeout;
+  - `VALKEY_URL` is now required in every mode (AWS, the VM and CI already set it).
+- **LOAD-5:** a failed Valkey write or invalidation is logged (`boards: write failed`, `boards: invalidation failed`) and counted by metric filters in the AWS stack (`Interval/Boards`). The score is kept in Postgres, and the board catches up within the marker's 10 minutes.
+- **Rebuild command:** `pnpm boards:rebuild` (`apps/web/scripts/boards-rebuild.ts`) unlinks `board:*`, and each board rebuilds on its next read. Suggested CLAUDE.md Commands line for the owner.
+- **Reviewer, fixed:**
+  - a failed write or invalidation could leave a board stale for 8 days (the marker now lives 10 minutes);
+  - an evicted sorted set with a live marker showed an empty board;
+  - the fallbacks had no metric;
+  - an error was swallowed;
+  - an invalidation's database error could fail a sign-in that had succeeded;
+  - the Valkey-down test didn't start from a built board;
+  - nits: the daily board name via `to_char`, an `error` listener on the client, and the rebuild script no longer retrying forever.
+- **Full-check deadlock (fixed in the test):** my test held future `daily_challenge` days while `kysely-admin-daily` deletes today and later. The test now uses past days.
+- **Not done / known:**
+  - a game nobody closes (tab closed mid-game) reaches its board at that player's next start;
+  - a board name from a route needs validating at the boundary (S06);
+  - a purged guest's entry lingers until the marker lapses.
+- **Full check:** 25/25 tasks (web 1033, infra 76, Python 1261).

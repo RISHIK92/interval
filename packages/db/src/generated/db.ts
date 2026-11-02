@@ -157,6 +157,12 @@ export interface AuthVerification {
   value: string;
 }
 
+export interface BoardScore {
+  attempt_id: Int8;
+  board: string;
+  score: number;
+}
+
 export interface Book {
   created_at: Generated<Timestamp>;
   failure: string | null;
@@ -989,6 +995,7 @@ export interface DB {
   auth_account: AuthAccount;
   auth_session: AuthSession;
   auth_verification: AuthVerification;
+  board_score: BoardScore;
   book: Book;
   book_chapter: BookChapter;
   book_chapter_checkpoint: BookChapterCheckpoint;

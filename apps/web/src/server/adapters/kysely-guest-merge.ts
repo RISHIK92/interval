@@ -8,7 +8,7 @@ import { type Kysely, sql } from "kysely";
 // - Mastery keeps the higher probability; a review card the one with more reviews.
 // - The guest row goes, and with it everything only a guest has (sessions,
 //   capabilities). Guests are Play-only (ADR-0029), so no reading data is lost.
-// Ratings and boards (W14, W16) add their rules here when they exist.
+// Board scores (P3-W14-S01) follow their attempts; ratings (W16) add their rule here.
 // False when there's no such guest: a retry or a second sign-in is a no-op (LOAD-5).
 export async function mergeGuest(
   trx: Kysely<DB>,

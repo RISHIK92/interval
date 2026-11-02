@@ -16,10 +16,7 @@ const events = z.discriminatedUnion("EVENTS_TRANSPORT", [
 
 // ADR-0014: BullMQ on Valkey (local, VM) or SQS (full AWS), one queue per message.
 const queue = z.discriminatedUnion("QUEUE_TRANSPORT", [
-  z.object({
-    QUEUE_TRANSPORT: z.literal("bullmq"),
-    VALKEY_URL: z.url({ protocol: /^rediss?$/ }),
-  }),
+  z.object({ QUEUE_TRANSPORT: z.literal("bullmq") }),
   z.object({
     QUEUE_TRANSPORT: z.literal("sqs"),
     SQS_QUEUE_URL_PREFIX: z.url({ protocol: /^https$/ }),
@@ -40,6 +37,8 @@ const schema = z
     // P3-W13-S07: our proxies in front of the app, each adding to X-Forwarded-For
     // (server/clientIp.ts): 1 on the VM (Caddy), 2 on AWS (CloudFront, the ALB).
     TRUSTED_PROXIES: z.coerce.number().int().min(0).max(5).default(0),
+    // ADR-0014: Valkey in every mode; BullMQ's queues, and leaderboards (P3-W14-S01).
+    VALKEY_URL: z.url({ protocol: /^rediss?$/ }),
   })
   .and(events)
   .and(queue)

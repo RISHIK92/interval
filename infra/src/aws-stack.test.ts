@@ -1108,6 +1108,22 @@ describe("PDF books (P2-W11-S01)", () => {
       }
   });
 
+  test("a leaderboard write or invalidation that failed is counted (LOAD-5)", () => {
+    for (const [msg, name] of [
+      ["boards: write failed", "WriteFailures"],
+      ["boards: invalidation failed", "InvalidationFailures"],
+    ] as const)
+      template.hasResourceProperties("AWS::Logs::MetricFilter", {
+        FilterPattern: `{ $.msg = "${msg}" }`,
+        MetricTransformations: [
+          Match.objectLike({
+            MetricNamespace: "Interval/Boards",
+            MetricName: name,
+          }),
+        ],
+      });
+  });
+
   test("a book file left behind is counted", () => {
     template.hasResourceProperties("AWS::Logs::MetricFilter", {
       FilterPattern: '{ $.msg = "books: file not removed" }',

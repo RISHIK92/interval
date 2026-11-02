@@ -1,7 +1,7 @@
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import type { Accounts, Actor, FeedCard } from "../server/ports";
+import type { Accounts, Actor, FeedCard, Leaderboards } from "../server/ports";
 
 // The account pages and their server actions, with the container and Next mocked.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
@@ -16,12 +16,14 @@ const port = {
 // The request's own headers: empty (not local) unless a test sets them.
 const request = { headers: new Headers() };
 const emit = vi.fn();
+const invalidate = vi.fn<Leaderboards["invalidate"]>(() => Promise.resolve());
 const setCookie = vi.fn();
 const deleteCookie = vi.fn();
 vi.mock("../server/container", () => ({
   sessionReader: () => ({ current }),
   accounts: () => port,
   events: () => ({ emit }),
+  leaderboards: () => ({ invalidate }),
   feedReader: () => ({
     read: () => Promise.resolve({ computed: true, cards: [] as FeedCard[] }),
   }),
@@ -229,6 +231,24 @@ describe("guest merge on sign-in (P3-W13-S07)", () => {
       ["session_started", {}, context],
       ["guest_merged", {}, context],
     ]);
+    // P3-W14-S01: the account's boards are worked out again with the guest's games.
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith(account.userId);
+  });
+
+  test("a plain sign-in leaves the boards alone", async () => {
+    const { signInAction } = await import("./sign-in/actions");
+    port.signIn.mockResolvedValueOnce({
+      setCookies: [],
+      actor: account,
+      mergedGuest: false,
+    });
+    await expect(
+      signInAction(
+        null,
+        form({ email: "ada@example.test", password: PASSWORD }),
+      ),
+    ).rejects.toThrow("redirect:/");
+    expect(invalidate).not.toHaveBeenCalled();
   });
 });
 

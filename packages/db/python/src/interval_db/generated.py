@@ -132,6 +132,12 @@ class AuthVerification(TypedDict):
     updated_at: datetime
 
 
+class BoardScore(TypedDict):
+    attempt_id: int
+    board: str
+    score: int
+
+
 class Book(TypedDict):
     id: int
     user_id: str

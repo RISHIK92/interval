@@ -1,5 +1,5 @@
 import { afterEach, expect, test, vi } from "vitest";
-import type { Actor, Quizzes } from "../../server/ports";
+import type { Actor, Leaderboards, Quizzes } from "../../server/ports";
 
 // Test 60s (Q-P2-14, Q-P2-20, P2-W9-S01): starting, answering and finishing a sprint,
 // each validated at the boundary and recorded once.
@@ -17,7 +17,9 @@ const startDaily = vi.fn<Quizzes["startDaily"]>();
 const answerEstimate = vi.fn<Quizzes["answerEstimate"]>();
 const can = vi.fn(() => Promise.resolve(true));
 const emit = vi.fn();
+const record = vi.fn<Leaderboards["record"]>(() => Promise.resolve());
 vi.mock("../../server/container", () => ({
+  leaderboards: () => ({ record }),
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
   quizzes: () => ({
@@ -192,6 +194,8 @@ test("finishing reports once", async () => {
     finishQuizAction(form({ attemptId: "41", chip: "3-8" })),
   ).rejects.toThrow("redirect:/quiz/41/results?chip=3-8");
   expect(emit).not.toHaveBeenCalled();
+  // Not a game: on no board (P3-W14-S01).
+  expect(record).not.toHaveBeenCalled();
 });
 
 test.each([
@@ -523,6 +527,8 @@ test("a sprint's finish is a game_finished, not a quiz_finished; Close goes to P
     { attempt_id: "61", game: "sprint", answered: 7, correct: 5, points: 5 },
     context,
   );
+  // P3-W14-S01: on the week's sprint board.
+  expect(record).toHaveBeenCalledExactlyOnceWith("u1", "61", 5);
 });
 
 test("Start just after a sprint's clock ran out finishes it, records it, and starts afresh", async () => {
@@ -555,6 +561,28 @@ test("Start just after a sprint's clock ran out finishes it, records it, and sta
     "game_finished",
     "game_started",
   ]);
+  expect(record).toHaveBeenCalledExactlyOnceWith("u1", "61", 2);
+});
+
+test("a game a start closes goes on its board too", async () => {
+  const { startReviewAction } = await actions();
+  closeStale.mockResolvedValueOnce([
+    {
+      attemptId: "33",
+      answered: 4,
+      correct: 3,
+      firstTime: true,
+      sprint: true,
+      estimation: null,
+      daily: null,
+      checkpoint: null,
+    },
+  ]);
+  startReview.mockResolvedValue(null);
+  await expect(startReviewAction(form({ chip: "3-8" }))).rejects.toThrow(
+    "redirect:/library",
+  );
+  expect(record).toHaveBeenCalledExactlyOnceWith("u1", "33", 3);
 });
 
 // ADR-0029: guests play, but a flag takes a question out of every quiz.
@@ -639,6 +667,7 @@ test("Start just after a round's clock ran out finishes it, records it, and star
     "game_finished",
     "game_started",
   ]);
+  expect(record).toHaveBeenCalledExactlyOnceWith("u1", "71", 158);
 });
 
 test("an estimate is answered with a positive number, recorded once with its points", async () => {
@@ -727,6 +756,7 @@ test("a round's finish is a game_finished with its points", async () => {
     },
     context,
   );
+  expect(record).toHaveBeenCalledExactlyOnceWith("u1", "71", 158);
 });
 
 // P3-W13-S05 (§6.3): the daily challenge, one attempt a day, guests included.
@@ -769,6 +799,9 @@ test("a day already played goes to its attempt, which shows the results", async 
   });
   await expect(startDailyAction()).rejects.toThrow("redirect:/quiz/71");
   expect(emit).not.toHaveBeenCalled();
+  // Recorded again all the same: a repeat mends a board a failed write left behind
+  // (LOAD-5); the store keeps one score per game.
+  expect(record).toHaveBeenCalledExactlyOnceWith("u1", "71", 430);
 });
 
 test("without play.daily, or with no challenge today, Play says so", async () => {
@@ -801,4 +834,5 @@ test("the daily challenge's finish is a game_finished with its points", async ()
     { attempt_id: "71", game: "daily", answered: 5, correct: 4, points: 430 },
     context,
   );
+  expect(record).toHaveBeenCalledExactlyOnceWith("u1", "71", 430);
 });
