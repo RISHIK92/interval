@@ -2533,3 +2533,58 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Full check:**
   - web 1049 and Python 1261 pass;
   - the infra synth hook timed out under load (76 pass alone), and in the first run the health route did too (it passes alone).
+
+### 2026-11-02 — P3-W14-S03 (university; §6.7, ADR-0032, Q-P3-09)
+
+- **ADR-0032 drafted and accepted by the owner** (2026-11-02, option A):
+  - a university is picked from a list or typed;
+  - it isn't verified, and no university email is stored.
+  - It amends §6.7 "verified", OPS-1's codes and Week 14's SES for Phase 3. Open-decisions item 5 is set aside for Phase 3, not closed.
+- **Owner answers (2026-11-02):**
+  - the 30-day clock and removal rules are the same as for the country;
+  - a typed name shows at once; the owner tidies typed names at `/admin/universities`;
+  - `country_changed` and `university_changed` are DB-5 events.
+  - Q-P3-11 usernames: 3–20 characters of a–z, 0–9 and `_`; people search is on unless the player turns it off.
+- **The list:** Hipo's university-domains-list, MIT licence (checked 2026-11-02).
+  - Only names and country codes are kept, in `workers/jobs/seeds/universities.json`: 10,249 entries, with the notice in `universities.LICENSE.txt`.
+  - 4 upstream names had stray control characters; they now use curly quotes.
+  - `load-universities` (Python worker) adds new entries and keeps ones that left the file.
+- **Migration:**
+  - `university`: listed or typed. Listed rows are unique on (name, country); typed rows are unique on `lower(name)`.
+  - `player_university`: like `player_country`; a removed typed university leaves its players with none.
+- **`PlayerUniversities` port, Kysely adapter and fake (one contract):**
+  - `get`;
+  - `search`: names containing the query, those starting with it first, then shorter ones; LIKE wildcards are escaped;
+  - `set` and `setTyped`: a typed name joins a listed university only when exactly one has that name, otherwise the typed row;
+  - `remove`.
+  - A first pick locks a placeholder row, so picks at the same moment queue. A real committed race test fails without this lock.
+- **`AdminUniversities`** (typed rows only):
+  - `typed` with player counts;
+  - `rename`, refused when any university has that name;
+  - `merge`: players move with their clocks kept, and the target is key-share locked;
+  - `remove`.
+- **Profile, "University" card:**
+  - the current university with its country, or "Added by players";
+  - a search (GET `uq`, up to 20 matches with Choose buttons);
+  - "Not listed? Type its name";
+  - Remove;
+  - locked inside the month, with the first whole UTC day it opens (the same `Opens` text as the country card).
+  - The typed name is checked by `universityName`: tidied, 2–120 code points, and no control or invisible characters.
+- **Events:** `country_changed {action}` and `university_changed {action, listed}`. Saving what's already set, or removing nothing, records no event. The S02 country actions now emit theirs.
+- **Reviewer, fixed:**
+  - two first picks at once both succeeded (blocker);
+  - JS length versus Postgres length, and hidden characters in typed names;
+  - control characters in the list file;
+  - a typed name silently joined another country's listed university;
+  - the notice promised boards that don't exist yet;
+  - an unlocked merge target;
+  - a rename onto a listed name;
+  - tidying in four places.
+- **Nits not fixed:**
+  - a player who typed "Foo" before a listed "Foo" loads, and types it again, is refused inside the month instead of getting a no-op. The admin merge covers it;
+  - `set` reads the university twice in one transaction;
+  - the admin search has an `aria-label` only.
+- **Not done:**
+  - university boards and their invalidation (S04);
+  - the admin pages still have no shared nav to link from;
+  - a live check: Chrome is off.

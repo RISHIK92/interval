@@ -259,6 +259,16 @@
       "description": "A guest signed in to an existing account and their Play data was merged into it (P3-W13-S07).",
       "props": {}
     },
+    "country_changed": {
+      "version": 1,
+      "description": "A player set or removed their country on Profile (P3-W14-S03; owner, 2026-11-02). Saving the country they already have isn't one.",
+      "props": { "action": ["set", "removed"] }
+    },
+    "university_changed": {
+      "version": 1,
+      "description": "A player set or removed their university on Profile (P3-W14-S03, ADR-0032): picked from the list (listed) or typed.",
+      "props": { "action": ["set", "removed"], "listed": "boolean" }
+    },
     "pwa_installed": {
       "version": 1,
       "description": "The app was installed as a PWA (W5-S06).",

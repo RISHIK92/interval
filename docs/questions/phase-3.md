@@ -80,6 +80,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: OPS-1, Phase 3 Week 14 ("SES verification with a domain list and a manual review queue").
 - Why it matters: a list needs a source and a licence; storing university emails is personal data.
 - **Answer (owner, 2026-10-31):** the player picks their university from a list (a public list or API, licence checked; Hipo's university-domains-list is a candidate), or types a name if it's missing; admin unifies custom names later. Picking alone counts for the board, with no email verification. §6.7 ("university (verified)") and Week 14 ("SES verification…") say otherwise, so this needs an ADR. No university email is stored.
+- **Follow-up (owner, 2026-11-02):** ADR-0032 ACCEPTED (option A). Changing a university: once in 30 days, removable any time (the country rule); a typed name shows on boards at once and the owner merges, renames or removes it at `/admin/universities`; a university change, and a country change, are DB-5 events.
 - Suggested default: a list kept in the repo (seeded from a public domain list, licence checked before use, or hand-built); keep only the domain and the verified university, not the full address.
 
 ### Q-P3-10 University boards before ratings (P2)
@@ -91,6 +92,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P3-11 What a friend is (P1)
 
 - **Answer (owner, 2026-10-31):** one-way follow by username, no accept step. Needs public usernames and a people search, which don't exist yet (open: username rules, and whether a player can hide from search).
+- **Follow-up (owner, 2026-11-02):** usernames are unique, 3–20 characters of a–z, 0–9 and underscore, chosen on Profile; players appear in people search unless they turn it off (following by exact username still works).
 - Suggested default: mutual; added by an invite link; no search for people; friends see each other's board rank only.
 
 ## Week 15

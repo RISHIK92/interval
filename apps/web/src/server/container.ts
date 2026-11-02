@@ -31,12 +31,14 @@ import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
 import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminTechnologies } from "./adapters/kysely-admin-technologies";
+import { kyselyAdminUniversities } from "./adapters/kysely-admin-universities";
 import { kyselyBooks } from "./adapters/kysely-books";
 import { fetchGitHub } from "./adapters/fetch-github";
 import { kyselyGitHub } from "./adapters/kysely-github";
 import { kyselyNotes } from "./adapters/kysely-notes";
 import { kyselyPaths } from "./adapters/kysely-paths";
 import { kyselyPlayerCountries } from "./adapters/kysely-player-countries";
+import { kyselyPlayerUniversities } from "./adapters/kysely-player-universities";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
 import { kyselyProgress } from "./adapters/kysely-progress";
 import { kyselyPreferences } from "./adapters/kysely-preferences";
@@ -51,6 +53,7 @@ import { log } from "./log";
 import type {
   AdminDaily,
   AdminTechnologies,
+  AdminUniversities,
   Books,
   FileStore,
   GitHub,
@@ -76,6 +79,7 @@ import type {
   Notes,
   Paths,
   PlayerCountries,
+  PlayerUniversities,
   Progress,
   Quizzes,
   SessionReader,
@@ -150,6 +154,11 @@ export function adminDaily(): AdminDaily {
 // P2-W12-S03 (PER-4): suggested technologies, reviewed by the owner.
 export function adminTechnologies(): AdminTechnologies {
   return kyselyAdminTechnologies(db());
+}
+
+// P3-W14-S03 (ADR-0032): typed universities, tidied by the owner.
+export function adminUniversities(): AdminUniversities {
+  return kyselyAdminUniversities(db());
 }
 
 export function adminSources(): AdminSources {
@@ -258,6 +267,11 @@ export function leaderboards(): Leaderboards {
 // P3-W14-S02 (§6.7, Q-P3-08).
 export function playerCountries(): PlayerCountries {
   return kyselyPlayerCountries(db());
+}
+
+// P3-W14-S03 (§6.7, ADR-0032).
+export function playerUniversities(): PlayerUniversities {
+  return kyselyPlayerUniversities(db());
 }
 
 // P2-W12-S01 (§5H, ADR-0024): Interval's GitHub App; null when it isn't configured,

@@ -31,6 +31,7 @@ from interval_jobs.events.generated import Envelope
 from interval_jobs.github.manifests import Dependency
 from interval_jobs.irt import Answer
 from interval_jobs.technologies import TechnologySeed
+from interval_jobs.universities import UniversitySeed
 
 type FetchKind = Literal["feed", "article"]
 
@@ -1256,6 +1257,9 @@ class Store(Protocol):
     def technologies(self) -> "Technologies": ...
 
     @property
+    def universities(self) -> "Universities": ...
+
+    @property
     def daily(self) -> "DailyChallenges": ...
 
 
@@ -1434,6 +1438,21 @@ class DailyChallenges(Protocol):
         questions for spot check (ADR-0031): the ones newly queued (a question already
         in review stays as it is). None when there's no set, it was approved, or it was
         marked already."""
+        ...
+
+
+@dataclass(frozen=True)
+class UniversitiesSynced:
+    added: int
+    kept: int  # in the seed and already loaded
+
+
+class Universities(Protocol):
+    """The listed universities (P3-W14-S03, ADR-0032)."""
+
+    def sync_list(self, universities: list[UniversitySeed]) -> UniversitiesSynced:
+        """Adds the seed's universities not loaded yet. Ones that left the seed stay:
+        players point at them."""
         ...
 
 

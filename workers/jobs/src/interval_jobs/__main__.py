@@ -85,12 +85,14 @@ from interval_jobs.tagging_eval import (
 from interval_jobs.technologies import TechnologySeedError, parse_technologies
 from interval_jobs.technology_suggestions import suggest_technologies
 from interval_jobs.tracing import run_span, setup
+from interval_jobs.universities import UniversitySeedError, parse_universities
 
 # The owner's seed list (Q-P1-02), relative to where commands run: the repo root
 # locally, /app in the worker image (which copies it to the same path).
 SEED_FILE = Path("workers/jobs/seeds/sources.yaml")
 CONCEPT_FILE = Path("workers/jobs/seeds/concepts.yaml")
 TECHNOLOGY_FILE = Path("workers/jobs/seeds/technologies.yaml")
+UNIVERSITY_FILE = Path("workers/jobs/seeds/universities.json")
 
 
 def main(argv: list[str]) -> None:
@@ -248,6 +250,11 @@ def main(argv: list[str]) -> None:
         help="sync the technology seed file (PER-4, P2-W12-S03)",
     )
     technologies.add_argument("--file", type=Path, default=TECHNOLOGY_FILE)
+    universities = commands.add_parser(
+        "load-universities",
+        help="add the university list's new entries (P3-W14-S03, ADR-0032)",
+    )
+    universities.add_argument("--file", type=Path, default=UNIVERSITY_FILE)
     commands.add_parser(
         "suggest-technologies",
         help="ask QUESTIONS_MODEL to map unclaimed packages, for review (P2-W12-S03)",
@@ -465,6 +472,19 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
                 sys.exit(str(error))
             synced = s.store.technologies.sync_seed(seeds)
         print(json.dumps({"version": version, **asdict(synced)}))
+        return
+
+    if args.command == "load-universities":
+        path = str(args.file)
+        try:
+            listed = parse_universities(args.file.read_text(encoding="utf-8"), path)
+        except OSError as error:
+            sys.exit(f"{path}: {error.strerror}")
+        except UniversitySeedError as error:
+            sys.exit(str(error))
+        with services() as s:
+            synced = s.store.universities.sync_list(listed)
+        print(json.dumps(asdict(synced)))
         return
 
     if args.command == "draft-concepts":

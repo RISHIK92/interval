@@ -6,13 +6,14 @@ import {
   githubAccounts,
   githubApp,
   playerCountries,
+  playerUniversities,
   preferences,
   progress,
   sessionReader,
 } from "../../server/container";
-import type { GitHubConnection } from "../../server/ports";
+import type { GitHubConnection, University } from "../../server/ports";
 import { parseTheme, THEME_COOKIE, THEMES } from "../../server/theme";
-import { countriesByName } from "../../server/countries";
+import { countriesByName, countryName } from "../../server/countries";
 import { ChoicesFields, GOAL_TEXT, TOPIC_NAMES } from "../ChoicesFields";
 import { setThemeAction } from "../theme/actions";
 import { Button } from "../ui/Button";
@@ -22,9 +23,12 @@ import { STATE_WORDS } from "../learnerState";
 import {
   disconnectGitHubAction,
   refreshGitHubAction,
+  chooseUniversityAction,
   removeCountryAction,
+  removeUniversityAction,
   resetInferredAction,
   setCountryAction,
+  typeUniversityAction,
   unhideSourceAction,
   updatePreferencesAction,
 } from "./actions";
@@ -46,6 +50,8 @@ const NOTICES: Record<string, string> = {
   "github-refresh": "Reading your repositories again; this takes a minute.",
   country: "Country saved. Country boards update in a moment.",
   "country-removed": "Country removed.",
+  university: "University saved.",
+  "university-removed": "University removed.",
   "github-off":
     "GitHub disconnected; what Interval read from it is deleted. Uninstall Interval on GitHub to revoke its access.",
 };
@@ -70,6 +76,8 @@ export default async function ProfilePage(props: {
     missing?: string;
     github?: string;
     country?: string;
+    university?: string;
+    uq?: string;
   }>;
 }) {
   const actor = await sessionReader().current(await headers());
@@ -79,19 +87,29 @@ export default async function ProfilePage(props: {
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
   const offered = githubApp() !== null;
-  const [hidden, inferred, concepts, connection, country] = await Promise.all([
-    feedback().hiddenSources(actor.userId),
-    feedback().inferred(actor.userId),
-    progress().concepts(actor.userId),
-    offered ? githubAccounts().get(actor.userId) : Promise.resolve(null),
-    playerCountries().get(actor.userId),
-  ]);
   const {
     saved,
     missing,
     github,
     country: countryProblem,
+    university: universityProblem,
+    uq,
   } = await props.searchParams;
+  const [hidden, inferred, concepts, connection, country, university] =
+    await Promise.all([
+      feedback().hiddenSources(actor.userId),
+      feedback().inferred(actor.userId),
+      progress().concepts(actor.userId),
+      offered ? githubAccounts().get(actor.userId) : Promise.resolve(null),
+      playerCountries().get(actor.userId),
+      playerUniversities().get(actor.userId),
+    ]);
+  const query = (uq ?? "").trim();
+  // Searched only when a change is open, and on two letters or more.
+  const matches =
+    university.changeableFrom === null && query.length >= 2
+      ? await playerUniversities().search(query, 20)
+      : null;
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-24">
@@ -174,6 +192,16 @@ export default async function ProfilePage(props: {
           country={country.country}
           changeableFrom={country.changeableFrom}
           refused={countryProblem === "soon"}
+        />
+      </Card>
+
+      <Card className="p-5">
+        <UniversitySection
+          university={university.university}
+          changeableFrom={university.changeableFrom}
+          problem={universityProblem}
+          query={uq ?? ""}
+          matches={matches}
         />
       </Card>
 
@@ -553,20 +581,7 @@ function CountrySection({
           ))}
         </select>
         {locked ? (
-          <p id="country-opens" className="text-ink-muted">
-            You can change it again from{" "}
-            {/* The first whole (UTC) day it's open: it opens at the hour it last changed. */}
-            {new Date(changeableFrom.getTime() + 86_400_000).toLocaleDateString(
-              "en-GB",
-              {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-                timeZone: "UTC",
-              },
-            )}
-            .
-          </p>
+          <Opens id="country-opens" from={changeableFrom} />
         ) : (
           <Button type="submit">Save country</Button>
         )}
@@ -575,6 +590,157 @@ function CountrySection({
         <form action={removeCountryAction} className="mt-3">
           <Button type="submit" variant="secondary">
             Remove country
+          </Button>
+        </form>
+      )}
+    </section>
+  );
+}
+
+function Opens({ id, from }: { id?: string; from: Date }) {
+  return (
+    <p id={id} className="text-ink-muted">
+      You can change it again from{" "}
+      {/* The first whole (UTC) day it's open: it opens at the hour it last changed. */}
+      {new Date(from.getTime() + 86_400_000).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      })}
+      .
+    </p>
+  );
+}
+
+const UNIVERSITY_PROBLEMS: Record<string, string> = {
+  soon: "A university can be changed once a month.",
+  name: "A university's name is 2 to 120 letters, without hidden characters.",
+};
+
+function UniversityName({ university }: { university: University }) {
+  return (
+    <>
+      <span className="font-semibold">{university.name}</span>
+      <span className="block text-sm text-ink-muted">
+        {university.country === null
+          ? "Added by players"
+          : countryName(university.country)}
+      </span>
+    </>
+  );
+}
+
+// P3-W14-S03 (§6.7, ADR-0032; owner, 2026-11-02): optional, for university boards;
+// picked from the list or typed, unverified; changed once a month, removed any time.
+function UniversitySection({
+  university,
+  changeableFrom,
+  problem,
+  query,
+  matches,
+}: {
+  university: University | null;
+  changeableFrom: Date | null;
+  problem: string | undefined;
+  query: string;
+  matches: University[] | null;
+}) {
+  return (
+    <section aria-label="University">
+      <h2 className="text-section">University</h2>
+      <p className="mt-1 text-ink-muted">
+        Optional. It puts you on your university&apos;s board on Play.
+      </p>
+      {problem !== undefined && Object.hasOwn(UNIVERSITY_PROBLEMS, problem) ? (
+        <p role="alert" className="mt-2 text-wrong">
+          {UNIVERSITY_PROBLEMS[problem]}
+        </p>
+      ) : null}
+      {university === null ? null : (
+        <div className="mt-3 rounded-2xl bg-well px-4 py-3">
+          <UniversityName university={university} />
+        </div>
+      )}
+      {changeableFrom !== null ? (
+        <div className="mt-3">
+          <Opens from={changeableFrom} />
+        </div>
+      ) : (
+        <>
+          <form
+            action="/profile"
+            method="get"
+            role="search"
+            className="mt-3 flex gap-2"
+          >
+            <label className="sr-only" htmlFor="uq">
+              Find your university
+            </label>
+            <input
+              id="uq"
+              name="uq"
+              type="search"
+              defaultValue={query}
+              placeholder="Find your university"
+              minLength={2}
+              className={FIELD}
+            />
+            <Button type="submit" variant="secondary">
+              Search
+            </Button>
+          </form>
+          {matches === null ? null : matches.length === 0 ? (
+            <p className="mt-3 text-ink-muted">
+              No university matches. You can type its name below.
+            </p>
+          ) : (
+            <ul className="mt-3 flex flex-col gap-2">
+              {matches.map((match) => (
+                <li
+                  key={match.id}
+                  className="flex items-center justify-between gap-3 rounded-2xl bg-well px-4 py-3"
+                >
+                  <div>
+                    <UniversityName university={match} />
+                  </div>
+                  <form action={chooseUniversityAction}>
+                    <input type="hidden" name="universityId" value={match.id} />
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      aria-label={`Choose ${match.name}`}
+                    >
+                      Choose
+                    </Button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form
+            action={typeUniversityAction}
+            className="mt-3 flex flex-col gap-3"
+          >
+            <label htmlFor="university-name" className="text-ink-muted">
+              Not listed? Type its name
+            </label>
+            <input
+              id="university-name"
+              name="name"
+              required
+              minLength={2}
+              maxLength={120}
+              className={FIELD}
+            />
+            <Button type="submit">Use this name</Button>
+          </form>
+        </>
+      )}
+      {university === null ? null : (
+        <form action={removeUniversityAction} className="mt-3">
+          <Button type="submit" variant="secondary">
+            Remove university
           </Button>
         </form>
       )}

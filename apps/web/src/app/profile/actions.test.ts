@@ -5,7 +5,9 @@ import type {
   GitHubAccounts,
   Leaderboards,
   PlayerCountries,
+  PlayerUniversities,
   PreferencesStore,
+  University,
 } from "../../server/ports";
 
 // §5A, PER-1, Q-P1-36, P1-W4-S08: the Profile page's three actions.
@@ -28,7 +30,33 @@ vi.mock("../../server/container", () => ({
   events: () => ({ emit }),
   playerCountries: () => ({ set: setCountry, remove: removeCountry }),
   leaderboards: () => ({ invalidate }),
+  playerUniversities: () => ({
+    set: setUniversity,
+    setTyped: setTypedUniversity,
+    remove: removeUniversity,
+  }),
 }));
+const LISTED: University = {
+  id: "7",
+  name: "Indian Institute of Technology Delhi",
+  country: "IN",
+  listed: true,
+};
+const TYPED: University = {
+  id: "9",
+  name: "Night School",
+  country: null,
+  listed: false,
+};
+const setUniversity = vi.fn<PlayerUniversities["set"]>(() =>
+  Promise.resolve({ ok: true, university: LISTED, previous: TYPED }),
+);
+const setTypedUniversity = vi.fn<PlayerUniversities["setTyped"]>(() =>
+  Promise.resolve({ ok: true, university: TYPED, previous: null }),
+);
+const removeUniversity = vi.fn<PlayerUniversities["remove"]>(() =>
+  Promise.resolve(TYPED),
+);
 const setCountry = vi.fn<PlayerCountries["set"]>(() =>
   Promise.resolve({ ok: true, previous: "IN" }),
 );
@@ -271,6 +299,20 @@ describe("country", () => {
     );
     expect(setCountry).toHaveBeenCalledExactlyOnceWith("g1", "BR");
     expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", "IN");
+    expect(emit).toHaveBeenCalledExactlyOnceWith(
+      "country_changed",
+      { action: "set" },
+      expect.objectContaining({ userId: "g1", sessionId: "visit-1" }),
+    );
+  });
+
+  test("saving the country it already has is no event", async () => {
+    const { setCountryAction } = await actions();
+    setCountry.mockResolvedValueOnce({ ok: true, previous: "BR" });
+    await expect(setCountryAction(country("BR"))).rejects.toThrow(
+      "redirect:/profile?saved=country",
+    );
+    expect(emit).not.toHaveBeenCalled();
   });
 
   test("inside the month it's refused, and the boards are left alone", async () => {
@@ -303,6 +345,17 @@ describe("country", () => {
     );
     expect(removeCountry).toHaveBeenCalledExactlyOnceWith("g1");
     expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", "BR");
+    expect(emit).toHaveBeenCalledExactlyOnceWith(
+      "country_changed",
+      { action: "removed" },
+      expect.objectContaining({ userId: "g1" }),
+    );
+    // Nothing to remove: no event.
+    removeCountry.mockResolvedValueOnce(null);
+    await expect(removeCountryAction()).rejects.toThrow(
+      "redirect:/profile?saved=country-removed",
+    );
+    expect(emit).toHaveBeenCalledOnce();
   });
 
   test("a guest is sent to sign up", async () => {
@@ -314,5 +367,156 @@ describe("country", () => {
     await expect(removeCountryAction()).rejects.toThrow("redirect:/sign-up");
     expect(setCountry).not.toHaveBeenCalled();
     expect(removeCountry).not.toHaveBeenCalled();
+  });
+});
+
+// P3-W14-S03 (§6.7, ADR-0032): picked from the list or typed; unverified, no email.
+describe("university", () => {
+  const fields = (name: string, value: string) => {
+    const data = new FormData();
+    data.set(name, value);
+    return data;
+  };
+
+  test("choosing a listed one sets it and records the change", async () => {
+    const { chooseUniversityAction } = await actions();
+    await expect(
+      chooseUniversityAction(fields("universityId", "7")),
+    ).rejects.toThrow("redirect:/profile?saved=university");
+    expect(setUniversity).toHaveBeenCalledExactlyOnceWith("g1", "7");
+    expect(emit).toHaveBeenCalledExactlyOnceWith(
+      "university_changed",
+      { action: "set", listed: true },
+      expect.objectContaining({ userId: "g1", sessionId: "visit-1" }),
+    );
+  });
+
+  test("choosing the one it already has is no event", async () => {
+    const { chooseUniversityAction } = await actions();
+    setUniversity.mockResolvedValueOnce({
+      ok: true,
+      university: LISTED,
+      previous: LISTED,
+    });
+    await expect(
+      chooseUniversityAction(fields("universityId", "7")),
+    ).rejects.toThrow("redirect:/profile?saved=university");
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  test.each(["", "x", "7; drop", "-1", "1.5"])(
+    "%j isn't an id: nothing is written",
+    async (id) => {
+      const { chooseUniversityAction } = await actions();
+      await expect(
+        chooseUniversityAction(fields("universityId", id)),
+      ).rejects.toThrow("redirect:/profile");
+      expect(setUniversity).not.toHaveBeenCalled();
+    },
+  );
+
+  test("an id that isn't a university goes back to Profile", async () => {
+    const { chooseUniversityAction } = await actions();
+    setUniversity.mockResolvedValueOnce({ ok: false, reason: "unknown" });
+    await expect(
+      chooseUniversityAction(fields("universityId", "8")),
+    ).rejects.toThrow(/^redirect:\/profile$/);
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  test("inside the month it's refused", async () => {
+    const { chooseUniversityAction, typeUniversityAction } = await actions();
+    const refused = {
+      ok: false as const,
+      reason: "soon" as const,
+      changeableFrom: new Date("2026-12-02T10:00:00Z"),
+    };
+    setUniversity.mockResolvedValueOnce(refused);
+    setTypedUniversity.mockResolvedValueOnce(refused);
+    await expect(
+      chooseUniversityAction(fields("universityId", "7")),
+    ).rejects.toThrow("redirect:/profile?university=soon");
+    await expect(
+      typeUniversityAction(fields("name", "Night School")),
+    ).rejects.toThrow("redirect:/profile?university=soon");
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  test("a name of 120 letters outside the BMP is allowed", async () => {
+    const { typeUniversityAction } = await actions();
+    await expect(
+      typeUniversityAction(fields("name", "𝔘".repeat(120))),
+    ).rejects.toThrow("redirect:/profile?saved=university");
+  });
+
+  test("a typed name is set as typed, and recorded as not listed", async () => {
+    const { typeUniversityAction } = await actions();
+    await expect(
+      typeUniversityAction(fields("name", "  Night   School ")),
+    ).rejects.toThrow("redirect:/profile?saved=university");
+    expect(setTypedUniversity).toHaveBeenCalledExactlyOnceWith(
+      "g1",
+      "Night School",
+    );
+    expect(emit).toHaveBeenCalledExactlyOnceWith(
+      "university_changed",
+      { action: "set", listed: false },
+      expect.anything(),
+    );
+  });
+
+  // Counted as Postgres counts (code points); hidden characters could spoof a name.
+  test.each([
+    "",
+    " ",
+    "a",
+    "x".repeat(121),
+    "😀",
+    "\u202Eevil U",
+    "A\u200BB",
+    "A\u0000B",
+  ])("a typed name that can't be shown (%j) is sent back", async (name) => {
+    const { typeUniversityAction } = await actions();
+    await expect(typeUniversityAction(fields("name", name))).rejects.toThrow(
+      "redirect:/profile?university=name",
+    );
+    expect(setTypedUniversity).not.toHaveBeenCalled();
+  });
+
+  test("removing is always allowed and records the change", async () => {
+    const { removeUniversityAction } = await actions();
+    await expect(removeUniversityAction()).rejects.toThrow(
+      "redirect:/profile?saved=university-removed",
+    );
+    expect(removeUniversity).toHaveBeenCalledExactlyOnceWith("g1");
+    expect(emit).toHaveBeenCalledExactlyOnceWith(
+      "university_changed",
+      { action: "removed", listed: false },
+      expect.anything(),
+    );
+    removeUniversity.mockResolvedValueOnce(null);
+    await expect(removeUniversityAction()).rejects.toThrow(
+      "redirect:/profile?saved=university-removed",
+    );
+    expect(emit).toHaveBeenCalledOnce();
+  });
+
+  test("a guest is sent to sign up", async () => {
+    const {
+      chooseUniversityAction,
+      removeUniversityAction,
+      typeUniversityAction,
+    } = await actions();
+    current.mockResolvedValue(guest);
+    await expect(
+      chooseUniversityAction(fields("universityId", "7")),
+    ).rejects.toThrow("redirect:/sign-up");
+    await expect(
+      typeUniversityAction(fields("name", "Night School")),
+    ).rejects.toThrow("redirect:/sign-up");
+    await expect(removeUniversityAction()).rejects.toThrow("redirect:/sign-up");
+    expect(setUniversity).not.toHaveBeenCalled();
+    expect(setTypedUniversity).not.toHaveBeenCalled();
+    expect(removeUniversity).not.toHaveBeenCalled();
   });
 });

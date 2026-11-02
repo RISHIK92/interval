@@ -88,6 +88,7 @@ from interval_jobs.ports import (
     TechnologiesSynced,
     TechnologySuggestion,
     Unclaimed,
+    UniversitiesSynced,
     Usage,
     UserPreferences,
     ValidatedQuestion,
@@ -96,6 +97,7 @@ from interval_jobs.ports import (
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.segment import minutes
 from interval_jobs.technologies import TechnologySeed
+from interval_jobs.universities import UniversitySeed
 
 _FULL_TEXT: frozenset[RightsProfile] = frozenset(
     {"full_text_internal", "full_text_display"}
@@ -1925,6 +1927,7 @@ class InMemoryStore:
         self.books = InMemoryBooks()
         self.github = InMemoryGitHub()
         self.technologies = InMemoryTechnologies()
+        self.universities = InMemoryUniversities()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
 
@@ -2245,6 +2248,18 @@ class InMemoryDailyChallenges:
         fresh = [q for q in self.days[day] if q not in self.queued]
         self.queued.extend(fresh)
         return fresh
+
+
+class InMemoryUniversities:
+    """The listed universities (P3-W14-S03, ADR-0032)."""
+
+    def __init__(self) -> None:
+        self.listed: set[UniversitySeed] = set()
+
+    def sync_list(self, universities: list[UniversitySeed]) -> UniversitiesSynced:
+        new = set(universities) - self.listed
+        self.listed |= new
+        return UniversitiesSynced(added=len(new), kept=len(universities) - len(new))
 
 
 class InMemoryTechnologies:

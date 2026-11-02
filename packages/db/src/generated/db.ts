@@ -567,6 +567,12 @@ export interface PlayerCountry {
   user_id: string;
 }
 
+export interface PlayerUniversity {
+  changed_at: Generated<Timestamp>;
+  university_id: Int8 | null;
+  user_id: string;
+}
+
 export interface ProjectNote {
   content_item_id: Int8;
   created_at: Generated<Timestamp>;
@@ -838,6 +844,14 @@ export interface UnclaimedDependency {
   users: number | null;
 }
 
+export interface University {
+  country: string | null;
+  created_at: Generated<Timestamp>;
+  id: Generated<Int8>;
+  listed: boolean;
+  name: string;
+}
+
 export interface UserArticleFinished {
   content_item_id: Int8;
   finished_at: Generated<Timestamp>;
@@ -1054,6 +1068,7 @@ export interface DB {
   plan: Plan;
   plan_capability: PlanCapability;
   player_country: PlayerCountry;
+  player_university: PlayerUniversity;
   project_note: ProjectNote;
   project_note_batch_item: ProjectNoteBatchItem;
   question: Question;
@@ -1079,6 +1094,7 @@ export interface DB {
   technology_package: TechnologyPackage;
   technology_suggestion: TechnologySuggestion;
   unclaimed_dependency: UnclaimedDependency;
+  university: University;
   user_article_finished: UserArticleFinished;
   user_avoided_concept: UserAvoidedConcept;
   user_capability: UserCapability;

@@ -86,6 +86,7 @@ from interval_jobs.ports import (
     TechnologiesSynced,
     TechnologySuggestion,
     Unclaimed,
+    UniversitiesSynced,
     Usage,
     UserPreferences,
     ValidatedQuestion,
@@ -94,6 +95,7 @@ from interval_jobs.ports import (
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.technologies import TechnologySeed
+from interval_jobs.universities import UniversitySeed
 
 
 @contextmanager
@@ -3130,6 +3132,25 @@ class PostgresDailyChallenges:
         return row[1] if row[0] else None
 
 
+class PostgresUniversities:
+    """The listed universities (P3-W14-S03, ADR-0032)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def sync_list(self, universities: list[UniversitySeed]) -> UniversitiesSynced:
+        added = self._conn.execute(
+            """
+            insert into university (name, country, listed)
+            select name, country, true
+            from unnest(%s::text[], %s::text[]) as s(name, country)
+            on conflict (name, country) where listed do nothing
+            """,
+            ([u.name for u in universities], [u.country for u in universities]),
+        ).rowcount
+        return UniversitiesSynced(added=added, kept=len(universities) - added)
+
+
 class PostgresTechnologies:
     """The curated technology table (PER-4, P2-W12-S03)."""
 
@@ -3257,6 +3278,7 @@ class PostgresStore:
         self.books = PostgresBooks(conn)
         self.github = PostgresGitHub(conn)
         self.technologies = PostgresTechnologies(conn)
+        self.universities = PostgresUniversities(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)

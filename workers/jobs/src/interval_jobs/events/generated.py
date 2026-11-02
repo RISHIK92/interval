@@ -26,6 +26,7 @@ type EventName = Literal[
     "checkpoint_finished",
     "checkpoint_started",
     "continue_clicked",
+    "country_changed",
     "estimate_answered",
     "feed_viewed",
     "feedback_given",
@@ -53,6 +54,7 @@ type EventName = Literal[
     "session_started",
     "signup_completed",
     "source_hidden",
+    "university_changed",
 ]
 type BetaGroup = Literal["student", "developer"]
 type Source = Literal["web", "jobs"]
@@ -70,6 +72,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "checkpoint_finished": 1,
     "checkpoint_started": 1,
     "continue_clicked": 1,
+    "country_changed": 1,
     "estimate_answered": 1,
     "feed_viewed": 1,
     "feedback_given": 1,
@@ -97,6 +100,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "session_started": 1,
     "signup_completed": 1,
     "source_hidden": 1,
+    "university_changed": 1,
 }
 
 
@@ -173,6 +177,10 @@ class CheckpointStartedProps(_Model):
 
 class ContinueClickedProps(_Model):
     pass
+
+
+class CountryChangedProps(_Model):
+    action: Literal["set", "removed"]
 
 
 class EstimateAnsweredProps(_Model):
@@ -317,6 +325,11 @@ class SourceHiddenProps(_Model):
     pass
 
 
+class UniversityChangedProps(_Model):
+    action: Literal["set", "removed"]
+    listed: StrictBool
+
+
 class _EnvelopeBase(_Model):
     event_id: UUID
     occurred_at: AwareDatetime
@@ -403,6 +416,12 @@ class ContinueClickedEvent(_EnvelopeBase):
     name: Literal["continue_clicked"]
     version: Literal[1]
     props: ContinueClickedProps
+
+
+class CountryChangedEvent(_EnvelopeBase):
+    name: Literal["country_changed"]
+    version: Literal[1]
+    props: CountryChangedProps
 
 
 class EstimateAnsweredEvent(_EnvelopeBase):
@@ -567,6 +586,12 @@ class SourceHiddenEvent(_EnvelopeBase):
     props: SourceHiddenProps
 
 
+class UniversityChangedEvent(_EnvelopeBase):
+    name: Literal["university_changed"]
+    version: Literal[1]
+    props: UniversityChangedProps
+
+
 # Q-P1-20: every event carries the same envelope; name and version pick its props.
 type Envelope = Annotated[
     ArticleFinishedEvent
@@ -581,6 +606,7 @@ type Envelope = Annotated[
     | CheckpointFinishedEvent
     | CheckpointStartedEvent
     | ContinueClickedEvent
+    | CountryChangedEvent
     | EstimateAnsweredEvent
     | FeedViewedEvent
     | FeedbackGivenEvent
@@ -607,6 +633,7 @@ type Envelope = Annotated[
     | SectionFinishedEvent
     | SessionStartedEvent
     | SignupCompletedEvent
-    | SourceHiddenEvent,
+    | SourceHiddenEvent
+    | UniversityChangedEvent,
     Field(discriminator="name"),
 ]

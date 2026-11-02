@@ -668,6 +668,36 @@ export interface PlayerCountries {
   remove(userId: string): Promise<string | null>;
 }
 
+// P3-W14-S03 (§6.7, ADR-0032): a university from the list (listed) or typed by a player.
+export type University = {
+  id: string;
+  name: string;
+  country: string | null; // ISO alpha-2; null for a typed one
+  listed: boolean;
+};
+export type UniversityChange =
+  | { ok: true; university: University; previous: University | null }
+  | { ok: false; reason: "soon"; changeableFrom: Date }
+  | { ok: false; reason: "unknown" };
+
+// Unverified, and no email (ADR-0032). Changed at most once in 30 days; removing is
+// always allowed and keeps the clock (owner, 2026-11-02, as PlayerCountries).
+export interface PlayerUniversities {
+  get(
+    userId: string,
+  ): Promise<{ university: University | null; changeableFrom: Date | null }>;
+  // Names containing the query, any case; those starting with it first, then shorter.
+  search(query: string, limit: number): Promise<University[]>;
+  // The same university again changes nothing and keeps the clock.
+  set(userId: string, universityId: string): Promise<UniversityChange>;
+  // The university already called that, in any case: the listed one when exactly one
+  // has the name, else the typed one; else a new typed one. `name` is checked by
+  // universityName (server/universities.ts).
+  setTyped(userId: string, name: string): Promise<UniversityChange>;
+  // The university it was, if any.
+  remove(userId: string): Promise<University | null>;
+}
+
 export interface GuestSessions {
   // Creates a guest (anonymous user) in the redemption's beta group and returns it with
   // the Set-Cookie values for its session. If it throws anything but GuestNotRemoved, no
@@ -1402,6 +1432,19 @@ export interface AdminDaily {
   // Another question of the slot's kind by the pick rule (daily_challenge_swap);
   // false for a started day, an empty slot, or when nothing fits.
   swap(day: string, position: number): Promise<boolean>;
+}
+// P3-W14-S03 (ADR-0032): the owner tidies typed universities. Each acts on typed rows
+// only; listed ones come from the seed.
+export interface AdminUniversities {
+  // Typed universities with how many players have them, most first.
+  typed(): Promise<{ id: string; name: string; members: number }[]>;
+  // "taken": another university has that name (merge instead). `name` is checked by
+  // universityName.
+  rename(id: string, name: string): Promise<"renamed" | "missing" | "taken">;
+  // Its players move to `intoId` with their clocks as they were; the typed row goes.
+  merge(id: string, intoId: string): Promise<boolean>;
+  // Its players are left with none, their clocks as they were.
+  remove(id: string): Promise<boolean>;
 }
 export interface AdminTechnologies {
   pending(): Promise<TechnologySuggestionRow[]>;

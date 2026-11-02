@@ -542,6 +542,12 @@ class PlayerCountry(TypedDict):
     changed_at: datetime
 
 
+class PlayerUniversity(TypedDict):
+    user_id: str
+    university_id: int | None
+    changed_at: datetime
+
+
 class ProjectNote(TypedDict):
     id: int
     user_id: str
@@ -811,6 +817,14 @@ class UnclaimedDependency(TypedDict):
     package: str | None
     users: int | None
     asked: bool | None
+
+
+class University(TypedDict):
+    id: int
+    name: str
+    country: str | None
+    listed: bool
+    created_at: datetime
 
 
 class UserArticleFinished(TypedDict):

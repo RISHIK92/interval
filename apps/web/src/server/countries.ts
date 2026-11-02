@@ -17,7 +17,7 @@ export const COUNTRY_CODES = new Set(
 
 const names = new Intl.DisplayNames(["en"], { type: "region" });
 
-function countryName(code: string): string {
+export function countryName(code: string): string {
   return names.of(code) ?? code;
 }
 

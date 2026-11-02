@@ -14,6 +14,7 @@ export const EVENT_NAMES = [
   "checkpoint_finished",
   "checkpoint_started",
   "continue_clicked",
+  "country_changed",
   "estimate_answered",
   "feed_viewed",
   "feedback_given",
@@ -41,6 +42,7 @@ export const EVENT_NAMES = [
   "session_started",
   "signup_completed",
   "source_hidden",
+  "university_changed",
 ] as const;
 export type EventName = (typeof EVENT_NAMES)[number];
 
@@ -57,6 +59,7 @@ export const EVENT_VERSIONS = {
   checkpoint_finished: 1,
   checkpoint_started: 1,
   continue_clicked: 1,
+  country_changed: 1,
   estimate_answered: 1,
   feed_viewed: 1,
   feedback_given: 1,
@@ -84,6 +87,7 @@ export const EVENT_VERSIONS = {
   session_started: 1,
   signup_completed: 1,
   source_hidden: 1,
+  university_changed: 1,
 } as const satisfies Record<EventName, number>;
 
 export const propsSchemas = {
@@ -145,6 +149,7 @@ export const propsSchemas = {
     section_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   continue_clicked: z.strictObject({}),
+  country_changed: z.strictObject({ action: z.enum(["set", "removed"]) }),
   estimate_answered: z.strictObject({
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     question_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -252,6 +257,10 @@ export const propsSchemas = {
   session_started: z.strictObject({}),
   signup_completed: z.strictObject({}),
   source_hidden: z.strictObject({}),
+  university_changed: z.strictObject({
+    action: z.enum(["set", "removed"]),
+    listed: z.boolean(),
+  }),
 } as const;
 
 export type EventProps = {
@@ -341,6 +350,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("continue_clicked"),
     version: z.literal(1),
     props: propsSchemas.continue_clicked,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("country_changed"),
+    version: z.literal(1),
+    props: propsSchemas.country_changed,
   }),
   z.strictObject({
     ...base,
@@ -503,6 +518,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("source_hidden"),
     version: z.literal(1),
     props: propsSchemas.source_hidden,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("university_changed"),
+    version: z.literal(1),
+    props: propsSchemas.university_changed,
   }),
 ]);
 export type Envelope = z.infer<typeof envelopeSchema>;

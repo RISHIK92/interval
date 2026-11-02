@@ -7,6 +7,8 @@ import type {
   Progress,
   GitHubAccounts,
   PlayerCountries,
+  PlayerUniversities,
+  University,
 } from "../../server/ports";
 
 // §5A, Q-P1-36, P1-W4-S08: choices, hidden sources, and what was inferred.
@@ -35,7 +37,14 @@ vi.mock("../../server/container", () => ({
   githubApp: () => (githubOffered ? {} : null),
   githubAccounts: () => ({ get: githubConnection }),
   playerCountries: () => ({ get: countryGet }),
+  playerUniversities: () => ({ get: universityGet, search: universitySearch }),
 }));
+const universityGet = vi.fn<PlayerUniversities["get"]>(() =>
+  Promise.resolve({ university: null, changeableFrom: null }),
+);
+const universitySearch = vi.fn<PlayerUniversities["search"]>(() =>
+  Promise.resolve([]),
+);
 const countryGet = vi.fn<PlayerCountries["get"]>(() =>
   Promise.resolve({ country: null, changeableFrom: null }),
 );
@@ -397,5 +406,96 @@ describe("country", () => {
     expect(tag(html, /<select/)).toContain("disabled");
     expect(html).toContain("You can change it again from 3 December 2026.");
     expect(html).not.toContain("Remove country");
+  });
+});
+
+// P3-W14-S03 (§6.7, ADR-0032): picked from the list or typed; once a month.
+describe("university", () => {
+  const signedIn = () => {
+    current.mockResolvedValue(user);
+    get.mockResolvedValue(preferences);
+  };
+  const DELHI: University = {
+    id: "7",
+    name: "Indian Institute of Technology Delhi",
+    country: "IN",
+    listed: true,
+  };
+  const TYPED: University = {
+    id: "9",
+    name: "Night School",
+    country: null,
+    listed: false,
+  };
+
+  test("not set: a search and a typed name, no results until searched, no Remove", async () => {
+    signedIn();
+    const html = await page();
+    expect(html).toContain('aria-label="University"');
+    expect(html).toMatch(/<form[^>]*action="\/profile"[^>]*method="get"/);
+    expect(html).toMatch(/<input[^>]*name="uq"/);
+    expect(html).toMatch(/<input[^>]*required[^>]*name="name"/);
+    expect(html).toContain("Use this name");
+    expect(universitySearch).not.toHaveBeenCalled();
+    expect(html).not.toContain("Remove university");
+  });
+
+  test("searching lists matches, each with its country and a Choose button", async () => {
+    signedIn();
+    universitySearch.mockResolvedValueOnce([DELHI, TYPED]);
+    const html = await page({ uq: " delhi " });
+    expect(universitySearch).toHaveBeenCalledExactlyOnceWith("delhi", 20);
+    expect(html).toMatch(/<input[^>]*name="uq"[^>]*value=" delhi "/);
+    expect(html).toContain("Indian Institute of Technology Delhi");
+    expect(html).toContain("India");
+    expect(html).toContain(
+      'aria-label="Choose Indian Institute of Technology Delhi"',
+    );
+    expect(html).toMatch(/<input[^>]*name="universityId"[^>]*value="7"/);
+    expect(html).toContain("Added by players");
+  });
+
+  test("a search with no match says so; one letter isn't searched", async () => {
+    signedIn();
+    const none = await page({ uq: "zzzz" });
+    expect(none).toContain("No university matches");
+    await page({ uq: "z" });
+    expect(universitySearch).toHaveBeenCalledOnce();
+  });
+
+  test("set: shown with its country, with Remove", async () => {
+    signedIn();
+    universityGet.mockResolvedValueOnce({
+      university: DELHI,
+      changeableFrom: null,
+    });
+    const html = await page({ saved: "university" });
+    expect(html).toContain("Indian Institute of Technology Delhi");
+    expect(html).toContain("Remove university");
+    expect(html).toContain("University saved.");
+  });
+
+  test("inside the month: no search or typing, the day it opens, Remove still there", async () => {
+    signedIn();
+    universityGet.mockResolvedValueOnce({
+      university: TYPED,
+      changeableFrom: new Date("2026-12-02T10:00:00Z"),
+    });
+    const html = await page({ university: "soon", uq: "delhi" });
+    expect(html).not.toMatch(/name="uq"/);
+    expect(html).not.toContain("Use this name");
+    expect(universitySearch).not.toHaveBeenCalled();
+    expect(html).toContain("Night School");
+    expect(html).toContain("You can change it again from 3 December 2026.");
+    expect(html).toContain("Remove university");
+    expect(html).toContain("A university can be changed once a month.");
+  });
+
+  test("a typed name of the wrong length is explained", async () => {
+    signedIn();
+    const html = await page({ university: "name" });
+    expect(html).toContain(
+      "A university&#x27;s name is 2 to 120 letters, without hidden characters.",
+    );
   });
 });

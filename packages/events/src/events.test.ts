@@ -55,6 +55,9 @@ describe("the event list (Q-P1-20)", () => {
         "game_started", // P3-W13-S02
         "game_finished",
         "estimate_answered", // P3-W13-S04
+        // The owner's answer of 2026-11-02 (P3-W14-S03).
+        "country_changed",
+        "university_changed",
       ].sort(),
     );
   });
