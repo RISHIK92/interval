@@ -191,7 +191,12 @@ func TestTwoPlayersPlayARound(t *testing.T) {
 		}
 	}
 	for _, c := range []*websocket.Conn{ada, bob} {
-		r := read(c)
+		if m := read(c); m["type"] != "countdown" {
+			t.Fatalf("got %v", m)
+		}
+	}
+	for _, c := range []*websocket.Conn{ada, bob} {
+		r := read(c) // 3 s on
 		if r["type"] != "round" || r["n"] != float64(1) {
 			t.Fatalf("got %v", r)
 		}
@@ -206,12 +211,11 @@ func TestTwoPlayersPlayARound(t *testing.T) {
 	answer(ada, 0)
 	answer(bob, 3)
 	reveal := read(ada)
-	if reveal["type"] != "reveal" || reveal["correct"] != float64(0) {
-		t.Fatalf("reveal: %v", reveal)
+	for reveal["type"] == "locked" {
+		reveal = read(ada)
 	}
-	pts := reveal["points"].(map[string]any)
-	if pts["user-1"].(float64) < 100 || pts["user-2"] != float64(0) {
-		t.Fatalf("points: %v", pts)
+	if reveal["type"] != "reveal" || reveal["correct"] != float64(0) || reveal["taken"] != "user-1" {
+		t.Fatalf("reveal: %v", reveal)
 	}
 }
 

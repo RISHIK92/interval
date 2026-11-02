@@ -1,33 +1,36 @@
 import { z } from "zod";
-import {
-  parseMessage,
-  START,
-  sprintStep,
-  type SprintState,
-} from "./sprint-state";
 
-// P3-W16-S04 (Q-P3-23): the live sprint's queue and socket, apart from React so it can
-// be tested with fakes. Queue (join, poll about once a second, leave when stopped
+// P3-W16-S04, S05 (Q-P3-23, Q-P3-24): a live game's queue and socket, apart from React
+// so it can be tested with fakes. Queue (join, poll about once a second, leave when stopped
 // unmatched), then the match on the game server's socket, reconnecting while the
 // server would still take the player back.
 
-export type SprintSocket = {
+export type LiveSocket = {
   readonly readyState: number;
   send(data: string): void;
   close(): void;
 };
 // Called with each frame's data and the close's reason.
-export type SprintHandlers = {
+export type LiveHandlers = {
   message: (data: unknown) => void;
   close: (reason: string) => void;
 };
 
-export type SprintDeps = {
+// A mode's screen state from the game server's messages (sprint-state, finger-state).
+export type LiveGame<S> = {
+  start: S;
+  // Null: not one of this game's messages.
+  step: (state: S, raw: unknown, now: number) => S | null;
+  over: (state: S) => boolean;
+};
+
+export type LiveDeps<S> = {
+  game: LiveGame<S>;
   queue: (method: "POST" | "PUT" | "DELETE") => Promise<Response>;
-  open: (matchId: string, on: SprintHandlers) => Promise<SprintSocket>;
+  open: (matchId: string, on: LiveHandlers) => Promise<LiveSocket>;
   wait: (ms: number) => Promise<void>;
   now: () => number;
-  onState: (state: SprintState) => void;
+  onState: (state: S) => void;
   onError: () => void; // the match can't go on
 };
 
@@ -47,40 +50,40 @@ const RECONNECT_WINDOW_MS = 60_000;
 const FINAL_CLOSES = new Set(["match over", "joined again elsewhere"]);
 const OPEN = 1; // WebSocket.OPEN
 
-export function runSprint(deps: SprintDeps): {
+export function runLive<S>(deps: LiveDeps<S>): {
   answer: (n: number, choice: number) => boolean;
   stop: () => void;
 } {
   let stopped = false;
   let matched = false;
-  let state: SprintState = START;
-  let socket: SprintSocket | null = null;
+  let state: S = deps.game.start;
+  let socket: LiveSocket | null = null;
 
   const fail = (error: unknown) => {
-    console.error("live sprint failed", error);
+    console.error("live game failed", error);
     if (!stopped) deps.onError();
   };
-  const over = () => state.phase === "final" || state.phase === "cancelled";
+  const over = () => deps.game.over(state);
 
   const connect = async (matchId: string, droppedAt: number | null) => {
     let heard = false;
-    let ws: SprintSocket | null = null;
-    const on: SprintHandlers = {
+    let ws: LiveSocket | null = null;
+    const on: LiveHandlers = {
       message: (data) => {
         let raw: unknown;
         try {
           raw = JSON.parse(String(data));
         } catch (error) {
-          console.error("live sprint: not JSON", data, error);
+          console.error("live game: not JSON", data, error);
           return;
         }
-        const message = parseMessage(raw);
-        if (message === null) {
-          console.error("live sprint: not a sprint message", raw);
+        const next = deps.game.step(state, raw, deps.now());
+        if (next === null) {
+          console.error("live game: not one of its messages", raw);
           return;
         }
         heard = true;
-        state = sprintStep(state, message, deps.now());
+        state = next;
         if (!stopped) deps.onState(state);
       },
       close: (reason) => {
@@ -118,6 +121,7 @@ export function runSprint(deps: SprintDeps): {
     if (!stopped) await connect(matchId, droppedAt);
   };
 
+  let rejoined = false;
   const run = async () => {
     const joined = await deps.queue("POST");
     if (!joined.ok) throw new Error(`queue: ${String(joined.status)}`);
@@ -133,7 +137,11 @@ export function runSprint(deps: SprintDeps): {
       }
       if (body.status === "none") {
         // Out of the queue (a throttled tab went stale, or a leave raced this join):
-        // join again rather than poll a queue the player isn't in.
+        // join again, once. Out again means another tab took this player into another
+        // mode's queue (one at a time, Q-P3-24); joining back would push that tab out
+        // in turn, forever.
+        if (rejoined) throw new Error("queue: joined elsewhere");
+        rejoined = true;
         const again = await deps.queue("POST");
         if (!again.ok) throw new Error(`queue: ${String(again.status)}`);
       }

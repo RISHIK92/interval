@@ -1,19 +1,19 @@
 import { afterEach, expect, test, vi } from "vitest";
 import {
-  runSprint,
-  type SprintDeps,
-  type SprintHandlers,
-  type SprintSocket,
-} from "./sprint-client";
-import type { SprintState } from "./sprint-state";
+  runLive,
+  type LiveDeps,
+  type LiveHandlers,
+  type LiveSocket,
+} from "./live-client";
+import { SPRINT, type SprintState } from "./sprint-state";
 
-// P3-W16-S04 (Q-P3-23): the live sprint's queue and socket, with fakes.
+// P3-W16-S04 (Q-P3-23): a live game's queue and socket, with fakes (here, a sprint).
 
-class FakeSocket implements SprintSocket {
+class FakeSocket implements LiveSocket {
   readyState = 1;
   sent: string[] = [];
   closed = false;
-  constructor(private readonly on: SprintHandlers) {}
+  constructor(private readonly on: LiveHandlers) {}
   send(data: string) {
     this.sent.push(data);
   }
@@ -42,7 +42,8 @@ function harness(polls: unknown[]) {
   const sockets: FakeSocket[] = [];
   const states: SprintState[] = [];
   let openFails = 0;
-  const deps: SprintDeps = {
+  const deps: LiveDeps<SprintState> = {
+    game: SPRINT,
     queue: (method) => {
       calls.push(method);
       if (method !== "PUT")
@@ -88,7 +89,7 @@ test("joins, polls, joins again when out of the queue, then plays the match", as
     { status: "none" },
     { status: "matched", matchId: "m1" },
   ]);
-  const sprint = runSprint(h.deps);
+  const sprint = runLive(h.deps);
   await flush();
   expect(h.calls).toEqual(["POST", "PUT", "PUT", "POST", "PUT"]);
   const [socket] = h.sockets;
@@ -112,7 +113,7 @@ test("joins, polls, joins again when out of the queue, then plays the match", as
 
 test("stopped while queued, it leaves the queue", async () => {
   const h = harness([]);
-  const sprint = runSprint(h.deps);
+  const sprint = runLive(h.deps);
   await flush();
   sprint.stop();
   await flush();
@@ -128,7 +129,7 @@ test("a failed leave is logged", async () => {
         ? new Response(null, { status: 500 })
         : json({ status: "waiting" }),
     );
-  const sprint = runSprint(h.deps);
+  const sprint = runLive(h.deps);
   await flush();
   sprint.stop();
   await flush();
@@ -137,7 +138,7 @@ test("a failed leave is logged", async () => {
 
 test("a dropped socket reconnects, and a failed ticket is tried again", async () => {
   const h = harness([{ status: "matched", matchId: "m1" }]);
-  runSprint(h.deps);
+  runLive(h.deps);
   await flush();
   h.sockets[0]?.message({ type: "start", seconds: 60 });
   h.failOpens(1);
@@ -149,7 +150,7 @@ test("a dropped socket reconnects, and a failed ticket is tried again", async ()
 
 test("each drop gets its own window once back; past 60 s it gives up", async () => {
   const h = harness([{ status: "matched", matchId: "m1" }]);
-  runSprint(h.deps);
+  runLive(h.deps);
   await flush();
   for (let i = 0; i < 5; i += 1) {
     h.sockets.at(-1)?.message({ type: "start", seconds: 60 });
@@ -166,7 +167,7 @@ test("each drop gets its own window once back; past 60 s it gives up", async () 
 
 test("no reconnect after the final, nor after the server says the match is over", async () => {
   const h = harness([{ status: "matched", matchId: "m1" }]);
-  runSprint(h.deps);
+  runLive(h.deps);
   await flush();
   h.sockets[0]?.message({ type: "final", totals: {}, winner: "" });
   h.sockets[0]?.drop("match over");
@@ -175,7 +176,7 @@ test("no reconnect after the final, nor after the server says the match is over"
   expect(h.deps.onError).not.toHaveBeenCalled();
 
   const h2 = harness([{ status: "matched", matchId: "m2" }]);
-  runSprint(h2.deps);
+  runLive(h2.deps);
   await flush();
   h2.sockets[0]?.drop("joined again elsewhere");
   await flush();
@@ -185,11 +186,19 @@ test("no reconnect after the final, nor after the server says the match is over"
 
 test("a frame that isn't a sprint message is logged, not shown", async () => {
   const h = harness([{ status: "matched", matchId: "m1" }]);
-  runSprint(h.deps);
+  runLive(h.deps);
   await flush();
   const before = h.states.length;
   h.sockets[0]?.raw("not json");
   h.sockets[0]?.message({ type: "reveal", n: 1 });
   expect(h.states).toHaveLength(before);
   expect(errors).toHaveBeenCalledTimes(2);
+});
+
+test("out of the queue twice (another tab's mode took it): it stops, not fights", async () => {
+  const h = harness([{ status: "none" }, { status: "none" }]);
+  runLive(h.deps);
+  await flush();
+  expect(h.calls).toEqual(["POST", "PUT", "POST", "PUT"]);
+  expect(h.deps.onError).toHaveBeenCalledOnce();
 });

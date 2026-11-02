@@ -6,7 +6,7 @@ import {
   playerRatings,
   sessionReader,
 } from "../../../../server/container";
-import type { Actor, Matchmaking } from "../../../../server/ports";
+import type { Actor, GameMode } from "../../../../server/ports";
 import { sameOrigin } from "../../../../server/same-origin";
 import { visitId } from "../../../../server/visits";
 
@@ -21,28 +21,35 @@ const Mode = z.enum(["sprint", "fastest_finger"]);
 
 async function player(
   request: Request,
-): Promise<{ actor: Actor; queue: Matchmaking } | Response> {
+): Promise<{ actor: Actor; mode: GameMode } | Response> {
   if (!sameOrigin(request)) return new Response(null, { status: 403 });
   const mode = Mode.safeParse(new URL(request.url).searchParams.get("mode"));
   if (!mode.success) return new Response(null, { status: 400 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
-  return { actor, queue: matchmaking(mode.data) };
+  return { actor, mode: mode.data };
 }
 
 export async function POST(request: Request): Promise<Response> {
   const seat = await player(request);
   if (seat instanceof Response) return seat;
-  const { actor, queue } = seat;
-  await queue.join(actor.userId, await playerRatings().of(actor.userId));
+  const { actor, mode } = seat;
+  // Q-P3-24: one queue at a time, so nobody is matched twice at once.
+  await matchmaking(mode === "sprint" ? "fastest_finger" : "sprint").leave(
+    actor.userId,
+  );
+  await matchmaking(mode).join(
+    actor.userId,
+    await playerRatings().of(actor.userId),
+  );
   return new Response(null, { status: 204 });
 }
 
 export async function PUT(request: Request): Promise<Response> {
   const seat = await player(request);
   if (seat instanceof Response) return seat;
-  const { actor, queue } = seat;
-  const state = await queue.poll(actor.userId);
+  const { actor, mode } = seat;
+  const state = await matchmaking(mode).poll(actor.userId);
   if (state.status === "matched" && state.first)
     // The Phase 3 time-to-match metric; once per player.
     events().emit(
@@ -61,7 +68,7 @@ export async function PUT(request: Request): Promise<Response> {
 export async function DELETE(request: Request): Promise<Response> {
   const seat = await player(request);
   if (seat instanceof Response) return seat;
-  const { actor, queue } = seat;
-  await queue.leave(actor.userId);
+  const { actor, mode } = seat;
+  await matchmaking(mode).leave(actor.userId);
   return new Response(null, { status: 204 });
 }

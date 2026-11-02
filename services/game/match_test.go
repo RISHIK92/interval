@@ -117,7 +117,23 @@ func startActor(t *testing.T, def matchDef) (*actor, *fakeClock, *fakeSeat, *fak
 	ada, bob := newFakeSeat(), newFakeSeat()
 	a.join("ada", ada)
 	a.join("bob", bob)
+	if def.Mode != sprintMode {
+		passCountdown(t, a, clock, ada, bob)
+	}
 	return a, clock, ada, bob
+}
+
+// Plays the 3 s before round 1 (P3-W16-S05); the next message is round 1.
+func passCountdown(t *testing.T, a *actor, clock *fakeClock, seats ...*fakeSeat) {
+	t.Helper()
+	for _, s := range seats {
+		if m := s.next(t); m["type"] != "countdown" {
+			t.Fatalf("got %v", m)
+		}
+	}
+	settle(a)
+	clock.Advance(countdownTime)
+	settle(a)
 }
 
 // Waits until the actor has taken every event sent so far, so the clock can move on.
@@ -137,23 +153,17 @@ func TestAFullMatch(t *testing.T) {
 			t.Fatal("bob got no round")
 		}
 		correct := (n - 1) % 4
-		// Ada answers right after 3 s with a 100 ms round trip; Bob wrong at once.
+		// Ada answers right after 3 s with a 100 ms round trip; Bob wrong.
 		a.rtt("ada", 100*time.Millisecond)
 		clock.Advance(3 * time.Second)
 		a.answer("ada", n, correct)
 		a.answer("bob", n, (correct+1)%4)
 		settle(a)
-		// Both answered: the round ends without waiting out its 15 s.
-		reveal := ada.next(t)
-		if reveal["type"] != "reveal" || reveal["correct"] != float64(correct) {
+		reveal := until(t, ada, "reveal")
+		if reveal["correct"] != float64(correct) || reveal["taken"] != "ada" {
 			t.Fatalf("reveal %d: %v", n, reveal)
 		}
-		pts := reveal["points"].(map[string]any)
-		// 2950 ms compensated: 100 + round(50 × (1 - 2.95/15)) = 140.
-		if pts["ada"] != float64(140) || pts["bob"] != float64(0) {
-			t.Fatalf("points %d: %v", n, pts)
-		}
-		bob.next(t)
+		until(t, bob, "reveal")
 		settle(a) // the pause's timer is set once the reveal is out
 		clock.Advance(revealPause)
 		settle(a)
@@ -162,7 +172,7 @@ func TestAFullMatch(t *testing.T) {
 	if final["type"] != "final" || final["winner"] != "ada" {
 		t.Fatalf("final: %v", final)
 	}
-	if totals := final["totals"].(map[string]any); totals["ada"] != float64(980) || totals["bob"] != float64(0) {
+	if totals := final["totals"].(map[string]any); totals["ada"] != float64(7) || totals["bob"] != float64(0) {
 		t.Fatalf("totals: %v", totals)
 	}
 	bob.next(t)
@@ -171,27 +181,23 @@ func TestAFullMatch(t *testing.T) {
 	}
 }
 
-func TestARoundEndsAtItsTimeAndOnlyFirstAnswersCount(t *testing.T) {
-	a, clock, ada, bob := startActor(t, sevenRounds())
+func TestOnlyAPlayersRealFirstAnswerToThisRoundCounts(t *testing.T) {
+	a, _, ada, bob := startActor(t, sevenRounds())
 	ada.next(t)
 	bob.next(t)
 	a.answer("ada", 2, 1) // another round: ignored
 	a.answer("ada", 1, 9) // no such choice: ignored
-	a.answer("ada", 1, 0) // right (round 1's key is 0)
-	a.answer("ada", 1, 1) // a second answer: ignored
 	a.answer("eve", 1, 0) // not a player: ignored
 	settle(a)
 	select {
 	case m := <-ada.out:
-		t.Fatalf("the round ended before its time: %v", m)
+		t.Fatalf("an ignored answer did something: %v", m)
 	default:
 	}
-	clock.Advance(roundTime)
+	a.answer("ada", 1, 0) // right (round 1's key is 0): taken
 	settle(a)
-	reveal := ada.next(t)
-	pts := reveal["points"].(map[string]any)
-	if pts["ada"] != float64(150) || pts["bob"] != float64(0) {
-		t.Fatalf("points: %v", pts)
+	if reveal := until(t, ada, "reveal"); reveal["taken"] != "ada" {
+		t.Fatalf("got %v", reveal)
 	}
 }
 
@@ -213,35 +219,7 @@ func TestAMatchNobodyCompletesIsCancelled(t *testing.T) {
 	}
 }
 
-func TestATieGoesToTheFaster(t *testing.T) {
-	a, clock, ada, bob := startActor(t, sevenRounds())
-	for n := 1; n <= 7; n++ {
-		ada.next(t)
-		bob.next(t)
-		correct := (n - 1) % 4
-		clock.Advance(time.Second)
-		a.answer("bob", n, correct)
-		settle(a)
-		clock.Advance(50 * time.Millisecond)
-		a.answer("ada", n, correct)
-		settle(a)
-		// 1.00 s and 1.05 s both round to 147: equal totals, and Bob was faster.
-		ada.next(t)
-		bob.next(t)
-		settle(a) // the pause's timer is set once the reveal is out
-		clock.Advance(revealPause)
-		settle(a)
-	}
-	final := ada.next(t)
-	if totals := final["totals"].(map[string]any); totals["ada"] != totals["bob"] {
-		t.Fatalf("not a tie: %v", totals)
-	}
-	if final["winner"] != "bob" {
-		t.Fatalf("final: %v", final)
-	}
-}
-
-func TestAnAnswerAfterTheRoundsTimeScoresNothing(t *testing.T) {
+func TestAnAnswerAfterTheRoundsTimeTakesNothing(t *testing.T) {
 	a, clock, ada, bob := startActor(t, sevenRounds())
 	ada.next(t)
 	bob.next(t)
@@ -251,8 +229,8 @@ func TestAnAnswerAfterTheRoundsTimeScoresNothing(t *testing.T) {
 	settle(a)
 	clock.Advance(roundTime)
 	settle(a)
-	if pts := ada.next(t)["points"].(map[string]any); pts["ada"] != float64(0) {
-		t.Fatalf("points: %v", pts)
+	if reveal := ada.next(t); reveal["taken"] != "" {
+		t.Fatalf("got %v", reveal)
 	}
 }
 
@@ -265,8 +243,8 @@ func TestAPlayerTooSlowToKeepUpIsDropped(t *testing.T) {
 	bob.slow = true
 	a.join("ada", ada)
 	a.join("bob", bob)
-	if ada.next(t)["type"] != "round" {
-		t.Fatal("no round")
+	if ada.next(t)["type"] != "countdown" {
+		t.Fatal("no countdown")
 	}
 	if reason := <-bob.closed; reason != "too slow" {
 		t.Fatalf("closed with %q", reason)

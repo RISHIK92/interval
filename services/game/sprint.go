@@ -15,7 +15,7 @@ const (
 type sprintRun struct {
 	live  bool      // past the countdown
 	over  bool      // the 60 s are up: late answers are still judged, nothing more is asked
-	until time.Time // when the countdown, then the sprint, ends
+	until time.Time // when the sprint ends
 	start time.Time
 	at    map[string]int // a player's questions answered: the next one is at+1
 }
@@ -23,10 +23,9 @@ type sprintRun struct {
 func (a *actor) sprint(p *play) {
 	// A restart's snapshot carries no answers (the one saved here, at the start): the
 	// interrupted sprint plays again from its countdown (owner, 2026-11-02).
-	s := &sprintRun{at: map[string]int{}, until: a.clock.Now().Add(countdownTime)}
+	s := &sprintRun{at: map[string]int{}}
 	p.sprint = s
-	a.broadcast(p, map[string]any{"type": "countdown", "seconds": seconds(countdownTime)})
-	if !a.sprintWait(p, a.clock.After(countdownTime)) {
+	if !a.countdownFirst(p) {
 		return
 	}
 	s.live, s.start = true, a.clock.Now()
@@ -38,7 +37,7 @@ func (a *actor) sprint(p *play) {
 	}
 	// Saved once the clock runs, so a slow save never lengthens the countdown.
 	a.persist(snap{Next: 1, Totals: p.totals, Times: p.times, Answers: p.answers})
-	if !a.sprintWait(p, end) {
+	if !a.waitFor(p, end) {
 		return
 	}
 	s.over = true
@@ -54,8 +53,18 @@ func (a *actor) sprint(p *play) {
 	a.finish(p)
 }
 
-// False when the match ended while waiting (an abandon decided it, or the server stops).
-func (a *actor) sprintWait(p *play, until <-chan time.Time) bool {
+// The 3 s before the first question, for either mode; false when the match ended in it.
+func (a *actor) countdownFirst(p *play) bool {
+	p.countdown = a.clock.Now().Add(countdownTime)
+	a.broadcast(p, map[string]any{"type": "countdown", "seconds": seconds(countdownTime)})
+	ok := a.waitFor(p, a.clock.After(countdownTime))
+	p.countdown = time.Time{}
+	return ok
+}
+
+// False when the match ended while waiting (an abandon decided it, or the server
+// stops). A sprint every player has finished stops waiting (Q-P3-24).
+func (a *actor) waitFor(p *play, until <-chan time.Time) bool {
 	for {
 		select {
 		case e := <-a.events:
@@ -70,7 +79,19 @@ func (a *actor) sprintWait(p *play, until <-chan time.Time) bool {
 			a.finish(p)
 			return false
 		}
+		if s := p.sprint; s != nil && s.live && a.allDone(p) {
+			return true
+		}
 	}
+}
+
+func (a *actor) allDone(p *play) bool {
+	for _, player := range a.def.Players {
+		if p.sprint.at[player] < len(a.def.Rounds) {
+			return false
+		}
+	}
+	return true
 }
 
 func (a *actor) sprintAnswer(p *play, e event) {
@@ -113,14 +134,10 @@ func (a *actor) sprintAnswer(p *play, e event) {
 	}
 }
 
-// A player back within the grace: the countdown's time left, or where they stand.
+// A player back within the grace (after the countdown): where they stand.
 func (a *actor) sprintResume(p *play, player string, seat seat) {
 	s := p.sprint
 	left := max(0, s.until.Sub(a.clock.Now()))
-	if !s.live {
-		seat.send(map[string]any{"type": "countdown", "seconds": seconds(left)})
-		return
-	}
 	seat.send(map[string]any{"type": "resume", "seconds": seconds(left), "correct": p.totals})
 	if !s.over { // the final is on its way: nothing more to answer
 		seat.send(a.nextFor(p, player))

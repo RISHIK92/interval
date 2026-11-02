@@ -25,7 +25,7 @@ export const dynamic = "force-dynamic";
 
 // §6.3: the quick games, as the table words them. Estimation's full points are C-27's
 // 1.25× (ADR-0006). Each game is its own capability (OPS-3), so a plan can leave one
-// out; fastest finger is the live one. In §6.3's order.
+// out; fastest finger is the live one (P3-W16-S05). In §6.3's order.
 // `start`: playable now (P3-W13-S02: the sprint; S04: estimation; S05: the daily
 // challenge, whose card also shows today's result and the streak); the rest arrive
 // with their slices.
@@ -158,6 +158,14 @@ export default async function PlayPage(props: {
                 <p className="mt-auto pt-2 text-sm text-ink-muted">
                   Not on your plan
                 </p>
+              ) : game.capability === "play.live" && live ? (
+                // P3-W16-S05 (Q-P3-24): live only.
+                <Link
+                  href="/play/live/fastest-finger"
+                  className="mt-auto self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+                >
+                  Play live
+                </Link>
               ) : game.capability === "play.daily" && today !== null ? (
                 <DailyPlay status={today} />
               ) : game.start !== undefined && actor !== null ? (
@@ -181,7 +189,8 @@ export default async function PlayPage(props: {
                 </div>
               ) : (
                 <p className="mt-auto pt-2 text-sm text-ink-muted">
-                  {game.start !== undefined
+                  {game.start !== undefined ||
+                  (game.capability === "play.live" && gameEnv() !== null)
                     ? "Play as a guest below, or sign in"
                     : "Coming later"}
                 </p>

@@ -17,7 +17,7 @@ import (
 // a restart plays on from it, a dropped player has 10 s to come back, and one who
 // doesn't abandons: the match ends and the other wins.
 
-// Plays round n with both answering right at once, then the reveal and the pause.
+// Plays round n, Ada right and Bob wrong (Ada takes it), then the reveal and the pause.
 func playRound(t *testing.T, a *actor, clock *fakeClock, ada, bob *fakeSeat, n int) {
 	t.Helper()
 	if r := ada.next(t); r["type"] != "round" || r["n"] != float64(n) {
@@ -28,8 +28,8 @@ func playRound(t *testing.T, a *actor, clock *fakeClock, ada, bob *fakeSeat, n i
 	a.answer("ada", n, correct)
 	a.answer("bob", n, (correct+1)%4)
 	settle(a)
-	ada.next(t)
-	bob.next(t)
+	until(t, ada, "reveal")
+	until(t, bob, "reveal")
 	settle(a)
 	clock.Advance(revealPause)
 	settle(a)
@@ -46,10 +46,11 @@ func TestASnapshotAfterEachRoundAndAtTheEnd(t *testing.T) {
 	ada, bob := newFakeSeat(), newFakeSeat()
 	a.join("ada", ada)
 	a.join("bob", bob)
+	passCountdown(t, a, clock, ada, bob)
 	playRound(t, a, clock, ada, bob, 1)
 	playRound(t, a, clock, ada, bob, 2)
 	saved, _, _ := store.snapshot(context.Background(), "m")
-	if saved.Next != 3 || saved.Totals["ada"] != 300 || saved.Over {
+	if saved.Next != 3 || saved.Totals["ada"] != 2 || saved.Over {
 		t.Fatalf("after round 2: %+v", saved)
 	}
 	for n := 3; n <= 6; n++ {
@@ -60,7 +61,7 @@ func TestASnapshotAfterEachRoundAndAtTheEnd(t *testing.T) {
 	a.answer("ada", 7, 2)
 	a.answer("bob", 7, 2)
 	settle(a)
-	ada.next(t) // reveal
+	until(t, ada, "reveal")
 	if final := ada.next(t); final["type"] != "final" {
 		t.Fatalf("got %v", final)
 	}
@@ -74,7 +75,7 @@ func TestARestartPlaysOnFromItsSnapshot(t *testing.T) {
 	store := newMemStore(map[string]matchDef{"m": sevenRounds()})
 	_ = store.save(context.Background(), "m", snap{
 		Next:   4,
-		Totals: map[string]int{"ada": 450, "bob": 120},
+		Totals: map[string]int{"ada": 3, "bob": 1},
 		Times:  map[string]time.Duration{"ada": 3 * time.Second, "bob": 40 * time.Second},
 	})
 	clock := newFakeClock()
@@ -88,7 +89,7 @@ func TestARestartPlaysOnFromItsSnapshot(t *testing.T) {
 	a.join("ada", ada)
 	a.join("bob", bob)
 	// Where it stood, then the interrupted round again from its start.
-	if m := ada.next(t); m["type"] != "resume" || m["n"] != float64(4) || m["totals"].(map[string]any)["ada"] != float64(450) {
+	if m := ada.next(t); m["type"] != "resume" || m["n"] != float64(4) || m["totals"].(map[string]any)["ada"] != float64(3) {
 		t.Fatalf("got %v", m)
 	}
 	bob.next(t)
@@ -100,12 +101,13 @@ func TestARestartPlaysOnFromItsSnapshot(t *testing.T) {
 	a.answer("ada", 4, 3) // round 4's key is 3
 	a.answer("bob", 4, 0)
 	settle(a)
-	reveal := ada.next(t)
-	if reveal["correct"] != float64(3) {
+	reveal := until(t, ada, "reveal")
+	if reveal["correct"] != float64(3) || reveal["taken"] != "ada" {
 		t.Fatalf("reveal: %v", reveal)
 	}
+	settle(a) // the snapshot saves after the reveal goes out
 	saved, _, _ := store.snapshot(context.Background(), "m")
-	if saved.Next != 5 || saved.Totals["ada"] != 600 || saved.Totals["bob"] != 120 {
+	if saved.Next != 5 || saved.Totals["ada"] != 4 || saved.Totals["bob"] != 1 {
 		t.Fatalf("totals carried: %+v", saved)
 	}
 }
@@ -169,6 +171,7 @@ func TestAPlayerWhoDoesNotComeBackAbandons(t *testing.T) {
 	ada, bob := newFakeSeat(), newFakeSeat()
 	a.join("ada", ada)
 	a.join("bob", bob)
+	passCountdown(t, a, clock, ada, bob)
 	ada.next(t)
 	bob.next(t)
 	a.leave("bob", bob)
@@ -200,6 +203,7 @@ func TestBothGoneIsNoWinner(t *testing.T) {
 	ada, bob := newFakeSeat(), newFakeSeat()
 	a.join("ada", ada)
 	a.join("bob", bob)
+	passCountdown(t, a, clock, ada, bob)
 	ada.next(t)
 	bob.next(t)
 	a.leave("ada", ada)
@@ -293,7 +297,7 @@ func TestALeaveBeforeTheStartStartsNoGrace(t *testing.T) {
 	a.join("ada", newFakeSeat())
 	bob := newFakeSeat()
 	a.join("bob", bob)
-	if m := bob.next(t); m["type"] != "round" {
+	if m := bob.next(t); m["type"] != "countdown" {
 		t.Fatalf("got %v", m)
 	}
 }
@@ -351,7 +355,7 @@ func TestARejoinMidRoundSeesTotalsAsTheRoundBegan(t *testing.T) {
 	ada.next(t)
 	bob.next(t)
 	a.leave("bob", bob)
-	a.answer("ada", 1, 0)
+	a.answer("ada", 1, 1) // wrong: the round plays on
 	settle(a)
 	back := newFakeSeat()
 	a.join("bob", back)
@@ -372,6 +376,7 @@ func TestAMatchSurvivesItsServerRestarting(t *testing.T) {
 	ada, bob := newFakeSeat(), newFakeSeat()
 	a.join("ada", ada)
 	a.join("bob", bob)
+	passCountdown(t, a, clock, ada, bob)
 	playRound(t, a, clock, ada, bob, 1)
 	playRound(t, a, clock, ada, bob, 2)
 	ada.next(t) // round 3 has begun when the server stops
@@ -390,7 +395,7 @@ func TestAMatchSurvivesItsServerRestarting(t *testing.T) {
 	ada2, bob2 := newFakeSeat(), newFakeSeat()
 	b.join("ada", ada2)
 	b.join("bob", bob2)
-	if m := ada2.next(t); m["type"] != "resume" || m["n"] != float64(3) || m["totals"].(map[string]any)["ada"] != float64(300) {
+	if m := ada2.next(t); m["type"] != "resume" || m["n"] != float64(3) || m["totals"].(map[string]any)["ada"] != float64(2) {
 		t.Fatalf("got %v", m)
 	}
 	if m := ada2.next(t); m["type"] != "round" || m["n"] != float64(3) {
@@ -461,6 +466,7 @@ func TestAFailedSnapshotIsLoggedAndPlayGoesOn(t *testing.T) {
 	ada, bob := newFakeSeat(), newFakeSeat()
 	a.join("ada", ada)
 	a.join("bob", bob)
+	passCountdown(t, a, clock, ada, bob)
 	playRound(t, a, clock, ada, bob, 1)
 	if r := ada.next(t); r["n"] != float64(2) {
 		t.Fatalf("play stopped: %v", r)
@@ -500,7 +506,9 @@ func TestAPlayerReconnectsOverANewSocket(t *testing.T) {
 	ada, bob := dial(f.Valid), dial(ticket("bob-1"))
 	read(ada) // joined
 	read(bob)
-	read(ada) // round 1
+	read(ada) // the countdown
+	read(bob)
+	read(ada) // round 1, 3 s on
 	read(bob)
 	_ = bob.CloseNow()
 	again := dial(ticket("bob-2"))

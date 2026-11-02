@@ -28,6 +28,14 @@ func registryWith(t *testing.T, store *memStore, clock *fakeClock) (*actor, *fak
 	return a, ada, bob
 }
 
+// registryWith, then the countdown of a rounds match.
+func registryRounds(t *testing.T, store *memStore, clock *fakeClock) (*actor, *fakeSeat, *fakeSeat) {
+	t.Helper()
+	a, ada, bob := registryWith(t, store, clock)
+	passCountdown(t, a, clock, ada, bob)
+	return a, ada, bob
+}
+
 func waitEnded(t *testing.T, a *actor) {
 	t.Helper()
 	select {
@@ -40,7 +48,7 @@ func waitEnded(t *testing.T, a *actor) {
 func TestAFinishedMatchHandsItsResultOver(t *testing.T) {
 	store := newMemStore(map[string]matchDef{"m": sevenRounds()})
 	clock := newFakeClock()
-	a, ada, bob := registryWith(t, store, clock)
+	a, ada, bob := registryRounds(t, store, clock)
 	for n := 1; n <= 6; n++ {
 		playRound(t, a, clock, ada, bob, n)
 	}
@@ -81,7 +89,7 @@ func TestEveryEndingHandsOneResult(t *testing.T) {
 	// Abandoned: Bob gone past his grace.
 	store := newMemStore(map[string]matchDef{"m": sevenRounds()})
 	clock := newFakeClock()
-	a, ada, bob := registryWith(t, store, clock)
+	a, ada, bob := registryRounds(t, store, clock)
 	ada.next(t)
 	bob.next(t)
 	a.leave("bob", bob)

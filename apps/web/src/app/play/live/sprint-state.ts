@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { LiveGame } from "./live-client";
 
 // P3-W16-S04 (§6.3, Q-P3-23): the live sprint screen's state, from the game server's
 // messages (services/game/sprint.go), checked here at the socket boundary. Times are
@@ -156,3 +157,13 @@ export function sprintStep(
       return { phase: "cancelled" };
   }
 }
+
+// The sprint for runLive.
+export const SPRINT: LiveGame<SprintState> = {
+  start: START,
+  step: (state, raw, now) => {
+    const message = parseMessage(raw);
+    return message === null ? null : sprintStep(state, message, now);
+  },
+  over: (state) => state.phase === "final" || state.phase === "cancelled",
+};

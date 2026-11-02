@@ -73,7 +73,7 @@ async function page(
 // Tags become "|", so text across elements reads in order.
 const words = (html: string) => html.replace(/<[^>]+>/g, "|");
 
-test("four quick games, each with its format and win condition; all but fastest finger playable yet", async () => {
+test("four quick games, each with its format and win condition, all playable", async () => {
   current.mockResolvedValue(account);
   const html = await page();
   const text = words(html);
@@ -95,7 +95,7 @@ test("four quick games, each with its format and win condition; all but fastest 
     expect(text).toMatch(new RegExp(`${name}\\|[^]*?${format}[^]*?${win}`));
   }
   const list = /<ul[^]*<\/ul>/.exec(html)?.[0] ?? "";
-  expect(list.match(/Coming later/g)).toHaveLength(1);
+  expect(list).not.toContain("Coming later");
   expect(html).toMatch(/<a aria-current="page"[^>]*href="\/play"/);
 });
 
@@ -229,7 +229,8 @@ test("a round with nothing left to ask says so", async () => {
 test("signed out, every playable game points to the guest form", async () => {
   current.mockResolvedValue(null);
   const html = await page();
-  expect(html.match(/Play as a guest below, or sign in/g)).toHaveLength(3);
+  // Fastest finger too: live games are configured here.
+  expect(html.match(/Play as a guest below, or sign in/g)).toHaveLength(4);
 });
 
 // P3-W13-S05 (§6.3, Q-P3-07): today's challenge, one attempt, and the streak.
@@ -293,4 +294,16 @@ test("a visitor sees no rating and no live link", async () => {
   expect(html).not.toContain("Rating");
   expect(html).not.toContain("/play/live/sprint");
   expect(ratingOf).not.toHaveBeenCalled();
+});
+
+// P3-W16-S05 (Q-P3-24): fastest finger is live only; it waits for live games configured.
+test("fastest finger plays live, or waits while live games aren't configured", async () => {
+  current.mockResolvedValue(guest);
+  expect(await page()).toMatch(
+    /href="\/play\/live\/fastest-finger"[^>]*>Play live</,
+  );
+  gameConfigured = false;
+  const html = await page();
+  expect(html).not.toContain("/play/live/fastest-finger");
+  expect(/<ul[^]*<\/ul>/.exec(html)?.[0]).toContain("Coming later");
 });

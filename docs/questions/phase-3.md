@@ -168,6 +168,15 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - a live sprint feeds the rating only. The weekly sprint board stays solo, and the rating board comes with seasons (W16-S06);
   - the results screen shows won, lost or draw, both correct counts, and each question with the player's answer and the right one. The new rating shows on Play once the worker has rated; nothing waits on it.
 
+### Q-P3-24 What fastest finger plays (P0 for W16-S05)
+
+- Cite: §6.3 ("Fastest finger: 1v1 live, 7 rounds; first correct answer takes each round"), Q-P3-22, Q-P3-23, MATCH-5.
+- **Answer (owner, 2026-11-03):**
+  - Q-P3-22's 7 rounds of 15 s and the same question to both. Each player gets one answer per round. The first right answer takes the round and ends it at once. A wrong answer locks that player out, and the other can still take it. Both wrong, or 15 s pass, and nobody takes it. The right answer then shows for 3 s;
+  - most rounds taken wins. A tie goes to the lower total time over the rounds each player took (on the server's clock, compensated); equal is a draw;
+  - a player waits in one mode's queue at a time: joining one leaves the other;
+  - (the sprint, Q-P3-23) when both players have answered all 30, the sprint ends at once.
+
 ### Q-P3-16 What a friend challenge link plays (P1)
 
 - **Answer (owner, 2026-10-31):** live only: the link opens a private live match; both players must be online.

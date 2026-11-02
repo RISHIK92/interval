@@ -69,9 +69,20 @@ test.each(["POST", "PUT", "DELETE"] as const)(
     expect((await call(method, undefined, "chess")).status).toBe(400);
     expect(queueOf).not.toHaveBeenCalled();
     await call(method, undefined, "fastest_finger");
-    expect(queueOf).toHaveBeenCalledExactlyOnceWith("fastest_finger");
+    expect(queueOf).toHaveBeenLastCalledWith("fastest_finger");
   },
 );
+
+// Q-P3-24: one queue at a time; joining one mode's leaves the other's.
+test("joining one mode's queue leaves the other's first", async () => {
+  current.mockResolvedValue(guest);
+  await call("POST", undefined, "sprint");
+  expect(queueOf.mock.calls).toEqual([["fastest_finger"], ["sprint"]]);
+  expect(leave).toHaveBeenCalledExactlyOnceWith("g1");
+  expect(leave.mock.invocationCallOrder[0]).toBeLessThan(
+    join.mock.invocationCallOrder[0] ?? 0,
+  );
+});
 
 test("a player, guest or not, joins at their rating", async () => {
   current.mockResolvedValue(guest);

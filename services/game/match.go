@@ -10,6 +10,8 @@ import (
 )
 
 // Q-P3-22 (owner, 2026-11-02): 7 rounds of 15 seconds, the same question to both.
+// Q-P3-24 (owner, 2026-11-03): fastest finger. One answer each a round; the first right
+// answer takes it and ends it; most rounds taken wins.
 const (
 	roundTime   = 15 * time.Second
 	revealPause = 3 * time.Second  // the right answer stays up before the next round
@@ -178,6 +180,7 @@ type play struct {
 	reveal    map[string]any // its reveal, for a player who missed it
 	answers   map[string][]answerRec
 	sprint    *sprintRun // a sprint's own state, once it has begun
+	countdown time.Time  // when the countdown before the first question ends; zero: none running
 }
 
 func (a *actor) run() {
@@ -277,6 +280,8 @@ func (a *actor) run() {
 	if a.from != nil {
 		// Where the match stood when its server stopped.
 		a.broadcast(&p, map[string]any{"type": "resume", "n": first, "totals": p.totals})
+	} else if !a.countdownFirst(&p) {
+		return
 	}
 
 	for i := first - 1; i < len(a.def.Rounds); i++ {
@@ -285,14 +290,27 @@ func (a *actor) run() {
 		started := a.clock.Now()
 		p.before = maps.Clone(p.totals)
 		a.broadcast(&p, roundMessage(n, r, roundTime))
-		answered := map[string]int{} // player → points this round
+		answered := map[string]bool{} // player → right
 		end := a.clock.After(roundTime)
-		cur := &current{n: n, round: r, started: started, answered: answered}
+		cur := &current{n: n, round: r, started: started, answered: answered, rights: map[string]time.Duration{}}
+		cur.order = []string{}
 	collect:
-		for len(answered) < len(a.def.Players) {
+		for len(answered) < len(a.def.Players) && len(cur.rights) == 0 {
 			select {
 			case e := <-a.events:
 				a.handle(&p, e, cur)
+				if len(cur.rights) > 0 {
+					// A right answer is in. Others already queued may have come sooner
+					// on the server's clock (MATCH-5): they count too.
+					for drained := false; !drained; {
+						select {
+						case e := <-a.events:
+							a.handle(&p, e, cur)
+						default:
+							drained = true
+						}
+					}
+				}
 			case <-end:
 				// Answers already queued arrived in time or not by their own stamp.
 				for drained := false; !drained; {
@@ -315,13 +333,27 @@ func (a *actor) run() {
 		}
 		for _, player := range a.def.Players {
 			if _, ok := answered[player]; !ok {
-				answered[player] = 0
-				p.times[player] += roundTime
 				p.answers[player] = append(p.answers[player], answerRec{Round: n, QuestionID: r.Question})
 			}
 		}
+		// The soonest right answer takes the round; equal times go to the one read first,
+		// so no seat is favoured. Only rounds taken count toward time.
+		taken := ""
+		for _, player := range cur.order {
+			if took := cur.rights[player]; taken == "" || took < cur.rights[taken] {
+				taken = player
+			}
+		}
+		if taken != "" {
+			p.totals[taken]++
+			p.times[taken] += cur.rights[taken]
+		}
 		p.shown = n
-		p.reveal = map[string]any{"type": "reveal", "n": n, "correct": r.Correct, "points": answered}
+		// With its question, so a player back during the pause can be shown it.
+		p.reveal = map[string]any{
+			"type": "reveal", "n": n, "stem": r.Stem, "options": r.Options,
+			"correct": r.Correct, "taken": taken, "totals": p.totals,
+		}
 		a.broadcast(&p, p.reveal)
 		if n == len(a.def.Rounds) {
 			break
@@ -368,8 +400,9 @@ func (p *play) decided() bool {
 	return true
 }
 
-// The result: the higher total wins; when someone abandoned (Q-P3-12: an abandon is a
-// loss), the one who stayed wins, and with all gone nobody does.
+// The result: the higher total (correct answers, or rounds taken) wins; when someone
+// abandoned (Q-P3-12: an abandon is a loss), the one who stayed wins, and with all gone
+// nobody does.
 func (a *actor) finish(p *play) {
 	won := winner(p.totals, p.times)
 	if len(p.abandoned) > 0 {
@@ -451,7 +484,9 @@ type current struct {
 	n        int
 	round    round
 	started  time.Time
-	answered map[string]int
+	answered map[string]bool          // each player's one answer: right or not
+	rights   map[string]time.Duration // the right ones, compensated: the soonest takes the round
+	order    []string                 // the right ones, as read
 }
 
 func (a *actor) handle(p *play, e event, cur *current) {
@@ -468,18 +503,27 @@ func (a *actor) handle(p *play, e event, cur *current) {
 		}
 		p.seats[e.player] = e.seat
 		p.gens[e.player]++ // any grace running for this player is now stale
-		if p.sprint != nil {
+		if !p.countdown.IsZero() {
+			left := max(0, p.countdown.Sub(a.clock.Now()))
+			e.seat.send(map[string]any{"type": "countdown", "seconds": seconds(left)})
+		} else if p.sprint != nil {
 			a.sprintResume(p, e.player, e.seat)
 		} else if p.started {
 			// Back within the grace: where the match stands, and what it missed. Totals
 			// are as the round began, so a rejoin can't tell how the other answered.
 			if cur != nil {
 				_, done := cur.answered[e.player]
-				e.seat.send(map[string]any{"type": "resume", "n": cur.n, "totals": p.before, "answered": done})
-				if !done {
-					left := roundTime - a.clock.Now().Sub(cur.started)
-					e.seat.send(roundMessage(cur.n, cur.round, max(0, left)))
+				// Who has locked in, as the locked broadcasts told (never whether right).
+				locked := []string{}
+				for _, player := range a.def.Players {
+					if _, in := cur.answered[player]; in {
+						locked = append(locked, player)
+					}
 				}
+				e.seat.send(map[string]any{"type": "resume", "n": cur.n, "totals": p.before, "answered": done, "locked": locked})
+				// The round too, answered or not, so the screen shows its question.
+				left := roundTime - a.clock.Now().Sub(cur.started)
+				e.seat.send(roundMessage(cur.n, cur.round, max(0, left)))
 			} else {
 				e.seat.send(map[string]any{"type": "resume", "n": p.shown, "totals": p.totals})
 				if p.reveal != nil {
@@ -535,14 +579,17 @@ func (a *actor) handle(p *play, e event, cur *current) {
 			return // arrived after the round's time
 		}
 		right := e.choice == cur.round.Correct
-		got := points(right, took, roundTime)
 		choice, ms := e.choice, took.Milliseconds()
 		p.answers[e.player] = append(p.answers[e.player], answerRec{
 			Round: cur.n, QuestionID: cur.round.Question, Choice: &choice, Correct: &right, Ms: &ms,
 		})
-		cur.answered[e.player] = got
-		p.totals[e.player] += got
-		p.times[e.player] += took
+		cur.answered[e.player] = right
+		if right {
+			cur.rights[e.player] = took
+			cur.order = append(cur.order, e.player)
+		}
+		// The opponent sees that, not whether (wireframe 12).
+		a.broadcast(p, map[string]any{"type": "locked", "player": e.player})
 	}
 }
 

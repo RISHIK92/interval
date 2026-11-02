@@ -3041,3 +3041,44 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - Whether a sprint where both players finish all 30 should end early is the owner's call; today it runs to 60 s.
   - The live UI is unchecked in a browser (Chrome off).
 - **Full check:** web 1259, Python 1302 and Go pass. Infra's synth hook timed out under load; it passes alone (61).
+
+### 2026-11-03 — P3-W16-S05 (live fastest finger; §6.3, MATCH-5, Q-P3-24)
+
+- **Owner (Q-P3-24):**
+  - one answer each per round; the first right answer takes the round and ends it;
+  - a wrong answer locks that player out; both wrong, or 15 s, and nobody takes it;
+  - most rounds taken wins; a tie goes to the lower total time over the rounds each took, and equal is a draw;
+  - one queue at a time;
+  - a sprint where both players have finished all 30 ends at once.
+- **Go:**
+  - the rounds mode now plays fastest finger:
+    - once a right answer is in, the actor drains already-queued answers, so the sooner compensated one takes the round (MATCH-5); equal times go to the one read first;
+    - `locked {player}` is broadcast without correctness (wireframe 12);
+    - the reveal carries `taken`, `totals` and its question;
+    - `points()` is gone;
+    - unanswered rounds no longer add time.
+  - Both modes start with a 3 s countdown (`countdownFirst`); none after a restart.
+  - A mid-round rejoin gets `resume` (answered, locked) and then the round again.
+  - The sprint ends when every player has finished (`waitFor`).
+- **Web:**
+  - the queue POST leaves the other mode's queue first;
+  - `runSprint` is now a generic `runLive(game)`, and `LivePlay` is the shared queue and result shell;
+  - `FINGER` (finger-state) and `SPRINT` (sprint-state);
+  - `/play/live/fastest-finger` (`play.live`, game configured) and `FingerView`;
+  - Play's fastest finger card says "Play live".
+- **Reviewer, fixed:**
+  - a mid-round rejoin after answering got no question;
+  - two tabs in different modes kicked each other out of the queue forever (now one re-join, then stop);
+  - an exact time tie always went to the first seat;
+  - a reveal missed during the pause couldn't be shown;
+  - the resume didn't say who had locked in;
+  - an eslint-disable on the effect deps (`current` is now a module constant);
+  - visitors saw "Coming later" on a playable card;
+  - stale test values;
+  - a missing rounds-countdown rejoin test.
+- **Known limit:** leave-then-join across the mode queues isn't atomic. Two POSTs at the same instant could leave a player in both queues. Make it one script if it shows up.
+- **Full check:**
+  - web 1275 of 1277: the admin-daily load flake, and that file passes alone (4);
+  - Python 1302;
+  - Go race;
+  - infra alone 61.
