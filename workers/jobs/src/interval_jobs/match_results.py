@@ -24,7 +24,7 @@ class _Strict(BaseModel):
 
 
 class MatchAnswer(_Strict):
-    round: int = Field(ge=1, le=20)
+    round: int = Field(ge=1, le=30)  # a live sprint plays up to 30 (Q-P3-23)
     question_id: int = Field(ge=1)
     choice: int | None = Field(ge=0, le=3)
     correct: bool | None
@@ -36,7 +36,7 @@ class PlayerResult(_Strict):
     total: int = Field(ge=0)
     time_ms: int = Field(ge=0)
     abandoned: bool
-    answers: list[MatchAnswer] = Field(max_length=20)
+    answers: list[MatchAnswer] = Field(max_length=30)
 
 
 class MatchResult(_Strict):

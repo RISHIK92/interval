@@ -98,6 +98,9 @@ func parseMatch(raw []byte) (matchDef, error) {
 	if err := json.Unmarshal(raw, &def); err != nil {
 		return matchDef{}, fmt.Errorf("not a match: %w", err)
 	}
+	if def.Mode != "" && def.Mode != "fastest_finger" && def.Mode != sprintMode {
+		return matchDef{}, fmt.Errorf("no such mode: %q", def.Mode)
+	}
 	if len(def.Players) == 0 || len(def.Rounds) == 0 {
 		return matchDef{}, errors.New("a match needs players and rounds")
 	}

@@ -40,6 +40,7 @@ type answerRec struct {
 // its rounds, keys included. Keys never leave this process before a round ends.
 type matchDef struct {
 	Players []string `json:"players"`
+	Mode    string   `json:"mode"` // sprintMode, or rounds ("fastest_finger" or none)
 	Rounds  []round  `json:"rounds"`
 }
 
@@ -176,6 +177,7 @@ type play struct {
 	shown     int            // the last round revealed
 	reveal    map[string]any // its reveal, for a player who missed it
 	answers   map[string][]answerRec
+	sprint    *sprintRun // a sprint's own state, once it has begun
 }
 
 func (a *actor) run() {
@@ -268,6 +270,10 @@ func (a *actor) run() {
 		}
 	}
 	p.started = true
+	if a.def.Mode == sprintMode {
+		a.sprint(&p)
+		return
+	}
 	if a.from != nil {
 		// Where the match stood when its server stopped.
 		a.broadcast(&p, map[string]any{"type": "resume", "n": first, "totals": p.totals})
@@ -344,9 +350,7 @@ func (a *actor) run() {
 }
 
 func roundMessage(n int, r round, left time.Duration) map[string]any {
-	// Whole seconds left, rounded up: a client's countdown never runs past the server's.
-	seconds := int((left + time.Second - 1) / time.Second)
-	return map[string]any{"type": "round", "n": n, "stem": r.Stem, "options": r.Options, "seconds": seconds}
+	return map[string]any{"type": "round", "n": n, "stem": r.Stem, "options": r.Options, "seconds": seconds(left)}
 }
 
 // An abandon decides the match once every other player is either here or gone too
@@ -379,6 +383,9 @@ func (a *actor) finish(p *play) {
 		}
 	}
 	final := map[string]any{"type": "final", "totals": p.totals, "winner": won}
+	if p.sprint != nil {
+		final["review"] = a.review(p)
+	}
 	outcome := "finished"
 	if len(p.abandoned) > 0 {
 		final["abandoned"] = p.abandoned
@@ -461,7 +468,9 @@ func (a *actor) handle(p *play, e event, cur *current) {
 		}
 		p.seats[e.player] = e.seat
 		p.gens[e.player]++ // any grace running for this player is now stale
-		if p.started {
+		if p.sprint != nil {
+			a.sprintResume(p, e.player, e.seat)
+		} else if p.started {
 			// Back within the grace: where the match stands, and what it missed. Totals
 			// are as the round began, so a rejoin can't tell how the other answered.
 			if cur != nil {
@@ -507,6 +516,10 @@ func (a *actor) handle(p *play, e event, cur *current) {
 	case "rtt":
 		p.rtts[e.player] = e.rtt
 	case "answer":
+		if p.sprint != nil {
+			a.sprintAnswer(p, e)
+			return
+		}
 		// Only the round being played, a real choice, a player's first answer.
 		if cur == nil || e.n != cur.n || e.choice < 0 || e.choice >= len(cur.round.Options) {
 			return

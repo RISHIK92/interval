@@ -22,6 +22,12 @@ const usernameGet = vi.fn<Usernames["get"]>(() =>
   Promise.resolve({ username: "ada", searchable: true }),
 );
 const applyEvidence = vi.fn(() => Promise.resolve());
+const ratingOf = vi.fn(() => Promise.resolve(1612.4));
+let gameConfigured = true;
+vi.mock("../../env", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  gameEnv: () => (gameConfigured ? { GAME_TICKET_SECRET: "s" } : null),
+}));
 vi.mock("./live/evidence", () => ({ applyMatchEvidence: applyEvidence }));
 vi.mock("../../server/container", () => ({
   usernames: () => ({ get: usernameGet }),
@@ -29,6 +35,7 @@ vi.mock("../../server/container", () => ({
   entitlements: () => ({ can }),
   preferences: () => ({ get }),
   quizzes: () => ({ dailyStatus }),
+  playerRatings: () => ({ of: ratingOf }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -51,6 +58,7 @@ const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
 
 afterEach(() => {
   vi.clearAllMocks();
+  gameConfigured = true;
 });
 
 async function page(
@@ -256,4 +264,33 @@ test("a daily start with no set today says so", async () => {
   expect(await page({ daily: "none" })).toMatch(
     /role="status"[^>]*>There&#x27;s no daily challenge today/,
   );
+});
+
+// P3-W16-S04 (Q-P3-23): the sprint card offers the live 1v1 when the plan has both
+// games and live games are configured; the player's quick-game rating shows on Play.
+test("the sprint card links to a live 1v1 sprint, and the rating shows", async () => {
+  current.mockResolvedValue(guest);
+  const html = await page();
+  expect(html).toContain('href="/play/live/sprint"');
+  expect(words(html)).toContain("Rating 1612");
+  expect(ratingOf).toHaveBeenCalledWith("g1");
+});
+
+test("no live sprint without its capability, or with live games not configured", async () => {
+  current.mockResolvedValue(account);
+  can.mockImplementation((_, capability) =>
+    Promise.resolve(capability !== "play.live"),
+  );
+  expect(await page()).not.toContain("/play/live/sprint");
+  can.mockImplementation(() => Promise.resolve(true));
+  gameConfigured = false;
+  expect(await page()).not.toContain("/play/live/sprint");
+});
+
+test("a visitor sees no rating and no live link", async () => {
+  current.mockResolvedValue(null);
+  const html = await page();
+  expect(html).not.toContain("Rating");
+  expect(html).not.toContain("/play/live/sprint");
+  expect(ratingOf).not.toHaveBeenCalled();
 });

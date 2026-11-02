@@ -18,6 +18,7 @@ test("puts the match as the game server reads it, for an hour", async () => {
     id: randomUUID(),
     serverId: 0,
     players: ["ada", "bob"],
+    mode: "sprint",
     rounds: [
       {
         question: "41",
@@ -32,6 +33,7 @@ test("puts the match as the game server reads it, for an hour", async () => {
     await valkeyMatchHandoff(redis).put(match);
     expect(JSON.parse((await redis.get(key)) ?? "null")).toEqual({
       players: ["ada", "bob"],
+      mode: "sprint",
       // Go reads the question id as a number (int64).
       rounds: [
         {

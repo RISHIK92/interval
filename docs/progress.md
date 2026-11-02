@@ -2995,3 +2995,49 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - a trivial Postgres test.
 - **Noted:** the tier rule now exists in the solo SQL and here in TS, aligned but in two places.
 - **Full check:** web 1229 pass. Infra's synth hook timed out under load; it passes alone (61). Python is unchanged.
+
+### 2026-11-03 — P3-W16-S04 (live 1v1 sprint; §6.3, Q-P3-23)
+
+- **Owner (Q-P3-23):**
+  - both players get the same 30 questions and play at their own pace for 60 s on the server's clock, after a 3 s countdown;
+  - most correct wins, a tie goes to whoever reached that total first, otherwise it's a draw;
+  - right or wrong only during the match;
+  - each mode has its own queue, with one rating;
+  - the sprint feeds the rating only; the rating board comes with S06;
+  - the results show the outcome, both counts and each question with your answer and the right one;
+  - the rating shows on Play.
+- **Go (`sprint.go`):**
+  - `matchDef.mode`; `run()` branches to `a.sprint()` after the joins. Joins, graces, abandons, restarts, `finish` and the hand-off are reused.
+  - Messages: countdown, start, question (no key), judged, score, done, and a final with a `review` (keys and every answer).
+  - `totals` = correct; `times` = when that total was reached, so `winner()` is unchanged.
+  - A restart replays the sprint from its countdown: the snapshot is saved at the start as `Next: 1`.
+  - `joined` now carries `you`.
+- **DB:**
+  - `game_match.mode` (sprint | fastest_finger; the default is fastest_finger, which every earlier match was);
+  - the round check widened to 1–30.
+- **Python:** a result's answers go up to 30.
+- **Web:**
+  - `GameMode`, `LIVE_QUESTIONS` (7 / 30), and `Matches.create(…, mode)`;
+  - the handoff carries the mode;
+  - per-mode queue prefixes (`queuePrefix`);
+  - `/api/game/queue?mode=`;
+  - `/play/live/sprint`, for accounts and guests with `play.sprint` and `play.live` and the game configured;
+  - `runSprint` (`sprint-client.ts`): the queue and socket, tested with fakes;
+  - `sprintStep` (`sprint-state.ts`): zod at the socket;
+  - `SprintView`;
+  - Play's sprint card gets "Play 1v1 live", and the header shows "Rating N";
+  - `pnpm game:match --sprint`.
+- **Reviewer, fixed:**
+  - a poll status of `none` was never re-joined;
+  - reconnects gave up after about 3 s (now a 60 s window that resets once the socket works, and failed tickets are retried);
+  - an answer was sent on a socket still connecting;
+  - errors after unmount, and bad frames, went unlogged;
+  - the review was empty when nobody answered;
+  - a right answer didn't say it was yours;
+  - LiveSprint had no tests;
+  - nits: the save no longer delays the countdown; an answer sent during the countdown never counts; no question goes to a rejoiner during the final; one `seconds()` helper; zod ints; "joined again elsewhere" is no longer fought over.
+- **Open:**
+  - The same player can wait in both modes' queues at once (only the sprint has a UI until S05). Settle it in S05.
+  - Whether a sprint where both players finish all 30 should end early is the owner's call; today it runs to 60 s.
+  - The live UI is unchecked in a browser (Chrome off).
+- **Full check:** web 1259, Python 1302 and Go pass. Infra's synth hook timed out under load; it passes alone (61).

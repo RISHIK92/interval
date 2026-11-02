@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import { LIVE_ROUNDS, type LiveRound, type Matches } from "../ports";
+import { LIVE_QUESTIONS, type LiveRound, type Matches } from "../ports";
 import { type BankQuestion, levelFor, pickRounds } from "../live-questions";
 import { LIVE } from "./kysely-quizzes";
 
@@ -15,7 +15,7 @@ export function kyselyMatches(db: Kysely<DB>): Matches {
   const inTransaction = <T>(body: (trx: Kysely<DB>) => Promise<T>) =>
     db.isTransaction ? body(db) : db.transaction().execute(body);
   return {
-    create: (serverId, players) =>
+    create: (serverId, players, mode) =>
       inTransaction(async (trx) => {
         // MATCH-4 (P3-W16-S03): from what the two share, at their level.
         // shortcut: the whole live bank per match (about a thousand rows); narrow it
@@ -75,17 +75,17 @@ export function kyselyMatches(db: Kysely<DB>): Matches {
           bank,
           { shared, goals },
           levelFor(average),
-          LIVE_ROUNDS,
+          LIVE_QUESTIONS[mode],
         ).map(({ question, stem, options, correct }) => ({
           question,
           stem,
           options,
           correct,
         }));
-        if (rows.length < LIVE_ROUNDS) return null;
+        if (rows.length < LIVE_QUESTIONS[mode]) return null;
         const { id } = await trx
           .insertInto("game_match")
-          .values({ server_id: serverId })
+          .values({ server_id: serverId, mode })
           .returning("id")
           .executeTakeFirstOrThrow();
         await trx
@@ -102,7 +102,7 @@ export function kyselyMatches(db: Kysely<DB>): Matches {
             })),
           )
           .execute();
-        return { id, serverId, players, rounds: rows };
+        return { id, serverId, players, mode, rounds: rows };
       }),
 
     serverFor: async (matchId, userId) => {
@@ -126,15 +126,16 @@ export function memoryMatches(
   bank: LiveRound[] = [],
 ): Matches {
   return {
-    create: (serverId, players) => {
-      if (bank.length < LIVE_ROUNDS) return Promise.resolve(null);
+    create: (serverId, players, mode) => {
+      if (bank.length < LIVE_QUESTIONS[mode]) return Promise.resolve(null);
       const id = randomUUID();
       matches.set(id, { serverId, players });
       return Promise.resolve({
         id,
         serverId,
         players,
-        rounds: bank.slice(0, LIVE_ROUNDS),
+        mode,
+        rounds: bank.slice(0, LIVE_QUESTIONS[mode]),
       });
     },
     serverFor: (matchId, userId) => {

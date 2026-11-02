@@ -1,8 +1,10 @@
 import type { Capability } from "@interval/db";
 import { headers } from "next/headers";
 import Link from "next/link";
+import { gameEnv } from "../../env";
 import {
   entitlements,
+  playerRatings,
   preferences,
   quizzes,
   sessionReader,
@@ -79,16 +81,24 @@ export default async function PlayPage(props: {
   // P3-W15-S05: finished live matches count toward mastery and review (guests too).
   if (actor !== null) await applyMatchEvidence(actor);
   const { sprint, estimation, daily } = await props.searchParams;
-  const [allowed, chosen, today] =
+  const [allowed, chosen, today, rating] =
     actor === null
-      ? [null, null, null]
+      ? [null, null, null, null]
       : await Promise.all([
           Promise.all(
             GAMES.map((g) => entitlements().can(actor.userId, g.capability)),
           ),
           preferences().get(actor.userId),
           quizzes().dailyStatus(actor.userId),
+          // P3-W16-S04 (MATCH-2): the one quick-game rating, as the worker last set it.
+          playerRatings().of(actor.userId),
         ]);
+  // P3-W16-S04 (Q-P3-23): the sprint's live 1v1, with both games on the plan and live
+  // games configured.
+  const live =
+    allowed !== null &&
+    gameEnv() !== null &&
+    allowed[GAMES.findIndex((g) => g.capability === "play.live")] === true;
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[52rem] lg:pt-10 lg:pl-64">
       <header>
@@ -104,6 +114,11 @@ export default async function PlayPage(props: {
           >
             Boards
           </Link>
+        )}
+        {rating === null ? null : (
+          <p className="mt-3 text-sm font-semibold tabular-nums">
+            Rating {Math.round(rating)}
+          </p>
         )}
       </header>
       <TabBar current="play" firstName={chosen?.firstName ?? null} />
@@ -146,14 +161,24 @@ export default async function PlayPage(props: {
               ) : game.capability === "play.daily" && today !== null ? (
                 <DailyPlay status={today} />
               ) : game.start !== undefined && actor !== null ? (
-                <form action={game.start.action} className="mt-auto pt-2">
-                  <button
-                    type="submit"
-                    className="cursor-pointer rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
-                  >
-                    {game.start.label}
-                  </button>
-                </form>
+                <div className="mt-auto flex flex-wrap items-center gap-3 pt-2">
+                  <form action={game.start.action}>
+                    <button
+                      type="submit"
+                      className="cursor-pointer rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+                    >
+                      {game.start.label}
+                    </button>
+                  </form>
+                  {game.capability === "play.sprint" && live ? (
+                    <Link
+                      href="/play/live/sprint"
+                      className="rounded-full border border-hairline px-5 py-2.5 font-semibold"
+                    >
+                      Play 1v1 live
+                    </Link>
+                  ) : null}
+                </div>
               ) : (
                 <p className="mt-auto pt-2 text-sm text-ink-muted">
                   {game.start !== undefined

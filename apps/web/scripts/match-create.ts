@@ -10,10 +10,12 @@ import { startLiveMatch } from "../src/server/live";
 
 const url = process.env["DATABASE_URL"];
 const valkey = process.env["VALKEY_URL"];
-const players = process.argv.slice(2);
+// --sprint: a live sprint (Q-P3-23); otherwise Q-P3-22's rounds.
+const sprint = process.argv[2] === "--sprint";
+const players = process.argv.slice(sprint ? 3 : 2);
 if (url === undefined || valkey === undefined || players.length === 0) {
   console.error(
-    "usage: pnpm game:match <userId> [userId...]  (DATABASE_URL and VALKEY_URL from .env)",
+    "usage: pnpm game:match [--sprint] <userId> [userId...]  (DATABASE_URL and VALKEY_URL from .env)",
   );
   process.exit(1);
 }
@@ -29,6 +31,7 @@ try {
     kyselyMatches(db),
     valkeyMatchHandoff(redis),
     players,
+    sprint ? "sprint" : "fastest_finger",
   );
   console.log(match.id);
 } finally {

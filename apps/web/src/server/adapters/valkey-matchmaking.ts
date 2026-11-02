@@ -1,6 +1,6 @@
 import type { Redis } from "ioredis";
 import { log } from "../log";
-import type { Matchmaking, QueueState } from "../ports";
+import type { GameMode, Matchmaking, QueueState } from "../ports";
 
 // P3-W16-S02 (MATCH-3, Q-P3-14; owner, 2026-11-03): one region for now, carried in the
 // keys. A player's band starts at ±100 and widens by 100 every 2 s; a pair needs each
@@ -145,11 +145,14 @@ elseif state == 'pending' then
 end
 return 1`;
 
+// P3-W16-S04 (Q-P3-23): each mode's own queue, both feeding the one rating (MATCH-2).
+export const queuePrefix = (mode: GameMode) => `mm:${REGION}:${mode}:`;
+
 export function valkeyMatchmaking(
   redis: Redis,
   start: (players: string[]) => Promise<string>,
-  now: () => number = Date.now,
-  prefix = `mm:${REGION}:`,
+  now: () => number,
+  prefix: string,
 ): Matchmaking {
   const keys = [`${prefix}queue`, `${prefix}p:`] as const;
   const run = (script: string, ...args: (string | number)[]) =>

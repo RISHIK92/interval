@@ -10,6 +10,7 @@ export function valkeyMatchHandoff(redis: Redis): MatchHandoff {
     put: async (match) => {
       const body = JSON.stringify({
         players: match.players,
+        mode: match.mode,
         rounds: match.rounds.map((r) => ({
           ...r,
           question: Number(r.question),

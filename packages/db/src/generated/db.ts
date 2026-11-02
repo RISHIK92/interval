@@ -363,6 +363,7 @@ export interface GameMatch {
   created_at: Generated<Timestamp>;
   finished_at: Timestamp | null;
   id: Generated<string>;
+  mode: Generated<string>;
   outcome: string | null;
   rated_at: Timestamp | null;
   server_id: number;

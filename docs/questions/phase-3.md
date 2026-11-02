@@ -156,6 +156,18 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 ## Week 17
 
+### Q-P3-23 What a live 1v1 sprint plays (P0 for W16-S04)
+
+- Cite: §6.3 ("60-second sprint: solo or 1v1, most correct in 60 seconds"), Q-P3-22, MATCH-2, MATCH-4, MATCH-5.
+- **Answer (owner, 2026-11-03):**
+  - both players get the same ordered list of 30 questions (S03's rule) and answer at their own pace for 60 s on the server's clock. Each sees the other's correct count live;
+  - most correct wins; a tie goes to whoever reached that total first, otherwise it's a draw. A player who finishes all 30 waits for the clock;
+  - each answer shows right or wrong only. The right options appear on the results screen, so the key never reaches the client mid-match;
+  - Q-P3-22's 7-rounds mode becomes fastest finger in W16-S05. Each mode has its own matchmaking queue, and both feed the one quick-game rating (MATCH-2).
+  - a 3 s countdown on the server's clock once both are connected;
+  - a live sprint feeds the rating only. The weekly sprint board stays solo, and the rating board comes with seasons (W16-S06);
+  - the results screen shows won, lost or draw, both correct counts, and each question with the player's answer and the right one. The new rating shows on Play once the worker has rated; nothing waits on it.
+
 ### Q-P3-16 What a friend challenge link plays (P1)
 
 - **Answer (owner, 2026-10-31):** live only: the link opens a private live match; both players must be online.

@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 import { Redis } from "ioredis";
 import { afterAll, expect, test } from "vitest";
 import type { Matchmaking } from "../ports";
-import { memoryMatchmaking, valkeyMatchmaking } from "./valkey-matchmaking";
+import {
+  memoryMatchmaking,
+  queuePrefix,
+  valkeyMatchmaking,
+} from "./valkey-matchmaking";
 
 // P3-W16-S02 (MATCH-3; owner, 2026-11-03): ±100, widening by 100 every 2 s, both ways.
 const url = process.env["VALKEY_URL"];
@@ -251,6 +255,36 @@ test("a player whose state vanishes while the match is made isn't matched", asyn
     expect(await mm.poll("v2")).toEqual({ status: "none" });
     // v1 is queued again, not left half-paired.
     expect(await redis.zscore(`${prefix}queue`, "v1")).toBe("1500");
+  } finally {
+    const keys = await redis.keys(`${prefix}*`);
+    if (keys.length > 0) await redis.del(...keys);
+  }
+});
+
+// P3-W16-S04 (Q-P3-23): each mode has its own queue; a sprint never pairs with fastest finger.
+test("each mode queues apart", async () => {
+  const c = clock();
+  const s = starter();
+  const prefix = `test-mm-${randomUUID()}:`;
+  try {
+    const sprint = valkeyMatchmaking(
+      redis,
+      s.start,
+      c.now,
+      prefix + queuePrefix("sprint"),
+    );
+    const finger = valkeyMatchmaking(
+      redis,
+      s.start,
+      c.now,
+      prefix + queuePrefix("fastest_finger"),
+    );
+    await sprint.join("m1", 1500);
+    await finger.join("m2", 1500);
+    expect(await sprint.poll("m1")).toMatchObject({ status: "waiting" });
+    expect(await finger.poll("m2")).toMatchObject({ status: "waiting" });
+    expect(await sprint.poll("m2")).toEqual({ status: "none" });
+    expect(s.started).toHaveLength(0);
   } finally {
     const keys = await redis.keys(`${prefix}*`);
     if (keys.length > 0) await redis.del(...keys);

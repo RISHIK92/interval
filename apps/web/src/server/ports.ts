@@ -695,18 +695,29 @@ export type LiveRound = {
   options: string[];
   correct: number;
 };
+// P3-W16-S04 (Q-P3-23): a sprint, or Q-P3-22's rounds (fastest finger from W16-S05).
+export type GameMode = "sprint" | "fastest_finger";
 export type LiveMatch = {
   id: string;
   serverId: number;
   players: string[];
+  mode: GameMode;
   rounds: LiveRound[];
 };
-export const LIVE_ROUNDS = 7; // owner, 2026-11-02
+// The questions a match plays (owner: 7 rounds, 2026-11-02; a sprint's 30, 2026-11-03).
+export const LIVE_QUESTIONS: Record<GameMode, number> = {
+  fastest_finger: 7,
+  sprint: 30,
+};
 
 export interface Matches {
-  // A new match of LIVE_ROUNDS live multiple-choice questions (the sprint's rights rule,
-  // ING-2); null when the bank has fewer than that.
-  create(serverId: number, players: string[]): Promise<LiveMatch | null>;
+  // A new match of its mode's LIVE_QUESTIONS live multiple-choice questions (the
+  // sprint's rights rule, ING-2); null when the bank has fewer than that.
+  create(
+    serverId: number,
+    players: string[],
+    mode: GameMode,
+  ): Promise<LiveMatch | null>;
   // The game server that owns the match, and the id the player plays as there (a guest
   // who signed up mid-match keeps the guest's, Q-P3-21), when the player is in it; null
   // otherwise (no such match, or not theirs).

@@ -1,0 +1,195 @@
+import { afterEach, expect, test, vi } from "vitest";
+import {
+  runSprint,
+  type SprintDeps,
+  type SprintHandlers,
+  type SprintSocket,
+} from "./sprint-client";
+import type { SprintState } from "./sprint-state";
+
+// P3-W16-S04 (Q-P3-23): the live sprint's queue and socket, with fakes.
+
+class FakeSocket implements SprintSocket {
+  readyState = 1;
+  sent: string[] = [];
+  closed = false;
+  constructor(private readonly on: SprintHandlers) {}
+  send(data: string) {
+    this.sent.push(data);
+  }
+  close() {
+    this.closed = true;
+  }
+  message(body: unknown) {
+    this.on.message(JSON.stringify(body));
+  }
+  raw(data: unknown) {
+    this.on.message(data);
+  }
+  drop(reason = "") {
+    this.on.close(reason);
+  }
+}
+
+const json = (body: unknown) => new Response(JSON.stringify(body));
+const flush = async () => {
+  for (let i = 0; i < 20; i += 1) await new Promise((r) => setTimeout(r, 0));
+};
+
+function harness(polls: unknown[]) {
+  let now = 0;
+  const calls: string[] = [];
+  const sockets: FakeSocket[] = [];
+  const states: SprintState[] = [];
+  let openFails = 0;
+  const deps: SprintDeps = {
+    queue: (method) => {
+      calls.push(method);
+      if (method !== "PUT")
+        return Promise.resolve(new Response(null, { status: 204 }));
+      return Promise.resolve(json(polls.shift() ?? { status: "waiting" }));
+    },
+    open: (_, on) => {
+      if (openFails > 0) {
+        openFails -= 1;
+        return Promise.reject(new Error("no ticket: 503"));
+      }
+      const s = new FakeSocket(on);
+      sockets.push(s);
+      return Promise.resolve(s);
+    },
+    // A real wait yields to timers; so does this one, so a polling loop can't starve them.
+    wait: (ms) => {
+      now += ms;
+      return new Promise((r) => setTimeout(r, 0));
+    },
+    now: () => now,
+    onState: (s) => states.push(s),
+    onError: vi.fn(),
+  };
+  return {
+    deps,
+    calls,
+    sockets,
+    states,
+    advance: (ms: number) => (now += ms),
+    failOpens: (n: number) => (openFails = n),
+  };
+}
+
+const errors = vi.spyOn(console, "error").mockImplementation(() => undefined);
+afterEach(() => {
+  errors.mockClear();
+});
+
+test("joins, polls, joins again when out of the queue, then plays the match", async () => {
+  const h = harness([
+    { status: "waiting" },
+    { status: "none" },
+    { status: "matched", matchId: "m1" },
+  ]);
+  const sprint = runSprint(h.deps);
+  await flush();
+  expect(h.calls).toEqual(["POST", "PUT", "PUT", "POST", "PUT"]);
+  const [socket] = h.sockets;
+  if (socket === undefined) throw new Error("no socket");
+  socket.message({ type: "joined", match: "m1", you: "ada" });
+  socket.message({ type: "start", seconds: 60 });
+  expect(h.states.at(-1)).toMatchObject({ phase: "playing", you: "ada" });
+  expect(sprint.answer(1, 2)).toBe(true);
+  expect(JSON.parse(socket.sent[0] ?? "")).toEqual({
+    type: "answer",
+    n: 1,
+    choice: 2,
+  });
+  // Not open (connecting again): nothing sent, nothing thrown.
+  socket.readyState = 0;
+  expect(sprint.answer(2, 0)).toBe(false);
+  sprint.stop();
+  expect(socket.closed).toBe(true);
+  expect(h.calls).not.toContain("DELETE"); // matched: too late to leave
+});
+
+test("stopped while queued, it leaves the queue", async () => {
+  const h = harness([]);
+  const sprint = runSprint(h.deps);
+  await flush();
+  sprint.stop();
+  await flush();
+  expect(h.calls.at(-1)).toBe("DELETE");
+  expect(h.deps.onError).not.toHaveBeenCalled();
+});
+
+test("a failed leave is logged", async () => {
+  const h = harness([]);
+  h.deps.queue = (method) =>
+    Promise.resolve(
+      method === "DELETE"
+        ? new Response(null, { status: 500 })
+        : json({ status: "waiting" }),
+    );
+  const sprint = runSprint(h.deps);
+  await flush();
+  sprint.stop();
+  await flush();
+  expect(errors).toHaveBeenCalled();
+});
+
+test("a dropped socket reconnects, and a failed ticket is tried again", async () => {
+  const h = harness([{ status: "matched", matchId: "m1" }]);
+  runSprint(h.deps);
+  await flush();
+  h.sockets[0]?.message({ type: "start", seconds: 60 });
+  h.failOpens(1);
+  h.sockets[0]?.drop();
+  await flush();
+  expect(h.sockets).toHaveLength(2);
+  expect(h.deps.onError).not.toHaveBeenCalled();
+});
+
+test("each drop gets its own window once back; past 60 s it gives up", async () => {
+  const h = harness([{ status: "matched", matchId: "m1" }]);
+  runSprint(h.deps);
+  await flush();
+  for (let i = 0; i < 5; i += 1) {
+    h.sockets.at(-1)?.message({ type: "start", seconds: 60 });
+    h.sockets.at(-1)?.drop();
+    await flush();
+  }
+  expect(h.deps.onError).not.toHaveBeenCalled();
+  // Never heard from again: the window runs out.
+  h.advance(61_000);
+  h.sockets.at(-1)?.drop();
+  await flush();
+  expect(h.deps.onError).toHaveBeenCalledOnce();
+});
+
+test("no reconnect after the final, nor after the server says the match is over", async () => {
+  const h = harness([{ status: "matched", matchId: "m1" }]);
+  runSprint(h.deps);
+  await flush();
+  h.sockets[0]?.message({ type: "final", totals: {}, winner: "" });
+  h.sockets[0]?.drop("match over");
+  await flush();
+  expect(h.sockets).toHaveLength(1);
+  expect(h.deps.onError).not.toHaveBeenCalled();
+
+  const h2 = harness([{ status: "matched", matchId: "m2" }]);
+  runSprint(h2.deps);
+  await flush();
+  h2.sockets[0]?.drop("joined again elsewhere");
+  await flush();
+  expect(h2.sockets).toHaveLength(1);
+  expect(h2.deps.onError).toHaveBeenCalledOnce();
+});
+
+test("a frame that isn't a sprint message is logged, not shown", async () => {
+  const h = harness([{ status: "matched", matchId: "m1" }]);
+  runSprint(h.deps);
+  await flush();
+  const before = h.states.length;
+  h.sockets[0]?.raw("not json");
+  h.sockets[0]?.message({ type: "reveal", n: 1 });
+  expect(h.states).toHaveLength(before);
+  expect(errors).toHaveBeenCalledTimes(2);
+});

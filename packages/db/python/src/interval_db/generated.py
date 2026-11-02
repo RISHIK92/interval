@@ -342,6 +342,7 @@ class GameMatch(TypedDict):
     outcome: str | None
     winner_id: str | None
     rated_at: datetime | None
+    mode: str
 
 
 class GameMatchPlayer(TypedDict):

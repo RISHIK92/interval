@@ -5,7 +5,7 @@ import { afterAll, expect, test } from "vitest";
 import type { Matches } from "../ports";
 import { createDb } from "./kysely";
 import { kyselyMatches, memoryMatches } from "./kysely-matches";
-import { LIVE_ROUNDS, type LiveRound } from "../ports";
+import { LIVE_QUESTIONS, type LiveRound } from "../ports";
 
 // P3-W15-S02 (ADR-0033): a ticket is issued only to a player of the match.
 const connectionString = process.env["DATABASE_URL"];
@@ -111,16 +111,33 @@ const choices = (n: number): LiveRound[] =>
 
 test("the fake makes a match of seven, or none from a smaller bank", async () => {
   const all = new Map<string, { serverId: number; players: string[] }>();
-  const made = await memoryMatches(all, choices(9)).create(0, ["a", "b"]);
-  expect(made?.rounds).toHaveLength(LIVE_ROUNDS);
+  const made = await memoryMatches(all, choices(9)).create(
+    0,
+    ["a", "b"],
+    "fastest_finger",
+  );
+  expect(made?.rounds).toHaveLength(LIVE_QUESTIONS.fastest_finger);
+  expect(made?.mode).toBe("fastest_finger");
   expect(made?.players).toEqual(["a", "b"]);
   expect(await memoryMatches(all).serverFor(made?.id ?? "", "a")).toEqual({
     serverId: 0,
     playedAs: "a",
   });
   expect(
-    await memoryMatches(new Map(), choices(6)).create(0, ["a"]),
+    await memoryMatches(new Map(), choices(6)).create(
+      0,
+      ["a"],
+      "fastest_finger",
+    ),
   ).toBeNull();
+  // Q-P3-23: a sprint plays 30.
+  expect(
+    await memoryMatches(new Map(), choices(29)).create(0, ["a"], "sprint"),
+  ).toBeNull();
+  expect(
+    (await memoryMatches(new Map(), choices(31)).create(0, ["a"], "sprint"))
+      ?.rounds,
+  ).toHaveLength(LIVE_QUESTIONS.sprint);
 });
 
 test("Postgres picks seven different live questions and records them in order", async () => {
@@ -233,13 +250,13 @@ test("Postgres picks seven different live questions and records them in order", 
             });
       }
       const matches = kyselyMatches(trx);
-      const made = await matches.create(2, players);
+      const made = await matches.create(2, players, "fastest_finger");
       if (made === null) throw new Error("no match");
       expect(made.serverId).toBe(2);
       expect(made.players).toEqual(players);
-      expect(made.rounds).toHaveLength(LIVE_ROUNDS);
+      expect(made.rounds).toHaveLength(LIVE_QUESTIONS.fastest_finger);
       expect(new Set(made.rounds.map((r) => r.question)).size).toBe(
-        LIVE_ROUNDS,
+        LIVE_QUESTIONS.fastest_finger,
       );
       // Of the whole local bank, the shared concept's questions come first.
       for (const r of made.rounds) expect(ours).toContain(r.question);
@@ -261,6 +278,31 @@ test("Postgres picks seven different live questions and records them in order", 
         serverId: 2,
         playedAs: players[1],
       });
+      // Q-P3-23: a sprint's 30 questions, distinct, recorded with its mode.
+      const sprint = await matches.create(2, players, "sprint");
+      if (sprint === null) throw new Error("no sprint");
+      expect(sprint.mode).toBe("sprint");
+      expect(new Set(sprint.rounds.map((r) => r.question)).size).toBe(
+        LIVE_QUESTIONS.sprint,
+      );
+      expect(
+        await trx
+          .selectFrom("game_match")
+          .select(["id", "mode"])
+          .where("id", "in", [made.id, sprint.id])
+          .orderBy("mode")
+          .execute(),
+      ).toEqual([
+        { id: made.id, mode: "fastest_finger" },
+        { id: sprint.id, mode: "sprint" },
+      ]);
+      expect(
+        await trx
+          .selectFrom("game_match_question")
+          .select((eb) => eb.fn.max("round").as("last"))
+          .where("match_id", "=", sprint.id)
+          .executeTakeFirst(),
+      ).toEqual({ last: 30 });
       throw new Rollback();
     }),
   ).rejects.toBeInstanceOf(Rollback);
@@ -424,7 +466,11 @@ test("Postgres: retired concepts never count, goal concepts fill, the pair's lev
       for (let i = 0; i < 3; i += 1)
         onRetired.push(await question(retired.id, "advanced"));
 
-      const made = await kyselyMatches(trx).create(0, players);
+      const made = await kyselyMatches(trx).create(
+        0,
+        players,
+        "fastest_finger",
+      );
       if (made === null) throw new Error("no match");
       const picked = made.rounds.map((r) => r.question).sort();
       // The goal tier, at the pair's level, beats the retired "shared" questions.

@@ -48,6 +48,16 @@ def test_a_result_that_is_not_one_is_refused(change: dict[str, object]) -> None:
     assert parse_result(json.dumps(body).encode()) is None
 
 
+def test_a_sprint_result_holds_thirty_answers_and_no_more() -> None:
+    """P3-W16-S04 (Q-P3-23): a live sprint plays up to 30 questions."""
+    body = json.loads((GOLDEN / "match_finished.json").read_bytes())
+    answer = {"round": 1, "question_id": 7, "choice": 0, "correct": True, "ms": 900}
+    body["players"][0]["answers"] = [{**answer, "round": n} for n in range(1, 31)]
+    assert parse_result(json.dumps(body).encode()) is not None
+    body["players"][0]["answers"].append({**answer, "round": 31})
+    assert parse_result(json.dumps(body).encode()) is None
+
+
 def _valkey() -> redis.Redis:
     url = os.environ.get("VALKEY_URL")
     assert url, "VALKEY_URL is not set"

@@ -14,9 +14,13 @@ const poll = vi.fn<Matchmaking["poll"]>(() =>
 const leave = vi.fn<Matchmaking["leave"]>(() => Promise.resolve());
 const of = vi.fn<PlayerRatings["of"]>(() => Promise.resolve(1612.4));
 const emit = vi.fn();
+const queueOf = vi.fn<(mode: string) => void>();
 vi.mock("../../../../server/container", () => ({
   sessionReader: () => ({ current }),
-  matchmaking: () => ({ join, poll, leave }),
+  matchmaking: (mode: string) => {
+    queueOf(mode);
+    return { join, poll, leave };
+  },
   playerRatings: () => ({ of }),
   events: () => ({ emit }),
 }));
@@ -43,16 +47,31 @@ afterEach(() => {
 const call = async (
   method: "POST" | "PUT" | "DELETE",
   origin = "http://localhost:3100",
+  mode: string | null = "sprint",
 ) => {
   const route = await import("./route");
   // As a browser sends a non-GET fetch: with its Origin.
+  const query = mode === null ? "" : `?mode=${mode}`;
   return route[method](
-    new Request("http://localhost:3100/api/game/queue", {
+    new Request(`http://localhost:3100/api/game/queue${query}`, {
       method,
       headers: { origin },
     }),
   );
 };
+
+// P3-W16-S04 (Q-P3-23): each mode has its own queue.
+test.each(["POST", "PUT", "DELETE"] as const)(
+  "%s needs a known mode, and uses that mode's queue",
+  async (method) => {
+    current.mockResolvedValue(guest);
+    expect((await call(method, undefined, null)).status).toBe(400);
+    expect((await call(method, undefined, "chess")).status).toBe(400);
+    expect(queueOf).not.toHaveBeenCalled();
+    await call(method, undefined, "fastest_finger");
+    expect(queueOf).toHaveBeenCalledExactlyOnceWith("fastest_finger");
+  },
+);
 
 test("a player, guest or not, joins at their rating", async () => {
   current.mockResolvedValue(guest);

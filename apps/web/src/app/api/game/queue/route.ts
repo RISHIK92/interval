@@ -1,11 +1,12 @@
 import { cookies } from "next/headers";
+import { z } from "zod";
 import {
   events,
   matchmaking,
   playerRatings,
   sessionReader,
 } from "../../../../server/container";
-import type { Actor } from "../../../../server/ports";
+import type { Actor, Matchmaking } from "../../../../server/ports";
 import { sameOrigin } from "../../../../server/same-origin";
 import { visitId } from "../../../../server/visits";
 
@@ -15,26 +16,33 @@ export const dynamic = "force-dynamic";
 // (ADR-0029). The browser joins (POST), polls about once a second until matched (PUT:
 // a poll pairs and makes matches, so never a GET; and a browser sends Origin on it),
 // then asks for a ticket (/api/game/ticket); it leaves (DELETE) when it stops waiting.
-async function player(request: Request): Promise<Actor | Response> {
+// P3-W16-S04 (Q-P3-23): ?mode= picks the mode's own queue.
+const Mode = z.enum(["sprint", "fastest_finger"]);
+
+async function player(
+  request: Request,
+): Promise<{ actor: Actor; queue: Matchmaking } | Response> {
   if (!sameOrigin(request)) return new Response(null, { status: 403 });
+  const mode = Mode.safeParse(new URL(request.url).searchParams.get("mode"));
+  if (!mode.success) return new Response(null, { status: 400 });
   const actor = await sessionReader().current(request.headers);
-  return actor ?? new Response(null, { status: 401 });
+  if (actor === null) return new Response(null, { status: 401 });
+  return { actor, queue: matchmaking(mode.data) };
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const actor = await player(request);
-  if (actor instanceof Response) return actor;
-  await matchmaking().join(
-    actor.userId,
-    await playerRatings().of(actor.userId),
-  );
+  const seat = await player(request);
+  if (seat instanceof Response) return seat;
+  const { actor, queue } = seat;
+  await queue.join(actor.userId, await playerRatings().of(actor.userId));
   return new Response(null, { status: 204 });
 }
 
 export async function PUT(request: Request): Promise<Response> {
-  const actor = await player(request);
-  if (actor instanceof Response) return actor;
-  const state = await matchmaking().poll(actor.userId);
+  const seat = await player(request);
+  if (seat instanceof Response) return seat;
+  const { actor, queue } = seat;
+  const state = await queue.poll(actor.userId);
   if (state.status === "matched" && state.first)
     // The Phase 3 time-to-match metric; once per player.
     events().emit(
@@ -51,8 +59,9 @@ export async function PUT(request: Request): Promise<Response> {
 }
 
 export async function DELETE(request: Request): Promise<Response> {
-  const actor = await player(request);
-  if (actor instanceof Response) return actor;
-  await matchmaking().leave(actor.userId);
+  const seat = await player(request);
+  if (seat instanceof Response) return seat;
+  const { actor, queue } = seat;
+  await queue.leave(actor.userId);
   return new Response(null, { status: 204 });
 }
