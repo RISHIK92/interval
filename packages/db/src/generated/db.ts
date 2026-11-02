@@ -362,6 +362,7 @@ export interface Follow {
 export interface GameMatch {
   created_at: Generated<Timestamp>;
   finished_at: Timestamp | null;
+  ghost_run_id: Int8 | null;
   id: Generated<string>;
   mode: Generated<string>;
   outcome: string | null;
@@ -383,6 +384,18 @@ export interface GameMatchQuestion {
   match_id: string;
   question_id: Int8;
   round: number;
+}
+
+export interface GhostRun {
+  answers: Json;
+  id: Generated<Int8>;
+  match_id: string;
+  mode: string;
+  rating: number;
+  rd: number;
+  recorded_at: Generated<Timestamp>;
+  user_id: string;
+  volatility: number;
 }
 
 export interface GithubAccount {
@@ -1115,6 +1128,7 @@ export interface DB {
   game_match: GameMatch;
   game_match_player: GameMatchPlayer;
   game_match_question: GameMatchQuestion;
+  ghost_run: GhostRun;
   github_account: GithubAccount;
   github_dependency: GithubDependency;
   github_dependency_technology: GithubDependencyTechnology;

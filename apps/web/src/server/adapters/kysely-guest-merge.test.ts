@@ -347,6 +347,24 @@ test("the guest's matches move to the account", async () => {
     };
     const alone = await match([guest]);
     const both = await match([guest, account]);
+    // P3-W17-S01: the guest's run of it, and of the one both played (the account's
+    // own run of that stays).
+    const ghostRun = (match_id: string, user_id: string) =>
+      trx
+        .insertInto("ghost_run")
+        .values({
+          match_id,
+          user_id,
+          mode: "sprint",
+          rating: 1500,
+          rd: 350,
+          volatility: 0.06,
+          answers: "[]",
+        })
+        .execute();
+    await ghostRun(alone, guest);
+    await ghostRun(both, guest);
+    await ghostRun(both, account);
     // P3-W15-S05: one already recorded, the guest's win and totals.
     await sql`update game_match set finished_at = now(), outcome = 'finished',
       winner_id = ${guest} where id = ${alone}`.execute(trx);
@@ -384,6 +402,26 @@ test("the guest's matches move to the account", async () => {
           .executeTakeFirstOrThrow()
       ).winner_id,
     ).toBe(account);
+    expect(
+      await trx
+        .selectFrom("ghost_run")
+        .select(["match_id", "user_id"])
+        .where("match_id", "in", [alone, both])
+        .orderBy("match_id")
+        .execute(),
+    ).toEqual(
+      expect.arrayContaining([
+        { match_id: alone, user_id: account },
+        { match_id: both, user_id: account },
+      ]),
+    );
+    expect(
+      await trx
+        .selectFrom("ghost_run")
+        .select("id")
+        .where("match_id", "in", [alone, both])
+        .execute(),
+    ).toHaveLength(2);
   });
 });
 

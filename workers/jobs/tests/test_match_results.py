@@ -8,6 +8,7 @@ import threading
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import psycopg
 import pytest
@@ -16,6 +17,7 @@ import redis
 from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.adapters.postgres import PostgresMatchResults
 from interval_jobs.match_results import MatchResult, parse_result, relay
+from interval_jobs.ratings import Glicko, update
 
 from .test_db_guards import a_user
 
@@ -422,3 +424,159 @@ def test_abandoned_with_nobody_leaving_is_unrated(conn: psycopg.Connection) -> N
     result = _scores(_result(match_id, "abandoned", question), None, set())
     assert PostgresMatchResults(conn).record(result)
     assert _ratings(conn) == {}
+
+
+# P3-W17-S01 (BOT-1, BOT-4, Q-P3-25; owner, 2026-11-03): each human side of a finished
+# live match is kept as a ghost run (ids and timings only), and a match against a ghost
+# moves the human's rating half as much.
+def _runs(conn: psycopg.Connection, match_id: str) -> list[tuple[Any, ...]]:
+    return conn.execute(
+        "select user_id, mode, rating, rd, volatility, answers from ghost_run "
+        "where match_id = %s order by user_id",
+        (match_id,),
+    ).fetchall()
+
+
+def test_each_finished_human_side_is_kept_as_a_run(conn: psycopg.Connection) -> None:
+    a_user(conn, "gra")
+    a_user(conn, "grb")
+    question = _question(conn)
+    match_id = _match(conn, [("gra", "guest-1"), ("grb", None)])
+    conn.execute("update game_match set mode = 'sprint' where id = %s", (match_id,))
+    assert PostgresMatchResults(conn).record(_result(match_id, "finished", question))
+    # The account it plays as now; the rating before the match; ids and times only.
+    # grb answered nothing: no run.
+    assert _runs(conn, match_id) == [
+        (
+            "gra",
+            "sprint",
+            1500.0,
+            350.0,
+            0.06,
+            [{"n": 1, "question_id": question, "choice": 0, "ms": 2950}],
+        )
+    ]
+
+
+@pytest.mark.parametrize("outcome", ["abandoned", "cancelled", "void"])
+def test_a_match_not_finished_keeps_no_runs(
+    conn: psycopg.Connection, outcome: str
+) -> None:
+    a_user(conn, "gra")
+    a_user(conn, "grb")
+    question = _question(conn)
+    match_id = _match(conn, [("gra", "guest-1"), ("grb", None)])
+    result = _result(match_id, outcome, question)
+    if outcome == "abandoned":
+        result = result.model_copy(
+            update={
+                "players": [
+                    p.model_copy(update={"abandoned": p.played_as == "grb"})
+                    for p in result.players
+                ]
+            }
+        )
+    PostgresMatchResults(conn).record(result)
+    assert _runs(conn, match_id) == []
+
+
+def _ghost_match(conn: psycopg.Connection, question: int) -> tuple[str, int]:
+    """A ghost run of grb's at 1700/50, and a match of gra's against it."""
+    source = _match(conn, [("grb", None)])
+    row = conn.execute(
+        "insert into ghost_run (match_id, user_id, mode, rating, rd, volatility,"
+        " answers) values (%s, 'grb', 'fastest_finger', 1700, 50, 0.06, %s)"
+        " returning id",
+        (source, f'[{{"n": 1, "question_id": {question}, "choice": 0, "ms": 4000}}]'),
+    ).fetchone()
+    assert row is not None
+    match_id = _match(conn, [("gra", None)])
+    conn.execute(
+        "update game_match set ghost_run_id = %s where id = %s", (row[0], match_id)
+    )
+    return match_id, int(row[0])
+
+
+def test_a_ghost_match_moves_the_human_half_as_much(
+    conn: psycopg.Connection, capsys: pytest.CaptureFixture[str]
+) -> None:
+    a_user(conn, "gra")
+    a_user(conn, "grb")
+    question = _question(conn)
+    match_id, run = _ghost_match(conn, question)
+    ghost = f"ghost:{run}"
+    result = MatchResult.model_validate(
+        {
+            "match_id": match_id,
+            "finished_at": "2026-11-02T12:05:00Z",
+            "outcome": "finished",
+            "winner": "gra",
+            "players": [
+                {
+                    "played_as": "gra",
+                    "total": 1,
+                    "time_ms": 2000,
+                    "abandoned": False,
+                    "answers": [
+                        {
+                            "round": 1,
+                            "question_id": question,
+                            "choice": 0,
+                            "correct": True,
+                            "ms": 2000,
+                        }
+                    ],
+                },
+                {
+                    "played_as": ghost,
+                    "total": 0,
+                    "time_ms": 0,
+                    "abandoned": False,
+                    "answers": [],
+                },
+            ],
+        }
+    )
+    assert PostgresMatchResults(conn).record(result)
+    full = update(Glicko(1500, 350, 0.06), [(Glicko(1700, 50, 0.06), 1.0)])
+    row = conn.execute(
+        "select rating, rd, volatility, games from player_rating where user_id = 'gra'"
+    ).fetchone()
+    assert row is not None
+    assert float(row[0]) == pytest.approx(1500 + (full.rating - 1500) / 2)
+    assert (float(row[1]), float(row[2]), row[3]) == pytest.approx(
+        (full.rd, full.volatility, 1)
+    )
+    # The ghost's owner is untouched; one history row, the human's.
+    assert conn.execute(
+        "select count(*) from player_rating where user_id = 'grb'"
+    ).fetchone() == (0,)
+    assert conn.execute(
+        "select user_id from rating_history where match_id = %s", (match_id,)
+    ).fetchall() == [("gra",)]
+    # The ghost's seat is expected in the result, not warned about.
+    assert "not in the match" not in capsys.readouterr().out
+    # The human's side is a real run, kept like any other.
+    assert [r[0] for r in _runs(conn, match_id)] == ["gra"]
+
+
+def test_an_unrated_match_keeps_its_run_at_the_rating_held(
+    conn: psycopg.Connection,
+) -> None:
+    # The guest that signed up into its own opponent's account: one player, unrated.
+    a_user(conn, "gra")
+    question = _question(conn)
+    conn.execute(
+        "insert into player_rating (user_id, rating, rd, volatility, games)"
+        " values ('gra', 1720, 90, 0.05, 8)"
+    )
+    match_id = _match(conn, [("gra", "guest-1")])
+    conn.execute(
+        "insert into game_match_player (match_id, user_id, played_as) values"
+        " (%s, 'gra', 'lrb') on conflict do nothing",
+        (match_id,),
+    )
+    result = _result(match_id, "finished", question)
+    assert PostgresMatchResults(conn).record(result)
+    runs = _runs(conn, match_id)
+    assert [(r[0], r[2], r[3], r[4]) for r in runs] == [("gra", 1720.0, 90.0, 0.05)]

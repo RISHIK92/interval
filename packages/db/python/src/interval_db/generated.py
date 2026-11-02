@@ -343,6 +343,7 @@ class GameMatch(TypedDict):
     winner_id: str | None
     rated_at: datetime | None
     mode: str
+    ghost_run_id: int | None
 
 
 class GameMatchPlayer(TypedDict):
@@ -358,6 +359,18 @@ class GameMatchQuestion(TypedDict):
     match_id: UUID
     round: int
     question_id: int
+
+
+class GhostRun(TypedDict):
+    id: int
+    match_id: UUID
+    user_id: str
+    mode: str
+    rating: float
+    rd: float
+    volatility: float
+    answers: JsonValue
+    recorded_at: datetime
 
 
 class GithubAccount(TypedDict):

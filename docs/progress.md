@@ -3121,3 +3121,38 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Accepted (nit):** ranks compare unrounded ratings while the page rounds them, so two players can show the same rating at different ranks.
 - **Known limit:** a month the job misses for the whole next month keeps no board, and the reset applies once.
 - **Full check:** 28/28 tasks green (web 1285, Python 1312, infra 86).
+
+### 2026-11-03 — P3-W17-S01 (ghosts; BOT-1, BOT-3, BOT-4, Q-P3-25)
+
+- **Owner (Q-P3-25):**
+  - live-match sides only;
+  - same mode, the last 30 days, someone else's run; unmet first, nearest rating, else the oldest met;
+  - the label "Ghost · ~1600", never a name;
+  - a "Play a ghost now" button.
+- **DB:** `ghost_run` (the match, player, mode, Glicko before the match, and answers jsonb `[{n, question_id, choice, ms}]`: ids and times only) and `game_match.ghost_run_id`.
+- **Worker:**
+  - each finished, non-abandoned human side that answered something is kept as a run, at its rating before the match (or its current one when the match was unrated);
+  - the ghost seat is skipped quietly;
+  - against a ghost only the human is rated, at half weight (BOT-4, `GHOST_WEIGHT`): rating = before + ½ × (Glicko-2 − before); RD and volatility take Glicko-2's values.
+- **Go:**
+  - `matchDef.ghost`; a `ghostSeat` seated from the start;
+  - `ghostPlays` sets every timer in the actor; one goroutine posts them in order (a sprint's in question order, each no sooner than the last);
+  - `joined.opponent` carries the label;
+  - after a restart with its person gone, a ghost match is void;
+  - `parseMatch` checks the ghost.
+- **Web:**
+  - `Matches.createGhost` (the SQL pick, then a copy of the run's questions in order);
+  - the handoff carries the ghost;
+  - `POST /api/game/ghost` leaves both queues, returns a person's match if one was just made, else the ghost match;
+  - `runLive` has `ghost()`, `onNoGhost` and `onOpponent`;
+  - `LivePlay`: "Play a ghost now", and `GhostFrame` shows "👻 vs Ghost · ~1600" for the whole match and the half rating at its end;
+  - the guest merge moves runs.
+- **Reviewer, fixed:**
+  - a sprint ghost stalled when its times weren't rising (blocker);
+  - a ghost restart rated an absent person a loss;
+  - a ghost and a person's match could both be made;
+  - no Go test of the label;
+  - unrated runs were kept at 1500;
+  - a silent options fallback.
+- **Noted for the owner:** a run played against a ghost is itself kept as a run (it is a person's side of a finished live match).
+- **Full check:** green: web 1294 (one quiz-adapter load flake that passes alone, 70); Python 1318; Go race; infra 62.

@@ -11,6 +11,8 @@ export function valkeyMatchHandoff(redis: Redis): MatchHandoff {
       const body = JSON.stringify({
         players: match.players,
         mode: match.mode,
+        // P3-W17-S01: the ghost's seat, label and recorded answers, when it has one.
+        ...(match.ghost === undefined ? {} : { ghost: match.ghost }),
         rounds: match.rounds.map((r) => ({
           ...r,
           question: Number(r.question),

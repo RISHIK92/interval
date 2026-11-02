@@ -24,3 +24,22 @@ export async function startLiveMatch(
   }
   return match;
 }
+
+// P3-W17-S01 (BOT-1, Q-P3-25): a match against a ghost, handed to its server like any;
+// null when no recorded run fits the player.
+export async function startGhostMatch(
+  matches: Matches,
+  handoff: MatchHandoff,
+  userId: string,
+  mode: GameMode,
+): Promise<LiveMatch | null> {
+  const match = await matches.createGhost(0, userId, mode);
+  if (match === null) return null;
+  try {
+    await handoff.put(match);
+  } catch (error) {
+    log.error("game: match not handed over", { matchId: match.id, error });
+    throw error;
+  }
+  return match;
+}

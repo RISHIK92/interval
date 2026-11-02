@@ -32,7 +32,15 @@ export type LiveDeps<S> = {
   now: () => number;
   onState: (state: S) => void;
   onError: () => void; // the match can't go on
+  // P3-W17-S01 (Q-P3-25): a ghost match for this player, its id; null when none fits.
+  ghost: () => Promise<string | null>;
+  onNoGhost: () => void;
+  // BOT-3: the opponent's label when it isn't a person (a ghost), from `joined`.
+  onOpponent: (label: string) => void;
 };
+
+// `joined`'s opponent label, which every mode's server sends alike.
+const Joined = z.object({ type: z.literal("joined"), opponent: z.string() });
 
 // /api/game/queue's poll.
 const Polled = z.discriminatedUnion("status", [
@@ -52,6 +60,7 @@ const OPEN = 1; // WebSocket.OPEN
 
 export function runLive<S>(deps: LiveDeps<S>): {
   answer: (n: number, choice: number) => boolean;
+  ghost: () => void;
   stop: () => void;
 } {
   let stopped = false;
@@ -84,6 +93,8 @@ export function runLive<S>(deps: LiveDeps<S>): {
         }
         heard = true;
         state = next;
+        const joined = Joined.safeParse(raw);
+        if (joined.success) deps.onOpponent(joined.data.opponent);
         if (!stopped) deps.onState(state);
       },
       close: (reason) => {
@@ -122,10 +133,25 @@ export function runLive<S>(deps: LiveDeps<S>): {
   };
 
   let rejoined = false;
+  let ghostWanted = false;
   const run = async () => {
     const joined = await deps.queue("POST");
     if (!joined.ok) throw new Error(`queue: ${String(joined.status)}`);
     while (!stopped) {
+      if (ghostWanted) {
+        ghostWanted = false;
+        // The ghost route leaves the queues before it looks for a run.
+        const ghostId = await deps.ghost();
+        if (ghostId !== null) {
+          matched = true;
+          deps.onState(state);
+          await connect(ghostId, null);
+          return;
+        }
+        deps.onNoGhost();
+        const back = await deps.queue("POST");
+        if (!back.ok) throw new Error(`queue: ${String(back.status)}`);
+      }
       const polled = await deps.queue("PUT");
       if (!polled.ok) throw new Error(`queue: ${String(polled.status)}`);
       const body = Polled.parse(await polled.json());
@@ -157,6 +183,10 @@ export function runLive<S>(deps: LiveDeps<S>): {
       if (socket === null || socket.readyState !== OPEN) return false;
       socket.send(JSON.stringify({ type: "answer", n, choice }));
       return true;
+    },
+    // Taken at the queue's next turn (within a poll).
+    ghost: () => {
+      ghostWanted = true;
     },
     stop: () => {
       stopped = true;

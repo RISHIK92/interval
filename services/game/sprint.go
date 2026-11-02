@@ -31,6 +31,7 @@ func (a *actor) sprint(p *play) {
 	s.live, s.start = true, a.clock.Now()
 	s.until = s.start.Add(sprintTime)
 	end := a.clock.After(sprintTime)
+	a.ghostPlays(1, len(a.def.Rounds), s.start)
 	a.broadcast(p, map[string]any{"type": "start", "seconds": seconds(sprintTime)})
 	for player, seat := range p.seats {
 		a.tell(p, player, seat, a.nextFor(p, player))

@@ -703,7 +703,11 @@ export type LiveMatch = {
   players: string[];
   mode: GameMode;
   rounds: LiveRound[];
+  // P3-W17-S01 (BOT-1, BOT-3, Q-P3-25): the other seat replays a recorded run, shown
+  // only by its label; its answers are ids and times.
+  ghost?: { player: string; label: string; answers: GhostAnswer[] };
 };
+export type GhostAnswer = { n: number; choice: number; ms: number };
 // The questions a match plays (owner: 7 rounds, 2026-11-02; a sprint's 30, 2026-11-03).
 export const LIVE_QUESTIONS: Record<GameMode, number> = {
   fastest_finger: 7,
@@ -716,6 +720,14 @@ export interface Matches {
   create(
     serverId: number,
     players: string[],
+    mode: GameMode,
+  ): Promise<LiveMatch | null>;
+  // P3-W17-S01 (Q-P3-25): a match against a ghost, a same-mode run from the last 30 days
+  // by someone else with every question still live: one never met first, the nearest
+  // rating first; with all met, the one met longest ago. Null when there's none.
+  createGhost(
+    serverId: number,
+    userId: string,
     mode: GameMode,
   ): Promise<LiveMatch | null>;
   // The game server that owns the match, and the id the player plays as there (a guest

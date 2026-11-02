@@ -51,3 +51,37 @@ test("puts the match as the game server reads it, for an hour", async () => {
     await redis.del(key);
   }
 });
+
+// P3-W17-S01: a ghost match hands over its ghost (services/game ghostDef).
+test("a ghost match hands over the ghost's seat, label and answers", async () => {
+  const ghost = {
+    player: "ghost:7",
+    label: "Ghost · ~1600",
+    answers: [{ n: 1, choice: 2, ms: 3100 }],
+  };
+  const match: LiveMatch = {
+    id: randomUUID(),
+    serverId: 0,
+    players: ["ada", "ghost:7"],
+    mode: "fastest_finger",
+    rounds: [
+      {
+        question: "41",
+        stem: "Which?",
+        options: ["a", "b", "c", "d"],
+        correct: 2,
+      },
+    ],
+    ghost,
+  };
+  const key = `game:match:${match.id}`;
+  try {
+    await valkeyMatchHandoff(redis).put(match);
+    expect(JSON.parse((await redis.get(key)) ?? "null")).toMatchObject({
+      players: ["ada", "ghost:7"],
+      ghost,
+    });
+  } finally {
+    await redis.del(key);
+  }
+});

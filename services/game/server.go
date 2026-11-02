@@ -118,7 +118,11 @@ func newHandler(cfg config, sockets *matchSockets, matches *registry, now func()
 		player := newWSSeat(conn)
 		go safely(matches.log, "writer", func() { player.writeLoop(ctx) })
 		defer player.close("left")
-		player.send(map[string]string{"type": "joined", "match": ticket.M, "you": ticket.U})
+		joined := map[string]string{"type": "joined", "match": ticket.M, "you": ticket.U}
+		if g := a.def.Ghost; g != nil {
+			joined["opponent"] = g.Label // BOT-3: always labeled
+		}
+		player.send(joined)
 		if !a.join(ticket.U, player) {
 			player.close("match over") // it ended as this player arrived
 			return

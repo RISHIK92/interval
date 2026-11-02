@@ -182,6 +182,15 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - a player waits in one mode's queue at a time: joining one leaves the other;
   - (the sprint, Q-P3-23) when both players have answered all 30, the sprint ends at once.
 
+### Q-P3-25 Ghosts (P0 for W17-S01)
+
+- Cite: BOT-1 (ghosts first: replays of real recorded runs), BOT-3 (always labeled), BOT-4 (half-weight ratings).
+- **Answer (owner, 2026-11-03):**
+  - each player's side of a finished live match (sprint or fastest finger) is recorded: question ids, choices, and answer times on the server's clock. Solo runs don't qualify;
+  - a player meets a run of the same mode from the last 30 days, by someone else, whose rating then was closest to the player's now. It's never one the player has met before (falling back to the oldest met);
+  - labeled "Ghost" with the run's rating band (e.g. "Ghost · ~1600"), never the original player's name;
+  - in S01, a "Play a ghost now" button on the live queue screen leaves the queue and starts a ghost match; S02 adds the automatic switch after 10 s.
+
 ### Q-P3-16 What a friend challenge link plays (P1)
 
 - **Answer (owner, 2026-10-31):** live only: the link opens a private live match; both players must be online.

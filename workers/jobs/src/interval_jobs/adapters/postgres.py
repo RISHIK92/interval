@@ -96,7 +96,7 @@ from interval_jobs.ports import (
 )
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
-from interval_jobs.ratings import START, Glicko, season_reset, update
+from interval_jobs.ratings import GHOST_WEIGHT, START, Glicko, season_reset, update
 from interval_jobs.technologies import TechnologySeed
 from interval_jobs.universities import UniversitySeed
 
@@ -3158,14 +3158,19 @@ class PostgresMatchResults:
                 """
                 update game_match set finished_at = %s, outcome = %s, winner_id = %s
                 where id = %s and finished_at is null
-                returning created_at
+                returning created_at, mode, ghost_run_id
                 """,
                 (result.finished_at, result.outcome, winner, result.match_id),
             ).fetchone()
             if done is None:
                 return False  # recorded already, or no such match
             started: datetime = min(done[0], result.finished_at - timedelta(seconds=1))
+            mode: str = done[1]
+            # P3-W17-S01: a ghost match's other seat replays a run; it's no player.
+            ghost: int | None = done[2]
             for player in result.players:
+                if ghost is not None and player.played_as == f"ghost:{ghost}":
+                    continue
                 user = players.get(player.played_as)
                 if user is None:
                     log.warn(
@@ -3229,16 +3234,78 @@ class PostgresMatchResults:
                             match_id=str(result.match_id),
                             question_id=answer.question_id,
                         )
-            self._rate(result, players)
+            before = self._rate(result, players, ghost)
+            if result.outcome == "finished":
+                self._keep_runs(result, players, mode, before)
         return True
 
-    def _rate(self, result: MatchResult, players: dict[str, str]) -> None:
+    def _keep_runs(
+        self,
+        result: MatchResult,
+        players: dict[str, str],
+        mode: str,
+        before: dict[str, Glicko],
+    ) -> None:
+        """P3-W17-S01 (BOT-1, Q-P3-25): each human side of a finished match that
+        answered something is kept as a ghost run: ids and timings only, at the rating
+        it had before the match."""
+        for player in result.players:
+            user = players.get(player.played_as)
+            answered = [
+                {
+                    "n": a.round,
+                    "question_id": a.question_id,
+                    "choice": a.choice,
+                    "ms": a.ms,
+                }
+                for a in player.answers
+                if a.choice is not None and a.ms is not None
+            ]
+            if user is None or player.abandoned or not answered:
+                continue
+            # Unrated (a guest against its own account): the rating it has now.
+            rating = before.get(user) or self._rating_of(user)
+            self._conn.execute(
+                """
+                insert into ghost_run (match_id, user_id, mode, rating, rd, volatility,
+                                       answers)
+                values (%s, %s, %s, %s, %s, %s, %s)
+                on conflict (match_id, user_id) do nothing
+                """,
+                (
+                    result.match_id,
+                    user,
+                    mode,
+                    rating.rating,
+                    rating.rd,
+                    rating.volatility,
+                    Jsonb(answered),
+                ),
+            )
+
+    def _rating_of(self, user: str) -> Glicko:
+        row = self._conn.execute(
+            "select rating, rd, volatility from player_rating where user_id = %s",
+            (user,),
+        ).fetchone()
+        return (
+            START
+            if row is None
+            else Glicko(float(row[0]), float(row[1]), float(row[2]))
+        )
+
+    def _rate(
+        self, result: MatchResult, players: dict[str, str], ghost: int | None
+    ) -> dict[str, Glicko]:
         """MATCH-1, ADR-0034: both players' Glicko-2 ratings, once (this runs only with
         the result's first recording). An abandon is a loss for the leaver and a win
         for the stayer, both gone a loss each; cancelled and void are unrated (owner,
-        2026-11-02)."""
+        2026-11-02). Against a ghost (P3-W17-S01, BOT-4) only the human is rated, at
+        half weight against the run's rating. Returns the ratings before the match."""
         if result.outcome not in ("finished", "abandoned"):
-            return
+            return {}
+        if ghost is not None:
+            return self._rate_against_ghost(result, players, ghost)
         seats = [
             (players[p.played_as], p) for p in result.players if p.played_as in players
         ]
@@ -3250,11 +3317,11 @@ class PostgresMatchResults:
                 match_id=str(result.match_id),
                 reason="one player",
             )
-            return
+            return {}
         if result.outcome == "abandoned" and not any(p.abandoned for _, p in seats):
             # Go never sends this; rating it would raise both players.
             log.error("game: result refused", reason="abandoned with nobody leaving")
-            return
+            return {}
 
         def score(played_as: str, abandoned: bool) -> float:
             if result.outcome == "abandoned":
@@ -3306,6 +3373,85 @@ class PostgresMatchResults:
         conn.execute(
             "update game_match set rated_at = now() where id = %s", (result.match_id,)
         )
+        return before
+
+    def _rate_against_ghost(
+        self, result: MatchResult, players: dict[str, str], ghost: int
+    ) -> dict[str, Glicko]:
+        """BOT-4: the human's rating moves half as far as Glicko-2 would move it against
+        the run's recorded rating; RD and volatility take Glicko-2's values (what the
+        match told us about the player). The run's owner is untouched."""
+        seat = next(
+            (
+                (players[p.played_as], p)
+                for p in result.players
+                if p.played_as in players
+            ),
+            None,
+        )
+        run = self._conn.execute(
+            "select rating, rd, volatility from ghost_run where id = %s", (ghost,)
+        ).fetchone()
+        if seat is None or run is None:
+            log.info(
+                "game: match unrated",
+                match_id=str(result.match_id),
+                reason="no ghost run" if run is None else "no player",
+            )
+            return {}
+        user, played = seat
+        if result.outcome == "abandoned":
+            points = 0.0 if played.abandoned else 1.0
+        elif result.winner is None:
+            points = 0.5
+        else:
+            points = 1.0 if played.played_as == result.winner else 0.0
+        conn = self._conn
+        conn.execute(
+            "insert into player_rating (user_id, rating, rd, volatility) "
+            "values (%s, %s, %s, %s) on conflict do nothing",
+            (user, START.rating, START.rd, START.volatility),
+        )
+        row = conn.execute(
+            "select rating, rd, volatility from player_rating where user_id = %s "
+            "for update",
+            (user,),
+        ).fetchone()
+        assert row is not None
+        before = Glicko(float(row[0]), float(row[1]), float(row[2]))
+        full = update(
+            before, [(Glicko(float(run[0]), float(run[1]), float(run[2])), points)]
+        )
+        after = Glicko(
+            before.rating + GHOST_WEIGHT * (full.rating - before.rating),
+            full.rd,
+            full.volatility,
+        )
+        conn.execute(
+            "update player_rating set rating = %s, rd = %s, volatility = %s, "
+            "games = games + 1, updated_at = now() where user_id = %s",
+            (after.rating, after.rd, after.volatility, user),
+        )
+        conn.execute(
+            """
+            insert into rating_history (user_id, match_id, rating_before,
+              rating_after, rd_after, volatility_after, score)
+            values (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                user,
+                result.match_id,
+                before.rating,
+                after.rating,
+                after.rd,
+                after.volatility,
+                points,
+            ),
+        )
+        conn.execute(
+            "update game_match set rated_at = now() where id = %s", (result.match_id,)
+        )
+        return {user: before}
 
 
 class PostgresUniversities:

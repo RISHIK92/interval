@@ -479,3 +479,188 @@ test("Postgres: retired concepts never count, goal concepts fill, the pair's lev
     }),
   ).rejects.toBeInstanceOf(Rollback);
 });
+
+// P3-W17-S01 (BOT-1, Q-P3-25; owner, 2026-11-03): a ghost is a same-mode run from the
+// last 30 days by someone else, every question still live: never met first, the
+// nearest rating first; with all met, the one met longest ago.
+test("Postgres: a ghost match replays the nearest unmet run, in its questions' order", async () => {
+  await expect(
+    db.transaction().execute(async (trx: Transaction<DB>) => {
+      const code = await trx
+        .insertInto("invite_code")
+        .values({
+          code: `GHOST${randomUUID().slice(0, 8).toUpperCase()}`,
+          beta_group: "developer",
+          max_uses: 10,
+          expires_at: sql<Date>`now() + interval '1 day'`,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const [me = "", a = "", b = "", c = ""] = [0, 1, 2, 3].map(
+        () => `ghost-${randomUUID()}`,
+      );
+      await trx
+        .insertInto("app_user")
+        .values(
+          [me, a, b, c].map((id) => ({
+            id,
+            name: "Ada",
+            email: `${id}@ghost.example.test`,
+            beta_group: "developer" as const,
+            invite_code_id: code.id,
+          })),
+        )
+        .execute();
+      await trx
+        .insertInto("player_rating")
+        .values({ user_id: me, rating: 1600, rd: 80, volatility: 0.06 })
+        .execute();
+      const source = await trx
+        .insertInto("source")
+        .values({
+          name: `ghost-${randomUUID()}`,
+          feed_url: `https://ghost.example.test/${randomUUID()}.xml`,
+          rights_profile: "full_text_internal",
+          moments_seeded: true,
+          moments_enabled: true,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const item = await trx
+        .insertInto("content_item")
+        .values({
+          source_id: source.id,
+          guid: randomUUID(),
+          canonical_url: `https://ghost.example.test/${randomUUID()}`,
+          title: "Ghosts",
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const moment = await trx
+        .insertInto("moment")
+        .values({
+          content_item_id: item.id,
+          ordinal: 0,
+          title: "M",
+          estimated_minutes: 3,
+          link: "https://ghost.example.test/post#m",
+          link_type: "anchor",
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const question = async (ordinal: number, status: "live" | "retired") =>
+        (
+          await trx
+            .insertInto("question")
+            .values({
+              moment_id: moment.id,
+              ordinal,
+              stem: `Q${String(ordinal)}?`,
+              options: ["right", "w1", "w2", "w3"],
+              correct: 0,
+              citation: "a b c",
+              status,
+              generator_model: "m",
+              prompt_version: 1,
+              content_hash: "h",
+            })
+            .returning("id")
+            .executeTakeFirstOrThrow()
+        ).id;
+      const [q1, q2, q3] = [
+        await question(0, "live"),
+        await question(1, "live"),
+        await question(2, "live"),
+      ];
+      const gone = await question(3, "retired");
+      // A recorded run: its match's questions in order, and its answers.
+      const run = async (
+        owner: string,
+        mode: "sprint" | "fastest_finger",
+        rating: number,
+        questions: string[],
+        daysAgo = 1,
+      ) => {
+        const { id: matchId } = await trx
+          .insertInto("game_match")
+          .values({ server_id: 0, mode })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        await trx
+          .insertInto("game_match_question")
+          .values(
+            questions.map((question_id, i) => ({
+              match_id: matchId,
+              round: i + 1,
+              question_id,
+            })),
+          )
+          .execute();
+        return (
+          await trx
+            .insertInto("ghost_run")
+            .values({
+              match_id: matchId,
+              user_id: owner,
+              mode,
+              rating,
+              rd: 90,
+              volatility: 0.06,
+              answers: JSON.stringify([
+                {
+                  n: 1,
+                  question_id: Number(questions[0]),
+                  choice: 0,
+                  ms: 4000,
+                },
+              ]),
+              recorded_at: sql<Date>`now() - make_interval(days => ${daysAgo})`,
+            })
+            .returning("id")
+            .executeTakeFirstOrThrow()
+        ).id;
+      };
+      const near = await run(a, "fastest_finger", 1650, [q2, q1, q3]);
+      const far = await run(b, "fastest_finger", 1720, [q1, q2, q3]);
+      await run(me, "fastest_finger", 1600, [q1, q2, q3]); // the player's own
+      await run(c, "fastest_finger", 1600, [q1, q2, q3], 40); // too old
+      await run(c, "sprint", 1600, [q1, q2, q3]); // another mode
+      await run(c, "fastest_finger", 1600, [q1, gone, q3]); // a question gone
+
+      const matches = kyselyMatches(trx);
+      const first = await matches.createGhost(0, me, "fastest_finger");
+      if (first === null) throw new Error("no ghost");
+      expect(first.players).toEqual([me, `ghost:${near}`]);
+      expect(first.mode).toBe("fastest_finger");
+      expect(first.rounds.map((r) => r.question)).toEqual([q2, q1, q3]);
+      expect(first.ghost).toEqual({
+        player: `ghost:${near}`,
+        label: "Ghost · ~1700",
+        answers: [{ n: 1, choice: 0, ms: 4000 }],
+      });
+      expect(
+        await trx
+          .selectFrom("game_match")
+          .select(["mode", "ghost_run_id"])
+          .where("id", "=", first.id)
+          .executeTakeFirst(),
+      ).toEqual({ mode: "fastest_finger", ghost_run_id: near });
+      expect(await matches.serverFor(first.id, me)).toEqual({
+        serverId: 0,
+        playedAs: me,
+      });
+      // Met: the next one; with both met, the one met longest ago.
+      expect(
+        (await matches.createGhost(0, me, "fastest_finger"))?.ghost?.player,
+      ).toBe(`ghost:${far}`);
+      await sql`update game_match set created_at = now() - interval '1 hour'
+        where id = ${first.id}`.execute(trx);
+      expect(
+        (await matches.createGhost(0, me, "fastest_finger"))?.ghost?.player,
+      ).toBe(`ghost:${near}`);
+      // Only the player's own run of a mode: none.
+      expect(await matches.createGhost(0, c, "sprint")).toBeNull();
+      throw new Rollback();
+    }),
+  ).rejects.toBeInstanceOf(Rollback);
+});

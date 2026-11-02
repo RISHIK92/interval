@@ -113,6 +113,19 @@ export async function mergeGuest(
     .set({ winner_id: accountId })
     .where("winner_id", "=", guestId)
     .execute();
+  // P3-W17-S01: its recorded runs are the account's games now, kept as ghosts; in a
+  // match both played (a self-match), the account's own run stays.
+  await sql`
+    delete from ghost_run g where g.user_id = ${guestId}
+      and exists (select 1 from ghost_run o
+        where o.match_id = g.match_id and o.user_id = ${accountId})`.execute(
+    trx,
+  );
+  await trx
+    .updateTable("ghost_run")
+    .set({ user_id: accountId })
+    .where("user_id", "=", guestId)
+    .execute();
 
   // P3-W16-S01 (ADR-0034; owner, 2026-11-02): the more-played rating stays with the
   // account, with its own history only, so the account's history chains to its rating.

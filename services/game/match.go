@@ -41,9 +41,25 @@ type answerRec struct {
 // A match as the web app handed it over (game:match:<id> in Valkey): its players and
 // its rounds, keys included. Keys never leave this process before a round ends.
 type matchDef struct {
-	Players []string `json:"players"`
-	Mode    string   `json:"mode"` // sprintMode, or rounds ("fastest_finger" or none)
-	Rounds  []round  `json:"rounds"`
+	Players []string  `json:"players"`
+	Mode    string    `json:"mode"` // sprintMode, or rounds ("fastest_finger" or none)
+	Rounds  []round   `json:"rounds"`
+	Ghost   *ghostDef `json:"ghost,omitempty"` // P3-W17-S01: the other seat replays a run
+}
+
+// P3-W17-S01 (BOT-1, BOT-3): a recorded run replayed as a player. It is one of
+// Players, always seated, and its label is shown to the human (never its owner's name).
+type ghostDef struct {
+	Player  string        `json:"player"`
+	Label   string        `json:"label"`
+	Answers []ghostAnswer `json:"answers"`
+}
+
+// An answer to round (or sprint question) N, Ms after it began on the server's clock.
+type ghostAnswer struct {
+	N      int   `json:"n"`
+	Choice int   `json:"choice"`
+	Ms     int64 `json:"ms"`
 }
 
 type round struct {
@@ -239,6 +255,9 @@ func (a *actor) run() {
 		}
 	}
 
+	if g := a.def.Ghost; g != nil {
+		p.seats[g.Player] = ghostSeat{} // never joins, never leaves
+	}
 	// Waiting for every player (again, after a restart).
 	deadline := a.clock.After(joinWait)
 	for len(p.seats) < len(a.def.Players) {
@@ -249,7 +268,8 @@ func (a *actor) run() {
 			if a.from != nil {
 				// After a restart (owner, 2026-11-02): whoever isn't back abandons, and
 				// the one back wins; nobody back leaves the match void.
-				if len(p.seats) == 0 {
+				// A ghost is always seated: no person back is nobody back.
+				if len(p.seats) == 0 || (a.def.Ghost != nil && len(p.seats) == 1) {
 					a.hand(&p, "void", "")
 					a.persist(snap{Over: true})
 					return
@@ -290,6 +310,7 @@ func (a *actor) run() {
 		started := a.clock.Now()
 		p.before = maps.Clone(p.totals)
 		a.broadcast(&p, roundMessage(n, r, roundTime))
+		a.ghostPlays(n, n, started)
 		answered := map[string]bool{} // player → right
 		end := a.clock.After(roundTime)
 		cur := &current{n: n, round: r, started: started, answered: answered, rights: map[string]time.Duration{}}

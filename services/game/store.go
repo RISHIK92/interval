@@ -116,6 +116,17 @@ func parseMatch(raw []byte) (matchDef, error) {
 			return matchDef{}, errors.New("a round without its key")
 		}
 	}
+	if g := def.Ghost; g != nil {
+		if g.Label == "" || !seen[g.Player] {
+			return matchDef{}, errors.New("a ghost must be a labeled player")
+		}
+		for _, answer := range g.Answers {
+			if answer.N < 1 || answer.N > len(def.Rounds) || answer.Ms < 0 ||
+				answer.Choice < 0 || answer.Choice >= len(def.Rounds[answer.N-1].Options) {
+				return matchDef{}, errors.New("a ghost answer to no round")
+			}
+		}
+	}
 	return def, nil
 }
 

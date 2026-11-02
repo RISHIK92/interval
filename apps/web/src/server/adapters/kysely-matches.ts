@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
-import { LIVE_QUESTIONS, type LiveRound, type Matches } from "../ports";
+import {
+  type GhostAnswer,
+  LIVE_QUESTIONS,
+  type LiveRound,
+  type Matches,
+} from "../ports";
 import { type BankQuestion, levelFor, pickRounds } from "../live-questions";
 import { LIVE } from "./kysely-quizzes";
 
@@ -105,6 +110,100 @@ export function kyselyMatches(db: Kysely<DB>): Matches {
         return { id, serverId, players, mode, rounds: rows };
       }),
 
+    createGhost: (serverId, userId, mode) =>
+      inTransaction(async (trx) => {
+        // Q-P3-25: by the player's rating now (the start before any match, ADR-0034).
+        const { rows } = await sql<{
+          id: string;
+          rating: number;
+          answers: GhostAnswer[];
+          match_id: string;
+        }>`
+          with me as (
+            select coalesce(
+              (select rating from player_rating where user_id = ${userId}),
+              ${START_RATING}) as rating
+          )
+          select g.id::text, g.rating, g.answers, g.match_id::text
+          from ghost_run g
+          cross join me
+          left join lateral (
+            select max(m.created_at) as at from game_match m
+            join game_match_player p on p.match_id = m.id
+            where m.ghost_run_id = g.id and p.user_id = ${userId}
+          ) met on true
+          where g.mode = ${mode} and g.user_id <> ${userId}
+            and g.recorded_at > now() - interval '30 days'
+            and not exists (
+              select 1 from game_match_question r
+              where r.match_id = g.match_id
+                and r.question_id not in (
+                  select q.id from ${LIVE} where q.status = 'live'))
+          order by met.at is not null,
+            case when met.at is null then abs(g.rating - me.rating) end,
+            met.at, g.id
+          limit 1
+        `.execute(trx);
+        const run = rows[0];
+        if (run === undefined) return null;
+        const rounds: LiveRound[] = (
+          await trx
+            .selectFrom("game_match_question as r")
+            .innerJoin("question as q", "q.id", "r.question_id")
+            .select(["q.id", "q.stem", "q.options", "q.correct"])
+            .where("r.match_id", "=", run.match_id)
+            .orderBy("r.round")
+            .execute()
+        ).map((q) => {
+          // Live multiple choice (checked above) has both; the schema allows neither.
+          if (q.options === null || q.correct === null)
+            throw new Error(`question ${q.id} has no options or key`);
+          return {
+            question: q.id,
+            stem: q.stem,
+            options: q.options,
+            correct: q.correct,
+          };
+        });
+        const { id } = await trx
+          .insertInto("game_match")
+          .values({ server_id: serverId, mode, ghost_run_id: run.id })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        await trx
+          .insertInto("game_match_player")
+          .values({ match_id: id, user_id: userId })
+          .execute();
+        await trx
+          .insertInto("game_match_question")
+          .values(
+            rounds.map((r, i) => ({
+              match_id: id,
+              round: i + 1,
+              question_id: r.question,
+            })),
+          )
+          .execute();
+        const player = `ghost:${run.id}`;
+        return {
+          id,
+          serverId,
+          players: [userId, player],
+          mode,
+          rounds,
+          ghost: {
+            player,
+            // BOT-3: a band, never whose run it is.
+            label: `Ghost · ~${String(Math.round(run.rating / 100) * 100)}`,
+            answers: run.answers.map(({ n, choice, ms }) => ({
+              n,
+              choice,
+              ms,
+            })),
+          },
+        };
+      }),
+
     serverFor: async (matchId, userId) => {
       const row = await db
         .selectFrom("game_match as m")
@@ -138,6 +237,8 @@ export function memoryMatches(
         rounds: bank.slice(0, LIVE_QUESTIONS[mode]),
       });
     },
+    // No recorded runs in the fake: never a ghost.
+    createGhost: () => Promise.resolve(null),
     serverFor: (matchId, userId) => {
       const match = matches.get(matchId);
       return Promise.resolve(

@@ -67,6 +67,9 @@ function harness(polls: unknown[]) {
     now: () => now,
     onState: (s) => states.push(s),
     onError: vi.fn(),
+    ghost: vi.fn<() => Promise<string | null>>(() => Promise.resolve(null)),
+    onNoGhost: vi.fn(),
+    onOpponent: vi.fn(),
   };
   return {
     deps,
@@ -201,4 +204,40 @@ test("out of the queue twice (another tab's mode took it): it stops, not fights"
   await flush();
   expect(h.calls).toEqual(["POST", "PUT", "POST", "PUT"]);
   expect(h.deps.onError).toHaveBeenCalledOnce();
+});
+
+// P3-W17-S01 (Q-P3-25): "Play a ghost now" stops queueing and plays the ghost match;
+// with none to play, it says so and queues on. A ghost's label reaches the screen.
+test("a ghost asked for is played instead of the queue", async () => {
+  const h = harness([]);
+  h.deps.ghost = vi.fn(() => Promise.resolve("g-match"));
+  const live = runLive(h.deps);
+  await flush();
+  live.ghost();
+  await flush();
+  expect(h.deps.ghost).toHaveBeenCalledOnce();
+  expect(h.sockets).toHaveLength(1);
+  h.sockets[0]?.message({
+    type: "joined",
+    match: "g-match",
+    you: "ada",
+    opponent: "Ghost · ~1600",
+  });
+  expect(h.deps.onOpponent).toHaveBeenCalledWith("Ghost · ~1600");
+  live.stop();
+  await flush();
+  expect(h.calls).not.toContain("DELETE"); // the ghost route left the queue
+});
+
+test("no ghost to play: said, and back in the queue", async () => {
+  const h = harness([]);
+  const live = runLive(h.deps);
+  await flush();
+  const polls = h.calls.length;
+  live.ghost();
+  await flush();
+  expect(h.deps.onNoGhost).toHaveBeenCalledOnce();
+  expect(h.calls.slice(polls)).toContain("POST");
+  expect(h.sockets).toHaveLength(0);
+  live.stop();
 });
