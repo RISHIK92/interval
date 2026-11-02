@@ -2861,3 +2861,46 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `redisStore`'s snapshot and save have no test against a real Valkey (Go's tests get no `VALKEY_URL`); the end-to-end run covered them;
   - the VM has no metric for snapshot failures (log only, as for its other LOAD-5 paths).
 - **Full check:** Go (race, 10 runs), web 1196 of 1198 (two DB timeouts under load, both pass alone), Python and infra pass.
+
+### 2026-11-02 — P3-W15-S05 (results; §6.1, PER-2, DB-5, LOAD-5)
+
+- **Owner (2026-11-02):**
+  - Go never touches Postgres. The result goes into a Valkey list, the worker relays it onto the normal queue, and the stage records it once;
+  - mastery and review evidence are applied by the web app with its existing TypeScript (ARCH-2), per player, on their next feed or Play visit.
+- **Go:**
+  - the actor keeps each player's answers (in the snapshot too, for restarts);
+  - every ending (finished, abandoned, cancelled, void) hands over a result: `SETNX game:result:<id>` (24 h; the first wins) and `LPUSH game:results <id>` in one MULTI, before the `over` snapshot;
+  - retried after 200 ms and 1 s, and logged as `game: result not handed over`, with the `GameResultHandoffFailures` metric;
+  - the golden file `services/game/testdata/match_finished.json` pins the shape for both sides.
+- **The queue message:** `match_finished {match_id}`, flat, because the message codegen only does flat scalar schemas. Its SQS queue comes from `MESSAGE_NAMES`.
+- **Worker:**
+  - `match_results.py`: the pydantic model (validated against the golden file) and the relay. The relay does BLMOVE to a working list, queues with the key `match-<id>`, then LREM; it re-sends leftovers at start and keeps junk in a refused list. It rides out Valkey blips; a real failure stops the worker non-zero;
+  - `adapters/redis_results.py` (redis-py, declared as `redis==8.1.0`, already installed via bullmq) turns connection errors into Python's, so the logic never imports the driver;
+  - `PostgresMatchResults.record`: once (`finished_at is null`); `played_as` is mapped to the account; players' totals are written; for finished and abandoned matches a match attempt holds the answered rounds only, stamped at the match's end. Cancelled and void keep no answers.
+- **Migration:**
+  - `game_match`: finished, outcome, winner;
+  - `game_match_player`: total, time, abandoned;
+  - `quiz_attempt`: `match_id` and `evidence_applied_at` (a widened shape check, a match-shape check, and a pending index).
+- **Web:**
+  - `Quizzes.applyMatchEvidence` (locked, skip-locked) reuses `masteryFrom`, the sprint answer's mastery upsert now shared. `done` carries each answer's day, so a match applied a day later counts its own day toward "mastered";
+  - FSRS cards are rated now (Again for a missed concept);
+  - `play/live/evidence.ts` runs from the feed and Play (guests too), emits `match_finished {outcome, won, abandoned}`, and on failure logs (`GameEvidenceFailures`) and renders;
+  - the guest merge carries match totals and repoints a guest's win;
+  - `GameResultsLost` counts results the worker couldn't record.
+- **Checked end to end:** a real match was played; its id was waiting in Valkey; the relay queued it; it was recorded (2 attempts, 14 answers); a second record was a no-op; `applyMatchEvidence` applied once, then returned nothing.
+- **Reviewer, fixed:**
+  - a player missing two rounds broke the record (the open-answer unique index) — blocker;
+  - mastered-days double-counted on a later apply — blocker;
+  - a void could overwrite an unread result (now SETNX);
+  - a Valkey blip stopped every stage, and exited 0;
+  - lost results and failed evidence had no metrics;
+  - the guest merge dropped totals and wins;
+  - FSRS was rated in the past;
+  - answers were stamped within the first 15 s;
+  - retries had no backoff;
+  - missing tests: concurrent apply, Again due, later-day mastered.
+- **For the owner:**
+  - "queues the rating update" isn't done here. W16-S01 rates finished matches from `game_match`, so no message waits with no consumer, which SQS would expire;
+  - the `match_finished` event fires on the player's next visit, not at the match's end, and nothing is emitted for cancelled or void matches;
+  - `consume` needs `VALKEY_URL` in every mode, which it already has;
+  - full check: Go, web 1205 and Python 1289 pass. Infra's synth hook timed out under heavy load (load average 13 from other processes); with a longer hook timeout, 60/60 pass.

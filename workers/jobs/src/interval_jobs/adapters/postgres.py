@@ -25,8 +25,10 @@ from interval_db.generated import (
     RightsProfile,
     Topic,
 )
+from interval_jobs import log
 from interval_jobs.concepts.graph import TOPICS
 from interval_jobs.irt import Answer
+from interval_jobs.match_results import MatchResult
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
     PROJECT_NOTE_PROMPT_VERSION,
@@ -3132,6 +3134,103 @@ class PostgresDailyChallenges:
         return row[1] if row[0] else None
 
 
+class PostgresMatchResults:
+    """Live match results (P3-W15-S05)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def record(self, result: MatchResult) -> bool:
+        conn = self._conn
+        with conn.transaction():
+            # The id each player plays as (Q-P3-21: a guest who signed up keeps it).
+            players = {
+                str(played): str(user)
+                for user, played in conn.execute(
+                    "select user_id, coalesce(played_as, user_id) "
+                    "from game_match_player where match_id = %s",
+                    (result.match_id,),
+                ).fetchall()
+            }
+            winner = players.get(result.winner) if result.winner else None
+            done = conn.execute(
+                """
+                update game_match set finished_at = %s, outcome = %s, winner_id = %s
+                where id = %s and finished_at is null
+                returning created_at
+                """,
+                (result.finished_at, result.outcome, winner, result.match_id),
+            ).fetchone()
+            if done is None:
+                return False  # recorded already, or no such match
+            started: datetime = min(done[0], result.finished_at - timedelta(seconds=1))
+            for player in result.players:
+                user = players.get(player.played_as)
+                if user is None:
+                    log.warn(
+                        "game: result names a player not in the match",
+                        match_id=str(result.match_id),
+                    )
+                    continue
+                conn.execute(
+                    "update game_match_player set total = %s, time_ms = %s, "
+                    "abandoned = %s where match_id = %s and user_id = %s",
+                    (
+                        player.total,
+                        player.time_ms,
+                        player.abandoned,
+                        result.match_id,
+                        user,
+                    ),
+                )
+                if result.outcome not in ("finished", "abandoned"):
+                    continue
+                row = conn.execute(
+                    """
+                    insert into quiz_attempt (user_id, match_id, started_at, ends_at,
+                                              finished_at)
+                    values (%s, %s, %s, %s, %s) returning id
+                    """,
+                    (
+                        user,
+                        result.match_id,
+                        started,
+                        result.finished_at,
+                        result.finished_at,
+                    ),
+                ).fetchone()
+                assert row is not None
+                # Answered rounds only: an unanswered one is no evidence, and an
+                # attempt holds at most one open (unanswered) row. Each is stamped at
+                # the match's end, so its day is the day the match was played.
+                for answer in player.answers:
+                    if answer.choice is None:
+                        continue
+                    written = conn.execute(
+                        """
+                        insert into quiz_answer
+                          (attempt_id, question_id, served_at, answered_at, chosen,
+                           correct)
+                        select %s, id, %s, %s, %s, %s from question where id = %s
+                        """,
+                        (
+                            row[0],
+                            started,
+                            result.finished_at,
+                            answer.choice,
+                            answer.correct,
+                            answer.question_id,
+                        ),
+                    )
+                    if written.rowcount == 0:
+                        log.warn(
+                            "game: an answered question is gone",
+                            match_id=str(result.match_id),
+                            question_id=answer.question_id,
+                        )
+        return True
+
+
 class PostgresUniversities:
     """The listed universities (P3-W14-S03, ADR-0032)."""
 
@@ -3279,6 +3378,7 @@ class PostgresStore:
         self.github = PostgresGitHub(conn)
         self.technologies = PostgresTechnologies(conn)
         self.universities = PostgresUniversities(conn)
+        self.match_results = PostgresMatchResults(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)

@@ -60,6 +60,7 @@ describe("the event list (Q-P1-20)", () => {
         "university_changed",
         "player_followed", // P3-W14-S05
         "player_unfollowed",
+        "match_finished", // P3-W15-S05
       ].sort(),
     );
   });

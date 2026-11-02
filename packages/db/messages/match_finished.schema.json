@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "A live match has ended (P3-W15-S05, ADR-0033): record its result once. The result itself waits in Valkey at game:result:<match_id>, written by its game server (services/game); the worker's relay queues this from game:results.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["match_id"],
+  "properties": {
+    "match_id": { "type": "string", "minLength": 36 }
+  }
+}

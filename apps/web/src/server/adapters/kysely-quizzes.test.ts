@@ -2496,3 +2496,241 @@ test("only a daily attempt shares, once finished or past its clock and grace", a
     });
   });
 });
+
+// P3-W15-S05 (PER-2, ARCH-2): a live match's answers, recorded by the worker, become
+// mastery evidence and review ratings here, once, with the sprint's own rules.
+test("a live match's evidence is applied once: mastery moves, a missed concept is due", async () => {
+  await inRollback(async (trx, { userId, otherUser, q }) => {
+    const quizzes = kyselyQuizzes(trx);
+    const right = q["raft-1"] ?? "";
+    const wrong = q["intro-0"] ?? "";
+    const { id: matchId } = await trx
+      .insertInto("game_match")
+      .values({ server_id: 0 })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("game_match_player")
+      .values(
+        [userId, otherUser].map((user_id) => ({ match_id: matchId, user_id })),
+      )
+      .execute();
+    await sql`update game_match set finished_at = now(), outcome = 'finished',
+      winner_id = ${userId} where id = ${matchId}`.execute(trx);
+    await sql`update game_match_player set total = 140, time_ms = 2950,
+      abandoned = false where match_id = ${matchId}`.execute(trx);
+    // As the worker writes it.
+    const { id: attemptId } = await trx
+      .insertInto("quiz_attempt")
+      .values({
+        user_id: userId,
+        match_id: matchId,
+        started_at: sql<Date>`now() - interval '2 minutes'`,
+        ends_at: sql<Date>`now()`,
+        finished_at: sql<Date>`now()`,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("quiz_answer")
+      .values([
+        {
+          attempt_id: attemptId,
+          question_id: right,
+          chosen: 0,
+          correct: true,
+          answered_at: sql<Date>`now()`,
+        },
+        {
+          attempt_id: attemptId,
+          question_id: wrong,
+          chosen: 2,
+          correct: false,
+          answered_at: sql<Date>`now()`,
+        },
+      ])
+      .execute();
+    const counts = async (id: string) =>
+      trx
+        .selectFrom("question")
+        .select(["answer_count", "correct_count"])
+        .where("id", "=", id)
+        .executeTakeFirstOrThrow();
+    const before = await counts(right);
+
+    expect(await quizzes.applyMatchEvidence(userId)).toEqual([
+      { outcome: "finished", won: true, abandoned: false },
+    ]);
+    const mastery = await trx
+      .selectFrom("concept_mastery")
+      .select(["concept_id", "probability", "evidence_count"])
+      .where("user_id", "=", userId)
+      .orderBy("concept_id")
+      .execute();
+    const raft = await conceptOf(trx, right);
+    const wal = await conceptOf(trx, wrong);
+    // Q-P2-15: right moves 0 to 0.3; wrong leaves 0.7 × 0.
+    expect(mastery.find((m) => m.concept_id === raft.id)).toMatchObject({
+      probability: 0.3,
+      evidence_count: 1,
+    });
+    expect(mastery.find((m) => m.concept_id === wal.id)).toMatchObject({
+      probability: 0,
+      evidence_count: 1,
+    });
+    // FSRS: the missed concept is due again (Again), back to reading.
+    const cards = await trx
+      .selectFrom("concept_review")
+      .select(["concept_id", "lapses", "reps"])
+      .where("user_id", "=", userId)
+      .execute();
+    expect(cards.map((c) => c.concept_id).sort()).toEqual(
+      [raft.id, wal.id].sort(),
+    );
+    // Again for the missed one: due back sooner than the one answered right.
+    const due = await trx
+      .selectFrom("concept_review")
+      .select(["concept_id", "due"])
+      .where("user_id", "=", userId)
+      .execute();
+    const dueOf = (id: string) =>
+      due.find((c) => c.concept_id === id)?.due.getTime() ?? 0;
+    expect(dueOf(wal.id)).toBeLessThan(dueOf(raft.id));
+    expect(await counts(right)).toEqual({
+      answer_count: before.answer_count + 1,
+      correct_count: before.correct_count + 1,
+    });
+
+    // Once: applied again, nothing moves.
+    expect(await quizzes.applyMatchEvidence(userId)).toEqual([]);
+    expect(await counts(right)).toEqual({
+      answer_count: before.answer_count + 1,
+      correct_count: before.correct_count + 1,
+    });
+    // Nothing pending for the other player (no attempt): nothing to apply.
+    expect(await quizzes.applyMatchEvidence(otherUser)).toEqual([]);
+  });
+});
+
+// A match played yesterday, applied today: its right answer is one day, not two, toward
+// mastered (owner, 2026-10-28: right answers on two UTC days).
+test("a live match applied a day later counts its own day toward mastered", async () => {
+  await inRollback(async (trx, { userId, q }) => {
+    const right = q["raft-1"] ?? "";
+    const raft = await conceptOf(trx, right);
+    await trx
+      .insertInto("concept_mastery")
+      .values({
+        user_id: userId,
+        concept_id: raft.id,
+        probability: 0.8,
+        state: "practiced",
+        evidence_count: 3,
+      })
+      .execute();
+    const { id: matchId } = await trx
+      .insertInto("game_match")
+      .values({ server_id: 0 })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("game_match_player")
+      .values({ match_id: matchId, user_id: userId })
+      .execute();
+    await sql`update game_match set finished_at = now() - interval '1 day',
+      outcome = 'finished' where id = ${matchId}`.execute(trx);
+    const { id: attemptId } = await trx
+      .insertInto("quiz_attempt")
+      .values({
+        user_id: userId,
+        match_id: matchId,
+        started_at: sql<Date>`now() - interval '1 day 2 minutes'`,
+        ends_at: sql<Date>`now() - interval '1 day'`,
+        finished_at: sql<Date>`now() - interval '1 day'`,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("quiz_answer")
+      .values({
+        attempt_id: attemptId,
+        question_id: right,
+        chosen: 0,
+        correct: true,
+        answered_at: sql<Date>`now() - interval '1 day'`,
+      })
+      .execute();
+    await kyselyQuizzes(trx).applyMatchEvidence(userId);
+    const row = await trx
+      .selectFrom("concept_mastery")
+      .select(["probability", "state"])
+      .where("user_id", "=", userId)
+      .where("concept_id", "=", raft.id)
+      .executeTakeFirstOrThrow();
+    // 0.8 + 0.3 × 0.2 = 0.86: past 0.85, but right on one day only.
+    expect(row.probability).toBeCloseTo(0.86);
+    expect(row.state).toBe("practiced");
+  });
+});
+
+// Two visits at once (committed, separate connections): the match applies once.
+test("two visits at once apply a match once", async () => {
+  const userId = `match-${randomUUID()}`;
+  const code = await db
+    .insertInto("invite_code")
+    .values({
+      code: `APPLY${randomUUID().slice(0, 8).toUpperCase()}`,
+      beta_group: "developer",
+      max_uses: 1,
+      expires_at: sql<Date>`now() + interval '1 day'`,
+    })
+    .returning("id")
+    .executeTakeFirstOrThrow();
+  let matchId: string | undefined;
+  try {
+    await db
+      .insertInto("app_user")
+      .values({
+        id: userId,
+        name: "Ada",
+        email: `${userId}@apply.example.test`,
+        beta_group: "developer",
+        invite_code_id: code.id,
+      })
+      .execute();
+    matchId = (
+      await db
+        .insertInto("game_match")
+        .values({ server_id: 0 })
+        .returning("id")
+        .executeTakeFirstOrThrow()
+    ).id;
+    await db
+      .insertInto("game_match_player")
+      .values({ match_id: matchId, user_id: userId })
+      .execute();
+    await sql`update game_match set finished_at = now(), outcome = 'finished'
+      where id = ${matchId}`.execute(db);
+    await db
+      .insertInto("quiz_attempt")
+      .values({
+        user_id: userId,
+        match_id: matchId,
+        started_at: sql<Date>`now() - interval '2 minutes'`,
+        ends_at: sql<Date>`now()`,
+        finished_at: sql<Date>`now()`,
+      })
+      .execute();
+    const quizzes = kyselyQuizzes(db);
+    const both = await Promise.all([
+      quizzes.applyMatchEvidence(userId),
+      quizzes.applyMatchEvidence(userId),
+    ]);
+    expect(both.flat()).toHaveLength(1);
+  } finally {
+    await db.deleteFrom("app_user").where("id", "=", userId).execute();
+    if (matchId !== undefined)
+      await db.deleteFrom("game_match").where("id", "=", matchId).execute();
+    await db.deleteFrom("invite_code").where("id", "=", code.id).execute();
+  }
+});

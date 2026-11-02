@@ -279,6 +279,15 @@
       "description": "A player stopped following another (P3-W14-S05).",
       "props": {}
     },
+    "match_finished": {
+      "version": 1,
+      "description": "A player's live match was finished or abandoned and its evidence applied (P3-W15-S05): emitted by the web app when it applies the worker's record, per player.",
+      "props": {
+        "outcome": ["finished", "abandoned"],
+        "won": "boolean",
+        "abandoned": "boolean"
+      }
+    },
     "pwa_installed": {
       "version": 1,
       "description": "The app was installed as a PWA (W5-S06).",

@@ -295,6 +295,13 @@ export type QuizResult = {
   answeredAt: Date;
   firstTime: boolean; // false: a resubmission (LOAD-5) given the stored result
 };
+// P3-W15-S05: a live match whose evidence was just applied, for its DB-5 event.
+export type MatchApplied = {
+  outcome: "finished" | "abandoned";
+  won: boolean;
+  abandoned: boolean;
+};
+
 export interface Quizzes {
   // Null when the target has no live question its source's rights allow (ING-2).
   // A start while the user's sprint on the same target still runs returns that one
@@ -402,6 +409,10 @@ export interface Quizzes {
     attemptId: string,
     questionId: string,
   ): Promise<QuizFeedback | null>;
+  // P3-W15-S05 (PER-2, ARCH-2): the user's live match answers, recorded by the worker,
+  // applied as mastery evidence and review ratings with the sprint's rules, each match
+  // once (two page loads at once apply it once).
+  applyMatchEvidence(userId: string): Promise<MatchApplied[]>;
 }
 
 export type QuizFinish = {

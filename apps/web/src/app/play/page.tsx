@@ -15,6 +15,7 @@ import {
 } from "../quiz/actions";
 import { TabBar } from "../TabBar";
 import { requireUsername } from "../username/gate";
+import { applyMatchEvidence } from "./live/evidence";
 import { Card } from "../ui/Card";
 import { GuestForm } from "./GuestForm";
 
@@ -75,6 +76,8 @@ export default async function PlayPage(props: {
   // Guests have no username: Play is theirs without one (ADR-0029).
   if (actor !== null && !actor.isGuest)
     await requireUsername(actor.userId, "/play");
+  // P3-W15-S05: finished live matches count toward mastery and review (guests too).
+  if (actor !== null) await applyMatchEvidence(actor);
   const { sprint, estimation, daily } = await props.searchParams;
   const [allowed, chosen, today] =
     actor === null

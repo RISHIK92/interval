@@ -31,6 +31,8 @@ import httpx
 import psycopg
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
+from interval_jobs import log
+from interval_jobs.adapters.redis_results import RedisResults
 from interval_jobs.compose import (
     ai_gateway,
     database_url,
@@ -63,6 +65,7 @@ from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.link_check import check_links
 from interval_jobs.link_health import queue_link_checks
+from interval_jobs.match_results import relay
 from interval_jobs.path_proposer import propose
 from interval_jobs.pipeline import BATCH_PREFIX, Pipeline, notes_batched
 from interval_jobs.polling import enqueue_due
@@ -636,6 +639,13 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
 HEARTBEAT = Path("/tmp/interval-consumer-alive")
 
 
+def _valkey_url() -> str:
+    url = os.environ.get("VALKEY_URL")
+    if not url:
+        sys.exit("VALKEY_URL is not set; see .env.example")
+    return url
+
+
 def _consume(max_entries: int | None) -> None:
     stop = threading.Event()
 
@@ -653,6 +663,8 @@ def _consume(max_entries: int | None) -> None:
             model_job("NOTES_MODEL") as notes,
             model_job("QUESTIONS_MODEL") as questions,
         ):
+            # P3-W15-S05 (ADR-0033): match results the game servers leave in Valkey.
+            results = RedisResults(_valkey_url())
             pipeline = Pipeline(
                 units,
                 queue,
@@ -664,8 +676,27 @@ def _consume(max_entries: int | None) -> None:
                 files=files(),
                 ocr=ocr(),
                 github=github_app(),
+                results=results,
             )
+
+            relay_failed: list[BaseException] = []
+
+            def relay_results() -> None:
+                try:
+                    relay(results, queue, stop)
+                except Exception as error:
+                    # Not a Valkey blip (the relay waits those out): stop, and exit
+                    # non-zero so the service restarts the worker.
+                    log.error("game: result relay stopped", error=error)
+                    relay_failed.append(error)
+                    stop.set()
+
+            relayer = threading.Thread(target=relay_results, name="relay-results")
+            relayer.start()
             run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
+            relayer.join()
+            if relay_failed:
+                raise SystemExit("consumer stopped: the result relay failed")
     finally:
         close = getattr(queue, "close", None)
         if callable(close):

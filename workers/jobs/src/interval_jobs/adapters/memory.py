@@ -27,6 +27,7 @@ from interval_db.generated import (
 )
 from interval_jobs.concepts.graph import refuse_cycles
 from interval_jobs.irt import Answer
+from interval_jobs.match_results import MatchResult
 from interval_jobs.normalize import near_duplicates
 from interval_jobs.polling import START_INTERVAL
 from interval_jobs.ports import (
@@ -1928,6 +1929,7 @@ class InMemoryStore:
         self.github = InMemoryGitHub()
         self.technologies = InMemoryTechnologies()
         self.universities = InMemoryUniversities()
+        self.match_results = InMemoryMatchResults()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
 
@@ -2248,6 +2250,20 @@ class InMemoryDailyChallenges:
         fresh = [q for q in self.days[day] if q not in self.queued]
         self.queued.extend(fresh)
         return fresh
+
+
+class InMemoryMatchResults:
+    """Live match results (P3-W15-S05): which matches were recorded."""
+
+    def __init__(self) -> None:
+        self.recorded: dict[str, MatchResult] = {}
+
+    def record(self, result: MatchResult) -> bool:
+        key = str(result.match_id)
+        if key in self.recorded:
+            return False
+        self.recorded[key] = result
+        return True
 
 
 class InMemoryUniversities:

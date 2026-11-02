@@ -35,6 +35,8 @@ const notInterested = vi.fn<
 const usernameGet = vi.fn<Usernames["get"]>(() =>
   Promise.resolve({ username: "ada", searchable: true }),
 );
+const applyEvidence = vi.fn(() => Promise.resolve());
+vi.mock("./play/live/evidence", () => ({ applyMatchEvidence: applyEvidence }));
 vi.mock("../server/container", () => ({
   usernames: () => ({ get: usernameGet }),
   preferences: () => ({ get: getPreferences }),
@@ -196,6 +198,14 @@ test("an account with no username is sent to choose one, then back to the feed",
   await expect(render()).rejects.toThrow("redirect:/username?next=%2F");
   expect(usernameGet).toHaveBeenCalledWith("u1");
   expect(getFeed).not.toHaveBeenCalled();
+});
+
+// P3-W15-S05: a visit applies the player's finished live matches.
+test("the feed applies finished live matches' evidence", async () => {
+  current.mockResolvedValue(user);
+  getFeed.mockResolvedValue(feedOf([card]));
+  await render();
+  expect(applyEvidence).toHaveBeenCalledWith(user);
 });
 
 // Q-P1-16: three time chips; the selected one decides the feed (P1-W4-S05).

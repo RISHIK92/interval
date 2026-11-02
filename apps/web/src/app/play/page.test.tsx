@@ -21,6 +21,8 @@ const dailyStatus = vi.fn<(userId: string) => Promise<DailyStatus>>(() =>
 const usernameGet = vi.fn<Usernames["get"]>(() =>
   Promise.resolve({ username: "ada", searchable: true }),
 );
+const applyEvidence = vi.fn(() => Promise.resolve());
+vi.mock("./live/evidence", () => ({ applyMatchEvidence: applyEvidence }));
 vi.mock("../../server/container", () => ({
   usernames: () => ({ get: usernameGet }),
   sessionReader: () => ({ current }),
@@ -146,6 +148,19 @@ test("a player, account or guest, has a link to the boards; a visitor doesn't", 
   expect(await page()).toMatch(/href="\/play\/boards"/);
   current.mockResolvedValue(null);
   expect(await page()).not.toMatch(/href="\/play\/boards"/);
+});
+
+// P3-W15-S05: a visit applies the player's finished live matches, a guest's too.
+test("Play applies finished live matches' evidence for accounts and guests", async () => {
+  current.mockResolvedValue(account);
+  await page();
+  expect(applyEvidence).toHaveBeenLastCalledWith(account);
+  current.mockResolvedValue(guest);
+  await page();
+  expect(applyEvidence).toHaveBeenLastCalledWith(guest);
+  current.mockResolvedValue(null);
+  await page();
+  expect(applyEvidence).toHaveBeenCalledTimes(2);
 });
 
 test("an account sees neither the guest form nor the sign-up line", async () => {

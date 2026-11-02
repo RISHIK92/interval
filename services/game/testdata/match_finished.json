@@ -1,0 +1,38 @@
+{
+  "match_id": "6f1c2b8e-3d4a-4e5f-9a0b-1c2d3e4f5a6b",
+  "finished_at": "2026-11-02T12:05:00Z",
+  "outcome": "finished",
+  "winner": "user-1",
+  "players": [
+    {
+      "played_as": "user-1",
+      "total": 140,
+      "time_ms": 2950,
+      "abandoned": false,
+      "answers": [
+        {
+          "round": 1,
+          "question_id": 41,
+          "choice": 0,
+          "correct": true,
+          "ms": 2950
+        }
+      ]
+    },
+    {
+      "played_as": "user-2",
+      "total": 0,
+      "time_ms": 15000,
+      "abandoned": false,
+      "answers": [
+        {
+          "round": 1,
+          "question_id": 41,
+          "choice": 2,
+          "correct": false,
+          "ms": 2950
+        }
+      ]
+    }
+  ]
+}

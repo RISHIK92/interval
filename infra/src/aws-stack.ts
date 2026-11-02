@@ -346,6 +346,35 @@ export class AwsStack extends Stack {
       metricName: "EmitFailures",
       metricValue: "$.count",
     });
+    // P3-W15-S05 (LOAD-5): a match result its game server couldn't hand to the worker.
+    logGroup.addMetricFilter("GameResultHandoffFailures", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "game: result not handed over",
+      ),
+      metricNamespace: "Interval/Game",
+      metricName: "ResultHandoffFailures",
+    });
+    // P3-W15-S05 (LOAD-5): a match result the worker couldn't record (gone, or not a
+    // result), and a player's match evidence that didn't apply (retried next visit).
+    logGroup.addMetricFilter("GameResultsLost", {
+      filterPattern: logs.FilterPattern.any(
+        logs.FilterPattern.stringValue("$.msg", "=", "game: result missing"),
+        logs.FilterPattern.stringValue("$.msg", "=", "game: result refused"),
+      ),
+      metricNamespace: "Interval/Game",
+      metricName: "ResultsLost",
+    });
+    logGroup.addMetricFilter("GameEvidenceFailures", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "game: match evidence not applied",
+      ),
+      metricNamespace: "Interval/Game",
+      metricName: "EvidenceFailures",
+    });
     // P3-W15-S04 (LOAD-5): a match whose round snapshot didn't save plays on, but
     // wouldn't survive its game server restarting.
     logGroup.addMetricFilter("GameSnapshotFailures", {

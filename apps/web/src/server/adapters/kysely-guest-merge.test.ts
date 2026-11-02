@@ -347,6 +347,11 @@ test("the guest's matches move to the account", async () => {
     };
     const alone = await match([guest]);
     const both = await match([guest, account]);
+    // P3-W15-S05: one already recorded, the guest's win and totals.
+    await sql`update game_match set finished_at = now(), outcome = 'finished',
+      winner_id = ${guest} where id = ${alone}`.execute(trx);
+    await sql`update game_match_player set total = 420, time_ms = 9000,
+      abandoned = false where match_id = ${alone}`.execute(trx);
     expect(await mergeGuest(trx, guest, account)).toBe(true);
     const players = await trx
       .selectFrom("game_match_player")
@@ -363,6 +368,22 @@ test("the guest's matches move to the account", async () => {
       ]),
     );
     expect(players).toHaveLength(2);
+    expect(
+      await trx
+        .selectFrom("game_match_player")
+        .select(["total", "time_ms", "abandoned"])
+        .where("match_id", "=", alone)
+        .executeTakeFirstOrThrow(),
+    ).toEqual({ total: 420, time_ms: "9000", abandoned: false });
+    expect(
+      (
+        await trx
+          .selectFrom("game_match")
+          .select("winner_id")
+          .where("id", "=", alone)
+          .executeTakeFirstOrThrow()
+      ).winner_id,
+    ).toBe(account);
   });
 });
 

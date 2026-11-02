@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from threading import Event
-from typing import Literal, Protocol, TypedDict
+from typing import TYPE_CHECKING, Literal, Protocol, TypedDict
 
 from pydantic import BaseModel, ConfigDict
 
@@ -32,6 +32,9 @@ from interval_jobs.github.manifests import Dependency
 from interval_jobs.irt import Answer
 from interval_jobs.technologies import TechnologySeed
 from interval_jobs.universities import UniversitySeed
+
+if TYPE_CHECKING:
+    from interval_jobs.match_results import MatchResult
 
 type FetchKind = Literal["feed", "article"]
 
@@ -1260,6 +1263,9 @@ class Store(Protocol):
     def universities(self) -> "Universities": ...
 
     @property
+    def match_results(self) -> "MatchResults": ...
+
+    @property
     def daily(self) -> "DailyChallenges": ...
 
 
@@ -1438,6 +1444,16 @@ class DailyChallenges(Protocol):
         questions for spot check (ADR-0031): the ones newly queued (a question already
         in review stays as it is). None when there's no set, it was approved, or it was
         marked already."""
+        ...
+
+
+class MatchResults(Protocol):
+    """Live match results (P3-W15-S05, ADR-0033)."""
+
+    def record(self, result: "MatchResult") -> bool:
+        """Records the match's result and each player's answers as a match attempt,
+        once: False when it was recorded already. Cancelled and void matches keep no
+        answers (no result for anyone)."""
         ...
 
 

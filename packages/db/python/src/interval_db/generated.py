@@ -338,12 +338,18 @@ class GameMatch(TypedDict):
     id: UUID
     server_id: int
     created_at: datetime
+    finished_at: datetime | None
+    outcome: str | None
+    winner_id: str | None
 
 
 class GameMatchPlayer(TypedDict):
     match_id: UUID
     user_id: str
     played_as: str | None
+    total: int | None
+    time_ms: int | None
+    abandoned: bool | None
 
 
 class GameMatchQuestion(TypedDict):
@@ -712,6 +718,8 @@ class QuizAttempt(TypedDict):
     estimation: bool
     daily_day: date | None
     share_id: UUID
+    match_id: UUID | None
+    evidence_applied_at: datetime | None
 
 
 class QuizAttemptConcept(TypedDict):

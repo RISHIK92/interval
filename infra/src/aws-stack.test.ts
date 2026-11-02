@@ -328,6 +328,43 @@ describe("game server (ADR-0033)", () => {
     });
   });
 
+  // P3-W15-S05 (LOAD-5): a result the game server couldn't hand over, counted.
+  test("a result not handed over becomes a CloudWatch metric", () => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "game: result not handed over" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Game",
+          MetricName: "ResultHandoffFailures",
+        }),
+      ],
+    });
+  });
+
+  // P3-W15-S05 (LOAD-5): a result the worker couldn't record, and evidence that
+  // didn't apply, counted.
+  test("a lost match result and unapplied match evidence become metrics", () => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern:
+        '{ ($.msg = "game: result missing") || ($.msg = "game: result refused") }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Game",
+          MetricName: "ResultsLost",
+        }),
+      ],
+    });
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "game: match evidence not applied" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Game",
+          MetricName: "EvidenceFailures",
+        }),
+      ],
+    });
+  });
+
   // P3-W15-S04 (LOAD-5): a match plays on without its snapshot, counted.
   test("a failed match snapshot becomes a CloudWatch metric", () => {
     template.hasResourceProperties("AWS::Logs::MetricFilter", {

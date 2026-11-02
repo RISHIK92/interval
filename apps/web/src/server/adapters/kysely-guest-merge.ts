@@ -99,11 +99,19 @@ export async function mergeGuest(
 
   // P3-W15-S02: its live matches; one both were in already has the account.
   // Q-P3-21: it plays on as the guest the game server knows (played_as).
+  // P3-W15-S05: with what was recorded, and its wins stay won.
   await sql`
-    insert into game_match_player (match_id, user_id, played_as)
-    select match_id, ${accountId}, coalesce(played_as, user_id)
+    insert into game_match_player
+      (match_id, user_id, played_as, total, time_ms, abandoned)
+    select match_id, ${accountId}, coalesce(played_as, user_id), total, time_ms,
+           abandoned
     from game_match_player where user_id = ${guestId}
     on conflict do nothing`.execute(trx);
+  await trx
+    .updateTable("game_match")
+    .set({ winner_id: accountId })
+    .where("winner_id", "=", guestId)
+    .execute();
 
   await trx.deleteFrom("app_user").where("id", "=", guestId).execute();
   return true;

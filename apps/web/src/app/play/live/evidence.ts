@@ -1,0 +1,23 @@
+import { cookies } from "next/headers";
+import { events, quizzes } from "../../../server/container";
+import { log } from "../../../server/log";
+import type { Actor } from "../../../server/ports";
+import { visitId } from "../../../server/visits";
+
+// P3-W15-S05 (PER-2, ARCH-2): a player's finished live matches, recorded by the worker,
+// become mastery evidence and review cards on their next visit to the feed or Play. A
+// failure leaves the page as it is (LOAD-5); the next visit tries again.
+export async function applyMatchEvidence(actor: Actor): Promise<void> {
+  try {
+    const applied = await quizzes().applyMatchEvidence(actor.userId);
+    if (applied.length === 0) return;
+    const context = { ...actor, sessionId: visitId(await cookies()) };
+    for (const match of applied)
+      events().emit("match_finished", match, context);
+  } catch (error) {
+    log.error("game: match evidence not applied", {
+      userId: actor.userId,
+      error,
+    });
+  }
+}

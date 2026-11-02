@@ -37,6 +37,7 @@ type EventName = Literal[
     "github_disconnected",
     "guest_merged",
     "item_saved",
+    "match_finished",
     "note_deleted",
     "note_saved",
     "onboarding_completed",
@@ -85,6 +86,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "github_disconnected": 1,
     "guest_merged": 1,
     "item_saved": 1,
+    "match_finished": 1,
     "note_deleted": 1,
     "note_saved": 1,
     "onboarding_completed": 1,
@@ -233,6 +235,12 @@ class GuestMergedProps(_Model):
 
 class ItemSavedProps(_Model):
     pass
+
+
+class MatchFinishedProps(_Model):
+    outcome: Literal["finished", "abandoned"]
+    won: StrictBool
+    abandoned: StrictBool
 
 
 class NoteDeletedProps(_Model):
@@ -496,6 +504,12 @@ class ItemSavedEvent(_EnvelopeBase):
     props: ItemSavedProps
 
 
+class MatchFinishedEvent(_EnvelopeBase):
+    name: Literal["match_finished"]
+    version: Literal[1]
+    props: MatchFinishedProps
+
+
 class NoteDeletedEvent(_EnvelopeBase):
     name: Literal["note_deleted"]
     version: Literal[1]
@@ -641,6 +655,7 @@ type Envelope = Annotated[
     | GithubDisconnectedEvent
     | GuestMergedEvent
     | ItemSavedEvent
+    | MatchFinishedEvent
     | NoteDeletedEvent
     | NoteSavedEvent
     | OnboardingCompletedEvent

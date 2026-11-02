@@ -361,13 +361,19 @@ export interface Follow {
 
 export interface GameMatch {
   created_at: Generated<Timestamp>;
+  finished_at: Timestamp | null;
   id: Generated<string>;
+  outcome: string | null;
   server_id: number;
+  winner_id: string | null;
 }
 
 export interface GameMatchPlayer {
+  abandoned: boolean | null;
   match_id: string;
   played_as: string | null;
+  time_ms: Int8 | null;
+  total: number | null;
   user_id: string;
 }
 
@@ -727,8 +733,10 @@ export interface QuizAttempt {
   daily_day: Timestamp | null;
   ends_at: Timestamp | null;
   estimation: Generated<boolean>;
+  evidence_applied_at: Timestamp | null;
   finished_at: Timestamp | null;
   id: Generated<Int8>;
+  match_id: string | null;
   moment_id: Int8 | null;
   pass_mark: Generated<number | null>;
   path_section_id: Int8 | null;

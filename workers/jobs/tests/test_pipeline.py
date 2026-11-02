@@ -7,11 +7,12 @@ from collections.abc import Generator, Mapping
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 
 from interval_db.generated import AiProvider, RightsProfile
-from interval_db.messages import MessageName, RemoveFile
+from interval_db.messages import MatchFinished, MessageName, RemoveFile
 from interval_jobs.adapters.memory import (
     FakeFetcher,
     InMemoryAi,
@@ -1041,3 +1042,53 @@ def test_direct_notes_drop_the_batch_prefix() -> None:
     assert llm.project_prompts
     _, _, model, _ = world.store.github.project_notes[("u1", items[0])]
     assert model == "small-notes"
+
+
+# P3-W15-S05 (ADR-0033): a live match's result, read from Valkey, recorded once.
+class _Results:
+    def __init__(self, stored: dict[str, bytes]) -> None:
+        self.stored = stored
+
+    def get(self, name: str) -> bytes | None:
+        return self.stored.get(name)
+
+    def blmove(
+        self, first_list: str, second_list: str, timeout: int, src: str, dest: str
+    ) -> bytes | None:
+        return None
+
+    def lrange(self, name: str, start: int, end: int) -> list[bytes]:
+        return []
+
+    def lrem(self, name: str, count: int, value: bytes) -> int:
+        return 0
+
+    def lpush(self, name: str, *values: bytes) -> int:
+        return 0
+
+
+def test_a_match_result_is_recorded_once_and_a_missing_or_bad_one_is_dropped() -> None:
+    golden = (
+        Path(__file__).parents[3] / "services" / "game" / "testdata"
+    ) / "match_finished.json"
+    match_id = "6f1c2b8e-3d4a-4e5f-9a0b-1c2d3e4f5a6b"
+    store = InMemoryStore()
+
+    @contextmanager
+    def unit() -> Generator[StageServices]:
+        yield StageServices(store, web(), TrafilaturaExtractor())
+
+    results = _Results({f"game:result:{match_id}": golden.read_bytes()})
+    handler = Pipeline(unit, InMemoryQueue(), results=results).handlers()[
+        "match_finished"
+    ]
+    delivery = Delivery(attempt=1, idempotency_key=f"match-{match_id}")
+    handler(MatchFinished(match_id=match_id), delivery)
+    handler(MatchFinished(match_id=match_id), delivery)
+    assert list(store.match_results.recorded) == [match_id]
+    # Gone, or not a result: logged and dropped, never retried.
+    other = "0b0e3c2a-6d0c-4c4b-9a8e-2f8f0c6a1b2c"
+    handler(MatchFinished(match_id=other), delivery)
+    results.stored[f"game:result:{other}"] = b"{}"
+    handler(MatchFinished(match_id=other), delivery)
+    assert list(store.match_results.recorded) == [match_id]

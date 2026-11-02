@@ -103,7 +103,8 @@ const moved = (p: RawBuilder<unknown>) => sql`
 
 // Practiced at 0.5; mastered at 0.85 with right answers on two UTC days (owner,
 // 2026-10-28: any quiz's answers count). The statement can't see the answer it is
-// recording, so today joins the days when this answer is right.
+// recording, so its day (`done`'s: today for a sprint answer, the match's day for a
+// live match answer applied later) joins the days when it is right.
 // shortcut: the days come from the statement's snapshot, so a right answer on another
 // UTC day committing at the same moment is missed; only across midnight, and the next
 // right answer counts it. Lock the user's answers if that ever matters.
@@ -122,12 +123,35 @@ const stateOf = (
           on qc.question_id = qa.question_id and qc.concept_id = ${conceptId}
         where qa.correct
         union
-        select (now() at time zone 'UTC')::date where (select correct from done)
+        select (select day from done) where (select correct from done)
       ) days
     ) >= 2 then 'mastered'
     when ${p} >= ${PRACTICED}::float8 then 'practiced'
     else 'explored'
   end)::learner_state`;
+
+// PER-2, Q-P2-15: an answer's evidence moves each live concept its question tests, from
+// the statement's `done` (the answer's correctness; none for a repeat). In concept
+// order, so answers at once lock shared rows in one order. Sprint answers and live
+// match answers (P3-W15-S05) both use it.
+const masteryFrom = (userId: string, questionId: string) => sql`
+  insert into concept_mastery
+    (user_id, concept_id, probability, state, evidence_count)
+  select ${userId}, qc.concept_id, ${moved(sql`0`)},
+         ${stateOf(moved(sql`0`), sql`qc.concept_id`, userId)}, 1
+  from question_concept qc
+  join concept c on c.id = qc.concept_id and c.retired_at is null
+  where qc.question_id = ${questionId} and exists (select 1 from done)
+  order by qc.concept_id
+  on conflict (user_id, concept_id) do update set
+    probability = ${moved(sql`concept_mastery.probability`)},
+    state = ${stateOf(
+      moved(sql`concept_mastery.probability`),
+      sql`excluded.concept_id`,
+      userId,
+    )},
+    evidence_count = concept_mastery.evidence_count + 1,
+    updated_at = now()`;
 
 // Kysely can't nest transactions: inside one (as the tests run), use it.
 const inTransaction = <T>(
@@ -667,6 +691,70 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
   return {
     closeStale,
 
+    // P3-W15-S05 (PER-2, ARCH-2): the worker recorded the answers; the rules are here.
+    applyMatchEvidence: (userId) =>
+      inTransaction(db, async (trx) => {
+        // Locked, skipping one another page load already has: each applies once.
+        const { rows: pending } = await sql<{
+          id: string;
+          outcome: "finished" | "abandoned";
+          won: boolean | null;
+          abandoned: boolean;
+        }>`
+          select a.id, m.outcome, m.winner_id = ${userId} as won,
+                 coalesce(p.abandoned, false) as abandoned
+          from quiz_attempt a
+          join game_match m on m.id = a.match_id
+          left join game_match_player p
+            on p.match_id = a.match_id and p.user_id = a.user_id
+          where a.user_id = ${userId} and a.match_id is not null
+            and a.evidence_applied_at is null
+          order by a.id
+          for update of a skip locked
+        `.execute(trx);
+        for (const attempt of pending) {
+          const { rows: answers } = await sql<{
+            question_id: string;
+            correct: boolean;
+            day: string;
+          }>`
+            select question_id, correct,
+                   (answered_at at time zone 'UTC')::date::text as day
+            from quiz_answer
+            where attempt_id = ${attempt.id} and correct is not null
+            order by question_id
+          `.execute(trx);
+          for (const answer of answers)
+            // As a sprint answer counts (the `answer` statement): the question's counts
+            // and the evidence for each concept it tests.
+            await sql`
+              with done as (
+                select ${answer.correct}::boolean as correct, ${answer.day}::date as day
+              ),
+              counted as (
+                update question
+                set answer_count = answer_count + 1,
+                    correct_count = correct_count + ${answer.correct ? 1 : 0}
+                where id = ${answer.question_id}
+              ),
+              mastery as (${masteryFrom(userId, answer.question_id)})
+              select 1
+            `.execute(trx);
+          // Rated now: a review since the match (a sprint) must not be moved back.
+          await rateConcepts(trx, userId, attempt.id, new Date());
+          await trx
+            .updateTable("quiz_attempt")
+            .set({ evidence_applied_at: sql<Date>`now()` })
+            .where("id", "=", attempt.id)
+            .execute();
+        }
+        return pending.map(({ outcome, won, abandoned }) => ({
+          outcome,
+          won: won === true,
+          abandoned,
+        }));
+      }),
+
     start: async (userId, itemId, momentId) => {
       const running = await db
         .selectFrom("quiz_attempt")
@@ -935,7 +1023,8 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             -- count toward mastery but not the rating. Only a racing double submit;
             -- the page finishes after the last answer's redirect.
             and a.finished_at is null
-          returning qa.correct, q.correct as key, qa.served_at, qa.answered_at
+          returning qa.correct, q.correct as key, qa.served_at, qa.answered_at,
+                    (qa.answered_at at time zone 'UTC')::date as day
         ),
         counted as (
           update question
@@ -946,25 +1035,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         -- PER-2, Q-P2-15: quiz evidence moves each live concept the question tests
         -- strongly. p is moved from the locked row (do update), so two answers at once
         -- both count; in id order, so they lock shared rows in one order.
-        mastery as (
-          insert into concept_mastery
-            (user_id, concept_id, probability, state, evidence_count)
-          select ${userId}, qc.concept_id, ${moved(sql`0`)},
-                 ${stateOf(moved(sql`0`), sql`qc.concept_id`, userId)}, 1
-          from question_concept qc
-          join concept c on c.id = qc.concept_id and c.retired_at is null
-          where qc.question_id = ${questionId} and exists (select 1 from done)
-          order by qc.concept_id
-          on conflict (user_id, concept_id) do update set
-            probability = ${moved(sql`concept_mastery.probability`)},
-            state = ${stateOf(
-              moved(sql`concept_mastery.probability`),
-              sql`excluded.concept_id`,
-              userId,
-            )},
-            evidence_count = concept_mastery.evidence_count + 1,
-            updated_at = now()
-        )
+        mastery as (${masteryFrom(userId, questionId)})
         select * from done
       `.execute(db);
       const first = rows[0];

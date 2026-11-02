@@ -36,6 +36,10 @@ export const messageSchemas = {
   github_sync: z.strictObject({
     user_id: z.string().min(1),
   }),
+  // A live match has ended (P3-W15-S05, ADR-0033): record its result once. The result itself waits in Valkey at game:result:<match_id>, written by its game server (services/game); the worker's relay queues this from game:results.
+  match_finished: z.strictObject({
+    match_id: z.string().min(36),
+  }),
   // Read one scanned page of a book through the OCR service (ADR-0022, P2-W11-S03).
   ocr_page: z.strictObject({
     book_id: z.number().int().min(1),

@@ -35,6 +35,7 @@ from interval_db.messages import (
     FetchItem,
     GenerateQuestions,
     GithubSync,
+    MatchFinished,
     MessageName,
     OcrPage,
     ProjectNote,
@@ -64,6 +65,7 @@ from interval_jobs.frameable import framed_at
 from interval_jobs.github.sync import sync_user
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.link_health import check_link
+from interval_jobs.match_results import ResultsRedis, parse_result
 from interval_jobs.normalize import page_canonical, simhash
 from interval_jobs.polling import MIN_INTERVAL, next_interval
 from interval_jobs.ports import (
@@ -204,8 +206,11 @@ class Pipeline:
         files: Files | None = None,
         ocr: Ocr | None = None,
         github: GitHubApp | None = None,
+        results: ResultsRedis | None = None,
     ) -> None:
         self._unit = unit_of_work
+        # P3-W15-S05: where game servers leave match results (Valkey).
+        self._results = results
         # DB-6: None when file storage isn't configured; a removal then fails, retried.
         self._files = files
         # ADR-0022: None when OCR_URL isn't set; a scanned page then waits, retried.
@@ -238,7 +243,29 @@ class Pipeline:
             "book_checkpoint": self._book_checkpoint_stage,
             "github_sync": self._github_stage,
             "project_note": self._project_note_stage,
+            "match_finished": self._match_stage,
         }
+
+    # P3-W15-S05 (ADR-0033): a live match's result, from Valkey, recorded once.
+    def _match_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, MatchFinished)
+        if self._results is None:
+            raise RuntimeError("match results need VALKEY_URL")
+        raw = self._results.get(f"game:result:{message.match_id}")
+        if raw is None:
+            # Gone (a day passed, or never written): nothing to record, and retrying
+            # won't bring it back.
+            log.error("game: result missing", match_id=message.match_id)
+            return
+        result = parse_result(raw)
+        if result is None:
+            return
+        if str(result.match_id) != message.match_id:
+            log.error("game: result refused", reason="another match's result")
+            return
+        with self._unit() as services:
+            recorded = services.store.match_results.record(result)
+        log.info("game: result", match_id=message.match_id, recorded=recorded)
 
     # P2-W11-S02: an uploaded PDF read into chapters and sessions.
     def _book_stage(self, message: BaseModel, delivery: Delivery) -> None:

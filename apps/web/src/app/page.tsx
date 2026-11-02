@@ -28,6 +28,7 @@ import { parseReading, READING_COOKIE } from "../server/reading";
 import { BIGINT_ID, type FeedCard, quizKey } from "../server/ports";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
+import { applyMatchEvidence } from "./play/live/evidence";
 import { requireUsername } from "./username/gate";
 import { ArticleCard } from "./ArticleCard";
 import { CardControls } from "./CardControls";
@@ -65,6 +66,8 @@ export default async function HomePage({
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
   await requireUsername(actor.userId, "/");
+  // P3-W15-S05: finished live matches count toward mastery and review.
+  await applyMatchEvidence(actor);
   const account = (
     <form action={signOutAction} className="text-sm text-ink-muted">
       <button type="submit" className="underline underline-offset-2">

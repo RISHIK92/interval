@@ -20,10 +20,20 @@ const (
 // P3-W15-S04 (LOAD-2): where a match stands after a round, saved so a restarted server
 // plays on from there (game:snap:<id>). Over: it has ended; never play it again.
 type snap struct {
-	Next   int                      `json:"next"` // the round to play, from 1
-	Totals map[string]int           `json:"totals"`
-	Times  map[string]time.Duration `json:"times"`
-	Over   bool                     `json:"over"`
+	Next    int                      `json:"next"` // the round to play, from 1
+	Totals  map[string]int           `json:"totals"`
+	Times   map[string]time.Duration `json:"times"`
+	Answers map[string][]answerRec   `json:"answers"` // so a restart's result has them all
+	Over    bool                     `json:"over"`
+}
+
+// P3-W15-S05: a player's answer to a round, for the result (null fields: not answered).
+type answerRec struct {
+	Round      int    `json:"round"`
+	QuestionID int64  `json:"question_id"`
+	Choice     *int   `json:"choice"`
+	Correct    *bool  `json:"correct"`
+	Ms         *int64 `json:"ms"`
 }
 
 // A match as the web app handed it over (game:match:<id> in Valkey): its players and
@@ -70,17 +80,18 @@ type event struct {
 // LOAD-2: one actor owns a match. Its state lives in run's goroutine only; everything
 // else talks to it through events.
 type actor struct {
-	id     string
-	def    matchDef
-	clock  clock
-	log    *slog.Logger
-	events chan event
-	quit   chan struct{}
-	ended  chan struct{}
-	mu     sync.Mutex
-	over   bool       // set before ended closes: posts after it are refused
-	from   *snap      // a restart's starting point, when there is one
-	save   func(snap) // after each round and at the end; nil saves nothing
+	id      string
+	def     matchDef
+	clock   clock
+	log     *slog.Logger
+	events  chan event
+	quit    chan struct{}
+	ended   chan struct{}
+	mu      sync.Mutex
+	over    bool         // set before ended closes: posts after it are refused
+	from    *snap        // a restart's starting point, when there is one
+	save    func(snap)   // after each round and at the end; nil saves nothing
+	publish func(result) // the result, for the worker (P3-W15-S05); nil hands nothing
 }
 
 func newActor(id string, def matchDef, c clock, log *slog.Logger) *actor {
@@ -164,6 +175,7 @@ type play struct {
 	before    map[string]int // totals as the current round began: what a rejoiner is shown
 	shown     int            // the last round revealed
 	reveal    map[string]any // its reveal, for a player who missed it
+	answers   map[string][]answerRec
 }
 
 func (a *actor) run() {
@@ -189,11 +201,12 @@ func (a *actor) run() {
 		close(a.ended)
 	}()
 	p := play{
-		seats:  map[string]seat{},
-		rtts:   map[string]time.Duration{},
-		totals: map[string]int{},
-		times:  map[string]time.Duration{},
-		gens:   map[string]int{},
+		seats:   map[string]seat{},
+		rtts:    map[string]time.Duration{},
+		totals:  map[string]int{},
+		times:   map[string]time.Duration{},
+		gens:    map[string]int{},
+		answers: map[string][]answerRec{},
 	}
 	defer func() {
 		// No panic leaves the match: it ends, logged, and its players are let go.
@@ -216,6 +229,9 @@ func (a *actor) run() {
 		for player, took := range a.from.Times {
 			p.times[player] = took
 		}
+		for player, given := range a.from.Answers {
+			p.answers[player] = given
+		}
 	}
 
 	// Waiting for every player (again, after a restart).
@@ -228,6 +244,11 @@ func (a *actor) run() {
 			if a.from != nil {
 				// After a restart (owner, 2026-11-02): whoever isn't back abandons, and
 				// the one back wins; nobody back leaves the match void.
+				if len(p.seats) == 0 {
+					a.hand(&p, "void", "")
+					a.persist(snap{Over: true})
+					return
+				}
 				for _, player := range a.def.Players {
 					if _, back := p.seats[player]; !back {
 						p.abandoned = append(p.abandoned, player)
@@ -237,6 +258,7 @@ func (a *actor) run() {
 				return
 			}
 			a.broadcast(&p, map[string]any{"type": "cancelled"})
+			a.hand(&p, "cancelled", "")
 			a.persist(snap{Over: true})
 			p.closeAll("match cancelled")
 			return
@@ -289,6 +311,7 @@ func (a *actor) run() {
 			if _, ok := answered[player]; !ok {
 				answered[player] = 0
 				p.times[player] += roundTime
+				p.answers[player] = append(p.answers[player], answerRec{Round: n, QuestionID: r.Question})
 			}
 		}
 		p.shown = n
@@ -299,7 +322,7 @@ func (a *actor) run() {
 		}
 		// The pause runs while the snapshot saves, so a slow save doesn't lengthen it.
 		pause := a.clock.After(revealPause)
-		a.persist(snap{Next: n + 1, Totals: p.totals, Times: p.times})
+		a.persist(snap{Next: n + 1, Totals: p.totals, Times: p.times, Answers: p.answers})
 	wait:
 		for {
 			select {
@@ -356,12 +379,58 @@ func (a *actor) finish(p *play) {
 		}
 	}
 	final := map[string]any{"type": "final", "totals": p.totals, "winner": won}
+	outcome := "finished"
 	if len(p.abandoned) > 0 {
 		final["abandoned"] = p.abandoned
+		outcome = "abandoned"
 	}
 	a.broadcast(p, final)
-	a.persist(snap{Totals: p.totals, Times: p.times, Over: true})
+	// The result goes to the worker before the snapshot says "over": a result lost
+	// after "over" could never be sent again.
+	a.hand(p, outcome, won)
+	a.persist(snap{Totals: p.totals, Times: p.times, Answers: p.answers, Over: true})
 	p.closeAll("match over")
+}
+
+// The worker's message (packages/db/messages/match_finished.schema.json).
+type result struct {
+	MatchID    string         `json:"match_id"`
+	FinishedAt string         `json:"finished_at"`
+	Outcome    string         `json:"outcome"` // finished, abandoned, cancelled, void
+	Winner     *string        `json:"winner"`
+	Players    []playerResult `json:"players"`
+}
+
+type playerResult struct {
+	PlayedAs  string      `json:"played_as"`
+	Total     int         `json:"total"`
+	TimeMs    int64       `json:"time_ms"`
+	Abandoned bool        `json:"abandoned"`
+	Answers   []answerRec `json:"answers"`
+}
+
+func (a *actor) hand(p *play, outcome, won string) {
+	if a.publish == nil {
+		return
+	}
+	r := result{MatchID: a.id, FinishedAt: a.clock.Now().UTC().Format(time.RFC3339), Outcome: outcome}
+	if won != "" {
+		r.Winner = &won
+	}
+	for _, player := range a.def.Players {
+		given := p.answers[player]
+		if given == nil {
+			given = []answerRec{}
+		}
+		r.Players = append(r.Players, playerResult{
+			PlayedAs:  player,
+			Total:     p.totals[player],
+			TimeMs:    p.times[player].Milliseconds(),
+			Abandoned: slices.Contains(p.abandoned, player),
+			Answers:   given,
+		})
+	}
+	a.publish(r)
 }
 
 func (a *actor) persist(s snap) {
@@ -452,7 +521,12 @@ func (a *actor) handle(p *play, e event, cur *current) {
 		if took > roundTime {
 			return // arrived after the round's time
 		}
-		got := points(e.choice == cur.round.Correct, took, roundTime)
+		right := e.choice == cur.round.Correct
+		got := points(right, took, roundTime)
+		choice, ms := e.choice, took.Milliseconds()
+		p.answers[e.player] = append(p.answers[e.player], answerRec{
+			Round: cur.n, QuestionID: cur.round.Question, Choice: &choice, Correct: &right, Ms: &ms,
+		})
 		cur.answered[e.player] = got
 		p.totals[e.player] += got
 		p.times[e.player] += took

@@ -82,6 +82,14 @@ class GithubSync(_Message):
     user_id: Annotated[str, Field(min_length=1)]
 
 
+class MatchFinished(_Message):
+    """A live match has ended (P3-W15-S05, ADR-0033): record its result once. The
+    result itself waits in Valkey at game:result:<match_id>, written by its game
+    server (services/game); the worker's relay queues this from game:results."""
+
+    match_id: Annotated[str, Field(min_length=36)]
+
+
 class OcrPage(_Message):
     """Read one scanned page of a book through the OCR service (ADR-0022,
     P2-W11-S03)."""
@@ -144,6 +152,7 @@ type MessageName = Literal[
     "fetch_item",
     "generate_questions",
     "github_sync",
+    "match_finished",
     "ocr_page",
     "project_note",
     "recompute_feed",
@@ -162,6 +171,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "fetch_item": FetchItem,
     "generate_questions": GenerateQuestions,
     "github_sync": GithubSync,
+    "match_finished": MatchFinished,
     "ocr_page": OcrPage,
     "project_note": ProjectNote,
     "recompute_feed": RecomputeFeed,

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
@@ -19,6 +20,9 @@ type matchStore interface {
 	// P3-W15-S04: where the match stood after its last round, if it was saved.
 	snapshot(ctx context.Context, id string) (snap, bool, error)
 	save(ctx context.Context, id string, s snap) error
+	// P3-W15-S05: the match's result for the Python worker: kept at game:result:<id>,
+	// its id pushed onto game:results.
+	publish(ctx context.Context, id string, raw []byte) error
 }
 
 // As long as the match itself is kept (the web app's hour).
@@ -59,6 +63,24 @@ func (s redisStore) snapshot(ctx context.Context, id string) (snap, bool, error)
 		return snap{}, false, fmt.Errorf("snapshot %s: %w", id, err)
 	}
 	return saved, true, nil
+}
+
+// The pauses between the tries of a write that must not be lost (the result, "over").
+var retryAfter = []time.Duration{200 * time.Millisecond, time.Second}
+
+// A day: long enough for a worker that was down to catch up.
+const resultTTL = 24 * time.Hour
+
+func (s redisStore) publish(ctx context.Context, id string, raw []byte) error {
+	// Both or neither: an id without its result, or a result nobody is told of, is lost.
+	_, err := s.client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		// First wins: a later "void" (a restart after a lost "over") can't overwrite a
+		// result the worker hasn't read yet; the worker records only the first anyway.
+		pipe.SetNX(ctx, "game:result:"+id, raw, resultTTL)
+		pipe.LPush(ctx, "game:results", id)
+		return nil
+	})
+	return err
 }
 
 func (s redisStore) save(ctx context.Context, id string, saved snap) error {
@@ -161,7 +183,7 @@ func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 		// restart could play a finished match again from its last round.
 		tries := 1
 		if s.Over {
-			tries = 3
+			tries = len(retryAfter) + 1
 		}
 		for try := 1; try <= tries; try++ {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
@@ -171,6 +193,30 @@ func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 				return
 			}
 			g.log.Error("game: snapshot failed", "match", id, "over", s.Over, "try", try, "error", err.Error())
+			if try < tries {
+				time.Sleep(retryAfter[try-1])
+			}
+		}
+	}
+	a.publish = func(r result) {
+		// Three tries, then said and counted (LOAD-5): the match's result is lost to the
+		// worker. The worker takes a result once, so a repeat is harmless.
+		raw, err := json.Marshal(r)
+		if err != nil {
+			g.log.Error("game: result not handed over", "match", id, "error", err.Error())
+			return
+		}
+		for try := 1; try <= len(retryAfter)+1; try++ {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			err = g.store.publish(ctx, id, raw)
+			cancel()
+			if err == nil {
+				return
+			}
+			g.log.Error("game: result not handed over", "match", id, "try", try, "error", err.Error())
+			if try <= len(retryAfter) {
+				time.Sleep(retryAfter[try-1]) // a blip of Valkey shouldn't lose the result
+			}
 		}
 	}
 	g.actors[id] = a
@@ -199,10 +245,37 @@ func (g *registry) stopAll() {
 
 // Matches and snapshots in memory, for tests.
 type memStore struct {
-	mu    sync.Mutex
-	defs  map[string]matchDef
-	snaps map[string]snap
-	fail  bool // every save fails
+	mu       sync.Mutex
+	defs     map[string]matchDef
+	snaps    map[string]snap
+	fail     bool // every save fails
+	pushed   [][]byte
+	failPush bool // every publish fails
+}
+
+func (s *memStore) publish(_ context.Context, _ string, raw []byte) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.failPush {
+		return errors.New("store down")
+	}
+	s.pushed = append(s.pushed, raw)
+	return nil
+}
+
+// The results published so far, decoded.
+func (s *memStore) results() []result {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]result, 0, len(s.pushed))
+	for _, raw := range s.pushed {
+		var r result
+		if err := json.Unmarshal(raw, &r); err != nil {
+			panic("a published result isn't JSON: " + err.Error()) // tests only
+		}
+		out = append(out, r)
+	}
+	return out
 }
 
 func newMemStore(defs map[string]matchDef) *memStore {
@@ -239,6 +312,10 @@ func (s *memStore) save(_ context.Context, id string, saved snap) error {
 	}
 	for k, v := range saved.Times {
 		copied.Times[k] = v
+	}
+	copied.Answers = map[string][]answerRec{}
+	for k, v := range saved.Answers {
+		copied.Answers[k] = slices.Clone(v)
 	}
 	s.snaps[id] = copied
 	return nil
