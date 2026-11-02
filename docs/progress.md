@@ -2492,3 +2492,44 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - a board name from a route needs validating at the boundary (S06);
   - a purged guest's entry lingers until the marker lapses.
 - **Full check:** 25/25 tasks (web 1033, infra 76, Python 1261).
+
+### 2026-11-02 — P3-W14-S02 (country; §6.7, Q-P3-08)
+
+- Q-P3-08 (owner, 2026-10-31): the country is chosen on Profile, optional, changed once a month, with no IP lookup.
+- Owner answers (2026-11-02):
+  - country boards list players by their **current** country, and totals move with them;
+  - removing a country is allowed at any time and keeps the clock.
+- **Migration `player_country`:** user, country (ISO alpha-2, null once removed) and `changed_at`. It's a separate table from Better Auth's `app_user`. Accounts only: guests have no Profile (ADR-0029).
+- **`server/countries.ts`:** the 249 ISO 3166-1 alpha-2 codes. Names come from `Intl.DisplayNames`, because ICU's own list includes non-countries such as EU, UN and ZZ.
+- **`PlayerCountries` port, Kysely adapter and fake (one contract):**
+  - `get`;
+  - `set`: locks the row; the same country is a no-op that keeps the clock; a change inside 30 days is refused with the opening time;
+  - `remove`: locked, always allowed, keeps the clock.
+- **Leaderboards:**
+  - `top` and `standing` take an optional country (key `board:<board>@<CC>`). A country board's rebuild joins `player_country`, so ranks are within the country;
+  - `record` also writes the player's total into their country's board;
+  - `invalidate(user, formerCountry)` drops global, current and former country boards.
+- **Profile, "Country" card:**
+  - a select of every country by name; it's required, so "Not set" can't be saved;
+  - Save, and Remove when a country is set;
+  - inside the month the select is locked, with the first whole UTC day it opens (tied to the select with `aria-describedby`);
+  - fixed notices.
+  - The actions validate against the list, then call set or remove, then `invalidate` with the previous country.
+- **Reviewer, fixed:**
+  - saving the current country restarted the 30-day clock;
+  - "Not set" submitted silently;
+  - a set racing a remove could report the wrong previous country (now locked in one transaction);
+  - a refusal at the 30-day boundary could throw;
+  - `get` used two queries;
+  - the opening date could be the day before the hour it opens;
+  - `aria-describedby`;
+  - a dead export;
+  - an unused index;
+  - the port says a country must be checked before it becomes a key.
+  - Tests added: removed inside the month; the same country; a record into a cached country board.
+- **Not done:**
+  - a live check of the card. Chrome is off, and curl would need the local test account's password;
+  - an event for a country change (none in events.json; ask).
+- **Full check:**
+  - web 1049 and Python 1261 pass;
+  - the infra synth hook timed out under load (76 pass alone), and in the first run the health route did too (it passes alone).

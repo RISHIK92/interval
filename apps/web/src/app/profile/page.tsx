@@ -5,21 +5,26 @@ import {
   feedback,
   githubAccounts,
   githubApp,
+  playerCountries,
   preferences,
   progress,
   sessionReader,
 } from "../../server/container";
 import type { GitHubConnection } from "../../server/ports";
 import { parseTheme, THEME_COOKIE, THEMES } from "../../server/theme";
+import { countriesByName } from "../../server/countries";
 import { ChoicesFields, GOAL_TEXT, TOPIC_NAMES } from "../ChoicesFields";
 import { setThemeAction } from "../theme/actions";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { FIELD } from "../ui/field";
 import { STATE_WORDS } from "../learnerState";
 import {
   disconnectGitHubAction,
   refreshGitHubAction,
+  removeCountryAction,
   resetInferredAction,
+  setCountryAction,
   unhideSourceAction,
   updatePreferencesAction,
 } from "./actions";
@@ -39,6 +44,8 @@ const NOTICES: Record<string, string> = {
   unhidden: "Source shown again. Your feed updates in a moment.",
   github: "GitHub connected.",
   "github-refresh": "Reading your repositories again; this takes a minute.",
+  country: "Country saved. Country boards update in a moment.",
+  "country-removed": "Country removed.",
   "github-off":
     "GitHub disconnected; what Interval read from it is deleted. Uninstall Interval on GitHub to revoke its access.",
 };
@@ -58,7 +65,12 @@ const MISSING: Record<string, string> = {
 
 // §5A ("view, edit, or reset anything inferred"), PER-1, Q-P1-36, P1-W4-S08.
 export default async function ProfilePage(props: {
-  searchParams: Promise<{ saved?: string; missing?: string; github?: string }>;
+  searchParams: Promise<{
+    saved?: string;
+    missing?: string;
+    github?: string;
+    country?: string;
+  }>;
 }) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
@@ -67,13 +79,19 @@ export default async function ProfilePage(props: {
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
   const offered = githubApp() !== null;
-  const [hidden, inferred, concepts, connection] = await Promise.all([
+  const [hidden, inferred, concepts, connection, country] = await Promise.all([
     feedback().hiddenSources(actor.userId),
     feedback().inferred(actor.userId),
     progress().concepts(actor.userId),
     offered ? githubAccounts().get(actor.userId) : Promise.resolve(null),
+    playerCountries().get(actor.userId),
   ]);
-  const { saved, missing, github } = await props.searchParams;
+  const {
+    saved,
+    missing,
+    github,
+    country: countryProblem,
+  } = await props.searchParams;
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
   return (
     <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-24">
@@ -149,6 +167,14 @@ export default async function ProfilePage(props: {
 
       <Card className="p-5">
         <GitHubSection offered={offered} connection={connection} />
+      </Card>
+
+      <Card className="p-5">
+        <CountrySection
+          country={country.country}
+          changeableFrom={country.changeableFrom}
+          refused={countryProblem === "soon"}
+        />
       </Card>
 
       {/* This device's theme (owner, 2026-10-26). */}
@@ -478,5 +504,80 @@ function Repositories({ connection }: { connection: GitHubConnection }) {
         </button>
       </form>
     </div>
+  );
+}
+
+// P3-W14-S02 (§6.7, Q-P3-08; owner, 2026-11-02): optional, for country boards; set or
+// changed once a month, removed at any time.
+function CountrySection({
+  country,
+  changeableFrom,
+  refused,
+}: {
+  country: string | null;
+  changeableFrom: Date | null;
+  refused: boolean;
+}) {
+  const locked = changeableFrom !== null;
+  return (
+    <section aria-label="Country">
+      <h2 className="text-section">Country</h2>
+      <p className="mt-1 text-ink-muted">
+        Optional. It puts you on your country&apos;s boards on Play.
+      </p>
+      {refused ? (
+        <p role="alert" className="mt-2 text-wrong">
+          A country can be changed once a month.
+        </p>
+      ) : null}
+      <form action={setCountryAction} className="mt-3 flex flex-col gap-3">
+        <label className="sr-only" htmlFor="country">
+          Country
+        </label>
+        <select
+          id="country"
+          name="country"
+          defaultValue={country ?? ""}
+          disabled={locked}
+          required
+          aria-describedby={locked ? "country-opens" : undefined}
+          className={FIELD}
+        >
+          <option value="" disabled>
+            Not set
+          </option>
+          {countriesByName().map(({ code, name }) => (
+            <option key={code} value={code}>
+              {name}
+            </option>
+          ))}
+        </select>
+        {locked ? (
+          <p id="country-opens" className="text-ink-muted">
+            You can change it again from{" "}
+            {/* The first whole (UTC) day it's open: it opens at the hour it last changed. */}
+            {new Date(changeableFrom.getTime() + 86_400_000).toLocaleDateString(
+              "en-GB",
+              {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+                timeZone: "UTC",
+              },
+            )}
+            .
+          </p>
+        ) : (
+          <Button type="submit">Save country</Button>
+        )}
+      </form>
+      {country === null ? null : (
+        <form action={removeCountryAction} className="mt-3">
+          <Button type="submit" variant="secondary">
+            Remove country
+          </Button>
+        </form>
+      )}
+    </section>
   );
 }

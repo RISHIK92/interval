@@ -3,6 +3,8 @@ import type {
   Actor,
   Feedback,
   GitHubAccounts,
+  Leaderboards,
+  PlayerCountries,
   PreferencesStore,
 } from "../../server/ports";
 
@@ -24,7 +26,16 @@ vi.mock("../../server/container", () => ({
   jobQueue: () => ({ enqueue }),
   githubAccounts: () => ({ disconnect, get: githubGet }),
   events: () => ({ emit }),
+  playerCountries: () => ({ set: setCountry, remove: removeCountry }),
+  leaderboards: () => ({ invalidate }),
 }));
+const setCountry = vi.fn<PlayerCountries["set"]>(() =>
+  Promise.resolve({ ok: true, previous: "IN" }),
+);
+const removeCountry = vi.fn<PlayerCountries["remove"]>(() =>
+  Promise.resolve("BR"),
+);
+const invalidate = vi.fn<Leaderboards["invalidate"]>(() => Promise.resolve());
 const disconnect = vi.fn<GitHubAccounts["disconnect"]>(() =>
   Promise.resolve(true),
 );
@@ -243,4 +254,65 @@ test("a guest is sent to sign up before anything is written", async () => {
   await expect(all.disconnectGitHubAction()).rejects.toThrow(
     "redirect:/sign-up",
   );
+});
+
+// P3-W14-S02 (Q-P3-08; owner, 2026-11-02): the country, and its boards worked out again.
+describe("country", () => {
+  const country = (code: string) => {
+    const data = new FormData();
+    data.set("country", code);
+    return data;
+  };
+
+  test("saving sets it and rebuilds the boards of the country it was", async () => {
+    const { setCountryAction } = await actions();
+    await expect(setCountryAction(country("BR"))).rejects.toThrow(
+      "redirect:/profile?saved=country",
+    );
+    expect(setCountry).toHaveBeenCalledExactlyOnceWith("g1", "BR");
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", "IN");
+  });
+
+  test("inside the month it's refused, and the boards are left alone", async () => {
+    const { setCountryAction } = await actions();
+    setCountry.mockResolvedValueOnce({
+      ok: false,
+      changeableFrom: new Date("2026-12-02T10:00:00Z"),
+    });
+    await expect(setCountryAction(country("BR"))).rejects.toThrow(
+      "redirect:/profile?country=soon",
+    );
+    expect(invalidate).not.toHaveBeenCalled();
+  });
+
+  test.each(["", "br", "XX", "EU", "BRA"])(
+    "%j isn't a country: nothing is written",
+    async (code) => {
+      const { setCountryAction } = await actions();
+      await expect(setCountryAction(country(code))).rejects.toThrow(
+        "redirect:/profile",
+      );
+      expect(setCountry).not.toHaveBeenCalled();
+    },
+  );
+
+  test("removing is always allowed, and rebuilds the boards it was on", async () => {
+    const { removeCountryAction } = await actions();
+    await expect(removeCountryAction()).rejects.toThrow(
+      "redirect:/profile?saved=country-removed",
+    );
+    expect(removeCountry).toHaveBeenCalledExactlyOnceWith("g1");
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith("g1", "BR");
+  });
+
+  test("a guest is sent to sign up", async () => {
+    const { removeCountryAction, setCountryAction } = await actions();
+    current.mockResolvedValue(guest);
+    await expect(setCountryAction(country("BR"))).rejects.toThrow(
+      "redirect:/sign-up",
+    );
+    await expect(removeCountryAction()).rejects.toThrow("redirect:/sign-up");
+    expect(setCountry).not.toHaveBeenCalled();
+    expect(removeCountry).not.toHaveBeenCalled();
+  });
 });

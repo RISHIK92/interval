@@ -43,15 +43,30 @@ export function valkeyLeaderboards(
   redis: Redis,
   prefix = "board:",
 ): Leaderboards {
-  const key = (board: string) => `${prefix}${board}`;
-  const marker = (board: string) => `${prefix}built:${board}`;
+  // P3-W14-S02: a country's board is "<board>@<country>".
+  const name = (board: string, country?: string) =>
+    country === undefined ? board : `${board}@${country}`;
+  const key = (board: string, country?: string) =>
+    `${prefix}${name(board, country)}`;
+  const marker = (board: string, country?: string) =>
+    `${prefix}built:${name(board, country)}`;
 
-  const totals = (board: string, userId?: string) =>
+  // The players' totals on a board; on a country's, only those whose country it is now.
+  const totals = (
+    board: string,
+    only: { userId?: string; country?: string | undefined } = {},
+  ) =>
     sql<{ user_id: string; score: number }>`
       select a.user_id, sum(s.score)::int as score
       from board_score s join quiz_attempt a on a.id = s.attempt_id
       where s.board = ${board}
-        and ${userId === undefined ? sql`true` : sql`a.user_id = ${userId}`}
+        and ${only.userId === undefined ? sql`true` : sql`a.user_id = ${only.userId}`}
+        and ${
+          only.country === undefined
+            ? sql`true`
+            : sql`exists (select 1 from player_country c
+                  where c.user_id = a.user_id and c.country = ${only.country})`
+        }
       group by a.user_id
     `.execute(db);
 
@@ -65,16 +80,26 @@ export function valkeyLeaderboards(
   // total until the marker lapses (BUILT_SECONDS). An empty board has no key, so it is
   // worked out at each read: one query that finds nothing.
   // shortcut: one ZADD of every player, fine to some tens of thousands; batch beyond.
-  const ensure = async (board: string): Promise<void> => {
-    if ((await redis.exists(marker(board), key(board))) === 2) return;
-    const { rows } = await totals(board);
-    const multi = redis.multi().del(key(board));
+  const ensure = async (board: string, country?: string): Promise<void> => {
+    const [k, m] = [key(board, country), marker(board, country)];
+    if ((await redis.exists(m, k)) === 2) return;
+    const { rows } = await totals(board, { country });
+    const multi = redis.multi().del(k);
     if (rows.length > 0)
       multi
-        .zadd(key(board), ...rows.flatMap((r) => [r.score, r.user_id]))
-        .expire(key(board), TTL_SECONDS);
-    await exec(multi.set(marker(board), "1", "EX", BUILT_SECONDS));
+        .zadd(k, ...rows.flatMap((r) => [r.score, r.user_id]))
+        .expire(k, TTL_SECONDS);
+    await exec(multi.set(m, "1", "EX", BUILT_SECONDS));
   };
+
+  const countryOf = async (userId: string): Promise<string | undefined> =>
+    (
+      await db
+        .selectFrom("player_country")
+        .select("country")
+        .where("user_id", "=", userId)
+        .executeTakeFirst()
+    )?.country ?? undefined;
 
   return {
     record: async (userId, attemptId, score) => {
@@ -94,15 +119,19 @@ export function valkeyLeaderboards(
         .where("a.user_id", "=", userId)
         .executeTakeFirst();
       if (row === undefined) return;
-      const total = (await totals(row.board, userId)).rows[0]?.score ?? 0;
+      const total = (await totals(row.board, { userId })).rows[0]?.score ?? 0;
+      const country = await countryOf(userId);
       try {
         // GT: a total only grows, so a stale one written late never wins.
-        await exec(
-          redis
-            .multi()
-            .zadd(key(row.board), "GT", total, userId)
-            .expire(key(row.board), TTL_SECONDS),
-        );
+        const multi = redis
+          .multi()
+          .zadd(key(row.board), "GT", total, userId)
+          .expire(key(row.board), TTL_SECONDS);
+        if (country !== undefined)
+          multi
+            .zadd(key(row.board, country), "GT", total, userId)
+            .expire(key(row.board, country), TTL_SECONDS);
+        await exec(multi);
       } catch (error) {
         // LOAD-5: the game is kept in Postgres, and the board rebuilds with it once
         // its marker lapses (a metric in the AWS stack counts these).
@@ -113,10 +142,10 @@ export function valkeyLeaderboards(
       }
     },
 
-    top: async (board, limit) => {
-      await ensure(board);
+    top: async (board, limit, country) => {
+      await ensure(board, country);
       const flat = await redis.zrevrange(
-        key(board),
+        key(board, country),
         0,
         limit - 1,
         "WITHSCORES",
@@ -127,18 +156,25 @@ export function valkeyLeaderboards(
       return ranked(entries);
     },
 
-    standing: async (board, userId) => {
-      await ensure(board);
-      const score = await redis.zscore(key(board), userId);
+    standing: async (board, userId, country) => {
+      await ensure(board, country);
+      const k = key(board, country);
+      const score = await redis.zscore(k, userId);
       if (score === null) return null;
-      const ahead = await redis.zcount(key(board), `(${score}`, "+inf");
+      const ahead = await redis.zcount(k, `(${score}`, "+inf");
       return { userId, score: Number(score), rank: ahead + 1 };
     },
 
     // Never throws: it follows a sign-in that has already succeeded. If it fails, the
     // boards show the guest apart until their markers lapse (BUILT_SECONDS).
-    invalidate: async (userId) => {
+    invalidate: async (userId, formerCountry) => {
       try {
+        // Its global boards, and those of its country now and the one it was.
+        const scopes = [
+          undefined,
+          await countryOf(userId),
+          formerCountry ?? undefined,
+        ];
         const boards = await db
           .selectFrom("board_score as s")
           .innerJoin("quiz_attempt as a", "a.id", "s.attempt_id")
@@ -148,7 +184,9 @@ export function valkeyLeaderboards(
           .execute();
         if (boards.length > 0)
           await redis.del(
-            ...boards.flatMap((b) => [marker(b.board), key(b.board)]),
+            ...boards.flatMap((b) =>
+              scopes.flatMap((c) => [marker(b.board, c), key(b.board, c)]),
+            ),
           );
       } catch (error) {
         log.error("boards: invalidation failed", { userId, error });
@@ -163,13 +201,17 @@ export function memoryLeaderboards(
     string,
     { userId: string; board: string | null; finished: boolean }
   >,
+  countries: Map<string, string> = new Map(),
 ): Leaderboards {
   const scores = new Map<string, number>();
-  const board = (name: string) => {
+  const board = (name: string, country?: string) => {
     const sums = new Map<string, number>();
     for (const [attemptId, score] of scores) {
       const game = games.get(attemptId);
-      if (game?.board === name)
+      if (
+        game?.board === name &&
+        (country === undefined || countries.get(game.userId) === country)
+      )
         sums.set(game.userId, (sums.get(game.userId) ?? 0) + score);
     }
     return ranked(
@@ -188,9 +230,12 @@ export function memoryLeaderboards(
         scores.set(attemptId, score);
       return Promise.resolve();
     },
-    top: (name, limit) => Promise.resolve(board(name).slice(0, limit)),
-    standing: (name, userId) =>
-      Promise.resolve(board(name).find((s) => s.userId === userId) ?? null),
+    top: (name, limit, country) =>
+      Promise.resolve(board(name, country).slice(0, limit)),
+    standing: (name, userId, country) =>
+      Promise.resolve(
+        board(name, country).find((s) => s.userId === userId) ?? null,
+      ),
     invalidate: () => Promise.resolve(),
   };
 }

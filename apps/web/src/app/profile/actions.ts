@@ -8,9 +8,12 @@ import {
   feedback,
   githubAccounts,
   jobQueue,
+  leaderboards,
+  playerCountries,
   preferences,
   sessionReader,
 } from "../../server/container";
+import { COUNTRY_CODES } from "../../server/countries";
 import { queueRecompute } from "../../server/recompute";
 import { BIGINT_ID } from "../../server/ports";
 import { updatePreferences } from "../../server/preferences";
@@ -50,6 +53,26 @@ export async function updatePreferencesAction(form: FormData): Promise<void> {
   if (!result.updated) redirect("/onboarding");
   await recompute(userId);
   redirect("/profile?saved=choices");
+}
+
+// P3-W14-S02 (§6.7, Q-P3-08; owner, 2026-11-02): the player's country, at most once
+// in 30 days; its boards and the old country's are worked out again.
+export async function setCountryAction(form: FormData): Promise<void> {
+  const userId = await actor();
+  const country = textField(form, "country");
+  if (!COUNTRY_CODES.has(country)) redirect("/profile");
+  const result = await playerCountries().set(userId, country);
+  if (!result.ok) redirect("/profile?country=soon");
+  await leaderboards().invalidate(userId, result.previous);
+  redirect("/profile?saved=country");
+}
+
+// Always allowed; the month's clock runs on.
+export async function removeCountryAction(): Promise<void> {
+  const userId = await actor();
+  const previous = await playerCountries().remove(userId);
+  await leaderboards().invalidate(userId, previous);
+  redirect("/profile?saved=country-removed");
 }
 
 export async function resetInferredAction(): Promise<void> {

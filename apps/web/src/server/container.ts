@@ -36,6 +36,7 @@ import { fetchGitHub } from "./adapters/fetch-github";
 import { kyselyGitHub } from "./adapters/kysely-github";
 import { kyselyNotes } from "./adapters/kysely-notes";
 import { kyselyPaths } from "./adapters/kysely-paths";
+import { kyselyPlayerCountries } from "./adapters/kysely-player-countries";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
 import { kyselyProgress } from "./adapters/kysely-progress";
 import { kyselyPreferences } from "./adapters/kysely-preferences";
@@ -74,6 +75,7 @@ import type {
   PreferencesStore,
   Notes,
   Paths,
+  PlayerCountries,
   Progress,
   Quizzes,
   SessionReader,
@@ -251,6 +253,11 @@ export function leaderboards(): Leaderboards {
     });
   }
   return valkeyLeaderboards(db(), valkey);
+}
+
+// P3-W14-S02 (§6.7, Q-P3-08).
+export function playerCountries(): PlayerCountries {
+  return kyselyPlayerCountries(db());
 }
 
 // P2-W12-S01 (§5H, ADR-0024): Interval's GitHub App; null when it isn't configured,

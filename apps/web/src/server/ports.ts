@@ -630,17 +630,42 @@ export interface GuestLimits {
 // weekly board (ISO weeks, UTC) each for sprints and estimation rounds. A player's
 // score on a board is the total of their games on it. Boards are named
 // "daily:2026-11-02", "sprint:2026-W45", "estimation:2026-W45".
+// P3-W14-S02 (owner, 2026-11-02): each board also has a board per country, of the
+// players whose country it is now (`country`, ISO 3166-1 alpha-2; a caller checks it
+// against COUNTRY_CODES first, since it becomes a Valkey key).
 export type Standing = { userId: string; score: number; rank: number };
 export interface Leaderboards {
   // A finished game's score on its board, once per attempt (LOAD-5); nothing for
   // another player's attempt, an unfinished one, or one that isn't a game.
   record(userId: string, attemptId: string, score: number): Promise<void>;
   // Highest first. Equal totals share a rank: 1 + the players strictly ahead.
-  top(board: string, limit: number): Promise<Standing[]>;
-  standing(board: string, userId: string): Promise<Standing | null>;
-  // After a guest merge (P3-W13-S07): the player's boards are worked out again.
-  // Never throws: a failure is logged, and the boards catch up within minutes.
-  invalidate(userId: string): Promise<void>;
+  top(board: string, limit: number, country?: string): Promise<Standing[]>;
+  standing(
+    board: string,
+    userId: string,
+    country?: string,
+  ): Promise<Standing | null>;
+  // After a guest merge (P3-W13-S07) or a change of country (with the one it was):
+  // the player's boards are worked out again. Never throws: a failure is logged, and
+  // the boards catch up within minutes.
+  invalidate(userId: string, formerCountry?: string | null): Promise<void>;
+}
+
+// P3-W14-S02 (§6.7, Q-P3-08; owner, 2026-11-02): an account's country, optional, set
+// or changed at most once in 30 days; removing it is always allowed and keeps the clock.
+export interface PlayerCountries {
+  // changeableFrom: when a set or change is next allowed; null when it is now.
+  get(
+    userId: string,
+  ): Promise<{ country: string | null; changeableFrom: Date | null }>;
+  set(
+    userId: string,
+    country: string,
+  ): Promise<
+    { ok: true; previous: string | null } | { ok: false; changeableFrom: Date }
+  >;
+  // The country it was, if any.
+  remove(userId: string): Promise<string | null>;
 }
 
 export interface GuestSessions {

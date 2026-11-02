@@ -561,6 +561,12 @@ export interface PlanCapability {
   plan_id: string;
 }
 
+export interface PlayerCountry {
+  changed_at: Generated<Timestamp>;
+  country: string | null;
+  user_id: string;
+}
+
 export interface ProjectNote {
   content_item_id: Int8;
   created_at: Generated<Timestamp>;
@@ -1047,6 +1053,7 @@ export interface DB {
   path_session: PathSession;
   plan: Plan;
   plan_capability: PlanCapability;
+  player_country: PlayerCountry;
   project_note: ProjectNote;
   project_note_batch_item: ProjectNoteBatchItem;
   question: Question;

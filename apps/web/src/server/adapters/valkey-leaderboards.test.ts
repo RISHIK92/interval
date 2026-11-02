@@ -29,6 +29,8 @@ type Harness = {
   boards: Leaderboards;
   players(count: number): Promise<string[]>;
   game(userId: string, board: string, finished?: boolean): Promise<string>;
+  // P3-W14-S02: the player's country now.
+  country(userId: string, code: string): Promise<void>;
 };
 
 async function contract(h: Harness): Promise<void> {
@@ -36,6 +38,9 @@ async function contract(h: Harness): Promise<void> {
   if (a === undefined || b === undefined || c === undefined || d === undefined)
     throw new Error("players");
   const week = "sprint:2091-W02";
+  await h.country(a, "IN");
+  await h.country(b, "IN");
+  await h.country(c, "DE");
 
   // A week's games add up; recording one again (LOAD-5) changes nothing.
   const first = await h.game(a, week);
@@ -91,6 +96,28 @@ async function contract(h: Harness): Promise<void> {
   expect(await h.boards.standing(week, d)).toBeNull();
   expect(await h.boards.standing(week, a)).toMatchObject({ score: 7 });
   expect(await h.boards.top("sprint:2091-W09", 10)).toEqual([]);
+
+  // P3-W14-S02: a country's board has only its players, ranked among themselves.
+  expect(await h.boards.top(week, 10, "IN")).toEqual([
+    { userId: high, score: 7, rank: 1 },
+    { userId: low, score: 7, rank: 1 },
+  ]);
+  expect(await h.boards.standing(week, c, "IN")).toBeNull();
+  expect(await h.boards.standing(week, c, "DE")).toEqual({
+    userId: c,
+    score: 9,
+    rank: 1,
+  });
+  expect(await h.boards.top(week, 10, "FR")).toEqual([]);
+  // A player with no country is on the global board only.
+  await h.boards.record(d, await h.game(d, "sprint:2091-W03"), 6);
+  expect(await h.boards.top("sprint:2091-W03", 10)).toEqual([
+    { userId: d, score: 6, rank: 1 },
+    { userId: a, score: 5, rank: 2 },
+  ]);
+  expect(await h.boards.top("sprint:2091-W03", 10, "IN")).toEqual([
+    { userId: a, score: 5, rank: 1 },
+  ]);
 }
 
 test("the in-memory fake keeps the contract", async () => {
@@ -98,9 +125,14 @@ test("the in-memory fake keeps the contract", async () => {
     string,
     { userId: string; board: string | null; finished: boolean }
   >();
+  const countries = new Map<string, string>();
   let n = 0;
   await contract({
-    boards: memoryLeaderboards(games),
+    boards: memoryLeaderboards(games, countries),
+    country: (userId, code) => {
+      countries.set(userId, code);
+      return Promise.resolve();
+    },
     players: (count) =>
       Promise.resolve(Array.from({ length: count }, () => randomUUID())),
     game: (userId, board, finished = true) => {
@@ -208,7 +240,55 @@ test("the Valkey adapter keeps the contract", async () => {
       boards: valkeyLeaderboards(trx, redis, prefix),
       players: (count) => players(trx, count),
       game: (userId, board, finished) => game(trx, userId, board, finished),
+      country: (userId, code) => country(trx, userId, code),
     });
+  });
+});
+
+async function country(
+  trx: Transaction<DB>,
+  userId: string,
+  code: string | null,
+): Promise<void> {
+  await sql`insert into player_country (user_id, country) values (${userId}, ${code})
+    on conflict (user_id) do update set country = excluded.country`.execute(
+    trx,
+  );
+}
+
+test("after a change of country the player's totals move to the new country's boards", async () => {
+  await inRollback(async (trx, prefix) => {
+    const boards = valkeyLeaderboards(trx, redis, prefix);
+    const [a, b] = await players(trx, 2);
+    if (a === undefined || b === undefined) throw new Error("players");
+    const week = "estimation:2091-W10";
+    await country(trx, a, "IN");
+    await country(trx, b, "IN");
+    await boards.record(a, await game(trx, a, week), 200);
+    await boards.record(b, await game(trx, b, week), 100);
+    // Both read, so both are cached.
+    expect(await boards.top(week, 10, "IN")).toHaveLength(2);
+    expect(await boards.top(week, 10, "BR")).toEqual([]);
+    // A game recorded while the country's board is cached joins it at once.
+    await boards.record(a, await game(trx, a, week), 50);
+    expect(await boards.standing(week, a, "IN")).toEqual({
+      userId: a,
+      score: 250,
+      rank: 1,
+    });
+    await country(trx, a, "BR");
+    await boards.invalidate(a, "IN");
+    expect(await boards.top(week, 10, "IN")).toEqual([
+      { userId: b, score: 100, rank: 1 },
+    ]);
+    expect(await boards.top(week, 10, "BR")).toEqual([
+      { userId: a, score: 250, rank: 1 },
+    ]);
+    // Removed: on the global board only.
+    await country(trx, a, null);
+    await boards.invalidate(a, "BR");
+    expect(await boards.top(week, 10, "BR")).toEqual([]);
+    expect(await boards.standing(week, a)).toMatchObject({ rank: 1 });
   });
 });
 

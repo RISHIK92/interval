@@ -536,6 +536,12 @@ class PlanCapability(TypedDict):
     limit_value: int | None
 
 
+class PlayerCountry(TypedDict):
+    user_id: str
+    country: str | None
+    changed_at: datetime
+
+
 class ProjectNote(TypedDict):
     id: int
     user_id: str

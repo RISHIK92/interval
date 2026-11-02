@@ -6,6 +6,7 @@ import type {
   Preferences,
   Progress,
   GitHubAccounts,
+  PlayerCountries,
 } from "../../server/ports";
 
 // §5A, Q-P1-36, P1-W4-S08: choices, hidden sources, and what was inferred.
@@ -33,7 +34,11 @@ vi.mock("../../server/container", () => ({
   progress: () => ({ concepts: explored }),
   githubApp: () => (githubOffered ? {} : null),
   githubAccounts: () => ({ get: githubConnection }),
+  playerCountries: () => ({ get: countryGet }),
 }));
+const countryGet = vi.fn<PlayerCountries["get"]>(() =>
+  Promise.resolve({ country: null, changeableFrom: null }),
+);
 const themeCookie = vi.fn<(name: string) => { value: string } | undefined>();
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -332,4 +337,65 @@ test("connected and read: the repositories with their languages and dependencies
     repositories: [],
   });
   expect(await page()).toContain("Reading your repositories…");
+});
+
+// P3-W14-S02 (§6.7, Q-P3-08; owner, 2026-11-02).
+describe("country", () => {
+  const signedIn = () => {
+    current.mockResolvedValue(user);
+    get.mockResolvedValue(preferences);
+  };
+  const tag = (html: string, pattern: RegExp) =>
+    (html.match(/<(select|option|button)[^>]*>/g) ?? []).find((t) =>
+      pattern.test(t),
+    ) ?? "";
+
+  test("not set: every country by name, none chosen, and no Remove", async () => {
+    signedIn();
+    const html = await page();
+    expect(html).toContain("Country");
+    expect(html).toMatch(/<option value="IN"[^>]*>India<\/option>/);
+    expect(html).toMatch(/<option value="DE"[^>]*>Germany<\/option>/);
+    expect(html).not.toMatch(/<option value="EU"/);
+    expect(tag(html, /value="IN"/)).not.toContain("selected");
+    expect(tag(html, /<select/)).not.toContain("disabled");
+    // "Not set" can't be saved.
+    expect(tag(html, /<select/)).toContain("required");
+    expect(html).not.toContain("Remove country");
+  });
+
+  test("set and changeable: chosen in the list, with Remove", async () => {
+    signedIn();
+    countryGet.mockResolvedValueOnce({ country: "IN", changeableFrom: null });
+    const html = await page({ saved: "country" });
+    expect(tag(html, /value="IN"/)).toContain("selected");
+    expect(html).toContain("Remove country");
+    expect(html).toContain("Country saved. Country boards update in a moment.");
+  });
+
+  test("inside the month: the list is locked until a given day, Remove still there", async () => {
+    signedIn();
+    countryGet.mockResolvedValueOnce({
+      country: "IN",
+      changeableFrom: new Date("2026-12-02T10:00:00Z"),
+    });
+    const html = await page({ country: "soon" });
+    expect(tag(html, /<select/)).toContain("disabled");
+    // It opens at 10:00 UTC on the 2nd, so the first whole day is the 3rd.
+    expect(html).toContain("You can change it again from 3 December 2026.");
+    expect(html).toContain("Remove country");
+    expect(html).toContain("A country can be changed once a month.");
+  });
+
+  test("removed inside the month: Not set, locked, and no Remove", async () => {
+    signedIn();
+    countryGet.mockResolvedValueOnce({
+      country: null,
+      changeableFrom: new Date("2026-12-02T10:00:00Z"),
+    });
+    const html = await page();
+    expect(tag(html, /<select/)).toContain("disabled");
+    expect(html).toContain("You can change it again from 3 December 2026.");
+    expect(html).not.toContain("Remove country");
+  });
 });
