@@ -654,6 +654,9 @@ export interface Leaderboards {
     userId: string,
     scope?: BoardScope,
   ): Promise<Standing | null>;
+  // P3-W14-S05: the given players on a board, ranked among themselves (the friends
+  // board: a player and those they follow); players without a score are left out.
+  among(board: string, userIds: string[]): Promise<Standing[]>;
   // Universities on a board, highest average first; ranks as `top`'s.
   universities(board: string, limit: number): Promise<UniversityStanding[]>;
   universityStanding(
@@ -665,6 +668,37 @@ export interface Leaderboards {
   // are worked out again. Never throws: a failure is logged, and the boards catch up
   // within minutes.
   invalidate(userId: string, former?: BoardScope[]): Promise<void>;
+}
+
+// P3-W14-S05 (§6.7, Q-P3-11; owner, 2026-11-02): every account's username, chosen once
+// and never changed, shown on boards in place of its name. `username` is checked by
+// usernameOf (server/usernames.ts).
+export interface Usernames {
+  get(
+    userId: string,
+  ): Promise<{ username: string; searchable: boolean } | null>;
+  // "has-one": the account has a username already (it never changes).
+  claim(
+    userId: string,
+    username: string,
+  ): Promise<"claimed" | "taken" | "has-one">;
+  setSearchable(userId: string, searchable: boolean): Promise<void>;
+  // Searchable players whose username starts with `prefix`, in username order.
+  search(prefix: string, limit: number): Promise<Person[]>;
+  // The exact username, searchable or not; null when nobody has it.
+  byName(username: string): Promise<string | null>;
+}
+export type Person = { userId: string; username: string };
+
+// One way, no accept step (Q-P3-11); a player sees who follows them (owner, 2026-11-02).
+export interface Follows {
+  // Whether it is new; following oneself is refused (false).
+  follow(followerId: string, followeeId: string): Promise<boolean>;
+  // Whether there was one.
+  unfollow(followerId: string, followeeId: string): Promise<boolean>;
+  // Players with a username only, in username order.
+  following(userId: string): Promise<Person[]>;
+  followers(userId: string): Promise<Person[]>;
 }
 
 // P3-W14-S02 (§6.7, Q-P3-08; owner, 2026-11-02): an account's country, optional, set

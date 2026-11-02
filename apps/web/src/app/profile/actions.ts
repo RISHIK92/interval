@@ -10,9 +10,11 @@ import {
   jobQueue,
   leaderboards,
   playerCountries,
+  follows,
   playerUniversities,
   preferences,
   sessionReader,
+  usernames,
 } from "../../server/container";
 import { COUNTRY_CODES } from "../../server/countries";
 import { queueRecompute } from "../../server/recompute";
@@ -25,6 +27,7 @@ import { updatePreferences } from "../../server/preferences";
 import { log } from "../../server/log";
 import { visitId } from "../../server/visits";
 import { universityName } from "../../server/universities";
+import { usernameOf } from "../../server/usernames";
 import { textField } from "../form";
 
 // The Profile page (§5A, PER-1, Q-P1-36, P1-W4-S08): each change takes effect in the
@@ -163,6 +166,47 @@ export async function removeUniversityAction(): Promise<void> {
     );
   }
   redirect("/profile?saved=university-removed");
+}
+
+// P3-W14-S05 (§6.7, Q-P3-11; owner, 2026-11-02): one-way follows, no accept step. A
+// player picked from search or a list (`userId`), or typed by exact username.
+export async function followAction(form: FormData): Promise<void> {
+  const found = await account();
+  // Actions skip the page's gate: a follower without a username would be hidden from
+  // the full followers list, so it picks one first.
+  if ((await usernames().get(found.userId)) === null)
+    redirect("/username?next=%2Fprofile");
+  const typed = textField(form, "username");
+  let target: string | null;
+  if (typed === "") {
+    const userId = textField(form, "userId");
+    // Only players with a username are followed (and the id is real).
+    target =
+      userId !== "" && (await usernames().get(userId)) !== null ? userId : null;
+  } else {
+    const username = usernameOf(typed);
+    target = username === null ? null : await usernames().byName(username);
+  }
+  if (target === null) redirect("/profile?friend=nobody#friends");
+  if (target === found.userId) redirect("/profile?friend=self#friends");
+  if (await follows().follow(found.userId, target))
+    events().emit("player_followed", {}, await context(found));
+  redirect("/profile?saved=followed#friends");
+}
+
+export async function unfollowAction(form: FormData): Promise<void> {
+  const found = await account();
+  if (await follows().unfollow(found.userId, textField(form, "userId")))
+    events().emit("player_unfollowed", {}, await context(found));
+  redirect("/profile?saved=unfollowed#friends");
+}
+
+// Found in people search unless turned off; following by exact username works anyway.
+export async function searchableAction(form: FormData): Promise<void> {
+  const userId = await actor();
+  const on = textField(form, "searchable") === "on";
+  await usernames().setSearchable(userId, on);
+  redirect(`/profile?saved=${on ? "search-on" : "search-off"}#friends`);
 }
 
 export async function resetInferredAction(): Promise<void> {

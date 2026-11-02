@@ -2615,3 +2615,52 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
     - `invalidate` drops more than a given change needs. It's harmless, at the cost of a rebuild;
     - the notices name boards Play doesn't show until S06.
 - **Q-P3-11 (owner, 2026-11-02):** a username is required for every account and can never be changed; a player sees the full list of who follows them.
+
+### 2026-11-02 — P3-W14-S05 (friends; §6.7, Q-P3-11)
+
+- **Owner (2026-11-02):**
+  - usernames are 3–20 characters of a–z, 0–9 and `_`, unique, required for every account, and never changed;
+  - players are found in search unless they opt out, and the exact username always works;
+  - one-way follow, with no accept step;
+  - the full followers list is visible;
+  - `player_followed` and `player_unfollowed` are events;
+  - boards show usernames only (S06).
+- **Migration:** `player_username` (with `searchable`) and `follow` (no self-follow; indexed by followee).
+- **`Usernames` and `Follows` ports:**
+  - `kysely-people.ts`, with one contract that also runs on the fakes;
+  - `claim` is a single insert, so a race can't give two players one name;
+  - `search` is a prefix match with LIKE wildcards escaped, sorted in `collate "C"` byte order;
+  - the lists include players with a username only.
+- **`Leaderboards.among(board, ids)`:** the friends board, read with `ZMSCORE` from the cached global board, so it needs no keys or invalidation of its own. S06 renders it.
+- **`/username`:**
+  - it says the username can't be changed;
+  - `next` goes through `sameSitePath`, and back to `/username` falls to `/`;
+  - a taken name comes back for editing, and only if it's a valid username;
+  - the error is tied to the field.
+  - The gate (`username/gate.ts`) sits on the feed, Profile and Play (accounts only). A new account meets it straight after onboarding, because onboarding ends on the feed.
+- **Profile, "Friends" card:**
+  - your @username;
+  - a hide or show search switch;
+  - find people (GET `pq`, capped at 20 characters);
+  - follow by exact username;
+  - Following with Unfollow, and Followers in full with "Follow back".
+  - The actions check that the target has a username, and that the follower has one too (a server action skips the page gate). Events fire only on a real change.
+- **Reviewer, fixed:**
+  - an open redirect through `/\t/…` in `next`, and a loop through `/./username` (blocker);
+  - a follower without a username;
+  - text promising a friends board before S06;
+  - an uncapped search query;
+  - "Follow back" label order;
+  - the username field's error tie and its typed value;
+  - duplicate imports.
+- **Accepted, not changed:**
+  - the following and followers lists aren't capped (the owner asked for the full list);
+  - the prefix LIKE can't use the unique index under a locale collation, which is fine at this size;
+  - `among` has no caller until S06.
+- **Not done:**
+  - a reserved-username list ("admin", "interval" are allowed; ask);
+  - the `#github` anchor after onboarding is lost when the gate intervenes;
+  - a live check: Chrome is off.
+- **S06 answers (owner, 2026-11-02):** `/play/boards`; guests show as "Guest" plus 4 digits; the top 50 of the current period with your own row pinned; current and previous periods only.
+- **Full check:** web 1131 pass; infra timed out under load (76 pass alone).
+  - Python: 1209 pass outside `check.sh`. Two tests expect the placeholder budget; `check.sh` sets the owner's 30-cent cap aside for them, and the cap is still 30.

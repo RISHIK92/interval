@@ -32,6 +32,8 @@ export const EVENT_NAMES = [
   "path_paused",
   "path_section_skipped",
   "path_started",
+  "player_followed",
+  "player_unfollowed",
   "pwa_installed",
   "question_flagged",
   "quiz_answered",
@@ -77,6 +79,8 @@ export const EVENT_VERSIONS = {
   path_paused: 1,
   path_section_skipped: 2,
   path_started: 1,
+  player_followed: 1,
+  player_unfollowed: 1,
   pwa_installed: 1,
   question_flagged: 1,
   quiz_answered: 1,
@@ -209,6 +213,8 @@ export const propsSchemas = {
   path_started: z.strictObject({
     path_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
+  player_followed: z.strictObject({}),
+  player_unfollowed: z.strictObject({}),
   pwa_installed: z.strictObject({}),
   question_flagged: z.strictObject({
     question_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -458,6 +464,18 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("path_started"),
     version: z.literal(1),
     props: propsSchemas.path_started,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("player_followed"),
+    version: z.literal(1),
+    props: propsSchemas.player_followed,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("player_unfollowed"),
+    version: z.literal(1),
+    props: propsSchemas.player_unfollowed,
   }),
   z.strictObject({
     ...base,

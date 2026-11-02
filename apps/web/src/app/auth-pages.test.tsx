@@ -1,7 +1,13 @@
 import type { ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import type { Accounts, Actor, FeedCard, Leaderboards } from "../server/ports";
+import type {
+  Accounts,
+  Actor,
+  FeedCard,
+  Leaderboards,
+  Usernames,
+} from "../server/ports";
 
 // The account pages and their server actions, with the container and Next mocked.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
@@ -19,7 +25,11 @@ const emit = vi.fn();
 const invalidate = vi.fn<Leaderboards["invalidate"]>(() => Promise.resolve());
 const setCookie = vi.fn();
 const deleteCookie = vi.fn();
+const usernameGet = vi.fn<Usernames["get"]>(() =>
+  Promise.resolve({ username: "ada", searchable: true }),
+);
 vi.mock("../server/container", () => ({
+  usernames: () => ({ get: usernameGet }),
   sessionReader: () => ({ current }),
   accounts: () => port,
   events: () => ({ emit }),

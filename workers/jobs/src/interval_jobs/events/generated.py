@@ -44,6 +44,8 @@ type EventName = Literal[
     "path_paused",
     "path_section_skipped",
     "path_started",
+    "player_followed",
+    "player_unfollowed",
     "pwa_installed",
     "question_flagged",
     "quiz_answered",
@@ -90,6 +92,8 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "path_paused": 1,
     "path_section_skipped": 2,
     "path_started": 1,
+    "player_followed": 1,
+    "player_unfollowed": 1,
     "pwa_installed": 1,
     "question_flagged": 1,
     "quiz_answered": 1,
@@ -263,6 +267,14 @@ class PathSectionSkippedProps(_Model):
 
 class PathStartedProps(_Model):
     path_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class PlayerFollowedProps(_Model):
+    pass
+
+
+class PlayerUnfollowedProps(_Model):
+    pass
 
 
 class PwaInstalledProps(_Model):
@@ -526,6 +538,18 @@ class PathStartedEvent(_EnvelopeBase):
     props: PathStartedProps
 
 
+class PlayerFollowedEvent(_EnvelopeBase):
+    name: Literal["player_followed"]
+    version: Literal[1]
+    props: PlayerFollowedProps
+
+
+class PlayerUnfollowedEvent(_EnvelopeBase):
+    name: Literal["player_unfollowed"]
+    version: Literal[1]
+    props: PlayerUnfollowedProps
+
+
 class PwaInstalledEvent(_EnvelopeBase):
     name: Literal["pwa_installed"]
     version: Literal[1]
@@ -624,6 +648,8 @@ type Envelope = Annotated[
     | PathPausedEvent
     | PathSectionSkippedEvent
     | PathStartedEvent
+    | PlayerFollowedEvent
+    | PlayerUnfollowedEvent
     | PwaInstalledEvent
     | QuestionFlaggedEvent
     | QuizAnsweredEvent

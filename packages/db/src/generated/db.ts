@@ -353,6 +353,12 @@ export interface FetchValidator {
   url: string;
 }
 
+export interface Follow {
+  created_at: Generated<Timestamp>;
+  followee_id: string;
+  follower_id: string;
+}
+
 export interface GithubAccount {
   connected_at: Generated<Timestamp>;
   github_user_id: Int8;
@@ -571,6 +577,13 @@ export interface PlayerUniversity {
   changed_at: Generated<Timestamp>;
   university_id: Int8 | null;
   user_id: string;
+}
+
+export interface PlayerUsername {
+  created_at: Generated<Timestamp>;
+  searchable: Generated<boolean>;
+  user_id: string;
+  username: string;
 }
 
 export interface ProjectNote {
@@ -1038,6 +1051,7 @@ export interface DB {
   explore_arm_outcome: ExploreArmOutcome;
   feed_note: FeedNote;
   fetch_validator: FetchValidator;
+  follow: Follow;
   github_account: GithubAccount;
   github_dependency: GithubDependency;
   github_dependency_technology: GithubDependencyTechnology;
@@ -1069,6 +1083,7 @@ export interface DB {
   plan_capability: PlanCapability;
   player_country: PlayerCountry;
   player_university: PlayerUniversity;
+  player_username: PlayerUsername;
   project_note: ProjectNote;
   project_note_batch_item: ProjectNoteBatchItem;
   question: Question;

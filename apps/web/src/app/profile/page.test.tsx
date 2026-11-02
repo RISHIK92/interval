@@ -3,12 +3,14 @@ import { afterEach, describe, expect, test, vi } from "vitest";
 import type {
   Actor,
   Feedback,
-  Preferences,
-  Progress,
+  Follows,
   GitHubAccounts,
   PlayerCountries,
   PlayerUniversities,
+  Preferences,
+  Progress,
   University,
+  Usernames,
 } from "../../server/ports";
 
 // §5A, Q-P1-36, P1-W4-S08: choices, hidden sources, and what was inferred.
@@ -29,7 +31,15 @@ let githubOffered = true;
 const githubConnection = vi.fn<GitHubAccounts["get"]>(() =>
   Promise.resolve(null),
 );
+const peopleSearch = vi.fn<Usernames["search"]>(() => Promise.resolve([]));
+const following = vi.fn<Follows["following"]>(() => Promise.resolve([]));
+const followers = vi.fn<Follows["followers"]>(() => Promise.resolve([]));
+const usernameGet = vi.fn<Usernames["get"]>(() =>
+  Promise.resolve({ username: "ada", searchable: true }),
+);
 vi.mock("../../server/container", () => ({
+  usernames: () => ({ get: usernameGet, search: peopleSearch }),
+  follows: () => ({ following, followers }),
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
   feedback: () => ({ hiddenSources, inferred }),
@@ -80,6 +90,14 @@ async function page(query: Record<string, string> = {}): Promise<string> {
     await ProfilePage({ searchParams: Promise.resolve(query) }),
   );
 }
+
+// P3-W14-S05 (owner, 2026-11-02): an account picks its username before anything else.
+test("an account with no username is sent to choose one, then back to Profile", async () => {
+  current.mockResolvedValue(user);
+  get.mockResolvedValue(preferences);
+  usernameGet.mockResolvedValueOnce(null);
+  await expect(page()).rejects.toThrow("redirect:/username?next=%2Fprofile");
+});
 
 test("the choices form is filled in with the user's choices", async () => {
   current.mockResolvedValue(user);
@@ -499,5 +517,82 @@ describe("university", () => {
     expect(html).toContain(
       "A university&#x27;s name is 2 to 120 letters, without hidden characters.",
     );
+  });
+});
+
+// P3-W14-S05 (§6.7, Q-P3-11; owner, 2026-11-02): following by username, one way.
+describe("friends", () => {
+  const signedIn = () => {
+    current.mockResolvedValue(user);
+    get.mockResolvedValue(preferences);
+  };
+  const BOB = { userId: "b2", username: "bob" };
+  const CAT = { userId: "c3", username: "cat" };
+
+  test("your username, the search switch, a find form and a follow-by-name form", async () => {
+    signedIn();
+    const html = await page();
+    expect(html).toContain('id="friends"');
+    expect(html).toContain("@ada");
+    expect(html).toMatch(/name="searchable" value="off"/);
+    expect(html).toContain("Hide me from people search");
+    expect(html).toMatch(
+      /<form[^>]*action="\/profile#friends"[^>]*method="get"/,
+    );
+    expect(html).toMatch(/<input[^>]*name="pq"/);
+    expect(html).toMatch(/<input[^>]*name="username"/);
+    expect(html).toContain("You don&#x27;t follow anyone yet.");
+    expect(html).toContain("Nobody follows you yet.");
+    expect(peopleSearch).not.toHaveBeenCalled();
+  });
+
+  test("hidden from search: the switch offers to show you again", async () => {
+    signedIn();
+    usernameGet.mockResolvedValueOnce({ username: "ada", searchable: false });
+    const html = await page();
+    expect(html).toMatch(/name="searchable" value="on"/);
+    expect(html).toContain("Show me in people search");
+  });
+
+  test("search lists others by prefix: Follow, or Following with Unfollow; never yourself", async () => {
+    signedIn();
+    following.mockResolvedValue([BOB]);
+    peopleSearch.mockResolvedValueOnce([
+      { userId: "u1", username: "ada" },
+      BOB,
+      CAT,
+    ]);
+    const html = await page({ pq: " Ca " });
+    expect(peopleSearch).toHaveBeenCalledExactlyOnceWith("ca", 21);
+    expect(html).toContain('aria-label="Follow @cat"');
+    expect(html).toContain('aria-label="Unfollow @bob"');
+    expect(html).not.toContain('aria-label="Follow @ada"');
+    following.mockResolvedValue([]);
+  });
+
+  test("a search with no match says so", async () => {
+    signedIn();
+    expect(await page({ pq: "zz" })).toContain("Nobody by that name");
+  });
+
+  test("whom you follow, with Unfollow; your followers in full, with Follow back", async () => {
+    signedIn();
+    following.mockResolvedValue([BOB]);
+    followers.mockResolvedValue([BOB, CAT]);
+    const html = await page({ saved: "followed" });
+    expect(html).toMatch(/<h3[^>]*>Following<\/h3>[^]*?@bob/);
+    expect(html).toMatch(/name="userId" value="b2"[^]*?Unfollow/);
+    expect(html).toContain('aria-label="Follow back @cat"');
+    expect(html).not.toContain('aria-label="Follow back @bob"');
+    following.mockResolvedValue([]);
+    followers.mockResolvedValue([]);
+  });
+
+  test.each([
+    ["nobody", "Nobody has that username."],
+    ["self", "That&#x27;s you."],
+  ])("a follow that couldn't happen (%s) says why", async (friend, text) => {
+    signedIn();
+    expect(await page({ friend })).toContain(text);
   });
 });

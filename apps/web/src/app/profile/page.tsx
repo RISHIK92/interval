@@ -1,8 +1,10 @@
+import type { ReactNode } from "react";
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   feedback,
+  follows,
   githubAccounts,
   githubApp,
   playerCountries,
@@ -10,12 +12,14 @@ import {
   preferences,
   progress,
   sessionReader,
+  usernames,
 } from "../../server/container";
-import type { GitHubConnection, University } from "../../server/ports";
+import type { GitHubConnection, Person, University } from "../../server/ports";
 import { parseTheme, THEME_COOKIE, THEMES } from "../../server/theme";
 import { countriesByName, countryName } from "../../server/countries";
 import { ChoicesFields, GOAL_TEXT, TOPIC_NAMES } from "../ChoicesFields";
 import { setThemeAction } from "../theme/actions";
+import { requireUsername } from "../username/gate";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { FIELD } from "../ui/field";
@@ -24,11 +28,14 @@ import {
   disconnectGitHubAction,
   refreshGitHubAction,
   chooseUniversityAction,
+  followAction,
   removeCountryAction,
   removeUniversityAction,
   resetInferredAction,
+  searchableAction,
   setCountryAction,
   typeUniversityAction,
+  unfollowAction,
   unhideSourceAction,
   updatePreferencesAction,
 } from "./actions";
@@ -52,6 +59,11 @@ const NOTICES: Record<string, string> = {
   "country-removed": "Country removed.",
   university: "University saved. University boards update in a moment.",
   "university-removed": "University removed.",
+  followed: "Following.",
+  unfollowed: "Unfollowed.",
+  "search-on": "People can find you in search again.",
+  "search-off":
+    "You're hidden from people search. Anyone with your exact username can still follow you.",
   "github-off":
     "GitHub disconnected; what Interval read from it is deleted. Uninstall Interval on GitHub to revoke its access.",
 };
@@ -78,6 +90,8 @@ export default async function ProfilePage(props: {
     country?: string;
     university?: string;
     uq?: string;
+    pq?: string;
+    friend?: string;
   }>;
 }) {
   const actor = await sessionReader().current(await headers());
@@ -86,6 +100,7 @@ export default async function ProfilePage(props: {
   if (actor.isGuest) redirect("/sign-up");
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
+  const me = await requireUsername(actor.userId, "/profile");
   const offered = githubApp() !== null;
   const {
     saved,
@@ -94,16 +109,33 @@ export default async function ProfilePage(props: {
     country: countryProblem,
     university: universityProblem,
     uq,
+    pq,
+    friend,
   } = await props.searchParams;
-  const [hidden, inferred, concepts, connection, country, university] =
-    await Promise.all([
-      feedback().hiddenSources(actor.userId),
-      feedback().inferred(actor.userId),
-      progress().concepts(actor.userId),
-      offered ? githubAccounts().get(actor.userId) : Promise.resolve(null),
-      playerCountries().get(actor.userId),
-      playerUniversities().get(actor.userId),
-    ]);
+  // Usernames are 20 characters at most.
+  const people = (pq ?? "").trim().toLowerCase().slice(0, 20);
+  const [
+    hidden,
+    inferred,
+    concepts,
+    connection,
+    country,
+    university,
+    followingList,
+    followerList,
+    found,
+  ] = await Promise.all([
+    feedback().hiddenSources(actor.userId),
+    feedback().inferred(actor.userId),
+    progress().concepts(actor.userId),
+    offered ? githubAccounts().get(actor.userId) : Promise.resolve(null),
+    playerCountries().get(actor.userId),
+    playerUniversities().get(actor.userId),
+    follows().following(actor.userId),
+    follows().followers(actor.userId),
+    // One more than shown, as the player may be among them.
+    people.length >= 2 ? usernames().search(people, 21) : Promise.resolve(null),
+  ]);
   const query = (uq ?? "").trim();
   // Searched only when a change is open, and on two letters or more.
   const matches =
@@ -192,6 +224,18 @@ export default async function ProfilePage(props: {
           country={country.country}
           changeableFrom={country.changeableFrom}
           refused={countryProblem === "soon"}
+        />
+      </Card>
+
+      <Card className="p-5">
+        <FriendsSection
+          me={me}
+          userId={actor.userId}
+          query={pq ?? ""}
+          found={found}
+          following={followingList}
+          followers={followerList}
+          problem={friend}
         />
       </Card>
 
@@ -743,6 +787,189 @@ function UniversitySection({
             Remove university
           </Button>
         </form>
+      )}
+    </section>
+  );
+}
+
+const FRIEND_PROBLEMS: Record<string, string> = {
+  nobody: "Nobody has that username.",
+  self: "That's you.",
+};
+
+function FollowButton({ person, back }: { person: Person; back?: boolean }) {
+  return (
+    <form action={followAction}>
+      <input type="hidden" name="userId" value={person.userId} />
+      <Button
+        type="submit"
+        variant="secondary"
+        aria-label={
+          back === true
+            ? `Follow back @${person.username}`
+            : `Follow @${person.username}`
+        }
+      >
+        {back === true ? "Follow back" : "Follow"}
+      </Button>
+    </form>
+  );
+}
+
+function UnfollowButton({ person }: { person: Person }) {
+  return (
+    <form action={unfollowAction}>
+      <input type="hidden" name="userId" value={person.userId} />
+      <Button
+        type="submit"
+        variant="secondary"
+        aria-label={`Unfollow @${person.username}`}
+      >
+        Unfollow
+      </Button>
+    </form>
+  );
+}
+
+function PersonRow({
+  person,
+  children,
+}: {
+  person: Person;
+  children: ReactNode;
+}) {
+  return (
+    <li className="flex items-center justify-between gap-3 rounded-2xl bg-well px-4 py-2">
+      <span className="font-semibold">@{person.username}</span>
+      {children}
+    </li>
+  );
+}
+
+// P3-W14-S05 (§6.7, Q-P3-11; owner, 2026-11-02): one-way follows by username, no accept
+// step; the people you follow make your friends board on Play (S06). Followers are
+// listed in full (owner, 2026-11-02; not capped).
+function FriendsSection({
+  me,
+  userId,
+  query,
+  found,
+  following,
+  followers,
+  problem,
+}: {
+  me: { username: string; searchable: boolean };
+  userId: string;
+  query: string;
+  found: Person[] | null;
+  following: Person[];
+  followers: Person[];
+  problem: string | undefined;
+}) {
+  const followed = new Set(following.map((p) => p.userId));
+  const others = found?.filter((p) => p.userId !== userId).slice(0, 20) ?? null;
+  return (
+    <section id="friends" aria-label="Friends" className="flex flex-col gap-3">
+      <h2 className="text-section">Friends</h2>
+      <p className="text-ink-muted">
+        You&apos;re{" "}
+        <span className="font-semibold text-ink">@{me.username}</span>. Follow
+        people by their username; they aren&apos;t asked first.
+      </p>
+      {problem !== undefined && Object.hasOwn(FRIEND_PROBLEMS, problem) ? (
+        <p role="alert" className="text-wrong">
+          {FRIEND_PROBLEMS[problem]}
+        </p>
+      ) : null}
+      <form action={searchableAction}>
+        <input
+          type="hidden"
+          name="searchable"
+          value={me.searchable ? "off" : "on"}
+        />
+        <Button type="submit" variant="secondary">
+          {me.searchable
+            ? "Hide me from people search"
+            : "Show me in people search"}
+        </Button>
+      </form>
+      <form
+        action="/profile#friends"
+        method="get"
+        role="search"
+        className="flex gap-2"
+      >
+        <label className="sr-only" htmlFor="pq">
+          Find people by username
+        </label>
+        <input
+          id="pq"
+          name="pq"
+          type="search"
+          defaultValue={query}
+          placeholder="Find people by username"
+          minLength={2}
+          autoCapitalize="none"
+          className={FIELD}
+        />
+        <Button type="submit" variant="secondary">
+          Search
+        </Button>
+      </form>
+      {others === null ? null : others.length === 0 ? (
+        <p className="text-ink-muted">Nobody by that name in search.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {others.map((person) => (
+            <PersonRow key={person.userId} person={person}>
+              {followed.has(person.userId) ? (
+                <UnfollowButton person={person} />
+              ) : (
+                <FollowButton person={person} />
+              )}
+            </PersonRow>
+          ))}
+        </ul>
+      )}
+      <form action={followAction} className="flex gap-2">
+        <label className="sr-only" htmlFor="follow-username">
+          Follow by exact username
+        </label>
+        <input
+          id="follow-username"
+          name="username"
+          required
+          placeholder="Follow by exact username"
+          autoCapitalize="none"
+          className={FIELD}
+        />
+        <Button type="submit">Follow</Button>
+      </form>
+      <h3 className="font-semibold">Following</h3>
+      {following.length === 0 ? (
+        <p className="text-ink-muted">You don&apos;t follow anyone yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {following.map((person) => (
+            <PersonRow key={person.userId} person={person}>
+              <UnfollowButton person={person} />
+            </PersonRow>
+          ))}
+        </ul>
+      )}
+      <h3 className="font-semibold">Followers</h3>
+      {followers.length === 0 ? (
+        <p className="text-ink-muted">Nobody follows you yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {followers.map((person) => (
+            <PersonRow key={person.userId} person={person}>
+              {followed.has(person.userId) ? null : (
+                <FollowButton person={person} back />
+              )}
+            </PersonRow>
+          ))}
+        </ul>
       )}
     </section>
   );

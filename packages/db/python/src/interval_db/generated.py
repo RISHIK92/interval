@@ -328,6 +328,12 @@ class FetchValidator(TypedDict):
     updated_at: datetime
 
 
+class Follow(TypedDict):
+    follower_id: str
+    followee_id: str
+    created_at: datetime
+
+
 class GithubAccount(TypedDict):
     user_id: str
     github_user_id: int
@@ -546,6 +552,13 @@ class PlayerUniversity(TypedDict):
     user_id: str
     university_id: int | None
     changed_at: datetime
+
+
+class PlayerUsername(TypedDict):
+    user_id: str
+    username: str
+    searchable: bool
+    created_at: datetime
 
 
 class ProjectNote(TypedDict):

@@ -28,6 +28,7 @@ import { parseReading, READING_COOKIE } from "../server/reading";
 import { BIGINT_ID, type FeedCard, quizKey } from "../server/ports";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
+import { requireUsername } from "./username/gate";
 import { ArticleCard } from "./ArticleCard";
 import { CardControls } from "./CardControls";
 import { ComingLater } from "./ComingLater";
@@ -63,6 +64,7 @@ export default async function HomePage({
   // Guest-first onboarding (§5A, P1-W4-S01): topics, level and break length first.
   const chosen = await preferences().get(actor.userId);
   if (chosen === null) redirect("/onboarding");
+  await requireUsername(actor.userId, "/");
   const account = (
     <form action={signOutAction} className="text-sm text-ink-muted">
       <button type="submit" className="underline underline-offset-2">

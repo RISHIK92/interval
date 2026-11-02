@@ -58,6 +58,8 @@ describe("the event list (Q-P1-20)", () => {
         // The owner's answer of 2026-11-02 (P3-W14-S03).
         "country_changed",
         "university_changed",
+        "player_followed", // P3-W14-S05
+        "player_unfollowed",
       ].sort(),
     );
   });

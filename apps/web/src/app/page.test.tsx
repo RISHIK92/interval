@@ -9,6 +9,7 @@ import type {
   Paths,
   Progress,
   Quizzes,
+  Usernames,
 } from "../server/ports";
 
 const getFeed = vi.fn<FeedReader["read"]>();
@@ -31,7 +32,11 @@ const getPreferences = vi.fn<(userId: string) => Promise<object | null>>(() =>
 const notInterested = vi.fn<
   (userId: string, itemId: string) => Promise<boolean>
 >(() => Promise.resolve(false));
+const usernameGet = vi.fn<Usernames["get"]>(() =>
+  Promise.resolve({ username: "ada", searchable: true }),
+);
 vi.mock("../server/container", () => ({
+  usernames: () => ({ get: usernameGet }),
   preferences: () => ({ get: getPreferences }),
   feedback: () => ({ notInterested }),
   progress: () => ({ describe: describe_, nextMoment, continueCards }),
@@ -181,6 +186,15 @@ test("a user who hasn't onboarded is sent to /onboarding first", async () => {
   current.mockResolvedValue(user);
   getPreferences.mockResolvedValueOnce(null);
   await expect(render()).rejects.toThrow("redirect:/onboarding");
+  expect(getFeed).not.toHaveBeenCalled();
+});
+
+// P3-W14-S05 (owner, 2026-11-02): an account picks its username before anything else.
+test("an account with no username is sent to choose one, then back to the feed", async () => {
+  current.mockResolvedValue(user);
+  usernameGet.mockResolvedValueOnce(null);
+  await expect(render()).rejects.toThrow("redirect:/username?next=%2F");
+  expect(usernameGet).toHaveBeenCalledWith("u1");
   expect(getFeed).not.toHaveBeenCalled();
 });
 

@@ -237,6 +237,20 @@ export function valkeyLeaderboards(
       return found === null ? null : { userId, ...found };
     },
 
+    among: async (board, userIds) => {
+      if (userIds.length === 0) return [];
+      await ensureBoard(board);
+      const scores = await redis.zmscore(key(name(board)), ...userIds);
+      return ranked(
+        userIds
+          .flatMap((userId, i) => {
+            const score = scores[i];
+            return score == null ? [] : [{ userId, score: Number(score) }];
+          })
+          .sort(byScore((s) => s.userId)),
+      );
+    },
+
     universities: async (board, limit) => {
       await ensureRanking(board);
       return ranked(
@@ -348,6 +362,15 @@ export function memoryLeaderboards(
     standing: (name, userId, scope) =>
       Promise.resolve(
         board(name, scope).find((s) => s.userId === userId) ?? null,
+      ),
+    among: (name, userIds) =>
+      Promise.resolve(
+        ranked(
+          board(name)
+            .filter((s) => userIds.includes(s.userId))
+            .map(({ userId, score }) => ({ userId, score }))
+            .sort(byScore((s) => s.userId)),
+        ),
       ),
     universities: (name, limit) =>
       Promise.resolve(ranking(name).slice(0, limit)),

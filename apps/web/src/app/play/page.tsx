@@ -14,6 +14,7 @@ import {
   startSprintAction,
 } from "../quiz/actions";
 import { TabBar } from "../TabBar";
+import { requireUsername } from "../username/gate";
 import { Card } from "../ui/Card";
 import { GuestForm } from "./GuestForm";
 
@@ -71,6 +72,9 @@ export default async function PlayPage(props: {
   }>;
 }) {
   const actor = await sessionReader().current(await headers());
+  // Guests have no username: Play is theirs without one (ADR-0029).
+  if (actor !== null && !actor.isGuest)
+    await requireUsername(actor.userId, "/play");
   const { sprint, estimation, daily } = await props.searchParams;
   const [allowed, chosen, today] =
     actor === null

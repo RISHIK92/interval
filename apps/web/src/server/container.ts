@@ -39,6 +39,7 @@ import { kyselyNotes } from "./adapters/kysely-notes";
 import { kyselyPaths } from "./adapters/kysely-paths";
 import { kyselyPlayerCountries } from "./adapters/kysely-player-countries";
 import { kyselyPlayerUniversities } from "./adapters/kysely-player-universities";
+import { kyselyFollows, kyselyUsernames } from "./adapters/kysely-people";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
 import { kyselyProgress } from "./adapters/kysely-progress";
 import { kyselyPreferences } from "./adapters/kysely-preferences";
@@ -80,6 +81,8 @@ import type {
   Paths,
   PlayerCountries,
   PlayerUniversities,
+  Follows,
+  Usernames,
   Progress,
   Quizzes,
   SessionReader,
@@ -272,6 +275,15 @@ export function playerCountries(): PlayerCountries {
 // P3-W14-S03 (§6.7, ADR-0032).
 export function playerUniversities(): PlayerUniversities {
   return kyselyPlayerUniversities(db());
+}
+
+// P3-W14-S05 (§6.7, Q-P3-11).
+export function usernames(): Usernames {
+  return kyselyUsernames(db());
+}
+
+export function follows(): Follows {
+  return kyselyFollows(db());
 }
 
 // P2-W12-S01 (§5H, ADR-0024): Interval's GitHub App; null when it isn't configured,

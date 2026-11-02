@@ -5,6 +5,7 @@ import type {
   DailyStatus,
   Entitlements,
   Preferences,
+  Usernames,
 } from "../../server/ports";
 
 // §6.3, OPS-3, ADR-0029 (P3-W13-S01): the Play tab lists the quick games, each behind a
@@ -17,7 +18,11 @@ const get = vi.fn<(userId: string) => Promise<Preferences | null>>(() =>
 const dailyStatus = vi.fn<(userId: string) => Promise<DailyStatus>>(() =>
   Promise.resolve({ today: "open", streak: { days: 0, freezes: 0 } }),
 );
+const usernameGet = vi.fn<Usernames["get"]>(() =>
+  Promise.resolve({ username: "ada", searchable: true }),
+);
 vi.mock("../../server/container", () => ({
+  usernames: () => ({ get: usernameGet }),
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
   preferences: () => ({ get }),
@@ -31,6 +36,12 @@ vi.mock("../quiz/actions", () => ({
   startSprintAction: vi.fn(),
   startEstimationAction: vi.fn(),
   startDailyAction: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => {
+    throw new Error(`redirect:${url}`);
+  },
 }));
 
 const account: Actor = { userId: "u1", isGuest: false, betaGroup: "student" };
@@ -114,6 +125,17 @@ test("a guest plays as a guest, with a way to keep their progress", async () => 
   // Guests have the beta plan too, so their games are gated the same way.
   expect(can).toHaveBeenCalledWith("g1", "play.daily");
   expect(html).not.toMatch(/<input[^>]*name="code"/);
+});
+
+// P3-W14-S05 (owner, 2026-11-02): an account picks its username first; a guest has none.
+test("an account with no username is sent to choose one; a guest plays without", async () => {
+  current.mockResolvedValue(account);
+  usernameGet.mockResolvedValueOnce(null);
+  await expect(page()).rejects.toThrow("redirect:/username?next=%2Fplay");
+  // A guest is never asked: only the account's visit read a username.
+  current.mockResolvedValue(guest);
+  await expect(page()).resolves.toContain("Play");
+  expect(usernameGet).toHaveBeenCalledOnce();
 });
 
 test("an account sees neither the guest form nor the sign-up line", async () => {

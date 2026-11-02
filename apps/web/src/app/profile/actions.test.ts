@@ -5,8 +5,10 @@ import type {
   GitHubAccounts,
   Leaderboards,
   PlayerCountries,
+  Follows,
   PlayerUniversities,
   PreferencesStore,
+  Usernames,
   University,
 } from "../../server/ports";
 
@@ -30,12 +32,23 @@ vi.mock("../../server/container", () => ({
   events: () => ({ emit }),
   playerCountries: () => ({ set: setCountry, remove: removeCountry }),
   leaderboards: () => ({ invalidate }),
+  usernames: () => ({ get: usernameGet, byName, setSearchable }),
+  follows: () => ({ follow, unfollow }),
   playerUniversities: () => ({
     set: setUniversity,
     setTyped: setTypedUniversity,
     remove: removeUniversity,
   }),
 }));
+const usernameGet = vi.fn<Usernames["get"]>(() =>
+  Promise.resolve({ username: "bob", searchable: true }),
+);
+const byName = vi.fn<Usernames["byName"]>(() => Promise.resolve("b2"));
+const setSearchable = vi.fn<Usernames["setSearchable"]>(() =>
+  Promise.resolve(),
+);
+const follow = vi.fn<Follows["follow"]>(() => Promise.resolve(true));
+const unfollow = vi.fn<Follows["unfollow"]>(() => Promise.resolve(true));
 const LISTED: University = {
   id: "7",
   name: "Indian Institute of Technology Delhi",
@@ -532,5 +545,123 @@ describe("university", () => {
     expect(setUniversity).not.toHaveBeenCalled();
     expect(setTypedUniversity).not.toHaveBeenCalled();
     expect(removeUniversity).not.toHaveBeenCalled();
+  });
+});
+
+// P3-W14-S05 (§6.7, Q-P3-11; owner, 2026-11-02): one-way follows by username.
+describe("friends", () => {
+  const fields = (entries: Record<string, string>) => {
+    const data = new FormData();
+    for (const [k, v] of Object.entries(entries)) data.set(k, v);
+    return data;
+  };
+
+  test("following a player found in search records it once", async () => {
+    const { followAction } = await actions();
+    await expect(followAction(fields({ userId: "b2" }))).rejects.toThrow(
+      "redirect:/profile?saved=followed#friends",
+    );
+    expect(usernameGet).toHaveBeenCalledWith("g1");
+    expect(usernameGet).toHaveBeenCalledWith("b2");
+    expect(follow).toHaveBeenCalledExactlyOnceWith("g1", "b2");
+    expect(emit).toHaveBeenCalledExactlyOnceWith(
+      "player_followed",
+      {},
+      expect.objectContaining({ userId: "g1", sessionId: "visit-1" }),
+    );
+    // Already followed: no event.
+    follow.mockResolvedValueOnce(false);
+    await expect(followAction(fields({ userId: "b2" }))).rejects.toThrow(
+      "redirect:/profile?saved=followed#friends",
+    );
+    expect(emit).toHaveBeenCalledOnce();
+  });
+
+  test("following by an exact username, typed in any case", async () => {
+    const { followAction } = await actions();
+    await expect(followAction(fields({ username: " Bob " }))).rejects.toThrow(
+      "redirect:/profile?saved=followed#friends",
+    );
+    expect(byName).toHaveBeenCalledExactlyOnceWith("bob");
+    expect(follow).toHaveBeenCalledExactlyOnceWith("g1", "b2");
+  });
+
+  test("nobody by that name, not a username, a player without one, or oneself: nothing", async () => {
+    const { followAction } = await actions();
+    byName.mockResolvedValueOnce(null);
+    await expect(followAction(fields({ username: "nobody" }))).rejects.toThrow(
+      "redirect:/profile?friend=nobody#friends",
+    );
+    await expect(followAction(fields({ username: "a b" }))).rejects.toThrow(
+      "redirect:/profile?friend=nobody#friends",
+    );
+    usernameGet
+      .mockResolvedValueOnce({ username: "me", searchable: true })
+      .mockResolvedValueOnce(null);
+    await expect(followAction(fields({ userId: "x9" }))).rejects.toThrow(
+      "redirect:/profile?friend=nobody#friends",
+    );
+    byName.mockResolvedValueOnce("g1");
+    await expect(followAction(fields({ username: "mine" }))).rejects.toThrow(
+      "redirect:/profile?friend=self#friends",
+    );
+    expect(follow).not.toHaveBeenCalled();
+    expect(emit).not.toHaveBeenCalled();
+  });
+
+  test("unfollowing records it only when there was a follow", async () => {
+    const { unfollowAction } = await actions();
+    await expect(unfollowAction(fields({ userId: "b2" }))).rejects.toThrow(
+      "redirect:/profile?saved=unfollowed#friends",
+    );
+    expect(unfollow).toHaveBeenCalledExactlyOnceWith("g1", "b2");
+    expect(emit).toHaveBeenCalledExactlyOnceWith(
+      "player_unfollowed",
+      {},
+      expect.anything(),
+    );
+    unfollow.mockResolvedValueOnce(false);
+    await expect(unfollowAction(fields({ userId: "b2" }))).rejects.toThrow(
+      "redirect:/profile?saved=unfollowed#friends",
+    );
+    expect(emit).toHaveBeenCalledOnce();
+  });
+
+  test("showing or hiding oneself in people search", async () => {
+    const { searchableAction } = await actions();
+    await expect(
+      searchableAction(fields({ searchable: "off" })),
+    ).rejects.toThrow("redirect:/profile?saved=search-off#friends");
+    expect(setSearchable).toHaveBeenLastCalledWith("g1", false);
+    await expect(
+      searchableAction(fields({ searchable: "on" })),
+    ).rejects.toThrow("redirect:/profile?saved=search-on#friends");
+    expect(setSearchable).toHaveBeenLastCalledWith("g1", true);
+  });
+
+  test("a player without a username picks one before following", async () => {
+    const { followAction } = await actions();
+    usernameGet.mockResolvedValueOnce(null);
+    await expect(followAction(fields({ userId: "b2" }))).rejects.toThrow(
+      "redirect:/username?next=%2Fprofile",
+    );
+    expect(follow).not.toHaveBeenCalled();
+  });
+
+  test("a guest is sent to sign up", async () => {
+    const { followAction, searchableAction, unfollowAction } = await actions();
+    current.mockResolvedValue(guest);
+    await expect(followAction(fields({ userId: "b2" }))).rejects.toThrow(
+      "redirect:/sign-up",
+    );
+    await expect(unfollowAction(fields({ userId: "b2" }))).rejects.toThrow(
+      "redirect:/sign-up",
+    );
+    await expect(
+      searchableAction(fields({ searchable: "on" })),
+    ).rejects.toThrow("redirect:/sign-up");
+    expect(follow).not.toHaveBeenCalled();
+    expect(unfollow).not.toHaveBeenCalled();
+    expect(setSearchable).not.toHaveBeenCalled();
   });
 });

@@ -269,6 +269,16 @@
       "description": "A player set or removed their university on Profile (P3-W14-S03, ADR-0032): picked from the list (listed) or typed.",
       "props": { "action": ["set", "removed"], "listed": "boolean" }
     },
+    "player_followed": {
+      "version": 1,
+      "description": "A player followed another by username (P3-W14-S05, Q-P3-11). Following one already followed isn't one.",
+      "props": {}
+    },
+    "player_unfollowed": {
+      "version": 1,
+      "description": "A player stopped following another (P3-W14-S05).",
+      "props": {}
+    },
     "pwa_installed": {
       "version": 1,
       "description": "The app was installed as a PWA (W5-S06).",

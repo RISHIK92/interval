@@ -125,6 +125,19 @@ async function contract(h: Harness): Promise<void> {
     { userId: a, score: 5, rank: 1 },
   ]);
 
+  // P3-W14-S05: a friends board ranks only the given players among themselves;
+  // one without a score (d) is left out.
+  expect(await h.boards.among(week, [a, c, d])).toEqual([
+    { userId: c, score: 9, rank: 1 },
+    { userId: a, score: 7, rank: 2 },
+  ]);
+  expect(await h.boards.among(week, [b, a])).toEqual([
+    { userId: high, score: 7, rank: 1 },
+    { userId: low, score: 7, rank: 1 },
+  ]);
+  expect(await h.boards.among(week, [])).toEqual([]);
+  expect(await h.boards.among("sprint:2091-W09", [a])).toEqual([]);
+
   // P3-W14-S04: a university's board has only its players, ranked among themselves.
   expect(await h.boards.top(week, 10, { university: one })).toEqual([
     { userId: high, score: 7, rank: 1 },
