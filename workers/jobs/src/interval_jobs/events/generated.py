@@ -38,6 +38,7 @@ type EventName = Literal[
     "guest_merged",
     "item_saved",
     "match_finished",
+    "match_found",
     "note_deleted",
     "note_saved",
     "onboarding_completed",
@@ -87,6 +88,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "guest_merged": 1,
     "item_saved": 1,
     "match_finished": 1,
+    "match_found": 1,
     "note_deleted": 1,
     "note_saved": 1,
     "onboarding_completed": 1,
@@ -241,6 +243,10 @@ class MatchFinishedProps(_Model):
     outcome: Literal["finished", "abandoned"]
     won: StrictBool
     abandoned: StrictBool
+
+
+class MatchFoundProps(_Model):
+    wait_ms: int = Field(ge=0, strict=True)
 
 
 class NoteDeletedProps(_Model):
@@ -510,6 +516,12 @@ class MatchFinishedEvent(_EnvelopeBase):
     props: MatchFinishedProps
 
 
+class MatchFoundEvent(_EnvelopeBase):
+    name: Literal["match_found"]
+    version: Literal[1]
+    props: MatchFoundProps
+
+
 class NoteDeletedEvent(_EnvelopeBase):
     name: Literal["note_deleted"]
     version: Literal[1]
@@ -656,6 +668,7 @@ type Envelope = Annotated[
     | GuestMergedEvent
     | ItemSavedEvent
     | MatchFinishedEvent
+    | MatchFoundEvent
     | NoteDeletedEvent
     | NoteSavedEvent
     | OnboardingCompletedEvent

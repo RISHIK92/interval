@@ -144,6 +144,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 - Cite: MATCH-3 ("grouped by region").
 - **Answer (owner, 2026-10-31):** the suggested default: one region; queue keys carry it.
+- **Follow-up (owner, 2026-11-03, W16-S02):** the rating band starts at ±100 and widens by 100 every 2 s (±600 by the 10 s fallback, W17-S02). Accounts and guests both queue. A DB-5 event `match_found {wait_ms}` records time to match.
 - Suggested default: one region until there's more than one deployment region; the queue keys carry the region so adding one changes no code.
 
 ### Q-P3-15 Two players with no shared concepts (P1)

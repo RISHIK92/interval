@@ -26,6 +26,7 @@ export const EVENT_NAMES = [
   "guest_merged",
   "item_saved",
   "match_finished",
+  "match_found",
   "note_deleted",
   "note_saved",
   "onboarding_completed",
@@ -74,6 +75,7 @@ export const EVENT_VERSIONS = {
   guest_merged: 1,
   item_saved: 1,
   match_finished: 1,
+  match_found: 1,
   note_deleted: 1,
   note_saved: 1,
   onboarding_completed: 1,
@@ -189,6 +191,7 @@ export const propsSchemas = {
     won: z.boolean(),
     abandoned: z.boolean(),
   }),
+  match_found: z.strictObject({ wait_ms: z.number().int().nonnegative() }),
   note_deleted: z.strictObject({
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     moment_id: z
@@ -435,6 +438,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("match_finished"),
     version: z.literal(1),
     props: propsSchemas.match_finished,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("match_found"),
+    version: z.literal(1),
+    props: propsSchemas.match_found,
   }),
   z.strictObject({
     ...base,

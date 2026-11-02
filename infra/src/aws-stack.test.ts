@@ -365,6 +365,19 @@ describe("game server (ADR-0033)", () => {
     });
   });
 
+  // P3-W16-S02 (LOAD-5): a pair whose match couldn't be made waits on, counted.
+  test("a match matchmaking couldn't make becomes a metric", () => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "game: match not made" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Game",
+          MetricName: "MatchesNotMade",
+        }),
+      ],
+    });
+  });
+
   // P3-W15-S04 (LOAD-5): a match plays on without its snapshot, counted.
   test("a failed match snapshot becomes a CloudWatch metric", () => {
     template.hasResourceProperties("AWS::Logs::MetricFilter", {

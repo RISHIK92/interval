@@ -288,6 +288,11 @@
         "abandoned": "boolean"
       }
     },
+    "match_found": {
+      "version": 1,
+      "description": "Matchmaking paired the player for a live 1v1 (P3-W16-S02): how long they waited, for the Phase 3 time-to-match metric.",
+      "props": { "wait_ms": "count" }
+    },
     "pwa_installed": {
       "version": 1,
       "description": "The app was installed as a PWA (W5-S06).",

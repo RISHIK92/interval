@@ -375,6 +375,16 @@ export class AwsStack extends Stack {
       metricNamespace: "Interval/Game",
       metricName: "EvidenceFailures",
     });
+    // P3-W16-S02 (LOAD-5): a pair whose match couldn't be made goes back to waiting.
+    logGroup.addMetricFilter("GameMatchesNotMade", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "game: match not made",
+      ),
+      metricNamespace: "Interval/Game",
+      metricName: "MatchesNotMade",
+    });
     // P3-W15-S04 (LOAD-5): a match whose round snapshot didn't save plays on, but
     // wouldn't survive its game server restarting.
     logGroup.addMetricFilter("GameSnapshotFailures", {

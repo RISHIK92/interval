@@ -716,6 +716,29 @@ export interface Matches {
   ): Promise<{ serverId: number; playedAs: string } | null>;
 }
 
+// P3-W16-S02 (MATCH-3, Q-P3-14; owner, 2026-11-03): a queue for live 1v1 that pairs
+// players within a rating band, ±100 widening by 100 every 2 s, both ways. Pairing
+// happens as players poll; a pair gets a match on its game server.
+// `first`: the first time this player hears of the match (its time-to-match event).
+export type QueueState =
+  | { status: "waiting"; waitedMs: number }
+  | { status: "matched"; matchId: string; waitedMs: number; first: boolean }
+  | { status: "none" };
+export interface Matchmaking {
+  // Joining again while queued, pending or matched changes nothing (the wait goes on).
+  join(userId: string, rating: number): Promise<void>;
+  // Tries to pair the player first. A match stays reported for a minute, every poll.
+  poll(userId: string): Promise<QueueState>;
+  // Out of the queue. Leaving while being paired puts the other back in the queue; once
+  // matched, it's too late (the game server cancels a match nobody starts).
+  leave(userId: string): Promise<void>;
+}
+
+// P3-W16-S01 (ADR-0034): a player's quick-game rating; 1500 before their first match.
+export interface PlayerRatings {
+  of(userId: string): Promise<number>;
+}
+
 // P3-W15-S03 (Q-P3-22): hands a match to its game server (game:match:<id> in Valkey),
 // which never reads Postgres (ADR-0033).
 export interface MatchHandoff {

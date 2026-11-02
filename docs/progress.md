@@ -2930,3 +2930,43 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the pinned values and comments.
 - **Moved to S06:** the acceptance's "season boards on the leaderboard store" (seasons arrive there).
 - **Full check:** all 28 tasks pass (Go, web 1208, Python 1301, infra 84).
+
+### 2026-11-03 — P3-W16-S02 (matchmaking; MATCH-3, CACHE-2, LOAD-3, Q-P3-14)
+
+- **Owner (2026-11-03):**
+  - the band is ±100 and widens by 100 every 2 s, mutual (each within the other's band);
+  - one region, carried in the keys;
+  - accounts and guests both queue;
+  - `match_found {wait_ms}` records time to match.
+- **Valkey:** each operation (join, poll, done, failed, leave) is one Lua script. Each player has a state hash (queued → pending → matched) plus a zset of queued ratings.
+  - A poll selects the closest queued candidate in both bands and claims the pair atomically; it also drops stale entries (not polled for 30 s).
+  - Joining while queued or pending changes nothing, so a reload keeps the wait. After a match, a join starts fresh.
+  - Both players are told of the match on every poll for 60 s, `first` once.
+  - Leaving while pending re-queues the other player.
+  - A pending pair stuck for 10 s (a dead request) is re-queued by its own polls.
+  - DONE and FAILED act only on players still pending.
+  - A failed start is logged and counted (`GameMatchesNotMade`), and both wait on with their waits.
+- **The fake:** the same states, rules, expiries and tie order, run by one contract with the Valkey adapter on a fake clock.
+- **`PlayerRatings.of`:** 1500 before a first match.
+- **`/api/game/queue`:**
+  - POST joins;
+  - PUT polls: a poll pairs and makes matches, so it can't be a GET, and a browser doesn't send Origin on a same-origin GET;
+  - DELETE leaves;
+  - same origin, a session, guests included;
+  - `match_found` is emitted once per player.
+- **Reviewers (two passes; the first drove a rewrite), fixed:**
+  - a GET poll that no browser could pass (blocker);
+  - a claim window where the opponent looked unqueued (blocker);
+  - a match told to one side only;
+  - leftover hashes;
+  - a join resetting the wait;
+  - a leave racing a claim;
+  - O(N) round trips;
+  - no metric;
+  - a dead match blocking a re-join;
+  - a stuck pending state;
+  - DONE and FAILED acting on expired keys;
+  - DONE errors counted as not made;
+  - symmetric-only wait tests.
+  - Accepted: `eval` resends the script text each call (EVALSHA through `defineCommand` would trim that); a candidate left out of its band costs nothing extra.
+- **Full check:** web 1217 and Python 1301 pass. Infra's synth hook timed out under load; it passes alone (61).

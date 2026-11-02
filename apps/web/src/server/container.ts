@@ -40,6 +40,10 @@ import { kyselyPaths } from "./adapters/kysely-paths";
 import { kyselyPlayerCountries } from "./adapters/kysely-player-countries";
 import { kyselyPlayerUniversities } from "./adapters/kysely-player-universities";
 import { kyselyMatches } from "./adapters/kysely-matches";
+import { kyselyRatings } from "./adapters/kysely-ratings";
+import { valkeyMatchHandoff } from "./adapters/valkey-match-handoff";
+import { valkeyMatchmaking } from "./adapters/valkey-matchmaking";
+import { startLiveMatch } from "./live";
 import { kyselyFollows, kyselyUsernames } from "./adapters/kysely-people";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
 import { kyselyProgress } from "./adapters/kysely-progress";
@@ -84,6 +88,8 @@ import type {
   PlayerUniversities,
   Follows,
   Matches,
+  Matchmaking,
+  PlayerRatings,
   Usernames,
   Progress,
   Quizzes,
@@ -254,7 +260,7 @@ let valkey: Redis | undefined;
 
 // P3-W14-S01 (CACHE-3): boards on Valkey in every mode (ADR-0014). A Valkey that's
 // down fails a command in about a second rather than holding a game's finish.
-export function leaderboards(): Leaderboards {
+function valkeyClient(): Redis {
   if (valkey === undefined) {
     valkey = new Redis(env().VALKEY_URL, {
       maxRetriesPerRequest: 1,
@@ -266,7 +272,27 @@ export function leaderboards(): Leaderboards {
       log.warn("valkey connection error", { error });
     });
   }
-  return valkeyLeaderboards(db(), valkey);
+  return valkey;
+}
+
+export function leaderboards(): Leaderboards {
+  return valkeyLeaderboards(db(), valkeyClient());
+}
+
+// P3-W16-S02 (MATCH-3): the live 1v1 queue; a pair gets a match on its game server.
+export function matchmaking(): Matchmaking {
+  return valkeyMatchmaking(valkeyClient(), async (players) => {
+    const match = await startLiveMatch(
+      matches(),
+      valkeyMatchHandoff(valkeyClient()),
+      players,
+    );
+    return match.id;
+  });
+}
+
+export function playerRatings(): PlayerRatings {
+  return kyselyRatings(db());
 }
 
 // P3-W14-S02 (§6.7, Q-P3-08).
