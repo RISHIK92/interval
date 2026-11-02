@@ -8,7 +8,8 @@ import { type Kysely, sql } from "kysely";
 // - Mastery keeps the higher probability; a review card the one with more reviews.
 // - The guest row goes, and with it everything only a guest has (sessions,
 //   capabilities). Guests are Play-only (ADR-0029), so no reading data is lost.
-// Board scores (P3-W14-S01) follow their attempts; ratings (W16) add their rule here.
+// Board scores (P3-W14-S01) follow their attempts; the more-played rating stays, with
+// its own history (P3-W16-S01).
 // False when there's no such guest: a retry or a second sign-in is a no-op (LOAD-5).
 export async function mergeGuest(
   trx: Kysely<DB>,
@@ -112,6 +113,44 @@ export async function mergeGuest(
     .set({ winner_id: accountId })
     .where("winner_id", "=", guestId)
     .execute();
+
+  // P3-W16-S01 (ADR-0034; owner, 2026-11-02): the more-played rating stays with the
+  // account, with its own history only, so the account's history chains to its rating.
+  // Locked first: a worker rating the guest's match waits for the merge, or the merge
+  // for it.
+  const ratings = await sql<{ user_id: string; games: number }>`
+    select user_id, games from player_rating
+    where user_id in (${guestId}, ${accountId})
+    order by user_id
+    for update`.execute(trx);
+  const games = (id: string) =>
+    ratings.rows.find((r) => r.user_id === id)?.games;
+  const guestGames = games(guestId);
+  const accountGames = games(accountId);
+  if (
+    guestGames !== undefined &&
+    (accountGames === undefined || guestGames > accountGames)
+  ) {
+    await trx
+      .deleteFrom("rating_history")
+      .where("user_id", "=", accountId)
+      .execute();
+    await trx
+      .updateTable("rating_history")
+      .set({ user_id: accountId })
+      .where("user_id", "=", guestId)
+      .execute();
+    await sql`
+      insert into player_rating
+        (user_id, rating, rd, volatility, games, updated_at)
+      select ${accountId}, rating, rd, volatility, games, updated_at
+      from player_rating where user_id = ${guestId}
+      on conflict (user_id) do update set
+        rating = excluded.rating, rd = excluded.rd,
+        volatility = excluded.volatility, games = excluded.games,
+        updated_at = excluded.updated_at`.execute(trx);
+  }
+  // Otherwise the guest's rating and history go with the guest.
 
   await trx.deleteFrom("app_user").where("id", "=", guestId).execute();
   return true;

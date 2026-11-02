@@ -387,6 +387,108 @@ test("the guest's matches move to the account", async () => {
   });
 });
 
+// P3-W16-S01 (ADR-0034; owner, 2026-11-02): the account keeps the more-played rating,
+// with that rating's own history only.
+test("the more-played rating stays with the account, with its own history", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    const rating = (user_id: string, rating: number, games: number) =>
+      trx
+        .insertInto("player_rating")
+        .values({ user_id, rating, rd: 120, volatility: 0.06, games })
+        .execute();
+    await rating(guest, 1620, 9);
+    await rating(account, 1480, 2);
+    const { id: shared } = await trx
+      .insertInto("game_match")
+      .values({ server_id: 0 })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const { id: own } = await trx
+      .insertInto("game_match")
+      .values({ server_id: 0 })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const history = (user_id: string, match_id: string, after: number) =>
+      trx
+        .insertInto("rating_history")
+        .values({
+          user_id,
+          match_id,
+          rating_before: 1500,
+          rating_after: after,
+          rd_after: 120,
+          volatility_after: 0.06,
+          score: 1,
+        })
+        .execute();
+    await history(guest, own, 1620);
+    await history(guest, shared, 1600);
+    await history(account, shared, 1480);
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    expect(
+      await trx
+        .selectFrom("player_rating")
+        .select(["user_id", "rating", "games"])
+        .where("user_id", "in", [guest, account])
+        .execute(),
+    ).toEqual([{ user_id: account, rating: 1620, games: 9 }]);
+    // Only the surviving rating's history: it chains to the rating kept.
+    const rows = await trx
+      .selectFrom("rating_history")
+      .select(["match_id", "rating_after"])
+      .where("user_id", "=", account)
+      .orderBy("rating_after")
+      .execute();
+    expect(rows).toEqual([
+      { match_id: shared, rating_after: 1600 },
+      { match_id: own, rating_after: 1620 },
+    ]);
+  });
+});
+
+test("an account with no rating takes the guest's", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    await trx
+      .insertInto("player_rating")
+      .values({
+        user_id: guest,
+        rating: 1555,
+        rd: 200,
+        volatility: 0.06,
+        games: 1,
+      })
+      .execute();
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    expect(
+      await trx
+        .selectFrom("player_rating")
+        .select(["rating", "games"])
+        .where("user_id", "=", account)
+        .executeTakeFirstOrThrow(),
+    ).toEqual({ rating: 1555, games: 1 });
+  });
+});
+
+test("a less-played guest leaves the account's rating as it was", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    await trx
+      .insertInto("player_rating")
+      .values([
+        { user_id: guest, rating: 1700, rd: 300, volatility: 0.06, games: 1 },
+        { user_id: account, rating: 1450, rd: 90, volatility: 0.06, games: 30 },
+      ])
+      .execute();
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    expect(
+      await trx
+        .selectFrom("player_rating")
+        .select(["rating", "games"])
+        .where("user_id", "=", account)
+        .executeTakeFirstOrThrow(),
+    ).toEqual({ rating: 1450, games: 30 });
+  });
+});
+
 test("merging again, or merging a non-guest, changes nothing", async () => {
   await inRollback(async (trx, { guest, account, questions }) => {
     const played = await dailyPlayed(trx, guest, 3, questions, 2);

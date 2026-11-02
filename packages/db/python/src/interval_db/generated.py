@@ -341,6 +341,7 @@ class GameMatch(TypedDict):
     finished_at: datetime | None
     outcome: str | None
     winner_id: str | None
+    rated_at: datetime | None
 
 
 class GameMatchPlayer(TypedDict):
@@ -572,6 +573,15 @@ class PlayerCountry(TypedDict):
     changed_at: datetime
 
 
+class PlayerRating(TypedDict):
+    user_id: str
+    rating: float
+    rd: float
+    volatility: float
+    games: int
+    updated_at: datetime
+
+
 class PlayerUniversity(TypedDict):
     user_id: str
     university_id: int | None
@@ -732,6 +742,18 @@ class RankingConfig(TypedDict):
     key: str
     value: Decimal
     note: str
+
+
+class RatingHistory(TypedDict):
+    id: int
+    user_id: str
+    match_id: UUID
+    rating_before: float
+    rating_after: float
+    rd_after: float
+    volatility_after: float
+    score: float
+    at: datetime
 
 
 class ReasonReport(TypedDict):

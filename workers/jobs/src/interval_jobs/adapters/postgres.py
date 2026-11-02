@@ -96,6 +96,7 @@ from interval_jobs.ports import (
 )
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
+from interval_jobs.ratings import START, Glicko, update
 from interval_jobs.technologies import TechnologySeed
 from interval_jobs.universities import UniversitySeed
 
@@ -3228,7 +3229,83 @@ class PostgresMatchResults:
                             match_id=str(result.match_id),
                             question_id=answer.question_id,
                         )
+            self._rate(result, players)
         return True
+
+    def _rate(self, result: MatchResult, players: dict[str, str]) -> None:
+        """MATCH-1, ADR-0034: both players' Glicko-2 ratings, once (this runs only with
+        the result's first recording). An abandon is a loss for the leaver and a win
+        for the stayer, both gone a loss each; cancelled and void are unrated (owner,
+        2026-11-02)."""
+        if result.outcome not in ("finished", "abandoned"):
+            return
+        seats = [
+            (players[p.played_as], p) for p in result.players if p.played_as in players
+        ]
+        users = sorted({user for user, _ in seats})
+        if len(seats) != 2 or len(users) != 2:
+            # A guest who signed up into its own opponent's account: no one to rate.
+            log.info(
+                "game: match unrated",
+                match_id=str(result.match_id),
+                reason="one player",
+            )
+            return
+        if result.outcome == "abandoned" and not any(p.abandoned for _, p in seats):
+            # Go never sends this; rating it would raise both players.
+            log.error("game: result refused", reason="abandoned with nobody leaving")
+            return
+
+        def score(played_as: str, abandoned: bool) -> float:
+            if result.outcome == "abandoned":
+                return 0.0 if abandoned else 1.0
+            if result.winner is None:
+                return 0.5
+            return 1.0 if played_as == result.winner else 0.0
+
+        conn = self._conn
+        conn.execute(
+            "insert into player_rating (user_id, rating, rd, volatility) "
+            "select u, %s, %s, %s from unnest(%s::text[]) u on conflict do nothing",
+            (START.rating, START.rd, START.volatility, users),
+        )
+        # Locked in SQL's user_id order, the same for every rating, so two matches
+        # sharing a player can't deadlock.
+        before = {
+            str(user): Glicko(float(rating), float(rd), float(volatility))
+            for user, rating, rd, volatility in conn.execute(
+                "select user_id, rating, rd, volatility from player_rating "
+                "where user_id = any(%s) order by user_id for update",
+                (users,),
+            ).fetchall()
+        }
+        for (user, seat), (other, _) in ((seats[0], seats[1]), (seats[1], seats[0])):
+            points = score(seat.played_as, seat.abandoned)
+            after = update(before[user], [(before[other], points)])
+            conn.execute(
+                "update player_rating set rating = %s, rd = %s, volatility = %s, "
+                "games = games + 1, updated_at = now() where user_id = %s",
+                (after.rating, after.rd, after.volatility, user),
+            )
+            conn.execute(
+                """
+                insert into rating_history (user_id, match_id, rating_before,
+                  rating_after, rd_after, volatility_after, score)
+                values (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    user,
+                    result.match_id,
+                    before[user].rating,
+                    after.rating,
+                    after.rd,
+                    after.volatility,
+                    points,
+                ),
+            )
+        conn.execute(
+            "update game_match set rated_at = now() where id = %s", (result.match_id,)
+        )
 
 
 class PostgresUniversities:

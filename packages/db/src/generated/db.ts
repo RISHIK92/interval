@@ -364,6 +364,7 @@ export interface GameMatch {
   finished_at: Timestamp | null;
   id: Generated<string>;
   outcome: string | null;
+  rated_at: Timestamp | null;
   server_id: number;
   winner_id: string | null;
 }
@@ -597,6 +598,15 @@ export interface PlayerCountry {
   user_id: string;
 }
 
+export interface PlayerRating {
+  games: Generated<number>;
+  rating: number;
+  rd: number;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+  volatility: number;
+}
+
 export interface PlayerUniversity {
   changed_at: Generated<Timestamp>;
   university_id: Int8 | null;
@@ -757,6 +767,18 @@ export interface RankingConfig {
   key: string;
   note: string;
   value: Numeric;
+}
+
+export interface RatingHistory {
+  at: Generated<Timestamp>;
+  id: Generated<Int8>;
+  match_id: string;
+  rating_after: number;
+  rating_before: number;
+  rd_after: number;
+  score: number;
+  user_id: string;
+  volatility_after: number;
 }
 
 export interface ReasonReport {
@@ -1111,6 +1133,7 @@ export interface DB {
   plan: Plan;
   plan_capability: PlanCapability;
   player_country: PlayerCountry;
+  player_rating: PlayerRating;
   player_university: PlayerUniversity;
   player_username: PlayerUsername;
   project_note: ProjectNote;
@@ -1127,6 +1150,7 @@ export interface DB {
   quiz_attempt: QuizAttempt;
   quiz_attempt_concept: QuizAttemptConcept;
   ranking_config: RankingConfig;
+  rating_history: RatingHistory;
   reason_report: ReasonReport;
   schema_meta: SchemaMeta;
   source: Source;

@@ -268,3 +268,147 @@ def test_the_relay_waits_out_valkey_going_away() -> None:
     # The reset was waited out, then it carried on (and was stopped).
     assert flaky.calls == 2
     assert waits == [5]
+
+
+# P3-W16-S01 (MATCH-1, ADR-0034): rated once with the result, Glicko-2 from 1500/350.
+def _ratings(conn: psycopg.Connection) -> dict[str, tuple[float, int]]:
+    return {
+        str(user): (float(rating), int(games))
+        for user, rating, games in conn.execute(
+            "select user_id, rating, games from player_rating "
+            "where user_id in ('lra', 'lrb')"
+        ).fetchall()
+    }
+
+
+def _scores(
+    result: MatchResult, winner: str | None, abandoned: set[str]
+) -> MatchResult:
+    return result.model_copy(
+        update={
+            "winner": winner,
+            "players": [
+                p.model_copy(update={"abandoned": p.played_as in abandoned})
+                for p in result.players
+            ],
+        }
+    )
+
+
+def test_a_finished_match_is_rated_once(conn: psycopg.Connection) -> None:
+    a_user(conn, "lra")
+    a_user(conn, "lrb")
+    question = _question(conn)
+    match_id = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    result = _result(match_id, "finished", question)  # guest-1 (lra) wins
+    results = PostgresMatchResults(conn)
+    assert results.record(result)
+    rated = _ratings(conn)
+    assert rated["lra"][0] > 1500 > rated["lrb"][0]
+    assert rated["lra"][0] - 1500 == pytest.approx(1500 - rated["lrb"][0])
+    assert rated["lra"][1] == rated["lrb"][1] == 1
+    history = conn.execute(
+        "select user_id, rating_before, score from rating_history "
+        "where match_id = %s order by user_id",
+        (match_id,),
+    ).fetchall()
+    assert history == [("lra", 1500.0, 1.0), ("lrb", 1500.0, 0.0)]
+    assert conn.execute(
+        "select rated_at is not null from game_match where id = %s", (match_id,)
+    ).fetchone() == (True,)
+    # Recorded again: not rated again.
+    assert not results.record(result)
+    assert _ratings(conn) == rated
+
+
+@pytest.mark.parametrize(
+    ("outcome", "winner", "abandoned", "up", "down"),
+    [
+        ("finished", None, set[str](), set[str](), set[str]()),  # a tie: no movement
+        ("abandoned", "lrb", {"guest-1"}, {"lrb"}, {"lra"}),  # the leaver loses
+        ("abandoned", None, {"guest-1", "lrb"}, set[str](), {"lra", "lrb"}),
+    ],
+)
+def test_ties_and_abandons_rate_as_the_owner_said(
+    conn: psycopg.Connection,
+    outcome: str,
+    winner: str | None,
+    abandoned: set[str],
+    up: set[str],
+    down: set[str],
+) -> None:
+    a_user(conn, "lra")
+    a_user(conn, "lrb")
+    question = _question(conn)
+    match_id = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    result = _scores(_result(match_id, outcome, question), winner, abandoned)
+    assert PostgresMatchResults(conn).record(result)
+    rated = _ratings(conn)
+    for user in ("lra", "lrb"):
+        if user in up:
+            assert rated[user][0] > 1500
+        elif user in down:
+            assert rated[user][0] < 1500
+        else:
+            assert rated[user][0] == pytest.approx(1500)
+
+
+@pytest.mark.parametrize("outcome", ["cancelled", "void"])
+def test_a_match_without_a_result_is_unrated(
+    conn: psycopg.Connection, outcome: str
+) -> None:
+    a_user(conn, "lra")
+    a_user(conn, "lrb")
+    question = _question(conn)
+    match_id = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    assert PostgresMatchResults(conn).record(_result(match_id, outcome, question))
+    assert _ratings(conn) == {}
+    assert conn.execute(
+        "select rated_at from game_match where id = %s", (match_id,)
+    ).fetchone() == (None,)
+
+
+def test_a_second_match_starts_from_the_stored_rating(conn: psycopg.Connection) -> None:
+    a_user(conn, "lra")
+    a_user(conn, "lrb")
+    question = _question(conn)
+    results = PostgresMatchResults(conn)
+    first = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    assert results.record(_result(first, "finished", question))
+    after_first = conn.execute(
+        "select rating_after from rating_history "
+        "where match_id = %s and user_id = 'lra'",
+        (first,),
+    ).fetchone()
+    second = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    assert results.record(_result(second, "finished", question))
+    row = conn.execute(
+        "select rating_before from rating_history "
+        "where match_id = %s and user_id = 'lra'",
+        (second,),
+    ).fetchone()
+    assert after_first is not None and row == after_first
+    assert _ratings(conn)["lra"][1] == 2
+
+
+def test_a_guest_against_its_own_account_is_unrated(conn: psycopg.Connection) -> None:
+    # The guest signed up into its opponent's account: the merge kept only the
+    # account's own seat, so the result's guest seat maps to no one left to rate.
+    a_user(conn, "lrb")
+    question = _question(conn)
+    match_id = _match(conn, [("lrb", None)])
+    assert PostgresMatchResults(conn).record(_result(match_id, "finished", question))
+    assert _ratings(conn) == {}
+    assert conn.execute(
+        "select rated_at from game_match where id = %s", (match_id,)
+    ).fetchone() == (None,)
+
+
+def test_abandoned_with_nobody_leaving_is_unrated(conn: psycopg.Connection) -> None:
+    a_user(conn, "lra")
+    a_user(conn, "lrb")
+    question = _question(conn)
+    match_id = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    result = _scores(_result(match_id, "abandoned", question), None, set())
+    assert PostgresMatchResults(conn).record(result)
+    assert _ratings(conn) == {}

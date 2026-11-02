@@ -20,6 +20,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Why it matters: there is no TypeScript worker today. MATCH-1 says TypeScript; every existing worker job is Python.
 - Options: (a) a small TypeScript worker, a new deployable, as MATCH-1 says; (b) the Python worker, which needs an ADR amending MATCH-1.
 - **Answer (owner, 2026-10-31):** (b), the Python worker. Needs an ADR amending MATCH-1 before W16-S01.
+- **Follow-up (owner, 2026-11-02):** ADR-0034 ACCEPTED. Glicko-2 starts at 1500/350/0.06 (τ 0.5) and updates per match. Guests are rated, and on sign-up the account keeps the more-played rating. An abandon is a loss for the leaver and a win for the stayer; both abandoned is a loss each; cancelled and void are unrated.
 - Suggested default: (b). One worker to run and deploy; Glicko-2 is about 150 lines with no model calls. If the owner prefers MATCH-1 as written, (a).
 
 ### Q-P3-03 Guests and Play (P1)

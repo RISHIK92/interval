@@ -2904,3 +2904,29 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the `match_finished` event fires on the player's next visit, not at the match's end, and nothing is emitted for cancelled or void matches;
   - `consume` needs `VALKEY_URL` in every mode, which it already has;
   - full check: Go, web 1205 and Python 1289 pass. Infra's synth hook timed out under heavy load (load average 13 from other processes); with a longer hook timeout, 60/60 pass.
+
+### 2026-11-03 — P3-W16-S01 (Glicko-2 ratings; MATCH-1, MATCH-2, ADR-0034)
+
+- **ADR-0034, drafted and accepted (2026-11-02):** ratings in the Python worker, amending MATCH-1's "TypeScript worker".
+- **Owner:**
+  - Glickman's defaults 1500/350/0.06, τ 0.5, and one match per rating period;
+  - guests are rated, and on a merge the account keeps the more-played rating, with only that rating's history;
+  - an abandon is a loss for the leaver and a win for the stayer; both abandoned is a loss each;
+  - cancelled and void matches are unrated.
+- **`interval_jobs/ratings.py`:** Glicko-2 as Glickman 2013, with the Illinois volatility solve. It's tested on Glickman's worked example (1464.06 / 151.52 / 0.05999), on the other volatility branch (an upset; σ checked against an independent bisection), and on pinned values for equal players.
+- **Migration:** `player_rating`, `rating_history` (one row per player per match), and `game_match.rated_at`.
+- **The rating:** done once, inside `record()`'s transaction after its once-only guard.
+  - Defaults are inserted, then both rows locked in SQL user_id order; each player is rated against the other's pre-match values; history is written, and `rated_at` set.
+  - A self-match (a guest who signed up into its opponent's account) is unrated and logged.
+  - An "abandoned" result naming nobody who left is refused.
+- **Guest merge:** both ratings are locked; the guest's rating and history replace the account's only when the guest played more; otherwise they go with the guest.
+- **Reviewer, fixed:**
+  - the upset branch was untested;
+  - the merge didn't lock ratings;
+  - history mixed two trajectories (the owner chose: the surviving rating's only);
+  - missing tests: self-match, `rated_at` null for cancelled and void, a second match from the stored rating, and an account with no rating;
+  - an abandoned result with no leaver;
+  - the dead `tau` option and no-games branch were dropped (RD doesn't widen with idle time; noted in the ADR);
+  - the pinned values and comments.
+- **Moved to S06:** the acceptance's "season boards on the leaderboard store" (seasons arrive there).
+- **Full check:** all 28 tasks pass (Go, web 1208, Python 1301, infra 84).
