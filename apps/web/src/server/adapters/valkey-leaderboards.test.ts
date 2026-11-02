@@ -125,6 +125,11 @@ async function contract(h: Harness): Promise<void> {
     { userId: a, score: 5, rank: 1 },
   ]);
 
+  // P3-W14-S06: how many are on a board, for the percentile.
+  expect(await h.boards.size(week)).toBe(3);
+  expect(await h.boards.size(week, { country: "IN" })).toBe(2);
+  expect(await h.boards.size("sprint:2091-W09")).toBe(0);
+
   // P3-W14-S05: a friends board ranks only the given players among themselves;
   // one without a score (d) is left out.
   expect(await h.boards.among(week, [a, c, d])).toEqual([
@@ -163,6 +168,8 @@ async function contract(h: Harness): Promise<void> {
     rank: 2,
   });
   expect(await h.boards.universityStanding("sprint:2091-W09", one)).toBeNull();
+  expect(await h.boards.universityCount(week)).toBe(2);
+  expect(await h.boards.universityCount("sprint:2091-W09")).toBe(0);
   // d and a both played W03: One's average is 5.5, not a whole number.
   expect(await h.boards.universities("sprint:2091-W03", 10)).toEqual([
     { universityId: one, score: 5.5, rank: 1 },

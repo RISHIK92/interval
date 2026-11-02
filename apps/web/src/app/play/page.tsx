@@ -93,6 +93,15 @@ export default async function PlayPage(props: {
         <p className="mt-1 text-ink-muted">
           Quick games on what you read. What you miss comes back as reading.
         </p>
+        {/* P3-W14-S06 (§6.7): every board, for players signed in or guests. */}
+        {actor === null ? null : (
+          <Link
+            href="/play/boards"
+            className="mt-3 inline-flex rounded-full border border-hairline px-4 py-2 text-sm font-semibold"
+          >
+            Boards
+          </Link>
+        )}
       </header>
       <TabBar current="play" firstName={chosen?.firstName ?? null} />
       {actor?.isGuest === true ? (

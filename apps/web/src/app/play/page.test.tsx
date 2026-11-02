@@ -138,6 +138,16 @@ test("an account with no username is sent to choose one; a guest plays without",
   expect(usernameGet).toHaveBeenCalledOnce();
 });
 
+// P3-W14-S06: the boards, for anyone playing.
+test("a player, account or guest, has a link to the boards; a visitor doesn't", async () => {
+  current.mockResolvedValue(account);
+  expect(await page()).toMatch(/<a[^>]*href="\/play\/boards"[^>]*>Boards</);
+  current.mockResolvedValue(guest);
+  expect(await page()).toMatch(/href="\/play\/boards"/);
+  current.mockResolvedValue(null);
+  expect(await page()).not.toMatch(/href="\/play\/boards"/);
+});
+
 test("an account sees neither the guest form nor the sign-up line", async () => {
   current.mockResolvedValue(account);
   const html = await page();

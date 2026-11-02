@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic";
 const ERRORS: Record<string, string> = {
   taken: "That username is taken. Try another.",
   format: "3 to 20 letters a–z, digits or _.",
+  reserved: "That username is kept for Interval. Try another.",
 };
 
 // P3-W14-S05 (§6.7, Q-P3-11; owner, 2026-11-02): asked once of every account, straight

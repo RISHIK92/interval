@@ -54,3 +54,4 @@ An ADR records one decision that the blueprint does not settle, or changes one i
 | [0030](0030-local-password-reset.md) | Password reset without a link, on this machine only | PROPOSED | owner request 2026-10-31 (amends ADR-0004 for localhost) |
 | [0031](0031-daily-challenge-auto-publishes.md) | The daily challenge auto-publishes when unreviewed, its questions flagged for spot check | ACCEPTED | owner answer to Q-P3-06, 2026-10-31; accepted 2026-11-01 (amends Q-2) |
 | [0032](0032-university-picked-from-a-list.md) | University picked from a list or typed, unverified; no university email stored | ACCEPTED | owner answer to Q-P3-09, 2026-10-31; accepted 2026-11-02 (amends §6.7, OPS-1, Phase 3 Week 14) |
+| [0033](0033-game-server-shape.md) | The game server: one Go service, signed match tickets that name the owning server, Caddy in VM mode, numbered servers behind the ALB | ACCEPTED | owner answer to Q-P3-01, 2026-10-31; accepted 2026-11-02 |

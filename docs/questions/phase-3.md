@@ -97,6 +97,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - **Follow-up 2 (owner, 2026-11-02):** a username is required for every account (asked once); it can never be changed; a player sees the full list of who follows them.
 - **Follow-up 3 (owner, 2026-11-02):** new accounts pick the username in onboarding; an existing account is sent once to a page that asks for it on its next visit to the feed, Profile or Play. Following and unfollowing are DB-5 events. Boards show the username only, never the account's name. (Built as: the username is asked straight after onboarding, at the first gated page, the feed.)
 - **P3-W14-S06 (owner, 2026-11-02):** boards live on their own page, `/play/boards`. A guest shows as "Guest" plus 4 digits from a hash of its id. Each board shows the top 50 of the current period, with the player's own row always visible. Only the current and previous period can be viewed.
+- **Follow-up 4 (owner, 2026-11-02):** a short list of usernames is reserved, so nobody can pose as the site: admin, administrator, interval, support, moderator, mod, system, staff, help, root, owner, official, guest, player.
 - Suggested default: mutual; added by an invite link; no search for people; friends see each other's board rank only.
 
 ## Week 15

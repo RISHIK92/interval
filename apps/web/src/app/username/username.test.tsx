@@ -78,6 +78,7 @@ describe("the page", () => {
   test.each([
     ["taken", "That username is taken. Try another."],
     ["format", "3 to 20 letters a–z, digits or _."],
+    ["reserved", "That username is kept for Interval. Try another."],
   ])("explains %s, tied to the field", async (error, text) => {
     current.mockResolvedValue(account);
     const html = await page({ error });
@@ -126,6 +127,19 @@ describe("the action", () => {
     );
     expect(claim).toHaveBeenCalledOnce();
   });
+
+  // Owner, 2026-11-02: nobody poses as the site.
+  test.each(["admin", "Interval", "SUPPORT", "guest", "player"])(
+    "%j is reserved: asked again",
+    async (name) => {
+      const { chooseUsernameAction } = await import("./actions");
+      current.mockResolvedValue(account);
+      await expect(chooseUsernameAction(form(name))).rejects.toThrow(
+        "redirect:/username?error=reserved&next=%2Fplay",
+      );
+      expect(claim).not.toHaveBeenCalled();
+    },
+  );
 
   test("already has one: goes back, nothing changes", async () => {
     const { chooseUsernameAction } = await import("./actions");

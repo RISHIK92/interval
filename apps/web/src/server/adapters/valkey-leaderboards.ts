@@ -251,6 +251,11 @@ export function valkeyLeaderboards(
       );
     },
 
+    size: async (board, scope) => {
+      await ensureBoard(board, scope);
+      return redis.zcard(key(name(board, scope)));
+    },
+
     universities: async (board, limit) => {
       await ensureRanking(board);
       return ranked(
@@ -259,6 +264,11 @@ export function valkeyLeaderboards(
           score: p.score,
         })),
       );
+    },
+
+    universityCount: async (board) => {
+      await ensureRanking(board);
+      return redis.zcard(key(ranking(board)));
     },
 
     universityStanding: async (board, universityId) => {
@@ -372,8 +382,10 @@ export function memoryLeaderboards(
             .sort(byScore((s) => s.userId)),
         ),
       ),
+    size: (name, scope) => Promise.resolve(board(name, scope).length),
     universities: (name, limit) =>
       Promise.resolve(ranking(name).slice(0, limit)),
+    universityCount: (name) => Promise.resolve(ranking(name).length),
     universityStanding: (name, universityId) =>
       Promise.resolve(
         ranking(name).find((s) => s.universityId === universityId) ?? null,

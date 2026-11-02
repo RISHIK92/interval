@@ -47,6 +47,12 @@ async function contract(
     college,
   ]);
   expect(await unis.search(token, 1)).toEqual([university]);
+  // P3-W14-S06: names for the universities' board; an unknown id is left out.
+  expect(await unis.names([college.id, institute.id, "999999999999"])).toEqual(
+    expect.arrayContaining([college, institute]),
+  );
+  expect(await unis.names([college.id])).toHaveLength(1);
+  expect(await unis.names([])).toEqual([]);
   // LIKE's wildcards are only characters.
   expect(await unis.search(`${token}%`, 10)).toEqual([]);
 

@@ -52,6 +52,16 @@ export function kyselyUsernames(db: Kysely<DB>): Usernames {
         .limit(limit)
         .execute(),
 
+    labels: async (userIds) =>
+      userIds.length === 0
+        ? []
+        : db
+            .selectFrom("app_user as p")
+            .leftJoin("player_username as u", "u.user_id", "p.id")
+            .select(["p.id as userId", "u.username", "p.is_anonymous as guest"])
+            .where("p.id", "in", userIds)
+            .execute(),
+
     byName: async (username) =>
       (
         await db
@@ -97,8 +107,15 @@ export function kyselyFollows(db: Kysely<DB>): Follows {
   };
 }
 
-// The in-memory fakes (ADR-0012), sharing the players' usernames.
-export function memoryPeople(): { usernames: Usernames; follows: Follows } {
+// The in-memory fakes (ADR-0012), sharing the players' usernames, over the given
+// accounts and guests (a player neither is unknown).
+export function memoryPeople(
+  accounts: Set<string> = new Set(),
+  guests: Set<string> = new Set(),
+): {
+  usernames: Usernames;
+  follows: Follows;
+} {
   const names = new Map<string, { username: string; searchable: boolean }>();
   const edges = new Set<string>(); // "follower followee"
   const byName = (a: Person, b: Person) =>
@@ -133,6 +150,16 @@ export function memoryPeople(): { usernames: Usernames; follows: Follows } {
             .map(([userId, r]) => ({ userId, username: r.username }))
             .sort(byName)
             .slice(0, limit),
+        ),
+      labels: (userIds) =>
+        Promise.resolve(
+          userIds
+            .filter((id) => accounts.has(id) || guests.has(id))
+            .map((userId) => ({
+              userId,
+              username: names.get(userId)?.username ?? null,
+              guest: guests.has(userId),
+            })),
         ),
       byName: (username) =>
         Promise.resolve(

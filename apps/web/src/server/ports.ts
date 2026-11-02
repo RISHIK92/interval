@@ -657,12 +657,16 @@ export interface Leaderboards {
   // P3-W14-S05: the given players on a board, ranked among themselves (the friends
   // board: a player and those they follow); players without a score are left out.
   among(board: string, userIds: string[]): Promise<Standing[]>;
+  // P3-W14-S06: how many players are on the board (for a percentile).
+  size(board: string, scope?: BoardScope): Promise<number>;
   // Universities on a board, highest average first; ranks as `top`'s.
   universities(board: string, limit: number): Promise<UniversityStanding[]>;
   universityStanding(
     board: string,
     universityId: string,
   ): Promise<UniversityStanding | null>;
+  // P3-W14-S06: how many universities are ranked on the board (for a percentile).
+  universityCount(board: string): Promise<number>;
   // After a guest merge (P3-W13-S07) or a change of country or university (with the
   // scopes it was in): the player's boards and the university averages they count in
   // are worked out again. Never throws: a failure is logged, and the boards catch up
@@ -687,6 +691,11 @@ export interface Usernames {
   search(prefix: string, limit: number): Promise<Person[]>;
   // The exact username, searchable or not; null when nobody has it.
   byName(username: string): Promise<string | null>;
+  // P3-W14-S06: what boards call each player: its username, or none yet (a guest, or an
+  // account not yet asked); unknown ids are left out.
+  labels(
+    userIds: string[],
+  ): Promise<{ userId: string; username: string | null; guest: boolean }[]>;
 }
 export type Person = { userId: string; username: string };
 
@@ -746,6 +755,8 @@ export interface PlayerUniversities {
   setTyped(userId: string, name: string): Promise<UniversityChange>;
   // The university it was, if any.
   remove(userId: string): Promise<University | null>;
+  // P3-W14-S06: the universities with these ids (for the universities' board).
+  names(ids: string[]): Promise<University[]>;
 }
 
 export interface GuestSessions {

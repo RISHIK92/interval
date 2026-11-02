@@ -83,10 +83,21 @@ async function contract(
     { userId: c, username: `${t}xcat` },
   ]);
   expect(await follows.followers(a)).toEqual([]);
+
+  // P3-W14-S06: what boards call each player; d has no username yet.
+  const labelled = await usernames.labels([d, a, "nobody-at-all"]);
+  expect(labelled).toHaveLength(2);
+  expect(labelled).toEqual(
+    expect.arrayContaining([
+      { userId: a, username: `${t}_ada`, guest: false },
+      { userId: d, username: null, guest: false },
+    ]),
+  );
+  expect(await usernames.labels([])).toEqual([]);
 }
 
 test("the in-memory fake keeps the contract", async () => {
-  const { usernames, follows } = memoryPeople();
+  const { usernames, follows } = memoryPeople(new Set(["a", "b", "c", "d"]));
   await contract(usernames, follows, ["a", "b", "c", "d"], "zq");
 });
 
@@ -126,6 +137,28 @@ test("the Postgres adapters keep the contract", async () => {
       if (!a || !b || !c || !d) throw new Error("accounts");
       const t = `q${randomUUID().replace(/-/g, "").slice(0, 3)}`;
       await contract(kyselyUsernames(trx), kyselyFollows(trx), [a, b, c, d], t);
+      throw new Rollback();
+    }),
+  ).rejects.toBeInstanceOf(Rollback);
+});
+
+test("a guest is labelled as one", async () => {
+  const { usernames } = memoryPeople(new Set(), new Set(["g"]));
+  expect(await usernames.labels(["g"])).toEqual([
+    { userId: "g", username: null, guest: true },
+  ]);
+  await expect(
+    db.transaction().execute(async (trx: Transaction<DB>) => {
+      const [g] = await accounts(trx, 1);
+      if (!g) throw new Error("accounts");
+      await trx
+        .updateTable("app_user")
+        .set({ is_anonymous: true })
+        .where("id", "=", g)
+        .execute();
+      expect(await kyselyUsernames(trx).labels([g])).toEqual([
+        { userId: g, username: null, guest: true },
+      ]);
       throw new Rollback();
     }),
   ).rejects.toBeInstanceOf(Rollback);

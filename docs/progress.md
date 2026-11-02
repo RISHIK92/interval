@@ -2664,3 +2664,43 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **S06 answers (owner, 2026-11-02):** `/play/boards`; guests show as "Guest" plus 4 digits; the top 50 of the current period with your own row pinned; current and previous periods only.
 - **Full check:** web 1131 pass; infra timed out under load (76 pass alone).
   - Python: 1209 pass outside `check.sh`. Two tests expect the placeholder budget; `check.sh` sets the owner's 30-cent cap aside for them, and the cap is still 30.
+
+### 2026-11-02 — P3-W14-S06 (boards on Play; §6.7, wireframe 15)
+
+- **Owner (2026-11-02):**
+  - the boards are on `/play/boards`, linked from Play;
+  - a guest shows as "Guest" plus 4 digits;
+  - the top 50 of the current or previous period, with your own row always visible;
+  - usernames only.
+- **`server/boards.ts`:**
+  - `boardName` matches S01's SQL: UTC day, ISO week in UTC. Tests cover 2020-W53, 2026-W53, 2027-W01 and 2026-W01 starting on 2025-12-29;
+  - `guestLabel` is FNV-1a, 4 digits.
+- **Ports:**
+  - `Leaderboards.size` and `universityCount` give the percentile;
+  - `Usernames.labels` returns the username or none, plus the guest flag. It never returns names or emails, and unknown ids are left out (the fake too);
+  - `PlayerUniversities.names`.
+- **Page:**
+  - one chip row (game | board | when), with `aria-current`;
+  - global, country and university boards, friends (`among`, top 50), and universities (by average);
+  - your own row is pinned and sticky, with `#rank · top N%`, on every board, and highlighted in the list;
+  - "not on this board yet" prompts, and links to Profile for a missing country, university or follows;
+  - guests get global and universities only;
+  - the unit is shown above the list;
+  - `<ul>`, because tied ranks would clash with an `<ol>`'s own numbers.
+- **Reviewer, fixed:**
+  - your row was pinned only outside the top 50, and at the list's end;
+  - friends wasn't capped;
+  - the universities board said nothing when your university was missing or unscored;
+  - three chip rows where the wireframe has one;
+  - the fake `labels` returned unknown ids;
+  - the percentile wasn't clamped;
+  - an `<ol>` with tied ranks;
+  - the unit was screen-reader only;
+  - an invented "A university" name.
+  - Tests were added for each of these.
+- **Also in this commit (owner, 2026-11-02):**
+  - reserved usernames (admin, interval, support, …, guest, player) are refused at `/username`;
+  - ADR-0033, the game server's shape, was drafted and accepted (option A);
+  - `coder/websocket` is approved as the Go WebSocket library.
+- **Not done:** the browser check in light and dark. Chrome is off; ask the owner.
+- **Full check:** web 1169, Python 1274 and infra 76, all pass.

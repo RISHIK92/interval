@@ -157,6 +157,15 @@ export function kyselyPlayerUniversities(db: Kysely<DB>): PlayerUniversities {
         (trx) => named(trx, name),
       ),
 
+    names: async (ids) =>
+      ids.length === 0
+        ? []
+        : db
+            .selectFrom("university")
+            .select(columns)
+            .where("id", "in", ids)
+            .execute(),
+
     remove: (userId) =>
       inTransaction(db, async (trx) => {
         const row = await current(trx, userId, true);
@@ -257,6 +266,8 @@ export function memoryPlayerUniversities(
         },
         named(name),
       ),
+    names: (ids) =>
+      Promise.resolve(universities.filter((u) => ids.includes(u.id))),
     remove: (userId) => {
       const row = players.get(userId);
       const previous = byId(row?.universityId) ?? null;
