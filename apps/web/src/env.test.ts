@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { parseEnv, parseFilesEnv, parseGitHubEnv } from "./env";
+import { parseEnv, parseFilesEnv, parseGameEnv, parseGitHubEnv } from "./env";
 
 const valid = {
   DATABASE_URL: "postgres://user:s3cret@localhost:5432/interval",
@@ -196,5 +196,24 @@ describe("parseGitHubEnv (P2-W12-S01)", () => {
     expect(() =>
       parseGitHubEnv({ ...app, GITHUB_APP_SLUG: "has spaces" }),
     ).toThrow(/GITHUB_APP_SLUG/);
+  });
+});
+
+// P3-W15-S02 (ADR-0033): the match ticket secret, shared with the game server. Optional:
+// without it, live games aren't offered.
+describe("game ticket secret", () => {
+  test("absent: no live games", () => {
+    expect(parseGameEnv({})).toBeNull();
+    expect(parseGameEnv({ GAME_TICKET_SECRET: "" })).toBeNull();
+  });
+
+  test("present: at least 32 characters", () => {
+    const secret = "0123456789abcdef0123456789abcdef";
+    expect(parseGameEnv({ GAME_TICKET_SECRET: secret })).toEqual({
+      GAME_TICKET_SECRET: secret,
+    });
+    expect(() => parseGameEnv({ GAME_TICKET_SECRET: "short" })).toThrow(
+      /GAME_TICKET_SECRET/,
+    );
   });
 });

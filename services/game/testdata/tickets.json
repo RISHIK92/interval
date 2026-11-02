@@ -1,0 +1,66 @@
+{
+  "$comment": "Match tickets (ADR-0033, P3-W15-S02): the web app signs (apps/web/src/server/tickets.ts) and the game server checks (services/game/ticket.go); both test suites read this file. Not a real secret.",
+  "secret": "fixture-secret-0123456789abcdefghijklmnop",
+  "now": 1793620800,
+  "server": "0",
+  "claims": {
+    "m": "6f1c2b8e-3d4a-4e5f-9a0b-1c2d3e4f5a6b",
+    "u": "user-1",
+    "s": "0",
+    "e": 1793620860,
+    "n": "nonce-1"
+  },
+  "valid": "v1.eyJtIjoiNmYxYzJiOGUtM2Q0YS00ZTVmLTlhMGItMWMyZDNlNGY1YTZiIiwidSI6InVzZXItMSIsInMiOiIwIiwiZSI6MTc5MzYyMDg2MCwibiI6Im5vbmNlLTEifQ.KwEFaCoHtO9uEHWWD-dShr1bi4N9my32uZezwzv6obE",
+  "refused": [
+    {
+      "why": "expired",
+      "ticket": "v1.eyJtIjoiNmYxYzJiOGUtM2Q0YS00ZTVmLTlhMGItMWMyZDNlNGY1YTZiIiwidSI6InVzZXItMSIsInMiOiIwIiwiZSI6MTc5MzYyMDc5OSwibiI6Im5vbmNlLTIifQ.7RNAd3bwfWu25sC3xmY5M_HApnrzuf6rOBut3KqfJbw",
+      "kind": "expired"
+    },
+    {
+      "why": "expires exactly now",
+      "ticket": "v1.eyJtIjoiNmYxYzJiOGUtM2Q0YS00ZTVmLTlhMGItMWMyZDNlNGY1YTZiIiwidSI6InVzZXItMSIsInMiOiIwIiwiZSI6MTc5MzYyMDgwMCwibiI6Im5vbmNlLTMifQ.6_xVLz6xyihBRqJWDy8yQ7pv71BG1DFfaHLyw9NXCVA",
+      "kind": "expired"
+    },
+    {
+      "why": "signed with another secret",
+      "ticket": "v1.eyJtIjoiNmYxYzJiOGUtM2Q0YS00ZTVmLTlhMGItMWMyZDNlNGY1YTZiIiwidSI6InVzZXItMSIsInMiOiIwIiwiZSI6MTc5MzYyMDg2MCwibiI6Im5vbmNlLTEifQ.iCuVJo6XRcAp38v61l15sXRlyQatd-Ao5LfyUMUOxzY",
+      "kind": "signature"
+    },
+    {
+      "why": "claims changed after signing",
+      "ticket": "v1.eyJtIjoiNmYxYzJiOGUtM2Q0YS00ZTVmLTlhMGItMWMyZDNlNGY1YTZiIiwidSI6InVzZXItMiIsInMiOiIwIiwiZSI6MTc5MzYyMDg2MCwibiI6Im5vbmNlLTEifQ.KwEFaCoHtO9uEHWWD-dShr1bi4N9my32uZezwzv6obE",
+      "kind": "signature"
+    },
+    {
+      "why": "for another server",
+      "ticket": "v1.eyJtIjoiNmYxYzJiOGUtM2Q0YS00ZTVmLTlhMGItMWMyZDNlNGY1YTZiIiwidSI6InVzZXItMSIsInMiOiIxIiwiZSI6MTc5MzYyMDg2MCwibiI6Im5vbmNlLTQifQ.VgkdZxvwIEHrxkav2rLHG0S8EV7Hj_nhT2O7_JiqsSw",
+      "kind": "server"
+    },
+    {
+      "why": "another version",
+      "ticket": "v2.eyJtIjoiNmYxYzJiOGUtM2Q0YS00ZTVmLTlhMGItMWMyZDNlNGY1YTZiIiwidSI6InVzZXItMSIsInMiOiIwIiwiZSI6MTc5MzYyMDg2MCwibiI6Im5vbmNlLTEifQ.TOCcFecrvTgKtr7MTaQD_gD_lFGjyrFBhmFyWzhnHDs",
+      "kind": "malformed"
+    },
+    {
+      "why": "not three parts",
+      "ticket": "v1.abc",
+      "kind": "malformed"
+    },
+    {
+      "why": "not JSON",
+      "ticket": "v1.bm90IGpzb24.2v908XRF6x7P0h6XPAWv1x3h9cx6bDiq71JpnGHogbY",
+      "kind": "malformed"
+    },
+    {
+      "why": "a claim missing",
+      "ticket": "v1.eyJtIjoiNmYxYzJiOGUtM2Q0YS00ZTVmLTlhMGItMWMyZDNlNGY1YTZiIiwidSI6InVzZXItMSIsInMiOiIwIiwiZSI6MTc5MzYyMDg2MH0.I9AUtr-lNfA_Gdp1DuQcEcRDXe7hZI3zHuEocWViSWk",
+      "kind": "malformed"
+    },
+    {
+      "why": "empty",
+      "ticket": "",
+      "kind": "malformed"
+    }
+  ]
+}

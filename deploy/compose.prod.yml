@@ -1,6 +1,6 @@
 # VM deployment mode (ADR-0011): one compose file runs the whole stack on the VM.
 # Secrets arrive only through env files in /run (tmpfs) written by deploy/bin/write-env.sh,
-# one per need: app.env (web, jobs, migrate), postgres.env, caddy.env.
+# one per need: app.env (web, jobs, migrate), postgres.env, caddy.env, game.env.
 # Only Caddy publishes ports. Valkey here and on AWS (ADR-0014).
 # A project name distinct from the dev docker-compose.yml (project `interval`).
 name: interval-vm
@@ -122,6 +122,7 @@ services:
   game:
     <<: *logging
     build: ../services/game
+    env_file: ${ENV_DIR:-/run/interval}/game.env  # the ticket secret only
     environment:
       GAME_SERVER_ID: "0"
     healthcheck:

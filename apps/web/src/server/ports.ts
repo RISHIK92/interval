@@ -674,6 +674,14 @@ export interface Leaderboards {
   invalidate(userId: string, former?: BoardScope[]): Promise<void>;
 }
 
+// P3-W15-S02 (ADR-0033; owner, 2026-11-02): live matches and their players, accounts or
+// guests. Matchmaking (W16) creates them; until then `pnpm game:match` does.
+export interface Matches {
+  // The game server that owns the match, when the player is in it; null otherwise (no
+  // such match, or not theirs).
+  serverFor(matchId: string, userId: string): Promise<number | null>;
+}
+
 // P3-W14-S05 (§6.7, Q-P3-11; owner, 2026-11-02): every account's username, chosen once
 // and never changed, shown on boards in place of its name. `username` is checked by
 // usernameOf (server/usernames.ts).

@@ -18,6 +18,7 @@ SECRETS = {
     "interval/prod/github-app-client-secret": "ghSecret111",
     "interval/prod/github-app-id": "123456",
     "interval/prod/github-app-private-key": "LS0tLS1CRUdJTi+/key==",
+    "interval/prod/game-ticket": "gameTicket222",
 }
 
 
@@ -77,13 +78,13 @@ def parse(path: Path) -> dict[str, str]:
     )
 
 
-def test_writes_three_env_files_each_with_only_its_keys_and_mode_600(
+def test_writes_four_env_files_each_with_only_its_keys_and_mode_600(
     tmp_path: Path,
 ) -> None:
     result = run(tmp_path, fake_aws(tmp_path))
     assert result.returncode == 0, result.stderr
     out = tmp_path / "out"
-    for name in ("app.env", "postgres.env", "caddy.env"):
+    for name in ("app.env", "postgres.env", "caddy.env", "game.env"):
         assert stat.S_IMODE((out / name).stat().st_mode) == 0o600
     assert parse(out / "app.env") == {
         "NODE_ENV": "production",
@@ -107,12 +108,16 @@ def test_writes_three_env_files_each_with_only_its_keys_and_mode_600(
         "GITHUB_APP_CLIENT_SECRET": "ghSecret111",
         "GITHUB_APP_ID": "123456",
         "GITHUB_APP_PRIVATE_KEY": "LS0tLS1CRUdJTi+/key==",
+        "GAME_TICKET_SECRET": "gameTicket222",
     }
     assert parse(out / "postgres.env") == {"POSTGRES_PASSWORD": "pgSecret123"}
     assert parse(out / "caddy.env") == {"SITE_ADDRESS": ":80"}
+    # P3-W15-S02 (ADR-0033): the game server's, its one secret alone.
+    assert parse(out / "game.env") == {"GAME_TICKET_SECRET": "gameTicket222"}
     assert sorted(p.name for p in out.iterdir()) == [
         "app.env",
         "caddy.env",
+        "game.env",
         "postgres.env",
     ]
 

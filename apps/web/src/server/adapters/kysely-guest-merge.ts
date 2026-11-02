@@ -97,6 +97,12 @@ export async function mergeGuest(
     from question_flag where user_id = ${guestId}
     on conflict do nothing`.execute(trx);
 
+  // P3-W15-S02: its live matches; one both were in already has the account.
+  await sql`
+    insert into game_match_player (match_id, user_id)
+    select match_id, ${accountId} from game_match_player where user_id = ${guestId}
+    on conflict do nothing`.execute(trx);
+
   await trx.deleteFrom("app_user").where("id", "=", guestId).execute();
   return true;
 }

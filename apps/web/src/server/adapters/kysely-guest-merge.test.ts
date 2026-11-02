@@ -330,6 +330,40 @@ test("mastery and review cards keep the further one; flags are joined", async ()
   });
 });
 
+// P3-W15-S02: a guest's live matches move with it; one both were in keeps one player.
+test("the guest's matches move to the account", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    const match = async (players: string[]) => {
+      const { id } = await trx
+        .insertInto("game_match")
+        .values({ server_id: 0 })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await trx
+        .insertInto("game_match_player")
+        .values(players.map((user_id) => ({ match_id: id, user_id })))
+        .execute();
+      return id;
+    };
+    const alone = await match([guest]);
+    const both = await match([guest, account]);
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    const players = await trx
+      .selectFrom("game_match_player")
+      .select(["match_id", "user_id"])
+      .where("match_id", "in", [alone, both])
+      .orderBy("match_id")
+      .execute();
+    expect(players).toEqual(
+      expect.arrayContaining([
+        { match_id: alone, user_id: account },
+        { match_id: both, user_id: account },
+      ]),
+    );
+    expect(players).toHaveLength(2);
+  });
+});
+
 test("merging again, or merging a non-guest, changes nothing", async () => {
   await inRollback(async (trx, { guest, account, questions }) => {
     const played = await dailyPlayed(trx, guest, 3, questions, 2);

@@ -334,6 +334,17 @@ class Follow(TypedDict):
     created_at: datetime
 
 
+class GameMatch(TypedDict):
+    id: UUID
+    server_id: int
+    created_at: datetime
+
+
+class GameMatchPlayer(TypedDict):
+    match_id: UUID
+    user_id: str
+
+
 class GithubAccount(TypedDict):
     user_id: str
     github_user_id: int

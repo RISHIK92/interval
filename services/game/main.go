@@ -40,14 +40,19 @@ func main() {
 	}
 }
 
-// Serves until ctx ends, then lets requests in flight finish for up to shutdownGrace.
-// Shutdown doesn't wait for hijacked connections: the match sockets (P3-W15-S03) drain
-// through RegisterOnShutdown or the match actor.
+// Serves until ctx ends, then lets requests in flight finish for up to shutdownGrace;
+// open match sockets are closed with "going away" (players reconnect, P3-W15-S04).
 func run(ctx context.Context, cfg config, logs io.Writer) error {
+	return runAt(ctx, cfg, logs, time.Now)
+}
+
+// run on a given clock, which tickets are checked against.
+func runAt(ctx context.Context, cfg config, logs io.Writer, now func() time.Time) error {
 	log := slog.New(slog.NewJSONHandler(logs, nil)).With("server", cfg.serverID)
+	sockets := newMatchSockets()
 	server := &http.Server{
 		Addr:              ":" + strconv.Itoa(cfg.port),
-		Handler:           newHandler(),
+		Handler:           newHandler(cfg, sockets, now),
 		ReadHeaderTimeout: 5 * time.Second,
 		IdleTimeout:       120 * time.Second,
 	}
@@ -66,7 +71,11 @@ func run(ctx context.Context, cfg config, logs io.Writer) error {
 	}
 	shutdown, cancel := context.WithTimeout(context.Background(), shutdownGrace)
 	defer cancel()
-	if err := server.Shutdown(shutdown); err != nil {
+	err = server.Shutdown(shutdown)
+	// Shutdown doesn't wait for hijacked connections: the match sockets are closed here,
+	// before run returns, so players get "going away" rather than a dropped line.
+	sockets.closeAll()
+	if err != nil {
 		return fmt.Errorf("shutdown: %w", err)
 	}
 	if err := <-served; !errors.Is(err, http.ErrServerClosed) {

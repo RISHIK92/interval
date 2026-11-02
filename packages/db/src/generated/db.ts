@@ -359,6 +359,17 @@ export interface Follow {
   follower_id: string;
 }
 
+export interface GameMatch {
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  server_id: number;
+}
+
+export interface GameMatchPlayer {
+  match_id: string;
+  user_id: string;
+}
+
 export interface GithubAccount {
   connected_at: Generated<Timestamp>;
   github_user_id: Int8;
@@ -1052,6 +1063,8 @@ export interface DB {
   feed_note: FeedNote;
   fetch_validator: FetchValidator;
   follow: Follow;
+  game_match: GameMatch;
+  game_match_player: GameMatchPlayer;
   github_account: GithubAccount;
   github_dependency: GithubDependency;
   github_dependency_technology: GithubDependencyTechnology;

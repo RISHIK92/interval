@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # VM mode (ADR-0011): turns Secrets Manager values into env files for compose, one per
-# need: app.env (web, jobs, migrate), postgres.env, caddy.env. The files live in /run
+# need: app.env (web, jobs, migrate), postgres.env, caddy.env, game.env. The files live in /run
 # (tmpfs). Docker itself keeps each container's environment in its root-only state on
 # the encrypted root disk, so never paste `docker inspect` or `compose config` output.
 # Writes nothing if any read or check fails.
@@ -38,6 +38,8 @@ github_client_secret="$(secret interval/prod/github-app-client-secret)"
 # are safe in an env file; nothing else beyond the usual characters is accepted).
 github_app_id="$(secret interval/prod/github-app-id)"
 github_private_key="$(secret interval/prod/github-app-private-key b64)"
+# P3-W15-S02 (ADR-0033): match tickets; the web app signs, the game server checks.
+game_ticket="$(secret interval/prod/game-ticket)"
 
 site_address="$(read_setting site-address)"
 site_address="${site_address:-:80}"
@@ -106,12 +108,15 @@ GITHUB_APP_CLIENT_ID=${github_client_id}
 GITHUB_APP_CLIENT_SECRET=${github_client_secret}
 GITHUB_APP_ID=${github_app_id}
 GITHUB_APP_PRIVATE_KEY=${github_private_key}
+GAME_TICKET_SECRET=${game_ticket}
 ENV
 printf 'POSTGRES_PASSWORD=%s\n' "$postgres_password" > "$tmp/postgres.env"
 printf 'SITE_ADDRESS=%s\n' "$site_address" > "$tmp/caddy.env"
+# The game server gets its one secret and nothing else (it never reads the database).
+printf 'GAME_TICKET_SECRET=%s\n' "$game_ticket" > "$tmp/game.env"
 
-# Rename into place only after all three are written.
-for f in app.env postgres.env caddy.env; do
+# Rename into place only after all four are written.
+for f in app.env postgres.env caddy.env game.env; do
   chmod 600 "$tmp/$f"
   mv "$tmp/$f" "$ENV_DIR/$f"
 done

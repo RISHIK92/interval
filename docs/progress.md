@@ -2744,3 +2744,43 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - Noted for S03: `Shutdown` doesn't drain hijacked sockets.
 - **For the owner:** a Go toolchain is now needed locally (`brew install go`, or `brew upgrade go` for 1.27). Suggested CLAUDE.md Setup and Commands lines are in the session summary.
 - **Full check:** Go, web 1169, Python 1274 and infra 81, all pass.
+
+### 2026-11-02 — P3-W15-S02 (joining a match; LOAD-2, OPS-1, ADR-0033)
+
+- **Owner (2026-11-02):** a small match record now, tickets only for a player of the match, a dev script to make one, and accounts and guests both join.
+- **Ticket:** `v1.<b64url JSON {m,u,s,e,n}>.<b64url HMAC-SHA256>`. `services/game/testdata/tickets.json` pins it for both sides: TS signs the fixture ticket byte for byte, and Go refuses every bad case (expired, at the second it expires, signature, changed claims, other server, version, malformed, missing claim, oversized).
+- **Web:**
+  - `server/tickets.ts`, a 60 s lifetime;
+  - `GAME_TICKET_SECRET` is optional in `env.ts` (32 characters or more). Without it the route answers 503, live games not offered, like the GitHub App;
+  - the `Matches.serverFor` port and adapter, with one contract;
+  - `POST /api/game/ticket`: same origin, a session (guests too), a zod uuid. It returns 404 when the player isn't in the match, and otherwise `{url}`, no-store, with a fresh nonce;
+  - `play/live/join.ts`, `openMatch`, checks the answer and opens `wss` or `ws` on the same site only;
+  - the guest merge moves match rows to the account.
+- **Migration:** `game_match` and `game_match_player`, with the player index.
+- **`pnpm game:match <userId…>`:** local databases only; it writes the match rows directly, because Node can't load `src/` as is.
+- **Go:**
+  - `verify` uses `hmac.Equal`, caps tickets at 1 KB and allows no clock skew (NTP; a comment says why);
+  - single use through an in-memory nonce set, kept until each ticket's expiry (shortcut comment: Valkey if tickets ever live longer);
+  - `GET /game/{server}/ws`: another server is 404; a bad, used or expired ticket is 401 before the upgrade;
+  - it accepts with `coder/websocket` v1.8.15 (no origin check: the ticket is the authority, and CloudFront's Host is the ALB's), sends `{"type":"joined"}` and holds the socket;
+  - shutdown closes every socket with "going away" before `run` returns, and a late join is closed at once. A test goes through `run`.
+- **Secrets:**
+  - AWS: `interval/aws/game-ticket` goes to the web task and to the game task (its one secret);
+  - VM: `interval/prod/game-ticket` (VM CDK), and `write-env.sh` writes it to `app.env` and, alone, to `game.env`; compose wires `game.env`;
+  - `.env.example` and the runbook are updated.
+- **Checked end to end:** a real Go server, a ticket signed by `signTicket`, and Node's WebSocket. It joins, and the same ticket again is refused (401, "used").
+- **Reviewer, fixed:**
+  - shutdown didn't wait to send "going away";
+  - a fail-open path on non-ticket errors;
+  - a warning on every request without the secret;
+  - an unchecked ticket answer in the browser;
+  - `Matches.create` existed only for tests (the SQL lived in two places).
+  - Q-P3-21 was added: a guest who signs up mid-match (before S03).
+- **For S03 and later:**
+  - the 25 s server ping (the ALB idle timeout is 120 s);
+  - the purge cost of the nonce map at high join rates;
+  - a finished state on `game_match` (W16);
+  - redacting `ticket` if access logs are ever turned on;
+  - the local dev server on 3100 doesn't proxy `/game/*`, so locally a socket goes straight to the Go server's port.
+- **Also:** a 9 MB Go binary committed by mistake in S01 is now untracked and ignored. It stays in history, because removing it would need a force-push.
+- **Full check:** Go, web 1187, Python 1276 and infra 81, all pass.

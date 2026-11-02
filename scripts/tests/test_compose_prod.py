@@ -11,12 +11,13 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 COMPOSE = ROOT / "deploy" / "compose.prod.yml"
-LONG_RUNNING = {"postgres", "valkey", "seaweedfs", "web", "caddy", "worker"}
+LONG_RUNNING = {"postgres", "valkey", "seaweedfs", "web", "caddy", "worker", "game"}
 SECRET_KEYS = {
     "POSTGRES_PASSWORD",
     "BETTER_AUTH_SECRET",
     "OPENROUTER_API_KEY",
     "VOYAGE_API_KEY",
+    "GAME_TICKET_SECRET",
 }
 
 
@@ -25,7 +26,7 @@ def config(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
     env_dir = tmp_path_factory.mktemp("env")
     # Compose inlines env files into `environment`, so each gets a marker key. The
     # dummy files hold no secret keys: any secret key in the output was set inline.
-    for name in ("app", "postgres", "caddy"):
+    for name in ("app", "postgres", "caddy", "game"):
         (env_dir / f"{name}.env").write_text(f"MARKER_{name}=1\n", encoding="utf-8")
     result = subprocess.run(
         [
@@ -149,6 +150,8 @@ def test_each_service_gets_only_its_env_file(config: dict[str, Any]) -> None:
 
     assert markers("postgres") == {"postgres"}
     assert markers("caddy") == {"caddy"}
+    # P3-W15-S02 (ADR-0033): the game server gets its ticket secret and nothing else.
+    assert markers("game") == {"game"}
     for name in ("web", "jobs", "worker", "migrate"):
         assert markers(name) == {"app"}
     for name in ("valkey", "seaweedfs"):

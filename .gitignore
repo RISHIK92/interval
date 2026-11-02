@@ -46,3 +46,6 @@ Thumbs.db
 
 # Owner-provided originals; the committed copies live in docs/_source/
 interval-sources/
+
+# The game server binary from a local `go build` (P3-W15-S01).
+/services/game/game

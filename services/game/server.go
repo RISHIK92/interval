@@ -1,15 +1,116 @@
 package main
 
-import "net/http"
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"sync"
+	"time"
 
-// P3-W15-S01: only the health check so far; the match socket (/game/<id>/ws) comes
-// with tickets and the match actor (P3-W15-S02, S03).
-func newHandler() http.Handler {
+	"github.com/coder/websocket"
+)
+
+// The open match sockets, so a shutdown can close them (http.Server.Shutdown doesn't
+// wait for hijacked connections).
+type matchSockets struct {
+	mu      sync.Mutex
+	conns   map[*websocket.Conn]struct{}
+	closing bool // once closeAll has run, a socket that joins late is closed at once
+}
+
+func newMatchSockets() *matchSockets {
+	return &matchSockets{conns: map[*websocket.Conn]struct{}{}}
+}
+
+// False when the server is already closing its sockets.
+func (s *matchSockets) add(c *websocket.Conn) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closing {
+		return false
+	}
+	s.conns[c] = struct{}{}
+	return true
+}
+
+func (s *matchSockets) remove(c *websocket.Conn) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	delete(s.conns, c)
+}
+
+func (s *matchSockets) closeAll() {
+	s.mu.Lock()
+	s.closing = true
+	open := make([]*websocket.Conn, 0, len(s.conns))
+	for c := range s.conns {
+		open = append(open, c)
+	}
+	s.mu.Unlock()
+	// At once: each Close waits for its player's reply (up to 5 s), so one at a time
+	// would hold a shutdown for seconds per player.
+	var closing sync.WaitGroup
+	for _, c := range open {
+		closing.Add(1)
+		go func() {
+			defer closing.Done()
+			_ = c.Close(websocket.StatusGoingAway, "server shutting down")
+		}()
+	}
+	closing.Wait()
+}
+
+func newHandler(cfg config, sockets *matchSockets, now func() time.Time) http.Handler {
+	used := newUsedNonces()
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Cache-Control", "no-store")
 		_, _ = w.Write([]byte("{\"status\":\"ok\"}\n"))
+	})
+	// P3-W15-S02 (ADR-0033): a player joins a match this server owns with a ticket. Its
+	// rounds come with the match actor (P3-W15-S03).
+	mux.HandleFunc("GET /game/{server}/ws", func(w http.ResponseWriter, r *http.Request) {
+		if r.PathValue("server") != cfg.serverID {
+			http.NotFound(w, r)
+			return
+		}
+		at := now()
+		ticket, err := verify(r.URL.Query().Get("ticket"), cfg.ticketSecret, cfg.serverID, at)
+		if err != nil {
+			reason := "ticket refused"
+			var refused *ticketError
+			if errors.As(err, &refused) {
+				reason = refused.Error()
+			}
+			http.Error(w, reason, http.StatusUnauthorized)
+			return
+		}
+		if !used.claim(ticket.N, ticket.E, at) {
+			http.Error(w, "ticket refused: used", http.StatusUnauthorized)
+			return
+		}
+		// No origin check: the single-use ticket is the authorisation, not a cookie, so a
+		// cross-site page gains nothing; and behind CloudFront the Host is the ALB's.
+		conn, err := websocket.Accept(w, r, &websocket.AcceptOptions{InsecureSkipVerify: true})
+		if err != nil {
+			return // Accept has already answered the request
+		}
+		if !sockets.add(conn) {
+			_ = conn.Close(websocket.StatusGoingAway, "server shutting down")
+			return
+		}
+		defer sockets.remove(conn)
+		joined, _ := json.Marshal(map[string]string{"type": "joined", "match": ticket.M})
+		write, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		err = conn.Write(write, websocket.MessageText, joined)
+		cancel()
+		if err != nil {
+			return
+		}
+		// Until the player leaves or the server stops; nothing is read yet.
+		<-conn.CloseRead(r.Context()).Done()
 	})
 	return mux
 }

@@ -147,3 +147,28 @@ export function githubEnv(): GitHubEnv | null {
   if (cachedGitHub === undefined) cachedGitHub = parseGitHubEnv(process.env);
   return cachedGitHub;
 }
+
+// P3-W15-S02 (ADR-0033): the secret match tickets are signed with, shared with the game
+// server. Optional: without it, live games aren't offered (the ticket route says so).
+const game = z.object({ GAME_TICKET_SECRET: z.string().min(32) });
+
+export type GameEnv = z.infer<typeof game>;
+
+export function parseGameEnv(
+  source: Record<string, string | undefined>,
+): GameEnv | null {
+  if (!source["GAME_TICKET_SECRET"]) return null;
+  const result = game.safeParse(source);
+  if (!result.success)
+    throw new Error(
+      "Invalid GAME_TICKET_SECRET: it must be at least 32 characters",
+    );
+  return result.data;
+}
+
+let cachedGame: GameEnv | null | undefined;
+
+export function gameEnv(): GameEnv | null {
+  if (cachedGame === undefined) cachedGame = parseGameEnv(process.env);
+  return cachedGame;
+}

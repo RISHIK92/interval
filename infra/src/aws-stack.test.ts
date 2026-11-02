@@ -271,10 +271,13 @@ describe("game server (ADR-0033)", () => {
     return found;
   };
 
-  test("one ARM64 task runs server 0 on port 8080, with no secrets", () => {
+  test("one ARM64 task runs server 0 on port 8080, with the ticket secret only", () => {
     const game = container();
     expect(game?.Environment).toEqual([{ Name: "GAME_SERVER_ID", Value: "0" }]);
-    expect(game?.Secrets).toBeUndefined();
+    // P3-W15-S02: it checks match tickets; it reads nothing else, least of all the database.
+    expect(
+      (game?.Secrets as { Name: string }[] | undefined)?.map((s) => s.Name),
+    ).toEqual(["GAME_TICKET_SECRET"]);
     expect(game?.PortMappings).toEqual([
       expect.objectContaining({ ContainerPort: 8080 }),
     ]);
@@ -398,9 +401,11 @@ describe("containers", () => {
           expect(c.Environment).toBeUndefined();
           continue;
         }
-        // The game server (ADR-0033) never reads the database: no secrets yet.
+        // The game server (ADR-0033) never reads the database: the ticket secret only.
         if (c.Name === "game") {
-          expect(c.Secrets).toBeUndefined();
+          expect((c.Secrets ?? []).map((s) => s.Name)).toEqual([
+            "GAME_TICKET_SECRET",
+          ]);
           continue;
         }
         const names = (c.Environment ?? []).map((e) => e.Name);
@@ -436,6 +441,10 @@ describe("containers", () => {
     ).toBe("2");
     expect((web?.Secrets ?? []).map((s) => s.Name)).toContain(
       "BETTER_AUTH_SECRET",
+    );
+    // P3-W15-S02 (ADR-0033): it signs match tickets.
+    expect((web?.Secrets ?? []).map((s) => s.Name)).toContain(
+      "GAME_TICKET_SECRET",
     );
     // P2-W12-S01 (ADR-0024): the GitHub App's, for the web app only.
     expect((web?.Secrets ?? []).map((s) => s.Name)).toEqual(

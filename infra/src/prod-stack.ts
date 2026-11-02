@@ -60,6 +60,8 @@ export const SECRET_NAMES = [
   // S02: the worker's App id and private key (base64 PEM).
   "interval/prod/github-app-id",
   "interval/prod/github-app-private-key",
+  // P3-W15-S02 (ADR-0033): match tickets, shared by the web app and the game server.
+  "interval/prod/game-ticket",
 ];
 
 export class ProdStack extends Stack {

@@ -324,6 +324,8 @@ export class AwsStack extends Stack {
     // S02: the App's id and private key, for the worker's reads (base64 PEM for the key).
     const githubAppId = appSecret("interval/aws/github-app-id");
     const githubPrivateKey = appSecret("interval/aws/github-app-private-key");
+    // P3-W15-S02 (ADR-0033): match tickets, signed by the web app, checked by the game.
+    const gameTicket = appSecret("interval/aws/game-ticket");
 
     const cluster = new ecs.Cluster(this, "Cluster", { vpc });
     const logGroup = new logs.LogGroup(this, "Logs", {
@@ -501,6 +503,7 @@ export class AwsStack extends Stack {
         GITHUB_APP_CLIENT_ID: ecs.Secret.fromSecretsManager(githubClientId),
         GITHUB_APP_CLIENT_SECRET:
           ecs.Secret.fromSecretsManager(githubClientSecret),
+        GAME_TICKET_SECRET: ecs.Secret.fromSecretsManager(gameTicket),
       },
       portMappings: [{ containerPort: 3000 }],
       logging: logging("web"),
@@ -527,7 +530,7 @@ export class AwsStack extends Stack {
       .scaleOnCpuUtilization("Cpu", { targetUtilizationPercent: 60 });
 
     // P3-W15-S01 (ADR-0033, LOAD-2): game server 0, owner of its matches. Go never reads
-    // the database, so it gets no secrets. More capacity is another numbered service with
+    // the database: its one secret checks match tickets. More capacity is another numbered service with
     // its own listener rule, not autoscaling: a match's socket must reach its owner.
     const gameTask = new ecs.FargateTaskDefinition(this, "Game0Task", {
       cpu: 256,
@@ -543,6 +546,9 @@ export class AwsStack extends Stack {
         { platform: Platform.LINUX_ARM64 },
       ),
       environment: { GAME_SERVER_ID: "0" },
+      secrets: {
+        GAME_TICKET_SECRET: ecs.Secret.fromSecretsManager(gameTicket),
+      },
       portMappings: [{ containerPort: 8080 }],
       logging: logging("game"),
     });

@@ -11,6 +11,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: ARCH-1 (deployables added in the phase that needs them), ARCH-2 (Go: game server), LOAD-2 (match actors behind an ALB with WebSockets), ADR-0011 (two modes from the same code), ADR-0013.
 - Why it matters: it's the first Go code and a new deployable. With several game servers, a player's socket must reach the server that owns their match.
 - **Answer (owner, 2026-10-31):** the suggested default: a signed match ticket names the owning server; one game server behind Caddy in VM mode; Go never reads the auth database. Written up as an ADR before W15-S01.
+- **Follow-up (owner, 2026-11-02):** ADR-0033 ACCEPTED. For W15-S02, before matchmaking exists: a small match record (`game_match` and `game_match_player`). The web app issues a ticket only for a match the player is in, and a dev-only script creates a test match; W16 matchmaking writes the same rows. Accounts and guests both join live matches (ADR-0029).
 - Suggested default: an ADR before W15-S01. One Go service in `services/game`. The match ticket names the owning server; in AWS the ALB routes by a path or header the ticket carries; in VM mode one game server behind Caddy. The web app signs tickets with a shared secret (W15-S02); Go never touches the auth database.
 
 ### Q-P3-02 Which worker computes ratings (P0 for Week 16)
@@ -102,6 +103,12 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 ## Week 15
 
+
+### Q-P3-21 A guest who signs up during a live match (P1, before W15-S03)
+
+- Cite: ADR-0029 (guests play live; merged on sign-up), ADR-0033 (tickets carry the user id), MATCH-6 (a 10-second reconnect grace period).
+- Why it matters: since P3-W15-S02, merging a guest moves its match rows to the account. But the open socket and any ticket already issued carry the guest's id. Once the match actor tracks players by that id (S03), a player who signs up mid-match would come back as someone else, and if the account was in the same match, the two become one player.
+- Suggested default: signing up mid-match is allowed. The match plays on under the guest's id, and its result is written to the account when it finishes (S05 maps the guest's id to the account). A reconnect after sign-up gets a ticket for the account, which the actor treats as the same player.
 ### Q-P3-12 Abandon penalties (P1)
 
 - Cite: MATCH-6 ("abandon penalties").

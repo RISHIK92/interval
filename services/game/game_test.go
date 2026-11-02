@@ -20,14 +20,14 @@ func env(values map[string]string) func(string) string {
 }
 
 func TestConfigFromEnv(t *testing.T) {
-	cfg, err := loadConfig(env(map[string]string{"GAME_SERVER_ID": "0"}))
+	cfg, err := loadConfig(env(map[string]string{"GAME_SERVER_ID": "0", "GAME_TICKET_SECRET": "0123456789abcdef0123456789abcdef"}))
 	if err != nil {
 		t.Fatalf("loadConfig: %v", err)
 	}
 	if cfg.serverID != "0" || cfg.port != 8080 {
 		t.Fatalf("got %+v, want server 0 on 8080", cfg)
 	}
-	cfg, err = loadConfig(env(map[string]string{"GAME_SERVER_ID": "12", "PORT": "9000"}))
+	cfg, err = loadConfig(env(map[string]string{"GAME_SERVER_ID": "12", "PORT": "9000", "GAME_TICKET_SECRET": "0123456789abcdef0123456789abcdef"}))
 	if err != nil || cfg.serverID != "12" || cfg.port != 9000 {
 		t.Fatalf("got %+v, %v; want server 12 on 9000", cfg, err)
 	}
@@ -39,11 +39,12 @@ func TestConfigRefusesWhatItCannotUse(t *testing.T) {
 		names  string
 	}{
 		{map[string]string{}, "GAME_SERVER_ID"},
+		{map[string]string{"GAME_SERVER_ID": "0", "GAME_TICKET_SECRET": "short"}, "GAME_TICKET_SECRET"},
 		{map[string]string{"GAME_SERVER_ID": "a"}, "GAME_SERVER_ID"},
 		{map[string]string{"GAME_SERVER_ID": "-1"}, "GAME_SERVER_ID"},
-		{map[string]string{"GAME_SERVER_ID": "0", "PORT": "x"}, "PORT"},
-		{map[string]string{"GAME_SERVER_ID": "0", "PORT": "0"}, "PORT"},
-		{map[string]string{"GAME_SERVER_ID": "0", "PORT": "70000"}, "PORT"},
+		{map[string]string{"GAME_SERVER_ID": "0", "GAME_TICKET_SECRET": "0123456789abcdef0123456789abcdef", "PORT": "x"}, "PORT"},
+		{map[string]string{"GAME_SERVER_ID": "0", "GAME_TICKET_SECRET": "0123456789abcdef0123456789abcdef", "PORT": "0"}, "PORT"},
+		{map[string]string{"GAME_SERVER_ID": "0", "GAME_TICKET_SECRET": "0123456789abcdef0123456789abcdef", "PORT": "70000"}, "PORT"},
 	} {
 		if _, err := loadConfig(env(tc.values)); err == nil || !strings.Contains(err.Error(), tc.names) {
 			t.Errorf("%v: got %v, want an error naming %s", tc.values, err, tc.names)
@@ -52,7 +53,7 @@ func TestConfigRefusesWhatItCannotUse(t *testing.T) {
 }
 
 func TestHealth(t *testing.T) {
-	handler := newHandler()
+	handler := newHandler(config{serverID: "0"}, newMatchSockets(), time.Now)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 	if rec.Code != http.StatusOK {
@@ -70,7 +71,6 @@ func TestHealth(t *testing.T) {
 
 	for _, req := range []*http.Request{
 		httptest.NewRequest(http.MethodGet, "/", nil),
-		httptest.NewRequest(http.MethodGet, "/game/0/ws", nil),
 		httptest.NewRequest(http.MethodPost, "/healthz", nil),
 	} {
 		rec := httptest.NewRecorder()
@@ -95,7 +95,9 @@ func TestRunServesThenStops(t *testing.T) {
 	port := freePort(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
-	go func() { done <- run(ctx, config{serverID: "0", port: port}, io.Discard) }()
+	go func() {
+		done <- run(ctx, config{serverID: "0", port: port, ticketSecret: []byte("0123456789abcdef0123456789abcdef")}, io.Discard)
+	}()
 
 	url := "http://127.0.0.1:" + strconv.Itoa(port) + "/healthz"
 	deadline := time.Now().Add(5 * time.Second)
