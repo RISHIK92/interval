@@ -2704,3 +2704,43 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `coder/websocket` is approved as the Go WebSocket library.
 - **Not done:** the browser check in light and dark. Chrome is off; ask the owner.
 - **Full check:** web 1169, Python 1274 and infra 76, all pass.
+
+### 2026-11-02 — P3-W15-S01 (game server skeleton; ARCH-1, ARCH-2, LOAD-2, ADR-0011, ADR-0013, ADR-0033)
+
+- **`services/game` (Go, standard library only):**
+  - config from env only: `GAME_SERVER_ID`, a number and required; `PORT`, default 8080. A bad value stops it with a JSON log line;
+  - `GET /healthz` returns `{"status":"ok"}` with `no-store`; everything else is 404;
+  - graceful shutdown on SIGTERM within 10 s;
+  - JSON `slog`;
+  - a `healthcheck` subcommand, because the image has no shell.
+  - Tests cover config, the handler, run-then-stop, and the health check against a live server.
+- **Image:** `golang:1.27.3-alpine` (supported; Go 1.24 isn't) cross-compiles natively onto `distroless/static-debian12:nonroot`, both pinned by digest. It's 8 MB, and was built and run locally for the host and ARM64.
+  - `go.mod` stays at `go 1.24` as the minimum language version, so the owner's local Go 1.24 doesn't download a toolchain on its own.
+- **`pnpm check`:**
+  - `//#format-check:go` fails on unformatted code and on syntax errors;
+  - `//#vet:go` and `//#test:go`.
+  - CI uses `actions/setup-go` v7.0.0, pinned by SHA, with Go 1.27.3.
+- **VM:**
+  - a compose `game` service (`GAME_SERVER_ID=0`, health checked);
+  - Caddy `handle /game/*` proxies to `game:8080`, and everything else goes to the web app. Caddy doesn't wait on the game server, so a broken one can't keep the site down;
+  - the runbook names the service.
+- **AWS:**
+  - `Game0` on Fargate: ARM64, 256 CPU / 512 MB, no secrets, its own security group (8080 from the ALB only; no way into Postgres or Valkey);
+  - never two tasks at once (min 0 / max 100%, 5 s deregistration), so a socket always reaches its owner;
+  - an ALB rule at priority 1 for `/game/0/*` plus the CloudFront header (the web app's rule moves to 10);
+  - ALB idle timeout 120 s;
+  - a CloudFront `/game/*` behaviour, uncached, with an origin policy that forwards only the WebSocket handshake headers, `Origin` and the query: no cookies.
+- **Reviewer, fixed:**
+  - an unsupported Go version;
+  - unpinned images;
+  - the security group shared with the app (which could reach Postgres);
+  - overlapping deploy tasks;
+  - gofmt passing syntax errors;
+  - Caddy waiting on the game server;
+  - every viewer header and cookie forwarded;
+  - the ping comment, now 25 s, under CloudFront's 30 s read timeout;
+  - plain-text startup errors;
+  - an emulated ARM build.
+  - Noted for S03: `Shutdown` doesn't drain hijacked sockets.
+- **For the owner:** a Go toolchain is now needed locally (`brew install go`, or `brew upgrade go` for 1.27). Suggested CLAUDE.md Setup and Commands lines are in the session summary.
+- **Full check:** Go, web 1169, Python 1274 and infra 81, all pass.

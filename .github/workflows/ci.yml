@@ -94,6 +94,13 @@ jobs:
       - name: Install Python dependencies
         run: uv sync --all-packages --locked
 
+      # The game server (ADR-0033): gofmt, vet and tests run inside `pnpm check`.
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          # The image's builder (services/game/Dockerfile); go.mod's 1.24 is the minimum.
+          go-version: "1.27.3"
+          cache: false # no dependencies yet
+
       - name: Install dbmate
         run: |
           curl -fsSL -o /usr/local/bin/dbmate \

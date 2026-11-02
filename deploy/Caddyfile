@@ -1,6 +1,12 @@
 # SITE_ADDRESS is ":80" until a domain points at the VM; a domain name enables
 # automatic HTTPS (deploy/bin/write-env.sh, docs/runbooks/vm.md).
 {$SITE_ADDRESS::80} {
-	encode zstd gzip
-	reverse_proxy web:3000
+	# The game server's matches (ADR-0033); WebSocket upgrades pass straight through.
+	handle /game/* {
+		reverse_proxy game:8080
+	}
+	handle {
+		encode zstd gzip
+		reverse_proxy web:3000
+	}
 }

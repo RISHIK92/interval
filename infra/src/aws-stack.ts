@@ -90,6 +90,13 @@ export class AwsStack extends Stack {
       description: "Web, jobs and migrate tasks",
     });
     appSg.addIngressRule(albSg, ec2.Port.tcp(3000));
+    // The game server (ADR-0033) has its own group: the ALB reaches it on 8080, and it is
+    // not among the app tasks dataSg lets reach Postgres (Go never reads the database).
+    const gameSg = new ec2.SecurityGroup(this, "GameSg", {
+      vpc,
+      description: "Game servers, reachable from the load balancer only",
+    });
+    gameSg.addIngressRule(albSg, ec2.Port.tcp(8080));
     const dataSg = new ec2.SecurityGroup(this, "DataSg", {
       vpc,
       description: "Postgres and Valkey, reachable from the app tasks only",
@@ -519,6 +526,40 @@ export class AwsStack extends Stack {
       .autoScaleTaskCount({ minCapacity: 1, maxCapacity: 3 })
       .scaleOnCpuUtilization("Cpu", { targetUtilizationPercent: 60 });
 
+    // P3-W15-S01 (ADR-0033, LOAD-2): game server 0, owner of its matches. Go never reads
+    // the database, so it gets no secrets. More capacity is another numbered service with
+    // its own listener rule, not autoscaling: a match's socket must reach its owner.
+    const gameTask = new ecs.FargateTaskDefinition(this, "Game0Task", {
+      cpu: 256,
+      memoryLimitMiB: 512,
+      runtimePlatform: {
+        cpuArchitecture: ecs.CpuArchitecture.ARM64,
+        operatingSystemFamily: ecs.OperatingSystemFamily.LINUX,
+      },
+    });
+    gameTask.addContainer("game", {
+      image: ecs.ContainerImage.fromAsset(
+        path.join(REPO_ROOT, "services/game"),
+        { platform: Platform.LINUX_ARM64 },
+      ),
+      environment: { GAME_SERVER_ID: "0" },
+      portMappings: [{ containerPort: 8080 }],
+      logging: logging("game"),
+    });
+    // Never two at once: a match's socket must reach its owner, and two tasks behind one
+    // target group would split them. A deploy stops the old task first; the gap is
+    // covered by snapshots and the reconnect grace (P3-W15-S04, MATCH-6).
+    const game0 = new ecs.FargateService(this, "Game0Service", {
+      cluster,
+      taskDefinition: gameTask,
+      desiredCount: 1,
+      minHealthyPercent: 0,
+      maxHealthyPercent: 100,
+      securityGroups: [gameSg],
+      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+      circuitBreaker: { rollback: true },
+    });
+
     // One-off tasks the owner runs with `aws ecs run-task` (docs/runbooks/aws.md).
     const jobsTask = taskDefinition("Jobs");
     jobsTask.addContainer("jobs", {
@@ -877,6 +918,9 @@ export class AwsStack extends Stack {
       vpc,
       internetFacing: true,
       securityGroup: albSg,
+      // ADR-0033: match sockets idle between rounds. The server pings every 25 s, which
+      // also keeps under CloudFront's 30 s origin read timeout (shared with the web app).
+      idleTimeout: Duration.seconds(120),
     });
     const headerValue = originVerify.secretValue.unsafeUnwrap(); // a dynamic reference
     const listener = alb.addListener("Http", {
@@ -888,8 +932,23 @@ export class AwsStack extends Stack {
       }),
     });
     // Only CloudFront knows the header, so the ALB never serves the app directly.
-    listener.addTargets("Web", {
+    // ADR-0033: a match's socket goes to the server its ticket names; this rule comes
+    // before the web app's, which takes everything else.
+    listener.addTargets("Game0", {
       priority: 1,
+      conditions: [
+        elbv2.ListenerCondition.httpHeader(ORIGIN_HEADER, [headerValue]),
+        elbv2.ListenerCondition.pathPatterns(["/game/0/*"]),
+      ],
+      port: 8080,
+      protocol: elbv2.ApplicationProtocol.HTTP,
+      targets: [game0],
+      healthCheck: { path: "/healthz", healthyHttpCodes: "200" },
+      // Nothing to drain: the old task is stopping, and its players reconnect.
+      deregistrationDelay: Duration.seconds(5),
+    });
+    listener.addTargets("Web", {
+      priority: 10,
       conditions: [
         elbv2.ListenerCondition.httpHeader(ORIGIN_HEADER, [headerValue]),
       ],
@@ -913,6 +972,31 @@ export class AwsStack extends Stack {
       },
       // CACHE-4: Next.js static assets are content-hashed and safe to cache.
       additionalBehaviors: {
+        // ADR-0033: match sockets, uncached. Only what a socket needs reaches the game
+        // server: the handshake headers, Origin and the ticket in the query; no cookies,
+        // since it never reads the session.
+        "/game/*": {
+          origin,
+          viewerProtocolPolicy:
+            cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          originRequestPolicy: new cloudfront.OriginRequestPolicy(
+            this,
+            "GameSockets",
+            {
+              cookieBehavior: cloudfront.OriginRequestCookieBehavior.none(),
+              queryStringBehavior:
+                cloudfront.OriginRequestQueryStringBehavior.all(),
+              headerBehavior: cloudfront.OriginRequestHeaderBehavior.allowList(
+                "Sec-WebSocket-Key",
+                "Sec-WebSocket-Version",
+                "Sec-WebSocket-Protocol",
+                "Sec-WebSocket-Extensions",
+                "Origin",
+              ),
+            },
+          ),
+        },
         "/_next/static/*": {
           origin,
           viewerProtocolPolicy:

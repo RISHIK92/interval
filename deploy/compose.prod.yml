@@ -117,6 +117,20 @@ services:
       retries: 12
     restart: unless-stopped
 
+  # The game server (ADR-0033): one in VM mode, game server 0, behind Caddy's /game/*.
+  # Caddy doesn't wait for it: a broken game server must not keep the site down.
+  game:
+    <<: *logging
+    build: ../services/game
+    environment:
+      GAME_SERVER_ID: "0"
+    healthcheck:
+      test: ["CMD", "/game", "healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+    restart: unless-stopped
+
   caddy:
     <<: *logging
     image: caddy:2.11.7-alpine

@@ -1,7 +1,7 @@
 # Runbook: VM deployment mode (ADR-0011)
 
 One EC2 VM (CDK stack `interval-prod`, infra/src/prod-stack.ts) runs everything from
-`deploy/compose.prod.yml`: Postgres+pgvector, Valkey (queues, ADR-0014), the web app, Caddy, and
+`deploy/compose.prod.yml`: Postgres+pgvector, Valkey (queues, ADR-0014), the web app, the game server (ADR-0033, behind Caddy at `/game/*`), Caddy, and
 optional SeaweedFS. Per ADR-0013 nothing is deployed until every phase is built; this
 runbook is for that deploy and after. The owner runs every step; Claude never deploys.
 

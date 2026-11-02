@@ -234,13 +234,144 @@ describe("edge", () => {
         }),
       ],
     });
-    const [, rule] = only("AWS::ElasticLoadBalancingV2::ListenerRule");
-    expect(JSON.stringify(rule.Properties["Conditions"])).toContain(
-      "X-Origin-Verify",
+    // The web app's rule and the game server's (ADR-0033): both need the header.
+    const rules = all("AWS::ElasticLoadBalancingV2::ListenerRule");
+    expect(rules).toHaveLength(2);
+    for (const [, rule] of rules) {
+      expect(JSON.stringify(rule.Properties["Conditions"])).toContain(
+        "X-Origin-Verify",
+      );
+      expect(JSON.stringify(rule.Properties["Conditions"])).toContain(
+        "resolve:secretsmanager",
+      );
+    }
+  });
+});
+
+// P3-W15-S01 (ADR-0033, LOAD-2): game server 0 behind the ALB at /game/0/*.
+describe("game server (ADR-0033)", () => {
+  const container = () =>
+    all("AWS::ECS::TaskDefinition")
+      .flatMap(
+        ([, task]) =>
+          task.Properties["ContainerDefinitions"] as {
+            Name: string;
+            Environment?: { Name: string; Value?: unknown }[];
+            Secrets?: unknown[];
+            PortMappings?: { ContainerPort: number }[];
+          }[],
+      )
+      .find((c) => c.Name === "game");
+
+  const gameService = () => {
+    const found = all("AWS::ECS::Service").find(([, r]) =>
+      JSON.stringify(r.Properties).includes("Game0Task"),
     );
-    expect(JSON.stringify(rule.Properties["Conditions"])).toContain(
-      "resolve:secretsmanager",
+    if (found === undefined) throw new Error("no game service");
+    return found;
+  };
+
+  test("one ARM64 task runs server 0 on port 8080, with no secrets", () => {
+    const game = container();
+    expect(game?.Environment).toEqual([{ Name: "GAME_SERVER_ID", Value: "0" }]);
+    expect(game?.Secrets).toBeUndefined();
+    expect(game?.PortMappings).toEqual([
+      expect.objectContaining({ ContainerPort: 8080 }),
+    ]);
+    // Never two at once (a match's socket must reach its owner): a deploy stops the
+    // old task before starting the new one.
+    const [, service] = gameService();
+    expect(service.Properties["DesiredCount"]).toBe(1);
+    expect(service.Properties["DeploymentConfiguration"]).toMatchObject({
+      MinimumHealthyPercent: 0,
+      MaximumPercent: 100,
+      DeploymentCircuitBreaker: { Enable: true, Rollback: true },
+    });
+  });
+
+  test("the ALB sends /game/0/* with the CloudFront header to it, before the web app", () => {
+    const rules = all("AWS::ElasticLoadBalancingV2::ListenerRule").map(
+      ([, r]) => r.Properties,
     );
+    const game = rules.find((r) =>
+      JSON.stringify(r["Conditions"]).includes("/game/0/*"),
+    );
+    const web = rules.find((r) => r !== game);
+    expect(game).toBeDefined();
+    expect(Number(game?.["Priority"])).toBeLessThan(Number(web?.["Priority"]));
+    template.hasResourceProperties("AWS::ElasticLoadBalancingV2::TargetGroup", {
+      Port: 8080,
+      HealthCheckPath: "/healthz",
+      Matcher: { HttpCode: "200" },
+      // Nothing to drain: the old task is stopping and its players reconnect.
+      TargetGroupAttributes: Match.arrayWith([
+        { Key: "deregistration_delay.timeout_seconds", Value: "5" },
+      ]),
+    });
+  });
+
+  test("the ALB keeps idle match sockets for 120 seconds", () => {
+    template.hasResourceProperties(
+      "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      {
+        LoadBalancerAttributes: Match.arrayWith([
+          { Key: "idle_timeout.timeout_seconds", Value: "120" },
+        ]),
+      },
+    );
+  });
+
+  test("CloudFront passes /game/* through uncached, with the handshake but no cookies", () => {
+    const [, dist] = only("AWS::CloudFront::Distribution");
+    const behaviors = (
+      dist.Properties["DistributionConfig"] as {
+        CacheBehaviors: {
+          PathPattern: string;
+          CachePolicyId: string;
+          OriginRequestPolicyId?: unknown;
+        }[];
+      }
+    ).CacheBehaviors;
+    const game = behaviors.find((b) => b.PathPattern === "/game/*");
+    // AWS managed policy id: CachingDisabled.
+    expect(game?.CachePolicyId).toBe("4135ea2d-6df8-44a3-9df3-4b5a84be39ad");
+    const [id, policy] = only("AWS::CloudFront::OriginRequestPolicy");
+    expect(game?.OriginRequestPolicyId).toEqual({ Ref: id });
+    expect(policy.Properties["OriginRequestPolicyConfig"]).toMatchObject({
+      CookiesConfig: { CookieBehavior: "none" },
+      QueryStringsConfig: { QueryStringBehavior: "all" },
+      HeadersConfig: {
+        HeaderBehavior: "whitelist",
+        Headers: expect.arrayContaining([
+          "Sec-WebSocket-Key",
+          "Sec-WebSocket-Version",
+          "Origin",
+        ]) as unknown,
+      },
+    });
+  });
+
+  test("only the ALB reaches the game server, and it can't reach the data stores", () => {
+    const game = groupId("Game servers, reachable from the load balancer only");
+    const ingress = all("AWS::EC2::SecurityGroupIngress").map(([, r]) =>
+      JSON.stringify(r.Properties),
+    );
+    // Into the game group: 8080, from the ALB, and nothing else.
+    const into = ingress.filter((r) =>
+      r.includes(`"GroupId":{"Fn::GetAtt":["${game}"`),
+    );
+    expect(into).toHaveLength(1);
+    expect(into[0]).toContain('"FromPort":8080');
+    expect(into[0]).toContain(
+      groupId("Public load balancer behind CloudFront"),
+    );
+    // Nothing lets the game group into Postgres or Valkey.
+    expect(
+      ingress.filter((r) =>
+        r.includes(`"SourceSecurityGroupId":{"Fn::GetAtt":["${game}"`),
+      ),
+    ).toEqual([]);
+    expect(JSON.stringify(gameService()[1].Properties)).toContain(game);
   });
 });
 
@@ -249,8 +380,8 @@ describe("containers", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
     // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due,
     // spot-check-due, question-batches, recalibrate-difficulty, sync-github-due,
-    // suggest-technologies, daily-challenge-due
-    expect(tasks.length).toBe(13);
+    // suggest-technologies, daily-challenge-due, game-0 (ADR-0033)
+    expect(tasks.length).toBe(14);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -265,6 +396,11 @@ describe("containers", () => {
         if (c.Name === "ocr") {
           expect(c.Secrets).toBeUndefined();
           expect(c.Environment).toBeUndefined();
+          continue;
+        }
+        // The game server (ADR-0033) never reads the database: no secrets yet.
+        if (c.Name === "game") {
+          expect(c.Secrets).toBeUndefined();
           continue;
         }
         const names = (c.Environment ?? []).map((e) => e.Name);
@@ -324,9 +460,11 @@ describe("containers", () => {
     );
   });
 
-  test("every task connects to RDS with verified TLS", () => {
+  test("every task that uses the database connects to RDS with verified TLS", () => {
     for (const [, task] of all("AWS::ECS::TaskDefinition")) {
       const text = JSON.stringify(task.Properties["ContainerDefinitions"]);
+      // ADR-0033: Go never reads the database.
+      if (text.includes('"Name":"game"')) continue;
       expect(text).toContain(
         "sslmode=verify-full&sslrootcert=/certs/rds-global-bundle.pem",
       );

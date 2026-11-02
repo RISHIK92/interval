@@ -91,7 +91,10 @@
         "//#lint:py",
         "//#typecheck:py",
         "//#test:py",
-        "db:check"
+        "db:check",
+        "//#format-check:go",
+        "//#vet:go",
+        "//#test:go"
       ]
     },
     "db:check": {
@@ -101,6 +104,15 @@
     "db:apply": {
       "cache": false,
       "env": ["DATABASE_URL", "CI"]
+    },
+    "//#format-check:go": {
+      "inputs": ["$TURBO_ROOT$/services/game/**"]
+    },
+    "//#vet:go": {
+      "inputs": ["$TURBO_ROOT$/services/game/**"]
+    },
+    "//#test:go": {
+      "inputs": ["$TURBO_ROOT$/services/game/**"]
     }
   }
 }
