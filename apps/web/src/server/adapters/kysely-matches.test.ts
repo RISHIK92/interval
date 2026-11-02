@@ -23,13 +23,16 @@ async function contract(
   [a, b, c]: [string, string, string],
 ): Promise<void> {
   const id = await make(0, [a, b]);
-  expect(await matches.serverFor(id, a)).toBe(0);
-  expect(await matches.serverFor(id, b)).toBe(0);
+  expect(await matches.serverFor(id, a)).toEqual({ serverId: 0, playedAs: a });
+  expect(await matches.serverFor(id, b)).toEqual({ serverId: 0, playedAs: b });
   // Not theirs, or no such match.
   expect(await matches.serverFor(id, c)).toBeNull();
   expect(await matches.serverFor(randomUUID(), a)).toBeNull();
   const other = await make(3, [c]);
-  expect(await matches.serverFor(other, c)).toBe(3);
+  expect(await matches.serverFor(other, c)).toEqual({
+    serverId: 3,
+    playedAs: c,
+  });
 }
 
 test("the in-memory fake keeps the contract", async () => {
@@ -111,7 +114,10 @@ test("the fake makes a match of seven, or none from a smaller bank", async () =>
   const made = await memoryMatches(all, choices(9)).create(0, ["a", "b"]);
   expect(made?.rounds).toHaveLength(LIVE_ROUNDS);
   expect(made?.players).toEqual(["a", "b"]);
-  expect(await memoryMatches(all).serverFor(made?.id ?? "", "a")).toBe(0);
+  expect(await memoryMatches(all).serverFor(made?.id ?? "", "a")).toEqual({
+    serverId: 0,
+    playedAs: "a",
+  });
   expect(
     await memoryMatches(new Map(), choices(6)).create(0, ["a"]),
   ).toBeNull();
@@ -218,7 +224,10 @@ test("Postgres picks seven different live questions and records them in order", 
       expect(recorded).toEqual(
         made.rounds.map((r, i) => ({ round: i + 1, question_id: r.question })),
       );
-      expect(await matches.serverFor(made.id, players[1] ?? "")).toBe(2);
+      expect(await matches.serverFor(made.id, players[1] ?? "")).toEqual({
+        serverId: 2,
+        playedAs: players[1],
+      });
       throw new Rollback();
     }),
   ).rejects.toBeInstanceOf(Rollback);

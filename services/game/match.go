@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log/slog"
+	"maps"
 	"slices"
 	"sync"
 	"time"
@@ -12,8 +13,18 @@ import (
 const (
 	roundTime   = 15 * time.Second
 	revealPause = 3 * time.Second  // the right answer stays up before the next round
-	joinWait    = 60 * time.Second // every player must have joined by then
+	joinWait    = 60 * time.Second // every player must have joined (or rejoined after a restart) by then
+	grace       = 10 * time.Second // MATCH-6: a dropped player's time to come back
 )
+
+// P3-W15-S04 (LOAD-2): where a match stands after a round, saved so a restarted server
+// plays on from there (game:snap:<id>). Over: it has ended; never play it again.
+type snap struct {
+	Next   int                      `json:"next"` // the round to play, from 1
+	Totals map[string]int           `json:"totals"`
+	Times  map[string]time.Duration `json:"times"`
+	Over   bool                     `json:"over"`
+}
 
 // A match as the web app handed it over (game:match:<id> in Valkey): its players and
 // its rounds, keys included. Keys never leave this process before a round ends.
@@ -46,10 +57,10 @@ func (realClock) Now() time.Time                         { return time.Now() }
 func (realClock) After(d time.Duration) <-chan time.Time { return time.After(d) }
 
 type event struct {
-	kind   string // join, answer, rtt, sync
+	kind   string // join, leave, answer, rtt, graceOver, sync
 	player string
 	seat   seat
-	n      int
+	n      int // the round answered; for graceOver, the leave's generation
 	choice int
 	rtt    time.Duration
 	at     time.Time // when an answer arrived
@@ -67,7 +78,9 @@ type actor struct {
 	quit   chan struct{}
 	ended  chan struct{}
 	mu     sync.Mutex
-	over   bool // set before ended closes: posts after it are refused
+	over   bool       // set before ended closes: posts after it are refused
+	from   *snap      // a restart's starting point, when there is one
+	save   func(snap) // after each round and at the end; nil saves nothing
 }
 
 func newActor(id string, def matchDef, c clock, log *slog.Logger) *actor {
@@ -115,6 +128,11 @@ func (a *actor) rtt(player string, d time.Duration) {
 	a.post(event{kind: "rtt", player: player, rtt: d})
 }
 
+// The player's socket ended; it has `grace` to come back on a new one.
+func (a *actor) leave(player string, s seat) {
+	a.post(event{kind: "leave", player: player, seat: s})
+}
+
 // Returns once the actor has handled every event posted before it.
 func (a *actor) sync() {
 	done := make(chan struct{})
@@ -136,10 +154,16 @@ func (a *actor) stop() {
 
 // The match's state, owned by run.
 type play struct {
-	seats  map[string]seat
-	rtts   map[string]time.Duration
-	totals map[string]int
-	times  map[string]time.Duration
+	seats     map[string]seat
+	rtts      map[string]time.Duration
+	totals    map[string]int
+	times     map[string]time.Duration
+	started   bool
+	gens      map[string]int // a player's joins and leaves, so a stale grace is ignored
+	abandoned []string
+	before    map[string]int // totals as the current round began: what a rejoiner is shown
+	shown     int            // the last round revealed
+	reveal    map[string]any // its reveal, for a player who missed it
 }
 
 func (a *actor) run() {
@@ -169,6 +193,7 @@ func (a *actor) run() {
 		rtts:   map[string]time.Duration{},
 		totals: map[string]int{},
 		times:  map[string]time.Duration{},
+		gens:   map[string]int{},
 	}
 	defer func() {
 		// No panic leaves the match: it ends, logged, and its players are let go.
@@ -177,18 +202,42 @@ func (a *actor) run() {
 			p.closeAll("match failed")
 		}
 	}()
+	first := 1
 	for _, player := range a.def.Players {
 		p.totals[player] = 0
 	}
+	if a.from != nil {
+		// A restart (owner, 2026-11-02): the round that was being played is played again
+		// from its start, its earlier answers gone.
+		first = a.from.Next
+		for player, total := range a.from.Totals {
+			p.totals[player] = total
+		}
+		for player, took := range a.from.Times {
+			p.times[player] = took
+		}
+	}
 
-	// Waiting for every player.
+	// Waiting for every player (again, after a restart).
 	deadline := a.clock.After(joinWait)
 	for len(p.seats) < len(a.def.Players) {
 		select {
 		case e := <-a.events:
 			a.handle(&p, e, nil)
 		case <-deadline:
-			p.broadcast(map[string]any{"type": "cancelled"})
+			if a.from != nil {
+				// After a restart (owner, 2026-11-02): whoever isn't back abandons, and
+				// the one back wins; nobody back leaves the match void.
+				for _, player := range a.def.Players {
+					if _, back := p.seats[player]; !back {
+						p.abandoned = append(p.abandoned, player)
+					}
+				}
+				a.finish(&p)
+				return
+			}
+			a.broadcast(&p, map[string]any{"type": "cancelled"})
+			a.persist(snap{Over: true})
 			p.closeAll("match cancelled")
 			return
 		case <-a.quit:
@@ -196,11 +245,18 @@ func (a *actor) run() {
 			return
 		}
 	}
+	p.started = true
+	if a.from != nil {
+		// Where the match stood when its server stopped.
+		a.broadcast(&p, map[string]any{"type": "resume", "n": first, "totals": p.totals})
+	}
 
-	for i, r := range a.def.Rounds {
+	for i := first - 1; i < len(a.def.Rounds); i++ {
+		r := a.def.Rounds[i]
 		n := i + 1
 		started := a.clock.Now()
-		p.broadcast(map[string]any{"type": "round", "n": n, "stem": r.Stem, "options": r.Options, "seconds": int(roundTime / time.Second)})
+		p.before = maps.Clone(p.totals)
+		a.broadcast(&p, roundMessage(n, r, roundTime))
 		answered := map[string]int{} // player → points this round
 		end := a.clock.After(roundTime)
 		cur := &current{n: n, round: r, started: started, answered: answered}
@@ -224,6 +280,10 @@ func (a *actor) run() {
 				p.closeAll("server shutting down")
 				return
 			}
+			if p.decided() {
+				a.finish(&p)
+				return
+			}
 		}
 		for _, player := range a.def.Players {
 			if _, ok := answered[player]; !ok {
@@ -231,25 +291,83 @@ func (a *actor) run() {
 				p.times[player] += roundTime
 			}
 		}
-		p.broadcast(map[string]any{"type": "reveal", "n": n, "correct": r.Correct, "points": answered})
-		if n < len(a.def.Rounds) {
-			pause := a.clock.After(revealPause)
-		wait:
-			for {
-				select {
-				case e := <-a.events:
-					a.handle(&p, e, nil)
-				case <-pause:
-					break wait
-				case <-a.quit:
-					p.closeAll("server shutting down")
-					return
+		p.shown = n
+		p.reveal = map[string]any{"type": "reveal", "n": n, "correct": r.Correct, "points": answered}
+		a.broadcast(&p, p.reveal)
+		if n == len(a.def.Rounds) {
+			break
+		}
+		// The pause runs while the snapshot saves, so a slow save doesn't lengthen it.
+		pause := a.clock.After(revealPause)
+		a.persist(snap{Next: n + 1, Totals: p.totals, Times: p.times})
+	wait:
+		for {
+			select {
+			case e := <-a.events:
+				a.handle(&p, e, nil)
+			case <-pause:
+				break wait
+			case <-a.quit:
+				p.closeAll("server shutting down")
+				return
+			}
+			if p.decided() {
+				a.finish(&p)
+				return
+			}
+		}
+	}
+	a.finish(&p)
+}
+
+func roundMessage(n int, r round, left time.Duration) map[string]any {
+	// Whole seconds left, rounded up: a client's countdown never runs past the server's.
+	seconds := int((left + time.Second - 1) / time.Second)
+	return map[string]any{"type": "round", "n": n, "stem": r.Stem, "options": r.Options, "seconds": seconds}
+}
+
+// An abandon decides the match once every other player is either here or gone too
+// (owner, 2026-11-02: both gone is no winner, a loss each), so a match waits out a second
+// player's grace rather than naming an absent winner.
+func (p *play) decided() bool {
+	if len(p.abandoned) == 0 {
+		return false
+	}
+	for player := range p.totals {
+		if _, here := p.seats[player]; !here && !slices.Contains(p.abandoned, player) {
+			return false
+		}
+	}
+	return true
+}
+
+// The result: the higher total wins; when someone abandoned (Q-P3-12: an abandon is a
+// loss), the one who stayed wins, and with all gone nobody does.
+func (a *actor) finish(p *play) {
+	won := winner(p.totals, p.times)
+	if len(p.abandoned) > 0 {
+		won = ""
+		if len(a.def.Players)-len(p.abandoned) == 1 {
+			for _, player := range a.def.Players {
+				if !slices.Contains(p.abandoned, player) {
+					won = player
 				}
 			}
 		}
 	}
-	p.broadcast(map[string]any{"type": "final", "totals": p.totals, "winner": winner(p.totals, p.times)})
+	final := map[string]any{"type": "final", "totals": p.totals, "winner": won}
+	if len(p.abandoned) > 0 {
+		final["abandoned"] = p.abandoned
+	}
+	a.broadcast(p, final)
+	a.persist(snap{Totals: p.totals, Times: p.times, Over: true})
 	p.closeAll("match over")
+}
+
+func (a *actor) persist(s snap) {
+	if a.save != nil {
+		a.save(s)
+	}
 }
 
 // The round being played, when one is.
@@ -273,6 +391,50 @@ func (a *actor) handle(p *play, e event, cur *current) {
 			old.close("joined again elsewhere")
 		}
 		p.seats[e.player] = e.seat
+		p.gens[e.player]++ // any grace running for this player is now stale
+		if p.started {
+			// Back within the grace: where the match stands, and what it missed. Totals
+			// are as the round began, so a rejoin can't tell how the other answered.
+			if cur != nil {
+				_, done := cur.answered[e.player]
+				e.seat.send(map[string]any{"type": "resume", "n": cur.n, "totals": p.before, "answered": done})
+				if !done {
+					left := roundTime - a.clock.Now().Sub(cur.started)
+					e.seat.send(roundMessage(cur.n, cur.round, max(0, left)))
+				}
+			} else {
+				e.seat.send(map[string]any{"type": "resume", "n": p.shown, "totals": p.totals})
+				if p.reveal != nil {
+					e.seat.send(p.reveal)
+				}
+			}
+		}
+	case "leave":
+		if p.seats[e.player] != e.seat {
+			return // an old socket of a player already back on a new one
+		}
+		delete(p.seats, e.player)
+		if !p.started {
+			return
+		}
+		p.gens[e.player]++
+		gen, player := p.gens[e.player], e.player
+		// The timer is set here, in the actor, so the grace starts at the leave.
+		lapse := a.clock.After(grace)
+		go func() {
+			select {
+			case <-lapse:
+				a.post(event{kind: "graceOver", player: player, n: gen})
+			case <-a.ended:
+			}
+		}()
+	case "graceOver":
+		if p.gens[e.player] != e.n {
+			return // back since, or left again: a later grace decides
+		}
+		if !slices.Contains(p.abandoned, e.player) {
+			p.abandoned = append(p.abandoned, e.player)
+		}
 	case "rtt":
 		p.rtts[e.player] = e.rtt
 	case "answer":
@@ -297,12 +459,12 @@ func (a *actor) handle(p *play, e event, cur *current) {
 	}
 }
 
-func (p *play) broadcast(msg any) {
+func (a *actor) broadcast(p *play, msg any) {
 	for player, s := range p.seats {
 		if !s.send(msg) {
-			// Too slow to keep up: dropped; it rejoins in P3-W15-S04.
+			// Too slow to keep up: dropped as if it had left, with the same grace.
 			s.close("too slow")
-			delete(p.seats, player)
+			a.handle(p, event{kind: "leave", player: player, seat: s}, nil)
 		}
 	}
 }

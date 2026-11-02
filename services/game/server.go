@@ -129,6 +129,8 @@ func newHandler(cfg config, sockets *matchSockets, matches *registry, now func()
 		readAnswers(ctx, conn, func(n, choice int) {
 			a.answerAt(ticket.U, n, choice, matches.clock.Now())
 		})
+		// The socket ended: the player has the grace to come back (MATCH-6).
+		a.leave(ticket.U, player)
 	})
 	return mux
 }

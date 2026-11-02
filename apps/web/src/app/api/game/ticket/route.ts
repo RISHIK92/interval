@@ -22,12 +22,14 @@ export async function POST(request: Request): Promise<Response> {
   // App isn't without its settings. A setting left out, not a failure to count.
   const game = gameEnv();
   if (game === null) return new Response(null, { status: 503 });
-  const serverId = await matches().serverFor(parsed.data.matchId, actor.userId);
-  if (serverId === null) return new Response(null, { status: 404 });
+  const seat = await matches().serverFor(parsed.data.matchId, actor.userId);
+  if (seat === null) return new Response(null, { status: 404 });
+  const { serverId, playedAs } = seat;
   const ticket = signTicket(
     {
       m: parsed.data.matchId,
-      u: actor.userId,
+      // The id the match knows the player by (Q-P3-21: a guest who signed up keeps it).
+      u: playedAs,
       s: String(serverId),
       e: Math.floor(Date.now() / 1000) + TICKET_SECONDS,
       n: randomUUID(),

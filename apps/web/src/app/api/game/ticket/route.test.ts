@@ -4,7 +4,9 @@ import type { Actor, Matches } from "../../../../server/ports";
 
 // P3-W15-S02 (ADR-0033): a short-lived, single-use ticket for a match the player is in.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
-const serverFor = vi.fn<Matches["serverFor"]>(() => Promise.resolve(0));
+const serverFor = vi.fn<Matches["serverFor"]>((_, userId) =>
+  Promise.resolve({ serverId: 0, playedAs: userId }),
+);
 const SECRET = "0123456789abcdef0123456789abcdef";
 let secret: string | null = SECRET;
 vi.mock("../../../../server/container", () => ({
@@ -49,7 +51,7 @@ async function post(
 
 test("a player of the match gets a socket URL with a signed, one-minute ticket", async () => {
   current.mockResolvedValue(account);
-  serverFor.mockResolvedValueOnce(3);
+  serverFor.mockResolvedValueOnce({ serverId: 3, playedAs: "u1" });
   const response = await post({ matchId: MATCH });
   expect(response.status).toBe(200);
   expect(response.headers.get("cache-control")).toBe("no-store");
@@ -79,6 +81,21 @@ test("a player of the match gets a socket URL with a signed, one-minute ticket",
     url: string;
   };
   expect(again.url).not.toBe(url);
+});
+
+// Q-P3-21: a guest who signed up mid-match comes back as the player the match knows.
+test("the ticket names the player as the match knows them", async () => {
+  current.mockResolvedValue(account);
+  serverFor.mockResolvedValueOnce({ serverId: 0, playedAs: "guest-7" });
+  const { url } = (await (await post({ matchId: MATCH })).json()) as {
+    url: string;
+  };
+  const payload = decodeURIComponent(url.split("ticket=")[1] ?? "").split(
+    ".",
+  )[1];
+  expect(
+    JSON.parse(Buffer.from(payload ?? "", "base64url").toString()),
+  ).toMatchObject({ u: "guest-7" });
 });
 
 test("a guest plays live too", async () => {

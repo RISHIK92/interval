@@ -2825,3 +2825,39 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - a reconnect after sign-up as the account (Q-P3-21) is S04's: today the actor refuses the account's id;
   - `reveal` and `final` carry user ids, and the match UI (W16) will show usernames.
 - **Full check:** Go (race), web 1197, Python 1277 and infra 81 (alone; the usual timeout in the full run), all pass.
+
+### 2026-11-02 — P3-W15-S04 (snapshots and reconnects; LOAD-2, MATCH-6, LOAD-5, Q-P3-12, Q-P3-21)
+
+- **Owner (2026-11-02):**
+  - an abandon ends the match at once and the other player wins;
+  - both gone is no winner, a loss each;
+  - a restart replays the interrupted round, and players get 60 s to come back (whoever isn't back abandons; nobody back is void);
+  - a guest who signs up into its own opponent's account plays on.
+- **Snapshots:** `game:snap:<id>` (1 h).
+  - Saved after each reveal (`next`), while the reveal pause runs.
+  - At the end the snapshot is `over`: finished, abandoned, cancelled or void. The `over` write is tried three times, so a restart can't replay a finished match.
+  - A failed save is logged (`game: snapshot failed`) and counted by the `GameSnapshotFailures` metric filter in AWS (LOAD-5); play goes on.
+  - The registry refuses an `over` snapshot, and otherwise resumes from `next`, with `resume {n, totals}` broadcast once everyone is back.
+- **Reconnects:**
+  - the handler posts `leave` when a socket ends, and a too-slow drop counts as a leave;
+  - the 10 s grace is timed by the actor's clock and made stale by a generation number;
+  - a rejoin mid-round gets `resume {n, totals as the round began, answered}` plus the round with its remaining seconds; during the pause it gets the reveal it missed;
+  - a leave before the start just frees the seat;
+  - an abandon decides the match only once every other player is either here or gone too.
+- **Q-P3-21:** `game_match_player.played_as` (migration). The guest merge keeps the guest's id there, and the ticket route signs `u = playedAs`, so a guest who signs up mid-match plays on as the same player.
+- **Checked end to end:** a real match, the server killed with SIGKILL after round 2 and restarted, both clients back on new tickets: it played on from round 3 to the final, and both saw the same result.
+- **Reviewer, fixed:**
+  - a restart wait that cancelled instead of abandoning;
+  - no totals shown after a restart;
+  - a thin resume (no `n` or `answered`, no missed reveal);
+  - mid-round totals that leaked the opponent's answer;
+  - an unreachable both-gone branch (now real, per the owner);
+  - a lost `over` that could replay a match;
+  - no whole-restart test;
+  - missing tests: abandon in the pause, leave before start, slow drop grace, pause rejoin, restart timeout, snapshot JSON;
+  - the pause lengthened by a slow save;
+  - the comments.
+- **Not done:**
+  - `redisStore`'s snapshot and save have no test against a real Valkey (Go's tests get no `VALKEY_URL`); the end-to-end run covered them;
+  - the VM has no metric for snapshot failures (log only, as for its other LOAD-5 paths).
+- **Full check:** Go (race, 10 runs), web 1196 of 1198 (two DB timeouts under load, both pass alone), Python and infra pass.

@@ -292,7 +292,7 @@ func TestStoppingMidMatchLetsThePlayersGo(t *testing.T) {
 func TestAnEndedMatchCannotBeStartedAgain(t *testing.T) {
 	def := sevenRounds()
 	clock := newFakeClock()
-	g := newRegistry(memStore{"m4": def}, clock, slog.New(slog.DiscardHandler))
+	g := newRegistry(newMemStore(map[string]matchDef{"m4": def}), clock, slog.New(slog.DiscardHandler))
 	first, err := g.get(context.Background(), "m4")
 	if err != nil {
 		t.Fatal(err)

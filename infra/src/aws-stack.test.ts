@@ -328,6 +328,19 @@ describe("game server (ADR-0033)", () => {
     });
   });
 
+  // P3-W15-S04 (LOAD-5): a match plays on without its snapshot, counted.
+  test("a failed match snapshot becomes a CloudWatch metric", () => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "game: snapshot failed" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Game",
+          MetricName: "SnapshotFailures",
+        }),
+      ],
+    });
+  });
+
   test("the ALB keeps idle match sockets for 120 seconds", () => {
     template.hasResourceProperties(
       "AWS::ElasticLoadBalancingV2::LoadBalancer",

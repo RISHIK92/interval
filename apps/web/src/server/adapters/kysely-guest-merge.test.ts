@@ -350,14 +350,16 @@ test("the guest's matches move to the account", async () => {
     expect(await mergeGuest(trx, guest, account)).toBe(true);
     const players = await trx
       .selectFrom("game_match_player")
-      .select(["match_id", "user_id"])
+      .select(["match_id", "user_id", "played_as"])
       .where("match_id", "in", [alone, both])
       .orderBy("match_id")
       .execute();
     expect(players).toEqual(
       expect.arrayContaining([
-        { match_id: alone, user_id: account },
-        { match_id: both, user_id: account },
+        // Q-P3-21: on as the guest the game server knows.
+        { match_id: alone, user_id: account, played_as: guest },
+        // Both were in it: the account's own seat stays.
+        { match_id: both, user_id: account, played_as: null },
       ]),
     );
     expect(players).toHaveLength(2);

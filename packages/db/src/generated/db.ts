@@ -367,6 +367,7 @@ export interface GameMatch {
 
 export interface GameMatchPlayer {
   match_id: string;
+  played_as: string | null;
   user_id: string;
 }
 

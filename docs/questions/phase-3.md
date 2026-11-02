@@ -125,6 +125,11 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: MATCH-6 ("abandon penalties").
 - **Answer (owner, 2026-10-31):** the suggested default: an abandon counts as a loss; nothing else.
 - Suggested default: an abandoned match counts as a loss in the rating; nothing else.
+- **Follow-up (owner, 2026-11-02, W15-S04):**
+  - a player who doesn't reconnect within the 10 s grace (MATCH-6) abandons. The match ends at once, the other player wins, and the abandon is a loss;
+  - if both are gone past their graces, there's no winner and each has an abandon (a loss);
+  - after a game-server restart, the interrupted round is played again from its start with the same question, and earlier answers in it are discarded. Players get 60 s to come back: whoever isn't back abandons, and with nobody back the match is void;
+  - a guest who signs up into the account that is its own opponent plays on, as an ordinary match.
 
 ## Week 16
 

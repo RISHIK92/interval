@@ -346,6 +346,17 @@ export class AwsStack extends Stack {
       metricName: "EmitFailures",
       metricValue: "$.count",
     });
+    // P3-W15-S04 (LOAD-5): a match whose round snapshot didn't save plays on, but
+    // wouldn't survive its game server restarting.
+    logGroup.addMetricFilter("GameSnapshotFailures", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "game: snapshot failed",
+      ),
+      metricNamespace: "Interval/Game",
+      metricName: "SnapshotFailures",
+    });
     // P2-W11-S03: a scanned page (or book) OCR gave up on; the book finishes without it.
     logGroup.addMetricFilter("BookOcrGaveUp", {
       filterPattern: logs.FilterPattern.stringValue(

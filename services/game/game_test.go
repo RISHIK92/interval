@@ -56,7 +56,7 @@ func TestConfigRefusesWhatItCannotUse(t *testing.T) {
 }
 
 func TestHealth(t *testing.T) {
-	handler := newHandler(config{serverID: "0"}, newMatchSockets(), newRegistry(memStore{}, realClock{}, slog.New(slog.DiscardHandler)), time.Now)
+	handler := newHandler(config{serverID: "0"}, newMatchSockets(), newRegistry(newMemStore(map[string]matchDef{}), realClock{}, slog.New(slog.DiscardHandler)), time.Now)
 	rec := httptest.NewRecorder()
 	handler.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/healthz", nil))
 	if rec.Code != http.StatusOK {
@@ -99,7 +99,7 @@ func TestRunServesThenStops(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() {
-		done <- runAt(ctx, config{serverID: "0", port: port, ticketSecret: []byte("0123456789abcdef0123456789abcdef")}, io.Discard, time.Now, memStore{})
+		done <- runAt(ctx, config{serverID: "0", port: port, ticketSecret: []byte("0123456789abcdef0123456789abcdef")}, io.Discard, time.Now, newMemStore(map[string]matchDef{}))
 	}()
 
 	url := "http://127.0.0.1:" + strconv.Itoa(port) + "/healthz"

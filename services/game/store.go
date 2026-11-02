@@ -16,7 +16,13 @@ import (
 // JSON. Go never reads Postgres (ADR-0033).
 type matchStore interface {
 	load(ctx context.Context, id string) (matchDef, error)
+	// P3-W15-S04: where the match stood after its last round, if it was saved.
+	snapshot(ctx context.Context, id string) (snap, bool, error)
+	save(ctx context.Context, id string, s snap) error
 }
+
+// As long as the match itself is kept (the web app's hour).
+const snapshotTTL = time.Hour
 
 var (
 	errNoMatch   = errors.New("no such match")
@@ -38,6 +44,29 @@ func (s redisStore) load(ctx context.Context, id string) (matchDef, error) {
 		return matchDef{}, fmt.Errorf("load match %s: %w", id, err)
 	}
 	return parseMatch(raw)
+}
+
+func (s redisStore) snapshot(ctx context.Context, id string) (snap, bool, error) {
+	raw, err := s.client.Get(ctx, "game:snap:"+id).Bytes()
+	if errors.Is(err, redis.Nil) {
+		return snap{}, false, nil
+	}
+	if err != nil {
+		return snap{}, false, fmt.Errorf("load snapshot %s: %w", id, err)
+	}
+	var saved snap
+	if err := json.Unmarshal(raw, &saved); err != nil {
+		return snap{}, false, fmt.Errorf("snapshot %s: %w", id, err)
+	}
+	return saved, true, nil
+}
+
+func (s redisStore) save(ctx context.Context, id string, saved snap) error {
+	raw, err := json.Marshal(saved)
+	if err != nil {
+		return err
+	}
+	return s.client.Set(ctx, "game:snap:"+id, raw, snapshotTTL).Err()
 }
 
 // A match as the web app writes it (apps/web/src/server/adapters/valkey-match-handoff.ts):
@@ -107,6 +136,13 @@ func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 	if err != nil {
 		return nil, err
 	}
+	saved, found, err := g.store.snapshot(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if found && saved.Over {
+		return nil, errMatchOver // ended before this server last restarted
+	}
 	g.mu.Lock()
 	defer g.mu.Unlock()
 	if g.over(id) {
@@ -116,6 +152,27 @@ func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 		return a, nil
 	}
 	a := newActor(id, def, g.clock, g.log)
+	if found && saved.Next >= 1 && saved.Next <= len(def.Rounds) {
+		a.from = &saved
+	}
+	a.save = func(s snap) {
+		// LOAD-5: the match plays on and only loses its restart point (a metric in the
+		// AWS stack counts these). The last one, "over", is tried three times: lost, a
+		// restart could play a finished match again from its last round.
+		tries := 1
+		if s.Over {
+			tries = 3
+		}
+		for try := 1; try <= tries; try++ {
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			err := g.store.save(ctx, id, s)
+			cancel()
+			if err == nil {
+				return
+			}
+			g.log.Error("game: snapshot failed", "match", id, "over", s.Over, "try", try, "error", err.Error())
+		}
+	}
 	g.actors[id] = a
 	go a.run() // recovers its own panics
 	go func() {
@@ -140,15 +197,51 @@ func (g *registry) stopAll() {
 	}
 }
 
-// A match whose definition is in memory, for tests.
-type memStore map[string]matchDef
+// Matches and snapshots in memory, for tests.
+type memStore struct {
+	mu    sync.Mutex
+	defs  map[string]matchDef
+	snaps map[string]snap
+	fail  bool // every save fails
+}
 
-func (s memStore) load(_ context.Context, id string) (matchDef, error) {
-	def, ok := s[id]
+func newMemStore(defs map[string]matchDef) *memStore {
+	return &memStore{defs: defs, snaps: map[string]snap{}}
+}
+
+func (s *memStore) load(_ context.Context, id string) (matchDef, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	def, ok := s.defs[id]
 	if !ok {
 		return matchDef{}, errNoMatch
 	}
 	return def, nil
+}
+
+func (s *memStore) snapshot(_ context.Context, id string) (snap, bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	saved, ok := s.snaps[id]
+	return saved, ok, nil
+}
+
+func (s *memStore) save(_ context.Context, id string, saved snap) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.fail {
+		return errors.New("store down")
+	}
+	// A copy: the actor goes on changing its maps.
+	copied := snap{Next: saved.Next, Over: saved.Over, Totals: map[string]int{}, Times: map[string]time.Duration{}}
+	for k, v := range saved.Totals {
+		copied.Totals[k] = v
+	}
+	for k, v := range saved.Times {
+		copied.Times[k] = v
+	}
+	s.snaps[id] = copied
+	return nil
 }
 
 // Runs fn, ending its goroutine on a panic with a log line instead of the whole server

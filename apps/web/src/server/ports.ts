@@ -696,9 +696,13 @@ export interface Matches {
   // A new match of LIVE_ROUNDS live multiple-choice questions (the sprint's rights rule,
   // ING-2); null when the bank has fewer than that.
   create(serverId: number, players: string[]): Promise<LiveMatch | null>;
-  // The game server that owns the match, when the player is in it; null otherwise (no
-  // such match, or not theirs).
-  serverFor(matchId: string, userId: string): Promise<number | null>;
+  // The game server that owns the match, and the id the player plays as there (a guest
+  // who signed up mid-match keeps the guest's, Q-P3-21), when the player is in it; null
+  // otherwise (no such match, or not theirs).
+  serverFor(
+    matchId: string,
+    userId: string,
+  ): Promise<{ serverId: number; playedAs: string } | null>;
 }
 
 // P3-W15-S03 (Q-P3-22): hands a match to its game server (game:match:<id> in Valkey),

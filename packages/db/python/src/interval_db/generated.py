@@ -343,6 +343,7 @@ class GameMatch(TypedDict):
 class GameMatchPlayer(TypedDict):
     match_id: UUID
     user_id: str
+    played_as: str | None
 
 
 class GameMatchQuestion(TypedDict):

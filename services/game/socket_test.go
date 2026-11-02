@@ -20,10 +20,10 @@ import (
 )
 
 // The fixtures' match, its two players, with seven rounds.
-func fixtureMatch(f fixtures) memStore {
+func fixtureMatch(f fixtures) *memStore {
 	def := sevenRounds()
 	def.Players = []string{f.Claims.U, "user-2"}
-	return memStore{f.Claims.M: def}
+	return newMemStore(map[string]matchDef{f.Claims.M: def})
 }
 
 func testServer(t *testing.T, f fixtures) (*httptest.Server, *matchSockets) {
@@ -219,7 +219,7 @@ func TestAnUnknownMatchClosesTheSocket(t *testing.T) {
 	f := loadFixtures(t)
 	sockets := newMatchSockets()
 	cfg := config{serverID: f.Server, ticketSecret: []byte(f.Secret)}
-	srv := httptest.NewServer(newHandler(cfg, sockets, newRegistry(memStore{}, realClock{}, slog.New(slog.DiscardHandler)), func() time.Time { return time.Unix(f.Now, 0) }))
+	srv := httptest.NewServer(newHandler(cfg, sockets, newRegistry(newMemStore(map[string]matchDef{}), realClock{}, slog.New(slog.DiscardHandler)), func() time.Time { return time.Unix(f.Now, 0) }))
 	defer srv.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
