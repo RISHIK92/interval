@@ -730,6 +730,13 @@ export interface Matches {
     userId: string,
     mode: GameMode,
   ): Promise<LiveMatch | null>;
+  // P3-W17-S02 (BOT-2, Q-P3-26): a match against a synthetic bot, labeled and rated at
+  // the player's own rating; null when the bank is short.
+  createBot(
+    serverId: number,
+    userId: string,
+    mode: GameMode,
+  ): Promise<LiveMatch | null>;
   // The game server that owns the match, and the id the player plays as there (a guest
   // who signed up mid-match keeps the guest's, Q-P3-21), when the player is in it; null
   // otherwise (no such match, or not theirs).

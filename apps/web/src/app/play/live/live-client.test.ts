@@ -67,8 +67,8 @@ function harness(polls: unknown[]) {
     now: () => now,
     onState: (s) => states.push(s),
     onError: vi.fn(),
-    ghost: vi.fn<() => Promise<string | null>>(() => Promise.resolve(null)),
-    onNoGhost: vi.fn(),
+    fallback: vi.fn<() => Promise<string | null>>(() => Promise.resolve(null)),
+    onNoFallback: vi.fn(),
     onOpponent: vi.fn(),
   };
   return {
@@ -206,38 +206,93 @@ test("out of the queue twice (another tab's mode took it): it stops, not fights"
   expect(h.deps.onError).toHaveBeenCalledOnce();
 });
 
-// P3-W17-S01 (Q-P3-25): "Play a ghost now" stops queueing and plays the ghost match;
-// with none to play, it says so and queues on. A ghost's label reaches the screen.
-test("a ghost asked for is played instead of the queue", async () => {
+// P3-W17-S01, S02 (C-01, Q-P3-26): "Play bot now", or 10 s in the queue, stops queueing
+// and plays a ghost or bot; with none it says so and queues on. The label reaches the
+// screen.
+test("the fallback asked for is played instead of the queue", async () => {
   const h = harness([]);
-  h.deps.ghost = vi.fn(() => Promise.resolve("g-match"));
+  h.deps.fallback = vi.fn(() => Promise.resolve("g-match"));
   const live = runLive(h.deps);
   await flush();
-  live.ghost();
+  live.fallback();
   await flush();
-  expect(h.deps.ghost).toHaveBeenCalledOnce();
+  expect(h.deps.fallback).toHaveBeenCalledOnce();
   expect(h.sockets).toHaveLength(1);
   h.sockets[0]?.message({
     type: "joined",
     match: "g-match",
     you: "ada",
-    opponent: "Ghost · ~1600",
+    opponent: "Bot · ~1600",
   });
-  expect(h.deps.onOpponent).toHaveBeenCalledWith("Ghost · ~1600");
+  expect(h.deps.onOpponent).toHaveBeenCalledWith("Bot · ~1600");
   live.stop();
   await flush();
-  expect(h.calls).not.toContain("DELETE"); // the ghost route left the queue
+  expect(h.calls).not.toContain("DELETE"); // the route left the queue
 });
 
-test("no ghost to play: said, and back in the queue", async () => {
+test("nothing to play: said, and back in the queue", async () => {
   const h = harness([]);
   const live = runLive(h.deps);
+  live.fallback(); // pressed at once, before the 10 s
   await flush();
-  const polls = h.calls.length;
-  live.ghost();
-  await flush();
-  expect(h.deps.onNoGhost).toHaveBeenCalledOnce();
-  expect(h.calls.slice(polls)).toContain("POST");
+  expect(h.deps.fallback).toHaveBeenCalledOnce();
+  expect(h.deps.onNoFallback).toHaveBeenCalledOnce();
+  // Joined again after the route left the queue for it.
+  expect(h.calls.filter((c) => c === "POST")).toHaveLength(2);
   expect(h.sockets).toHaveLength(0);
   live.stop();
+});
+
+// C-01: after 10 s with no person, once, on the queue's own clock (each poll's wait
+// moves the fake clock a second).
+test("after 10 s in the queue it falls back by itself, once", async () => {
+  const h = harness([]);
+  let putsBefore = -1;
+  h.deps.fallback = vi.fn(() => {
+    putsBefore = h.calls.filter((c) => c === "PUT").length;
+    return Promise.resolve(null);
+  });
+  const live = runLive(h.deps);
+  for (let i = 0; i < 10; i += 1) await flush();
+  expect(h.deps.fallback).toHaveBeenCalledOnce();
+  expect(putsBefore).toBe(10); // ten polls a second apart: 10 s
+  expect(h.deps.onNoFallback).toHaveBeenCalledOnce();
+  // Nothing fitted: queued on, never tried again by itself.
+  expect(h.calls.filter((c) => c === "PUT").length).toBeGreaterThan(15);
+  live.stop();
+});
+
+test("a person matched before 10 s is played, not a fallback", async () => {
+  const h = harness([{ status: "matched", matchId: "m1" }]);
+  runLive(h.deps);
+  await flush();
+  h.advance(20_000);
+  await flush();
+  expect(h.deps.fallback).not.toHaveBeenCalled();
+  expect(h.sockets).toHaveLength(1);
+});
+
+// Left while the fallback was under way: nothing rejoins the queue or plays the match.
+test("stopped while the fallback is under way: no rejoin, no match", async () => {
+  const h = harness([]);
+  let settle: (id: string | null) => void = () => undefined;
+  h.deps.fallback = vi.fn(
+    () =>
+      new Promise<string | null>((resolve) => {
+        settle = resolve;
+      }),
+  );
+  const live = runLive(h.deps);
+  live.fallback();
+  await flush();
+  live.fallback(); // pressed again meanwhile: ignored
+  live.stop();
+  settle(null);
+  await flush();
+  expect(h.deps.fallback).toHaveBeenCalledOnce();
+  expect(h.deps.onNoFallback).not.toHaveBeenCalled();
+  // One join, the leave; no rejoin after it.
+  expect(h.calls.filter((c) => c === "POST")).toHaveLength(1);
+  expect(h.calls.at(-1)).toBe("DELETE");
+  expect(h.sockets).toHaveLength(0);
 });

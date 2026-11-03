@@ -25,15 +25,18 @@ export async function startLiveMatch(
   return match;
 }
 
-// P3-W17-S01 (BOT-1, Q-P3-25): a match against a ghost, handed to its server like any;
-// null when no recorded run fits the player.
-export async function startGhostMatch(
+// P3-W17-S01, S02 (BOT-1, BOT-2, C-01): with no person to play, a ghost (a recorded
+// run) if one fits, else a synthetic bot, handed to its server like any match; null
+// only when even a bot can't be made (the bank is short).
+export async function startReplayMatch(
   matches: Matches,
   handoff: MatchHandoff,
   userId: string,
   mode: GameMode,
 ): Promise<LiveMatch | null> {
-  const match = await matches.createGhost(0, userId, mode);
+  const match =
+    (await matches.createGhost(0, userId, mode)) ??
+    (await matches.createBot(0, userId, mode));
   if (match === null) return null;
   try {
     await handoff.put(match);

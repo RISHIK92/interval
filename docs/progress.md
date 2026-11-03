@@ -3156,3 +3156,42 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - a silent options fallback.
 - **Noted for the owner:** a run played against a ghost is itself kept as a run (it is a person's side of a finished live match).
 - **Full check:** green: web 1294 (one quiz-adapter load flake that passes alone, 70); Python 1318; Go race; infra 62.
+
+### 2026-11-03 — P3-W17-S02 (fallback after 10 s, then labeled bots; BOT-1–4, C-01, Q-P3-26)
+
+- **Owner (Q-P3-26):**
+  - a bot answers each question right at that question's real correct rate (80/65/50% by level with fewer than 20 answers; no level counts as intermediate);
+  - a wrong answer is a random wrong option;
+  - times come from the question's live times (5 or more), else the mode's, else 3–9 s;
+  - rated at the player's own rating, RD 350, half weight; labeled "Bot · ~1600";
+  - one "Play bot now" button, plus the automatic switch after 10 s, both giving a ghost if one fits, else a bot.
+- **No Go change:** a bot is a generated run, handed over as `matchDef.ghost` (seat `bot`) and replayed as a ghost is.
+- **Web:**
+  - `server/bots.ts` `botAnswers` (pure; a seeded random);
+  - `kysely-matches` refactored into `questionsFor` (create's tiered pick) and `store`;
+  - `createBot`:
+    - rates come from `quiz_answer`, with the new `quiz_answer_question` index;
+    - times come from the last 30 days of `ghost_run`, the picked questions' own plus a 500-sample of the mode's, a sprint's derived as `lag` steps;
+    - `random` is injectable;
+  - `startReplayMatch` tries a ghost, else a bot; `POST /api/game/bot` replaces `/ghost`;
+  - `runLive`:
+    - `fallback()`, plus automatic at `FALLBACK_MS` (10 s) since joining, once;
+    - a press while one is under way is ignored;
+    - after a stop, nothing rejoins;
+  - `LivePlay`: "Play bot now", a `FallbackCountdown` bar, and `ReplayFrame` ("vs {label}: not a live player", plus half the rating at the end).
+- **DB:** `game_match.replay_seat`, `replay_rating`, `replay_rd` and `replay_volatility`, kept with every ghost or bot match, so a deleted run still rates as one.
+- **Worker:** rates a replay from the match's own columns (`REPLAY_WEIGHT`).
+- **Reviewer, fixed:**
+  - unbounded times query;
+  - unindexed rate query;
+  - a deleted ghost run turned the match into one between people;
+  - a rejoin after leaving during a fallback;
+  - a Postgres test without data (now pins a 16/20 rate and a 3.7 s sprint step);
+  - an owner attribution I had inferred (now asked and recorded);
+  - double presses;
+  - stale names;
+  - a countdown test that never moved.
+- **Not fixed (nits):**
+  - the countdown bar starts before the queue join, so it can read 0 about a second before the switch ("Setting up…" covers it);
+  - screen 11 asks for a ring, and this is a bar.
+- **Full check:** web 1313, Python 1320, Go, lint and types; infra alone 62 (its synth hook timed out under load).

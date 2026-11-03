@@ -96,7 +96,7 @@ from interval_jobs.ports import (
 )
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
-from interval_jobs.ratings import GHOST_WEIGHT, START, Glicko, season_reset, update
+from interval_jobs.ratings import REPLAY_WEIGHT, START, Glicko, season_reset, update
 from interval_jobs.technologies import TechnologySeed
 from interval_jobs.universities import UniversitySeed
 
@@ -3158,7 +3158,8 @@ class PostgresMatchResults:
                 """
                 update game_match set finished_at = %s, outcome = %s, winner_id = %s
                 where id = %s and finished_at is null
-                returning created_at, mode, ghost_run_id
+                returning created_at, mode, replay_seat, replay_rating, replay_rd,
+                          replay_volatility
                 """,
                 (result.finished_at, result.outcome, winner, result.match_id),
             ).fetchone()
@@ -3166,10 +3167,19 @@ class PostgresMatchResults:
                 return False  # recorded already, or no such match
             started: datetime = min(done[0], result.finished_at - timedelta(seconds=1))
             mode: str = done[1]
-            # P3-W17-S01: a ghost match's other seat replays a run; it's no player.
-            ghost: int | None = done[2]
+            # P3-W17-S01, S02: a ghost's or a bot's seat replays a run; it's no player.
+            # Its seat and Glicko were kept with the match, so a run deleted since
+            # changes nothing.
+            replay = (
+                None
+                if done[2] is None
+                else (
+                    str(done[2]),
+                    Glicko(float(done[3]), float(done[4]), float(done[5])),
+                )
+            )
             for player in result.players:
-                if ghost is not None and player.played_as == f"ghost:{ghost}":
+                if replay is not None and player.played_as == replay[0]:
                     continue
                 user = players.get(player.played_as)
                 if user is None:
@@ -3234,7 +3244,7 @@ class PostgresMatchResults:
                             match_id=str(result.match_id),
                             question_id=answer.question_id,
                         )
-            before = self._rate(result, players, ghost)
+            before = self._rate(result, players, replay)
             if result.outcome == "finished":
                 self._keep_runs(result, players, mode, before)
         return True
@@ -3295,17 +3305,21 @@ class PostgresMatchResults:
         )
 
     def _rate(
-        self, result: MatchResult, players: dict[str, str], ghost: int | None
+        self,
+        result: MatchResult,
+        players: dict[str, str],
+        replay: tuple[str, Glicko] | None,
     ) -> dict[str, Glicko]:
         """MATCH-1, ADR-0034: both players' Glicko-2 ratings, once (this runs only with
         the result's first recording). An abandon is a loss for the leaver and a win
         for the stayer, both gone a loss each; cancelled and void are unrated (owner,
-        2026-11-02). Against a ghost (P3-W17-S01, BOT-4) only the human is rated, at
-        half weight against the run's rating. Returns the ratings before the match."""
+        2026-11-02). Against a replay, a ghost or a bot (P3-W17-S01, S02, BOT-4), only
+        the human is rated, at half weight against the replay's Glicko as kept with the
+        match. Returns the ratings before the match."""
         if result.outcome not in ("finished", "abandoned"):
             return {}
-        if ghost is not None:
-            return self._rate_against_ghost(result, players, ghost)
+        if replay is not None:
+            return self._rate_against_replay(result, players, replay[1])
         seats = [
             (players[p.played_as], p) for p in result.players if p.played_as in players
         ]
@@ -3375,12 +3389,12 @@ class PostgresMatchResults:
         )
         return before
 
-    def _rate_against_ghost(
-        self, result: MatchResult, players: dict[str, str], ghost: int
+    def _rate_against_replay(
+        self, result: MatchResult, players: dict[str, str], opponent: Glicko
     ) -> dict[str, Glicko]:
         """BOT-4: the human's rating moves half as far as Glicko-2 would move it against
-        the run's recorded rating; RD and volatility take Glicko-2's values (what the
-        match told us about the player). The run's owner is untouched."""
+        the ghost's or bot's rating; RD and volatility take Glicko-2's values (what the
+        match told us about the player). A ghost run's owner is untouched."""
         seat = next(
             (
                 (players[p.played_as], p)
@@ -3389,14 +3403,9 @@ class PostgresMatchResults:
             ),
             None,
         )
-        run = self._conn.execute(
-            "select rating, rd, volatility from ghost_run where id = %s", (ghost,)
-        ).fetchone()
-        if seat is None or run is None:
+        if seat is None:
             log.info(
-                "game: match unrated",
-                match_id=str(result.match_id),
-                reason="no ghost run" if run is None else "no player",
+                "game: match unrated", match_id=str(result.match_id), reason="no player"
             )
             return {}
         user, played = seat
@@ -3419,11 +3428,9 @@ class PostgresMatchResults:
         ).fetchone()
         assert row is not None
         before = Glicko(float(row[0]), float(row[1]), float(row[2]))
-        full = update(
-            before, [(Glicko(float(run[0]), float(run[1]), float(run[2])), points)]
-        )
+        full = update(before, [(opponent, points)])
         after = Glicko(
-            before.rating + GHOST_WEIGHT * (full.rating - before.rating),
+            before.rating + REPLAY_WEIGHT * (full.rating - before.rating),
             full.rd,
             full.volatility,
         )

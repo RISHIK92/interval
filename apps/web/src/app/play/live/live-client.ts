@@ -32,10 +32,11 @@ export type LiveDeps<S> = {
   now: () => number;
   onState: (state: S) => void;
   onError: () => void; // the match can't go on
-  // P3-W17-S01 (Q-P3-25): a ghost match for this player, its id; null when none fits.
-  ghost: () => Promise<string | null>;
-  onNoGhost: () => void;
-  // BOT-3: the opponent's label when it isn't a person (a ghost), from `joined`.
+  // P3-W17-S01, S02 (C-01): a ghost's or bot's match for this player, its id; null
+  // when neither could be made.
+  fallback: () => Promise<string | null>;
+  onNoFallback: () => void;
+  // BOT-3: the opponent's label when it isn't a person (a ghost or bot), from `joined`.
   onOpponent: (label: string) => void;
 };
 
@@ -50,6 +51,8 @@ const Polled = z.discriminatedUnion("status", [
 ]);
 
 const POLL_MS = 1_000;
+// C-01 (ADR-0006): no person after this long in the queue, a ghost or bot instead.
+export const FALLBACK_MS = 10_000;
 const RECONNECT_MS = 1_000;
 // A restart gives players 60 s to come back (owner, 2026-11-02); a dropped socket's 10 s
 // grace (MATCH-6) is within it.
@@ -60,7 +63,7 @@ const OPEN = 1; // WebSocket.OPEN
 
 export function runLive<S>(deps: LiveDeps<S>): {
   answer: (n: number, choice: number) => boolean;
-  ghost: () => void;
+  fallback: () => void;
   stop: () => void;
 } {
   let stopped = false;
@@ -133,22 +136,36 @@ export function runLive<S>(deps: LiveDeps<S>): {
   };
 
   let rejoined = false;
-  let ghostWanted = false;
+  let fallbackWanted = false;
+  let fellBack = false; // once only, by itself or asked for
+  let fallbackPending = false;
+  // Read through a call: `stop()` changes it while an await is pending, which the
+  // type checker's narrowing can't see.
+  const hasStopped = () => stopped;
   const run = async () => {
     const joined = await deps.queue("POST");
     if (!joined.ok) throw new Error(`queue: ${String(joined.status)}`);
+    const since = deps.now();
     while (!stopped) {
-      if (ghostWanted) {
-        ghostWanted = false;
-        // The ghost route leaves the queues before it looks for a run.
-        const ghostId = await deps.ghost();
-        if (ghostId !== null) {
+      if (!fellBack && deps.now() - since >= FALLBACK_MS) fallbackWanted = true;
+      if (fallbackWanted) {
+        fallbackWanted = false;
+        fellBack = true;
+        // The route leaves the queues (and returns a person's match made meanwhile).
+        fallbackPending = true;
+        const matchId = await deps.fallback().finally(() => {
+          fallbackPending = false;
+        });
+        // Left meanwhile: no queue to rejoin, and the route's match has nobody (it's
+        // cancelled when nobody joins it).
+        if (hasStopped()) return;
+        if (matchId !== null) {
           matched = true;
           deps.onState(state);
-          await connect(ghostId, null);
+          await connect(matchId, null);
           return;
         }
-        deps.onNoGhost();
+        deps.onNoFallback();
         const back = await deps.queue("POST");
         if (!back.ok) throw new Error(`queue: ${String(back.status)}`);
       }
@@ -184,9 +201,10 @@ export function runLive<S>(deps: LiveDeps<S>): {
       socket.send(JSON.stringify({ type: "answer", n, choice }));
       return true;
     },
-    // Taken at the queue's next turn (within a poll).
-    ghost: () => {
-      ghostWanted = true;
+    // "Play bot now": taken at the queue's next turn (within a poll).
+    fallback: () => {
+      // Pressed while one is under way: that one decides.
+      if (!fallbackPending) fallbackWanted = true;
     },
     stop: () => {
       stopped = true;

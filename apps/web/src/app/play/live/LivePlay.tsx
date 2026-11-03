@@ -10,7 +10,7 @@ import {
 } from "react";
 import type { GameMode } from "../../../server/ports";
 import { openMatch } from "./join";
-import { type LiveGame, runLive } from "./live-client";
+import { FALLBACK_MS, type LiveGame, runLive } from "./live-client";
 
 type Screen<S> =
   | { kind: "queue"; since: number }
@@ -22,6 +22,49 @@ export type ViewProps<S> = {
   answered: number | null; // the question just answered, until the next arrives
   onAnswer: (n: number, choice: number) => void;
 };
+
+// C-01 (screen 11): the seconds until a ghost or bot takes over, as a bar and a number.
+export function FallbackCountdown({
+  since,
+  at = since,
+}: {
+  since: number;
+  at?: number; // the first paint's now (tests); the clock ticks on from it
+}) {
+  const [now, setNow] = useState(at);
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setNow(Date.now());
+    }, 250);
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
+  const total = FALLBACK_MS / 1000;
+  const left = Math.max(0, Math.ceil((since + FALLBACK_MS - now) / 1000));
+  return (
+    <div className="mt-2 flex flex-col gap-1">
+      <div
+        role="progressbar"
+        aria-label="Seconds until a ghost or bot"
+        aria-valuemin={0}
+        aria-valuemax={total}
+        aria-valuenow={left}
+        className="h-1.5 overflow-hidden rounded-full bg-track"
+      >
+        <div
+          className="h-full rounded-full bg-ink"
+          style={{ width: `${String((left / total) * 100)}%` }}
+        />
+      </div>
+      <p className="text-sm text-ink-muted tabular-nums">
+        {left > 0
+          ? `A ghost or bot in ${String(left)}s if nobody's found`
+          : "Setting up a ghost or bot…"}
+      </p>
+    </div>
+  );
+}
 
 function Waited({ since }: { since: number }) {
   const [now, setNow] = useState(since);
@@ -36,9 +79,10 @@ function Waited({ since }: { since: number }) {
   return <>{Math.floor((now - since) / 1000)}</>;
 }
 
-// P3-W17-S01 (BOT-3, BOT-4): a match against a ghost says so on screen for its whole
-// length, and at its end that the rating moves half as much. A person: nothing added.
-export function GhostFrame({
+// P3-W17-S01, S02 (BOT-3, BOT-4): a match against a ghost or bot says so on screen for
+// its whole length, and at its end that the rating moves half as much. A person:
+// nothing added.
+export function ReplayFrame({
   label,
   finished,
   children,
@@ -51,12 +95,12 @@ export function GhostFrame({
   return (
     <div className="flex flex-col gap-4">
       <p className="self-start rounded-full bg-well px-4 py-1.5 text-sm font-semibold">
-        👻 vs {label}: a replay of a real run
+        vs {label}: not a live player
       </p>
       {children}
       {finished ? (
         <p className="text-sm text-ink-muted">
-          Ghost match: your rating moves half as much.
+          Against a ghost or bot, your rating moves half as much.
         </p>
       ) : null}
     </div>
@@ -85,9 +129,9 @@ export function LivePlay<S>({
   }));
   const [answered, setAnswered] = useState<number | null>(null);
   const [game, setGame] = useState(0);
-  // P3-W17-S01 (BOT-3): the ghost's label, on screen for the whole match.
+  // P3-W17-S01, S02 (BOT-3): a ghost's or bot's label, on screen for the whole match.
   const [opponent, setOpponent] = useState<string | null>(null);
-  const [noGhost, setNoGhost] = useState(false);
+  const [noFallback, setNoFallback] = useState(false);
   const live = useRef<ReturnType<typeof runLive> | null>(null);
 
   useEffect(() => {
@@ -118,12 +162,12 @@ export function LivePlay<S>({
       onError: () => {
         setScreen({ kind: "error" });
       },
-      ghost: async () => {
-        const response = await fetch(`/api/game/ghost?mode=${mode}`, {
+      fallback: async () => {
+        const response = await fetch(`/api/game/bot?mode=${mode}`, {
           method: "POST",
         });
         if (response.status === 404) return null;
-        if (!response.ok) throw new Error(`ghost: ${String(response.status)}`);
+        if (!response.ok) throw new Error(`bot: ${String(response.status)}`);
         const body: unknown = await response.json();
         if (
           typeof body !== "object" ||
@@ -131,11 +175,11 @@ export function LivePlay<S>({
           !("matchId" in body) ||
           typeof body.matchId !== "string"
         )
-          throw new Error("ghost: no match id");
+          throw new Error("bot: no match id");
         return body.matchId;
       },
-      onNoGhost: () => {
-        setNoGhost(true);
+      onNoFallback: () => {
+        setNoFallback(true);
       },
       onOpponent: setOpponent,
     });
@@ -149,7 +193,7 @@ export function LivePlay<S>({
   const again = () => {
     setAnswered(null);
     setOpponent(null);
-    setNoGhost(false);
+    setNoFallback(false);
     setScreen({ kind: "queue", since: Date.now() });
     setGame((n) => n + 1);
   };
@@ -164,28 +208,30 @@ export function LivePlay<S>({
             Waiting <Waited since={screen.since} />
             s, matched by rating.
           </p>
+          {noFallback ? (
+            <p className="text-sm text-ink-muted">
+              No ghost or bot could be set up. Still looking for an opponent.
+            </p>
+          ) : (
+            <FallbackCountdown since={screen.since} />
+          )}
           <button
             type="button"
             onClick={() => {
-              setNoGhost(false);
-              live.current?.ghost();
+              setNoFallback(false);
+              live.current?.fallback();
             }}
             className="mt-3 cursor-pointer self-start rounded-full border border-hairline px-5 py-2.5 font-semibold"
           >
-            Play a ghost now
+            Play bot now
           </button>
-          {noGhost ? (
-            <p className="text-sm text-ink-muted">
-              No ghost to play yet. Still looking for an opponent.
-            </p>
-          ) : null}
         </div>
       ) : screen.kind === "error" ? (
         <p role="alert" className="rounded-2xl bg-well px-4 py-3">
           The live match couldn&apos;t go on. Try again in a moment.
         </p>
       ) : (
-        <GhostFrame label={opponent} finished={finished}>
+        <ReplayFrame label={opponent} finished={finished}>
           <View
             state={screen.state}
             answered={answered}
@@ -193,7 +239,7 @@ export function LivePlay<S>({
               if (live.current?.answer(n, choice) === true) setAnswered(n);
             }}
           />
-        </GhostFrame>
+        </ReplayFrame>
       )}
       <div className="flex flex-wrap gap-3">
         {finished || screen.kind === "error" ? (

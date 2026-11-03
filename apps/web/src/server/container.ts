@@ -43,7 +43,7 @@ import { kyselyMatches } from "./adapters/kysely-matches";
 import { kyselyRatings } from "./adapters/kysely-ratings";
 import { valkeyMatchHandoff } from "./adapters/valkey-match-handoff";
 import { queuePrefix, valkeyMatchmaking } from "./adapters/valkey-matchmaking";
-import { startGhostMatch, startLiveMatch } from "./live";
+import { startLiveMatch, startReplayMatch } from "./live";
 import { kyselyFollows, kyselyUsernames } from "./adapters/kysely-people";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
 import { kyselyProgress } from "./adapters/kysely-progress";
@@ -299,12 +299,12 @@ export function matchmaking(mode: GameMode): Matchmaking {
   );
 }
 
-// P3-W17-S01 (Q-P3-25): a match against a ghost, handed to its game server.
-export function ghostMatch(
+// P3-W17-S01, S02 (C-01): with no person to play, a ghost else a bot, handed over.
+export function replayMatch(
   userId: string,
   mode: GameMode,
 ): Promise<LiveMatch | null> {
-  return startGhostMatch(
+  return startReplayMatch(
     matches(),
     valkeyMatchHandoff(valkeyClient()),
     userId,

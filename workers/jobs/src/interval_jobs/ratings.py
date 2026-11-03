@@ -17,7 +17,7 @@ class Glicko:
 
 
 START = Glicko(1500, 350, 0.06)  # owner, 2026-11-02: Glickman's defaults
-GHOST_WEIGHT = 0.5  # BOT-4: half the rating change against a ghost or a bot
+REPLAY_WEIGHT = 0.5  # BOT-4: half the rating change against a ghost or a bot
 
 
 def _g(phi: float) -> float:

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import {
-  ghostMatch,
+  replayMatch,
   matchmaking,
   sessionReader,
 } from "../../../../server/container";
@@ -10,9 +10,10 @@ export const dynamic = "force-dynamic";
 
 const Mode = z.enum(["sprint", "fastest_finger"]);
 
-// P3-W17-S01 (BOT-1, Q-P3-25): "Play a ghost now". The player leaves the queues and
-// gets a match against a recorded run, for accounts and guests (ADR-0029); the browser
-// then asks for its ticket as for any match. 404: no run fits yet.
+// P3-W17-S01, S02 (BOT-1, BOT-2, C-01, Q-P3-26): "Play bot now", and the queue's
+// switch after 10 s. The player leaves the queues and gets a ghost if one fits, else a
+// synthetic bot, for accounts and guests (ADR-0029); the browser then asks for its
+// ticket as for any match. 404: not even a bot could be made (a short bank).
 export async function POST(request: Request): Promise<Response> {
   if (!sameOrigin(request)) return new Response(null, { status: 403 });
   const mode = Mode.safeParse(new URL(request.url).searchParams.get("mode"));
@@ -32,7 +33,7 @@ export async function POST(request: Request): Promise<Response> {
         { headers: { "Cache-Control": "no-store" } },
       );
   }
-  const match = await ghostMatch(actor.userId, mode.data);
+  const match = await replayMatch(actor.userId, mode.data);
   if (match === null) return new Response(null, { status: 404 });
   return Response.json(
     { matchId: match.id },

@@ -641,10 +641,22 @@ test("Postgres: a ghost match replays the nearest unmet run, in its questions' o
       expect(
         await trx
           .selectFrom("game_match")
-          .select(["mode", "ghost_run_id"])
+          .select([
+            "mode",
+            "ghost_run_id",
+            "replay_seat",
+            "replay_rating",
+            "replay_rd",
+          ])
           .where("id", "=", first.id)
           .executeTakeFirst(),
-      ).toEqual({ mode: "fastest_finger", ghost_run_id: near });
+      ).toEqual({
+        mode: "fastest_finger",
+        ghost_run_id: near,
+        replay_seat: `ghost:${near}`,
+        replay_rating: 1650,
+        replay_rd: 90,
+      });
       expect(await matches.serverFor(first.id, me)).toEqual({
         serverId: 0,
         playedAs: me,
@@ -663,4 +675,241 @@ test("Postgres: a ghost match replays the nearest unmet run, in its questions' o
       throw new Rollback();
     }),
   ).rejects.toBeInstanceOf(Rollback);
+});
+
+// P3-W17-S02 (BOT-2, BOT-3, Q-P3-26): a bot's match is picked as the player's own, rated
+// at the player's rating, labeled with its band; its run is a full replay.
+test("Postgres: a bot match is labeled, rated at the player's own and fully played", async () => {
+  await expect(
+    db.transaction().execute(async (trx: Transaction<DB>) => {
+      const code = await trx
+        .insertInto("invite_code")
+        .values({
+          code: `BOT${randomUUID().slice(0, 8).toUpperCase()}`,
+          beta_group: "developer",
+          max_uses: 10,
+          expires_at: sql<Date>`now() + interval '1 day'`,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const me = `bot-${randomUUID()}`;
+      await trx
+        .insertInto("app_user")
+        .values({
+          id: me,
+          name: "Ada",
+          email: `${me}@bot.example.test`,
+          beta_group: "developer",
+          invite_code_id: code.id,
+        })
+        .execute();
+      await trx
+        .insertInto("player_rating")
+        .values({ user_id: me, rating: 1720, rd: 80, volatility: 0.06 })
+        .execute();
+      const made = await kyselyMatches(trx).createBot(0, me, "sprint");
+      if (made === null)
+        throw new Error("no bot match (is the local bank empty?)");
+      expect(made.players).toEqual([me, "bot"]);
+      expect(made.rounds).toHaveLength(LIVE_QUESTIONS.sprint);
+      expect(made.ghost?.player).toBe("bot");
+      expect(made.ghost?.label).toBe("Bot · ~1700");
+      const answers = made.ghost?.answers ?? [];
+      expect(answers.map((a) => a.n)).toEqual(made.rounds.map((_, i) => i + 1));
+      answers.forEach((a, i) => {
+        const options = made.rounds[i]?.options.length ?? 0;
+        expect(a.choice).toBeGreaterThanOrEqual(0);
+        expect(a.choice).toBeLessThan(options);
+        // A sprint's times add up from its start.
+        if (i > 0) expect(a.ms).toBeGreaterThan(answers[i - 1]?.ms ?? 0);
+      });
+      expect(
+        await trx
+          .selectFrom("game_match")
+          .select([
+            "mode",
+            "replay_seat",
+            "replay_rating",
+            "replay_rd",
+            "ghost_run_id",
+          ])
+          .where("id", "=", made.id)
+          .executeTakeFirst(),
+      ).toEqual({
+        mode: "sprint",
+        replay_seat: "bot",
+        replay_rating: 1720,
+        replay_rd: 350,
+        ghost_run_id: null,
+      });
+      expect(await kyselyMatches(trx).serverFor(made.id, me)).toEqual({
+        serverId: 0,
+        playedAs: me,
+      });
+      throw new Rollback();
+    }),
+  ).rejects.toBeInstanceOf(Rollback);
+});
+
+// P3-W17-S02 (Q-P3-26) against data: the bot's first question (the player's only one in
+// their own tier) is right at its real rate (16 of 20), at its live step time (each
+// sprint run answered it 3.7 s after the question before).
+test("Postgres: a bot plays a question at its real rate and live sprint time", async () => {
+  const play = (roll: number) =>
+    db.transaction().execute(async (trx: Transaction<DB>) => {
+      const code = await trx
+        .insertInto("invite_code")
+        .values({
+          code: `BOTD${randomUUID().slice(0, 8).toUpperCase()}`,
+          beta_group: "developer",
+          max_uses: 10,
+          expires_at: sql<Date>`now() + interval '1 day'`,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const [me = "", other = ""] = [0, 1].map(() => `botd-${randomUUID()}`);
+      await trx
+        .insertInto("app_user")
+        .values(
+          [me, other].map((id) => ({
+            id,
+            name: "Ada",
+            email: `${id}@botd.example.test`,
+            beta_group: "developer" as const,
+            invite_code_id: code.id,
+          })),
+        )
+        .execute();
+      const source = await trx
+        .insertInto("source")
+        .values({
+          name: `botd-${randomUUID()}`,
+          feed_url: `https://botd.example.test/${randomUUID()}.xml`,
+          rights_profile: "full_text_internal",
+          moments_seeded: true,
+          moments_enabled: true,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const item = await trx
+        .insertInto("content_item")
+        .values({
+          source_id: source.id,
+          guid: randomUUID(),
+          canonical_url: `https://botd.example.test/${randomUUID()}`,
+          title: "Bots",
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const moment = await trx
+        .insertInto("moment")
+        .values({
+          content_item_id: item.id,
+          ordinal: 0,
+          title: "M",
+          estimated_minutes: 3,
+          link: "https://botd.example.test/post#m",
+          link_type: "anchor",
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const question = async (ordinal: number) =>
+        (
+          await trx
+            .insertInto("question")
+            .values({
+              moment_id: moment.id,
+              ordinal,
+              stem: `B${String(ordinal)}?`,
+              options: ["right", "w1", "w2", "w3"],
+              correct: 0,
+              citation: "a b c",
+              status: "live",
+              generator_model: "m",
+              prompt_version: 1,
+              content_hash: "h",
+            })
+            .returning("id")
+            .executeTakeFirstOrThrow()
+        ).id;
+      const [x, y] = [await question(0), await question(1)];
+      // The player's own tier: a concept they know, on x only.
+      const { id: concept } = await trx
+        .insertInto("concept")
+        .values({ slug: `botd-${randomUUID()}`, name: "B", topic: "databases" })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await trx
+        .insertInto("question_concept")
+        .values({ question_id: x, concept_id: concept })
+        .execute();
+      await trx
+        .insertInto("concept_mastery")
+        .values({
+          user_id: me,
+          concept_id: concept,
+          probability: 0.3,
+          state: "explored",
+          evidence_count: 1,
+        })
+        .execute();
+      // Five sprint runs: y at 1.0 s, then x at 4.7 s: x's step is 3.7 s.
+      for (let r = 0; r < 5; r += 1) {
+        const { id: matchId } = await trx
+          .insertInto("game_match")
+          .values({ server_id: 0, mode: "sprint" })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        await trx
+          .insertInto("ghost_run")
+          .values({
+            match_id: matchId,
+            user_id: other,
+            mode: "sprint",
+            rating: 1500,
+            rd: 350,
+            volatility: 0.06,
+            answers: JSON.stringify([
+              { n: 1, question_id: Number(y), choice: 0, ms: 1000 },
+              { n: 2, question_id: Number(x), choice: 0, ms: 4700 },
+            ]),
+          })
+          .execute();
+      }
+      // Twenty judged answers to x, sixteen right: a real rate of 0.8.
+      for (let a = 0; a < 20; a += 1) {
+        const { rows } = await sql<{ id: string }>`
+          insert into quiz_attempt (user_id, review, finished_at)
+          values (${other}, true, now())
+          returning id`.execute(trx);
+        await sql`insert into quiz_answer
+            (attempt_id, question_id, served_at, answered_at, chosen, correct)
+          values (${rows[0]?.id ?? ""}, ${x}, now(), now(), 0, ${a < 16})`.execute(
+          trx,
+        );
+      }
+      const made = await kyselyMatches(trx, () => roll).createBot(
+        0,
+        me,
+        "sprint",
+      );
+      if (made === null) throw new Error("no bot match");
+      expect(made.rounds[0]?.question).toBe(x);
+      const first = made.ghost?.answers[0];
+      throw new Rollback(JSON.stringify(first));
+    });
+  const first = async (roll: number) => {
+    try {
+      await play(roll);
+    } catch (error) {
+      if (error instanceof Rollback)
+        return JSON.parse(error.message) as unknown;
+      throw error;
+    }
+    throw new Error("no rollback");
+  };
+  // 0.79 < 0.8: right, at x's own step time; 0.81: a wrong option.
+  expect(await first(0.79)).toEqual({ n: 1, choice: 0, ms: 3700 });
+  expect(await first(0.81)).toMatchObject({ n: 1, ms: 3700 });
+  expect(((await first(0.81)) as { choice: number }).choice).not.toBe(0);
 });

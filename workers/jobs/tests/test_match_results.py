@@ -491,8 +491,11 @@ def _ghost_match(conn: psycopg.Connection, question: int) -> tuple[str, int]:
     ).fetchone()
     assert row is not None
     match_id = _match(conn, [("gra", None)])
+    # As the web app makes it: the run, and its seat and Glicko kept with the match.
     conn.execute(
-        "update game_match set ghost_run_id = %s where id = %s", (row[0], match_id)
+        "update game_match set ghost_run_id = %s, replay_seat = %s, replay_rating ="
+        " 1700, replay_rd = 50, replay_volatility = 0.06 where id = %s",
+        (row[0], f"ghost:{row[0]}", match_id),
     )
     return match_id, int(row[0])
 
@@ -580,3 +583,106 @@ def test_an_unrated_match_keeps_its_run_at_the_rating_held(
     assert PostgresMatchResults(conn).record(result)
     runs = _runs(conn, match_id)
     assert [(r[0], r[2], r[3], r[4]) for r in runs] == [("gra", 1720.0, 90.0, 0.05)]
+
+
+# P3-W17-S02 (BOT-2, BOT-4, Q-P3-26): a bot is an opponent at the player's own rating
+# then, RD 350; the human moves half as much, and the bot's seat is no player.
+def test_a_bot_match_moves_the_human_half_as_much_against_their_own_rating(
+    conn: psycopg.Connection, capsys: pytest.CaptureFixture[str]
+) -> None:
+    a_user(conn, "gra")
+    question = _question(conn)
+    conn.execute(
+        "insert into player_rating (user_id, rating, rd, volatility, games)"
+        " values ('gra', 1640, 120, 0.06, 5)"
+    )
+    match_id = _match(conn, [("gra", None)])
+    conn.execute(
+        "update game_match set replay_seat = 'bot', replay_rating = 1640,"
+        " replay_rd = 350, replay_volatility = 0.06 where id = %s",
+        (match_id,),
+    )
+    result = MatchResult.model_validate(
+        {
+            "match_id": match_id,
+            "finished_at": "2026-11-02T12:05:00Z",
+            "outcome": "finished",
+            "winner": "bot",
+            "players": [
+                {
+                    "played_as": "gra",
+                    "total": 0,
+                    "time_ms": 0,
+                    "abandoned": False,
+                    "answers": [],
+                },
+                {
+                    "played_as": "bot",
+                    "total": 1,
+                    "time_ms": 3000,
+                    "abandoned": False,
+                    "answers": [
+                        {
+                            "round": 1,
+                            "question_id": question,
+                            "choice": 0,
+                            "correct": True,
+                            "ms": 3000,
+                        }
+                    ],
+                },
+            ],
+        }
+    )
+    assert PostgresMatchResults(conn).record(result)
+    full = update(Glicko(1640, 120, 0.06), [(Glicko(1640, 350, 0.06), 0.0)])
+    row = conn.execute(
+        "select rating, rd from player_rating where user_id = 'gra'"
+    ).fetchone()
+    assert row is not None
+    assert float(row[0]) == pytest.approx(1640 + (full.rating - 1640) / 2)
+    assert float(row[1]) == pytest.approx(full.rd)
+    assert "not in the match" not in capsys.readouterr().out
+
+
+def test_a_ghost_match_whose_run_is_gone_is_still_rated_as_one(
+    conn: psycopg.Connection, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The run's owner deleted their account mid-match: the match kept its replay."""
+    a_user(conn, "gra")
+    a_user(conn, "grb")
+    question = _question(conn)
+    match_id, run = _ghost_match(conn, question)
+    conn.execute("delete from ghost_run where id = %s", (run,))
+    result = MatchResult.model_validate(
+        {
+            "match_id": match_id,
+            "finished_at": "2026-11-02T12:05:00Z",
+            "outcome": "finished",
+            "winner": "gra",
+            "players": [
+                {
+                    "played_as": "gra",
+                    "total": 1,
+                    "time_ms": 2000,
+                    "abandoned": False,
+                    "answers": [],
+                },
+                {
+                    "played_as": f"ghost:{run}",
+                    "total": 0,
+                    "time_ms": 0,
+                    "abandoned": False,
+                    "answers": [],
+                },
+            ],
+        }
+    )
+    assert PostgresMatchResults(conn).record(result)
+    full = update(Glicko(1500, 350, 0.06), [(Glicko(1700, 50, 0.06), 1.0)])
+    row = conn.execute(
+        "select rating from player_rating where user_id = 'gra'"
+    ).fetchone()
+    assert row is not None
+    assert float(row[0]) == pytest.approx(1500 + (full.rating - 1500) / 2)
+    assert "not in the match" not in capsys.readouterr().out

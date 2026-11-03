@@ -191,6 +191,16 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - labeled "Ghost" with the run's rating band (e.g. "Ghost · ~1600"), never the original player's name;
   - in S01, a "Play a ghost now" button on the live queue screen leaves the queue and starts a ghost match; S02 adds the automatic switch after 10 s.
 
+### Q-P3-26 Synthetic bots and the 10 s fallback (P0 for W17-S02)
+
+- Cite: BOT-2 (built from question difficulty and real players' answer times), BOT-3, BOT-4, ADR-0006 C-01 (10 s; countdown and "Play bot now" from screen 11).
+- **Answer (owner, 2026-11-03):**
+  - a bot answers each question right with that question's real correct rate over all recorded answers. With too few answers: 80% beginner, 65% intermediate, 50% advanced. A wrong answer picks a wrong option at random;
+  - its time on each question is drawn from real live answer times on that question. With too few, from all of the mode's live answer times; with none yet, 3–9 s;
+  - it is rated as an opponent at the player's own rating (RD 350), at half weight (BOT-4), and labeled "Bot · ~1600";
+  - one "Play bot now" button replaces "Play a ghost now". It and the automatic switch after 10 s (with a countdown) both give a ghost if one fits, else a bot.
+  - (follow-up) a question with no difficulty level counts as intermediate (65%).
+
 ### Q-P3-16 What a friend challenge link plays (P1)
 
 - **Answer (owner, 2026-10-31):** live only: the link opens a private live match; both players must be online.

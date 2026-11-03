@@ -1,14 +1,14 @@
 import { afterEach, expect, test, vi } from "vitest";
 import type { Actor, LiveMatch, Matchmaking } from "../../../../server/ports";
 
-// P3-W17-S01 (Q-P3-25): "Play a ghost now" leaves both queues and starts a ghost match.
+// P3-W17-S01, S02 (C-01): "Play bot now" leaves both queues and starts a ghost or bot.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const leave = vi.fn<Matchmaking["leave"]>(() => Promise.resolve());
 const poll = vi.fn<Matchmaking["poll"]>(() =>
   Promise.resolve({ status: "none" }),
 );
 const queueOf = vi.fn<(mode: string) => void>();
-const ghostMatch =
+const replayMatch =
   vi.fn<(userId: string, mode: string) => Promise<LiveMatch | null>>();
 vi.mock("../../../../server/container", () => ({
   sessionReader: () => ({ current }),
@@ -16,7 +16,7 @@ vi.mock("../../../../server/container", () => ({
     queueOf(mode);
     return { leave, poll };
   },
-  ghostMatch,
+  replayMatch,
 }));
 vi.mock("../../../../env", () => ({
   env: () => ({
@@ -38,16 +38,16 @@ const call = async (
   const { POST } = await import("./route");
   const query = mode === null ? "" : `?mode=${mode}`;
   return POST(
-    new Request(`http://localhost:3100/api/game/ghost${query}`, {
+    new Request(`http://localhost:3100/api/game/bot${query}`, {
       method: "POST",
       headers: { origin },
     }),
   );
 };
 
-test("a player leaves both queues and gets the ghost match", async () => {
+test("a player leaves both queues and gets the ghost or bot match", async () => {
   current.mockResolvedValue(guest);
-  ghostMatch.mockResolvedValueOnce({
+  replayMatch.mockResolvedValueOnce({
     id: "m-9",
     serverId: 0,
     players: ["g1", "ghost:3"],
@@ -61,12 +61,12 @@ test("a player leaves both queues and gets the ghost match", async () => {
     "sprint",
   ]);
   expect(leave).toHaveBeenCalledTimes(2);
-  expect(ghostMatch).toHaveBeenCalledExactlyOnceWith("g1", "sprint");
+  expect(replayMatch).toHaveBeenCalledExactlyOnceWith("g1", "sprint");
 });
 
-test("no run fits: 404; a bad mode, another site or no session: refused", async () => {
+test("not even a bot: 404; a bad mode, another site or no session: refused", async () => {
   current.mockResolvedValue(guest);
-  ghostMatch.mockResolvedValueOnce(null);
+  replayMatch.mockResolvedValueOnce(null);
   expect((await call()).status).toBe(404);
   expect((await call("chess")).status).toBe(400);
   expect((await call("sprint", "https://evil.example")).status).toBe(403);
@@ -74,7 +74,7 @@ test("no run fits: 404; a bad mode, another site or no session: refused", async 
   expect((await call()).status).toBe(401);
 });
 
-test("paired with a person just before: that match, not a ghost", async () => {
+test("paired with a person just before: that match, not a ghost or bot", async () => {
   current.mockResolvedValue(guest);
   poll.mockResolvedValueOnce({
     status: "matched",
@@ -83,5 +83,5 @@ test("paired with a person just before: that match, not a ghost", async () => {
     first: true,
   });
   expect(await (await call()).json()).toEqual({ matchId: "human-1" });
-  expect(ghostMatch).not.toHaveBeenCalled();
+  expect(replayMatch).not.toHaveBeenCalled();
 });

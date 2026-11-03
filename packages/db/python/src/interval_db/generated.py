@@ -344,6 +344,10 @@ class GameMatch(TypedDict):
     rated_at: datetime | None
     mode: str
     ghost_run_id: int | None
+    replay_seat: str | None
+    replay_rating: float | None
+    replay_rd: float | None
+    replay_volatility: float | None
 
 
 class GameMatchPlayer(TypedDict):

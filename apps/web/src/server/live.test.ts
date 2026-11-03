@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from "vitest";
 import { memoryMatches } from "./adapters/kysely-matches";
 import type { LiveMatch, LiveRound, MatchHandoff } from "./ports";
-import { startGhostMatch, startLiveMatch } from "./live";
+import { startLiveMatch, startReplayMatch } from "./live";
 
 // P3-W15-S03 (Q-P3-22): a match is made with its questions, then handed to its server.
 const bank: LiveRound[] = Array.from({ length: 30 }, (_, i) => ({
@@ -75,31 +75,36 @@ test.each([[["ada"]], [["ada", "ada"]], [["ada", "bob", "cat"]], [[]]])(
   },
 );
 
-// P3-W17-S01: a ghost match is handed over like any; none when no run fits.
-test("a ghost match is handed over, or there is none", async () => {
+// P3-W17-S01, S02 (C-01): a ghost first, else a bot, handed over like any; none only
+// when neither can be made.
+test("a ghost if one fits, else a bot, else none", async () => {
   const put = vi.fn<MatchHandoff["put"]>(() => Promise.resolve());
-  const ghost: LiveMatch = {
-    id: "m1",
+  const match = (player: string): LiveMatch => ({
+    id: player,
     serverId: 0,
-    players: ["ada", "ghost:1"],
+    players: ["ada", player],
     mode: "sprint",
     rounds: bank,
-    ghost: { player: "ghost:1", label: "Ghost · ~1500", answers: [] },
-  };
-  const matches = {
+    ghost: { player, label: player, answers: [] },
+  });
+  const matches = (ghost: boolean, bot: boolean) => ({
     ...memoryMatches(new Map(), bank),
-    createGhost: vi.fn(() => Promise.resolve(ghost)),
-  };
-  expect(await startGhostMatch(matches, { put }, "ada", "sprint")).toBe(ghost);
-  expect(put).toHaveBeenCalledExactlyOnceWith(ghost);
+    createGhost: vi.fn(() => Promise.resolve(ghost ? match("ghost:1") : null)),
+    createBot: vi.fn(() => Promise.resolve(bot ? match("bot") : null)),
+  });
+  const both = matches(true, true);
+  expect((await startReplayMatch(both, { put }, "ada", "sprint"))?.id).toBe(
+    "ghost:1",
+  );
+  expect(both.createBot).not.toHaveBeenCalled();
+  expect(
+    (await startReplayMatch(matches(false, true), { put }, "ada", "sprint"))
+      ?.id,
+  ).toBe("bot");
+  expect(put).toHaveBeenCalledTimes(2);
   put.mockClear();
   expect(
-    await startGhostMatch(
-      memoryMatches(new Map(), bank),
-      { put },
-      "ada",
-      "sprint",
-    ),
+    await startReplayMatch(matches(false, false), { put }, "ada", "sprint"),
   ).toBeNull();
   expect(put).not.toHaveBeenCalled();
 });
