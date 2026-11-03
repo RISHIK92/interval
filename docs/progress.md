@@ -3195,3 +3195,46 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the countdown bar starts before the queue join, so it can read 0 about a second before the switch ("Setting up…" covers it);
   - screen 11 asks for a ring, and this is a bar.
 - **Full check:** web 1313, Python 1320, Go, lint and types; infra alone 62 (its synth hook timed out under load).
+
+### 2026-11-03 — P3-W17-S03 (friend challenge links; §6.3, Q-P3-16, Q-P3-03)
+
+- **Owner (Q-P3-16 follow-up):**
+  - a link lasts 10 minutes and admits the first friend (not its sender);
+  - online means the app was used in the last 2 minutes; the friend's acceptance reaches the sender's open tab, and the match waits up to 60 s;
+  - unrated, with answers still counting as evidence.
+- **Valkey `Challenges`** (with a fake and one contract test):
+  - `challenge:<token>` lasts 600 s and is taken atomically (Lua);
+  - `presence:<user>` lasts 120 s;
+  - `challenge-for:<sender>` lasts 60 s.
+- **Presence:**
+  - a client `Presence` in the root layout (every page, the waiting screen included) posts `/api/presence` every 10 s while visible, and stops on 401;
+  - an accepted challenge shows a dismissible "Join now" banner, cleared when the notice lapses.
+- **`/play/challenge`:**
+  - pick a game (the sprint only with `play.sprint`);
+  - `createChallengeAction` (accounts need their username) makes the link, which can be copied or shared, free of hydration mismatches and unhandled rejections.
+- **`/c/[token]`:**
+  - opening the link never takes it;
+  - it says plainly when the link has expired, been taken, is your own, the sender is offline, the game can't be played, or the match failed;
+  - "Play now" runs `acceptChallengeAction`: check the token's shape, peek, confirm the sender is online and that both may play, take, make the private match (`Matches.create` with `{unrated: true}`), notify, then go to `/play/live/<mode>?match=`;
+  - a failed start is logged and said;
+  - noindex.
+- **Live pages:**
+  - `?match=` (a uuid) joins with no queue (`runLive.matchId`);
+  - Play again drops `?match=` from the URL.
+- **Worker:** an unrated match moves no rating.
+- **Code tidy:** one `GAME_MODES` list.
+- **Reviewer, fixed:**
+  - presence was missing on the sender's waiting page (blocker: no "Join now", so the match was cancelled), now in the root layout;
+  - the banner never cleared;
+  - the sprint entitlement was unchecked;
+  - a spent link with an error page;
+  - a hydration mismatch;
+  - unhandled copy and share failures;
+  - missing tests;
+  - token validation;
+  - noindex;
+  - `?match=` lingering;
+  - five copies of the mode list;
+  - a boolean flag.
+- **Not done (nit):** "Sign in" and "Play as a guest" don't return to the link, so the friend reopens it.
+- **Full check:** web 1339, Python 1321, Go, lint and types; infra alone 62 (its synth hook timed out under load).

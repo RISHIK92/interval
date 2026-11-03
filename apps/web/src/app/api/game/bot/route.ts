@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GAME_MODES } from "../../../../server/ports";
 import {
   replayMatch,
   matchmaking,
@@ -8,7 +9,7 @@ import { sameOrigin } from "../../../../server/same-origin";
 
 export const dynamic = "force-dynamic";
 
-const Mode = z.enum(["sprint", "fastest_finger"]);
+const Mode = z.enum(GAME_MODES);
 
 // P3-W17-S01, S02 (BOT-1, BOT-2, C-01, Q-P3-26): "Play bot now", and the queue's
 // switch after 10 s. The player leaves the queues and gets a ghost if one fits, else a

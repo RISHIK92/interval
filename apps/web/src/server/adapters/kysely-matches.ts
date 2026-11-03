@@ -124,6 +124,7 @@ export function kyselyMatches(
       mode: GameMode;
       people: string[];
       questions: string[];
+      unrated?: boolean;
       // P3-W17-S01, S02: a ghost's or bot's seat and the Glicko it is rated as.
       replay?: {
         seat: string;
@@ -139,6 +140,7 @@ export function kyselyMatches(
       .values({
         server_id: match.serverId,
         mode: match.mode,
+        unrated: match.unrated ?? false,
         ghost_run_id: match.replay?.ghostRunId ?? null,
         replay_seat: match.replay?.seat ?? null,
         replay_rating: match.replay?.rating ?? null,
@@ -165,7 +167,7 @@ export function kyselyMatches(
   };
 
   return {
-    create: (serverId, players, mode) =>
+    create: (serverId, players, mode, options) =>
       inTransaction(async (trx) => {
         const chosen = await questionsFor(trx, players, mode);
         if (chosen === null) return null;
@@ -175,6 +177,7 @@ export function kyselyMatches(
           mode,
           people: players,
           questions: rounds.map((r) => r.question),
+          unrated: options?.unrated ?? false,
         });
         return { id, serverId, players, mode, rounds };
       }),

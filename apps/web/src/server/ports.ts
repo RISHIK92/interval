@@ -696,7 +696,8 @@ export type LiveRound = {
   correct: number;
 };
 // P3-W16-S04 (Q-P3-23): a sprint, or Q-P3-22's rounds (fastest finger from W16-S05).
-export type GameMode = "sprint" | "fastest_finger";
+export const GAME_MODES = ["sprint", "fastest_finger"] as const;
+export type GameMode = (typeof GAME_MODES)[number];
 export type LiveMatch = {
   id: string;
   serverId: number;
@@ -717,10 +718,12 @@ export const LIVE_QUESTIONS: Record<GameMode, number> = {
 export interface Matches {
   // A new match of its mode's LIVE_QUESTIONS live multiple-choice questions (the
   // sprint's rights rule, ING-2); null when the bank has fewer than that.
+  // `unrated`: a friend challenge (P3-W17-S03, Q-P3-16) moves no rating.
   create(
     serverId: number,
     players: string[],
     mode: GameMode,
+    options?: { unrated: boolean },
   ): Promise<LiveMatch | null>;
   // P3-W17-S01 (Q-P3-25): a match against a ghost, a same-mode run from the last 30 days
   // by someone else with every question still live: one never met first, the nearest
@@ -762,6 +765,29 @@ export interface Matchmaking {
   // Out of the queue. Leaving while being paired puts the other back in the queue; once
   // matched, it's too late (the game server cancels a match nobody starts).
   leave(userId: string): Promise<void>;
+}
+
+// P3-W17-S03 (Q-P3-16; owner, 2026-11-03): friend challenge links and the presence
+// they need. A link lasts 10 minutes and admits one friend, not its sender; the sender
+// is online when they used the app in the last 2 minutes; the friend's acceptance waits
+// a minute for the sender's open tab to pick it up.
+export type Challenge = { sender: string; mode: GameMode };
+export type ChallengeState =
+  ({ status: "open" } & Challenge) | { status: "expired" | "taken" | "own" };
+export type ChallengeAccepted = { matchId: string; mode: GameMode };
+export const CHALLENGE_SECONDS = 600;
+export const ONLINE_SECONDS = 120;
+export const ACCEPTED_SECONDS = 60;
+export interface Challenges {
+  create(sender: string, mode: GameMode): Promise<string>; // the link's token
+  // Where it stands for this opener, without taking it.
+  peek(token: string, opener: string): Promise<ChallengeState>;
+  // Taken once, by the first opener: "taken" for everyone after.
+  take(token: string, opener: string): Promise<ChallengeState>;
+  beat(userId: string): Promise<void>;
+  online(userId: string): Promise<boolean>;
+  notify(sender: string, accepted: ChallengeAccepted): Promise<void>;
+  pending(sender: string): Promise<ChallengeAccepted | null>;
 }
 
 // P3-W16-S01 (ADR-0034): a player's quick-game rating; 1500 before their first match.

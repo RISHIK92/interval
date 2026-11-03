@@ -3159,7 +3159,7 @@ class PostgresMatchResults:
                 update game_match set finished_at = %s, outcome = %s, winner_id = %s
                 where id = %s and finished_at is null
                 returning created_at, mode, replay_seat, replay_rating, replay_rd,
-                          replay_volatility
+                          replay_volatility, unrated
                 """,
                 (result.finished_at, result.outcome, winner, result.match_id),
             ).fetchone()
@@ -3244,7 +3244,9 @@ class PostgresMatchResults:
                             match_id=str(result.match_id),
                             question_id=answer.question_id,
                         )
-            before = self._rate(result, players, replay)
+            # P3-W17-S03 (Q-P3-16): a friend challenge moves no rating; its runs are
+            # kept at the ratings the players hold.
+            before = {} if done[6] else self._rate(result, players, replay)
             if result.outcome == "finished":
                 self._keep_runs(result, players, mode, before)
         return True

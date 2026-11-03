@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { z } from "zod";
 import { redirect } from "next/navigation";
 import { gameEnv } from "../../../../env";
 import { entitlements, sessionReader } from "../../../../server/container";
@@ -9,7 +10,13 @@ export const dynamic = "force-dynamic";
 
 // P3-W16-S05 (§6.3, Q-P3-24): live fastest finger, for accounts and guests (ADR-0029)
 // whose plan has live games (OPS-3), once live games are configured.
-export default async function LiveFingerPage() {
+// P3-W17-S03: ?match= joins a friend challenge's match (the ticket route checks the
+// player is in it).
+const Match = z.uuid();
+
+export default async function LiveFingerPage(props: {
+  searchParams: Promise<{ match?: string | string[] }>;
+}) {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/play");
   if (!actor.isGuest)
@@ -28,7 +35,11 @@ export default async function LiveFingerPage() {
           round; one answer each.
         </p>
       </header>
-      <LiveFinger />
+      <LiveFinger
+        matchId={
+          Match.safeParse((await props.searchParams).match).data ?? undefined
+        }
+      />
     </main>
   );
 }

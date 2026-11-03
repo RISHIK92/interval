@@ -41,6 +41,7 @@ import { kyselyPlayerCountries } from "./adapters/kysely-player-countries";
 import { kyselyPlayerUniversities } from "./adapters/kysely-player-universities";
 import { kyselyMatches } from "./adapters/kysely-matches";
 import { kyselyRatings } from "./adapters/kysely-ratings";
+import { valkeyChallenges } from "./adapters/valkey-challenges";
 import { valkeyMatchHandoff } from "./adapters/valkey-match-handoff";
 import { queuePrefix, valkeyMatchmaking } from "./adapters/valkey-matchmaking";
 import { startLiveMatch, startReplayMatch } from "./live";
@@ -57,6 +58,7 @@ import { valkeyLeaderboards } from "./adapters/valkey-leaderboards";
 import { createEmitter, type Emitter } from "./events";
 import { log } from "./log";
 import type {
+  Challenges,
   GameMode,
   LiveMatch,
   AdminDaily,
@@ -296,6 +298,25 @@ export function matchmaking(mode: GameMode): Matchmaking {
     },
     Date.now,
     queuePrefix(mode),
+  );
+}
+
+// P3-W17-S03 (Q-P3-16): friend challenge links and presence.
+export function challenges(): Challenges {
+  return valkeyChallenges(valkeyClient());
+}
+
+// P3-W17-S03 (Q-P3-16): a friend challenge's private, unrated match, handed over.
+export function privateMatch(
+  players: string[],
+  mode: GameMode,
+): Promise<LiveMatch> {
+  return startLiveMatch(
+    matches(),
+    valkeyMatchHandoff(valkeyClient()),
+    players,
+    mode,
+    { unrated: true },
   );
 }
 

@@ -115,6 +115,15 @@ export default async function PlayPage(props: {
             Boards
           </Link>
         )}
+        {/* P3-W17-S03: a private live match by link. */}
+        {live ? (
+          <Link
+            href="/play/challenge"
+            className="mt-3 ml-2 inline-flex rounded-full border border-hairline px-4 py-2 text-sm font-semibold"
+          >
+            Challenge a friend
+          </Link>
+        ) : null}
         {rating === null ? null : (
           <p className="mt-3 flex items-center gap-3 text-sm font-semibold tabular-nums">
             Rating {Math.round(rating)}

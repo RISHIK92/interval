@@ -686,3 +686,22 @@ def test_a_ghost_match_whose_run_is_gone_is_still_rated_as_one(
     assert row is not None
     assert float(row[0]) == pytest.approx(1500 + (full.rating - 1500) / 2)
     assert "not in the match" not in capsys.readouterr().out
+
+
+# P3-W17-S03 (Q-P3-16): a friend challenge is unrated; its answers still count.
+def test_an_unrated_match_moves_no_rating_but_keeps_its_answers(
+    conn: psycopg.Connection,
+) -> None:
+    a_user(conn, "lra")
+    a_user(conn, "lrb")
+    question = _question(conn)
+    match_id = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    conn.execute("update game_match set unrated = true where id = %s", (match_id,))
+    assert PostgresMatchResults(conn).record(_result(match_id, "finished", question))
+    assert _ratings(conn) == {}
+    assert conn.execute(
+        "select count(*) from rating_history where match_id = %s", (match_id,)
+    ).fetchone() == (0,)
+    assert conn.execute(
+        "select count(*) from quiz_attempt where match_id = %s", (match_id,)
+    ).fetchone() == (2,)

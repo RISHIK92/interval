@@ -34,9 +34,11 @@ afterEach(() => {
   gameConfigured = true;
 });
 
-async function page(): Promise<string> {
+async function page(query: { match?: string } = {}): Promise<string> {
   const { default: LiveSprintPage } = await import("./page");
-  return renderToStaticMarkup(await LiveSprintPage());
+  return renderToStaticMarkup(
+    await LiveSprintPage({ searchParams: Promise.resolve(query) }),
+  );
 }
 
 test("a guest or an account gets the queue; an account needs its username", async () => {
@@ -65,4 +67,13 @@ test("signed out, without either capability, or unconfigured: back to Play", asy
   can.mockImplementation(() => Promise.resolve(true));
   gameConfigured = false;
   await expect(page()).rejects.toThrow("redirect:/play");
+});
+
+// P3-W17-S03: a friend challenge's match opens its match, not the queue; junk is ignored.
+test("?match= opens that match; anything but a match id is the queue", async () => {
+  current.mockResolvedValue(guest);
+  const joined = await page({ match: "7d3c8f0e-5b7a-4a33-9a8e-1f2e3d4c5b6a" });
+  expect(joined).toContain("Connecting");
+  expect(joined).not.toContain("Finding an opponent");
+  expect(await page({ match: "../evil" })).toContain("Finding an opponent");
 });

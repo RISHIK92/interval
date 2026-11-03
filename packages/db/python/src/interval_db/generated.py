@@ -348,6 +348,7 @@ class GameMatch(TypedDict):
     replay_rating: float | None
     replay_rd: float | None
     replay_volatility: float | None
+    unrated: bool
 
 
 class GameMatchPlayer(TypedDict):

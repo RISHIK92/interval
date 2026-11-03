@@ -9,11 +9,12 @@ export async function startLiveMatch(
   handoff: MatchHandoff,
   players: string[],
   mode: GameMode,
+  options?: { unrated: boolean }, // a friend challenge (P3-W17-S03)
 ): Promise<LiveMatch> {
   // Q-P3-22: live matches are 1v1.
   if (players.length !== 2 || players[0] === players[1])
     throw new Error("a live match needs two different players");
-  const match = await matches.create(0, players, mode);
+  const match = await matches.create(0, players, mode, options);
   if (match === null) throw new Error("not enough live questions for a match");
   try {
     await handoff.put(match);

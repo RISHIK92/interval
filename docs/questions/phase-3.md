@@ -204,6 +204,10 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 ### Q-P3-16 What a friend challenge link plays (P1)
 
 - **Answer (owner, 2026-10-31):** live only: the link opens a private live match; both players must be online.
+- **Follow-up (owner, 2026-11-03, W17-S03):**
+  - a link works for 10 minutes and for the first person who opens it (not the sender); then it says it expired or was taken;
+  - "online" means the sender used the app in the last 2 minutes. Opening the link notifies the sender's open tab, and the friend waits up to 60 s for them;
+  - a friend challenge is unrated (no rating or season board change); its answers still count as mastery evidence and review.
 - Suggested default: the recipient plays the same questions against the sender's ghost (BOT-1); half-weight rating (BOT-4); live play only if both are online.
 
 ### Q-P3-17 The agent hook CLI's language, distribution and auth (P0 for S04)

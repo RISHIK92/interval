@@ -38,6 +38,8 @@ export type LiveDeps<S> = {
   onNoFallback: () => void;
   // BOT-3: the opponent's label when it isn't a person (a ghost or bot), from `joined`.
   onOpponent: (label: string) => void;
+  // P3-W17-S03: a match already made (a friend challenge): no queue at all.
+  matchId?: string;
 };
 
 // `joined`'s opponent label, which every mode's server sends alike.
@@ -143,6 +145,12 @@ export function runLive<S>(deps: LiveDeps<S>): {
   // type checker's narrowing can't see.
   const hasStopped = () => stopped;
   const run = async () => {
+    if (deps.matchId !== undefined) {
+      matched = true;
+      deps.onState(state);
+      await connect(deps.matchId, null);
+      return;
+    }
     const joined = await deps.queue("POST");
     if (!joined.ok) throw new Error(`queue: ${String(joined.status)}`);
     const since = deps.now();

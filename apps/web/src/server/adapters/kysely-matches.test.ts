@@ -278,6 +278,21 @@ test("Postgres picks seven different live questions and records them in order", 
         serverId: 2,
         playedAs: players[1],
       });
+      // P3-W17-S03: a friend challenge is kept unrated; an ordinary match isn't.
+      const friendly = await matches.create(2, players, "fastest_finger", {
+        unrated: true,
+      });
+      expect(
+        await trx
+          .selectFrom("game_match")
+          .select(["id", "unrated"])
+          .where("id", "in", [made.id, friendly?.id ?? ""])
+          .orderBy("unrated")
+          .execute(),
+      ).toEqual([
+        { id: made.id, unrated: false },
+        { id: friendly?.id, unrated: true },
+      ]);
       // Q-P3-23: a sprint's 30 questions, distinct, recorded with its mode.
       const sprint = await matches.create(2, players, "sprint");
       if (sprint === null) throw new Error("no sprint");

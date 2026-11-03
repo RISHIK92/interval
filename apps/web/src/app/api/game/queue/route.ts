@@ -6,7 +6,11 @@ import {
   playerRatings,
   sessionReader,
 } from "../../../../server/container";
-import type { Actor, GameMode } from "../../../../server/ports";
+import {
+  type Actor,
+  GAME_MODES,
+  type GameMode,
+} from "../../../../server/ports";
 import { sameOrigin } from "../../../../server/same-origin";
 import { visitId } from "../../../../server/visits";
 
@@ -17,7 +21,7 @@ export const dynamic = "force-dynamic";
 // a poll pairs and makes matches, so never a GET; and a browser sends Origin on it),
 // then asks for a ticket (/api/game/ticket); it leaves (DELETE) when it stops waiting.
 // P3-W16-S04 (Q-P3-23): ?mode= picks the mode's own queue.
-const Mode = z.enum(["sprint", "fastest_finger"]);
+const Mode = z.enum(GAME_MODES);
 
 async function player(
   request: Request,

@@ -10,6 +10,7 @@ import {
 } from "react";
 import type { GameMode } from "../../../server/ports";
 import { openMatch } from "./join";
+import { liveHref } from "./href";
 import { FALLBACK_MS, type LiveGame, runLive } from "./live-client";
 
 type Screen<S> =
@@ -115,18 +116,24 @@ export function LivePlay<S>({
   game: rules,
   current,
   View,
+  matchId,
 }: {
   mode: GameMode;
+  // P3-W17-S03: a friend challenge's match, joined without the queue.
+  matchId?: string | undefined;
   game: LiveGame<S>;
   // The question in play, if any: a new one takes answers again. A module constant,
   // so it never restarts the match.
   current: (state: S) => number | null;
   View: ComponentType<ViewProps<S>>;
 }) {
-  const [screen, setScreen] = useState<Screen<S>>(() => ({
-    kind: "queue",
-    since: Date.now(),
-  }));
+  // A friend challenge starts in its match; Play again then queues as usual.
+  const [challenge, setChallenge] = useState(matchId);
+  const [screen, setScreen] = useState<Screen<S>>(() =>
+    matchId === undefined
+      ? { kind: "queue", since: Date.now() }
+      : { kind: "match", state: rules.start },
+  );
   const [answered, setAnswered] = useState<number | null>(null);
   const [game, setGame] = useState(0);
   // P3-W17-S01, S02 (BOT-3): a ghost's or bot's label, on screen for the whole match.
@@ -137,6 +144,7 @@ export function LivePlay<S>({
   useEffect(() => {
     const run = runLive({
       game: rules,
+      ...(challenge === undefined ? {} : { matchId: challenge }),
       queue: (method) =>
         fetch(`/api/game/queue?mode=${mode}`, {
           method,
@@ -188,9 +196,13 @@ export function LivePlay<S>({
       run.stop();
       live.current = null;
     };
-  }, [game, mode, rules, current]);
+  }, [game, mode, rules, current, challenge]);
 
   const again = () => {
+    // A challenge's ?match= goes, so a reload doesn't rejoin the finished match.
+    if (challenge !== undefined)
+      window.history.replaceState(null, "", liveHref(mode));
+    setChallenge(undefined);
     setAnswered(null);
     setOpponent(null);
     setNoFallback(false);

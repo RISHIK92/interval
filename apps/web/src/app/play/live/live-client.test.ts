@@ -296,3 +296,19 @@ test("stopped while the fallback is under way: no rejoin, no match", async () =>
   expect(h.calls.at(-1)).toBe("DELETE");
   expect(h.sockets).toHaveLength(0);
 });
+
+// P3-W17-S03: a friend challenge's match is joined at once, with no queue.
+test("a match already made is joined without the queue", async () => {
+  const h = harness([]);
+  h.deps.matchId = "friend-1";
+  const live = runLive(h.deps);
+  await flush();
+  expect(h.calls).toEqual([]);
+  expect(h.sockets).toHaveLength(1);
+  h.advance(20_000);
+  await flush();
+  expect(h.deps.fallback).not.toHaveBeenCalled();
+  live.stop();
+  await flush();
+  expect(h.calls).toEqual([]); // nothing to leave
+});

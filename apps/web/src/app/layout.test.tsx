@@ -5,6 +5,7 @@ import { expect, test, vi } from "vitest";
 const get = vi.fn<(name: string) => { value: string } | undefined>();
 vi.mock("next/headers", () => ({ cookies: () => Promise.resolve({ get }) }));
 vi.mock("./PwaSetup", () => ({ PwaSetup: () => null }));
+vi.mock("./Presence", () => ({ Presence: () => <i>presence</i> }));
 vi.mock("./globals.css", () => ({}));
 
 test.each([
@@ -29,4 +30,12 @@ test("the manifest link sends credentials", async () => {
   expect(html).toContain(
     '<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials"/>',
   );
+});
+
+// P3-W17-S03 (Q-P3-16): presence on every page, the challenge's waiting screen too.
+test("every page carries presence", async () => {
+  get.mockReturnValue(undefined);
+  const { default: RootLayout } = await import("./layout");
+  const html = renderToStaticMarkup(await RootLayout({ children: <p>hi</p> }));
+  expect(html).toContain("<i>presence</i>");
 });
