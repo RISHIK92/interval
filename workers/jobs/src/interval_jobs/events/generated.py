@@ -14,6 +14,8 @@ from pydantic import (
 )
 
 type EventName = Literal[
+    "agent_task_finished",
+    "agent_task_started",
     "article_finished",
     "book_checkpoint_finished",
     "book_checkpoint_started",
@@ -64,6 +66,8 @@ type BetaGroup = Literal["student", "developer"]
 type Source = Literal["web", "jobs"]
 
 EVENT_VERSIONS: dict[EventName, int] = {
+    "agent_task_finished": 1,
+    "agent_task_started": 1,
     "article_finished": 2,
     "book_checkpoint_finished": 1,
     "book_checkpoint_started": 1,
@@ -114,6 +118,15 @@ EVENT_VERSIONS: dict[EventName, int] = {
 
 class _Model(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
+
+
+class AgentTaskFinishedProps(_Model):
+    elapsed_ms: int = Field(ge=0, strict=True)
+    place_saved: StrictBool
+
+
+class AgentTaskStartedProps(_Model):
+    pass
 
 
 class ArticleFinishedProps(_Model):
@@ -370,6 +383,18 @@ class _EnvelopeBase(_Model):
     def _utc_milliseconds(self, value: AwareDatetime) -> str:
         utc = value.astimezone(UTC).isoformat(timespec="milliseconds")
         return utc.replace("+00:00", "Z")
+
+
+class AgentTaskFinishedEvent(_EnvelopeBase):
+    name: Literal["agent_task_finished"]
+    version: Literal[1]
+    props: AgentTaskFinishedProps
+
+
+class AgentTaskStartedEvent(_EnvelopeBase):
+    name: Literal["agent_task_started"]
+    version: Literal[1]
+    props: AgentTaskStartedProps
 
 
 class ArticleFinishedEvent(_EnvelopeBase):
@@ -644,7 +669,9 @@ class UniversityChangedEvent(_EnvelopeBase):
 
 # Q-P1-20: every event carries the same envelope; name and version pick its props.
 type Envelope = Annotated[
-    ArticleFinishedEvent
+    AgentTaskFinishedEvent
+    | AgentTaskStartedEvent
+    | ArticleFinishedEvent
     | BookCheckpointFinishedEvent
     | BookCheckpointStartedEvent
     | BookDeletedEvent
