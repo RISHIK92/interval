@@ -230,6 +230,8 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Why it matters: no push notifications exist yet.
 - Options: (a) the CLI shows a terminal or OS notification itself; (b) web push to the PWA (a new notification channel and permission prompt); (c) both.
 - **Answer (owner, 2026-10-31):** (c), both: the CLI's own notification, and web push to the PWA. Web push likely needs a new dependency (asked before adding).
+- **Follow-up (owner, 2026-11-03, ADR-0035):** web push is written on `node:crypto` (RFC 8291 and VAPID), with no dependency. On Windows the CLI shows no notification.
+- **Follow-up (owner, 2026-11-03):** the server triggers the push. "Started" queues a 45 s delayed job, which pushes if the task is still running, so the CLI sends only its two events. S05 is split: S05a is the CLI with its own notification, S05b is web push.
 - Suggested default: (a) first: no new server-side channel; the link opens Interval at a session that fits.
 
 ## Week 18

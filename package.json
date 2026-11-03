@@ -22,10 +22,10 @@
     "lint:py": "uv run --locked ruff check workers/jobs packages/db/python scripts",
     "typecheck:py": "uv run --locked pyright",
     "test:py": "scripts/with-env.sh uv run --locked pytest",
-    "format:go": "gofmt -w services/game",
-    "format-check:go": "sh -c 'out=$(gofmt -l services/game) || exit 1; [ -z \"$out\" ] || { echo \"gofmt: $out\"; exit 1; }'",
-    "vet:go": "cd services/game && go vet ./...",
-    "test:go": "cd services/game && go test ./..."
+    "format:go": "gofmt -w services/game cli/interval",
+    "format-check:go": "sh -c 'out=$(gofmt -l services/game cli/interval) || exit 1; [ -z \"$out\" ] || { echo \"gofmt: $out\"; exit 1; }'",
+    "vet:go": "(cd services/game && go vet ./...) && (cd cli/interval && go vet ./...)",
+    "test:go": "(cd services/game && go test ./...) && (cd cli/interval && go test ./...)"
   },
   "devDependencies": {
     "@interval/config": "workspace:*",

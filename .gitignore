@@ -49,3 +49,4 @@ interval-sources/
 
 # The game server binary from a local `go build` (P3-W15-S01).
 /services/game/game
+/cli/interval/interval

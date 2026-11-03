@@ -106,13 +106,22 @@
       "env": ["DATABASE_URL", "CI"]
     },
     "//#format-check:go": {
-      "inputs": ["$TURBO_ROOT$/services/game/**"]
+      "inputs": [
+        "$TURBO_ROOT$/services/game/**",
+        "$TURBO_ROOT$/cli/interval/**"
+      ]
     },
     "//#vet:go": {
-      "inputs": ["$TURBO_ROOT$/services/game/**"]
+      "inputs": [
+        "$TURBO_ROOT$/services/game/**",
+        "$TURBO_ROOT$/cli/interval/**"
+      ]
     },
     "//#test:go": {
-      "inputs": ["$TURBO_ROOT$/services/game/**"]
+      "inputs": [
+        "$TURBO_ROOT$/services/game/**",
+        "$TURBO_ROOT$/cli/interval/**"
+      ]
     }
   }
 }

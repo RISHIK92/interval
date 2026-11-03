@@ -3285,3 +3285,49 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - an unbounded body.
 - **Left as is (nit):** presence and the agent-finished notice live on the `Challenges` port, whose name is now narrower than what it holds.
 - **Full check:** 28/28 tasks green (web 1375, Python 1321, infra 86, Go).
+
+### 2026-11-03 — P3-W17-S05a (agent hook CLI; §7, ADR-0035, Q-P3-17, Q-P3-18)
+
+- **Owner:**
+  - ADR-0035 is accepted: a Go binary in `cli/interval`, amending ARCH-2, built locally and published only when the owner says;
+  - web push is written on `node:crypto`, with no dependency;
+  - no notification on Windows;
+  - Claude Code wires `UserPromptSubmit` → start and `Stop` → stop;
+  - the 45 s web push is server-triggered from a delayed job;
+  - S05 is split into this CLI and S05b, web push.
+- **`cli/interval`** (Go standard library):
+  - `interval start | stop | login <token> | version`;
+  - each call is one POST to S04's API with `{"idempotency_key"}` only, retried with the same key within one 3 s deadline;
+  - redirects are never followed;
+  - https only (plain http for localhost);
+  - unreachable exits 0; a missing token or site, a refused token or a redirect exits 1;
+  - the token comes from `INTERVAL_TOKEN` or the file `login` writes (folder 0700, file 0600, narrowed if already there);
+  - start writes a marker nonce before its call (a stop meanwhile always wins), and after success starts a detached waiter that, 45 s on, notifies only while its nonce stands (macOS osascript, Linux notify-send).
+- **Wiring:**
+  - the root Go scripts and turbo inputs cover the CLI;
+  - `scripts/build-cli.sh` builds six binaries into git-ignored `dist/`;
+  - `docs/agent-hook.md` is the setup note;
+  - Profile's token hint.
+- **Tests:**
+  - bodies hold only the key, with a prompt on stdin;
+  - a retry reuses the key;
+  - 401, 4xx and unreachable cases;
+  - redirects;
+  - https;
+  - login modes;
+  - the waiter's rules;
+  - a stop mid-start;
+  - the deadline;
+  - the notification per OS.
+- **Reviewer, fixed:**
+  - a compiled binary not git-ignored (blocker);
+  - up to 18 s held per prompt (now 3 s overall);
+  - redirects carrying the token;
+  - plain http;
+  - token file modes;
+  - the start and stop race;
+  - repeating test nonces;
+  - docs gaps.
+- **Accepted (nit):** one marker per machine, so with two agents at once, one's stop silences the other's notification (a `shortcut:` comment; per-session would need stdin).
+- **ADR-0035 left as written:** its "~/.config" token path (macOS uses Application Support) and "a link" in the notification. The note documents the paths, and macOS notifications carry no link.
+- **Full check:** web 1375, Python 1321, Go (game and CLI), lint and types; infra alone 62 (its synth hook timed out under load).

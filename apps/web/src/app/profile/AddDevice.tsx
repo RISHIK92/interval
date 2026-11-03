@@ -42,8 +42,12 @@ export function AddDevice() {
           </p>
           <code className="font-mono text-sm break-all">{state.token}</code>
           <p className="text-sm text-ink-muted">
-            The agent hook CLI (coming next) uses it to say when your agent
-            starts and finishes.
+            Save it with <code className="font-mono">interval login</code> and
+            the token, set <code className="font-mono">INTERVAL_URL</code> to
+            this site, then run{" "}
+            <code className="font-mono">interval start</code> and{" "}
+            <code className="font-mono">interval stop</code> around your
+            agent&apos;s tasks (docs/agent-hook.md).
           </p>
         </div>
       )}
