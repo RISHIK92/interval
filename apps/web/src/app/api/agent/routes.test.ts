@@ -3,6 +3,7 @@ import type {
   Actor,
   AgentHook,
   Challenges,
+  JobQueue,
   RateLimits,
 } from "../../../server/ports";
 import { POST as finishedPost } from "./finished/route";
@@ -14,7 +15,10 @@ const actor: Actor = { userId: "u1", isGuest: false, betaGroup: "developer" };
 const deviceFor = vi.fn<AgentHook["deviceFor"]>(() =>
   Promise.resolve({ deviceId: "d1", actor }),
 );
-const start = vi.fn<AgentHook["start"]>(() => Promise.resolve("started"));
+const start = vi.fn<AgentHook["start"]>(() =>
+  Promise.resolve({ status: "started", taskId: 77 }),
+);
+const enqueue = vi.fn<JobQueue["enqueue"]>(() => Promise.resolve());
 const finish = vi.fn<AgentHook["finish"]>(() =>
   Promise.resolve({ status: "finished", elapsedMs: 240_000 }),
 );
@@ -29,6 +33,7 @@ const emit = vi.fn();
 vi.mock("../../../server/container", () => ({
   agentHook: () => ({ deviceFor, start, finish }),
   rateLimits: () => ({ allow }),
+  jobQueue: () => ({ enqueue }),
   challenges: () => ({ lastPage, noteAgentFinished }),
   events: () => ({ emit }),
 }));
@@ -66,7 +71,13 @@ test("started: the device's task begins, once per key, and an event with nothing
     {},
     { ...actor, sessionId: null },
   );
-  start.mockResolvedValueOnce("repeat");
+  // P3-W17-S05b: 45 s on, the nudge, once per task.
+  expect(enqueue).toHaveBeenCalledExactlyOnceWith(
+    "agent_nudge",
+    { task_id: 77 },
+    { idempotencyKey: "nudge-77", delaySeconds: 45 },
+  );
+  start.mockResolvedValueOnce({ status: "repeat" });
   expect(
     await (await call("started", { idempotency_key: "key-12345" })).json(),
   ).toEqual({ status: "repeat" });
@@ -182,6 +193,17 @@ test("a lost tab note is logged; the finish and its place stand", async () => {
   expect(await response.json()).toEqual({ status: "finished" });
   expect(out.mock.calls.map(([c]) => String(c)).join("")).toContain(
     "agent: finished note not set",
+  );
+  out.mockRestore();
+});
+
+test("a nudge that can't be queued is logged; the start stands", async () => {
+  const out = vi.spyOn(process.stdout, "write").mockImplementation(() => true);
+  enqueue.mockRejectedValueOnce(new Error("valkey down"));
+  const response = await call("started", { idempotency_key: "key-12345" });
+  expect(await response.json()).toEqual({ status: "started" });
+  expect(out.mock.calls.map(([c]) => String(c)).join("")).toContain(
+    "agent: nudge not queued",
   );
   out.mockRestore();
 });

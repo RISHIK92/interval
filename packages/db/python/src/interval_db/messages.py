@@ -25,6 +25,14 @@ class _Message(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
 
+class AgentNudge(_Message):
+    """45 seconds after an agent hook start (P3-W17-S05b, §7, Q-P3-18): if that task
+    is still running, push the quick-session notice to its player's subscribed
+    browsers. Queued with a 45 s delay by the web app."""
+
+    task_id: Annotated[int, Field(ge=1)]
+
+
 class BookCheckpoint(_Message):
     """Make one book chapter's checkpoint: tag its sessions, draft and validate its
     questions (§5F, Q-P2-35, P2-W11-S06)."""
@@ -144,6 +152,7 @@ class ValidateQuestion(_Message):
 
 
 type MessageName = Literal[
+    "agent_nudge",
     "book_checkpoint",
     "book_process",
     "check_link",
@@ -163,6 +172,7 @@ type MessageName = Literal[
 ]
 
 MESSAGES: dict[MessageName, type[_Message]] = {
+    "agent_nudge": AgentNudge,
     "book_checkpoint": BookCheckpoint,
     "book_process": BookProcess,
     "check_link": CheckLink,

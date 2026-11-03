@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { pushEnv } from "../../env";
 import {
   agentHook,
   feedback,
@@ -254,7 +255,10 @@ export default async function ProfilePage(props: {
       </Card>
 
       <Card className="p-5">
-        <AgentHookCard devices={devices} />
+        <AgentHookCard
+          devices={devices}
+          pushKey={pushEnv()?.VAPID_PUBLIC_KEY ?? null}
+        />
       </Card>
 
       {/* This device's theme (owner, 2026-10-26). */}

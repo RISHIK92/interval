@@ -42,6 +42,7 @@ import { kyselyPlayerUniversities } from "./adapters/kysely-player-universities"
 import { kyselyMatches } from "./adapters/kysely-matches";
 import { kyselyRatings } from "./adapters/kysely-ratings";
 import { kyselyAgentHook } from "./adapters/kysely-agent-hook";
+import { kyselyPushSubscriptions } from "./adapters/kysely-push-subscriptions";
 import { valkeyChallenges } from "./adapters/valkey-challenges";
 import { valkeyRateLimits } from "./adapters/valkey-rate-limits";
 import { valkeyMatchHandoff } from "./adapters/valkey-match-handoff";
@@ -61,6 +62,7 @@ import { createEmitter, type Emitter } from "./events";
 import { log } from "./log";
 import type {
   AgentHook,
+  PushSubscriptions,
   RateLimits,
   Challenges,
   GameMode,
@@ -303,6 +305,11 @@ export function matchmaking(mode: GameMode): Matchmaking {
     Date.now,
     queuePrefix(mode),
   );
+}
+
+// P3-W17-S05b (§7): browsers subscribed to the agent hook's notifications.
+export function pushSubscriptions(): PushSubscriptions {
+  return kyselyPushSubscriptions(db());
 }
 
 // Fixed-window call limits (P3-W17-S04: the agent hook's per device).

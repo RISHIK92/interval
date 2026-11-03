@@ -795,6 +795,19 @@ export interface Challenges {
   pending(sender: string): Promise<ChallengeAccepted | null>;
 }
 
+// P3-W17-S05b (§7, Q-P3-18): browsers that asked for the agent hook's notifications.
+export type PushSubscriptionKeys = {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+};
+export interface PushSubscriptions {
+  // A browser's subscription, now the player's (a browser re-subscribing moves it).
+  save(userId: string, subscription: PushSubscriptionKeys): Promise<void>;
+  // Only the player's own.
+  remove(userId: string, endpoint: string): Promise<void>;
+}
+
 // Calls counted per key in a fixed window: false once past `limit` (P3-W17-S04: a
 // device's agent hook calls, against a leaked token or a looping script).
 export interface RateLimits {
@@ -829,11 +842,12 @@ export interface AgentHook {
     now: Date,
   ): Promise<{ deviceId: string; actor: Actor } | null>;
   // A repeated key does nothing (LOAD-5); a new start ends the device's running task.
+  // The new task's id when it started (P3-W17-S05b nudges it 45 s on).
   start(
     deviceId: string,
     key: string,
     now: Date,
-  ): Promise<"started" | "repeat">;
+  ): Promise<{ status: "started"; taskId: number } | { status: "repeat" }>;
   // Saves `place` (the page last open) with the finish, in one step.
   finish(
     deviceId: string,

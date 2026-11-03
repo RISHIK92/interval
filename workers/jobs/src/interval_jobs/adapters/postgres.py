@@ -64,6 +64,7 @@ from interval_jobs.ports import (
     PathDraft,
     ProjectConcepts,
     ProjectNoteInput,
+    PushTarget,
     QuestionBatchEntry,
     QuestionDraft,
     QuestionKind,
@@ -3651,6 +3652,41 @@ class PostgresSeasons:
         return True
 
 
+class PostgresAgentNudges:
+    """The agent hook's nudge targets (P3-W17-S05b)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def targets(self, task_id: int, now: datetime) -> list[PushTarget] | None:
+        running = self._conn.execute(
+            """
+            select t.user_id from agent_task t
+            join agent_device d on d.id = t.device_id
+            where t.id = %s and t.finished_at is null and d.revoked_at is null
+              -- Q-P3-28: a task with no finish for 2 hours has ended (the web's
+              -- AGENT_TASK_MS).
+              and t.started_at > %s - interval '2 hours'
+            """,
+            (task_id, now),
+        ).fetchone()
+        if running is None:
+            return None
+        return [
+            PushTarget(str(endpoint), str(p256dh), str(auth))
+            for endpoint, p256dh, auth in self._conn.execute(
+                "select endpoint, p256dh, auth from push_subscription"
+                " where user_id = %s order by id",
+                (running[0],),
+            ).fetchall()
+        ]
+
+    def drop(self, endpoint: str) -> None:
+        self._conn.execute(
+            "delete from push_subscription where endpoint = %s", (endpoint,)
+        )
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
@@ -3660,6 +3696,7 @@ class PostgresStore:
         self.universities = PostgresUniversities(conn)
         self.match_results = PostgresMatchResults(conn)
         self.seasons = PostgresSeasons(conn)
+        self.agent_nudges = PostgresAgentNudges(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)

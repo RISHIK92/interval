@@ -329,6 +329,11 @@ export class AwsStack extends Stack {
     const githubPrivateKey = appSecret("interval/aws/github-app-private-key");
     // P3-W15-S02 (ADR-0033): match tickets, signed by the web app, checked by the game.
     const gameTicket = appSecret("interval/aws/game-ticket");
+    // P3-W17-S05b (Q-P3-18): web push's VAPID pair, placeholders until the owner runs
+    // `pnpm push:keys` (push stays off until then). The web app hands browsers the
+    // public key; only the worker signs with the private one.
+    const vapidPublic = appSecret("interval/aws/vapid-public-key");
+    const vapidPrivate = appSecret("interval/aws/vapid-private-key");
 
     const cluster = new ecs.Cluster(this, "Cluster", { vpc });
     const logGroup = new logs.LogGroup(this, "Logs", {
@@ -345,6 +350,26 @@ export class AwsStack extends Stack {
       metricNamespace: "Interval/Events",
       metricName: "EmitFailures",
       metricValue: "$.count",
+    });
+    // P3-W17-S05b (LOAD-5): an agent hook nudge that couldn't be queued (the start
+    // stood), and a push that failed (not retried: a late nudge is useless).
+    logGroup.addMetricFilter("AgentNudgeNotQueued", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "agent: nudge not queued",
+      ),
+      metricNamespace: "Interval/Agent",
+      metricName: "NudgeNotQueued",
+    });
+    logGroup.addMetricFilter("AgentPushFailures", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "agent: push failed",
+      ),
+      metricNamespace: "Interval/Agent",
+      metricName: "PushFailures",
     });
     // P3-W15-S05 (LOAD-5): a match result its game server couldn't hand to the worker.
     logGroup.addMetricFilter("GameResultHandoffFailures", {
@@ -557,6 +582,7 @@ export class AwsStack extends Stack {
         GITHUB_APP_CLIENT_SECRET:
           ecs.Secret.fromSecretsManager(githubClientSecret),
         GAME_TICKET_SECRET: ecs.Secret.fromSecretsManager(gameTicket),
+        VAPID_PUBLIC_KEY: ecs.Secret.fromSecretsManager(vapidPublic),
       },
       portMappings: [{ containerPort: 3000 }],
       logging: logging("web"),
@@ -933,7 +959,7 @@ export class AwsStack extends Stack {
     // stage queue. Same image and grants as the one-off jobs.
     // 2 GB: the consumer plus the OCR sidecar's 512 MB (ADR-0022).
     const workerTask = taskDefinition("Worker", 2048);
-    workerTask.addContainer("worker", {
+    const workerContainer = workerTask.addContainer("worker", {
       image: image("workers/jobs/Dockerfile"),
       entryPoint: withDatabaseUrl(
         '/app/.venv/bin/python -m interval_jobs "$@"',
@@ -945,6 +971,7 @@ export class AwsStack extends Stack {
         ...secrets,
         GITHUB_APP_ID: ecs.Secret.fromSecretsManager(githubAppId),
         GITHUB_APP_PRIVATE_KEY: ecs.Secret.fromSecretsManager(githubPrivateKey),
+        VAPID_PRIVATE_KEY: ecs.Secret.fromSecretsManager(vapidPrivate),
       },
       logging: logging("worker"),
       // Let in-flight stages finish, as on the VM (compose stop_grace_period).
@@ -1097,6 +1124,11 @@ export class AwsStack extends Stack {
     // Better Auth's public origin (ADR-0004); known only once the distribution exists.
     webContainer.addEnvironment(
       "BETTER_AUTH_URL",
+      `https://${distribution.distributionDomainName}`,
+    );
+    // RFC 8292's contact for push services: the site itself (P3-W17-S05b).
+    workerContainer.addEnvironment(
+      "VAPID_SUBJECT",
       `https://${distribution.distributionDomainName}`,
     );
 

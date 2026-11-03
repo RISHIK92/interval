@@ -61,3 +61,15 @@ Run `interval start` when a task begins and `interval stop` when it ends.
   warns and exits 0. A missing token or site, a refused token or a redirect exits 1:
   Claude Code shows the message and goes on (only exit 2 would block it).
 - Revoke a device on Profile at any time; its token stops working at once.
+
+## Notifications in the browser (web push)
+
+On **Profile → Agent hook**, "Notify me on this device" asks the browser for permission
+and subscribes it. About 45 seconds after a task starts, if it hasn't finished, Interval
+itself pushes "Your agent is still working. Open Interval for a quick session" to every
+browser you turned it on in, besides the CLI's own notification. The push carries only
+that text. "Turn off" removes this browser.
+
+It needs a VAPID key pair: `pnpm push:keys` prints one. Put `VAPID_PUBLIC_KEY` where the
+web app reads it, and `VAPID_PRIVATE_KEY` with `VAPID_SUBJECT` (`mailto:` or the https
+site) where the worker does. Without them, push is simply off.

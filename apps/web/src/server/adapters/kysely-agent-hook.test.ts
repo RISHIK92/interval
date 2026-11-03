@@ -91,8 +91,12 @@ test("started and finished do nothing twice per key; elapsed time comes back", a
     const added = await hook.addDevice(user, "Laptop");
     if (added === "full") throw new Error("full");
     const id = added.device.id;
-    expect(await hook.start(id, "start-key-1", at(0))).toBe("started");
-    expect(await hook.start(id, "start-key-1", at(1))).toBe("repeat");
+    const started = await hook.start(id, "start-key-1", at(0));
+    expect(started.status).toBe("started");
+    expect(started.status === "started" && started.taskId > 0).toBe(true);
+    expect(await hook.start(id, "start-key-1", at(1))).toEqual({
+      status: "repeat",
+    });
     expect(await hook.running(user, at(3))).toEqual({ startedAt: at(0) });
     expect(await hook.finish(id, "finish-key-1", at(4), null)).toEqual({
       status: "finished",
@@ -205,7 +209,7 @@ test("the same key sent twice at once starts once and finishes once", async () =
       hook.start(id, "start-key-x", at(0)),
       hook.start(id, "start-key-x", at(0)),
     ]);
-    expect(starts.sort()).toEqual(["repeat", "started"]);
+    expect(starts.map((s) => s.status).sort()).toEqual(["repeat", "started"]);
     expect(await hook.running(user, at(1))).toEqual({ startedAt: at(0) });
     const finishes = await Promise.all([
       hook.finish(id, "finish-key-x", at(2), "/read/9"),

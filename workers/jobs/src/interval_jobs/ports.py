@@ -1269,6 +1269,9 @@ class Store(Protocol):
     def seasons(self) -> "Seasons": ...
 
     @property
+    def agent_nudges(self) -> "AgentNudges": ...
+
+    @property
     def daily(self) -> "DailyChallenges": ...
 
 
@@ -1457,6 +1460,36 @@ class MatchResults(Protocol):
         """Records the match's result and each player's answers as a match attempt,
         once: False when it was recorded already. Cancelled and void matches keep no
         answers (no result for anyone)."""
+        ...
+
+
+@dataclass(frozen=True)
+class PushTarget:
+    """A browser that asked for agent hook notifications (P3-W17-S05b)."""
+
+    endpoint: str
+    p256dh: str
+    auth: str
+
+
+class AgentNudges(Protocol):
+    """The agent hook's 45-second nudge (P3-W17-S05b, §7, Q-P3-18)."""
+
+    def targets(self, task_id: int, now: datetime) -> list[PushTarget] | None:
+        """The player's subscribed browsers while that task still runs (no finish,
+        under 2 hours, its device not revoked); None when it doesn't."""
+        ...
+
+    def drop(self, endpoint: str) -> None:
+        """A subscription the push service says is gone (404 or 410)."""
+        ...
+
+
+class WebPush(Protocol):
+    """Sends one web push (RFC 8291 encrypted, VAPID signed)."""
+
+    def push(self, target: PushTarget, text: str) -> int:
+        """The push service's status code."""
         ...
 
 

@@ -27,6 +27,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from interval_db.messages import (
+    AgentNudge,
     BookCheckpoint,
     BookProcess,
     CheckLink,
@@ -46,6 +47,7 @@ from interval_db.messages import (
     ValidateQuestion,
 )
 from interval_jobs import log
+from interval_jobs.agent_push import NOTICE, deliver
 from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.books.checkpoint import (
     GAVE_UP as CHECKPOINT_GAVE_UP,
@@ -85,6 +87,7 @@ from interval_jobs.ports import (
     Store,
     TagInput,
     Validators,
+    WebPush,
 )
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.questions import (
@@ -207,8 +210,11 @@ class Pipeline:
         ocr: Ocr | None = None,
         github: GitHubApp | None = None,
         results: ResultsRedis | None = None,
+        push: WebPush | None = None,
     ) -> None:
         self._unit = unit_of_work
+        # P3-W17-S05b: None without VAPID keys; agent nudges are then skipped.
+        self._push = push
         # P3-W15-S05: where game servers leave match results (Valkey).
         self._results = results
         # DB-6: None when file storage isn't configured; a removal then fails, retried.
@@ -244,7 +250,35 @@ class Pipeline:
             "github_sync": self._github_stage,
             "project_note": self._project_note_stage,
             "match_finished": self._match_stage,
+            "agent_nudge": self._nudge_stage,
         }
+
+    # P3-W17-S05b (§7, Q-P3-18): 45 s into an agent's task, a push if it still runs.
+    # The pushes go out between two short units: no transaction waits on the network.
+    def _nudge_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, AgentNudge)
+        if self._push is None:
+            log.info("agent: nudge skipped", reason="push not configured")
+            return
+        with self._unit() as services:
+            targets = services.store.agent_nudges.targets(
+                message.task_id, self._clock()
+            )
+        if targets is None:
+            log.info("agent: nudge skipped", reason="task not running")
+            return
+        delivered = deliver(self._push, targets, NOTICE)
+        if delivered.gone:
+            with self._unit() as services:
+                for endpoint in delivered.gone:
+                    services.store.agent_nudges.drop(endpoint)
+        log.info(
+            "agent: nudge",
+            task_id=message.task_id,
+            sent=delivered.sent,
+            dropped=len(delivered.gone),
+            failed=delivered.failed,
+        )
 
     # P3-W15-S05 (ADR-0033): a live match's result, from Valkey, recorded once.
     def _match_stage(self, message: BaseModel, delivery: Delivery) -> None:

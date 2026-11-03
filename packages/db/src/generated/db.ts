@@ -688,6 +688,15 @@ export interface ProjectNoteBatchItem {
   user_id: string;
 }
 
+export interface PushSubscription {
+  auth: string;
+  created_at: Generated<Timestamp>;
+  endpoint: string;
+  id: Generated<Int8>;
+  p256dh: string;
+  user_id: string;
+}
+
 export interface Question {
   answer: number | null;
   answer_count: Generated<number>;
@@ -1199,6 +1208,7 @@ export interface DB {
   player_username: PlayerUsername;
   project_note: ProjectNote;
   project_note_batch_item: ProjectNoteBatchItem;
+  push_subscription: PushSubscription;
   question: Question;
   question_batch: QuestionBatch;
   question_batch_item: QuestionBatchItem;

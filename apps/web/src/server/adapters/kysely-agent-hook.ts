@@ -116,19 +116,21 @@ export function kyselyAgentHook(db: Kysely<DB>): AgentHook {
           .where("device_id", "=", deviceId)
           .where("start_key", "=", key)
           .executeTakeFirst();
-        if (seen !== undefined) return "repeat";
+        if (seen !== undefined) return { status: "repeat" };
         // A new start replaces the device's running task (owner, 2026-11-03); one past
         // its 2 hours ended then, not now.
         await sql`update agent_task
           set finished_at = least(
             ${now}, started_at + make_interval(secs => ${AGENT_TASK_MS / 1000}))
           where device_id = ${deviceId} and finished_at is null`.execute(trx);
-        await sql`
+        const { rows } = await sql<{ id: string }>`
           insert into agent_task (device_id, user_id, started_at, start_key)
-          select id, user_id, ${now}, ${key} from agent_device where id = ${deviceId}`.execute(
-          trx,
-        );
-        return "started";
+          select id, user_id, ${now}, ${key} from agent_device where id = ${deviceId}
+          returning id`.execute(trx);
+        const made = rows[0];
+        // The device was deleted (its account with it) between the token check and here.
+        if (made === undefined) throw new Error("agent: device gone mid-start");
+        return { status: "started", taskId: Number(made.id) };
       }),
 
     finish: (deviceId, key, now, place) =>

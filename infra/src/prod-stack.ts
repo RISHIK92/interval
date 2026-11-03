@@ -62,6 +62,10 @@ export const SECRET_NAMES = [
   "interval/prod/github-app-private-key",
   // P3-W15-S02 (ADR-0033): match tickets, shared by the web app and the game server.
   "interval/prod/game-ticket",
+  // P3-W17-S05b (Q-P3-18): web push's VAPID key pair, placeholders until the owner runs
+  // `pnpm push:keys` and stores the pair (push stays off until then).
+  "interval/prod/vapid-public-key",
+  "interval/prod/vapid-private-key",
 ];
 
 export class ProdStack extends Stack {

@@ -232,6 +232,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - **Answer (owner, 2026-10-31):** (c), both: the CLI's own notification, and web push to the PWA. Web push likely needs a new dependency (asked before adding).
 - **Follow-up (owner, 2026-11-03, ADR-0035):** web push is written on `node:crypto` (RFC 8291 and VAPID), with no dependency. On Windows the CLI shows no notification.
 - **Follow-up (owner, 2026-11-03):** the server triggers the push. "Started" queues a 45 s delayed job, which pushes if the task is still running, so the CLI sends only its two events. S05 is split: S05a is the CLI with its own notification, S05b is web push.
+- **Follow-up (owner, 2026-11-03, S05b):** the Python worker sends the push. It already runs the delayed job, and does the RFC 8291 encryption and VAPID signature with `cryptography` (already a direct dependency of workers/jobs, for the GitHub App). This replaces the earlier node:crypto note. The web app stores subscriptions and serves the public key. The opt-in is a "Notify me on this device" button in Profile's Agent hook card.
 - Suggested default: (a) first: no new server-side channel; the link opens Interval at a session that fits.
 
 ## Week 18

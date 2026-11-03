@@ -19,6 +19,8 @@ SECRETS = {
     "interval/prod/github-app-id": "123456",
     "interval/prod/github-app-private-key": "LS0tLS1CRUdJTi+/key==",
     "interval/prod/game-ticket": "gameTicket222",
+    "interval/prod/vapid-public-key": "BvapidPublic333",
+    "interval/prod/vapid-private-key": "vapidPrivate444",
 }
 
 
@@ -109,6 +111,10 @@ def test_writes_four_env_files_each_with_only_its_keys_and_mode_600(
         "GITHUB_APP_ID": "123456",
         "GITHUB_APP_PRIVATE_KEY": "LS0tLS1CRUdJTi+/key==",
         "GAME_TICKET_SECRET": "gameTicket222",
+        # P3-W17-S05b: web push's pair, and the site as its contact (RFC 8292).
+        "VAPID_PUBLIC_KEY": "BvapidPublic333",
+        "VAPID_PRIVATE_KEY": "vapidPrivate444",
+        "VAPID_SUBJECT": "http://localhost",
     }
     assert parse(out / "postgres.env") == {"POSTGRES_PASSWORD": "pgSecret123"}
     assert parse(out / "caddy.env") == {"SITE_ADDRESS": ":80"}

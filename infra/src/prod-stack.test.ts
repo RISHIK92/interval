@@ -156,6 +156,8 @@ describe("secrets", () => {
         "interval/prod/github-app-id",
         "interval/prod/github-app-private-key",
         "interval/prod/game-ticket",
+        "interval/prod/vapid-public-key",
+        "interval/prod/vapid-private-key",
       ]),
     );
     for (const secret of Object.values(secrets)) {

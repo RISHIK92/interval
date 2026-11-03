@@ -663,6 +663,15 @@ class ProjectNoteBatchItem(TypedDict):
     result: str | None
 
 
+class PushSubscription(TypedDict):
+    id: int
+    user_id: str
+    endpoint: str
+    p256dh: str
+    auth: str
+    created_at: datetime
+
+
 class Question(TypedDict):
     id: int
     moment_id: int | None

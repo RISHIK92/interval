@@ -1,5 +1,11 @@
 import { describe, expect, test } from "vitest";
-import { parseEnv, parseFilesEnv, parseGameEnv, parseGitHubEnv } from "./env";
+import {
+  parseEnv,
+  parseFilesEnv,
+  parseGameEnv,
+  parseGitHubEnv,
+  parsePushEnv,
+} from "./env";
 
 const valid = {
   DATABASE_URL: "postgres://user:s3cret@localhost:5432/interval",
@@ -215,5 +221,20 @@ describe("game ticket secret", () => {
     expect(() => parseGameEnv({ GAME_TICKET_SECRET: "short" })).toThrow(
       /GAME_TICKET_SECRET/,
     );
+  });
+});
+
+// P3-W17-S05b: web push is offered only with a well-formed public key.
+describe("parsePushEnv", () => {
+  test("not set: push is off; a malformed key is refused; a key is kept", () => {
+    expect(parsePushEnv({})).toBeNull();
+    expect(parsePushEnv({ VAPID_PUBLIC_KEY: "Ab3".repeat(16) })).toBeNull();
+    expect(() => parsePushEnv({ VAPID_PUBLIC_KEY: "nope" })).toThrow(
+      "Invalid VAPID_PUBLIC_KEY",
+    );
+    const key = `B${"a".repeat(86)}`;
+    expect(parsePushEnv({ VAPID_PUBLIC_KEY: key })).toEqual({
+      VAPID_PUBLIC_KEY: key,
+    });
   });
 });

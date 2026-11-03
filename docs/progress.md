@@ -3331,3 +3331,50 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Accepted (nit):** one marker per machine, so with two agents at once, one's stop silences the other's notification (a `shortcut:` comment; per-session would need stdin).
 - **ADR-0035 left as written:** its "~/.config" token path (macOS uses Application Support) and "a link" in the notification. The note documents the paths, and macOS notifications carry no link.
 - **Full check:** web 1375, Python 1321, Go (game and CLI), lint and types; infra alone 62 (its synth hook timed out under load).
+
+### 2026-11-03 — P3-W17-S05b (agent hook web push; §7, Q-P3-18)
+
+- **Owner:**
+  - the server triggers it from a delayed job (the CLI sends only its two events);
+  - the Python worker encrypts and sends it, with `cryptography` (already a direct dependency);
+  - the opt-in is on Profile's Agent hook card.
+- **DB:** `push_subscription` (an https endpoint, plus p256dh and auth).
+- **Message:** `agent_nudge {task_id}`.
+- **Web:**
+  - "started" enqueues the nudge 45 s on (`nudge-<task>`); a failed enqueue is logged and counted, and the start stands;
+  - `/api/push/subscription` (accounts only, same origin, endpoint limited to the browsers' push services);
+  - `PushSubscriptions` (Kysely);
+  - `pushEnv` (a placeholder means off);
+  - Profile `NotifyHere` (permission on click; the subscription is re-sent on each visit, so another account or a lost save heals; Turn off);
+  - `sw.js` handles push, notificationclick (an open window first) and pushsubscriptionchange.
+- **Worker:**
+  - `webpush.py`: RFC 8291 aes128gcm, matching the RFC's Appendix A byte for byte, and a VAPID ES256 JWT;
+  - `agent_push.deliver`: per browser, and one failing (a bad key or a dead endpoint) stops none;
+  - 404 and 410 drop the subscription;
+  - no retries;
+  - only the push services' hosts are posted to;
+  - the stage reads targets in one unit, pushes outside any transaction, then drops in another.
+- **Infra:**
+  - VAPID pair secrets in both modes (placeholders mean off until `pnpm push:keys`);
+  - AWS web gets only the public key;
+  - worker `VAPID_SUBJECT` is the site URL;
+  - metric filters `Interval/Agent` NudgeNotQueued and PushFailures.
+- **Docs:** `docs/agent-hook.md` and the VM runbook.
+- **Reviewer, fixed:**
+  - an unguarded push aborting the stage and retrying;
+  - HTTP inside a transaction;
+  - SSRF through stored endpoints;
+  - missing metrics;
+  - a subscription never re-synced or renewed;
+  - missing tests;
+  - a NaN task id;
+  - misleading off messages;
+  - a silent failed unsubscribe;
+  - a never-ready service worker.
+- **Not checked here:** a real browser push end to end (Chrome is off): the owner, with real keys.
+- **Full check:**
+  - web 1392 (two load flakes in the reviewer's concurrent run passed in the clean run);
+  - Python 1344;
+  - infra 89;
+  - Go;
+  - lint, types and format 15/15.

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "45 seconds after an agent hook start (P3-W17-S05b, §7, Q-P3-18): if that task is still running, push the quick-session notice to its player's subscribed browsers. Queued with a 45 s delay by the web app.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id"],
+  "properties": {
+    "task_id": { "type": "integer", "minimum": 1 }
+  }
+}

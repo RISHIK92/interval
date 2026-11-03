@@ -65,6 +65,7 @@ from interval_jobs.ports import (
     PathDraft,
     ProjectConcepts,
     ProjectNoteInput,
+    PushTarget,
     QuestionBatchEntry,
     QuestionDraft,
     QuestionKind,
@@ -1931,6 +1932,7 @@ class InMemoryStore:
         self.universities = InMemoryUniversities()
         self.match_results = InMemoryMatchResults()
         self.seasons = InMemorySeasons()
+        self.agent_nudges = InMemoryAgentNudges()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
 
@@ -2278,6 +2280,25 @@ class InMemorySeasons:
             return False
         self.closed.append(season)
         return True
+
+
+class InMemoryAgentNudges:
+    """The agent hook's nudge targets (P3-W17-S05b): running tasks and their targets."""
+
+    def __init__(self) -> None:
+        self.running: dict[int, list[PushTarget]] = {}
+        self.dropped: list[str] = []
+
+    def targets(self, task_id: int, now: datetime) -> list[PushTarget] | None:
+        found = self.running.get(task_id)
+        return (
+            None
+            if found is None
+            else [t for t in found if t.endpoint not in self.dropped]
+        )
+
+    def drop(self, endpoint: str) -> None:
+        self.dropped.append(endpoint)
 
 
 class InMemoryUniversities:

@@ -40,6 +40,9 @@ github_app_id="$(secret interval/prod/github-app-id)"
 github_private_key="$(secret interval/prod/github-app-private-key b64)"
 # P3-W15-S02 (ADR-0033): match tickets; the web app signs, the game server checks.
 game_ticket="$(secret interval/prod/game-ticket)"
+# P3-W17-S05b (Q-P3-18): web push; generated placeholders keep it off until replaced.
+vapid_public="$(secret interval/prod/vapid-public-key)"
+vapid_private="$(secret interval/prod/vapid-private-key)"
 
 site_address="$(read_setting site-address)"
 site_address="${site_address:-:80}"
@@ -109,6 +112,9 @@ GITHUB_APP_CLIENT_SECRET=${github_client_secret}
 GITHUB_APP_ID=${github_app_id}
 GITHUB_APP_PRIVATE_KEY=${github_private_key}
 GAME_TICKET_SECRET=${game_ticket}
+VAPID_PUBLIC_KEY=${vapid_public}
+VAPID_PRIVATE_KEY=${vapid_private}
+VAPID_SUBJECT=${public_url}
 ENV
 printf 'POSTGRES_PASSWORD=%s\n' "$postgres_password" > "$tmp/postgres.env"
 printf 'SITE_ADDRESS=%s\n' "$site_address" > "$tmp/caddy.env"

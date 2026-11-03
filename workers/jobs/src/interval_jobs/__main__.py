@@ -45,6 +45,7 @@ from interval_jobs.compose import (
     queue_for_enqueue,
     services,
     stage_units,
+    web_push,
 )
 from interval_jobs.concept_vectors import embed_concepts
 from interval_jobs.concepts.draft import DraftError, draft_concepts
@@ -689,6 +690,7 @@ def _consume(max_entries: int | None) -> None:
                 ocr=ocr(),
                 github=github_app(),
                 results=results,
+                push=web_push(),
             )
 
             relay_failed: list[BaseException] = []

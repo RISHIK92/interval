@@ -328,6 +328,22 @@ describe("game server (ADR-0033)", () => {
     });
   });
 
+  // P3-W17-S05b (LOAD-5): agent nudges not queued, and pushes that failed, counted.
+  test.each([
+    ["agent: nudge not queued", "NudgeNotQueued"],
+    ["agent: push failed", "PushFailures"],
+  ])("%s becomes a CloudWatch metric", (msg, metric) => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: `{ $.msg = "${msg}" }`,
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Agent",
+          MetricName: metric,
+        }),
+      ],
+    });
+  });
+
   // P3-W15-S05 (LOAD-5): a result the game server couldn't hand over, counted.
   test("a result not handed over becomes a CloudWatch metric", () => {
     template.hasResourceProperties("AWS::Logs::MetricFilter", {
@@ -785,6 +801,7 @@ function containerNamed(name: string) {
           Name: string;
           Command?: string[];
           Secrets?: { Name: string }[];
+          Environment?: { Name: string; Value: unknown }[];
         }[],
     )
     .find((c) => c.Name === name);
@@ -1440,5 +1457,19 @@ test("a page OCR gave up on is counted (P2-W11-S03)", () => {
         MetricName: "OcrGaveUp",
       }),
     ],
+  });
+});
+
+describe("web push (P3-W17-S05b, Q-P3-18)", () => {
+  test("the web app has only the public VAPID key; the worker signs, with the site as its contact", () => {
+    const secretsOf = (name: string) =>
+      (containerNamed(name)?.Secrets ?? []).map((x) => x.Name);
+    expect(secretsOf("web")).toContain("VAPID_PUBLIC_KEY");
+    expect(secretsOf("web")).not.toContain("VAPID_PRIVATE_KEY");
+    expect(secretsOf("worker")).toContain("VAPID_PRIVATE_KEY");
+    const subject = (containerNamed("worker")?.Environment ?? []).find(
+      (e) => e.Name === "VAPID_SUBJECT",
+    );
+    expect(JSON.stringify(subject?.Value)).toContain("https://");
   });
 });

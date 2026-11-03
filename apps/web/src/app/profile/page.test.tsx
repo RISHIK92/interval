@@ -39,6 +39,11 @@ const usernameGet = vi.fn<Usernames["get"]>(() =>
   Promise.resolve({ username: "ada", searchable: true }),
 );
 const agentDevices = vi.fn<AgentHook["devices"]>(() => Promise.resolve([]));
+let pushKey: string | null = null;
+vi.mock("../../env", async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  pushEnv: () => (pushKey === null ? null : { VAPID_PUBLIC_KEY: pushKey }),
+}));
 vi.mock("../../server/container", () => ({
   agentHook: () => ({ devices: agentDevices }),
   usernames: () => ({ get: usernameGet, search: peopleSearch }),
@@ -618,4 +623,13 @@ test("the agent hook card lists devices with Revoke, and adds one", async () => 
   expect(html).toContain("Revoke");
   expect(html).toContain("Add a device");
   expect(html).toContain("never prompts or code");
+});
+
+// P3-W17-S05b (Q-P3-18): "Notify me on this device" once web push is configured.
+test("the agent hook card offers notifications only when push is configured", async () => {
+  pushKey = null;
+  expect(await page()).not.toContain("Notify me on this device");
+  pushKey = `B${"a".repeat(86)}`;
+  expect(await page()).toContain("Notify me on this device");
+  pushKey = null;
 });

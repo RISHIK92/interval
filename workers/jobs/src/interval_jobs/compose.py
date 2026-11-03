@@ -24,6 +24,7 @@ from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSi
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
 from interval_jobs.adapters.http_github_app import HttpGitHubApp
 from interval_jobs.adapters.http_ocr import HttpOcr
+from interval_jobs.adapters.http_webpush import HttpWebPush
 from interval_jobs.adapters.openai_compatible import (
     GOOGLE,
     GROQ,
@@ -50,7 +51,9 @@ from interval_jobs.ports import (
     JobQueue,
     Ocr,
     QueueConsumer,
+    WebPush,
 )
+from interval_jobs.webpush import private_key
 
 LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 USER_AGENT = "Interval/0.0 (personal learning platform; feed reader)"
@@ -129,6 +132,28 @@ def ocr() -> Ocr | None:
     """ADR-0022: the Tesseract service; None without OCR_URL (scanned pages wait)."""
     url = os.environ.get("OCR_URL")
     return HttpOcr(url) if url else None
+
+
+def web_push() -> WebPush | None:
+    """P3-W17-S05b (Q-P3-18): the agent hook's web push; None without the VAPID
+    private key and subject (nudges are then skipped, logged), or with a key that
+    can't be used."""
+    raw = os.environ.get("VAPID_PRIVATE_KEY", "").strip()
+    subject = os.environ.get("VAPID_SUBJECT", "").strip()
+    # A deployment's generated placeholder (48 characters) until the owner runs
+    # `pnpm push:keys`; a real key is 43.
+    if len(raw) != 43:
+        log.info("agent: push off", reason="no VAPID private key (or a placeholder)")
+        return None
+    if not subject.startswith(("mailto:", "https:")):
+        log.info("agent: push off", reason="VAPID_SUBJECT isn't mailto: or https:")
+        return None
+    try:
+        key = private_key(raw)
+    except ValueError as error:
+        log.error("agent: the VAPID private key can't be used", error=str(error))
+        return None
+    return HttpWebPush(httpx.Client(), key, subject)
 
 
 def github_app() -> GitHubApp | None:

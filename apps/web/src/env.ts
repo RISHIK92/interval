@@ -172,3 +172,34 @@ export function gameEnv(): GameEnv | null {
   if (cachedGame === undefined) cachedGame = parseGameEnv(process.env);
   return cachedGame;
 }
+
+// P3-W17-S05b (§7, Q-P3-18): web push's public VAPID key (base64url, the uncompressed
+// 65-byte P-256 point), handed to browsers that subscribe. Not set: push isn't offered.
+// The worker holds the private key.
+const push = z.object({
+  VAPID_PUBLIC_KEY: z.string().regex(/^B[A-Za-z0-9_-]{86}$/),
+});
+export type PushEnv = z.infer<typeof push>;
+
+export function parsePushEnv(
+  source: Record<string, string | undefined>,
+): PushEnv | null {
+  const key = source["VAPID_PUBLIC_KEY"];
+  if (!key) return null;
+  // A deployment's generated placeholder (48 letters and digits) until the owner runs
+  // `pnpm push:keys`: not offered. A real key is 87 characters.
+  if (/^[A-Za-z0-9]{48}$/.test(key)) return null;
+  const result = push.safeParse(source);
+  if (!result.success)
+    throw new Error(
+      "Invalid VAPID_PUBLIC_KEY: it must be a base64url uncompressed P-256 key",
+    );
+  return result.data;
+}
+
+let cachedPush: PushEnv | null | undefined;
+
+export function pushEnv(): PushEnv | null {
+  if (cachedPush === undefined) cachedPush = parsePushEnv(process.env);
+  return cachedPush;
+}

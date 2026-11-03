@@ -1,6 +1,7 @@
 import type { AgentDevice } from "../../server/ports";
 import { revokeAgentDeviceAction } from "./actions";
 import { AddDevice } from "./AddDevice";
+import { NotifyHere } from "./NotifyHere";
 
 const when = (date: Date) =>
   date.toLocaleDateString("en-GB", {
@@ -11,7 +12,13 @@ const when = (date: Date) =>
 
 // P3-W17-S04 (§7, C-09, Q-P3-28): the agent hook's devices. A device sends only
 // "started" and "finished", never prompts or code.
-export function AgentHookCard({ devices }: { devices: AgentDevice[] }) {
+export function AgentHookCard({
+  devices,
+  pushKey,
+}: {
+  devices: AgentDevice[];
+  pushKey: string | null; // P3-W17-S05b: web push offered once configured
+}) {
   return (
     <section aria-labelledby="agent-hook" className="flex flex-col gap-4">
       <div>
@@ -55,6 +62,7 @@ export function AgentHookCard({ devices }: { devices: AgentDevice[] }) {
         </ul>
       )}
       <AddDevice />
+      {pushKey === null ? null : <NotifyHere pushKey={pushKey} />}
     </section>
   );
 }

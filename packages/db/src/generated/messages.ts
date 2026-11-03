@@ -2,6 +2,10 @@
 import { z } from "zod";
 
 export const messageSchemas = {
+  // 45 seconds after an agent hook start (P3-W17-S05b, §7, Q-P3-18): if that task is still running, push the quick-session notice to its player's subscribed browsers. Queued with a 45 s delay by the web app.
+  agent_nudge: z.strictObject({
+    task_id: z.number().int().min(1),
+  }),
   // Make one book chapter's checkpoint: tag its sessions, draft and validate its questions (§5F, Q-P2-35, P2-W11-S06).
   book_checkpoint: z.strictObject({
     chapter_id: z.number().int().min(1),
