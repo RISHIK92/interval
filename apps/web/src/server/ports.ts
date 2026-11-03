@@ -784,10 +784,67 @@ export interface Challenges {
   peek(token: string, opener: string): Promise<ChallengeState>;
   // Taken once, by the first opener: "taken" for everyone after.
   take(token: string, opener: string): Promise<ChallengeState>;
-  beat(userId: string): Promise<void>;
+  // P3-W17-S04: with the page open then (kept 2 hours: the agent hook's place).
+  beat(userId: string, page?: string): Promise<void>;
   online(userId: string): Promise<boolean>;
+  lastPage(userId: string): Promise<string | null>;
+  // The agent finished and the place was saved: told once, within 2 minutes.
+  noteAgentFinished(userId: string): Promise<void>;
+  takeAgentFinished(userId: string): Promise<boolean>;
   notify(sender: string, accepted: ChallengeAccepted): Promise<void>;
   pending(sender: string): Promise<ChallengeAccepted | null>;
+}
+
+// Calls counted per key in a fixed window: false once past `limit` (P3-W17-S04: a
+// device's agent hook calls, against a leaked token or a looping script).
+export interface RateLimits {
+  allow(key: string, limit: number, windowSeconds: number): Promise<boolean>;
+}
+
+// P3-W17-S04 (§7, C-09, C-10, LOAD-5, Q-P3-28; owner, 2026-11-03): the agent hook. A
+// device sends only "started" and "finished"; its token is kept as a hash. A task with
+// no finish for 2 hours has ended; "finished" saves the player's place for 24 hours.
+export type AgentDevice = {
+  id: string;
+  name: string;
+  createdAt: Date;
+  lastUsedAt: Date | null;
+};
+export const MAX_AGENT_DEVICES = 10;
+export const AGENT_TASK_MS = 2 * 3_600_000;
+export const AGENT_PLACE_MS = 24 * 3_600_000;
+export type AgentFinish =
+  { status: "finished"; elapsedMs: number } | { status: "repeat" | "none" };
+export interface AgentHook {
+  devices(userId: string): Promise<AgentDevice[]>; // not revoked, newest first
+  // The token is returned this once; "full" at MAX_AGENT_DEVICES.
+  addDevice(
+    userId: string,
+    name: string,
+  ): Promise<{ device: AgentDevice; token: string } | "full">;
+  revoke(userId: string, deviceId: string): Promise<void>;
+  // A live device by its token (and marked used now); null for anything else.
+  deviceFor(
+    token: string,
+    now: Date,
+  ): Promise<{ deviceId: string; actor: Actor } | null>;
+  // A repeated key does nothing (LOAD-5); a new start ends the device's running task.
+  start(
+    deviceId: string,
+    key: string,
+    now: Date,
+  ): Promise<"started" | "repeat">;
+  // Saves `place` (the page last open) with the finish, in one step.
+  finish(
+    deviceId: string,
+    key: string,
+    now: Date,
+    place: string | null,
+  ): Promise<AgentFinish>;
+  running(userId: string, now: Date): Promise<{ startedAt: Date } | null>;
+  // Saved within 24 hours and not opened since.
+  place(userId: string, now: Date): Promise<string | null>;
+  openedPlace(userId: string, path: string, now: Date): Promise<void>;
 }
 
 // P3-W16-S01 (ADR-0034): a player's quick-game rating; 1500 before their first match.

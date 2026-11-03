@@ -62,6 +62,9 @@ describe("the event list (Q-P1-20)", () => {
         "player_unfollowed",
         "match_finished", // P3-W15-S05
         "match_found", // P3-W16-S02
+        // The owner's answers of 2026-11-03 (Q-P3-28, P3-W17-S04): nothing about the task.
+        "agent_task_started",
+        "agent_task_finished",
       ].sort(),
     );
   });

@@ -3238,3 +3238,50 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - a boolean flag.
 - **Not done (nit):** "Sign in" and "Play as a guest" don't return to the link, so the friend reopens it.
 - **Full check:** web 1339, Python 1321, Go, lint and types; infra alone 62 (its synth hook timed out under load).
+
+### 2026-11-03 — P3-W17-S04 (agent hook API; §7, LOAD-5, DB-5, C-09, C-10, Q-P3-28)
+
+- **Owner (Q-P3-28):**
+  - "finished" keeps the page last open; Home leads with "Pick up where you left off" for 24 h or until opened, and the page says "Agent finished · your place is saved";
+  - a task with no finish ends after 2 h; a new start replaces the running one;
+  - named device tokens on Profile, shown once, up to 10, accounts only.
+- **DB:** `agent_device` (sha256 `token_hash`, revocable), `agent_task` (unique start and finish keys per device), `agent_place`.
+- **`AgentHook`** (Kysely):
+  - `ivd_` plus a 32-byte token, kept only as its hash;
+  - start and finish lock the device row, so a retried or concurrent call does nothing twice and a device never has two running tasks;
+  - a stale task closes at its 2 h mark;
+  - the place is saved inside `finish`;
+  - `running` ignores revoked devices.
+- **`POST /api/agent/started|finished`:**
+  - Bearer token;
+  - a strict body of `{idempotency_key}` only (no prompt or code field can pass);
+  - 1 KB body cap;
+  - 30 calls a minute per device (a new `RateLimits` port: Valkey INCR and EXPIRE NX), else 429;
+  - no cookies or session;
+  - events `agent_task_started {}` and `agent_task_finished {elapsed_ms, place_saved}`.
+- **Presence (S03):**
+  - beats carry the page and whether the tab arrived there;
+  - a page that can be a place (not Home, an API or a challenge link) is kept 2 h;
+  - arriving at the saved place clears it;
+  - an unsavable page still counts as online;
+  - "agent finished" is told once (GETDEL).
+- **UI:**
+  - Profile "Agent hook" card (devices, last use, Revoke with its name; add one by `useActionState`, the token shown once, never in a URL);
+  - Home `AgentBanner` (elapsed minutes only; pick up where you left off);
+  - `AgentFinishedNote`.
+- **Reviewer, fixed:**
+  - the beat right after a finish cleared the place (blocker);
+  - Home "/" failed the place check (blocker);
+  - finish committed before its place, so a retry lost it (blocker);
+  - a missing test mock (blocker);
+  - start and finish races;
+  - challenge pages not beating;
+  - revoke without uuid validation;
+  - no rate limit;
+  - a revoked device still showing as running;
+  - accessibility nits;
+  - CLI names invented ahead of S05;
+  - stale tasks stamped hours long;
+  - an unbounded body.
+- **Left as is (nit):** presence and the agent-finished notice live on the `Challenges` port, whose name is now narrower than what it holds.
+- **Full check:** 28/28 tasks green (web 1375, Python 1321, infra 86, Go).

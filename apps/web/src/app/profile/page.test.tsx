@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type {
+  AgentHook,
   Actor,
   Feedback,
   Follows,
@@ -37,7 +38,9 @@ const followers = vi.fn<Follows["followers"]>(() => Promise.resolve([]));
 const usernameGet = vi.fn<Usernames["get"]>(() =>
   Promise.resolve({ username: "ada", searchable: true }),
 );
+const agentDevices = vi.fn<AgentHook["devices"]>(() => Promise.resolve([]));
 vi.mock("../../server/container", () => ({
+  agentHook: () => ({ devices: agentDevices }),
   usernames: () => ({ get: usernameGet, search: peopleSearch }),
   follows: () => ({ following, followers }),
   sessionReader: () => ({ current }),
@@ -595,4 +598,24 @@ describe("friends", () => {
     signedIn();
     expect(await page({ friend })).toContain(text);
   });
+});
+
+// P3-W17-S04 (§7, Q-P3-28): the agent hook's devices, with Revoke, and a way to add one.
+test("the agent hook card lists devices with Revoke, and adds one", async () => {
+  agentDevices.mockResolvedValueOnce([
+    {
+      id: "d1",
+      name: "Work laptop",
+      createdAt: new Date("2026-11-01T00:00:00Z"),
+      lastUsedAt: new Date("2026-11-02T00:00:00Z"),
+    },
+  ]);
+  const html = await page();
+  expect(html).toContain("Agent hook");
+  expect(html).toContain("Work laptop");
+  expect(html).toContain("Last used 2 Nov 2026");
+  expect(html).toContain('name="device" value="d1"');
+  expect(html).toContain("Revoke");
+  expect(html).toContain("Add a device");
+  expect(html).toContain("never prompts or code");
 });

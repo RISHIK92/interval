@@ -3,7 +3,10 @@
 import { randomUUID } from "node:crypto";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
 import {
+  agentHook,
   events,
   feedback,
   githubAccounts,
@@ -262,4 +265,31 @@ export async function disconnectGitHubAction(): Promise<void> {
     { ...found, sessionId: visitId(await cookies()) },
   );
   redirect("/profile?saved=github-off");
+}
+
+// P3-W17-S04 (§7, Q-P3-28): a device for the agent hook, named; its token comes back
+// this once (it's kept only as a hash) and never travels in a URL.
+export type DeviceState =
+  { token: string; name: string } | { message: string } | null;
+
+export async function addAgentDeviceAction(
+  _previous: DeviceState,
+  form: FormData,
+): Promise<DeviceState> {
+  const userId = await actor();
+  const name = textField(form, "name").trim();
+  if (name.length < 1 || name.length > 40)
+    return { message: "Name the device in 1 to 40 characters." };
+  const added = await agentHook().addDevice(userId, name);
+  if (added === "full")
+    return { message: "You have 10 devices: revoke one to add another." };
+  revalidatePath("/profile");
+  return { token: added.token, name: added.device.name };
+}
+
+export async function revokeAgentDeviceAction(form: FormData): Promise<void> {
+  const userId = await actor();
+  const device = z.uuid().safeParse(textField(form, "device"));
+  if (device.success) await agentHook().revoke(userId, device.data);
+  revalidatePath("/profile");
 }

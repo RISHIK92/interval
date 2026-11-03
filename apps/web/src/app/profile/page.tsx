@@ -3,6 +3,7 @@ import { cookies, headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  agentHook,
   feedback,
   follows,
   githubAccounts,
@@ -22,6 +23,7 @@ import { setThemeAction } from "../theme/actions";
 import { requireUsername } from "../username/gate";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
+import { AgentHookCard } from "./AgentHookCard";
 import { FIELD } from "../ui/field";
 import { STATE_WORDS } from "../learnerState";
 import {
@@ -124,6 +126,7 @@ export default async function ProfilePage(props: {
     followingList,
     followerList,
     found,
+    devices,
   ] = await Promise.all([
     feedback().hiddenSources(actor.userId),
     feedback().inferred(actor.userId),
@@ -135,6 +138,7 @@ export default async function ProfilePage(props: {
     follows().followers(actor.userId),
     // One more than shown, as the player may be among them.
     people.length >= 2 ? usernames().search(people, 21) : Promise.resolve(null),
+    agentHook().devices(actor.userId),
   ]);
   const query = (uq ?? "").trim();
   // Searched only when a change is open, and on two letters or more.
@@ -247,6 +251,10 @@ export default async function ProfilePage(props: {
           query={uq ?? ""}
           matches={matches}
         />
+      </Card>
+
+      <Card className="p-5">
+        <AgentHookCard devices={devices} />
       </Card>
 
       {/* This device's theme (owner, 2026-10-26). */}

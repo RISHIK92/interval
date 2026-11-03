@@ -17,6 +17,11 @@ import {
 const Mode = z.enum(GAME_MODES);
 const Accepted = z.object({ matchId: z.string(), mode: Mode });
 
+// P3-W17-S04 (Q-P3-28): a task ends at 2 hours, so the page it might save lives as long;
+// the "finished" notice waits two minutes for a beat to carry it.
+const PAGE_SECONDS = 2 * 3600;
+const AGENT_FINISHED_SECONDS = 120;
+
 // One step, so two openers can't both take it.
 const TAKE = `
 local c = redis.call('HMGET', KEYS[1], 'sender', 'mode', 'taken')
@@ -37,6 +42,8 @@ export function valkeyChallenges(redis: Redis, prefix = ""): Challenges {
   const challenge = (token: string) => `${prefix}challenge:${token}`;
   const presence = (userId: string) => `${prefix}presence:${userId}`;
   const accepted = (sender: string) => `${prefix}challenge-for:${sender}`;
+  const page = (userId: string) => `${prefix}page:${userId}`;
+  const finished = (userId: string) => `${prefix}agent-finished:${userId}`;
   return {
     create: async (sender, mode: GameMode) => {
       const token = randomBytes(16).toString("base64url");
@@ -64,10 +71,23 @@ export function valkeyChallenges(redis: Redis, prefix = ""): Challenges {
     },
     take: async (token, opener) =>
       state((await redis.eval(TAKE, 1, challenge(token), opener)) as string[]),
-    beat: async (userId) => {
-      await redis.set(presence(userId), "1", "EX", ONLINE_SECONDS);
+    beat: async (userId, open) => {
+      const multi = redis
+        .multi()
+        .set(presence(userId), "1", "EX", ONLINE_SECONDS);
+      if (open !== undefined) multi.set(page(userId), open, "EX", PAGE_SECONDS);
+      const failed = (await multi.exec())?.find(
+        ([error]) => error !== null,
+      )?.[0];
+      if (failed != null) throw failed;
     },
     online: async (userId) => (await redis.exists(presence(userId))) === 1,
+    lastPage: (userId) => redis.get(page(userId)),
+    noteAgentFinished: async (userId) => {
+      await redis.set(finished(userId), "1", "EX", AGENT_FINISHED_SECONDS);
+    },
+    takeAgentFinished: async (userId) =>
+      (await redis.getdel(finished(userId))) !== null,
     notify: async (sender, match) => {
       await redis.set(
         accepted(sender),
@@ -93,6 +113,8 @@ export function memoryChallenges(now: () => number = Date.now): Challenges {
   >();
   const seen = new Map<string, number>();
   const notes = new Map<string, { note: ChallengeAccepted; until: number }>();
+  const pages = new Map<string, { page: string; until: number }>();
+  const finishedUntil = new Map<string, number>();
   const look = (token: string, opener: string): ChallengeState => {
     const c = links.get(token);
     if (c === undefined || c.until <= now()) return { status: "expired" };
@@ -119,9 +141,26 @@ export function memoryChallenges(now: () => number = Date.now): Challenges {
       if (found.status === "open" && c !== undefined) c.taken = opener;
       return Promise.resolve(found);
     },
-    beat: (userId) => {
+    beat: (userId, open) => {
       seen.set(userId, now() + ONLINE_SECONDS * 1000);
+      if (open !== undefined)
+        pages.set(userId, { page: open, until: now() + PAGE_SECONDS * 1000 });
       return Promise.resolve();
+    },
+    lastPage: (userId) => {
+      const found = pages.get(userId);
+      return Promise.resolve(
+        found !== undefined && found.until > now() ? found.page : null,
+      );
+    },
+    noteAgentFinished: (userId) => {
+      finishedUntil.set(userId, now() + AGENT_FINISHED_SECONDS * 1000);
+      return Promise.resolve();
+    },
+    takeAgentFinished: (userId) => {
+      const until = finishedUntil.get(userId) ?? 0;
+      finishedUntil.delete(userId);
+      return Promise.resolve(until > now());
     },
     online: (userId) => Promise.resolve((seen.get(userId) ?? 0) > now()),
     notify: (sender, note) => {

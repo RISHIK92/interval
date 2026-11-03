@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test, vi } from "vitest";
-import { AcceptedBanner } from "./Presence";
+import { AcceptedBanner, AgentFinishedNote } from "./Presence";
 
 // P3-W17-S03 (Q-P3-16): a sender's tab says a friend accepted, with Join now into the
 // match; nothing when there's nothing.
@@ -21,4 +21,11 @@ test("nothing accepted: nothing shown", () => {
   expect(
     renderToStaticMarkup(<AcceptedBanner accepted={null} onDone={vi.fn()} />),
   ).toBe("");
+});
+
+// P3-W17-S04 (Q-P3-28): the agent finished, and the place is saved.
+test("an agent's finish says the place is saved", () => {
+  const html = renderToStaticMarkup(<AgentFinishedNote onDone={vi.fn()} />);
+  expect(html).toContain("Agent finished · your place is saved");
+  expect(html).toContain('role="status"');
 });

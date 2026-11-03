@@ -288,6 +288,16 @@
         "abandoned": "boolean"
       }
     },
+    "agent_task_started": {
+      "version": 1,
+      "description": "The agent hook said a coding agent started a task (P3-W17-S04, §7): nothing about the task itself.",
+      "props": {}
+    },
+    "agent_task_finished": {
+      "version": 1,
+      "description": "The agent hook said the task finished (P3-W17-S04, §7): how long it ran, and whether a place was saved.",
+      "props": { "elapsed_ms": "count", "place_saved": "boolean" }
+    },
     "match_found": {
       "version": 1,
       "description": "Matchmaking paired the player for a live 1v1 (P3-W16-S02): how long they waited, for the Phase 3 time-to-match metric.",

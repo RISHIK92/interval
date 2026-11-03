@@ -2,6 +2,8 @@
 import { z } from "zod";
 
 export const EVENT_NAMES = [
+  "agent_task_finished",
+  "agent_task_started",
   "article_finished",
   "book_checkpoint_finished",
   "book_checkpoint_started",
@@ -51,6 +53,8 @@ export const EVENT_NAMES = [
 export type EventName = (typeof EVENT_NAMES)[number];
 
 export const EVENT_VERSIONS = {
+  agent_task_finished: 1,
+  agent_task_started: 1,
   article_finished: 2,
   book_checkpoint_finished: 1,
   book_checkpoint_started: 1,
@@ -99,6 +103,11 @@ export const EVENT_VERSIONS = {
 } as const satisfies Record<EventName, number>;
 
 export const propsSchemas = {
+  agent_task_finished: z.strictObject({
+    elapsed_ms: z.number().int().nonnegative(),
+    place_saved: z.boolean(),
+  }),
+  agent_task_started: z.strictObject({}),
   article_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -295,6 +304,18 @@ const base = {
 
 // Q-P1-20: every event carries the same envelope; name and version pick its props.
 export const envelopeSchema = z.discriminatedUnion("name", [
+  z.strictObject({
+    ...base,
+    name: z.literal("agent_task_finished"),
+    version: z.literal(1),
+    props: propsSchemas.agent_task_finished,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("agent_task_started"),
+    version: z.literal(1),
+    props: propsSchemas.agent_task_started,
+  }),
   z.strictObject({
     ...base,
     name: z.literal("article_finished"),

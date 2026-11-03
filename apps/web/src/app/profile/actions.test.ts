@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, test, vi } from "vitest";
 import type {
+  AgentHook,
   Actor,
   Feedback,
   GitHubAccounts,
@@ -23,7 +24,12 @@ const give = vi.fn();
 const enqueue = vi.fn<(...args: unknown[]) => Promise<void>>(() =>
   Promise.resolve(),
 );
+const addDevice = vi.fn<AgentHook["addDevice"]>();
+const revokeDevice = vi.fn<AgentHook["revoke"]>(() => Promise.resolve());
+const revalidatePath = vi.fn();
+vi.mock("next/cache", () => ({ revalidatePath }));
 vi.mock("../../server/container", () => ({
+  agentHook: () => ({ addDevice, revoke: revokeDevice }),
   sessionReader: () => ({ current }),
   preferences: () => ({ update }),
   feedback: () => ({ resetInferred, unhideSource, give }),
@@ -664,4 +670,61 @@ describe("friends", () => {
     expect(unfollow).not.toHaveBeenCalled();
     expect(setSearchable).not.toHaveBeenCalled();
   });
+});
+
+// P3-W17-S04 (§7, Q-P3-28): a named device, its token returned once (never in a URL);
+// up to 10; revoked by its owner; accounts only.
+test("adding a device returns its token this once; a bad name or a full list says why", async () => {
+  current.mockResolvedValue(user);
+  const { addAgentDeviceAction } = await import("./actions");
+  const named = (name: string) => {
+    const f = new FormData();
+    f.set("name", name);
+    return f;
+  };
+  addDevice.mockResolvedValueOnce({
+    device: {
+      id: "d1",
+      name: "Work laptop",
+      createdAt: new Date(),
+      lastUsedAt: null,
+    },
+    token: "ivd_secret",
+  });
+  expect(await addAgentDeviceAction(null, named("  Work laptop "))).toEqual({
+    token: "ivd_secret",
+    name: "Work laptop",
+  });
+  expect(addDevice).toHaveBeenCalledWith("g1", "Work laptop");
+  expect(revalidatePath).toHaveBeenCalledWith("/profile");
+  expect(await addAgentDeviceAction(null, named("   "))).toEqual({
+    message: "Name the device in 1 to 40 characters.",
+  });
+  addDevice.mockResolvedValueOnce("full");
+  expect(await addAgentDeviceAction(null, named("Eleventh"))).toEqual({
+    message: "You have 10 devices: revoke one to add another.",
+  });
+});
+
+test("revoking is the account's own; a guest has no devices", async () => {
+  current.mockResolvedValue(user);
+  const { revokeAgentDeviceAction, addAgentDeviceAction } =
+    await import("./actions");
+  const f = new FormData();
+  f.set("device", "7d3c8f0e-5b7a-4a33-9a8e-1f2e3d4c5b6a");
+  await revokeAgentDeviceAction(f);
+  expect(revokeDevice).toHaveBeenCalledWith(
+    "g1",
+    "7d3c8f0e-5b7a-4a33-9a8e-1f2e3d4c5b6a",
+  );
+  // Not a device id: nothing to revoke, and no database error.
+  revokeDevice.mockClear();
+  const junk = new FormData();
+  junk.set("device", "'; drop table agent_device; --");
+  await revokeAgentDeviceAction(junk);
+  expect(revokeDevice).not.toHaveBeenCalled();
+  current.mockResolvedValue(guest);
+  await expect(addAgentDeviceAction(null, f)).rejects.toThrow(
+    "redirect:/sign-up",
+  );
 });

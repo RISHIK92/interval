@@ -41,7 +41,9 @@ import { kyselyPlayerCountries } from "./adapters/kysely-player-countries";
 import { kyselyPlayerUniversities } from "./adapters/kysely-player-universities";
 import { kyselyMatches } from "./adapters/kysely-matches";
 import { kyselyRatings } from "./adapters/kysely-ratings";
+import { kyselyAgentHook } from "./adapters/kysely-agent-hook";
 import { valkeyChallenges } from "./adapters/valkey-challenges";
+import { valkeyRateLimits } from "./adapters/valkey-rate-limits";
 import { valkeyMatchHandoff } from "./adapters/valkey-match-handoff";
 import { queuePrefix, valkeyMatchmaking } from "./adapters/valkey-matchmaking";
 import { startLiveMatch, startReplayMatch } from "./live";
@@ -58,6 +60,8 @@ import { valkeyLeaderboards } from "./adapters/valkey-leaderboards";
 import { createEmitter, type Emitter } from "./events";
 import { log } from "./log";
 import type {
+  AgentHook,
+  RateLimits,
   Challenges,
   GameMode,
   LiveMatch,
@@ -299,6 +303,16 @@ export function matchmaking(mode: GameMode): Matchmaking {
     Date.now,
     queuePrefix(mode),
   );
+}
+
+// Fixed-window call limits (P3-W17-S04: the agent hook's per device).
+export function rateLimits(): RateLimits {
+  return valkeyRateLimits(valkeyClient());
+}
+
+// P3-W17-S04 (§7): the agent hook's devices, tasks and saved place.
+export function agentHook(): AgentHook {
+  return kyselyAgentHook(db());
 }
 
 // P3-W17-S03 (Q-P3-16): friend challenge links and presence.

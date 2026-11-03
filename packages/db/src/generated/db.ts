@@ -89,6 +89,33 @@ export type Topic = "backend" | "databases" | "distributed-systems" | "system-de
 
 export type UserPathStatus = "active" | "paused";
 
+export interface AgentDevice {
+  created_at: Generated<Timestamp>;
+  id: Generated<string>;
+  last_used_at: Timestamp | null;
+  name: string;
+  revoked_at: Timestamp | null;
+  token_hash: string;
+  user_id: string;
+}
+
+export interface AgentPlace {
+  opened_at: Timestamp | null;
+  path: string;
+  saved_at: Timestamp;
+  user_id: string;
+}
+
+export interface AgentTask {
+  device_id: string;
+  finish_key: string | null;
+  finished_at: Timestamp | null;
+  id: Generated<Int8>;
+  start_key: string;
+  started_at: Timestamp;
+  user_id: string;
+}
+
 export interface AiBudget {
   daily_cents: number;
   scope: string;
@@ -1100,6 +1127,9 @@ export interface UserSave {
 }
 
 export interface DB {
+  agent_device: AgentDevice;
+  agent_place: AgentPlace;
+  agent_task: AgentTask;
   ai_budget: AiBudget;
   ai_usage: AiUsage;
   app_user: AppUser;

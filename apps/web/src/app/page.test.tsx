@@ -37,6 +37,10 @@ const usernameGet = vi.fn<Usernames["get"]>(() =>
 );
 const applyEvidence = vi.fn(() => Promise.resolve());
 vi.mock("./play/live/evidence", () => ({ applyMatchEvidence: applyEvidence }));
+const agentRunning = vi.fn(() => Promise.resolve(null));
+const agentPlace = vi.fn<() => Promise<string | null>>(() =>
+  Promise.resolve(null),
+);
 vi.mock("../server/container", () => ({
   usernames: () => ({ get: usernameGet }),
   preferences: () => ({ get: getPreferences }),
@@ -47,6 +51,7 @@ vi.mock("../server/container", () => ({
   sessionReader: () => ({ current }),
   events: () => ({ emit }),
   entitlements: () => ({ can }),
+  agentHook: () => ({ running: agentRunning, place: agentPlace }),
   quizzes: () => ({ offered, dueReviews, dailyStatus }),
   paths: () => ({ next: pathNext }),
   books: () => ({ nextSession }),

@@ -40,6 +40,17 @@ async function contract(c: Challenges): Promise<void> {
   expect(await c.pending("ada")).toBeNull();
   await c.notify("ada", { matchId: "m1", mode: "sprint" });
   expect(await c.pending("ada")).toEqual({ matchId: "m1", mode: "sprint" });
+
+  // P3-W17-S04: the page open at the last beat; "agent finished" told once.
+  expect(await c.lastPage("ada")).toBeNull();
+  await c.beat("ada", "/read/7");
+  expect(await c.lastPage("ada")).toBe("/read/7");
+  await c.beat("ada");
+  expect(await c.lastPage("ada")).toBe("/read/7");
+  expect(await c.takeAgentFinished("ada")).toBe(false);
+  await c.noteAgentFinished("ada");
+  expect(await c.takeAgentFinished("ada")).toBe(true);
+  expect(await c.takeAgentFinished("ada")).toBe(false);
 }
 
 test("the in-memory fake keeps the contract, and its expiries", async () => {

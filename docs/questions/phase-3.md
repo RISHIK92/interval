@@ -216,6 +216,14 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - **Answer (owner, 2026-10-31):** a Go binary. ARCH-2 lists Go for the game server and execution engine only, so the CLI's language goes in an ADR (it can share the game server's toolchain and CI). Distribution and auth still open: suggested a device token made on Profile, binaries on GitHub releases; ask before publishing.
 - Suggested default: TypeScript, published on npm as a single bin (`npx interval-hook`) — no new language, no new runtime for most developers. A device token made on Profile, revocable. Ask before publishing anything: npm publishing is outward-facing.
 
+### Q-P3-28 The agent hook's events, place and devices (P0 for W17-S04)
+
+- Cite: §7, C-09 (started and finished only), C-10 (elapsed time only), LOAD-5, DB-5.
+- **Answer (owner, 2026-11-03):**
+  - at "finished", Interval keeps the page the player had open last (from the presence beat: a reading, moment, path section or game screen). Home then leads with "Pick up where you left off" linking back to it, until it's opened or 24 h pass. The page they're on says "Agent finished · your place is saved";
+  - a task with no "finished" for 2 hours counts as ended (no place saved). A new "started" from the same device replaces the running one;
+  - device tokens are named on Profile ("Work laptop"), shown once with the setup command, and listed with their last use and Revoke; up to 10 per account; accounts only (ADR-0029).
+
 ### Q-P3-18 How the 45-second notification reaches the user (P0 for S05)
 
 - Cite: §7 ("a notification offers a quick session"), §5K (notifications).

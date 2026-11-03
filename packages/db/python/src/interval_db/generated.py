@@ -64,6 +64,33 @@ type Topic = Literal["system-design", "databases", "distributed-systems", "backe
 type UserPathStatus = Literal["active", "paused"]
 
 
+class AgentDevice(TypedDict):
+    id: UUID
+    user_id: str
+    name: str
+    token_hash: str
+    created_at: datetime
+    last_used_at: datetime | None
+    revoked_at: datetime | None
+
+
+class AgentPlace(TypedDict):
+    user_id: str
+    path: str
+    saved_at: datetime
+    opened_at: datetime | None
+
+
+class AgentTask(TypedDict):
+    id: int
+    device_id: UUID
+    user_id: str
+    started_at: datetime
+    finished_at: datetime | None
+    start_key: str
+    finish_key: str | None
+
+
 class AiBudget(TypedDict):
     scope: str
     daily_cents: int

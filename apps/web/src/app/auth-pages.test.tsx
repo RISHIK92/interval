@@ -29,6 +29,10 @@ const usernameGet = vi.fn<Usernames["get"]>(() =>
   Promise.resolve({ username: "ada", searchable: true }),
 );
 vi.mock("../server/container", () => ({
+  agentHook: () => ({
+    running: () => Promise.resolve(null),
+    place: () => Promise.resolve(null),
+  }),
   usernames: () => ({ get: usernameGet }),
   sessionReader: () => ({ current }),
   accounts: () => port,

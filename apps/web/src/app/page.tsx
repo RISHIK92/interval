@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Fragment } from "react";
 import { redirect } from "next/navigation";
 import {
+  agentHook,
   books,
   entitlements,
   events,
@@ -28,6 +29,7 @@ import { parseReading, READING_COOKIE } from "../server/reading";
 import { BIGINT_ID, type FeedCard, quizKey } from "../server/ports";
 import { visitId } from "../server/visits";
 import { signOutAction } from "./actions";
+import { AgentBanner } from "./AgentBanner";
 import { applyMatchEvidence } from "./play/live/evidence";
 import { requireUsername } from "./username/gate";
 import { ArticleCard } from "./ArticleCard";
@@ -201,18 +203,30 @@ export default async function HomePage({
   // P2-W10-S06: so is the active path's next step (the first card), and (S05) the
   // next session of the book read last.
   // P3-W13-S05 (§6.1): today's challenge while it's still to play, on plans with it.
-  const [due, testable, pathNext, bookNext, daily, playsDaily] =
-    await Promise.all([
-      quizzes().dueReviews(actor.userId),
-      quizzes().offered([
-        ...cards.map(target),
-        ...(finished === null || next === undefined ? [] : [finished]),
-      ]),
-      paths().next(actor.userId),
-      books().nextSession(actor.userId),
-      quizzes().dailyStatus(actor.userId),
-      entitlements().can(actor.userId, "play.daily"),
-    ]);
+  // P3-W17-S04 (§7, Q-P3-28): a running agent's elapsed time; the place its finish saved.
+  const now = new Date();
+  const [
+    due,
+    testable,
+    pathNext,
+    bookNext,
+    daily,
+    playsDaily,
+    agentRun,
+    place,
+  ] = await Promise.all([
+    quizzes().dueReviews(actor.userId),
+    quizzes().offered([
+      ...cards.map(target),
+      ...(finished === null || next === undefined ? [] : [finished]),
+    ]),
+    paths().next(actor.userId),
+    books().nextSession(actor.userId),
+    quizzes().dailyStatus(actor.userId),
+    entitlements().can(actor.userId, "play.daily"),
+    agentHook().running(actor.userId, now),
+    agentHook().place(actor.userId, now),
+  ]);
   const dailyCard =
     playsDaily && daily.today === "open" ? (
       <DailyCard streak={daily.streak} />
@@ -269,6 +283,11 @@ export default async function HomePage({
       <main className="min-w-0 lg:w-full lg:max-w-[46rem] lg:justify-self-center lg:pl-16">
         <div className="lg:flex lg:items-end lg:justify-between lg:gap-6">
           {header(chip, continuing[0]?.sectionTitle ?? null)}
+          <AgentBanner
+            startedAt={agentRun?.startedAt.getTime() ?? null}
+            place={place}
+            now={now.getTime()}
+          />
           <nav
             aria-label="Break length"
             className="my-4 lg:my-0 lg:w-72 lg:shrink-0"
