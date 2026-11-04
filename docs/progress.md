@@ -3378,3 +3378,24 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - infra 89;
   - Go;
   - lint, types and format 15/15.
+
+### 2026-11-04 — P3-W18-S01 (WebSocket load test; LOAD-2, LOAD-4, Q-P3-19)
+
+- **Owner:** ramp 50, 200, 500 fastest-finger matches; findings in docs only; k6 by brew.
+- **`services/game/load/`:**
+  - `matches.js` (k6: each VU signs its own ticket and plays a full match; Trends match_start, answer_locked, answer_reveal);
+  - `run.sh` (seeds `load-<run>-<i>` through valkey-cli in the compose container, since k6 v2's Redis module is a downloaded extension; cleans its own keys on exit).
+- **Results (docs/load/phase-3-websocket.md):**
+  - at 500 matches (1,000 sockets), 100% completed with 0 errors;
+  - answer p99 4 ms; match start p99 280 ms (the connect burst);
+  - server 95 MB RSS, 31% of one core.
+- **Harness finding:** ended match ids are refused for an hour (by design), so each run uses its own ids.
+- **Reviewer fixes:**
+  - the server closes the socket, so its result writes land before cleanup;
+  - k6 thresholds: every match completes, no socket errors;
+  - cleanup also clears `game:results:working` and `game:results:refused`;
+  - valkey-cli errors show;
+  - corrected doc numbers.
+- **Recheck at 50 matches:** 50/50, 0 errors, nothing left in Valkey; answer p99 7 ms; match_start p95 1.15 s. The first-ever 50 run showed 1.04 s too: k6's cold VU start, not the server.
+- **Note:** the local `.env` has no `GAME_TICKET_SECRET`; the run used a throwaway one for both the server and k6.
+

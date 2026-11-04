@@ -243,6 +243,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Why it matters: k6 is a new tool (a binary via brew), not an npm dependency.
 - **Answer (owner, 2026-10-31):** the suggested default: k6 via brew, run locally, not in CI.
 - Suggested default: install with brew locally; not in CI.
+- **Follow-up (owner, 2026-11-04, W18-S01):** ramp to 50, 200 and 500 concurrent fastest-finger matches (1,000 sockets) against one local game server, reporting match start time and round latency (p50, p95, p99) and errors. Findings go in docs/load/phase-3-websocket.md only, with no GitHub issues. k6 installed with brew.
 
 ### Q-P3-20 Fair-play thresholds for quick games (P1)
 
