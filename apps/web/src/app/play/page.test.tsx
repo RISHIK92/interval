@@ -4,6 +4,7 @@ import type {
   Actor,
   DailyStatus,
   Entitlements,
+  PlayerRatings,
   Preferences,
   Usernames,
 } from "../../server/ports";
@@ -23,6 +24,9 @@ const usernameGet = vi.fn<Usernames["get"]>(() =>
 );
 const applyEvidence = vi.fn(() => Promise.resolve());
 const ratingOf = vi.fn(() => Promise.resolve(1612.4));
+const adjustments = vi.fn<PlayerRatings["adjustments"]>(() =>
+  Promise.resolve([]),
+);
 let gameConfigured = true;
 vi.mock("../../env", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -35,7 +39,7 @@ vi.mock("../../server/container", () => ({
   entitlements: () => ({ can }),
   preferences: () => ({ get }),
   quizzes: () => ({ dailyStatus }),
-  playerRatings: () => ({ of: ratingOf }),
+  playerRatings: () => ({ of: ratingOf, adjustments }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -307,4 +311,25 @@ test("fastest finger plays live, or waits while live games aren't configured", a
   const html = await page();
   expect(html).not.toContain("/play/live/fastest-finger");
   expect(/<ul[^]*<\/ul>/.exec(html)?.[0]).toContain("Coming later");
+});
+
+// P3-W18-S02 (§6.9; owner, 2026-11-05): a confirmed fair-play penalty shows with the
+// rating, as an adjustment.
+test("a confirmed fair-play penalty shows under the rating", async () => {
+  current.mockResolvedValue(guest);
+  adjustments.mockResolvedValueOnce([
+    { penalty: 23.6, playedAt: new Date("2026-11-04T10:00:00Z") },
+    { penalty: 0, playedAt: new Date("2026-11-02T10:00:00Z") },
+  ]);
+  const text = words(await page());
+  expect(text).toContain("Fair-play adjustment: −24 (match of 4 Nov 2026)");
+  expect(text).toContain(
+    "Fair-play adjustment: no rating removed (match of 2 Nov 2026)",
+  );
+  expect(adjustments).toHaveBeenCalledWith("g1");
+});
+
+test("no penalty, no adjustment line", async () => {
+  current.mockResolvedValue(guest);
+  expect(await page()).not.toContain("Fair-play adjustment");
 });

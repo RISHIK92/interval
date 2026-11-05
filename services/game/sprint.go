@@ -17,13 +17,14 @@ type sprintRun struct {
 	over  bool      // the 60 s are up: late answers are still judged, nothing more is asked
 	until time.Time // when the sprint ends
 	start time.Time
-	at    map[string]int // a player's questions answered: the next one is at+1
+	at    map[string]int       // a player's questions answered: the next one is at+1
+	asked map[string]time.Time // when the player's current question was sent (P3-W18-S02)
 }
 
 func (a *actor) sprint(p *play) {
 	// A restart's snapshot carries no answers (the one saved here, at the start): the
 	// interrupted sprint plays again from its countdown (owner, 2026-11-02).
-	s := &sprintRun{at: map[string]int{}}
+	s := &sprintRun{at: map[string]int{}, asked: map[string]time.Time{}}
 	p.sprint = s
 	if !a.countdownFirst(p) {
 		return
@@ -33,11 +34,14 @@ func (a *actor) sprint(p *play) {
 	end := a.clock.After(sprintTime)
 	a.ghostPlays(1, len(a.def.Rounds), s.start)
 	a.broadcast(p, map[string]any{"type": "start", "seconds": seconds(sprintTime)})
+	for _, player := range a.def.Players {
+		s.asked[player] = s.start
+	}
 	for player, seat := range p.seats {
 		a.tell(p, player, seat, a.nextFor(p, player))
 	}
 	// Saved once the clock runs, so a slow save never lengthens the countdown.
-	a.persist(snap{Next: 1, Totals: p.totals, Times: p.times, Answers: p.answers})
+	a.persist(snap{Next: 1, Totals: p.totals, Times: p.times, Answers: p.answers, Signals: p.signals})
 	if !a.waitFor(p, end) {
 		return
 	}
@@ -114,6 +118,8 @@ func (a *actor) sprintAnswer(p *play, e event) {
 		return
 	}
 	right := e.choice == r.Correct
+	a.speed(p, e.player, e.n, compensated(e.at.Sub(s.asked[e.player]), p.rtts[e.player]))
+	s.asked[e.player] = a.clock.Now() // the next question goes out now
 	choice, ms := e.choice, took.Milliseconds()
 	p.answers[e.player] = append(p.answers[e.player], answerRec{
 		Round: e.n, QuestionID: r.Question, Choice: &choice, Correct: &right, Ms: &ms,
@@ -141,6 +147,7 @@ func (a *actor) sprintResume(p *play, player string, seat seat) {
 	left := max(0, s.until.Sub(a.clock.Now()))
 	seat.send(map[string]any{"type": "resume", "seconds": seconds(left), "correct": p.totals})
 	if !s.over { // the final is on its way: nothing more to answer
+		s.asked[player] = a.clock.Now() // shown again now: timed from here
 		seat.send(a.nextFor(p, player))
 	}
 }

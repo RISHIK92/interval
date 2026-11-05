@@ -30,6 +30,7 @@ import { kyselyAdminPaths } from "./adapters/kysely-admin-paths";
 import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
 import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
+import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
 import { kyselyAdminTechnologies } from "./adapters/kysely-admin-technologies";
 import { kyselyAdminUniversities } from "./adapters/kysely-admin-universities";
 import { kyselyBooks } from "./adapters/kysely-books";
@@ -68,6 +69,7 @@ import type {
   GameMode,
   LiveMatch,
   AdminDaily,
+  AdminFairPlay,
   AdminTechnologies,
   AdminUniversities,
   Books,
@@ -170,6 +172,11 @@ export function adminQuestions(): AdminQuestions {
 // P3-W13-S05 (ADR-0031): the daily challenge's sets, reviewed by the owner.
 export function adminDaily(): AdminDaily {
   return kyselyAdminDaily(db());
+}
+
+// P3-W18-S02 (§6.9): fair-play flags, reviewed by the owner.
+export function adminFairPlay(): AdminFairPlay {
+  return kyselyAdminFairPlay(db());
 }
 
 // P2-W12-S03 (PER-4): suggested technologies, reviewed by the owner.

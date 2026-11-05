@@ -250,3 +250,4 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - Cite: §6.9, ADR-0006 C-14.
 - **Answer (owner, 2026-10-31):** the suggested default: answers under 400 ms (compensated) and focus changes in a live round are signals; 3 in a match raise a flag for review.
 - Suggested default: an answer faster than 400 ms after the question arrives (compensated), or a focus change during a live round, is a signal; three signals in a match raise a flag for review.
+- **Follow-up (owner, 2026-11-05, W18-S02):** live matches only (sprint and fastest finger, including ghosts, bots and friend challenges). A confirmed flag removes the rating that match gained the flagged player (a loss stays; the opponent is untouched), and that player's ghost run from the match is deleted. Players see one line on the live screen ("Leaving this tab during a round is noted for fair play."), and a confirmed penalty shows on Play as a fair-play adjustment.

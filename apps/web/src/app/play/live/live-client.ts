@@ -65,6 +65,7 @@ const OPEN = 1; // WebSocket.OPEN
 
 export function runLive<S>(deps: LiveDeps<S>): {
   answer: (n: number, choice: number) => boolean;
+  focusLost: () => void;
   fallback: () => void;
   stop: () => void;
 } {
@@ -208,6 +209,12 @@ export function runLive<S>(deps: LiveDeps<S>): {
       if (socket === null || socket.readyState !== OPEN) return false;
       socket.send(JSON.stringify({ type: "answer", n, choice }));
       return true;
+    },
+    // P3-W18-S02 (§6.9): the page lost focus. The game server counts it only while a
+    // question is live; one lost mid-reconnect goes unsaid.
+    focusLost: () => {
+      if (socket?.readyState === OPEN)
+        socket.send(JSON.stringify({ type: "focus" }));
     },
     // "Play bot now": taken at the queue's next turn (within a poll).
     fallback: () => {

@@ -103,9 +103,9 @@ export async function mergeGuest(
   // P3-W15-S05: with what was recorded, and its wins stay won.
   await sql`
     insert into game_match_player
-      (match_id, user_id, played_as, total, time_ms, abandoned)
+      (match_id, user_id, played_as, total, time_ms, abandoned, signals)
     select match_id, ${accountId}, coalesce(played_as, user_id), total, time_ms,
-           abandoned
+           abandoned, signals
     from game_match_player where user_id = ${guestId}
     on conflict do nothing`.execute(trx);
   await trx
@@ -140,10 +140,10 @@ export async function mergeGuest(
     ratings.rows.find((r) => r.user_id === id)?.games;
   const guestGames = games(guestId);
   const accountGames = games(accountId);
-  if (
+  const keepsGuestRating =
     guestGames !== undefined &&
-    (accountGames === undefined || guestGames > accountGames)
-  ) {
+    (accountGames === undefined || guestGames > accountGames);
+  if (keepsGuestRating) {
     await trx
       .deleteFrom("rating_history")
       .where("user_id", "=", accountId)
@@ -174,6 +174,23 @@ export async function mergeGuest(
         updated_at = excluded.updated_at`.execute(trx);
   }
   // Otherwise the guest's rating, history and season standings go with the guest.
+
+  // P3-W18-S02 (§6.9): its fair-play flags. Not those of a match the account played
+  // too: a penalty there would drop the account's own run. A penalty only with the
+  // rating it was taken from: the account's own was never lowered by it.
+  await sql`
+    insert into fair_play_flag
+      (match_id, user_id, signals, created_at, decision, decided_at, decided_by,
+       penalty)
+    select f.match_id, ${accountId}, f.signals, f.created_at, f.decision,
+           f.decided_at, f.decided_by, f.penalty
+    from fair_play_flag f
+    where f.user_id = ${guestId}
+      and (f.decision is distinct from 'penalized' or ${keepsGuestRating})
+      and not exists (select 1 from game_match_player o
+        where o.match_id = f.match_id and o.user_id = ${accountId}
+          and o.played_as is distinct from ${guestId})
+    on conflict do nothing`.execute(trx);
 
   await trx.deleteFrom("app_user").where("id", "=", guestId).execute();
   return true;

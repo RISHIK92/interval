@@ -130,9 +130,9 @@ func newHandler(cfg config, sockets *matchSockets, matches *registry, now func()
 		go safely(matches.log, "ping", func() {
 			measure(ctx, conn, func(rtt time.Duration) { a.rtt(ticket.U, rtt) })
 		})
-		readAnswers(ctx, conn, func(n, choice int) {
+		readMessages(ctx, conn, func(n, choice int) {
 			a.answerAt(ticket.U, n, choice, matches.clock.Now())
-		})
+		}, func() { a.focus(ticket.U) })
 		// The socket ended: the player has the grace to come back (MATCH-6).
 		a.leave(ticket.U, player)
 	})
@@ -164,9 +164,10 @@ func measure(ctx context.Context, conn *websocket.Conn, report func(time.Duratio
 	}
 }
 
-// A player's answers: {"type":"answer","n":round,"choice":0-3}. Anything else, or
-// anything over 1 KB, is dropped or ends the socket; the actor checks the rest.
-func readAnswers(ctx context.Context, conn *websocket.Conn, answer func(n, choice int)) {
+// A player's answers, {"type":"answer","n":round,"choice":0-3}, and focus changes,
+// {"type":"focus"} (P3-W18-S02). Anything else, or anything over 1 KB, is dropped or
+// ends the socket; the actor checks the rest.
+func readMessages(ctx context.Context, conn *websocket.Conn, answer func(n, choice int), focus func()) {
 	conn.SetReadLimit(1024)
 	for {
 		_, data, err := conn.Read(ctx)
@@ -178,7 +179,14 @@ func readAnswers(ctx context.Context, conn *websocket.Conn, answer func(n, choic
 			N      *int   `json:"n"`
 			Choice *int   `json:"choice"`
 		}
-		if json.Unmarshal(data, &msg) != nil || msg.Type != "answer" || msg.N == nil || msg.Choice == nil {
+		if json.Unmarshal(data, &msg) != nil {
+			continue
+		}
+		if msg.Type == "focus" {
+			focus()
+			continue
+		}
+		if msg.Type != "answer" || msg.N == nil || msg.Choice == nil {
 			continue
 		}
 		answer(*msg.N, *msg.Choice)

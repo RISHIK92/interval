@@ -31,12 +31,30 @@ class MatchAnswer(_Strict):
     ms: int | None = Field(ge=0)
 
 
+class FairPlaySignal(_Strict):
+    """P3-W18-S02 (§6.9, Q-P3-20): an answer under 400 ms after its question arrived
+    (compensated; ms set), or a focus change while a question was live."""
+
+    kind: Literal["speed", "focus"]
+    round: int = Field(ge=1, le=30)
+    ms: int | None = Field(ge=0)
+
+
+# Q-P3-20: this many signals in a match flag the player for review, nothing more.
+FLAG_AT = 3
+
+
 class PlayerResult(_Strict):
     played_as: str = Field(min_length=1)
     total: int = Field(ge=0)
     time_ms: int = Field(ge=0)
     abandoned: bool
     answers: list[MatchAnswer] = Field(max_length=30)
+    # At most a speed and a focus signal per round. A result from a game server older
+    # than P3-W18-S02 has none.
+    signals: list[FairPlaySignal] = Field(
+        default_factory=list[FairPlaySignal], max_length=60
+    )
 
 
 class MatchResult(_Strict):

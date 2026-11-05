@@ -17,6 +17,18 @@
           "correct": true,
           "ms": 2950
         }
+      ],
+      "signals": [
+        {
+          "kind": "speed",
+          "round": 1,
+          "ms": 310
+        },
+        {
+          "kind": "focus",
+          "round": 1,
+          "ms": null
+        }
       ]
     },
     {
@@ -32,7 +44,8 @@
           "correct": false,
           "ms": 2950
         }
-      ]
+      ],
+      "signals": []
     }
   ]
 }

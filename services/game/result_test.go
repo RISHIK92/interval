@@ -147,7 +147,7 @@ func TestAResultNotHandedOverIsTriedThriceAndLogged(t *testing.T) {
 // The message the worker validates (workers/jobs/tests/test_match_results.py reads this
 // file). Regenerate with UPDATE_GOLDEN=1 go test -run Golden.
 func TestTheResultMatchesItsGoldenFile(t *testing.T) {
-	right, wrong, choice0, choice2, ms := true, false, 0, 2, int64(2950)
+	right, wrong, choice0, choice2, ms, fast := true, false, 0, 2, int64(2950), int64(310)
 	ada := "user-1"
 	r := result{
 		MatchID:    "6f1c2b8e-3d4a-4e5f-9a0b-1c2d3e4f5a6b",
@@ -157,10 +157,13 @@ func TestTheResultMatchesItsGoldenFile(t *testing.T) {
 		Players: []playerResult{
 			{PlayedAs: "user-1", Total: 140, TimeMs: 2950, Answers: []answerRec{
 				{Round: 1, QuestionID: 41, Choice: &choice0, Correct: &right, Ms: &ms},
+			}, Signals: []fairPlaySignal{
+				{Kind: "speed", Round: 1, Ms: &fast},
+				{Kind: "focus", Round: 1},
 			}},
 			{PlayedAs: "user-2", Total: 0, TimeMs: 15000, Abandoned: false, Answers: []answerRec{
 				{Round: 1, QuestionID: 41, Choice: &choice2, Correct: &wrong, Ms: &ms},
-			}},
+			}, Signals: []fairPlaySignal{}},
 		},
 	}
 	got, err := json.MarshalIndent(r, "", "  ")

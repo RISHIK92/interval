@@ -16,7 +16,12 @@ import redis
 
 from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.adapters.postgres import PostgresMatchResults
-from interval_jobs.match_results import MatchResult, parse_result, relay
+from interval_jobs.match_results import (
+    FairPlaySignal,
+    MatchResult,
+    parse_result,
+    relay,
+)
 from interval_jobs.ratings import Glicko, update
 
 from .test_db_guards import a_user
@@ -705,3 +710,103 @@ def test_an_unrated_match_moves_no_rating_but_keeps_its_answers(
     assert conn.execute(
         "select count(*) from quiz_attempt where match_id = %s", (match_id,)
     ).fetchone() == (2,)
+
+
+# P3-W18-S02 (§6.9, Q-P3-20): the game server's fair-play signals are kept with each
+# player's side of the match; 3 or more raise a flag for review, and nothing else
+# happens: no rating moves for them.
+
+
+def test_the_golden_result_carries_signals() -> None:
+    result = parse_result((GOLDEN / "match_finished.json").read_bytes())
+    assert result is not None
+    kinds = [(s.kind, s.round) for s in result.players[0].signals]
+    assert kinds == [("speed", 1), ("focus", 1)]
+    assert result.players[0].signals[0].ms == 310
+    assert result.players[1].signals == []
+
+
+@pytest.mark.parametrize(
+    "signal",
+    [
+        {"kind": "paste", "round": 1, "ms": None},
+        {"kind": "speed", "round": 0, "ms": 100},
+        {"kind": "speed", "round": 1, "ms": -1},
+        {"kind": "focus", "round": 1, "ms": None, "extra": 1},
+    ],
+)
+def test_a_signal_that_is_not_one_is_refused(signal: dict[str, object]) -> None:
+    body = json.loads((GOLDEN / "match_finished.json").read_bytes())
+    body["players"][0]["signals"] = [signal]
+    assert parse_result(json.dumps(body).encode()) is None
+
+
+def _with_signals(result: MatchResult, count: int) -> MatchResult:
+    signals = [
+        FairPlaySignal(kind="focus", round=n, ms=None)
+        if n % 2
+        else FairPlaySignal(kind="speed", round=n, ms=120)
+        for n in range(1, count + 1)
+    ]
+    first, *rest = result.players
+    return result.model_copy(
+        update={"players": [first.model_copy(update={"signals": signals}), *rest]}
+    )
+
+
+def _flags(conn: psycopg.Connection, match_id: str) -> list[tuple[Any, ...]]:
+    return conn.execute(
+        "select user_id, signals, decision, penalty from fair_play_flag "
+        "where match_id = %s",
+        (match_id,),
+    ).fetchall()
+
+
+def test_three_signals_raise_a_flag_and_move_no_rating(
+    conn: psycopg.Connection,
+) -> None:
+    a_user(conn, "lra")
+    a_user(conn, "lrb")
+    question = _question(conn)
+    plain = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    PostgresMatchResults(conn).record(_result(plain, "finished", question))
+    unflagged = _ratings(conn)
+    conn.execute("delete from rating_history")
+    conn.execute("delete from player_rating")
+
+    match_id = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    result = _with_signals(_result(match_id, "finished", question), 3)
+    results = PostgresMatchResults(conn)
+    assert results.record(result)
+    assert _flags(conn, match_id) == [("lra", 3, None, None)]
+    stored = conn.execute(
+        "select user_id, signals from game_match_player where match_id = %s "
+        "order by user_id",
+        (match_id,),
+    ).fetchall()
+    assert [(u, len(s)) for u, s in stored] == [("lra", 3), ("lrb", 0)]
+    assert stored[0][1][0] == {"kind": "focus", "round": 1, "ms": None}
+    # No automatic penalty: rated exactly as the same match without signals.
+    assert _ratings(conn) == unflagged
+    # Recorded again: one flag still.
+    assert not results.record(result)
+    assert len(_flags(conn, match_id)) == 1
+
+
+def test_two_signals_raise_none(conn: psycopg.Connection) -> None:
+    a_user(conn, "lra")
+    a_user(conn, "lrb")
+    match_id = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    result = _with_signals(_result(match_id, "finished", _question(conn)), 2)
+    assert PostgresMatchResults(conn).record(result)
+    assert _flags(conn, match_id) == []
+
+
+def test_a_match_without_a_result_is_flagged_too(conn: psycopg.Connection) -> None:
+    """Every outcome: a cancelled or void match's signals are still for review."""
+    a_user(conn, "lra")
+    a_user(conn, "lrb")
+    match_id = _match(conn, [("lra", "guest-1"), ("lrb", None)])
+    result = _with_signals(_result(match_id, "void", _question(conn)), 4)
+    assert PostgresMatchResults(conn).record(result)
+    assert _flags(conn, match_id) == [("lra", 4, None, None)]

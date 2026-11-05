@@ -425,6 +425,118 @@ test("the guest's matches move to the account", async () => {
   });
 });
 
+// P3-W18-S02 (§6.9): the guest's fair-play signals and flags are the account's; a
+// flag the account has for the same match (a self-match) stays as it is.
+test("the guest's fair-play signals and flags move to the account", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    const match = async (players: string[]) => {
+      const { id } = await trx
+        .insertInto("game_match")
+        .values({ server_id: 0 })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await trx
+        .insertInto("game_match_player")
+        .values(
+          players.map((user_id) => ({
+            match_id: id,
+            user_id,
+            signals: JSON.stringify([{ kind: "focus", round: 1, ms: null }]),
+          })),
+        )
+        .execute();
+      return id;
+    };
+    const alone = await match([guest]);
+    const both = await match([guest, account]);
+    await trx
+      .insertInto("fair_play_flag")
+      .values([
+        { match_id: alone, user_id: guest, signals: 4 },
+        { match_id: both, user_id: guest, signals: 3 },
+        { match_id: both, user_id: account, signals: 5 },
+      ])
+      .execute();
+    // A match against its own account where only the guest was flagged: the flag
+    // stays behind (and goes with the guest), so no penalty can reach the account's
+    // own run of it.
+    const selfMatch = await match([guest, account]);
+    await trx
+      .insertInto("fair_play_flag")
+      .values({ match_id: selfMatch, user_id: guest, signals: 6 })
+      .execute();
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    expect(
+      await trx
+        .selectFrom("game_match_player")
+        .select(["signals"])
+        .where("match_id", "=", alone)
+        .executeTakeFirstOrThrow(),
+    ).toEqual({ signals: [{ kind: "focus", round: 1, ms: null }] });
+    expect(
+      await trx
+        .selectFrom("fair_play_flag")
+        .select(["match_id", "user_id", "signals"])
+        .where("match_id", "in", [alone, both, selfMatch])
+        .orderBy("signals")
+        .execute(),
+    ).toEqual([
+      { match_id: alone, user_id: account, signals: 4 },
+      { match_id: both, user_id: account, signals: 5 },
+    ]);
+  });
+});
+
+// A penalty taken from a guest's rating that the account doesn't keep was never taken
+// from the account's: it doesn't follow the guest.
+test("a guest's penalty follows only the rating it was taken from", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    const match = async () => {
+      const { id } = await trx
+        .insertInto("game_match")
+        .values({ server_id: 0 })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      await trx
+        .insertInto("game_match_player")
+        .values({ match_id: id, user_id: guest })
+        .execute();
+      return id;
+    };
+    const [penalized, pending] = [await match(), await match()];
+    await trx
+      .insertInto("fair_play_flag")
+      .values([
+        {
+          match_id: penalized,
+          user_id: guest,
+          signals: 3,
+          decision: "penalized",
+          decided_at: new Date(),
+          penalty: 12,
+        },
+        { match_id: pending, user_id: guest, signals: 3 },
+      ])
+      .execute();
+    // The account has played more: its rating is the one kept.
+    await trx
+      .insertInto("player_rating")
+      .values([
+        { user_id: guest, rating: 1550, rd: 200, volatility: 0.06, games: 1 },
+        { user_id: account, rating: 1500, rd: 100, volatility: 0.06, games: 9 },
+      ])
+      .execute();
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    expect(
+      await trx
+        .selectFrom("fair_play_flag")
+        .select(["match_id", "decision"])
+        .where("match_id", "in", [penalized, pending])
+        .execute(),
+    ).toEqual([{ match_id: pending, decision: null }]);
+  });
+});
+
 // P3-W16-S01 (ADR-0034; owner, 2026-11-02): the account keeps the more-played rating,
 // with that rating's own history only.
 test("the more-played rating stays with the account, with its own history", async () => {

@@ -22,11 +22,12 @@ const (
 // P3-W15-S04 (LOAD-2): where a match stands after a round, saved so a restarted server
 // plays on from there (game:snap:<id>). Over: it has ended; never play it again.
 type snap struct {
-	Next    int                      `json:"next"` // the round to play, from 1
-	Totals  map[string]int           `json:"totals"`
-	Times   map[string]time.Duration `json:"times"`
-	Answers map[string][]answerRec   `json:"answers"` // so a restart's result has them all
-	Over    bool                     `json:"over"`
+	Next    int                         `json:"next"` // the round to play, from 1
+	Totals  map[string]int              `json:"totals"`
+	Times   map[string]time.Duration    `json:"times"`
+	Answers map[string][]answerRec      `json:"answers"` // so a restart's result has them all
+	Signals map[string][]fairPlaySignal `json:"signals"` // P3-W18-S02: likewise
+	Over    bool                        `json:"over"`
 }
 
 // P3-W15-S05: a player's answer to a round, for the result (null fields: not answered).
@@ -86,7 +87,7 @@ func (realClock) Now() time.Time                         { return time.Now() }
 func (realClock) After(d time.Duration) <-chan time.Time { return time.After(d) }
 
 type event struct {
-	kind   string // join, leave, answer, rtt, graceOver, sync
+	kind   string // join, leave, answer, focus, rtt, graceOver, sync
 	player string
 	seat   seat
 	n      int // the round answered; for graceOver, the leave's generation
@@ -154,6 +155,12 @@ func (a *actor) answerAt(player string, n, choice int, at time.Time) {
 func (a *actor) answer(player string, n, choice int) {
 	a.answerAt(player, n, choice, a.clock.Now())
 }
+
+// P3-W18-S02: the player's page lost focus (another tab or window), as it arrived.
+func (a *actor) focus(player string) {
+	a.post(event{kind: "focus", player: player, at: a.clock.Now()})
+}
+
 func (a *actor) rtt(player string, d time.Duration) {
 	a.post(event{kind: "rtt", player: player, rtt: d})
 }
@@ -195,8 +202,9 @@ type play struct {
 	shown     int            // the last round revealed
 	reveal    map[string]any // its reveal, for a player who missed it
 	answers   map[string][]answerRec
-	sprint    *sprintRun // a sprint's own state, once it has begun
-	countdown time.Time  // when the countdown before the first question ends; zero: none running
+	signals   map[string][]fairPlaySignal // P3-W18-S02: fair-play signals, per player
+	sprint    *sprintRun                  // a sprint's own state, once it has begun
+	countdown time.Time                   // when the countdown before the first question ends; zero: none running
 }
 
 func (a *actor) run() {
@@ -228,6 +236,7 @@ func (a *actor) run() {
 		times:   map[string]time.Duration{},
 		gens:    map[string]int{},
 		answers: map[string][]answerRec{},
+		signals: map[string][]fairPlaySignal{},
 	}
 	defer func() {
 		// No panic leaves the match: it ends, logged, and its players are let go.
@@ -252,6 +261,9 @@ func (a *actor) run() {
 		}
 		for player, given := range a.from.Answers {
 			p.answers[player] = given
+		}
+		for player, raised := range a.from.Signals {
+			p.signals[player] = raised
 		}
 	}
 
@@ -381,7 +393,7 @@ func (a *actor) run() {
 		}
 		// The pause runs while the snapshot saves, so a slow save doesn't lengthen it.
 		pause := a.clock.After(revealPause)
-		a.persist(snap{Next: n + 1, Totals: p.totals, Times: p.times, Answers: p.answers})
+		a.persist(snap{Next: n + 1, Totals: p.totals, Times: p.times, Answers: p.answers, Signals: p.signals})
 	wait:
 		for {
 			select {
@@ -449,7 +461,7 @@ func (a *actor) finish(p *play) {
 	// The result goes to the worker before the snapshot says "over": a result lost
 	// after "over" could never be sent again.
 	a.hand(p, outcome, won)
-	a.persist(snap{Totals: p.totals, Times: p.times, Answers: p.answers, Over: true})
+	a.persist(snap{Totals: p.totals, Times: p.times, Answers: p.answers, Signals: p.signals, Over: true})
 	p.closeAll("match over")
 }
 
@@ -463,11 +475,12 @@ type result struct {
 }
 
 type playerResult struct {
-	PlayedAs  string      `json:"played_as"`
-	Total     int         `json:"total"`
-	TimeMs    int64       `json:"time_ms"`
-	Abandoned bool        `json:"abandoned"`
-	Answers   []answerRec `json:"answers"`
+	PlayedAs  string           `json:"played_as"`
+	Total     int              `json:"total"`
+	TimeMs    int64            `json:"time_ms"`
+	Abandoned bool             `json:"abandoned"`
+	Answers   []answerRec      `json:"answers"`
+	Signals   []fairPlaySignal `json:"signals"` // P3-W18-S02: never null
 }
 
 func (a *actor) hand(p *play, outcome, won string) {
@@ -483,12 +496,17 @@ func (a *actor) hand(p *play, outcome, won string) {
 		if given == nil {
 			given = []answerRec{}
 		}
+		raised := p.signals[player]
+		if raised == nil {
+			raised = []fairPlaySignal{}
+		}
 		r.Players = append(r.Players, playerResult{
 			PlayedAs:  player,
 			Total:     p.totals[player],
 			TimeMs:    p.times[player].Milliseconds(),
 			Abandoned: slices.Contains(p.abandoned, player),
 			Answers:   given,
+			Signals:   raised,
 		})
 	}
 	a.publish(r)
@@ -580,6 +598,18 @@ func (a *actor) handle(p *play, e event, cur *current) {
 		}
 	case "rtt":
 		p.rtts[e.player] = e.rtt
+	case "focus":
+		// Only while a question is live: a fastest-finger round being played, or a
+		// sprint's player's current question.
+		if s := p.sprint; s != nil {
+			if s.live && !s.over && s.at[e.player] < len(a.def.Rounds) {
+				a.raise(p, e.player, fairPlaySignal{Kind: "focus", Round: s.at[e.player] + 1})
+			}
+		} else if cur != nil && e.at.Sub(cur.started) <= roundTime {
+			// Judged by its stamp, as answers are: one drained after the round's
+			// time isn't in it.
+			a.raise(p, e.player, fairPlaySignal{Kind: "focus", Round: cur.n})
+		}
 	case "answer":
 		if p.sprint != nil {
 			a.sprintAnswer(p, e)
@@ -605,6 +635,7 @@ func (a *actor) handle(p *play, e event, cur *current) {
 			Round: cur.n, QuestionID: cur.round.Question, Choice: &choice, Correct: &right, Ms: &ms,
 		})
 		cur.answered[e.player] = right
+		a.speed(p, e.player, cur.n, took)
 		if right {
 			cur.rights[e.player] = took
 			cur.order = append(cur.order, e.player)

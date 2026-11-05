@@ -864,6 +864,9 @@ export interface AgentHook {
 // P3-W16-S01 (ADR-0034): a player's quick-game rating; 1500 before their first match.
 export interface PlayerRatings {
   of(userId: string): Promise<number>;
+  // P3-W18-S02 (§6.9; owner, 2026-11-05): the player's confirmed fair-play penalties,
+  // newest first: the rating each removed (0 when its match gained nothing).
+  adjustments(userId: string): Promise<{ penalty: number; playedAt: Date }[]>;
 }
 
 // P3-W15-S03 (Q-P3-22): hands a match to its game server (game:match:<id> in Valkey),
@@ -1706,6 +1709,36 @@ export interface AdminUniversities {
   // Its players are left with none, their clocks as they were; the players, or null.
   remove(id: string): Promise<string[] | null>;
 }
+// P3-W18-S02 (§6.9, ADR-0006 C-14, Q-P3-20): a player flagged for review by their
+// signals in a live match (an answer under 400 ms, a focus change in a live round).
+export type FairPlaySignal = {
+  kind: "speed" | "focus";
+  round: number;
+  ms: number | null;
+};
+export type FairPlayFlagRow = {
+  id: string;
+  userId: string;
+  player: string; // their username, else their name (a guest)
+  matchId: string;
+  mode: GameMode;
+  playedAt: Date;
+  signals: FairPlaySignal[];
+  gain: number; // the rating the match gained them: what a penalty would remove
+};
+// Flags go to review before any penalty; a penalty removes the match's gain from the
+// player's rating and drops their ghost run of it, never touching the account (owner,
+// 2026-11-05).
+export interface AdminFairPlay {
+  pending(): Promise<FairPlayFlagRow[]>;
+  // The flagged player, or null when the flag isn't pending (decided already).
+  decide(
+    flagId: string,
+    adminUserId: string,
+    decision: "dismiss" | "penalize",
+  ): Promise<{ userId: string } | null>;
+}
+
 export interface AdminTechnologies {
   pending(): Promise<TechnologySuggestionRow[]>;
   // Stored dependencies no live technology claims, most used first.

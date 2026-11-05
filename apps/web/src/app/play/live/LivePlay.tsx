@@ -192,7 +192,19 @@ export function LivePlay<S>({
       onOpponent: setOpponent,
     });
     live.current = run;
+    // P3-W18-S02 (§6.9): another tab or window, as blur or a hidden page; the server
+    // counts one switch once.
+    const lost = () => {
+      run.focusLost();
+    };
+    const hidden = () => {
+      if (document.visibilityState === "hidden") run.focusLost();
+    };
+    window.addEventListener("blur", lost);
+    document.addEventListener("visibilitychange", hidden);
     return () => {
+      window.removeEventListener("blur", lost);
+      document.removeEventListener("visibilitychange", hidden);
       run.stop();
       live.current = null;
     };
@@ -251,6 +263,12 @@ export function LivePlay<S>({
               if (live.current?.answer(n, choice) === true) setAnswered(n);
             }}
           />
+          {/* P3-W18-S02 (owner, 2026-11-05): players are told. */}
+          {finished ? null : (
+            <p className="text-sm text-ink-muted">
+              Leaving this tab during a round is noted for fair play.
+            </p>
+          )}
         </ReplayFrame>
       )}
       <div className="flex flex-wrap gap-3">

@@ -3399,3 +3399,34 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Recheck at 50 matches:** 50/50, 0 errors, nothing left in Valkey; answer p99 7 ms; match_start p95 1.15 s. The first-ever 50 run showed 1.04 s too: k6's cold VU start, not the server.
 - **Note:** the local `.env` has no `GAME_TICKET_SECRET`; the run used a throwaway one for both the server and k6.
 
+
+### 2026-11-05 — P3-W18-S02 (fair-play signals; §6.9, ADR-0006 C-14, Q-P3-20)
+
+- **Owner (2026-11-05):**
+  - live matches only;
+  - a penalty removes the match's rating gain (a loss stays; the opponent is untouched) and the player's ghost run of it;
+  - players see a line on the live screen and their penalties on Play.
+- **Go:**
+  - signals are kept per player (`fairplay.go`):
+    - speed: an answer under 400 ms compensated, timed from round start, or in a sprint from when that player's question was sent (resume restarts it);
+    - focus: once per round while a question is live, judged by its stamp;
+  - ghosts have none;
+  - signals go in the result and the snapshot (golden updated);
+  - the socket takes `{"type":"focus"}`.
+- **DB:** `game_match_player.signals` and `fair_play_flag` (pending, or dismissed or penalized with the penalty).
+- **Worker:** signals are stored; 3 or more give a flag, for any outcome. No automatic penalty (tested: the rating is the same as without signals).
+- **Web:**
+  - `AdminFairPlay` (pending flags, and decide, which locks the user, then the flag, then the rating);
+  - `/admin/fair-play`;
+  - Play's "Fair-play adjustment" lines;
+  - live-client `focusLost` (blur, or the page hidden), plus the note in LivePlay;
+  - guest merge moves signals and flags. It skips matches the account played too, and takes a penalty only along with the rating it came from.
+- **Reviewer fixes:**
+  - a deadlock between decide and the guest merge;
+  - penalties no longer move onto an account rating they never lowered;
+  - self-match flags;
+  - a focus drained after the round's time;
+  - sprint resume timing.
+- **Shortcut, noted in code:** a penalty writes no rating_history row, so a closed season's standing keeps the gain.
+- **Left as is:** in fastest finger, a focus change after the player has answered (while the opponent plays) still counts. Q-P3-20 doesn't say whether "live" means the round or the player's own question.
+- **Found, not fixed:** `kysely-quizzes.test.ts` "a shared result keeps the streak it had on its day" fails with or without this slice (date-dependent; seen 2026-11-05).

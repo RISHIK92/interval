@@ -312,3 +312,22 @@ test("a match already made is joined without the queue", async () => {
   await flush();
   expect(h.calls).toEqual([]); // nothing to leave
 });
+
+// P3-W18-S02 (§6.9, Q-P3-20): the page losing focus is told to the game server, which
+// decides whether a question was live; with no open socket, nothing is sent.
+test("a focus change goes to the game server while its socket is open", async () => {
+  const h = harness([{ status: "matched", matchId: "m1" }]);
+  const live = runLive(h.deps);
+  live.focusLost(); // still queued: no socket
+  await flush();
+  const [socket] = h.sockets;
+  if (socket === undefined) throw new Error("no socket");
+  live.focusLost();
+  expect(socket.sent.map((s) => JSON.parse(s) as unknown)).toEqual([
+    { type: "focus" },
+  ]);
+  socket.readyState = 0;
+  live.focusLost();
+  expect(socket.sent).toHaveLength(1);
+  live.stop();
+});

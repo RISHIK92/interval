@@ -81,9 +81,9 @@ export default async function PlayPage(props: {
   // P3-W15-S05: finished live matches count toward mastery and review (guests too).
   if (actor !== null) await applyMatchEvidence(actor);
   const { sprint, estimation, daily } = await props.searchParams;
-  const [allowed, chosen, today, rating] =
+  const [allowed, chosen, today, rating, adjustments] =
     actor === null
-      ? [null, null, null, null]
+      ? [null, null, null, null, []]
       : await Promise.all([
           Promise.all(
             GAMES.map((g) => entitlements().can(actor.userId, g.capability)),
@@ -92,6 +92,8 @@ export default async function PlayPage(props: {
           quizzes().dailyStatus(actor.userId),
           // P3-W16-S04 (MATCH-2): the one quick-game rating, as the worker last set it.
           playerRatings().of(actor.userId),
+          // P3-W18-S02 (§6.9): confirmed fair-play penalties, shown with it.
+          playerRatings().adjustments(actor.userId),
         ]);
   // P3-W16-S04 (Q-P3-23): the sprint's live 1v1, with both games on the plan and live
   // games configured.
@@ -136,6 +138,25 @@ export default async function PlayPage(props: {
             </Link>
           </p>
         )}
+        {adjustments.map((a) => (
+          <p
+            key={a.playedAt.toISOString()}
+            className="mt-1 text-sm text-ink-muted tabular-nums"
+          >
+            Fair-play adjustment:{" "}
+            {a.penalty > 0
+              ? `−${String(Math.round(a.penalty))}`
+              : "no rating removed"}{" "}
+            (match of{" "}
+            {a.playedAt.toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+              timeZone: "UTC",
+            })}
+            )
+          </p>
+        ))}
       </header>
       <TabBar current="play" firstName={chosen?.firstName ?? null} />
       {actor?.isGuest === true ? (

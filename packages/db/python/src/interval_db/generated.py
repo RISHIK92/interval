@@ -336,6 +336,18 @@ class ExploreArmOutcome(TypedDict):
     finished: int
 
 
+class FairPlayFlag(TypedDict):
+    id: int
+    match_id: UUID
+    user_id: str
+    signals: int
+    created_at: datetime
+    decision: str | None
+    decided_at: datetime | None
+    decided_by: str | None
+    penalty: float | None
+
+
 class FeedNote(TypedDict):
     id: int
     content_item_id: int
@@ -385,6 +397,7 @@ class GameMatchPlayer(TypedDict):
     total: int | None
     time_ms: int | None
     abandoned: bool | None
+    signals: JsonValue | None
 
 
 class GameMatchQuestion(TypedDict):

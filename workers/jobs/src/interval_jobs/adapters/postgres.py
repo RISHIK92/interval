@@ -28,7 +28,7 @@ from interval_db.generated import (
 from interval_jobs import log
 from interval_jobs.concepts.graph import TOPICS
 from interval_jobs.irt import Answer
-from interval_jobs.match_results import MatchResult
+from interval_jobs.match_results import FLAG_AT, MatchResult
 from interval_jobs.normalize import MAX_SIMHASH_DISTANCE
 from interval_jobs.ports import (
     PROJECT_NOTE_PROMPT_VERSION,
@@ -3191,15 +3191,29 @@ class PostgresMatchResults:
                     continue
                 conn.execute(
                     "update game_match_player set total = %s, time_ms = %s, "
-                    "abandoned = %s where match_id = %s and user_id = %s",
+                    "abandoned = %s, signals = %s where match_id = %s and user_id = %s",
                     (
                         player.total,
                         player.time_ms,
                         player.abandoned,
+                        Jsonb([s.model_dump() for s in player.signals]),
                         result.match_id,
                         user,
                     ),
                 )
+                # P3-W18-S02 (§6.9): flagged for review, whatever the outcome; no
+                # penalty comes from here (an admin decides at /admin/fair-play).
+                if len(player.signals) >= FLAG_AT:
+                    conn.execute(
+                        "insert into fair_play_flag (match_id, user_id, signals) "
+                        "values (%s, %s, %s) on conflict do nothing",
+                        (result.match_id, user, len(player.signals)),
+                    )
+                    log.info(
+                        "game: fair-play flag raised",
+                        match_id=str(result.match_id),
+                        signals=len(player.signals),
+                    )
                 if result.outcome not in ("finished", "abandoned"):
                     continue
                 row = conn.execute(

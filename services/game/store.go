@@ -327,6 +327,10 @@ func (s *memStore) save(_ context.Context, id string, saved snap) error {
 	for k, v := range saved.Times {
 		copied.Times[k] = v
 	}
+	copied.Signals = map[string][]fairPlaySignal{}
+	for k, v := range saved.Signals {
+		copied.Signals[k] = slices.Clone(v)
+	}
 	copied.Answers = map[string][]answerRec{}
 	for k, v := range saved.Answers {
 		copied.Answers[k] = slices.Clone(v)

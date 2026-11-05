@@ -361,6 +361,18 @@ export interface ExploreArmOutcome {
   shown: Generated<Int8>;
 }
 
+export interface FairPlayFlag {
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  decided_by: string | null;
+  decision: string | null;
+  id: Generated<Int8>;
+  match_id: string;
+  penalty: number | null;
+  signals: number;
+  user_id: string;
+}
+
 export interface FeedNote {
   content_item_id: Int8;
   created_at: Generated<Timestamp>;
@@ -407,6 +419,7 @@ export interface GameMatchPlayer {
   abandoned: boolean | null;
   match_id: string;
   played_as: string | null;
+  signals: Json | null;
   time_ms: Int8 | null;
   total: number | null;
   user_id: string;
@@ -1166,6 +1179,7 @@ export interface DB {
   daily_challenge: DailyChallenge;
   daily_challenge_question: DailyChallengeQuestion;
   explore_arm_outcome: ExploreArmOutcome;
+  fair_play_flag: FairPlayFlag;
   feed_note: FeedNote;
   fetch_validator: FetchValidator;
   follow: Follow;
