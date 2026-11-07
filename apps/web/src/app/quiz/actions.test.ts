@@ -167,6 +167,7 @@ test("finishing reports once", async () => {
     answered: 6,
     correct: 4,
     firstTime: true,
+    missed: [],
     sprint: false,
     estimation: null,
     daily: null,
@@ -185,6 +186,7 @@ test("finishing reports once", async () => {
     answered: 6,
     correct: 4,
     firstTime: false,
+    missed: [],
     sprint: false,
     estimation: null,
     daily: null,
@@ -297,6 +299,7 @@ test("Close finishes and goes back to the feed", async () => {
     answered: 1,
     correct: 1,
     firstTime: true,
+    missed: [],
     sprint: false,
     estimation: null,
     daily: null,
@@ -362,6 +365,7 @@ test("a checkpoint's finish reports whether it passed; Close goes back to the pa
     answered: 5,
     correct: 4,
     firstTime: true,
+    missed: [],
     sprint: false,
     estimation: null,
     daily: null,
@@ -397,6 +401,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       answered: 3,
       correct: 2,
       firstTime: true,
+      missed: [],
       sprint: false,
       estimation: null,
       daily: null,
@@ -407,6 +412,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       answered: 5,
       correct: 4,
       firstTime: true,
+      missed: [],
       sprint: false,
       estimation: null,
       daily: null,
@@ -449,6 +455,7 @@ test("a start records the finishes of the quizzes it closed, then its own start"
       answered: 1,
       correct: 1,
       firstTime: true,
+      missed: [],
       sprint: false,
       estimation: null,
       daily: null,
@@ -513,6 +520,7 @@ test("a sprint's finish is a game_finished, not a quiz_finished; Close goes to P
     answered: 7,
     correct: 5,
     firstTime: true,
+    missed: [],
     checkpoint: null,
     sprint: true,
     estimation: null,
@@ -529,6 +537,55 @@ test("a sprint's finish is a game_finished, not a quiz_finished; Close goes to P
   );
   // P3-W14-S01: on the week's sprint board.
   expect(record).toHaveBeenCalledExactlyOnceWith("u1", "61", 5);
+});
+
+// P3-W18-S03 (owner, 2026-11-05): each section a game sends back to reading is a
+// concept_missed, for the missed-concepts-read metric.
+test("a game's finish tells each miss it sends back to reading", async () => {
+  const { finishQuizAction } = await actions();
+  finish.mockResolvedValue({
+    answered: 7,
+    correct: 5,
+    firstTime: true,
+    missed: [
+      { itemId: "4", momentId: "40" },
+      { itemId: "5", momentId: "52" },
+    ],
+    checkpoint: null,
+    sprint: false,
+    estimation: null,
+    daily: { points: 320 },
+  });
+  await expect(
+    finishQuizAction(form({ attemptId: "61", chip: "3-8", leave: "play" })),
+  ).rejects.toThrow("redirect:/play");
+  expect(emit).toHaveBeenCalledWith(
+    "concept_missed",
+    { game: "daily", item_id: "4", moment_id: "40" },
+    context,
+  );
+  expect(emit).toHaveBeenCalledWith(
+    "concept_missed",
+    { game: "daily", item_id: "5", moment_id: "52" },
+    context,
+  );
+  expect(emit).toHaveBeenCalledTimes(3); // and the game_finished
+  // Finished again (a retry): its misses aren't told twice.
+  emit.mockClear();
+  finish.mockResolvedValue({
+    answered: 7,
+    correct: 5,
+    firstTime: false,
+    missed: [{ itemId: "4", momentId: "40" }],
+    checkpoint: null,
+    sprint: false,
+    estimation: null,
+    daily: { points: 320 },
+  });
+  await expect(
+    finishQuizAction(form({ attemptId: "61", chip: "3-8", leave: "play" })),
+  ).rejects.toThrow("redirect:/play");
+  expect(emit).not.toHaveBeenCalled();
 });
 
 test("Start just after a sprint's clock ran out finishes it, records it, and starts afresh", async () => {
@@ -548,6 +605,7 @@ test("Start just after a sprint's clock ran out finishes it, records it, and sta
     answered: 3,
     correct: 2,
     firstTime: true,
+    missed: [],
     checkpoint: null,
     sprint: true,
     estimation: null,
@@ -572,6 +630,7 @@ test("a game a start closes goes on its board too", async () => {
       answered: 4,
       correct: 3,
       firstTime: true,
+      missed: [],
       sprint: true,
       estimation: null,
       daily: null,
@@ -654,6 +713,7 @@ test("Start just after a round's clock ran out finishes it, records it, and star
     answered: 2,
     correct: 1,
     firstTime: true,
+    missed: [],
     checkpoint: null,
     sprint: true,
     estimation: { points: 158 },
@@ -737,6 +797,7 @@ test("a round's finish is a game_finished with its points", async () => {
     answered: 3,
     correct: 1,
     firstTime: true,
+    missed: [],
     checkpoint: null,
     sprint: true,
     estimation: { points: 158 },
@@ -792,6 +853,7 @@ test("a day already played goes to its attempt, which shows the results", async 
     answered: 5,
     correct: 4,
     firstTime: false,
+    missed: [],
     checkpoint: null,
     sprint: false,
     estimation: null,
@@ -821,6 +883,7 @@ test("the daily challenge's finish is a game_finished with its points", async ()
     answered: 5,
     correct: 4,
     firstTime: true,
+    missed: [],
     checkpoint: null,
     sprint: false,
     estimation: null,

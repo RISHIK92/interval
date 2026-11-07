@@ -235,7 +235,7 @@ export class AwsStack extends Stack {
             { name: "version", type: "int" },
             {
               name: "props",
-              type: "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean>",
+              type: "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean,game:string,wait_ms:bigint,opponent:string>",
             },
           ],
         },
@@ -261,7 +261,7 @@ export class AwsStack extends Stack {
         },
       },
     });
-    // Phase 1 (Q-P1-21) and Phase 2 (P2-W9-S08, Q-P2-20) "done when": the SQL lives in
+    // Phase 1 (Q-P1-21), Phase 2 (P2-W9-S08, Q-P2-20) and Phase 3 "done when": the SQL lives in
     // the repo, tested with DuckDB on fixture events
     // (workers/jobs/tests/test_metric_queries.py).
     for (const [id, file, description] of [
@@ -290,6 +290,27 @@ export class AwsStack extends Stack {
         "PathProgressQuery",
         "path_progress.sql",
         "Sections passed per active path in the last full week",
+      ],
+      // Phase 3 (P3-W18-S03).
+      [
+        "DailyShareQuery",
+        "daily_share.sql",
+        "Daily actives who play the daily challenge, per day",
+      ],
+      [
+        "MatchStartQuery",
+        "match_start.sql",
+        "Live matches found within 10 seconds, by opponent",
+      ],
+      [
+        "PlayerReturnQuery",
+        "player_return.sql",
+        "Return rate of players and non-players",
+      ],
+      [
+        "MissedReadQuery",
+        "missed_read.sql",
+        "Missed concepts read within 48 hours, by game",
       ],
     ] as const) {
       const query = new athena.CfnNamedQuery(this, id, {

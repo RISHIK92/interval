@@ -15,6 +15,7 @@ export const EVENT_NAMES = [
   "card_opened",
   "checkpoint_finished",
   "checkpoint_started",
+  "concept_missed",
   "continue_clicked",
   "country_changed",
   "estimate_answered",
@@ -66,6 +67,7 @@ export const EVENT_VERSIONS = {
   card_opened: 3,
   checkpoint_finished: 1,
   checkpoint_started: 1,
+  concept_missed: 1,
   continue_clicked: 1,
   country_changed: 1,
   estimate_answered: 1,
@@ -79,7 +81,7 @@ export const EVENT_VERSIONS = {
   guest_merged: 1,
   item_saved: 1,
   match_finished: 1,
-  match_found: 1,
+  match_found: 2,
   note_deleted: 1,
   note_saved: 1,
   onboarding_completed: 1,
@@ -165,6 +167,11 @@ export const propsSchemas = {
     path_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     section_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
+  concept_missed: z.strictObject({
+    game: z.enum(["sprint", "estimation", "daily", "live"]),
+    item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    moment_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+  }),
   continue_clicked: z.strictObject({}),
   country_changed: z.strictObject({ action: z.enum(["set", "removed"]) }),
   estimate_answered: z.strictObject({
@@ -200,7 +207,10 @@ export const propsSchemas = {
     won: z.boolean(),
     abandoned: z.boolean(),
   }),
-  match_found: z.strictObject({ wait_ms: z.number().int().nonnegative() }),
+  match_found: z.strictObject({
+    wait_ms: z.number().int().nonnegative(),
+    opponent: z.enum(["person", "ghost", "bot"]),
+  }),
   note_deleted: z.strictObject({
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     moment_id: z
@@ -384,6 +394,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   }),
   z.strictObject({
     ...base,
+    name: z.literal("concept_missed"),
+    version: z.literal(1),
+    props: propsSchemas.concept_missed,
+  }),
+  z.strictObject({
+    ...base,
     name: z.literal("continue_clicked"),
     version: z.literal(1),
     props: propsSchemas.continue_clicked,
@@ -463,7 +479,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("match_found"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.match_found,
   }),
   z.strictObject({

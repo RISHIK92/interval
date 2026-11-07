@@ -27,8 +27,13 @@ afterEach(() => {
 
 test("each applied match is one event", async () => {
   apply.mockResolvedValueOnce([
-    { outcome: "finished", won: true, abandoned: false },
-    { outcome: "abandoned", won: false, abandoned: true },
+    {
+      outcome: "finished",
+      won: true,
+      abandoned: false,
+      missed: [{ itemId: "4", momentId: "40" }],
+    },
+    { outcome: "abandoned", won: false, abandoned: true, missed: [] },
   ]);
   await applyMatchEvidence(actor);
   expect(apply).toHaveBeenCalledWith("u1");
@@ -37,6 +42,12 @@ test("each applied match is one event", async () => {
       "match_finished",
       { outcome: "finished", won: true, abandoned: false },
       expect.objectContaining({ userId: "u1", sessionId: "visit-1" }),
+    ],
+    // P3-W18-S03: its miss, back to reading.
+    [
+      "concept_missed",
+      { game: "live", item_id: "4", moment_id: "40" },
+      expect.objectContaining({ userId: "u1" }),
     ],
     [
       "match_finished",

@@ -27,6 +27,7 @@ type EventName = Literal[
     "card_opened",
     "checkpoint_finished",
     "checkpoint_started",
+    "concept_missed",
     "continue_clicked",
     "country_changed",
     "estimate_answered",
@@ -79,6 +80,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "card_opened": 3,
     "checkpoint_finished": 1,
     "checkpoint_started": 1,
+    "concept_missed": 1,
     "continue_clicked": 1,
     "country_changed": 1,
     "estimate_answered": 1,
@@ -92,7 +94,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "guest_merged": 1,
     "item_saved": 1,
     "match_finished": 1,
-    "match_found": 1,
+    "match_found": 2,
     "note_deleted": 1,
     "note_saved": 1,
     "onboarding_completed": 1,
@@ -196,6 +198,12 @@ class CheckpointStartedProps(_Model):
     section_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
+class ConceptMissedProps(_Model):
+    game: Literal["sprint", "estimation", "daily", "live"]
+    item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    moment_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
 class ContinueClickedProps(_Model):
     pass
 
@@ -260,6 +268,7 @@ class MatchFinishedProps(_Model):
 
 class MatchFoundProps(_Model):
     wait_ms: int = Field(ge=0, strict=True)
+    opponent: Literal["person", "ghost", "bot"]
 
 
 class NoteDeletedProps(_Model):
@@ -463,6 +472,12 @@ class CheckpointStartedEvent(_EnvelopeBase):
     props: CheckpointStartedProps
 
 
+class ConceptMissedEvent(_EnvelopeBase):
+    name: Literal["concept_missed"]
+    version: Literal[1]
+    props: ConceptMissedProps
+
+
 class ContinueClickedEvent(_EnvelopeBase):
     name: Literal["continue_clicked"]
     version: Literal[1]
@@ -543,7 +558,7 @@ class MatchFinishedEvent(_EnvelopeBase):
 
 class MatchFoundEvent(_EnvelopeBase):
     name: Literal["match_found"]
-    version: Literal[1]
+    version: Literal[2]
     props: MatchFoundProps
 
 
@@ -682,6 +697,7 @@ type Envelope = Annotated[
     | CardOpenedEvent
     | CheckpointFinishedEvent
     | CheckpointStartedEvent
+    | ConceptMissedEvent
     | ContinueClickedEvent
     | CountryChangedEvent
     | EstimateAnsweredEvent

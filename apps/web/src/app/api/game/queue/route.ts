@@ -58,7 +58,7 @@ export async function PUT(request: Request): Promise<Response> {
     // The Phase 3 time-to-match metric; once per player.
     events().emit(
       "match_found",
-      { wait_ms: state.waitedMs },
+      { wait_ms: state.waitedMs, opponent: "person" },
       { ...actor, sessionId: visitId(await cookies()) },
     );
   return Response.json(

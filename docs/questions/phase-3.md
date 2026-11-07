@@ -251,3 +251,12 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 - **Answer (owner, 2026-10-31):** the suggested default: answers under 400 ms (compensated) and focus changes in a live round are signals; 3 in a match raise a flag for review.
 - Suggested default: an answer faster than 400 ms after the question arrives (compensated), or a focus change during a live round, is a signal; three signals in a match raise a flag for review.
 - **Follow-up (owner, 2026-11-05, W18-S02):** live matches only (sprint and fastest finger, including ghosts, bots and friend challenges). A confirmed flag removes the rating that match gained the flagged player (a loss stays; the opponent is untouched), and that player's ghost run from the match is deleted. Players see one line on the live screen ("Leaving this tab during a round is noted for fair play."), and a confirmed penalty shows on Play as a fair-play adjustment.
+
+### Q-P3-29 How two of the Phase 3 metrics are measured (P0 for W18-S03)
+
+- Cite: Phase 3 "Done when" (docs/roadmap/phase-3.md), DB-5.
+- Why it matters: no event recorded what a game missed, and only person-vs-person matches logged their wait.
+- **Answer (owner, 2026-11-05):**
+  - **Missed concepts read:** a new `concept_missed` event, one per section a game or live match sends back to reading. It counts as read when the same user opens or finishes that section within 48 h, from anywhere.
+  - **Matches started within 10 s:** every live match counts (a person, a ghost or a bot). `match_found` v2 adds the opponent, and the bot route sends it with the queue's wait.
+- **Follow-up (owner, 2026-11-07):** "within 10 s" is strict (wait ≤ 10,000 ms). The automatic fallback fires just after 10 s, so it counts as a safety net, not a quick start.

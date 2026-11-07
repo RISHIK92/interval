@@ -16,7 +16,8 @@ TODAY = datetime(2026, 11, 30, tzinfo=UTC)
 # The props the queries read; the Glue table declares the same struct (aws-stack.ts).
 PROPS = (
     "STRUCT(kind VARCHAR, item_id VARCHAR, moment_id VARCHAR, method VARCHAR, "
-    "question_id VARCHAR, path_id VARCHAR, section_id VARCHAR, passed BOOLEAN)"
+    "question_id VARCHAR, path_id VARCHAR, section_id VARCHAR, passed BOOLEAN, "
+    "game VARCHAR, wait_ms BIGINT, opponent VARCHAR)"
 )
 
 type Row = tuple[str, int, int, float]
@@ -29,7 +30,7 @@ def event(
     group: str = "student",
     guest: bool = False,
     version: int = 1,
-    **props: str | bool | None,
+    **props: str | bool | int | None,
 ) -> dict[str, object]:
     return {
         "event_id": str(uuid4()),
@@ -363,3 +364,127 @@ def test_path_progress_is_sections_passed_per_active_path_last_week(
         ("developer", 1, 1, 1.0),
         ("student", 5, 3, 0.6),
     ]
+
+
+# Phase 3 "done when" (P3-W18-S03; owner, 2026-11-05).
+
+
+def test_daily_share_is_daily_players_over_that_days_actives(tmp_path: Path) -> None:
+    day = TODAY - days(3) + timedelta(hours=9)
+    events = [
+        *(event("session_started", u, day) for u in "abcd"),
+        event("feed_viewed", "e", day),  # active by any event
+        event("game_started", "a", day, game="daily"),
+        event("game_started", "b", day, game="daily", guest=True),
+        event("game_started", "c", day, game="sprint"),  # not the daily one
+        # Outside the last 7 full days: today, and 8 days ago.
+        event("game_started", "a", TODAY + timedelta(hours=1), game="daily"),
+        event("session_started", "z", TODAY - days(8)),
+    ]
+    assert run("daily_share.sql", events, tmp_path) == [
+        ((TODAY - days(3)).date().isoformat(), 5, 2, 0.4)
+    ]
+
+
+def test_match_start_is_the_share_found_within_10_seconds(tmp_path: Path) -> None:
+    at = TODAY - days(2)
+    events = [
+        event("match_found", "a", at, version=2, wait_ms=4_000, opponent="person"),
+        event("match_found", "b", at, version=2, wait_ms=10_000, opponent="person"),
+        event("match_found", "c", at, version=2, wait_ms=10_400, opponent="bot"),
+        event("match_found", "d", at, version=2, wait_ms=6_000, opponent="ghost"),
+        # Version 1 had no opponent: only people were found then.
+        event("match_found", "e", at, wait_ms=30_000),
+        event(
+            "match_found", "f", TODAY - days(8), version=2, wait_ms=1, opponent="bot"
+        ),
+    ]
+    assert run("match_start.sql", events, tmp_path) == [
+        ("all", 5, 3, 0.6),
+        ("bot", 1, 0, 0.0),
+        ("ghost", 1, 1, 1.0),
+        ("person", 3, 2, 0.6667),
+    ]
+
+
+def test_players_and_non_players_each_get_a_return_rate(tmp_path: Path) -> None:
+    week = TODAY - days(10)
+    after = TODAY - days(3)
+    events = [
+        *(event("session_started", u, week) for u in "abcdef"),
+        event("session_started", "g", week, guest=True),  # guests left out
+        event("game_started", "a", week, game="sprint"),
+        event("match_found", "b", week, version=2, wait_ms=3, opponent="person"),
+        event("game_started", "c", week, game="daily"),
+        *(event("session_started", u, after) for u in "abd"),
+    ]
+    assert run("player_return.sql", events, tmp_path) == [
+        ("non-players", 3, 1, 0.3333),
+        ("players", 3, 2, 0.6667),
+    ]
+
+
+def test_a_missed_concept_is_read_within_48_hours(tmp_path: Path) -> None:
+    at = TODAY - days(5)
+
+    def missed(user: str, game: str, item: str, moment: str) -> dict[str, object]:
+        return event(
+            "concept_missed", user, at, game=game, item_id=item, moment_id=moment
+        )
+
+    events = [
+        missed("a", "sprint", "1", "10"),  # read at 47 h: counts
+        event(
+            "card_opened", "a", at + timedelta(hours=47), item_id="1", moment_id="10"
+        ),
+        missed("b", "sprint", "1", "10"),  # read at 49 h: too late
+        event(
+            "section_finished",
+            "b",
+            at + timedelta(hours=49),
+            item_id="1",
+            moment_id="10",
+        ),
+        missed("c", "live", "1", "10"),  # someone else read it
+        event("card_opened", "a", at + timedelta(hours=1), item_id="1", moment_id="10"),
+        missed("d", "estimation", "2", "20"),  # another item's open isn't it
+        event("card_opened", "d", at + timedelta(hours=2), item_id="3", moment_id="30"),
+        missed("e", "daily", "1", "10"),  # another section of the item isn't it
+        event("card_opened", "e", at + timedelta(hours=2), item_id="1", moment_id="12"),
+        missed("f", "sprint", "1", "10"),  # read before the miss doesn't count
+        event("card_opened", "f", at - timedelta(hours=1), item_id="1", moment_id="10"),
+        # Too recent for a full 48 h, or too old.
+        event(
+            "concept_missed",
+            "g",
+            TODAY - days(1),
+            game="sprint",
+            item_id="1",
+            moment_id="10",
+        ),
+        event(
+            "concept_missed",
+            "h",
+            TODAY - days(10),
+            game="sprint",
+            item_id="1",
+            moment_id="10",
+        ),
+    ]
+    assert run("missed_read.sql", events, tmp_path) == [
+        ("all", 6, 1, 0.1667),
+        ("daily", 1, 0, 0.0),
+        ("estimation", 1, 0, 0.0),
+        ("live", 1, 0, 0.0),
+        ("sprint", 3, 1, 0.3333),
+    ]
+
+
+@pytest.mark.parametrize(
+    "query",
+    ["daily_share.sql", "match_start.sql", "player_return.sql", "missed_read.sql"],
+)
+def test_phase_3_queries_give_no_rows_without_events(
+    query: str, tmp_path: Path
+) -> None:
+    assert run(query, [], tmp_path) == []

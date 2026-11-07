@@ -300,6 +300,8 @@ export type MatchApplied = {
   outcome: "finished" | "abandoned";
   won: boolean;
   abandoned: boolean;
+  // P3-W18-S03 (§6.1): its wrong answers' sections, back to reading as a sprint's are.
+  missed: { itemId: string; momentId: string }[];
 };
 
 export interface Quizzes {
@@ -423,6 +425,9 @@ export type QuizFinish = {
   sprint: boolean; // a game from Play (P3-W13-S02), recorded as one
   estimation: { points: number } | null; // a sprint over estimates (P3-W13-S04)
   daily: { points: number } | null; // the daily challenge (P3-W13-S05)
+  // P3-W18-S03 (§6.1): the sections a game sent back to reading, as its results
+  // page's Read again lists them (a hand-written page has no item and isn't here).
+  missed: { itemId: string; momentId: string }[];
 };
 // Where a checkpoint belongs: a section of a topic path (P2-W10-S04) or a chapter of
 // the user's book (P2-W11-S06).

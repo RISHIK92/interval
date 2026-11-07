@@ -108,7 +108,7 @@ test("polling (a PUT: it pairs) says waiting, or the match, timed once", async (
   });
   expect(emit).toHaveBeenCalledExactlyOnceWith(
     "match_found",
-    { wait_ms: 3_400 },
+    { wait_ms: 3_400, opponent: "person" },
     expect.objectContaining({ userId: "g1", sessionId: "visit-1" }),
   );
   // Told again (a later poll): no second event.

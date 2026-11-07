@@ -1,11 +1,14 @@
+import { cookies } from "next/headers";
 import { z } from "zod";
-import { GAME_MODES } from "../../../../server/ports";
+import { type Actor, GAME_MODES } from "../../../../server/ports";
 import {
+  events,
   replayMatch,
   matchmaking,
   sessionReader,
 } from "../../../../server/container";
 import { sameOrigin } from "../../../../server/same-origin";
+import { visitId } from "../../../../server/visits";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +24,17 @@ export async function POST(request: Request): Promise<Response> {
   if (!mode.success) return new Response(null, { status: 400 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
+  // P3-W18-S03 (owner, 2026-11-05): the time-to-match metric counts every live match,
+  // so the queue's wait is read before leaving it. A poll pairs: a person found now
+  // is the match.
+  const before = await matchmaking(mode.data).poll(actor.userId);
+  if (before.status === "matched") {
+    if (before.first) await found(actor, before.waitedMs, "person");
+    return Response.json(
+      { matchId: before.matchId },
+      { headers: { "Cache-Control": "no-store" } },
+    );
+  }
   await Promise.all(
     Mode.options.map((m) => matchmaking(m).leave(actor.userId)),
   );
@@ -28,16 +42,37 @@ export async function POST(request: Request): Promise<Response> {
   // match is the one to play, not a ghost as well.
   for (const m of Mode.options) {
     const state = await matchmaking(m).poll(actor.userId);
-    if (state.status === "matched")
+    if (state.status === "matched") {
+      if (state.first) await found(actor, state.waitedMs, "person");
       return Response.json(
         { matchId: state.matchId },
         { headers: { "Cache-Control": "no-store" } },
       );
+    }
   }
   const match = await replayMatch(actor.userId, mode.data);
   if (match === null) return new Response(null, { status: 404 });
+  // Out of the queue already (stale): its wait is unknown, so it isn't counted.
+  if (before.status === "waiting")
+    await found(
+      actor,
+      before.waitedMs,
+      match.ghost?.player === "bot" ? "bot" : "ghost",
+    );
   return Response.json(
     { matchId: match.id },
     { headers: { "Cache-Control": "no-store" } },
+  );
+}
+
+async function found(
+  actor: Actor,
+  waitedMs: number,
+  opponent: "person" | "ghost" | "bot",
+): Promise<void> {
+  events().emit(
+    "match_found",
+    { wait_ms: waitedMs, opponent },
+    { ...actor, sessionId: visitId(await cookies()) },
   );
 }

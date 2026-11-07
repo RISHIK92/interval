@@ -388,6 +388,7 @@ test("an answer is checked and counted once; a resubmit gets the stored result",
     // Served but unanswered when finished: not counted as answered.
     const unanswered = served(await quizzes.next(userId, started.attemptId));
     expect(await quizzes.finish(userId, started.attemptId)).toEqual({
+      missed: [],
       answered: 2,
       correct: 1,
       firstTime: true,
@@ -1575,7 +1576,10 @@ test("a finished sprint lists the sections of its wrong answers, to read again",
     expect(wrong.stem).toBe("intro-0");
     await quizzes.answer(userId, attemptId, wrong.questionId, 1);
     await answerStem(quizzes, userId, attemptId, true);
-    await quizzes.finish(userId, attemptId);
+    // P3-W18-S03: the finish carries the same, for the concept_missed metric.
+    expect((await quizzes.finish(userId, attemptId))?.missed).toEqual([
+      { itemId: expect.any(String) as string, momentId: intro },
+    ]);
     const attempt = await quizzes.attempt(userId, attemptId);
     expect(attempt?.missed).toEqual([
       expect.objectContaining({ momentId: intro, sectionTitle: "Intro" }),
@@ -1951,6 +1955,10 @@ test("a moment's estimate reveals its section without the quote, while its right
       source: section,
     });
     expect(JSON.stringify(answered)).not.toContain("a lag of 40 ms");
+    // P3-W18-S03: an estimate under half points sends its section back to reading.
+    expect((await quizzes.finish(userId, attemptId))?.missed).toEqual([
+      { itemId, momentId: intro },
+    ]);
     // Its link breaks: the answer and its points stay, the link goes (ING-6).
     const itemRow = await trx
       .selectFrom("content_item")
@@ -2104,6 +2112,7 @@ test("a round is a game score only: no mastery, no review card, no answer counts
       );
     }
     expect(await quizzes.finish(userId, attemptId)).toEqual({
+      missed: [],
       answered: 2,
       correct: 1,
       firstTime: true,
@@ -2500,7 +2509,7 @@ test("only a daily attempt shares, once finished or past its clock and grace", a
 // P3-W15-S05 (PER-2, ARCH-2): a live match's answers, recorded by the worker, become
 // mastery evidence and review ratings here, once, with the sprint's own rules.
 test("a live match's evidence is applied once: mastery moves, a missed concept is due", async () => {
-  await inRollback(async (trx, { userId, otherUser, q }) => {
+  await inRollback(async (trx, { userId, otherUser, q, intro }) => {
     const quizzes = kyselyQuizzes(trx);
     const right = q["raft-1"] ?? "";
     const wrong = q["intro-0"] ?? "";
@@ -2559,7 +2568,13 @@ test("a live match's evidence is applied once: mastery moves, a missed concept i
     const before = await counts(right);
 
     expect(await quizzes.applyMatchEvidence(userId)).toEqual([
-      { outcome: "finished", won: true, abandoned: false },
+      // P3-W18-S03: the wrong answer's section, back to reading.
+      {
+        outcome: "finished",
+        won: true,
+        abandoned: false,
+        missed: [{ itemId: expect.any(String) as string, momentId: intro }],
+      },
     ]);
     const mastery = await trx
       .selectFrom("concept_mastery")

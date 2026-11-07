@@ -12,7 +12,7 @@ import {
   type Streak,
   quizKey,
 } from "../ports";
-import { estimateScore, points } from "../estimation";
+import { estimateScore, missed, points } from "../estimation";
 import { fsrsState, rate } from "../reviews";
 import { dailyStreak } from "../streak";
 import {
@@ -368,6 +368,34 @@ const dueConcepts = (userId: string) => sql<{
 `;
 
 export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
+  // §6.1: a sprint's (and the daily challenge's) misses go back to reading, at the
+  // sections their questions came from, while their source still allows moments
+  // (ING-2) and links work.
+  const missedSections = (attemptId: string, from: Kysely<DB> = db) =>
+    from
+      .selectFrom("quiz_answer as qa")
+      .innerJoin("question as q", "q.id", "qa.question_id")
+      .innerJoin("moment as m", "m.id", "q.moment_id")
+      .innerJoin("content_item as ci", "ci.id", "m.content_item_id")
+      .innerJoin("source as s", "s.id", "ci.source_id")
+      .select([
+        "ci.id as item_id",
+        "m.id as moment_id",
+        "m.title",
+        sql<boolean>`coalesce(ci.frameable, false)`.as("frameable"),
+      ])
+      .distinct()
+      .where("qa.attempt_id", "=", attemptId)
+      .where("qa.correct", "=", false)
+      .where("ci.link_broken_at", "is", null)
+      .where("s.moments_enabled", "=", true)
+      .where("s.rights_profile", "in", [
+        "full_text_internal",
+        "full_text_display",
+      ])
+      .orderBy("m.id")
+      .execute();
+
   // Q-P2-16: a card is made by a quiz answer, so a quiz left behind (the tab closed
   // before the finish) is closed and rated: a sprint at its clock's end, a review at
   // its last activity once it has been idle for REVIEW_IDLE.
@@ -411,7 +439,25 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       .executeTakeFirst();
     if (row === undefined) return null;
     const at = checkpointAt(row);
+    // P3-W18-S03: what its results page sends back to reading (Read again).
+    const sections =
+      row.sprint || row.daily ? await missedSections(attemptId) : [];
+    const estimates =
+      row.estimation || row.daily
+        ? (await reveals(userId, attemptId).execute()).map(asReveal)
+        : [];
+    const missedTargets = new Map(
+      [
+        ...sections.map((m) => ({ itemId: m.item_id, momentId: m.moment_id })),
+        ...estimates.flatMap((e) =>
+          e.source?.kind === "section" && missed(e.score)
+            ? [{ itemId: e.source.itemId, momentId: e.source.momentId }]
+            : [],
+        ),
+      ].map((t) => [t.momentId, t]),
+    );
     return {
+      missed: [...missedTargets.values()],
       answered: row.answered,
       correct: row.correct,
       firstTime,
@@ -712,7 +758,18 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
           order by a.id
           for update of a skip locked
         `.execute(trx);
+        const misses = new Map<
+          string,
+          { itemId: string; momentId: string }[]
+        >();
         for (const attempt of pending) {
+          misses.set(
+            attempt.id,
+            (await missedSections(attempt.id, trx)).map((m) => ({
+              itemId: m.item_id,
+              momentId: m.moment_id,
+            })),
+          );
           const { rows: answers } = await sql<{
             question_id: string;
             correct: boolean;
@@ -748,10 +805,11 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
             .where("id", "=", attempt.id)
             .execute();
         }
-        return pending.map(({ outcome, won, abandoned }) => ({
+        return pending.map(({ id, outcome, won, abandoned }) => ({
           outcome,
           won: won === true,
           abandoned,
+          missed: misses.get(id) ?? [],
         }));
       }),
 
@@ -1255,35 +1313,8 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .where("c.retired_at", "is", null)
         .orderBy("c.name")
         .execute();
-      // §6.1: a sprint's (and the daily challenge's) misses go back to reading, at the
-      // sections their questions came from, while their source still allows moments
-      // (ING-2) and links work.
       const missed =
-        row.sprint || row.daily
-          ? await db
-              .selectFrom("quiz_answer as qa")
-              .innerJoin("question as q", "q.id", "qa.question_id")
-              .innerJoin("moment as m", "m.id", "q.moment_id")
-              .innerJoin("content_item as ci", "ci.id", "m.content_item_id")
-              .innerJoin("source as s", "s.id", "ci.source_id")
-              .select([
-                "ci.id as item_id",
-                "m.id as moment_id",
-                "m.title",
-                sql<boolean>`coalesce(ci.frameable, false)`.as("frameable"),
-              ])
-              .distinct()
-              .where("qa.attempt_id", "=", attemptId)
-              .where("qa.correct", "=", false)
-              .where("ci.link_broken_at", "is", null)
-              .where("s.moments_enabled", "=", true)
-              .where("s.rights_profile", "in", [
-                "full_text_internal",
-                "full_text_display",
-              ])
-              .orderBy("m.id")
-              .execute()
-          : [];
+        row.sprint || row.daily ? await missedSections(attemptId) : [];
       const estimates =
         row.estimation || row.daily
           ? (

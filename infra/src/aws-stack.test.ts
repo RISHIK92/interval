@@ -978,7 +978,7 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     "../../packages/events/queries",
   );
   const PROPS =
-    "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean>";
+    "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean,game:string,wait_ms:bigint,opponent:string>";
   // Phase 1 (Q-P1-21) and Phase 2 (P2-W9-S08, Q-P2-20) "done when".
   const FILES = [
     "return_rate.sql",
@@ -987,6 +987,11 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     "flag_rate.sql",
     "quiz_return.sql",
     "path_progress.sql",
+    // Phase 3 (P3-W18-S03).
+    "daily_share.sql",
+    "match_start.sql",
+    "player_return.sql",
+    "missed_read.sql",
   ];
 
   test("a Glue table reads the Firehose events by day, with partition projection", () => {

@@ -95,13 +95,20 @@ function recordFinish(
   const { checkpoint } = done;
   const counts = { answered: done.answered, correct: done.correct };
   const score = gameScore(done);
-  if (score !== null)
+  if (score !== null) {
     events().emit(
       "game_finished",
       { attempt_id: attemptId, ...counts, ...score },
       context,
     );
-  else if (checkpoint === null)
+    // P3-W18-S03 (owner, 2026-11-05): each miss it sends back to reading.
+    for (const m of done.missed)
+      events().emit(
+        "concept_missed",
+        { game: score.game, item_id: m.itemId, moment_id: m.momentId },
+        context,
+      );
+  } else if (checkpoint === null)
     events().emit(
       "quiz_finished",
       { attempt_id: attemptId, ...counts },

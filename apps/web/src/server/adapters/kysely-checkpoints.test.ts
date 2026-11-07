@@ -584,6 +584,7 @@ test("next offers a ready checkpoint; closeStale returns the checkpoint it close
         answered: 5,
         correct: 5,
         firstTime: true,
+        missed: [],
         checkpoint: {
           at: { kind: "path", pathId, sectionId: first },
           passed: true,

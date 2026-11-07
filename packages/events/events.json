@@ -299,9 +299,18 @@
       "props": { "elapsed_ms": "count", "place_saved": "boolean" }
     },
     "match_found": {
+      "version": 2,
+      "description": "Matchmaking paired the player for a live 1v1 (P3-W16-S02): how long they waited, for the Phase 3 time-to-match metric. Version 2 adds the opponent: a person, or a ghost or bot after the fallback or Play bot now (P3-W18-S03; owner, 2026-11-05).",
+      "props": { "wait_ms": "count", "opponent": ["person", "ghost", "bot"] }
+    },
+    "concept_missed": {
       "version": 1,
-      "description": "Matchmaking paired the player for a live 1v1 (P3-W16-S02): how long they waited, for the Phase 3 time-to-match metric.",
-      "props": { "wait_ms": "count" }
+      "description": "A game or live match sent a miss back to reading (P3-W18-S03, §6.1): one per section to read again (a hand-written page has no item, so none), when the game finished or the match's evidence was applied. For the Phase 3 missed-concepts-read metric. Ids only.",
+      "props": {
+        "game": ["sprint", "estimation", "daily", "live"],
+        "item_id": "id",
+        "moment_id": "id"
+      }
     },
     "pwa_installed": {
       "version": 1,

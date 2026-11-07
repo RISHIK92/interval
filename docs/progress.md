@@ -3430,3 +3430,28 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Shortcut, noted in code:** a penalty writes no rating_history row, so a closed season's standing keeps the gain.
 - **Left as is:** in fastest finger, a focus change after the player has answered (while the opponent plays) still counts. Q-P3-20 doesn't say whether "live" means the round or the player's own question.
 - **Found, not fixed:** `kysely-quizzes.test.ts` "a shared result keeps the streak it had on its day" fails with or without this slice (date-dependent; seen 2026-11-05).
+
+### 2026-11-07 — P3-W18-S03 (Phase 3 metrics; DB-5, Q-P3-29)
+
+- **Owner (Q-P3-29):**
+  - a new `concept_missed` event measures missed concepts read;
+  - all live matches count toward match start.
+- **Queries (Athena SQL, DuckDB tests):**
+  - `daily_share.sql`: per day, the actives (any event) who started the daily challenge;
+  - `match_start.sql`: the share within 10 s, overall and per opponent (v1 counts as a person);
+  - `player_return.sql`: players are those with `game_started` or `match_found`, against non-players;
+  - `missed_read.sql`: the misses 2 to 9 days old read within 48 h, overall and per game.
+  - All four are named queries in the AWS stack; the Glue props gain game, wait_ms and opponent.
+- **Events:**
+  - `match_found` v2 (opponent). The bot route reads the queue's wait before leaving it; a person found by that poll is the match.
+  - `concept_missed` v1 (game, item_id, moment_id), sent:
+    - at a game's finish (`QuizFinish.missed`: the same sections as Read again, plus estimates under half points with a section source; the query is now shared);
+    - when a live match's evidence is applied (`MatchApplied.missed`).
+- **Reviewer fixes:**
+  - `concept_missed.moment_id` is now required (no page case exists);
+  - ordering by `grouping()`;
+  - a retried finish sends no `concept_missed` (tested);
+  - the bot route counts no wait it doesn't know;
+  - a comment moved.
+- **Owner (2026-11-07):** "within 10 s" is strict, so the automatic fallback counts as slow.
+- **Noted:** a friend challenge alone doesn't make a player in player_return.
