@@ -3473,3 +3473,19 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - 10 decision drifts, 0 phase drift, 4 invariant violations, 8 duplications, 5 unused-code items, 5 new unjustified dependencies, 3 naming issues, and 8 new "Needs an ADR" items (plus the carried-over ones).
   - Nothing was fixed here; for the owner.
   - The audit is right that `pnpm check` runs Go tests without `-race`; the slices ran `-race` by hand.
+
+### 2026-11-07 — Phase 4 planning
+
+- `docs/questions/phase-4.md`: 14 questions, all answered by the owner with the suggested defaults. Those approve:
+  - Expo with Expo Router and jest-expo, building locally;
+  - Better Auth's Expo plugin, with no guests on native;
+  - the worker sending straight to APNs and FCM;
+  - explainer scripts written by a model within the price rule;
+  - a TTS port with ElevenLabs, Inworld and Polly, plus a blind test;
+  - builds only, with no store submission;
+  - live 1v1 on native;
+  - ffmpeg, react-native-track-player and hls.js;
+  - push limits;
+  - `source` set to ios or android.
+- `docs/roadmap/phase-4-slices.md`: 22 slices over Weeks 19–24.
+- The explainer-model ADR (it amends AI-2) is due before W22-S01.
