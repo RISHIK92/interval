@@ -1,6 +1,6 @@
 # Progress
 
-Status: Phase 1 built (W1-S12 superseded by ADR-0016). Phase 2 built (Weeks 7–12), committed and pushed: notes and reading mastery (W7), the question pipeline (W8), Test 60s, quiz mastery, FSRS reviews and the review queue (W9), topic paths, checkpoints and the feed path card (W10), PDF books (W11), GitHub projects, the technology table, project picks and project-aware notes (W12); checked against its "Done when" in docs/runbooks/phase-2-checklist.md. Nothing deployed (ADR-0013). Owner to-dos: set NOTES_MODEL (notes and project lines are off locally), review the technology seed and the 3 pending suggestions, add QUESTIONS_MODEL to the AWS task env, decide the S04 questions (a project concept counting in both goal_match and project_match; dev dependencies), the drift audit's "Needs an ADR" items (docs/audits/2026-10-29.md). Next: Phase 3 planning.
+Status: Phase 3 built (Weeks 13–18), committed and pushed; checked against its "Done when" in docs/runbooks/phase-3-checklist.md (UI rows are for the owner to walk: Chrome was off). Drift audit: docs/audits/2026-11-07.md. Next: Phase 4 planning. Earlier: Phase 1 built (W1-S12 superseded by ADR-0016). Phase 2 built (Weeks 7–12), committed and pushed: notes and reading mastery (W7), the question pipeline (W8), Test 60s, quiz mastery, FSRS reviews and the review queue (W9), topic paths, checkpoints and the feed path card (W10), PDF books (W11), GitHub projects, the technology table, project picks and project-aware notes (W12); checked against its "Done when" in docs/runbooks/phase-2-checklist.md. Nothing deployed (ADR-0013). Owner to-dos: set NOTES_MODEL (notes and project lines are off locally), review the technology seed and the 3 pending suggestions, add QUESTIONS_MODEL to the AWS task env, decide the S04 questions (a project concept counting in both goal_match and project_match; dev dependencies), the drift audit's "Needs an ADR" items (docs/audits/2026-10-29.md). Next: Phase 3 planning.
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 
@@ -3455,3 +3455,21 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - a comment moved.
 - **Owner (2026-11-07):** "within 10 s" is strict, so the automatic fallback counts as slow.
 - **Noted:** a friend challenge alone doesn't make a player in player_return.
+
+### 2026-11-07 — P3-W18-S04 (Phase 3 wrap-up; ADR-0013)
+
+- **Checklist** `docs/runbooks/phase-3-checklist.md`:
+  - the four "Done when" queries ran on the local event files (DuckDB). Those files end on 2026-11-02, so the numbers are near empty;
+  - the features of Weeks 13–18, with how each was checked.
+  - Nothing was walked in a browser: Chrome is off by the owner's rule and the dev server wasn't running. The UI rows are marked for the owner to walk.
+- **CDK:** both stacks synthesized (warnings only).
+- **VM smoke run with the game server:**
+  - set up with `write-env.sh` and a stub `AWS_CLI` (random secrets, no AWS);
+  - every service was healthy and migrations exited 0;
+  - through Caddy: `/api/health` 200, `/` to `/join`, `/play` 200, `/game/0/ws` 401 without a ticket;
+  - torn down.
+  - The runbook doesn't mention `INTERVAL_ETC` (or `FILES_DIR`) for the local run.
+- **Drift audit** (`docs/audits/2026-11-07.md`):
+  - 10 decision drifts, 0 phase drift, 4 invariant violations, 8 duplications, 5 unused-code items, 5 new unjustified dependencies, 3 naming issues, and 8 new "Needs an ADR" items (plus the carried-over ones).
+  - Nothing was fixed here; for the owner.
+  - The audit is right that `pnpm check` runs Go tests without `-race`; the slices ran `-race` by hand.
