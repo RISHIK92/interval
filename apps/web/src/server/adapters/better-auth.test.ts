@@ -234,3 +234,75 @@ test("sessions last 30 days and slide forward once older than a day", async () =
   await sessions.current(headers);
   expect(await days()).toBeGreaterThan(29.9);
 });
+
+// P4-W19-S03 (Q-P4-02): the native app signs in with the same accounts; Better Auth's
+// Expo plugin carries its origin (interval://), which the origin check trusts. No other
+// origin gets through, and the app can't make accounts either (ADR-0016).
+const fromApp = (path: string, origin: string, body: object) =>
+  auth.handler(
+    new Request(`${BASE_URL}/api/auth/${path}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "expo-origin": origin,
+        cookie: "x=1", // a cookie makes Better Auth check the origin
+      },
+      body: JSON.stringify(body),
+    }),
+  );
+
+test("the app's origin passes the origin check; another is refused", async () => {
+  const wrong = { email: "nobody@example.test", password: "not-the-password" };
+  expect((await fromApp("sign-in/email", "interval://", wrong)).status).toBe(
+    401,
+  );
+  expect(
+    (await fromApp("sign-in/email", "https://evil.example", wrong)).status,
+  ).toBe(403);
+  // The web's own origin is unaffected.
+  const fromWeb = await auth.handler(
+    new Request(`${BASE_URL}/api/auth/sign-in/email`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        origin: BASE_URL,
+        cookie: "x=1",
+      },
+      body: JSON.stringify(wrong),
+    }),
+  );
+  expect(fromWeb.status).toBe(401);
+});
+
+test("the app can't make an account", async () => {
+  const before = await userCount();
+  const response = await fromApp("sign-up/email", "interval://", {
+    email: `${PREFIX.toLowerCase()}-app@example.test`,
+    password: "a-long-password",
+    name: "App",
+  });
+  // Refused at the origin check: the app's scheme isn't trusted for sign-up (and
+  // sign-up is off for every origin, ADR-0016).
+  expect(response.status).toBe(403);
+  expect(await userCount()).toBe(before);
+});
+
+// The app's scheme is trusted only where the app needs it: any app can claim a custom
+// scheme, so a reset link must never be sent on to interval://.
+test("a password reset can't redirect to the app's scheme", async () => {
+  const response = await fromApp("request-password-reset", "interval://", {
+    email: "nobody@example.test",
+    redirectTo: "interval://reset",
+  });
+  expect(response.status).toBe(403);
+});
+
+// The Expo plugin's OAuth proxy redirects anywhere; there is no social sign-in to proxy.
+test("the Expo plugin's authorization proxy is off", async () => {
+  const response = await auth.handler(
+    new Request(
+      `${BASE_URL}/api/auth/expo-authorization-proxy?authorizationURL=${encodeURIComponent("https://evil.example/")}`,
+    ),
+  );
+  expect(response.status).toBe(404);
+});

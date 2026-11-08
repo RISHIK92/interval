@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { DB } from "@interval/db";
 import { APIError, betterAuth } from "better-auth";
+import { expo } from "@better-auth/expo";
 import { nextCookies } from "better-auth/next-js";
 import { anonymous } from "better-auth/plugins";
 import type { Kysely } from "kysely";
@@ -41,6 +42,9 @@ const timestamps = {
   createdAt: "created_at",
   updatedAt: "updated_at",
 } as const;
+
+// The paths the native app calls (P4-W19-S03).
+const APP_PATHS = new Set(["/sign-in/email", "/sign-out", "/get-session"]);
 
 export function createAuth(opts: {
   db: Kysely<DB>;
@@ -152,7 +156,22 @@ export function createAuth(opts: {
         },
       },
     },
+    // P4-W19-S03 (Q-P4-02): the native app, by its scheme (apps/mobile/app.json), trusted
+    // only where it signs in and out: any app can claim a custom scheme, so a reset link
+    // or callback must never be sent on to it. The Expo plugin turns its expo-origin
+    // header into the origin checked here.
+    trustedOrigins: (request) =>
+      request !== undefined &&
+      APP_PATHS.has(new URL(request.url).pathname.replace(/^\/api\/auth/, ""))
+        ? ["interval://"]
+        : [],
+    // The Expo plugin's OAuth proxy redirects anywhere; there's no social sign-in to proxy.
+    disabledPaths: ["/expo-authorization-proxy"],
+    // On everywhere, tests included (Better Auth skips it when NODE_ENV is test), so the
+    // origin rules are tested as they run.
+    advanced: { disableOriginCheck: false },
     plugins: [
+      expo(),
       anonymous({
         schema: { user: { fields: { isAnonymous: "is_anonymous" } } },
         // Nobody deletes a guest through the API; the merge below removes it.

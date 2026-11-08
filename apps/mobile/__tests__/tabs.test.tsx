@@ -12,7 +12,7 @@ test("the five areas are tabs, Home first", async () => {
 test("the avatar opens Profile", async () => {
   await renderRouter("./app", { initialUrl: "/" });
   await fireEvent.press(await screen.findByLabelText("Profile"));
-  expect(await screen.findByText("Arrives in W19-S03.")).toBeOnTheScreen();
+  expect(await screen.findByText("Signed in as")).toBeOnTheScreen();
 });
 
 test.each([

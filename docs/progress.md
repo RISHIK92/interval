@@ -3526,3 +3526,26 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the test cleans its temp dir and uses `fileURLToPath`;
   - the page background asserted.
 - **Checks:** full check (web 1415, mobile 8, Python 1361; infra alone 89); web build passes.
+
+### 2026-11-08 — P4-W19-S03 (signing in on native; ADR-0016, Q-P4-02)
+
+- **Web:**
+  - Better Auth's `expo()` plugin;
+  - `interval://` is trusted only on `/sign-in/email`, `/sign-out` and `/get-session`, so a reset link or callback can never go to a scheme any app can claim;
+  - the plugin's `/expo-authorization-proxy` is disabled (an open redirect, with no social sign-in to proxy);
+  - the origin check is explicitly on, so tests run it too (Better Auth skips it when NODE_ENV is test; production was already on).
+- **Server tests:**
+  - the app's origin passes; foreign origins are refused; the web's origin is unaffected;
+  - no sign-up from the app;
+  - a reset can't redirect to `interval://`;
+  - the proxy returns 404.
+- **App:**
+  - `lib/auth.ts`: `createAuthClient` with `expoClient` and SecureStore;
+  - a sign-in screen (wrong password and network messages; invite-only, join on the web);
+  - Stack.Protected guards;
+  - Profile with the email and Sign out;
+  - a session refetch no longer unmounts a half-typed sign-in.
+  - 12 jest tests against a fake auth client.
+- **Checks:** web 1419, mobile 12, Python 1361. Infra didn't run: its synth failed while the disk was full, and nothing here touches infra.
+- **Not verified:** a real sign-in on the simulator (no typing automation; the owner stopped the temporary server on 3200).
+- **Disk:** it filled during this session. With the owner's OK, Interval's Xcode DerivedData (1.8 GB) was deleted.
