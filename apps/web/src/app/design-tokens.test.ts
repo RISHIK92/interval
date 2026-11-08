@@ -5,6 +5,8 @@ import { expect, test } from "vitest";
 // The design system (docs/wireframes/design-system.html, owner 2026-10-26): every role
 // has its light value and its dark adaptation.
 const css = readFileSync(join(__dirname, "globals.css"), "utf8");
+// P4-W19-S02: the values are generated from packages/tokens, and globals.css imports them.
+const tokens = readFileSync(join(__dirname, "tokens.css"), "utf8");
 const PUBLIC = join(__dirname, "..", "..", "public");
 
 const ROLES: [string, string, string][] = [
@@ -26,10 +28,14 @@ test.each(ROLES)("%s is %s in light and %s in dark", (role, light, dark) => {
   const declared = new RegExp(
     `--${role}:\\s*light-dark\\(\\s*(rgba\\([^)]*\\)|[^,]+?)\\s*,\\s*([^)]+?)\\s*\\);`,
     "i",
-  ).exec(css);
+  ).exec(tokens);
   expect(declared, `--${role} is declared with light-dark()`).not.toBeNull();
   expect(declared?.[1]?.toLowerCase()).toBe(light.toLowerCase());
   expect(declared?.[2]?.toLowerCase()).toBe(dark.toLowerCase());
+});
+
+test("globals.css takes its colors from the generated tokens", () => {
+  expect(css).toContain('@import "./tokens.css";');
 });
 
 test("the theme follows the device unless a device setting picks one", () => {

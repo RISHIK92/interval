@@ -5,7 +5,7 @@
     "scheme": "interval",
     "version": "0.0.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": { "bundleIdentifier": "dev.interval.app" },
     "android": { "package": "dev.interval.app" },
     "plugins": ["expo-router"],

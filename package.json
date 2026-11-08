@@ -14,6 +14,7 @@
     "boards:rebuild": "scripts/with-env.sh node apps/web/scripts/boards-rebuild.ts",
     "game:match": "scripts/with-env.sh node --import ./scripts/ts-resolve.mjs apps/web/scripts/match-create.ts",
     "events:codegen": "pnpm --filter @interval/events events:codegen",
+    "tokens:codegen": "pnpm --filter @interval/tokens tokens:codegen",
     "format": "turbo run format //#format:py",
     "format:check": "prettier --check package.json turbo.json pnpm-workspace.yaml prettier.config.js",
     "test": "turbo run test",

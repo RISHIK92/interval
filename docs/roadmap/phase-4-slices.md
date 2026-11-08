@@ -26,12 +26,13 @@ ADRs the answers need, each before its first slice (PROPOSED until the owner acc
 - Acceptance: it runs on the iOS simulator and the Android emulator; jest-expo tests render each tab; `pnpm check` runs the app's typecheck, lint and tests; the web is unchanged.
 - Q: Q-P4-01.
 
-### P4-W19-S02 Shared packages: the API client and design tokens
+### P4-W19-S02 Shared design tokens
 
 - IDs: ARCH-3
 - Needs: S01
-- Goal: `packages/api-client` (typed calls and zod parsing of the endpoints the app uses, one implementation for both apps where the web calls them from the browser) and `packages/tokens` (colors, type scale, spacing) used by the web's Tailwind theme and the app.
-- Acceptance: the web's colors come from `packages/tokens` with no visual change (tests on the generated theme); the client's parsing is tested against the routes' own responses.
+- Goal: `packages/tokens` (the colors in light and dark, the type scale) as the one source: the web's CSS custom properties are generated from it, and the app reads it for its light and dark themes.
+- Acceptance: the web's colors unchanged (the generated CSS holds the same values; a test fails while it is stale); the app follows the device's scheme.
+- Note: the web's `text-reading` and `text-numbers` utilities stay web-only until the app reads long text or numbers. `packages/api-client` starts with its first caller (S03's sign-in, W20-S01's feed), not here (CLAUDE.md: no abstraction before its caller).
 
 ### P4-W19-S03 Signing in on native
 

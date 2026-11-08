@@ -1,8 +1,10 @@
 @import "tailwindcss";
+/* The colors, generated from packages/tokens (ARCH-3). */
+@import "./tokens.css";
 
-/* The design system (docs/wireframes/design-system.html, owner 2026-10-26). Each role
-   holds its light value and its dark adaptation; color-scheme picks one. The device
-   decides unless this device chose a theme (data-theme from the iv_theme cookie). */
+/* The design system (docs/wireframes/design-system.html, owner 2026-10-26). color-scheme
+   picks each role's light or dark value (tokens.css): the device decides unless this
+   device chose a theme (data-theme from the iv_theme cookie). */
 
 @font-face {
   font-family: "Outfit";
@@ -20,49 +22,6 @@
 
 :root {
   color-scheme: light dark;
-  --page: light-dark(#ffffff, #0e1014);
-  --well: light-dark(#f3f4f6, #1a1d23);
-  --track: light-dark(#e6e8ec, #2a2e36);
-  --hairline: light-dark(#e4e6eb, #262a32);
-  --ink: light-dark(#101217, #f3f4f6);
-  --ink-muted: light-dark(#666c78, #8f95a1);
-  --go: light-dark(#12a150, #35d07f);
-  --go-text: light-dark(#0b7a3e, #35d07f);
-  --go-soft: light-dark(#9fe3bb, #1d6b42);
-  --select: light-dark(#3462e8, #7b9cff);
-  --live: light-dark(#e5404a, #ff6b72);
-  --wrong: light-dark(#c62f38, #ff7b82);
-  --shadow: light-dark(rgba(16, 18, 23, 0.07), transparent);
-  /* A chosen segment: lifted white in light, a raised grey in dark (no shadows). */
-  --lift: light-dark(#ffffff, #2a2e36);
-  /* Topic families (design system): tint, top face, left face, right face, lines.
-     Review is the design's family for cards and memory strength; backend has none yet
-     and borrows it. */
-  --distributed-systems-tint: light-dark(#e9eeff, #161f3d);
-  --distributed-systems-top: light-dark(#a9beff, #9db4ff);
-  --distributed-systems-left: light-dark(#5b86ff, #5b82f5);
-  --distributed-systems-right: light-dark(#3462e8, #3557c4);
-  --distributed-systems-line: light-dark(#2448c2, #b4c6ff);
-  --databases-tint: light-dark(#def6f1, #0d2b27);
-  --databases-top: light-dark(#8fe3d3, #86e0cf);
-  --databases-left: light-dark(#1db9a1, #19a890);
-  --databases-right: light-dark(#0e957f, #0c7867);
-  --databases-line: light-dark(#0a7a69, #9be8d9);
-  --system-design-tint: light-dark(#fff0e0, #33200e);
-  --system-design-top: light-dark(#ffcb99, #ffc896);
-  --system-design-left: light-dark(#ff9440, #ee8430);
-  --system-design-right: light-dark(#e2711a, #b85f15);
-  --system-design-line: light-dark(#b5560b, #ffcfa3);
-  --review-tint: light-dark(#f1ebff, #241b42);
-  --review-top: light-dark(#cdb8ff, #cab5ff);
-  --review-left: light-dark(#9468f7, #8457f0);
-  --review-right: light-dark(#7444e0, #5f36c4);
-  --review-line: light-dark(#5b32c2, #d4c2ff);
-  --backend-tint: var(--review-tint);
-  --backend-top: var(--review-top);
-  --backend-left: var(--review-left);
-  --backend-right: var(--review-right);
-  --backend-line: var(--review-line);
 }
 
 [data-theme="light"] {

@@ -1,0 +1,6 @@
+{
+  "extends": "@interval/config/tsconfig.base.json",
+  // Node runs the codegen script as TypeScript, so imports name their .ts files.
+  "compilerOptions": { "allowImportingTsExtensions": true },
+  "include": ["src", "scripts"]
+}

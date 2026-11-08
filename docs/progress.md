@@ -3507,3 +3507,22 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the full check passed (infra on its own); the web production build passed.
 - **Not verified:** Android, because no emulator system image is installed (a large Google download, to ask about).
 - **Reviewer fixes:** every tab is rendered in a test; light only until W19-S02's tokens (the status bar was unreadable in dark mode).
+
+### 2026-11-08 — P4-W19-S02 (shared design tokens; ARCH-3)
+
+- `packages/tokens`:
+  - the colors (light and dark), the topic families and the type scale;
+  - `pnpm tokens:codegen` writes the web's `tokens.css`, which `globals.css` imports;
+  - a test fails while the generated CSS is stale, and the web's type utilities are pinned to the tokens.
+- Every generated value equals the old `globals.css` value (scripted comparison).
+- **The app follows the device's scheme:**
+  - the navigation theme, the status bar, the placeholders and the avatar take their colors from the tokens;
+  - a dark-mode test checks the page and text colors;
+  - simulator screenshots in light and dark look right.
+- **`packages/api-client`** moves to its first caller (W19-S03 or W20-S01); the slice file says so.
+- **Reviewer fixes:**
+  - a dead `./css` export removed;
+  - letter spacing pinned and applied;
+  - the test cleans its temp dir and uses `fileURLToPath`;
+  - the page background asserted.
+- **Checks:** full check (web 1415, mobile 8, Python 1361; infra alone 89); web build passes.

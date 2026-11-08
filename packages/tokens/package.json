@@ -1,0 +1,19 @@
+{
+  "name": "@interval/tokens",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "tokens:codegen": "scripts/codegen.sh",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@interval/config": "workspace:*"
+  },
+  "exports": {
+    ".": "./src/tokens.ts"
+  }
+}
