@@ -4,17 +4,23 @@ Every process (the CLI and the queue consumer) gets its ports from here, so
 swapping a service means changing this file and one adapter.
 """
 
+import base64
+import json
 import os
 import sys
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import cast
 
 import boto3  # pyright: ignore[reportMissingTypeStubs]
 import httpx
 import psycopg
+from cryptography.exceptions import UnsupportedAlgorithm
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec, rsa
 from psycopg.conninfo import conninfo_to_dict
 
 from interval_jobs import log
@@ -23,6 +29,11 @@ from interval_jobs.adapters.file_sink import FileEventSink
 from interval_jobs.adapters.firehose_sink import FirehoseClient, FirehoseEventSink
 from interval_jobs.adapters.http_fetcher import HttpxFetcher
 from interval_jobs.adapters.http_github_app import HttpGitHubApp
+from interval_jobs.adapters.http_native_push import (
+    ApnsConfig,
+    FcmConfig,
+    HttpNativePush,
+)
 from interval_jobs.adapters.http_ocr import HttpOcr
 from interval_jobs.adapters.http_webpush import HttpWebPush
 from interval_jobs.adapters.openai_compatible import (
@@ -49,6 +60,7 @@ from interval_jobs.ports import (
     Files,
     GitHubApp,
     JobQueue,
+    NativePush,
     Ocr,
     QueueConsumer,
     WebPush,
@@ -154,6 +166,48 @@ def web_push() -> WebPush | None:
         log.error("agent: the VAPID private key can't be used", error=str(error))
         return None
     return HttpWebPush(httpx.Client(), key, subject)
+
+
+def native_push() -> NativePush | None:
+    """P4-W19-S04b (Q-P4-03): APNs and FCM, each on only when its secrets parse. A
+    deployment's generated placeholders (until the owner adds the real keys) are off,
+    logged; None when neither platform is on."""
+    apns: ApnsConfig | None = None
+    fcm: FcmConfig | None = None
+    try:
+        key = serialization.load_pem_private_key(
+            base64.b64decode(os.environ.get("APNS_KEY", ""), validate=True), None
+        )
+        team, key_id = (
+            os.environ.get("APNS_TEAM_ID", ""),
+            os.environ.get("APNS_KEY_ID", ""),
+        )
+        if isinstance(key, ec.EllipticCurvePrivateKey) and team and key_id:
+            apns = ApnsConfig(team, key_id, key, os.environ.get("APNS_SANDBOX") == "1")
+    except (ValueError, UnsupportedAlgorithm):
+        pass
+    if apns is None:
+        log.info(
+            "push: APNs off", reason="no usable APNS_KEY / APNS_TEAM_ID / APNS_KEY_ID"
+        )
+    try:
+        account = json.loads(
+            base64.b64decode(os.environ.get("FCM_SERVICE_ACCOUNT", ""), validate=True)
+        )
+        key = serialization.load_pem_private_key(account["private_key"].encode(), None)
+        if isinstance(key, rsa.RSAPrivateKey):
+            fcm = FcmConfig(
+                str(account["project_id"]), str(account["client_email"]), key
+            )
+    except (ValueError, KeyError, TypeError, AttributeError, UnsupportedAlgorithm):
+        pass
+    if fcm is None:
+        log.info("push: FCM off", reason="no usable FCM_SERVICE_ACCOUNT")
+    if apns is None and fcm is None:
+        return None
+    return HttpNativePush(
+        httpx.Client(http2=True), apns, fcm, clock=lambda: datetime.now(UTC)
+    )
 
 
 def github_app() -> GitHubApp | None:

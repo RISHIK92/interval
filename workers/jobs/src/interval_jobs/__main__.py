@@ -40,6 +40,7 @@ from interval_jobs.compose import (
     files,
     github_app,
     model_job,
+    native_push,
     ocr,
     queue_consumer,
     queue_for_enqueue,
@@ -68,6 +69,7 @@ from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.link_check import check_links
 from interval_jobs.link_health import queue_link_checks
 from interval_jobs.match_results import relay
+from interval_jobs.native_push import push_test
 from interval_jobs.path_proposer import propose
 from interval_jobs.pipeline import BATCH_PREFIX, Pipeline, notes_batched
 from interval_jobs.polling import enqueue_due
@@ -251,6 +253,11 @@ def main(argv: list[str]) -> None:
         "check-links-due",
         help="queue this week's link health check of every item (P1-W6-S03)",
     )
+    push_test = commands.add_parser(
+        "push-test",
+        help="send a test notification to an account's phones (P4-W19-S04b)",
+    )
+    push_test.add_argument("--email", required=True)
     commands.add_parser(
         "close-season",
         help="close last month's quick-game season: keep its board, reset ratings"
@@ -328,6 +335,20 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         with services() as s:
             queued = queue_link_checks(s.store, queue_for_enqueue(), datetime.now(UTC))
         print(json.dumps({"queued": queued}))
+        return
+
+    if args.command == "push-test":
+        sender = native_push()
+        if sender is None:
+            sys.exit("push-test: neither APNs nor FCM is configured")
+        with services() as s:
+            user_id = s.store.device_tokens.account(args.email)
+            if user_id is None:
+                sys.exit("push-test: no such account")
+            out = push_test(sender, s.store.device_tokens, user_id)
+        print(
+            json.dumps({"sent": out.sent, "failed": out.failed, "gone": len(out.gone)})
+        )
         return
 
     if args.command == "close-season":

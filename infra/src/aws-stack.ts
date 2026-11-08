@@ -355,6 +355,12 @@ export class AwsStack extends Stack {
     // public key; only the worker signs with the private one.
     const vapidPublic = appSecret("interval/aws/vapid-public-key");
     const vapidPrivate = appSecret("interval/aws/vapid-private-key");
+    // P4-W19-S04b (Q-P4-03): native push, placeholders until the owner stores the APNs
+    // key and the FCM service account (base64 each); only the worker sends.
+    const apnsKey = appSecret("interval/aws/apns-key");
+    const apnsKeyId = appSecret("interval/aws/apns-key-id");
+    const apnsTeamId = appSecret("interval/aws/apns-team-id");
+    const fcmAccount = appSecret("interval/aws/fcm-service-account");
 
     const cluster = new ecs.Cluster(this, "Cluster", { vpc });
     const logGroup = new logs.LogGroup(this, "Logs", {
@@ -993,6 +999,10 @@ export class AwsStack extends Stack {
         GITHUB_APP_ID: ecs.Secret.fromSecretsManager(githubAppId),
         GITHUB_APP_PRIVATE_KEY: ecs.Secret.fromSecretsManager(githubPrivateKey),
         VAPID_PRIVATE_KEY: ecs.Secret.fromSecretsManager(vapidPrivate),
+        APNS_KEY: ecs.Secret.fromSecretsManager(apnsKey),
+        APNS_KEY_ID: ecs.Secret.fromSecretsManager(apnsKeyId),
+        APNS_TEAM_ID: ecs.Secret.fromSecretsManager(apnsTeamId),
+        FCM_SERVICE_ACCOUNT: ecs.Secret.fromSecretsManager(fcmAccount),
       },
       logging: logging("worker"),
       // Let in-flight stages finish, as on the VM (compose stop_grace_period).

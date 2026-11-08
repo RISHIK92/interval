@@ -60,6 +60,7 @@ from interval_jobs.ports import (
     ItemDecisions,
     MomentLink,
     MomentRow,
+    NativeTarget,
     NoteBatchEntry,
     PathDraft,
     ProjectConcepts,
@@ -3728,6 +3729,39 @@ class PostgresAgentNudges:
         )
 
 
+class PostgresDeviceTokens:
+    """Phones' push tokens (P4-W19-S04a, S04b)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def account(self, email: str) -> str | None:
+        row = self._conn.execute(
+            "select id from app_user"
+            " where email = lower(btrim(%s)) and not is_anonymous",
+            (email,),
+        ).fetchone()
+        return None if row is None else str(row[0])
+
+    def for_user(self, user_id: str) -> list[NativeTarget]:
+        rows = self._conn.execute(
+            "select d.platform, d.token from device_push_token d"
+            " where d.user_id = %s"
+            # ADR-0036: only on a plan with push (a downgrade stops it).
+            " and exists (select 1 from user_entitlement e"
+            "   where e.user_id = d.user_id and e.capability = 'push.notify')"
+            " order by d.id",
+            (user_id,),
+        ).fetchall()
+        return [
+            NativeTarget("ios" if platform == "ios" else "android", str(token))
+            for platform, token in rows
+        ]
+
+    def drop(self, token: str) -> None:
+        self._conn.execute("delete from device_push_token where token = %s", (token,))
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
@@ -3738,6 +3772,7 @@ class PostgresStore:
         self.match_results = PostgresMatchResults(conn)
         self.seasons = PostgresSeasons(conn)
         self.agent_nudges = PostgresAgentNudges(conn)
+        self.device_tokens = PostgresDeviceTokens(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)

@@ -61,6 +61,7 @@ from interval_jobs.ports import (
     ItemDecisions,
     MomentLink,
     MomentRow,
+    NativeTarget,
     NoteBatchEntry,
     PathDraft,
     ProjectConcepts,
@@ -1933,6 +1934,7 @@ class InMemoryStore:
         self.match_results = InMemoryMatchResults()
         self.seasons = InMemorySeasons()
         self.agent_nudges = InMemoryAgentNudges()
+        self.device_tokens = InMemoryDeviceTokens()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
 
@@ -2362,3 +2364,22 @@ class InMemoryOcr:
         if isinstance(answer, Exception):
             raise answer
         return answer
+
+
+class InMemoryDeviceTokens:
+    """P4-W19-S04b: phones' push tokens per user, as Postgres gives them on a plan
+    with push.notify (tests set `rows` and `emails`)."""
+
+    def __init__(self) -> None:
+        self.rows: dict[str, list[NativeTarget]] = {}
+        self.emails: dict[str, str] = {}  # email -> user id
+
+    def account(self, email: str) -> str | None:
+        return self.emails.get(email.strip().lower())
+
+    def for_user(self, user_id: str) -> list[NativeTarget]:
+        return list(self.rows.get(user_id, []))
+
+    def drop(self, token: str) -> None:
+        for user_id, targets in self.rows.items():
+            self.rows[user_id] = [t for t in targets if t.token != token]

@@ -21,6 +21,11 @@ SECRETS = {
     "interval/prod/game-ticket": "gameTicket222",
     "interval/prod/vapid-public-key": "BvapidPublic333",
     "interval/prod/vapid-private-key": "vapidPrivate444",
+    # P4-W19-S04b: native push (the key and the account as base64).
+    "interval/prod/apns-key": "LS0tLS1CRUdJTi+/apns==",
+    "interval/prod/apns-key-id": "KEY456",
+    "interval/prod/apns-team-id": "TEAM123",
+    "interval/prod/fcm-service-account": "eyJwcm9qZWN0X2lkIjoi/fcm==",
 }
 
 
@@ -115,6 +120,11 @@ def test_writes_four_env_files_each_with_only_its_keys_and_mode_600(
         "VAPID_PUBLIC_KEY": "BvapidPublic333",
         "VAPID_PRIVATE_KEY": "vapidPrivate444",
         "VAPID_SUBJECT": "http://localhost",
+        # P4-W19-S04b: native push.
+        "APNS_KEY": "LS0tLS1CRUdJTi+/apns==",
+        "APNS_KEY_ID": "KEY456",
+        "APNS_TEAM_ID": "TEAM123",
+        "FCM_SERVICE_ACCOUNT": "eyJwcm9qZWN0X2lkIjoi/fcm==",
     }
     assert parse(out / "postgres.env") == {"POSTGRES_PASSWORD": "pgSecret123"}
     assert parse(out / "caddy.env") == {"SITE_ADDRESS": ":80"}

@@ -66,6 +66,12 @@ export const SECRET_NAMES = [
   // `pnpm push:keys` and stores the pair (push stays off until then).
   "interval/prod/vapid-public-key",
   "interval/prod/vapid-private-key",
+  // P4-W19-S04b (Q-P4-03): native push, placeholders until the owner stores the APNs
+  // key and the FCM service account (base64 each).
+  "interval/prod/apns-key",
+  "interval/prod/apns-key-id",
+  "interval/prod/apns-team-id",
+  "interval/prod/fcm-service-account",
 ];
 
 export class ProdStack extends Stack {

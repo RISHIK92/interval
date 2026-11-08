@@ -970,6 +970,20 @@ describe("daily GitHub reads (P2-W12-S02, Q-P2-40)", () => {
     );
     expect(names("web")).not.toContain("GITHUB_APP_PRIVATE_KEY");
   });
+
+  // P4-W19-S04b: native push's keys go to the worker, which sends; never to the web.
+  test("the worker gets the APNs and FCM keys; the web app doesn't", () => {
+    const names = (name: string) =>
+      (containerNamed(name)?.Secrets ?? []).map((x) => x.Name);
+    const push = [
+      "APNS_KEY",
+      "APNS_KEY_ID",
+      "APNS_TEAM_ID",
+      "FCM_SERVICE_ACCOUNT",
+    ];
+    expect(names("worker")).toEqual(expect.arrayContaining(push));
+    for (const name of push) expect(names("web")).not.toContain(name);
+  });
 });
 
 describe("Athena metric queries (W6-S04, DB-5)", () => {

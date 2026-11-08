@@ -158,6 +158,10 @@ describe("secrets", () => {
         "interval/prod/game-ticket",
         "interval/prod/vapid-public-key",
         "interval/prod/vapid-private-key",
+        "interval/prod/apns-key",
+        "interval/prod/apns-key-id",
+        "interval/prod/apns-team-id",
+        "interval/prod/fcm-service-account",
       ]),
     );
     for (const secret of Object.values(secrets)) {

@@ -1272,6 +1272,9 @@ class Store(Protocol):
     def agent_nudges(self) -> "AgentNudges": ...
 
     @property
+    def device_tokens(self) -> "DeviceTokens": ...
+
+    @property
     def daily(self) -> "DailyChallenges": ...
 
 
@@ -1491,6 +1494,37 @@ class WebPush(Protocol):
     def push(self, target: PushTarget, text: str) -> int:
         """The push service's status code."""
         ...
+
+
+@dataclass(frozen=True)
+class NativeTarget:
+    """A phone that turned notifications on (P4-W19-S04a): its APNs or FCM token."""
+
+    platform: Literal["ios", "android"]
+    token: str
+
+
+class NativePush(Protocol):
+    """Sends one notification to a phone (P4-W19-S04b): sent, gone (the token is dead:
+    drop it) or failed (try another time)."""
+
+    def send(
+        self, target: NativeTarget, title: str, body: str
+    ) -> Literal["sent", "gone", "failed"]: ...
+
+
+class DeviceTokens(Protocol):
+    """Phones' push tokens (P4-W19-S04a), as the web app registered them."""
+
+    def account(self, email: str) -> str | None:
+        """The account's user id, for the owner's push-test."""
+        ...
+
+    def for_user(self, user_id: str) -> list[NativeTarget]:
+        """The user's phones, only on a plan with push.notify (ADR-0036)."""
+        ...
+
+    def drop(self, token: str) -> None: ...
 
 
 class Seasons(Protocol):

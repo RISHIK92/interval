@@ -3593,3 +3593,26 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - Profile's "Notify me on this phone" and Turn off, which survive a restart.
 - **Checks:** full check (web 1437, mobile 15, Python 1362; infra 89 alone), then after the reviewer's fixes mobile 17 and web push 15.
 - **Not verified:** on the simulator (the new native module needs a rebuild), and real delivery (S04b, with the accounts).
+
+### 2026-11-09 — P4-W19-S04b (native push: the worker's senders; Q-P4-03)
+
+- **Worker:**
+  - `jwt.py` holds ES256 and RS256 in one place (web push's VAPID and the GitHub App now use it too);
+  - `native_push.py`: APNs provider tokens, FCM service-account assertions, `deliver` (one phone failing or raising stops none; logged) and `push_test`;
+  - `adapters/http_native_push.py`: APNs over HTTP/2 (h2), with the provider token reused for 50 minutes; FCM HTTP v1 with the OAuth token cached.
+  - **What counts as gone:** only APNs 410 and FCM's own UNREGISTERED, so a wrong environment, topic or project can't wipe tokens. Every refusal is logged with platform, status and reason, never the token or the key.
+  - `DeviceTokens` (Postgres needs `push.notify`; a memory fake);
+  - `compose.native_push`: each platform is on only when its secrets parse;
+  - `push-test --email` for the owner.
+- **Dependencies:** `httpx[http2]` with `h2==4.4.1` (owner, 2026-11-09), plus hpack and hyperframe.
+- **Infra:**
+  - the AWS secrets `interval/aws/apns-key`, `apns-key-id`, `apns-team-id` and `fcm-service-account` go to the worker only;
+  - on the VM, the same under `interval/prod/…` via `write-env.sh` (base64 for the key and the account);
+  - `.env.example`; `docs/runbooks/native-push.md` (the accounts, the secrets, push-test).
+- **Checks:** worker tests; infra 90; write-env 29; the full check (web 1436 plus the ping timing test, which passes alone; mobile 17; Python 1381).
+- **Reviewer fixes:**
+  - a raising send no longer stops delivery;
+  - stricter "gone" rules;
+  - refusals logged;
+  - unusable keys mean off, never a crash.
+- **Not verified:** real delivery, which needs the owner's Apple Developer and Firebase accounts (runbook).

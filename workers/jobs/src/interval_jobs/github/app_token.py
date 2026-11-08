@@ -4,12 +4,13 @@ key, exchanged for short-lived installation tokens. Signed with `cryptography`
 
 import base64
 import binascii
-import json
 from datetime import datetime
 
 from cryptography.exceptions import UnsupportedAlgorithm
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import rsa
+
+from interval_jobs.jwt import rs256
 
 
 class AppKeyError(ValueError):
@@ -34,18 +35,7 @@ def load_private_key(value: str) -> rsa.RSAPrivateKey:
     return key
 
 
-def _b64(data: bytes) -> str:
-    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
-
-
 def app_jwt(app_id: str, key: rsa.RSAPrivateKey, now: datetime) -> str:
     epoch = int(now.timestamp())
     # A minute back for clock drift; GitHub refuses an expiry over ten minutes ahead.
-    header = _b64(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())
-    claims = _b64(
-        json.dumps({"iss": app_id, "iat": epoch - 60, "exp": epoch + 540}).encode()
-    )
-    signature = key.sign(
-        f"{header}.{claims}".encode(), padding.PKCS1v15(), hashes.SHA256()
-    )
-    return f"{header}.{claims}.{_b64(signature)}"
+    return rs256({"iss": app_id, "iat": epoch - 60, "exp": epoch + 540}, key)

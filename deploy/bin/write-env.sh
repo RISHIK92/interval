@@ -43,6 +43,12 @@ game_ticket="$(secret interval/prod/game-ticket)"
 # P3-W17-S05b (Q-P3-18): web push; generated placeholders keep it off until replaced.
 vapid_public="$(secret interval/prod/vapid-public-key)"
 vapid_private="$(secret interval/prod/vapid-private-key)"
+# P4-W19-S04b (Q-P4-03): native push, placeholders until the owner stores the APNs key
+# and the FCM service account (each base64; push stays off until then).
+apns_key="$(secret interval/prod/apns-key b64)"
+apns_key_id="$(secret interval/prod/apns-key-id)"
+apns_team_id="$(secret interval/prod/apns-team-id)"
+fcm_account="$(secret interval/prod/fcm-service-account b64)"
 
 site_address="$(read_setting site-address)"
 site_address="${site_address:-:80}"
@@ -115,6 +121,10 @@ GAME_TICKET_SECRET=${game_ticket}
 VAPID_PUBLIC_KEY=${vapid_public}
 VAPID_PRIVATE_KEY=${vapid_private}
 VAPID_SUBJECT=${public_url}
+APNS_KEY=${apns_key}
+APNS_KEY_ID=${apns_key_id}
+APNS_TEAM_ID=${apns_team_id}
+FCM_SERVICE_ACCOUNT=${fcm_account}
 ENV
 printf 'POSTGRES_PASSWORD=%s\n' "$postgres_password" > "$tmp/postgres.env"
 printf 'SITE_ADDRESS=%s\n' "$site_address" > "$tmp/caddy.env"

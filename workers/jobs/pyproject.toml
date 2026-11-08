@@ -7,7 +7,9 @@ dependencies = [
     "bullmq==3.3.3",
     "cryptography==50.0.2", # GitHub App JWTs (Q-P2-44, owner-approved)
     "feedparser==6.0.14",
-    "httpx==0.28.1",
+    "httpx[http2]==0.28.1",
+    # P4-W19-S04b (owner, 2026-11-09): APNs only speaks HTTP/2; httpx needs h2 for it.
+    "h2==4.4.1",
     "interval-db",
     "opentelemetry-api==1.45.1",
     "opentelemetry-sdk==1.45.1",

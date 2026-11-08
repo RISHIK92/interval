@@ -6,16 +6,16 @@ content coding of RFC 8188), and the request is signed for the push service with
 secret; the server's P-256 private key as its raw 32 bytes."""
 
 import base64
-import json
 import os
 from datetime import datetime, timedelta
 from urllib.parse import urlsplit
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+
+from interval_jobs.jwt import es256
 
 RECORD_SIZE = 4096  # one record: our messages are a sentence
 VAPID_HOURS = 12  # RFC 8292 allows up to 24
@@ -86,17 +86,13 @@ def vapid_header(
     """`Authorization` for the push service at `endpoint`: an ES256 JWT for its origin,
     and the server's public key."""
     parts = urlsplit(endpoint)
-    head = _b64(json.dumps({"typ": "JWT", "alg": "ES256"}).encode())
-    claims = _b64(
-        json.dumps(
-            {
-                "aud": f"{parts.scheme}://{parts.netloc}",
-                "exp": int((now + timedelta(hours=VAPID_HOURS)).timestamp()),
-                "sub": subject,
-            }
-        ).encode()
+    token = es256(
+        {"typ": "JWT"},
+        {
+            "aud": f"{parts.scheme}://{parts.netloc}",
+            "exp": int((now + timedelta(hours=VAPID_HOURS)).timestamp()),
+            "sub": subject,
+        },
+        key,
     )
-    der = key.sign(f"{head}.{claims}".encode(), ec.ECDSA(hashes.SHA256()))
-    r, s = decode_dss_signature(der)
-    signature = _b64(r.to_bytes(32, "big") + s.to_bytes(32, "big"))
-    return f"vapid t={head}.{claims}.{signature}, k={_b64(_point(key))}"
+    return f"vapid t={token}, k={_b64(_point(key))}"
