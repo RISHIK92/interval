@@ -48,3 +48,41 @@ The local smoke run needs `INTERVAL_ETC` pointed at a temp dir holding `files-ba
 - Under the full check's load, a DB-backed web test (better-auth, kysely-checkpoints) or the infra synth hook sometimes times out; each passes on its own.
 - The local event files end on 2026-11-02: nothing has run the dev app since, so no Phase 3 W16–W18 events exist locally.
 - The drift audit's findings: docs/audits/2026-11-07.md.
+
+## Walking the "owner to walk" rows
+
+An attempt with Claude in Chrome on 2026-11-08 stalled: the machine had about 65 MB of free memory, a page took 5.8 minutes to compile, and the database connection timed out. Walk these when the machine is less loaded.
+
+### Setup (live matches need a proxy: the dev server doesn't route `/game/*`)
+
+1. Make a ticket secret for this session: `openssl rand -hex 32` (any 32+ characters; `.env` can hold it as `GAME_TICKET_SECRET`).
+2. Game server: `cd services/game && GAME_SERVER_ID=0 PORT=8090 VALKEY_URL=redis://127.0.0.1:6379 GAME_TICKET_SECRET=<secret> go run .`
+3. A proxy on 3300 (Caddy is installed). Save this as a Caddyfile and run `caddy run --config <file> --adapter caddyfile`:
+
+   ```
+   { admin off
+     auto_https off }
+   http://localhost:3300 {
+     handle /game/* { reverse_proxy localhost:8090 }
+     handle { reverse_proxy localhost:3100 }
+   }
+   ```
+
+4. Web: `scripts/with-env.sh env BETTER_AUTH_URL=http://localhost:3300 GAME_TICKET_SECRET=<secret> pnpm --filter @interval/web dev`, then open http://localhost:3300.
+5. Results, ratings and fair-play flags need the worker's `consume`, which also runs AI stages within the budget. Run it only if that's fine; without it, matches play but their results aren't recorded.
+
+### Steps
+
+| Row                          | Do                                                                                                                     | Expect                                                                                                                                                                |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Play tab                     | Open Play                                                                                                              | Four games, each with its format and win condition; Rating, Season board, Boards, Challenge a friend                                                                  |
+| Solo sprint                  | Play → Sprint → answer a few, miss one                                                                                 | Server-timed 60 s; results with "Read again" linking the missed section                                                                                               |
+| Estimation                   | Play → Estimation round                                                                                                | A guess per question; points out of 100 each; a reveal citing the source                                                                                              |
+| Daily challenge              | Play → Daily challenge; then open the share link in a private window                                                   | One attempt today; streak shown; the share page shows dots, no answers                                                                                                |
+| Boards                       | Play → Boards; switch scope (global, country, university, friends) and Season                                          | Your score on each board you have; universities ranked by average rating                                                                                              |
+| Live sprint / fastest finger | Play → Sprint live (second account in a private window for a person; or alone)                                         | A 3 s countdown; alone, after 10 s "vs Bot · ~N: not a live player" (or a ghost); the line "Leaving this tab during a round is noted for fair play." during the match |
+| Play bot now                 | Queue, then press Play bot now before 10 s                                                                             | A ghost or bot match at once                                                                                                                                          |
+| Friend challenge             | Play → Challenge a friend → copy the link; open it in a private window signed in as a second account                   | Join now appears on the sender's tab; an unrated match                                                                                                                |
+| Fair play                    | Switch tabs during a live round a few times; with `consume` running, open `/admin/fair-play`                           | A flag with its signals; Dismiss / Remove the gain; after Remove, Play shows "Fair-play adjustment"                                                                   |
+| Agent hook                   | Profile → Agent hook → Add a device; run `cli/interval` with the token (`interval login`, `interval start`, wait 45 s) | The token shown once; a desktop notification after 45 s; Home shows elapsed time                                                                                      |
+| Web push                     | `pnpm push:keys`, put the keys in `.env`; Profile → Notify me on this device; start an agent task                      | A browser notification after 45 s                                                                                                                                     |
