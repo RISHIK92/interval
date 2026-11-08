@@ -50,3 +50,9 @@ interval-sources/
 # The game server binary from a local `go build` (P3-W15-S01).
 /services/game/game
 /cli/interval/interval
+
+# P4-W19-S01: the Expo app's native projects are generated (expo prebuild), never committed.
+apps/mobile/ios/
+apps/mobile/android/
+apps/mobile/.expo/
+apps/mobile/expo-env.d.ts

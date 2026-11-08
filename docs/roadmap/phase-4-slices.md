@@ -22,7 +22,7 @@ ADRs the answers need, each before its first slice (PROPOSED until the owner acc
 
 - IDs: ARCH-3, §4.1, §4.2, C-07
 - Needs: none
-- Goal: `apps/mobile` (Expo, Expo Router, TypeScript strict) with the five areas as tabs (Home, Explore, Paths, Play, Library) and Profile from the avatar, each a placeholder; design tokens shared with the web.
+- Goal: `apps/mobile` (Expo, Expo Router, TypeScript strict) with the five areas as tabs (Home, Explore, Paths, Play, Library) and Profile from the avatar, each a placeholder. Design tokens come with S02 (`packages/tokens`).
 - Acceptance: it runs on the iOS simulator and the Android emulator; jest-expo tests render each tab; `pnpm check` runs the app's typecheck, lint and tests; the web is unchanged.
 - Q: Q-P4-01.
 

@@ -5,10 +5,18 @@ packages:
 
 engineStrict: true
 
+# The owner's rule (2026-10-26, made repo-wide 2026-11-07): no package version under two
+# weeks old, transitive ones included. Expo's ranges otherwise pull in days-old modules
+# (P4-W19-S01: one didn't compile under Xcode 26.2).
+minimumReleaseAge: 20160
+
 # Build scripts we skip on purpose (pnpm fails on unreviewed ones).
 # unrs-resolver (via eslint-config-next) ships prebuilt binaries.
 # msgpackr-extract (via bullmq) ships prebuilt binaries too, and msgpackr falls back to
 # plain JS without it.
+# @parcel/watcher (via @expo/cli's file watching) ships prebuilt binaries per platform
+# as optional dependencies; its script only builds from source when none fits.
 allowBuilds:
+  "@parcel/watcher": false
   unrs-resolver: false
   msgpackr-extract: false

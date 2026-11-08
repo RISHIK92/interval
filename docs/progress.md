@@ -3489,3 +3489,21 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - `source` set to ios or android.
 - `docs/roadmap/phase-4-slices.md`: 22 slices over Weeks 19–24.
 - The explainer-model ADR (it amends AI-2) is due before W22-S01.
+
+### 2026-11-08 — P4-W19-S01 (the Expo shell; ARCH-3, §4.1, Q-P4-01)
+
+- `apps/mobile`:
+  - Expo SDK 58.0.19 with Expo Router, every dependency pinned exactly;
+  - tabs for Home, Explore, Paths, Play and Library; Profile from the avatar; placeholders;
+  - jest-expo tests (7: each tab renders its area, the avatar opens Profile);
+  - typecheck, lint and format run in `pnpm check`;
+  - the native folders are generated (CNG) and ignored.
+- **The two-week rule, now repo-wide (owner, 2026-11-07):**
+  - `minimumReleaseAge: 20160` is in pnpm-workspace.yaml, and the lockfile was re-resolved under it.
+  - Expo's ranges had pulled a days-old `expo-modules-jsi` that fails to compile on Xcode 26.2.
+  - Outside Expo, only 4 transitive @aws-sdk and @smithy patches stepped back one version.
+- **Verified:**
+  - the app built and ran on the iPhone 16 Pro simulator (Home, the tab bar, the avatar);
+  - the full check passed (infra on its own); the web production build passed.
+- **Not verified:** Android, because no emulator system image is installed (a large Google download, to ask about).
+- **Reviewer fixes:** every tab is rendered in a test; light only until W19-S02's tokens (the status bar was unreadable in dark mode).
