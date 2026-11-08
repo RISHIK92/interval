@@ -32,6 +32,7 @@ export const fake = {
 export const SITE = "http://localhost:3100";
 
 export const authClient = {
+  getCookie: () => Promise.resolve("better-auth.session_token=test"),
   useSession: () => ({
     data: useSyncExternalStore(
       (l) => {

@@ -331,6 +331,14 @@ class DailyChallengeQuestion(TypedDict):
     question_id: int
 
 
+class DevicePushToken(TypedDict):
+    id: int
+    user_id: str
+    platform: str
+    token: str
+    created_at: datetime
+
+
 class ExploreArmOutcome(TypedDict):
     kind: str
     arm: str

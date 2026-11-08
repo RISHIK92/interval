@@ -3577,3 +3577,19 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - Hand-written questions show none (tested).
 - **Placement:** the tag sits after the question's text; the quiz page shows no question number.
 - **Checks:** full check 36/36 (web 1430, mobile 12, Python 1362, infra 89, Go). Reviewer fixes: the tag's spacing, and `ai: true` traced through both state parsers.
+
+### 2026-11-09 — P4-W19-S04a (native push: a phone registers its token; Q-P4-03)
+
+- **Owner, 2026-11-09:** expo-notifications and h2 approved; push is built now, with real delivery checked once the owner has the Apple and Firebase accounts. The slice is split into S04a (registration) and S04b (the worker's senders).
+- **DB:** `device_push_token` (platform ios or android, a unique token, one owner).
+- **Web:**
+  - `/api/push/device`: POST needs `push.notify`, DELETE stays open; accounts only;
+  - `fromSiteOrApp`: the site's Origin, or no Origin plus `expo-origin: interval://`. A custom header needs a CORS preflight, which nothing allows; a foreign Origin together with the header is refused (tested);
+  - the `DevicePushTokens` port and its Kysely adapter.
+- **App:**
+  - expo-notifications 58.1.6 with its plugin;
+  - `lib/api.ts` sends our own cookie with `credentials: "omit"`;
+  - `lib/push.ts`: enable (permission asked only on a tap), disable, the current state from the phone, and forgetting the phone at sign out;
+  - Profile's "Notify me on this phone" and Turn off, which survive a restart.
+- **Checks:** full check (web 1437, mobile 15, Python 1362; infra 89 alone), then after the reviewer's fixes mobile 17 and web push 15.
+- **Not verified:** on the simulator (the new native module needs a rebuild), and real delivery (S04b, with the accounts).

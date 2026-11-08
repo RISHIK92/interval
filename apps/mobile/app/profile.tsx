@@ -1,7 +1,9 @@
 import { type } from "@interval/tokens";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { NotifyHere } from "../components/NotifyHere";
 import { useColors } from "../components/theme";
 import { authClient } from "../lib/auth";
+import { forgetThisPhone } from "../lib/push";
 
 // P4-W19-S03: who is signed in, and Sign out. The rest of Profile arrives with its slices.
 export default function ProfileScreen() {
@@ -16,9 +18,12 @@ export default function ProfileScreen() {
         onPress={() => {
           // The session is cleared on the phone first; if the server can't be told,
           // its copy lapses on its own (30 days), so the failure is only logged.
-          authClient.signOut().catch((error: unknown) => {
-            console.warn("sign out: server not told", error);
-          });
+          // P4-W19-S04a: the phone stops getting this account's pushes first.
+          forgetThisPhone()
+            .then(() => authClient.signOut())
+            .catch((error: unknown) => {
+              console.warn("sign out: server not told", error);
+            });
         }}
         style={[styles.button, { borderColor: c.hairline }]}
       >
@@ -26,6 +31,7 @@ export default function ProfileScreen() {
           Sign out
         </Text>
       </Pressable>
+      <NotifyHere />
     </View>
   );
 }

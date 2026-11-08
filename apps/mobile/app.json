@@ -6,9 +6,15 @@
     "version": "0.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "ios": { "bundleIdentifier": "dev.interval.app" },
-    "android": { "package": "dev.interval.app" },
-    "plugins": ["expo-router"],
-    "experiments": { "typedRoutes": true }
+    "ios": {
+      "bundleIdentifier": "dev.interval.app"
+    },
+    "android": {
+      "package": "dev.interval.app"
+    },
+    "plugins": ["expo-router", "expo-notifications"],
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }

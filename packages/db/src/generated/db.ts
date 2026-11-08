@@ -354,6 +354,14 @@ export interface DailyChallengeQuestion {
   question_id: Int8;
 }
 
+export interface DevicePushToken {
+  created_at: Generated<Timestamp>;
+  id: Generated<Int8>;
+  platform: string;
+  token: string;
+  user_id: string;
+}
+
 export interface ExploreArmOutcome {
   arm: string;
   finished: Generated<Int8>;
@@ -1178,6 +1186,7 @@ export interface DB {
   continue_dismissal: ContinueDismissal;
   daily_challenge: DailyChallenge;
   daily_challenge_question: DailyChallengeQuestion;
+  device_push_token: DevicePushToken;
   explore_arm_outcome: ExploreArmOutcome;
   fair_play_flag: FairPlayFlag;
   feed_note: FeedNote;

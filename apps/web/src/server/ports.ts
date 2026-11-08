@@ -817,6 +817,16 @@ export interface PushSubscriptions {
   remove(userId: string, endpoint: string): Promise<void>;
 }
 
+// P4-W19-S04a (Q-P4-03): a phone's APNs (ios) or FCM (android) token, for the worker's
+// native pushes (S04b). One owner per token: a phone signed in as someone else moves it
+// (an account that knew another's token could take it; tokens aren't public).
+export type PushPlatform = "ios" | "android";
+export interface DevicePushTokens {
+  save(userId: string, platform: PushPlatform, token: string): Promise<void>;
+  // Only the user's own.
+  remove(userId: string, token: string): Promise<void>;
+}
+
 // Calls counted per key in a fixed window: false once past `limit` (P3-W17-S04: a
 // device's agent hook calls, against a leaked token or a looping script).
 export interface RateLimits {

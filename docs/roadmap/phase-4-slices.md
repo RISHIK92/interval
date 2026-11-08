@@ -42,13 +42,20 @@ ADRs the answers need, each before its first slice (PROPOSED until the owner acc
 - Acceptance: the server accepts the app's origin only as the plugin requires; a test signs in against the local server; an expired session returns to sign-in.
 - Q: Q-P4-02.
 
-### P4-W19-S04 Native push plumbing
+### P4-W19-S04a Native push: a phone registers its token
+
+- IDs: §4.2, ADR-0036
+- Needs: S03
+- Goal: on a user action, the app asks for permission, gets its APNs or FCM token (expo-notifications) and registers it at `/api/push/device` (accounts with `push.notify`; removing stays open); the app's API calls carry the session cookie and `expo-origin: interval://`.
+- Acceptance: tokens kept per user and platform, one owner each; the route refuses other sites and guests; the app's Profile turns it on and off.
+- Q: Q-P4-03 (owner, 2026-11-09: expo-notifications and h2 approved; built now, real delivery checked when the owner has the accounts).
+
+### P4-W19-S04b Native push: the worker's senders
 
 - IDs: §4.2
-- Needs: S03
-- Goal: the app registers its APNs or FCM token (after asking, on a user action); the worker sends a push straight to APNs (token-based JWT) and FCM (HTTP v1), with keys from the secrets store in both modes; a dead token is dropped.
-- Acceptance: device tokens kept per user and platform; the sender tested against fakes of APNs and FCM; a simulator receives a test push (iOS simulator push file); no push type exists yet beyond a test one.
-- Q: Q-P4-03.
+- Needs: S04a
+- Goal: the worker sends straight to APNs (token-based ES256 JWT, HTTP/2 through h2) and FCM (HTTP v1, a service account's RS256 JWT), with keys from the secrets store in both modes; a dead token is dropped; a test push from a CLI command.
+- Acceptance: both senders tested against fakes; nothing sent until the keys exist; a real phone checked once the owner has the Apple Developer and Firebase accounts.
 
 ## Week 20: the native feed and the WebView reader
 
@@ -169,7 +176,7 @@ ADRs the answers need, each before its first slice (PROPOSED until the owner acc
 ### P4-W24-S01 Opt-in push: digests, path reminders, the daily challenge
 
 - IDs: Week 24
-- Needs: W19-S04, P3-W17-S05b
+- Needs: W19-S04b, P3-W17-S05b
 - Goal: each push off until the user turns it on, on native and the PWA; at most one a day; quiet from 21:00 to 08:00 local; the daily challenge at the user's chosen hour.
 - Q: Q-P4-13.
 
