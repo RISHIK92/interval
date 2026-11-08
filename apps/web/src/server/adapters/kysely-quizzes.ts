@@ -334,6 +334,7 @@ function checkpointAt(row: {
 type Open = {
   question_id: string;
   stem: string;
+  ai_drafted: boolean;
   kind: "choice" | "estimate";
   options: string[] | null;
   unit: string | null;
@@ -532,7 +533,8 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
   // The attempt's open (served, unanswered) question, with whether the clock is out.
   const open = async (attemptId: string): Promise<Open | undefined> => {
     const { rows } = await sql<Open>`
-      select qa.question_id, q.stem, q.kind, q.options, q.unit, qa.served_at,
+      select qa.question_id, q.stem, q.generator_model is not null as ai_drafted,
+             q.kind, q.options, q.unit, qa.served_at,
              (coalesce(now() > a.ends_at + ${GRACE}, false)
                or a.finished_at is not null) as over
       from quiz_answer qa
@@ -548,6 +550,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       questionId: row.question_id,
       stem: row.stem,
       servedAt: row.served_at,
+      aiDrafted: row.ai_drafted,
     };
     if (row.kind === "estimate" && row.unit !== null)
       return { ...base, kind: "estimate", unit: row.unit };
@@ -582,6 +585,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
       .select([
         "q.id as question_id",
         "q.stem",
+        sql<boolean>`q.generator_model is not null`.as("ai_drafted"),
         "qa.guess",
         "q.answer",
         "q.unit",
@@ -614,6 +618,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
   ): EstimateReveal => ({
     questionId: row.question_id,
     stem: row.stem,
+    aiDrafted: row.ai_drafted,
     guess: row.guess,
     answer: row.answer,
     unit: row.unit,
@@ -1703,6 +1708,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         .innerJoin("question as q", "q.id", "qa.question_id")
         .select([
           "q.stem",
+          sql<boolean>`q.generator_model is not null`.as("ai_drafted"),
           "q.options",
           "qa.chosen",
           "q.correct as key",
@@ -1728,6 +1734,7 @@ export function kyselyQuizzes(db: Kysely<DB>): Quizzes {
         correctOption: row.key,
         correct: row.correct,
         flagged: row.flagged,
+        aiDrafted: row.ai_drafted,
       };
     },
   };

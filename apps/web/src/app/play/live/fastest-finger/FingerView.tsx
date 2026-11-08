@@ -1,5 +1,6 @@
 "use client";
 
+import { AiDrafted } from "../../../ui/AiDrafted";
 import { useEffect, useState } from "react";
 import type { FingerState } from "../finger-state";
 import type { ViewProps } from "../LivePlay";
@@ -107,7 +108,10 @@ export function FingerView({
         <p role="status" className="font-semibold">
           {took}
         </p>
-        <p className="text-lg font-semibold">{state.stem}</p>
+        <p className="text-lg font-semibold">
+          {state.stem}
+          {state.ai ? <AiDrafted /> : null}
+        </p>
         <ul className="flex flex-col gap-1.5">
           {state.options.map((option, i) => (
             <li
@@ -146,7 +150,10 @@ export function FingerView({
         {opponentLocked ? "🔒 Opponent: locked in" : "⏳ Opponent: thinking"}
       </p>
       <fieldset className="flex flex-col gap-2">
-        <legend className="mb-3 text-lg font-semibold">{state.stem}</legend>
+        <legend className="mb-3 text-lg font-semibold">
+          {state.stem}
+          {state.ai ? <AiDrafted /> : null}
+        </legend>
         {state.options.map((option, i) => (
           <button
             key={LETTERS[i]}

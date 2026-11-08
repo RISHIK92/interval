@@ -46,7 +46,7 @@ test("the start, a question, a judgement and both scores", () => {
     phase: "playing",
     you: "ada",
     endsAt: NOW + 60_000,
-    question: { n: 2, stem: "Q2?", options: ["a", "b", "c", "d"] },
+    question: { n: 2, stem: "Q2?", options: ["a", "b", "c", "d"], ai: false },
     last: { n: 1, correct: true },
     scores: { ada: 1, bob: 0 },
   });
@@ -73,7 +73,7 @@ test("a resume puts a rejoiner back where it stands", () => {
     phase: "playing",
     you: "bob",
     endsAt: NOW + 41_000,
-    question: { n: 5, stem: "Q5?", options: ["a", "b", "c", "d"] },
+    question: { n: 5, stem: "Q5?", options: ["a", "b", "c", "d"], ai: false },
     last: null,
     scores: { ada: 3, bob: 2 },
   });
@@ -108,8 +108,22 @@ test("the final: the outcome, both counts and the review with keys", () => {
     totals: { ada: 1, bob: 2 },
     abandoned: [],
     questions: [
-      { n: 1, stem: "Q1?", options: ["a", "b"], correct: 1, chosen: 1 },
-      { n: 2, stem: "Q2?", options: ["a", "b"], correct: 0, chosen: null },
+      {
+        n: 1,
+        stem: "Q1?",
+        options: ["a", "b"],
+        ai: false,
+        correct: 1,
+        chosen: 1,
+      },
+      {
+        n: 2,
+        stem: "Q2?",
+        options: ["a", "b"],
+        ai: false,
+        correct: 0,
+        chosen: null,
+      },
     ],
   });
 });
@@ -140,4 +154,31 @@ test("what isn't a message is refused", () => {
   expect(parseMessage("hello")).toBeNull();
   // Messages of other modes (fastest finger's rounds) are no part of a sprint.
   expect(parseMessage({ type: "reveal", n: 1 })).toBeNull();
+});
+
+// ADR-0037: a model-drafted question says so, while playing and in the review.
+test("a question's and a reviewed question's ai flag reach the screen", () => {
+  const playing = run([
+    { type: "joined", match: "m", you: "ada" },
+    { type: "start", seconds: 60 },
+    { type: "question", n: 1, stem: "Q1?", options: ["a", "b"], ai: true },
+  ]);
+  expect(playing).toMatchObject({ question: { n: 1, ai: true } });
+  const final = run(
+    [
+      {
+        type: "final",
+        totals: { ada: 0 },
+        winner: "",
+        review: {
+          questions: [
+            { n: 1, stem: "Q1?", options: ["a", "b"], correct: 1, ai: true },
+          ],
+          answers: { ada: [] },
+        },
+      },
+    ],
+    playing,
+  );
+  expect(final).toMatchObject({ questions: [{ n: 1, ai: true }] });
 });

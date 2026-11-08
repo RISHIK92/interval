@@ -1,3 +1,4 @@
+import { AiDrafted } from "../../ui/AiDrafted";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -113,7 +114,10 @@ export default async function QuizPage({
     if (feedback === null) redirect(here);
     body = (
       <>
-        <p className="text-lg font-semibold">{feedback.stem}</p>
+        <p className="text-lg font-semibold">
+          {feedback.stem}
+          {feedback.aiDrafted ? <AiDrafted /> : null}
+        </p>
         {feedback.kind === "estimate" ? (
           <>
             {/* P3-W13-S04, S03b (C-27, AI-3): the real answer and where it comes
@@ -262,6 +266,7 @@ export default async function QuizPage({
           <input type="hidden" name="chip" value={chip} />
           <label htmlFor="guess" className="text-lg font-semibold">
             {question.stem}
+            {question.aiDrafted ? <AiDrafted /> : null}
           </label>
           <div className="flex items-center gap-3">
             <input
@@ -292,6 +297,7 @@ export default async function QuizPage({
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-3 text-lg font-semibold">
               {question.stem}
+              {question.aiDrafted ? <AiDrafted /> : null}
             </legend>
             {question.options.map((option, i) => (
               <button

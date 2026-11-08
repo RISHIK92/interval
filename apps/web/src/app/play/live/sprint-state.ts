@@ -10,6 +10,8 @@ const Question = z.object({
   n: z.number().int().min(1),
   stem: z.string(),
   options: z.array(z.string()),
+  // ADR-0037: model-drafted; absent from a server older than the flag.
+  ai: z.boolean().default(false),
 });
 
 const Message = z.discriminatedUnion("type", [
@@ -119,6 +121,7 @@ export function sprintStep(
               n: message.n,
               stem: message.stem,
               options: message.options,
+              ai: message.ai,
             },
           };
     case "done":

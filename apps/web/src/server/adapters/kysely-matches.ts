@@ -30,11 +30,13 @@ const toRound = ({
   stem,
   options,
   correct,
+  ai,
 }: BankQuestion): LiveRound => ({
   question,
   stem,
   options,
   correct,
+  ai,
 });
 
 // P3-W15-S02, S03 (ADR-0033, Q-P3-22): live matches, their players and their questions.
@@ -58,7 +60,7 @@ export function kyselyMatches(
     // to the tiers' concepts in SQL once it passes some ten thousand.
     const { rows: bank } = await sql<BankQuestion>`
       select q.id::text as question, q.stem, q.options, q.correct,
-             q.difficulty as level,
+             q.generator_model is not null as ai, q.difficulty as level,
              coalesce(array_agg(c.id::text)
                filter (where c.id is not null), '{}') as concepts
       from ${LIVE}
@@ -307,7 +309,13 @@ export function kyselyMatches(
           await trx
             .selectFrom("game_match_question as r")
             .innerJoin("question as q", "q.id", "r.question_id")
-            .select(["q.id", "q.stem", "q.options", "q.correct"])
+            .select([
+              "q.id",
+              "q.stem",
+              "q.options",
+              "q.correct",
+              sql<boolean>`q.generator_model is not null`.as("ai"),
+            ])
             .where("r.match_id", "=", run.match_id)
             .orderBy("r.round")
             .execute()
@@ -320,6 +328,7 @@ export function kyselyMatches(
             stem: q.stem,
             options: q.options,
             correct: q.correct,
+            ai: q.ai,
           };
         });
         const id = await store(trx, {

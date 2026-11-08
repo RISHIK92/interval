@@ -18,6 +18,7 @@ const round = (players: string[]): FingerState => ({
   n: 4,
   stem: "Which cache?",
   options: ["LRU", "FIFO"],
+  ai: true,
   endsAt: 0,
   locked: { n: 4, players },
 });
@@ -26,6 +27,8 @@ test("a round: the score, the question, and who has locked in", () => {
   const open = words(show(round([])));
   expect(open).toContain("Rounds: you 2 · opponent 1");
   expect(open).toContain("Which cache?");
+  // ADR-0037: a model-drafted question says so.
+  expect(open).toContain("AI-drafted");
   expect(open).toContain("⏳ Opponent: thinking");
   expect(open).toContain("You: choose an answer");
   const theirs = words(show(round(["bob"])));
@@ -52,6 +55,7 @@ test.each([
       n: 1,
       stem: "Q?",
       options: ["a", "b"],
+      ai: false,
       correct: 1,
       taken,
     }),

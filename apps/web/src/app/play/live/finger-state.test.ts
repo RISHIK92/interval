@@ -33,6 +33,7 @@ test("a countdown, then a round with nobody locked in", () => {
     n: 1,
     stem: "Q1?",
     options: ["a", "b", "c", "d"],
+    ai: false,
     endsAt: NOW + 15_000,
     locked: { n: 1, players: [] },
   });
@@ -69,6 +70,7 @@ test("the reveal: the right answer, who took it, the rounds taken so far", () =>
     n: 2,
     stem: "Q2?",
     options: ["a", "b", "c", "d"],
+    ai: false,
     correct: 3,
     taken: "bob",
   });
@@ -150,4 +152,29 @@ test("the final: won, lost or a draw, rounds taken and who left", () => {
 test("what isn't one of its messages is refused", () => {
   expect(FINGER.step(FINGER.start, { type: "question", n: 1 }, NOW)).toBeNull();
   expect(FINGER.step(FINGER.start, { type: "round", n: "1" }, NOW)).toBeNull();
+});
+
+// ADR-0037: a model-drafted round, and its reveal, say so.
+test("a round's and a reveal's ai flag reach the screen", () => {
+  const playing = run([
+    { type: "joined", match: "m", you: "ada" },
+    { ...round(1), ai: true },
+  ]);
+  expect(playing).toMatchObject({ phase: "round", ai: true });
+  expect(
+    FINGER.step(
+      playing,
+      {
+        type: "reveal",
+        n: 1,
+        stem: "Q1?",
+        options: ["a", "b"],
+        ai: true,
+        correct: 0,
+        taken: "ada",
+        totals: { ada: 1 },
+      },
+      NOW,
+    ),
+  ).toMatchObject({ phase: "reveal", ai: true });
 });

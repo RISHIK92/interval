@@ -159,7 +159,7 @@ func (a *actor) nextFor(p *play, player string) map[string]any {
 		return map[string]any{"type": "done"}
 	}
 	r := a.def.Rounds[i]
-	return map[string]any{"type": "question", "n": i + 1, "stem": r.Stem, "options": r.Options}
+	return map[string]any{"type": "question", "n": i + 1, "stem": r.Stem, "options": r.Options, "ai": r.AI}
 }
 
 // The final message's review: every question either player reached, keys included,
@@ -176,7 +176,7 @@ func (a *actor) review(p *play) map[string]any {
 	reached = min(reached, len(a.def.Rounds))
 	questions := make([]map[string]any, 0, reached)
 	for i, r := range a.def.Rounds[:reached] {
-		questions = append(questions, map[string]any{"n": i + 1, "stem": r.Stem, "options": r.Options, "correct": r.Correct})
+		questions = append(questions, map[string]any{"n": i + 1, "stem": r.Stem, "options": r.Options, "correct": r.Correct, "ai": r.AI})
 	}
 	answers := map[string][]answerRec{}
 	for _, player := range a.def.Players {

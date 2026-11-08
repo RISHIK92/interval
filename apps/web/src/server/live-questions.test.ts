@@ -12,6 +12,7 @@ const q = (
   stem: `Q${String(id)}?`,
   options: ["a", "b", "c", "d"],
   correct: 0,
+  ai: true,
   level,
   concepts,
 });

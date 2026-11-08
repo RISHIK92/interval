@@ -3567,3 +3567,13 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - **The worker was running against your instructions.** The full-check script restarted `consume` after every check (left over from the overnight runs), and one run never restored the AI cap: the global budget sat at $5/day. No AI calls were made in the last 5 days. The owner killed the workers, the cap is back at 30 cents, and the script now never starts the worker and restores the cap on any exit.
   - **The cause of the infra failures:** CDK's Docker asset copied the 1.4 GB generated iOS project into temp folders on every synth (17 folders, about 11 GB, deleted with the owner's OK). `.dockerignore` now leaves out `apps/mobile/{ios,android,.expo}`.
 - **Checks:** web 1429, mobile 12, Python 1362, infra 89.
+
+### 2026-11-08 — ADR-0037 (model-drafted questions labeled; AI-1, AI-3)
+
+- **Owner:** accepted 2026-11-08, worded "AI-drafted".
+- **What shows it:** a question whose `generator_model` is set shows a small "AI-drafted" tag (`app/ui/AiDrafted.tsx`; the accessible name reads "…? AI-drafted").
+  - **Quizzes and games:** the quiz page (Test 60s, reviews, checkpoints, sprint, estimation, the daily challenge), its answer feedback, and the results page's estimate list (`QuizQuestion`, `QuizFeedback`, `EstimateReveal.aiDrafted`).
+  - **Live:** `LiveRound.ai` from the bank and ghost rounds goes into the Valkey match definition. The Go round, reveal, sprint question and final review messages carry `ai`; the browser parses it (false when absent, as from an older server); FingerView and SprintView show it.
+  - Hand-written questions show none (tested).
+- **Placement:** the tag sits after the question's text; the quiz page shows no question number.
+- **Checks:** full check 36/36 (web 1430, mobile 12, Python 1362, infra 89, Go). Reviewer fixes: the tag's spacing, and `ai: true` traced through both state parsers.

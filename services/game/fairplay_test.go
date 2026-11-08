@@ -262,3 +262,33 @@ func TestTheSocketPassesFocusOn(t *testing.T) {
 	case <-time.After(100 * time.Millisecond):
 	}
 }
+
+// ADR-0037 (AI-3): a model-drafted question says so in its round and question messages.
+func TestAnAIDraftedQuestionSaysSo(t *testing.T) {
+	def := rounds(2)
+	def.Rounds[0].AI = true
+	a, _, ada, bob := startActor(t, def)
+	if r := ada.next(t); r["type"] != "round" || r["ai"] != true {
+		t.Fatalf("round 1: %v", r)
+	}
+	bob.next(t)
+	a.answer("ada", 1, 0)
+	settle(a)
+	if m := until(t, ada, "reveal"); m["ai"] != true {
+		t.Fatalf("reveal: %v", m)
+	}
+}
+
+func TestASprintQuestionCarriesItsAIFlag(t *testing.T) {
+	def := sprintDef(2)
+	def.Rounds[1].AI = true
+	a := newActor("m", def, newFakeClock(), nil)
+	p := &play{sprint: &sprintRun{at: map[string]int{"ada": 0}}}
+	if m := a.nextFor(p, "ada"); m["ai"] != false {
+		t.Fatalf("question 1: %v", m)
+	}
+	p.sprint.at["ada"] = 1
+	if m := a.nextFor(p, "ada"); m["ai"] != true {
+		t.Fatalf("question 2: %v", m)
+	}
+}

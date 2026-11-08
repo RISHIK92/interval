@@ -245,6 +245,7 @@ const answer = (
 ) => ({
   questionId: stem,
   stem,
+  aiDrafted: stem === "Disk seek?", // ADR-0037: one model-drafted, the rest not
   guess,
   answer: 10,
   unit: "ms",
@@ -281,6 +282,8 @@ test("a round's results: its points, each answer against the real one, and Back 
   expect(html).not.toContain("Accuracy");
   for (const stem of ["Disk seek?", "Packet round trip?", "Context switch?"])
     expect(html).toContain(stem);
+  // ADR-0037: only the model-drafted one is labeled.
+  expect(html.match(/AI-drafted/g)).toHaveLength(1);
   expect(text).toMatch(/900\|?\s*ms/);
   expect(text).toMatch(/100 points/);
   expect(html).toMatch(/href="\/play"[^>]*>Back to Play</);

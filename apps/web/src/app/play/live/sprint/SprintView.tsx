@@ -1,5 +1,6 @@
 "use client";
 
+import { AiDrafted } from "../../../ui/AiDrafted";
 import { useEffect, useState } from "react";
 import type { SprintState } from "../sprint-state";
 
@@ -95,6 +96,7 @@ export function SprintView({
           <fieldset className="flex flex-col gap-2">
             <legend className="mb-3 text-lg font-semibold">
               {question.stem}
+              {question.ai ? <AiDrafted /> : null}
             </legend>
             {question.options.map((option, i) => (
               <button
@@ -136,7 +138,10 @@ export function SprintView({
         <ol className="flex flex-col gap-4">
           {state.questions.map((q) => (
             <li key={q.n} className="flex flex-col gap-2">
-              <p className="font-semibold">{q.stem}</p>
+              <p className="font-semibold">
+                {q.stem}
+                {q.ai ? <AiDrafted /> : null}
+              </p>
               <ul className="flex flex-col gap-1.5">
                 {q.options.map((option, i) => {
                   const right = i === q.correct;

@@ -25,6 +25,7 @@ test("puts the match as the game server reads it, for an hour", async () => {
         stem: "Which?",
         options: ["a", "b", "c", "d"],
         correct: 2,
+        ai: true,
       },
     ],
   };
@@ -41,6 +42,8 @@ test("puts the match as the game server reads it, for an hour", async () => {
           stem: "Which?",
           options: ["a", "b", "c", "d"],
           correct: 2,
+          // ADR-0037: the game server shows a drafted question as such.
+          ai: true,
         },
       ],
     });
@@ -70,6 +73,7 @@ test("a ghost match hands over the ghost's seat, label and answers", async () =>
         stem: "Which?",
         options: ["a", "b", "c", "d"],
         correct: 2,
+        ai: true,
       },
     ],
     ghost,

@@ -68,6 +68,7 @@ type round struct {
 	Stem     string   `json:"stem"`
 	Options  []string `json:"options"`
 	Correct  int      `json:"correct"`
+	AI       bool     `json:"ai"` // ADR-0037: model-drafted, shown as such
 }
 
 // One player's connection, as the actor sees it: messages out, and a way to end it.
@@ -384,7 +385,7 @@ func (a *actor) run() {
 		p.shown = n
 		// With its question, so a player back during the pause can be shown it.
 		p.reveal = map[string]any{
-			"type": "reveal", "n": n, "stem": r.Stem, "options": r.Options,
+			"type": "reveal", "n": n, "stem": r.Stem, "options": r.Options, "ai": r.AI,
 			"correct": r.Correct, "taken": taken, "totals": p.totals,
 		}
 		a.broadcast(&p, p.reveal)
@@ -415,7 +416,7 @@ func (a *actor) run() {
 }
 
 func roundMessage(n int, r round, left time.Duration) map[string]any {
-	return map[string]any{"type": "round", "n": n, "stem": r.Stem, "options": r.Options, "seconds": seconds(left)}
+	return map[string]any{"type": "round", "n": n, "stem": r.Stem, "options": r.Options, "ai": r.AI, "seconds": seconds(left)}
 }
 
 // An abandon decides the match once every other player is either here or gone too

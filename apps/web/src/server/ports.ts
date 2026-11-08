@@ -274,6 +274,7 @@ export type QuizQuestion = {
   questionId: string;
   stem: string;
   servedAt: Date;
+  aiDrafted: boolean; // ADR-0037: a model drafted it, so it's labeled
 } & (
   | { kind: "choice"; options: string[] }
   // P3-W13-S04 (§6.3): answered with a number in this unit.
@@ -525,12 +526,14 @@ export type QuizFeedback =
       correctOption: number;
       correct: boolean;
       flagged: boolean; // by this user (P2-W9-S07)
+      aiDrafted: boolean; // ADR-0037
     }
   | ({ kind: "estimate"; flagged: boolean } & EstimateReveal);
 // An answered estimate with the real answer and where it comes from (AI-3).
 export type EstimateReveal = {
   questionId: string;
   stem: string;
+  aiDrafted: boolean; // ADR-0037
   guess: number;
   answer: number;
   unit: string;
@@ -699,6 +702,7 @@ export type LiveRound = {
   stem: string;
   options: string[];
   correct: number;
+  ai: boolean; // ADR-0037: model-drafted, so labeled "AI-drafted"
 };
 // P3-W16-S04 (Q-P3-23): a sprint, or Q-P3-22's rounds (fastest finger from W16-S05).
 export const GAME_MODES = ["sprint", "fastest_finger"] as const;

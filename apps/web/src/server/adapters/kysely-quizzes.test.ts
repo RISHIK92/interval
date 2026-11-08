@@ -244,7 +244,14 @@ test("a moment's sprint serves its own questions, then the same concepts, never 
       const one = served(got);
       // The key never leaves the server before the answer.
       expect(Object.keys(one).sort()).toEqual(
-        ["kind", "options", "questionId", "servedAt", "stem"].sort(),
+        [
+          "aiDrafted",
+          "kind",
+          "options",
+          "questionId",
+          "servedAt",
+          "stem",
+        ].sort(),
       );
       // Until it's answered, the same question comes back.
       expect(served(await quizzes.next(userId, started.attemptId))).toEqual(
@@ -579,6 +586,7 @@ test("feedback gives the key only once the question is answered", async () => {
       correctOption: 0,
       correct: false,
       flagged: false,
+      aiDrafted: true, // ADR-0037: the seed's questions are model-drafted
     });
     expect(
       await quizzes.answered(otherUser, started.attemptId, open.questionId),
@@ -1844,13 +1852,25 @@ test("a round serves live estimates in allowed moments and hand-written ones, ex
     const quizzes = kyselyQuizzes(trx);
     const attemptId = await round(quizzes, userId);
     const stems: string[] = [];
+    const drafted: Record<string, boolean> = {};
     for (;;) {
       const got = await quizzes.next(userId, attemptId);
       if (got === "over") break;
       const open = estimate(got);
       stems.push(open.stem);
+      drafted[open.stem] = open.aiDrafted;
       await quizzes.answerEstimate(userId, attemptId, open.questionId, 1);
+      // ADR-0037: its feedback says so too.
+      expect(
+        (await quizzes.answered(userId, attemptId, open.questionId))?.aiDrafted,
+      ).toBe(open.aiDrafted);
     }
+    // ADR-0037 (AI-3): a model's question is labeled; a hand-written one isn't.
+    expect(drafted).toEqual({
+      "explored one": false,
+      "drafted estimate": true,
+      "hand-written estimate": false,
+    });
     // P3-W13-S03b: a moment's estimate plays while its source allows moments (ING-2).
     expect(stems[0]).toBe("explored one");
     expect(stems.slice(1).sort()).toEqual([
@@ -1881,6 +1901,7 @@ test("an estimate is scored by C-27 once; a resubmission gets the stored result"
       kind: "estimate",
       questionId: id,
       stem: "disk seek",
+      aiDrafted: false, // hand-written
       guess: 900,
       answer: 300,
       unit: "ms",

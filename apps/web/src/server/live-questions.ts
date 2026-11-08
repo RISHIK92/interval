@@ -9,6 +9,7 @@ export type BankQuestion = {
   stem: string;
   options: string[];
   correct: number;
+  ai: boolean; // ADR-0037: model-drafted (generator_model set)
   level: Level | null; // none yet: one step off any level, as the sprint counts it
   concepts: string[];
 };

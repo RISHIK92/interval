@@ -9,6 +9,7 @@ const bank: LiveRound[] = Array.from({ length: 30 }, (_, i) => ({
   stem: "Which?",
   options: ["a", "b", "c", "d"],
   correct: 0,
+  ai: true,
 }));
 
 afterEach(() => {

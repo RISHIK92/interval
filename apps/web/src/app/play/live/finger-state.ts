@@ -14,6 +14,8 @@ const Message = z.discriminatedUnion("type", [
     n: z.number().int().min(1),
     stem: z.string(),
     options: z.array(z.string()),
+    // ADR-0037: model-drafted; absent from a server older than the flag.
+    ai: z.boolean().default(false),
     seconds: z.number().min(0),
   }),
   z.object({ type: z.literal("locked"), player: z.string() }),
@@ -22,6 +24,7 @@ const Message = z.discriminatedUnion("type", [
     n: z.number().int().min(1),
     stem: z.string(),
     options: z.array(z.string()),
+    ai: z.boolean().default(false),
     correct: z.number().int().min(0),
     taken: z.string(), // "": nobody
     totals: Totals,
@@ -53,6 +56,7 @@ export type FingerState =
       n: number;
       stem: string;
       options: string[];
+      ai: boolean;
       endsAt: number;
       locked: { n: number; players: string[] };
     })
@@ -61,6 +65,7 @@ export type FingerState =
       n: number;
       stem: string;
       options: string[];
+      ai: boolean;
       correct: number;
       taken: string;
     })
@@ -103,6 +108,7 @@ function step(
         n: message.n,
         stem: message.stem,
         options: message.options,
+        ai: message.ai,
         endsAt: now + message.seconds * 1000,
         locked: locked.n === message.n ? locked : { n: message.n, players: [] },
       };
@@ -126,6 +132,7 @@ function step(
         n: message.n,
         stem: message.stem,
         options: message.options,
+        ai: message.ai,
         correct: message.correct,
         taken: message.taken,
       };

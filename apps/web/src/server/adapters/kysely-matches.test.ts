@@ -107,6 +107,7 @@ const choices = (n: number): LiveRound[] =>
     stem: `Q${String(i)}?`,
     options: ["a", "b", "c", "d"],
     correct: i % 4,
+    ai: true,
   }));
 
 test("the fake makes a match of seven, or none from a smaller bank", async () => {
@@ -264,6 +265,8 @@ test("Postgres picks seven different live questions and records them in order", 
         expect(r.options).toHaveLength(4);
         expect(r.correct).toBeGreaterThanOrEqual(0);
         expect(r.correct).toBeLessThan(4);
+        // ADR-0037: drafted by a model (generator_model set), so labeled.
+        expect(r.ai).toBe(true);
       }
       const recorded = await trx
         .selectFrom("game_match_question")
@@ -648,6 +651,7 @@ test("Postgres: a ghost match replays the nearest unmet run, in its questions' o
       expect(first.players).toEqual([me, `ghost:${near}`]);
       expect(first.mode).toBe("fastest_finger");
       expect(first.rounds.map((r) => r.question)).toEqual([q2, q1, q3]);
+      expect(first.rounds.map((r) => r.ai)).toEqual([true, true, true]);
       expect(first.ghost).toEqual({
         player: `ghost:${near}`,
         label: "Ghost · ~1700",

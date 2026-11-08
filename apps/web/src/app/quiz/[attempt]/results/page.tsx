@@ -1,3 +1,4 @@
+import { AiDrafted } from "../../../ui/AiDrafted";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -218,7 +219,10 @@ export default async function ResultsPage({
               key={a.questionId}
               className="flex flex-col gap-1 rounded-2xl bg-well px-4 py-3"
             >
-              <p className="font-semibold">{a.stem}</p>
+              <p className="font-semibold">
+                {a.stem}
+                {a.aiDrafted ? <AiDrafted /> : null}
+              </p>
               <p className="text-sm">
                 Your guess {amount(a.guess, a.unit)} · Answer{" "}
                 {amount(a.answer, a.unit)}

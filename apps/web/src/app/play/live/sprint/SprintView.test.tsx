@@ -15,13 +15,19 @@ test("playing: both counts, the last judgement and the question", () => {
     phase: "playing",
     you: "ada",
     endsAt: Date.now() + 30_000,
-    question: { n: 4, stem: "Which cache?", options: ["LRU", "FIFO"] },
+    question: {
+      n: 4,
+      stem: "Which cache?",
+      options: ["LRU", "FIFO"],
+      ai: true,
+    },
     last: { n: 3, correct: false },
     scores: { ada: 2, bob: 3 },
   });
   expect(text).toContain("You 2 · Opponent 3");
   expect(text).toContain("✗ Wrong");
   expect(text).toContain("Which cache?");
+  expect(text).toContain("AI-drafted"); // ADR-0037
   expect(text).toContain("LRU");
 });
 
@@ -32,7 +38,7 @@ test("an answered question's options wait for the next", () => {
         phase: "playing",
         you: "ada",
         endsAt: 0,
-        question: { n: 4, stem: "Q?", options: ["a", "b"] },
+        question: { n: 4, stem: "Q?", options: ["a", "b"], ai: false },
         last: null,
         scores: {},
       }}
@@ -64,8 +70,22 @@ test("the result: the outcome, both counts, and each question's right answer and
     totals: { ada: 1, bob: 2 },
     abandoned: [],
     questions: [
-      { n: 1, stem: "Q1?", options: ["a", "b"], correct: 0, chosen: 1 },
-      { n: 2, stem: "Q2?", options: ["c", "d"], correct: 1, chosen: null },
+      {
+        n: 1,
+        stem: "Q1?",
+        options: ["a", "b"],
+        ai: false,
+        correct: 0,
+        chosen: 1,
+      },
+      {
+        n: 2,
+        stem: "Q2?",
+        options: ["c", "d"],
+        ai: false,
+        correct: 1,
+        chosen: null,
+      },
     ],
   });
   expect(text).toContain("You lost");
@@ -80,7 +100,14 @@ test("the result: the outcome, both counts, and each question's right answer and
     totals: { ada: 1 },
     abandoned: [],
     questions: [
-      { n: 1, stem: "Q1?", options: ["a", "b"], correct: 0, chosen: 0 },
+      {
+        n: 1,
+        stem: "Q1?",
+        options: ["a", "b"],
+        ai: false,
+        correct: 0,
+        chosen: 0,
+      },
     ],
   });
   expect(right).toMatch(/a\|.*✓ Your answer, right/);

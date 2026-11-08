@@ -68,6 +68,7 @@ test("a question is four answer buttons and never its key", async () => {
     kind: "choice",
     options: ["A majority", "Everyone", "The longest log", "A lease"],
     servedAt: new Date(),
+    aiDrafted: false,
   });
   const html = await render({ chip: "3-8" });
   expect(next).toHaveBeenCalledWith("u1", "41");
@@ -81,6 +82,21 @@ test("a question is four answer buttons and never its key", async () => {
   expect(html).toContain("2 answered");
   expect(html).toContain("Close");
   expect(html).not.toMatch(/correct/i);
+  // ADR-0037: hand-written, so no label.
+  expect(html).not.toContain("AI-drafted");
+});
+
+// ADR-0037 (AI-3): a question a model drafted says so beside the question.
+test("a model-drafted question is labeled AI-drafted", async () => {
+  next.mockResolvedValue({
+    questionId: "7",
+    stem: "What does a candidate need?",
+    kind: "choice",
+    options: ["A majority", "Everyone", "The longest log", "A lease"],
+    servedAt: new Date(),
+    aiDrafted: true,
+  });
+  expect(await render({ chip: "3-8" })).toContain("AI-drafted");
 });
 
 test("feedback marks the choice and the right option in words", async () => {
@@ -92,6 +108,7 @@ test("feedback marks the choice and the right option in words", async () => {
     correctOption: 0,
     correct: false,
     flagged: false,
+    aiDrafted: false,
   });
   const html = await render({ chip: "3-8", answered: "7" });
   expect(answered).toHaveBeenCalledWith("u1", "41", "7");
@@ -111,6 +128,7 @@ test("Close warns before exiting; exiting ends the test and leaves", async () =>
     kind: "choice",
     options: ["a", "b", "c", "d"],
     servedAt: new Date(),
+    aiDrafted: false,
   });
   const html = await render({ chip: "3-8" });
   // Owner, 2026-10-28: warn that exiting affects the score.
@@ -133,6 +151,7 @@ test("a right answer says so", async () => {
     correctOption: 2,
     correct: true,
     flagged: false,
+    aiDrafted: false,
   });
   const html = await render({ chip: "3-8", answered: "7" });
   expect(html).toContain("Correct.");
@@ -201,6 +220,7 @@ test("a review has no clock and says when every due concept is done", async () =
     kind: "choice",
     options: ["a", "b", "c", "d"],
     servedAt: new Date(),
+    aiDrafted: false,
   });
   const html = await render({ chip: "3-8" }, review);
   expect(html).toContain("Review");
@@ -228,6 +248,7 @@ test("an answered question can be flagged with a reason, then says it was", asyn
     correctOption: 2,
     correct: true,
     flagged: false,
+    aiDrafted: false,
   });
   const html = await render({ chip: "3-8", answered: "7" });
   expect(html).toContain("Report a problem with this question");
@@ -249,6 +270,7 @@ test("an answered question can be flagged with a reason, then says it was", asyn
     correctOption: 2,
     correct: true,
     flagged: true,
+    aiDrafted: false,
   });
   const done = await render({ chip: "3-8", answered: "7" });
   expect(done).not.toContain("Send report");
@@ -262,6 +284,7 @@ test("a checkpoint says what passing unlocks, and Close goes back to the path", 
     kind: "choice",
     options: ["A majority", "Everyone", "One", "None"],
     servedAt: new Date(),
+    aiDrafted: false,
   });
   const html = await render(
     { chip: "3-8" },
@@ -297,6 +320,7 @@ test("a sprint is named as one, and Close goes back to Play", async () => {
     kind: "choice",
     options: ["A majority", "Everyone", "One", "None"],
     servedAt: new Date(),
+    aiDrafted: false,
   });
   const html = await render(
     { chip: "3-8" },
@@ -326,6 +350,7 @@ test("a guest gets no report form: a flag isn't theirs to make (ADR-0029)", asyn
     correctOption: 2,
     correct: true,
     flagged: false,
+    aiDrafted: false,
   });
   current.mockResolvedValue({ ...user, isGuest: true });
   attempt.mockResolvedValue({
@@ -365,6 +390,7 @@ test("an estimate asks for a positive number in its unit, named as an estimation
     kind: "estimate",
     unit: "ms",
     servedAt: new Date(),
+    aiDrafted: false,
   });
   const html = await render({ chip: "3-8" }, round);
   expect(html).toContain("How long is a disk seek?");
@@ -400,6 +426,7 @@ const reveal = {
     url: "https://docs.example.test/latency",
   },
   flagged: false,
+  aiDrafted: false,
 };
 
 test("the reveal shows the guess, the answer, the points and the cited source", async () => {
@@ -460,6 +487,7 @@ test("the daily challenge is named as one, says it's one attempt, and Close goes
     kind: "choice",
     options: ["A majority", "Everyone", "One", "None"],
     servedAt: new Date(),
+    aiDrafted: false,
   });
   const html = await render(
     { chip: "3-8" },
