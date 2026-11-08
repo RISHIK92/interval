@@ -1,6 +1,6 @@
 # 0037. Model-drafted questions are labeled as AI wherever they are shown
 
-- Status: PROPOSED
+- Status: ACCEPTED
 - Date: 2026-11-08
 - Supersedes: none
 - Superseded by: none
@@ -63,6 +63,8 @@ ADR-0027 amended AI-3 only for the card's "why this matters" explanations; it sa
 **A.** AI-3 and the CLAUDE.md invariant say "always labeled", per output, and a question is one output. The data to tell them apart exists already. The cost is a small mark and one extra boolean in the live round message. B is acceptable if the owner finds a per-question mark too noisy, given that nearly every question is drafted. C needs an amendment to AI-3 that the docs don't support.
 
 What would change this: if hand-written questions become rare or disappear, B labels correctly in practice and is quieter.
+
+Accepted by the owner on 2026-11-08: option A, worded "AI-drafted" (a small muted tag beside the question number on every quiz, game, checkpoint and live screen).
 
 ## Consequences
 

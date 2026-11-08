@@ -1,6 +1,6 @@
 # 0036. Capabilities are checked where a feature is served, not only on its page
 
-- Status: PROPOSED
+- Status: ACCEPTED
 - Date: 2026-11-08
 - Supersedes: none
 - Superseded by: none
@@ -77,6 +77,12 @@ For the surfaces with no capability yet, add one only when a plan could reasonab
 Follows and country or university are profile data with no cost (OPS-4) and no plan reason to differ, so they stay ungated. For `ai.notes.daily`, enforce it where notes are generated (the worker's notes stage already has the port), or remove it from the seed if the owner no longer wants a daily limit on notes.
 
 What would change this: if plans are never going to differ (a single plan for good), B costs nothing and A is ceremony.
+
+Accepted by the owner on 2026-11-08: option A.
+
+- `ai.notes.daily` is enforced in the worker's notes stage.
+- A guarded API route answers 403; pages keep 404.
+- New capabilities: `agent.hook` and `push.notify`, granted in the beta plan.
 
 ## Consequences
 
