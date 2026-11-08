@@ -15,7 +15,12 @@ const leave = vi.fn<Matchmaking["leave"]>(() => Promise.resolve());
 const of = vi.fn<PlayerRatings["of"]>(() => Promise.resolve(1612.4));
 const emit = vi.fn();
 const queueOf = vi.fn<(mode: string) => void>();
+// ADR-0036: the route checks its capability; granted unless a test says not.
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../../../server/container", () => ({
+  entitlements: () => ({ can }),
   sessionReader: () => ({ current }),
   matchmaking: (mode: string) => {
     queueOf(mode);
@@ -138,4 +143,28 @@ test("signed out, or another site: refused, nothing queued", async () => {
   expect(join).not.toHaveBeenCalled();
   expect(poll).not.toHaveBeenCalled();
   expect(leave).not.toHaveBeenCalled();
+});
+
+// ADR-0036 (OPS-3): live play is checked where it's served, not only on its page.
+test("without play.live, the queue answers 403 and touches nothing", async () => {
+  current.mockResolvedValue(guest);
+  can.mockResolvedValue(false);
+  for (const method of ["POST", "PUT", "DELETE"] as const)
+    expect((await call(method)).status).toBe(403);
+  expect(join).not.toHaveBeenCalled();
+  expect(poll).not.toHaveBeenCalled();
+  expect(leave).not.toHaveBeenCalled();
+  expect(can).toHaveBeenCalledWith("g1", "play.live");
+  can.mockResolvedValue(true);
+});
+
+// ADR-0036: a live sprint also needs play.sprint, as its page and challenges require.
+test("a live sprint needs play.sprint too", async () => {
+  current.mockResolvedValue(guest);
+  can.mockImplementation((_user, capability) =>
+    Promise.resolve(capability !== "play.sprint"),
+  );
+  expect((await call("POST", undefined, "sprint")).status).toBe(403);
+  expect((await call("POST", undefined, "fastest_finger")).status).toBe(204);
+  can.mockImplementation(() => Promise.resolve(true));
 });

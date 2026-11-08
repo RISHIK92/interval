@@ -11,3 +11,7 @@
 **/cdk.out
 docs
 interval-sources
+# P4-W19-S01: the Expo app's generated native projects (gigabytes of Pods) are never in an image.
+apps/mobile/ios
+apps/mobile/android
+apps/mobile/.expo

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { gameEnv } from "../../../../env";
 import { matches, sessionReader } from "../../../../server/container";
+import { forbidden } from "../../../../server/capability";
 import { sameOrigin } from "../../../../server/same-origin";
 import { signTicket, TICKET_SECONDS } from "../../../../server/tickets";
 
@@ -16,6 +17,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!sameOrigin(request)) return new Response(null, { status: 403 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
+  const refused = await forbidden(actor, "play.live");
+  if (refused !== null) return refused;
   const parsed = Join.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return new Response(null, { status: 400 });
   // Not configured (no GAME_TICKET_SECRET): live games aren't offered, as the GitHub

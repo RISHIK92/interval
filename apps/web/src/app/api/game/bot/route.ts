@@ -7,6 +7,7 @@ import {
   matchmaking,
   sessionReader,
 } from "../../../../server/container";
+import { forbiddenLive } from "../../../../server/capability";
 import { sameOrigin } from "../../../../server/same-origin";
 import { visitId } from "../../../../server/visits";
 
@@ -24,6 +25,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!mode.success) return new Response(null, { status: 400 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
+  const refused = await forbiddenLive(actor, mode.data);
+  if (refused !== null) return refused;
   // P3-W18-S03 (owner, 2026-11-05): the time-to-match metric counts every live match,
   // so the queue's wait is read before leaving it. A poll pairs: a person found now
   // is the match.

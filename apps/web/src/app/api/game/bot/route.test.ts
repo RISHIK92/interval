@@ -11,7 +11,12 @@ const queueOf = vi.fn<(mode: string) => void>();
 const replayMatch =
   vi.fn<(userId: string, mode: string) => Promise<LiveMatch | null>>();
 const emit = vi.fn();
+// ADR-0036: the route checks its capability; granted unless a test says not.
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../../../server/container", () => ({
+  entitlements: () => ({ can }),
   events: () => ({ emit }),
   sessionReader: () => ({ current }),
   matchmaking: (mode: string) => {
@@ -160,4 +165,22 @@ test("nothing made, or no wait known (out of the queue), nothing told", async ()
   });
   await call(); // the poll says none
   expect(emit).not.toHaveBeenCalled();
+});
+
+test("without play.live, no ghost or bot match: 403", async () => {
+  current.mockResolvedValue(guest);
+  can.mockResolvedValueOnce(false);
+  expect((await call()).status).toBe(403);
+  expect(replayMatch).not.toHaveBeenCalled();
+  expect(leave).not.toHaveBeenCalled();
+});
+
+test("a sprint bot match needs play.sprint too", async () => {
+  current.mockResolvedValue(guest);
+  can.mockImplementation((_user, capability) =>
+    Promise.resolve(capability !== "play.sprint"),
+  );
+  expect((await call("sprint")).status).toBe(403);
+  expect(replayMatch).not.toHaveBeenCalled();
+  can.mockImplementation(() => Promise.resolve(true));
 });

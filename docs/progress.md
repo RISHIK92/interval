@@ -3549,3 +3549,21 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Checks:** web 1419, mobile 12, Python 1361. Infra didn't run: its synth failed while the disk was full, and nothing here touches infra.
 - **Not verified:** a real sign-in on the simulator (no typing automation; the owner stopped the temporary server on 3200).
 - **Disk:** it filled during this session. With the owner's OK, Interval's Xcode DerivedData (1.8 GB) was deleted.
+
+### 2026-11-08 — ADR-0036 (capabilities checked where served; OPS-3)
+
+- **Owner, 2026-11-08:** ADR-0036 accepted (option A): 403 at the API, pages keep 404; `ai.notes.daily` enforced; new `agent.hook` and `push.notify`. ADR-0037 accepted too (not built yet).
+- **Migrations:** the `agent.hook` and `push.notify` values, then their beta grants (safe to roll back and re-run).
+- **Web (`server/capability.ts`):**
+  - `forbidden` guards the agent hook (after the rate limit) and push POST;
+  - `forbiddenLive` (`play.live`, plus `play.sprint` for a sprint) guards the queue and bot routes;
+  - the ticket route checks `play.live`.
+  - Removing a push endpoint and revoking devices stay open after a downgrade.
+  - Profile keeps a downgraded user's devices revocable, but adding needs `agent.hook`; the push button needs `push.notify`.
+- **Worker:**
+  - `ai.notes.daily` caps project notes per UTC day, counting lines sent in batches not yet collected (both the direct and batched paths go through `project_notes_missing`); a shortcut comment covers lines removed by an unshare;
+  - the nudge targets need `push.notify`.
+- **Found and fixed on the way:**
+  - **The worker was running against your instructions.** The full-check script restarted `consume` after every check (left over from the overnight runs), and one run never restored the AI cap: the global budget sat at $5/day. No AI calls were made in the last 5 days. The owner killed the workers, the cap is back at 30 cents, and the script now never starts the worker and restores the cap on any exit.
+  - **The cause of the infra failures:** CDK's Docker asset copied the 1.4 GB generated iOS project into temp folders on every synth (17 folders, about 11 GB, deleted with the owner's OK). `.dockerignore` now leaves out `apps/mobile/{ios,android,.expo}`.
+- **Checks:** web 1429, mobile 12, Python 1362, infra 89.

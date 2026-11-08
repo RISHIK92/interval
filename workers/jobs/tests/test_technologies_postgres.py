@@ -278,6 +278,42 @@ def test_project_notes_follow_the_repositories_matching_the_item(
         "select repositories, text from project_note where user_id = 'tc9'"
     ).fetchall()
     assert rows == [(["tc9/api", "tc9/web"], "Both use MVCC.")]
+
+    # ADR-0036 (OPS-3, OPS-4): ai.notes.daily caps the lines written per user per UTC
+    # day; one was written today. (The test's transaction rolls the plan back.)
+    conn.execute("update project_note set prompt_version = 1 where user_id = 'tc9'")
+
+    def daily(limit: int | None) -> None:
+        conn.execute(
+            "update plan_capability set limit_value = %s "
+            "where plan_id = 'beta' and capability = 'ai.notes.daily'",
+            (limit,),
+        )
+
+    daily(1)
+    assert github.project_notes_missing("tc9", [on_mvcc], 10) == []
+    daily(2)
+    assert github.project_notes_missing("tc9", [on_mvcc], 10) == [on_mvcc]
+    # A line sent in a batch not yet collected counts too.
+    conn.execute(
+        "insert into question_batch (id, kind, model) values ('pn-batch', 'draft', 'm')"
+    )
+    conn.execute(
+        "insert into project_note_batch_item (batch_id, custom_id, user_id, "
+        "content_item_id, repositories, prompt_version) "
+        "values ('pn-batch', 'n1', 'tc9', %s, '{tc9/api}', 2)",
+        (elsewhere,),
+    )
+    assert github.project_notes_missing("tc9", [on_mvcc], 10) == []
+    conn.execute("delete from question_batch where id = 'pn-batch'")
+    assert github.project_notes_missing("tc9", [on_mvcc], 10) == [on_mvcc]
+    daily(None)  # no limit
+    assert github.project_notes_missing("tc9", [on_mvcc], 10) == [on_mvcc]
+    conn.execute(
+        "delete from plan_capability "
+        "where plan_id = 'beta' and capability = 'ai.notes.daily'"
+    )  # not granted: none
+    assert github.project_notes_missing("tc9", [on_mvcc], 10) == []
     # A repository no longer shared takes its lines with it at the next sync.
     github.save_sync("tc9", [])
     assert conn.execute(

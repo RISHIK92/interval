@@ -2159,6 +2159,9 @@ class InMemoryGitHub:
         self.project_notes: dict[
             tuple[str, int], tuple[ProjectNoteInput, str | None, str, int]
         ] = {}
+        # ADR-0036: lines a user may still have written today (ai.notes.daily); a
+        # user not here has no limit (tests set it).
+        self.notes_left_today: dict[str, int] = {}
 
     def project_note_input(self, user_id: str, item_id: int) -> ProjectNoteInput | None:
         if user_id not in self.accounts:
@@ -2175,6 +2178,7 @@ class InMemoryGitHub:
     def project_notes_missing(
         self, user_id: str, item_ids: list[int], limit: int
     ) -> list[int]:
+        limit = min(limit, self.notes_left_today.get(user_id, limit))
         missing: list[int] = []
         for item_id in item_ids:
             if len(missing) >= limit:

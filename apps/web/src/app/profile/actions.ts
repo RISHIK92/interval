@@ -18,6 +18,7 @@ import {
   preferences,
   sessionReader,
   usernames,
+  entitlements,
 } from "../../server/container";
 import { COUNTRY_CODES } from "../../server/countries";
 import { queueRecompute } from "../../server/recompute";
@@ -277,6 +278,9 @@ export async function addAgentDeviceAction(
   form: FormData,
 ): Promise<DeviceState> {
   const userId = await actor();
+  // ADR-0036: revoking stays open, so a user whose plan dropped it can clean up.
+  if (!(await entitlements().can(userId, "agent.hook")))
+    return { message: "The agent hook isn't on your plan." };
   const name = textField(form, "name").trim();
   if (name.length < 1 || name.length > 40)
     return { message: "Name the device in 1 to 40 characters." };

@@ -1044,6 +1044,15 @@ def test_direct_notes_drop_the_batch_prefix() -> None:
     assert model == "small-notes"
 
 
+# ADR-0036 (OPS-3, OPS-4): past the plan's ai.notes.daily for today, no line is asked.
+def test_past_the_daily_notes_limit_no_line_is_asked() -> None:
+    world, llm, _ = project_world()
+    world.store.github.notes_left_today["u1"] = 0
+    recompute(world, "r-1")
+    assert llm.project_prompts == []
+    assert world.store.github.project_notes == {}
+
+
 # P3-W15-S05 (ADR-0033): a live match's result, read from Valkey, recorded once.
 class _Results:
     def __init__(self, stored: dict[str, bytes]) -> None:

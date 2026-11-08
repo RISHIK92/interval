@@ -11,6 +11,7 @@ import {
   GAME_MODES,
   type GameMode,
 } from "../../../../server/ports";
+import { forbiddenLive } from "../../../../server/capability";
 import { sameOrigin } from "../../../../server/same-origin";
 import { visitId } from "../../../../server/visits";
 
@@ -31,6 +32,8 @@ async function player(
   if (!mode.success) return new Response(null, { status: 400 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
+  const refused = await forbiddenLive(actor, mode.data);
+  if (refused !== null) return refused;
   return { actor, mode: mode.data };
 }
 

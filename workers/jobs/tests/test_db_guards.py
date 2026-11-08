@@ -236,6 +236,7 @@ def test_a_new_user_is_on_the_beta_plan(conn: psycopg.Connection) -> None:
     row = conn.execute("select plan_id from app_user where id = 'plan1'").fetchone()
     assert row == ("beta",)
     assert entitlements(conn, "plan1") == [
+        ("agent.hook", None),  # ADR-0036
         ("ai.budget.daily_cents", 50),
         ("ai.notes.daily", 20),
         ("books.count", 5),
@@ -246,6 +247,7 @@ def test_a_new_user_is_on_the_beta_plan(conn: psycopg.Connection) -> None:
         ("play.estimation", None),
         ("play.live", None),
         ("play.sprint", None),
+        ("push.notify", None),  # ADR-0036
     ]
 
 
@@ -269,6 +271,7 @@ def test_per_user_grants_add_to_the_plan_without_duplicating_it(
     )
     assert entitlements(conn, "plan2") == [
         ("admin.review", None),
+        ("agent.hook", None),  # ADR-0036
         ("ai.budget.daily_cents", 50),
         ("ai.notes.daily", 20),
         ("books.count", 5),
@@ -279,6 +282,7 @@ def test_per_user_grants_add_to_the_plan_without_duplicating_it(
         ("play.estimation", None),
         ("play.live", None),
         ("play.sprint", None),
+        ("push.notify", None),  # ADR-0036
     ]
 
 

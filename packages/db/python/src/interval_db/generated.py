@@ -35,6 +35,8 @@ type Capability = Literal[
     "play.sprint",
     "play.estimation",
     "play.live",
+    "agent.hook",
+    "push.notify",
 ]
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type DependencyEcosystem = Literal["npm", "pypi", "go"]

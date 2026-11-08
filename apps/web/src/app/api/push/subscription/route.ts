@@ -2,6 +2,7 @@ import { z } from "zod";
 import { pushEnv } from "../../../../env";
 import { pushSubscriptions, sessionReader } from "../../../../server/container";
 import type { Actor } from "../../../../server/ports";
+import { forbidden } from "../../../../server/capability";
 import { sameOrigin } from "../../../../server/same-origin";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +49,10 @@ async function account(request: Request): Promise<Actor | Response> {
 export async function POST(request: Request): Promise<Response> {
   const actor = await account(request);
   if (actor instanceof Response) return actor;
+  // ADR-0036: subscribing needs the plan's web push; removing (DELETE) stays open, as
+  // the endpoint is the user's data.
+  const refused = await forbidden(actor, "push.notify");
+  if (refused !== null) return refused;
   const body = Subscription.safeParse(await request.json().catch(() => null));
   if (!body.success) return new Response(null, { status: 400 });
   await pushSubscriptions().save(actor.userId, {

@@ -28,7 +28,12 @@ const addDevice = vi.fn<AgentHook["addDevice"]>();
 const revokeDevice = vi.fn<AgentHook["revoke"]>(() => Promise.resolve());
 const revalidatePath = vi.fn();
 vi.mock("next/cache", () => ({ revalidatePath }));
+// ADR-0036: what the plan grants (all, unless a test says not).
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../server/container", () => ({
+  entitlements: () => ({ can }),
   agentHook: () => ({ addDevice, revoke: revokeDevice }),
   sessionReader: () => ({ current }),
   preferences: () => ({ update }),
@@ -727,4 +732,18 @@ test("revoking is the account's own; a guest has no devices", async () => {
   await expect(addAgentDeviceAction(null, f)).rejects.toThrow(
     "redirect:/sign-up",
   );
+});
+
+// ADR-0036: no new device on a plan without the agent hook; revoking still works, so a
+// downgraded user can clean up.
+test("without agent.hook, no device is added", async () => {
+  current.mockResolvedValue(user);
+  can.mockResolvedValueOnce(false);
+  const { addAgentDeviceAction } = await import("./actions");
+  const f = new FormData();
+  f.set("name", "Work laptop");
+  expect(await addAgentDeviceAction(null, f)).toEqual({
+    message: "The agent hook isn't on your plan.",
+  });
+  expect(addDevice).not.toHaveBeenCalled();
 });

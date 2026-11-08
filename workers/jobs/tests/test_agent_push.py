@@ -150,6 +150,16 @@ def test_postgres_targets_only_while_the_task_runs(conn: psycopg.Connection) -> 
     assert nudges.targets(stale, NOW) is None
     revoked = _task(conn, "pna", NOW - timedelta(seconds=45), revoked=True)
     assert nudges.targets(revoked, NOW) is None
+    # ADR-0036: a plan without push.notify gets no push, its subscriptions kept.
+    conn.execute(
+        "delete from plan_capability "
+        "where plan_id = 'beta' and capability = 'push.notify'"
+    )
+    assert nudges.targets(running, NOW) == []
+    conn.execute(
+        "insert into plan_capability (plan_id, capability) "
+        "values ('beta', 'push.notify')"
+    )
     nudges.drop(FCM + "x")
     assert nudges.targets(running, NOW) == []
 

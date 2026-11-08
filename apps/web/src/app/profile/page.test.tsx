@@ -44,7 +44,12 @@ vi.mock("../../env", async (importOriginal) => ({
   ...(await importOriginal<object>()),
   pushEnv: () => (pushKey === null ? null : { VAPID_PUBLIC_KEY: pushKey }),
 }));
+// ADR-0036: what the plan grants (all, unless a test says not).
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../server/container", () => ({
+  entitlements: () => ({ can }),
   agentHook: () => ({ devices: agentDevices }),
   usernames: () => ({ get: usernameGet, search: peopleSearch }),
   follows: () => ({ following, followers }),
@@ -632,4 +637,41 @@ test("the agent hook card offers notifications only when push is configured", as
   pushKey = `B${"a".repeat(86)}`;
   expect(await page()).toContain("Notify me on this device");
   pushKey = null;
+});
+
+// ADR-0036 (OPS-3): the agent hook and web push show only on a plan that has them.
+test("without agent.hook the card is gone; without push.notify, no notifications", async () => {
+  pushKey = `B${"a".repeat(86)}`;
+  can.mockImplementation((_user, capability) =>
+    Promise.resolve(capability !== "push.notify"),
+  );
+  const noPush = await page();
+  expect(noPush).toContain("Agent hook");
+  expect(noPush).not.toContain("Notify me on this device");
+  can.mockImplementation((_user, capability) =>
+    Promise.resolve(capability !== "agent.hook"),
+  );
+  expect(await page()).not.toContain("Agent hook");
+  can.mockImplementation(() => Promise.resolve(true));
+  pushKey = null;
+});
+
+// A downgraded user still sees their devices, to revoke them; adding is gone.
+test("without agent.hook, existing devices stay revocable and nothing can be added", async () => {
+  can.mockImplementation((_user, capability) =>
+    Promise.resolve(capability !== "agent.hook"),
+  );
+  agentDevices.mockResolvedValueOnce([
+    {
+      id: "d1",
+      name: "Work laptop",
+      createdAt: new Date("2026-11-01T00:00:00Z"),
+      lastUsedAt: null,
+    },
+  ]);
+  const html = await page();
+  expect(html).toContain("Work laptop");
+  expect(html).toContain("Revoke");
+  expect(html).not.toContain("Add a device");
+  can.mockImplementation(() => Promise.resolve(true));
 });

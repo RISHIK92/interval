@@ -7,7 +7,12 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const save = vi.fn<PushSubscriptions["save"]>(() => Promise.resolve());
 const remove = vi.fn<PushSubscriptions["remove"]>(() => Promise.resolve());
 let configured = true;
+// ADR-0036: the route checks its capability; granted unless a test says not.
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../../../server/container", () => ({
+  entitlements: () => ({ can }),
   sessionReader: () => ({ current }),
   pushSubscriptions: () => ({ save, remove }),
 }));
@@ -97,4 +102,18 @@ test("a guest, another site, or push not configured: refused", async () => {
   configured = false;
   expect((await call("POST", subscription)).status).toBe(503);
   expect(save).not.toHaveBeenCalled();
+});
+
+// ADR-0036: web push has its own capability.
+test("without push.notify, subscribing and unsubscribing answer 403", async () => {
+  current.mockResolvedValue(account);
+  can.mockResolvedValue(false);
+  expect((await call("POST", subscription)).status).toBe(403);
+  expect(save).not.toHaveBeenCalled();
+  // Removing an endpoint (personal data) stays open after a downgrade.
+  expect(
+    (await call("DELETE", { endpoint: subscription.endpoint })).status,
+  ).toBe(204);
+  expect(can).toHaveBeenCalledWith("u1", "push.notify");
+  can.mockResolvedValue(true);
 });

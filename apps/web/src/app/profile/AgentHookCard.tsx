@@ -15,9 +15,12 @@ const when = (date: Date) =>
 export function AgentHookCard({
   devices,
   pushKey,
+  canAdd,
 }: {
   devices: AgentDevice[];
   pushKey: string | null; // P3-W17-S05b: web push offered once configured
+  // ADR-0036: on a plan without the agent hook, devices can be revoked, not added.
+  canAdd: boolean;
 }) {
   return (
     <section aria-labelledby="agent-hook" className="flex flex-col gap-4">
@@ -61,7 +64,7 @@ export function AgentHookCard({
           ))}
         </ul>
       )}
-      <AddDevice />
+      {canAdd ? <AddDevice /> : null}
       {pushKey === null ? null : <NotifyHere pushKey={pushKey} />}
     </section>
   );

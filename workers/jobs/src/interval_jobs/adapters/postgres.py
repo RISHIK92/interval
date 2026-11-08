@@ -3022,6 +3022,29 @@ class PostgresGitHub:
     def project_notes_missing(
         self, user_id: str, item_ids: list[int], limit: int
     ) -> list[int]:
+        # ADR-0036 (OPS-3, OPS-4): no more than the plan's ai.notes.daily lines a UTC
+        # day, counting those sent in batches not yet collected; none without the
+        # capability, any number with no limit.
+        # shortcut: a repository unshared today deletes its lines (save_sync), which
+        # frees their part of the day's allowance; count from ai_usage if that matters.
+        allowance = self._conn.execute(
+            """
+            select e.limit_value - (
+                select count(*) from project_note n
+                where n.user_id = e.user_id
+                  and n.created_at >= date_trunc('day', now() at time zone 'utc')
+                    at time zone 'utc')
+              - (select count(*) from project_note_batch_item b
+                 where b.user_id = e.user_id and b.result is null)
+            from user_entitlement e
+            where e.user_id = %s and e.capability = 'ai.notes.daily'
+            """,
+            (user_id,),
+        ).fetchone()
+        if allowance is None:
+            return []
+        if allowance[0] is not None:
+            limit = min(limit, max(0, int(allowance[0])))
         missing: list[int] = []
         for item_id in item_ids:
             if len(missing) >= limit:
@@ -3689,8 +3712,12 @@ class PostgresAgentNudges:
         return [
             PushTarget(str(endpoint), str(p256dh), str(auth))
             for endpoint, p256dh, auth in self._conn.execute(
-                "select endpoint, p256dh, auth from push_subscription"
-                " where user_id = %s order by id",
+                "select s.endpoint, s.p256dh, s.auth from push_subscription s"
+                " where s.user_id = %s"
+                # ADR-0036: only on a plan with web push (a downgrade stops it).
+                " and exists (select 1 from user_entitlement e"
+                "   where e.user_id = s.user_id and e.capability = 'push.notify')"
+                " order by s.id",
                 (running[0],),
             ).fetchall()
         ]

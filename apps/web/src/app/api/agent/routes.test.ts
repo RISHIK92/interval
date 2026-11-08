@@ -30,7 +30,12 @@ const noteAgentFinished = vi.fn<Challenges["noteAgentFinished"]>(() =>
   Promise.resolve(),
 );
 const emit = vi.fn();
+// ADR-0036: the route checks its capability; granted unless a test says not.
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../../server/container", () => ({
+  entitlements: () => ({ can }),
   agentHook: () => ({ deviceFor, start, finish }),
   rateLimits: () => ({ allow }),
   jobQueue: () => ({ enqueue }),
@@ -206,4 +211,19 @@ test("a nudge that can't be queued is logged; the start stands", async () => {
     "agent: nudge not queued",
   );
   out.mockRestore();
+});
+
+// ADR-0036: the agent hook has its own capability.
+test("without agent.hook, started and finished answer 403 and record nothing", async () => {
+  can.mockResolvedValue(false);
+  expect((await call("started", { idempotency_key: "key-12345" })).status).toBe(
+    403,
+  );
+  expect(
+    (await call("finished", { idempotency_key: "key-12345" })).status,
+  ).toBe(403);
+  expect(start).not.toHaveBeenCalled();
+  expect(finish).not.toHaveBeenCalled();
+  expect(can).toHaveBeenCalledWith("u1", "agent.hook");
+  can.mockResolvedValue(true);
 });

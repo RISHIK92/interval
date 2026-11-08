@@ -15,6 +15,7 @@ import {
   progress,
   sessionReader,
   usernames,
+  entitlements,
 } from "../../server/container";
 import type { GitHubConnection, Person, University } from "../../server/ports";
 import { parseTheme, THEME_COOKIE, THEMES } from "../../server/theme";
@@ -128,6 +129,8 @@ export default async function ProfilePage(props: {
     followerList,
     found,
     devices,
+    hookGranted,
+    pushGranted,
   ] = await Promise.all([
     feedback().hiddenSources(actor.userId),
     feedback().inferred(actor.userId),
@@ -140,6 +143,9 @@ export default async function ProfilePage(props: {
     // One more than shown, as the player may be among them.
     people.length >= 2 ? usernames().search(people, 21) : Promise.resolve(null),
     agentHook().devices(actor.userId),
+    // ADR-0036 (OPS-3): each shows only on a plan that has it.
+    entitlements().can(actor.userId, "agent.hook"),
+    entitlements().can(actor.userId, "push.notify"),
   ]);
   const query = (uq ?? "").trim();
   // Searched only when a change is open, and on two letters or more.
@@ -254,12 +260,16 @@ export default async function ProfilePage(props: {
         />
       </Card>
 
-      <Card className="p-5">
-        <AgentHookCard
-          devices={devices}
-          pushKey={pushEnv()?.VAPID_PUBLIC_KEY ?? null}
-        />
-      </Card>
+      {/* ADR-0036: kept for a downgraded user's devices, so they can revoke them. */}
+      {hookGranted || devices.length > 0 ? (
+        <Card className="p-5">
+          <AgentHookCard
+            canAdd={hookGranted}
+            devices={devices}
+            pushKey={pushGranted ? (pushEnv()?.VAPID_PUBLIC_KEY ?? null) : null}
+          />
+        </Card>
+      ) : null}
 
       {/* This device's theme (owner, 2026-10-26). */}
       <Card className="p-5">

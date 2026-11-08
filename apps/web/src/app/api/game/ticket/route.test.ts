@@ -9,7 +9,12 @@ const serverFor = vi.fn<Matches["serverFor"]>((_, userId) =>
 );
 const SECRET = "0123456789abcdef0123456789abcdef";
 let secret: string | null = SECRET;
+// ADR-0036: the route checks its capability; granted unless a test says not.
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../../../server/container", () => ({
+  entitlements: () => ({ can }),
   sessionReader: () => ({ current }),
   matches: () => ({ serverFor }),
 }));
@@ -126,5 +131,12 @@ test("without a ticket secret, live games aren't offered", async () => {
   secret = null;
   current.mockResolvedValue(account);
   expect((await post({ matchId: MATCH })).status).toBe(503);
+  expect(serverFor).not.toHaveBeenCalled();
+});
+
+test("without play.live, no ticket: 403", async () => {
+  current.mockResolvedValue(account);
+  can.mockResolvedValueOnce(false);
+  expect((await post({ matchId: MATCH })).status).toBe(403);
   expect(serverFor).not.toHaveBeenCalled();
 });

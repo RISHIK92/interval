@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { forbidden } from "../../../server/capability";
 import { agentHook, rateLimits } from "../../../server/container";
 import type { Actor } from "../../../server/ports";
 
@@ -36,5 +37,8 @@ export async function hookRequest(
       status: 429,
       headers: { "Retry-After": "60" },
     });
+  // ADR-0036: a plan without the agent hook gets nothing recorded.
+  const refused = await forbidden(device.actor, "agent.hook");
+  if (refused !== null) return refused;
   return { ...device, key: body.data.idempotency_key };
 }
