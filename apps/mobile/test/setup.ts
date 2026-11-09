@@ -8,5 +8,9 @@ jest.mock("expo-notifications", () => ({
 }));
 
 beforeEach(() => {
+  // No network in screen tests: a test that reads the API mocks fetch itself.
+  globalThis.fetch = jest.fn(() =>
+    Promise.resolve(new Response(null, { status: 503 })),
+  );
   jest.requireMock<typeof import("./fake-auth")>("../lib/auth").fake.signedIn();
 });

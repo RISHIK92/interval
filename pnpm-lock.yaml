@@ -199,6 +199,9 @@ importers:
       '@better-auth/expo':
         specifier: 1.7.12
         version: 1.7.12(bbd01cd37e7a755f2e6905f26c1e6430)
+      '@interval/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@interval/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
@@ -281,6 +284,9 @@ importers:
       '@better-auth/expo':
         specifier: 1.7.12
         version: 1.7.12(74d341294f21eadac970b1bfa39a4496)
+      '@interval/api-client':
+        specifier: workspace:*
+        version: link:../../packages/api-client
       '@interval/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -382,6 +388,16 @@ importers:
       aws-cdk:
         specifier: 2.1146.1
         version: 2.1146.1
+
+  packages/api-client:
+    dependencies:
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@interval/config':
+        specifier: workspace:*
+        version: link:../config
 
   packages/config: {}
 

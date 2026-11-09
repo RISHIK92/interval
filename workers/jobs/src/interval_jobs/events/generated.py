@@ -64,7 +64,7 @@ type EventName = Literal[
     "university_changed",
 ]
 type BetaGroup = Literal["student", "developer"]
-type Source = Literal["web", "jobs"]
+type Source = Literal["web", "jobs", "ios", "android"]
 
 EVENT_VERSIONS: dict[EventName, int] = {
     "agent_task_finished": 1,

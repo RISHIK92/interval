@@ -4,7 +4,6 @@ Apple's (APNs) and Google's (FCM) services, with no Expo push service in between
 from dataclasses import dataclass, field
 from datetime import datetime
 
-import httpx
 from cryptography.hazmat.primitives.asymmetric import ec, rsa
 
 from interval_jobs import log
@@ -52,8 +51,8 @@ def deliver(
     for target in targets:
         try:
             outcome = sender.send(target, title, body)
-        except (httpx.HTTPError, ValueError, KeyError) as error:
-            # A network or protocol failure on one phone; never the token or the key.
+        except Exception as error:  # a network or protocol failure: this phone only
+            # Logged by type: never the token or the key.
             log.error(
                 "push: native failed",
                 platform=target.platform,

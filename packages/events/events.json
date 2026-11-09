@@ -2,7 +2,7 @@
   "$comment": "The one list of analytics events (DB-5, Q-P1-20). Edit here, then run `pnpm events:codegen`. A slice that starts emitting an event defines its props first; changing props after first emission bumps that event's version.",
   "envelope": {
     "beta_group": ["student", "developer"],
-    "source": ["web", "jobs"]
+    "source": ["web", "jobs", "ios", "android"]
   },
   "events": {
     "session_started": {

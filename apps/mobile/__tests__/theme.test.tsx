@@ -9,8 +9,8 @@ jest.mock("react-native/Libraries/Utilities/useColorScheme", () => ({
 }));
 
 test("in dark mode, the page and its text are the tokens' dark values", async () => {
-  await renderRouter("./app", { initialUrl: "/" });
-  const title = await screen.findByRole("header", { name: "Home" });
+  await renderRouter("./app", { initialUrl: "/library" });
+  const title = await screen.findByRole("header", { name: "Library" });
   expect(StyleSheet.flatten(title.props.style)).toMatchObject({
     color: "#f3f4f6",
   });
@@ -18,7 +18,7 @@ test("in dark mode, the page and its text are the tokens' dark values", async ()
   expect(StyleSheet.flatten(title.parent?.props.style)).toMatchObject({
     backgroundColor: "#0e1014",
   });
-  const note = screen.getByText("Arrives in W20-S01.");
+  const note = screen.getByText("Arrives in W23-S01.");
   expect(StyleSheet.flatten(note.props.style)).toMatchObject({
     color: "#8f95a1",
   });

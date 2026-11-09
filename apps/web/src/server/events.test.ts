@@ -71,6 +71,24 @@ describe("emit", () => {
     });
   });
 
+  // P4-W20-S01 (Q-P4-14): the app's events say which phone they came from.
+  test("an event from the app carries its platform as the source", async () => {
+    const { sink, batches } = recordingSink();
+    const events = createEmitter(sink);
+    events.emit(
+      "feed_viewed",
+      { card_count: 1 },
+      { ...context, source: "ios" },
+    );
+    events.emit(
+      "feed_viewed",
+      { card_count: 1 },
+      { ...context, source: "android" },
+    );
+    await events.flush();
+    expect(batches.flat().map((e) => e.source)).toEqual(["ios", "android"]);
+  });
+
   test("event_id is unique per emission (LOAD-5 idempotency key)", async () => {
     const { sink, batches } = recordingSink();
     const events = createEmitter(sink, { maxBatch: 10_000 });

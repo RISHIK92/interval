@@ -15,6 +15,14 @@ export function fromSiteOrApp(request: Request): boolean {
   );
 }
 
+// P4-W20-S01 (Q-P4-14): the app's events name its platform; undefined for the site.
+// The client sets it, so it's for analytics only: never an authorization.
+export function appPlatform(request: Request): "ios" | "android" | undefined {
+  if (request.headers.get("expo-origin") !== "interval://") return undefined;
+  const platform = request.headers.get("interval-platform");
+  return platform === "ios" || platform === "android" ? platform : undefined;
+}
+
 export function sameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
   if (origin === new URL(env().BETTER_AUTH_URL).origin) return true;

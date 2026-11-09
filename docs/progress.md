@@ -3616,3 +3616,44 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - refusals logged;
   - unusable keys mean off, never a crash.
 - **Not verified:** real delivery, which needs the owner's Apple Developer and Firebase accounts (runbook).
+
+### 2026-11-09 — P4-W20-S01 (native feed; §5A, CACHE-1, PER-1, Q-P4-14)
+
+- **Shared:** `packages/api-client` (zod only):
+  - `FeedCard`, `FeedResponse`, `CHIPS`, `CARD_CONTROLS`, and `FeedSetup` (the 409's body);
+  - the web route is typed by them, and the app parses with them.
+- **Web:**
+  - `server/card-controls.ts` holds `applyControl`, now shared by the feedback action and the app;
+  - `GET /api/feed` reads as Home reads it:
+    - accounts only, and `feed.read` is required (ADR-0036);
+    - no chip means the onboarding break length;
+    - 409 names onboarding or the username;
+    - finished live matches are applied first;
+    - the cards in Continue reading are left out;
+    - it records `feed_viewed`;
+  - `POST /api/feed/control` (`feed.read`, then `applyControl`);
+  - `appPlatform` reads `interval-platform` (analytics only);
+  - the events envelope's `source` gains ios and android; app events carry `sessionId: null`.
+- **App:**
+  - Home has chips (the server's chip is adopted, and a slower answer for an earlier chip is dropped) and a FlatList with pull to refresh from every state;
+  - messages for loading, set up on the web, the plan without the feed, failed, and empty;
+  - `FeedCard`:
+    - the explanation, or instead the AI-labeled project note "For your project …" (as the PWA);
+    - Save/Saved;
+    - the menu (ActionSheetIOS / Alert);
+  - save and remove are optimistic and undone when the server refuses or can't be reached; after a removal, the feed is read again (Hide source takes the source's other cards, and an earlier read in flight is dropped);
+  - `/read/[item]` is a placeholder until W20-S02, which also records `card_opened`.
+- **Also:** `native_push.deliver` no longer imports httpx (S04b had broken the architecture test on main).
+- **Checks:** the full check, 40 of 40 (web 1446, mobile 26, Python 1383, infra 90); after the second review, mobile 28.
+- **Reviewer fixes:**
+  - the plan gate;
+  - the onboarding chip;
+  - setup reasons;
+  - the match evidence;
+  - stale answers;
+  - rollback;
+  - refresh from failure;
+  - the project note's wording;
+  - second review: re-read after removal, and a network-failure test.
+- **Not changed:** the plan is checked before setup, so an account without the feed and not yet onboarded gets 403, not 409.
+- **Not verified:** on a simulator or phone (jest only).

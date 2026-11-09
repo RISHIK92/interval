@@ -309,7 +309,7 @@ const base = {
   is_guest: z.boolean(),
   beta_group: z.enum(["student", "developer"]),
   session_id: z.string().min(1).nullable(),
-  source: z.enum(["web", "jobs"]),
+  source: z.enum(["web", "jobs", "ios", "android"]),
 };
 
 // Q-P1-20: every event carries the same envelope; name and version pick its props.

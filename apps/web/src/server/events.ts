@@ -14,6 +14,8 @@ export type EventContext = {
   isGuest: boolean;
   betaGroup: BetaGroup;
   sessionId: string | null;
+  // P4-W20-S01 (Q-P4-14): the native app's platform; the site's own pages are "web".
+  source?: "ios" | "android";
 };
 
 export type Emitter = {
@@ -80,7 +82,7 @@ export function createEmitter(
         is_guest: context.isGuest,
         beta_group: context.betaGroup,
         session_id: context.sessionId,
-        source: "web",
+        source: context.source ?? "web",
         props,
       });
       if (!parsed.success) {

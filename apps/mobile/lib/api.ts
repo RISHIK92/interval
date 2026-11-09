@@ -1,3 +1,4 @@
+import { Platform } from "react-native";
 import { SITE, authClient } from "./auth";
 
 // P4-W19-S04a: the app's calls to the site's API, with the session cookie (Better Auth's
@@ -14,6 +15,8 @@ export async function api(
     headers: {
       "content-type": "application/json",
       "expo-origin": "interval://",
+      // Q-P4-14: the app's events name its platform.
+      "interval-platform": Platform.OS,
       cookie: await authClient.getCookie(),
     },
     ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),

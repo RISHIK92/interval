@@ -12,9 +12,6 @@
     "android": {
       "package": "dev.interval.app"
     },
-    "plugins": ["expo-router", "expo-notifications"],
-    "experiments": {
-      "typedRoutes": true
-    }
+    "plugins": ["expo-router", "expo-notifications"]
   }
 }

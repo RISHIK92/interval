@@ -72,6 +72,7 @@ ADRs the answers need, each before its first slice (PROPOSED until the owner acc
 - Needs: S01
 - Goal: the publisher's page in a WebView with Interval's bottom sheet on top: why this matters, save, note, Test 60s.
 - Acceptance: the page is the publisher's, never a copy (§3.2); the sheet's actions use the existing APIs; a non-frameable page loads too (a WebView isn't an iframe).
+- Note (from W20-S01): opening a card records `card_opened` here, with the app's source (Q-P4-14); W20-S01's card links to a placeholder reader.
 
 ### P4-W20-S03 Section scrolling and automatic progress
 

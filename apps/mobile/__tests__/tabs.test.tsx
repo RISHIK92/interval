@@ -6,7 +6,8 @@ test("the five areas are tabs, Home first", async () => {
   await renderRouter("./app", { initialUrl: "/" });
   for (const tab of ["Home", "Explore", "Paths", "Play", "Library"])
     expect(await screen.findAllByText(tab)).not.toHaveLength(0);
-  expect(screen.getByText("Arrives in W20-S01.")).toBeOnTheScreen();
+  // P4-W20-S01: Home is the feed (here with no network).
+  expect(await screen.findByText(/Couldn't load your feed/)).toBeOnTheScreen();
 });
 
 test("the avatar opens Profile", async () => {
@@ -16,7 +17,6 @@ test("the avatar opens Profile", async () => {
 });
 
 test.each([
-  ["/", "W20-S01"],
   ["/explore", "a later phase"],
   ["/paths", "W21-S03"],
   ["/play", "W21-S01"],

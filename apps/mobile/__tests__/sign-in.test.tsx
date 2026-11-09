@@ -43,7 +43,7 @@ test("signing in opens the tabs; Profile shows who, and Sign out goes back", asy
   );
   await fireEvent.changeText(screen.getByLabelText("Password"), "the-password");
   await fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
-  expect(await screen.findByText("Arrives in W20-S01.")).toBeOnTheScreen();
+  expect(await screen.findByText(/Couldn't load your feed/)).toBeOnTheScreen();
   await fireEvent.press(screen.getByLabelText("Profile"));
   expect(await screen.findByText("ada@example.test")).toBeOnTheScreen();
   await fireEvent.press(screen.getByRole("button", { name: "Sign out" }));
