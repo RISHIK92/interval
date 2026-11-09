@@ -3692,3 +3692,39 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the tests.
 - **Not verified:** on a simulator. The app's native modules (expo-notifications, react-native-webview) need the owner's rebuild.
 - **Out of scope:** the "Finished?" prompt on return (C-22); scrolling to the section and automatic progress (W20-S03).
+
+### 2026-11-09 — P4-W20-S03 (section scrolling and automatic progress; §5D)
+
+- **Owner, 2026-11-09:**
+  - read through means the screen's bottom has passed 90% of the section (to the next section's start, or the page's end for the last one), and the reader has been open half the moment's minutes, at least 30 s;
+  - then a quiet "Section finished" line, and the reader stays;
+  - articles and page-top links aren't measured (Mark done).
+- **Data:**
+  - `finish_method` gains `auto` (migration 20261109010000; the down rebuilds the type, checked locally);
+  - `section_finished` and `article_finished` go to v3 with auto (the article completed by an auto section finish is auto too, Q-P1-35);
+  - no metric query filters on method.
+- **Web:**
+  - `ReaderPage` gains the section's minutes and the next section's link;
+  - `sectionMarker` reads an anchor's id or a text fragment's start from a stored link;
+  - `GET /api/read/[item]` returns `measure {start, end, minutes}` only for a reached section shown in the app with findable markers;
+  - `POST /api/read/finish` takes `method: auto` for a section only.
+- **App:**
+  - `lib/progress-script.ts`, the injected script: a string, because Hermes keeps no function source; ES5, strict, the markers in as JSON.
+    - It measures only on the section's own page (the WebView injects it on every load);
+    - it scrolls to the start, then reports every new furthest point, or unmeasurable when a marker isn't found or the end comes before the start.
+  - The reader's `useAutoFinish` finishes once, at or after the time floor. A failed send is retried after 15 s, and an answer for an earlier section is ignored.
+  - Page messages are untrusted: type and range are checked.
+- **Tests:** the script runs in a node vm against a page whose objects throw on any write or mutating call (the slice's "never writes to the DOM"), plus finding by id and by text (permalink glyphs ignored), progress, another page, the end above the start, and a short section.
+- **Checks:**
+  - the full check: web 1467, mobile 49 (54 after the review), Python 1383;
+  - infra 90 alone (the synth hook timed out under load again).
+- **Reviewer fixes:**
+  - another page;
+  - the end above the start;
+  - the retry;
+  - every new maximum reported;
+  - a stale section's answer;
+  - the glyphs;
+  - strict mode.
+- **Left:** the time floor starts when the reader's data arrives, not at the page's load.
+- **Not verified:** in a real WebView (needs the owner's simulator rebuild).

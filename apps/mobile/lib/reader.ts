@@ -36,8 +36,12 @@ const sent = async (path: string, method: string, body: object) => {
 const on = (itemId: string, momentId: string | null) =>
   momentId === null ? { itemId } : { itemId, momentId };
 
-export const markDone = (itemId: string, momentId: string | null) =>
-  sent("/api/read/finish", "POST", on(itemId, momentId));
+// Mark done, or auto: the reader saw the section read through (P4-W20-S03).
+export const markDone = (
+  itemId: string,
+  momentId: string | null,
+  method: "mark_done" | "auto" = "mark_done",
+) => sent("/api/read/finish", "POST", { ...on(itemId, momentId), method });
 
 // Empty deletes the note (§5I).
 export const writeNote = (

@@ -63,3 +63,22 @@ test("a guest, another site or a bad body: refused", async () => {
   expect((await post({ itemId: "x" })).status).toBe(400);
   expect(finishReading).not.toHaveBeenCalled();
 });
+
+// P4-W20-S03 (§5D): the reader's own finish, for a section only.
+test("an automatic finish is a section's, recorded as auto", async () => {
+  current.mockResolvedValue(account);
+  expect(
+    (await post({ itemId: "5", momentId: "9", method: "auto" })).status,
+  ).toBe(204);
+  expect(finishReading).toHaveBeenCalledWith(
+    expect.anything(),
+    "5",
+    "9",
+    "auto",
+  );
+  expect((await post({ itemId: "5", method: "auto" })).status).toBe(400);
+  expect((await post({ itemId: "5", method: "return_prompt" })).status).toBe(
+    400,
+  );
+  expect(finishReading).toHaveBeenCalledTimes(1);
+});

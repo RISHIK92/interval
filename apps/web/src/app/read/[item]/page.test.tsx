@@ -55,6 +55,8 @@ const page: ReaderPage = {
   reasons: "Good prep for system design interviews: Caching.",
   saved: false,
   nextMomentId: "10",
+  estimatedMinutes: null,
+  nextLink: null,
 };
 
 afterEach(() => {

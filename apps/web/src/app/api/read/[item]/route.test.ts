@@ -37,6 +37,8 @@ const page: ReaderPage = {
   reasons: null,
   saved: true,
   nextMomentId: "10",
+  estimatedMinutes: 6,
+  nextLink: "https://www.blog.dev/raft#log-replication",
 };
 
 afterEach(() => {
@@ -65,6 +67,12 @@ test("a feed card's open: the page, attributed, in the app even if it can't be f
     reached: "9",
     nextMomentId: "10",
     note: "Mine.",
+    // P4-W20-S03: from this section's start to the next one's.
+    measure: {
+      start: { id: "election" },
+      end: { id: "log-replication" },
+      minutes: 6,
+    },
   });
   expect(reader).toHaveBeenCalledWith("u1", "5", "9");
   expect(noteOf).toHaveBeenCalledWith("u1", "5", "9");
@@ -90,7 +98,12 @@ test("a link without a card is from=reader; a page not on https is a browser ope
   });
   const body = ReaderResponse.parse(await (await get("?moment=9")).json());
   // Not https: the browser, as the web's /out.
-  expect(body).toMatchObject({ inApp: false, reached: null, title: "Raft" });
+  expect(body).toMatchObject({
+    inApp: false,
+    reached: null,
+    title: "Raft",
+    measure: null,
+  });
   expect(noteOf).toHaveBeenCalledWith("u1", "5", null);
   expect(countOpen).toHaveBeenCalledWith(
     expect.anything(),
@@ -113,4 +126,42 @@ test("a guest, another site, a bad query or an unknown item: refused", async () 
   reader.mockResolvedValue(null);
   expect((await get("")).status).toBe(404);
   expect(countOpen).not.toHaveBeenCalled();
+});
+
+// P4-W20-S03 (§5D): only a section with a findable start, and an end unless it is last.
+test.each([
+  [
+    "a text fragment, the last section: to the page's end",
+    { url: "https://blog.dev/raft#:~:text=Leader%20election", nextLink: null },
+    { start: { text: "Leader election" }, end: null, minutes: 6 },
+  ],
+  [
+    "a next section without a marker: nothing to measure",
+    {
+      url: "https://blog.dev/raft#election",
+      nextLink: "https://blog.dev/raft",
+    },
+    null,
+  ],
+  [
+    "a page-top link: nothing to measure",
+    { url: "https://blog.dev/raft", nextLink: null },
+    null,
+  ],
+])("%s", async (_, links, measure) => {
+  current.mockResolvedValue(account);
+  reader.mockResolvedValue({
+    ...page,
+    link: {
+      url: links.url,
+      linkType: links.url.includes("#:~:")
+        ? "text_fragment"
+        : links.url.includes("#")
+          ? "anchor"
+          : "page_top",
+    },
+    nextLink: links.nextLink,
+  });
+  const body = ReaderResponse.parse(await (await get("?moment=9")).json());
+  expect(body.measure).toEqual(measure);
 });

@@ -6,8 +6,8 @@ import {
   outboundLinks,
   sessionReader,
 } from "../../../../server/container";
-import { attributed, countOpen } from "../../../../server/opens";
-import { BIGINT_ID } from "../../../../server/ports";
+import { attributed, countOpen, sectionMarker } from "../../../../server/opens";
+import { BIGINT_ID, type ReaderPage } from "../../../../server/ports";
 import { appPlatform, fromSiteOrApp } from "../../../../server/same-origin";
 
 export const dynamic = "force-dynamic";
@@ -71,6 +71,7 @@ export async function GET(
   // The section really reached; a link that fell back is the article (as /out says).
   const reached = page.link.linkType === "article" ? null : (moment ?? null);
   const body: ReaderResponse = {
+    measure: measure(page, reached, inApp),
     url,
     inApp,
     title:
@@ -84,4 +85,18 @@ export async function GET(
     note: await notes().get(actor.userId, item, reached),
   };
   return Response.json(body, { headers: { "Cache-Control": "no-store" } });
+}
+
+// P4-W20-S03 (§5D, owner 2026-11-09): a section the app's reader can measure: shown in
+// the app, reached, with a findable start, and an end unless it is the last section.
+function measure(
+  page: ReaderPage,
+  reached: string | null,
+  inApp: boolean,
+): ReaderResponse["measure"] {
+  if (!inApp || reached === null || page.estimatedMinutes === null) return null;
+  const start = sectionMarker(page.link.url);
+  const end = page.nextLink === null ? null : sectionMarker(page.nextLink);
+  if (start === null || (page.nextLink !== null && end === null)) return null;
+  return { start, end, minutes: page.estimatedMinutes };
 }

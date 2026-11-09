@@ -5,7 +5,7 @@ import {
   type ReaderResponse,
 } from "@interval/api-client";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Linking,
   Pressable,
@@ -17,6 +17,7 @@ import {
 import { WebView } from "react-native-webview";
 import { useColors } from "../../components/theme";
 import { sendControl } from "../../lib/feed";
+import { progressScript } from "../../lib/progress-script";
 import {
   markDone,
   readPage,
@@ -26,6 +27,13 @@ import {
 
 // ADR-0018: without a load by then the page may be blank, so the browser is offered.
 const STUCK_MS = 6000;
+// P4-W20-S03 (§5D, owner 2026-11-09): a section is read through once the screen's bottom
+// has passed 90% of it and the reader has been open half its minutes, 30 s at least.
+const READ_THROUGH = 0.9;
+const TIME_SHARE = 0.5;
+const MIN_SECONDS = 30;
+// A failed automatic finish is tried again after this.
+const RETRY_MS = 15_000;
 
 type State =
   | { status: "loading" }
@@ -95,6 +103,9 @@ export default function ReaderScreen() {
   }, [item, moment, chip, pos]);
 
   const page = state.status === "ok" ? state.page : null;
+  const onMeasure = useAutoFinish(page, item, () => {
+    setDoneStatus("Section finished");
+  });
   useEffect(() => {
     if (page === null || !page.inApp) return;
     const timer = setTimeout(() => {
@@ -201,6 +212,18 @@ export default function ReaderScreen() {
             onHttpError={() => {
               setPhase("broken");
             }}
+            {...(page.measure === null
+              ? {}
+              : {
+                  injectedJavaScript: progressScript(
+                    page.url,
+                    page.measure.start,
+                    page.measure.end,
+                  ),
+                  onMessage: (event: { nativeEvent: { data: string } }) => {
+                    onMeasure(event.nativeEvent.data);
+                  },
+                })}
           />
         ) : (
           <View style={[styles.page, styles.centered, { padding: 24 }]}>
@@ -317,6 +340,102 @@ export default function ReaderScreen() {
       </View>
     </View>
   );
+}
+
+// The page script's word (lib/progress-script.ts), checked: the page could post too.
+function measured(
+  data: string,
+): { type: "progress"; value: number } | { type: "unmeasurable" } | null {
+  let message: unknown;
+  try {
+    message = JSON.parse(data);
+  } catch {
+    return null;
+  }
+  if (typeof message !== "object" || message === null) return null;
+  if ("type" in message && message.type === "unmeasurable")
+    return { type: "unmeasurable" };
+  if (
+    "type" in message &&
+    message.type === "progress" &&
+    "value" in message &&
+    typeof message.value === "number" &&
+    message.value >= 0 &&
+    message.value <= 1
+  )
+    return { type: "progress", value: message.value };
+  return null;
+}
+
+// P4-W20-S03 (§5D): finishes the section once, by itself, when it has been read through
+// (owner, 2026-11-09: a quiet line, the reader stays). A failed send is tried again.
+function useAutoFinish(
+  page: ReaderResponse | null,
+  item: string,
+  finished: () => void,
+): (data: string) => void {
+  const opened = useRef(0);
+  const furthest = useRef(0);
+  const sent = useRef(false);
+  // Which section's clock this is: an answer for an earlier one (after Next section)
+  // changes nothing here.
+  const section = useRef(0);
+  const retry = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  // The latest callback, so a new one each render doesn't restart the clock.
+  const onFinished = useRef(finished);
+  onFinished.current = finished;
+  const reached = page?.reached ?? null;
+  const floorMs =
+    page?.measure == null
+      ? null
+      : Math.max(MIN_SECONDS, page.measure.minutes * 60 * TIME_SHARE) * 1000;
+  const check = useCallback(() => {
+    if (reached === null || floorMs === null || sent.current) return;
+    if (furthest.current < READ_THROUGH) return;
+    if (Date.now() - opened.current < floorMs) return;
+    sent.current = true;
+    const mine = section.current;
+    void markDone(item, reached, "auto")
+      .catch((error: unknown) => {
+        console.warn("reader: automatic finish not sent", error);
+        return false;
+      })
+      .then((ok) => {
+        if (mine !== section.current) return;
+        if (ok) {
+          onFinished.current();
+          return;
+        }
+        sent.current = false;
+        retry.current = setTimeout(check, RETRY_MS);
+      });
+  }, [item, reached, floorMs]);
+  useEffect(() => {
+    if (floorMs === null) return;
+    section.current += 1;
+    opened.current = Date.now();
+    furthest.current = 0;
+    sent.current = false;
+    // Read through before the floor: it finishes when the floor passes.
+    const timer = setTimeout(check, floorMs);
+    return () => {
+      section.current += 1;
+      clearTimeout(timer);
+      clearTimeout(retry.current);
+    };
+  }, [page, floorMs, check]);
+  return (data: string) => {
+    const message = measured(data);
+    if (message === null) {
+      console.warn("reader: a message not from the measuring script");
+    } else if (message.type === "unmeasurable") {
+      // Owner, 2026-11-09: no automatic finish; Mark done stays.
+      console.warn("reader: the section isn't in the page", { item, reached });
+    } else {
+      furthest.current = Math.max(furthest.current, message.value);
+      check();
+    }
+  };
 }
 
 // Shown, not usable yet (owner, ADR-0018 and 2026-11-09): Highlight and Listen come

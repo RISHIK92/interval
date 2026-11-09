@@ -115,6 +115,10 @@ export type ReaderPage = {
   reasons: string | null;
   saved: boolean;
   nextMomentId: string | null; // the section after the one reached, by order
+  // P4-W20-S03: what the app's reader measures: the reached section's minutes and
+  // where the next section starts (its link). Null with no section reached / no next.
+  estimatedMinutes: number | null;
+  nextLink: string | null;
 };
 export interface OutboundLinks {
   resolve(
@@ -131,7 +135,8 @@ export interface OutboundLinks {
 
 // Finishing sections and articles (§5D, C-22, Q-P1-35, P1-W5-S02). Each finish
 // returns whether it changed anything: the first is kept, and only it counts.
-export type FinishMethod = "return_prompt" | "mark_done";
+// auto: the app's reader saw the section read through (P4-W20-S03).
+export type FinishMethod = "return_prompt" | "mark_done" | "auto";
 export type ConceptsByTopic = {
   topic: Topic;
   // due: its FSRS card has come due (P2-W9-S04), shown beside the state.

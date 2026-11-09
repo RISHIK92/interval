@@ -56,7 +56,7 @@ export type EventName = (typeof EVENT_NAMES)[number];
 export const EVENT_VERSIONS = {
   agent_task_finished: 1,
   agent_task_started: 1,
-  article_finished: 2,
+  article_finished: 3,
   book_checkpoint_finished: 1,
   book_checkpoint_started: 1,
   book_deleted: 1,
@@ -97,7 +97,7 @@ export const EVENT_VERSIONS = {
   quiz_finished: 1,
   quiz_started: 2,
   reason_reported: 1,
-  section_finished: 2,
+  section_finished: 3,
   session_started: 1,
   signup_completed: 1,
   source_hidden: 1,
@@ -111,7 +111,7 @@ export const propsSchemas = {
   }),
   agent_task_started: z.strictObject({}),
   article_finished: z.strictObject({
-    method: z.enum(["return_prompt", "mark_done"]),
+    method: z.enum(["return_prompt", "mark_done", "auto"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   book_checkpoint_finished: z.strictObject({
@@ -285,7 +285,7 @@ export const propsSchemas = {
     ]),
   }),
   section_finished: z.strictObject({
-    method: z.enum(["return_prompt", "mark_done"]),
+    method: z.enum(["return_prompt", "mark_done", "auto"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     moment_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
@@ -329,7 +329,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("article_finished"),
-    version: z.literal(2),
+    version: z.literal(3),
     props: propsSchemas.article_finished,
   }),
   z.strictObject({
@@ -575,7 +575,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("section_finished"),
-    version: z.literal(2),
+    version: z.literal(3),
     props: propsSchemas.section_finished,
   }),
   z.strictObject({

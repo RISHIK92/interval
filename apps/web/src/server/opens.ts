@@ -1,3 +1,4 @@
+import type { Marker } from "@interval/api-client";
 import type { Chip } from "./chips";
 import { events, progress } from "./container";
 import type { EventContext } from "./events";
@@ -65,4 +66,24 @@ export async function countOpen(
   } else if (open.from === "continue") {
     events().emit("continue_clicked", {}, context);
   }
+}
+
+// P4-W20-S03 (§5D): where a stored section link points in its page, for the app's
+// reader to measure: an anchor's id or a text fragment's start (the segmenter writes
+// only ":~:text=<start>", percent-encoded). Null for a link without either.
+export function sectionMarker(link: string): Marker | null {
+  const hash = link.indexOf("#");
+  if (hash === -1) return null;
+  const fragment = link.slice(hash + 1);
+  const text = fragment.startsWith(":~:text=")
+    ? fragment.slice(":~:text=".length).split(/[,&]/, 1)[0]
+    : null;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(text ?? fragment);
+  } catch {
+    return null;
+  }
+  if (decoded.trim() === "") return null;
+  return text === null ? { id: decoded } : { text: decoded };
 }

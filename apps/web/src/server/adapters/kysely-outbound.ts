@@ -58,7 +58,7 @@ export function kyselyOutboundLinks(db: Kysely<DB>): OutboundLinks {
           ? undefined
           : await db
               .selectFrom("moment")
-              .select(["title", "ordinal"])
+              .select(["title", "ordinal", "estimated_minutes"])
               .where("id", "=", reached)
               .executeTakeFirstOrThrow();
       // resolve() checked the source allows moments; the next one shares the source.
@@ -67,7 +67,7 @@ export function kyselyOutboundLinks(db: Kysely<DB>): OutboundLinks {
           ? undefined
           : await db
               .selectFrom("moment")
-              .select("id")
+              .select(["id", "link"])
               .where("content_item_id", "=", itemId)
               .where("ordinal", ">", section.ordinal)
               .orderBy("ordinal")
@@ -92,6 +92,8 @@ export function kyselyOutboundLinks(db: Kysely<DB>): OutboundLinks {
         reasons: entry?.reasons ?? null,
         saved: item.saved,
         nextMomentId: next?.id ?? null,
+        estimatedMinutes: section?.estimated_minutes ?? null,
+        nextLink: next?.link ?? null,
       };
     },
   };

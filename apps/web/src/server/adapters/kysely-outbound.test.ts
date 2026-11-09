@@ -205,18 +205,25 @@ test("the reader gets the link, titles, the user's note and save, and the next s
       reasons: "Good prep for system design interviews: Caching.",
       saved: true,
       nextMomentId: next.id,
+      // P4-W20-S03: what the app's reader measures, to the next section's start.
+      estimatedMinutes: 3,
+      nextLink: "https://out.example.test/post#paxos",
     });
     // The last section has no next; it has no feed entry, so no reasons.
     expect(await links.reader(userId, itemId, next.id)).toMatchObject({
       sectionTitle: "Paxos",
       reasons: null,
       nextMomentId: null,
+      estimatedMinutes: 4,
+      nextLink: null,
     });
     // The whole article: no section, so no next either.
     expect(await links.reader(userId, itemId, null)).toMatchObject({
       link: { url: "https://out.example.test/post", linkType: "article" },
       sectionTitle: null,
       nextMomentId: null,
+      estimatedMinutes: null,
+      nextLink: null,
     });
   });
 });

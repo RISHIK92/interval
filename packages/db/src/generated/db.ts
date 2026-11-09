@@ -35,7 +35,7 @@ export type Difficulty = "advanced" | "beginner" | "intermediate";
 
 export type FeedbackKind = "less_like_this" | "more_like_this" | "not_interested";
 
-export type FinishMethod = "mark_done" | "return_prompt";
+export type FinishMethod = "auto" | "mark_done" | "return_prompt";
 
 export type FlagReason = "not_in_section" | "other" | "unclear" | "wrong_key";
 

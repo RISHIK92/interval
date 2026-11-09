@@ -130,6 +130,24 @@ test("a section or an article is finished once; a repeat changes nothing", async
   });
 });
 
+// P4-W20-S03: the app reader's automatic finish is stored as auto.
+test("an automatic finish is kept with its method", async () => {
+  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+    const progress = kyselyProgress(trx);
+    const [first] = momentIds;
+    if (first === undefined) throw new Error("seed");
+    expect(await progress.finishMoment(userId, itemId, first, "auto")).toBe(
+      true,
+    );
+    const kept = await trx
+      .selectFrom("user_moment_finished")
+      .select("method")
+      .where("user_id", "=", userId)
+      .execute();
+    expect(kept).toEqual([{ method: "auto" }]);
+  });
+});
+
 test("the next section follows by order; the last has none", async () => {
   await inRollback(async (trx, { itemId, momentIds }) => {
     const progress = kyselyProgress(trx);

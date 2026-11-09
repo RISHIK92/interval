@@ -13,6 +13,7 @@ const page = {
   reached: "9",
   nextMomentId: "10",
   note: null,
+  measure: null,
 };
 const fetchMock = jest.fn<Promise<Response>, [string, RequestInit]>();
 const calls = () =>
@@ -37,6 +38,8 @@ const webView = () =>
     source: { uri: string };
     onLoadEnd: () => void;
     onError: () => void;
+    injectedJavaScript?: string;
+    onMessage?: (event: { nativeEvent: { data: string } }) => void;
   };
 
 beforeEach(() => {
@@ -89,7 +92,7 @@ test("Mark done finishes what's shown and leaves", async () => {
   expect(calls()).toContainEqual({
     url: "/api/read/finish",
     method: "POST",
-    body: { itemId: "5", momentId: "9" },
+    body: { itemId: "5", momentId: "9", method: "mark_done" },
   });
   expect(screen).toHavePathname("/");
 });
@@ -208,4 +211,103 @@ test("a page not served over https goes to the browser, not the WebView", async 
     await screen.findByRole("button", { name: "Open on blog.dev" }),
   ).toBeOnTheScreen();
   expect(screen.queryByTestId("publisher-page")).toBeNull();
+});
+
+// P4-W20-S03 (§5D, owner 2026-11-09): read through is 90% of the section after half its
+// minutes (30 s at least); the reader then finishes it once, quietly, and stays.
+const measured = {
+  ...page,
+  measure: { start: { id: "election" }, end: { id: "log" }, minutes: 2 },
+};
+const report = async (data: unknown) => {
+  await act(async () => {
+    webView().onMessage?.({ nativeEvent: { data: JSON.stringify(data) } });
+    await Promise.resolve();
+  });
+};
+const finishes = () => calls().filter((c) => c.url === "/api/read/finish");
+
+test("no section to measure: no script", async () => {
+  await renderRouter("./app", { initialUrl: OPEN });
+  await screen.findByText("blog.dev");
+  expect(webView().injectedJavaScript).toBeUndefined();
+});
+
+test("read through before the time floor finishes when it passes, once", async () => {
+  jest.useFakeTimers();
+  answer(measured);
+  await renderRouter("./app", { initialUrl: OPEN });
+  await screen.findByText("blog.dev");
+  expect(webView().injectedJavaScript).toContain('{"id":"election"}');
+  await report({ type: "progress", value: 0.95 });
+  expect(finishes()).toEqual([]);
+  // Half of 2 minutes is 60 s.
+  await act(async () => {
+    jest.advanceTimersByTime(60_000);
+    await Promise.resolve();
+  });
+  expect(await screen.findByText("Section finished")).toBeOnTheScreen();
+  await report({ type: "progress", value: 1 });
+  expect(finishes()).toEqual([
+    {
+      url: "/api/read/finish",
+      method: "POST",
+      body: { itemId: "5", momentId: "9", method: "auto" },
+    },
+  ]);
+  expect(screen).toHavePathname("/read/5");
+});
+
+test("short of 90%, an unmeasurable section or a stray message: never finished", async () => {
+  jest.useFakeTimers();
+  answer({ ...measured, measure: { ...measured.measure, minutes: 1 } });
+  await renderRouter("./app", { initialUrl: OPEN });
+  await screen.findByText("blog.dev");
+  const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+  await act(async () => {
+    // A one-minute section still waits 30 s.
+    jest.advanceTimersByTime(30_000);
+    await Promise.resolve();
+  });
+  await report({ type: "progress", value: 0.85 });
+  await report({ type: "progress", value: 7 });
+  await report("not the script");
+  await report({ type: "unmeasurable" });
+  expect(finishes()).toEqual([]);
+  expect(warn).toHaveBeenCalledWith(
+    "reader: the section isn't in the page",
+    expect.anything(),
+  );
+  warn.mockRestore();
+});
+
+test("an automatic finish that fails is tried again", async () => {
+  jest.useFakeTimers();
+  let failures = 1;
+  fetchMock.mockImplementation((url) => {
+    if (url.includes("/api/read/5?"))
+      return Promise.resolve(Response.json(measured));
+    if (url.endsWith("/api/read/finish") && failures > 0) {
+      failures -= 1;
+      return Promise.resolve(new Response(null, { status: 503 }));
+    }
+    return Promise.resolve(new Response(null, { status: 204 }));
+  });
+  const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+  await renderRouter("./app", { initialUrl: OPEN });
+  await screen.findByText("blog.dev");
+  await act(async () => {
+    jest.advanceTimersByTime(60_000);
+    await Promise.resolve();
+  });
+  await report({ type: "progress", value: 1 });
+  expect(finishes()).toHaveLength(1);
+  expect(screen.queryByText("Section finished")).toBeNull();
+  await act(async () => {
+    jest.advanceTimersByTime(15_000);
+    await Promise.resolve();
+  });
+  expect(await screen.findByText("Section finished")).toBeOnTheScreen();
+  expect(finishes()).toHaveLength(2);
+  warn.mockRestore();
 });

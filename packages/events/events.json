@@ -38,19 +38,19 @@
       }
     },
     "section_finished": {
-      "version": 2,
-      "description": "A moment's section was finished (Q-P1-21 \"finished\"). v2 adds the ids (P1-W6-S04).",
+      "version": 3,
+      "description": "A moment's section was finished (Q-P1-21 \"finished\"). v2 adds the ids (P1-W6-S04). v3 adds auto: the app's reader saw the section read through (P4-W20-S03).",
       "props": {
-        "method": ["return_prompt", "mark_done"],
+        "method": ["return_prompt", "mark_done", "auto"],
         "item_id": "id",
         "moment_id": "id"
       }
     },
     "article_finished": {
-      "version": 2,
-      "description": "A whole-article card was finished. v2 adds the item id (P1-W6-S04).",
+      "version": 3,
+      "description": "A whole-article card was finished. v2 adds the item id (P1-W6-S04). v3 adds auto: its last section finished automatically in the app (P4-W20-S03).",
       "props": {
-        "method": ["return_prompt", "mark_done"],
+        "method": ["return_prompt", "mark_done", "auto"],
         "item_id": "id"
       }
     },

@@ -28,6 +28,8 @@ const page: ReaderPage = {
   reasons: null,
   saved: false,
   nextMomentId: null,
+  estimatedMinutes: null,
+  nextLink: null,
 };
 
 afterEach(() => {

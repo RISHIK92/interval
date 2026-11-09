@@ -73,6 +73,14 @@ export type FeedSetup = z.infer<typeof FeedSetup>;
 // P4-W20-S02 (ADR-0018, §3.2): what the app's reader shows around the publisher's live
 // page: titles, the user's save and note, never the page's text. `url` opens in the
 // WebView when `inApp`; anything not https goes to the browser.
+// P4-W20-S03 (§5D): where a section starts in the publisher's page: an element's id
+// (an anchor link) or a heading's text (a text fragment).
+export const Marker = z.union([
+  z.object({ id: z.string().min(1) }),
+  z.object({ text: z.string().min(1) }),
+]);
+export type Marker = z.infer<typeof Marker>;
+
 export const ReaderResponse = z.object({
   url: z.string(),
   inApp: z.boolean(),
@@ -83,6 +91,16 @@ export const ReaderResponse = z.object({
   reached: z.string().nullable(),
   nextMomentId: z.string().nullable(),
   note: z.string().nullable(),
+  // What the reader measures to finish the section by itself: its start, the next
+  // section's start (null: the page's end, it is the last) and its minutes. Null when
+  // there is no section to measure (an article or page-top link).
+  measure: z
+    .object({
+      start: Marker,
+      end: Marker.nullable(),
+      minutes: z.number().int().positive(),
+    })
+    .nullable(),
 });
 export type ReaderResponse = z.infer<typeof ReaderResponse>;
 // As the web's notes (P2-W7-S03).

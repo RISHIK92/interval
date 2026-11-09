@@ -69,7 +69,7 @@ type Source = Literal["web", "jobs", "ios", "android"]
 EVENT_VERSIONS: dict[EventName, int] = {
     "agent_task_finished": 1,
     "agent_task_started": 1,
-    "article_finished": 2,
+    "article_finished": 3,
     "book_checkpoint_finished": 1,
     "book_checkpoint_started": 1,
     "book_deleted": 1,
@@ -110,7 +110,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "quiz_finished": 1,
     "quiz_started": 2,
     "reason_reported": 1,
-    "section_finished": 2,
+    "section_finished": 3,
     "session_started": 1,
     "signup_completed": 1,
     "source_hidden": 1,
@@ -132,7 +132,7 @@ class AgentTaskStartedProps(_Model):
 
 
 class ArticleFinishedProps(_Model):
-    method: Literal["return_prompt", "mark_done"]
+    method: Literal["return_prompt", "mark_done", "auto"]
     item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
@@ -356,7 +356,7 @@ class ReasonReportedProps(_Model):
 
 
 class SectionFinishedProps(_Model):
-    method: Literal["return_prompt", "mark_done"]
+    method: Literal["return_prompt", "mark_done", "auto"]
     item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
     moment_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
@@ -408,7 +408,7 @@ class AgentTaskStartedEvent(_EnvelopeBase):
 
 class ArticleFinishedEvent(_EnvelopeBase):
     name: Literal["article_finished"]
-    version: Literal[2]
+    version: Literal[3]
     props: ArticleFinishedProps
 
 
@@ -654,7 +654,7 @@ class ReasonReportedEvent(_EnvelopeBase):
 
 class SectionFinishedEvent(_EnvelopeBase):
     name: Literal["section_finished"]
-    version: Literal[2]
+    version: Literal[3]
     props: SectionFinishedProps
 
 
