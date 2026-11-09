@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { NotifyHere } from "../components/NotifyHere";
 import { useColors } from "../components/theme";
 import { authClient } from "../lib/auth";
+import { discardBooks } from "../lib/books";
 import { forgetThisPhone } from "../lib/push";
 
 // P4-W19-S03: who is signed in, and Sign out. The rest of Profile arrives with its slices.
@@ -19,7 +20,9 @@ export default function ProfileScreen() {
           // The session is cleared on the phone first; if the server can't be told,
           // its copy lapses on its own (30 days), so the failure is only logged.
           // P4-W19-S04a: the phone stops getting this account's pushes first.
+          // P4-W21-S04 (DB-6): no book file outlives the session.
           forgetThisPhone()
+            .then(() => discardBooks())
             .then(() => authClient.signOut())
             .catch((error: unknown) => {
               console.warn("sign out: server not told", error);

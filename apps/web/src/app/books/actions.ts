@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { books, events, jobQueue, sessionReader } from "../../server/container";
 import { removeBook, requestCheckpoint } from "../../server/books";
+import { finishBookSession } from "../../server/book-flow";
 import { log } from "../../server/log";
 import { BIGINT_ID } from "../../server/ports";
 import { visitId } from "../../server/visits";
@@ -54,31 +55,19 @@ const Finish = z.object({
 });
 
 export async function finishSessionAction(form: FormData): Promise<void> {
-  const { actor, context } = await signedIn();
+  const { context } = await signedIn();
   const parsed = Finish.safeParse({
     sessionId: textField(form, "sessionId"),
     next: textField(form, "next") || undefined,
   });
   if (!parsed.success) redirect("/paths#your-books");
   const { sessionId, next } = parsed.data;
-  const done = await books().finish(actor.userId, sessionId);
+  const done = await finishBookSession(context, sessionId);
   if (done === null) redirect("/paths#your-books");
-  if (done.firstTime)
-    events().emit(
-      "book_session_finished",
-      { book_id: done.bookId, session_id: sessionId },
-      context,
-    );
-  // S06 (Q-P2-35): the chapter's last session, just now: its checkpoint is made, and
-  // the chapter's end says when it's ready.
-  if (done.firstTime && done.chapterDone !== null) {
-    await requestCheckpoint(
-      { books: books(), queue: jobQueue() },
-      actor.userId,
-      done.chapterDone,
-    );
+  // S06 (Q-P2-35): the chapter's last session, just now: its checkpoint is being made,
+  // and the chapter's end says when it's ready.
+  if (done.chapterDone !== null)
     redirect(`/books/${done.bookId}/checkpoint/${done.chapterDone}`);
-  }
   redirect(
     next === undefined
       ? "/paths#your-books"

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { books, sessionReader } from "../../../../../server/container";
 import { BIGINT_ID } from "../../../../../server/ports";
-import { sameOrigin } from "../../../../../server/same-origin";
+import { fromSiteOrApp } from "../../../../../server/same-origin";
 
 export const dynamic = "force-dynamic";
 
@@ -10,13 +10,14 @@ const Place = z.object({
   fraction: z.number().min(0).max(1),
 });
 
-// §5F (P2-W11-S04): where the reader is in their book, posted by KeepPlace. Same origin
-// only, so another site can't move a signed-in reader's place.
+// §5F (P2-W11-S04): where the reader is in their book, posted by KeepPlace or the app's
+// reader (P4-W21-S04). This site or the app only, so another site can't move a
+// signed-in reader's place.
 export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<Response> {
-  if (!sameOrigin(request)) return new Response(null, { status: 403 });
+  if (!fromSiteOrApp(request)) return new Response(null, { status: 403 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
   const { id } = await context.params;

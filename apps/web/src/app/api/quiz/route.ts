@@ -1,8 +1,10 @@
 import { GAMES } from "@interval/api-client";
 import { z } from "zod";
 import { sessionReader } from "../../../server/container";
+import type { EventContext } from "../../../server/events";
 import { BIGINT_ID } from "../../../server/ports";
 import {
+  startBookCheckpoint,
   startCheckpoint,
   startGame,
   startTest,
@@ -15,6 +17,8 @@ const Start = z.union([
   z.object({ game: z.enum(GAMES) }),
   // P4-W21-S03 (§5F): a checkpoint on a section of the active path.
   z.object({ sectionId: z.string().regex(BIGINT_ID) }),
+  // P4-W21-S04 (Q-P2-35): a book chapter's checkpoint.
+  z.object({ chapterId: z.string().regex(BIGINT_ID) }),
   z.object({
     itemId: z.string().regex(BIGINT_ID),
     momentId: z.string().regex(BIGINT_ID).optional(),
@@ -36,21 +40,24 @@ export async function POST(request: Request): Promise<Response> {
     sessionId: null,
     ...(source === undefined ? {} : { source }),
   };
-  const started =
-    "game" in body.data
-      ? await startGame(context, body.data.game)
-      : "sectionId" in body.data
-        ? actor.isGuest
-          ? null
-          : await startCheckpoint(context, body.data.sectionId)
-        : await startTest(
-            context,
-            body.data.itemId,
-            body.data.momentId ?? null,
-          );
+  const started = await start(context, actor.isGuest, body.data);
   if (started === "forbidden") return new Response(null, { status: 403 });
   // Nothing to play: no live question, every one asked this week, or no daily set.
   if (started === null || started === "none")
     return new Response(null, { status: 404 });
   return Response.json({ attemptId: started.attemptId }, { status: 201 });
+}
+
+// Checkpoints are on a path or a book, which guests have none of (ADR-0029).
+async function start(
+  context: EventContext,
+  guest: boolean,
+  asked: z.infer<typeof Start>,
+): Promise<{ attemptId: string } | "forbidden" | "none" | null> {
+  if ("game" in asked) return startGame(context, asked.game);
+  if ("sectionId" in asked)
+    return guest ? null : startCheckpoint(context, asked.sectionId);
+  if ("chapterId" in asked)
+    return guest ? null : startBookCheckpoint(context, asked.chapterId);
+  return startTest(context, asked.itemId, asked.momentId ?? null);
 }

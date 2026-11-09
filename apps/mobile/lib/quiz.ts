@@ -19,7 +19,9 @@ export const startQuiz = async (
     | { game: Game }
     | { itemId: string; momentId?: string }
     // P4-W21-S03: a path section's checkpoint.
-    | { sectionId: string },
+    | { sectionId: string }
+    // P4-W21-S04: a book chapter's checkpoint.
+    | { chapterId: string },
 ) => got(await api("/api/quiz", { method: "POST", body }), QuizStarted, "quiz");
 
 export const readQuiz = async (attemptId: string) =>

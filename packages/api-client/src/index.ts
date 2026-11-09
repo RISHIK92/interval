@@ -323,3 +323,65 @@ export const PathResponse = z.object({
   ),
 });
 export type PathResponse = z.infer<typeof PathResponse>;
+
+// P4-W21-S04 (§5F, DB-6): the user's own PDF books, read in sessions in the app.
+export const BooksResponse = z.object({
+  books: z.array(
+    z.object({
+      bookId: ID,
+      title: z.string(),
+      done: z.number().int().nonnegative(),
+      of: z.number().int().nonnegative(),
+      first: ID,
+      started: z.boolean(),
+      // Where it opens; null once every session is finished.
+      next: ID.nullable(),
+    }),
+  ),
+});
+export type BooksResponse = z.infer<typeof BooksResponse>;
+export const BookReading = z.object({
+  bookId: ID,
+  bookTitle: z.string(),
+  chapterTitle: z.string(),
+  sessionId: ID,
+  title: z.string(),
+  minutes: z.number().nonnegative(),
+  firstPage: z.number().int().positive(),
+  lastPage: z.number().int().positive(),
+  finished: z.boolean(),
+  // Where the user left off in this session, 0 to 1.
+  fraction: z.number().min(0).max(1).nullable(),
+  previous: ID.nullable(),
+  next: ID.nullable(),
+  place: z.number().int().positive(),
+  of: z.number().int().positive(),
+});
+export type BookReading = z.infer<typeof BookReading>;
+export const BookFinished = z.object({
+  // A chapter's last session: its checkpoint is being made.
+  chapterDone: ID.nullable(),
+});
+export const ChapterEnd = z.object({
+  bookId: ID,
+  bookTitle: z.string(),
+  chapterId: ID,
+  title: z.string(),
+  finished: z.boolean(),
+  state: z.enum(["none", "preparing", "ready", "failed"]),
+  stuck: z.boolean(),
+  failure: z.string().nullable(),
+  size: z.number().int().nonnegative(),
+  passMark: z.number().int().nonnegative(),
+  concepts: z.array(z.string()),
+  last: z
+    .object({
+      passed: z.boolean(),
+      correct: z.number().int().nonnegative(),
+      size: z.number().int().nonnegative(),
+    })
+    .nullable(),
+  next: z.object({ sessionId: ID, title: z.string() }).nullable(),
+});
+export type ChapterEnd = z.infer<typeof ChapterEnd>;
+export * from "./place";

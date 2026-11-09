@@ -293,3 +293,28 @@ export async function startCheckpoint(
     );
   return { attemptId: started.attemptId };
 }
+
+// P2-W11-S06 (Q-P2-35): a chapter checkpoint of the user's book; null when it isn't
+// ready (or not theirs).
+export async function startBookCheckpoint(
+  context: EventContext,
+  chapterId: string,
+): Promise<{ attemptId: string } | null> {
+  await closeLeftOpen(context.userId, context);
+  const started = await quizzes().startBookCheckpoint(
+    context.userId,
+    chapterId,
+  );
+  if (started === null) return null;
+  if (started.firstTime)
+    events().emit(
+      "book_checkpoint_started",
+      {
+        attempt_id: started.attemptId,
+        book_id: started.bookId,
+        chapter_id: chapterId,
+      },
+      context,
+    );
+  return { attemptId: started.attemptId };
+}

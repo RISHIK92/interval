@@ -6,10 +6,12 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const startGame = vi.fn();
 const startTest = vi.fn();
 const startCheckpoint = vi.fn();
+const startBookCheckpoint = vi.fn();
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
 }));
 vi.mock("../../../server/quiz-flow", () => ({
+  startBookCheckpoint,
   startCheckpoint,
   startGame,
   startTest,
@@ -84,4 +86,17 @@ test("a checkpoint on a path section; not ready, or a guest: 404", async () => {
   current.mockResolvedValue({ ...account, isGuest: true });
   expect((await post({ sectionId: "12" })).status).toBe(404);
   expect(startCheckpoint).toHaveBeenCalledTimes(2);
+});
+
+// P4-W21-S04 (Q-P2-35): a book chapter's checkpoint, for the book's owner.
+test("a chapter's checkpoint; not ready or a guest: 404", async () => {
+  current.mockResolvedValue(account);
+  startBookCheckpoint.mockResolvedValueOnce({ attemptId: "43" });
+  expect((await post({ chapterId: "8" })).status).toBe(201);
+  expect(startBookCheckpoint).toHaveBeenCalledWith(expect.anything(), "8");
+  startBookCheckpoint.mockResolvedValueOnce(null);
+  expect((await post({ chapterId: "8" })).status).toBe(404);
+  current.mockResolvedValue({ ...account, isGuest: true });
+  expect((await post({ chapterId: "8" })).status).toBe(404);
+  expect(startBookCheckpoint).toHaveBeenCalledTimes(2);
 });

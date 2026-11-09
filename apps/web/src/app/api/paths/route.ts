@@ -1,12 +1,12 @@
 import type { PathsResponse } from "@interval/api-client";
 import { paths } from "../../../server/container";
-import { pathReader } from "../../../server/path-routes";
+import { appAccount } from "../../../server/app-account";
 
 export const dynamic = "force-dynamic";
 
 // P4-W21-S03 (§5F): the live paths, the user's active one among them.
 export async function GET(request: Request): Promise<Response> {
-  const context = await pathReader(request);
+  const context = await appAccount(request);
   if (context instanceof Response) return context;
   const live = await paths().live(context.userId);
   const body: PathsResponse = {

@@ -3813,7 +3813,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
     - quiz-flow `startCheckpoint`.
   - **New routes:**
     - `GET /api/boards`: guests get their two scopes; accounts need a username (409); the chips' labels are included;
-    - `GET /api/paths`, `GET /api/paths/[path]` (with `holdsBack` for the locked note) and `POST /api/paths/[path]` {start | pause}, behind `pathReader` (accounts only, onboarding needed, 409);
+    - `GET /api/paths`, `GET /api/paths/[path]` (with `holdsBack` for the locked note) and `POST /api/paths/[path]` {start | pause}, behind `pathReader` (now `appAccount`; accounts only, onboarding needed, 409);
     - `POST /api/quiz` {sectionId}: a checkpoint;
     - `GET /api/read/[item]?path=`: counted as the web's from=path.
   - Schemas in api-client.
@@ -3838,3 +3838,42 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the web's order;
   - a duplicate title.
 - **Not verified:** on a simulator.
+
+### 2026-11-09 — P4-W21-S04 (the native PDF reader; §5F, DB-6)
+
+- **Owner, 2026-11-09:**
+  - react-native-pdf 7.0.5 and react-native-blob-util 1.0.0 (its required peer; every newer blob-util was released today, so the two-week rule ruled it out);
+  - the app shows the whole PDF from the session's place, with a line outside the session's pages ("Past this session…" / "Before this session"); the place is kept only within them.
+- **Shared:** `place.ts` (`placeKeeper`, `fractionOf`, `scrollFor`) and its test moved from the web into packages/api-client (ARCH-2), and the web's BookPages imports it. api-client now resolves like a bundler, as game-client does.
+- **Web:**
+  - **Moved out, unchanged:** `server/book-flow.ts` `finishBookSession` (the finish, `book_session_finished` once, the chapter's checkpoint asked for) and quiz-flow `startBookCheckpoint`. `server/path-routes.ts` was renamed `server/app-account.ts` (`appAccount`).
+  - **New routes:**
+    - GET `/api/books` (outlines);
+    - GET `/api/books/[id]?session=` (`book_opened` with source);
+    - POST `/api/books/[id]/finish` (the session checked as this book's before anything is marked done);
+    - GET and POST `/api/books/[id]/checkpoint/[chapter]`;
+    - position accepts the app;
+    - POST `/api/quiz {chapterId}` (the start is now a small `start()`).
+  - The file route is unchanged: the owner's only, `no-cache`.
+- **App:**
+  - Your books on Paths (Start, Resume, Read again).
+  - **The reader:**
+    - the file fetched with the session cookie into a per-open file in CacheDir; deleted on close, on a failed or cancelled fetch, and (a killed app's) at the next start and at sign-out;
+    - opens at the saved place;
+    - the view's own opening never moves the place; the reader's page turns are saved a second after they settle and on leaving, as the web;
+    - Mark done (guarded) leads to the next session, or to the chapter's end; Previous/Next.
+  - **The chapter's end:** the web's wording and states (make it, preparing polled every 3 s, stuck/failed try again, ready: take it / take it again, the last result); the next chapter.
+  - Book screens are behind sign-in.
+- **Checks:**
+  - the full check: web 1461, mobile 97, Python 1383, api-client 4;
+  - infra 90 alone (the synth timeout under load). A run before the review also hit a shared-DB deadlock in two adapter suites, which pass alone.
+- **Reviewer fixes:**
+  - **the blocker:** opening reset the saved place;
+  - the place saved as the web (trailing and on leave);
+  - temp files cleared after failures, cancels and app kills;
+  - the finish checked before mutating;
+  - `BookFinished` used;
+  - the chapter wording;
+  - tests (no save on open, restore, discard, the sweep, guards, `startBookCheckpoint`).
+- **To check on a device:** whether blob-util's native cookie jar adds or keeps cookies for the site (it bypasses `credentials: "omit"`). A file for another user can't reach the screen (the file route checks the owner), but a stale jar session could give a 401.
+- **Not verified:** on a simulator (owner rebuild).

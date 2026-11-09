@@ -25,6 +25,44 @@ jest.mock("react-native-webview", () => {
   };
 });
 
+// A book's PDF (P4-W21-S04): the file is "fetched" to a path tests can read; the view
+// renders its props, so tests can turn its pages.
+jest.mock("react-native-blob-util", () => {
+  const response = {
+    info: () => ({ status: 200 }),
+    path: () => "/cache/book.pdf",
+  };
+  // A StatefulPromise: a promise that can also be cancelled.
+  const fetch = jest.fn(() =>
+    Object.assign(Promise.resolve(response), {
+      cancel: () => Promise.resolve(),
+    }),
+  );
+  return {
+    __esModule: true,
+    default: {
+      config: jest.fn(() => ({ fetch })),
+      fetchMock: fetch,
+      fs: {
+        dirs: { CacheDir: "/cache" },
+        ls: jest.fn(() => Promise.resolve([])),
+        exists: jest.fn(() => Promise.resolve(true)),
+        unlink: jest.fn(() => Promise.resolve()),
+      },
+    },
+  };
+});
+jest.mock("react-native-pdf", () => {
+  const { createElement } = jest.requireActual<typeof import("react")>("react");
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+  return {
+    __esModule: true,
+    default: (props: object) =>
+      createElement(View, { ...props, testID: "book-pdf" }),
+  };
+});
+
 beforeEach(() => {
   // No network in screen tests: a test that reads the API mocks fetch itself.
   globalThis.fetch = jest.fn(() =>

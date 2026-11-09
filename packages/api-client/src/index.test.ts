@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { FeedResponse } from "./index.js";
+import { FeedResponse } from "./index";
 
 // P4-W20-S01: a feed answer with a moment and an article card parses; anything off isn't.
 const card = {

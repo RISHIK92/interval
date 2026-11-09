@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { fractionOf, placeKeeper, scrollFor } from "./place";
+import { fractionOf, placeKeeper, scrollFor } from "@interval/api-client";
 
 const SETTLE_MS = 1000;
 // Pages drawn this far around the window; further away their bitmaps are dropped, so a

@@ -12,6 +12,7 @@ import {
   answerEstimate,
   closeLeftOpen,
   finishAttempt,
+  startBookCheckpoint,
   startCheckpoint,
   startGame,
   startTest,
@@ -149,28 +150,17 @@ const BookCheckpoint = z.object({
 });
 
 export async function startBookCheckpointAction(form: FormData): Promise<void> {
-  const { actor, context } = await signedIn();
+  const { context } = await signedIn();
   const parsed = BookCheckpoint.safeParse({
     chapterId: textField(form, "chapterId"),
     chip: textField(form, "chip"),
   });
   if (!parsed.success) redirect("/paths#your-books");
   const { chapterId, chip } = parsed.data;
-  await closeLeftOpen(actor.userId, context);
-  const started = await quizzes().startBookCheckpoint(actor.userId, chapterId);
+  const started = await startBookCheckpoint(context, chapterId);
   // Not ready (or not theirs): the chapter's end says where it stands.
   if (started === null)
     redirect(sameSitePath(textField(form, "back"), "/paths#your-books"));
-  if (started.firstTime)
-    events().emit(
-      "book_checkpoint_started",
-      {
-        attempt_id: started.attemptId,
-        book_id: started.bookId,
-        chapter_id: chapterId,
-      },
-      context,
-    );
   redirect(`/quiz/${started.attemptId}?chip=${chip}`);
 }
 

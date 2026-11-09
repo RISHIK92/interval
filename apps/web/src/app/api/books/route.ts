@@ -1,3 +1,4 @@
+import type { BooksResponse } from "@interval/api-client";
 import { cookies } from "next/headers";
 import {
   books,
@@ -7,6 +8,7 @@ import {
   jobQueue,
   sessionReader,
 } from "../../../server/container";
+import { appAccount } from "../../../server/app-account";
 import { addBook } from "../../../server/books";
 import { visitId } from "../../../server/visits";
 import { sameOrigin } from "../../../server/same-origin";
@@ -57,4 +59,23 @@ export async function POST(request: Request): Promise<Response> {
 // A form post, answered like a server action's redirect.
 function see(location: string): Response {
   return new Response(null, { status: 303, headers: { Location: location } });
+}
+
+// P4-W21-S04 (§5F): the user's books for the app's Paths tab, as the web lists them.
+export async function GET(request: Request): Promise<Response> {
+  const context = await appAccount(request);
+  if (context instanceof Response) return context;
+  const outlines = await books().outlines(context.userId);
+  const body: BooksResponse = {
+    books: outlines.map((b) => ({
+      bookId: b.bookId,
+      title: b.title,
+      done: b.done,
+      of: b.of,
+      first: b.first,
+      started: b.started,
+      next: b.next,
+    })),
+  };
+  return Response.json(body, { headers: { "Cache-Control": "no-store" } });
 }

@@ -1,9 +1,10 @@
-import type { PathsResponse } from "@interval/api-client";
+import type { BooksResponse, PathsResponse } from "@interval/api-client";
 import { type } from "@interval/tokens";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useColors } from "../../components/theme";
+import { readBooks } from "../../lib/books";
 import { readPaths, setPath } from "../../lib/paths";
 
 type Path = PathsResponse["paths"][number];
@@ -16,8 +17,18 @@ export default function PathsScreen() {
     "loading",
   );
   const [said, setSaid] = useState<string | null>(null);
+  // P4-W21-S04 (§5F): the user's own PDF books, read here in sessions.
+  const [books, setBooks] = useState<BooksResponse["books"]>([]);
 
   const load = useCallback(() => {
+    void readBooks()
+      .catch((error: unknown) => {
+        console.warn("books: not read", error);
+        return { status: "failed" } as const;
+      })
+      .then((got) => {
+        if (got.status === "ok") setBooks(got.value.books);
+      });
     void readPaths()
       .catch((error: unknown) => {
         console.warn("paths: not read", error);
@@ -127,6 +138,38 @@ export default function PathsScreen() {
               </Text>
             </Pressable>
           )}
+        </View>
+      ))}
+      {books.length === 0 ? null : (
+        <Text style={[styles.title, { color: c.ink }]}>Your books</Text>
+      )}
+      {books.map((book) => (
+        <View
+          key={book.bookId}
+          style={[styles.card, { borderColor: c.hairline }]}
+        >
+          <Text style={[styles.title, { color: c.ink }]}>{book.title}</Text>
+          <Text style={{ color: c["ink-muted"] }}>
+            {`${String(book.done)} of ${String(book.of)} sessions done`}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={`${book.next === null ? "Read again" : book.started ? "Resume" : "Start"} ${book.title}`}
+            onPress={() => {
+              router.push(
+                `/books/${book.bookId}?session=${book.next ?? book.first}`,
+              );
+            }}
+            style={[styles.pill, { backgroundColor: c.ink }]}
+          >
+            <Text style={{ color: c.page }}>
+              {book.next === null
+                ? "Read again"
+                : book.started
+                  ? "Resume"
+                  : "Start"}
+            </Text>
+          </Pressable>
         </View>
       ))}
     </ScrollView>

@@ -3,9 +3,10 @@ import { preferences, sessionReader } from "./container";
 import type { EventContext } from "./events";
 import { appPlatform, fromSiteOrApp } from "./same-origin";
 
-// P4-W21-S03 (§5F): who may use the app's path routes: an account (ADR-0029: guests
-// play, and only play) that has finished onboarding, as the web's Paths tab requires.
-export async function pathReader(
+// P4-W21-S03, S04 (§5F): who may use the app's path and book routes: an account
+// (ADR-0029: guests play, and only play) that has finished onboarding, as the web's
+// Paths and books pages require. Else the answer to send.
+export async function appAccount(
   request: Request,
 ): Promise<Response | EventContext> {
   if (!fromSiteOrApp(request)) return new Response(null, { status: 403 });

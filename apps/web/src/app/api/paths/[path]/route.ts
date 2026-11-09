@@ -2,7 +2,7 @@ import type { PathResponse } from "@interval/api-client";
 import { z } from "zod";
 import { paths } from "../../../../server/container";
 import { pausePath, startPath } from "../../../../server/path-flow";
-import { pathReader } from "../../../../server/path-routes";
+import { appAccount } from "../../../../server/app-account";
 import { BIGINT_ID } from "../../../../server/ports";
 
 export const dynamic = "force-dynamic";
@@ -14,7 +14,7 @@ export async function GET(
   request: Request,
   { params }: Params,
 ): Promise<Response> {
-  const context = await pathReader(request);
+  const context = await appAccount(request);
   if (context instanceof Response) return context;
   const { path: pathId } = await params;
   if (!BIGINT_ID.test(pathId)) return new Response(null, { status: 400 });
@@ -58,7 +58,7 @@ export async function POST(
   request: Request,
   { params }: Params,
 ): Promise<Response> {
-  const context = await pathReader(request);
+  const context = await appAccount(request);
   if (context instanceof Response) return context;
   const { path: pathId } = await params;
   const body = Act.safeParse(await request.json().catch(() => null));
