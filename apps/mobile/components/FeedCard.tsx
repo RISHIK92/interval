@@ -49,10 +49,13 @@ function openMenu(pick: (control: MenuControl) => void) {
 // note is the model's, so labeled (AI-3).
 export function FeedCard({
   card,
+  href,
   onSave,
   onMenu,
 }: {
   card: Card;
+  // The reader, with the card's chip and position for its open (P4-W20-S02).
+  href: string;
   onSave: () => void;
   onMenu: (control: MenuControl) => void;
 }) {
@@ -72,7 +75,7 @@ export function FeedCard({
         { borderColor: c.hairline, backgroundColor: c.page },
       ]}
     >
-      <Link href={`/read/${card.itemId}`} asChild>
+      <Link href={href} asChild>
         <Pressable accessibilityRole="link" style={styles.body}>
           <Text style={[styles.title, { color: c.ink }]}>
             {card.articleTitle}

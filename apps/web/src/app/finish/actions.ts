@@ -4,7 +4,8 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CHIPS } from "../../server/chips";
-import { events, progress, sessionReader } from "../../server/container";
+import { progress, sessionReader } from "../../server/container";
+import { finishReading } from "../../server/finish";
 import { BIGINT_ID } from "../../server/ports";
 import { parseReading, READING_COOKIE } from "../../server/reading";
 import { visitId } from "../../server/visits";
@@ -39,36 +40,12 @@ export async function finishAction(form: FormData): Promise<void> {
   )
     jar.delete(READING_COOKIE);
   if (control === "dismiss") redirect(back || `/?chip=${chip}`);
-  const context = { ...actor, sessionId: visitId(jar) };
-  let finishedNow: boolean;
-  if (momentId === undefined) {
-    finishedNow = await progress().finishArticle(actor.userId, itemId, method);
-    if (finishedNow)
-      events().emit("article_finished", { method, item_id: itemId }, context);
-  } else {
-    finishedNow = await progress().finishMoment(
-      actor.userId,
-      itemId,
-      momentId,
-      method,
-    );
-    if (finishedNow) {
-      events().emit(
-        "section_finished",
-        { method, item_id: itemId, moment_id: momentId },
-        context,
-      );
-      // Q-P1-35: the finish that completes an article finishes it (P1-W5-S03).
-      if (
-        await progress().finishArticleIfComplete(actor.userId, itemId, method)
-      ) {
-        events().emit("article_finished", { method, item_id: itemId }, context);
-      }
-    }
-  }
-  // Exploration learns what was finished (REC-4); once per user and article. Its own
-  // statement after the finish: if it fails, that finish is never counted (low is safe).
-  if (finishedNow) await progress().countExploreFinish(actor.userId, itemId);
+  await finishReading(
+    { ...actor, sessionId: visitId(jar) },
+    itemId,
+    momentId,
+    method,
+  );
   // The feed then offers the next section (Yes, owner 2026-10-26).
   redirect(back || `/?chip=${chip}&finished=${itemId}.${momentId ?? ""}`);
 }

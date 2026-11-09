@@ -69,3 +69,21 @@ export const FeedSetup = z.object({
   setup: z.enum(["onboarding", "username"]),
 });
 export type FeedSetup = z.infer<typeof FeedSetup>;
+
+// P4-W20-S02 (ADR-0018, §3.2): what the app's reader shows around the publisher's live
+// page: titles, the user's save and note, never the page's text. `url` opens in the
+// WebView when `inApp`; anything not https goes to the browser.
+export const ReaderResponse = z.object({
+  url: z.string(),
+  inApp: z.boolean(),
+  title: z.string(),
+  domain: z.string(),
+  saved: z.boolean(),
+  // The section reached; null when the link fell back to the article's page.
+  reached: z.string().nullable(),
+  nextMomentId: z.string().nullable(),
+  note: z.string().nullable(),
+});
+export type ReaderResponse = z.infer<typeof ReaderResponse>;
+// As the web's notes (P2-W7-S03).
+export const NOTE_MAX = 2000;

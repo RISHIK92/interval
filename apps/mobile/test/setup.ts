@@ -7,6 +7,18 @@ jest.mock("expo-notifications", () => ({
   getDevicePushTokenAsync: jest.fn(),
 }));
 
+// The publisher's page (P4-W20-S02): a native view jest can't load; its props are
+// what the reader passes, and a test calls its onLoadEnd or onError.
+jest.mock("react-native-webview", () => {
+  const { createElement } = jest.requireActual<typeof import("react")>("react");
+  const { View } =
+    jest.requireActual<typeof import("react-native")>("react-native");
+  return {
+    WebView: (props: object) =>
+      createElement(View, { ...props, testID: "publisher-page" }),
+  };
+});
+
 beforeEach(() => {
   // No network in screen tests: a test that reads the API mocks fetch itself.
   globalThis.fetch = jest.fn(() =>

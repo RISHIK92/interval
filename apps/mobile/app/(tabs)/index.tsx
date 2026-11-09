@@ -18,6 +18,18 @@ import { FeedCard, type MenuControl } from "../../components/FeedCard";
 import { useColors } from "../../components/theme";
 import { readFeed, sendControl } from "../../lib/feed";
 
+// A feed card's open names its chip and position, as the web's (card_opened).
+function readHref(card: Card, chip: Chip | null, position: number): string {
+  const query = new URLSearchParams(
+    card.kind === "moment" ? { moment: card.momentId } : {},
+  );
+  if (chip !== null) {
+    query.set("chip", chip);
+    query.set("pos", String(position));
+  }
+  return `/read/${card.itemId}?${query.toString()}`;
+}
+
 const CHIP_LABEL: Record<Chip, string> = {
   "1-3": "1–3 min",
   "3-8": "3–8 min",
@@ -28,7 +40,7 @@ const REMOVES: MenuControl[] = ["not_interested", "hide_source"];
 
 type State =
   | { status: "loading" }
-  | { status: "ok"; cards: Card[] }
+  | { status: "ok"; chip: Chip; cards: Card[] }
   | { status: "setup"; setup: FeedSetup["setup"] }
   | { status: "forbidden" }
   | { status: "failed" };
@@ -53,7 +65,11 @@ export default function HomeScreen() {
     if (asked !== latest.current) return;
     if (loaded.status === "ok") {
       setChip(loaded.feed.chip);
-      setState({ status: "ok", cards: loaded.feed.cards });
+      setState({
+        status: "ok",
+        chip: loaded.feed.chip,
+        cards: loaded.feed.cards,
+      });
     } else setState(loaded);
   }, []);
 
@@ -192,9 +208,14 @@ export default function HomeScreen() {
             {message}
           </Text>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <FeedCard
             card={item}
+            href={readHref(
+              item,
+              state.status === "ok" ? state.chip : null,
+              index + 1,
+            )}
             onSave={() => {
               save(item);
             }}

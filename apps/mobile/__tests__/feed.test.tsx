@@ -269,3 +269,15 @@ test("a control the server refuses is undone", async () => {
   expect(await screen.findByText("Raft")).toBeOnTheScreen();
   sheet.mockRestore();
 });
+
+test("a card opens the reader with its chip and position", async () => {
+  await renderRouter("./app", { initialUrl: "/" });
+  await fireEvent.press(await screen.findByText("Paxos"));
+  expect(screen).toHavePathname("/read/6");
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(calls().map((c) => c.url)).toContain(
+    "/api/read/6?moment=m6&chip=3-8&pos=2",
+  );
+});

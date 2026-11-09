@@ -1,5 +1,399 @@
-import { Placeholder } from "../../components/Placeholder";
+import {
+  CHIPS,
+  type Chip,
+  NOTE_MAX,
+  type ReaderResponse,
+} from "@interval/api-client";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+  Linking,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
+import { WebView } from "react-native-webview";
+import { useColors } from "../../components/theme";
+import { sendControl } from "../../lib/feed";
+import {
+  markDone,
+  readPage,
+  recordOutbound,
+  writeNote,
+} from "../../lib/reader";
 
+// ADR-0018: without a load by then the page may be blank, so the browser is offered.
+const STUCK_MS = 6000;
+
+type State =
+  | { status: "loading" }
+  | { status: "ok"; page: ReaderResponse }
+  | { status: "gone" | "failed" };
+
+const one = (value: string | string[] | undefined) =>
+  typeof value === "string" ? value : undefined;
+const isChip = (value: string | undefined): value is Chip =>
+  CHIPS.some((chip) => chip === value);
+
+const leave = () => {
+  if (router.canGoBack()) router.back();
+  else router.replace("/");
+};
+
+// P4-W20-S02 (ADR-0018, §3.2, ING-2): the publisher's live page, never a copy, with
+// Interval's header above and its row below, as the web reader. The card's why stays on
+// the card (owner, 2026-11-09).
 export default function ReaderScreen() {
-  return <Placeholder title="Reader" arrives="W20-S02" />;
+  const c = useColors();
+  const params = useLocalSearchParams();
+  const item = one(params.item) ?? "";
+  const moment = one(params.moment);
+  const chipParam = one(params.chip);
+  const chip = isChip(chipParam) ? chipParam : undefined;
+  const pos = chip === undefined ? undefined : one(params.pos);
+  const [state, setState] = useState<State>({ status: "loading" });
+  // ADR-0018: "stalled" offers the browser below the page; a late load clears it,
+  // a failed one ("broken") doesn't. Either can be dismissed.
+  const [phase, setPhase] = useState<"loading" | "done" | "stalled" | "broken">(
+    "loading",
+  );
+  const [saved, setSaved] = useState(false);
+  const [noteOpen, setNoteOpen] = useState(false);
+  const [note, setNote] = useState("");
+  const [noteStatus, setNoteStatus] = useState<string | null>(null);
+  const [doneStatus, setDoneStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    setState({ status: "loading" });
+    setPhase("loading");
+    setNoteOpen(false);
+    setNoteStatus(null);
+    setDoneStatus(null);
+    void readPage(item, {
+      ...(moment === undefined ? {} : { moment }),
+      ...(chip === undefined ? {} : { chip }),
+      ...(pos === undefined ? {} : { pos }),
+    })
+      .catch((error: unknown) => {
+        console.warn("reader: not read", error);
+        return { status: "failed" } as const;
+      })
+      .then((loaded) => {
+        if (!current) return;
+        setState(loaded);
+        if (loaded.status === "ok") {
+          setSaved(loaded.page.saved);
+          setNote(loaded.page.note ?? "");
+        }
+      });
+    return () => {
+      current = false;
+    };
+  }, [item, moment, chip, pos]);
+
+  const page = state.status === "ok" ? state.page : null;
+  useEffect(() => {
+    if (page === null || !page.inApp) return;
+    const timer = setTimeout(() => {
+      setPhase((now) => (now === "loading" ? "stalled" : now));
+    }, STUCK_MS);
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [page]);
+
+  if (page === null) {
+    return (
+      <View style={[styles.page, styles.centered, { backgroundColor: c.page }]}>
+        <Stack.Screen options={{ title: "" }} />
+        <Text style={{ color: c.ink }}>
+          {state.status === "loading"
+            ? "Loading…"
+            : state.status === "gone"
+              ? "This reading is no longer available."
+              : "Couldn't open this reading."}
+        </Text>
+        <RoundButton label="Close" glyph="✕" onPress={leave} />
+      </View>
+    );
+  }
+
+  const openOutside = () => {
+    // A page not on https was already counted as a browser open with its click.
+    if (page.inApp)
+      void recordOutbound(item, page.reached).catch((error: unknown) => {
+        console.warn("reader: click not recorded", error);
+      });
+    void Linking.openURL(page.url).catch((error: unknown) => {
+      console.warn("reader: browser not opened", error);
+    });
+  };
+  const save = () => {
+    const was = saved;
+    setSaved(!was);
+    void sendControl(item, was ? "unsave" : "save")
+      .catch((error: unknown) => {
+        console.warn("reader: save not sent", error);
+        return false;
+      })
+      .then((ok) => {
+        if (!ok) setSaved(was);
+      });
+  };
+  const saveNote = () => {
+    setNoteStatus("Saving…");
+    void writeNote(item, page.reached, note.trim())
+      .catch((error: unknown) => {
+        console.warn("reader: note not sent", error);
+        return false;
+      })
+      .then((ok) => {
+        setNoteStatus(ok ? "Note saved" : "Couldn't save your note");
+      });
+  };
+  const done = () => {
+    setDoneStatus(null);
+    void markDone(item, page.reached)
+      .catch((error: unknown) => {
+        console.warn("reader: finish not sent", error);
+        return false;
+      })
+      .then((ok) => {
+        if (ok) leave();
+        else setDoneStatus("Couldn't mark this done. Try again.");
+      });
+  };
+  const next = page.nextMomentId;
+
+  return (
+    <View style={[styles.page, { backgroundColor: c.page }]}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <View style={[styles.bar, { borderColor: c.hairline }]}>
+        <RoundButton label="Close reader" glyph="✕" onPress={leave} />
+        <Text
+          numberOfLines={1}
+          style={[
+            styles.domain,
+            { backgroundColor: c.well, color: c["ink-muted"] },
+          ]}
+        >
+          {page.domain}
+        </Text>
+        <RoundButton label="Open in browser" glyph="↗" onPress={openOutside} />
+      </View>
+      <View style={styles.page}>
+        {page.inApp ? (
+          <WebView
+            source={{ uri: page.url }}
+            accessibilityLabel={page.title}
+            // The publisher's pages only; any other scheme (mailto:, an app's link)
+            // goes to the system, which react-native-webview does for what's left out.
+            originWhitelist={["https://*", "http://*"]}
+            onLoadEnd={() => {
+              setPhase((now) => (now === "broken" ? now : "done"));
+            }}
+            onError={() => {
+              setPhase("broken");
+            }}
+            onHttpError={() => {
+              setPhase("broken");
+            }}
+          />
+        ) : (
+          <View style={[styles.page, styles.centered, { padding: 24 }]}>
+            <Text style={{ color: c.ink }}>{page.title}</Text>
+            <Pressable
+              accessibilityRole="button"
+              onPress={openOutside}
+              style={[styles.pill, { backgroundColor: c.ink }]}
+            >
+              <Text style={{ color: c.page }}>{`Open on ${page.domain}`}</Text>
+            </Pressable>
+          </View>
+        )}
+      </View>
+      {/* Below the page, never over it (owner, 2026-10-26): heavy pages often look
+        ready long before their load event. */}
+      {page.inApp && (phase === "stalled" || phase === "broken") ? (
+        <View
+          accessibilityLiveRegion="polite"
+          style={[
+            styles.row,
+            styles.slow,
+            { backgroundColor: c.well, borderColor: c.hairline },
+          ]}
+        >
+          <Text style={[styles.grow, { color: c["ink-muted"] }]}>
+            {phase === "broken" ? "Didn't load?" : "Slow to load?"}
+          </Text>
+          <Pressable accessibilityRole="button" onPress={openOutside}>
+            <Text style={[styles.strong, { color: c.ink }]}>
+              {`Open on ${page.domain}`}
+            </Text>
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Dismiss slow-load notice"
+            onPress={() => {
+              setPhase("done");
+            }}
+          >
+            <Text style={{ color: c["ink-muted"] }}>✕</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {noteOpen ? (
+        <View style={[styles.notePanel, { borderColor: c.hairline }]}>
+          <TextInput
+            accessibilityLabel="Your note"
+            multiline
+            maxLength={NOTE_MAX}
+            value={note}
+            onChangeText={(text) => {
+              setNote(text);
+              setNoteStatus(null);
+            }}
+            placeholder="A private note on this section"
+            placeholderTextColor={c["ink-muted"]}
+            style={[
+              styles.noteInput,
+              { color: c.ink, borderColor: c.hairline },
+            ]}
+          />
+          <View style={styles.row}>
+            <Pressable
+              accessibilityRole="button"
+              onPress={saveNote}
+              style={[styles.pill, { backgroundColor: c.ink }]}
+            >
+              <Text style={{ color: c.page }}>Save note</Text>
+            </Pressable>
+            {noteStatus === null ? null : (
+              <Text style={{ color: c["ink-muted"] }}>{noteStatus}</Text>
+            )}
+          </View>
+        </View>
+      ) : null}
+      {doneStatus === null ? null : (
+        <Text
+          accessibilityLiveRegion="polite"
+          style={[styles.status, { color: c.ink }]}
+        >
+          {doneStatus}
+        </Text>
+      )}
+      <View style={[styles.row, styles.footer, { borderColor: c.hairline }]}>
+        <RoundButton
+          label={saved ? "Saved" : "Save"}
+          glyph={saved ? "★" : "☆"}
+          onPress={save}
+        />
+        <RoundButton label="Highlight" glyph="✎" later />
+        <RoundButton label="Listen" glyph="♫" later />
+        <RoundButton label="Test me" glyph="⚡" later />
+        <RoundButton
+          label="Note"
+          glyph="✐"
+          onPress={() => {
+            setNoteOpen(!noteOpen);
+          }}
+        />
+        <View style={styles.end}>
+          <RoundButton label="Mark done" glyph="✓" onPress={done} />
+          {next === null ? null : (
+            <RoundButton
+              label="Next section"
+              glyph="→"
+              strong
+              onPress={() => {
+                router.setParams({ moment: next });
+              }}
+            />
+          )}
+        </View>
+      </View>
+    </View>
+  );
 }
+
+// Shown, not usable yet (owner, ADR-0018 and 2026-11-09): Highlight and Listen come
+// later; Test me with the native quiz (W21-S01).
+function RoundButton({
+  label,
+  glyph,
+  onPress,
+  later = false,
+  strong = false,
+}: {
+  label: string;
+  glyph: string;
+  onPress?: () => void;
+  later?: boolean;
+  strong?: boolean;
+}) {
+  const c = useColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={later ? `${label}. Coming later` : label}
+      disabled={later}
+      onPress={onPress}
+      style={[
+        styles.round,
+        {
+          borderColor: c.hairline,
+          backgroundColor: strong ? c.ink : c.page,
+          opacity: later ? 0.5 : 1,
+        },
+      ]}
+    >
+      <Text style={{ color: strong ? c.page : c.ink }}>{glyph}</Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  page: { flex: 1 },
+  centered: { alignItems: "center", justifyContent: "center", gap: 12 },
+  bar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+  },
+  domain: {
+    flex: 1,
+    textAlign: "center",
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  slow: { borderTopWidth: 1, paddingHorizontal: 16, paddingVertical: 8 },
+  grow: { flex: 1 },
+  strong: { fontWeight: "600" },
+  status: { paddingHorizontal: 16, paddingTop: 8 },
+  notePanel: { borderTopWidth: 1, padding: 12, gap: 8 },
+  noteInput: { borderWidth: 1, borderRadius: 12, padding: 10, minHeight: 80 },
+  row: { flexDirection: "row", alignItems: "center", gap: 8 },
+  footer: { borderTopWidth: 1, paddingHorizontal: 16, paddingVertical: 8 },
+  end: { marginLeft: "auto", flexDirection: "row", gap: 8 },
+  round: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pill: {
+    alignSelf: "flex-start",
+    borderRadius: 999,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+});

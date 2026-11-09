@@ -3657,3 +3657,38 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - second review: re-read after removal, and a network-failure test.
 - **Not changed:** the plan is checked before setup, so an account without the feed and not yet onboarded gets 403, not 409.
 - **Not verified:** on a simulator or phone (jest only).
+
+### 2026-11-09 — P4-W20-S02 (the WebView reader and its row; §5D, Part I §3.2, ADR-0018)
+
+- **Owner, 2026-11-09:**
+  - react-native-webview 14.0.1 (Expo SDK 58's pin, from June 2026);
+  - Test 60s is shown, not usable, until W21-S01;
+  - no why line in the reader, as the web reader (the why stays on the card).
+- **Web:**
+  - `GET /api/read/[item]?moment&chip&pos` reads as the web reader: titles, the domain, save, the reached section (null when the link fell back), the next section and the user's note.
+  - It counts the open with the app's source:
+    - a card (chip and position, kept by Next section) or from=reader;
+    - in_app for https;
+    - a page not on https goes to the browser, counted as a browser open plus `outbound_click`, as /out.
+  - `POST /api/read/[item]/out` records Open in browser's click (/out?from=reader), because the system browser has no session for /out.
+  - `POST /api/read/finish` (Mark done) and `PUT /api/notes` (empty deletes, max 2000).
+  - `finishReading` (server/finish.ts) and `writeNote`/`emitNote` (server/note-writes.ts) moved out of the finish and note actions, unchanged, so the actions and the routes share them.
+  - `ReaderResponse` and `NOTE_MAX` are in packages/api-client.
+- **App:** `app/read/[item].tsx`:
+  - the header: Close, the domain, and Open in browser;
+  - the publisher's live page in a WebView (http and https only; other schemes go to the system);
+  - below it, never over it, a dismissible "Slow to load? / Didn't load? Open on <site>" after about 6 s or an error, which a late load clears;
+  - the row: Save, Highlight, Listen and Test me ("Coming later"), Note (a panel, saved or not, said), Mark done (back; a failure is said) and Next section.
+  - Feed cards open it with their chip and position. The jest timeout is 30 s, because a cold router render exceeds 5 s under `pnpm check`.
+- **Checks:**
+  - web 1455 and mobile 40 in the full check;
+  - infra 90 and Python 1381 alone: the infra synth hook timed out under load; Python's 2 budget-seed tests need the check script's seed, and all 1383 passed in the slice's first full check.
+- **Reviewer fixes:**
+  - the slow-load notice moved below the page, dismissible and cleared by a load;
+  - browser opens and clicks counted as on the web;
+  - Mark done failure shown;
+  - the note state reset per section;
+  - the scheme policy;
+  - the tests.
+- **Not verified:** on a simulator. The app's native modules (expo-notifications, react-native-webview) need the owner's rebuild.
+- **Out of scope:** the "Finished?" prompt on return (C-22); scrolling to the section and automatic progress (W20-S03).
