@@ -228,3 +228,98 @@ export const QuizResults = z.object({
   ),
 });
 export type QuizResults = z.infer<typeof QuizResults>;
+
+// P4-W21-S03 (§6.7): a board as the web's boards page shows it, with its labels.
+const BoardRow = z.object({
+  id: ID,
+  name: z.string(),
+  score: z.string(),
+  rank: z.number().int().positive(),
+});
+export const BoardResponse = z.object({
+  game: z.enum(["daily", "sprint", "estimation", "season"]),
+  scope: z.enum(["global", "country", "university", "friends", "universities"]),
+  period: z.enum(["current", "previous"]),
+  // Chips: label by key, in order (a guest's scopes are only global and universities).
+  games: z.array(z.object({ key: z.string(), label: z.string() })),
+  scopes: z.array(z.object({ key: z.string(), label: z.string() })),
+  periods: z.array(z.object({ key: z.string(), label: z.string() })),
+  body: z.discriminatedUnion("kind", [
+    z.object({
+      kind: z.literal("rows"),
+      rows: z.array(BoardRow),
+      mine: z.string().nullable(),
+      mark: z.enum(["You", "Yours"]),
+      unit: z.string(),
+      pinned: BoardRow.extend({ note: z.string() }).nullable(),
+      missing: z
+        .enum(["not_yet", "set_university", "university_absent"])
+        .nullable(),
+    }),
+    z.object({
+      kind: z.literal("unset"),
+      what: z.enum(["country", "university", "follows"]),
+    }),
+  ]),
+});
+export type BoardResponse = z.infer<typeof BoardResponse>;
+
+// P4-W21-S03 (§5F): topic paths in the app: the list, a path's sections with their
+// readings and checkpoint. Editing a path stays on the web (owner, 2026-11-09).
+const PathMine = z.enum(["active", "paused"]).nullable();
+export const PathsResponse = z.object({
+  paths: z.array(
+    z.object({
+      pathId: ID,
+      name: z.string(),
+      why: z.string(),
+      sections: z.number().int().nonnegative(),
+      readings: z.number().int().nonnegative(),
+      minutes: z.number().nonnegative(),
+      mine: PathMine,
+      retired: z.boolean(),
+    }),
+  ),
+});
+export type PathsResponse = z.infer<typeof PathsResponse>;
+export const PathResponse = z.object({
+  pathId: ID,
+  name: z.string(),
+  why: z.string(),
+  retired: z.boolean(),
+  mine: PathMine,
+  sections: z.array(
+    z.object({
+      sectionId: ID,
+      concepts: z.array(z.string()),
+      open: z.boolean(),
+      checkpoint: z.enum([
+        "locked",
+        "reading",
+        "ready",
+        "no_questions",
+        "passed",
+        "skipped",
+      ]),
+      skipped: z.boolean(),
+      // Its checkpoint gates the sections after it (a locked one names it).
+      holdsBack: z.boolean(),
+      mastered: z.boolean(),
+      size: z.number().int().nonnegative(),
+      passMark: z.number().int().nonnegative(),
+      readings: z.array(
+        z.object({
+          itemId: ID,
+          momentId: ID,
+          sectionTitle: z.string(),
+          articleTitle: z.string(),
+          sourceName: z.string(),
+          minutes: z.number().nonnegative(),
+          linkBroken: z.boolean(),
+          finished: z.boolean(),
+        }),
+      ),
+    }),
+  ),
+});
+export type PathResponse = z.infer<typeof PathResponse>;

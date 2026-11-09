@@ -68,3 +68,15 @@ test("a session refetch keeps a half-typed sign-in", async () => {
   });
   expect(screen.getByLabelText("Email").props.value).toBe("ada@example.test");
 });
+
+// P4-W21-S03: every screen is behind sign-in; a deep link signed out lands there.
+test.each(["/boards", "/paths/3", "/read/5", "/quiz/40", "/live/sprint"])(
+  "signed out, %s opens sign-in",
+  async (url) => {
+    fakeAuth.signedOut();
+    await renderRouter("./app", { initialUrl: url });
+    expect(
+      await screen.findByRole("header", { name: "Sign in" }),
+    ).toBeOnTheScreen();
+  },
+);

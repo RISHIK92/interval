@@ -12,6 +12,7 @@ import {
   answerEstimate,
   closeLeftOpen,
   finishAttempt,
+  startCheckpoint,
   startGame,
   startTest,
 } from "../../server/quiz-flow";
@@ -127,28 +128,17 @@ const Checkpoint = z.object({
 });
 
 export async function startCheckpointAction(form: FormData): Promise<void> {
-  const { actor, context } = await signedIn();
+  const { context } = await signedIn();
   const parsed = Checkpoint.safeParse({
     sectionId: textField(form, "sectionId"),
     chip: textField(form, "chip"),
   });
   if (!parsed.success) redirect("/paths");
   const { sectionId, chip } = parsed.data;
-  await closeLeftOpen(actor.userId, context);
-  const started = await quizzes().startCheckpoint(actor.userId, sectionId);
+  const started = await startCheckpoint(context, sectionId);
   // Not ready (or passed meanwhile): the path shows where it stands.
   if (started === null)
     redirect(sameSitePath(textField(form, "back"), "/paths"));
-  if (started.firstTime)
-    events().emit(
-      "checkpoint_started",
-      {
-        attempt_id: started.attemptId,
-        path_id: started.pathId,
-        section_id: sectionId,
-      },
-      context,
-    );
   redirect(`/quiz/${started.attemptId}?chip=${chip}`);
 }
 

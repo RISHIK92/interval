@@ -4,7 +4,8 @@ import { api } from "./api";
 // P4-W20-S02 (ADR-0018): the reader's page and its row's actions, from the site's API.
 export async function readPage(
   itemId: string,
-  query: { moment?: string; chip?: Chip; pos?: string },
+  // path: a path's reading (P4-W21-S03), counted as the web's from=path.
+  query: { moment?: string; chip?: Chip; pos?: string; path?: string },
 ): Promise<
   { status: "ok"; page: ReaderResponse } | { status: "gone" | "failed" }
 > {

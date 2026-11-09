@@ -5,10 +5,15 @@ import type { Actor } from "../../../server/ports";
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const startGame = vi.fn();
 const startTest = vi.fn();
+const startCheckpoint = vi.fn();
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
 }));
-vi.mock("../../../server/quiz-flow", () => ({ startGame, startTest }));
+vi.mock("../../../server/quiz-flow", () => ({
+  startCheckpoint,
+  startGame,
+  startTest,
+}));
 vi.mock("../../../env", () => ({
   env: () => ({
     BETTER_AUTH_URL: "http://localhost:3100",
@@ -66,4 +71,17 @@ test("no session, another site or a bad body: refused", async () => {
   expect((await post({ game: "chess" })).status).toBe(400);
   expect((await post({ itemId: "x" })).status).toBe(400);
   expect(startGame).not.toHaveBeenCalled();
+});
+
+// P4-W21-S03 (§5F): a path's checkpoint, for accounts (guests have no paths).
+test("a checkpoint on a path section; not ready, or a guest: 404", async () => {
+  current.mockResolvedValue(account);
+  startCheckpoint.mockResolvedValueOnce({ attemptId: "42" });
+  expect((await post({ sectionId: "12" })).status).toBe(201);
+  expect(startCheckpoint).toHaveBeenCalledWith(expect.anything(), "12");
+  startCheckpoint.mockResolvedValueOnce(null);
+  expect((await post({ sectionId: "12" })).status).toBe(404);
+  current.mockResolvedValue({ ...account, isGuest: true });
+  expect((await post({ sectionId: "12" })).status).toBe(404);
+  expect(startCheckpoint).toHaveBeenCalledTimes(2);
 });

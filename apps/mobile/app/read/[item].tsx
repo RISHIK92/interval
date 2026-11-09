@@ -62,6 +62,7 @@ export default function ReaderScreen() {
   const chipParam = one(params.chip);
   const chip = isChip(chipParam) ? chipParam : undefined;
   const pos = chip === undefined ? undefined : one(params.pos);
+  const path = chip === undefined ? one(params.path) : undefined;
   const [state, setState] = useState<State>({ status: "loading" });
   // ADR-0018: "stalled" offers the browser below the page; a late load clears it,
   // a failed one ("broken") doesn't. Either can be dismissed.
@@ -85,6 +86,7 @@ export default function ReaderScreen() {
       ...(moment === undefined ? {} : { moment }),
       ...(chip === undefined ? {} : { chip }),
       ...(pos === undefined ? {} : { pos }),
+      ...(path === undefined ? {} : { path }),
     })
       .catch((error: unknown) => {
         console.warn("reader: not read", error);
@@ -101,7 +103,7 @@ export default function ReaderScreen() {
     return () => {
       current = false;
     };
-  }, [item, moment, chip, pos]);
+  }, [item, moment, chip, pos, path]);
 
   const page = state.status === "ok" ? state.page : null;
   const onMeasure = useAutoFinish(page, item, () => {

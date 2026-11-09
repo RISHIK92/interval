@@ -18,7 +18,6 @@ test("the avatar opens Profile", async () => {
 
 test.each([
   ["/explore", "a later phase"],
-  ["/paths", "W21-S03"],
   ["/library", "W23-S01"],
 ])("%s opens its own area", async (url, arrives) => {
   await renderRouter("./app", { initialUrl: url });

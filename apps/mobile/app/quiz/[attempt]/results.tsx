@@ -38,7 +38,7 @@ export default function ResultsScreen() {
       })
       .then((got) => {
         if (!current) return;
-        if (got.status === "late") router.replace(`/quiz/${attempt}`);
+        if (got.status === "conflict") router.replace(`/quiz/${attempt}`);
         else setResults(got.status === "ok" ? got.value : "failed");
       });
     return () => {

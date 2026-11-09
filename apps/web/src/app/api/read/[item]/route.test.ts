@@ -179,3 +179,15 @@ test("no live question on what's shown: Test me isn't offered", async () => {
   expect(body.testable).toBe(false);
   expect(offered).toHaveBeenCalledWith([{ itemId: "5", momentId: "9" }]);
 });
+
+// P4-W21-S03 (§5F): a path's reading counts as the web's from=path, never a card.
+test("a path's reading is from=path; a path and a card at once is refused", async () => {
+  current.mockResolvedValue(account);
+  reader.mockResolvedValue(page);
+  expect((await get("?moment=9&path=3")).status).toBe(200);
+  expect(countOpen).toHaveBeenCalledWith(
+    expect.anything(),
+    expect.objectContaining({ card: null, from: "path" }),
+  );
+  expect((await get("?moment=9&path=3&chip=3-8&pos=1")).status).toBe(400);
+});

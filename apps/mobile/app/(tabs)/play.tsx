@@ -92,6 +92,14 @@ export default function PlayScreen() {
           {said}
         </Text>
       )}
+      <Pressable
+        accessibilityRole="link"
+        onPress={() => {
+          router.push("/boards");
+        }}
+      >
+        <Text style={[styles.title, { color: c.ink }]}>Boards ›</Text>
+      </Pressable>
       {(["daily", "sprint", "estimation"] as const).map((game) => (
         <View key={game} style={[styles.card, { borderColor: c.hairline }]}>
           <Text style={[styles.title, { color: c.ink }]}>

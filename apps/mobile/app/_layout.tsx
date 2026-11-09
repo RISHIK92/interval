@@ -37,6 +37,14 @@ export default function RootLayout() {
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="profile" options={{ title: "Profile" }} />
+          {/* Every other screen is for a signed-in user too: signed out, a deep link to
+            one lands on sign-in (P4-W21-S03). */}
+          <Stack.Screen name="read/[item]" />
+          <Stack.Screen name="quiz/[attempt]/index" />
+          <Stack.Screen name="quiz/[attempt]/results" />
+          <Stack.Screen name="live/[mode]" />
+          <Stack.Screen name="paths/[path]" />
+          <Stack.Screen name="boards" options={{ title: "Boards" }} />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" options={{ headerShown: false }} />

@@ -20,9 +20,12 @@ const Query = z
   .object({
     moment: z.string().regex(BIGINT_ID).optional(),
     chip: z.enum(CHIPS).optional(),
+    // P4-W21-S03 (§5F): a path's reading, as the web's from=path: it counts no card.
+    path: z.string().regex(BIGINT_ID).optional(),
     pos: z.coerce.number().int().min(1).max(200).optional(),
   })
-  .refine((q) => (q.chip === undefined) === (q.pos === undefined));
+  .refine((q) => (q.chip === undefined) === (q.pos === undefined))
+  .refine((q) => q.path === undefined || q.chip === undefined);
 
 // P4-W20-S02 (ADR-0018, §3.2, ING-2): what the app's reader shows around the publisher's
 // live page, read as the web reader reads it. A WebView isn't a frame, so a page that
@@ -60,7 +63,12 @@ export async function GET(
     momentId: moment,
     link: page.link,
     card: chip === undefined || pos === undefined ? null : { chip, pos },
-    from: chip === undefined ? "reader" : undefined,
+    from:
+      query.data.path !== undefined
+        ? "path"
+        : chip === undefined
+          ? "reader"
+          : undefined,
     surface: inApp ? "in_app" : "browser",
   });
   if (!inApp)

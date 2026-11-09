@@ -3800,3 +3800,41 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Owner:** Docker had restarted with other projects' containers up. Interval's services were started on the owner's word (no port clashes), and the AI cap stayed at 30 cents.
 - **Note:** the reviewer ran `git stash` while checking a jest warning and restored the tree; verified identical before commit.
 - **Not verified:** a match against the local game server on a simulator (owner rebuild).
+
+### 2026-11-09 — P4-W21-S03 (native boards and paths; §6.7, §5F)
+
+- **Owner, 2026-11-09:**
+  - paths in the app means the list, the timeline, Start/Resume/Pause, readings into the native reader, and checkpoints through the native quiz; the editor (move, skip, swap) stays on the web;
+  - boards' unset scopes say to set them on the web's Profile.
+- **Web:**
+  - **Moved out, unchanged** (existing tests green):
+    - `server/board-view.ts` `readBoard`, out of the boards page, which renders it;
+    - `server/path-flow.ts` `startPath`/`pausePath`, out of the path actions;
+    - quiz-flow `startCheckpoint`.
+  - **New routes:**
+    - `GET /api/boards`: guests get their two scopes; accounts need a username (409); the chips' labels are included;
+    - `GET /api/paths`, `GET /api/paths/[path]` (with `holdsBack` for the locked note) and `POST /api/paths/[path]` {start | pause}, behind `pathReader` (accounts only, onboarding needed, 409);
+    - `POST /api/quiz` {sectionId}: a checkpoint;
+    - `GET /api/read/[item]?path=`: counted as the web's from=path.
+  - Schemas in api-client.
+- **App:**
+  - **Paths tab:** the active path first, Start/Resume/Pause, retired marked.
+  - **A path's page:**
+    - Start/Resume this path, and the retired notice;
+    - sections with their readings (into the reader with their path; locked sections' readings listed, not opened, with "Locked · unlocks after …");
+    - the checkpoint row and Take the checkpoint (the native quiz);
+    - "edit on the web".
+  - **Boards** (from Play): game, scope and period chips, rows with "You" marked, the pinned own row, unset scopes. A failed load keeps the chips and offers Try again.
+  - The 409 status in `lib/api.ts`'s `got` is renamed "conflict" (each route gives its meaning).
+  - **Every non-tab screen is now behind sign-in in the root layout.** Without that, the new static /boards became the signed-out landing. Tested for five deep links.
+- **Checks:**
+  - the full check: web 1458, mobile 84 (87 after the review), Python 1382 plus 1 that passes alone (a shared-DB flake);
+  - infra 90 alone.
+- **Reviewer fixes:**
+  - locked readings;
+  - Start/Resume on the timeline;
+  - retired;
+  - the board error keeping its chips;
+  - the web's order;
+  - a duplicate title.
+- **Not verified:** on a simulator.

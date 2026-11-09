@@ -271,3 +271,25 @@ export function quizResults(attempt: QuizAttempt): QuizResults {
     })),
   };
 }
+
+// P2-W10-S04 (§5F, Q-P2-26): a checkpoint on a section of the user's active path; null
+// when it isn't ready (or was passed meanwhile).
+export async function startCheckpoint(
+  context: EventContext,
+  sectionId: string,
+): Promise<{ attemptId: string } | null> {
+  await closeLeftOpen(context.userId, context);
+  const started = await quizzes().startCheckpoint(context.userId, sectionId);
+  if (started === null) return null;
+  if (started.firstTime)
+    events().emit(
+      "checkpoint_started",
+      {
+        attempt_id: started.attemptId,
+        path_id: started.pathId,
+        section_id: sectionId,
+      },
+      context,
+    );
+  return { attemptId: started.attemptId };
+}

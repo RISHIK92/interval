@@ -166,7 +166,7 @@ export default function QuizScreen() {
         if (!mounted.current) return;
         setBusy(false);
         // Too late for the clock: the results say what counted.
-        if (got.status === "late") {
+        if (got.status === "conflict") {
           results();
           return;
         }

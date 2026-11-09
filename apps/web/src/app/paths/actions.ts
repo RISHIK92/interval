@@ -4,6 +4,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { events, paths, sessionReader } from "../../server/container";
+import { pausePath, startPath } from "../../server/path-flow";
 import { BIGINT_ID } from "../../server/ports";
 import { visitId } from "../../server/visits";
 import { sameSitePath, textField } from "../form";
@@ -21,21 +22,11 @@ async function signedIn() {
 }
 
 export async function startPathAction(form: FormData): Promise<void> {
-  const { actor, context } = await signedIn();
+  const { context } = await signedIn();
   const parsed = Start.safeParse({ pathId: textField(form, "pathId") });
   if (!parsed.success) redirect("/paths");
   const { pathId } = parsed.data;
-  const started = await paths().start(actor.userId, pathId);
-  if (started === null) redirect("/paths");
-  // Q-P2-28: the pause a start causes counts as a pause for the continuity metric.
-  if (started.paused !== null)
-    events().emit(
-      "path_paused",
-      { path_id: started.paused, cause: "started_other" },
-      context,
-    );
-  if (started.firstTime)
-    events().emit("path_started", { path_id: pathId }, context);
+  if (!(await startPath(context, pathId))) redirect("/paths");
   redirect(`/paths/${pathId}`);
 }
 
@@ -65,12 +56,7 @@ export async function editPathAction(form: FormData): Promise<void> {
   const edit = parsed.data;
   const { userId } = actor;
   if (edit.edit === "pause") {
-    if (await paths().pause(userId, edit.pathId))
-      events().emit(
-        "path_paused",
-        { path_id: edit.pathId, cause: "user" },
-        context,
-      );
+    await pausePath(context, edit.pathId);
     redirect(`/paths/${edit.pathId}?edit=1`);
   }
   const pathId =
