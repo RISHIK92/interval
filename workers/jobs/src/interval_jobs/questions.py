@@ -64,7 +64,7 @@ def prompt(text: str, concepts: list[str]) -> list[Message]:
     ]
 
 
-def _words(text: str) -> str:
+def plain_words(text: str) -> str:
     # Words only: case, spacing and punctuation may differ from the passage's.
     return " ".join(re.sub(r"[^\w]+", " ", text.lower()).split())
 
@@ -80,7 +80,7 @@ def parse_reply(reply: str, text: str) -> list[QuestionDraft]:
         raise QuestionReplyError(
             f"{len(parsed.questions)} questions, not {QUESTIONS_PER_MOMENT} questions"
         )
-    passage = _words(text[:MOMENT_CHARS])
+    passage = plain_words(text[:MOMENT_CHARS])
     drafts: list[QuestionDraft] = []
     for q in parsed.questions:
         stem = q.stem.strip()
@@ -89,7 +89,7 @@ def parse_reply(reply: str, text: str) -> list[QuestionDraft]:
             raise QuestionReplyError(f"a stem must be 1-{STEM_CHARS} characters")
         if len(options) != OPTIONS:
             raise QuestionReplyError(f"{len(options)} options, not {OPTIONS} options")
-        if len({_words(o) for o in options}) != OPTIONS or not all(options):
+        if len({plain_words(o) for o in options}) != OPTIONS or not all(options):
             raise QuestionReplyError("options must be distinct and non-empty")
         if not 0 <= q.correct < OPTIONS:
             raise QuestionReplyError(f"correct must be 0-{OPTIONS - 1}")
@@ -98,7 +98,7 @@ def parse_reply(reply: str, text: str) -> list[QuestionDraft]:
         if (
             len(citation.split()) < CITATION_WORDS
             or len(citation) > CITATION_CHARS
-            or f" {_words(citation)} " not in f" {passage} "
+            or f" {plain_words(citation)} " not in f" {passage} "
         ):
             raise QuestionReplyError("the citation must quote the passage")
         drafts.append(QuestionDraft(stem, options, q.correct, citation))
@@ -263,11 +263,11 @@ def parse_estimate(reply: str, text: str) -> EstimateDraft | None:
         raise QuestionReplyError(f"a stem must be 1-{STEM_CHARS} characters")
     if any(_same(n, q.answer) for n in _numbers(stem)):
         raise QuestionReplyError("the stem gives the answer away")
-    passage = _words(text[:MOMENT_CHARS])
+    passage = plain_words(text[:MOMENT_CHARS])
     if (
         len(citation.split()) < CITATION_WORDS
         or len(citation) > CITATION_CHARS
-        or f" {_words(citation)} " not in f" {passage} "
+        or f" {plain_words(citation)} " not in f" {passage} "
     ):
         raise QuestionReplyError("the citation must quote the passage")
     if not any(_same(n, q.answer) for n in _numbers(citation)):

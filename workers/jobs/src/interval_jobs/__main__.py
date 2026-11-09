@@ -57,6 +57,7 @@ from interval_jobs.daily_challenge import run_daily
 from interval_jobs.embedding_eval import MIN_POOL, MIN_RECALL, parse_queries
 from interval_jobs.embedding_eval import EvalError as EmbeddingEvalError
 from interval_jobs.embedding_eval import run_eval as run_embedding_eval
+from interval_jobs.explainers import write as write_explainers
 from interval_jobs.feed.precompute import (
     STARTERS,
     enqueue_recomputes,
@@ -229,6 +230,12 @@ def main(argv: list[str]) -> None:
         "for review (§5F, Q-P2-24)",
     )
     paths.add_argument("--count", type=_path_count, default=10)
+    explainers = commands.add_parser(
+        "write-explainers",
+        help="write concept explainer scripts with EXPLAINER_MODEL, pending the "
+        "owner's review on /admin/explainers (§5G, ADR-0038)",
+    )
+    explainers.add_argument("--limit", type=_explainer_limit, default=5)
     commands.add_parser(
         "recalibrate-difficulty",
         help="refit question difficulty from answers and queue anomalies (Q-3)",
@@ -392,6 +399,9 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
 
     if args.command == "propose-paths":
         _propose_paths(args.count)
+        return
+    if args.command == "write-explainers":
+        _write_explainers(args.limit)
         return
 
     if args.command == "recalibrate-difficulty":
@@ -745,6 +755,14 @@ def _draft_count(value: str) -> int:
     return count
 
 
+def _explainer_limit(value: str) -> int:
+    # A few at a time: each is a model call against the daily budget (OPS-4).
+    limit = int(value)
+    if not 1 <= limit <= 20:
+        raise argparse.ArgumentTypeError("--limit must be 1-20")
+    return limit
+
+
 def _path_count(value: str) -> int:
     count = int(value)
     if not 1 <= count <= 20:
@@ -765,6 +783,23 @@ def _propose_paths(count: int) -> None:
             sys.exit("propose-paths needs PATHS_MODEL (Q-P2-25)")
         with job.gateway() as gateway:
             got = propose(unit, gateway, job.model, count)
+    print(json.dumps(asdict(got), indent=2))
+
+
+def _write_explainers(limit: int) -> None:
+    """§5G (ADR-0038, P4-W22-S01): one script per concept that has none, for the owner
+    to approve on /admin/explainers. Run by hand; within the daily AI budget."""
+
+    @contextmanager
+    def unit() -> Generator[Store]:
+        with services() as s:
+            yield s.store
+
+    with model_job("EXPLAINER_MODEL") as job:
+        if job is None:
+            sys.exit("write-explainers needs EXPLAINER_MODEL (ADR-0038)")
+        with job.gateway() as gateway:
+            got = write_explainers(unit, gateway, job.model, limit)
     print(json.dumps(asdict(got), indent=2))
 
 

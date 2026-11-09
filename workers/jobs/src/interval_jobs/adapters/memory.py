@@ -50,6 +50,9 @@ from interval_jobs.ports import (
     DuplicateInviteCode,
     EntryFacts,
     EstimateDraft,
+    ExplainerCitation,
+    ExplainerConcept,
+    ExplainerSource,
     FeedEntry,
     Fetched,
     FetchError,
@@ -1905,6 +1908,39 @@ class InMemoryPaths:
         return path_id
 
 
+class InMemoryExplainers:
+    """Explainer targets and sources as a test sets them; scripts saved once."""
+
+    def __init__(self) -> None:
+        self.concepts: list[ExplainerConcept] = []
+        self.sourced: dict[int, list[ExplainerSource]] = {}
+        self.saved: dict[int, tuple[str, list[ExplainerCitation], str, int]] = {}
+        self.attempts: dict[int, str] = {}
+
+    def targets(self, limit: int) -> list[ExplainerConcept]:
+        return [c for c in self.concepts if c.concept_id not in self.saved][:limit]
+
+    def sources(self, concept_id: int, count: int) -> list[ExplainerSource]:
+        return self.sourced.get(concept_id, [])[:count]
+
+    def save(
+        self,
+        concept_id: int,
+        script: str,
+        citations: list[ExplainerCitation],
+        model: str,
+        prompt_version: int,
+    ) -> bool:
+        if concept_id in self.saved:
+            return False
+        self.saved[concept_id] = (script, citations, model, prompt_version)
+        return True
+
+    def tried(self, concept_id: int, outcome: Literal["skipped", "refused"]) -> None:
+        self.attempts[concept_id] = outcome
+        self.concepts = [c for c in self.concepts if c.concept_id != concept_id]
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -1923,6 +1959,7 @@ class InMemoryStore:
         self.embeddings.store = self
         self.ranking = InMemoryRankingInputs(self)
         self.decisions = InMemoryDecisions(self.moments, self.concepts)
+        self.explainers = InMemoryExplainers()
         self.questions = InMemoryQuestions(
             self.items, self.sources, self.moments, self.tags, self.concepts
         )

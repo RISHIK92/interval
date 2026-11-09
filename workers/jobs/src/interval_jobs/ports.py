@@ -1248,6 +1248,9 @@ class Store(Protocol):
     def questions(self) -> Questions: ...
 
     @property
+    def explainers(self) -> "Explainers": ...
+
+    @property
     def paths(self) -> Paths: ...
 
     @property
@@ -1911,4 +1914,53 @@ class JobQueue(Protocol):
 class QueueConsumer(Protocol):
     def consume(self, name: MessageName, handler: QueueHandler, stop: Event) -> None:
         """Delivers messages of one queue to the handler until `stop` is set."""
+        ...
+
+
+# Concept explainers (§5G, ADR-0038, P4-W22-S01): what a script may be written from, and
+# the scripts, kept apart from source text (AI-3).
+@dataclass(frozen=True)
+class ExplainerConcept:
+    concept_id: int
+    slug: str
+    name: str
+
+
+@dataclass(frozen=True)
+class ExplainerSource:
+    moment_id: int
+    item_id: int
+    section_title: str
+    article_title: str
+
+
+@dataclass(frozen=True)
+class ExplainerCitation:
+    moment_id: int
+    quote: str  # a sentence of the cited section, to check against; never voiced
+
+
+class Explainers(Protocol):
+    def targets(self, limit: int) -> list[ExplainerConcept]:
+        """Live concepts with no explainer yet, each with full-text moments from at
+        least two items (ING-2: rights that allow full text and moments)."""
+        ...
+
+    def sources(self, concept_id: int, count: int) -> list[ExplainerSource]:
+        """Up to `count` of the concept's full-text moments, one per item."""
+        ...
+
+    def save(
+        self,
+        concept_id: int,
+        script: str,
+        citations: list[ExplainerCitation],
+        model: str,
+        prompt_version: int,
+    ) -> bool:
+        """Once per concept (AI-4), pending the owner's review; False if written."""
+        ...
+
+    def tried(self, concept_id: int, outcome: Literal["skipped", "refused"]) -> None:
+        """A concept tried without a script; `targets` leaves it out for a while."""
         ...

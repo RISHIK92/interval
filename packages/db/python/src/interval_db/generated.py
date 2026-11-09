@@ -17,6 +17,7 @@ type AiFeature = Literal[
     "paths",
     "technologies",
     "project_notes",
+    "explainer",
 ]
 type AiProvider = Literal["openrouter", "voyage", "groq", "google"]
 type BetaGroup = Literal["student", "developer"]
@@ -41,6 +42,7 @@ type Capability = Literal[
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type DependencyEcosystem = Literal["npm", "pypi", "go"]
 type Difficulty = Literal["beginner", "intermediate", "advanced"]
+type ExplainerStatus = Literal["pending", "approved", "rejected"]
 type FeedbackKind = Literal["more_like_this", "less_like_this", "not_interested"]
 type FinishMethod = Literal["return_prompt", "mark_done", "auto"]
 type FlagReason = Literal["wrong_key", "unclear", "not_in_section", "other"]
@@ -255,6 +257,25 @@ class ConceptEmbedding(TypedDict):
     text_hash: str
     embedding: str
     embedded_at: datetime
+
+
+class ConceptExplainer(TypedDict):
+    id: int
+    concept_id: int
+    script: str
+    citations: JsonValue
+    generator_model: str
+    prompt_version: int
+    status: ExplainerStatus
+    decided_by: str | None
+    decided_at: datetime | None
+    created_at: datetime
+
+
+class ConceptExplainerAttempt(TypedDict):
+    concept_id: int
+    outcome: str
+    tried_at: datetime
 
 
 class ConceptMastery(TypedDict):

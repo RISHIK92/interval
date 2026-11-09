@@ -5,7 +5,7 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "concept_drafting" | "embeddings" | "notes" | "paths" | "project_notes" | "questions" | "tagging" | "technologies";
+export type AiFeature = "concept_drafting" | "embeddings" | "explainer" | "notes" | "paths" | "project_notes" | "questions" | "tagging" | "technologies";
 
 export type AiProvider = "google" | "groq" | "openrouter" | "voyage";
 
@@ -32,6 +32,8 @@ export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
 export type DependencyEcosystem = "go" | "npm" | "pypi";
 
 export type Difficulty = "advanced" | "beginner" | "intermediate";
+
+export type ExplainerStatus = "approved" | "pending" | "rejected";
 
 export type FeedbackKind = "less_like_this" | "more_like_this" | "not_interested";
 
@@ -278,6 +280,25 @@ export interface ConceptEmbedding {
   embedding: string;
   model: string;
   text_hash: string;
+}
+
+export interface ConceptExplainer {
+  citations: Json;
+  concept_id: Int8;
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  decided_by: string | null;
+  generator_model: string;
+  id: Generated<Int8>;
+  prompt_version: number;
+  script: string;
+  status: Generated<ExplainerStatus>;
+}
+
+export interface ConceptExplainerAttempt {
+  concept_id: Int8;
+  outcome: string;
+  tried_at: Generated<Timestamp>;
 }
 
 export interface ConceptMastery {
@@ -1178,6 +1199,8 @@ export interface DB {
   concept: Concept;
   concept_edge: ConceptEdge;
   concept_embedding: ConceptEmbedding;
+  concept_explainer: ConceptExplainer;
+  concept_explainer_attempt: ConceptExplainerAttempt;
   concept_mastery: ConceptMastery;
   concept_review: ConceptReview;
   content_item: ContentItem;

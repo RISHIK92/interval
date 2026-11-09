@@ -1784,3 +1784,31 @@ export interface AdminTechnologies {
   ): Promise<"accepted" | "decided" | "conflict">;
   reject(suggestionId: string, adminUserId: string): Promise<boolean>;
 }
+
+// Concept explainers (§5G, ADR-0038, P4-W22-S01): scripts waiting for the owner, each
+// with its citations as the sections they quote (deep links, §3.2).
+export type ExplainerReview = {
+  id: string;
+  concept: string;
+  script: string;
+  model: string;
+  createdAt: Date;
+  // Cited sections gone since (re-segmented): not shown, but counted.
+  missing: number;
+  citations: {
+    momentId: string;
+    articleTitle: string;
+    sectionTitle: string;
+    link: string;
+  }[];
+};
+export interface AdminExplainers {
+  pending(): Promise<ExplainerReview[]>;
+  // False: not pending any more (decided already, or no such script), or approving one
+  // that no longer has two sources to cite (AI-1).
+  decide(
+    id: string,
+    decision: "approved" | "rejected",
+    by: string,
+  ): Promise<boolean>;
+}

@@ -3877,3 +3877,41 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - tests (no save on open, restore, discard, the sweep, guards, `startBookCheckpoint`).
 - **To check on a device:** whether blob-util's native cookie jar adds or keeps cookies for the site (it bypasses `credentials: "omit"`). A file for another user can't reach the screen (the file route checks the owner), but a stale jar session could give a 401.
 - **Not verified:** on a simulator (owner rebuild).
+
+### 2026-11-09 — ADR-0038 and P4-W22-S01 (concept explainer scripts; §5G, AI-1, AI-3, AI-4, ING-2, OPS-4)
+
+- **ADR-0038:** drafted and accepted by the owner (option A).
+  - Explainer scripts use the question-generation model class (AI-2's "stronger" tier already groups them) within the owner's $0.80/M output rule and the 30-cent cap.
+  - They sit behind their own `EXPLAINER_MODEL` (unset = off).
+- **Data:**
+  - `concept_explainer`: one per concept (AI-4); the script apart from source text (AI-3); citations `[{moment_id, quote}]`; model and prompt version; pending/approved/rejected with who and when.
+  - `concept_explainer_attempt`: a concept tried without a script waits 7 days.
+  - `ai_feature` gains `explainer`.
+- **Worker:**
+  - `explainers.py`:
+    - the prompt puts each source in `<source>` tags, as data, never instructions;
+    - `parse_reply` checks: 150–300 words (60–120 s), within the table's 4,000 characters, each citation quoting its source (≤300 characters, so no source text is stored at length), at least two sections, one citation per section, and no 12-word run copied from a source;
+    - `write` reads in units, calls between them, records skipped and refused tries, and stops at the budget.
+  - `PostgresExplainers` reuses the question drafts' rights and live-concept SQL (no duplicates, moments on, full-text profiles, ING-2) and leaves out broken links (ING-6); the memory fake matches.
+  - `write-explainers --limit N` is owner-run, as propose-paths. `questions._words` became `plain_words` (now shared).
+  - `.env.example`: `EXPLAINER_MODEL`. As the other model settings, it comes from the worker's env file in both modes; there's no infra code for them.
+- **Web:** `/admin/explainers` (`admin.review`):
+  - pending scripts labeled AI-drafted, their sources as the publisher's deep links (§3.2), never the stored quotes;
+  - how many cited sections are gone since; Approve only with two still there, enforced in the update too;
+  - Approve and Reject recorded with who and when.
+- **No model was run:** `EXPLAINER_MODEL` is unset (the owner's AI-budget rule).
+- **Checks:**
+  - the full check: web 1466 plus a shared-DB deadlock in the daily admin suite (passes alone), mobile 97;
+  - Python 1402 and infra 90 alone.
+- **Reviewer fixes:**
+  - **the blocker:** propose-paths had lost its return;
+  - retries waiting;
+  - the quote cap;
+  - one citation per section;
+  - gone sections and approval;
+  - prompt delimiters;
+  - the character limit;
+  - broken links;
+  - typed test stubs;
+  - more tests.
+- **Noted:** there's no admin index page to link /admin/explainers from (none of the admin pages has one).

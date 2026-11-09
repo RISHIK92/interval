@@ -52,6 +52,9 @@ from interval_jobs.ports import (
     DuplicateInviteCode,
     EntryFacts,
     EstimateDraft,
+    ExplainerCitation,
+    ExplainerConcept,
+    ExplainerSource,
     FeedEntry,
     FetchInput,
     Finished,
@@ -3762,6 +3765,119 @@ class PostgresDeviceTokens:
         self._conn.execute("delete from device_push_token where token = %s", (token,))
 
 
+_MOMENT_LIVE_CONCEPT_IDS = _MOMENT_LIVE_CONCEPTS.replace(
+    "select c.slug, c.name", "select c.id", 1
+)
+assert _MOMENT_LIVE_CONCEPT_IDS != _MOMENT_LIVE_CONCEPTS, "live concepts query changed"
+
+# Explainers (§5G, P4-W22-S01): each full-text moment (as questions are drafted from:
+# no duplicate, moments on, full-text rights, ING-2) with each of its live concepts.
+_EXPLAINER_MOMENTS = f"""
+    select m.id as moment_id, m.content_item_id, m.ordinal, m.title,
+           ci.title as article_title, lc.id as concept_id
+    from moment m
+    join content_item ci on ci.id = m.content_item_id
+    join source s on s.id = ci.source_id
+    cross join lateral ({_MOMENT_LIVE_CONCEPT_IDS}) lc
+    where ci.duplicate_of is null and s.moments_enabled
+      and s.rights_profile in ('full_text_internal', 'full_text_display')
+      -- ING-6: a page that's gone is no source to cite.
+      and ci.link_broken_at is null
+"""
+# A concept tried without a script waits this long before it is tried again.
+_EXPLAINER_RETRY = "interval '7 days'"
+
+
+class PostgresExplainers:
+    """Concept explainer scripts (ADR-0038, P4-W22-S01)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def targets(self, limit: int) -> list[ExplainerConcept]:
+        rows = self._conn.execute(
+            f"""
+            select c.id, c.slug, c.name
+            from concept c
+            join ({_EXPLAINER_MOMENTS}) em on em.concept_id = c.id
+            where c.retired_at is null
+              and not exists (
+                select 1 from concept_explainer x where x.concept_id = c.id)
+              and not exists (
+                select 1 from concept_explainer_attempt t
+                where t.concept_id = c.id
+                  and t.tried_at > now() - {_EXPLAINER_RETRY})
+            group by c.id
+            having count(distinct em.content_item_id) >= 2
+            order by c.id
+            limit %s
+            """,
+            (limit,),
+        ).fetchall()
+        return [
+            ExplainerConcept(int(i), str(slug), str(name)) for i, slug, name in rows
+        ]
+
+    def sources(self, concept_id: int, count: int) -> list[ExplainerSource]:
+        # One section per article (its first on the concept), from the newest articles.
+        rows = self._conn.execute(
+            f"""
+            select moment_id, content_item_id, title, article_title from (
+              select distinct on (em.content_item_id) em.*
+              from ({_EXPLAINER_MOMENTS}) em
+              where em.concept_id = %s
+              order by em.content_item_id, em.ordinal
+            ) firsts
+            order by content_item_id desc
+            limit %s
+            """,
+            (concept_id, count),
+        ).fetchall()
+        return [
+            ExplainerSource(int(m), int(i), str(title or article), str(article))
+            for m, i, title, article in rows
+        ]
+
+    def save(
+        self,
+        concept_id: int,
+        script: str,
+        citations: list[ExplainerCitation],
+        model: str,
+        prompt_version: int,
+    ) -> bool:
+        row = self._conn.execute(
+            """
+            insert into concept_explainer
+              (concept_id, script, citations, generator_model, prompt_version)
+            values (%s, %s, %s, %s, %s)
+            on conflict (concept_id) do nothing
+            returning id
+            """,
+            (
+                concept_id,
+                script,
+                Jsonb(
+                    [{"moment_id": c.moment_id, "quote": c.quote} for c in citations]
+                ),
+                model,
+                prompt_version,
+            ),
+        ).fetchone()
+        return row is not None
+
+    def tried(self, concept_id: int, outcome: Literal["skipped", "refused"]) -> None:
+        self._conn.execute(
+            """
+            insert into concept_explainer_attempt (concept_id, outcome)
+            values (%s, %s)
+            on conflict (concept_id)
+              do update set outcome = excluded.outcome, tried_at = now()
+            """,
+            (concept_id, outcome),
+        )
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
@@ -3788,6 +3904,7 @@ class PostgresStore:
         self.ranking = PostgresRankingInputs(conn)
         self.decisions = PostgresDecisions(conn)
         self.questions = PostgresQuestions(conn)
+        self.explainers = PostgresExplainers(conn)
 
 
 @contextmanager
