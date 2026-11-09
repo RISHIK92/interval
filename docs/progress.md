@@ -3944,3 +3944,48 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - remove refused, said;
   - tests.
 - **For the owner:** curate the seed file. If all-caps terms should match only in capitals (so "a cap on spend" never changes), that's a product call; today matching is in any case.
+
+### 2026-11-10 — P4-W22-S03 (the TTS port, its adapters and the blind test; TTS-1, OPS-4, Q-P4-07)
+
+- **Owner, 2026-11-09:**
+  - TTS spend shares the AI budget's daily 30 cents;
+  - the blind test's 5 scripts are fixed samples in the repo (`seeds/tts_scripts.yaml`, PROVISIONAL);
+  - providers are revealed only after all 5 have a pick.
+- **API shapes** were checked against each provider's docs on 2026-11-09:
+  - ElevenLabs with-timestamps (`xi-api-key`; base64 audio plus character times);
+  - Inworld `POST /tts/v1/voice` (Basic key as given, `timestampType: WORD`);
+  - Polly through boto3 (already a dependency): MP3 plus word marks.
+- **Data:**
+  - `ai_provider` gains elevenlabs, inworld and polly; `ai_feature` gains tts;
+  - `tts_sample`: run, script, provider, label A/B/C, file, pick; one pick a script by a partial unique index.
+- **Worker:**
+  - **Ports:** `Speech` (MP3, word times, characters, an estimated cost), `TtsProvider`, `TtsSamples`, `Files.put` (S3/SeaweedFS and memory).
+  - **`adapters/tts.py`:** the three adapters, each turning its timing into word times, with list prices as named estimates. An unusable answer is a `TtsError`.
+  - **`gateway.speak`:** the budget is checked first, then usage is recorded (characters, estimated cost).
+  - **`compose.tts_providers`:** each provider on only with its key and voice. `tts_provider` (`TTS_PROVIDER`) is for W22-S04.
+  - **`tts-blind-test`:** each configured provider says each script (the dictionary first); the MP3s go to the private bucket.
+    - Providers are shuffled per script and the labels saved in A, B, C order, so ids give nothing away.
+    - It stops at the budget, and needs 2–3 providers.
+  - `.env.example` has the keys, voices and `TTS_PROVIDER`, all unset.
+- **Web:**
+  - **`/admin/tts`:** the latest complete run (a newer one that stopped part way is passed over, and said), with each script's voices as players and Pick.
+    - Providers stay out of the page until all 5 are picked, then show with the tally.
+    - A pick at the same moment as another is "already picked", not an error.
+  - **`/api/admin/tts/[id]`:** admin only, `audio/mpeg`, not cached.
+- **Nothing was called:** no provider keys exist.
+- **Before running the test:**
+  - add two providers' keys and voices to the worker's env;
+  - raise the daily cap for the run (at list prices the test costs more than 30 cents);
+  - after picking, set `TTS_PROVIDER`.
+- **Checks:**
+  - the full check: web 1477, mobile 97, Python 1429;
+  - infra 90 alone;
+  - after the review fixes: TTS 12 Python, 7 web.
+- **Reviewer fixes:**
+  - **the blocker:** ids gave the providers away;
+  - partial runs never shown or revealed;
+  - the pick race;
+  - parse errors as `TtsError`;
+  - the usage assertion;
+  - the comment.
+- **Known:** the audio route has no Range support; Safari may refuse to play it (Chrome plays it). Bitrates differ by provider, which an expert ear or file size could notice.

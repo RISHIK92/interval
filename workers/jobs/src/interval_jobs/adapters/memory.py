@@ -1967,6 +1967,16 @@ class InMemoryPronunciations:
         ]
 
 
+class InMemoryTtsSamples:
+    def __init__(self) -> None:
+        self.saved: list[tuple[str, int, str, str, str]] = []
+
+    def save(
+        self, run: str, script_no: int, provider: AiProvider, label: str, file_key: str
+    ) -> None:
+        self.saved.append((run, script_no, provider, label, file_key))
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -1987,6 +1997,7 @@ class InMemoryStore:
         self.decisions = InMemoryDecisions(self.moments, self.concepts)
         self.explainers = InMemoryExplainers()
         self.pronunciations = InMemoryPronunciations()
+        self.tts_samples = InMemoryTtsSamples()
         self.questions = InMemoryQuestions(
             self.items, self.sources, self.moments, self.tags, self.concepts
         )
@@ -2051,12 +2062,17 @@ class InMemoryFiles:
 
     def __init__(self) -> None:
         self.stored: dict[str, bytes] = {}
+        self.types: dict[str, str] = {}
 
     def get(self, key: str) -> bytes | None:
         return self.stored.get(key)
 
     def remove(self, key: str) -> None:
         self.stored.pop(key, None)
+
+    def put(self, key: str, data: bytes, content_type: str) -> None:
+        self.stored[key] = data
+        self.types[key] = content_type
 
 
 @dataclass

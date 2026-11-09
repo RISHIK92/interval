@@ -18,8 +18,11 @@ type AiFeature = Literal[
     "technologies",
     "project_notes",
     "explainer",
+    "tts",
 ]
-type AiProvider = Literal["openrouter", "voyage", "groq", "google"]
+type AiProvider = Literal[
+    "openrouter", "voyage", "groq", "google", "elevenlabs", "inworld", "polly"
+]
 type BetaGroup = Literal["student", "developer"]
 type BookCheckpointStatus = Literal["preparing", "ready", "failed"]
 type BookStatus = Literal["processing", "ocr", "ready", "failed"]
@@ -990,6 +993,18 @@ class TechnologySuggestion(TypedDict):
     decided_by: str | None
     decided_at: datetime | None
     created_at: datetime
+
+
+class TtsSample(TypedDict):
+    id: int
+    run: UUID
+    script_no: int
+    provider: str
+    voice_label: str
+    file_key: str
+    created_at: datetime
+    picked_at: datetime | None
+    picked_by: str | None
 
 
 class UnclaimedDependency(TypedDict):

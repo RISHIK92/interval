@@ -11,6 +11,10 @@ class S3Client(Protocol):
 
     def delete_object(self, *, Bucket: str, Key: str) -> dict[str, Any]: ...
 
+    def put_object(
+        self, *, Bucket: str, Key: str, Body: bytes, ContentType: str
+    ) -> dict[str, Any]: ...
+
 
 class S3Files:
     def __init__(self, client: S3Client, bucket: str) -> None:
@@ -32,3 +36,8 @@ class S3Files:
     def remove(self, key: str) -> None:
         # S3 answers a missing key with success too.
         self._client.delete_object(Bucket=self._bucket, Key=key)
+
+    def put(self, key: str, data: bytes, content_type: str) -> None:
+        self._client.put_object(
+            Bucket=self._bucket, Key=key, Body=data, ContentType=content_type
+        )

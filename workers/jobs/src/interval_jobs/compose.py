@@ -49,6 +49,7 @@ from interval_jobs.adapters.postgres import PostgresAi, PostgresStore, unit_of_w
 from interval_jobs.adapters.s3_files import S3Client, S3Files
 from interval_jobs.adapters.sqs_queue import SqsClient, SqsConsumer, SqsQueue
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
+from interval_jobs.adapters.tts import ElevenLabsTts, InworldTts, PollyClient, PollyTts
 from interval_jobs.adapters.voyage import VoyageClient
 from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.events.emitter import Emitter
@@ -63,6 +64,7 @@ from interval_jobs.ports import (
     NativePush,
     Ocr,
     QueueConsumer,
+    TtsProvider,
     WebPush,
 )
 from interval_jobs.webpush import private_key
@@ -356,3 +358,36 @@ def model_job(variable: str) -> Generator[ModelJob | None]:
                 yield ai_gateway(PostgresAi(ledger), http)
 
         yield ModelJob(model, gateway)
+
+
+def tts_providers(client: httpx.Client) -> list[TtsProvider]:
+    """TTS-1, Q-P4-07 (P4-W22-S03): each provider on only when its key (and voice)
+    exists; none until the owner adds them, so nothing is generated before."""
+    providers: list[TtsProvider] = []
+    key, voice = (
+        os.environ.get("ELEVENLABS_API_KEY"),
+        os.environ.get("ELEVENLABS_VOICE"),
+    )
+    if key and voice:
+        providers.append(ElevenLabsTts(client, key, voice))
+    key, voice = os.environ.get("INWORLD_API_KEY"), os.environ.get("INWORLD_VOICE")
+    if key and voice:
+        providers.append(InworldTts(client, key, voice))
+    # Polly signs with the worker's own AWS credentials (as S3); its voice turns it on.
+    voice = os.environ.get("POLLY_VOICE")
+    if voice:
+        polly = cast(
+            PollyClient,
+            boto3.client(  # pyright: ignore[reportUnknownMemberType]
+                "polly", region_name=_required("AWS_REGION")
+            ),
+        )
+        providers.append(PollyTts(polly, voice))
+    return providers
+
+
+def tts_provider(client: httpx.Client) -> TtsProvider | None:
+    """The provider the blind test chose (TTS_PROVIDER), for voicing (P4-W22-S04); None
+    when it isn't set or its key isn't there."""
+    chosen = os.environ.get("TTS_PROVIDER")
+    return next((p for p in tts_providers(client) if p.provider == chosen), None)

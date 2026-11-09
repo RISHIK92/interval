@@ -33,6 +33,7 @@ import psycopg
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs import log
+from interval_jobs.adapters.postgres import PostgresAi
 from interval_jobs.adapters.redis_results import RedisResults
 from interval_jobs.compose import (
     ai_gateway,
@@ -46,6 +47,7 @@ from interval_jobs.compose import (
     queue_for_enqueue,
     services,
     stage_units,
+    tts_providers,
     web_push,
 )
 from interval_jobs.concept_vectors import embed_concepts
@@ -96,6 +98,8 @@ from interval_jobs.tagging_eval import (
 from interval_jobs.technologies import TechnologySeedError, parse_technologies
 from interval_jobs.technology_suggestions import suggest_technologies
 from interval_jobs.tracing import run_span, setup
+from interval_jobs.tts_blind import TtsScriptsError, blind_test
+from interval_jobs.tts_blind import parse_scripts as parse_tts_scripts
 from interval_jobs.universities import UniversitySeedError, parse_universities
 
 # The owner's seed list (Q-P1-02), relative to where commands run: the repo root
@@ -104,6 +108,7 @@ SEED_FILE = Path("workers/jobs/seeds/sources.yaml")
 CONCEPT_FILE = Path("workers/jobs/seeds/concepts.yaml")
 TECHNOLOGY_FILE = Path("workers/jobs/seeds/technologies.yaml")
 PRONUNCIATION_FILE = Path("workers/jobs/seeds/pronunciations.yaml")
+TTS_SCRIPTS_FILE = Path("workers/jobs/seeds/tts_scripts.yaml")
 UNIVERSITY_FILE = Path("workers/jobs/seeds/universities.json")
 
 
@@ -278,6 +283,12 @@ def main(argv: list[str]) -> None:
         help="sync the technology seed file (PER-4, P2-W12-S03)",
     )
     technologies.add_argument("--file", type=Path, default=TECHNOLOGY_FILE)
+    blind = commands.add_parser(
+        "tts-blind-test",
+        help="say the 5 test scripts with each TTS provider that has a key, unnamed, "
+        "for the owner's pick on /admin/tts (TTS-1, P4-W22-S03)",
+    )
+    blind.add_argument("--file", type=Path, default=TTS_SCRIPTS_FILE)
     pronounce = commands.add_parser(
         "load-pronunciations",
         help="sync the pronunciation seed file (TTS-2, P4-W22-S02)",
@@ -508,6 +519,10 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         print(json.dumps(asdict(outcome)))
         if outcome.stopped is not None:
             sys.exit(f"suggest-technologies stopped: {outcome.stopped}")
+        return
+
+    if args.command == "tts-blind-test":
+        _tts_blind_test(args.file)
         return
 
     if args.command == "load-pronunciations":
@@ -804,6 +819,39 @@ def _propose_paths(count: int) -> None:
             sys.exit("propose-paths needs PATHS_MODEL (Q-P2-25)")
         with job.gateway() as gateway:
             got = propose(unit, gateway, job.model, count)
+    print(json.dumps(asdict(got), indent=2))
+
+
+def _tts_blind_test(path: Path) -> None:
+    """TTS-1 (P4-W22-S03): run by hand once the providers' keys are in the worker's env.
+    The calls count against the shared daily budget; at list prices the whole test costs
+    more than 30 cents, so the owner raises the cap for the run."""
+    try:
+        scripts = parse_tts_scripts(path.read_text(encoding="utf-8"))
+    except OSError as error:
+        sys.exit(f"{path}: {error.strerror}")
+    except TtsScriptsError as error:
+        sys.exit(f"{path}: {error}")
+    store = files()
+    if store is None:
+        sys.exit("tts-blind-test needs PRIVATE_CONTENT_BUCKET (the audio is stored)")
+
+    @contextmanager
+    def unit() -> Generator[Store]:
+        with services() as s:
+            yield s.store
+
+    with httpx.Client() as http:
+        providers = tts_providers(http)
+        if len(providers) < 2:
+            sys.exit(
+                "tts-blind-test needs two providers' keys and voices "
+                "(ELEVENLABS_*, INWORLD_*, POLLY_VOICE)"
+            )
+        with psycopg.connect(database_url(), autocommit=True) as ledger:
+            got = blind_test(
+                unit, ai_gateway(PostgresAi(ledger), http), store, providers, scripts
+            )
     print(json.dumps(asdict(got), indent=2))
 
 

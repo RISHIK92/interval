@@ -29,6 +29,8 @@ from interval_jobs.ports import (
     LlmClient,
     Message,
     ModelError,
+    Speech,
+    TtsProvider,
     Usage,
 )
 
@@ -58,6 +60,12 @@ class Decided:
 @dataclass(frozen=True)
 class Embedded:
     vectors: list[list[float]]
+    usage: Usage
+
+
+@dataclass(frozen=True)
+class Spoken:
+    speech: Speech
     usage: Usage
 
 
@@ -107,6 +115,26 @@ class AiGateway:
             result.cost_usd,
         )
         return Completed(result.text, usage)
+
+    def speak(
+        self, *, feature: AiFeature, tts: TtsProvider, text: str
+    ) -> Spoken | OverBudget:
+        """TTS (TTS-1, P4-W22-S03): offline, against the global budget it shares with
+        the models (owner, 2026-11-09), recorded as the provider's characters."""
+        refused = self._over_budget(feature, None)
+        if refused is not None:
+            return refused
+        speech = tts.speak(text)
+        usage = self._record(
+            feature,
+            None,
+            tts.provider,
+            tts.voice,
+            speech.characters,
+            0,
+            speech.cost_usd,
+        )
+        return Spoken(speech, usage)
 
     def decide(
         self,

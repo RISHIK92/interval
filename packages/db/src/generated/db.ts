@@ -5,9 +5,9 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "concept_drafting" | "embeddings" | "explainer" | "notes" | "paths" | "project_notes" | "questions" | "tagging" | "technologies";
+export type AiFeature = "concept_drafting" | "embeddings" | "explainer" | "notes" | "paths" | "project_notes" | "questions" | "tagging" | "technologies" | "tts";
 
-export type AiProvider = "google" | "groq" | "openrouter" | "voyage";
+export type AiProvider = "elevenlabs" | "google" | "groq" | "inworld" | "openrouter" | "polly" | "voyage";
 
 export type ArrayType<T> = ArrayTypeImpl<T> extends (infer U)[]
   ? U[]
@@ -1015,6 +1015,18 @@ export interface TechnologySuggestion {
   users: number;
 }
 
+export interface TtsSample {
+  created_at: Generated<Timestamp>;
+  file_key: string;
+  id: Generated<Int8>;
+  picked_at: Timestamp | null;
+  picked_by: string | null;
+  provider: string;
+  run: string;
+  script_no: number;
+  voice_label: string;
+}
+
 export interface UnclaimedDependency {
   asked: boolean | null;
   ecosystem: DependencyEcosystem | null;
@@ -1290,6 +1302,7 @@ export interface DB {
   technology_concept: TechnologyConcept;
   technology_package: TechnologyPackage;
   technology_suggestion: TechnologySuggestion;
+  tts_sample: TtsSample;
   unclaimed_dependency: UnclaimedDependency;
   university: University;
   user_article_finished: UserArticleFinished;

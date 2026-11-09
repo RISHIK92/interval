@@ -1828,3 +1828,28 @@ export interface AdminPronunciations {
   // False: no such admin-added term (a seed term stays).
   remove(id: string): Promise<boolean>;
 }
+
+// The TTS blind test (TTS-1, Q-P4-07, P4-W22-S03): the latest run's voices per script,
+// unnamed until every script has the owner's pick (owner, 2026-11-09).
+export type TtsVoice = {
+  id: string;
+  label: "A" | "B" | "C";
+  picked: boolean;
+  // Null until the run is revealed: the page can't show what it isn't given.
+  provider: string | null;
+};
+export type TtsRun = {
+  run: string;
+  // A newer run stopped part way (the budget, or a provider failing): not shown.
+  newerStopped: boolean;
+  scripts: { scriptNo: number; voices: TtsVoice[] }[];
+  revealed: boolean;
+  tally: { provider: string; picks: number }[];
+};
+export interface AdminTts {
+  latest(): Promise<TtsRun | null>;
+  // False: its script has a pick already (even one made at the same moment).
+  pick(sampleId: string, by: string): Promise<boolean>;
+  // A sample's stored audio, for the admin-only audio route.
+  fileKey(sampleId: string): Promise<string | null>;
+}

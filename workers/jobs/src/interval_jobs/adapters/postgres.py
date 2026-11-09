@@ -3919,6 +3919,24 @@ class PostgresPronunciations:
         return [Pronunciation(str(t), str(s)) for t, s in rows]
 
 
+class PostgresTtsSamples:
+    """The TTS blind test's samples (P4-W22-S03)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def save(
+        self, run: str, script_no: int, provider: AiProvider, label: str, file_key: str
+    ) -> None:
+        self._conn.execute(
+            """
+            insert into tts_sample (run, script_no, provider, voice_label, file_key)
+            values (%s, %s, %s, %s, %s)
+            """,
+            (run, script_no, provider, label, file_key),
+        )
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
@@ -3947,6 +3965,7 @@ class PostgresStore:
         self.questions = PostgresQuestions(conn)
         self.explainers = PostgresExplainers(conn)
         self.pronunciations = PostgresPronunciations(conn)
+        self.tts_samples = PostgresTtsSamples(conn)
 
 
 @contextmanager

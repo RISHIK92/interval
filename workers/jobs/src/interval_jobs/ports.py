@@ -1254,6 +1254,9 @@ class Store(Protocol):
     def pronunciations(self) -> "Pronunciations": ...
 
     @property
+    def tts_samples(self) -> "TtsSamples": ...
+
+    @property
     def paths(self) -> Paths: ...
 
     @property
@@ -1581,6 +1584,10 @@ class Files(Protocol):
 
     def remove(self, key: str) -> None:
         """Nothing at the key is not an error."""
+        ...
+
+    def put(self, key: str, data: bytes, content_type: str) -> None:
+        """Writes the key (TTS audio, P4-W22-S03), replacing what was there."""
         ...
 
 
@@ -1985,3 +1992,38 @@ class Pronunciations(Protocol):
     def all(self) -> list[Pronunciation]:
         """Every term, the seed's and the admin's, for voicing."""
         ...
+
+
+# TTS (TTS-1, TTS-3, P4-W22-S03): a script said by a provider, with each word's time
+# when the provider gives it (Q-P4-08: forced alignment later, when one doesn't).
+@dataclass(frozen=True)
+class WordTime:
+    word: str
+    start: float  # seconds
+    end: float
+
+
+@dataclass(frozen=True)
+class Speech:
+    audio: bytes  # MP3
+    words: list[WordTime] | None
+    characters: int  # what the provider bills by
+    cost_usd: Decimal  # at the adapter's list price: an estimate for the budget
+
+
+class TtsProvider(Protocol):
+    @property
+    def provider(self) -> AiProvider: ...
+
+    @property
+    def voice(self) -> str: ...
+
+    def speak(self, text: str) -> Speech: ...
+
+
+class TtsSamples(Protocol):
+    """The blind test's samples (P4-W22-S03), unnamed until the owner has picked."""
+
+    def save(
+        self, run: str, script_no: int, provider: AiProvider, label: str, file_key: str
+    ) -> None: ...

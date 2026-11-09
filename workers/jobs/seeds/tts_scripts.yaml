@@ -1,0 +1,28 @@
+# The TTS blind test's scripts (TTS-1, Q-P4-07, P4-W22-S03): the same five, said by each
+# provider, unnamed, for the owner to pick a voice. Dense with the terms explainers use,
+# so the pick is made on what matters. The pronunciation dictionary applies first.
+#
+# PROVISIONAL (2026-11-09): Claude drafted these. NOT owner-approved yet; edit freely.
+scripts:
+  - >-
+    A database index is a sorted copy of some columns that points back to the rows.
+    PostgreSQL uses B-tree indexes by default, so a lookup takes a few steps instead of
+    a full scan. The cost comes on writes: every insert and update has to keep each
+    index in order too.
+  - >-
+    When a client retries a request after a timeout, the server may see it twice. An
+    idempotent endpoint makes that harmless: the client sends an idempotency key, and
+    the server returns the stored result the second time instead of charging the card
+    again.
+  - >-
+    Raft keeps a cluster agreeing on one log. A leader takes every write, and an entry
+    counts only once a majority of nodes have it. If the leader goes quiet, followers
+    wait a random timeout, then one stands for election and asks the others for votes.
+  - >-
+    Behind nginx, each request reaches one of several app servers. kubectl rolls out a
+    new version a few pods at a time, and the readiness probe keeps traffic away from a
+    pod until it can answer. Over HTTP/2, one connection carries many requests at once.
+  - >-
+    A JWT carries signed claims, so any server can check it without asking the issuer.
+    OAuth decides who gets a token in the first place. Keep tokens short-lived and store
+    the refresh token where scripts in the page can't read it.
