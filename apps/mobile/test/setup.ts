@@ -7,6 +7,12 @@ jest.mock("expo-notifications", () => ({
   getDevicePushTokenAsync: jest.fn(),
 }));
 
+// Haptics are felt on a phone only; tests read which was asked for (P4-W21-S01).
+jest.mock("expo-haptics", () => ({
+  notificationAsync: jest.fn(() => Promise.resolve()),
+  NotificationFeedbackType: { Success: "success", Error: "error" },
+}));
+
 // The publisher's page (P4-W20-S02): a native view jest can't load; its props are
 // what the reader passes, and a test calls its onLoadEnd or onError.
 jest.mock("react-native-webview", () => {

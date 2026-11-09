@@ -1,3 +1,4 @@
+// ARCH-3 (P4-W21-S01): the games' scoring, one copy for the web's server and the app.
 // The worker's validator agrees within the same band (workers/jobs questions.py
 // ESTIMATE_AGREES): change both together.
 const FULL = 1.25;
@@ -19,3 +20,12 @@ export function estimateScore(guess: number, answer: number): number {
 // answer under half points (about 3.5× off) sends its source back to reading (§6.1).
 export const points = (score: number): number => Math.round(score * 100);
 export const missed = (score: number): boolean => score < 0.5;
+
+// A round's points: what each answer shows, added up (so the list sums to the total).
+export const total = (scores: number[]): number =>
+  scores.reduce((sum, score) => sum + points(score), 0);
+
+// P3-W13-S05 (§6.3, Q-P3-06; owner, 2026-11-01): a right choice in the daily challenge
+// is worth an estimate's full points.
+export const dailyPoints = (choicesRight: number, scores: number[]): number =>
+  choicesRight * points(1) + total(scores);

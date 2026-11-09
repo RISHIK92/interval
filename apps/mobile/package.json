@@ -16,10 +16,12 @@
   "dependencies": {
     "@better-auth/expo": "1.7.12",
     "@interval/api-client": "workspace:*",
+    "@interval/scoring": "workspace:*",
     "@interval/tokens": "workspace:*",
     "better-auth": "1.7.12",
     "expo": "58.0.19",
     "expo-constants": "58.0.13",
+    "expo-haptics": "58.0.7",
     "expo-linking": "58.0.14",
     "expo-network": "58.0.4",
     "expo-notifications": "58.1.6",

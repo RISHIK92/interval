@@ -202,6 +202,9 @@ importers:
       '@interval/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@interval/scoring':
+        specifier: workspace:*
+        version: link:../../packages/scoring
       '@interval/tokens':
         specifier: workspace:*
         version: link:../../packages/tokens
@@ -214,6 +217,9 @@ importers:
       expo-constants:
         specifier: 58.0.13
         version: 58.0.13(expo@58.0.19)(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3)
+      expo-haptics:
+        specifier: 58.0.7
+        version: 58.0.7(expo@58.0.19)
       expo-linking:
         specifier: 58.0.14
         version: 58.0.14(expo@58.0.19)(react-native@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)(supports-color@8.1.1)(typescript@6.0.3)
@@ -296,6 +302,9 @@ importers:
       '@interval/events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@interval/scoring':
+        specifier: workspace:*
+        version: link:../../packages/scoring
       '@opentelemetry/api':
         specifier: 1.9.1
         version: 1.9.1
@@ -431,6 +440,12 @@ importers:
       zod:
         specifier: 4.6.7
         version: 4.6.7
+    devDependencies:
+      '@interval/config':
+        specifier: workspace:*
+        version: link:../config
+
+  packages/scoring:
     devDependencies:
       '@interval/config':
         specifier: workspace:*
@@ -3991,6 +4006,11 @@ packages:
       expo: '*'
       react: '*'
       react-native: '*'
+
+  expo-haptics@58.0.7:
+    resolution: {integrity: sha512-mAY3rbng6EuYysq9wnJKhKwYYlDjqnPYcS5OXe3zj4TlAaOFMl/EfiSOuAMawc2nsXCAnwJ5U0E11nq5zQO0mg==}
+    peerDependencies:
+      expo: '*'
 
   expo-keep-awake@58.0.3:
     resolution: {integrity: sha512-wLRF+XeVsD/Rt/ZyX+A0mk1brdf8vefWizNAPzqV5eOCgkj23LCRZdN8gUi5X8UwyR8UJ7Y7Dzdz4YDGB/4c9Q==}
@@ -10859,6 +10879,10 @@ snapshots:
       expo: 58.0.19(3cd940f5f6fefbda0ba0fcd1f9f79415)
       react: 19.3.0
       react-native: 0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(@react-native/metro-config@0.88.0(@babel/core@7.29.7(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1)
+
+  expo-haptics@58.0.7(expo@58.0.19):
+    dependencies:
+      expo: 58.0.19(3cd940f5f6fefbda0ba0fcd1f9f79415)
 
   expo-keep-awake@58.0.3(expo@58.0.19)(react@19.3.0):
     dependencies:

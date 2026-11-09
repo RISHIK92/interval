@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CHIPS } from "../../../server/chips";
 import { quizzes, sessionReader } from "../../../server/container";
-import { points } from "../../../server/estimation";
+import { points } from "@interval/scoring";
 import { BIGINT_ID } from "../../../server/ports";
 import {
   answerEstimateAction,

@@ -17,6 +17,7 @@ import {
 import { WebView } from "react-native-webview";
 import { useColors } from "../../components/theme";
 import { sendControl } from "../../lib/feed";
+import { startQuiz } from "../../lib/quiz";
 import { progressScript } from "../../lib/progress-script";
 import {
   markDone,
@@ -71,7 +72,7 @@ export default function ReaderScreen() {
   const [noteOpen, setNoteOpen] = useState(false);
   const [note, setNote] = useState("");
   const [noteStatus, setNoteStatus] = useState<string | null>(null);
-  const [doneStatus, setDoneStatus] = useState<string | null>(null);
+  const [rowStatus, setRowStatus] = useState<string | null>(null);
 
   useEffect(() => {
     let current = true;
@@ -79,7 +80,7 @@ export default function ReaderScreen() {
     setPhase("loading");
     setNoteOpen(false);
     setNoteStatus(null);
-    setDoneStatus(null);
+    setRowStatus(null);
     void readPage(item, {
       ...(moment === undefined ? {} : { moment }),
       ...(chip === undefined ? {} : { chip }),
@@ -104,7 +105,7 @@ export default function ReaderScreen() {
 
   const page = state.status === "ok" ? state.page : null;
   const onMeasure = useAutoFinish(page, item, () => {
-    setDoneStatus("Section finished");
+    setRowStatus("Section finished");
   });
   useEffect(() => {
     if (page === null || !page.inApp) return;
@@ -166,7 +167,7 @@ export default function ReaderScreen() {
       });
   };
   const done = () => {
-    setDoneStatus(null);
+    setRowStatus(null);
     void markDone(item, page.reached)
       .catch((error: unknown) => {
         console.warn("reader: finish not sent", error);
@@ -174,10 +175,29 @@ export default function ReaderScreen() {
       })
       .then((ok) => {
         if (ok) leave();
-        else setDoneStatus("Couldn't mark this done. Try again.");
+        else setRowStatus("Couldn't mark this done. Try again.");
       });
   };
   const next = page.nextMomentId;
+  const testMe = () => {
+    void startQuiz({
+      itemId: item,
+      ...(page.reached === null ? {} : { momentId: page.reached }),
+    })
+      .catch((error: unknown) => {
+        console.warn("reader: test not started", error);
+        return { status: "failed" } as const;
+      })
+      .then((got) => {
+        if (got.status === "ok") router.push(`/quiz/${got.value.attemptId}`);
+        else
+          setRowStatus(
+            got.status === "none"
+              ? "No questions on this section yet."
+              : "Couldn't start the test. Try again.",
+          );
+      });
+  };
 
   return (
     <View style={[styles.page, { backgroundColor: c.page }]}>
@@ -300,12 +320,12 @@ export default function ReaderScreen() {
           </View>
         </View>
       ) : null}
-      {doneStatus === null ? null : (
+      {rowStatus === null ? null : (
         <Text
           accessibilityLiveRegion="polite"
           style={[styles.status, { color: c.ink }]}
         >
-          {doneStatus}
+          {rowStatus}
         </Text>
       )}
       <View style={[styles.row, styles.footer, { borderColor: c.hairline }]}>
@@ -316,7 +336,14 @@ export default function ReaderScreen() {
         />
         <RoundButton label="Highlight" glyph="✎" later />
         <RoundButton label="Listen" glyph="♫" later />
-        <RoundButton label="Test me" glyph="⚡" later />
+        {/* Test 60s on what's shown, once it has a live question (P4-W21-S01). */}
+        <RoundButton
+          label="Test me"
+          glyph="⚡"
+          later={!page.testable}
+          why="No questions yet"
+          onPress={testMe}
+        />
         <RoundButton
           label="Note"
           glyph="✐"
@@ -439,25 +466,27 @@ function useAutoFinish(
 }
 
 // Shown, not usable yet (owner, ADR-0018 and 2026-11-09): Highlight and Listen come
-// later; Test me with the native quiz (W21-S01).
+// later. Test me waits for its section's questions.
 function RoundButton({
   label,
   glyph,
   onPress,
   later = false,
+  why = "Coming later",
   strong = false,
 }: {
   label: string;
   glyph: string;
   onPress?: () => void;
   later?: boolean;
+  why?: string;
   strong?: boolean;
 }) {
   const c = useColors();
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={later ? `${label}. Coming later` : label}
+      accessibilityLabel={later ? `${label}. ${why}` : label}
       disabled={later}
       onPress={onPress}
       style={[

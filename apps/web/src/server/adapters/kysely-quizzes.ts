@@ -12,7 +12,13 @@ import {
   type Streak,
   quizKey,
 } from "../ports";
-import { estimateScore, missed, points } from "../estimation";
+import {
+  dailyPoints,
+  estimateScore,
+  missed,
+  points,
+  total,
+} from "@interval/scoring";
 import { fsrsState, rate } from "../reviews";
 import { dailyStreak } from "../streak";
 import {
@@ -71,18 +77,12 @@ const LIVE_ESTIMATE = sql`(
   )
 ) q`;
 
-// A round's points: what each answer shows, added up (so the list sums to the total).
-const total = (scores: number[]): number =>
-  scores.reduce((sum, score) => sum + points(score), 0);
-
 // P3-W13-S05 (§6.3, Q-P3-06; owner, 2026-11-01): the daily challenge runs the UTC
-// day's set on one 2-minute clock. A right choice is worth an estimate's full points.
+// day's set on one 2-minute clock (its points: @interval/scoring's dailyPoints).
 const TODAY = sql`(now() at time zone 'utc')::date`;
 const DAILY_DURATION = sql.raw(`interval '120 seconds'`);
 // A daily attempt that counts as played: finished, or past its clock and grace.
 const DAILY_OVER = sql`(finished_at is not null or ends_at + ${GRACE} < now())`;
-const dailyPoints = (choicesRight: number, scores: number[]): number =>
-  choicesRight * points(1) + total(scores);
 // The day's questions rounds may still serve (ING-2, Q-1): a question that left the
 // bank, or whose source's rights no longer allow it, since the pick is passed over.
 const dailyServable = (day: RawBuilder<unknown>) => sql`

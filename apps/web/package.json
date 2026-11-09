@@ -30,6 +30,7 @@
     "@interval/api-client": "workspace:*",
     "@interval/db": "workspace:*",
     "@interval/events": "workspace:*",
+    "@interval/scoring": "workspace:*",
     "@opentelemetry/api": "1.9.1",
     "@opentelemetry/api-logs": "0.223.0",
     "@opentelemetry/instrumentation": "0.223.0",

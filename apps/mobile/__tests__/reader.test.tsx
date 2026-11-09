@@ -13,6 +13,7 @@ const page = {
   reached: "9",
   nextMomentId: "10",
   note: null,
+  testable: false,
   measure: null,
 };
 const fetchMock = jest.fn<Promise<Response>, [string, RequestInit]>();
@@ -78,11 +79,15 @@ test("Save saves through the card controls", async () => {
 test("Highlight, Listen and Test me are shown, not usable yet", async () => {
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
-  for (const name of ["Highlight", "Listen", "Test me"]) {
+  for (const name of ["Highlight", "Listen"]) {
     expect(
       screen.getByRole("button", { name: `${name}. Coming later` }),
     ).toBeDisabled();
   }
+  // P4-W21-S01: Test me waits for its section's questions.
+  expect(
+    screen.getByRole("button", { name: "Test me. No questions yet" }),
+  ).toBeDisabled();
 });
 
 test("Mark done finishes what's shown and leaves", async () => {

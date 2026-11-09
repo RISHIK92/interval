@@ -8,12 +8,14 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const reader = vi.fn<() => Promise<ReaderPage | null>>();
 const noteOf = vi.fn(() => Promise.resolve<string | null>("Mine."));
 const countOpen = vi.fn(() => Promise.resolve());
+const offered = vi.fn(() => Promise.resolve(new Set(["5.9"])));
 const emit = vi.fn();
 vi.mock("../../../../server/container", () => ({
   events: () => ({ emit }),
   sessionReader: () => ({ current }),
   outboundLinks: () => ({ reader }),
   notes: () => ({ get: noteOf }),
+  quizzes: () => ({ offered }),
 }));
 vi.mock("../../../../server/opens", async (actual) => ({
   ...(await actual<typeof import("../../../../server/opens")>()),
@@ -67,6 +69,7 @@ test("a feed card's open: the page, attributed, in the app even if it can't be f
     reached: "9",
     nextMomentId: "10",
     note: "Mine.",
+    testable: true,
     // P4-W20-S03: from this section's start to the next one's.
     measure: {
       start: { id: "election" },
@@ -164,4 +167,15 @@ test.each([
   });
   const body = ReaderResponse.parse(await (await get("?moment=9")).json());
   expect(body.measure).toEqual(measure);
+});
+
+test("no live question on what's shown: Test me isn't offered", async () => {
+  current.mockResolvedValue(account);
+  reader.mockResolvedValue(page);
+  offered.mockResolvedValueOnce(new Set());
+  const body = ReaderResponse.parse(
+    await (await get("?moment=9&chip=3-8&pos=2")).json(),
+  );
+  expect(body.testable).toBe(false);
+  expect(offered).toHaveBeenCalledWith([{ itemId: "5", momentId: "9" }]);
 });

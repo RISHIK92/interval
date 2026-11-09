@@ -1,24 +1,20 @@
 "use server";
 
-import type { Capability } from "@interval/db";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
+import type { Game } from "@interval/api-client";
 import { z } from "zod";
 import { CHIP_COOKIE, CHIPS, parseChip } from "../../server/chips";
+import { events, quizzes, sessionReader } from "../../server/container";
+import { BIGINT_ID, checkpointHome } from "../../server/ports";
 import {
-  entitlements,
-  events,
-  leaderboards,
-  quizzes,
-  sessionReader,
-} from "../../server/container";
-import { points } from "../../server/estimation";
-import {
-  BIGINT_ID,
-  checkpointHome,
-  type QuizFinish,
-  type Quizzes,
-} from "../../server/ports";
+  answerChoice,
+  answerEstimate,
+  closeLeftOpen,
+  finishAttempt,
+  startGame,
+  startTest,
+} from "../../server/quiz-flow";
 import { visitId } from "../../server/visits";
 import { sameSitePath, textField } from "../form";
 import { FLAG_REASON_KEYS } from "./flagReasons";
@@ -59,97 +55,8 @@ async function signedIn() {
   return { actor, context: { ...actor, sessionId: visitId(await cookies()) } };
 }
 
-type Context = Awaited<ReturnType<typeof signedIn>>["context"];
-
-// A game's score: the daily's points, an estimation round's, a sprint's correct count.
-function gameScore(
-  done: QuizFinish,
-): { game: "daily" | "sprint" | "estimation"; points: number } | null {
-  if (done.daily !== null) return { game: "daily", points: done.daily.points };
-  if (!done.sprint) return null;
-  return done.estimation === null
-    ? { game: "sprint", points: done.correct }
-    : { game: "estimation", points: done.estimation.points };
-}
-
-// P3-W14-S01 (§6.7): a game on its board at every finish, not only the first: the
-// store keeps one score per game, and a repeat mends a board a failed write left
-// behind (LOAD-5).
-async function scoreGame(
-  userId: string,
-  attemptId: string,
-  done: QuizFinish,
-): Promise<void> {
-  const score = gameScore(done);
-  if (score !== null)
-    await leaderboards().record(userId, attemptId, score.points);
-}
-
-// The finish of a quiz, once: on the page, or when a start closes one left open (owner,
-// 2026-10-28, Q-P2-28), so the metrics count both.
-function recordFinish(
-  attemptId: string,
-  done: QuizFinish,
-  context: Context,
-): void {
-  const { checkpoint } = done;
-  const counts = { answered: done.answered, correct: done.correct };
-  const score = gameScore(done);
-  if (score !== null) {
-    events().emit(
-      "game_finished",
-      { attempt_id: attemptId, ...counts, ...score },
-      context,
-    );
-    // P3-W18-S03 (owner, 2026-11-05): each miss it sends back to reading.
-    for (const m of done.missed)
-      events().emit(
-        "concept_missed",
-        { game: score.game, item_id: m.itemId, moment_id: m.momentId },
-        context,
-      );
-  } else if (checkpoint === null)
-    events().emit(
-      "quiz_finished",
-      { attempt_id: attemptId, ...counts },
-      context,
-    );
-  else if (checkpoint.at.kind === "path")
-    events().emit(
-      "checkpoint_finished",
-      {
-        attempt_id: attemptId,
-        path_id: checkpoint.at.pathId,
-        section_id: checkpoint.at.sectionId,
-        ...counts,
-        passed: checkpoint.passed,
-      },
-      context,
-    );
-  else
-    events().emit(
-      "book_checkpoint_finished",
-      {
-        attempt_id: attemptId,
-        book_id: checkpoint.at.bookId,
-        chapter_id: checkpoint.at.chapterId,
-        ...counts,
-        passed: checkpoint.passed,
-      },
-      context,
-    );
-}
-
-// Before a start: the user's quizzes left open are closed, and their finishes recorded.
-async function closeLeftOpen(userId: string, context: Context): Promise<void> {
-  for (const closed of await quizzes().closeStale(userId)) {
-    recordFinish(closed.attemptId, closed, context);
-    await scoreGame(userId, closed.attemptId, closed);
-  }
-}
-
 export async function startQuizAction(form: FormData): Promise<void> {
-  const { actor, context } = await signedIn();
+  const { context } = await signedIn();
   const parsed = Start.safeParse({
     itemId: textField(form, "itemId"),
     momentId: textField(form, "momentId") || undefined,
@@ -157,75 +64,35 @@ export async function startQuizAction(form: FormData): Promise<void> {
   });
   if (!parsed.success) redirect("/");
   const { itemId, momentId, chip } = parsed.data;
-  await closeLeftOpen(actor.userId, context);
-  const started = await quizzes().start(actor.userId, itemId, momentId ?? null);
+  const started = await startTest(context, itemId, momentId ?? null);
   // No live question (yet, or its rights changed): back where it was offered.
   if (started === null) redirect(sameSitePath(textField(form, "back"), "/"));
-  if (started.firstTime)
-    events().emit(
-      "quiz_started",
-      {
-        attempt_id: started.attemptId,
-        kind: "test",
-        item_id: itemId,
-        moment_id: momentId ?? null,
-      },
-      context,
-    );
   redirect(`/quiz/${started.attemptId}?chip=${chip}`);
 }
 
-// P3-W13-S02 (§6.3): a solo game from Play, for anyone whose plan has it (OPS-3),
-// guests included (ADR-0029): the sprint, estimation (P3-W13-S04), or today's daily
-// challenge (P3-W13-S05), whose start after it's played opens its results.
-const GAME_STARTS = {
-  sprint: { capability: "play.sprint", start: "startSprint" },
-  estimation: { capability: "play.estimation", start: "startEstimation" },
-  daily: { capability: "play.daily", start: "startDaily" },
-} as const satisfies Record<
-  string,
-  { capability: Capability; start: keyof Quizzes }
->;
-
-async function startGame(game: keyof typeof GAME_STARTS): Promise<void> {
-  const { actor, context } = await signedIn();
-  const { capability, start } = GAME_STARTS[game];
-  if (!(await entitlements().can(actor.userId, capability))) redirect("/play");
-  await closeLeftOpen(actor.userId, context);
-  let started = await quizzes()[start](actor.userId);
-  // A game whose clock ran out moments ago (still in its grace, so not closed
-  // above): finished and recorded here, so Start starts a fresh one.
-  if (started !== null && started.endsAt.getTime() <= Date.now()) {
-    const done = await quizzes().finish(actor.userId, started.attemptId);
-    if (done?.firstTime === true)
-      recordFinish(started.attemptId, done, context);
-    if (done !== null) await scoreGame(actor.userId, started.attemptId, done);
-    started = await quizzes()[start](actor.userId);
-  }
+// P3-W13-S02 (§6.3): a solo game from Play (server/quiz-flow.ts).
+async function startGameFromPlay(game: Game): Promise<void> {
+  const { context } = await signedIn();
+  const started = await startGame(context, game);
+  if (started === "forbidden") redirect("/play");
   // Nothing to play: every question asked this week (Q-P3-04), or no daily set
   // today. Play says so.
-  if (started === null) redirect(`/play?${game}=none`);
-  if (started.firstTime)
-    events().emit(
-      "game_started",
-      { attempt_id: started.attemptId, game },
-      context,
-    );
+  if (started === "none") redirect(`/play?${game}=none`);
   // A game has no feed to return to; the chip only rides along to the quiz pages.
   const chip = parseChip((await cookies()).get(CHIP_COOKIE)?.value) ?? "3-8";
   redirect(`/quiz/${started.attemptId}?chip=${chip}`);
 }
 
 export async function startSprintAction(): Promise<void> {
-  await startGame("sprint");
+  await startGameFromPlay("sprint");
 }
 
 export async function startEstimationAction(): Promise<void> {
-  await startGame("estimation");
+  await startGameFromPlay("estimation");
 }
 
 export async function startDailyAction(): Promise<void> {
-  await startGame("daily");
+  await startGameFromPlay("daily");
 }
 
 // P2-W9-S05 (Q-P2-17): a review session over the concepts that have come due.
@@ -318,37 +185,21 @@ export async function startBookCheckpointAction(form: FormData): Promise<void> {
 }
 
 export async function answerQuizAction(form: FormData): Promise<void> {
-  const { actor, context } = await signedIn();
+  const { context } = await signedIn();
   const parsed = Answer.safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect("/");
   const { attemptId, questionId, chosen, chip } = parsed.data;
-  const got = await quizzes().answer(
-    actor.userId,
-    attemptId,
-    questionId,
-    chosen,
-  );
+  const got = await answerChoice(context, attemptId, questionId, chosen);
   // Late, or not this attempt's open question: the quiz page shows where it stands.
   if (got === null || got === "late")
     redirect(`/quiz/${attemptId}?chip=${chip}`);
-  if (got.firstTime)
-    events().emit(
-      "quiz_answered",
-      {
-        attempt_id: attemptId,
-        question_id: questionId,
-        result: got.correct ? "right" : "wrong",
-        ms: got.answeredAt.getTime() - got.servedAt.getTime(),
-      },
-      context,
-    );
   redirect(`/quiz/${attemptId}?chip=${chip}&answered=${questionId}`);
 }
 
 // P3-W13-S04 (C-27): an estimate, scored by the server; the page then reveals the
 // answer and its source.
 export async function answerEstimateAction(form: FormData): Promise<void> {
-  const { actor, context } = await signedIn();
+  const { context } = await signedIn();
   const attemptId = textField(form, "attemptId");
   const parsed = Estimate.safeParse(Object.fromEntries(form));
   if (!parsed.success) {
@@ -360,25 +211,14 @@ export async function answerEstimateAction(form: FormData): Promise<void> {
     );
   }
   const { questionId, guess, chip } = parsed.data;
-  const got = await quizzes().answerEstimate(
-    actor.userId,
+  const got = await answerEstimate(
+    context,
     parsed.data.attemptId,
     questionId,
     guess,
   );
   if (got === null || got === "late")
     redirect(`/quiz/${parsed.data.attemptId}?chip=${chip}`);
-  if (got.firstTime)
-    events().emit(
-      "estimate_answered",
-      {
-        attempt_id: parsed.data.attemptId,
-        question_id: questionId,
-        points: points(got.score),
-        ms: got.answeredAt.getTime() - got.servedAt.getTime(),
-      },
-      context,
-    );
   redirect(
     `/quiz/${parsed.data.attemptId}?chip=${chip}&answered=${questionId}`,
   );
@@ -412,15 +252,13 @@ export async function flagQuestionAction(form: FormData): Promise<void> {
 }
 
 export async function finishQuizAction(form: FormData): Promise<void> {
-  const { actor, context } = await signedIn();
+  const { context } = await signedIn();
   const parsed = Finish.safeParse(Object.fromEntries(form));
   if (!parsed.success) redirect("/");
   const { attemptId, chip, leave } = parsed.data;
-  const done = await quizzes().finish(actor.userId, attemptId);
+  const done = await finishAttempt(context, attemptId);
   if (done === null) redirect("/");
   const { checkpoint } = done;
-  if (done.firstTime) recordFinish(attemptId, done, context);
-  await scoreGame(actor.userId, attemptId, done);
   redirect(
     leave === undefined
       ? `/quiz/${attemptId}/results?chip=${chip}`

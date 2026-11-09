@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { estimateScore, missed, points } from "./estimation";
+import { dailyPoints, estimateScore, missed, points, total } from "./index.js";
 
 // C-27 (ADR-0006): full points within 1.25× either way, falling linearly in log
 // space to nothing at 10× off.
@@ -46,4 +46,10 @@ test("under half points is missed; half or more isn't", () => {
   expect(missed(0.49)).toBe(true);
   expect(missed(estimateScore(300 * 3.5, 300))).toBe(false);
   expect(missed(estimateScore(300 * 3.6, 300))).toBe(true);
+});
+
+// A round's total is the sum of what each answer shows; the daily adds 100 a right choice.
+test("totals add each answer's shown points", () => {
+  expect(total([1, 0.504, 0])).toBe(150);
+  expect(dailyPoints(2, [1, 0.504])).toBe(350);
 });

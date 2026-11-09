@@ -3728,3 +3728,43 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - strict mode.
 - **Left:** the time floor starts when the reader's data arrives, not at the page's load.
 - **Not verified:** in a real WebView (needs the owner's simulator rebuild).
+
+### 2026-11-09 — P4-W21-S01 (native solo games, the daily challenge and Test me; §6.3, ARCH-3)
+
+- **Owner, 2026-11-09:**
+  - expo-haptics 58.0.7 (Expo SDK 58's pin, from 2026-10-16);
+  - Test me is turned on in the app's reader in this slice;
+  - sharing is React Native's own Share with the /daily/{shareId} link (no expo-sharing).
+- **Shared (ARCH-3):** the new `packages/scoring` holds `estimateScore`, `points`, `missed`, `total` and `dailyPoints`. They moved from the web's server/estimation.ts and kysely-quizzes.ts, and the web and the app both import them. The Python band (`ESTIMATE_AGREES`) still mirrors them.
+- **Web:**
+  - `server/quiz-flow.ts` holds the start, answer and finish logic and its once-only events, moved unchanged out of app/quiz/actions.ts. The actions keep forms and redirects.
+  - **JSON routes:**
+    - `GET /api/play`: the plan's games and the daily status;
+    - `POST /api/quiz`: a game, or Test 60s on an item or section; 403 for the plan, 404 when there's nothing to play;
+    - `GET /api/quiz/[attempt]`: serves the open question, never its key;
+    - `POST .../answer`: checked by the server; 409 late;
+    - `POST .../finish`: records and scores as the web does;
+    - `GET .../results`: read only, 409 while the attempt runs.
+  - The reader API gains `testable`.
+  - **Schemas:** `PlayResponse`, `QuizView`, `AnswerResult`, `QuizResults` and others in api-client. Guests can play, as on the web (ADR-0029).
+- **App:**
+  - **Play tab:** daily (streak, played), sprint, estimation.
+  - **The quiz screen:**
+    - the server's countdown, the AI-drafted tag, the options or a number;
+    - a success or error haptic and the reveal (an estimate's points and its source);
+    - Next; the finish when over, out of time or late;
+    - a failed answer is said.
+  - **Results:** read only; Share for the daily; sections to read again.
+  - **Reader:** Test me on a live question ("No questions yet" otherwise).
+- **Checks:**
+  - the full check: web 1478, mobile 65, Python 1383, scoring 7;
+  - infra 90 alone. Its synth hook times out under the full check's load, as in the last three slices. It needs either a longer `hookTimeout` in infra's vitest config or a lower concurrency: owner's call, noted, not changed.
+- **Reviewer fixes:**
+  - showing results no longer finishes an attempt (the quiz screen finishes; results are read only);
+  - answer failures are said, and a stale question reloads;
+  - loading and unmount guards;
+  - the tests: 409, a page source, testable false, Test me with none, the results deep link;
+  - the shared `Game` type;
+  - option keys.
+- **Process note:** the route tests were written right after the routes, not before.
+- **Not verified:** haptics and the share sheet on a device (owner rebuild).

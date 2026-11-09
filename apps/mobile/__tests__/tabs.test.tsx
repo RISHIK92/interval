@@ -19,9 +19,14 @@ test("the avatar opens Profile", async () => {
 test.each([
   ["/explore", "a later phase"],
   ["/paths", "W21-S03"],
-  ["/play", "W21-S01"],
   ["/library", "W23-S01"],
 ])("%s opens its own area", async (url, arrives) => {
   await renderRouter("./app", { initialUrl: url });
   expect(await screen.findByText(`Arrives in ${arrives}.`)).toBeOnTheScreen();
+});
+
+// P4-W21-S01: Play is filled (its tests: play.test.tsx); here, its tab opens it.
+test("/play opens Play", async () => {
+  await renderRouter("./app", { initialUrl: "/play" });
+  expect(await screen.findByText("Couldn't load Play.")).toBeOnTheScreen();
 });

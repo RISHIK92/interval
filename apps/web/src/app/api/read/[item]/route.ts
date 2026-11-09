@@ -4,10 +4,11 @@ import {
   events,
   notes,
   outboundLinks,
+  quizzes,
   sessionReader,
 } from "../../../../server/container";
 import { attributed, countOpen, sectionMarker } from "../../../../server/opens";
-import { BIGINT_ID, type ReaderPage } from "../../../../server/ports";
+import { BIGINT_ID, quizKey, type ReaderPage } from "../../../../server/ports";
 import { appPlatform, fromSiteOrApp } from "../../../../server/same-origin";
 
 export const dynamic = "force-dynamic";
@@ -83,6 +84,10 @@ export async function GET(
     reached,
     nextMomentId: page.nextMomentId,
     note: await notes().get(actor.userId, item, reached),
+    // As the web reader's Test me (P2-W9-S02).
+    testable: (
+      await quizzes().offered([{ itemId: item, momentId: reached }])
+    ).has(quizKey(item, reached)),
   };
   return Response.json(body, { headers: { "Cache-Control": "no-store" } });
 }

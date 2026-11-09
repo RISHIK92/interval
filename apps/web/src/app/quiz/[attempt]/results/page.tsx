@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { CHIPS } from "../../../../server/chips";
 import { progress, quizzes, sessionReader } from "../../../../server/container";
-import { missed, points } from "../../../../server/estimation";
+import { missed, points } from "@interval/scoring";
 import { outHref, readHref } from "../../../../server/outbound";
 import {
   BIGINT_ID,
