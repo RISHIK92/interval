@@ -16,6 +16,7 @@
   "dependencies": {
     "@better-auth/expo": "1.7.12",
     "@interval/api-client": "workspace:*",
+    "@interval/game-client": "workspace:*",
     "@interval/scoring": "workspace:*",
     "@interval/tokens": "workspace:*",
     "better-auth": "1.7.12",

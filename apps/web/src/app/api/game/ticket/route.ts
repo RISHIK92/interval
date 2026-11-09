@@ -3,7 +3,7 @@ import { z } from "zod";
 import { gameEnv } from "../../../../env";
 import { matches, sessionReader } from "../../../../server/container";
 import { forbidden } from "../../../../server/capability";
-import { sameOrigin } from "../../../../server/same-origin";
+import { fromSiteOrApp } from "../../../../server/same-origin";
 import { signTicket, TICKET_SECONDS } from "../../../../server/tickets";
 
 export const dynamic = "force-dynamic";
@@ -11,10 +11,10 @@ export const dynamic = "force-dynamic";
 const Join = z.object({ matchId: z.uuid() });
 
 // P3-W15-S02 (ADR-0033, LOAD-2): a ticket to the game server that owns the match, for a
-// player of it only (accounts and guests, ADR-0029). Same origin only, like every
-// signed-in POST. The browser opens the returned path as a WebSocket.
+// player of it only (accounts and guests, ADR-0029). This site or the app (P4-W21-S02)
+// only, like every signed-in POST. The browser opens the returned path as a WebSocket.
 export async function POST(request: Request): Promise<Response> {
-  if (!sameOrigin(request)) return new Response(null, { status: 403 });
+  if (!fromSiteOrApp(request)) return new Response(null, { status: 403 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
   const refused = await forbidden(actor, "play.live");

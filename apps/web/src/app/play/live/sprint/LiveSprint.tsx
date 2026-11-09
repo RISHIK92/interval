@@ -1,7 +1,7 @@
 "use client";
 
 import { LivePlay } from "../LivePlay";
-import { SPRINT, type SprintState } from "../sprint-state";
+import { SPRINT, type SprintState } from "@interval/game-client";
 import { SprintView } from "./SprintView";
 
 const current = (state: SprintState) =>

@@ -1,6 +1,6 @@
 "use client";
 
-import { FINGER, type FingerState } from "../finger-state";
+import { FINGER, type FingerState } from "@interval/game-client";
 import { LivePlay } from "../LivePlay";
 import { FingerView } from "./FingerView";
 

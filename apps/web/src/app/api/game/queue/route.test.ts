@@ -168,3 +168,28 @@ test("a live sprint needs play.sprint too", async () => {
   expect((await call("POST", undefined, "fastest_finger")).status).toBe(204);
   can.mockImplementation(() => Promise.resolve(true));
 });
+
+// P4-W21-S02 (Q-P4-05): the app queues too, with no Origin but its expo-origin, and its
+// match_found names its platform.
+test("the app queues and its match is told with its platform", async () => {
+  current.mockResolvedValue(guest);
+  poll.mockResolvedValueOnce({
+    status: "matched",
+    matchId: "m1",
+    waitedMs: 2_000,
+    first: true,
+  });
+  const route = await import("./route");
+  const response = await route.PUT(
+    new Request("http://localhost:3100/api/game/queue?mode=sprint", {
+      method: "PUT",
+      headers: { "expo-origin": "interval://", "interval-platform": "ios" },
+    }),
+  );
+  expect(response.status).toBe(200);
+  expect(emit).toHaveBeenCalledWith(
+    "match_found",
+    expect.anything(),
+    expect.objectContaining({ source: "ios" }),
+  );
+});

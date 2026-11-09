@@ -3768,3 +3768,35 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - option keys.
 - **Process note:** the route tests were written right after the routes, not before.
 - **Not verified:** haptics and the share sheet on a device (owner rebuild).
+
+### 2026-11-09 — P4-W21-S02 (the game protocol client and native live matches; ARCH-3, ADR-0033, Q-P4-05)
+
+- **Package:** the new `packages/game-client` holds `live-client.ts` (queue, the 10 s ghost/bot fallback, tickets, socket, reconnects, focus), `sprint-state.ts` and `finger-state.ts`.
+  - They and their tests moved from apps/web/src/app/play/live by `git mv`, unchanged: 100% renames, 33 tests.
+  - The package's tsconfig resolves like a bundler (it's only ever bundled), so the files keep their imports.
+  - The web's LivePlay, views and pages import `@interval/game-client`, and their tests stay green.
+- **Web:**
+  - `/api/game/queue`, `/bot` and `/ticket` accept the app (`fromSiteOrApp`), and `match_found` carries its platform;
+  - `/api/play` gains `live {offered, sprint, fastest_finger}`, where `offered` is the game server being set up, so the app says "Coming later" as the web's Play does.
+  - The game server needs no change: the single-use ticket is the socket's only authorisation.
+- **App:**
+  - `lib/live.ts`: the ticket's socket goes only to SITE's origin and its `/game/` path, checked once resolved.
+  - `app/live/[mode].tsx`:
+    - the queue, Play bot now, and the ghost or bot label (BOT-3);
+    - a live sprint (score, clock, right/wrong with a haptic, final with review) and fastest finger (round, locks, reveal, final), with AI-drafted tags;
+    - Play again; leaving the screen leaves the queue;
+    - the app going inactive or to the background counts as a focus switch, as blur or a hidden tab does on the web (§6.9).
+  - The Play tab lists the live modes.
+- **Locally,** live matches need the Caddy proxy for `/game/*` (docs/runbooks/phase-3-checklist.md); the app's SITE is then that address.
+- **Checks:**
+  - the full check: game-client 33, web 1448, mobile 75, Python 1383;
+  - infra 90 alone (the synth hook times out under load, as before).
+- **Reviewer fixes:**
+  - "Coming later" vs not in the plan;
+  - the ticket path checked after resolving;
+  - the platform inlined;
+  - tests for leaving the queue, Play bot now, inactive, and Play again.
+- **Unfixed nit:** the bot route's app `source` on `match_found` is untested (the queue route's is).
+- **Owner:** Docker had restarted with other projects' containers up. Interval's services were started on the owner's word (no port clashes), and the AI cap stayed at 30 cents.
+- **Note:** the reviewer ran `git stash` while checking a jest warning and restored the tree; verified identical before commit.
+- **Not verified:** a match against the local game server on a simulator (owner rebuild).

@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test, vi } from "vitest";
-import { FINGER } from "./finger-state";
+import { FINGER } from "@interval/game-client";
 import { LivePlay } from "./LivePlay";
 
 vi.mock("./join", () => ({ openMatch: vi.fn() }));

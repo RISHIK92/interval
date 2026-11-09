@@ -11,7 +11,7 @@ import {
 import type { GameMode } from "../../../server/ports";
 import { openMatch } from "./join";
 import { liveHref } from "./href";
-import { FALLBACK_MS, type LiveGame, runLive } from "./live-client";
+import { FALLBACK_MS, type LiveGame, runLive } from "@interval/game-client";
 
 type Screen<S> =
   | { kind: "queue"; since: number }

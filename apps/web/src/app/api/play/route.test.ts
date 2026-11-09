@@ -15,11 +15,13 @@ vi.mock("../../../server/container", () => ({
   entitlements: () => ({ can }),
   quizzes: () => ({ dailyStatus }),
 }));
+const gameEnv = vi.fn<() => object | null>(() => ({}));
 vi.mock("../../../env", () => ({
   env: () => ({
     BETTER_AUTH_URL: "http://localhost:3100",
     NODE_ENV: "production",
   }),
+  gameEnv: () => gameEnv(),
 }));
 
 const guest: Actor = { userId: "g1", isGuest: true, betaGroup: "student" };
@@ -37,6 +39,8 @@ test("the plan's games and today's challenge, guests included", async () => {
   const body = PlayResponse.parse(await (await get()).json());
   expect(body).toEqual({
     games: { sprint: true, estimation: false, daily: true },
+    // A live sprint needs play.live and play.sprint; fastest finger play.live.
+    live: { offered: true, sprint: true, fastest_finger: true },
     daily: { today: "open", streak: { days: 3, freezes: 1 } },
   });
   expect(dailyStatus).toHaveBeenCalledWith("g1");
@@ -47,4 +51,12 @@ test("no session or another site: refused", async () => {
   expect((await get()).status).toBe(401);
   current.mockResolvedValue(guest);
   expect((await get({})).status).toBe(403);
+});
+
+// P4-W21-S02: no game server settings, no live games offered.
+test("live games only where the game server is set up", async () => {
+  current.mockResolvedValue(guest);
+  gameEnv.mockReturnValueOnce(null);
+  const body = PlayResponse.parse(await (await get()).json());
+  expect(body.live.offered).toBe(false);
 });

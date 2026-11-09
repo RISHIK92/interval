@@ -1,4 +1,6 @@
 import type { PlayResponse } from "@interval/api-client";
+import { gameEnv } from "../../../env";
+import { forbiddenLive } from "../../../server/capability";
 import {
   entitlements,
   quizzes,
@@ -18,14 +20,22 @@ export async function GET(request: Request): Promise<Response> {
   if (actor === null) return new Response(null, { status: 401 });
   const can = (game: keyof typeof GAME_STARTS) =>
     entitlements().can(actor.userId, GAME_STARTS[game].capability);
-  const [sprint, estimation, daily, status] = await Promise.all([
-    can("sprint"),
-    can("estimation"),
-    can("daily"),
-    quizzes().dailyStatus(actor.userId),
-  ]);
+  // Live games need the game server's settings too (as /api/game/ticket's 503).
+  const offered = gameEnv() !== null;
+  const live = async (mode: "sprint" | "fastest_finger") =>
+    (await forbiddenLive(actor, mode)) === null;
+  const [sprint, estimation, daily, liveSprint, liveFinger, status] =
+    await Promise.all([
+      can("sprint"),
+      can("estimation"),
+      can("daily"),
+      live("sprint"),
+      live("fastest_finger"),
+      quizzes().dailyStatus(actor.userId),
+    ]);
   const body: PlayResponse = {
     games: { sprint, estimation, daily },
+    live: { offered, sprint: liveSprint, fastest_finger: liveFinger },
     daily: status,
   };
   return Response.json(body, { headers: { "Cache-Control": "no-store" } });

@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
 import { SprintView } from "./SprintView";
-import type { SprintState } from "../sprint-state";
+import type { SprintState } from "@interval/game-client";
 
 // P3-W16-S04 (Q-P3-23): the match and its result on screen; right and wrong say so in
 // words, not color alone.

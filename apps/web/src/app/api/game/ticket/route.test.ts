@@ -140,3 +140,21 @@ test("without play.live, no ticket: 403", async () => {
   expect((await post({ matchId: MATCH })).status).toBe(403);
   expect(serverFor).not.toHaveBeenCalled();
 });
+
+// P4-W21-S02 (Q-P4-05): the app asks for its ticket with its expo-origin, no Origin.
+test("the app gets a ticket too", async () => {
+  current.mockResolvedValue(account);
+  serverFor.mockResolvedValueOnce({ serverId: 3, playedAs: "u1" });
+  const { POST } = await import("./route");
+  const response = await POST(
+    new Request("http://localhost:3100/api/game/ticket", {
+      method: "POST",
+      headers: {
+        "expo-origin": "interval://",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ matchId: MATCH }),
+    }),
+  );
+  expect(response.status).toBe(200);
+});

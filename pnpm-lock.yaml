@@ -202,6 +202,9 @@ importers:
       '@interval/api-client':
         specifier: workspace:*
         version: link:../../packages/api-client
+      '@interval/game-client':
+        specifier: workspace:*
+        version: link:../../packages/game-client
       '@interval/scoring':
         specifier: workspace:*
         version: link:../../packages/scoring
@@ -302,6 +305,9 @@ importers:
       '@interval/events':
         specifier: workspace:*
         version: link:../../packages/events
+      '@interval/game-client':
+        specifier: workspace:*
+        version: link:../../packages/game-client
       '@interval/scoring':
         specifier: workspace:*
         version: link:../../packages/scoring
@@ -436,6 +442,16 @@ importers:
         version: 0.20.0(kysely@0.29.7)(pg@8.23.1)(typescript@6.0.3)
 
   packages/events:
+    dependencies:
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@interval/config':
+        specifier: workspace:*
+        version: link:../config
+
+  packages/game-client:
     dependencies:
       zod:
         specifier: 4.6.7

@@ -12,7 +12,7 @@ import {
   type GameMode,
 } from "../../../../server/ports";
 import { forbiddenLive } from "../../../../server/capability";
-import { sameOrigin } from "../../../../server/same-origin";
+import { appPlatform, fromSiteOrApp } from "../../../../server/same-origin";
 import { visitId } from "../../../../server/visits";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ const Mode = z.enum(GAME_MODES);
 async function player(
   request: Request,
 ): Promise<{ actor: Actor; mode: GameMode } | Response> {
-  if (!sameOrigin(request)) return new Response(null, { status: 403 });
+  if (!fromSiteOrApp(request)) return new Response(null, { status: 403 });
   const mode = Mode.safeParse(new URL(request.url).searchParams.get("mode"));
   if (!mode.success) return new Response(null, { status: 400 });
   const actor = await sessionReader().current(request.headers);
@@ -57,12 +57,18 @@ export async function PUT(request: Request): Promise<Response> {
   if (seat instanceof Response) return seat;
   const { actor, mode } = seat;
   const state = await matchmaking(mode).poll(actor.userId);
+  const source = appPlatform(request);
   if (state.status === "matched" && state.first)
     // The Phase 3 time-to-match metric; once per player.
     events().emit(
       "match_found",
       { wait_ms: state.waitedMs, opponent: "person" },
-      { ...actor, sessionId: visitId(await cookies()) },
+      {
+        ...actor,
+        sessionId: visitId(await cookies()),
+        // P4-W21-S02 (Q-P4-14): the app's events name its platform.
+        ...(source === undefined ? {} : { source }),
+      },
     );
   return Response.json(
     state.status === "matched"

@@ -2,7 +2,7 @@
 
 import { AiDrafted } from "../../../ui/AiDrafted";
 import { useEffect, useState } from "react";
-import type { SprintState } from "../sprint-state";
+import type { SprintState } from "@interval/game-client";
 
 const LETTERS = ["A", "B", "C", "D"];
 const OPTION =

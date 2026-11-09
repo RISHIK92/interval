@@ -15,6 +15,7 @@ const calls = () =>
   }));
 const play = {
   games: { sprint: true, estimation: false, daily: true },
+  live: { offered: true, sprint: true, fastest_finger: false },
   daily: { today: "open", streak: { days: 3, freezes: 0 } },
 };
 const choice = {
@@ -74,7 +75,8 @@ test("Play offers the plan's games and today's challenge", async () => {
   await renderRouter("./app", { initialUrl: "/play" });
   expect(await screen.findByText("Streak: 3 days")).toBeOnTheScreen();
   expect(screen.getByRole("button", { name: "Play Sprint" })).toBeOnTheScreen();
-  expect(screen.getByText("Not included in your plan.")).toBeOnTheScreen();
+  // Estimation and live fastest finger aren't in this plan.
+  expect(screen.getAllByText("Not included in your plan.")).toHaveLength(2);
 });
 
 test("a sprint starts from Play; a right answer is felt and shown", async () => {
@@ -281,4 +283,27 @@ test("Test me on a section without questions says so", async () => {
   expect(
     await screen.findByText("No questions on this section yet."),
   ).toBeOnTheScreen();
+});
+
+test("Play offers the live modes the plan includes", async () => {
+  serve({ "GET /api/play": () => Response.json(play) });
+  await renderRouter("./app", { initialUrl: "/play" });
+  expect(
+    await screen.findByRole("button", { name: "Play Live sprint" }),
+  ).toBeOnTheScreen();
+  expect(
+    screen.queryByRole("button", { name: "Play Fastest finger" }),
+  ).toBeNull();
+});
+
+test("live games not set up yet say Coming later, as the web's Play", async () => {
+  serve({
+    "GET /api/play": () =>
+      Response.json({
+        ...play,
+        live: { offered: false, sprint: true, fastest_finger: true },
+      }),
+  });
+  await renderRouter("./app", { initialUrl: "/play" });
+  expect(await screen.findAllByText("Coming later")).toHaveLength(2);
 });

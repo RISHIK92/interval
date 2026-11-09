@@ -2,7 +2,7 @@
 
 import { AiDrafted } from "../../../ui/AiDrafted";
 import { useEffect, useState } from "react";
-import type { FingerState } from "../finger-state";
+import type { FingerState } from "@interval/game-client";
 import type { ViewProps } from "../LivePlay";
 
 const LETTERS = ["A", "B", "C", "D"];

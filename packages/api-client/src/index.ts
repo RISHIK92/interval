@@ -124,6 +124,13 @@ export const PlayResponse = z.object({
     estimation: z.boolean(),
     daily: z.boolean(),
   }),
+  // P4-W21-S02 (Q-P4-05): live 1v1. offered: the game server is set up (else "Coming
+  // later", as the web's Play); each mode: the plan has it.
+  live: z.object({
+    offered: z.boolean(),
+    sprint: z.boolean(),
+    fastest_finger: z.boolean(),
+  }),
   daily: z.object({
     today: z.union([
       z.enum(["none", "open"]),

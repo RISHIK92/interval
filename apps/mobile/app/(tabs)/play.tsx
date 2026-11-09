@@ -18,8 +18,13 @@ const GAME_TEXT: Record<Game, { title: string; about: string }> = {
   daily: { title: "Today's challenge", about: "One set for everyone, today." },
 };
 
-// P4-W21-S01 (§6.3, OPS-3): the solo games and the daily challenge, as the web's Play.
-// Live matches come in W21-S02.
+const LIVE = [
+  ["sprint", "Live sprint", "60 seconds against another player."],
+  ["fastest_finger", "Fastest finger", "First right answer takes the round."],
+] as const;
+
+// P4-W21-S01 (§6.3, OPS-3): the solo games and the daily challenge, as the web's Play,
+// and live matches (P4-W21-S02).
 export default function PlayScreen() {
   const c = useColors();
   const [play, setPlay] = useState<PlayResponse | "loading" | "failed">(
@@ -119,6 +124,31 @@ export default function PlayScreen() {
               <Text style={{ color: c.page }}>
                 {game === "daily" && played ? "See results" : "Play"}
               </Text>
+            </Pressable>
+          )}
+        </View>
+      ))}
+      {/* P4-W21-S02 (Q-P4-05): live 1v1, a person or, after 10 s, a ghost or bot. */}
+      {LIVE.map(([mode, title, about]) => (
+        <View key={mode} style={[styles.card, { borderColor: c.hairline }]}>
+          <Text style={[styles.title, { color: c.ink }]}>{title}</Text>
+          <Text style={{ color: c["ink-muted"] }}>{about}</Text>
+          {!play.live.offered || !play.live[mode] ? (
+            <Text style={{ color: c["ink-muted"] }}>
+              {play.live.offered
+                ? "Not included in your plan."
+                : "Coming later"}
+            </Text>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Play ${title}`}
+              onPress={() => {
+                router.push(`/live/${mode}`);
+              }}
+              style={[styles.pill, { backgroundColor: c.ink }]}
+            >
+              <Text style={{ color: c.page }}>Play</Text>
             </Pressable>
           )}
         </View>

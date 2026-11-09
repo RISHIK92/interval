@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
-import type { FingerState } from "../finger-state";
+import type { FingerState } from "@interval/game-client";
 import { FingerView } from "./FingerView";
 
 // P3-W16-S05 (Q-P3-24): rounds, reveals and the result on screen; locked answers and
