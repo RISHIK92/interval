@@ -1251,6 +1251,9 @@ class Store(Protocol):
     def explainers(self) -> "Explainers": ...
 
     @property
+    def pronunciations(self) -> "Pronunciations": ...
+
+    @property
     def paths(self) -> Paths: ...
 
     @property
@@ -1963,4 +1966,22 @@ class Explainers(Protocol):
 
     def tried(self, concept_id: int, outcome: Literal["skipped", "refused"]) -> None:
         """A concept tried without a script; `targets` leaves it out for a while."""
+        ...
+
+
+# The pronunciation dictionary (TTS-2, P4-W22-S02).
+@dataclass(frozen=True)
+class Pronunciation:
+    term: str
+    say: str
+
+
+class Pronunciations(Protocol):
+    def load(self, entries: list[Pronunciation]) -> int:
+        """The table made to follow the seed: its terms added or changed, seed terms
+        gone from it removed (never one added on the admin page); how many changed."""
+        ...
+
+    def all(self) -> list[Pronunciation]:
+        """Every term, the seed's and the admin's, for voicing."""
         ...

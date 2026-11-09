@@ -75,6 +75,8 @@ from interval_jobs.path_proposer import propose
 from interval_jobs.pipeline import BATCH_PREFIX, Pipeline, notes_batched
 from interval_jobs.polling import enqueue_due
 from interval_jobs.ports import ConceptCycleError, ModelError, Store
+from interval_jobs.pronunciations import PronunciationSeedError
+from interval_jobs.pronunciations import parse_seed as parse_pronunciations
 from interval_jobs.question_batches import collect, submit
 from interval_jobs.question_trial import TrialError, run_trial, trial_moments
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
@@ -101,6 +103,7 @@ from interval_jobs.universities import UniversitySeedError, parse_universities
 SEED_FILE = Path("workers/jobs/seeds/sources.yaml")
 CONCEPT_FILE = Path("workers/jobs/seeds/concepts.yaml")
 TECHNOLOGY_FILE = Path("workers/jobs/seeds/technologies.yaml")
+PRONUNCIATION_FILE = Path("workers/jobs/seeds/pronunciations.yaml")
 UNIVERSITY_FILE = Path("workers/jobs/seeds/universities.json")
 
 
@@ -275,6 +278,11 @@ def main(argv: list[str]) -> None:
         help="sync the technology seed file (PER-4, P2-W12-S03)",
     )
     technologies.add_argument("--file", type=Path, default=TECHNOLOGY_FILE)
+    pronounce = commands.add_parser(
+        "load-pronunciations",
+        help="sync the pronunciation seed file (TTS-2, P4-W22-S02)",
+    )
+    pronounce.add_argument("--file", type=Path, default=PRONUNCIATION_FILE)
     universities = commands.add_parser(
         "load-universities",
         help="add the university list's new entries (P3-W14-S03, ADR-0032)",
@@ -500,6 +508,19 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         print(json.dumps(asdict(outcome)))
         if outcome.stopped is not None:
             sys.exit(f"suggest-technologies stopped: {outcome.stopped}")
+        return
+
+    if args.command == "load-pronunciations":
+        path = str(args.file)
+        try:
+            entries = parse_pronunciations(args.file.read_text(encoding="utf-8"), path)
+        except OSError as error:
+            sys.exit(f"{path}: {error.strerror}")
+        except PronunciationSeedError as error:
+            sys.exit(str(error))
+        with services() as s:
+            changed = s.store.pronunciations.load(entries)
+        print(json.dumps({"terms": len(entries), "changed": changed}))
         return
 
     if args.command == "load-technologies":

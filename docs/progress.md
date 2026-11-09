@@ -3915,3 +3915,32 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - typed test stubs;
   - more tests.
 - **Noted:** there's no admin index page to link /admin/explainers from (none of the admin pages has one).
+
+### 2026-11-09 — P4-W22-S02 (the pronunciation dictionary; TTS-2, Q-P4-10)
+
+- **Data:** `pronunciation` (term unique in any case, how to say it, origin seed/admin, who added it).
+- **Worker:**
+  - `seeds/pronunciations.yaml`: a starter list, marked PROVISIONAL, not owner-approved; the owner curates it.
+  - `pronunciations.py`:
+    - `parse_seed` refuses duplicate terms, exact or in another case (YAML alone keeps only the last of two);
+    - `spoken(script, entries)` says each term as the dictionary does: whole words, any case, longest first, also inside joined words (JSON-RPC, TCP/IP). It is plain text every provider reads; each term is its own regex group, so no lookup by matched text, and no crash on odd case folding.
+  - `PostgresPronunciations.load` makes the table follow the seed (added, changed, removed) and never touches the admin's terms; `all()`; the memory fake matches.
+  - `load-pronunciations [--file]`.
+  - `spoken` is first called by voicing (W22-S04).
+- **Web:** `/admin/pronunciations` (`admin.review`):
+  - the terms, seed or added here;
+  - Add (trimmed, 1–80 / 1–200 characters; a taken term is said);
+  - Remove for the admin's own only (a seed term or a gone one is said).
+- **Checks:**
+  - the full check: web 1471, mobile 97, Python 1415;
+  - infra 90 alone;
+  - after the review fixes: pronunciations 16 Python, 4 web.
+- **Reviewer fixes:**
+  - seed terms deleted from the file now go;
+  - the case-folding crash;
+  - joined words;
+  - exact duplicate keys;
+  - the seed's respellings: API as "ay P I" (a lone "A" reads as the article), SQLite, Paxos; Kafka, CAP, ACID, Raft and idempotent dropped (no change, or ordinary words);
+  - remove refused, said;
+  - tests.
+- **For the owner:** curate the seed file. If all-caps terms should match only in capitals (so "a cap on spend" never changes), that's a product call; today matching is in any case.

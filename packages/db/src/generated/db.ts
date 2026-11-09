@@ -730,6 +730,15 @@ export interface ProjectNoteBatchItem {
   user_id: string;
 }
 
+export interface Pronunciation {
+  added_by: string | null;
+  created_at: Generated<Timestamp>;
+  id: Generated<Int8>;
+  origin: string;
+  say: string;
+  term: string;
+}
+
 export interface PushSubscription {
   auth: string;
   created_at: Generated<Timestamp>;
@@ -1254,6 +1263,7 @@ export interface DB {
   player_username: PlayerUsername;
   project_note: ProjectNote;
   project_note_batch_item: ProjectNoteBatchItem;
+  pronunciation: Pronunciation;
   push_subscription: PushSubscription;
   question: Question;
   question_batch: QuestionBatch;

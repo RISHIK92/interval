@@ -707,6 +707,15 @@ class ProjectNoteBatchItem(TypedDict):
     result: str | None
 
 
+class Pronunciation(TypedDict):
+    id: int
+    term: str
+    say: str
+    origin: str
+    added_by: str | None
+    created_at: datetime
+
+
 class PushSubscription(TypedDict):
     id: int
     user_id: str

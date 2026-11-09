@@ -1,0 +1,44 @@
+# Pronunciation dictionary (TTS-2, Q-P4-10, P4-W22-S02). `load-pronunciations` syncs it
+# into the pronunciation table; explainer scripts say each term this way before TTS.
+# Terms added on /admin/pronunciations live in the database and a reload leaves them.
+#
+# PROVISIONAL (2026-11-09): Claude drafted these as a starting list. NOT owner-approved
+# yet; the owner curates this file.
+#
+# term: how to say it (plain words a voice reads well; matched as a whole word, any case,
+# also inside joined words such as JSON-RPC). A term a voice already says well, or an
+# ordinary English word (cap, raft), needs no entry. Spell letters out ("ay P I"): a
+# lone "A" is read as the article.
+nginx: engine x
+kubectl: cube control
+k8s: kubernetes
+PostgreSQL: post gress Q L
+Postgres: post gress
+SQLite: S Q L ite
+MySQL: my S Q L
+SQL: S Q L
+NoSQL: no S Q L
+OAuth: oh auth
+JWT: J W T
+JSON: jason
+YAML: yammel
+TOML: tommel
+gRPC: G R P C
+Redis: red iss
+Valkey: val key
+etcd: et see dee
+CRDT: C R D T
+Paxos: pack sohss
+TLS: T L S
+QUIC: quick
+HTTP/2: H T T P two
+DNS: D N S
+CDN: C D N
+API: ay P I
+CLI: C L I
+GUI: gooey
+UUID: U U I D
+WAL: wall
+MVCC: M V C C
+LSM: L S M
+CQRS: C Q R S

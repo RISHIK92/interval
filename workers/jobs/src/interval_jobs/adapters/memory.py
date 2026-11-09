@@ -69,6 +69,7 @@ from interval_jobs.ports import (
     PathDraft,
     ProjectConcepts,
     ProjectNoteInput,
+    Pronunciation,
     PushTarget,
     QuestionBatchEntry,
     QuestionDraft,
@@ -1941,6 +1942,31 @@ class InMemoryExplainers:
         self.concepts = [c for c in self.concepts if c.concept_id != concept_id]
 
 
+class InMemoryPronunciations:
+    def __init__(self) -> None:
+        self.rows: dict[str, tuple[Pronunciation, str]] = {}  # by lower term
+
+    def load(self, entries: list[Pronunciation]) -> int:
+        changed = 0
+        for e in entries:
+            had = self.rows.get(e.term.lower())
+            if had is not None and (had[1] == "admin" or had[0] == e):
+                continue
+            self.rows[e.term.lower()] = (e, "seed")
+            changed += 1
+        listed = {e.term.lower() for e in entries}
+        for key, (_, origin) in list(self.rows.items()):
+            if origin == "seed" and key not in listed:
+                del self.rows[key]
+                changed += 1
+        return changed
+
+    def all(self) -> list[Pronunciation]:
+        return [
+            p for p, _ in sorted(self.rows.values(), key=lambda r: r[0].term.lower())
+        ]
+
+
 class InMemoryStore:
     def __init__(self) -> None:
         self.sources = InMemorySources()
@@ -1960,6 +1986,7 @@ class InMemoryStore:
         self.ranking = InMemoryRankingInputs(self)
         self.decisions = InMemoryDecisions(self.moments, self.concepts)
         self.explainers = InMemoryExplainers()
+        self.pronunciations = InMemoryPronunciations()
         self.questions = InMemoryQuestions(
             self.items, self.sources, self.moments, self.tags, self.concepts
         )

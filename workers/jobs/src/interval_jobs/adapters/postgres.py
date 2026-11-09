@@ -68,6 +68,7 @@ from interval_jobs.ports import (
     PathDraft,
     ProjectConcepts,
     ProjectNoteInput,
+    Pronunciation,
     PushTarget,
     QuestionBatchEntry,
     QuestionDraft,
@@ -3878,6 +3879,46 @@ class PostgresExplainers:
         )
 
 
+class PostgresPronunciations:
+    """The pronunciation dictionary (TTS-2, P4-W22-S02)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def load(self, entries: list[Pronunciation]) -> int:
+        changed = 0
+        for e in entries:
+            # A term the admin added stays theirs; only seed rows follow the file.
+            row = self._conn.execute(
+                """
+                insert into pronunciation (term, say, origin) values (%s, %s, 'seed')
+                on conflict (lower(term)) do update
+                  set term = excluded.term, say = excluded.say
+                  where pronunciation.origin = 'seed'
+                    and (pronunciation.term, pronunciation.say)
+                        is distinct from (excluded.term, excluded.say)
+                returning id
+                """,
+                (e.term, e.say),
+            ).fetchone()
+            changed += row is not None
+        # A term gone from the file goes from the table; the admin's stay.
+        gone = self._conn.execute(
+            """
+            delete from pronunciation
+            where origin = 'seed' and not (lower(term) = any(%s))
+            """,
+            ([e.term.lower() for e in entries],),
+        )
+        return changed + gone.rowcount
+
+    def all(self) -> list[Pronunciation]:
+        rows = self._conn.execute(
+            "select term, say from pronunciation order by lower(term)"
+        ).fetchall()
+        return [Pronunciation(str(t), str(s)) for t, s in rows]
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
@@ -3905,6 +3946,7 @@ class PostgresStore:
         self.decisions = PostgresDecisions(conn)
         self.questions = PostgresQuestions(conn)
         self.explainers = PostgresExplainers(conn)
+        self.pronunciations = PostgresPronunciations(conn)
 
 
 @contextmanager

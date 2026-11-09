@@ -1812,3 +1812,19 @@ export interface AdminExplainers {
     by: string,
   ): Promise<boolean>;
 }
+
+// The pronunciation dictionary (TTS-2, Q-P4-10, P4-W22-S02): the seed's terms and the
+// admin's, which the admin page adds and removes (the seed's change in the YAML file).
+export type PronunciationRow = {
+  id: string;
+  term: string;
+  say: string;
+  origin: "seed" | "admin";
+};
+export interface AdminPronunciations {
+  list(): Promise<PronunciationRow[]>;
+  // "taken": the term is in the dictionary already, in any case.
+  add(term: string, say: string, by: string): Promise<"added" | "taken">;
+  // False: no such admin-added term (a seed term stays).
+  remove(id: string): Promise<boolean>;
+}

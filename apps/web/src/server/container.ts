@@ -32,6 +32,7 @@ import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
 import { kyselyAdminExplainers } from "./adapters/kysely-admin-explainers";
+import { kyselyAdminPronunciations } from "./adapters/kysely-admin-pronunciations";
 import { kyselyAdminTechnologies } from "./adapters/kysely-admin-technologies";
 import { kyselyAdminUniversities } from "./adapters/kysely-admin-universities";
 import { kyselyBooks } from "./adapters/kysely-books";
@@ -74,6 +75,7 @@ import type {
   AdminDaily,
   AdminFairPlay,
   AdminExplainers,
+  AdminPronunciations,
   AdminTechnologies,
   AdminUniversities,
   Books,
@@ -181,6 +183,11 @@ export function adminDaily(): AdminDaily {
 // P3-W18-S02 (§6.9): fair-play flags, reviewed by the owner.
 export function adminFairPlay(): AdminFairPlay {
   return kyselyAdminFairPlay(db());
+}
+
+// P4-W22-S02 (TTS-2): the pronunciation dictionary's terms, added by the owner.
+export function adminPronunciations(): AdminPronunciations {
+  return kyselyAdminPronunciations(db());
 }
 
 // P4-W22-S01 (§5G, ADR-0038): explainer scripts, reviewed by the owner before voicing.
