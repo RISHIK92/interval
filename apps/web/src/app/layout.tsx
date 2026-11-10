@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import type { ReactNode } from "react";
 import { parseTheme, THEME_COOKIE } from "../server/theme";
 import "./globals.css";
+import { MiniPlayer } from "./listen/MiniPlayer";
 import { Presence } from "./Presence";
 import { PwaSetup } from "./PwaSetup";
 
@@ -39,6 +40,8 @@ export default async function RootLayout({
           an accepted challenge; signed out, it stops at its first beat. */}
         <Presence />
         {children}
+        {/* P4-W23-S01 (§4.1): the global player; shown to accounts with something queued. */}
+        <MiniPlayer />
       </body>
     </html>
   );

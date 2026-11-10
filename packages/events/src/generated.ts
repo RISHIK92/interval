@@ -19,6 +19,8 @@ export const EVENT_NAMES = [
   "continue_clicked",
   "country_changed",
   "estimate_answered",
+  "explainer_finished",
+  "explainer_started",
   "feed_viewed",
   "feedback_given",
   "feedback_undone",
@@ -71,6 +73,8 @@ export const EVENT_VERSIONS = {
   continue_clicked: 1,
   country_changed: 1,
   estimate_answered: 1,
+  explainer_finished: 1,
+  explainer_started: 1,
   feed_viewed: 1,
   feedback_given: 1,
   feedback_undone: 1,
@@ -179,6 +183,14 @@ export const propsSchemas = {
     question_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
     points: z.number().int().nonnegative(),
     ms: z.number().int().nonnegative(),
+  }),
+  explainer_finished: z.strictObject({
+    explainer_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    concept_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+  }),
+  explainer_started: z.strictObject({
+    explainer_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+    concept_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
   }),
   feed_viewed: z.strictObject({ card_count: z.number().int().nonnegative() }),
   feedback_given: z.strictObject({
@@ -415,6 +427,18 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("estimate_answered"),
     version: z.literal(1),
     props: propsSchemas.estimate_answered,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("explainer_finished"),
+    version: z.literal(1),
+    props: propsSchemas.explainer_finished,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("explainer_started"),
+    version: z.literal(1),
+    props: propsSchemas.explainer_started,
   }),
   z.strictObject({
     ...base,

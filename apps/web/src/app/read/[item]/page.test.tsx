@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import { SlowBar } from "./ReaderFrame";
 import type {
   Actor,
+  Listening,
   Notes,
   OutboundLinks,
   Progress,
@@ -16,6 +17,7 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const reader = vi.fn<OutboundLinks["reader"]>();
 const getNote = vi.fn<Notes["get"]>(() => Promise.resolve(null));
 const offered = vi.fn<Quizzes["offered"]>(() => Promise.resolve(new Set()));
+const voiced = vi.fn<Listening["voiced"]>(() => Promise.resolve([]));
 const emit = vi.fn();
 const recordOpen = vi.fn<Progress["recordOpen"]>(() => Promise.resolve());
 const countExploreOpen = vi.fn<Progress["countExploreOpen"]>(() =>
@@ -27,6 +29,7 @@ vi.mock("../../../server/container", () => ({
   progress: () => ({ recordOpen, countExploreOpen }),
   notes: () => ({ get: getNote }),
   quizzes: () => ({ offered }),
+  listening: () => ({ voiced }),
   events: () => ({ emit }),
 }));
 vi.mock("next/headers", () => ({
@@ -280,6 +283,17 @@ test("with live questions, Test me starts a sprint on the section shown", async 
     /<form[^>]*>(?:(?!<\/form>)[^])*name="momentId" value="9"(?:(?!<\/form>)[^])*Test me/,
   );
   expect(html).toContain('name="chip" value="3-8"');
+});
+
+// P4-W23-S01 (owner, 2026-11-10): Listen, once a concept of the section is voiced.
+test("Listen works when the section has a voiced explainer", async () => {
+  current.mockResolvedValue(user);
+  reader.mockResolvedValue(page);
+  voiced.mockResolvedValueOnce(["7"]);
+  const html = await render(card);
+  expect(voiced).toHaveBeenCalledWith("5", "9");
+  expect(html).toContain('aria-label="Listen to the AI explainers"');
+  expect(html).not.toContain("Listen. No AI explainer here yet");
 });
 
 test("the last section has no Next section; a saved item says Saved", async () => {

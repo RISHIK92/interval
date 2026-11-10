@@ -95,3 +95,8 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* P4-W23-S01: room below every page for the mini-player while it's up. */
+html[data-player] body {
+  padding-bottom: 5rem;
+}

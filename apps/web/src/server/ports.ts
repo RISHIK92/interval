@@ -13,6 +13,7 @@ import type {
   ReviewReason,
   Topic,
 } from "@interval/db";
+import type { ListenResponse } from "@interval/api-client";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 
@@ -1811,6 +1812,32 @@ export interface AdminExplainers {
     decision: "approved" | "rejected",
     by: string,
   ): Promise<boolean>;
+}
+
+// The audio queue (§5G, §5I, P4-W23-S01): voiced explainers a listener queued, where
+// they are in each, and Up next along the concept graph (wireframe 07). Per account,
+// shared by the PWA and the app.
+export interface Listening {
+  // Approved, voiced explainers of what the reader shows: the section's concepts, or the
+  // article's when no section was reached. By concept name.
+  voiced(itemId: string, momentId: string | null): Promise<string[]>;
+  queue(userId: string): Promise<ListenResponse>;
+  // Appended in order; ones already queued stay where they are.
+  add(userId: string, explainerIds: string[]): Promise<void>;
+  remove(userId: string, explainerId: string): Promise<boolean>;
+  // null: no voiced explainer by that id. new: no unfinished listen was under way.
+  start(
+    userId: string,
+    explainerId: string,
+  ): Promise<{ conceptId: string; new: boolean } | null>;
+  // False: no listen under way (not started, or finished).
+  save(userId: string, explainerId: string, seconds: number): Promise<boolean>;
+  // Finished, back to 0, and out of the queue; null: no such voiced explainer. new:
+  // false when it was already finished (a retried finish).
+  finish(
+    userId: string,
+    explainerId: string,
+  ): Promise<{ conceptId: string; new: boolean } | null>;
 }
 
 // The pronunciation dictionary (TTS-2, Q-P4-10, P4-W22-S02): the seed's terms and the

@@ -374,6 +374,14 @@ class ExplainerAudio(TypedDict):
     created_at: datetime
 
 
+class ExplainerListen(TypedDict):
+    user_id: str
+    explainer_id: int
+    position_seconds: Decimal
+    finished_at: datetime | None
+    updated_at: datetime
+
+
 class ExploreArmOutcome(TypedDict):
     kind: str
     arm: str
@@ -579,6 +587,12 @@ class ItemTagging(TypedDict):
     model: str
     prompt_version: int
     tagged_at: datetime
+
+
+class ListenQueue(TypedDict):
+    user_id: str
+    explainer_id: int
+    added_at: datetime
 
 
 class Moment(TypedDict):

@@ -394,6 +394,14 @@ export interface ExplainerAudio {
   words: Json;
 }
 
+export interface ExplainerListen {
+  explainer_id: Int8;
+  finished_at: Timestamp | null;
+  position_seconds: Generated<Numeric>;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface ExploreArmOutcome {
   arm: string;
   finished: Generated<Int8>;
@@ -599,6 +607,12 @@ export interface ItemTagging {
   model: string;
   prompt_version: number;
   tagged_at: Generated<Timestamp>;
+}
+
+export interface ListenQueue {
+  added_at: Generated<Timestamp>;
+  explainer_id: Int8;
+  user_id: string;
 }
 
 export interface Moment {
@@ -1243,6 +1257,7 @@ export interface DB {
   daily_challenge_question: DailyChallengeQuestion;
   device_push_token: DevicePushToken;
   explainer_audio: ExplainerAudio;
+  explainer_listen: ExplainerListen;
   explore_arm_outcome: ExploreArmOutcome;
   fair_play_flag: FairPlayFlag;
   feed_note: FeedNote;
@@ -1268,6 +1283,7 @@ export interface DB {
   item_embedding: ItemEmbedding;
   item_feedback: ItemFeedback;
   item_tagging: ItemTagging;
+  listen_queue: ListenQueue;
   moment: Moment;
   moment_boundary_override: MomentBoundaryOverride;
   moment_concept: MomentConcept;

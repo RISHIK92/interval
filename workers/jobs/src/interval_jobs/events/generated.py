@@ -31,6 +31,8 @@ type EventName = Literal[
     "continue_clicked",
     "country_changed",
     "estimate_answered",
+    "explainer_finished",
+    "explainer_started",
     "feed_viewed",
     "feedback_given",
     "feedback_undone",
@@ -84,6 +86,8 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "continue_clicked": 1,
     "country_changed": 1,
     "estimate_answered": 1,
+    "explainer_finished": 1,
+    "explainer_started": 1,
     "feed_viewed": 1,
     "feedback_given": 1,
     "feedback_undone": 1,
@@ -217,6 +221,16 @@ class EstimateAnsweredProps(_Model):
     question_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
     points: int = Field(ge=0, strict=True)
     ms: int = Field(ge=0, strict=True)
+
+
+class ExplainerFinishedProps(_Model):
+    explainer_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    concept_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class ExplainerStartedProps(_Model):
+    explainer_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+    concept_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
 
 
 class FeedViewedProps(_Model):
@@ -496,6 +510,18 @@ class EstimateAnsweredEvent(_EnvelopeBase):
     props: EstimateAnsweredProps
 
 
+class ExplainerFinishedEvent(_EnvelopeBase):
+    name: Literal["explainer_finished"]
+    version: Literal[1]
+    props: ExplainerFinishedProps
+
+
+class ExplainerStartedEvent(_EnvelopeBase):
+    name: Literal["explainer_started"]
+    version: Literal[1]
+    props: ExplainerStartedProps
+
+
 class FeedViewedEvent(_EnvelopeBase):
     name: Literal["feed_viewed"]
     version: Literal[1]
@@ -701,6 +727,8 @@ type Envelope = Annotated[
     | ContinueClickedEvent
     | CountryChangedEvent
     | EstimateAnsweredEvent
+    | ExplainerFinishedEvent
+    | ExplainerStartedEvent
     | FeedViewedEvent
     | FeedbackGivenEvent
     | FeedbackUndoneEvent

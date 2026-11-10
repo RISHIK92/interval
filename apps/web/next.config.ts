@@ -17,6 +17,22 @@ const config: NextConfig = {
     "*.ngrok.app",
     "127.0.0.1",
   ],
+  // P4-W23-S01: voiced explainers' HLS under /media/*. CloudFront (AWS) and Caddy (VM)
+  // serve it from the media bucket in front of the app; in development, with the local
+  // SeaweedFS set in .env, Next forwards it the same way.
+  rewrites: () =>
+    Promise.resolve(
+      process.env.NODE_ENV === "development" &&
+        process.env["MEDIA_S3_ENDPOINT"] !== undefined &&
+        process.env["MEDIA_BUCKET"] !== undefined
+        ? [
+            {
+              source: "/media/:path*",
+              destination: `${process.env["MEDIA_S3_ENDPOINT"]}/${process.env["MEDIA_BUCKET"]}/media/:path*`,
+            },
+          ]
+        : [],
+    ),
   // ADR-0018: the in-app reader frames publishers' pages over https only.
   headers: () =>
     Promise.resolve([

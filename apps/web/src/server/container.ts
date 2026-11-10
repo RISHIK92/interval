@@ -32,6 +32,7 @@ import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
 import { kyselyAdminExplainers } from "./adapters/kysely-admin-explainers";
+import { kyselyListening } from "./adapters/kysely-listening";
 import { kyselyAdminPronunciations } from "./adapters/kysely-admin-pronunciations";
 import { kyselyAdminTts } from "./adapters/kysely-admin-tts";
 import { kyselyAdminTechnologies } from "./adapters/kysely-admin-technologies";
@@ -76,6 +77,7 @@ import type {
   AdminDaily,
   AdminFairPlay,
   AdminExplainers,
+  Listening,
   AdminPronunciations,
   AdminTts,
   AdminTechnologies,
@@ -200,6 +202,11 @@ export function adminPronunciations(): AdminPronunciations {
 // P4-W22-S01 (§5G, ADR-0038): explainer scripts, reviewed by the owner before voicing.
 export function adminExplainers(): AdminExplainers {
   return kyselyAdminExplainers(db());
+}
+
+// P4-W23-S01 (§5G, §5I): the audio queue and saved positions.
+export function listening(): Listening {
+  return kyselyListening(db());
 }
 
 // P2-W12-S03 (PER-4): suggested technologies, reviewed by the owner.

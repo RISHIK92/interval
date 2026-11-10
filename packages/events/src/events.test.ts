@@ -66,6 +66,9 @@ describe("the event list (Q-P1-20)", () => {
         // The owner's answers of 2026-11-03 (Q-P3-28, P3-W17-S04): nothing about the task.
         "agent_task_started",
         "agent_task_finished",
+        // The owner-approved W23-S01 plan (2026-11-10): for W24-S02's listen metrics.
+        "explainer_started",
+        "explainer_finished",
       ].sort(),
     );
   });

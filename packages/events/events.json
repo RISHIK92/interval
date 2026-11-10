@@ -59,6 +59,16 @@
       "description": "A continue card was clicked (W5-S03).",
       "props": {}
     },
+    "explainer_started": {
+      "version": 1,
+      "description": "A voiced concept explainer began playing on the web or in the app (§5G, P4-W23-S01). Not on a resume of an unfinished listen.",
+      "props": { "explainer_id": "id", "concept_id": "id" }
+    },
+    "explainer_finished": {
+      "version": 1,
+      "description": "A voiced concept explainer played to its end (§5G, P4-W23-S01).",
+      "props": { "explainer_id": "id", "concept_id": "id" }
+    },
     "note_saved": {
       "version": 1,
       "description": "A note on a section or an article was written or edited (P2-W7-S03, Q-P2-01). Never the note's text.",

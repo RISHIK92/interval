@@ -3,6 +3,7 @@ import { afterEach, expect, test, vi } from "vitest";
 import type {
   Actor,
   Library,
+  Listening,
   NoteEntry,
   Notes,
   Preferences,
@@ -24,12 +25,16 @@ const saves = vi.fn<Library["saves"]>(() => Promise.resolve([]));
 const history = vi.fn<Library["history"]>(() => Promise.resolve([]));
 const list = vi.fn<Notes["list"]>(() => Promise.resolve([]));
 const dueReviews = vi.fn<Quizzes["dueReviews"]>(() => Promise.resolve([]));
+const queue = vi.fn<Listening["queue"]>(() =>
+  Promise.resolve({ queue: [], upNext: null }),
+);
 vi.mock("../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({ get }),
   library: () => ({ saves, history }),
   notes: () => ({ list }),
   quizzes: () => ({ dueReviews }),
+  listening: () => ({ queue }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -218,10 +223,37 @@ test("the shelf counts saves and notes; highlights and audio are disabled for la
   expect(tile("Saved")).not.toContain("aria-disabled");
   expect(text(tile("Notes"))).toBe("Notes0");
   expect(tile("Notes")).not.toContain("aria-disabled");
-  for (const label of ["Highlights", "Audio"]) {
-    expect(tile(label)).toContain('aria-disabled="true"');
-    expect(text(tile(label))).toContain("Coming later");
-  }
+  expect(tile("Highlights")).toContain('aria-disabled="true"');
+  expect(text(tile("Highlights"))).toContain("Coming later");
+});
+
+// P4-W23-S01 (§5I): the audio queue, counted on the shelf and listed with its controls.
+test("the audio queue lists each queued explainer with Play and Remove", async () => {
+  current.mockResolvedValue(user);
+  const raft = {
+    explainerId: "7",
+    conceptId: "3",
+    concept: "Raft",
+    src: "/media/explainers/3/7/r/index.m3u8",
+    durationSeconds: 95,
+    positionSeconds: 30,
+    sources: [],
+  };
+  queue.mockResolvedValueOnce({ queue: [raft], upNext: null });
+  const html = await page();
+  expect(html).toMatch(
+    /<a href="#audio-queue" aria-label="Audio"[^>]*>.*?>1<\/span><\/a>/,
+  );
+  expect(html).toContain('id="audio-queue"');
+  expect(text(html)).toContain("RaftAI explainer · 1:35 · at 0:30");
+  expect(html).toContain('aria-label="Play Raft"');
+  expect(html).toContain('aria-label="Remove Raft"');
+});
+
+test("an empty audio queue says where it fills from", async () => {
+  current.mockResolvedValue(user);
+  const html = await page();
+  expect(text(html)).toContain("Nothing queued. Listen in the reader");
 });
 
 test("the Library tab is marked current", async () => {

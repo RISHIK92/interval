@@ -385,3 +385,24 @@ export const ChapterEnd = z.object({
 });
 export type ChapterEnd = z.infer<typeof ChapterEnd>;
 export * from "./place";
+
+// P4-W23-S01 (§5G, §5I): the audio queue and its saved positions, shared by the PWA and
+// the native player. Every explainer is AI (AI-1) and cites its sections (AI-3).
+export const ListenExplainer = z.object({
+  explainerId: ID,
+  conceptId: ID,
+  concept: z.string(),
+  // The HLS playlist, a same-origin path under /media/.
+  src: z.string().startsWith("/media/"),
+  durationSeconds: z.number().positive(),
+  positionSeconds: z.number().nonnegative(),
+  sources: z.array(z.object({ title: z.string(), href: z.url() })),
+});
+export type ListenExplainer = z.infer<typeof ListenExplainer>;
+export const ListenResponse = z.object({
+  queue: z.array(ListenExplainer),
+  // Wireframe 07: a connected concept, offered once the queue is done; never autoplayed.
+  upNext: ListenExplainer.nullable(),
+});
+export type ListenResponse = z.infer<typeof ListenResponse>;
+export const ListenQueued = z.object({ first: ID });

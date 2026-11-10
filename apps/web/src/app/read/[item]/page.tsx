@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { z } from "zod";
 import { CHIPS } from "../../../server/chips";
 import {
+  listening,
   notes,
   outboundLinks,
   quizzes,
@@ -16,6 +17,7 @@ import { formatReading } from "../../../server/reading";
 import { visitId } from "../../../server/visits";
 import { feedbackAction } from "../../feedback/actions";
 import { finishAction } from "../../finish/actions";
+import { ListenButton } from "../../listen/ListenButton";
 import { NoteBox } from "../../NoteBox";
 import { StartQuiz, ZAP } from "../../quiz/StartQuiz";
 import { ReaderFrame } from "./ReaderFrame";
@@ -35,6 +37,8 @@ const Read = z.object({
   from: z.enum(["continue", "reader", "library", "path"]).optional(),
   path: z.string().regex(BIGINT_ID).optional(),
 });
+
+const LISTEN = "M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z";
 
 // Smaller than the feed's round buttons: the reader's bars stay out of the page's way
 // (owner, 2026-10-26).
@@ -127,6 +131,8 @@ export default async function ReadPage({
   const testable = (
     await quizzes().offered([{ itemId: item, momentId: reached }])
   ).has(quizKey(item, reached));
+  // P4-W23-S01: Listen, once a concept here has a voiced explainer.
+  const voiced = (await listening().voiced(item, reached)).length > 0;
   const here = readHref({
     itemId: item,
     ...(moment === undefined ? {} : { momentId: moment }),
@@ -208,9 +214,15 @@ export default async function ReadPage({
           <ComingLater name="Highlight">
             <Glyph path="M4 20h6M14 4l6 6-9 9H5v-6z" />
           </ComingLater>
-          <ComingLater name="Listen">
-            <Glyph path="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z" />
-          </ComingLater>
+          {voiced ? (
+            <ListenButton itemId={item} momentId={reached} className={ROUND}>
+              <Glyph path={LISTEN} />
+            </ListenButton>
+          ) : (
+            <ComingLater name="Listen" why="No AI explainer here yet">
+              <Glyph path={LISTEN} />
+            </ComingLater>
+          )}
           {testable ? (
             <StartQuiz
               itemId={item}
@@ -311,7 +323,8 @@ function Glyph({
   );
 }
 
-// Shown, not usable yet (owner, ADR-0018): highlight and listen come later; Test me
+// Shown, not usable yet (owner, ADR-0018): highlight comes later, Listen waits for a
+// voiced explainer (P4-W23-S01); Test me
 // waits for its section's questions.
 function ComingLater({
   name,

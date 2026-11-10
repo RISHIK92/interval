@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import {
   library,
+  listening,
   notes,
   preferences,
   sessionReader,
@@ -13,6 +14,7 @@ import type { Chip } from "../../server/chips";
 import { outHref, readHref } from "../../server/outbound";
 import type { HistoryItem, NoteEntry, SavedItem } from "../../server/ports";
 import { parseReading } from "../../server/reading";
+import { AudioQueue } from "../listen/AudioQueue";
 import { NoteBox } from "../NoteBox";
 import { ReturnPrompt } from "../ReturnPrompt";
 import { TabBar } from "../TabBar";
@@ -123,12 +125,6 @@ const icon = (path: ReactNode) => (
 // shelf has its final shape. Notes came in P2-W7-S04.
 const LATER = [
   { label: "Highlights", icon: icon(<path d="M4 20h6M14 4l6 6-9 9H5v-6z" />) },
-  {
-    label: "Audio",
-    icon: icon(
-      <path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z" />,
-    ),
-  },
 ];
 
 const TILE = "flex flex-col gap-2 rounded-2xl bg-well p-4";
@@ -214,11 +210,12 @@ export default async function LibraryPage({
   const ask = parseReading(
     typeof params["ask"] === "string" ? params["ask"] : undefined,
   );
-  const [saved, finished, written, due] = await Promise.all([
+  const [saved, finished, written, due, listen] = await Promise.all([
     library().saves(actor.userId, LIMIT),
     library().history(actor.userId, LIMIT),
     notes().list(actor.userId, LIMIT),
     quizzes().dueReviews(actor.userId),
+    listening().queue(actor.userId),
   ]);
   const minutes = reviewMinutes(due.length);
   return (
@@ -285,6 +282,13 @@ export default async function LibraryPage({
               {written.length === LIMIT ? `${String(LIMIT)}+` : written.length}
             </span>
           </div>
+          <a href="#audio-queue" aria-label="Audio" className={TILE}>
+            {icon(
+              <path d="M4 14v-2a8 8 0 0 1 16 0v2M4 14h3v6H4zM17 14h3v6h-3z" />,
+            )}
+            <span className="font-semibold">Audio</span>
+            <span className="text-numbers">{listen.queue.length}</span>
+          </a>
           {LATER.map((tile) => (
             <div
               key={tile.label}
@@ -299,6 +303,14 @@ export default async function LibraryPage({
             </div>
           ))}
         </div>
+      </section>
+
+      {/* P4-W23-S01 (§5I): the audio queue, played by the global player. */}
+      <section id="audio-queue" aria-label="Audio queue">
+        <h2 className="mb-3 text-section">Audio queue</h2>
+        <Card>
+          <AudioQueue initial={listen.queue} />
+        </Card>
       </section>
 
       <section aria-label="Saved">

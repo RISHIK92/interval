@@ -4062,3 +4062,39 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the dates;
   - the age-rating note.
 - **Owner may remove** `/tmp/interval-ios` (the iOS build, a few GB) and the local `interval-worker-ffmpeg-check` image.
+
+### 2026-11-10 — P4-W23-S01 (the PWA mini-player and the audio queue; §5G, §4.1, §5I, Q-P4-12)
+
+- **Owner, 2026-11-10:**
+  - the reader's Listen queues and plays the voiced explainers of the section's concepts (the article's when no section was reached), and stays disabled ("No AI explainer here yet") when none is;
+  - Up next (wireframe 07) is one concept joined by a concept_edge to the last finished, shown but never autoplayed;
+  - the mode switch shows Original disabled and Smart explain on, with "You're hearing AI, not the author" under it (AI-1);
+  - the queue and saved positions live on the server, so the app (W23-S02) shares them. Guests never reach the reader (ADR-0029), so no guest queue.
+- **DB:** `listen_queue` and `explainer_listen` (position, finished_at).
+- **Events (DB-5):** `explainer_started` (a new listen, not a resume) and `explainer_finished` (once a listen, LOAD-5: a retried finish isn't counted), for W24-S02.
+- **Server:**
+  - `Listening` port and `kysely-listening.ts`: only approved explainers with audio are queued, started, saved or finished; sources are the cited sections as deep links (AI-3);
+  - `listen-flow.ts`;
+  - `GET/POST /api/listen` and `POST/DELETE /api/listen/[explainer]`.
+  - The GET has no origin check: a browser sends no Origin on a same-origin GET, and another site can't read the reply.
+- **api-client:** `ListenResponse`, for the app in S02.
+- **Web:**
+  - `app/listen/player.ts`: one audio element outside the page tree; native HLS or hls.js 1.7.3 (dynamic import; 1.7.4 is under two weeks old); Media Session; speed per device in localStorage; places saved every 10 s, on pause and on pagehide, never on the end's pause;
+  - `MiniPlayer` in the root layout (above the tab bar on phones, a corner card on wide screens; `html[data-player]` pads the page);
+  - the full player; `ListenButton` in the reader;
+  - Library's Audio tile is live, with an Audio queue section (Play, Remove).
+  - In development, next.config forwards `/media/*` to the local SeaweedFS when `MEDIA_S3_ENDPOINT` and `MEDIA_BUCKET` are set.
+- **Reviewer fixes:**
+  - the queue's GET was 403 for the PWA (no Origin);
+  - the end-of-play save racing the finish;
+  - concurrent starts both counted;
+  - finish not idempotent;
+  - saves of 0 before the saved place applied;
+  - seeks while cued;
+  - fatal hls.js errors unreported;
+  - auto-advance going to the queue's head;
+  - attach failure leaving a stale source;
+  - errors hidden in the bar;
+  - separate lock-screen play and pause;
+  - one statement for add.
+- **Not verified in a browser:** there are no voiced explainers yet (no TTS provider has been called). Playback needs the owner's `MEDIA_BUCKET` and `MEDIA_S3_ENDPOINT` in .env and a `voice-explainers` run.
