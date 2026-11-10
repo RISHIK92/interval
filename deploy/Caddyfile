@@ -5,6 +5,17 @@
 	handle /game/* {
 		reverse_proxy game:8080
 	}
+	# P4-W22-S04 (CACHE-4): voiced explainers from SeaweedFS's media bucket. Reads only:
+	# SeaweedFS has no S3 auth here, so nothing else may reach it from outside.
+	handle /media/* {
+		@read method GET HEAD
+		handle @read {
+			# The path only: no query string (S3 subresources such as ?acl) reaches it.
+			rewrite * /interval-media{path}
+			reverse_proxy seaweedfs:8333
+		}
+		respond 405
+	}
 	handle {
 		encode zstd gzip
 		reverse_proxy web:3000

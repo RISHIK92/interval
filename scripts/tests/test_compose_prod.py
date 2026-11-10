@@ -36,8 +36,6 @@ def config(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Any]:
             str(COMPOSE),
             "--profile",
             "jobs",
-            "--profile",
-            "local-s3",
             "config",
             "--format",
             "json",
@@ -137,7 +135,8 @@ def test_one_off_and_optional_services_sit_behind_profiles(
     config: dict[str, Any],
 ) -> None:
     assert services(config)["jobs"]["profiles"] == ["jobs"]
-    assert services(config)["seaweedfs"]["profiles"] == ["local-s3"]
+    # P4-W22-S04 (owner, 2026-11-10): SeaweedFS always runs, for public media.
+    assert "profiles" not in services(config)["seaweedfs"]
 
 
 def test_secrets_reach_services_only_through_the_env_file(
@@ -369,3 +368,21 @@ def test_a_systemd_timer_closes_the_season_daily() -> None:
     deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
     assert "interval-season.timer" in deploy
     assert re.search(r"systemctl enable --now interval-season\.timer", deploy)
+
+
+def test_caddy_serves_media_from_seaweedfs_for_reads_only() -> None:
+    # P4-W22-S04 (CACHE-4): SeaweedFS has no S3 auth, so only GET and HEAD reach it.
+    caddy = (ROOT / "deploy" / "Caddyfile").read_text(encoding="utf-8")
+    block = caddy[caddy.index("handle /media/*") :]
+    block = block[: block.index("respond 405") + len("respond 405")]
+    assert "@read method GET HEAD" in block
+    assert "rewrite * /interval-media{path}" in block
+    assert "reverse_proxy seaweedfs:8333" in block
+
+
+def test_stack_up_makes_the_media_bucket_always_and_the_private_one_on_the_vm() -> None:
+    stack = (ROOT / "deploy" / "bin" / "stack.sh").read_text(encoding="utf-8")
+    up = stack[stack.index("  up)") : stack.index("  down)")]
+    assert 'buckets="${MEDIA_BUCKET}"' in up
+    assert 'if files_on_vm; then buckets="${LOCAL_BUCKET} ${MEDIA_BUCKET}"; fi' in up
+    assert "rm --stop --force seaweedfs" not in stack

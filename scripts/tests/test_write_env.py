@@ -101,6 +101,9 @@ def test_writes_four_env_files_each_with_only_its_keys_and_mode_600(
         "VALKEY_URL": "redis://valkey:6379",
         "AWS_REGION": "ap-south-1",
         "PRIVATE_CONTENT_BUCKET": "prod-bucket-1",
+        # P4-W22-S04: public media on the VM's SeaweedFS, whatever holds the books.
+        "MEDIA_BUCKET": "interval-media",
+        "MEDIA_S3_ENDPOINT": "http://seaweedfs:8333",
         "OCR_URL": "http://ocr:8080",
         "BETTER_AUTH_SECRET": "authSecret456",
         "BETTER_AUTH_URL": "http://localhost",
@@ -152,6 +155,7 @@ def test_site_address_and_local_s3_come_from_etc(tmp_path: Path) -> None:
     assert parse(out / "app.env")["BETTER_AUTH_URL"] == "https://interval.example.com"
     assert parse(out / "app.env")["S3_ENDPOINT"] == "http://seaweedfs:8333"
     assert parse(out / "app.env")["PRIVATE_CONTENT_BUCKET"] == "interval-private"
+    assert parse(out / "app.env")["MEDIA_BUCKET"] == "interval-media"
     # Mail is logged only without a domain; a public site needs a real transport.
     assert "MAIL_TRANSPORT" not in parse(out / "app.env")
     # DB-5: the VM sends events to its Firehose stream (infra/src/prod-stack.ts).

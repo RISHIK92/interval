@@ -383,6 +383,17 @@ export interface DevicePushToken {
   user_id: string;
 }
 
+export interface ExplainerAudio {
+  created_at: Generated<Timestamp>;
+  duration_seconds: Numeric;
+  explainer_id: Int8;
+  id: Generated<Int8>;
+  playlist_key: string;
+  provider: string;
+  voice: string;
+  words: Json;
+}
+
 export interface ExploreArmOutcome {
   arm: string;
   finished: Generated<Int8>;
@@ -1231,6 +1242,7 @@ export interface DB {
   daily_challenge: DailyChallenge;
   daily_challenge_question: DailyChallengeQuestion;
   device_push_token: DevicePushToken;
+  explainer_audio: ExplainerAudio;
   explore_arm_outcome: ExploreArmOutcome;
   fair_play_flag: FairPlayFlag;
   feed_note: FeedNote;

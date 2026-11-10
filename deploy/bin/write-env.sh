@@ -104,6 +104,8 @@ QUEUE_TRANSPORT=bullmq
 VALKEY_URL=redis://valkey:6379
 AWS_REGION=${REGION}
 ${files_lines}
+MEDIA_BUCKET=${MEDIA_BUCKET}
+MEDIA_S3_ENDPOINT=http://seaweedfs:8333
 OCR_URL=http://ocr:8080
 BETTER_AUTH_SECRET=${better_auth}
 BETTER_AUTH_URL=${public_url}

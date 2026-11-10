@@ -363,6 +363,17 @@ class DevicePushToken(TypedDict):
     created_at: datetime
 
 
+class ExplainerAudio(TypedDict):
+    id: int
+    explainer_id: int
+    provider: str
+    voice: str
+    playlist_key: str
+    duration_seconds: Decimal
+    words: JsonValue
+    created_at: datetime
+
+
 class ExploreArmOutcome(TypedDict):
     kind: str
     arm: str

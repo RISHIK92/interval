@@ -9,24 +9,30 @@ compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
 
 case "${1:?usage: stack.sh up|down|build|run COMMAND...}" in
   build)
-    # Every image, including the one-off jobs image and SeaweedFS.
-    compose --profile jobs --profile local-s3 build
+    # Every image, including the one-off jobs image.
+    compose --profile jobs build
     ;;
   up)
-    if files_on_vm; then
-      compose --profile local-s3 up -d --wait --remove-orphans
-      # P2-W11-S01: the private content bucket, made once (a second create fails).
-      compose --profile local-s3 exec -T seaweedfs sh -c \
-        "echo s3.bucket.list | weed shell | grep -qw '${LOCAL_BUCKET}' \
-          || echo 's3.bucket.create -name ${LOCAL_BUCKET}' | weed shell"
-    else
-      # Switching back to S3 must stop SeaweedFS; --remove-orphans ignores profiled services.
-      compose --profile local-s3 rm --stop --force seaweedfs
-      compose up -d --wait --remove-orphans
+    # P4-W22-S04 (owner, 2026-11-10): SeaweedFS always runs, for public media; the
+    # private bucket is made on it only when the private files live on the VM too.
+    # SeaweedFS's data sits on the mounted data volume; made there if missing, never on
+    # the root disk (an unmounted volume fails the start instead).
+    files_dir="${FILES_DIR:-/var/lib/interval/pgdata/files}"
+    if [ ! -d "$files_dir" ] && mountpoint -q "$(dirname "$files_dir")"; then
+      mkdir -p "$files_dir"
     fi
+    compose up -d --wait --remove-orphans
+    buckets="${MEDIA_BUCKET}"
+    if files_on_vm; then buckets="${LOCAL_BUCKET} ${MEDIA_BUCKET}"; fi
+    for bucket in $buckets; do
+      # Made once (a second create fails).
+      compose exec -T seaweedfs sh -c \
+        "echo s3.bucket.list | weed shell | grep -qw '${bucket}' \
+          || echo 's3.bucket.create -name ${bucket}' | weed shell"
+    done
     ;;
   down)
-    compose --profile local-s3 --profile jobs down
+    compose --profile jobs down
     ;;
   run)
     shift

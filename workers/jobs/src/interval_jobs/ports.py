@@ -1975,6 +1975,22 @@ class Explainers(Protocol):
         """A concept tried without a script; `targets` leaves it out for a while."""
         ...
 
+    def unvoiced(self, limit: int) -> list["ExplainerToVoice"]:
+        """Approved scripts not yet voiced (P4-W22-S04), oldest decision first."""
+        ...
+
+    def save_audio(
+        self,
+        explainer_id: int,
+        provider: AiProvider,
+        voice: str,
+        playlist_key: str,
+        duration: float,
+        words: list["WordTime"],
+    ) -> bool:
+        """Once per script (voiced once, TTS-4); False when it already was."""
+        ...
+
 
 # The pronunciation dictionary (TTS-2, P4-W22-S02).
 @dataclass(frozen=True)
@@ -2027,3 +2043,18 @@ class TtsSamples(Protocol):
     def save(
         self, run: str, script_no: int, provider: AiProvider, label: str, file_key: str
     ) -> None: ...
+
+
+# Voicing (TTS-3, TTS-4, P4-W22-S04): HLS from a provider's MP3, and the explainers to
+# voice: approved, not yet said.
+class Hls(Protocol):
+    def package(self, mp3: bytes) -> dict[str, bytes]:
+        """The playlist (`index.m3u8`) and its segments, by file name."""
+        ...
+
+
+@dataclass(frozen=True)
+class ExplainerToVoice:
+    explainer_id: int
+    concept_id: int
+    script: str

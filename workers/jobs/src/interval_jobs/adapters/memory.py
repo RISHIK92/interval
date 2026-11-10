@@ -53,6 +53,7 @@ from interval_jobs.ports import (
     ExplainerCitation,
     ExplainerConcept,
     ExplainerSource,
+    ExplainerToVoice,
     FeedEntry,
     Fetched,
     FetchError,
@@ -100,6 +101,7 @@ from interval_jobs.ports import (
     UserPreferences,
     ValidatedQuestion,
     Validators,
+    WordTime,
 )
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.segment import minutes
@@ -1917,6 +1919,8 @@ class InMemoryExplainers:
         self.sourced: dict[int, list[ExplainerSource]] = {}
         self.saved: dict[int, tuple[str, list[ExplainerCitation], str, int]] = {}
         self.attempts: dict[int, str] = {}
+        self.approved: list[ExplainerToVoice] = []
+        self.voiced: dict[int, tuple[str, str, str, float, list[WordTime]]] = {}
 
     def targets(self, limit: int) -> list[ExplainerConcept]:
         return [c for c in self.concepts if c.concept_id not in self.saved][:limit]
@@ -1935,6 +1939,23 @@ class InMemoryExplainers:
         if concept_id in self.saved:
             return False
         self.saved[concept_id] = (script, citations, model, prompt_version)
+        return True
+
+    def unvoiced(self, limit: int) -> list[ExplainerToVoice]:
+        return [x for x in self.approved if x.explainer_id not in self.voiced][:limit]
+
+    def save_audio(
+        self,
+        explainer_id: int,
+        provider: AiProvider,
+        voice: str,
+        playlist_key: str,
+        duration: float,
+        words: list[WordTime],
+    ) -> bool:
+        if explainer_id in self.voiced:
+            return False
+        self.voiced[explainer_id] = (provider, voice, playlist_key, duration, words)
         return True
 
     def tried(self, concept_id: int, outcome: Literal["skipped", "refused"]) -> None:

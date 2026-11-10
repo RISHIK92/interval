@@ -33,6 +33,7 @@ import psycopg
 
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs import log
+from interval_jobs.adapters.ffmpeg_hls import FfmpegHls, HlsError
 from interval_jobs.adapters.postgres import PostgresAi
 from interval_jobs.adapters.redis_results import RedisResults
 from interval_jobs.compose import (
@@ -40,6 +41,7 @@ from interval_jobs.compose import (
     database_url,
     files,
     github_app,
+    media_files,
     model_job,
     native_push,
     ocr,
@@ -47,6 +49,7 @@ from interval_jobs.compose import (
     queue_for_enqueue,
     services,
     stage_units,
+    tts_provider,
     tts_providers,
     web_push,
 )
@@ -101,6 +104,7 @@ from interval_jobs.tracing import run_span, setup
 from interval_jobs.tts_blind import TtsScriptsError, blind_test
 from interval_jobs.tts_blind import parse_scripts as parse_tts_scripts
 from interval_jobs.universities import UniversitySeedError, parse_universities
+from interval_jobs.voicing import VoicingError, voice
 
 # The owner's seed list (Q-P1-02), relative to where commands run: the repo root
 # locally, /app in the worker image (which copies it to the same path).
@@ -283,6 +287,12 @@ def main(argv: list[str]) -> None:
         help="sync the technology seed file (PER-4, P2-W12-S03)",
     )
     technologies.add_argument("--file", type=Path, default=TECHNOLOGY_FILE)
+    voicing = commands.add_parser(
+        "voice-explainers",
+        help="say approved explainer scripts with TTS_PROVIDER and store them as HLS "
+        "in the media bucket (TTS-3, TTS-4, P4-W22-S04)",
+    )
+    voicing.add_argument("--limit", type=_explainer_limit, default=5)
     blind = commands.add_parser(
         "tts-blind-test",
         help="say the 5 test scripts with each TTS provider that has a key, unnamed, "
@@ -519,6 +529,10 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         print(json.dumps(asdict(outcome)))
         if outcome.stopped is not None:
             sys.exit(f"suggest-technologies stopped: {outcome.stopped}")
+        return
+
+    if args.command == "voice-explainers":
+        _voice_explainers(args.limit)
         return
 
     if args.command == "tts-blind-test":
@@ -819,6 +833,37 @@ def _propose_paths(count: int) -> None:
             sys.exit("propose-paths needs PATHS_MODEL (Q-P2-25)")
         with job.gateway() as gateway:
             got = propose(unit, gateway, job.model, count)
+    print(json.dumps(asdict(got), indent=2))
+
+
+def _voice_explainers(limit: int) -> None:
+    """TTS-3, TTS-4 (P4-W22-S04): run by hand once the owner has picked a provider
+    (TTS_PROVIDER, with its key) and approved scripts on /admin/explainers."""
+    media = media_files()
+    if media is None:
+        sys.exit("voice-explainers needs MEDIA_BUCKET (the audio is stored there)")
+
+    @contextmanager
+    def unit() -> Generator[Store]:
+        with services() as s:
+            yield s.store
+
+    with httpx.Client() as http:
+        tts = tts_provider(http)
+        if tts is None:
+            sys.exit("voice-explainers needs TTS_PROVIDER, with that provider's key")
+        with psycopg.connect(database_url(), autocommit=True) as ledger:
+            try:
+                got = voice(
+                    unit,
+                    ai_gateway(PostgresAi(ledger), http),
+                    tts,
+                    media,
+                    FfmpegHls(),
+                    limit,
+                )
+            except (VoicingError, HlsError) as error:
+                sys.exit(f"voice-explainers: {error}")
     print(json.dumps(asdict(got), indent=2))
 
 

@@ -391,3 +391,21 @@ def tts_provider(client: httpx.Client) -> TtsProvider | None:
     when it isn't set or its key isn't there."""
     chosen = os.environ.get("TTS_PROVIDER")
     return next((p for p in tts_providers(client) if p.provider == chosen), None)
+
+
+def media_files() -> Files | None:
+    """The public media bucket (CACHE-4, P4-W22-S04): CloudFront's /media/* in AWS; a
+    VM's own SeaweedFS (MEDIA_S3_ENDPOINT) even when its private files are in S3 (owner,
+    2026-11-10). None without MEDIA_BUCKET."""
+    bucket = os.environ.get("MEDIA_BUCKET")
+    if not bucket:
+        return None
+    client = cast(
+        S3Client,
+        boto3.client(  # pyright: ignore[reportUnknownMemberType]
+            "s3",
+            region_name=_required("AWS_REGION"),
+            endpoint_url=os.environ.get("MEDIA_S3_ENDPOINT") or None,
+        ),
+    )
+    return S3Files(client, bucket)

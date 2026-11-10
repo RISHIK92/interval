@@ -55,11 +55,12 @@ services:
       retries: 20
     restart: unless-stopped
 
-  # Optional: keep files on the VM instead of S3 (`--profile local-s3`).
+  # Public media always; the private files too with files-backend local-s3.
   seaweedfs:
     <<: *logging
     image: chrislusf/seaweedfs:4.50
-    profiles: ["local-s3"]
+    # Always on (P4-W22-S04, owner 2026-11-10): public media lives here in every VM
+    # setup; the private bucket only with files-backend local-s3.
     command: ["server", "-s3", "-dir=/data"]
     volumes:
       # On the retained data volume, like Postgres; missing directory means no start.

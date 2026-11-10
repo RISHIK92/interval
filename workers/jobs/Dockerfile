@@ -6,6 +6,11 @@ COPY --from=uv /uv /usr/local/bin/uv
 # The image's Python only; no uv cache in the layer.
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_NO_CACHE=1 UV_PYTHON_DOWNLOADS=never \
     UV_PROJECT_ENVIRONMENT=/app/.venv
+# ffmpeg cuts voiced explainers into HLS (Q-P4-09, P4-W22-S04): Debian's package, a
+# system binary, before the app's layers so it stays cached.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY pyproject.toml uv.lock .python-version ./
 COPY workers/jobs/pyproject.toml workers/jobs/

@@ -55,6 +55,7 @@ from interval_jobs.ports import (
     ExplainerCitation,
     ExplainerConcept,
     ExplainerSource,
+    ExplainerToVoice,
     FeedEntry,
     FetchInput,
     Finished,
@@ -99,6 +100,7 @@ from interval_jobs.ports import (
     UserPreferences,
     ValidatedQuestion,
     Validators,
+    WordTime,
 )
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
@@ -3863,6 +3865,50 @@ class PostgresExplainers:
                 ),
                 model,
                 prompt_version,
+            ),
+        ).fetchone()
+        return row is not None
+
+    def unvoiced(self, limit: int) -> list[ExplainerToVoice]:
+        rows = self._conn.execute(
+            """
+            select x.id, x.concept_id, x.script from concept_explainer x
+            where x.status = 'approved'
+              and not exists (
+                select 1 from explainer_audio a where a.explainer_id = x.id)
+            order by x.decided_at, x.id
+            limit %s
+            """,
+            (limit,),
+        ).fetchall()
+        return [ExplainerToVoice(int(i), int(c), str(s)) for i, c, s in rows]
+
+    def save_audio(
+        self,
+        explainer_id: int,
+        provider: AiProvider,
+        voice: str,
+        playlist_key: str,
+        duration: float,
+        words: list[WordTime],
+    ) -> bool:
+        row = self._conn.execute(
+            """
+            insert into explainer_audio
+              (explainer_id, provider, voice, playlist_key, duration_seconds, words)
+            values (%s, %s, %s, %s, %s, %s)
+            on conflict (explainer_id) do nothing
+            returning id
+            """,
+            (
+                explainer_id,
+                provider,
+                voice,
+                playlist_key,
+                round(duration, 2),
+                Jsonb(
+                    [{"word": w.word, "start": w.start, "end": w.end} for w in words]
+                ),
             ),
         ).fetchone()
         return row is not None

@@ -19,6 +19,7 @@ import * as elbv2 from "aws-cdk-lib/aws-elasticloadbalancingv2";
 import * as glue from "aws-cdk-lib/aws-glue";
 import * as logs from "aws-cdk-lib/aws-logs";
 import * as rds from "aws-cdk-lib/aws-rds";
+import * as s3 from "aws-cdk-lib/aws-s3";
 import * as scheduler from "aws-cdk-lib/aws-scheduler";
 import * as targets from "aws-cdk-lib/aws-scheduler-targets";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
@@ -184,6 +185,14 @@ export class AwsStack extends Stack {
     const queueUrlPrefix = `https://sqs.${this.region}.${this.urlSuffix}/${this.account}/${queuePrefix}`;
 
     const { privateContent, events } = createBuckets(this);
+    // CACHE-4, P4-W22-S04 (owner, 2026-11-10): public media (voiced explainers as HLS),
+    // a bucket of its own beside the private one, read only through CloudFront (OAC).
+    const media = new s3.Bucket(this, "Media", {
+      blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
+      encryption: s3.BucketEncryption.S3_MANAGED,
+      enforceSSL: true,
+      removalPolicy: RemovalPolicy.RETAIN,
+    });
     const eventStream = createEventStream(
       this,
       events,
@@ -561,6 +570,7 @@ export class AwsStack extends Stack {
       QUEUE_TRANSPORT: "sqs",
       SQS_QUEUE_URL_PREFIX: queueUrlPrefix,
       PRIVATE_CONTENT_BUCKET: privateContent.bucketName,
+      MEDIA_BUCKET: media.bucketName,
       EVENTS_BUCKET: events.bucketName,
       // DB-5: both apps send events through Firehose.
       EVENTS_TRANSPORT: "firehose",
@@ -1035,6 +1045,8 @@ export class AwsStack extends Stack {
     // P2-W11: books read (book_process, ocr_page) and removed (remove_file) here.
     privateContent.grantRead(workerTask.taskRole);
     grantBookDeletes(privateContent, workerTask.taskRole);
+    // P4-W22-S04: voice-explainers writes HLS here; nothing reads it but CloudFront.
+    media.grantPut(workerTask.taskRole);
     eventStream.grantPutRecords(workerTask.taskRole);
     for (const queue of queues) {
       queue.grantSendMessages(workerTask.taskRole);
@@ -1142,6 +1154,15 @@ export class AwsStack extends Stack {
               ),
             },
           ),
+        },
+        // CACHE-4, P4-W22-S04: voiced explainers, cached; reads only, no cookies.
+        "/media/*": {
+          // Keys start media/ (the worker writes them so): the path is the key.
+          origin: origins.S3BucketOrigin.withOriginAccessControl(media),
+          viewerProtocolPolicy:
+            cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
         },
         "/_next/static/*": {
           origin,

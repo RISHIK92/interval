@@ -3989,3 +3989,47 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the usage assertion;
   - the comment.
 - **Known:** the audio route has no Range support; Safari may refuse to play it (Chrome plays it). Bitrates differ by provider, which an expert ear or file size could notice.
+
+### 2026-11-10 — P4-W22-S04 (voicing explainers: timestamps and HLS; TTS-3, TTS-4, DB-6, CACHE-4)
+
+- **Owner, 2026-11-10:**
+  - explainer audio goes in a new public media bucket, never the private one;
+  - AWS serves it by CloudFront at `/media/*`;
+  - a VM always keeps media on its own SeaweedFS (even when private files are in S3), with Caddy serving `/media/*` for reads only.
+- **Data:** `explainer_audio`: voiced once a script; provider, voice, playlist key, duration, and the words with their times beside the audio (TTS-3).
+- **Worker:**
+  - `voice-explainers --limit N` (owner-run; `TTS_PROVIDER` with its key; `MEDIA_BUCKET`). For each approved script not yet voiced:
+    - the dictionary is applied, then `gateway.speak` (the shared budget);
+    - no word times stops the job with "<provider> gives no word timestamps; forced alignment is a later decision (Q-P4-08)";
+    - `FfmpegHls` (AAC 64k, 6 s segments, VOD playlist) packages it, put at `media/explainers/<concept>/<explainer>/<run>/`. The key is the public path; one folder a run, so overlapping runs never mix segments;
+    - the row is saved with the playlist's own duration.
+  - `media_files()` (`MEDIA_BUCKET` plus `MEDIA_S3_ENDPOINT`).
+  - **The worker image installs ffmpeg:** `docker build` succeeded and `ffmpeg -version` ran in it (Debian's 5.1.9).
+- **AWS:**
+  - a `Media` bucket beside the shared ones (BLOCK_ALL; read only by this distribution through OAC; the policy is tested);
+  - CloudFront `/media/*`: cached, GET/HEAD;
+  - the worker may put there, nothing else is granted on it, and `MEDIA_BUCKET` is in the tasks' env.
+- **VM:**
+  - SeaweedFS is no longer behind a profile;
+  - `stack.sh up` makes `interval-media` always and `interval-private` with files on the VM, creating the data directory only on the mounted volume;
+  - `write-env.sh` writes `MEDIA_BUCKET` and `MEDIA_S3_ENDPOINT`;
+  - Caddy `/media/*`: GET/HEAD only, the path alone (no query string) rewritten to `/interval-media…`, else 405 (`caddy validate`: valid);
+  - runbook: the always-on SeaweedFS, its memory, and that a local smoke run needs a pre-created `FILES_DIR`.
+- **Local:** `pnpm files:init` creates both buckets once `MEDIA_BUCKET` is in `.env` (`.env.example` has it).
+- **Checks:**
+  - the full check: web 1479, mobile 97, Python 1437;
+  - infra 69 alone;
+  - after the review: voicing 5 (with the real ffmpeg), VM scripts 65.
+- **Reviewer fixes:**
+  - one folder a run;
+  - the path-only rewrite;
+  - the smoke-run note;
+  - the stale comment and test profile;
+  - the OAC policy test;
+  - the duration from the playlist;
+  - the relative-segment check.
+- **For the owner:**
+  - CLAUDE.md's VM-mode line lists `ENV_DIR`, `PGDATA_DIR`, `VALKEY_DIR`, `HTTP_PORT`; a smoke run now also needs `FILES_DIR` (your file, not changed);
+  - add `MEDIA_BUCKET`/`MEDIA_S3_ENDPOINT` to `.env` and run `pnpm files:init`;
+  - the build left a local image `interval-worker-ffmpeg-check` (about 1 GB) that you may remove.
+- **Not checked:** SeaweedFS 4.50's answer to a GET on a key ending in `/` (Caddy's path keeps it under `media/`).

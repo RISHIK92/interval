@@ -203,6 +203,103 @@ describe("queues (ADR-0014)", () => {
 });
 
 describe("edge", () => {
+  // P4-W22-S04 (CACHE-4; owner, 2026-11-10): voiced explainers from their own bucket,
+  // private but for CloudFront's origin access control; reads only, cached.
+  test("/media/* comes from the media bucket through OAC, cached, reads only", () => {
+    const [, dist] = only("AWS::CloudFront::Distribution");
+    const config = dist.Properties["DistributionConfig"] as {
+      CacheBehaviors: {
+        PathPattern: string;
+        CachePolicyId: string;
+        TargetOriginId: string;
+        AllowedMethods?: string[];
+        ViewerProtocolPolicy: string;
+      }[];
+      Origins: {
+        Id: string;
+        S3OriginConfig?: unknown;
+        OriginAccessControlId?: unknown;
+      }[];
+    };
+    const mediaPath = config.CacheBehaviors.find(
+      (b) => b.PathPattern === "/media/*",
+    );
+    expect(mediaPath?.CachePolicyId).toBe(
+      "658327ea-f89d-4fab-a63d-7e88639e58f6",
+    );
+    expect(mediaPath?.ViewerProtocolPolicy).toBe("redirect-to-https");
+    expect(mediaPath?.AllowedMethods ?? ["GET", "HEAD"]).toEqual([
+      "GET",
+      "HEAD",
+    ]);
+    const mediaOrigin = config.Origins.find(
+      (o) => o.Id === mediaPath?.TargetOriginId,
+    );
+    expect(mediaOrigin?.S3OriginConfig).toBeDefined();
+    expect(mediaOrigin?.OriginAccessControlId).toBeDefined();
+    expect(all("AWS::CloudFront::OriginAccessControl")).toHaveLength(1);
+    // Every bucket stays private: the media one only through OAC.
+    for (const [, bucket] of all("AWS::S3::Bucket"))
+      expect(bucket.Properties["PublicAccessBlockConfiguration"]).toEqual({
+        BlockPublicAcls: true,
+        BlockPublicPolicy: true,
+        IgnorePublicAcls: true,
+        RestrictPublicBuckets: true,
+      });
+  });
+
+  test("the media bucket lets only this distribution read it (OAC)", () => {
+    const policies = all("AWS::S3::BucketPolicy").filter(([, p]) =>
+      JSON.stringify(p.Properties["Bucket"]).includes("Media"),
+    );
+    expect(policies).toHaveLength(1);
+    const statements = (
+      policies[0]?.[1].Properties["PolicyDocument"] as {
+        Statement: {
+          Effect: string;
+          Principal?: { Service?: string };
+          Action: unknown;
+          Condition?: unknown;
+        }[];
+      }
+    ).Statement;
+    const reads = statements.filter(
+      (st) => st.Principal?.Service === "cloudfront.amazonaws.com",
+    );
+    expect(reads).toHaveLength(1);
+    expect(reads[0]?.Effect).toBe("Allow");
+    expect(reads[0]?.Action).toBe("s3:GetObject");
+    expect(JSON.stringify(reads[0]?.Condition)).toContain("AWS:SourceArn");
+    expect(JSON.stringify(reads[0]?.Condition)).toContain("Cdn");
+  });
+
+  test("the worker writes to the media bucket and nothing reads it but CloudFront", () => {
+    const policies = Object.values(
+      template.findResources("AWS::IAM::Policy"),
+    ) as {
+      Properties: {
+        PolicyDocument: { Statement: { Action: unknown; Resource: unknown }[] };
+        Roles: unknown[];
+      };
+    }[];
+    const onMedia = policies.filter((p) =>
+      p.Properties.PolicyDocument.Statement.some((st) =>
+        JSON.stringify(st.Resource).includes("Media"),
+      ),
+    );
+    expect(onMedia.map((p) => JSON.stringify(p.Properties.Roles))).toEqual([
+      expect.stringContaining("WorkerTaskTaskRole"),
+    ]);
+    for (const policy of onMedia)
+      for (const st of policy.Properties.PolicyDocument.Statement.filter((x) =>
+        JSON.stringify(x.Resource).includes("Media"),
+      ))
+        expect(JSON.stringify(st.Action)).not.toContain("s3:GetObject");
+    const env = (template.toJSON() as { Resources: Record<string, unknown> })
+      .Resources;
+    expect(JSON.stringify(env)).toContain('"MEDIA_BUCKET"');
+  });
+
   test("CloudFront caches only /_next/static, redirects to HTTPS, sends the secret header", () => {
     const [, dist] = only("AWS::CloudFront::Distribution");
     const config = dist.Properties["DistributionConfig"] as {

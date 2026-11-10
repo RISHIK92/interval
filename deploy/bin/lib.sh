@@ -15,6 +15,8 @@ read_setting() {
 
 # The private content bucket in SeaweedFS when files live on the VM (P2-W11-S01).
 LOCAL_BUCKET="interval-private"
+# P4-W22-S04 (owner, 2026-11-10): public media always lives on the VM's SeaweedFS.
+MEDIA_BUCKET="interval-media"
 
 files_on_vm() {
   [ "$(read_setting files-backend)" = "local-s3" ]
