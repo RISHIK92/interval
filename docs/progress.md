@@ -4098,3 +4098,37 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - separate lock-screen play and pause;
   - one statement for add.
 - **Not verified in a browser:** there are no voiced explainers yet (no TTS provider has been called). Playback needs the owner's `MEDIA_BUCKET` and `MEDIA_S3_ENDPOINT` in .env and a `voice-explainers` run.
+
+### 2026-11-10 — P4-W23-S02 (the native player; §4.2, §5G, Q-P4-12 amended)
+
+- **Owner, 2026-11-10:**
+  - expo-audio 58.0.10 on native in place of react-native-track-player (Q-P4-12 amended in docs/questions/phase-4.md): RNTP's last stable release is from Aug 2025, and RN 0.88 is New Architecture only;
+  - the same entry points as the web.
+- **Server:** `ReaderResponse.listen` (something here is voiced), from `listening().voiced`. The app uses `/api/listen*` unchanged.
+- **App:**
+  - `lib/listen.ts`: one expo-audio player for the app. It follows the web player's rules: places saved every 10 s, on pause and on going to the background, never at the end; what followed it plays next; Up next waits for a tap.
+  - The lock screen: concept and "Interval · AI explainer", play/pause and ±15 s seeks. It has no next or previous: the single player has no remote event for them.
+  - Background playback is enabled through the expo-audio plugin (recording off); `keepAudioSessionActive` lets the lock screen resume after a pause.
+  - The mini-player sits on the tab bar (`expo-router/tabs` BottomTabBar).
+  - `/listen` (modal) is the full player: Original disabled, "You're hearing AI, not the author", the queue, Up next, and "Written from · AI" sources.
+  - The reader's Listen is live when `listen` is true.
+  - The Library tab is the Audio queue; saved items, notes and history point to the web.
+  - The player is reset on sign-out.
+- **Reviewer fixes:**
+  - the saved place was saved as 0 while its async seek was landing (blocker); it now waits for the new source to load and the seek to finish;
+  - a late status from the previous source;
+  - `status.error` reported;
+  - the lock screen's 15 s skips;
+  - lock-screen controls cleared when nothing is current;
+  - a failed refresh no longer hides what's playing;
+  - only the latest of two concurrent queue reads counts;
+  - modal presentation set in the stack;
+  - accessibility labels and 44 pt targets;
+  - the dead test mock;
+  - tests for the reader's Listen.
+- **Checks:** app 106, web 1509 (incl. the read route), Python 1439, infra 93 alone (its hook timeout under the full check's load, as before), static checks green.
+- **Owner:**
+  - rebuild the dev client (a native module was added);
+  - speed resets on app restart (`shortcut:` until the app has a non-secret local store);
+  - nothing has played on a device yet (no explainer voiced).
+- **Noticed outside the slice:** no slice brings saved items, notes and history to the app's Library.

@@ -10,12 +10,14 @@ const noteOf = vi.fn(() => Promise.resolve<string | null>("Mine."));
 const countOpen = vi.fn(() => Promise.resolve());
 const offered = vi.fn(() => Promise.resolve(new Set(["5.9"])));
 const emit = vi.fn();
+const voiced = vi.fn(() => Promise.resolve(["7"]));
 vi.mock("../../../../server/container", () => ({
   events: () => ({ emit }),
   sessionReader: () => ({ current }),
   outboundLinks: () => ({ reader }),
   notes: () => ({ get: noteOf }),
   quizzes: () => ({ offered }),
+  listening: () => ({ voiced }),
 }));
 vi.mock("../../../../server/opens", async (actual) => ({
   ...(await actual<typeof import("../../../../server/opens")>()),
@@ -70,6 +72,7 @@ test("a feed card's open: the page, attributed, in the app even if it can't be f
     nextMomentId: "10",
     note: "Mine.",
     testable: true,
+    listen: true,
     // P4-W20-S03: from this section's start to the next one's.
     measure: {
       start: { id: "election" },
@@ -178,6 +181,18 @@ test("no live question on what's shown: Test me isn't offered", async () => {
   );
   expect(body.testable).toBe(false);
   expect(offered).toHaveBeenCalledWith([{ itemId: "5", momentId: "9" }]);
+});
+
+// P4-W23-S02: Listen in the app, as on the web, once something here is voiced.
+test("nothing voiced on what's shown: no Listen", async () => {
+  current.mockResolvedValue(account);
+  reader.mockResolvedValue(page);
+  voiced.mockResolvedValueOnce([]);
+  const body = ReaderResponse.parse(
+    await (await get("?moment=9&chip=3-8&pos=2")).json(),
+  );
+  expect(body.listen).toBe(false);
+  expect(voiced).toHaveBeenCalledWith("5", "9");
 });
 
 // P4-W21-S03 (§5F): a path's reading counts as the web's from=path, never a card.

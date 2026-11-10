@@ -17,6 +17,7 @@ import {
 import { WebView } from "react-native-webview";
 import { useColors } from "../../components/theme";
 import { sendControl } from "../../lib/feed";
+import { listen } from "../../lib/listen";
 import { startQuiz } from "../../lib/quiz";
 import { progressScript } from "../../lib/progress-script";
 import {
@@ -337,7 +338,21 @@ export default function ReaderScreen() {
           onPress={save}
         />
         <RoundButton label="Highlight" glyph="✎" later />
-        <RoundButton label="Listen" glyph="♫" later />
+        {/* P4-W23-S02: the AI explainers of what's shown, queued and played. */}
+        <RoundButton
+          label="Listen"
+          glyph="♫"
+          later={!page.listen}
+          why="No AI explainer here yet"
+          onPress={() => {
+            void listen()
+              .enqueue(item, page.reached)
+              .then((queued) => {
+                if (queued) router.push("/listen");
+                else setRowStatus("Nothing to listen to here right now.");
+              });
+          }}
+        />
         {/* Test 60s on what's shown, once it has a live question (P4-W21-S01). */}
         <RoundButton
           label="Test me"
@@ -467,8 +482,8 @@ function useAutoFinish(
   };
 }
 
-// Shown, not usable yet (owner, ADR-0018 and 2026-11-09): Highlight and Listen come
-// later. Test me waits for its section's questions.
+// Shown, not usable yet (owner, ADR-0018 and 2026-11-09): Highlight comes later. Test me
+// waits for its section's questions, Listen for a voiced explainer (P4-W23-S02).
 function RoundButton({
   label,
   glyph,

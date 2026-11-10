@@ -93,6 +93,8 @@ export const ReaderResponse = z.object({
   note: z.string().nullable(),
   // Test 60s has a live question on what's shown (P4-W21-S01).
   testable: z.boolean(),
+  // A concept of what's shown has a voiced AI explainer: Listen (P4-W23-S02).
+  listen: z.boolean(),
   // What the reader measures to finish the section by itself: its start, the next
   // section's start (null: the page's end, it is the last) and its minutes. Null when
   // there is no section to measure (an article or page-top link).

@@ -29,6 +29,14 @@
           "resizeMode": "contain",
           "backgroundColor": "#1f2933"
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true,
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
       ]
     ],
     "icon": "./assets/icon.png"

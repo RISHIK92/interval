@@ -4,6 +4,7 @@ import { NotifyHere } from "../components/NotifyHere";
 import { useColors } from "../components/theme";
 import { authClient } from "../lib/auth";
 import { discardBooks } from "../lib/books";
+import { listen } from "../lib/listen";
 import { forgetThisPhone } from "../lib/push";
 
 // P4-W19-S03: who is signed in, and Sign out. The rest of Profile arrives with its slices.
@@ -21,6 +22,8 @@ export default function ProfileScreen() {
           // its copy lapses on its own (30 days), so the failure is only logged.
           // P4-W19-S04a: the phone stops getting this account's pushes first.
           // P4-W21-S04 (DB-6): no book file outlives the session.
+          // P4-W23-S02: nor does this account's audio.
+          listen().reset();
           forgetThisPhone()
             .then(() => discardBooks())
             .then(() => authClient.signOut())

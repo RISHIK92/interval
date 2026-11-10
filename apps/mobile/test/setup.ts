@@ -63,6 +63,22 @@ jest.mock("react-native-pdf", () => {
   };
 });
 
+// expo-audio (P4-W23-S02): a native player jest can't load. Screen tests only need it
+// to exist; the store's own tests (listen.test.tsx) drive a fake of their own.
+jest.mock("expo-audio", () => ({
+  createAudioPlayer: jest.fn(() => ({
+    play: jest.fn(),
+    pause: jest.fn(),
+    replace: jest.fn(),
+    seekTo: jest.fn(() => Promise.resolve()),
+    setPlaybackRate: jest.fn(),
+    setActiveForLockScreen: jest.fn(),
+    clearLockScreenControls: jest.fn(),
+    addListener: jest.fn(() => ({ remove: jest.fn() })),
+  })),
+  setAudioModeAsync: jest.fn(() => Promise.resolve()),
+}));
+
 beforeEach(() => {
   // No network in screen tests: a test that reads the API mocks fetch itself.
   globalThis.fetch = jest.fn(() =>

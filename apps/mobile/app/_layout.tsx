@@ -52,6 +52,10 @@ export default function RootLayout() {
           <Stack.Screen name="books/[id]/index" />
           <Stack.Screen name="books/[id]/checkpoint/[chapter]" />
           <Stack.Screen name="boards" options={{ title: "Boards" }} />
+          <Stack.Screen
+            name="listen"
+            options={{ title: "Player", presentation: "modal" }}
+          />
         </Stack.Protected>
         <Stack.Protected guard={!signedIn}>
           <Stack.Screen name="sign-in" options={{ headerShown: false }} />

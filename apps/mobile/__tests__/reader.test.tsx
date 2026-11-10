@@ -14,6 +14,7 @@ const page = {
   nextMomentId: "10",
   note: null,
   testable: false,
+  listen: false,
   measure: null,
 };
 const fetchMock = jest.fn<Promise<Response>, [string, RequestInit]>();
@@ -79,11 +80,13 @@ test("Save saves through the card controls", async () => {
 test("Highlight, Listen and Test me are shown, not usable yet", async () => {
   await renderRouter("./app", { initialUrl: OPEN });
   await screen.findByText("blog.dev");
-  for (const name of ["Highlight", "Listen"]) {
-    expect(
-      screen.getByRole("button", { name: `${name}. Coming later` }),
-    ).toBeDisabled();
-  }
+  expect(
+    screen.getByRole("button", { name: "Highlight. Coming later" }),
+  ).toBeDisabled();
+  // P4-W23-S02: Listen waits for a voiced explainer.
+  expect(
+    screen.getByRole("button", { name: "Listen. No AI explainer here yet" }),
+  ).toBeDisabled();
   // P4-W21-S01: Test me waits for its section's questions.
   expect(
     screen.getByRole("button", { name: "Test me. No questions yet" }),

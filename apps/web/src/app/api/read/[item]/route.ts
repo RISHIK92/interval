@@ -2,6 +2,7 @@ import { CHIPS, type ReaderResponse } from "@interval/api-client";
 import { z } from "zod";
 import {
   events,
+  listening,
   notes,
   outboundLinks,
   quizzes,
@@ -96,6 +97,8 @@ export async function GET(
     testable: (
       await quizzes().offered([{ itemId: item, momentId: reached }])
     ).has(quizKey(item, reached)),
+    // As the web reader's Listen (P4-W23-S01).
+    listen: (await listening().voiced(item, reached)).length > 0,
   };
   return Response.json(body, { headers: { "Cache-Control": "no-store" } });
 }

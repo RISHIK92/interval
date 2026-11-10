@@ -16,12 +16,17 @@ test("the avatar opens Profile", async () => {
   expect(await screen.findByText("Signed in as")).toBeOnTheScreen();
 });
 
-test.each([
-  ["/explore", "a later phase"],
-  ["/library", "W23-S01"],
-])("%s opens its own area", async (url, arrives) => {
-  await renderRouter("./app", { initialUrl: url });
-  expect(await screen.findByText(`Arrives in ${arrives}.`)).toBeOnTheScreen();
+test("/explore opens its own area", async () => {
+  await renderRouter("./app", { initialUrl: "/explore" });
+  expect(
+    await screen.findByText("Arrives in a later phase."),
+  ).toBeOnTheScreen();
+});
+
+// P4-W23-S02: Library holds the audio queue (its tests: listen.test.tsx).
+test("/library opens the audio queue", async () => {
+  await renderRouter("./app", { initialUrl: "/library" });
+  expect(await screen.findByText("Audio queue")).toBeOnTheScreen();
 });
 
 // P4-W21-S01: Play is filled (its tests: play.test.tsx); here, its tab opens it.

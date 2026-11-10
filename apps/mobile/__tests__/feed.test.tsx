@@ -29,13 +29,18 @@ const card = (itemId: string, title: string) => ({
   difficulty: "intermediate",
 });
 const fetchMock = jest.fn<Promise<Response>, [string, RequestInit]>();
+// The feed's own calls: the mini-player's read of the audio queue (P4-W23-S02) left out.
 const calls = () =>
-  fetchMock.mock.calls.map(([url, init]) => ({
-    url: url.replace("http://localhost:3100", ""),
-    method: init.method,
-    body:
-      typeof init.body === "string" ? (JSON.parse(init.body) as unknown) : null,
-  }));
+  fetchMock.mock.calls
+    .map(([url, init]) => ({
+      url: url.replace("http://localhost:3100", ""),
+      method: init.method,
+      body:
+        typeof init.body === "string"
+          ? (JSON.parse(init.body) as unknown)
+          : null,
+    }))
+    .filter((c) => c.url !== "/api/listen");
 
 const first = <T,>(found: T[]): T => {
   const [one] = found;
@@ -226,17 +231,20 @@ test("pull to refresh reads the feed again, from a failure too", async () => {
 
 test("a slow answer for an earlier chip doesn't replace the later one", async () => {
   let answerFirst: (r: Response) => void = () => undefined;
-  fetchMock.mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        answerFirst = resolve;
-      }),
-  );
-  fetchMock.mockImplementationOnce(() =>
-    Promise.resolve(
-      Response.json({ chip: "8-15", cards: [card("7", "Gossip")] }),
-    ),
-  );
+  let feedReads = 0;
+  // By URL: the mini-player reads the audio queue beside the feed (P4-W23-S02).
+  fetchMock.mockImplementation((url) => {
+    if (!url.includes("/api/feed"))
+      return Promise.resolve(new Response(null, { status: 503 }));
+    feedReads += 1;
+    return feedReads === 1
+      ? new Promise((resolve) => {
+          answerFirst = resolve;
+        })
+      : Promise.resolve(
+          Response.json({ chip: "8-15", cards: [card("7", "Gossip")] }),
+        );
+  });
   await renderRouter("./app", { initialUrl: "/" });
   await fireEvent.press(screen.getByRole("button", { name: "8–15 min" }));
   await screen.findByText("Gossip");

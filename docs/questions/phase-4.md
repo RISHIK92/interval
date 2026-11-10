@@ -102,6 +102,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - react-native-track-player on native;
   - on the PWA, the browser's audio element with the Media Session API, plus hls.js where HLS isn't native (Chrome on desktop).
 - **Answer (owner, 2026-11-07):** the suggested default.
+- **Amended (owner, 2026-11-10, P4-W23-S02):** expo-audio (58.0.10, Expo's own, versioned with the SDK) on native instead of react-native-track-player. RNTP's last stable release was August 2025 (v5 still alpha), and the app's React Native 0.88 runs only the New Architecture. The queue stays on the server, so expo-audio's single player is enough. Its lock screen has play, pause and seek, without next or previous.
 
 ## Week 24: push and the metrics
 
