@@ -3,15 +3,34 @@
     "name": "Interval",
     "slug": "interval",
     "scheme": "interval",
-    "version": "0.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "bundleIdentifier": "dev.interval.app"
+      "bundleIdentifier": "dev.interval.app",
+      "buildNumber": "1"
     },
     "android": {
-      "package": "dev.interval.app"
+      "package": "dev.interval.app",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-foreground.png",
+        "backgroundColor": "#1f2933"
+      }
     },
-    "plugins": ["expo-router", "expo-notifications"]
+    "plugins": [
+      "expo-router",
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 160,
+          "resizeMode": "contain",
+          "backgroundColor": "#1f2933"
+        }
+      ]
+    ],
+    "icon": "./assets/icon.png"
   }
 }

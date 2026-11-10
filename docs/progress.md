@@ -4033,3 +4033,32 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - add `MEDIA_BUCKET`/`MEDIA_S3_ENDPOINT` to `.env` and run `pnpm files:init`;
   - the build left a local image `interval-worker-ffmpeg-check` (about 1 GB) that you may remove.
 - **Not checked:** SeaweedFS 4.50's answer to a GET on a key ending in `/` (Caddy's path keeps it under `media/`).
+
+### 2026-11-10 — P4-W22-S05 (release builds; ADR-0013, Q-P4-04)
+
+- **Owner, 2026-11-10:**
+  - the PWA's placeholder mark (a white "I" on #1f2933) drawn at 1024 for the app;
+  - store text drafted and PROVISIONAL;
+  - expo-splash-screen 58.0.11 and expo-system-ui 58.0.6 added (Expo SDK 58's pins, past the two-week rule);
+  - nothing submitted (Q-P4-04).
+- **Art:** `apps/mobile/scripts/make_icons.py` (stdlib PNG) draws `assets/icon.png` (1024² RGB, no alpha, for the App Store), `adaptive-foreground.png` (RGBA, 5% smaller so its corners stay inside Android's 66dp safe circle) and `splash-icon.png`. A test decodes them and checks they're what the script draws. Real art is a file swap.
+- **app.json:** `version` 0.1.0, `ios.buildNumber` 1, `android.versionCode` 1, the icon, the adaptive icon on #1f2933, and the splash plugin.
+- **Store:** `apps/mobile/store/ios.md` and `android.md` (within each store's limits; the age rating is left to the owner's questionnaire).
+- **Runbook:** `docs/runbooks/mobile-release.md`:
+  - prebuild and build for both platforms;
+  - the archive/export steps for TestFlight;
+  - Android signing by Gradle's injected properties, so nothing generated is edited and no secret enters the repo.
+- `apps/mobile/android/` is ignored, as `ios/` is.
+- **Builds:**
+  - **iOS Release (simulator, unsigned): BUILD SUCCEEDED**, at `/tmp/interval-ios/Build/Products/Release-iphonesimulator/Interval.app`. It was built before expo-system-ui and the adaptive-icon change, which don't touch iOS's output beyond config.
+  - **Android release: not built.** Claude Code stopped the Gradle build when the machine ran critically low on memory (prebuild had finished). The owner runs it later: `cd apps/mobile && npx expo prebuild --platform android --clean && cd android && ./gradlew assembleRelease`. **The acceptance's Android half is open until then.**
+- **Checks:** the app 97, the icon tests 2. The full check wasn't rerun: nothing outside the app and docs changed beyond the lockfile.
+- **Reviewer fixes:**
+  - the safe circle;
+  - the signing advice (nothing generated is edited);
+  - the TestFlight steps;
+  - the PNG decode test;
+  - the empty dark block;
+  - the dates;
+  - the age-rating note.
+- **Owner may remove** `/tmp/interval-ios` (the iOS build, a few GB) and the local `interval-worker-ffmpeg-check` image.
