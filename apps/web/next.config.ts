@@ -5,7 +5,14 @@ const config: NextConfig = {
   output: "standalone",
   // The monorepo root, so standalone output traces workspace packages too.
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
-  transpilePackages: ["@interval/db", "@interval/events"],
+  // Workspace packages that ship TypeScript source (ARCH-3's shared ones too).
+  transpilePackages: [
+    "@interval/db",
+    "@interval/events",
+    "@interval/api-client",
+    "@interval/game-client",
+    "@interval/scoring",
+  ],
   // CLAUDE.md is the one place for agent rules (owner, 2026-10-25).
   agentRules: false,
   // Development only: testing on a phone through an ngrok HTTPS tunnel (owner,

@@ -4264,3 +4264,29 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the web/PWA wording;
   - the tie-break note.
 - **Risk:** a Glue struct field named `on` hasn't been tried on real Athena (no AWS before Phase 7). Check one Phase 4 query by hand at first deploy; the fallback is renaming the prop.
+
+### 2026-11-11 — P4-W24-S03 (Phase 4 wrap-up; ADR-0013)
+
+- **Checklist** `docs/runbooks/phase-4-checklist.md`:
+  - **Metrics:** the four "done when" queries ran with DuckDB on the local event files (3,626 events, Oct 26 to Nov 8, all web): web retention 1 of 6; 1 weekly active, no listeners, no opt-ins; no listens.
+  - **Weeks 19–24:** each feature with how it was checked. **Owner to walk:**
+    - native on a device;
+    - the Android release;
+    - push and TTS with real keys;
+    - playback.
+  - **Store launch:** the checklist, nothing submitted.
+- **CDK:** both stacks synthesized, no warnings.
+- **VM smoke run:**
+  - set up as Phase 3's (a stub AWS CLI, temp directories, port 8080), with images built one at a time;
+  - all services healthy, migrations exited 0;
+  - through Caddy: health, `/join`, `/play`, `/sw.js` and `/media/` reads all answer; a PUT is 405; the game server answers 401 without a ticket.
+  - Torn down, and its scratch directory removed.
+- **Two deploy bugs found by the smoke run, fixed here, each with a test in `scripts/tests/test_compose_prod.py`:**
+  - The web image didn't build: `apps/web/Dockerfile` never copied the Phase 4 packages `api-client`, `game-client` and `scoring`. It now copies them, and `next.config.ts` transpiles them. CI builds no images, so it went unseen from W20-S01.
+  - Caddy kept the query string on the `/media/*` rewrite, so `?acl` reached SeaweedFS and answered with the bucket's ACL. The rewrite now ends in `?`. CloudFront's caching policy forwards no query strings, so AWS mode was already safe.
+- **Drift audit** (`docs/audits/2026-11-11.md`, unchanged): 13 decision drifts, 0 phase drift, 2 invariant violations, 10 duplications, 7 unused-code items, 12 unjustified dependencies, 5 naming, 14 "Needs an ADR", 4 closed.
+  - **New and mine:** the path reminder (W24-S01b) names a next reading without the web's rights re-check (ING-2), and it duplicates the next-reading rule in Python (ARCH-2). This is the next fix to make.
+  - Nothing else from the audit was fixed here.
+- **Owner:**
+  - remove the smoke images (`interval-smoke-*`) and the scratch database `interval_ci_check`;
+  - the open items listed in the checklist.

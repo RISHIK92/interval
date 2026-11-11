@@ -10,8 +10,10 @@
 	handle /media/* {
 		@read method GET HEAD
 		handle @read {
-			# The path only: no query string (S3 subresources such as ?acl) reaches it.
-			rewrite * /interval-media{path}
+			# The path only: no query string (S3 subresources such as ?acl or a listing)
+			# reaches it. Caddy keeps the old query unless the new one says otherwise:
+			# the trailing "?" empties it (the P4-W24-S03 smoke run found ?acl answered).
+			rewrite * /interval-media{path}?
 			reverse_proxy seaweedfs:8333
 		}
 		respond 405

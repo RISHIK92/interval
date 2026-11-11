@@ -389,7 +389,8 @@ def test_caddy_serves_media_from_seaweedfs_for_reads_only() -> None:
     block = caddy[caddy.index("handle /media/*") :]
     block = block[: block.index("respond 405") + len("respond 405")]
     assert "@read method GET HEAD" in block
-    assert "rewrite * /interval-media{path}" in block
+    # The trailing "?" drops the query: S3 subresources (?acl, listings) never reach it.
+    assert re.search(r"rewrite \* /interval-media\{path\}\?$", block, re.MULTILINE)
     assert "reverse_proxy seaweedfs:8333" in block
 
 
@@ -399,3 +400,18 @@ def test_stack_up_makes_the_media_bucket_always_and_the_private_one_on_the_vm() 
     assert 'buckets="${MEDIA_BUCKET}"' in up
     assert 'if files_on_vm; then buckets="${LOCAL_BUCKET} ${MEDIA_BUCKET}"; fi' in up
     assert "rm --stop --force seaweedfs" not in stack
+
+
+# The web image builds from only what its Dockerfile copies: a workspace package the
+# app depends on but the Dockerfile leaves out breaks the deploy, and CI never builds
+# images (P4-W24-S03's smoke run found three missing since Phase 4).
+def test_the_web_image_copies_every_workspace_package_it_depends_on() -> None:
+    package = json.loads((ROOT / "apps" / "web" / "package.json").read_text())
+    dockerfile = (ROOT / "apps" / "web" / "Dockerfile").read_text()
+    deps = {**package.get("dependencies", {}), **package.get("devDependencies", {})}
+    for name, version in deps.items():
+        if not str(version).startswith("workspace:"):
+            continue
+        folder = name.removeprefix("@interval/")
+        assert f"COPY packages/{folder}/package.json" in dockerfile, name
+        assert re.search(rf"^COPY packages/{folder}/(src|\S+) ", dockerfile, re.M), name
