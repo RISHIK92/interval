@@ -12,6 +12,7 @@ const config: NextConfig = {
     "@interval/api-client",
     "@interval/game-client",
     "@interval/scoring",
+    "@interval/diagrams",
   ],
   // CLAUDE.md is the one place for agent rules (owner, 2026-10-25).
   agentRules: false,

@@ -29,6 +29,7 @@
     "@better-auth/expo": "1.7.12",
     "@interval/api-client": "workspace:*",
     "@interval/db": "workspace:*",
+    "@interval/diagrams": "workspace:*",
     "@interval/events": "workspace:*",
     "@interval/game-client": "workspace:*",
     "@interval/scoring": "workspace:*",

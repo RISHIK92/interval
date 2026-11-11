@@ -15,6 +15,7 @@ COPY packages/events/package.json packages/events/
 COPY packages/api-client/package.json packages/api-client/
 COPY packages/game-client/package.json packages/game-client/
 COPY packages/scoring/package.json packages/scoring/
+COPY packages/diagrams/package.json packages/diagrams/
 COPY infra/package.json infra/
 RUN --mount=type=cache,id=pnpm,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --filter @interval/web...
@@ -26,6 +27,7 @@ COPY packages/events/src/generated.ts packages/events/src/generated.ts
 COPY packages/api-client/src packages/api-client/src
 COPY packages/game-client/src packages/game-client/src
 COPY packages/scoring/src packages/scoring/src
+COPY packages/diagrams/src packages/diagrams/src
 COPY apps/web apps/web
 RUN pnpm --filter @interval/web build
 

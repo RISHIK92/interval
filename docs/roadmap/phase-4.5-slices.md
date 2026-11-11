@@ -33,6 +33,7 @@ Already in place, so not sliced again:
   - TS and Python types generated from it;
   - a validator (shapes exist, anchors in order and within the captions);
   - a shared `stepAt(timeline, captions, seconds)` for both players.
+  - **One source for the shapes (decided in W25-S01's review):** `packages/diagrams`' zod `Diagram` schema stays the definition of shapes, kinds and limits. The timeline's JSON Schema is generated from it (zod's `toJSONSchema`), and the Python types from that, so the worker and the players never keep two copies (ARCH-2).
 - Acceptance: the schema, its generated types and the validator are tested on fixtures; codegen is in the stale check.
 - Q: Q-P4.5-02.
 

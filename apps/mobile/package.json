@@ -16,6 +16,7 @@
   "dependencies": {
     "@better-auth/expo": "1.7.12",
     "@interval/api-client": "workspace:*",
+    "@interval/diagrams": "workspace:*",
     "@interval/game-client": "workspace:*",
     "@interval/scoring": "workspace:*",
     "@interval/tokens": "workspace:*",
@@ -39,6 +40,7 @@
     "react-native-pdf": "7.0.5",
     "react-native-safe-area-context": "5.10.1",
     "react-native-screens": "4.30.0",
+    "react-native-svg": "15.16.0",
     "react-native-webview": "14.0.1"
   },
   "devDependencies": {

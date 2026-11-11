@@ -4314,3 +4314,39 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - W25: the diagram library; the timeline schema and its clock;
   - W26: drafting and review;
   - W27: the web player, the app player, the wrap-up.
+
+### 2026-11-11 — P4.5-W25-S01 (the diagram library; ARCH-3, TTS-5, CANVAS-1, Q-P4.5-01)
+
+- **`packages/diagrams`:**
+  - **The data:** a zod `Diagram` schema. It covers:
+    - client, service, database, cache, queue, group and note shapes on a 24×16 grid, plus labelled arrows (dashed for async);
+    - refused: overlapping shapes (groups excepted), self-arrows, a pair joined twice either way, places or sizes off the grid, and labels wider than their shape.
+  - **`describeDiagram`:** pure SVG element data with no React.
+    - Each shape is drawn at its own origin inside a `translate`, so React Flow nodes (CANVAS-1) and scene "move" steps can reuse it.
+    - Arrows run edge to edge with their heads aimed centre to centre; their labels are drawn on top.
+    - Colours are design-token names.
+    - Kinds differ by outline, not colour alone.
+    - `highlight` and `hidden` take shape ids and arrow keys (`from->to`), and the view box stays put as shapes hide.
+- **Renderers:** thin mappings with no geometry of their own.
+  - Web: `apps/web/src/app/diagrams/DiagramSvg.tsx` (React SVG, theme CSS variables, `role="img"`).
+  - App: `apps/mobile/components/DiagramSvg.tsx` (react-native-svg, `useColors`; renames `dominantBaseline` to `alignmentBaseline`).
+  - First product callers: W26-S02 and W27.
+- **Dependency:** react-native-svg 15.16.0 (owner-approved; Expo SDK 58's pin). **Owner:** rebuild the dev client and native builds for it.
+- **Wiring:** web transpilePackages and the Dockerfile copies the package, enforced by W24-S03's test.
+- **Decided in review, recorded in phase-4.5-slices.md (S02):** this zod schema is the one source for shapes. S02 generates the timeline's JSON Schema from it, and the Python types from that.
+- **Tests:** the package 11, web renderer 2, app renderer 1 (every kind on both platforms), the Dockerfile test.
+- **Reviewer fixes:**
+  - arrowheads on touching or reversed shapes;
+  - overlap, self and repeated arrows refused;
+  - the view box stable while shapes hide;
+  - arrows keyable;
+  - shapes at their origin;
+  - labels sized to fit and arrow labels on top;
+  - dead exports;
+  - the untested off-grid refine;
+  - every kind drawn on both platforms.
+- **Nits skipped:**
+  - attributes stay `Record<string, string | number>`: typing each colour would need a per-tag type, for one cast in the app;
+  - no `fontFamily`: each platform keeps its own UI font;
+  - the web keeps both `aria-label` and `<title>` (the title is the hover text).
+- **Check:** the web's health test timed out once under load (with the dev server running), and passes alone. Turbo then stopped; the app (113), the package and the Dockerfile tests were run on their own.
