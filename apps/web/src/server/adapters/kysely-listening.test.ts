@@ -135,6 +135,7 @@ async function inRollback(
               playlist_key: `media/explainers/${concept.id}/${explainer.id}/r/index.m3u8`,
               duration_seconds: 90,
               words: JSON.stringify([]),
+              captions: JSON.stringify([]),
             })
             .execute();
         }
@@ -201,6 +202,7 @@ test("the queue keeps its order, adds once, and lists sources and positions", as
           href: expect.stringMatching(/#elections$/) as string,
         },
       ],
+      captions: [],
     });
     expect(moment).toBeTruthy();
     // Saved only once it's started.
@@ -274,5 +276,23 @@ test("Up next follows an edge from the last finished, prerequisite first, skippi
     await store.finish(user, x.raft);
     // leases is still queued, paxos finished: nothing left to offer.
     expect((await store.queue(user)).upNext).toBeNull();
+  });
+});
+
+// P4-W23-S03 (TTS-3): the worker's captions come with the queue.
+test("captions as the worker stored them", async () => {
+  await inRollback(async (trx, { user, x }) => {
+    const stored = [
+      { text: "Use", start: 0, end: 0.3 },
+      { text: "PostgreSQL.", start: 0.4, end: 1 },
+    ];
+    await trx
+      .updateTable("explainer_audio")
+      .set({ captions: JSON.stringify(stored) })
+      .where("explainer_id", "=", x.raft)
+      .execute();
+    const store = kyselyListening(trx);
+    await store.add(user, [x.raft]);
+    expect((await store.queue(user)).queue[0]?.captions).toEqual(stored);
   });
 });

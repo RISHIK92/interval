@@ -1987,6 +1987,7 @@ class Explainers(Protocol):
         playlist_key: str,
         duration: float,
         words: list["WordTime"],
+        captions: list["Caption"],
     ) -> bool:
         """Once per script (voiced once, TTS-4); False when it already was."""
         ...
@@ -2015,6 +2016,14 @@ class Pronunciations(Protocol):
 @dataclass(frozen=True)
 class WordTime:
     word: str
+    start: float  # seconds
+    end: float
+
+
+# P4-W23-S03 (TTS-3): one word of the script as written, timed by what was said for it.
+@dataclass(frozen=True)
+class Caption:
+    text: str
     start: float  # seconds
     end: float
 

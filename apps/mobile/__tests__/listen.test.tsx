@@ -1,8 +1,8 @@
 import type { ListenExplainer, ListenResponse } from "@interval/api-client";
 import { fireEvent, screen } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
-import { Linking } from "react-native";
-import { createListen } from "../lib/listen";
+import { Linking, StyleSheet } from "react-native";
+import { createListen, listen } from "../lib/listen";
 
 // P4-W23-S02 (§4.2, §5G, §5I): the app's player, its mini-player, the full player,
 // Library's audio queue and the reader's Listen.
@@ -14,6 +14,7 @@ const explainer = (id: string, position = 0): ListenExplainer => ({
   durationSeconds: 95,
   positionSeconds: position,
   sources: [{ title: `Section ${id}`, href: `https://blog.dev/${id}` }],
+  captions: [],
 });
 
 type Call = { method: string; path: string; body: unknown };
@@ -238,6 +239,8 @@ const serve = (view: ListenResponse) => {
 };
 beforeEach(() => {
   globalThis.fetch = fetchMock as unknown as typeof fetch;
+  // The app's one player outlives a screen: each test starts it afresh.
+  listen().reset();
 });
 afterEach(() => {
   jest.clearAllMocks();
@@ -327,4 +330,40 @@ test("the reader's Listen queues what's shown and opens the player", async () =>
   expect(
     await screen.findByText("You’re hearing AI, not the author."),
   ).toBeOnTheScreen();
+});
+
+// P4-W23-S03 (TTS-3): the sentence being said, its word in bold and underlined.
+test("the full player shows captions, the said word marked", async () => {
+  serve({
+    queue: [
+      {
+        ...explainer("7"),
+        captions: [
+          { text: "Raft", start: 0, end: 0.4 },
+          { text: "elects", start: 0.4, end: 0.8 },
+          { text: "leaders.", start: 0.8, end: 1.2 },
+          { text: "Then", start: 2, end: 2.5 },
+        ],
+      },
+    ],
+    upNext: null,
+  });
+  await renderRouter("./app", { initialUrl: "/library" });
+  await fireEvent.press(
+    await screen.findByRole("button", {
+      name: /^Open the player\. Concept 7, AI explainer$/,
+    }),
+  );
+  await screen.findByTestId("captions", { includeHiddenElements: true });
+  const hidden = { includeHiddenElements: true };
+  expect(screen.getByText("leaders.", hidden)).toBeTruthy();
+  expect(screen.queryByText("Then", hidden)).toBeNull();
+  const said = screen.getByText("Raft", hidden);
+  expect(StyleSheet.flatten(said.props.style)).toMatchObject({
+    fontWeight: "700",
+    textDecorationLine: "underline",
+  });
+  // The whole text, for screen readers, behind Transcript.
+  await fireEvent.press(screen.getByRole("button", { name: "Transcript" }));
+  expect(screen.getByText("Raft elects leaders. Then")).toBeOnTheScreen();
 });

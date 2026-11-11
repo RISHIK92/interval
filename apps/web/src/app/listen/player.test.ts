@@ -46,6 +46,7 @@ const explainer = (id: string, position = 0): ListenExplainer => ({
   durationSeconds: 90,
   positionSeconds: position,
   sources: [],
+  captions: [],
 });
 
 type Call = { method: string; path: string; body: unknown };

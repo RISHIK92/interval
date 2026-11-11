@@ -43,6 +43,7 @@ from interval_jobs.ports import (
     BookQuestion,
     CandidateArticle,
     CandidateMoment,
+    Caption,
     ChapterForCheckpoint,
     ConceptCoverage,
     ConceptGraph,
@@ -1921,6 +1922,7 @@ class InMemoryExplainers:
         self.attempts: dict[int, str] = {}
         self.approved: list[ExplainerToVoice] = []
         self.voiced: dict[int, tuple[str, str, str, float, list[WordTime]]] = {}
+        self.captions: dict[int, list[Caption]] = {}
 
     def targets(self, limit: int) -> list[ExplainerConcept]:
         return [c for c in self.concepts if c.concept_id not in self.saved][:limit]
@@ -1952,10 +1954,12 @@ class InMemoryExplainers:
         playlist_key: str,
         duration: float,
         words: list[WordTime],
+        captions: list[Caption],
     ) -> bool:
         if explainer_id in self.voiced:
             return False
         self.voiced[explainer_id] = (provider, voice, playlist_key, duration, words)
+        self.captions[explainer_id] = captions
         return True
 
     def tried(self, concept_id: int, outcome: Literal["skipped", "refused"]) -> None:

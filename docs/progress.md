@@ -4132,3 +4132,25 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - speed resets on app restart (`shortcut:` until the app has a non-secret local store);
   - nothing has played on a device yet (no explainer voiced).
 - **Noticed outside the slice:** no slice brings saved items, notes and history to the app's Library.
+
+### 2026-11-11 — P4-W23-S03 (synced captions; TTS-3, §5G)
+
+- **Owner, 2026-11-11:** captions show the written terms back (not the dictionary's said phrases); the current sentence, with the word being said in bold and underlined (not colour alone).
+- **Captions are made by the worker at voicing** (after the reviewer's blocker: matching say phrases in TypeScript turned ordinary words into terms, "quick" into "QUIC", and re-encoded Python's rules, ARCH-2):
+  - `pronunciations.rewrite()` keeps which said text came from which script text; `spoken()` wraps it, with its output unchanged;
+  - `captions.py` finds each provider word, in order and only where a said word starts (a number said as a word is skipped, never matched inside a later word), and times each word of the script with its punctuation;
+  - they're made before anything is uploaded, so a failure can't leave paid-for audio and the explainer unvoiced;
+  - migration `explainer_audio.captions`.
+  - Captions follow the dictionary as it was at voicing (no explainer is voiced yet, so nothing needs making again).
+- **Shared:** `Caption` and `sentenceAt` in api-client (the last word begun stays marked through the gaps), used by both players.
+- **Web** `FullPlayer` and the **app** `/listen`: the sentence being said, hidden from screen readers since it moves, plus a **Transcript** disclosure with the whole text for screen readers and braille (WCAG 1.2.1). The app reads status every 250 ms.
+- **Reviewer fixes:**
+  - the blocker above;
+  - a provider word matching inside a later word;
+  - "İ" crashing the alignment after TTS was paid;
+  - the highlight blinking between words;
+  - a test depending on another test's state;
+  - the Caption schema reused;
+  - comment placement.
+- **Skipped:** abbreviations ("e.g.") end a sentence early.
+- **Environment:** a check run lost Postgres mid-way (its server restarted into recovery, likely memory); the test passed on rerun.

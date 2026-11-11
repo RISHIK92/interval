@@ -47,6 +47,7 @@ const view = {
       durationSeconds: 90,
       positionSeconds: 12,
       sources: [{ title: "Elections — Raft", href: "https://a.test/r#e" }],
+      captions: [],
     },
   ],
   upNext: null,

@@ -15,6 +15,7 @@ const raft: ListenExplainer = {
   sources: [
     { title: "Elections — Raft", href: "https://a.test/raft#elections" },
   ],
+  captions: [],
 };
 const state: PlayerState = {
   status: "ready",
@@ -97,4 +98,35 @@ test("the queue done: Up next along the graph, to tap, never autoplayed", () => 
 test("clock", () => {
   expect(clock(0)).toBe("0:00");
   expect(clock(95.7)).toBe("1:35");
+});
+
+// P4-W23-S03 (TTS-3): the sentence being said, its word marked.
+test("captions: the current sentence, the said word in bold and underlined", () => {
+  const said = {
+    ...state,
+    time: 1.2,
+    current: {
+      ...raft,
+      captions: [
+        { text: "Raft", start: 0, end: 0.5 },
+        { text: "elects", start: 0.5, end: 1 },
+        { text: "leaders.", start: 1, end: 1.5 },
+        { text: "Then", start: 2, end: 2.5 },
+      ],
+    },
+  };
+  const html = renderToStaticMarkup(
+    <FullPlayer state={said} actions={actions} onClose={vi.fn()} />,
+  );
+  expect(html).toContain('aria-hidden="true" data-testid="captions"');
+  expect(html).toMatch(
+    /<span class="font-semibold text-ink underline">leaders\.<\/span>/,
+  );
+  expect(html).toContain(">Raft<");
+  expect(html).not.toContain(">Then<");
+  // The whole text, still, for screen readers.
+  expect(html).toContain(
+    '<summary class="cursor-pointer font-semibold">Transcript</summary>',
+  );
+  expect(html).toContain("Raft elects leaders. Then");
 });

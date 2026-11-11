@@ -372,6 +372,7 @@ class ExplainerAudio(TypedDict):
     duration_seconds: Decimal
     words: JsonValue
     created_at: datetime
+    captions: JsonValue
 
 
 class ExplainerListen(TypedDict):

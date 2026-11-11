@@ -6,6 +6,8 @@ import {
   Text,
   View,
 } from "react-native";
+import { type Caption, sentenceAt } from "@interval/api-client";
+import { useState } from "react";
 import { clock, useListen } from "../components/MiniPlayer";
 import { useColors } from "../components/theme";
 import { listen, SKIP_SECONDS } from "../lib/listen";
@@ -15,6 +17,7 @@ import { listen, SKIP_SECONDS } from "../lib/listen";
 export default function ListenScreen() {
   const c = useColors();
   const state = useListen();
+  const [transcript, setTranscript] = useState(false);
   const current = state.current;
   const upNext = state.upNext;
   const shown = current ?? upNext;
@@ -75,6 +78,7 @@ export default function ListenScreen() {
       )}
       {current === null ? null : (
         <>
+          <Captions captions={current.captions} time={state.time} />
           <Text style={[styles.center, { color: c["ink-muted"] }]}>
             {clock(state.time)} / {clock(current.durationSeconds)}
           </Text>
@@ -141,6 +145,28 @@ export default function ListenScreen() {
           })}
         </View>
       ) : null}
+      {/* The words as text, for screen readers and braille (the captions move, so
+        they're hidden from them), and anyone who'd rather read. */}
+      {shown === null || shown.captions.length === 0 ? null : (
+        <View style={styles.list}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ expanded: transcript }}
+            onPress={() => {
+              setTranscript(!transcript);
+            }}
+          >
+            <Text style={[styles.strong, { color: c.ink }]}>
+              {transcript ? "Hide transcript" : "Transcript"}
+            </Text>
+          </Pressable>
+          {transcript ? (
+            <Text style={{ color: c.ink }}>
+              {shown.captions.map((w) => w.text).join(" ")}
+            </Text>
+          ) : null}
+        </View>
+      )}
       {shown === null || shown.sources.length === 0 ? null : (
         <View style={[styles.sources, { borderColor: c.hairline }]}>
           <Text style={[styles.strong, { color: c.ink }]}>
@@ -161,7 +187,40 @@ export default function ListenScreen() {
   );
 }
 
+// P4-W23-S03 (TTS-3; owner, 2026-11-11): the sentence being said, its word in bold and
+// underlined (not colour alone). A visual aid to the audio, so screen readers skip it.
+function Captions(props: { captions: Caption[]; time: number }) {
+  const c = useColors();
+  const { words, current } = sentenceAt(props.captions, props.time);
+  if (words.length === 0) return null;
+  return (
+    <Text
+      testID="captions"
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={[styles.captions, { color: c["ink-muted"] }]}
+    >
+      {words.map((w, i) => (
+        <Text
+          key={`${String(w.start)}:${String(i)}`}
+          style={i === current ? [styles.said, { color: c.ink }] : undefined}
+        >
+          {i > 0 ? " " : ""}
+          {w.text}
+        </Text>
+      ))}
+    </Text>
+  );
+}
+
 const styles = StyleSheet.create({
+  captions: {
+    fontSize: 18,
+    lineHeight: 26,
+    textAlign: "center",
+    minHeight: 52,
+  },
+  said: { fontWeight: "700", textDecorationLine: "underline" },
   page: { padding: 24, gap: 16 },
   modes: {
     flexDirection: "row",

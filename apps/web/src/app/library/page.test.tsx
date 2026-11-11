@@ -238,6 +238,7 @@ test("the audio queue lists each queued explainer with Play and Remove", async (
     durationSeconds: 95,
     positionSeconds: 30,
     sources: [],
+    captions: [],
   };
   queue.mockResolvedValueOnce({ queue: [raft], upNext: null });
   const html = await page();

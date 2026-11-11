@@ -1,4 +1,4 @@
-import type { ListenExplainer } from "@interval/api-client";
+import { Caption, type ListenExplainer } from "@interval/api-client";
 import type { DB } from "@interval/db";
 import { type Kysely, sql } from "kysely";
 import { z } from "zod";
@@ -12,6 +12,8 @@ const Cited = z.array(
 );
 const cited = (raw: unknown) =>
   Cited.parse(raw).map((c) => String(c.moment_id));
+// TTS-3 (P4-W23-S03): made by the worker at voicing, in the script's own words.
+const Captions = z.array(Caption);
 
 type Row = {
   explainerId: string;
@@ -21,6 +23,7 @@ type Row = {
   duration: string;
   position: string | null;
   citations: unknown;
+  captions: unknown;
 };
 
 function voicedExplainers(db: Kysely<DB>) {
@@ -58,6 +61,7 @@ export function kyselyListening(db: Kysely<DB>): Listening {
           m.title === m.article ? m.article : `${m.title} — ${m.article}`;
         return [{ title, href: m.link }];
       }),
+      captions: Captions.parse(r.captions),
     }));
   }
 
@@ -68,6 +72,7 @@ export function kyselyListening(db: Kysely<DB>): Listening {
     "a.playlist_key as playlist",
     "a.duration_seconds as duration",
     "x.citations",
+    "a.captions",
   ] as const;
 
   return {

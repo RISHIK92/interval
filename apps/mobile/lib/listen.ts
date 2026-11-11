@@ -385,7 +385,8 @@ export function listen(): Listen {
   shared ??= createListen({
     // The session stays active after a pause, so the lock screen's Play can resume.
     audio: createAudioPlayer(null, {
-      updateInterval: 500,
+      // Often enough to mark word after word in the captions (P4-W23-S03).
+      updateInterval: 250,
       keepAudioSessionActive: true,
     }),
     api,

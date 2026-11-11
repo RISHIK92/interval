@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { type Caption, sentenceAt } from "@interval/api-client";
+import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
 import { AiBox } from "../ui/AiBox";
 import { type Player, type PlayerState, player, SKIP_SECONDS } from "./player";
 
@@ -144,6 +145,32 @@ export function PlayerBar(props: {
   );
 }
 
+// P4-W23-S03 (TTS-3; owner, 2026-11-11): the sentence being said, its word marked by
+// weight and underline (not colour alone). A visual aid to the audio, so screen readers
+// skip it.
+export function Captions(props: { captions: Caption[]; time: number }) {
+  const { words, current } = sentenceAt(props.captions, props.time);
+  if (words.length === 0) return null;
+  return (
+    <p
+      aria-hidden="true"
+      data-testid="captions"
+      className="min-h-[3.5rem] text-center text-lg leading-relaxed"
+    >
+      {words.map((w, i) => (
+        <Fragment key={`${String(w.start)}:${String(i)}`}>
+          {i > 0 && " "}
+          {i === current ? (
+            <span className="font-semibold text-ink underline">{w.text}</span>
+          ) : (
+            <span className="text-ink-muted">{w.text}</span>
+          )}
+        </Fragment>
+      ))}
+    </p>
+  );
+}
+
 export function FullPlayer(props: {
   state: PlayerState;
   actions: Actions;
@@ -207,6 +234,7 @@ export function FullPlayer(props: {
         )}
         {current !== null && (
           <>
+            <Captions captions={current.captions} time={state.time} />
             <label className="flex flex-col gap-1">
               <span className="sr-only">Position</span>
               <input
@@ -305,6 +333,18 @@ export function FullPlayer(props: {
               Play
             </button>
           </section>
+        )}
+        {/* The words as text, for screen readers and braille (the captions above move,
+          so they're hidden from them), and anyone who'd rather read. */}
+        {shown !== null && shown.captions.length > 0 && (
+          <details className="text-sm">
+            <summary className="cursor-pointer font-semibold">
+              Transcript
+            </summary>
+            <p className="mt-2 leading-relaxed">
+              {shown.captions.map((c) => c.text).join(" ")}
+            </p>
+          </details>
         )}
         {/* AI-3: the sections this explainer was written from, as deep links. */}
         {shown !== null && shown.sources.length > 0 && (

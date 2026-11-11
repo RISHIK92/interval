@@ -4,6 +4,7 @@ as plain words every provider reads."""
 
 import re
 from collections.abc import Hashable, Iterable
+from dataclasses import dataclass
 from typing import Any
 
 import yaml
@@ -61,21 +62,79 @@ def parse_seed(text: str, path: str = "pronunciations.yaml") -> list[Pronunciati
     return entries
 
 
-def spoken(script: str, entries: Iterable[Pronunciation]) -> str:
+@dataclass(frozen=True)
+class Piece:
+    """A stretch of the said text and the script it came from: the same text, or a
+    dictionary term (the whole term for the whole phrase that says it)."""
+
+    said_start: int
+    said_end: int
+    script_start: int
+    script_end: int
+    replaced: bool
+
+
+@dataclass(frozen=True)
+class Rewritten:
+    text: str
+    pieces: list[Piece]  # in order, covering the said text
+
+    def script_span(self, start: int, end: int) -> tuple[int, int]:
+        """Where said characters [start, end) came from in the script: a replaced term
+        whole, the rest character for character (P4-W23-S03 captions)."""
+
+        if not self.pieces:
+            return (0, 0)
+
+        def at(i: int) -> Piece:
+            return next(
+                (p for p in self.pieces if p.said_start <= i < p.said_end),
+                self.pieces[-1],
+            )
+
+        first, last = at(start), at(end - 1)
+        return (
+            first.script_start
+            if first.replaced
+            else first.script_start + start - first.said_start,
+            last.script_end
+            if last.replaced
+            else last.script_start + end - last.said_start,
+        )
+
+
+def rewrite(script: str, entries: Iterable[Pronunciation]) -> Rewritten:
     """The script with each term said as the dictionary says it: whole words only, in
-    any case, longest term first (so "PostgreSQL" is never read as "Postgre" "SQL")."""
+    any case, longest term first (so "PostgreSQL" is never read as "Postgre" "SQL").
+    Keeps where each part of the said text came from, for captions."""
     terms = sorted(entries, key=lambda e: len(e.term), reverse=True)
     if not terms:
-        return script
+        return Rewritten(script, [Piece(0, len(script), 0, len(script), False)])
     # One group a term, in order: which matched is its group's number, never a lookup by
     # the matched text (case folding can change a string's length).
     pattern = re.compile(
         "|".join(rf"(?<!\w)({re.escape(e.term)})(?!\w)" for e in terms),
         re.IGNORECASE,
     )
+    said: list[str] = []
+    pieces: list[Piece] = []
+    at, length = 0, 0
 
-    def say(match: re.Match[str]) -> str:
+    def keep(start: int, end: int, text: str, replaced: bool) -> None:
+        nonlocal length
+        if text:
+            pieces.append(Piece(length, length + len(text), start, end, replaced))
+            said.append(text)
+            length += len(text)
+
+    for match in pattern.finditer(script):
+        keep(at, match.start(), script[at : match.start()], False)
         assert match.lastindex is not None
-        return terms[match.lastindex - 1].say
+        keep(match.start(), match.end(), terms[match.lastindex - 1].say, True)
+        at = match.end()
+    keep(at, len(script), script[at:], False)
+    return Rewritten("".join(said), pieces)
 
-    return pattern.sub(say, script)
+
+def spoken(script: str, entries: Iterable[Pronunciation]) -> str:
+    return rewrite(script, entries).text

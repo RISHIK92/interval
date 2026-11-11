@@ -384,6 +384,7 @@ export interface DevicePushToken {
 }
 
 export interface ExplainerAudio {
+  captions: Json;
   created_at: Generated<Timestamp>;
   duration_seconds: Numeric;
   explainer_id: Int8;

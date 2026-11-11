@@ -388,6 +388,34 @@ export const ChapterEnd = z.object({
 export type ChapterEnd = z.infer<typeof ChapterEnd>;
 export * from "./place";
 
+// TTS-3 (P4-W23-S03): one word of the explainer as written, and when it's said.
+export const Caption = z.object({
+  text: z.string(),
+  start: z.number().nonnegative(),
+  end: z.number().nonnegative(),
+});
+export type Caption = z.infer<typeof Caption>;
+
+// P4-W23-S03 (owner, 2026-11-11): the sentence being said, for both players' captions.
+// `current` is the last word begun, so the highlight holds through the gaps between
+// words; -1 before the sentence's first. After the last word, the last sentence.
+export function sentenceAt(
+  captions: Caption[],
+  seconds: number,
+): { words: Caption[]; current: number } {
+  const sentences: Caption[][] = [[]];
+  for (const caption of captions) {
+    sentences.at(-1)?.push(caption);
+    if (/[.!?]["')\]]*$/.test(caption.text)) sentences.push([]);
+  }
+  const whole = sentences.filter((s) => s.length > 0);
+  const words =
+    whole.find((s) => seconds < (s.at(-1)?.end ?? 0)) ?? whole.at(-1) ?? [];
+  let current = -1;
+  for (const [i, w] of words.entries()) if (w.start <= seconds) current = i;
+  return { words, current };
+}
+
 // P4-W23-S01 (§5G, §5I): the audio queue and its saved positions, shared by the PWA and
 // the native player. Every explainer is AI (AI-1) and cites its sections (AI-3).
 export const ListenExplainer = z.object({
@@ -399,6 +427,8 @@ export const ListenExplainer = z.object({
   durationSeconds: z.number().positive(),
   positionSeconds: z.number().nonnegative(),
   sources: z.array(z.object({ title: z.string(), href: z.url() })),
+  // TTS-3 (P4-W23-S03): each word as written, with when it's said.
+  captions: z.array(Caption),
 });
 export type ListenExplainer = z.infer<typeof ListenExplainer>;
 export const ListenResponse = z.object({

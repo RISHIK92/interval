@@ -12,8 +12,9 @@ from typing import Protocol
 
 from interval_jobs import log
 from interval_jobs.ai.gateway import AiGateway, OverBudget
+from interval_jobs.captions import captions
 from interval_jobs.ports import Explainers, Files, Hls, Pronunciations, TtsProvider
-from interval_jobs.pronunciations import spoken
+from interval_jobs.pronunciations import rewrite
 
 TYPES = {".m3u8": "application/vnd.apple.mpegurl", ".ts": "video/mp2t"}
 PLAYLIST = "index.m3u8"
@@ -61,9 +62,8 @@ def voice(
         todo = store.explainers.unvoiced(limit)
         dictionary = store.pronunciations.all()
     for explainer in todo:
-        got = gateway.speak(
-            feature="tts", tts=tts, text=spoken(explainer.script, dictionary)
-        )
+        said = rewrite(explainer.script, dictionary)
+        got = gateway.speak(feature="tts", tts=tts, text=said.text)
         if isinstance(got, OverBudget):
             out.over_budget = True
             log.warn("voicing: over budget", scope=got.scope)
@@ -75,6 +75,9 @@ def voice(
                 f"{tts.provider} gives no word timestamps; forced alignment is a "
                 "later decision (Q-P4-08)"
             )
+        # Made before anything is stored: a failure here mustn't leave paid-for audio
+        # uploaded and the explainer unvoiced, to be said (and billed) again.
+        timed = captions(explainer.script, said, words)
         # Keys are the public path (CloudFront and Caddy serve /media/* as is), one
         # folder a run: a playlist only ever points at its own segments, even if two
         # runs overlap or one dies before saving.
@@ -98,6 +101,7 @@ def voice(
                 f"{prefix}/{PLAYLIST}",
                 playlist_seconds(files[PLAYLIST]) or max(w.end for w in words),
                 words,
+                timed,
             ):
                 out.voiced.append(explainer.explainer_id)
     return out

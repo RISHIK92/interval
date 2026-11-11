@@ -43,6 +43,7 @@ from interval_jobs.ports import (
     BookQuestion,
     CandidateArticle,
     CandidateMoment,
+    Caption,
     ChapterForCheckpoint,
     ConceptCoverage,
     ConceptCycleError,
@@ -3891,12 +3892,14 @@ class PostgresExplainers:
         playlist_key: str,
         duration: float,
         words: list[WordTime],
+        captions: list[Caption],
     ) -> bool:
         row = self._conn.execute(
             """
             insert into explainer_audio
-              (explainer_id, provider, voice, playlist_key, duration_seconds, words)
-            values (%s, %s, %s, %s, %s, %s)
+              (explainer_id, provider, voice, playlist_key, duration_seconds, words,
+               captions)
+            values (%s, %s, %s, %s, %s, %s, %s)
             on conflict (explainer_id) do nothing
             returning id
             """,
@@ -3908,6 +3911,9 @@ class PostgresExplainers:
                 round(duration, 2),
                 Jsonb(
                     [{"word": w.word, "start": w.start, "end": w.end} for w in words]
+                ),
+                Jsonb(
+                    [{"text": c.text, "start": c.start, "end": c.end} for c in captions]
                 ),
             ),
         ).fetchone()

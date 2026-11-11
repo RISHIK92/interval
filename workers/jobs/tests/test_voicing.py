@@ -24,6 +24,7 @@ from interval_jobs.adapters.memory import (
 )
 from interval_jobs.adapters.postgres import PostgresExplainers
 from interval_jobs.ports import (
+    Caption,
     ExplainerToVoice,
     Pronunciation,
     Speech,
@@ -109,6 +110,12 @@ def test_an_approved_script_is_said_once_as_hls_with_its_words() -> None:
         7.25,
         WORDS,
     )
+    # TTS-3 (P4-W23-S03): captions in the script's words, "nginx" timed by "engine x";
+    # a word with no time keeps where the last ended.
+    assert store.explainers.captions[7] == [
+        Caption("Behind", 0.0, 0.0),
+        Caption("nginx.", 0.0, 0.9),
+    ]
     # Voiced once (TTS-4): a second run says nothing.
     assert voice(unit, gw, tts, media, FakeHls(), limit=5).voiced == []
     assert len(tts.said) == 1
@@ -188,8 +195,11 @@ def test_postgres_voices_approved_scripts_once(conn: psycopg.Connection) -> None
         (mine,),
     )
     assert mine in {x.explainer_id for x in store.unvoiced(1000)}
-    assert store.save_audio(mine, "polly", "Joanna", "explainers/k.m3u8", 0.9, WORDS)
-    assert not store.save_audio(mine, "polly", "Joanna", "x", 1.0, WORDS)
+    caption = [Caption("A", 0.0, 0.4)]
+    assert store.save_audio(
+        mine, "polly", "Joanna", "explainers/k.m3u8", 0.9, WORDS, caption
+    )
+    assert not store.save_audio(mine, "polly", "Joanna", "x", 1.0, WORDS, caption)
     assert mine not in {x.explainer_id for x in store.unvoiced(1000)}
     words = conn.execute(
         "select words from explainer_audio where explainer_id = %s", (mine,)
@@ -199,3 +209,7 @@ def test_postgres_voices_approved_scripts_once(conn: psycopg.Connection) -> None
         {"word": "engine", "start": 0.0, "end": 0.4},
         {"word": "x", "start": 0.4, "end": 0.9},
     ]
+    stored = conn.execute(
+        "select captions from explainer_audio where explainer_id = %s", (mine,)
+    ).fetchone()
+    assert stored is not None and stored[0] == [{"text": "A", "start": 0.0, "end": 0.4}]
