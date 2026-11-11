@@ -30,7 +30,7 @@ Already in place, so not sliced again:
 - Needs: S01
 - Goal:
   - a JSON Schema for a timeline: shapes, then steps, each anchored to a caption word, showing, highlighting or moving shapes and arrows, with a text description;
-  - TS and Python types generated from it;
+  - TS types from it; Python validates drafts against the generated JSON Schema with jsonschema 4.26.0, structure only, with no typed Python (owner, 2026-11-11; the dependency arrives in W26-S01);
   - a validator (shapes exist, anchors in order and within the captions);
   - a shared `stepAt(timeline, captions, seconds)` for both players.
   - **One source for the shapes (decided in W25-S01's review):** `packages/diagrams`' zod `Diagram` schema stays the definition of shapes, kinds and limits. The timeline's JSON Schema is generated from it (zod's `toJSONSchema`), and the Python types from that, so the worker and the players never keep two copies (ARCH-2).

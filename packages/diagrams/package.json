@@ -7,7 +7,8 @@
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc",
-    "test": "vitest run"
+    "test": "vitest run",
+    "schema": "UPDATE_SCHEMA=1 vitest run src/timeline.test.ts && prettier --write schema"
   },
   "dependencies": {
     "zod": "4.6.7"

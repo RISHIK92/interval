@@ -4354,3 +4354,37 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 ### 2026-11-11 — Fix flaky CI: two tests borrowed an existing user
 
 - CI failed on `kysely-admin-questions.test.ts`, which took whatever user already existed (`selectFrom("app_user").limit(1)`). On CI's empty database that row only exists if another test file has just committed one. It now makes its own owner. `kysely-feed.test.ts` borrowed "another user" the same way; it now uses the second user its seed already makes. A search found no other test borrowing a row. Both pass on an empty local database.
+
+### 2026-11-11 — P4.5-W25-S02 (the scene-timeline schema and its clock; TTS-5, TTS-3, ADR-0010, Q-P4.5-02)
+
+- **Owner, 2026-11-11:** Python checks drafts with jsonschema 4.26.0 against the generated schema, structure only, with no typed Python. The rules a schema can't express are checked in TS only. The dependency comes in W26-S01 with the worker. The slice note was corrected to match.
+- **`packages/diagrams`:**
+  - `Timeline` (zod): one diagram, plus 1–20 steps, each anchored to a caption word (`at`). Steps can:
+    - show and hide shapes and arrows (cumulative);
+    - highlight (this step only);
+    - move shapes (cumulative);
+    - and they carry a description for screen readers.
+  - **Refused:**
+    - anchors out of order;
+    - unknown ids;
+    - showing and hiding the same thing in one step;
+    - moving a shape twice in one step;
+    - a move that leaves the grid or lands on a shape (hidden ones keep their places too);
+    - highlighting what isn't shown.
+    - A bad move is reported once, at its step, and a diagram invalid from the start blames no step.
+  - `checkAnchors` checks each `at` falls within the explainer's captions.
+  - **The clock:**
+    - `stepAt`: the last step whose word has started, -1 before the first;
+    - `stateAt`: what that step draws, ready for `describeDiagram`. It throws past the last step rather than blanking the picture.
+  - **Schema:** `schema/timeline.schema.json`, generated with `z.toJSONSchema(..., { io: "input" })`. Every object is strict, so stray keys are refused alike in zod and Python. `pnpm --filter @interval/diagrams schema` regenerates and formats it; a test fails while it's stale.
+- **Tests:** 21 in the package. They include a structural check that the schema accepts exactly what zod accepts. The committed schema was also checked against Python's jsonschema by hand: a draft leaving `style` to its default passes, and a stray key is refused.
+- **Reviewer fixes:**
+  - **Blocker:** the output-mode schema required `style`, so Python would have refused drafts TS accepted.
+  - Strict objects on both sides.
+  - The schema-versus-zod test.
+  - `stateAt` past the end.
+  - A bad move blamed once.
+  - One meaning per step.
+  - The `at` cap.
+  - The dead `Step` export.
+  - The slice note.

@@ -35,11 +35,11 @@ const Id = z.string().regex(/^[a-z0-9][a-z0-9_-]{0,31}$/);
 export const CHARS_PER_CELL = 5;
 
 const Shape = z
-  .object({
+  .strictObject({
     id: Id,
     kind: z.enum(KINDS),
     label: z.string().min(1).max(40),
-    at: z.object({
+    at: z.strictObject({
       col: z
         .number()
         .int()
@@ -52,7 +52,7 @@ const Shape = z
         .max(ROWS - 1),
     }),
     size: z
-      .object({
+      .strictObject({
         cols: z.number().int().min(1).max(COLS),
         rows: z.number().int().min(1).max(ROWS),
       })
@@ -72,7 +72,7 @@ const Shape = z
   );
 export type Shape = z.infer<typeof Shape>;
 
-const Arrow = z.object({
+const Arrow = z.strictObject({
   from: Id,
   to: Id,
   label: z.string().min(1).max(20).optional(),
@@ -93,7 +93,7 @@ function overlap(a: Shape, b: Shape): boolean {
 }
 
 export const Diagram = z
-  .object({
+  .strictObject({
     title: z.string().min(1).max(80),
     shapes: z.array(Shape).min(1).max(24),
     arrows: z.array(Arrow).max(32),
