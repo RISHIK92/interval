@@ -4187,3 +4187,14 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - time_zone not null;
   - one Promise.all.
 - **Checks:** web 1519 (the auth flake passes alone), app 110, the static checks; Python 1445 earlier (a spot-check sampling test flaked once on the shared DB, passing alone).
+
+### 2026-11-11 — Fix failing CI (owner: "fix failing ci")
+
+- **What was failing:** CI had been red on every push in the last 60 runs. Two causes, both hidden locally:
+  - **Web tests on CI's empty database:** five Postgres tests (`kysely-matches` ×3, `kysely-quizzes` ×1, and earlier `kysely-admin-questions`) needed a sprint's worth of live questions. They passed locally only because the local database holds a real bank. Fixed:
+    - `live-bank.fixture.ts` `seedLiveQuestions` seeds live multiple-choice questions on a full-text source;
+    - the match test seeds a whole sprint itself;
+    - the bot tests and the quiz sprint test seed what they need.
+  - **The app's lint:** `process.env` was `any` in CI because `expo-env.d.ts` (which references `expo/types`) is generated and gitignored. Fixed: a committed `expo-types.d.ts` with the same reference, in tsconfig's include.
+- **Verified:** a scratch local database `interval_ci_check`, migrated from empty as CI does: the whole web suite (1520) and Python (1380) pass on it; the app's lint passes with `expo-env.d.ts` moved aside. The scratch database is still there for the owner to drop.
+- Turbo had been cancelling the rest of the check after the web failure, so CI never got as far as Python or infra.

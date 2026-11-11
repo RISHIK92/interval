@@ -5,6 +5,7 @@ import { afterAll, expect, test } from "vitest";
 import type { Matches } from "../ports";
 import { createDb } from "./kysely";
 import { kyselyMatches, memoryMatches } from "./kysely-matches";
+import { seedLiveQuestions } from "./live-bank.fixture";
 import { LIVE_QUESTIONS, type LiveRound } from "../ports";
 
 // P3-W15-S02 (ADR-0033): a ticket is issued only to a player of the match.
@@ -212,7 +213,8 @@ test("Postgres picks seven different live questions and records them in order", 
         )
         .execute();
       const ours: string[] = [];
-      for (let m = 0; m < 4; m += 1) {
+      // Enough for a sprint (two a section) without anyone else's questions.
+      for (let m = 0; m < LIVE_QUESTIONS.sprint / 2; m += 1) {
         const moment = await trx
           .insertInto("moment")
           .values({
@@ -726,6 +728,7 @@ test("Postgres: a bot match is labeled, rated at the player's own and fully play
         .insertInto("player_rating")
         .values({ user_id: me, rating: 1720, rd: 80, volatility: 0.06 })
         .execute();
+      await seedLiveQuestions(trx, LIVE_QUESTIONS.sprint);
       const made = await kyselyMatches(trx).createBot(0, me, "sprint");
       if (made === null)
         throw new Error("no bot match (is the local bank empty?)");
@@ -852,6 +855,8 @@ test("Postgres: a bot plays a question at its real rate and live sprint time", a
             .executeTakeFirstOrThrow()
         ).id;
       const [x, y] = [await question(0), await question(1)];
+      // The rest of a sprint, so a fresh database (CI) can make one.
+      await seedLiveQuestions(trx, LIVE_QUESTIONS.sprint);
       // The player's own tier: a concept they know, on x only.
       const { id: concept } = await trx
         .insertInto("concept")

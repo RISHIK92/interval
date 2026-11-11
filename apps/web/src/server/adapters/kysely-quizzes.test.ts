@@ -6,6 +6,7 @@ import { type QuizQuestion, quizKey } from "../ports";
 import { createDb } from "./kysely";
 import { kyselyAdminQuestions } from "./kysely-admin-questions";
 import { kyselyQuizzes } from "./kysely-quizzes";
+import { seedLiveQuestions } from "./live-bank.fixture";
 
 // Test 60s (Q-P2-14, P2-W9-S01): the server serves a sprint over a moment's or an
 // article's concepts, checks each answer once, and holds the clock.
@@ -1735,7 +1736,9 @@ test("no multiple-choice quiz serves an estimation question", async () => {
     if (review === null) throw new Error("no review");
     expect(await stems(review.attemptId, 5)).toEqual(["intro-0"]);
     await quizzes.finish(userId, review.attemptId);
-    // The sprint: wal is explored now, so its estimates would come first.
+    // The sprint: wal is explored now, so its estimates would come first. Five other
+    // live questions to fill it, as a fresh database (CI) has none of its own.
+    await seedLiveQuestions(trx, 5);
     const attemptId = await sprint(quizzes, userId);
     const sprinted = await stems(attemptId, 5);
     expect(sprinted).toHaveLength(5);
