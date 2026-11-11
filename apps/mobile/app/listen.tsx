@@ -9,7 +9,9 @@ import {
 import { type Caption, sentenceAt } from "@interval/api-client";
 import { useState } from "react";
 import { clock, useListen } from "../components/MiniPlayer";
+import { Scene } from "../components/Scene";
 import { useColors } from "../components/theme";
+import { SITE } from "../lib/auth";
 import { listen, SKIP_SECONDS } from "../lib/listen";
 
 // P4-W23-S02 (§5G, wireframe 07): the full player. Only Smart explain is voiced so far
@@ -78,6 +80,13 @@ export default function ListenScreen() {
       )}
       {current === null ? null : (
         <>
+          {current.scene === null ? null : (
+            <Scene
+              url={`${SITE}${current.scene}`}
+              captions={current.captions}
+              time={state.time}
+            />
+          )}
           <Captions captions={current.captions} time={state.time} />
           <Text style={[styles.center, { color: c["ink-muted"] }]}>
             {clock(state.time)} / {clock(current.durationSeconds)}

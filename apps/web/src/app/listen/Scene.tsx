@@ -1,7 +1,12 @@
 "use client";
 
 import type { Caption } from "@interval/api-client";
-import { describeDiagram, stateAt, stepAt, Timeline } from "@interval/diagrams";
+import {
+  describeDiagram,
+  fetchTimeline,
+  sceneAt,
+  type Timeline,
+} from "@interval/diagrams";
 import { useEffect, useState } from "react";
 import { AiBox } from "../ui/AiBox";
 import { DiagramSvg } from "../diagrams/DiagramSvg";
@@ -11,34 +16,6 @@ import { DiagramSvg } from "../diagrams/DiagramSvg";
 // share). Each step is said in a live region for screen readers, the drawing sits in
 // the AI box (AI-1), and it fades in at each step only for those who haven't asked for
 // less motion.
-
-// The file is a model's output read back from a bucket, so it is held to the timeline's
-// rules here, at the boundary. A failure leaves the drawing out, logged; the audio and
-// the captions carry on without it.
-export async function fetchTimeline(
-  url: string,
-  fetcher: typeof fetch = fetch,
-): Promise<Timeline | null> {
-  const response = await fetcher(url);
-  if (!response.ok) {
-    console.error(`scene: ${url} answered ${String(response.status)}`);
-    return null;
-  }
-  let raw: unknown;
-  try {
-    raw = await response.json();
-  } catch (error) {
-    if (!(error instanceof SyntaxError)) throw error;
-    console.error(`scene: ${url} isn't JSON`, error);
-    return null;
-  }
-  const parsed = Timeline.safeParse(raw);
-  if (!parsed.success) {
-    console.error(`scene: ${url} isn't a valid timeline`, parsed.error.issues);
-    return null;
-  }
-  return parsed.data;
-}
 
 type Loaded = { url: string; timeline: Timeline | null } | null;
 
@@ -55,12 +32,7 @@ export function SceneView(props: {
   captions: Caption[];
   time: number;
 }) {
-  const step =
-    props.timeline === null
-      ? -1
-      : stepAt(props.timeline, props.captions, props.time);
-  const state =
-    props.timeline === null || step < 0 ? null : stateAt(props.timeline, step);
+  const { step, state } = sceneAt(props.timeline, props.captions, props.time);
   return (
     <>
       {state !== null && (
@@ -91,7 +63,7 @@ export function Scene(props: {
   const [loaded, setLoaded] = useState<Loaded>(null);
   useEffect(() => {
     let live = true;
-    fetchTimeline(props.url).then(
+    fetchTimeline(props.url, (url) => fetch(url)).then(
       (timeline) => {
         if (live) setLoaded({ url: props.url, timeline });
       },

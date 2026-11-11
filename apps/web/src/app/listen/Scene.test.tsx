@@ -1,10 +1,11 @@
 import { Timeline } from "@interval/diagrams";
 import { renderToStaticMarkup } from "react-dom/server";
-import { afterEach, expect, test, vi } from "vitest";
-import { fetchTimeline, SceneView, timelineFor } from "./Scene";
+import { expect, test } from "vitest";
+import { SceneView, timelineFor } from "./Scene";
 
 // P4.5-W27-S01 (TTS-5, §5G, Q-P4.5-04): the approved timeline drawn in the full player,
-// stepping with the narration; each step said for screen readers; labeled AI.
+// stepping with the narration; each step said for screen readers; labeled AI. Fetching
+// and the clock are packages/diagrams' (scene.test.ts there).
 const raw = {
   diagram: {
     title: "Leader election",
@@ -31,10 +32,6 @@ const at = (time: number) =>
     <SceneView timeline={timeline} captions={captions} time={time} />,
   );
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
-
 const live = '<p aria-live="polite" class="sr-only">';
 
 test("before the first step nothing is drawn; the live region waits, empty", () => {
@@ -58,22 +55,6 @@ test("each step draws what it shows and says it for screen readers, labeled AI",
   const second = at(1.6);
   expect(second).toContain("Node B");
   expect(second).toContain("A second node joins.");
-});
-
-test("the file is fetched and held to the timeline's rules; a failure draws nothing, logged", async () => {
-  const error = vi.spyOn(console, "error").mockImplementation(() => undefined);
-  const ok = (body: unknown, status = 200) =>
-    vi.fn(() =>
-      Promise.resolve(new Response(JSON.stringify(body), { status })),
-    );
-  expect(await fetchTimeline("/media/a.json", ok(raw))).toEqual(timeline);
-  expect(await fetchTimeline("/media/a.json", ok({}, 404))).toBeNull();
-  expect(
-    await fetchTimeline("/media/a.json", ok({ ...raw, steps: [] })),
-  ).toBeNull();
-  const notJson = vi.fn(() => Promise.resolve(new Response("{nope")));
-  expect(await fetchTimeline("/media/a.json", notJson)).toBeNull();
-  expect(error).toHaveBeenCalledTimes(3);
 });
 
 test("only the timeline fetched for this explainer is drawn", () => {

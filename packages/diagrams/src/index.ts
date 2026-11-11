@@ -7,5 +7,6 @@ export {
   describeDiagram,
   type Element,
 } from "./describe";
-export { stateAt, stepAt } from "./clock";
+export { stateAt } from "./clock";
+export { fetchTimeline, sceneAt } from "./scene";
 export { checkAnchors, Timeline } from "./timeline";

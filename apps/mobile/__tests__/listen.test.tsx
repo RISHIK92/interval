@@ -228,11 +228,11 @@ test("the speed cycles; a seek while cued is kept for when it plays", async () =
 });
 
 // The screens, through the router, against a served queue.
-const fetchMock = jest.fn<Promise<Response>, [string, RequestInit]>();
+const fetchMock = jest.fn<Promise<Response>, [string, RequestInit?]>();
 const serve = (view: ListenResponse) => {
   fetchMock.mockImplementation((url, init) => {
     const path = url.replace("http://localhost:3100", "");
-    const method = init.method ?? "GET";
+    const method = init?.method ?? "GET";
     if (method === "GET" && path === "/api/listen")
       return Promise.resolve(Response.json(view));
     return Promise.resolve(new Response(null, { status: 204 }));
@@ -288,10 +288,54 @@ test("the full player: AI, not the author; Original for later; the sources", asy
   expect(open).toHaveBeenCalledWith("https://blog.dev/7");
 });
 
+// P4.5-W27-S02 (Q-P4.5-04): an approved timeline, in the full player only.
+test("the full player draws an approved timeline from the site's /media", async () => {
+  const drawn: ListenExplainer = {
+    ...explainer("7"),
+    captions: [{ text: "Raft.", start: 0, end: 1 }],
+    scene: "/media/explainers/c7/7/scenes/a.json",
+  };
+  fetchMock.mockImplementation((url, init) => {
+    const path = url.replace("http://localhost:3100", "");
+    if (path === drawn.scene)
+      return Promise.resolve(
+        Response.json({
+          diagram: {
+            title: "Leader election",
+            shapes: [
+              {
+                id: "a",
+                kind: "service",
+                label: "Node A",
+                at: { col: 0, row: 0 },
+              },
+            ],
+            arrows: [],
+          },
+          steps: [{ at: 0, show: ["a"], describe: "One node waits." }],
+        }),
+      );
+    if ((init?.method ?? "GET") === "GET" && path === "/api/listen")
+      return Promise.resolve(Response.json({ queue: [drawn], upNext: null }));
+    return Promise.resolve(new Response(null, { status: 204 }));
+  });
+  await renderRouter("./app", { initialUrl: "/library" });
+  // The mini-player never draws it.
+  expect(screen.queryByLabelText(/One node waits/)).toBeNull();
+  await fireEvent.press(
+    await screen.findByRole("button", {
+      name: /^Open the player\. Concept 7, AI explainer$/,
+    }),
+  );
+  expect(
+    await screen.findByLabelText("Leader election. One node waits. AI-drawn."),
+  ).toBeOnTheScreen();
+});
+
 test("the reader's Listen queues what's shown and opens the player", async () => {
   fetchMock.mockImplementation((url, init) => {
     const path = url.replace("http://localhost:3100", "");
-    const method = init.method ?? "GET";
+    const method = init?.method ?? "GET";
     if (path.startsWith("/api/read/5"))
       return Promise.resolve(
         Response.json({

@@ -4431,3 +4431,16 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Reviewer fixes:** the live region from mount; `AiBox` in place of a plain caption; the stale guard extracted and tested; non-JSON caught; the boundary comment.
 - **Not tested:** the effect's `live` flag (an unmount during a fetch). apps/web has no DOM test environment, and adding one is a dependency for the owner to approve.
 - **Noticed, not in scope:** if an explainer is voiced again after its timeline was approved, the step anchors (caption word indices) can drift silently. `stepAt` tolerates it, but nothing re-checks the anchors.
+
+### 2026-11-12 — P4.5-W27-S02 (visual explainers in the app; TTS-5, §5G, Q-P4.5-04)
+
+- **Nothing twice (ARCH-2):** `fetchTimeline` (fetch, then the zod `Timeline`; a failure is null and logged) and `sceneAt` (the step reached and what it draws) are now in `packages/diagrams/src/scene.ts`, used by both players. The web's `Scene.tsx` uses them, with its behaviour unchanged; their tests moved with them. `stepAt` is no longer exported from the package (no outside caller).
+- **App** `components/Scene.tsx`:
+  - in the full player above the captions, as `${SITE}${scene}` (public media);
+  - a dashed AI box tagged "AI" (AI-1), drawn with the existing react-native-svg `DiagramSvg`;
+  - the step's description for screen readers only, as on the web: the box is an image labelled with the title, the step and "AI-drawn". Each step is announced with `announceForAccessibility` once as it comes, the first included, on both platforms, so nothing is announced twice;
+  - the same stale-url guard and live flag as the web;
+  - no animation, which reduced motion asks for. A fade for others isn't required by Q-P4.5-04.
+- **Tests:** `fetchTimeline` and `sceneAt` in the package; in the app, steps drawn and announced once each, the next explainer's first step announced, a 404 and offline drawing nothing (logged), another explainer's drawing never shown; and the full player draws it while the mini-player doesn't.
+- **Reviewer fixes:** the description made screen-reader-only (it was visible); the next-explainer and offline tests; `spyOn` for fetch; no assertion on fetch's arguments.
+- **Noted:** Android 16 deprecates `announceForAccessibility` (it still works through React Native). The fetch-and-guard effect is written once in each app; sharing it would bring React into packages/diagrams.
