@@ -19,6 +19,7 @@ type AiFeature = Literal[
     "project_notes",
     "explainer",
     "tts",
+    "scenes",
 ]
 type AiProvider = Literal[
     "openrouter", "voyage", "groq", "google", "elevenlabs", "inworld", "polly"
@@ -381,6 +382,23 @@ class ExplainerListen(TypedDict):
     position_seconds: Decimal
     finished_at: datetime | None
     updated_at: datetime
+
+
+class ExplainerScene(TypedDict):
+    id: int
+    explainer_id: int
+    scene_key: str
+    generator_model: str
+    prompt_version: int
+    status: ExplainerStatus
+    decided_by: str | None
+    decided_at: datetime | None
+    created_at: datetime
+
+
+class ExplainerSceneAttempt(TypedDict):
+    explainer_id: int
+    tried_at: datetime
 
 
 class ExploreArmOutcome(TypedDict):

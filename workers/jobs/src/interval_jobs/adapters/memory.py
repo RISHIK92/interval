@@ -54,6 +54,7 @@ from interval_jobs.ports import (
     ExplainerCitation,
     ExplainerConcept,
     ExplainerSource,
+    ExplainerToDraw,
     ExplainerToVoice,
     FeedEntry,
     Fetched,
@@ -2039,6 +2040,7 @@ class InMemoryStore:
         self.agent_nudges = InMemoryAgentNudges()
         self.device_tokens = InMemoryDeviceTokens()
         self.reminders = InMemoryReminders()
+        self.scenes = InMemoryScenes()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
 
@@ -2513,6 +2515,33 @@ class InMemoryReminders:
     def drop_web(self, endpoint: str) -> None:
         for user_id, targets in self.browsers.items():
             self.browsers[user_id] = [t for t in targets if t.endpoint != endpoint]
+
+
+class InMemoryScenes:
+    """P4.5-W26-S01: scene timelines as Postgres keeps them (tests set `drawable`)."""
+
+    def __init__(self) -> None:
+        self.drawable: list[ExplainerToDraw] = []
+        self.saved: dict[int, tuple[str, str, int]] = {}
+        self.refused: set[int] = set()
+
+    def targets(self, limit: int) -> list[ExplainerToDraw]:
+        return [
+            x
+            for x in self.drawable
+            if x.explainer_id not in self.saved and x.explainer_id not in self.refused
+        ][:limit]
+
+    def save(
+        self, explainer_id: int, key: str, model: str, prompt_version: int
+    ) -> bool:
+        if explainer_id in self.saved:
+            return False
+        self.saved[explainer_id] = (key, model, prompt_version)
+        return True
+
+    def tried(self, explainer_id: int) -> None:
+        self.refused.add(explainer_id)
 
 
 class InMemoryDeviceTokens:

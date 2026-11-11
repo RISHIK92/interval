@@ -56,6 +56,7 @@ from interval_jobs.ports import (
     ExplainerCitation,
     ExplainerConcept,
     ExplainerSource,
+    ExplainerToDraw,
     ExplainerToVoice,
     FeedEntry,
     FetchInput,
@@ -3896,6 +3897,67 @@ class PostgresReminders:
         )
 
 
+class PostgresScenes:
+    """Visual explainers' timelines (P4.5-W26-S01)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def targets(self, limit: int) -> list[ExplainerToDraw]:
+        rows = self._conn.execute(
+            f"""
+            select x.id, x.concept_id, c.name, x.script, a.captions
+            from concept_explainer x
+            join concept c on c.id = x.concept_id
+            join explainer_audio a on a.explainer_id = x.id
+            where x.status = 'approved' and jsonb_array_length(a.captions) > 0
+              and not exists (
+                select 1 from explainer_scene s where s.explainer_id = x.id)
+              and not exists (
+                select 1 from explainer_scene_attempt t
+                where t.explainer_id = x.id
+                  and t.tried_at > now() - {_EXPLAINER_RETRY})
+            order by x.decided_at, x.id
+            limit %s
+            """,
+            (limit,),
+        ).fetchall()
+        return [
+            ExplainerToDraw(
+                int(i),
+                int(concept_id),
+                str(name),
+                str(script),
+                [str(c["text"]) for c in captions],
+            )
+            for i, concept_id, name, script, captions in rows
+        ]
+
+    def save(
+        self, explainer_id: int, key: str, model: str, prompt_version: int
+    ) -> bool:
+        row = self._conn.execute(
+            """
+            insert into explainer_scene
+              (explainer_id, scene_key, generator_model, prompt_version)
+            values (%s, %s, %s, %s)
+            on conflict (explainer_id) do nothing
+            returning id
+            """,
+            (explainer_id, key, model, prompt_version),
+        ).fetchone()
+        return row is not None
+
+    def tried(self, explainer_id: int) -> None:
+        self._conn.execute(
+            """
+            insert into explainer_scene_attempt (explainer_id) values (%s)
+            on conflict (explainer_id) do update set tried_at = now()
+            """,
+            (explainer_id,),
+        )
+
+
 class PostgresDeviceTokens:
     """Phones' push tokens (P4-W19-S04a, S04b)."""
 
@@ -4161,6 +4223,7 @@ class PostgresStore:
         self.agent_nudges = PostgresAgentNudges(conn)
         self.device_tokens = PostgresDeviceTokens(conn)
         self.reminders = PostgresReminders(conn)
+        self.scenes = PostgresScenes(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)

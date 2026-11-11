@@ -4388,3 +4388,18 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - The `at` cap.
   - The dead `Step` export.
   - The slice note.
+
+### 2026-11-12 — P4.5-W26-S01 (drafting timelines; TTS-5, AI-1, AI-3, OPS-4, DB-6, ADR-0038, Q-P4.5-03)
+
+- **Dependency:** `jsonschema==4.26.0` in workers/jobs (owner-approved). Its lock adds attrs, jsonschema-specifications, referencing and rpds-py, all past the two-week rule.
+- **Migration** `20261112000000_explainer_scene.sql`:
+  - `explainer_scene`: one per explainer (cascade), `scene_key` checked to be a JSON file under `media/explainers/`, status pending/approved/rejected with pending ⇔ `decided_at` null, model and prompt version;
+  - `explainer_scene_attempt`: a refused draft is left alone for 7 days;
+  - `ai_feature` gains `scenes`, so OPS-4 counts its spend apart.
+- **Worker:**
+  - the `Scenes` port in Postgres and in memory: `targets` (approved, voiced, with captions, no timeline, not refused in 7 days), `save` (once), `tried`;
+  - `scenes.py`: the prompt gives the library's shapes and rules plus the committed JSON Schema verbatim. Everything from the explainer (concept, script, numbered caption words) is inside `<explainer>` tags, as material, never instructions. A draft is checked with `Draft202012Validator`; errors carry their JSON path. One retry with the errors, then `tried` and a log. A draft that passes goes to `media/explainers/<concept>/<explainer>/scenes/<run>.json`, then is saved pending. The budget stops the run, the retry included, without marking the explainer tried;
+  - `write-scenes [--limit N]` on `EXPLAINER_MODEL`; it needs the media bucket. No model was run (no key).
+  - The worker image copies `packages/diagrams/schema`.
+- **Tests:** 6 with fakes (valid, retry, refused twice, over budget, over budget at the retry, the prompt) and 2 in Postgres (`targets` across approved, pending, rejected, unvoiced, uncaptioned, drawn, refused and refused a week ago; save once; both of the migration's checks).
+- **Reviewer fixes:** error locations in the retry; the caption words inside the tags; the missing `targets` cases and the decided check; a log when a concurrent run saved first; case-insensitive code fences; an over-budget retry test.

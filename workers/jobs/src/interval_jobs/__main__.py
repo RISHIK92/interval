@@ -88,6 +88,7 @@ from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.ranking.scoring import BREAK_MINUTES
 from interval_jobs.recalibration import recalibrate
 from interval_jobs.reminders import run_push_due
+from interval_jobs.scenes import draw as draw_scenes
 from interval_jobs.seasons import close_season
 from interval_jobs.segment import segment_item
 from interval_jobs.tagging import TaggingError
@@ -298,6 +299,12 @@ def main(argv: list[str]) -> None:
         "in the media bucket (TTS-3, TTS-4, P4-W22-S04)",
     )
     voicing.add_argument("--limit", type=_explainer_limit, default=5)
+    scenes = commands.add_parser(
+        "write-scenes",
+        help="draft scene timelines for voiced explainers with EXPLAINER_MODEL, into "
+        "the media bucket, pending the owner's review (TTS-5, P4.5-W26-S01)",
+    )
+    scenes.add_argument("--limit", type=_explainer_limit, default=5)
     blind = commands.add_parser(
         "tts-blind-test",
         help="say the 5 test scripts with each TTS provider that has a key, unnamed, "
@@ -546,6 +553,10 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
 
     if args.command == "voice-explainers":
         _voice_explainers(args.limit)
+        return
+
+    if args.command == "write-scenes":
+        _write_scenes(args.limit)
         return
 
     if args.command == "tts-blind-test":
@@ -910,6 +921,27 @@ def _tts_blind_test(path: Path) -> None:
             got = blind_test(
                 unit, ai_gateway(PostgresAi(ledger), http), store, providers, scripts
             )
+    print(json.dumps(asdict(got), indent=2))
+
+
+def _write_scenes(limit: int) -> None:
+    """TTS-5 (P4.5-W26-S01; owner, Q-P4.5-03): one timeline per approved, voiced
+    explainer that has none, for the owner to approve. Run by hand; within the daily AI
+    budget."""
+    media = media_files()
+    if media is None:
+        sys.exit("write-scenes needs MEDIA_BUCKET (the timelines are stored there)")
+
+    @contextmanager
+    def unit() -> Generator[Store]:
+        with services() as s:
+            yield s.store
+
+    with model_job("EXPLAINER_MODEL") as job:
+        if job is None:
+            sys.exit("write-scenes needs EXPLAINER_MODEL (ADR-0038)")
+        with job.gateway() as gateway:
+            got = draw_scenes(unit, gateway, media, job.model, limit)
     print(json.dumps(asdict(got), indent=2))
 
 

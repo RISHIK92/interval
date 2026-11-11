@@ -1289,6 +1289,9 @@ class Store(Protocol):
     @property
     def reminders(self) -> "Reminders": ...
 
+    @property
+    def scenes(self) -> "Scenes": ...
+
 
 # GitHub projects (§5H, ADR-0024, P2-W12-S02): a connected user's repositories, read by
 # the App: metadata and dependency names only, never code.
@@ -2122,6 +2125,36 @@ class TtsSamples(Protocol):
 class Hls(Protocol):
     def package(self, mp3: bytes) -> dict[str, bytes]:
         """The playlist (`index.m3u8`) and its segments, by file name."""
+        ...
+
+
+@dataclass(frozen=True)
+class ExplainerToDraw:
+    """An approved, voiced explainer with no scene timeline yet (P4.5-W26-S01): its
+    script, and its caption words in order (a step's `at` is an index into them)."""
+
+    explainer_id: int
+    concept_id: int
+    concept: str
+    script: str
+    captions: list[str]
+
+
+class Scenes(Protocol):
+    """Visual explainers' timelines (TTS-5, P4.5-W26-S01; Q-P4.5-03)."""
+
+    def targets(self, limit: int) -> list[ExplainerToDraw]:
+        """Approved, voiced, captioned, with no timeline, not refused in 7 days."""
+        ...
+
+    def save(
+        self, explainer_id: int, key: str, model: str, prompt_version: int
+    ) -> bool:
+        """Pending, once an explainer; False when it already has one."""
+        ...
+
+    def tried(self, explainer_id: int) -> None:
+        """Its draft was refused twice: left alone for a while."""
         ...
 
 

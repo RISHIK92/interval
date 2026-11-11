@@ -5,7 +5,7 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "concept_drafting" | "embeddings" | "explainer" | "notes" | "paths" | "project_notes" | "questions" | "tagging" | "technologies" | "tts";
+export type AiFeature = "concept_drafting" | "embeddings" | "explainer" | "notes" | "paths" | "project_notes" | "questions" | "scenes" | "tagging" | "technologies" | "tts";
 
 export type AiProvider = "elevenlabs" | "google" | "groq" | "inworld" | "openrouter" | "polly" | "voyage";
 
@@ -401,6 +401,23 @@ export interface ExplainerListen {
   position_seconds: Generated<Numeric>;
   updated_at: Generated<Timestamp>;
   user_id: string;
+}
+
+export interface ExplainerScene {
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  decided_by: string | null;
+  explainer_id: Int8;
+  generator_model: string;
+  id: Generated<Int8>;
+  prompt_version: number;
+  scene_key: string;
+  status: Generated<ExplainerStatus>;
+}
+
+export interface ExplainerSceneAttempt {
+  explainer_id: Int8;
+  tried_at: Generated<Timestamp>;
 }
 
 export interface ExploreArmOutcome {
@@ -1276,6 +1293,8 @@ export interface DB {
   device_push_token: DevicePushToken;
   explainer_audio: ExplainerAudio;
   explainer_listen: ExplainerListen;
+  explainer_scene: ExplainerScene;
+  explainer_scene_attempt: ExplainerSceneAttempt;
   explore_arm_outcome: ExploreArmOutcome;
   fair_play_flag: FairPlayFlag;
   feed_note: FeedNote;
