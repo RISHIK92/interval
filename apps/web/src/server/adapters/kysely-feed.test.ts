@@ -425,7 +425,7 @@ test("toCard drops a row with missing fields and logs only its id and column nam
 
 // P1-W4-S07: Not interested and Hide source take effect before the recompute lands.
 test("the user's not-interested items and hidden sources are left out at once", async () => {
-  await inRollback(async (trx, { userId, itemId, momentIds }) => {
+  await inRollback(async (trx, { userId, otherId, itemId, momentIds }) => {
     const [first] = momentIds;
     if (first === undefined) throw new Error("seed");
     await trx
@@ -467,14 +467,6 @@ test("the user's not-interested items and hidden sources are left out at once", 
     expect(await starter()).toHaveLength(1);
 
     // Another user's Not interested and hidden source never reach this user's feed.
-    const otherId = (
-      await trx
-        .selectFrom("app_user")
-        .select("id")
-        .where("id", "!=", userId)
-        .limit(1)
-        .executeTakeFirstOrThrow()
-    ).id;
     const source = await trx
       .selectFrom("content_item")
       .select("source_id")

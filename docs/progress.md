@@ -4350,3 +4350,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - no `fontFamily`: each platform keeps its own UI font;
   - the web keeps both `aria-label` and `<title>` (the title is the hover text).
 - **Check:** the web's health test timed out once under load (with the dev server running), and passes alone. Turbo then stopped; the app (113), the package and the Dockerfile tests were run on their own.
+
+### 2026-11-11 — Fix flaky CI: two tests borrowed an existing user
+
+- CI failed on `kysely-admin-questions.test.ts`, which took whatever user already existed (`selectFrom("app_user").limit(1)`). On CI's empty database that row only exists if another test file has just committed one. It now makes its own owner. `kysely-feed.test.ts` borrowed "another user" the same way; it now uses the second user its seed already makes. A search found no other test borrowing a row. Both pass on an empty local database.

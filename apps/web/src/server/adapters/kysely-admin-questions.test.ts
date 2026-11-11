@@ -348,11 +348,28 @@ test("the shape: an estimate has no options, a choice has no answer", async () =
 
 test("a book chapter's question never reaches the review queue, even with a review open", async () => {
   await inRollback(async (trx) => {
-    const user = await trx
-      .selectFrom("app_user")
-      .select("id")
-      .limit(1)
+    // Its own owner: a fresh database (CI) may have no user yet.
+    const code = await trx
+      .insertInto("invite_code")
+      .values({
+        code: `BOOKQ${randomUUID().replaceAll("-", "").slice(0, 12).toUpperCase()}`,
+        beta_group: "student",
+        max_uses: 1,
+        expires_at: sql<Date>`now() + interval '1 day'`,
+      })
+      .returning("id")
       .executeTakeFirstOrThrow();
+    const user = { id: randomUUID() };
+    await trx
+      .insertInto("app_user")
+      .values({
+        id: user.id,
+        name: "n",
+        email: `${user.id}@example.test`,
+        beta_group: "student",
+        invite_code_id: code.id,
+      })
+      .execute();
     const book = await trx
       .insertInto("book")
       .values({
