@@ -97,14 +97,6 @@ test("a guest is created in the code's group, anonymous, and the cookie resolves
   });
 });
 
-async function userCount(): Promise<number> {
-  const row = await db
-    .selectFrom("app_user")
-    .select((eb) => eb.fn.countAll<string>().as("n"))
-    .executeTakeFirstOrThrow();
-  return Number(row.n);
-}
-
 async function usersOnCode(): Promise<number> {
   const rows = await db
     .selectFrom("app_user")
@@ -114,12 +106,13 @@ async function usersOnCode(): Promise<number> {
   return rows.length;
 }
 
+// The refusal is the evidence: Better Auth answers FAILED_TO_CREATE_USER only when its
+// create was refused. (Counting every user before and after raced the other test files
+// that share the database, and failed CI.)
 test("Better Auth cannot create a user outside the invite flow", async () => {
-  const before = await userCount();
   await expect(
     auth.api.signInAnonymous({ headers: new Headers() }),
   ).rejects.toMatchObject({ body: { code: "FAILED_TO_CREATE_USER" } });
-  expect(await userCount()).toBe(before);
 });
 
 function tableOf(node: OperationNode): string | undefined {
@@ -275,16 +268,23 @@ test("the app's origin passes the origin check; another is refused", async () =>
 });
 
 test("the app can't make an account", async () => {
-  const before = await userCount();
+  const email = `${PREFIX.toLowerCase()}-app@example.test`;
   const response = await fromApp("sign-up/email", "interval://", {
-    email: `${PREFIX.toLowerCase()}-app@example.test`,
+    email,
     password: "a-long-password",
     name: "App",
   });
   // Refused at the origin check: the app's scheme isn't trusted for sign-up (and
   // sign-up is off for every origin, ADR-0016).
   expect(response.status).toBe(403);
-  expect(await userCount()).toBe(before);
+  // That account, not a count of all (other test files add users meanwhile).
+  expect(
+    await db
+      .selectFrom("app_user")
+      .select("id")
+      .where("email", "=", email)
+      .executeTakeFirst(),
+  ).toBeUndefined();
 });
 
 // The app's scheme is trusted only where the app needs it: any app can claim a custom
