@@ -4301,3 +4301,16 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Tests:** a duplicate, a broken link, a swap whose item became a duplicate, and a finish whose item became a duplicate. Each failed on the code before the fix. The web's path and checkpoint suites pass on the function.
 - **Reviewer fix:** the rights filter had dropped recent finishes from "last activity", so a reminder could fire for someone active yesterday. Rights are now a column, used only for the next reading.
 - **Follow-up (not done):** the rights predicate is now written three times: TS `ALLOWED`, the SQL function, and this Python query. One SQL function for "a reading the rights allow" would end that, along with the audit's older item on the rights gate's single definition.
+
+### 2026-11-11 — Phase 4.5 planning
+
+- `docs/questions/phase-4.5.md`: four questions, all answered by the owner with the suggested defaults:
+  - a small fixed set of system shapes in `packages/diagrams`, placed on a grid, data apart from drawing (React Flow reuses it, CANVAS-1); react-native-svg 15.16.0 approved (Expo SDK 58's pin);
+  - scene steps anchored to caption words;
+  - `EXPLAINER_MODEL` drafts timelines through the gateway, and the owner approves them on `/admin/explainers`; labelled AI;
+  - shown in the full players only, with text descriptions and reduced motion.
+  - Decided from DB-6 and CACHE-4 rather than asked: timelines are JSON files in the media bucket at `/media/*`, their schema a JSON Schema with TS and Python codegen (ADR-0010).
+- `docs/roadmap/phase-4.5-slices.md`: 7 slices over Weeks 25–27:
+  - W25: the diagram library; the timeline schema and its clock;
+  - W26: drafting and review;
+  - W27: the web player, the app player, the wrap-up.
