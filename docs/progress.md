@@ -4290,3 +4290,14 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Owner:**
   - remove the smoke images (`interval-smoke-*`) and the scratch database `interval_ci_check`;
   - the open items listed in the checklist.
+
+### 2026-11-11 — Fix: the path reminder's rights gap (ING-2, ARCH-2; drift audit 2026-11-11)
+
+- **The audit's new invariant violation:** the path reminder (P4-W24-S01b) named a next reading without the web's rules. A push could name a section from a source switched off, lowered or deduplicated. It also kept its own copy of the swap rule.
+- **Migration** `user_path_sessions(user, section)`: checkpoints.ts's `sessions` rule as one SQL function (a swap only while its rights allow it, else the approved session). The web's `sessions()` and the worker both call it.
+- **The worker:**
+  - every finish still counts as activity, even one whose rights changed later;
+  - only the next reading must be one the web would show now (rights, path-rights.ts `ALLOWED`) and have a working link.
+- **Tests:** a duplicate, a broken link, a swap whose item became a duplicate, and a finish whose item became a duplicate. Each failed on the code before the fix. The web's path and checkpoint suites pass on the function.
+- **Reviewer fix:** the rights filter had dropped recent finishes from "last activity", so a reminder could fire for someone active yesterday. Rights are now a column, used only for the next reading.
+- **Follow-up (not done):** the rights predicate is now written three times: TS `ALLOWED`, the SQL function, and this Python query. One SQL function for "a reading the rights allow" would end that, along with the audit's older item on the rights gate's single definition.

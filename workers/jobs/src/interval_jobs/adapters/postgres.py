@@ -3798,19 +3798,25 @@ class PostgresReminders:
         if path is None:
             return None
         path_id, name, resumed = int(path[0]), str(path[1]), path[2]
-        # The path's readings in the user's order (a section they moved, as the web
-        # shows it), a swapped reading as they have it, a skipped section left out, and
-        # whether each is finished and when.
+        # The path's readings in the user's order (a section they moved), their sessions
+        # (user_path_sessions: a swap only while its rights allow it, ARCH-2), a skipped
+        # section left out; with whether each is finished and when, whether its rights
+        # allow it now (ING-2, path-rights.ts's ALLOWED) and whether its link works.
+        # Every finish counts as activity; only the next reading must be allowed.
         readings = self._conn.execute(
             """
-            select m.title, f.finished_at
+            select m.title, f.finished_at,
+              so.moments_enabled
+                and so.rights_profile in ('full_text_internal', 'full_text_display')
+                and ci.duplicate_of is null
+                and ci.link_broken_at is null as offered
             from path_section s
             left join user_path_section ups on ups.user_id = %s
               and ups.section_id = s.id
-            join path_session ps on ps.section_id = s.id
-            left join user_path_session us on us.user_id = %s
-              and us.section_id = ps.section_id and us.ordinal = ps.ordinal
-            join moment m on m.id = coalesce(us.moment_id, ps.moment_id)
+            cross join lateral user_path_sessions(%s, s.id) ps
+            join moment m on m.id = ps.moment_id
+            join content_item ci on ci.id = m.content_item_id
+            join source so on so.id = ci.source_id
             left join user_moment_finished f on f.user_id = %s and f.moment_id = m.id
             where s.path_id = %s
               and not (ups.skipped_at is not null and ups.unskipped_at is null)
@@ -3818,11 +3824,15 @@ class PostgresReminders:
             """,
             (user_id, user_id, user_id, path_id),
         ).fetchall()
-        finished = [at for _, at in readings if at is not None]
+        finished = [at for _, at, _ in readings if at is not None]
         last = max([resumed, *finished])
         if now - last < timedelta(days=2):
             return None
-        left = next((str(title) for title, at in readings if at is None), None)
+        # Only one the web would show now (ING-2), never a page that's gone (ING-6).
+        left = next(
+            (str(title) for title, at, offered in readings if at is None and offered),
+            None,
+        )
         if left is None:
             return None
         return PushNotice("path_reminder", f"Next on {name}", left, f"/paths/{path_id}")

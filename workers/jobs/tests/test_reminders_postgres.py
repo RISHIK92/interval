@@ -263,3 +263,110 @@ def test_a_path_reminder_follows_the_users_order_and_skips(
     )
     due = store.path_due("rm8", NOW)
     assert due is not None and due.body == "Section first"
+
+
+def _path_of(
+    conn: psycopg.Connection, user: str, moments: list[int]
+) -> tuple[int, int]:
+    """A live path of one section with these readings in order, active for the user and
+    quiet for five days; returns (path id, section id)."""
+    path = conn.execute(
+        "insert into path (name, why, status, model, prompt_version) "
+        "values ('Rights', 'why', 'live', 'm', 1) returning id"
+    ).fetchone()
+    assert path is not None
+    section = conn.execute(
+        "insert into path_section (path_id, ordinal) values (%s, 0) returning id",
+        (path[0],),
+    ).fetchone()
+    assert section is not None
+    for ordinal, moment in enumerate(moments):
+        conn.execute(
+            "insert into path_session (section_id, ordinal, moment_id) "
+            "values (%s, %s, %s)",
+            (section[0], ordinal, moment),
+        )
+    conn.execute(
+        "insert into user_path (user_id, path_id, status, started_at, updated_at) "
+        "values (%s, %s, 'active', %s, %s)",
+        (user, path[0], NOW - timedelta(days=5), NOW - timedelta(days=5)),
+    )
+    return int(path[0]), int(section[0])
+
+
+# ING-2 (drift audit 2026-11-11): a reminder names only what the web would show now.
+def test_a_reading_its_rights_no_longer_allow_is_never_named(
+    conn: psycopg.Connection,
+) -> None:
+    a_user(conn, "rm9")
+    off = _source(conn, "rmoff")
+    ok = _source(conn, "rmon")
+    off_item, off_moment = _moment(conn, off, "off")
+    dup_item, dup_moment = _moment(conn, ok, "dup")
+    broken_item, broken_moment = _moment(conn, ok, "broken")
+    _, kept = _moment(conn, ok, "kept")
+    _path_of(conn, "rm9", [off_moment, dup_moment, broken_moment, kept])
+    conn.execute(
+        "update source set moments_enabled = false, moments_switched_off = true "
+        "where id = %s",
+        (off,),
+    )
+    conn.execute(
+        "update content_item set duplicate_of = %s where id = %s",
+        (off_item, dup_item),
+    )
+    conn.execute(
+        "update content_item set link_broken_at = now() where id = %s", (broken_item,)
+    )
+    due = PostgresReminders(conn).path_due("rm9", NOW)
+    assert due is not None and due.body == "Section kept"
+
+
+def test_a_swap_counts_only_while_its_rights_allow_it(
+    conn: psycopg.Connection,
+) -> None:
+    a_user(conn, "rm10")
+    ok = _source(conn, "rmswapok")
+    other = _source(conn, "rmswapdup")
+    original, approved = _moment(conn, ok, "approved")
+    swapped_item, swapped = _moment(conn, other, "swapped")
+    _, section = _path_of(conn, "rm10", [approved])
+    conn.execute(
+        "insert into user_path_session (user_id, section_id, ordinal, moment_id) "
+        "values ('rm10', %s, 0, %s)",
+        (section, swapped),
+    )
+    store = PostgresReminders(conn)
+    due = store.path_due("rm10", NOW)
+    assert due is not None and due.body == "Section swapped"
+    # The swap's item is found to be a duplicate (its moment stays, unlike a source
+    # lowered, whose moments go): the approved reading comes back, as on the web.
+    conn.execute(
+        "update content_item set duplicate_of = %s where id = %s",
+        (original, swapped_item),
+    )
+    due = store.path_due("rm10", NOW)
+    assert due is not None and due.body == "Section approved"
+
+
+def test_a_finish_counts_as_activity_even_once_its_rights_change(
+    conn: psycopg.Connection,
+) -> None:
+    a_user(conn, "rm11")
+    ok = _source(conn, "rmactive")
+    done_item, done = _moment(conn, ok, "done")
+    _, next_one = _moment(conn, ok, "next")
+    _path_of(conn, "rm11", [done, next_one])
+    conn.execute(
+        "insert into user_moment_finished (user_id, moment_id, method, finished_at) "
+        "values ('rm11', %s, 'mark_done', %s)",
+        (done, NOW - timedelta(days=1)),
+    )
+    # Read yesterday; its item has since been found a duplicate of another: the reading
+    # leaves the path, but it was still read yesterday.
+    original, _ = _moment(conn, ok, "original")
+    conn.execute(
+        "update content_item set duplicate_of = %s where id = %s",
+        (original, done_item),
+    )
+    assert PostgresReminders(conn).path_due("rm11", NOW) is None

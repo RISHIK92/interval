@@ -6,19 +6,10 @@ import { ALLOWED } from "./path-rights";
 type Ref = RawBuilder<unknown>;
 
 // A section's sessions in the user's copy: their swapped moment while its rights allow
-// it (ING-2), else the approved one; a swap comes back if its source does.
+// it (ING-2), else the approved one; a swap comes back if its source does. The rule is
+// the SQL function user_path_sessions, shared with the worker's path reminder (ARCH-2).
 export const sessions = (userId: string, section: Ref) => sql`
-  select ps.ordinal, coalesce(swapped.id, ps.moment_id) as moment_id
-  from path_session ps
-  left join lateral (
-    select sm.id from user_path_session us
-    join moment sm on sm.id = us.moment_id
-    join content_item ci on ci.id = sm.content_item_id
-    join source so on so.id = ci.source_id
-    where us.user_id = ${userId} and us.section_id = ps.section_id
-      and us.ordinal = ps.ordinal and ${ALLOWED}
-  ) swapped on true
-  where ps.section_id = ${section}
+  select ordinal, moment_id from user_path_sessions(${userId}, ${section})
 `;
 
 // A section's place in the user's order: theirs once they've edited the path (every
