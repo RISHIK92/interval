@@ -1,6 +1,7 @@
 import { type } from "@interval/tokens";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text } from "react-native";
 import { NotifyHere } from "../components/NotifyHere";
+import { PushSettings } from "../components/PushSettings";
 import { useColors } from "../components/theme";
 import { authClient } from "../lib/auth";
 import { discardBooks } from "../lib/books";
@@ -12,7 +13,10 @@ export default function ProfileScreen() {
   const c = useColors();
   const { data } = authClient.useSession();
   return (
-    <View style={[styles.page, { backgroundColor: c.page }]}>
+    <ScrollView
+      style={{ backgroundColor: c.page }}
+      contentContainerStyle={styles.page}
+    >
       <Text style={{ color: c["ink-muted"] }}>Signed in as</Text>
       <Text style={[styles.email, { color: c.ink }]}>{data?.user.email}</Text>
       <Pressable
@@ -38,12 +42,13 @@ export default function ProfileScreen() {
         </Text>
       </Pressable>
       <NotifyHere />
-    </View>
+      <PushSettings />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, padding: 24, gap: 8 },
+  page: { padding: 24, gap: 8 },
   email: { fontSize: type.section.size, fontWeight: type.section.weight },
   button: {
     marginTop: 16,

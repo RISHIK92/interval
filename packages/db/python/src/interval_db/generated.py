@@ -745,6 +745,16 @@ class Pronunciation(TypedDict):
     created_at: datetime
 
 
+class PushPreference(TypedDict):
+    user_id: str
+    digest: bool
+    path_reminder: bool
+    daily_challenge: bool
+    hour: int
+    time_zone: str
+    updated_at: datetime
+
+
 class PushSubscription(TypedDict):
     id: int
     user_id: str

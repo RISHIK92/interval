@@ -69,6 +69,14 @@
       "description": "A voiced concept explainer played to its end (§5G, P4-W23-S01).",
       "props": { "explainer_id": "id", "concept_id": "id" }
     },
+    "push_setting_changed": {
+      "version": 1,
+      "description": "A push kind was turned on or off (P4-W24-S01, Q-P4-13), for the opt-in metric (W24-S02).",
+      "props": {
+        "kind": ["digest", "path_reminder", "daily_challenge"],
+        "on": "boolean"
+      }
+    },
     "note_saved": {
       "version": 1,
       "description": "A note on a section or an article was written or edited (P2-W7-S03, Q-P2-01). Never the note's text.",

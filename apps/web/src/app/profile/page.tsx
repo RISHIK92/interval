@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { pushEnv } from "../../env";
 import {
   agentHook,
+  entitlements,
   feedback,
   follows,
   githubAccounts,
@@ -13,9 +14,9 @@ import {
   playerUniversities,
   preferences,
   progress,
+  pushSettings,
   sessionReader,
   usernames,
-  entitlements,
 } from "../../server/container";
 import type { GitHubConnection, Person, University } from "../../server/ports";
 import { parseTheme, THEME_COOKIE, THEMES } from "../../server/theme";
@@ -26,6 +27,7 @@ import { requireUsername } from "../username/gate";
 import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { AgentHookCard } from "./AgentHookCard";
+import { NotificationsCard } from "./NotificationsCard";
 import { FIELD } from "../ui/field";
 import { STATE_WORDS } from "../learnerState";
 import {
@@ -131,6 +133,7 @@ export default async function ProfilePage(props: {
     devices,
     hookGranted,
     pushGranted,
+    savedPush,
   ] = await Promise.all([
     feedback().hiddenSources(actor.userId),
     feedback().inferred(actor.userId),
@@ -146,7 +149,10 @@ export default async function ProfilePage(props: {
     // ADR-0036 (OPS-3): each shows only on a plan that has it.
     entitlements().can(actor.userId, "agent.hook"),
     entitlements().can(actor.userId, "push.notify"),
+    pushSettings().get(actor.userId),
   ]);
+  // ADR-0036: the push settings only on a plan with push.notify.
+  const pushSettingsNow = pushGranted ? savedPush : null;
   const query = (uq ?? "").trim();
   // Searched only when a change is open, and on two letters or more.
   const matches =
@@ -263,13 +269,19 @@ export default async function ProfilePage(props: {
       {/* ADR-0036: kept for a downgraded user's devices, so they can revoke them. */}
       {hookGranted || devices.length > 0 ? (
         <Card className="p-5">
-          <AgentHookCard
-            canAdd={hookGranted}
-            devices={devices}
-            pushKey={pushGranted ? (pushEnv()?.VAPID_PUBLIC_KEY ?? null) : null}
-          />
+          <AgentHookCard canAdd={hookGranted} devices={devices} />
         </Card>
       ) : null}
+
+      {/* P4-W24-S01 (Q-P4-13, ADR-0036): opt-in pushes, on a plan with push.notify. */}
+      {pushSettingsNow === null ? null : (
+        <Card className="p-5">
+          <NotificationsCard
+            initial={pushSettingsNow}
+            pushKey={pushEnv()?.VAPID_PUBLIC_KEY ?? null}
+          />
+        </Card>
+      )}
 
       {/* This device's theme (owner, 2026-10-26). */}
       <Card className="p-5">

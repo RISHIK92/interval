@@ -4154,3 +4154,36 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - comment placement.
 - **Skipped:** abbreviations ("e.g.") end a sentence early.
 - **Environment:** a check run lost Postgres mid-way (its server restarted into recovery, likely memory); the test passed on rerun.
+
+### 2026-11-11 — P4-W24-S01a (opt-in push: the preferences; Q-P4-13, ADR-0036)
+
+- **Owner, 2026-11-11:**
+  - time zone from the device;
+  - a daily digest when the feed has something unopened;
+  - a path reminder after 2 quiet days;
+  - one hour per user (08:00–20:00, default 18:00), with one push a day in the order daily challenge, path reminder, digest.
+  - Split as W19-S04: S01a the preferences, S01b the sender.
+- **DB:** `push_preference` (three kinds, default off; `hour` 8–20; `time_zone` not null).
+- **Event:** `push_setting_changed {kind, on}` (DB-5, for W24-S02's opt-in).
+- **api-client:** `PushPreferences`, `PushPreferencesBody`, `PUSH_HOURS`.
+- **Web:**
+  - `PushSettings` port and adapter: the row first, then a locked read and the update in one statement, so two saves at once count a change once (tested with two connections);
+  - `canonicalZone`: Intl's own spelling, bare offsets refused, because the worker's zoneinfo is case-sensitive on Linux and knows no "+05:30". Node's ICU may spell Asia/Kolkata as the alias Asia/Calcutta, which zoneinfo knows;
+  - `/api/push/preferences`: GET session only; PUT `fromSiteOrApp`; `push.notify` or 403.
+  - The Profile Notifications card: three switches, each saying what it sends; the Notification hour; this browser's "Notify me on this device", moved from the Agent hook card so it shows once, and still carrying the agent nudge.
+- **App:**
+  - Profile: three Switches and an hour stepper;
+  - one save at a time, and a failure goes back to what the server last confirmed (both clients);
+  - the settings read never throws.
+- **Reviewer fixes:**
+  - zones Python can't read (blocker);
+  - the concurrent-save count;
+  - overlapping optimistic saves;
+  - two notify buttons;
+  - a swallowed network error;
+  - labels and descriptions;
+  - the live hour;
+  - test noise;
+  - time_zone not null;
+  - one Promise.all.
+- **Checks:** web 1519 (the auth flake passes alone), app 110, the static checks; Python 1445 earlier (a spot-check sampling test flaked once on the shared DB, passing alone).

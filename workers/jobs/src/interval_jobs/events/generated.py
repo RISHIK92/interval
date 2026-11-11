@@ -53,6 +53,7 @@ type EventName = Literal[
     "path_started",
     "player_followed",
     "player_unfollowed",
+    "push_setting_changed",
     "pwa_installed",
     "question_flagged",
     "quiz_answered",
@@ -108,6 +109,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "path_started": 1,
     "player_followed": 1,
     "player_unfollowed": 1,
+    "push_setting_changed": 1,
     "pwa_installed": 1,
     "question_flagged": 1,
     "quiz_answered": 1,
@@ -325,6 +327,11 @@ class PlayerFollowedProps(_Model):
 
 class PlayerUnfollowedProps(_Model):
     pass
+
+
+class PushSettingChangedProps(_Model):
+    kind: Literal["digest", "path_reminder", "daily_challenge"]
+    on: StrictBool
 
 
 class PwaInstalledProps(_Model):
@@ -642,6 +649,12 @@ class PlayerUnfollowedEvent(_EnvelopeBase):
     props: PlayerUnfollowedProps
 
 
+class PushSettingChangedEvent(_EnvelopeBase):
+    name: Literal["push_setting_changed"]
+    version: Literal[1]
+    props: PushSettingChangedProps
+
+
 class PwaInstalledEvent(_EnvelopeBase):
     name: Literal["pwa_installed"]
     version: Literal[1]
@@ -749,6 +762,7 @@ type Envelope = Annotated[
     | PathStartedEvent
     | PlayerFollowedEvent
     | PlayerUnfollowedEvent
+    | PushSettingChangedEvent
     | PwaInstalledEvent
     | QuestionFlaggedEvent
     | QuizAnsweredEvent

@@ -39,6 +39,14 @@ const usernameGet = vi.fn<Usernames["get"]>(() =>
   Promise.resolve({ username: "ada", searchable: true }),
 );
 const agentDevices = vi.fn<AgentHook["devices"]>(() => Promise.resolve([]));
+const pushGet = vi.fn(() =>
+  Promise.resolve({
+    digest: true,
+    pathReminder: false,
+    dailyChallenge: false,
+    hour: 9,
+  }),
+);
 let pushKey: string | null = null;
 vi.mock("../../env", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -50,6 +58,7 @@ const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
 );
 vi.mock("../../server/container", () => ({
   entitlements: () => ({ can }),
+  pushSettings: () => ({ get: pushGet }),
   agentHook: () => ({ devices: agentDevices }),
   usernames: () => ({ get: usernameGet, search: peopleSearch }),
   follows: () => ({ following, followers }),
@@ -630,8 +639,9 @@ test("the agent hook card lists devices with Revoke, and adds one", async () => 
   expect(html).toContain("never prompts or code");
 });
 
-// P3-W17-S05b (Q-P3-18): "Notify me on this device" once web push is configured.
-test("the agent hook card offers notifications only when push is configured", async () => {
+// P3-W17-S05b (Q-P3-18): "Notify me on this device" once web push is configured, in the
+// Notifications card since P4-W24-S01 (the agent hook's nudge uses the same browser).
+test("this browser's notifications are offered only when push is configured", async () => {
   pushKey = null;
   expect(await page()).not.toContain("Notify me on this device");
   pushKey = `B${"a".repeat(86)}`;
@@ -648,6 +658,8 @@ test("without agent.hook the card is gone; without push.notify, no notifications
   const noPush = await page();
   expect(noPush).toContain("Agent hook");
   expect(noPush).not.toContain("Notify me on this device");
+  // P4-W24-S01: nor the push settings.
+  expect(noPush).not.toContain('aria-label="Notifications"');
   can.mockImplementation((_user, capability) =>
     Promise.resolve(capability !== "agent.hook"),
   );
@@ -674,4 +686,18 @@ test("without agent.hook, existing devices stay revocable and nothing can be add
   expect(html).toContain("Revoke");
   expect(html).not.toContain("Add a device");
   can.mockImplementation(() => Promise.resolve(true));
+});
+
+// P4-W24-S01 (Q-P4-13): which pushes and when, on a plan with push.notify.
+test("Notifications: each kind with what it sends, the hour, and this browser", async () => {
+  pushKey = `B${"a".repeat(86)}`;
+  const html = await page();
+  expect(html).toContain('aria-label="Notifications"');
+  expect(html).toContain("never between 21:00 and 08:00");
+  expect(html).toMatch(
+    /role="switch"[^>]*checked=""[^>]*\/>.*?Your break is ready/,
+  );
+  expect(html).toMatch(/<option value="9" selected="">09:00<\/option>/);
+  expect(html).toContain("This browser");
+  pushKey = null;
 });

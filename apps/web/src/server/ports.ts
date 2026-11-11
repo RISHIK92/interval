@@ -13,7 +13,7 @@ import type {
   ReviewReason,
   Topic,
 } from "@interval/db";
-import type { ListenResponse } from "@interval/api-client";
+import type { ListenResponse, PushPreferences } from "@interval/api-client";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 
@@ -1838,6 +1838,19 @@ export interface Listening {
     userId: string,
     explainerId: string,
   ): Promise<{ conceptId: string; new: boolean } | null>;
+}
+
+// Opt-in pushes (Q-P4-13, P4-W24-S01): which kinds, the hour, and the device's zone.
+export type PushKind = "digest" | "path_reminder" | "daily_challenge";
+export interface PushSettings {
+  // Defaults (all off, 18:00) for a user who never saved.
+  get(userId: string): Promise<PushPreferences>;
+  // Saved with the zone; the kinds turned on or off by this save.
+  save(
+    userId: string,
+    preferences: PushPreferences,
+    timeZone: string,
+  ): Promise<{ kind: PushKind; on: boolean }[]>;
 }
 
 // The pronunciation dictionary (TTS-2, Q-P4-10, P4-W22-S02): the seed's terms and the

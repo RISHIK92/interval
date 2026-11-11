@@ -69,6 +69,8 @@ describe("the event list (Q-P1-20)", () => {
         // The owner-approved W23-S01 plan (2026-11-10): for W24-S02's listen metrics.
         "explainer_started",
         "explainer_finished",
+        // The owner-approved W24-S01 plan (2026-11-11): for W24-S02's opt-in metric.
+        "push_setting_changed",
       ].sort(),
     );
   });

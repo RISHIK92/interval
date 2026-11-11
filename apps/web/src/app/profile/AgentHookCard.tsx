@@ -1,7 +1,6 @@
 import type { AgentDevice } from "../../server/ports";
 import { revokeAgentDeviceAction } from "./actions";
 import { AddDevice } from "./AddDevice";
-import { NotifyHere } from "./NotifyHere";
 
 const when = (date: Date) =>
   date.toLocaleDateString("en-GB", {
@@ -14,11 +13,9 @@ const when = (date: Date) =>
 // "started" and "finished", never prompts or code.
 export function AgentHookCard({
   devices,
-  pushKey,
   canAdd,
 }: {
   devices: AgentDevice[];
-  pushKey: string | null; // P3-W17-S05b: web push offered once configured
   // ADR-0036: on a plan without the agent hook, devices can be revoked, not added.
   canAdd: boolean;
 }) {
@@ -65,7 +62,6 @@ export function AgentHookCard({
         </ul>
       )}
       {canAdd ? <AddDevice /> : null}
-      {pushKey === null ? null : <NotifyHere pushKey={pushKey} />}
     </section>
   );
 }

@@ -438,3 +438,18 @@ export const ListenResponse = z.object({
 });
 export type ListenResponse = z.infer<typeof ListenResponse>;
 export const ListenQueued = z.object({ first: ID });
+
+// P4-W24-S01 (Q-P4-13; owner, 2026-11-11): which pushes, and the one hour of the day for
+// any of them. The device's time zone comes with every save.
+export const PUSH_HOURS = { min: 8, max: 20 } as const;
+export const PushPreferences = z.object({
+  digest: z.boolean(),
+  pathReminder: z.boolean(),
+  dailyChallenge: z.boolean(),
+  hour: z.number().int().min(PUSH_HOURS.min).max(PUSH_HOURS.max),
+});
+export type PushPreferences = z.infer<typeof PushPreferences>;
+export const PushPreferencesBody = PushPreferences.extend({
+  timeZone: z.string().min(1).max(64),
+});
+export type PushPreferencesBody = z.infer<typeof PushPreferencesBody>;

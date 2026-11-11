@@ -765,6 +765,16 @@ export interface Pronunciation {
   term: string;
 }
 
+export interface PushPreference {
+  daily_challenge: Generated<boolean>;
+  digest: Generated<boolean>;
+  hour: Generated<number>;
+  path_reminder: Generated<boolean>;
+  time_zone: string;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface PushSubscription {
   auth: string;
   created_at: Generated<Timestamp>;
@@ -1305,6 +1315,7 @@ export interface DB {
   project_note: ProjectNote;
   project_note_batch_item: ProjectNoteBatchItem;
   pronunciation: Pronunciation;
+  push_preference: PushPreference;
   push_subscription: PushSubscription;
   question: Question;
   question_batch: QuestionBatch;

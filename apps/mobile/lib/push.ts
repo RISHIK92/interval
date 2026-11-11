@@ -1,5 +1,6 @@
+import { PushPreferences } from "@interval/api-client";
 import * as Notifications from "expo-notifications";
-import { api } from "./api";
+import { api, got } from "./api";
 
 // P4-W19-S04a (Q-P4-03): this phone's push token, registered with the site on the user's
 // tap (never asked unprompted); the worker sends through APNs or FCM (S04b).
@@ -62,4 +63,33 @@ export async function forgetThisPhone(): Promise<void> {
   } catch (error) {
     console.warn("push: not removed at sign out", error);
   }
+}
+
+// P4-W24-S01 (Q-P4-13): which pushes and when, saved with the phone's time zone so the
+// hour is the user's own. A 403 is a plan without push (ADR-0036).
+// Never throws: Profile reads it on open, offline included.
+export const readPushSettings = () =>
+  api("/api/push/preferences", { method: "GET" })
+    .then((response) => got(response, PushPreferences, "push settings"))
+    .catch((error: unknown) => {
+      console.warn("push settings: not read", error);
+      return { status: "failed" as const };
+    });
+
+export async function savePushSettings(
+  next: PushPreferences,
+): Promise<boolean> {
+  const response = await api("/api/push/preferences", {
+    method: "PUT",
+    body: {
+      ...next,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    },
+  }).catch((error: unknown) => {
+    console.warn("push settings: not sent", error);
+    return null;
+  });
+  if (response !== null && !response.ok)
+    console.warn("push settings: not saved", response.status);
+  return response?.ok === true;
 }
