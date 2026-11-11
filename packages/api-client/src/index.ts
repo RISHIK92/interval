@@ -429,6 +429,9 @@ export const ListenExplainer = z.object({
   sources: z.array(z.object({ title: z.string(), href: z.url() })),
   // TTS-3 (P4-W23-S03): each word as written, with when it's said.
   captions: z.array(Caption),
+  // P4.5-W27-S01 (TTS-5, Q-P4.5-04): the approved scene timeline, a same-origin JSON
+  // file under /media/, drawn in the full players; null when there is none yet.
+  scene: z.string().startsWith("/media/").nullable(),
 });
 export type ListenExplainer = z.infer<typeof ListenExplainer>;
 export const ListenResponse = z.object({

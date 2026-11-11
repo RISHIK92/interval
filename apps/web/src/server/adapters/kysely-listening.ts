@@ -24,14 +24,21 @@ type Row = {
   position: string | null;
   citations: unknown;
   captions: unknown;
+  scene: string | null;
 };
 
 function voicedExplainers(db: Kysely<DB>) {
-  return db
-    .selectFrom("concept_explainer as x")
-    .innerJoin("explainer_audio as a", "a.explainer_id", "x.id")
-    .innerJoin("concept as c", "c.id", "x.concept_id")
-    .where("x.status", "=", "approved");
+  return (
+    db
+      .selectFrom("concept_explainer as x")
+      .innerJoin("explainer_audio as a", "a.explainer_id", "x.id")
+      .innerJoin("concept as c", "c.id", "x.concept_id")
+      // P4.5-W27-S01: one timeline per explainer, offered only once approved.
+      .leftJoin("explainer_scene as s", (j) =>
+        j.onRef("s.explainer_id", "=", "x.id").on("s.status", "=", "approved"),
+      )
+      .where("x.status", "=", "approved")
+  );
 }
 
 export function kyselyListening(db: Kysely<DB>): Listening {
@@ -62,6 +69,7 @@ export function kyselyListening(db: Kysely<DB>): Listening {
         return [{ title, href: m.link }];
       }),
       captions: Captions.parse(r.captions),
+      scene: r.scene === null ? null : `/${r.scene}`,
     }));
   }
 
@@ -73,6 +81,7 @@ export function kyselyListening(db: Kysely<DB>): Listening {
     "a.duration_seconds as duration",
     "x.citations",
     "a.captions",
+    "s.scene_key as scene",
   ] as const;
 
   return {

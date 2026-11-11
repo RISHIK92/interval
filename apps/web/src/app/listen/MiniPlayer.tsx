@@ -4,6 +4,7 @@ import { type Caption, sentenceAt } from "@interval/api-client";
 import { Fragment, useEffect, useState, useSyncExternalStore } from "react";
 import { AiBox } from "../ui/AiBox";
 import { type Player, type PlayerState, player, SKIP_SECONDS } from "./player";
+import { Scene } from "./Scene";
 
 // P4-W23-S01 (§4.1, §5G, wireframe 07): the global mini-player, above the tab bar on
 // phones and a card in the corner on wide screens, expanding into the full player.
@@ -234,6 +235,13 @@ export function FullPlayer(props: {
         )}
         {current !== null && (
           <>
+            {current.scene !== null && (
+              <Scene
+                url={current.scene}
+                captions={current.captions}
+                time={state.time}
+              />
+            )}
             <Captions captions={current.captions} time={state.time} />
             <label className="flex flex-col gap-1">
               <span className="sr-only">Position</span>

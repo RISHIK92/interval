@@ -50,10 +50,18 @@
   --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
   --animate-glow: glow 2.4s ease-in-out infinite;
+  /* P4.5-W27-S01: a scene's drawing at each step; only with motion-safe (Q-P4.5-04). */
+  --animate-fade-in: fade-in 0.3s ease-out;
 
   @keyframes glow {
     50% {
       opacity: 0.55;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
     }
   }
 }

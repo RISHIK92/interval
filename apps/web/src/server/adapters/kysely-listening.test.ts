@@ -178,6 +178,37 @@ test("voiced: the section's concepts, or the article's; approved with audio only
   });
 });
 
+// P4.5-W27-S01 (TTS-5, Q-P4.5-04): only an approved timeline reaches the players.
+test("an explainer's timeline is offered once approved, never while pending", async () => {
+  await inRollback(async (trx, { user, x, c }) => {
+    const key = (n: "raft" | "paxos") =>
+      `media/explainers/${c[n]}/${x[n]}/scenes/a.json`;
+    await trx
+      .insertInto("explainer_scene")
+      .values([
+        {
+          explainer_id: x.raft,
+          scene_key: key("raft"),
+          generator_model: "m",
+          prompt_version: 1,
+          status: "approved",
+          decided_at: new Date(),
+        },
+        {
+          explainer_id: x.paxos,
+          scene_key: key("paxos"),
+          generator_model: "m",
+          prompt_version: 1,
+        },
+      ])
+      .execute();
+    const store = kyselyListening(trx);
+    await store.add(user, [x.raft, x.paxos]);
+    const { queue } = ListenResponse.parse(await store.queue(user));
+    expect(queue.map((q) => q.scene)).toEqual([`/${key("raft")}`, null]);
+  });
+});
+
 test("the queue keeps its order, adds once, and lists sources and positions", async () => {
   await inRollback(async (trx, { user, moment, x, c }) => {
     const store = kyselyListening(trx);
@@ -203,6 +234,7 @@ test("the queue keeps its order, adds once, and lists sources and positions", as
         },
       ],
       captions: [],
+      scene: null,
     });
     expect(moment).toBeTruthy();
     // Saved only once it's started.

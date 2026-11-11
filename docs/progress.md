@@ -4417,3 +4417,17 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Tests:** adapter (pending, decide once, approve and reject recorded); loader (valid, missing, not JSON, a broken rule, an anchor past the captions); page and action; the scrubber's step view and its `onChange`; `parseMediaEnv`; infra.
 - **Reviewer fixes:** `aria-valuetext`; a scrubber test that moves it; the type renamed `PendingScene`, with an unused `createdAt` dropped; no `role=alert` on page load; index keys; an id tiebreak; a reject test; `parseMediaEnv` tested.
 - **Accepted, not changed:** if the media bucket can't be read while a timeline is pending, the whole Explainers page errors, script review included. Graceful degradation needs LOAD-5's say-so, and a loud failure on an owner-only page is the intended one.
+
+### 2026-11-12 — P4.5-W27-S01 (visual explainers in the web player; TTS-5, §5G, Q-P4.5-04)
+
+- **api-client:** `ListenExplainer.scene` is the approved timeline's same-origin `/media/…json`, or null. Older app builds drop the unknown key (non-strict zod).
+- **kysely-listening:** a left join on `explainer_scene` where `status = 'approved'` (unique per explainer, so no duplicate rows). Pending and rejected timelines are never offered.
+- **Web** `app/listen/Scene.tsx`:
+  - `fetchTimeline` holds the file to the zod `Timeline` at the boundary. A 404, a body that isn't JSON, or a broken timeline draws nothing and logs `console.error`; the audio and captions carry on.
+  - `timelineFor` never shows the last explainer's drawing while the next one's loads.
+  - `SceneView` steps with `stepAt` and `stateAt`, drawn in the AI box (AI-1). The drawing fades in at each step, `motion-safe` only (`--animate-fade-in`). An `sr-only` `aria-live` region is there from mount, empty, so the first step is announced too.
+  - The full player draws it above the captions. The mini-player bar never does.
+- **Tests:** the listening join (approved offered, pending null); before the first step; each step's drawing and description; the AI tag; `motion-safe`; fetch failures (404, not JSON, invalid); `timelineFor`; the full player's placement and the bar's absence. Fixtures in web and mobile gain `scene: null`.
+- **Reviewer fixes:** the live region from mount; `AiBox` in place of a plain caption; the stale guard extracted and tested; non-JSON caught; the boundary comment.
+- **Not tested:** the effect's `live` flag (an unmount during a fetch). apps/web has no DOM test environment, and adding one is a dependency for the owner to approve.
+- **Noticed, not in scope:** if an explainer is voiced again after its timeline was approved, the step anchors (caption word indices) can drift silently. `stepAt` tolerates it, but nothing re-checks the anchors.

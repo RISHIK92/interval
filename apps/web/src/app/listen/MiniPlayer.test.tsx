@@ -4,6 +4,13 @@ import { expect, test, vi } from "vitest";
 import { clock, FullPlayer, PlayerBar, visible } from "./MiniPlayer";
 import type { PlayerState } from "./player";
 
+// The drawing fetches its file in an effect; here only where it goes and with what.
+vi.mock("./Scene", () => ({
+  Scene: (props: { url: string; time: number }) => (
+    <div data-scene={props.url} data-time={props.time} />
+  ),
+}));
+
 // P4-W23-S01 (§4.1, §5G, AI-1, AI-3, wireframe 07): the mini-player and the full player.
 const raft: ListenExplainer = {
   explainerId: "7",
@@ -16,6 +23,7 @@ const raft: ListenExplainer = {
     { title: "Elections — Raft", href: "https://a.test/raft#elections" },
   ],
   captions: [],
+  scene: null,
 };
 const state: PlayerState = {
   status: "ready",
@@ -129,4 +137,36 @@ test("captions: the current sentence, the said word in bold and underlined", () 
     '<summary class="cursor-pointer font-semibold">Transcript</summary>',
   );
   expect(html).toContain("Raft elects leaders. Then");
+});
+
+// P4.5-W27-S01 (Q-P4.5-04): the timeline in the full player only, above the captions.
+test("an approved timeline is drawn in the full player above the captions, never in the bar", () => {
+  const drawn: PlayerState = {
+    ...state,
+    current: {
+      ...raft,
+      scene: "/media/explainers/3/7/scenes/a.json",
+      captions: [{ text: "Raft.", start: 0, end: 1 }],
+    },
+  };
+  const full = renderToStaticMarkup(
+    <FullPlayer state={drawn} actions={actions} onClose={vi.fn()} />,
+  );
+  expect(full).toContain(
+    'data-scene="/media/explainers/3/7/scenes/a.json" data-time="61"',
+  );
+  expect(full.indexOf("data-scene")).toBeLessThan(
+    full.indexOf('data-testid="captions"'),
+  );
+  expect(
+    renderToStaticMarkup(
+      <PlayerBar state={drawn} actions={actions} onExpand={vi.fn()} />,
+    ),
+  ).not.toContain("data-scene");
+  // None approved: nothing drawn.
+  expect(
+    renderToStaticMarkup(
+      <FullPlayer state={state} actions={actions} onClose={vi.fn()} />,
+    ),
+  ).not.toContain("data-scene");
 });
