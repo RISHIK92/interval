@@ -775,6 +775,13 @@ export interface PushPreference {
   user_id: string;
 }
 
+export interface PushSent {
+  kind: string;
+  local_day: Timestamp;
+  sent_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface PushSubscription {
   auth: string;
   created_at: Generated<Timestamp>;
@@ -1316,6 +1323,7 @@ export interface DB {
   project_note_batch_item: ProjectNoteBatchItem;
   pronunciation: Pronunciation;
   push_preference: PushPreference;
+  push_sent: PushSent;
   push_subscription: PushSubscription;
   question: Question;
   question_batch: QuestionBatch;

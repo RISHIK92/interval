@@ -1286,6 +1286,9 @@ class Store(Protocol):
     @property
     def daily(self) -> "DailyChallenges": ...
 
+    @property
+    def reminders(self) -> "Reminders": ...
+
 
 # GitHub projects (§5H, ADR-0024, P2-W12-S02): a connected user's repositories, read by
 # the App: metadata and dependency names only, never code.
@@ -1518,8 +1521,68 @@ class NativePush(Protocol):
     drop it) or failed (try another time)."""
 
     def send(
-        self, target: NativeTarget, title: str, body: str
-    ) -> Literal["sent", "gone", "failed"]: ...
+        self, target: NativeTarget, title: str, body: str, url: str | None = None
+    ) -> Literal["sent", "gone", "failed"]:
+        """`url`: the page a tap opens in the app (P4-W24-S01b)."""
+        ...
+
+
+PushKind = Literal["daily_challenge", "path_reminder", "digest"]
+
+
+@dataclass(frozen=True)
+class PushCandidate:
+    """A user with a push kind on (P4-W24-S01, Q-P4-13): their hour and IANA zone."""
+
+    user_id: str
+    time_zone: str
+    hour: int
+    daily_challenge: bool
+    path_reminder: bool
+    digest: bool
+
+
+@dataclass(frozen=True)
+class PushNotice:
+    """What one push says, and the page it opens (a path on the site and in the app)."""
+
+    kind: PushKind
+    title: str
+    body: str
+    url: str
+
+
+class Reminders(Protocol):
+    """Opt-in pushes (P4-W24-S01b; owner, 2026-11-11): who wants them, what applies to
+    each now, and the once-a-day claim."""
+
+    def candidates(self) -> list[PushCandidate]:
+        """Users with a kind on, on a plan with push.notify (ADR-0036)."""
+        ...
+
+    def sent_on(self, user_id: str, local_day: date) -> bool: ...
+
+    def daily_open(self, user_id: str, day: date) -> bool:
+        """Today's (UTC) set exists and the user hasn't started it."""
+        ...
+
+    def path_due(self, user_id: str, now: datetime) -> PushNotice | None:
+        """An active path quiet for two days, with a reading left."""
+        ...
+
+    def digest(self, user_id: str) -> PushNotice | None:
+        """The user's feed has something unopened."""
+        ...
+
+    def claim(self, user_id: str, local_day: date, kind: PushKind) -> bool:
+        """The day's one push; False when it was already claimed."""
+        ...
+
+    def web_targets(self, user_id: str) -> list[PushTarget]:
+        """The user's browsers, on a plan with push.notify."""
+        ...
+
+    def drop_web(self, endpoint: str) -> None: ...
 
 
 class DeviceTokens(Protocol):

@@ -1,0 +1,11 @@
+# VM mode (ADR-0011), P4-W24-S01b (Q-P4-13): on the hour, as users pick whole hours. A
+# missed run needs no catch-up: each user's window runs to 21:00 their time, and the next
+# hour's pass still finds them.
+[Unit]
+Description=Interval push-due every hour
+
+[Timer]
+OnCalendar=hourly
+
+[Install]
+WantedBy=timers.target

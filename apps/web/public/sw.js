@@ -31,8 +31,24 @@ self.addEventListener("fetch", (event) => {
   );
 });
 
-// P3-W17-S05b (§7, Q-P3-18): the agent hook's nudge, 45 seconds into a task. The
-// worker's payload is fixed text (interval_jobs/agent_push.py), never the task's.
+// A page on this site to open, as the URL parser reads it (it drops tabs and newlines,
+// so "/\t/host" is "//host": a prefix check isn't enough); anything else opens Home.
+function pageOn(url) {
+  if (typeof url !== "string") return "/";
+  try {
+    const page = new URL(url, self.location.origin);
+    return page.origin === self.location.origin
+      ? page.pathname + page.search + page.hash
+      : "/";
+  } catch {
+    return "/";
+  }
+}
+
+// P3-W17-S05b (§7, Q-P3-18): the agent hook's nudge, 45 seconds into a task, from fixed
+// text (interval_jobs/agent_push.py), never the task's. P4-W24-S01b: an opt-in push
+// (interval_jobs/reminders.py) names its page and its kind's tag, so a new one replaces
+// the last of its kind.
 self.addEventListener("push", (event) => {
   let note;
   try {
@@ -47,23 +63,36 @@ self.addEventListener("push", (event) => {
       {
         body: note.body || "Open Interval for a quick session",
         icon: "/icons/icon-192.png",
-        tag: "agent-nudge",
-        data: { url: "/" },
+        tag:
+          typeof note.tag === "string" && /^[a-z_-]{1,40}$/.test(note.tag)
+            ? note.tag
+            : "agent-nudge",
+        data: { url: pageOn(note.url) },
       },
     ),
   );
 });
 
-// Back to Interval: an open window if there is one, else a new one; never another
-// site.
+// Back to Interval, at the push's page: an open window if there is one (taken there),
+// else a new one; never another site.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+  const data = event.notification.data;
+  const url = pageOn(data ? data.url : undefined);
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })
       .then((windows) => {
         const open = windows.find((w) => "focus" in w);
-        return open ? open.focus() : self.clients.openWindow("/");
+        if (!open) return self.clients.openWindow(url);
+        // navigate refuses a window this worker doesn't control yet (its first load,
+        // a hard reload): the page opens in a new one instead.
+        return open
+          .focus()
+          .then((focused) =>
+            "navigate" in focused ? focused.navigate(url) : focused,
+          )
+          .catch(() => self.clients.openWindow(url));
       }),
   );
 });

@@ -24,3 +24,10 @@ The worker sends straight to Apple's APNs and Google's FCM (Q-P4-03), with no Ex
 
 1. On a phone with the app: Profile → Notify me on this phone (allow).
 2. `scripts/with-env.sh uv run python -m interval_jobs push-test --email <your account>` prints `{"sent": n, "failed": n, "gone": n}`; the phone shows "Test notification". A dead token is dropped.
+
+## Opt-in pushes (P4-W24-S01b, Q-P4-13)
+
+- **What:** users turn on the daily challenge, path reminders or "your break is ready" on Profile (web or app) and pick an hour, 08:00–20:00 in their own time zone.
+- **When:** `push-due` runs hourly (EventBridge Scheduler `PushDueSchedule` on AWS; `interval-push.timer` on the VM). It sends each user at most one a day, at or after their hour and before 21:00 local, in the order daily challenge, path reminder, digest, to their browsers (web push, the VAPID keys) and phones (APNs and FCM, as above).
+- **Once a day:** the day is claimed in `push_sent` before sending. A user with nowhere to send is left unclaimed, so a phone or browser added later that day still gets it.
+- **By hand:** `scripts/with-env.sh uv run python -m interval_jobs push-due` prints `{"sent": n, "skipped": n, "failed": n}`. A dead browser or phone is dropped. A claimed push that reached nobody is logged as "push: not delivered" and counted by the `Interval/Push NotDelivered` metric; each failed browser is logged as "reminder: push failed".

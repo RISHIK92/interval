@@ -1,4 +1,4 @@
-import { fireEvent, screen } from "@testing-library/react-native";
+import { act, fireEvent, screen } from "@testing-library/react-native";
 import { renderRouter } from "expo-router/testing-library";
 import * as Notifications from "expo-notifications";
 
@@ -217,4 +217,44 @@ test("a save that fails goes back to what the server last confirmed", async () =
   ).toBeOnTheScreen();
   expect(screen.getByLabelText("Daily challenge")).toHaveProp("value", false);
   warn.mockRestore();
+});
+
+// P4-W24-S01b: a tapped notification opens the page it names, once.
+const tap = (url: unknown) =>
+  ({
+    notification: {
+      request: { identifier: "n1", content: { data: { url } } },
+    },
+  }) as unknown as Notifications.NotificationResponse;
+
+test("the notification that launched the app opens its page, then is cleared", async () => {
+  mocked.getLastNotificationResponse.mockReturnValueOnce(tap("/play"));
+  await renderRouter("./app", { initialUrl: "/" });
+  expect(await screen.findByText("Couldn't load Play.")).toBeOnTheScreen();
+  expect(mocked.clearLastNotificationResponse).toHaveBeenCalled();
+});
+
+test("one tapped while the app runs opens too; another site's never", async () => {
+  await renderRouter("./app", { initialUrl: "/library" });
+  await screen.findByText("Audio queue");
+  const listener =
+    mocked.addNotificationResponseReceivedListener.mock.calls[0]?.[0];
+  if (listener === undefined) throw new Error("no listener");
+  for (const away of [
+    "//evil.test/x",
+    "/\\evil.test",
+    "https://evil.test",
+    7,
+  ]) {
+    await act(async () => {
+      listener(tap(away));
+      await Promise.resolve();
+    });
+    expect(screen.getByText("Audio queue")).toBeOnTheScreen();
+  }
+  await act(async () => {
+    listener(tap("/play"));
+    await Promise.resolve();
+  });
+  expect(await screen.findByText("Couldn't load Play.")).toBeOnTheScreen();
 });

@@ -4199,3 +4199,40 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Verified:** a scratch local database `interval_ci_check`, migrated from empty as CI does: the whole web suite (1520) and Python (1380) pass on it; the app's lint passes with `expo-env.d.ts` moved aside. The scratch database is still there for the owner to drop.
 - Turbo had been cancelling the rest of the check after the web failure, so CI never got as far as Python or infra.
 - **Then a race:** the first CI run after that failed on `better-auth.test.ts`, whose two tests counted every user before and after, so another test file adding a user at the same moment broke them (it flaked locally too). The anonymous sign-in's refusal is now its own evidence, and the app's sign-up checks for its own email. The next run passed the web suite and failed only on infra's synth hook (60 s), the timeout seen locally under load all along: raised to 5 minutes in `infra/vitest.config.ts`.
+
+### 2026-11-11 — P4-W24-S01b (opt-in push: the sender; Q-P4-13)
+
+- **Owner, 2026-11-11:**
+  - at most one push per user per local day, at or after their hour and before 21:00 local;
+  - in the order daily challenge (today's UTC set, unplayed), path reminder (an active path quiet for 2 days, naming the next reading), digest (an unopened entry of their break length's feed);
+  - web and native; a tap opens the page.
+- **DB:** `push_sent` (user, local day): the day is claimed before sending (LOAD-5). A user with nowhere to send isn't claimed; a claimed one that fails isn't retried that day (at most once).
+- **Worker:**
+  - `reminders.py` `run_push_due`: zoneinfo for the user's day; one user's error or unreadable zone is logged and counted, never stopping the rest. Tested for the hour boundary, a DST day (New York), a :45 zone (Kathmandu) and partial failure.
+  - `PostgresReminders`:
+    - the digest reads `user_feed_visible` (no broken links, ING-6; no sections the rights no longer allow, ING-2) and leaves out opened and finished entries;
+    - the path follows the user's order, swaps and skips, as the web does;
+    - the plan gate (ADR-0036).
+  - `push-due` command.
+  - Native sends carry the page (APNs `url`, FCM `data.url`).
+  - Web push failures log as "reminder:", so the agent hook's metric counts only its own.
+- **Web** `sw.js`: the payload's page, parsed as a URL on this origin (a tab can't smuggle in "//host"), and its tag. A click focuses and navigates, or opens a new window when navigate is refused.
+- **App:** the tabs layout opens a tapped notification's page through `useRouter` (the global router binds a commit later), clears the launching one, and accepts only a same-app path.
+- **Schedules:**
+  - AWS: `PushDueSchedule` hourly, a task with the DB, VAPID, APNs and FCM secrets and `VAPID_SUBJECT`, no queue access; the `Interval/Push NotDelivered` metric.
+  - VM: `interval-push.timer` on the hour.
+  - Runbook: native-push.md.
+- **Reviewer fixes:**
+  - the digest's gates (blocker);
+  - the path order and skips;
+  - the per-user guard;
+  - the metric;
+  - the URL parse;
+  - navigate refused;
+  - the launching notification cleared;
+  - no timer;
+  - the missing tests.
+- **Checks:** web 1520, app 112, Python 1463 (a randomised question-stage test flaked once and passes alone), infra 94, static checks.
+- **Owner:**
+  - CLAUDE.md's command list could gain `push-due` (the owner's file);
+  - real delivery needs the VAPID, APNs and FCM keys (runbook).

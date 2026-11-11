@@ -576,8 +576,9 @@ describe("containers", () => {
     const tasks = all("AWS::ECS::TaskDefinition");
     // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due,
     // spot-check-due, question-batches, recalibrate-difficulty, sync-github-due,
-    // suggest-technologies, daily-challenge-due, game-0 (ADR-0033), close-season
-    expect(tasks.length).toBe(15);
+    // suggest-technologies, daily-challenge-due, game-0 (ADR-0033), close-season,
+    // push-due (P4-W24-S01b)
+    expect(tasks.length).toBe(16);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -841,7 +842,8 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
       target.EcsParameters.NetworkConfiguration.AwsvpcConfiguration;
     expect(network.AssignPublicIp ?? "DISABLED").toBe("DISABLED");
     expect(JSON.stringify(network.SecurityGroups)).toContain("AppSg");
-    // Each schedule's role may run its own task only (ten schedules, close-season the tenth).
+    // Each schedule's role may run its own task only (eleven schedules, push-due the
+    // eleventh, P4-W24-S01b).
     const runTask = all("AWS::IAM::Policy").flatMap(([, policy]) =>
       (
         policy.Properties["PolicyDocument"] as {
@@ -849,9 +851,10 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(10);
+    expect(runTask).toHaveLength(11);
     const targets = runTask.map((st) => JSON.stringify(st.Resource));
     expect(targets.filter((t) => t.includes("PollDueTask"))).toHaveLength(1);
+    expect(targets.filter((t) => t.includes("PushDueTask"))).toHaveLength(1);
     expect(targets.filter((t) => t.includes("RecomputeDueTask"))).toHaveLength(
       1,
     );
@@ -1376,6 +1379,49 @@ describe("weekly question spot checks (P2-W8-S03, Q-2)", () => {
 });
 
 describe("the daily challenge (P3-W13-S05, ADR-0031)", () => {
+  // P4-W24-S01b (Q-P4-13): the opt-in pushes, hourly, with the push secrets; one that
+  // reaches nobody is counted.
+  test("EventBridge Scheduler runs push-due hourly with the push secrets, with no queue access", () => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "push: not delivered" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Push",
+          MetricName: "NotDelivered",
+        }),
+      ],
+    });
+    const schedule = scheduleFor("PushDueTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe("cron(0 * * * ? *)");
+    const container = containerNamed("push-due");
+    expect(container?.Command).toEqual(["push-due"]);
+    expect((container?.Secrets ?? []).map((x) => x.Name).sort()).toEqual([
+      "APNS_KEY",
+      "APNS_KEY_ID",
+      "APNS_TEAM_ID",
+      "DB_PASSWORD",
+      "FCM_SERVICE_ACCOUNT",
+      "VAPID_PRIVATE_KEY",
+    ]);
+    expect(
+      (container?.Environment ?? []).some((e) => e.Name === "VAPID_SUBJECT"),
+    ).toBe(true);
+    const actions = all("AWS::IAM::Policy")
+      .filter(([, policy]) =>
+        (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
+          r.Ref.startsWith("PushDueTaskTaskRole"),
+        ),
+      )
+      .flatMap(([, policy]) =>
+        (
+          policy.Properties["PolicyDocument"] as {
+            Statement: { Action: string | string[] }[];
+          }
+        ).Statement.flatMap((st) => [st.Action].flat()),
+      );
+    expect(actions.some((a) => a.startsWith("sqs:"))).toBe(false);
+  });
+
   test("EventBridge Scheduler runs daily-challenge-due at 00:00 UTC, with no queue access", () => {
     const schedule = scheduleFor("DailyChallengeDueTask");
     expect(schedule.Properties["ScheduleExpression"]).toBe("cron(0 0 * * ? *)");

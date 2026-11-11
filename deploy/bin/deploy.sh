@@ -51,7 +51,8 @@ for unit in interval.service interval-poll.service interval-poll.timer \
   interval-github.service interval-github.timer \
   interval-technologies.service interval-technologies.timer \
   interval-daily.service interval-daily.timer \
-  interval-season.service interval-season.timer; do
+  interval-season.service interval-season.timer \
+  interval-push.service interval-push.timer; do
   install -m 644 "$APP_DIR/deploy/systemd/$unit" "/etc/systemd/system/$unit"
 done
 systemctl daemon-reload
@@ -63,6 +64,8 @@ systemctl start interval.service
 systemctl enable --now interval-poll.timer
 # Q-P1-17: recomputes active users' feeds hourly, as EventBridge Scheduler does in AWS.
 systemctl enable --now interval-recompute.timer
+# Q-P4-13: sends the opt-in pushes whose hour has come, as EventBridge does in AWS.
+systemctl enable --now interval-push.timer
 # ING-6: checks every item's link weekly, as EventBridge Scheduler does in AWS mode.
 systemctl enable --now interval-links.timer
 # Q-P2-40: reads connected users' repositories daily, as EventBridge Scheduler does.

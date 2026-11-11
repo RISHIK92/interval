@@ -249,6 +249,19 @@ def test_a_systemd_timer_runs_recompute_due_hourly() -> None:
     assert re.search(r"systemctl enable --now interval-recompute\.timer", deploy)
 
 
+# Q-P4-13 (P4-W24-S01b): the opt-in pushes on the hour, as EventBridge Scheduler does.
+def test_a_systemd_timer_runs_push_due_on_the_hour() -> None:
+    timer = (SYSTEMD / "interval-push.timer").read_text()
+    service = (SYSTEMD / "interval-push.service").read_text()
+    assert "OnCalendar=hourly" in timer
+    assert re.search(r"^ExecStart=.*stack\.sh run push-due$", service, re.MULTILINE)
+    assert "Requisite=interval.service" in service
+    assert re.search(r"^TimeoutStartSec=", service, re.MULTILINE)
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert re.search(r"systemctl enable --now interval-push\.timer", deploy)
+    assert "interval-push.service interval-push.timer" in deploy
+
+
 # ING-6 (P1-W6-S03): the weekly link health check, as EventBridge Scheduler does in AWS.
 def test_a_systemd_timer_runs_check_links_due_weekly() -> None:
     timer = (SYSTEMD / "interval-links.timer").read_text()

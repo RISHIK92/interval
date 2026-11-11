@@ -87,6 +87,7 @@ from interval_jobs.question_trial import TrialError, run_trial, trial_moments
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.ranking.scoring import BREAK_MINUTES
 from interval_jobs.recalibration import recalibrate
+from interval_jobs.reminders import run_push_due
 from interval_jobs.seasons import close_season
 from interval_jobs.segment import segment_item
 from interval_jobs.tagging import TaggingError
@@ -133,6 +134,10 @@ def main(argv: list[str]) -> None:
         help="check that moment links land on their sections (P1-W6-S02)",
     )
     links.add_argument("--source-id", type=int)
+    commands.add_parser(
+        "push-due",
+        help="send the opt-in pushes whose hour has come (hourly, P4-W24-S01b)",
+    )
     commands.add_parser(
         "recompute-due",
         help="queue a feed recompute per active user and refresh the starter feeds",
@@ -371,6 +376,14 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         with services() as s:
             queued = queue_link_checks(s.store, queue_for_enqueue(), datetime.now(UTC))
         print(json.dumps({"queued": queued}))
+        return
+
+    if args.command == "push-due":
+        # Q-P4-13: hourly; each user at most once a day, in their own hours.
+        out = run_push_due(services, web_push(), native_push(), datetime.now(UTC))
+        print(
+            json.dumps({"sent": out.sent, "skipped": out.skipped, "failed": out.failed})
+        )
         return
 
     if args.command == "push-test":

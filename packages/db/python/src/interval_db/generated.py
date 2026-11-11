@@ -755,6 +755,13 @@ class PushPreference(TypedDict):
     updated_at: datetime
 
 
+class PushSent(TypedDict):
+    user_id: str
+    local_day: date
+    kind: str
+    sent_at: datetime
+
+
 class PushSubscription(TypedDict):
     id: int
     user_id: str

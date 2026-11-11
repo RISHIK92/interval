@@ -210,7 +210,7 @@ class _Fake:
         self.outcomes = outcomes
 
     def send(
-        self, target: NativeTarget, title: str, body: str
+        self, target: NativeTarget, title: str, body: str, url: str | None = None
     ) -> Literal["sent", "gone", "failed"]:
         return self.outcomes[target.token]
 
@@ -283,7 +283,7 @@ def test_compose_turns_each_platform_on_only_with_usable_secrets(
 
 class _Raising:
     def send(
-        self, target: NativeTarget, title: str, body: str
+        self, target: NativeTarget, title: str, body: str, url: str | None = None
     ) -> Literal["sent", "gone", "failed"]:
         if target.token == "b":
             raise httpx.ConnectError("down")
@@ -293,3 +293,24 @@ class _Raising:
 def test_one_phone_raising_stops_none() -> None:
     out = deliver(_Raising(), [NativeTarget("ios", t) for t in "abc"], "Hi", "There")
     assert (out.sent, out.failed, out.gone) == (2, 1, [])
+
+
+# P4-W24-S01b: an opt-in push names the page a tap opens in the app.
+def test_a_push_with_a_page_carries_it_to_both_platforms() -> None:
+    sender, seen = _sender(
+        {
+            APNS: httpx.Response(200),
+            TOKEN_URL: httpx.Response(
+                200, json={"access_token": "t", "expires_in": 3599}
+            ),
+            FCM: httpx.Response(200, json={"name": "m"}),
+        }
+    )
+    sender.send(NativeTarget("ios", "ab12"), "Hi", "There", "/paths/3")
+    sender.send(NativeTarget("android", "fcm:1"), "Hi", "There", "/play")
+    apns, _, fcm = seen.requests
+    assert json.loads(apns.content) == {
+        "aps": {"alert": {"title": "Hi", "body": "There"}},
+        "url": "/paths/3",
+    }
+    assert json.loads(fcm.content)["message"]["data"] == {"url": "/play"}

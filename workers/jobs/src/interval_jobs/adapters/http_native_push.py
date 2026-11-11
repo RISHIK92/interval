@@ -53,12 +53,14 @@ class HttpNativePush:
         self._apns_token: tuple[str, datetime] | None = None
         self._fcm_token: tuple[str, datetime] | None = None
 
-    def send(self, target: NativeTarget, title: str, body: str) -> Outcome:
+    def send(
+        self, target: NativeTarget, title: str, body: str, url: str | None = None
+    ) -> Outcome:
         if target.platform == "ios":
-            return self._send_apns(target.token, title, body)
-        return self._send_fcm(target.token, title, body)
+            return self._send_apns(target.token, title, body, url)
+        return self._send_fcm(target.token, title, body, url)
 
-    def _send_apns(self, token: str, title: str, body: str) -> Outcome:
+    def _send_apns(self, token: str, title: str, body: str, url: str | None) -> Outcome:
         if self._apns is None:
             return "failed"
         now = self._clock()
@@ -67,7 +69,11 @@ class HttpNativePush:
             self._apns_token = (apns_jwt(a.team_id, a.key_id, a.key, now), now)
         response = self._http.post(
             f"https://{APNS_HOSTS[self._apns.sandbox]}/3/device/{token}",
-            json={"aps": {"alert": {"title": title, "body": body}}},
+            # A custom key beside aps: the app reads it as the notification's data.
+            json={
+                "aps": {"alert": {"title": title, "body": body}},
+                **({} if url is None else {"url": url}),
+            },
             headers={
                 "authorization": f"bearer {self._apns_token[0]}",
                 "apns-topic": APNS_TOPIC,
@@ -114,7 +120,7 @@ class HttpNativePush:
         self._fcm_token = (str(reply["access_token"]), expires)
         return self._fcm_token[0]
 
-    def _send_fcm(self, token: str, title: str, body: str) -> Outcome:
+    def _send_fcm(self, token: str, title: str, body: str, url: str | None) -> Outcome:
         if self._fcm is None:
             return "failed"
         access = self._access_token()
@@ -126,6 +132,7 @@ class HttpNativePush:
                 "message": {
                     "token": token,
                     "notification": {"title": title, "body": body},
+                    **({} if url is None else {"data": {"url": url}}),
                 }
             },
             headers={"authorization": f"Bearer {access}"},

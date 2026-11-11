@@ -25,7 +25,11 @@ function load(fetchImpl: (request: unknown) => Promise<Response>) {
     delete: vi.fn(() => Promise.resolve(true)),
     match: (url: string) => Promise.resolve(stored.get(url)),
   };
-  const windows: { focus: () => Promise<void> }[] = [];
+  // A window client: focus resolves to it; navigate where the browser has it.
+  const windows: {
+    focus: () => Promise<unknown>;
+    navigate?: (url: string) => Promise<void>;
+  }[] = [];
   const self = {
     addEventListener: (type: string, listener: Listener) =>
       listeners.set(type, listener),
@@ -48,6 +52,8 @@ function load(fetchImpl: (request: unknown) => Promise<Response>) {
       },
     },
   };
+  // The worker's own origin, which pageOn resolves against.
+  Object.assign(self, { location: { origin: "https://interval.example" } });
   runInNewContext(
     readFileSync(join(__dirname, "..", "..", "public", "sw.js"), "utf8"),
     {
@@ -56,6 +62,7 @@ function load(fetchImpl: (request: unknown) => Promise<Response>) {
       fetch: fetchImpl,
       Response,
       Promise,
+      URL,
     },
   );
   async function dispatch(type: string, extra: Record<string, unknown> = {}) {
@@ -133,10 +140,66 @@ test("a push shows the nudge; a click focuses Interval or opens it", async () =>
   await sw.dispatch("notificationclick", { notification: { close } });
   expect(close).toHaveBeenCalled();
   expect(sw.self.clients.openWindow).toHaveBeenCalledWith("/");
-  const focus = vi.fn(() => Promise.resolve());
+  const focus = vi.fn(function (this: object) {
+    return Promise.resolve(this);
+  });
   sw.windows.push({ focus });
   await sw.dispatch("notificationclick", { notification: { close } });
   expect(focus).toHaveBeenCalled();
+});
+
+// P4-W24-S01b: an opt-in push opens its page, on this site only, under its kind's tag.
+test("an opt-in push opens its page; another site's or a bad tag is refused", async () => {
+  const sw = load(() => Promise.reject(new Error("unused")));
+  await sw.dispatch("push", {
+    data: {
+      json: () => ({
+        title: "Next on Raft",
+        body: "Elections",
+        url: "/paths/3",
+        tag: "interval-path_reminder",
+      }),
+    },
+  });
+  expect(sw.self.registration.showNotification).toHaveBeenLastCalledWith(
+    "Next on Raft",
+    expect.objectContaining({
+      tag: "interval-path_reminder",
+      data: { url: "/paths/3" },
+    }),
+  );
+  for (const away of [
+    "//evil.test/p",
+    "/\t/evil.test/p",
+    "https://evil.test/",
+  ]) {
+    await sw.dispatch("push", {
+      data: { json: () => ({ title: "x", url: away, tag: "<b>" }) },
+    });
+    expect(sw.self.registration.showNotification).toHaveBeenLastCalledWith(
+      "x",
+      expect.objectContaining({ tag: "agent-nudge", data: { url: "/" } }),
+    );
+  }
+  const close = vi.fn();
+  await sw.dispatch("notificationclick", {
+    notification: { close, data: { url: "/paths/3" } },
+  });
+  expect(sw.self.clients.openWindow).toHaveBeenCalledWith("/paths/3");
+  // An open window is focused, then taken there.
+  const navigate = vi.fn(() => Promise.resolve());
+  const window = { navigate, focus: () => Promise.resolve(window) };
+  sw.windows.push(window);
+  await sw.dispatch("notificationclick", {
+    notification: { close, data: { url: "/play" } },
+  });
+  expect(navigate).toHaveBeenCalledWith("/play");
+  // A window it doesn't control refuses navigate: a new one opens there instead.
+  navigate.mockRejectedValueOnce(new TypeError("not controlled"));
+  await sw.dispatch("notificationclick", {
+    notification: { close, data: { url: "/play" } },
+  });
+  expect(sw.self.clients.openWindow).toHaveBeenLastCalledWith("/play");
 });
 
 test("a push with no readable payload still shows the nudge", async () => {

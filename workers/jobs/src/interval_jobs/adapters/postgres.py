@@ -71,6 +71,9 @@ from interval_jobs.ports import (
     ProjectConcepts,
     ProjectNoteInput,
     Pronunciation,
+    PushCandidate,
+    PushKind,
+    PushNotice,
     PushTarget,
     QuestionBatchEntry,
     QuestionDraft,
@@ -3736,6 +3739,153 @@ class PostgresAgentNudges:
         )
 
 
+class PostgresReminders:
+    """Opt-in pushes (P4-W24-S01b; owner, 2026-11-11)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def candidates(self) -> list[PushCandidate]:
+        rows = self._conn.execute(
+            """
+            select p.user_id, p.time_zone, p.hour, p.daily_challenge,
+                   p.path_reminder, p.digest
+            from push_preference p
+            where (p.daily_challenge or p.path_reminder or p.digest)
+              -- ADR-0036: only on a plan with push (a downgrade stops them).
+              and exists (select 1 from user_entitlement e
+                where e.user_id = p.user_id and e.capability = 'push.notify')
+            order by p.user_id
+            """
+        ).fetchall()
+        return [
+            PushCandidate(str(u), str(z), int(h), bool(d), bool(p), bool(g))
+            for u, z, h, d, p, g in rows
+        ]
+
+    def sent_on(self, user_id: str, local_day: date) -> bool:
+        return (
+            self._conn.execute(
+                "select 1 from push_sent where user_id = %s and local_day = %s",
+                (user_id, local_day),
+            ).fetchone()
+            is not None
+        )
+
+    def daily_open(self, user_id: str, day: date) -> bool:
+        # Any attempt on today's set counts as played: one started and left is no
+        # reason to nudge (the web finishes it by its clock).
+        row = self._conn.execute(
+            """
+            select exists (select 1 from daily_challenge where day = %s)
+              and not exists (select 1 from quiz_attempt
+                where user_id = %s and daily_day = %s)
+            """,
+            (day, user_id, day),
+        ).fetchone()
+        return bool(row and row[0])
+
+    def path_due(self, user_id: str, now: datetime) -> PushNotice | None:
+        path = self._conn.execute(
+            """
+            select p.id, p.name, up.updated_at from user_path up
+            join path p on p.id = up.path_id
+            -- One active path at most (user_path_one_active).
+            where up.user_id = %s and up.status = 'active'
+            """,
+            (user_id,),
+        ).fetchone()
+        if path is None:
+            return None
+        path_id, name, resumed = int(path[0]), str(path[1]), path[2]
+        # The path's readings in the user's order (a section they moved, as the web
+        # shows it), a swapped reading as they have it, a skipped section left out, and
+        # whether each is finished and when.
+        readings = self._conn.execute(
+            """
+            select m.title, f.finished_at
+            from path_section s
+            left join user_path_section ups on ups.user_id = %s
+              and ups.section_id = s.id
+            join path_session ps on ps.section_id = s.id
+            left join user_path_session us on us.user_id = %s
+              and us.section_id = ps.section_id and us.ordinal = ps.ordinal
+            join moment m on m.id = coalesce(us.moment_id, ps.moment_id)
+            left join user_moment_finished f on f.user_id = %s and f.moment_id = m.id
+            where s.path_id = %s
+              and not (ups.skipped_at is not null and ups.unskipped_at is null)
+            order by coalesce(ups.ordinal, s.ordinal), ps.ordinal
+            """,
+            (user_id, user_id, user_id, path_id),
+        ).fetchall()
+        finished = [at for _, at in readings if at is not None]
+        last = max([resumed, *finished])
+        if now - last < timedelta(days=2):
+            return None
+        left = next((str(title) for title, at in readings if at is None), None)
+        if left is None:
+            return None
+        return PushNotice("path_reminder", f"Next on {name}", left, f"/paths/{path_id}")
+
+    def digest(self, user_id: str) -> PushNotice | None:
+        # user_feed_visible, as Home reads it: an entry whose link broke (ING-6) or
+        # whose source no longer allows sections (ING-2) is never named.
+        row = self._conn.execute(
+            """
+            select v.article_title, v.section_title, count(*) over ()
+            from user_feed_visible v
+            join user_preferences pref on pref.user_id = v.user_id
+            where v.user_id = %s and v.chip = pref.break_length
+              and not exists (select 1 from user_moment_opened o
+                where o.user_id = v.user_id and o.moment_id = v.moment_id)
+              and not exists (select 1 from user_moment_finished f
+                where f.user_id = v.user_id and f.moment_id = v.moment_id)
+              and not exists (select 1 from user_article_finished a
+                where a.user_id = v.user_id and a.content_item_id = v.content_item_id)
+            order by v.rank
+            limit 1
+            """,
+            (user_id,),
+        ).fetchone()
+        if row is None:
+            return None
+        article, section, count = str(row[0]), row[1], int(row[2])
+        top = article if section is None or section == article else str(section)
+        body = f"New: {top}" if count == 1 else f"{count} new: {top}"
+        return PushNotice("digest", "Your break is ready", body, "/")
+
+    def claim(self, user_id: str, local_day: date, kind: PushKind) -> bool:
+        return (
+            self._conn.execute(
+                """
+                insert into push_sent (user_id, local_day, kind) values (%s, %s, %s)
+                on conflict (user_id, local_day) do nothing
+                returning 1
+                """,
+                (user_id, local_day, kind),
+            ).fetchone()
+            is not None
+        )
+
+    def web_targets(self, user_id: str) -> list[PushTarget]:
+        return [
+            PushTarget(str(endpoint), str(p256dh), str(auth))
+            for endpoint, p256dh, auth in self._conn.execute(
+                "select s.endpoint, s.p256dh, s.auth from push_subscription s"
+                " where s.user_id = %s"
+                " and exists (select 1 from user_entitlement e"
+                "   where e.user_id = s.user_id and e.capability = 'push.notify')"
+                " order by s.id",
+                (user_id,),
+            ).fetchall()
+        ]
+
+    def drop_web(self, endpoint: str) -> None:
+        self._conn.execute(
+            "delete from push_subscription where endpoint = %s", (endpoint,)
+        )
+
+
 class PostgresDeviceTokens:
     """Phones' push tokens (P4-W19-S04a, S04b)."""
 
@@ -4000,6 +4150,7 @@ class PostgresStore:
         self.seasons = PostgresSeasons(conn)
         self.agent_nudges = PostgresAgentNudges(conn)
         self.device_tokens = PostgresDeviceTokens(conn)
+        self.reminders = PostgresReminders(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)
         self.items = PostgresItems(conn)

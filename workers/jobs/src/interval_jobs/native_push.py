@@ -44,13 +44,17 @@ class Delivered:
 
 
 def deliver(
-    sender: NativePush, targets: list[NativeTarget], title: str, body: str
+    sender: NativePush,
+    targets: list[NativeTarget],
+    title: str,
+    body: str,
+    url: str | None = None,
 ) -> Delivered:
     """Each phone once; one failing stops none. The caller drops the gone tokens."""
     out = Delivered()
     for target in targets:
         try:
-            outcome = sender.send(target, title, body)
+            outcome = sender.send(target, title, body, url)
         except Exception as error:  # a network or protocol failure: this phone only
             # Logged by type: never the token or the key.
             log.error(

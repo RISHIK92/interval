@@ -5,6 +5,12 @@ jest.mock("expo-notifications", () => ({
   getPermissionsAsync: jest.fn(() => Promise.resolve({ granted: false })),
   requestPermissionsAsync: jest.fn(),
   getDevicePushTokenAsync: jest.fn(),
+  // P4-W24-S01b: no notification tapped, unless a test says one was.
+  getLastNotificationResponse: jest.fn(() => null),
+  clearLastNotificationResponse: jest.fn(),
+  addNotificationResponseReceivedListener: jest.fn(() => ({
+    remove: jest.fn(),
+  })),
 }));
 
 // Haptics are felt on a phone only; tests read which was asked for (P4-W21-S01).

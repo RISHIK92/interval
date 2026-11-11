@@ -42,26 +42,28 @@ class Delivered:
     gone: list[str] = field(default_factory=list[str])
 
 
-def deliver(push: WebPush, targets: list[PushTarget], text: str) -> Delivered:
+def deliver(
+    push: WebPush, targets: list[PushTarget], text: str, what: str = "agent"
+) -> Delivered:
     """One push per browser; one that fails doesn't stop the rest. A late nudge is
     useless, so a failure is logged (and counted by its metric), never retried."""
     out = Delivered()
     for target in targets:
         if not push_service(target.endpoint):
             out.failed += 1
-            log.error("agent: push failed", reason="not a push service")
+            log.error(f"{what}: push failed", reason="not a push service")
             continue
         try:
             status = push.push(target, text)
         except Exception as error:  # a bad key or a dead endpoint: this browser only
             out.failed += 1
-            log.error("agent: push failed", error=type(error).__name__)
+            log.error(f"{what}: push failed", error=type(error).__name__)
             continue
         if status in GONE:
             out.gone.append(target.endpoint)
         elif status >= 400:
             out.failed += 1
-            log.error("agent: push failed", status=status)
+            log.error(f"{what}: push failed", status=status)
         else:
             out.sent += 1
     return out

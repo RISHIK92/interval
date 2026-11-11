@@ -407,6 +407,17 @@ export class AwsStack extends Stack {
       metricNamespace: "Interval/Agent",
       metricName: "PushFailures",
     });
+    // P4-W24-S01b (Q-P4-13): an opt-in push claimed for the day that reached nobody
+    // (every target failed, or the user's data raised); it isn't retried that day.
+    logGroup.addMetricFilter("ReminderNotDelivered", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "push: not delivered",
+      ),
+      metricNamespace: "Interval/Push",
+      metricName: "NotDelivered",
+    });
     // P3-W15-S05 (LOAD-5): a match result its game server couldn't hand to the worker.
     logGroup.addMetricFilter("GameResultHandoffFailures", {
       filterPattern: logs.FilterPattern.stringValue(
@@ -880,6 +891,40 @@ export class AwsStack extends Stack {
       }),
     });
 
+    // P4-W24-S01b (Q-P4-13): EventBridge Scheduler runs `push-due` hourly. Each user
+    // gets at most one opt-in push a day, at or after their hour in their own zone; the
+    // day is claimed in the database before sending, so a rerun sends nothing twice. It
+    // pushes, so it gets the push secrets the worker has; no queue to send to.
+    const pushDueTask = taskDefinition("PushDue");
+    const pushDueContainer = pushDueTask.addContainer("push-due", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["push-due"],
+      environment,
+      secrets: {
+        DB_PASSWORD: secrets.DB_PASSWORD,
+        VAPID_PRIVATE_KEY: ecs.Secret.fromSecretsManager(vapidPrivate),
+        APNS_KEY: ecs.Secret.fromSecretsManager(apnsKey),
+        APNS_KEY_ID: ecs.Secret.fromSecretsManager(apnsKeyId),
+        APNS_TEAM_ID: ecs.Secret.fromSecretsManager(apnsTeamId),
+        FCM_SERVICE_ACCOUNT: ecs.Secret.fromSecretsManager(fcmAccount),
+      },
+      logging: logging("push-due"),
+    });
+    new scheduler.Schedule(this, "PushDueSchedule", {
+      schedule: scheduler.ScheduleExpression.cron({ minute: "0" }),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: pushDueTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // A missed hour is caught by the next (a user's window runs to 21:00).
+        retryAttempts: 2,
+        maxEventAge: Duration.hours(1),
+      }),
+    });
+
     // P3-W16-S06 (Q-P3-13): EventBridge Scheduler runs `close-season` daily at 00:00 UTC.
     // On the 1st it keeps last month's board and resets ratings in the database; on
     // other days it finds that month closed, or closes it if the 1st's run failed. No
@@ -1180,6 +1225,10 @@ export class AwsStack extends Stack {
     );
     // RFC 8292's contact for push services: the site itself (P3-W17-S05b).
     workerContainer.addEnvironment(
+      "VAPID_SUBJECT",
+      `https://${distribution.distributionDomainName}`,
+    );
+    pushDueContainer.addEnvironment(
       "VAPID_SUBJECT",
       `https://${distribution.distributionDomainName}`,
     );

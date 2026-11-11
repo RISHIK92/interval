@@ -72,6 +72,9 @@ from interval_jobs.ports import (
     ProjectConcepts,
     ProjectNoteInput,
     Pronunciation,
+    PushCandidate,
+    PushKind,
+    PushNotice,
     PushTarget,
     QuestionBatchEntry,
     QuestionDraft,
@@ -2035,6 +2038,7 @@ class InMemoryStore:
         self.seasons = InMemorySeasons()
         self.agent_nudges = InMemoryAgentNudges()
         self.device_tokens = InMemoryDeviceTokens()
+        self.reminders = InMemoryReminders()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
 
@@ -2469,6 +2473,46 @@ class InMemoryOcr:
         if isinstance(answer, Exception):
             raise answer
         return answer
+
+
+class InMemoryReminders:
+    """P4-W24-S01b: opt-in pushes as Postgres answers them (tests set what applies)."""
+
+    def __init__(self) -> None:
+        self.people: list[PushCandidate] = []
+        self.daily: set[str] = set()  # users whose daily is open
+        self.paths: dict[str, PushNotice] = {}
+        self.digests: dict[str, PushNotice] = {}
+        self.sent: dict[tuple[str, date], PushKind] = {}
+        self.browsers: dict[str, list[PushTarget]] = {}
+
+    def candidates(self) -> list[PushCandidate]:
+        return list(self.people)
+
+    def sent_on(self, user_id: str, local_day: date) -> bool:
+        return (user_id, local_day) in self.sent
+
+    def daily_open(self, user_id: str, day: date) -> bool:
+        return user_id in self.daily
+
+    def path_due(self, user_id: str, now: datetime) -> PushNotice | None:
+        return self.paths.get(user_id)
+
+    def digest(self, user_id: str) -> PushNotice | None:
+        return self.digests.get(user_id)
+
+    def claim(self, user_id: str, local_day: date, kind: PushKind) -> bool:
+        if (user_id, local_day) in self.sent:
+            return False
+        self.sent[(user_id, local_day)] = kind
+        return True
+
+    def web_targets(self, user_id: str) -> list[PushTarget]:
+        return list(self.browsers.get(user_id, []))
+
+    def drop_web(self, endpoint: str) -> None:
+        for user_id, targets in self.browsers.items():
+            self.browsers[user_id] = [t for t in targets if t.endpoint != endpoint]
 
 
 class InMemoryDeviceTokens:
