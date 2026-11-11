@@ -24,10 +24,10 @@
     "typecheck:py": "uv run --locked pyright",
     "test:py": "scripts/with-env.sh uv run --locked pytest",
     "push:keys": "node scripts/push-keys.mjs",
-    "format:go": "gofmt -w services/game cli/interval",
-    "format-check:go": "sh -c 'out=$(gofmt -l services/game cli/interval) || exit 1; [ -z \"$out\" ] || { echo \"gofmt: $out\"; exit 1; }'",
-    "vet:go": "(cd services/game && go vet ./...) && (cd cli/interval && go vet ./...)",
-    "test:go": "(cd services/game && go test ./...) && (cd cli/interval && go test ./...)"
+    "format:go": "gofmt -w services/game services/exec cli/interval",
+    "format-check:go": "sh -c 'out=$(gofmt -l services/game services/exec cli/interval) || exit 1; [ -z \"$out\" ] || { echo \"gofmt: $out\"; exit 1; }'",
+    "vet:go": "(cd services/game && go vet ./...) && (cd services/exec && go vet ./...) && (cd cli/interval && go vet ./...)",
+    "test:go": "(cd services/game && go test ./...) && (cd services/exec && go test ./...) && (cd cli/interval && go test ./...)"
   },
   "devDependencies": {
     "@interval/config": "workspace:*",

@@ -25,7 +25,7 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 - Cite: EXEC-3 (every rule), EXEC-5 (ECS on EC2, isolated subnet).
 - Suggested default:
-  - every run is a fresh container started by the exec service through the Docker Engine API on its own host, with:
+  - every run is a fresh container started by the exec service through the `docker` CLI on its own host (no SDK dependency; P5-W28-S01), with:
     - `--network none` and `--read-only`;
     - a size-capped `--tmpfs /tmp` (noexec off, so compiled code can run);
     - `--user 65534` and `--cap-drop ALL`, plus `--security-opt no-new-privileges`;

@@ -4486,3 +4486,41 @@ The owner said to continue building overnight with recommended answers, switchin
   - ADR-0039 (PROPOSED): the execution engine is a new Go service, `services/exec`, built to Velox's design, with no Velox code copied. The Velox repo has outside contributors and no licence. Judge0 is the red-team comparison.
 
 **Dependencies added (all pinned):** none yet.
+
+### 2026-11-12 — P5-W28-S01 (the exec service and one sandboxed run; EXEC-3, ARCH-1, ARCH-2; ADR-0039 PROPOSED; Q-P5-01, Q-P5-02)
+
+- **`services/exec`**, a new Go module with no dependencies. It drives the `docker` CLI through `os/exec`, which avoids the SDK and a hand-written attach. Q-P5-02's note is corrected to say so.
+  - **`sandbox.go`:** each run is a fresh, named container with:
+    - `--network none` and `--read-only`;
+    - a size-capped `/tmp` tmpfs and `--shm-size` as small;
+    - `--user 65534:65534`, `--cap-drop ALL` and `no-new-privileges`;
+    - limits on pids, memory (no swap past it) and CPUs;
+    - `nofile` and `fsize` ulimits;
+    - `--env-file /dev/null` and no `-e`;
+    - `--log-driver none`, so no output is kept on the host;
+    - only its own run dir, mounted read-only at `/code`;
+    - `--runtime` from `EXEC_RUNTIME` (`runsc` on the hosts);
+    - the default seccomp and AppArmor profiles, pinned by a test.
+    - Every limit must be set and bounded: Docker reads a zero as unlimited, so a missing one would fail open.
+  - **`run.go`:**
+    - **Checks first:** the input (plain file names, a known language, valid limits) before anything is made.
+    - **Create:** named before it exists, so `rm -f` always runs.
+    - **The run:** started attached, with stdin piped. The time limit runs from the container's own `StartedAt`, so starting it isn't charged, and a 10-second backstop covers startup.
+    - **Output:** stdout and stderr are each capped, and the run is killed at the cap.
+    - **Kill:** a failed `docker kill` falls back to killing the attach.
+    - **Inspect:** the status must be `exited`. Otherwise the result is an error, never a verdict.
+    - **Verdict:** the precedence is output, then time, then memory, then exit code. `TimeMs` comes from the container's own clock.
+    - Every docker call is bounded.
+  - **`languages.go`:** Python, on `python:3.13.17-slim-bookworm` pinned by digest (built 2026-10-21, the worker's base), run with `-I -S`.
+  - **`main.go`:** `exec run --language --file`, for local checks.
+  - Root `format:go`, `vet:go` and `test:go`, and turbo's inputs, include it.
+- **Tests:**
+  - **Unit:** every flag, a single read-only mount, no environment, no privilege; limits bounded; bad input refused before Docker; verdict precedence.
+  - **Integration** (`EXEC_INTEGRATION=1`, Docker; skipped in CI): hello, stdin, exit 3, an infinite loop, 1 GB under 64 MB, stdout and stderr floods, no host environment, cancellation. Each one leaves no container and no run dir.
+  - Three integration runs passed under `-race`.
+- **Reviewer fixes:**
+  - **Blockers:** container startup was charged to the time limit (a cold start failed hello world), and zero limits failed open.
+  - Plus: a name before create; the kill-failure fallback; infrastructure failures reported as errors; `--log-driver none`; bounded inspect; the dead `Writable` removed; `/dev/shm` and the ulimits; the missing tests.
+- **Not done:**
+  - the docker CLI's own error lines can mix into a run's stderr (nit);
+  - gVisor (`runsc`) is untested locally, including whether `OOMKilled` is reported under it. That is the owner's check on a Linux host, W28-S04.
