@@ -4469,3 +4469,20 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the in-memory scenes fake differing from Postgres;
   - "scene" vs "timeline", plus glossary gaps.
   - None is fixed here.
+
+## Overnight run (2026-11-12): Phase 5, built on recommended answers
+
+The owner said to continue building overnight with recommended answers, switching between plan and auto mode as needed. The 2026-10-26 overnight rules apply:
+
+- recommended answers;
+- an ADR, where needed, written PROPOSED and built on;
+- new dependencies pinned, at least two weeks old, and listed here with a reason;
+- no model calls.
+
+**Needs your review (newest first):**
+
+- **Phase 5 planning:**
+  - docs/questions/phase-5.md (Q-P5-01 to 14, all on their recommended defaults) and docs/roadmap/phase-5-slices.md (31 slices).
+  - ADR-0039 (PROPOSED): the execution engine is a new Go service, `services/exec`, built to Velox's design, with no Velox code copied. The Velox repo has outside contributors and no licence. Judge0 is the red-team comparison.
+
+**Dependencies added (all pinned):** none yet.
