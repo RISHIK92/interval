@@ -4236,3 +4236,31 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Owner:**
   - CLAUDE.md's command list could gain `push-due` (the owner's file);
   - real delivery needs the VAPID, APNs and FCM keys (runbook).
+
+### 2026-11-11 — P4-W24-S02 (Phase 4 metrics; DB-5, Phase 4 "Done when", Q-P4-14)
+
+- **Process:** the slice was written before its plan was shown (CLAUDE.md's plan first). The plan was then presented with what was built, and approved.
+- **Queries** (Athena SQL in `packages/events/queries/`, saved as named queries):
+  - `native_retention.sql`: accounts 14+ days past signup; **native** if any app event (source ios or android) in their first week (Q-P4-14), else **web**, the browser, installed as the PWA or not; **returned** on any event in week two.
+  - `listen_share.sql`: of the 7-day actives, those with an `explainer_started`.
+  - `explainer_completion.sql`: listens started 14 to 7 days ago, once per account and explainer; completed by that explainer's finish after the start.
+  - `push_opt_in.sql`: of the 7-day actives, those with a kind whose latest setting is on.
+  - **Owner, 2026-11-11:** every weekly active is the base, including plans without push.
+  - **Activity** is any event except the agent hook's: those come with no visit (§7). The app records no sessions, so session_started can't be it.
+- **Infra:** the Glue props struct gains `explainer_id` and `on` (quoted `props."on"` in Trino); four named queries; the props-pin test reads quoted props.
+- **Tests:** DuckDB on fixture events, 32. They cover:
+  - mixed use;
+  - a week-two coding agent;
+  - a re-listen after an earlier finish;
+  - another explainer's finish;
+  - a turn-off dated today;
+  - guests;
+  - no events.
+- **Reviewer fixes:**
+  - agent events as activity;
+  - the untested finish-after-start and today bound;
+  - the guest exclusion;
+  - the no-events case;
+  - the web/PWA wording;
+  - the tie-break note.
+- **Risk:** a Glue struct field named `on` hasn't been tried on real Athena (no AWS before Phase 7). Check one Phase 4 query by hand at first deploy; the fallback is renaming the prop.

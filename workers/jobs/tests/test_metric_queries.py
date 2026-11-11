@@ -17,7 +17,8 @@ TODAY = datetime(2026, 11, 30, tzinfo=UTC)
 PROPS = (
     "STRUCT(kind VARCHAR, item_id VARCHAR, moment_id VARCHAR, method VARCHAR, "
     "question_id VARCHAR, path_id VARCHAR, section_id VARCHAR, passed BOOLEAN, "
-    "game VARCHAR, wait_ms BIGINT, opponent VARCHAR)"
+    "game VARCHAR, wait_ms BIGINT, opponent VARCHAR, explainer_id VARCHAR, "
+    '"on" BOOLEAN)'
 )
 
 type Row = tuple[str, int, int, float]
@@ -30,6 +31,7 @@ def event(
     group: str = "student",
     guest: bool = False,
     version: int = 1,
+    source: str = "web",
     **props: str | bool | int | None,
 ) -> dict[str, object]:
     return {
@@ -39,7 +41,7 @@ def event(
         "is_guest": guest,
         "beta_group": group,
         "session_id": None,
-        "source": "web",
+        "source": source,
         "name": name,
         "version": version,
         "props": props,
@@ -482,9 +484,121 @@ def test_a_missed_concept_is_read_within_48_hours(tmp_path: Path) -> None:
 
 @pytest.mark.parametrize(
     "query",
-    ["daily_share.sql", "match_start.sql", "player_return.sql", "missed_read.sql"],
+    [
+        "daily_share.sql",
+        "match_start.sql",
+        "player_return.sql",
+        "missed_read.sql",
+        # Phase 4 (P4-W24-S02).
+        "native_retention.sql",
+        "listen_share.sql",
+        "explainer_completion.sql",
+        "push_opt_in.sql",
+    ],
 )
-def test_phase_3_queries_give_no_rows_without_events(
+def test_phase_3_and_4_queries_give_no_rows_without_events(
     query: str, tmp_path: Path
 ) -> None:
     assert run(query, [], tmp_path) == []
+
+
+# Phase 4 (P4-W24-S02, Q-P4-14): native vs web retention; the share of weekly actives
+# who listen; explainer completion; push opt-in.
+def test_native_retention_splits_by_where_accounts_were_active_in_their_first_week(
+    tmp_path: Path,
+) -> None:
+    events = [
+        *(event("signup_completed", u, SIGNUP) for u in ("n1", "n2", "w1", "w2")),
+        # n1 and n2 used the app in week one (n2 the web too: still native).
+        event("feed_viewed", "n1", SIGNUP + days(1), source="ios"),
+        event("feed_viewed", "n2", SIGNUP + days(2), source="android"),
+        event("session_started", "n2", SIGNUP + days(2)),
+        event("session_started", "w1", SIGNUP + days(1)),
+        # Back in week two: n1 from the app (no session_started there), w1 on the web.
+        event("feed_viewed", "n1", SIGNUP + days(8), source="ios"),
+        event("session_started", "w1", SIGNUP + days(13.9)),
+        # The app only after week one doesn't make w2 native; nor is it back in time.
+        event("feed_viewed", "w2", SIGNUP + days(14), source="ios"),
+        # A coding agent's events in week two aren't a return (§7: no visit).
+        event("signup_completed", "w3", SIGNUP),
+        event("session_started", "w3", SIGNUP + days(1)),
+        event("agent_task_started", "w3", SIGNUP + days(9)),
+        # Still in their window: left out.
+        event("signup_completed", "new", TODAY - days(10)),
+        event("feed_viewed", "new", TODAY - days(9), source="ios"),
+    ]
+    assert run("native_retention.sql", events, tmp_path) == [
+        ("native", 2, 1, 0.5),
+        ("web", 3, 1, 0.3333),
+    ]
+
+
+WEEK = TODAY - days(3)
+
+
+def test_listen_share_is_weekly_actives_who_started_an_explainer(
+    tmp_path: Path,
+) -> None:
+    events = [
+        event("feed_viewed", "a", WEEK, source="ios"),
+        event("explainer_started", "a", WEEK, explainer_id="7"),
+        event("session_started", "b", WEEK),
+        event("session_started", "c", WEEK),
+        # Listened before the week: not this week's listener, nor active.
+        event("explainer_started", "d", TODAY - days(9), explainer_id="7"),
+        event("session_started", "g", WEEK, guest=True),
+        # Only a coding agent's events: not active.
+        event("agent_task_finished", "h", WEEK),
+    ]
+    assert run("listen_share.sql", events, tmp_path) == [("student", 3, 1, 0.3333)]
+
+
+LAST_WEEK = TODAY - days(10)
+
+
+def test_explainer_completion_counts_a_listen_once_and_its_own_finish(
+    tmp_path: Path,
+) -> None:
+    events = [
+        event("explainer_started", "a", LAST_WEEK, explainer_id="7"),
+        event("explainer_started", "a", LAST_WEEK + days(1), explainer_id="7"),
+        event("explainer_finished", "a", LAST_WEEK + days(2), explainer_id="7"),
+        event("explainer_started", "b", LAST_WEEK, explainer_id="7"),
+        # Another explainer's finish isn't this one's.
+        event("explainer_finished", "b", LAST_WEEK, explainer_id="8"),
+        event("explainer_started", "c", LAST_WEEK, explainer_id="9"),
+        event("explainer_finished", "c", TODAY - days(1), explainer_id="9"),
+        # Started this week: still has time, left out.
+        event("explainer_started", "d", TODAY - days(2), explainer_id="7"),
+        # e finished it once before; this listen, started in the week, never ends.
+        event("explainer_finished", "e", LAST_WEEK - days(2), explainer_id="7"),
+        event("explainer_started", "e", LAST_WEEK, explainer_id="7"),
+    ]
+    assert run("explainer_completion.sql", events, tmp_path) == [("student", 4, 2, 0.5)]
+
+
+def test_push_opt_in_is_weekly_actives_with_a_kind_on_now(tmp_path: Path) -> None:
+    def setting(user: str, at: datetime, kind: str, on: bool) -> dict[str, object]:
+        return event("push_setting_changed", user, at, kind=kind, on=on)
+
+    events = [
+        *(event("session_started", u, WEEK) for u in "abcd"),
+        setting("a", TODAY - days(20), "digest", True),
+        # b turned the daily challenge on, then off: out.
+        setting("b", TODAY - days(5), "daily_challenge", True),
+        setting("b", TODAY - days(4), "daily_challenge", False),
+        # c turned one off but another stays on: in.
+        setting("c", TODAY - days(5), "digest", True),
+        setting("c", TODAY - days(4), "path_reminder", True),
+        setting("c", TODAY - days(3), "digest", False),
+        # d never chose; e opted in before the week and wasn't active in it.
+        setting("e", TODAY - days(10), "digest", True),
+        # f's turn-off is today's: as of the week, still on.
+        event("session_started", "f", WEEK),
+        setting("f", TODAY - days(10), "digest", True),
+        setting("f", TODAY + days(0.5), "digest", False),
+        # A guest with one on is no account.
+        event("session_started", "g", WEEK, guest=True),
+        event("push_setting_changed", "g", WEEK, guest=True, kind="digest", on=True),
+    ]
+    assert run("push_opt_in.sql", events, tmp_path) == [("student", 5, 3, 0.6)]

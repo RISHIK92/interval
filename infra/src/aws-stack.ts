@@ -244,7 +244,7 @@ export class AwsStack extends Stack {
             { name: "version", type: "int" },
             {
               name: "props",
-              type: "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean,game:string,wait_ms:bigint,opponent:string>",
+              type: "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean,game:string,wait_ms:bigint,opponent:string,explainer_id:string,on:boolean>",
             },
           ],
         },
@@ -270,7 +270,7 @@ export class AwsStack extends Stack {
         },
       },
     });
-    // Phase 1 (Q-P1-21), Phase 2 (P2-W9-S08, Q-P2-20) and Phase 3 "done when": the SQL lives in
+    // Phase 1 (Q-P1-21), Phase 2 (P2-W9-S08, Q-P2-20), Phase 3 and Phase 4 "done when": the SQL lives in
     // the repo, tested with DuckDB on fixture events
     // (workers/jobs/tests/test_metric_queries.py).
     for (const [id, file, description] of [
@@ -320,6 +320,27 @@ export class AwsStack extends Stack {
         "MissedReadQuery",
         "missed_read.sql",
         "Missed concepts read within 48 hours, by game",
+      ],
+      // Phase 4 (P4-W24-S02, Q-P4-14).
+      [
+        "NativeRetentionQuery",
+        "native_retention.sql",
+        "Week-two return of native and web accounts",
+      ],
+      [
+        "ListenShareQuery",
+        "listen_share.sql",
+        "Weekly actives who start an explainer",
+      ],
+      [
+        "ExplainerCompletionQuery",
+        "explainer_completion.sql",
+        "Explainer listens played to the end",
+      ],
+      [
+        "PushOptInQuery",
+        "push_opt_in.sql",
+        "Weekly actives with a push turned on",
       ],
     ] as const) {
       const query = new athena.CfnNamedQuery(this, id, {

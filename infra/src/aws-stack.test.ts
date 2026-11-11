@@ -1092,7 +1092,7 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     "../../packages/events/queries",
   );
   const PROPS =
-    "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean,game:string,wait_ms:bigint,opponent:string>";
+    "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean,game:string,wait_ms:bigint,opponent:string,explainer_id:string,on:boolean>";
   // Phase 1 (Q-P1-21) and Phase 2 (P2-W9-S08, Q-P2-20) "done when".
   const FILES = [
     "return_rate.sql",
@@ -1106,6 +1106,11 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     "match_start.sql",
     "player_return.sql",
     "missed_read.sql",
+    // Phase 4 (P4-W24-S02).
+    "native_retention.sql",
+    "listen_share.sql",
+    "explainer_completion.sql",
+    "push_opt_in.sql",
   ];
 
   test("a Glue table reads the Firehose events by day, with partition projection", () => {
@@ -1159,7 +1164,8 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     );
     for (const file of FILES) {
       const sql = readFileSync(path.join(QUERIES, file), "utf8");
-      for (const [, prop] of sql.matchAll(/props\.(\w+)/g)) {
+      // A reserved word ("on") is read quoted: props."on".
+      for (const [, prop] of sql.matchAll(/props\."?(\w+)"?/g)) {
         expect(declared).toContain(prop);
       }
     }
