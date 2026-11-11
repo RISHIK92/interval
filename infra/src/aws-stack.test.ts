@@ -273,7 +273,7 @@ describe("edge", () => {
     expect(JSON.stringify(reads[0]?.Condition)).toContain("Cdn");
   });
 
-  test("the worker writes to the media bucket and nothing reads it but CloudFront", () => {
+  test("the worker writes to the media bucket; only the web reads it (for review) besides CloudFront", () => {
     const policies = Object.values(
       template.findResources("AWS::IAM::Policy"),
     ) as {
@@ -282,19 +282,34 @@ describe("edge", () => {
         Roles: unknown[];
       };
     }[];
-    const onMedia = policies.filter((p) =>
-      p.Properties.PolicyDocument.Statement.some((st) =>
-        JSON.stringify(st.Resource).includes("Media"),
-      ),
-    );
-    expect(onMedia.map((p) => JSON.stringify(p.Properties.Roles))).toEqual([
+    const onMedia = (role: string) =>
+      policies
+        .filter((p) => JSON.stringify(p.Properties.Roles).includes(role))
+        .flatMap((p) =>
+          p.Properties.PolicyDocument.Statement.filter((st) =>
+            JSON.stringify(st.Resource).includes("Media"),
+          ),
+        )
+        .map((st) => JSON.stringify(st.Action))
+        .join(" ");
+    expect(
+      policies
+        .filter((p) =>
+          p.Properties.PolicyDocument.Statement.some((st) =>
+            JSON.stringify(st.Resource).includes("Media"),
+          ),
+        )
+        .map((p) => JSON.stringify(p.Properties.Roles))
+        .sort(),
+    ).toEqual([
+      expect.stringContaining("WebTaskTaskRole"),
       expect.stringContaining("WorkerTaskTaskRole"),
     ]);
-    for (const policy of onMedia)
-      for (const st of policy.Properties.PolicyDocument.Statement.filter((x) =>
-        JSON.stringify(x.Resource).includes("Media"),
-      ))
-        expect(JSON.stringify(st.Action)).not.toContain("s3:GetObject");
+    expect(onMedia("WorkerTaskTaskRole")).toContain("s3:PutObject");
+    expect(onMedia("WorkerTaskTaskRole")).not.toContain("s3:GetObject");
+    // P4.5-W26-S02 (owner, 2026-11-12): drafted timelines, read for review only.
+    expect(onMedia("WebTaskTaskRole")).toContain("s3:GetObject");
+    expect(onMedia("WebTaskTaskRole")).not.toContain("s3:PutObject");
     const env = (template.toJSON() as { Resources: Record<string, unknown> })
       .Resources;
     expect(JSON.stringify(env)).toContain('"MEDIA_BUCKET"');

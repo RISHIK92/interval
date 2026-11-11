@@ -4,7 +4,7 @@ import { SQSClient } from "@aws-sdk/client-sqs";
 import type { DB } from "@interval/db";
 import { Redis } from "ioredis";
 import type { Kysely } from "kysely";
-import { env, filesEnv, githubEnv } from "../env";
+import { env, filesEnv, githubEnv, mediaEnv } from "../env";
 import {
   type Auth,
   accounts as betterAuthAccounts,
@@ -32,6 +32,7 @@ import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
 import { kyselyAdminExplainers } from "./adapters/kysely-admin-explainers";
+import { kyselyAdminScenes } from "./adapters/kysely-admin-scenes";
 import { kyselyListening } from "./adapters/kysely-listening";
 import { kyselyPushSettings } from "./adapters/kysely-push-settings";
 import { kyselyAdminPronunciations } from "./adapters/kysely-admin-pronunciations";
@@ -78,6 +79,7 @@ import type {
   AdminDaily,
   AdminFairPlay,
   AdminExplainers,
+  AdminScenes,
   Listening,
   PushSettings,
   AdminPronunciations,
@@ -459,6 +461,31 @@ export function githubAccounts(): GitHubAccounts {
 // P2-W11-S01: private PDF books.
 export function books(): Books {
   return kyselyBooks(db());
+}
+
+let mediaStore: FileStore | undefined;
+
+// P4.5-W26-S02: the public media bucket, read for timeline review only; parsed on first
+// use, so nothing else needs MEDIA_BUCKET.
+export function mediaFiles(): FileStore {
+  if (mediaStore === undefined) {
+    const config = mediaEnv();
+    mediaStore = s3Files(
+      new S3Client({
+        region: config.AWS_REGION,
+        ...(config.MEDIA_S3_ENDPOINT === undefined
+          ? {}
+          : { endpoint: config.MEDIA_S3_ENDPOINT, forcePathStyle: true }),
+      }),
+      config.MEDIA_BUCKET,
+    );
+  }
+  return mediaStore;
+}
+
+// P4.5-W26-S02 (AI-1, Q-P4.5-03): drafted scene timelines.
+export function adminScenes(): AdminScenes {
+  return kyselyAdminScenes(db());
 }
 
 let fileStore: FileStore | undefined;

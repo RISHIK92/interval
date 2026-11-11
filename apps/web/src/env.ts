@@ -108,6 +108,39 @@ export function filesEnv(): FilesEnv {
   return cachedFiles;
 }
 
+// CACHE-4, P4.5-W26-S02 (owner, 2026-11-12): the public media bucket, which the web only
+// reads (drafted scene timelines, for review). As the worker's media_files(): a VM's own
+// SeaweedFS (MEDIA_S3_ENDPOINT) even when its private files are in S3; unset in AWS.
+const media = z.object({
+  MEDIA_BUCKET: z.string().min(3),
+  AWS_REGION: z.string().min(1),
+  MEDIA_S3_ENDPOINT: z.url({ protocol: /^https?$/ }).optional(),
+});
+
+export type MediaEnv = z.infer<typeof media>;
+
+export function parseMediaEnv(
+  source: Record<string, string | undefined>,
+): MediaEnv {
+  const result = media.safeParse(source);
+  if (!result.success) {
+    const problems = result.error.issues.map(
+      (issue) => `${issue.path.join(".")}: ${issue.message}`,
+    );
+    throw new Error(
+      `Invalid media bucket environment:\n  ${problems.join("\n  ")}`,
+    );
+  }
+  return result.data;
+}
+
+let cachedMedia: MediaEnv | undefined;
+
+export function mediaEnv(): MediaEnv {
+  cachedMedia ??= parseMediaEnv(process.env);
+  return cachedMedia;
+}
+
 // P2-W12-S01 (§5H, ADR-0024): Interval's GitHub App, for connecting GitHub from Profile.
 // Optional: with none of it set, connecting isn't offered; some but not all is a
 // mistake. The App's id and private key are the worker's (S02).

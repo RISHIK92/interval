@@ -2,6 +2,7 @@ import { describe, expect, test } from "vitest";
 import {
   parseEnv,
   parseFilesEnv,
+  parseMediaEnv,
   parseGameEnv,
   parseGitHubEnv,
   parsePushEnv,
@@ -172,6 +173,24 @@ describe("parseFilesEnv (P2-W11-S01)", () => {
     expect(() => parseFilesEnv({ ...files, S3_ENDPOINT: "ftp://x" })).toThrow(
       /S3_ENDPOINT/,
     );
+  });
+});
+
+describe("parseMediaEnv (P4.5-W26-S02)", () => {
+  const media = { MEDIA_BUCKET: "interval-media", AWS_REGION: "us-east-1" };
+  test("takes the bucket and region, and an optional SeaweedFS endpoint", () => {
+    expect(parseMediaEnv(media)).toEqual(media);
+    expect(
+      parseMediaEnv({ ...media, MEDIA_S3_ENDPOINT: "http://seaweedfs:8333" }),
+    ).toMatchObject({ MEDIA_S3_ENDPOINT: "http://seaweedfs:8333" });
+  });
+  test("names what's missing or wrong", () => {
+    expect(() => parseMediaEnv({ AWS_REGION: "us-east-1" })).toThrow(
+      /MEDIA_BUCKET/,
+    );
+    expect(() =>
+      parseMediaEnv({ ...media, MEDIA_S3_ENDPOINT: "ftp://x" }),
+    ).toThrow(/MEDIA_S3_ENDPOINT/);
   });
 });
 

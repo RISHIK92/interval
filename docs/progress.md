@@ -4403,3 +4403,17 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - The worker image copies `packages/diagrams/schema`.
 - **Tests:** 6 with fakes (valid, retry, refused twice, over budget, over budget at the retry, the prompt) and 2 in Postgres (`targets` across approved, pending, rejected, unvoiced, uncaptioned, drawn, refused and refused a week ago; save once; both of the migration's checks).
 - **Reviewer fixes:** error locations in the retry; the caption words inside the tags; the missing `targets` cases and the decided check; a log when a concurrent run saved first; case-insensitive code fences; an over-budget retry test.
+
+### 2026-11-12 — P4.5-W26-S02 (reviewing timelines; AI-1, Q-P4.5-03, TTS-5, DB-6)
+
+- **Owner (2026-11-12):** the web reads the media bucket, so the server checks every timeline itself.
+- **Web:**
+  - `mediaEnv`/`parseMediaEnv` (`MEDIA_BUCKET`, `AWS_REGION`, optional `MEDIA_S3_ENDPOINT`, as the worker's `media_files()`); `mediaFiles()` reuses `s3Files`. It is read only when a timeline is pending.
+  - The `AdminScenes` port and `kyselyAdminScenes`: pending scenes with their key and the voiced explainer's captions; one by id; decide once.
+  - `loadTimeline`: the file, JSON, the zod `Timeline` rules and `checkAnchors`. Any failure becomes a list of problems. The page shows what it returns, and approval runs it again.
+  - `/admin/explainers` gains "Timelines". Each card is labelled AI-drafted, with "Drawn by {model}". `SceneReview` adds a step scrubber (with `aria-valuetext`), each step's drawing through `describeDiagram` and `DiagramSvg`, its description (`aria-live`), and the captions with the anchored word marked. A broken timeline lists its problems and offers only Reject.
+  - `decideSceneAction`: admin again, then a re-check before approving (`error=scene`); a decided one shows `error=decided`.
+- **AWS stack:** `media.grantRead(webTask.taskRole)`. The test now says the worker only writes and the web only reads. The VM's app.env already gives the web the media settings.
+- **Tests:** adapter (pending, decide once, approve and reject recorded); loader (valid, missing, not JSON, a broken rule, an anchor past the captions); page and action; the scrubber's step view and its `onChange`; `parseMediaEnv`; infra.
+- **Reviewer fixes:** `aria-valuetext`; a scrubber test that moves it; the type renamed `PendingScene`, with an unused `createdAt` dropped; no `role=alert` on page load; index keys; an id tiebreak; a reject test; `parseMediaEnv` tested.
+- **Accepted, not changed:** if the media bucket can't be read while a timeline is pending, the whole Explainers page errors, script review included. Graceful degradation needs LOAD-5's say-so, and a loud failure on an owner-only page is the intended one.

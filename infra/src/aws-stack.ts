@@ -659,6 +659,8 @@ export class AwsStack extends Stack {
     privateContent.grantRead(webTask.taskRole);
     privateContent.grantPut(webTask.taskRole);
     grantBookDeletes(privateContent, webTask.taskRole);
+    // P4.5-W26-S02 (owner, 2026-11-12): drafted scene timelines, read for review.
+    media.grantRead(webTask.taskRole);
     eventStream.grantPutRecords(webTask.taskRole);
     // ADR-0014: the web app enqueues; only the worker consumes.
     for (const queue of queues) queue.grantSendMessages(webTask.taskRole);
@@ -1111,7 +1113,8 @@ export class AwsStack extends Stack {
     // P2-W11: books read (book_process, ocr_page) and removed (remove_file) here.
     privateContent.grantRead(workerTask.taskRole);
     grantBookDeletes(privateContent, workerTask.taskRole);
-    // P4-W22-S04: voice-explainers writes HLS here; nothing reads it but CloudFront.
+    // P4-W22-S04: voice-explainers writes HLS here (and write-scenes timelines, which
+    // the web reads for review).
     media.grantPut(workerTask.taskRole);
     eventStream.grantPutRecords(workerTask.taskRole);
     for (const queue of queues) {

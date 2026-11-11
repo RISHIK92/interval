@@ -3,7 +3,10 @@ import { afterEach, expect, test, vi } from "vitest";
 import type {
   Actor,
   AdminExplainers,
+  AdminScenes,
   ExplainerReview,
+  FileStore,
+  PendingScene,
 } from "../../../server/ports";
 
 // P4-W22-S01 (§5G, AI-1, AI-3, Q-P4-11): explainer scripts, for admin.review only: each
@@ -12,10 +15,28 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>();
 const pending = vi.fn<AdminExplainers["pending"]>(() => Promise.resolve([]));
 const decide = vi.fn<AdminExplainers["decide"]>(() => Promise.resolve(true));
+const scenesPending = vi.fn<AdminScenes["pending"]>(() => Promise.resolve([]));
+const scene = vi.fn<AdminScenes["scene"]>(() => Promise.resolve(null));
+const decideScene = vi.fn<AdminScenes["decide"]>(() => Promise.resolve(true));
+const media: Record<string, string> = {};
+const get = vi.fn<FileStore["get"]>((key) => {
+  const text = media[key];
+  return Promise.resolve(
+    text === undefined
+      ? null
+      : { body: new Blob([text]).stream(), etag: null, size: null },
+  );
+});
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
   adminExplainers: () => ({ pending, decide }),
+  adminScenes: () => ({
+    pending: scenesPending,
+    scene,
+    decide: decideScene,
+  }),
+  mediaFiles: () => ({ get }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -121,4 +142,102 @@ test("anyone without admin.review finds nothing, page or action", async () => {
     decideExplainerAction(form({ explainerId: "7", decision: "approved" })),
   ).rejects.toThrow("notFound");
   expect(decide).not.toHaveBeenCalled();
+});
+
+// P4.5-W26-S02 (AI-1, Q-P4.5-03): drafted scene timelines, drawn from the media bucket,
+// checked by every rule before the owner can approve one.
+const timeline = {
+  diagram: {
+    title: "Leader election",
+    shapes: [
+      { id: "a", kind: "service", label: "Node A", at: { col: 0, row: 0 } },
+    ],
+    arrows: [],
+  },
+  steps: [{ at: 1, show: ["a"], describe: "One node waits." }],
+};
+const drawn: PendingScene = {
+  id: "11",
+  concept: "Leader election",
+  key: "media/explainers/3/7/scenes/a.json",
+  model: "qwen/x",
+  captions: [
+    { text: "Raft", start: 0, end: 0.4 },
+    { text: "waits.", start: 0.4, end: 1 },
+  ],
+};
+
+test("a pending timeline is drawn, labeled AI, with its first step and captions", async () => {
+  current.mockResolvedValue(admin);
+  can.mockResolvedValue(true);
+  media[drawn.key] = JSON.stringify(timeline);
+  scenesPending.mockResolvedValue([drawn]);
+  const html = await page();
+  expect(html).toContain("Timelines");
+  expect(html).toContain("Leader election");
+  expect(html).toContain("AI-drafted");
+  expect(html).toContain("One node waits.");
+  expect(html).toContain("<mark>waits.</mark>");
+  expect(html).toContain("Drawn by qwen/x");
+  expect(html).toContain('value="approved"');
+});
+
+test("a timeline that breaks a rule lists why and can only be rejected", async () => {
+  current.mockResolvedValue(admin);
+  can.mockResolvedValue(true);
+  media[drawn.key] = JSON.stringify(timeline);
+  scenesPending.mockResolvedValue([{ ...drawn, captions: [] }]);
+  const html = await page();
+  expect(html).toContain(
+    "A step is anchored past the explainer&#x27;s last caption word.",
+  );
+  expect(html).not.toContain('value="approved"');
+  expect(html).toContain('value="rejected"');
+});
+
+test("approval re-checks the timeline; reject needs no file; decided says so", async () => {
+  current.mockResolvedValue(admin);
+  can.mockResolvedValue(true);
+  media[drawn.key] = JSON.stringify(timeline);
+  scene.mockResolvedValue(drawn);
+  const { decideSceneAction } = await import("./actions");
+  await expect(
+    decideSceneAction(form({ sceneId: "11", decision: "approved" })),
+  ).rejects.toThrow("redirect:/admin/explainers?saved=1");
+  expect(decideScene).toHaveBeenCalledWith("11", "approved", "a1");
+
+  decideScene.mockClear();
+  scene.mockResolvedValue({ ...drawn, captions: [] });
+  await expect(
+    decideSceneAction(form({ sceneId: "11", decision: "approved" })),
+  ).rejects.toThrow("redirect:/admin/explainers?error=scene");
+  expect(decideScene).not.toHaveBeenCalled();
+
+  get.mockClear();
+  await expect(
+    decideSceneAction(form({ sceneId: "11", decision: "rejected" })),
+  ).rejects.toThrow("redirect:/admin/explainers?saved=1");
+  expect(get).not.toHaveBeenCalled();
+
+  scene.mockResolvedValue(null);
+  await expect(
+    decideSceneAction(form({ sceneId: "11", decision: "approved" })),
+  ).rejects.toThrow("redirect:/admin/explainers?error=decided");
+  decideScene.mockResolvedValueOnce(false);
+  await expect(
+    decideSceneAction(form({ sceneId: "11", decision: "rejected" })),
+  ).rejects.toThrow("redirect:/admin/explainers?error=decided");
+  await expect(
+    decideSceneAction(form({ sceneId: "x", decision: "approved" })),
+  ).rejects.toThrow("notFound");
+});
+
+test("anyone without admin.review can't decide a timeline", async () => {
+  current.mockResolvedValue(admin);
+  can.mockResolvedValue(false);
+  const { decideSceneAction } = await import("./actions");
+  await expect(
+    decideSceneAction(form({ sceneId: "11", decision: "approved" })),
+  ).rejects.toThrow("notFound");
+  expect(decideScene).not.toHaveBeenCalled();
 });

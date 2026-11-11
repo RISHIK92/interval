@@ -13,7 +13,11 @@ import type {
   ReviewReason,
   Topic,
 } from "@interval/db";
-import type { ListenResponse, PushPreferences } from "@interval/api-client";
+import type {
+  Caption,
+  ListenResponse,
+  PushPreferences,
+} from "@interval/api-client";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 
@@ -1807,6 +1811,29 @@ export interface AdminExplainers {
   pending(): Promise<ExplainerReview[]>;
   // False: not pending any more (decided already, or no such script), or approving one
   // that no longer has two sources to cite (AI-1).
+  decide(
+    id: string,
+    decision: "approved" | "rejected",
+    by: string,
+  ): Promise<boolean>;
+}
+
+// P4.5-W26-S02 (AI-1, Q-P4.5-03): drafted scene timelines, each approved or rejected by
+// the owner before a player shows it. The timeline itself is a file in the media bucket
+// (`key`); the captions are the voiced explainer's, which its steps are anchored to.
+export type PendingScene = {
+  id: string;
+  concept: string;
+  key: string;
+  model: string;
+  captions: Caption[];
+};
+
+export interface AdminScenes {
+  pending(): Promise<PendingScene[]>;
+  // A pending scene, for the decision; null once decided or gone.
+  scene(id: string): Promise<PendingScene | null>;
+  // False: not pending any more.
   decide(
     id: string,
     decision: "approved" | "rejected",
