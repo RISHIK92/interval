@@ -171,6 +171,13 @@ def test_the_worker_image_carries_the_seed_file() -> None:
     assert "WORKDIR /app" in dockerfile
 
 
+def test_the_worker_image_carries_the_timeline_schema() -> None:
+    # write-scenes checks drafts against packages/diagrams' generated JSON Schema, read
+    # relative to /app (P4.5-W26-S01). CI builds no images, so this pins the copy.
+    dockerfile = (ROOT / "workers" / "jobs" / "Dockerfile").read_text(encoding="utf-8")
+    assert "COPY packages/diagrams/schema packages/diagrams/schema" in dockerfile
+
+
 # ADR-0014: BullMQ queues live in Valkey, so its data must survive a restart and a
 # replaced VM: AOF every second, on the retained data volume, never auto-created.
 def test_valkey_keeps_queue_data_on_the_retained_volume(config: dict[str, Any]) -> None:

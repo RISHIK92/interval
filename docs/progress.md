@@ -1,6 +1,6 @@
 # Progress
 
-Status: Phase 3 built (Weeks 13–18), committed and pushed; checked against its "Done when" in docs/runbooks/phase-3-checklist.md (UI rows are for the owner to walk: Chrome was off). Drift audit: docs/audits/2026-11-07.md. Next: Phase 4 planning. Earlier: Phase 1 built (W1-S12 superseded by ADR-0016). Phase 2 built (Weeks 7–12), committed and pushed: notes and reading mastery (W7), the question pipeline (W8), Test 60s, quiz mastery, FSRS reviews and the review queue (W9), topic paths, checkpoints and the feed path card (W10), PDF books (W11), GitHub projects, the technology table, project picks and project-aware notes (W12); checked against its "Done when" in docs/runbooks/phase-2-checklist.md. Nothing deployed (ADR-0013). Owner to-dos: set NOTES_MODEL (notes and project lines are off locally), review the technology seed and the 3 pending suggestions, add QUESTIONS_MODEL to the AWS task env, decide the S04 questions (a project concept counting in both goal_match and project_match; dev dependencies), the drift audit's "Needs an ADR" items (docs/audits/2026-10-29.md). Next: Phase 3 planning.
+Status (2026-11-12): Phase 4.5 built (Weeks 25–27: the diagram library, scene timelines drafted, reviewed and drawn in both players), committed and pushed; checked in docs/runbooks/phase-4.5-checklist.md. Phase 4 built (Weeks 19–24; docs/runbooks/phase-4-checklist.md). Drift audit: docs/audits/2026-11-12.md. Nothing deployed (ADR-0013). Next: Phase 5 planning. Earlier: Phase 3 built (Weeks 13–18), committed and pushed; checked against its "Done when" in docs/runbooks/phase-3-checklist.md (UI rows are for the owner to walk: Chrome was off). Drift audit: docs/audits/2026-11-07.md. Next: Phase 4 planning. Earlier: Phase 1 built (W1-S12 superseded by ADR-0016). Phase 2 built (Weeks 7–12), committed and pushed: notes and reading mastery (W7), the question pipeline (W8), Test 60s, quiz mastery, FSRS reviews and the review queue (W9), topic paths, checkpoints and the feed path card (W10), PDF books (W11), GitHub projects, the technology table, project picks and project-aware notes (W12); checked against its "Done when" in docs/runbooks/phase-2-checklist.md. Nothing deployed (ADR-0013). Owner to-dos: set NOTES_MODEL (notes and project lines are off locally), review the technology seed and the 3 pending suggestions, add QUESTIONS_MODEL to the AWS task env, decide the S04 questions (a project concept counting in both goal_match and project_match; dev dependencies), the drift audit's "Needs an ADR" items (docs/audits/2026-10-29.md). Next: Phase 3 planning.
 
 ## Overnight run (owner asleep, 2026-10-26): rules and what needs your review
 
@@ -4444,3 +4444,28 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **Tests:** `fetchTimeline` and `sceneAt` in the package; in the app, steps drawn and announced once each, the next explainer's first step announced, a 404 and offline drawing nothing (logged), another explainer's drawing never shown; and the full player draws it while the mini-player doesn't.
 - **Reviewer fixes:** the description made screen-reader-only (it was visible); the next-explainer and offline tests; `spyOn` for fetch; no assertion on fetch's arguments.
 - **Noted:** Android 16 deprecates `announceForAccessibility` (it still works through React Native). The fetch-and-guard effect is written once in each app; sharing it would bring React into packages/diagrams.
+
+### 2026-11-12 — P4.5-W27-S03 (Phase 4.5 wrap-up; ADR-0013)
+
+- `docs/runbooks/phase-4.5-checklist.md`: the features of Weeks 25–27 (tests; **owner to walk** where a model key, a voiced explainer, a browser or a device is needed), and the deployment modes. Phase 4.5 names no "Done when" metrics.
+- **Synth:** both stacks synthesized. Two warnings: the deliberately hardcoded VM AMI, and the worker Fargate service's default `minHealthyPercent`.
+- **Worker image:** built alone (783 MB). With no network, it reads `/app/packages/diagrams/schema/timeline.schema.json` and refuses `{}`. A test in `scripts/tests/test_compose_prod.py` now pins the schema copy. The image `interval-check-worker` is left for the owner to remove.
+- **Drift audit:** `docs/audits/2026-11-12.md`, unchanged. It counts:
+  - 17 decision drift;
+  - 0 phase drift;
+  - 1 invariant violation;
+  - 10 duplication across languages;
+  - 9 unused code;
+  - 14 unjustified dependencies;
+  - 6 naming;
+  - 17 needs an ADR;
+  - 2 closed.
+- **New from Phase 4.5 in the audit:**
+  - drafts reachable in the public media bucket;
+  - a rejected timeline is final;
+  - the zod-to-JSON-Schema direction against ADR-0010;
+  - the prompt's prose copy of the diagram rules;
+  - the silent degradation in the players, with no metric;
+  - the in-memory scenes fake differing from Postgres;
+  - "scene" vs "timeline", plus glossary gaps.
+  - None is fixed here.
