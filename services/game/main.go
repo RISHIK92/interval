@@ -16,6 +16,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"interval/services/game/judge"
 )
 
 const shutdownGrace = 10 * time.Second
@@ -59,6 +61,9 @@ func runAt(ctx context.Context, cfg config, logs io.Writer, now func() time.Time
 	log := slog.New(slog.NewJSONHandler(logs, nil)).With("server", cfg.serverID)
 	sockets := newMatchSockets()
 	matches := newRegistry(store, realClock{}, log)
+	if cfg.veloxURL != "" {
+		matches.judge = judge.Velox{URL: cfg.veloxURL, APIKey: cfg.veloxAPIKey, HTTP: &http.Client{}}
+	}
 	server := &http.Server{
 		Addr:              ":" + strconv.Itoa(cfg.port),
 		Handler:           newHandler(cfg, sockets, matches, now),

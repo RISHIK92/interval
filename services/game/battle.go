@@ -106,7 +106,8 @@ func (b *battleDef) validate() error {
 				return fmt.Errorf("%s: a harness file named as the solution", name)
 			}
 		}
-		for _, j := range b.jobs(name, "", true, "run", at, stand) {
+		all := func(battleScenario) bool { return true }
+		for _, j := range b.jobs(name, "", all, "run", at, stand) {
 			if err := j.job.Validate(); err != nil {
 				return fmt.Errorf("%s: %w", name, err)
 			}
@@ -121,18 +122,19 @@ type battleJob struct {
 	scenarios []int
 }
 
-// The jobs that judge a submission in one language: the base layers through the base
-// interface's harness, and once revealed the extension through the extended one, each
-// at most maxRunsPerJob runs. Results go back by category only (LLDQ-4): no run returns
-// its output.
-func (b *battleDef) jobs(language, code string, revealed bool, priority string, at time.Time, newID func() string) []battleJob {
+// The jobs that judge code in one language on the scenarios `include` picks: the base
+// layers through the base interface's harness, the extension through the extended one,
+// each at most maxRunsPerJob runs. Results go back by category only (LLDQ-4): no run
+// returns its output.
+func (b *battleDef) jobs(language, code string, include func(battleScenario) bool, priority string, at time.Time, newID func() string) []battleJob {
 	l := b.Languages[language]
 	var base, extension []int
 	for i, s := range b.Scenarios {
 		switch {
+		case !include(s):
 		case s.Layer != "extension":
 			base = append(base, i)
-		case revealed:
+		default:
 			extension = append(extension, i)
 		}
 	}

@@ -48,6 +48,9 @@ func TestConfigRefusesWhatItCannotUse(t *testing.T) {
 		{map[string]string{"GAME_SERVER_ID": "0", "GAME_TICKET_SECRET": "0123456789abcdef0123456789abcdef", "VALKEY_URL": "redis://localhost:6379", "PORT": "x"}, "PORT"},
 		{map[string]string{"GAME_SERVER_ID": "0", "GAME_TICKET_SECRET": "0123456789abcdef0123456789abcdef", "VALKEY_URL": "redis://localhost:6379", "PORT": "0"}, "PORT"},
 		{map[string]string{"GAME_SERVER_ID": "0", "GAME_TICKET_SECRET": "0123456789abcdef0123456789abcdef", "VALKEY_URL": "redis://localhost:6379", "PORT": "70000"}, "PORT"},
+		// P5-W31-S02b-2: Velox is optional, but a URL must be one, with its key.
+		{map[string]string{"GAME_SERVER_ID": "0", "GAME_TICKET_SECRET": "0123456789abcdef0123456789abcdef", "VALKEY_URL": "redis://localhost:6379", "VELOX_URL": "ftp://x", "VELOX_API_KEY": "k"}, "VELOX_URL"},
+		{map[string]string{"GAME_SERVER_ID": "0", "GAME_TICKET_SECRET": "0123456789abcdef0123456789abcdef", "VALKEY_URL": "redis://localhost:6379", "VELOX_URL": "http://velox:8080"}, "VELOX_API_KEY"},
 	} {
 		if _, err := loadConfig(env(tc.values)); err == nil || !strings.Contains(err.Error(), tc.names) {
 			t.Errorf("%v: got %v, want an error naming %s", tc.values, err, tc.names)

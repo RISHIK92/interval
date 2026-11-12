@@ -28,7 +28,7 @@ func battleJSON(t *testing.T, edit func(m map[string]any)) []byte {
 		},
 		"scenarios": []any{scenario("visible"), scenario("hidden"), scenario("hidden"), scenario("concurrency"), scenario("extension")},
 	}
-	m := map[string]any{"players": []any{"a", "b"}, "mode": "battle", "rounds": []any{}, "battle": battle}
+	m := map[string]any{"players": []any{"ada", "bob"}, "mode": "battle", "rounds": []any{}, "battle": battle}
 	if edit != nil {
 		edit(m)
 	}
@@ -121,7 +121,8 @@ func TestBestSubmissionCounts(t *testing.T) {
 	}
 }
 
-func TestBattlesAreRefusedUntilTheirActorExists(t *testing.T) {
+// A server without VELOX_URL has no judge, so it serves no battles.
+func TestBattlesNeedAJudge(t *testing.T) {
 	def, err := parseMatch(battleJSON(t, nil))
 	if err != nil {
 		t.Fatal(err)
@@ -158,11 +159,13 @@ func TestBattleJobsJudgeEachLayerThroughItsHarness(t *testing.T) {
 	n := 0
 	id := func() string { n++; return "00000000-0000-4000-8000-00000000000" + string(rune('0'+n)) }
 	at := time.Date(2026, 11, 13, 10, 0, 0, 0, time.UTC)
-	before := b.jobs("python", "code", false, "ranked", at, id)
+	base := func(s battleScenario) bool { return s.Layer != "extension" }
+	all := func(battleScenario) bool { return true }
+	before := b.jobs("python", "code", base, "ranked", at, id)
 	if len(before) != 1 || len(before[0].scenarios) != 4 {
 		t.Fatalf("before the reveal: the base layers only, %+v", before)
 	}
-	after := b.jobs("python", "code", true, "ranked", at, id)
+	after := b.jobs("python", "code", all, "ranked", at, id)
 	if len(after) != 2 || len(after[1].scenarios) != 1 || after[1].scenarios[0] != 4 {
 		t.Fatalf("after the reveal: base, then the extension, %+v", after)
 	}
@@ -187,7 +190,7 @@ func TestBattleJobsJudgeEachLayerThroughItsHarness(t *testing.T) {
 	}
 	b.Scenarios = append([]battleScenario{b.Scenarios[0]}, many...)
 	sizes := []int{}
-	for _, j := range b.jobs("python", "code", true, "ranked", at, id) {
+	for _, j := range b.jobs("python", "code", all, "ranked", at, id) {
 		sizes = append(sizes, len(j.job.Runs))
 	}
 	if len(sizes) != 3 || sizes[0] != 100 || sizes[1] != 100 || sizes[2] != 31 {

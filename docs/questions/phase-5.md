@@ -154,6 +154,20 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - **Submissions:** Submit is unlimited, with a 30-second cooldown, and the best-scoring one counts. Run (visible tests only, never scored) has a 5-second cooldown.
   - **Judging:** the Go game server owns the battle. It sends Run and Submit to Velox's `POST /judge` over HTTP, reads the result, scores it, and pushes the verdict over the match's WebSocket. Interval's judge client is in Go, in `services/game`.
 
+### Q-P5-16 A battle's disconnects, end, feedback and result (P0 for W31-S02b-2)
+
+- Cite:
+  - MATCH-6: "a 10-second reconnect grace period, abandon penalties".
+  - LLDQ-4: "Hidden tests never reach the client. Results show only their category."
+  - §6.5 (45-minute battles); §6.6 (Glicko-2 for 1v1, OpenSkill for rooms; ratings come in W32).
+- **Answers (owner, 2026-11-13):**
+  - **Disconnects:** after the 10-second grace, a player is shown as away, but the battle goes on. Their best submission stands, and they may come back any time before it ends. A player is abandoned only if they never return and never submitted.
+  - **Early end:** a battle ends early once every player still in it has full points after the reveal, or nobody is left; otherwise at 45:00.
+  - **Feedback:**
+    - **Run** (the visible tests): each test passed or failed, with the first mismatching call and its reason, or the run's verdict (a compile or runtime error).
+    - **Submit:** the points, and passed/total per layer, with no hidden detail.
+  - **Results:** the game server sends `match_finished` for a battle (points, best-submission times, the winner). The worker stores it, and ratings start in W32 from the stored results.
+
 ### Q-P5-10 The editor (P0 for W31)
 
 - Cite: the Week 31 roadmap line ("the Monaco editor"), §6.5 ("desktop browsers").

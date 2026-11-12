@@ -237,7 +237,7 @@ func TestTheSocketPassesFocusOn(t *testing.T) {
 		if err != nil {
 			return
 		}
-		readMessages(r.Context(), conn, func(int, int) {}, func() { focused <- struct{}{} })
+		readMessages(r.Context(), conn, 1024, func(int, int) {}, func() { focused <- struct{}{} }, func(*codeMsg) {})
 	}))
 	t.Cleanup(srv.Close)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

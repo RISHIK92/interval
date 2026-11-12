@@ -5197,3 +5197,53 @@ The owner said to continue building overnight with recommended answers, switchin
   - **The web builder:** it asserts the extension keeps the solution file name (Java's is the class), and names the problem when its bucket file is unreadable.
   - **Postgres `get`:** it parses its JSON columns with lld's contracts instead of casting.
 - **Kept as is:** a pre-reveal submission still caps at 700. Dropping the extension's 30% before the reveal would let a perfect base-only submission be unbeatable; the code's comment says so, and a test pins it.
+
+### 2026-11-13 — P5-W31-S02b-2a (the battle actor; §6.5, LOAD-2, MATCH-6; Q-P5-15, Q-P5-16)
+
+- **Owner's answers (Q-P5-16, 2026-11-13):**
+  - **Disconnects:** after the 10-second grace a player is away, not abandoned. Their best stands, and they may return until the end. Abandoned means never back and never submitted.
+  - **Early end:** once everyone still in is perfect after the reveal, or everyone is away.
+  - **Feedback:** Run shows each visible test (pass/fail, the first mismatching call and reason, the verdict). Submit shows points and passed/total per layer only (LLDQ-4).
+  - **Results:** stored now, rated in W32.
+- **The actor (`services/game/battle_actor.go`):**
+  - **Start:** the match's actor seats the players, then plays the battle: its state goes to everyone, the extension is revealed at 30:00, and the end comes at 45:00.
+  - **Run and Submit:** checked by the actor, then judged off its goroutine. Each job goes to Velox through the S02b-1 client, and the answer comes back as a `judged` event.
+    - Cooldowns are 5 s for Run and 30 s for Submit, with one judging of each kind in flight per player.
+    - Refusals carry a stable `code` (over, invalid, judging, cooldown).
+    - A judge failure gives that judging's cooldown back, only if no later send has started one.
+  - **Code counts by when it was sent, as sprint answers do:**
+    - sent after 30:00, it's judged with the extension;
+    - sent before the end, it's judged and scored after it. The actor stops taking code and waits up to 2 minutes for judgings in flight.
+  - **Leaves:** on a battle, the grace's end marks a player away instead of abandoned, and a rejoin clears it.
+  - **Restarts:** a restarted battle waits for nobody. It resumes on its saved `Started` clock with the saved bests.
+  - **Result:** best points, an equal best going to whoever reached it first. A player who never submitted gets 45:00 and loses any tie. The result is handed to the worker through `finish()`.
+- **Server:**
+  - **Velox settings:** `VELOX_URL` and `VELOX_API_KEY` (optional; without them battles are refused), in config and `.env.example`.
+  - **Battle sockets:** they read up to 6 × 256 KB of escaped code. Code messages are parsed only there, at most one a second per socket.
+- **Tests (race detector, 3 runs):**
+  - a full battle (Run, cooldowns, a pre-reveal 700, the reveal, perfect after it, the early end, the winner);
+  - away versus abandoned;
+  - everyone away while a judging is in flight;
+  - a submission sent at 44:50 and scored after 45:00;
+  - one judging at a time and the Submit cooldown;
+  - a judge failure refunding the cooldown;
+  - restarts, including one where a player with a stored best never returns;
+  - `parseCode`, and the config's Velox rules.
+- **Sonnet review:** two blockers, both fixed:
+  - restarted battles inherited the quiz rule that abandons anyone not back within the join wait;
+  - judgings in flight were dropped at the end, so a player who submitted and then dropped could be marked abandoned.
+
+  Should-fix items, all fixed:
+  - `pending` was dead; it now drives the end wait;
+  - dropped events were silent; they're logged now;
+  - the judging goroutine had no recover and outlived its actor;
+  - Runs and Submits could stack up, and refunds were unbounded;
+  - the reveal was decided at judge time, not send time;
+  - code messages were parsed on quiz sockets and not throttled;
+  - the `returned` field was misnamed.
+- **Next, S02b-2b:**
+  - a `battle` match mode in Postgres;
+  - the web creating the `game_match` row and tickets for a battle;
+  - the worker storing a battle's result without quiz attempts or ratings.
+
+  Until then a finished battle's result can't be recorded. Only the local `pnpm game:battle` makes one.

@@ -11,6 +11,8 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+
+	"interval/services/game/judge"
 )
 
 // Where the web app leaves a match for its server (Q-P3-22): game:match:<id> in Valkey,
@@ -152,6 +154,8 @@ type registry struct {
 	store  matchStore
 	clock  clock
 	log    *slog.Logger
+	// P5-W31-S02b-2: battles' judge (Velox, VELOX_URL); without one, battles are refused.
+	judge judge.Judge
 }
 
 func newRegistry(store matchStore, c clock, log *slog.Logger) *registry {
@@ -170,7 +174,8 @@ func (g *registry) over(id string) bool {
 	return over
 }
 
-var errBattleNotServed = errors.New("battles are not served yet")
+// Without VELOX_URL a server can't judge code, so it serves no battles.
+var errBattleNotServed = errors.New("no judge for battles: VELOX_URL is not set")
 
 func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 	g.mu.Lock()
@@ -187,9 +192,7 @@ func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 	if err != nil {
 		return nil, err
 	}
-	// P5-W31-S02b: battles are defined and judged, but their actor is S02b-2's; until
-	// then one is refused rather than played as a quiz with no rounds.
-	if def.Battle != nil {
+	if def.Battle != nil && g.judge == nil {
 		return nil, errBattleNotServed
 	}
 	saved, found, err := g.store.snapshot(ctx, id)
@@ -208,9 +211,10 @@ func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 		return a, nil
 	}
 	a := newActor(id, def, g.clock, g.log)
-	if found && saved.Next >= 1 && saved.Next <= len(def.Rounds) {
+	if found && ((saved.Next >= 1 && saved.Next <= len(def.Rounds)) || !saved.Started.IsZero()) {
 		a.from = &saved
 	}
+	a.judge = g.judge
 	a.save = func(s snap) {
 		// LOAD-5: the match plays on and only loses its restart point (a metric in the
 		// AWS stack counts these). The last one, "over", is tried three times: lost, a
@@ -340,7 +344,7 @@ func (s *memStore) save(_ context.Context, id string, saved snap) error {
 		return errors.New("store down")
 	}
 	// A copy: the actor goes on changing its maps.
-	copied := snap{Next: saved.Next, Over: saved.Over, Totals: map[string]int{}, Times: map[string]time.Duration{}}
+	copied := snap{Next: saved.Next, Over: saved.Over, Started: saved.Started, Totals: map[string]int{}, Times: map[string]time.Duration{}}
 	for k, v := range saved.Totals {
 		copied.Totals[k] = v
 	}

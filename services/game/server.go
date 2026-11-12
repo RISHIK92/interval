@@ -130,9 +130,27 @@ func newHandler(cfg config, sockets *matchSockets, matches *registry, now func()
 		go safely(matches.log, "ping", func() {
 			measure(ctx, conn, func(rtt time.Duration) { a.rtt(ticket.U, rtt) })
 		})
-		readMessages(ctx, conn, func(n, choice int) {
+		limit, code := int64(1024), func(*codeMsg) {}
+		if a.def.Battle != nil {
+			// P5-W31-S02b-2: a battle's code, JSON-escaped: up to six bytes a character.
+			limit = 6*maxCodeBytes + 1024
+			var last time.Time
+			code = func(c *codeMsg) {
+				// At most one a second from a socket, whatever the actor's cooldowns: a
+				// stream of large messages would otherwise fill its queue.
+				at := matches.clock.Now()
+				if at.Sub(last) < time.Second {
+					return
+				}
+				last = at
+				if !a.post(event{kind: "code", player: ticket.U, code: c, at: at}) {
+					matches.log.Error("game: code dropped", "match", ticket.M, "player", ticket.U)
+				}
+			}
+		}
+		readMessages(ctx, conn, limit, func(n, choice int) {
 			a.answerAt(ticket.U, n, choice, matches.clock.Now())
-		}, func() { a.focus(ticket.U) })
+		}, func() { a.focus(ticket.U) }, code)
 		// The socket ended: the player has the grace to come back (MATCH-6).
 		a.leave(ticket.U, player)
 	})
@@ -164,15 +182,23 @@ func measure(ctx context.Context, conn *websocket.Conn, report func(time.Duratio
 	}
 }
 
-// A player's answers, {"type":"answer","n":round,"choice":0-3}, and focus changes,
-// {"type":"focus"} (P3-W18-S02). Anything else, or anything over 1 KB, is dropped or
-// ends the socket; the actor checks the rest.
-func readMessages(ctx context.Context, conn *websocket.Conn, answer func(n, choice int), focus func()) {
-	conn.SetReadLimit(1024)
+// A player's answers, {"type":"answer","n":round,"choice":0-3}, focus changes,
+// {"type":"focus"} (P3-W18-S02), and a battle's code, {"type":"run"|"submit",...}
+// (P5-W31-S02b-2). Anything else, or anything over the limit, is dropped or ends the
+// socket; the actor checks the rest.
+func readMessages(ctx context.Context, conn *websocket.Conn, limit int64, answer func(n, choice int), focus func(), code func(*codeMsg)) {
+	conn.SetReadLimit(limit)
 	for {
 		_, data, err := conn.Read(ctx)
 		if err != nil {
 			return
+		}
+		// A battle's code first: the one large message, read once.
+		if limit > 1024 {
+			if c := parseCode(data); c != nil {
+				code(c)
+				continue
+			}
 		}
 		var msg struct {
 			Type   string `json:"type"`

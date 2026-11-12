@@ -7,6 +7,8 @@ import (
 	"slices"
 	"sync"
 	"time"
+
+	"interval/services/game/judge"
 )
 
 // Q-P3-22 (owner, 2026-11-02): 7 rounds of 15 seconds, the same question to both.
@@ -28,6 +30,9 @@ type snap struct {
 	Answers map[string][]answerRec      `json:"answers"` // so a restart's result has them all
 	Signals map[string][]fairPlaySignal `json:"signals"` // P3-W18-S02: likewise
 	Over    bool                        `json:"over"`
+	// P5-W31-S02b-2: a battle's start, so a restart plays on with the same clock; its
+	// Totals and Times are the players' best submissions.
+	Started time.Time `json:"started,omitzero"`
 }
 
 // P3-W15-S05: a player's answer to a round, for the result (null fields: not answered).
@@ -90,7 +95,7 @@ func (realClock) Now() time.Time                         { return time.Now() }
 func (realClock) After(d time.Duration) <-chan time.Time { return time.After(d) }
 
 type event struct {
-	kind   string // join, leave, answer, focus, rtt, graceOver, sync
+	kind   string // join, leave, answer, focus, rtt, graceOver, sync; code, judged (battles)
 	player string
 	seat   seat
 	n      int // the round answered; for graceOver, the leave's generation
@@ -98,6 +103,8 @@ type event struct {
 	rtt    time.Duration
 	at     time.Time // when an answer arrived
 	done   chan struct{}
+	code   *codeMsg   // a battle's Run or Submit
+	judged *judgedMsg // the judge's answer to one
 }
 
 // LOAD-2: one actor owns a match. Its state lives in run's goroutine only; everything
@@ -115,6 +122,7 @@ type actor struct {
 	from    *snap        // a restart's starting point, when there is one
 	save    func(snap)   // after each round and at the end; nil saves nothing
 	publish func(result) // the result, for the worker (P3-W15-S05); nil hands nothing
+	judge   judge.Judge  // a battle's judge (P5-W31-S02b-2): Velox
 }
 
 func newActor(id string, def matchDef, c clock, log *slog.Logger) *actor {
@@ -207,6 +215,7 @@ type play struct {
 	answers   map[string][]answerRec
 	signals   map[string][]fairPlaySignal // P3-W18-S02: fair-play signals, per player
 	sprint    *sprintRun                  // a sprint's own state, once it has begun
+	battle    *battleRun                  // a battle's own state, once it has begun
 	countdown time.Time                   // when the countdown before the first question ends; zero: none running
 }
 
@@ -273,6 +282,13 @@ func (a *actor) run() {
 	if g := a.def.Ghost; g != nil {
 		p.seats[g.Player] = ghostSeat{} // never joins, never leaves
 	}
+	if a.def.Battle != nil && a.from != nil {
+		// A restarted battle waits for nobody (Q-P5-16): its players may come back until
+		// the end, and only then is anyone who never did and never submitted abandoned.
+		p.started = true
+		a.battle(&p)
+		return
+	}
 	// Waiting for every player (again, after a restart).
 	deadline := a.clock.After(joinWait)
 	for len(p.seats) < len(a.def.Players) {
@@ -310,6 +326,10 @@ func (a *actor) run() {
 	p.started = true
 	if a.def.Mode == sprintMode {
 		a.sprint(&p)
+		return
+	}
+	if a.def.Battle != nil {
+		a.battle(&p)
 		return
 	}
 	if a.from != nil {
@@ -545,7 +565,11 @@ func (a *actor) handle(p *play, e event, cur *current) {
 		}
 		p.seats[e.player] = e.seat
 		p.gens[e.player]++ // any grace running for this player is now stale
-		if !p.countdown.IsZero() {
+		if b := p.battle; b != nil {
+			// Back, from away or not (Q-P5-16): where the battle stands.
+			b.away[e.player], b.joined[e.player] = false, true
+			e.seat.send(a.battleState(p))
+		} else if !p.countdown.IsZero() {
 			left := max(0, p.countdown.Sub(a.clock.Now()))
 			e.seat.send(map[string]any{"type": "countdown", "seconds": seconds(left)})
 		} else if p.sprint != nil {
@@ -596,8 +620,20 @@ func (a *actor) handle(p *play, e event, cur *current) {
 		if p.gens[e.player] != e.n {
 			return // back since, or left again: a later grace decides
 		}
+		if b := p.battle; b != nil {
+			b.away[e.player] = true // Q-P5-16: away, not abandoned
+			return
+		}
 		if !slices.Contains(p.abandoned, e.player) {
 			p.abandoned = append(p.abandoned, e.player)
+		}
+	case "code":
+		if p.battle != nil {
+			a.battleCode(p, e)
+		}
+	case "judged":
+		if p.battle != nil {
+			a.battleJudged(p, e)
 		}
 	case "rtt":
 		p.rtts[e.player] = e.rtt
