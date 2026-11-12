@@ -4,29 +4,64 @@
   "rounds": [],
   "battle": {
     "problem": "box",
-    "limits": { "seconds": 5, "memoryMB": 128 },
-    "checks": [{ "method": "items", "compare": "unordered" }],
+    "limits": {
+      "seconds": 5,
+      "memoryMB": 128
+    },
+    "checks": [
+      {
+        "method": "items",
+        "compare": "unordered"
+      }
+    ],
     "languages": {
       "python": {
         "solution": "solution.py",
-        "base": [{ "name": "main.py", "content": "# base harness" }],
-        "extension": [{ "name": "main.py", "content": "# extended harness" }]
+        "base": [
+          {
+            "name": "main.py",
+            "content": "# base harness"
+          }
+        ],
+        "extension": [
+          {
+            "name": "main.py",
+            "content": "# extended harness"
+          }
+        ]
       }
     },
     "scenarios": [
       {
         "layer": "visible",
         "stdin": "{\"calls\":[{\"method\":\"new\",\"args\":[]}]}",
-        "expected": [{ "call": 0, "value": null }]
+        "expected": [
+          {
+            "call": 0,
+            "value": null
+          }
+        ]
       },
       {
         "layer": "extension",
         "stdin": "{\"calls\":[{\"method\":\"new\",\"args\":[]},{\"method\":\"grow\",\"args\":[]}]}",
         "expected": [
-          { "call": 0, "value": null },
-          { "call": 1, "error": "ValueError: full" }
+          {
+            "call": 0,
+            "value": null
+          },
+          {
+            "call": 1,
+            "error": "ValueError: full"
+          }
         ]
       }
-    ]
+    ],
+    "extension": {
+      "statement": "# Grow\n\n`grow()` adds a slot.",
+      "starters": {
+        "python": "class Box:\n    def grow(self) -> None:\n        raise NotImplementedError\n"
+      }
+    }
   }
 }

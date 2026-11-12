@@ -770,10 +770,15 @@ export interface Matches {
   // The game server that owns the match, and the id the player plays as there (a guest
   // who signed up mid-match keeps the guest's, Q-P3-21), when the player is in it; null
   // otherwise (no such match, or not theirs).
+  // `problem`: a battle's problem slug (P5-W31-S03); null for any other match.
   serverFor(
     matchId: string,
     userId: string,
-  ): Promise<{ serverId: number; playedAs: string } | null>;
+  ): Promise<{
+    serverId: number;
+    playedAs: string;
+    problem: string | null;
+  } | null>;
 }
 
 // P3-W16-S02 (MATCH-3, Q-P3-14; owner, 2026-11-03): a queue for live 1v1 that pairs
@@ -930,6 +935,8 @@ export type BattleMatch = {
       { solution: string; base: BattleFile[]; extension: BattleFile[] }
     >;
     scenarios: { layer: string; stdin: string; expected: ResultLine[] }[];
+    // P5-W31-S03: shown at the reveal by the game server, which owns the clock.
+    extension?: { statement: string; starters: Record<string, string> };
   };
 };
 

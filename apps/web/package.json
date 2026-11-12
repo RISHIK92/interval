@@ -3,9 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm pdf-worker && ../../scripts/with-env.sh next dev --port 3100",
-    "build": "pnpm pdf-worker && next build",
+    "dev": "pnpm pdf-worker && pnpm monaco && ../../scripts/with-env.sh next dev --port 3100",
+    "build": "pnpm pdf-worker && pnpm monaco && next build",
     "pdf-worker": "cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdf.worker.min.mjs",
+    "monaco": "mkdir -p public/monaco && cp -R node_modules/monaco-editor/min/vs public/monaco/",
     "start": "next start",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -20,6 +21,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "eslint-config-next": "16.4.3",
+    "monaco-editor": "0.57.0",
     "tailwindcss": "4.3.3"
   },
   "dependencies": {

@@ -27,6 +27,8 @@ cdk.out/
 .data/
 # Copied from pdfjs-dist by `pnpm pdf-worker` (dev and build), so it matches the package.
 apps/web/public/pdf.worker.min.mjs
+# Monaco's prebuilt editor, copied by `pnpm monaco` (dev and build; P5-W31-S03).
+apps/web/public/monaco/
 
 # Env files
 .env

@@ -116,7 +116,7 @@ func (a *actor) battle(p *play) {
 		case <-revealAt:
 			b.revealed = true
 			revealAt = nil
-			a.broadcast(p, map[string]any{"type": "extension", "seconds": seconds(battleLength - battleReveal)})
+			a.broadcast(p, a.extensionMessage(battleLength-battleReveal))
 		case <-end:
 			b.closing = true
 		case <-a.quit:
@@ -165,10 +165,24 @@ func (a *actor) battleDone(p *play) bool {
 func (a *actor) battleState(p *play) map[string]any {
 	b := p.battle
 	left := max(0, battleLength-a.clock.Now().Sub(b.start))
-	return map[string]any{
+	state := map[string]any{
 		"type": "battle", "problem": a.def.Battle.Problem, "seconds": seconds(left),
 		"revealed": b.revealed, "best": a.bests(p),
 	}
+	if b.revealed {
+		// A player back after the reveal is shown it again.
+		state["extension"] = a.extensionMessage(left)
+	}
+	return state
+}
+
+// The reveal (Q-P5-15): extension.md and the extended starters, never sent before it.
+func (a *actor) extensionMessage(left time.Duration) map[string]any {
+	msg := map[string]any{"type": "extension", "seconds": seconds(left)}
+	if e := a.def.Battle.Extension; e != nil {
+		msg["statement"], msg["starters"] = e.Statement, e.Starters
+	}
+	return msg
 }
 
 func (a *actor) bests(p *play) map[string]int {

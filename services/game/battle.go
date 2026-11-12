@@ -29,6 +29,14 @@ type battleDef struct {
 	Checks    []judge.Check             `json:"checks"`
 	Languages map[string]battleLanguage `json:"languages"`
 	Scenarios []battleScenario          `json:"scenarios"`
+	// P5-W31-S03: what players are shown at the reveal, and only then (the clock is this
+	// server's): extension.md, and the extended interface's starter code per language.
+	Extension *battleExtension `json:"extension,omitempty"`
+}
+
+type battleExtension struct {
+	Statement string            `json:"statement"`
+	Starters  map[string]string `json:"starters"`
 }
 
 type battleLimits struct {
@@ -94,6 +102,19 @@ func (b *battleDef) validate() error {
 	}
 	if !visible {
 		return errors.New("a battle needs visible scenarios")
+	}
+	if extension != (b.Extension != nil) {
+		return errors.New("a battle's extension scenarios and its extension text go together")
+	}
+	if e := b.Extension; e != nil {
+		if e.Statement == "" {
+			return errors.New("a battle's extension without its statement")
+		}
+		for name := range b.Languages {
+			if e.Starters[name] == "" {
+				return fmt.Errorf("%s: no extension starter", name)
+			}
+		}
 	}
 	at := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	stand := func() string { return "00000000-0000-4000-8000-000000000000" }

@@ -5,8 +5,16 @@ import { defineConfig } from "eslint/config";
 export default defineConfig(
   shared,
   nextVitals,
-  // The PDF.js worker, copied from the package (`pnpm pdf-worker`).
-  { ignores: [".next/**", "next-env.d.ts", "public/pdf.worker.min.mjs"] },
+  // The PDF.js worker and Monaco's prebuilt editor, copied from their packages
+  // (`pnpm pdf-worker`, `pnpm monaco`).
+  {
+    ignores: [
+      ".next/**",
+      "next-env.d.ts",
+      "public/pdf.worker.min.mjs",
+      "public/monaco/**",
+    ],
+  },
   // ADR-0012: drivers and SDKs only in adapters and the composition root.
   {
     files: ["src/**/*.{ts,tsx}"],

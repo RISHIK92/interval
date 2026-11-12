@@ -25,7 +25,7 @@ export type BookStatus = "failed" | "ocr" | "processing" | "ready";
 
 export type BreakLength = "1-3" | "3-8" | "8-15";
 
-export type Capability = "admin.review" | "agent.hook" | "ai.budget.daily_cents" | "ai.notes.daily" | "books.count" | "books.max_mb" | "books.max_pages" | "feed.read" | "play.daily" | "play.estimation" | "play.live" | "play.sprint" | "push.notify";
+export type Capability = "admin.review" | "agent.hook" | "ai.budget.daily_cents" | "ai.notes.daily" | "books.count" | "books.max_mb" | "books.max_pages" | "feed.read" | "play.battle" | "play.daily" | "play.estimation" | "play.live" | "play.sprint" | "push.notify";
 
 export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
 

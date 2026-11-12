@@ -62,6 +62,7 @@ export async function startBattle(
     );
   }
   const languages: BattleMatch["battle"]["languages"] = {};
+  const starters: Record<string, string> = {};
   for (const [language, generate] of Object.entries(GENERATORS)) {
     const base = generate(problem.interface);
     const extended =
@@ -70,6 +71,7 @@ export async function startBattle(
     // so Java's file, named after the class, is the same too.
     if (extended !== null && extended.solutionFile !== base.solutionFile)
       throw new Error(`${slug}: the extension renames the solution file`);
+    if (extended !== null) starters[language] = extended.starter;
     languages[language] = {
       solution: base.solutionFile,
       base: [{ name: base.harnessFile, content: base.harness }],
@@ -94,6 +96,11 @@ export async function startBattle(
         stdin: JSON.stringify(s.scenario),
         expected: s.results,
       })),
+      ...(problem.extension === null
+        ? {}
+        : {
+            extension: { statement: problem.extension.statement, starters },
+          }),
     },
   };
   try {

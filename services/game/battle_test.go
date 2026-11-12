@@ -27,6 +27,7 @@ func battleJSON(t *testing.T, edit func(m map[string]any)) []byte {
 			"python": map[string]any{"solution": "solution.py", "base": []any{file}, "extension": []any{file}},
 		},
 		"scenarios": []any{scenario("visible"), scenario("hidden"), scenario("hidden"), scenario("concurrency"), scenario("extension")},
+		"extension": map[string]any{"statement": "# More", "starters": map[string]any{"python": "class Box: ..."}},
 	}
 	m := map[string]any{"players": []any{"ada", "bob"}, "mode": "battle", "rounds": []any{}, "battle": battle}
 	if edit != nil {

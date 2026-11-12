@@ -443,6 +443,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - A flake seen once in `pnpm check` (kysely-feedback "unsave … a repeat changes nothing": FK error on user_save) didn't recur in three runs; not investigated.
 
 ### 2026-10-26 — P1-W6-S02 (deep-link check, §3.2, ING-4, Q-P1-25)
+
 - Owner choices:
   - no headless browser and no new dependency: the polite fetcher plus stdlib `html.parser`, reading pages as served;
   - robots.txt, timeouts, 5xx and blocks are "unchecked", outside the pass rate; 404/410 and a section not found fail;
@@ -466,6 +467,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Run on the local data: 921 of 921 moments passed across 29 sources; none unchecked or flagged. Links were built from the same served HTML, so this confirms the pages haven't moved. Pages that render headings with JavaScript would only differ in a real browser (accepted with the no-browser choice).
 
 ### 2026-10-26 — P1-W6-S03 (weekly link health checks, ING-6, §5B, Q-P1-38)
+
 - Owner choices:
   - every stored item is checked weekly, broken ones too;
   - only a 404 or 410 marks a link broken. A 5xx is raised for the queue to retry (3 attempts, then the failed set) and checked again next week. Robots.txt, 403s and other failures change nothing; they're logged;
@@ -493,6 +495,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - in Chrome, with one item marked broken by hand: it left the 3-8 feed, and the Library showed it saved with "Link broken" and no link. Mark and save were removed afterwards.
 
 ### 2026-10-26 — P1-W6-S04 (Athena queries by beta group, DB-5, Q-P1-21/35/41)
+
 - Owner choices:
   - **Ids:** `card_opened`, `section_finished` and `article_finished` are now version 2. `section_finished` carries `item_id` and `moment_id`, `article_finished` carries `item_id`, and `card_opened` carries `item_id` and a nullable `moment_id`. They're new codegen prop types `id` and `id?`, ids only, and older events can't be matched.
   - **DuckDB:** `duckdb==1.5.6` as a dev dependency only; 2.0.0 was under 2 weeks old.
@@ -510,6 +513,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Checked in the real app (dev server restarted after codegen): a feed open logged `card_opened` v2 with `item_id`/`moment_id`, and Mark section done logged `section_finished` v2 with both ids.
 
 ### 2026-10-26 — P1-W6-S05 (dashboards and alarms, OPS-2, OPS-4)
+
 - Owner choices:
   - AI cost per user is a Logs Insights table, not a per-user metric;
   - alarms have no actions (console only);
@@ -529,10 +533,11 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - run the Logs Insights query once in the console after deploy.
 
 ### 2026-10-26 — Design pass 1: design-system foundation (owner's design pass)
+
 - The owner shared two designs, now in `docs/wireframes/`:
   - `app-design.html`: 16 screens, light and dark;
   - `design-system.html`: tokens, type and components.
-  They're JavaScript bundles, so open them in a browser.
+    They're JavaScript bundles, so open them in a browser.
 - **Owner choices:**
   - restyle with placeholders for later-phase UI;
   - reading stays on the publisher's page, with Interval around it;
@@ -577,6 +582,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the cached offline page can show the theme that was active when the worker installed.
 
 ### 2026-10-26 — Design pass 2: account-first join (ADR-0016, option B)
+
 - **Owner answers to the ADR questions (2026-10-26):**
   - ADR-0015:
     - concept sets per goal: Claude drafts, the owner reviews;
@@ -605,6 +611,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **For the owner:** the local user is gone. Join at `/join` with an invite code (`issue-invites`), then run `grant-capability --email <you> --capability admin.review` again for the admin pages.
 
 ### 2026-10-26 — Design pass 3: learning goals (ADR-0015, option A)
+
 - **Owner answers (2026-10-26):**
   - "Pass system design interviews" has the approved 24-concept set;
   - "Stay sharp" adds no boost;
@@ -643,6 +650,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - **For the owner:** no local item has concept tags yet (tagging waits for the W3-S02 model pick), so no card gets a goal lift or a goal note in local data until tagging runs.
 
 ### 2026-10-26 — Design pass 4: screen restyles (all Phase 1 screens)
+
 - **Owner choices:** onboarding in four steps as drawn; every Phase 1 screen in one pass.
 - **Shared pieces:**
   - topic-family colour tokens (`--<topic>-tint/top/left/right/line`). Backend has no family in the design, so it borrows Review's purple; this is flagged for the owner.
@@ -670,6 +678,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - the popover and return-sheet positions have not been checked on a phone.
 
 ### 2026-10-26 — In-app reader, slice 1: which pages can be framed (ADR-0018)
+
 - **ADR-0018** was accepted by the owner (2026-10-26). Articles open inside Interval where the publisher allows framing, with an overlay at the bottom; everything else opens in the browser. It amends C-07.
   - **Owner answers:**
     - a 6 s timeout falls back to "Open in browser";
@@ -1839,6 +1848,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Tagging v3, Phase B (2026-10-27): with `TAGGING_MODEL=decisions:<id>` (Perplexity Decider v1.2) each moment whose content hash changed gets one call: a yes/no question per shortlisted concept (15) plus a difficulty score; one title/summary pass per article. Raw answers are kept (`moment_decision`, `moment_concept_probability`, `item_decision`, `item_concept_probability`), keyed by a hash of the text, graph version, decide version, shortlist model and size, so nothing unchanged is asked twice. `tagging_rollup` turns them into tags (moment cut-off; article: two moments, one strong moment, or the title pass; median difficulty), using only current moments. `eval-tagging` asks once, stores, scores and sweeps cut-offs (a re-run is free: checked, $0). The pipeline's tag stage has the decisions branch (needs `EMBEDDING_MODEL`); `PROMPT_VERSION` 3. Moments are embedded on the fly for the shortlist rather than stored first (plan simplification). Result on the draft labels: F1 0.68 at the default 0.5 (0.69 at 0.4), precision 0.66, recall 0.69, difficulty 0.65, $0.0058 a run (~1,500 tokens a call, from ~5,500). Review fixes: answers paid for are kept when the budget or the model stops a pass (the hash skip resumes), the eval checks every item first and stops without rolling back, a wider hash, stale moments left out of the roll-up, stale concept vectors warned about, "strong" counts moments only, both stores refuse unknown concepts, difficulty range checked. Not done: a metric (only a log) when `EMBEDDING_MODEL` is missing.
 
 ## 2026-10-27: Voyage 4 embeddings compared
+
 - Voyage's pricing page now lists voyage-3.5-lite as legacy (no free tokens); the voyage-4 family gets 200M free tokens per model. Added `voyage-4-lite` ($0.02), `voyage-4` ($0.06), `voyage-4-large` ($0.12) to the Voyage price table.
 - `eval-embeddings` (61 draft queries): all pass and the queries are too easy to separate the models (MRR 0.93 / 0.91 / 0.92; 3.5-lite 0.94).
 - `eval-shortlist` recall@15, embeddings alone / with aliases: 3.5-lite 0.85 / 0.977, 4-lite 0.89 / 0.977, 4 0.94 / 0.989, 4-large 0.95 / 0.989.
@@ -1846,12 +1856,14 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Recommendation: `EMBEDDING_MODEL=voyage-4` (same as large on our evals at half the price, inside the free tier). Concept vectors for all four models are stored; switching means re-embedding the moments.
 
 ## 2026-10-27: Tagging v3 switched on and backfilled locally
+
 - `.env`: `TAGGING_MODEL=decisions:perplexity/pplx-decider-v1.2`, `EMBEDDING_MODEL=voyage-4`. All 879 non-duplicate items tagged (1,018 item tags, 1.2 per item); 8 items keep a moment without a vector (no text). $0.25 at list prices: Decider ~$0.05, Voyage ~$0.20 (inside voyage-4's free tokens).
 - Fixes found by the run: model settings are stripped of whitespace (`854bcc3`); decision tagging skips moments with no text, which Voyage refused with a 400 (`e3e4a01`).
 - A poll only re-queues items still in a feed's newest entries, so the older ~480 were queued by a one-off script (tag and embed jobs by idempotency key).
 - Follow-ups: the tag stage re-embeds moments the embed stage already stored (reuse them to halve Voyage use); 1.2 tags per item looks sparse next to the labels, check after the owner corrects them.
 
 ## 2026-10-27: Notes model deferred to project-aware notes (owner)
+
 - Owner: why-this-matters notes stay on their templates; the notes model (and its eval) waits for the GitHub integration, when notes can use the user's projects (docs/roadmap/phase-2.md, week 12: "GitHub dependency mapping and project-aware notes"). `NOTES_MODEL` stays unset.
 - Done the same day: price tables checked against the providers' pages (`181cd53`); Gemini and Groq aren't in use for now (owner).
 - Labels second pass (`9016e2a`): the 12 hand-picked moments the Decider disagreed with were re-read against the 4000 characters it sees; 11 changed. Hand-picked F1 0.76 at the 0.7 cut-off (biased toward the model: only disagreements were re-read); random sample unchanged at 0.44.
@@ -1859,6 +1871,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Version 5 roll-up done locally ($0.053 since the restart, no failed jobs): 258 of 879 items tagged (full text: 199 of 524, 0.93 tags per item; excerpt-only: 59 of 355); 621 untagged, close to the random sample's two-thirds off-topic. Top concepts now caching 21, replication 19, sharding 18, observability 15 (it was 61 with the forced tag). Feeds recomputed (1 user, 36 starter feeds).
 
 ### 2026-10-27 — P2-W7-S01 (mastery table and reading evidence, PER-2, PER-1)
+
 - Phase 2 planning first (`8b311f9`): docs/questions/phase-2.md (Q-P2-01..04 answered by the owner 2026-10-27) and docs/roadmap/phase-2-slices.md (Week 7, four slices).
 - Migration `20261027090000_concept_mastery.sql`: `concept_mastery` (user, concept, probability, `learner_state`, evidence count); no row is unseen.
 - `kysely-progress.ts`: `finishMoment`, `finishArticle` and `finishArticleIfComplete` record the finish and credit its concepts in one statement (data-modifying CTEs), so a repeat finish credits nothing and a finish is never kept without its credit. D1: p moves a tenth of the way to 1, capped at 0.3 from reading; a row above the cap (a Week 9 quiz) is neither lowered nor demoted; state explored. Admin corrections replace model tags; retired concepts and moments a source no longer allows (ING-2) credit nothing.
@@ -1866,11 +1879,13 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: retired concepts, ING-2 on credits, lock order (`order by id`), and test gaps fixed. Asked the owner: Q-P2-05 (section-by-section reading credits more than an article finish); kept as built meanwhile.
 
 ### 2026-10-27 — P2-W7-S02 (explored concepts on Profile, Q-P2-04)
+
 - `Progress.explored(userId)`: the user's mastery rows grouped by topic, the topic of the newest row first, concepts newest first then by name; retired concepts hidden, as crediting skips them (Q-P2-06, suggested default). Topics checked against `TOPICS` at the boundary.
 - Profile: a "Concepts you've explored" card after Inferred, topic names from `TOPIC_NAMES` (now exported from ChoicesFields); an empty state. Checked in Chrome (empty state; the owner's account has no mastery yet, since finishes before S01 weren't credited).
 - Reviewer: retired concepts, the ordering fixture, the tie-break, and the empty-state wording fixed. Open: Q-P2-06; the heading will also cover practiced and mastered concepts once Weeks 9-10 write them.
 
 ### 2026-10-27 — P2-W7-S03 (notes: storage and writing, Q-P2-01, DB-5)
+
 - Migration `20261027100000_user_notes.sql`: `user_note` (user, item, moment or null, section title, body 1–2,000). A section deleted by re-segmenting leaves its note on the article with its title (`on delete set null`); two partial unique indexes keep one note per section and per article, and a fallen-back note (title kept, never null) can't collide with either.
 - `Notes` port and `kysely-notes.ts`: `get`, `save` (one upsert per target, section title refreshed), `remove`; every query scoped to the user; a moment must be the item's.
 - `noteAction`: save or delete; an empty save deletes; CRLF counted as the text area counts it; a refused input or a save with nothing to attach to is logged; events `note_saved` / `note_deleted` with ids only (events guard test lists them as owner-approved with the Week 7 plan).
@@ -1878,6 +1893,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: unique indexes + upsert (replacing the select-then-insert race), CRLF, logging, the shared target filter, the section-title refresh and the Delete note label fixed. Noted: saving from the reader reloads the publisher's frame at its anchor (a no-script form).
 
 ### 2026-10-27 — P2-W7-S04 (notes in the Library and on cards, Q-P2-01, §5I)
+
 - `Notes` port: `list` (newest edit first, with article, source, section and link state), `onItems` (a card's own section or article note; not fallen-back ones), `update` / `removeById` by the note's id (the Library; reaches a note whose section was re-segmented away).
 - `noteAction` takes a note id or a target (zod union); a lost edit is logged.
 - Library: the Notes tile is live (count) and a Notes section lists each note with its article, source, section ("Whole article" when none), body, a link back (in-app reader when frameable, else /out; "Link broken"), and edit/delete by id. `ReadLink` and the note link share `LibraryLink`; note rows reuse `Row`.
@@ -1887,6 +1903,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Week 7 is complete: S01–S04.
 
 ### 2026-10-27 — P2-W8-S01 (question bank and generator, Q-1, AI-3, AI-4, ING-2)
+
 - Week 8 planning first (`cee7451`): Q-P2-07..12 (owner: free `nvidia/nemotron-3.5-super-vl:free` as generator and blind validator, an unimportant background task retrying every 5 minutes; MCQ, 2 per tagged full-text moment).
 - Migration `20261027110000_question_bank.sql`: `question` (stem, 4 options, key, a verbatim citation ≤300 chars kept internal, status, model, prompt version, content hash; one non-retired question per slot), `question_concept`, `question_drafting` (retry state); `ai_feature` gains `questions`. Questions cascade with their moment, so with its rights.
 - `questions.py`: the prompt (passage fenced as data), a strict parser (exactly 2, 4 distinct options, one key, a citation of ≥3 whole words from the passage), a content hash over text, concepts and prompt version.
@@ -1894,6 +1911,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: the broken-reply cap, chain merging, the set-based query, concepts in the hash, whole-word citations, retire-not-delete, prompt fencing and more tests fixed. Not fixed, noted: on a daily-cap 429 each delivery still spends its ~65 s of in-call retries (serial, other stages unaffected).
 
 ### 2026-10-27 — P2-W8-S02 (blind validator, Q-1, Q-P2-07)
+
 - Migration `20261027120000_question_validation.sql`: the validator's model, answer and time on `question` (set together). Message `validate_question`.
 - `questions.py`: `validation_prompt` (passage, stem and options; never the key or citation), `parse_answer`, and `shuffled`: options are shuffled when a draft is saved, so a model's habit of putting the key first can't pass as agreement, and readers can't learn a position.
 - Stage `validate_question`, queued per saved draft: live on a match, rejected otherwise (the answer kept); only a pending question is decided. Retries shared with drafting (`_retry_question_call`): errors without end, broken replies up to 5. A moment that lost rights leaves its question pending (warned); drafting's AI-4 skip re-queues the validation of pending drafts, so a backfill recovers any that were stranded.
@@ -1902,18 +1920,21 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - The local run: 511 tagged moments queued for drafting; free Nemotron answers 429 so far (the day's free quota went on the morning's evals), so they retry every 5 minutes.
 
 ### 2026-10-27 — P2-W8-S03 (spot-check queue, Q-2, §6.8)
+
 - Migration `20261027130000_question_review.sql`: `question_review` (its own id, reason sample/flagged, the decision, who, when); one open review per question, so a question kept once can be flagged and reviewed again.
 - `spot-check-due` (weekly: VM `interval-spot-checks.timer`, AWS EventBridge `SpotCheckDueSchedule`, no queue access): a random 10% (rounded up) of the questions validated in the past week, counted over the week whatever their status now so a rerun draws nothing twice, drawn from live ones never sampled; plus every flagged question without an open review. Serialised with an advisory lock.
 - `/admin/questions` (admin.review): each open review of a live or flagged question, with its section link, options (key and validator's answer marked) and quote; Keep returns a flagged question to live, Retire retires it, each review decided once (`AdminQuestions` port, Kysely adapter).
 - Reviewer: the window by `validated_at`, the quota over the week, repeat reviews, dead questions left out of the queue, the unused status field, the lock, the empty-state text and tests fixed. Known limit: a VM off for over a week samples only the last 7 days.
 
 ### 2026-10-27 — P2-W8-S04 (starting difficulty, Q-3, Q-P2-11)
+
 - Migration `20261027140000_question_difficulty.sql`: `question.difficulty` (the moment's level when drafted, an admin's correction winning; earlier questions backfilled), `answer_count`, `correct_count` (within the answers) and `calibrated_at` for Week 9's IRT recalibration.
 - `QuestionTarget.difficulty` (Postgres: moment tagging and the heading's correction, never the intro; memory: `moment_difficulty`); the stage saves each draft at its moment's current level.
 - Reviewer: a stage test for the level, the backfill and comment, the shadowed alias and a redundant check fixed.
 - Week 8 is built: S01–S04. Recalibration from answers (Q-3) comes with Week 9's quizzes.
 
 ### 2026-10-27 — P2-W8-S05 (questions through OpenRouter's Batch API, Q-P2-13)
+
 - Owner: "batch path costs literally half". `QUESTIONS_MODEL=batch:anthropic/claude-haiku-5.5` drafts and validates through OpenRouter's Batch API at $0.05 / $0.25 per 1M (the `:batch` variant can't be called on chat/completions).
 - `adapters/openrouter_batches.py`: submit (`requests` last; Haiku reasoning effort low; price cap on the `<model>:batch` listing), status (running / completed / failed; 404 and 410 free the items; each result parsed alone; an expired batch's paid results and cost kept; cost required on completion). Gateway: `submit_batch` (budget first), `batch_status`, `record_batch_cost`.
 - Migration `20261027150000_question_batches.sql`: `question_batch`, `question_batch_item`. `question_batches.py`: submit (one open batch per kind, bounding spend in flight; up to 1,000 requests; broken caps per moment and text, per question) and collect (the cost claimed on the batch row before it's recorded, so a retried collection never double counts; saves can run again; a changed moment is skipped and sent again; a failed batch frees its items).
@@ -1921,11 +1942,13 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: the double count (blocker), stuck batches (410, odd bodies), part-run batches, submit failures per kind, in-flight spend, secrets, overlapping runs, hash-keyed caps, and tests fixed. Known limit: a submit that fails after OpenRouter accepted it leaves an unnamed paid batch (no idempotency key documented); it's logged.
 
 ### 2026-10-27 — Question trial and the batch 404 fix (Q-P2-13)
+
 - Owner: trial DeepSeek V4.1 Flash batch against Haiku 5.5 batch on the same 10 moments before the backfill. `question-trial --limit N [--draft-batch ID]` (`question_trial.py`): drafts and blind-validates the first N target moments through the gateway (costs in ai_usage), saves nothing to the bank, and reports drafted, broken replies by reason, errors, missing results, validator agreement (and broken or failed validations apart from it), cost, tokens and every question.
 - Bug seen live: OpenRouter reads a batch as 404 for a moment after accepting it. The adapter called that "gone", which would have freed its items and paid for them twice. Now a 404 raises `BatchNotFound` (polled again), a 410 still fails it, and `collect` fails a batch still unknown 48 hours after submitting (the window is 24h) so its moments aren't stranded. `open_batches` returns the submit time.
 - Reviewer: the resume cost double count (kept as a documented shortcut: resume only a batch no trial finished reading), the limit bound, empty trials, validation counts and part-run batches fixed.
 
 ### 2026-10-28 — P2-W9-S01 (quiz attempts and answers, Q-P2-14, Q-P2-20)
+
 - Week 9 planned (776bd8d): slices S01–S08 and Q-P2-14..20. Owner: Test 60s is a sprint ("most in 60s"); quiz answers move p by 0.3(1 − p) right, 0.7p wrong, practiced at 0.5, mastered at 0.85 with 2 correct reviews on separate days; FSRS cards per user and concept with `ts-fsrs`; one review card in the feed's second slot.
 - Migration `20261028090000_quizzes.sql`: `quiz_attempt` (the server's clock, `ends_at`) and `quiz_answer` (a row per question served; one open per attempt; answered once).
 - `Quizzes` port and `kysely-quizzes.ts`: start (null without a live question the rights allow; a start while the same sprint runs returns it, LOAD-5), next (the open question again until answered; the target's own questions in order, then live questions on its live concepts at random; never twice; "over" after the clock or a finish), answer (one statement with the question's counts, first answer only; 5 s grace; "late" after), finish (once).
@@ -1934,9 +1957,11 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Two Postgres contract tests counted every question in the database; the local backfill broke them. They now count only their own rows.
 
 ### 2026-10-28 — Question backfill done (DeepSeek batch)
+
 - All 511 tagged moments drafted and validated on `batch:deepseek/deepseek-v4.1-flash`: 1,022 live questions, none rejected, 8 batches, $0.175 (estimate $0.15). The validator is the drafting model, so its 100% agreement is weak evidence; Q-2's weekly spot checks are the backstop.
 
 ### 2026-10-28 — P2-W9-S02 (Test 60s, Q-P2-14)
+
 - `Quizzes.offered` (which sections or articles can start a sprint, rights-filtered), `attempt` (header and results: counts, average answer time, seconds left by the database's clock, the answered questions' concepts with the user's state) and `answered` (feedback, key included only after answering).
 - `/quiz/[attempt]`: one question as four submit buttons (no script needed, key never sent), instant feedback marked with an icon and a word, "Time's up" or "That's every question for now" when the sprint ends early; `Countdown` submits the finish at zero. `/quiz/[attempt]/results`: correct of answered, each concept's state (Unseen until there's evidence), accuracy, average answer, time used, the next section.
 - Entry points: the reader's Test me, a Test 60s button on feed cards, and "Test yourself · 60s" after finishing a section, each only when live questions exist. The feed's chip rides through the quiz.
@@ -1945,6 +1970,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: early-end wording, the ING-2 offer test, `<dt>` before `<dd>`, "Unseen" for §3.1's state, the footer's source line, no auto-finish on a feedback view, and formatting fixed. Not done: a DOM test for the countdown's submit (no jsdom; checked in the browser); the feed card's button seen only in tests (the test account isn't onboarded).
 
 ### 2026-10-28 — P2-W9-S03 (mastery from quiz answers, PER-2, Q-P2-15)
+
 - Owner: mastered's "2 correct reviews on separate days" counts any right answer on the concept (Test 60s now, reviews later) on 2 UTC days; a wrong first answer is evidence, explored at p = 0.
 - `answer()`'s one statement now credits each live concept the question tests: p + 0.3(1 − p) right, 0.7p wrong, moved from the locked row so answers at once both count, in concept-id order; practiced at 0.5, mastered at 0.85 with right answers on 2 UTC days, else explored, following p both ways. Repeats and late answers credit nothing. Reading still never touches a state (existing test).
 - `Progress.explored()` → `concepts()` (`ConceptsByTopic`), each with its state; Profile's "Your concepts" shows the state in words (`STATE_WORDS`, shared with the quiz results).
@@ -1952,32 +1978,38 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: the same-day case and the wrong-first case tested (owner decided the latter), the explored naming fixed, a snapshot limit on counting days noted as a shortcut. For S04: S03 recomputes `concept_mastery.state` on every answer, so due for review should come from the FSRS card's due date, not a stored state, or S03 would overwrite it. Untested: two concurrent answers on one concept (as with reading's credit).
 
 ### 2026-10-28 — Voyage embeddings unmetered (owner)
+
 - Owner: "no limit on voyage embeddings". `UNMETERED = {"voyage"}` in the AI gateway: Voyage calls are still recorded in `ai_usage` but never refused, and the budget check leaves their spend out (`AiLedger.spent_usd(..., excluding=)`). Other embedding providers would still be budgeted.
 - Overnight (owner, temporary): the global offline cap is local data only, not code. 171 cents for the rest of 2026-10-27 UTC (that day's metered spend plus $0.30), then 30 cents from 2026-10-28 00:00 UTC. The seed is 500; put it back with `update ai_budget set daily_cents = 500 where scope = 'global'`. `test_db_guards` checks the seed, so overnight `pnpm check` runs pause the worker and restore the seed for the run.
 
 ### 2026-10-28 — P2-W9-S04 (FSRS review cards, PER-2, Q-P2-16)
+
 - Plan (owner pre-approved S04–S08 overnight with Q-P2-16..20's suggested defaults): `ts-fsrs` 5.4.2 (owner-approved, pinned) in a pure `server/reviews.ts`; migration `20261028100000_concept_review.sql` (one card per user and concept, ts-fsrs's fields); a finished quiz rates each live concept its answered questions test once (all right Good, any wrong Again), in the finish's own transaction; "due for review" read from the card (`due <= now()`), shown on Profile beside the state, never stored as a learner state (S03 recomputes that).
 - Suggested default, for the owner: default FSRS weights and 90% retention as decided, but short-term steps off, so a concept first comes back in days rather than 10 minutes after the quiz that rated it.
 - A quiz left running past its clock (tab closed before the finish) is closed at its own end and rated on the user's next start, as Q-P2-16 says a card is made by a quiz answer.
 - Reviewer: a lost update on a new card when two quizzes finish at once (a per-user advisory lock now), the re-rating path tested (reps 2, a lapse), abandoned quizzes, tighter difficulty check. Known: a quiz taken before a card's due date re-rates it from now (one rating per quiz); an answer racing its own quiz's finish can count toward mastery but not the rating (commented); `inTransaction`'s own-transaction branch runs only in production (tests pass one).
 
 ### 2026-10-28 — P2-W9-S05 (the review queue, PER-2, §5I, Q-P2-17)
+
 - Plan (pre-approved, Q-P2-17's suggested defaults): a review is a quiz attempt with no article and no clock (migration `20261028110000_review_attempts.sql`: `quiz_attempt.review`, a shape check, one open review per user, `quiz_attempt_concept` for the session's concepts in order). `dueReviews` lists concepts whose card is due and that have a live question the rights allow, most overdue first, up to 10; `startReview` makes a session over them (or meets the running one); `next` serves, for the first concept no served question tests yet, a random live question on it, passing over one with nothing left; answers move mastery (S03) and the finish rates the cards (S04).
 - Library: the top card is the review queue, with the count, the concepts and "about N min" (20 s a question), and Start review. Quiz and results pages have review variants: no clock, "That's every concept due.", Exit warns "Exiting ends this review. Concepts you haven't answered stay due." and returns to the Library. `quiz_started` is version 2 with `kind` (test or review) and an optional item.
 - Suggested default, for the owner: a review idle for 30 minutes since its last question is over. It's closed at that moment and what was answered is rated (from the next quiz or review start), so the next review takes the due list as it is then.
 - Reviewer: a double-tap race (unique index plus insert-or-meet), stale and frozen reviews (the idle rule), missing tests (not-yet-due, a due concept with nothing allowed to ask, a two-concept question, a concept emptied mid-session, the untimed clock), review exit copy and links, keys by concept id, the retired recheck in the pick.
 
 ### 2026-10-28 — P2-W9-S06 (review slot in the feed, REC-1, Q-P2-17)
+
 - When anything is due, the feed's second card is "Review N concepts · about M min", saying why ("Due for review: Raft, Quorum and 2 more"), linking to the Library's review queue (`#review-queue`). Read when the feed is served (alongside `offered`); the ranked cards keep their positions for events. `reviewTime.ts` is the estimate the Library card shares.
 - For the owner: with an empty feed there's no second slot, so no review card shows. I added one under "No moments yet" and took it out again because the docs don't say. Say if it should show there.
 - Reviewer: the empty-feed case (removed, above), position and wording tests, parallel queries, card structure matching the others, singular wording, `next/link`. N is at most 10, the size of one review session, as the Library shows.
 
 ### 2026-10-28 — P2-W9-S07 (flagging questions, Q-2, Q-P2-18)
+
 - Plan (pre-approved, Q-P2-18's suggested defaults): migration `20261028120000_question_flags.sql` (`flag_reason`: wrong answer key, unclear, not in the section, other; one `question_flag` per user and question). `Quizzes.flag` in one statement: only a question answered in the user's own attempt, once per user; a live question becomes flagged (out of every quiz and review, which serve live only) and goes straight to the spot-check queue (an open sample review becomes a flagged one; a retired question queues nothing); the admin's Keep puts it back (P2-W8-S03), and another user can flag it again.
 - The feedback view has "Report a problem with this question" (radios, no default, then Send report); after a flag it says the question is out of quizzes until it's checked. Event `question_flagged` (question, reason), first flag only, for the "under 2% flagged" metric (S08).
 - Reviewer: the sample-review reason, retired questions, no pre-selected reason, the reasons tied to the database enum, a visible legend. Not changed (owner's call): an open question flagged by someone else mid-sprint can still be answered and counts toward mastery, as with retiring today.
 
 ### 2026-10-28 — P2-W9-S08 (difficulty recalibration and Phase 2 metrics, Q-3, Q-P2-19, Q-P2-20)
+
 - Plan (pre-approved, Q-P2-19/20's suggested defaults): a weekly `recalibrate-difficulty` job (VM `interval-recalibrate.timer` Monday 03:00, three hours after the spot checks; AWS EventBridge Scheduler weekly, database password only). `irt.py` fits a one-parameter (Rasch) model by joint maximum likelihood in plain Python: everyone-right/everyone-wrong people and questions are left out of the fit, each group of questions that share users is fitted on its own (logged), the scale is centred on all users (those left out are placed from the fitted difficulties, half a point in from a perfect or zero score), and estimates are scaled by (L − 1)/L, L the answers per person. A fit that doesn't settle leaves every level as it is (logged).
 - A question with 30+ Test 60s answers (reviews left out: they repeat questions on purpose) takes the level of its difficulty, and `calibrated_at` is stamped; everyone right is beginner, everyone wrong advanced. Over 98% or under 20% right goes to the spot-check queue as a new reason, "Unusual answers" (`review_reason` 'anomaly', migration `20261028130000_review_anomaly.sql`).
 - Suggested defaults, for the owner: the level cut-offs are half a logit either side of even odds for a typical user (about 62% and 38% right); an anomaly is queued once and not again after an admin decides it; an anomaly stays in quizzes while it waits (a flag takes a question out; an anomaly doesn't).
@@ -1985,6 +2017,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: JML inflation on sparse data (the correction was by bank size; now by answers per person, with a 3,000-user sparse test holding the slope near 1), centring biased by dropping all-right users, groups with no shared users, a silent non-settling fit, everyone-right/wrong questions left without a level, review answers counted, `calibrated_at` unchecked. Not done: `question.answer_count`/`correct_count` are still unused (the job counts from answers); flag_rate and quiz_return aren't split by beta group.
 
 ### 2026-10-28 — P2-W9-S04 to S08 (overnight, owner asleep) and session end
+
 - Done: S04 FSRS review cards (e7fc466), S05 review queue (b0450da, a04cad2), S06 feed review slot (4d821a8), S07 flagging (58fa841), S08 difficulty recalibration and Phase 2 metric queries (f1cd43f); also Voyage unmetered (263190b). Each: tests first, the reviewer subagent, its findings fixed, `pnpm check` green (exit 0) before commit. Covered by `kysely-quizzes.test.ts` (sprints, mastery, rating, reviews, flags), `reviews.test.ts`, `ReviewCard.test.tsx`, the quiz, results, Library, feed, Profile and admin page tests, `test_irt.py`, `test_recalibration.py`, `test_metric_queries.py`, the store contract tests (memory and Postgres), `aws-stack.test.ts`, `test_compose_prod.py`. Earlier today: S01–S03 and the question backfill.
 - Not done: no browser check of S04–S08 (owner asleep; the local test account isn't onboarded, so feed and Profile can't be seen with it); a DOM test for the countdown's submit (no jsdom). `question.answer_count`/`correct_count` remain unused by recalibration.
 - Next: owner review of Q-P2-21's suggested defaults; then plan Phase 2 Week 10 (topic paths, launch paths, checkpoints).
@@ -1992,23 +2025,26 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Surprises: `pnpm check`'s `test_db_guards` reads the live global budget, so the owner's overnight cap needs the check wrapped (pause worker, restore seed, run, restore cap); OpenRouter answers 404 for a moment after accepting a batch; Postgres `greatest()` skips nulls (an untimed review showed 0 seconds left); joint maximum likelihood needs the per-person correction on sparse quiz data.
 - Needs ADR: none. The overnight budget is local data: restore with `update ai_budget set daily_cents = 500 where scope = 'global'` (a background script sets 30 cents at 00:00 UTC; if that session ended first, it is still 171).
 
-
 ### 2026-10-28 — Q-P2-21 answered (owner)
+
 - The owner kept six of tonight's defaults (FSRS days, 30-minute idle reviews, ±0.5 logit levels, anomalies stay in quizzes and are queued once, a mid-quiz flag doesn't void an answer, the metric definitions) and changed one: the review card now shows alone on an empty feed (`page.test.tsx`). `pnpm check` green.
 
 ### 2026-10-28 — P2-W10-S01 (paths and the proposer, §5F, Q-P2-22, Q-P2-24, Q-P2-25)
+
 - Week 10 planned (1e6464e): slices S01–S06 and Q-P2-22..28; owner: concepts → sections → 2–4 sessions, owner approves each order, full user edits (C-25 resolved), the model proposes ~10 and the owner picks 5–8, checkpoints of 5 questions passing at 4, DeepSeek V4.1 Flash, one active path with a feed card.
 - Migration `20261028140000_paths.sql` (`path`, `path_section`, `path_section_concept`, `path_session`; `ai_feature` 'paths'). `paths.py` (pure): prompts, strict parsers (unknown or unread concepts, 3–12 concepts, name and why lengths; every concept once, every prerequisite earlier or in the same section), sessions picked by rule (one per source first; live questions, then frameable, then newest; 2 to 4 a section, fewer drops it; a path needs 2 sections). `path_proposer.py`: one call for candidates, one per order (a retry says what was refused), drafts saved, over-budget stops and keeps what's saved. `Paths` port in memory and Postgres (allowed moments as question targets: ING-2, tag corrections win). `propose-paths [--count]`, `PATHS_MODEL`.
 - Live run: 10 proposed, 10 saved as drafts, none refused; 11 calls, $0.0126 (my "under a cent" estimate was low). Drafts: HTTP and REST API foundations; authentication, authorization and secrets; caching and content delivery; observability; performance and capacity planning; asynchronous messaging; database transactions and isolation; indexing and query optimization; replication, consensus and consistency (7 sections); scaling and partitioning. Sections often group three concepts, and "Scaling and partitioning" opens on the HTTP request lifecycle: the owner's review in S02 is where those get fixed.
 - Reviewer: name and why lengths (a long reply would have crashed the run), the 2-reading minimum, the retry hint, a mid-run budget test, the migration's rights note (reads must re-check rights, for S02/S03), loud unknown concepts, `--count` bounds.
 
 ### 2026-10-28 — P2-W10-S02 (path review page, §5F, Q-P2-23, Q-P2-24)
+
 - `/admin/paths` behind admin.review: each path's name and why (editable, within the table's limits), sections in order with their concepts and readings, Up/Down (not shown at the ends), Remove section, Remove reading, Approve, Retire; "N live (launch 5–8)". Each reading's rights are re-checked on read (`allowed`; "Rights changed"), with one rule shared by the page and approval (ING-2).
 - `AdminPaths` port and `kysely-admin-paths.ts`: edits change drafts only (a live path is followed by users; it can only be retired); a move swaps through a free ordinal (the unique ordinal isn't deferrable); approve locks the path first, then checks 2+ sections each with an allowed reading (no race with a removal).
 - Checked in Chrome on the local test account, granted admin.review (owner, local only): the 10 drafts with their sections and readings.
 - Reviewer: the approve race, the shared rights rule, specific button labels, no Up/Down at the ends, empty ordinal input, missing tests (retired ordering, draft retire, duplicate readings, status after a refused approve). Noted: a reading whose link is broken (ING-6) isn't excluded from approval, as in S01; decide before S03.
 
 ### 2026-10-28 — P2-W10-S03 (the Paths tab, §4, §5F, Q-P2-27, Q-P2-28)
+
 - Migration `20261028150000_user_paths.sql` (`user_path`: active or paused; one active per user). `Paths` port and `kysely-paths.ts`: `live` (live paths, plus retired ones the user followed, with sections, readings and minutes the rights allow), `path` (a timeline: sections in order, readings ticked from finishes, readings whose rights changed left out, the first section open and the rest locked until S04's checkpoints), `start` (pause the other, activate this one; a per-user advisory lock). The rights rule now lives in `adapters/path-rights.ts`, shared with the review page.
 - Pages: `/paths` (your path first with Continue, the others with Start or Resume, retired ones read-only) and `/paths/[path]` (wireframe 05: Next reading, ticked readings, a checkpoint step after each section with "Pass 4 of 5 to unlock …", locked sections naming the checkpoint, the "Finished?" prompt coming back). Paths is a live tab. Event `path_started`.
 - Reading a session: the reader takes `from=path&path=<id>` (no feed event; Close, Mark done and Next section stay with the path), and `/out` takes `from=path` (outbound click only, no Now reading cookie).
@@ -2016,6 +2052,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: retired paths (owner's answer, above), the prompt test that couldn't fail, list and timeline counts tested together, a named lock, the reader's type narrowing. For S05: `path_paused` also covers the pause a start causes (slice updated). Not seen in Chrome yet: no path is live.
 
 ### 2026-10-28 — P2-W10-S04 (checkpoints, §5F, Q-P2-26, Q-P2-28)
+
 - Migration `20261028160000_checkpoints.sql`: a checkpoint is a `quiz_attempt` with `path_section_id` and `checkpoint_size` (≤5, fixed at the start), a generated `pass_mark` (4 of 5, else all but one, at least 1: owner, today) and `checkpoint_passed`, which the finish settles once and keeps (answers can go later with a re-split or a rights purge; a pass must not). Shape check for three kinds; one running checkpoint per user and section.
 - `adapters/checkpoints.ts` (shared by the timeline and the quiz): the section's questions (its own readings' first, then its live concepts', rights re-checked, ING-2), passed, open, and readings done (a reading with a broken link doesn't hold it back; default, recorded under Q-P2-26).
 - `Quizzes.startCheckpoint` (active live path, section open, readings done, not passed, a live question; double tap meets the running one). `next` asks up to the size, the last attempt's questions last. The finish (and `closeStale`) settles it: a pass raises the section's concepts to at least practiced (mastered stays), and the concepts of wrong answers are due for review now. The timeline opens sections from passes; `checkpoint`: locked / reading / ready / no_questions / passed, with the size and pass mark.
@@ -2024,6 +2061,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: the stored pass (above), quiz_return, calibration, the missing tests (broken link, paused path, a pass surviving deletes). Noted for S06 (Q-P2-28): a checkpoint closed at its clock emits no `checkpoint_finished`. Not tested: two concurrent starts racing into the unique index (the `on conflict` branch). Not seen in Chrome: still no live path.
 
 ### 2026-10-28 — P2-W10-S05 (editing your path, C-25, §5F, Q-P2-23, Q-P2-28)
+
 - Migration `20261028170000_user_path_edits.sql`:
   - `user_path_section` holds the user's order and skips. The first move or skip copies every section. Its place constraint is deferred, so a move swaps two places in one transaction.
   - `user_path_session` holds swapped sessions. A deleted moment cascades, so the session falls back to the approved one. The approved path never changes.
@@ -2062,6 +2100,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not seen in Chrome: no path is live.
 
 ### 2026-10-28 — P2-W10-S06 (the next session in the feed, path metrics, REC-1, §5B, §8, DB-5)
+
 - `Paths.next(userId)`, built from the active path's timeline (so it follows the user's own copy): the first unfinished reading with a working link in an open, non-skipped section, else a checkpoint ready to take; none for a paused path. `app/PathCard.tsx` is the feed's first card ("Next in your path: …", the reading opened as a path open, or Take the checkpoint); it shows alone on an empty feed, and the ranked cards keep their positions. `ReadingLink` moved to `app/paths/ReadingLink.tsx`, shared with the path page.
 - Owner (Q-P2-28): a quiz or checkpoint left open is now recorded when it's closed. `Quizzes.closeStale` is a port method returning what it closed; the three start actions call it first and emit `quiz_finished` / `checkpoint_finished` (also fixes the Week 9 quiz metrics). The starts no longer close anything themselves, so no close goes unreported.
 - `packages/events/queries/path_progress.sql`: sections passed per active path in the last full week, by beta group (active: started during the week, or last start/pause before it was a start). Known limit, in its header: a finished path stays active until paused. Saved as the `PathProgressQuery` named query; the Glue props struct gains `path_id`, `section_id`, `passed`. DuckDB-tested.
@@ -2070,6 +2109,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Week 10 is built. Not seen in Chrome: no path is live yet.
 
 ### 2026-10-28 — P2-W10-S07 (skip what you know, PER-1, PER-2, §5F, Q-P2-29)
+
 - The timeline gets `mastered` per section: every live concept in it is mastered for the user (a section with none isn't). `Paths.next` carries `sectionId` and `mastered`; a passed section isn't offered.
 - `app/paths/SkipSection.tsx`: S05's skip with its confirming popover, now shared. It posts `reason` (user or mastered) and `back`, and the suggestion's reason is wired to the button with `aria-describedby`.
 - Path page: outside Edit mode, an open, unpassed, unskipped section you've mastered says "You've mastered this." with Skip section; Edit mode keeps its own skip (reason user).
@@ -2080,6 +2120,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: the passed-section guard on the feed card, `back` only for skips, one aggregate for mastered, `aria-describedby`. Not seen in Chrome: no path is live.
 
 ### 2026-10-28 — P2-W10-S08 (missing-foundation warning, §5F, Q-1, ING-2, ING-6, Q-P2-30)
+
 - The timeline gives each open, unskipped section its `foundations`: live direct `prerequisite_of` concepts of its live concepts that the path doesn't teach and the user has never explored (no mastery row), up to 3 by name, each with its newest reading (rights allowing, link working) or none.
 - `momentTeaches()` in `adapters/path-rights.ts` is the shared rule for what a moment teaches (an admin's correction first); S05's swap list now uses it. `ReadingTarget` (ports) is what `ReadingLink` needs.
 - Path page: "Builds on X, which you haven't read yet:" with the reading as a path open, or by name when no reading is allowed; no dismiss, gone once explored.
@@ -2089,12 +2130,14 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Week 10 and its follow-ups (S07, S08) are built. Not seen in Chrome: no path is live yet.
 
 ### 2026-10-28 — Week 10 Chrome check and two fixes (no slice)
+
 - Checked in Chrome on the local test account (127.0.0.1, onboarding redone since its preferences were gone): the Paths tab with the 10 live paths; Start; the timeline; the feed's path card opening the reader as a path open; Mark done back to the path; Take the checkpoint once readings are done; a failed checkpoint (Not yet, Try again; the retry began with a question not asked before); a pass at 4 of 5 unlocking the next section; Edit mode (Pause, Up/Down, Skip, Swap list). Three readings were marked finished in the DB and the second attempt's clock was extended, to get through faster than a person would.
 - Owner: 60 seconds for 5 questions being hard is expected.
 - Fixed: the right rail's "Your path" and "Review queue" were still "Coming later"; they now link the active path (or the Paths tab) and the review queue with its due count (`ComingLater` takes `path` and `due`). A passed checkpoint now also names the concepts it put in review. Tests: feed rail, results page. `pnpm check` passes (25/25).
 - Noted for the owner: some path readings fit their section loosely (moment tagging quality), e.g. "Sequential SSD read" under Caching.
 
 ### 2026-10-28 — P2-W11-S01 (upload a book, privately; §5F, DB-6, ING-5, OPS-3, Q-P2-34, Q-P2-37..39)
+
 - Migrations: `books.count` (5), `books.max_mb` (50), `books.max_pages` (1,000) capabilities on the beta plan; the `book` table (title, private file key, size, status processing/ocr/ready/failed with its reason).
 - Upload: `POST /api/books` (a route, not a server action, so the session, the same-origin check and the declared size come before the body is read; no global body limit). Accounts only (owner). `server/books.ts` `addBook`: `%PDF-` header, the plan's size, the count under a per-user advisory lock, the file at `books/<user>/<uuid>.pdf` through `@aws-sdk/client-s3` (`FileStore`; SeaweedFS locally, ADR-0011), then a `book_process` job (S02 consumes it). A failed store or queue undoes the row and the file.
 - Delete: the row goes, then a `remove_file` job; the worker removes the file with the queue's retries (`Files` port, boto3 adapter, `remove_file` stage, only under `books/`). If even that can't be queued, it's logged and counted (`books: file not removed`).
@@ -2105,6 +2148,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not done: an upload through Chrome (the browser tool can't attach a local file); the page itself was checked. The owner's `.env` needs the five file-storage keys from `.env.example`.
 
 ### 2026-10-28 — P2-W11-S02 (text, chapters and sessions; §5F, ING-5, ING-4, Q-P2-31, Q-P2-34)
+
 - Migration `20261029100000_book_structure.sql`: `book.page_count`; `book_page` (private text, `scanned`), `book_chapter`, `book_session` (title, text, minutes, first page), all gone with the book.
 - Worker `books/`: `pdf.py` (pdfplumber, approved): page tree, title and encryption read at open; protected (a password error anywhere in the chain, or /Encrypt) and unreadable (any parse error, including a broken page tree) are refused there; top-level bookmarks with their pages (a broken outline gives none); each page's lines with font sizes, one page at a time (a 1,000-page PDF peaked at ~100 MB, ~50 s). `structure.py` (pure): running headers/footers dropped only at page edges; headings by font size with levels (a size only one heading uses, e.g. a title page, isn't a level; a heading wrapped onto two lines stays one); chapters from bookmarks, else level-1 headings (a short front page joins the first chapter, a preface stands alone), else one; sessions by `segment.plan_units` (extracted from `plan_moments`, unchanged), heading-less stretches cut near 5 minutes at paragraph breaks, an over-long paragraph at line breaks. `process.py`: the `book_process` stage (processing only, row locked; missing file, plan without books, too many pages, protected, unreadable and no text fail with their reason; a page with no text sends the book to `ocr` for S03; else `ready` with the PDF's title).
 - `Files.get`; `Books` port with Postgres and in-memory adapters (matching on no grant and on deleted books).
@@ -2112,6 +2156,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: the broken-page-tree blocker, over-long paragraphs, title-page levels, running headers in code, two-line headings, fake/Postgres parity, the plan message, row locking, not logging parser messages. Not fixed (nits): "well-" + "known" joins as "wellknown"; "top of a block" isn't required for a heading; a bookmark's chapter starts at the top of its page; front matter (incl. a table of contents) opens chapter 1 when bookmarks exist. For S03: a blank page (cover, verso) also counts as scanned, so most "scanned" pages may be blank.
 
 ### 2026-10-28 — P2-W11-S03 (scanned pages through Tesseract; ING-5, ADR-0022, ADR-0023)
+
 - `deploy/ocr/`: Tesseract (English) behind a standard-library server (`POST /ocr` a PNG, text back; `/health` answered during OCR; one page at a time under a lock; 30 s idle timeout; no stderr in responses), base image pinned by digest. Runs in docker-compose (local, port 8884), the VM stack (`mem_limit: 512m`, `OCR_URL` from write-env.sh; the worker waits only for it to start), CI (a step), and AWS as a non-essential sidecar in the worker task (ADR-0023, owner: amends ADR-0022's "own service"; task memory 2 GB). The AWS worker task now also has the private bucket's read and `books/*` delete grants, which S01 had given only the one-off jobs task.
 - Worker: `Ocr` port (`HttpOcr`, fake); `ocr_page` message and stage (`books/ocr.py`): book waiting and page unread, file, render (≤ 30 MP, else the book fails as unreadable; blank pages skipped and logged), OCR outside any transaction, then `record_ocr` (book row locked; nothing for a deleted book or a page read twice) and, at the last page, the book built from digital lines plus OCR text. A retried `book_process` on a book already waiting re-queues its unread pages. On the last attempt an OCR error records the page empty, anything else fails the book ("Scanned pages couldn't be read…"); both logged as `books: ocr gave up` and counted (`OcrGaveUp` metric).
 - Migration `20261029110000_book_ocr.sql` (`book_page.ocr_read_at`).
@@ -2120,9 +2165,11 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Known: a fully scanned book has no font sizes, so without bookmarks it is one chapter cut into 2–8 minute sessions. The owner's `.env` needs `OCR_URL=http://127.0.0.1:8884` (and `docker compose up -d ocr`).
 
 ### 2026-10-28 — Dev reload loop fixed (no slice)
+
 - Owner saw localhost:3100 reloading endlessly while work was under way. Cause: `instrumentation.ts` checked `process.env["NEXT_RUNTIME"]` (brackets aren't replaced at build time) and statically imported `env` and `log`, so Node-only code (`process.exit`, `process.once`, `process.stdout`) was bundled for the Edge runtime; that compile error ("Ecmascript file had an error", the dev overlay's "1 issue") made every file change anywhere in the repo force a full page reload. Fix: `instrumentation.ts` only does `if (process.env.NEXT_RUNTIME === "nodejs")` and imports the new `instrumentation-node.ts`, which holds the start-up work unchanged. Verified: no Edge warnings on a clean start; with the feed open, three rounds of file edits caused no reload. `pnpm check` passes (25/25).
 
 ### 2026-10-28 — P2-W11-S04 (the reader: the section's own PDF pages, saved place; §5F, Q-P2-31 updated, DB-5, DB-6)
+
 - Owner reversed Q-P2-31: the reader shows the PDF's own pages (diagrams, tables, code as printed) through PDF.js (`pdfjs-dist`, approved); the extracted text stays for S06 checkpoints and is not shown (owner removed the "Show the text" disclosure after the commit; S04 follow-up). Only the reader's own scrolling moves the saved place (owner).
 - Migrations: `20261029120000_book_reading.sql` (`book_session_finished`, `book_position`), `20261029130000_session_pages.sql` (`book_session.last_page`, backfilled). Worker: sessions record their last page; pages with no text (a full-page figure, a blank page) belong to the session before them, and the book's last pages to its last session.
 - Web: `/books/[id]` (header with "pages A–B", `BookPages` drawing the section's pages near the window and dropping far ones, Mark done, Previous/Next); `GET /api/books/[id]/file` (owner's ready book only; `private, no-cache` with S3's ETag, 304 on a match); `POST /api/books/[id]/position` (same origin); `book_session_finished` event; shared `same-origin.ts` (dev Host, `Origin: null`). Opening rule: a session named in the link, else the saved place unless that section is done, else the first unfinished, else the first.
@@ -2130,6 +2177,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: the state set after unmount (component keyed by section), the PDF task leak, the jump to the top counted as a scroll (input gate), a finished section's saved place, textless pages lost, canvas memory, the hour-long cache serving a deleted book. Not fixed (nits): pages stay at their first width after a window resize (blurry until reopened).
 
 ### 2026-10-29 — P2-W11-S05 (books in the Paths tab and the feed; the goal; §5F, §4, REC-1, ADR-0015, DB-5)
+
 - Owner: the chapter timeline sits on the Paths card (wireframe 05); the feed shows one book card, for the book read last.
 - `Books.outlines` and `Books.nextSession` on a shared loader (`readyBooks`, sessions without their text) and one opening rule (`opensAt`: the saved place unless finished, else the first unfinished), which `reading()` now uses too. The book read last: the newest of its saved place, its last Mark done, and when it was added; a tie goes to the newer book.
 - Paths tab: a ready book shows "Your PDF · 8 of 18 sessions", a progress bar, and chapters: finished ones ticked with a count, the current one open with its sessions ticked and the next one to Start or Resume (Resume once a place is saved or a session finished), later ones a count; a finished book says Finished with Read again. Screen-reader labels: Finished, Reading now, Up next.
@@ -2142,6 +2190,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Surprises: the dev server reloaded every page about once a second after restarts. It wasn't the app: the page kept fetching the old hot-reload script, and clearing site data fixed it. A running dev server also keeps the events schema it started with, so new event names fail until it restarts.
 
 ### 2026-10-29 — P2-W11-S06 (book checkpoints, made on demand; §5F, Q-1, Q-2, AI-3, OPS-4, Q-P2-26, Q-P2-35, Q-P2-38)
+
 - Owner (2026-10-29): chapters don't lock; the same QUESTIONS_MODEL with no zero-retention flag (Q-P2-38 updated); concepts from the W3 tagger; the checkpoint met at the chapter's end page and on the Paths timeline (Q-P2-35 updated).
 - Migration `20261029140000_book_checkpoints.sql`: a question belongs to a moment or a book chapter (exactly one); `book_chapter_concept`, `book_chapter_checkpoint` (preparing/ready/failed, a request count for job keys), `quiz_attempt.book_chapter_id` with a fourth shape. Message `book_checkpoint`; events `book_checkpoint_started`/`_finished`.
 - Worker `books/checkpoint.py` (`book_checkpoint` stage): the chapter's sessions (at most 6, spread) tagged by the decision tagger as a synthetic item (one heading per session; `decide` now takes the payer's `user_id`), then 2 drafts per session and a blind validation each (W8 prompts), every call on the owner's budget; saved live/rejected with their concepts. No live question, over budget, the last attempt, or missing models fail it with a reason; a second run's save is dropped ("gone").
@@ -2152,6 +2201,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Surprises: `pass_mark` is generated as `greatest(size - 1, 1)`, so a sprint has 1, not null; settling must check the checkpoint columns. The running dev server needs a restart to accept the two new event names (it rejected them in the end-to-end run).
 
 ### 2026-10-29 — P2-W12-S01 (connect GitHub from Profile; §5H, §5A, PER-3, C-30, ADR-0024, ADR-0011, DB-5)
+
 - Week 12 planned the same day: ADR-0024 (a GitHub App with read-only Metadata and Contents, connected from Profile; GitHub sign-in deferred, amending ADR-0010 item 2) accepted by the owner; slices S01–S06; Q-P2-40..42, 44 answered (defaults), Q-P2-43 open for S04.
 - Migration `20261029150000_github_connection.sql`: `github_account` (one Interval account per GitHub account; connecting elsewhere moves it) and `github_installation`. No token is stored.
 - `GET /api/github/connect` (accounts only): a 10-minute nonce cookie on `/api/github`, then GitHub's install page (or, `?link=1`, its authorize page for an App installed before). `GET /api/github/callback`: only a `state` matching the nonce counts (a planted cookie alone doesn't); an install redirect without `state` goes through authorize with a fresh one; the code is exchanged, `/user` and `/user/installations` read (the forgeable `installation_id` is ignored), the installations stored (none clears stale ones), the user token revoked at GitHub; outcomes told on Profile in fixed words.
@@ -2162,6 +2212,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Surprises: the dev reload loop came back after restarts and went away once the owner cleared site data again.
 
 ### 2026-10-29 — P2-W12-S02 (read repositories and their dependency files; §5H, PER-3, LOAD-5, ADR-0024)
+
 - Migration `20261029160000_github_repositories.sql`: `github_repository` (metadata, top 5 languages), `github_dependency` (ecosystem, name, the file, dev; names only), `github_reachable_repository`, `github_account.synced_at`. Message `github_sync`.
 - Worker: `github/manifests.py` (package.json, requirements.txt incl. `name @ url`, pyproject.toml PEP 621 + Poetry, go.mod; root and one level down; no lockfiles or vendored dirs; PEP 503 names), `github/app_token.py` (RS256 JWT with `cryptography`, now a direct dependency per Q-P2-44; the key as PEM, escaped PEM or base64 PEM), `adapters/http_github_app.py` (installation tokens, paged repositories, languages, recursive tree, blobs ≤ 1 MB; 404/403/451 = gone, rate limits and 5xx retried), `github/sync.py` (≤ 50 repositories, ≤ 20 files each; forks and archived skipped; no GitHub call inside a transaction), `PostgresGitHub` (save re-checks access under the account's lock), stage `github_sync`, CLI `sync-github-due` (daily, active in 7 days, one key per UTC day).
 - Privacy: on any installation not on the user's own account (an organisation's, or a personal account they collaborate on) only the repositories they can reach are kept, read with their token at connect (S01's callback, before the revoke); a fresh connect clears the old read.
@@ -2171,6 +2222,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: the collaborator-installation leak (blocker), stale access on save and connect, 403/451 handling, a listing that's gone, Refresh's degradation, and nits (ref quoting, blob size, `name @ url`, a string `dependencies`, a page-cap warning). Not changed: on the VM the web container also reads the App key from the shared app.env (the existing pattern; noted in vm.md).
 
 ### 2026-10-29 — P2-W12-S03 (the curated technology table; PER-4, §5H, AI-3, AI-5, OPS-4, ADR-0008)
+
 - Seed `workers/jobs/seeds/technologies.yaml` (PROVISIONAL, for the owner's review): 71 technologies (61 drafted, 10 added after review) with npm/PyPI/Go package names (`*` = prefix; PyPI names normalised per PEP 503) and 1-4 existing concept slugs each; `load-technologies` (checked against the concept graph).
 - Migration `20261029170000_technologies.sql`: `technology`, `technology_package` and `technology_concept` (each row's origin, seed or suggestion: a reload replaces only the seed's own, so an accepted suggestion survives it), `technology_suggestion` (pending/accepted/rejected/skipped/unreadable; one per package, ever), view `github_dependency_technology` (exact, else longest prefix; retired match nothing), view `unclaimed_dependency` (valid names only; used by both the worker and the admin page), function `user_technology_concepts` (for S04), `ai_feature` 'technologies'.
 - `suggest-technologies` (`technology_suggestions.py`): unclaimed packages, most used first, 20 a run, one QUESTIONS_MODEL call each through `model_job` and the gateway on the global budget; the package name JSON-quoted in the prompt; replies validated (known concepts only, slug grammar); skips and unreadable replies recorded so they aren't asked again; a stopped run exits non-zero. Weekly on EventBridge and the VM's `interval-technologies.timer`.
@@ -2180,6 +2232,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: the seed reload deleting accepted suggestions (blocker; origin columns), PyPI normalisation, accept on retired or claimed, unreadable replies re-asked, prompt injection through names, exit codes, `model_job`, the duplicated unclaimed SQL (now a view), plan drift (no YAML on the page), Go indirect over-matching, seed mappings and missing packages, pattern checks. Not changed: (owner to decide) with SUGGEST threshold 1, a single user's private package names (an npm scope, a private Go module path) go to the model provider; QUESTIONS_MODEL isn't in the AWS tasks' env yet (as for question-batches); accept onto a seed technology can exceed its 4 concepts.
 
 ### 2026-10-29 — P2-W12-S04 (projects in the feed, Profile and the goal; REC-1, PER-1, PER-3, ADR-0015, §5H, REC-5)
+
 - Worker ranking: `RankingInputs.project_concepts` (from `user_technology_concepts`) and `concept_moments` (Postgres and in-memory, with the topic matches' exclusions); a `project` candidate generator (`PROJECT_LIMIT` 200; none for starter feeds); a `project_match` signal (the share of an entry's concepts on the user's projects), weight `weight.project_match` from migration `20261029180000_project_match.sql` at `goal_match`'s 0.8 (Q-P2-43), listed on `/admin/ranking` with the other weights; the `stack-i-use` goal's set is the project concepts.
 - Note (REC-5): "Uses PostgreSQL, from your projects.", keyed by the technology slug, so it never names a repository and is shared and polished like any note.
 - A GitHub sync and a Disconnect queue a recompute, so project picks follow the data (reviewer).
@@ -2189,6 +2242,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Next: P2-W12-S05 (project-aware notes).
 
 ### 2026-10-29 — P2-W12-S05 (project-aware notes; §5B, AI-1, AI-3, OPS-4, LOAD-5, ADR-0008, Q-P2-43)
+
 - Migration `20261029190000_project_note.sql`: `project_note` (AI output apart from source text and the shared notes; per user, item and sorted repository set; cascades with the GitHub account; null text = a refused reply, not asked again for that set), `ai_feature` 'project_notes', `user_feed_visible` gains `project_note_text`/`project_note_repositories` (the feed's own user only, and only while every repository named is still shared; the starter feed has none). Message `project_note`; its queue comes from the message list (infra).
 - Worker: the recompute picks matching entries (`project_match` > 0), best position across chips first, and asks the store for those with no line for the repositories matching now, at most `PROJECT_NOTES_PER_RECOMPUTE` = 10 (the limit passed in, so the lookups stop there); queued after the commit while notes are on. Stage `project_note` (`feed/project_notes.py`): the notes model through the gateway on the user's budget, sent the item's title and source and the repositories' names, descriptions and technologies as JSON, never code; one short sentence or recorded as refused; over budget left out (`ai: over budget` and `project notes: over budget`). A sync drops lines naming repositories no longer shared.
 - Web: `FeedCard.projectNote`; Moment and Article cards show it under the note in its own AI box, "For your project octo/velox: …".
@@ -2198,6 +2252,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Next: P2-W12-S06 (Phase 2 wrap-up).
 
 ### 2026-10-29 — P2-W12-S06 (Phase 2 wrap-up; Phase 2 "Done when", DB-5, ADR-0013)
+
 - Done when: the three queries' fixture tests pass (`test_metric_queries.py`); run once on the local events (3,493 events, Oct 26–29) with DuckDB: `quiz_rate` developer 5 finished / 0 quizzed, student 2 / 0; `flag_rate` 0 answered; `quiz_return` no cohort yet. The queries work on real event files; the targets need beta traffic.
 - Checklist `docs/runbooks/phase-2-checklist.md`, walked: Test 60s (the quiz_started and quiz_answered events landed), the review queue, Paths with books and checkpoints, the PDF reader, Library, Profile (concepts, GitHub, the stack goal), and read-only in the owner's session `/admin/technologies`, the project note and the project pick in the feed. Both CDK stacks synthesized. VM smoke run: all seven services healthy, migrations 0, `/api/health` and the landing page 200 through Caddy on 8080, torn down.
 - Drift audit: docs/audits/2026-10-29.md. Decision drift 5, phase drift 1, invariant violations 3, duplication 3, unused code 4, unjustified dependencies 10, naming 1, needs an ADR 8. None fixed (outside the slice). The owner's to decide: ElastiCache before Phase 3, one shared rights gate, what a GitHub disconnect deletes from suggestions, Q-P2-42 for unscoped names, ADR-0024's secrets-store wording, OPS-3's scope and `ai.notes.daily`, parsing libraries and ports, "session" in the glossary.
@@ -2206,6 +2261,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Next: Phase 3 planning.
 
 ### 2026-10-29 — ADR-0025 (card explanations from a template library; amends REC-5, Q-P1-18; Q-P2-45)
+
 - ADR-0025 accepted by the owner after a debate (60 templates cut to 2–3 per category; selection by a stable hash of the item, not by neighbours; concept names framed as the pick's reason; level/time cards get a concept-graph connection, the owner's choice over mine of nothing).
 - Worker: `feed/explain.py` (the library `workers/jobs/seeds/explanations.yaml`, PROVISIONAL, 14 templates in 6 categories; per-category placeholders checked at load; the top signal picks the category; a stable sha256 of item and category picks the template; the note key carries the concept and a hash of the template's words, so shared notes never mix users' concepts and edited copy reaches old notes; over 300 characters is left out and logged). `feed/notes.py`, the `polish_note` stage, message, queue and infra grant, `Notes.input/polish`, `NoteRef`, `NoteInput` and `Scored.signals` removed. NOTES_MODEL now serves project lines only (.env.example, compose docstring, CLAUDE.md stage list).
 - Web: the AI project line, when written, replaces the template note on the card; no note, no box.
@@ -2216,6 +2272,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Owner follow-ups (2026-10-29): cards no longer say "Fits your … break" (a moment always fits its chip; an article shows its length), and `chipLimit` went with it. A card with the user's own AI project line comes first in its chip (Q-P2-43 update: it overrides "never above an explicit choice"; pinning only for the stack goal was offered and declined), ordered in the web's feed read since the line is written after the recompute. The project-line prompt no longer names the repository (the card does); migration `20261029200000_project_note_prompt_version.sql` keys lines by prompt version (now 2), so a reworded prompt rewrites them. Live: the owner's line was rewritten once by hand (notes are off locally): "Its PostgreSQL full-text search setup could guide how you add CI-friendly text indexing to your project.", and that card leads the 3-8 feed. `pnpm check` passes (25/25).
 
 ### 2026-10-29 — ADR-0026 ("Shown for" reasons on every card; amends ADR-0025)
+
 - Why: the owner asked why a Tailscale post ranked #1; the stored breakdown showed topic, goal, project (LLM SDKs in company-brain, through one probably wrong rate-limiting tag), level and break fit, none of it on the card. Owner direction: a free, accurate "why shown" on every card, visible, every reason that counted, reportable; wording "many and very random", some of it cheeky, meme-y and nerdy. Researched first (Automated Insights' Wordsmith branches and synonyms, Tracery grammars and modifiers, RosaeNLG's no-repeat "once" mode, Reiter and Dale aggregation; Meta keeps fixed wording) and debated: stable-per-card wording was suggested, the owner chose a re-roll every recompute hour.
 - Worker: `feed/reasons.py` with the grammar `workers/jobs/seeds/reasons.yaml` (PROVISIONAL; 9 leads, 3-5 frames per reason, nested symbols, 4 join styles, a/an for words and numbers; about 1 in 5 options playful). The loader requires every frame to use exactly its reason's facts, goal and project frames to say "tagged" (the concept is a model tag, AI-3), and no facts in leads. Reasons: every weighted part of 0.1 or more whose facts hold (break fit only when full, quality only at 4+, freshness only within 7 days), the exploration pick first. Choice: least used across the feed, never one of the last few for the same slot, a redraw when a whole line repeats; seed (user, item, chip, hour). Repositories: two named, then "and N more"; a line past 600 characters folds its smallest reasons into "+N more". Starter feeds state topic and level only. ADR-0025's category notes, `explain.py`, `explanations.yaml`, the Notes port and feed_note writes are gone (feed_note keeps its old rows).
 - Data: migration `20261029210000_feed_reasons.sql` (`reasons` and `reason_kinds` on both feed tables and views; `reason_report`); event `reason_reported`.
@@ -2225,6 +2282,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Live: the owner's Tailscale card now reads, e.g., "Exhibit A: your topic picks distributed systems and backend, tagged Rate limiting: XP toward your goal to pass system design interviews, tagged Rate limiting, by way of LLM SDKs in RISHIK92/company-brain, 1 min, coffee-sized and pitched at intermediate".
 
 ### 2026-10-29 — ADR-0027 (one plain, stable explanation per card; amends ADR-0026 and AI-3)
+
 - Why: the owner's review of ADR-0026's live lines (unnatural grammar, too much in one sentence, repeats the card, artificial variety, no priority). Debated before deciding: tag honesty (the owner chose plain claims with no marker, accepting that a wrong tag reads as fact; ADR-0027 amends AI-3, and CLAUDE.md's invariant line is the owner's to edit), fallbacks (the owner's exploration phrases split so novelty is claimed only on exploration picks), labels (added), playful lines (kept, rewritten to be about the facts).
 - Worker: `feed/reasons.py` (`explain`): the first that holds of project, goal, topic exploration pick, fresh (7 days), trusted (rated 4+), else a neutral phrase; templates in `workers/jobs/seeds/reasons.yaml` (ADR-0027's appendix), chosen by a stable hash of (item, category, facts), so wording changes only with the facts. The loader checks each category's facts (the project line's technology optional), capitals and full stops, and no verb right after a concept (names may be plural). Repositories by short name, two then "and N more"; the project line searches for a concept and technology the repositories actually back. Starter feeds pass no goals, projects or repositories. The ADR-0026 grammar, Chooser, hourly re-roll, "every reason", "+N more" and "tagged" are gone.
 - Data: migration `20261029220000_card_difficulty.sql` (`difficulty` on both feed tables and views, written by the worker as it ranked).
@@ -2235,6 +2293,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Owner follow-up (2026-10-29): a card with a project note shows only it (the why-this-matters note is hidden there); the why-this-matters note uses the project note's type (body size, ink) without the dashed AI box. Found while answering why few cards have a project note: `.env` sets `NOTES_MODEL=batch:deepseek/deepseek-v4.1-flash`, and notes don't run on batch, so every project-note job is refused by the price cap ("no output price known") and dropped after three tries; the owner sets the bare model name. `pnpm check` passes (25/25).
 
 ### 2026-10-29 — Q-P2-46 (project notes ride the question batches)
+
 - Why: with `NOTES_MODEL=batch:…` every project note was refused (notes had no batch path), so 1 of 34 matching cards had one. Owner direction after debate: combine project notes with the question batches, send lazily (50 requests, or a day since the kind's last batch; questions have no fallback so they can't stall), batch notes only when both models are the same batched one, keep the why-this-matters note as the fallback. Batching live tagging was declined (ingestion path, no fallback, Decisions API model, small cost). A once-a-day separate runner was planned and replaced.
 - Worker: `question_batches.py` gathers missing project notes (connected users not over budget, project-explained visible feed cards, current repositories and prompt version, not in an open batch, 50 per user) and lets them ride the first batch that goes, drafting before validation; a kind goes at `MIN_BATCH` = 50 requests or `MAX_WAIT` = 24h since its last batch; nothing waiting means no call. Collect saves notes with the direct path's checks (`feed/project_notes.py`: `note_messages`, `accepted`), skips them if the repositories or prompt version changed, records refusals. `record_batch_cost(payers=…)` splits the cost by tokens: each note's share to its user (`project_notes`), rounded down, the remainder global. `pipeline.notes_batched`: both models batched and equal means batched (no direct jobs, a stale direct job returns early); otherwise direct on the bare model (the `batch:` prefix stripped, fixing the refusals).
 - Data: migration `20261029230000_project_note_batch_items.sql` (`project_note_batch_item` on `question_batch`).
@@ -2244,6 +2303,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Live: one combined batch submitted with 38 project notes riding a drafting batch; still running at the provider when committed. The next `question-batches` run collects it.
 
 ### 2026-10-29 — Paths first visit (wireframe "Web · Paths, first visit")
+
 - Why: a user with no books and no path saw a bare list. Owner picked from the wireframe: topic chips, a "Fits your goal" badge, a preview on the right, PDF only (no EPUB, no Link tab). Left out as not built: books as ready-made paths, a finish date (no pace setting), "nothing is shared" (the existing AI notice stays, Q-P2-38).
 - Web: `paths/FirstVisit.tsx` (header, "Bring your own reading" hero with `UploadDrop.tsx` posting to `/api/books`, chips by `?topic=`, path cards, the "How a path works" rail). `?preview=<id>` opens the path's sections and "Start this path" in a right pane (51% of the row after the owner's 15% cut); with it open the list goes to one column, the upload hides, the picked card is ringed, each side scrolls on its own and the other cards dim until the cursor or focus is on the list. Guests get "Create an account to add a book". Anyone with a book or a path keeps the regular page.
 - Data: `PathSummary` gains `topic` (the most common live topic among its section concepts) and `fitsGoal`; migration `20261030000000_user_goal_concepts.sql` adds `user_goal_concepts(user_id)` (goal concepts, plus project concepts with the stack goal) so the rule is SQL, not a second TS copy.
@@ -2253,6 +2313,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Check: 24/25; `@interval/infra#test` timed out in its 60s synth hook under the full run's load, twice; alone it passes (74/74, 39s). Not touched by this diff.
 
 ### 2026-10-31 — P3-W13-S01 (the Play tab; §6.1, §6.3, ADR-0017, OPS-3, ADR-0029)
+
 - Phase 3 planning first: `docs/roadmap/phase-3-slices.md` and `docs/questions/phase-3.md` (all 20 answered by the owner); ADR-0029 (guests for Play) ACCEPTED; P3-W13-S07 (guest merge into an existing account) added. Six answers need ADRs before their slices (listed at the top of the slices file).
 - Web: `/play` lists the four quick games with §6.3's format and win condition (estimation's full points C-27's 1.25×), each "Coming later" until its slice, or "Not on your plan" without its capability. Play is live in the tab bar. Signed out, `/play` offers "Play as a guest" with an invite code (`play/actions.ts` reuses the dormant `startGuest`; one guest per browser); guests see "Sign up to keep your progress". A guest signing up is upgraded in place (same user id), so their Play data needs no merge.
 - Guest gate (ADR-0029: guests play, and only play): every tab and reading page, the onboarding action, every non-quiz server action and the books and GitHub routes send a guest to `/sign-up`. The guest-only branches left from guest-first (Home's sign-up line, Paths' and Add a book's "Create an account", Profile's GitHub line) were removed; tests that defaulted to a guest now use an account, plus a gate test per page and action file. Quiz pages and actions stay open for the games.
@@ -2263,6 +2324,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Follow-ups (not done): no link to `/play` for signed-out visitors yet (the landing page's Play section links nowhere; ADR-0029 names a landing entry: the owner's copy to decide); `purge-guests` is scheduled in neither mode (Q-P1-12's 30-day deletion), needed now guests are back (S07 or its own slice); per-IP guest rate limit is S07.
 
 ### 2026-10-31 — P3-W13-S02 (solo 60-second sprint; §6.3, §6.1, MATCH-4, PER-2, DB-5, Q-P3-04)
+
 - Owner (planning): when neither the explored nor the goal tier has a question (a guest, a new account), the whole bank, at the player's level (recorded under Q-P3-04).
 - Data: migration `20261031010000_sprint_attempts.sql`: `quiz_attempt.sprint`, a fifth shape branch (a clock, no target), one open sprint per user. Events `game_started` and `game_finished` (ids, the game, counts).
 - Server: `Quizzes.startSprint` (insert or meet the running one; null when nothing is left the player wasn't served this week); `next`'s sprint pick: tier (a concept with mastery, then `user_goal_concepts`, then anything), then distance from `user_preferences.level`, then random, never a question served to the player in 7 days. `attempt()` gains `sprint` and `missed` (wrong answers' sections, rights-gated, links working); `QuizFinish.sprint`. The clock, mastery evidence and FSRS ratings are the quiz attempt's own.
@@ -2272,6 +2334,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Follow-ups (not done): Test 60s, review and checkpoint starts still accept a guest who posts to them (not reachable from any guest page); a "from Play" open attribution for the missed-to-reading metric (P3-W18-S03); local Postgres questions make sprint tests rely on tiers, not on an empty bank.
 
 ### 2026-10-31 — P3-W13-S03 (estimation questions: the type, scoring, hand-written; §6.3, C-27, Q-1/Q-2, AI-3, Q-P3-05)
+
 - Owner (planning): split the slice; the generator's cited estimation questions are the new P3-W13-S03b. A hand-written question carries its source page's URL and title and the quoted sentence; it goes live at once and is still sampled, flaggable and retirable (recorded under Q-P3-05).
 - Data: migration `20261031020000_estimation_questions.sql`: `question.kind` (`choice`, `estimate`), `answer` and `unit`, `source_url` and `source_title` (a hand-written question's home); options, key and the model columns nullable, with `question_shape` and `question_hand_written` checks. Down tested locally.
 - Scoring: `server/estimation.ts` `estimateScore(guess, answer)`, 0 to 1: full within 1.25× either way, linear in log space to 0 at 10× (the ends compared as ratios: log(0.1) isn't exactly −log(10)).
@@ -2281,12 +2344,14 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Reviewer: chapter-privacy guard untested (tested), `question_shape` blocks a validated estimate (left for S03b, noted in its acceptance), `?error=constructor` (`Object.hasOwn`), checkpoint filters untested (tested), a vacuous sprint check (fixed). Noted for S03b/S04: the worker's `pending`/`record_verdict`/`summary`/`save` assume multiple choice; a flag queues a review at once only for a moment's question.
 
 ### 2026-10-31 — Forgot password without a link, on this machine (ADR-0030, PROPOSED)
+
 - Why: no mail service yet (Q-P1-33), so the reset link only reaches the dev server log. Owner asked for a reset with no verification; after the takeover risk was raised (the server is public through ngrok) it is limited to requests made on this machine.
 - Web: `server/local-request.ts` `isLocalRequest` (Host and any `x-forwarded-host` localhost, 127.0.0.1 or [::1]; every `x-forwarded-for` address loopback, and present; never in a production build). `/forgot-password` there asks for the email and a new password (`quickReset` → `Accounts.setPassword`: Better Auth's hasher, credential accounts only, every session ended, outstanding reset links voided) and goes to sign in; anywhere else, the link flow as before.
 - Tests: the local check (tunnel, rewritten Host, forwarded host, missing or empty forwarding, production), `setPassword` on Postgres (old password, sessions, an earlier link voided, unknown email), the page and action both ways. Live: localhost shows the new form; requests with ngrok's headers get the link flow (the ngrok URL itself wasn't reachable from the shell).
 - Reviewer: a machine on the same network can fake loopback headers (`next dev` listens on all addresses, Next keeps a client's `x-forwarded-for`); owner accepted the risk rather than bind the dev server to loopback, recorded in ADR-0030. Fixed: missing `x-forwarded-for` no longer counts as local, production gate, earlier reset links voided, exact email match.
 
 ### 2026-10-31 — P3-W13-S04 (solo estimation; §6.3, §6.1, C-27, AI-3, Q-P3-04, Q-P3-05)
+
 - Owner (planning, recorded under Q-P3-05):
   - a 60-second clock, like the sprint;
   - under half points sends the source back to reading;
@@ -2323,6 +2388,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not checked live: Chrome is off, and the local bank has no estimates yet (write some at `/admin/questions`).
 
 ### 2026-10-31 — P3-W13-S03b (generated estimation questions; §6.3, Q-1, AI-3, Q-P3-05, Q-P2-12, ING-2, OPS-4)
+
 - Worker:
   - The question batch path also drafts one estimate per moment, as its own request with its own hash (`estimate_hash`). Redrafting one kind never retires the other.
   - Only passages containing a digit are sent.
@@ -2354,6 +2420,7 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
 - Not run live: no batch was submitted (it costs money and takes up to 24h); the local bank has no generated estimates yet.
 
 ### 2026-11-01 — P3-W13-S05 (the daily challenge; §6.3, §6.1, Q-2 via ADR-0031, Q-P3-06, Q-P3-07, LOAD-5, DB-5)
+
 - Owner:
   - ADR-0031 accepted: an unapproved set auto-publishes at 00:00 UTC, its questions join the spot-check queue, and the owner is told only by a banner on `/admin/daily`. Hand-written questions are not retired after a challenge uses them (departs from §6.8's "retired after use"; the owner records it).
   - Q-P3-07: at most 1 freeze held.
@@ -3398,7 +3465,6 @@ P1-W1-S01 Workspace and tooling baseline: done 2026-10-25.
   - corrected doc numbers.
 - **Recheck at 50 matches:** 50/50, 0 errors, nothing left in Valkey; answer p99 7 ms; match_start p95 1.15 s. The first-ever 50 run showed 1.04 s too: k6's cold VU start, not the server.
 - **Note:** the local `.env` has no `GAME_TICKET_SECRET`; the run used a throwaway one for both the server and k6.
-
 
 ### 2026-11-05 — P3-W18-S02 (fair-play signals; §6.9, ADR-0006 C-14, Q-P3-20)
 
@@ -4565,16 +4631,17 @@ The owner said to continue building overnight with recommended answers, switchin
 
 - **Languages** (`engine/languages.go`), each pinned by digest and at least two weeks old:
 
-  | Language   | Image                                                                     | Notes                                                        |
-  | ---------- | ------------------------------------------------------------------------- | ------------------------------------------------------------ |
-  | python     | the worker's base                                                         |                                                              |
-  | javascript | `node:22.22.3-bookworm-slim` (the web's base)                             |                                                              |
-  | typescript | the same image                                                            | Node's type stripping                                        |
-  | java       | `eclipse-temurin:21.0.12.1_1-jdk`, 2026-10-26                             | `javac`, `-Xmx` set to the job's memory                      |
-  | cpp        | `gcc:14.3.0`, 2026-06-24                                                  | `g++ -O2 -std=c++20`                                         |
-  | go         | `interval-exec-go:1`, on `golang:1.27.3-alpine` (the game server's pin)    | a build cache warmed for common packages, copied into `/tmp` |
+  | Language   | Image                                                                   | Notes                                                        |
+  | ---------- | ----------------------------------------------------------------------- | ------------------------------------------------------------ |
+  | python     | the worker's base                                                       |                                                              |
+  | javascript | `node:22.22.3-bookworm-slim` (the web's base)                           |                                                              |
+  | typescript | the same image                                                          | Node's type stripping                                        |
+  | java       | `eclipse-temurin:21.0.12.1_1-jdk`, 2026-10-26                           | `javac`, `-Xmx` set to the job's memory                      |
+  | cpp        | `gcc:14.3.0`, 2026-06-24                                                | `g++ -O2 -std=c++20`                                         |
+  | go         | `interval-exec-go:1`, on `golang:1.27.3-alpine` (the game server's pin) | a build cache warmed for common packages, copied into `/tmp` |
 
   A cold `go build` took 40 s in the sandbox; with the cache it takes 2–3 s. `pnpm exec:images` builds the Go image, and `pnpm redteam` builds it first. The changes from Q-P5-04 are noted there for the owner.
+
 - **Compile once:** one container per submission runs `sh -c 'compile </dev/null >&2 || exit 1; printf READY; exec run'`.
   - **Time:** the compile has its own budget (the language's overhead seconds), and the program's limit and `TimeMs` start at READY.
   - **Verdicts:** no READY means `compile_error`. The marker is stripped only for compiled languages.
@@ -5062,6 +5129,7 @@ The owner said to continue building overnight with recommended answers, switchin
   - duplicate resubmits.
 
   Not fixed: a test of `logged`, because Velox's log service needs a database; the allowlist gate has one.
+
 - **Reviewer models (owner, 2026-11-12):** reviews run on Sonnet 5.5 from here. The owner's "never run Sonnet" rule is about OpenRouter (the app's models). The two reviews above were the first comparison: Opus found the deeper blockers (a JSON case-folding quirk, a multi-tenant hole), and Sonnet found a real follow-on bug in the fixes.
 - **W30-S08 is folded into the first W31 slice that submits code:** a client with no caller would be a dead export (ARCH-1).
 
@@ -5097,6 +5165,7 @@ The owner said to continue building overnight with recommended answers, switchin
   - partial loads, now documented and rerunnable.
 
   Plus nits: the key/slug/hash check, the target printout, the comments, and the missing tests.
+
 - **Velox:** bb2e873 scores a Python `MemoryError` as the memory limit, which fixed the red-team `memory` attack's CI flake. Velox's CI is green.
 - **For the owner:** should there be an "owner reviewed" flag before PROVISIONAL problems can be used in battles? No decision covers it yet.
 
@@ -5133,6 +5202,7 @@ The owner said to continue building overnight with recommended answers, switchin
   - plus nits (a dead `LAYERS` export, the column comment, missing rule tests).
 
   The sandbox run's one failure was the verify test's own pre-extension layer list, now derived from `scenariosOf`.
+
 - **Next:**
   - **W31-S02c:** extensions for the six problems (content, six languages each).
   - **W31-S02b:** the battle lifecycle in the game server.
@@ -5141,14 +5211,14 @@ The owner said to continue building overnight with recommended answers, switchin
 
 - **One extension round per problem, PROVISIONAL like the problems.** Each adds methods whose effect reaches the existing ones, never changing base behaviour without an extension call. Each has its own `extension.md`, references in six languages (locked where state is shared), and 3–6 extension scenarios.
 
-  | Problem | Extension | Mutants caught |
-  | --- | --- | --- |
-  | `lru-cache` | `resize(capacity)` (evicts the least recently used down to the new size), `peek(key)` (reads without making the key recent) | 26/26 |
-  | `rate-limiter` | `setLimit(client, limit)`, `limitOf(client)`; requests already in the window count against a new limit, and `remaining` is floored at 0 (a no-op without `setLimit`) | 34/34 |
-  | `parking-lot` | `block(spot)`, `unblock(spot)`; a blocked spot is never assigned or counted free; spot names are strict | 70/70 |
-  | `bank-ledger` | `freeze`, `unfreeze`, `isFrozen`; a frozen account can't withdraw, send or receive transfers, but takes deposits | 45/45 |
-  | `leaderboard` | `around(player, radius)`, the players ranked within `radius` places, in rank order | 37/37 |
-  | `meeting-rooms` | `extend(room, start, end)`, which moves a meeting's end if the room is free for the added time; shrinking always fits | 58/58 |
+  | Problem         | Extension                                                                                                                                                            | Mutants caught |
+  | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------- |
+  | `lru-cache`     | `resize(capacity)` (evicts the least recently used down to the new size), `peek(key)` (reads without making the key recent)                                          | 26/26          |
+  | `rate-limiter`  | `setLimit(client, limit)`, `limitOf(client)`; requests already in the window count against a new limit, and `remaining` is floored at 0 (a no-op without `setLimit`) | 34/34          |
+  | `parking-lot`   | `block(spot)`, `unblock(spot)`; a blocked spot is never assigned or counted free; spot names are strict                                                              | 70/70          |
+  | `bank-ledger`   | `freeze`, `unfreeze`, `isFrozen`; a frozen account can't withdraw, send or receive transfers, but takes deposits                                                     | 45/45          |
+  | `leaderboard`   | `around(player, radius)`, the players ranked within `radius` places, in rank order                                                                                   | 37/37          |
+  | `meeting-rooms` | `extend(room, start, end)`, which moves a meeting's end if the room is free for the added time; shrinking always fits                                                | 58/58          |
 
 - **Mutation gaps closed:** `meeting-rooms` first scored 56/58. Its two survivors were real gaps, room 0 reaching the last room through Python's index -1 and another meeting ending exactly at start, and new scenarios now kill them.
 - **Gates:** all six verify in every language through Velox's `exec` binary, with 5 random base scenarios each, and pass the 90% mutation gate.
@@ -5158,6 +5228,7 @@ The owner said to continue building overnight with recommended answers, switchin
   - spot names that fail are spelled out (`parking-lot`).
 
   Its one "blocker", a Java long overflow in `around` with a radius near `Long.MAX_VALUE`, can't happen: the contract caps ints at ±2^53. Not changed.
+
 - **For the owner:** review the six extensions' wording and difficulty with the problems, before launch.
 
 ### 2026-11-13 — P5-W31-S02b-1 (the battle definition, the judge client and scoring; §6.5, Q-P5-15, ADR-0041)
@@ -5241,6 +5312,7 @@ The owner said to continue building overnight with recommended answers, switchin
   - the reveal was decided at judge time, not send time;
   - code messages were parsed on quiz sockets and not throttled;
   - the `returned` field was misnamed.
+
 - **Next, S02b-2b:**
   - a `battle` match mode in Postgres;
   - the web creating the `game_match` row and tickets for a battle;
@@ -5268,3 +5340,34 @@ The owner said to continue building overnight with recommended answers, switchin
   - the paired check was unnamed;
   - tests were missing for the abandoned and repeated cases.
 - **W31-S02b is complete:** the battle definition, the judge client and scoring, the actor, the match row and the stored result. W31-S03 (the battle page and Monaco) can build on it.
+
+### 2026-11-13 — P5-W31-S03 (the battle page and Monaco; §6.5, Q-P5-10, Q-P5-15, Q-P5-16, LLDQ-4)
+
+- **The extension comes only from the game server, at the reveal:**
+  - `startBattle` adds `extension {statement, starters}` to the battle definition. The starters are the extended interface's starter code per language, from `GENERATORS`.
+  - `battle.go` validates it: it's present if and only if there are extension scenarios, with a starter for every language.
+  - The actor sends it in its `extension` message, and in the `battle` state of a player who rejoins after the reveal. Before the reveal no message carries it.
+- **`packages/game-client`:**
+  - `battle-state.ts` is a pure state machine for the battle's messages (`battle`, `extension`, `ran`, `submitted`, `refused`, `judge_error`, `best`, `final`), parsed with zod. Unknown messages are ignored.
+  - `LiveGame.code(submit, language, code)` sends a Run or a Submit. A battle reuses the friend challenge's `matchId` path, with no queue.
+- **`/play/battle/[id]`:**
+  - It requires `play.battle` and `play.live`, a configured game server, and the player in the match (`serverFor` now returns its problem).
+  - It shows the statement, the visible scenarios as examples, and a starter per language from the base interface.
+  - `BattlePlay` has a language picker and Monaco, with each language's code kept in `sessionStorage` per battle and language. It has Run and Submit, disabled while judging, and shows cooldown refusals as a notice. It also shows the clock, each visible test's detail on Run, points and passed/total per layer on Submit, every player's best, the extension after the reveal, and the final result.
+  - Statements render as preformatted text: there's no Markdown renderer yet. §6.5 is desktop only, and the page says so on narrow screens.
+- **Monaco (Q-P5-10):**
+  - `monaco-editor@0.57.0` is pinned exactly in `apps/web` as a dev dependency: it is copied at build time, never imported. It was released 2026-09-24, which meets the two-week rule.
+  - `pnpm monaco` copies its prebuilt `min/vs` into `public/monaco/`, which is gitignored and also ignored by ESLint and Prettier. It runs before `dev` and `build`, so the web image carries it.
+  - `CodeEditor` loads `/monaco/vs/loader.js` on the battle page only. It's same-origin, with no CDN and no bundler change. The AMD build is deprecated upstream in favour of ESM; moving is a bundler change for when it's dropped.
+  - There are no language servers, only highlighting.
+- **Entitlements:** migration `20261113030000_battle_capability` adds the capability value `play.battle`, and `20261113030100_battle_grant` grants it to the beta plan. `test_db_guards` and the entitlements contract test list it.
+- **Known limit:** the client's reconnect window is still the quiz's 60 s (`RECONNECT_WINDOW_MS`). A player away longer than that reloads the page, and the server still has them as away, not abandoned (Q-P5-16).
+- **Not run here:** a live end-to-end battle. It needs a signed-in session, the game server and a configured Velox (`JUDGE_API_KEY_IDS` in Velox's `.env`). Verified: the unit tests, `pnpm check` (60/60), `/monaco/vs/loader.js` served by the dev server, and a signed-out battle page redirecting to `/play`.
+- **Sonnet review:** no blockers. Fixed:
+  - a battle with no extension would have sent a reveal with no text, which the client refused. On a rejoin the whole `battle` state was refused, so the page would have stayed on "Connecting…". The text is optional now and the reveal still moves the clock.
+  - Monaco was made with the first render's language and code. A switch while it loaded would have saved one language's code under another's key. It now reads the latest props.
+  - a failed Monaco load left a blank box and cached the failure. It now says to reload, and the load is retried.
+  - the per-battle, per-language storage keys had no test. That logic is now `codeFor`, which has tests.
+  - the battle-state tests gained the no-extension reveal, a rejoin that keeps results, a late `joined`, and a refused Submit that frees only Submit.
+  - the dead exports were removed, and so was the redundant store on a language switch.
+- **Not tested:** `BattlePlay`'s effects (the socket loop and sending), because `apps/web` has no DOM test environment. jsdom would be a new dependency.

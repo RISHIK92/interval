@@ -62,6 +62,7 @@ test("the beta plan grants every quick game, with no limit (OPS-3, P3-W13-S01)",
       "play.sprint",
       "play.estimation",
       "play.live",
+      "play.battle", // P5-W31-S03
     ] as const) {
       expect(await entitlements.limit(userId, game)).toBeNull();
     }

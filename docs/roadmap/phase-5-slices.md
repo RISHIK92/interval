@@ -191,6 +191,7 @@ Already in place, so not sliced again:
 - IDs: §6.5
 - Goal: `/play/battle/[id]` (desktop): statement, starter code, Monaco, Run (visible tests) versus Submit (all layers), results by category.
 - Q: Q-P5-10.
+- Built 2026-11-13.
 
 ### P5-W31-S04 Fair-play signals
 

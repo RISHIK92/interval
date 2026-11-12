@@ -331,3 +331,24 @@ test("a focus change goes to the game server while its socket is open", async ()
   expect(socket.sent).toHaveLength(1);
   live.stop();
 });
+
+// P5-W31-S03: a battle's Run and Submit go out on the open socket; with none, nothing is
+// sent and the caller knows.
+test("a battle's code goes to the game server while its socket is open", async () => {
+  const h = harness([]);
+  h.deps.matchId = "battle-1";
+  const live = runLive(h.deps);
+  await flush();
+  const [socket] = h.sockets;
+  if (socket === undefined) throw new Error("no socket");
+  expect(live.code(false, "go", "package main")).toBe(true);
+  expect(live.code(true, "python", "x = 1")).toBe(true);
+  expect(socket.sent.map((s) => JSON.parse(s) as unknown)).toEqual([
+    { type: "run", language: "go", code: "package main" },
+    { type: "submit", language: "python", code: "x = 1" },
+  ]);
+  socket.readyState = 0;
+  expect(live.code(true, "python", "x = 2")).toBe(false);
+  expect(socket.sent).toHaveLength(2);
+  live.stop();
+});

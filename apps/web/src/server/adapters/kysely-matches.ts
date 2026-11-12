@@ -382,20 +382,27 @@ export function kyselyMatches(
       const row = await db
         .selectFrom("game_match as m")
         .innerJoin("game_match_player as p", "p.match_id", "m.id")
-        .select(["m.server_id", "p.played_as"])
+        .select(["m.server_id", "p.played_as", "m.problem_slug"])
         .where("m.id", "=", matchId)
         .where("p.user_id", "=", userId)
         .executeTakeFirst();
       return row === undefined
         ? null
-        : { serverId: row.server_id, playedAs: row.played_as ?? userId };
+        : {
+            serverId: row.server_id,
+            playedAs: row.played_as ?? userId,
+            problem: row.problem_slug,
+          };
     },
   };
 }
 
 // The in-memory fake (ADR-0012), over the given matches and a bank of live questions.
 export function memoryMatches(
-  matches: Map<string, { serverId: number; players: string[] }>,
+  matches: Map<
+    string,
+    { serverId: number; players: string[]; problem?: string }
+  >,
   bank: LiveRound[] = [],
 ): Matches {
   return {
@@ -411,9 +418,9 @@ export function memoryMatches(
         rounds: bank.slice(0, LIVE_QUESTIONS[mode]),
       });
     },
-    createBattle: (serverId, players) => {
+    createBattle: (serverId, players, slug) => {
       const id = randomUUID();
-      matches.set(id, { serverId, players });
+      matches.set(id, { serverId, players, problem: slug });
       return Promise.resolve(id);
     },
     // No recorded runs in the fake: never a ghost.
@@ -424,7 +431,11 @@ export function memoryMatches(
       const match = matches.get(matchId);
       return Promise.resolve(
         match?.players.includes(userId) === true
-          ? { serverId: match.serverId, playedAs: userId }
+          ? {
+              serverId: match.serverId,
+              playedAs: userId,
+              problem: match.problem ?? null,
+            }
           : null,
       );
     },

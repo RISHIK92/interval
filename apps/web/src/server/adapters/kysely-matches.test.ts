@@ -24,8 +24,16 @@ async function contract(
   [a, b, c]: [string, string, string],
 ): Promise<void> {
   const id = await make(0, [a, b]);
-  expect(await matches.serverFor(id, a)).toEqual({ serverId: 0, playedAs: a });
-  expect(await matches.serverFor(id, b)).toEqual({ serverId: 0, playedAs: b });
+  expect(await matches.serverFor(id, a)).toEqual({
+    serverId: 0,
+    playedAs: a,
+    problem: null,
+  });
+  expect(await matches.serverFor(id, b)).toEqual({
+    serverId: 0,
+    playedAs: b,
+    problem: null,
+  });
   // Not theirs, or no such match.
   expect(await matches.serverFor(id, c)).toBeNull();
   expect(await matches.serverFor(randomUUID(), a)).toBeNull();
@@ -33,6 +41,7 @@ async function contract(
   expect(await matches.serverFor(other, c)).toEqual({
     serverId: 3,
     playedAs: c,
+    problem: null,
   });
 }
 
@@ -124,6 +133,7 @@ test("the fake makes a match of seven, or none from a smaller bank", async () =>
   expect(await memoryMatches(all).serverFor(made?.id ?? "", "a")).toEqual({
     serverId: 0,
     playedAs: "a",
+    problem: null,
   });
   expect(
     await memoryMatches(new Map(), choices(6)).create(
@@ -282,6 +292,7 @@ test("Postgres picks seven different live questions and records them in order", 
       expect(await matches.serverFor(made.id, players[1] ?? "")).toEqual({
         serverId: 2,
         playedAs: players[1],
+        problem: null,
       });
       // P3-W17-S03: a friend challenge is kept unrated; an ordinary match isn't.
       const friendly = await matches.create(2, players, "fastest_finger", {
@@ -681,6 +692,7 @@ test("Postgres: a ghost match replays the nearest unmet run, in its questions' o
       expect(await matches.serverFor(first.id, me)).toEqual({
         serverId: 0,
         playedAs: me,
+        problem: null,
       });
       // Met: the next one; with both met, the one met longest ago.
       expect(
@@ -767,6 +779,7 @@ test("Postgres: a bot match is labeled, rated at the player's own and fully play
       expect(await kyselyMatches(trx).serverFor(made.id, me)).toEqual({
         serverId: 0,
         playedAs: me,
+        problem: null,
       });
       throw new Rollback();
     }),

@@ -107,6 +107,9 @@ test("a battle carries every language's harnesses and every scenario with its re
   expect(JSON.parse(b.scenarios[0]?.stdin ?? "")).toEqual(
     source.problem.layers.visible[0],
   );
+  // The extension's text, for the game server to show at the reveal.
+  expect(b.extension?.statement).toBe(source.extensionStatement);
+  expect(b.extension?.starters["python"]).toContain("def reserve(");
 });
 
 // §6.6: a casual player nobody matched plays on alone, so one player is a battle too.

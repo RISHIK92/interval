@@ -5,7 +5,7 @@ import type { Actor, Matches } from "../../../../server/ports";
 // P3-W15-S02 (ADR-0033): a short-lived, single-use ticket for a match the player is in.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const serverFor = vi.fn<Matches["serverFor"]>((_, userId) =>
-  Promise.resolve({ serverId: 0, playedAs: userId }),
+  Promise.resolve({ serverId: 0, playedAs: userId, problem: null }),
 );
 const SECRET = "0123456789abcdef0123456789abcdef";
 let secret: string | null = SECRET;
@@ -56,7 +56,11 @@ async function post(
 
 test("a player of the match gets a socket URL with a signed, one-minute ticket", async () => {
   current.mockResolvedValue(account);
-  serverFor.mockResolvedValueOnce({ serverId: 3, playedAs: "u1" });
+  serverFor.mockResolvedValueOnce({
+    serverId: 3,
+    playedAs: "u1",
+    problem: null,
+  });
   const response = await post({ matchId: MATCH });
   expect(response.status).toBe(200);
   expect(response.headers.get("cache-control")).toBe("no-store");
@@ -91,7 +95,11 @@ test("a player of the match gets a socket URL with a signed, one-minute ticket",
 // Q-P3-21: a guest who signed up mid-match comes back as the player the match knows.
 test("the ticket names the player as the match knows them", async () => {
   current.mockResolvedValue(account);
-  serverFor.mockResolvedValueOnce({ serverId: 0, playedAs: "guest-7" });
+  serverFor.mockResolvedValueOnce({
+    serverId: 0,
+    playedAs: "guest-7",
+    problem: null,
+  });
   const { url } = (await (await post({ matchId: MATCH })).json()) as {
     url: string;
   };
@@ -144,7 +152,11 @@ test("without play.live, no ticket: 403", async () => {
 // P4-W21-S02 (Q-P4-05): the app asks for its ticket with its expo-origin, no Origin.
 test("the app gets a ticket too", async () => {
   current.mockResolvedValue(account);
-  serverFor.mockResolvedValueOnce({ serverId: 3, playedAs: "u1" });
+  serverFor.mockResolvedValueOnce({
+    serverId: 3,
+    playedAs: "u1",
+    problem: null,
+  });
   const { POST } = await import("./route");
   const response = await POST(
     new Request("http://localhost:3100/api/game/ticket", {

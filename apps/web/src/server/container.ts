@@ -47,6 +47,7 @@ import { kyselyPaths } from "./adapters/kysely-paths";
 import { kyselyPlayerCountries } from "./adapters/kysely-player-countries";
 import { kyselyPlayerUniversities } from "./adapters/kysely-player-universities";
 import { kyselyMatches } from "./adapters/kysely-matches";
+import { kyselyProblemStore } from "./adapters/kysely-problems";
 import { kyselyRatings } from "./adapters/kysely-ratings";
 import { kyselyAgentHook } from "./adapters/kysely-agent-hook";
 import { kyselyDevicePushTokens } from "./adapters/kysely-device-push-tokens";
@@ -114,6 +115,7 @@ import type {
   PlayerUniversities,
   Follows,
   Matches,
+  ProblemStore,
   Matchmaking,
   PlayerRatings,
   Usernames,
@@ -431,6 +433,11 @@ export function follows(): Follows {
 // P3-W15-S02 (ADR-0033): live matches, for match tickets.
 export function matches(): Matches {
   return kyselyMatches(db());
+}
+
+// P5-W31-S01, S03: LLD battle problems as loaded, for the battle page.
+export function problems(): ProblemStore {
+  return kyselyProblemStore(db());
 }
 
 // P2-W12-S01 (§5H, ADR-0024): Interval's GitHub App; null when it isn't configured,

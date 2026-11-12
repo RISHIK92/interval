@@ -66,6 +66,7 @@ const OPEN = 1; // WebSocket.OPEN
 export function runLive<S>(deps: LiveDeps<S>): {
   answer: (n: number, choice: number) => boolean;
   focusLost: () => void;
+  code: (submit: boolean, language: string, code: string) => boolean;
   fallback: () => void;
   stop: () => void;
 } {
@@ -215,6 +216,15 @@ export function runLive<S>(deps: LiveDeps<S>): {
     focusLost: () => {
       if (socket?.readyState === OPEN)
         socket.send(JSON.stringify({ type: "focus" }));
+    },
+    // P5-W31-S03: a battle's Run or Submit. False with no open socket: nothing was sent,
+    // and the page lets the player send again.
+    code: (submit, language, code) => {
+      if (socket === null || socket.readyState !== OPEN) return false;
+      socket.send(
+        JSON.stringify({ type: submit ? "submit" : "run", language, code }),
+      );
+      return true;
     },
     // "Play bot now": taken at the queue's next turn (within a poll).
     fallback: () => {

@@ -64,7 +64,8 @@ func startBattle(t *testing.T) (*actor, *fakeClock, *memStore, *fakeSeat, *fakeS
 	a.join("ada", ada)
 	a.join("bob", bob)
 	for _, s := range []*fakeSeat{ada, bob} {
-		if m := s.next(t); m["type"] != "battle" || m["seconds"] != float64(45*60) || m["revealed"] != false {
+		// Before the reveal, nothing of the extension (Q-P5-15).
+		if m := s.next(t); m["type"] != "battle" || m["seconds"] != float64(45*60) || m["revealed"] != false || m["extension"] != nil {
 			t.Fatalf("the battle's start: %v", m)
 		}
 	}
@@ -129,7 +130,8 @@ func TestABattleRunsSubmitsRevealsAndEndsWhenEveryoneIsPerfect(t *testing.T) {
 	settle(a)
 	clock.Advance(battleReveal - time.Minute)
 	settle(a)
-	if m := nextOf(t, ada, "extension"); m["seconds"] != float64(15*60) {
+	if m := nextOf(t, ada, "extension"); m["seconds"] != float64(15*60) || m["statement"] != "# More" ||
+		m["starters"].(map[string]any)["python"] != "class Box: ..." {
 		t.Fatalf("the reveal: %v", m)
 	}
 	send(a, clock, "ada", "submit", "perfect")
@@ -214,7 +216,8 @@ func TestABattleRestartsOnItsOwnClock(t *testing.T) {
 	a.join("ada", ada)
 	a.join("bob", bob)
 	m := ada.next(t)
-	if m["seconds"] != float64(5*60) || m["revealed"] != true || m["best"].(map[string]any)["ada"] != float64(700) {
+	if m["seconds"] != float64(5*60) || m["revealed"] != true || m["best"].(map[string]any)["ada"] != float64(700) ||
+		m["extension"].(map[string]any)["statement"] != "# More" {
 		t.Fatalf("five minutes left, revealed, ada's best kept: %v", m)
 	}
 }
