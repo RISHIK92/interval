@@ -188,11 +188,23 @@ export function verify(
         throw new Error(`no expected results for ${where(s)}`);
       return { ...s, results: want.results };
     });
+    // Every string the scenarios pass, threads and map keys included: random calls then
+    // hit the problem's real keys and words, not only its error paths.
+    const strings = [
+      ...new Set(
+        scenarios
+          .flatMap(({ scenario }) => [
+            ...scenario.calls,
+            ...(scenario.concurrent?.threads.flat() ?? []),
+          ])
+          .flatMap((c) => wordsIn(c.args)),
+      ),
+    ].sort();
     for (let k = 0; k < (options.random ?? 0); k++) {
       const s = {
         layer: "random",
         index: k,
-        scenario: randomScenario(problem.interface, k + 1),
+        scenario: randomScenario(problem.interface, k + 1, { strings }),
       };
       try {
         judged.push({ ...s, results: record(s) });
@@ -250,4 +262,12 @@ export function verify(
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
+}
+
+function wordsIn(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(wordsIn);
+  if (value !== null && typeof value === "object")
+    return Object.entries(value).flatMap(([k, v]) => [k, ...wordsIn(v)]);
+  return [];
 }

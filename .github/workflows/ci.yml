@@ -183,4 +183,6 @@ jobs:
       - name: Generated harnesses and problem verification in every language
         env:
           EXEC_INTEGRATION: "1"
-        run: pnpm --filter @interval/lld exec vitest run src/generate/run.integration.test.ts src/verify.integration.test.ts src/problems.integration.test.ts
+        # One file at a time: run side by side, the sandboxed runs starve each other and a
+        # reference passes its time limit only under the extra load (P5-W30-S04).
+        run: pnpm --filter @interval/lld exec vitest run --no-file-parallelism src/generate/run.integration.test.ts src/verify.integration.test.ts src/problems.integration.test.ts

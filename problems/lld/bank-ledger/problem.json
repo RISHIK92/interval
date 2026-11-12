@@ -1,0 +1,2209 @@
+{
+  "slug": "bank-ledger",
+  "title": "Bank ledger",
+  "difficulty": "medium",
+  "interface": {
+    "class": "Bank",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "open",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          },
+          {
+            "name": "balance",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "deposit",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "withdraw",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "transfer",
+        "params": [
+          {
+            "name": "source",
+            "type": "string"
+          },
+          {
+            "name": "target",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "balance",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "total",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["alice", 100]
+          },
+          {
+            "method": "open",
+            "args": ["bob", 0]
+          },
+          {
+            "method": "deposit",
+            "args": ["bob", 50]
+          },
+          {
+            "method": "transfer",
+            "args": ["alice", "bob", 30]
+          },
+          {
+            "method": "balance",
+            "args": ["alice"]
+          },
+          {
+            "method": "balance",
+            "args": ["bob"]
+          },
+          {
+            "method": "withdraw",
+            "args": ["bob", 100]
+          },
+          {
+            "method": "withdraw",
+            "args": ["bob", 80]
+          },
+          {
+            "method": "balance",
+            "args": ["bob"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 10]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", 5]
+          },
+          {
+            "method": "open",
+            "args": ["b", 0]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", 11]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", 10]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "balance",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", -1]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "open",
+            "args": ["a", 0]
+          },
+          {
+            "method": "open",
+            "args": ["a", 5]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 10]
+          },
+          {
+            "method": "deposit",
+            "args": ["a", 0]
+          },
+          {
+            "method": "deposit",
+            "args": ["a", -3]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 0]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", -1]
+          },
+          {
+            "method": "deposit",
+            "args": ["a", 1]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 10]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "a", 5]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "x", 5]
+          },
+          {
+            "method": "transfer",
+            "args": ["x", "a", 5]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 10]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "x", 50]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "a", 50]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "x", 0]
+          },
+          {
+            "method": "withdraw",
+            "args": ["x", 50]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 10]
+          },
+          {
+            "method": "open",
+            "args": ["b", 10]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", 0]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", -2]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "balance",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 10]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 10]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 1]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "deposit",
+            "args": ["a", 1]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 1]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 10]
+          },
+          {
+            "method": "open",
+            "args": ["b", 0]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", 10]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "balance",
+            "args": ["b"]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", 1]
+          },
+          {
+            "method": "transfer",
+            "args": ["b", "a", 10]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "total",
+            "args": []
+          },
+          {
+            "method": "balance",
+            "args": ["ghost"]
+          },
+          {
+            "method": "deposit",
+            "args": ["ghost", 1]
+          },
+          {
+            "method": "withdraw",
+            "args": ["ghost", 1]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["big", 4503599627370496]
+          },
+          {
+            "method": "deposit",
+            "args": ["big", 1]
+          },
+          {
+            "method": "balance",
+            "args": ["big"]
+          },
+          {
+            "method": "open",
+            "args": ["small", 1]
+          },
+          {
+            "method": "transfer",
+            "args": ["big", "small", 4503599627370496]
+          },
+          {
+            "method": "balance",
+            "args": ["small"]
+          },
+          {
+            "method": "balance",
+            "args": ["big"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 5]
+          },
+          {
+            "method": "open",
+            "args": ["b", 5]
+          },
+          {
+            "method": "open",
+            "args": ["c", 5]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", 5]
+          },
+          {
+            "method": "transfer",
+            "args": ["b", "c", 10]
+          },
+          {
+            "method": "transfer",
+            "args": ["c", "a", 15]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "balance",
+            "args": ["b"]
+          },
+          {
+            "method": "balance",
+            "args": ["c"]
+          },
+          {
+            "method": "total",
+            "args": []
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 16]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 15]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "concurrency": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 1000]
+          },
+          {
+            "method": "open",
+            "args": ["b", 1000]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "balance",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ],
+        "concurrent": {
+          "after": 3,
+          "threads": [
+            [
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["a", "b", 1]
+              }
+            ],
+            [
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              },
+              {
+                "method": "transfer",
+                "args": ["b", "a", 1]
+              }
+            ],
+            [
+              {
+                "method": "open",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              },
+              {
+                "method": "deposit",
+                "args": ["a", 1]
+              }
+            ],
+            [
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              },
+              {
+                "method": "withdraw",
+                "args": ["b", 1]
+              }
+            ]
+          ]
+        }
+      }
+    ]
+  }
+}

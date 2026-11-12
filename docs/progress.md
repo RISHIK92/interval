@@ -4957,3 +4957,32 @@ The owner said to continue building overnight with recommended answers, switchin
     - constructor ints aren't kept positive, despite the comment, so some random scenarios fail at `new`;
     - string args come from a short alphabet, so `parking-lot`'s random `park` and `free` calls never use a real size and only exercise error paths.
     - A per-problem value hint (for example, the allowed strings for a param) would fix both. Proposed for W30-S04, or as its own fix.
+
+### 2026-11-12 — P5-W30-S04 (three more problems; LLDQ-1 to LLDQ-4, §6.5, Q-P5-08)
+
+- **Three more problems, all PROVISIONAL**, built and gated like W30-S03's, so there are now six:
+  - **`bank-ledger`** (medium):
+    - `open`, `deposit`, `withdraw`, `transfer` (returning false when the funds don't cover it), `balance` and `total`.
+    - Errors: an invalid call (a bad amount, an unknown account, or a transfer to the same account) fails even when the funds wouldn't cover it, and a failed call changes nothing.
+    - Concurrency: transfers both ways, deposits and withdrawals; afterwards the balances are 1100 and 900, and the total 2000.
+  - **`leaderboard`** (easy):
+    - `add`, `top(k)`, `rank` and `remove`.
+    - Ties are ordered by name: printable ASCII, compared by character code.
+    - Concurrency: 400 adds over 10 players; every player ends at 40, and `top(3)` breaks the ties by name.
+  - **`meeting-rooms`** (medium):
+    - `book` takes the lowest room free for the half-open interval `[start, end)`.
+    - `cancel(room, start)`, and `free(at)`.
+    - Concurrency: 4 threads book the same 50 slots across 4 rooms, after which every slot is full.
+- **Mutation scores:** bank 41/41, leaderboard 22/22, meeting-rooms 32/32. The one survivor, `cancel` on room 0 reaching the last room through Python's index -1, was killed with a new hidden case.
+- **Random scenarios, strengthened** (W30-S03 reviewer's follow-up):
+  - **Positive constructor ints:** the comment already promised them, but `true` was never passed.
+  - **The problem's own words:** strings are drawn 70% of the time from every string the problem's scenarios pass, threads and map keys included, so random calls reach real paths rather than only errors.
+  - All six problems agree under the new random scenarios.
+- **CI:** the lld integration step runs its files one at a time (`--no-file-parallelism`). Run side by side locally, the sandboxed runs starved each other, and three verify runs failed only under that load; each suite passes on its own.
+- **Reviewer fixes:**
+  - **Statements:** bank's error-beats-false rule (now stated and tested), the bound on the total, ASCII names in leaderboard, and a cap on the room count.
+  - **Code:** the C++ comparator's `operator[]`, the JS loops, and the comments in random.ts and verify.ts.
+- **For the owner:**
+  - **Review all six problems** (W30-S03's and these) before launch.
+  - **Naive model answers:** the `leaderboard` references re-sort on every call, and the `meeting-rooms` ones scan every meeting. Both are correct and within limits, but they model the naive design and no test exercises performance. Should model answers use sorted structures, and should a performance layer exist?
+  - **Wall-clock time limits flake under load:** one solo run of the verify suite also hit the limit on trivial C++ and Go runs while the machine was busy (load average about 8); it passed 7/7 on rerun. The engine times limits on wall clock from READY. Velox (the owner's earlier judge, at `~/velox`) measures CPU time instead (user plus system), and that's worth adopting: judge the limit on the container's cgroup CPU time, with a generous wall-clock cap only for sleepers. Proposed as a small engine slice with an ADR-0039 amendment; the owner's call. Velox itself isn't fit to run Interval's judging: it runs every submission as a child process in one shared worker container, with network access to Redis and Postgres, shared files, memory measured only after the run, and no pids limit.

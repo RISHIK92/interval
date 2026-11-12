@@ -1,0 +1,539 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 10
+      },
+      {
+        "call": 2,
+        "value": 20
+      },
+      {
+        "call": 3,
+        "value": 15
+      },
+      {
+        "call": 4,
+        "value": ["bo", "cy"]
+      },
+      {
+        "call": 5,
+        "value": 3
+      },
+      {
+        "call": 6,
+        "value": 20
+      },
+      {
+        "call": 7,
+        "value": ["ana", "bo", "cy"]
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 5
+      },
+      {
+        "call": 2,
+        "value": 5
+      },
+      {
+        "call": 3,
+        "value": 5
+      },
+      {
+        "call": 4,
+        "value": ["amy", "max", "zed"]
+      },
+      {
+        "call": 5,
+        "value": 3
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": ["max", "zed"]
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "error": "ValueError: negative k"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: points must be positive"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: points must be positive"
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": ["a"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3
+      },
+      {
+        "call": 2,
+        "value": 3
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": ["a"]
+      },
+      {
+        "call": 5,
+        "value": ["a", "b"]
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": 3
+      },
+      {
+        "call": 9,
+        "value": 4
+      },
+      {
+        "call": 10,
+        "value": ["c"]
+      },
+      {
+        "call": 11,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": ["b"]
+      },
+      {
+        "call": 4,
+        "value": ["b", "a"]
+      },
+      {
+        "call": 5,
+        "value": ["b", "a"]
+      },
+      {
+        "call": 6,
+        "error": "ValueError: negative k"
+      },
+      {
+        "call": 7,
+        "value": ["b"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 5
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 4
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": 3
+      },
+      {
+        "call": 8,
+        "value": 4
+      },
+      {
+        "call": 9,
+        "value": 1
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": 3
+      },
+      {
+        "call": 12,
+        "value": 4
+      },
+      {
+        "call": 13,
+        "value": [
+          "p11",
+          "p3",
+          "p7",
+          "p10",
+          "p2",
+          "p6",
+          "p1",
+          "p5",
+          "p9",
+          "p0",
+          "p4",
+          "p8"
+        ]
+      },
+      {
+        "call": 14,
+        "value": 2
+      },
+      {
+        "call": 15,
+        "value": 10
+      },
+      {
+        "call": 16,
+        "value": 1
+      },
+      {
+        "call": 17,
+        "value": ["p11", "p3", "p7", "p10", "p2"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 5
+      },
+      {
+        "call": 2,
+        "value": 5
+      },
+      {
+        "call": 3,
+        "value": 5
+      },
+      {
+        "call": 4,
+        "value": ["Bo", "al", "bo"]
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 4503599627370496
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": ["a", "b"]
+      },
+      {
+        "call": 4,
+        "value": 4503599627370496
+      },
+      {
+        "call": 5,
+        "value": ["a", "b"]
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": 1
+      },
+      {
+        "call": 7,
+        "value": ["a", "b", "c"]
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": 2
+      },
+      {
+        "call": 11,
+        "value": ["a", "b"]
+      }
+    ]
+  },
+  {
+    "layer": "concurrency",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["p0", "p1", "p2"]
+      },
+      {
+        "call": 2,
+        "value": 10
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 41
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": ["p5"]
+      }
+    ]
+  }
+]

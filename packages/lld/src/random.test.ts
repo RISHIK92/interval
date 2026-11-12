@@ -28,6 +28,26 @@ test("a seed always gives the same scenario, and every scenario fits its interfa
   }
 });
 
+// P5-W30-S04: a constructor gets positive ints, and a problem's own words (sizes,
+// clients) reach the random calls, so they exercise more than error paths.
+test("constructor ints are positive; strings come from the problem's words", () => {
+  for (let seed = 1; seed <= 50; seed++) {
+    const [first] = randomScenario(iface, seed).calls;
+    expect((first?.args[0] as number) >= 1, `seed ${String(seed)}`).toBe(true);
+  }
+  const words = ["small", "large"];
+  const strings = Array.from({ length: 20 }, (_, seed) =>
+    randomScenario(iface, seed + 1, { strings: words }),
+  )
+    .flatMap((s) => s.calls.slice(1))
+    .flatMap((c) => c.args.filter((a) => typeof a === "string"));
+  expect(strings.some((x) => words.includes(x))).toBe(true);
+  expect(strings.some((x) => !words.includes(x))).toBe(true);
+  expect(randomScenario(iface, 3, { strings: words })).toEqual(
+    randomScenario(iface, 3, { strings: words }),
+  );
+});
+
 test("the mutator gives only valid Python, of every kind its operators make", () => {
   const sample = `
 class C:

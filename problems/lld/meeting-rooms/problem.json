@@ -1,0 +1,1357 @@
+{
+  "slug": "meeting-rooms",
+  "title": "Meeting rooms",
+  "difficulty": "medium",
+  "interface": {
+    "class": "MeetingRooms",
+    "constructor": {
+      "params": [
+        {
+          "name": "count",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "book",
+        "params": [
+          {
+            "name": "start",
+            "type": "int"
+          },
+          {
+            "name": "end",
+            "type": "int"
+          }
+        ],
+        "returns": "optional<int>"
+      },
+      {
+        "name": "cancel",
+        "params": [
+          {
+            "name": "room",
+            "type": "int"
+          },
+          {
+            "name": "start",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "free",
+        "params": [
+          {
+            "name": "at",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "book",
+            "args": [9, 10]
+          },
+          {
+            "method": "book",
+            "args": [9, 11]
+          },
+          {
+            "method": "book",
+            "args": [10, 12]
+          },
+          {
+            "method": "book",
+            "args": [9, 10]
+          },
+          {
+            "method": "free",
+            "args": [9]
+          },
+          {
+            "method": "free",
+            "args": [10]
+          },
+          {
+            "method": "free",
+            "args": [11]
+          },
+          {
+            "method": "cancel",
+            "args": [1, 9]
+          },
+          {
+            "method": "book",
+            "args": [9, 10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "book",
+            "args": [0, 30]
+          },
+          {
+            "method": "book",
+            "args": [30, 60]
+          },
+          {
+            "method": "book",
+            "args": [29, 31]
+          },
+          {
+            "method": "free",
+            "args": [29]
+          },
+          {
+            "method": "free",
+            "args": [30]
+          },
+          {
+            "method": "free",
+            "args": [60]
+          },
+          {
+            "method": "cancel",
+            "args": [1, 30]
+          },
+          {
+            "method": "book",
+            "args": [29, 31]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          },
+          {
+            "method": "free",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-2]
+          },
+          {
+            "method": "book",
+            "args": [0, 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "book",
+            "args": [5, 5]
+          },
+          {
+            "method": "book",
+            "args": [6, 5]
+          },
+          {
+            "method": "book",
+            "args": [-10, -5]
+          },
+          {
+            "method": "free",
+            "args": [-6]
+          },
+          {
+            "method": "free",
+            "args": [-5]
+          },
+          {
+            "method": "free",
+            "args": [-10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "book",
+            "args": [0, 10]
+          },
+          {
+            "method": "book",
+            "args": [0, 10]
+          },
+          {
+            "method": "book",
+            "args": [0, 10]
+          },
+          {
+            "method": "book",
+            "args": [0, 10]
+          },
+          {
+            "method": "free",
+            "args": [0]
+          },
+          {
+            "method": "free",
+            "args": [9]
+          },
+          {
+            "method": "free",
+            "args": [10]
+          },
+          {
+            "method": "cancel",
+            "args": [2, 0]
+          },
+          {
+            "method": "book",
+            "args": [5, 6]
+          },
+          {
+            "method": "free",
+            "args": [5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "cancel",
+            "args": [1, 0]
+          },
+          {
+            "method": "cancel",
+            "args": [0, 0]
+          },
+          {
+            "method": "cancel",
+            "args": [3, 0]
+          },
+          {
+            "method": "book",
+            "args": [0, 5]
+          },
+          {
+            "method": "cancel",
+            "args": [1, 1]
+          },
+          {
+            "method": "cancel",
+            "args": [2, 0]
+          },
+          {
+            "method": "cancel",
+            "args": [1, 0]
+          },
+          {
+            "method": "cancel",
+            "args": [1, 0]
+          },
+          {
+            "method": "free",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "book",
+            "args": [10, 20]
+          },
+          {
+            "method": "book",
+            "args": [0, 5]
+          },
+          {
+            "method": "book",
+            "args": [5, 10]
+          },
+          {
+            "method": "book",
+            "args": [20, 30]
+          },
+          {
+            "method": "book",
+            "args": [4, 11]
+          },
+          {
+            "method": "book",
+            "args": [0, 30]
+          },
+          {
+            "method": "free",
+            "args": [4]
+          },
+          {
+            "method": "free",
+            "args": [5]
+          },
+          {
+            "method": "free",
+            "args": [19]
+          },
+          {
+            "method": "free",
+            "args": [20]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "book",
+            "args": [0, 100]
+          },
+          {
+            "method": "book",
+            "args": [10, 20]
+          },
+          {
+            "method": "book",
+            "args": [30, 40]
+          },
+          {
+            "method": "book",
+            "args": [15, 35]
+          },
+          {
+            "method": "book",
+            "args": [20, 30]
+          },
+          {
+            "method": "free",
+            "args": [25]
+          },
+          {
+            "method": "free",
+            "args": [15]
+          },
+          {
+            "method": "cancel",
+            "args": [2, 10]
+          },
+          {
+            "method": "book",
+            "args": [10, 20]
+          },
+          {
+            "method": "free",
+            "args": [12]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "book",
+            "args": [0, 4503599627370496]
+          },
+          {
+            "method": "free",
+            "args": [4503599627370495]
+          },
+          {
+            "method": "free",
+            "args": [4503599627370496]
+          },
+          {
+            "method": "book",
+            "args": [4503599627370496, 4503599627370497]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "book",
+            "args": [0, 10]
+          },
+          {
+            "method": "book",
+            "args": [5, 15]
+          },
+          {
+            "method": "book",
+            "args": [10, 20]
+          },
+          {
+            "method": "cancel",
+            "args": [1, 0]
+          },
+          {
+            "method": "book",
+            "args": [0, 6]
+          },
+          {
+            "method": "book",
+            "args": [0, 5]
+          },
+          {
+            "method": "free",
+            "args": [4]
+          },
+          {
+            "method": "free",
+            "args": [5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "book",
+            "args": [0, 5]
+          },
+          {
+            "method": "book",
+            "args": [0, 5]
+          },
+          {
+            "method": "cancel",
+            "args": [0, 0]
+          },
+          {
+            "method": "cancel",
+            "args": [-1, 0]
+          },
+          {
+            "method": "cancel",
+            "args": [3, 0]
+          },
+          {
+            "method": "free",
+            "args": [0]
+          },
+          {
+            "method": "cancel",
+            "args": [2, 0]
+          },
+          {
+            "method": "free",
+            "args": [0]
+          }
+        ]
+      }
+    ],
+    "concurrency": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [4]
+          },
+          {
+            "method": "free",
+            "args": [5]
+          },
+          {
+            "method": "free",
+            "args": [495]
+          },
+          {
+            "method": "book",
+            "args": [0, 10]
+          },
+          {
+            "method": "free",
+            "args": [500]
+          },
+          {
+            "method": "book",
+            "args": [495, 505]
+          },
+          {
+            "method": "book",
+            "args": [500, 510]
+          },
+          {
+            "method": "cancel",
+            "args": [1, 0]
+          },
+          {
+            "method": "book",
+            "args": [0, 10]
+          }
+        ],
+        "concurrent": {
+          "after": 1,
+          "threads": [
+            [
+              {
+                "method": "book",
+                "args": [5, 5]
+              },
+              {
+                "method": "book",
+                "args": [0, 10]
+              },
+              {
+                "method": "book",
+                "args": [10, 20]
+              },
+              {
+                "method": "book",
+                "args": [20, 30]
+              },
+              {
+                "method": "book",
+                "args": [30, 40]
+              },
+              {
+                "method": "book",
+                "args": [40, 50]
+              },
+              {
+                "method": "book",
+                "args": [50, 60]
+              },
+              {
+                "method": "book",
+                "args": [60, 70]
+              },
+              {
+                "method": "book",
+                "args": [70, 80]
+              },
+              {
+                "method": "book",
+                "args": [80, 90]
+              },
+              {
+                "method": "book",
+                "args": [90, 100]
+              },
+              {
+                "method": "book",
+                "args": [100, 110]
+              },
+              {
+                "method": "book",
+                "args": [110, 120]
+              },
+              {
+                "method": "book",
+                "args": [120, 130]
+              },
+              {
+                "method": "book",
+                "args": [130, 140]
+              },
+              {
+                "method": "book",
+                "args": [140, 150]
+              },
+              {
+                "method": "book",
+                "args": [150, 160]
+              },
+              {
+                "method": "book",
+                "args": [160, 170]
+              },
+              {
+                "method": "book",
+                "args": [170, 180]
+              },
+              {
+                "method": "book",
+                "args": [180, 190]
+              },
+              {
+                "method": "book",
+                "args": [190, 200]
+              },
+              {
+                "method": "book",
+                "args": [200, 210]
+              },
+              {
+                "method": "book",
+                "args": [210, 220]
+              },
+              {
+                "method": "book",
+                "args": [220, 230]
+              },
+              {
+                "method": "book",
+                "args": [230, 240]
+              },
+              {
+                "method": "book",
+                "args": [240, 250]
+              },
+              {
+                "method": "book",
+                "args": [250, 260]
+              },
+              {
+                "method": "book",
+                "args": [260, 270]
+              },
+              {
+                "method": "book",
+                "args": [270, 280]
+              },
+              {
+                "method": "book",
+                "args": [280, 290]
+              },
+              {
+                "method": "book",
+                "args": [290, 300]
+              },
+              {
+                "method": "book",
+                "args": [300, 310]
+              },
+              {
+                "method": "book",
+                "args": [310, 320]
+              },
+              {
+                "method": "book",
+                "args": [320, 330]
+              },
+              {
+                "method": "book",
+                "args": [330, 340]
+              },
+              {
+                "method": "book",
+                "args": [340, 350]
+              },
+              {
+                "method": "book",
+                "args": [350, 360]
+              },
+              {
+                "method": "book",
+                "args": [360, 370]
+              },
+              {
+                "method": "book",
+                "args": [370, 380]
+              },
+              {
+                "method": "book",
+                "args": [380, 390]
+              },
+              {
+                "method": "book",
+                "args": [390, 400]
+              },
+              {
+                "method": "book",
+                "args": [400, 410]
+              },
+              {
+                "method": "book",
+                "args": [410, 420]
+              },
+              {
+                "method": "book",
+                "args": [420, 430]
+              },
+              {
+                "method": "book",
+                "args": [430, 440]
+              },
+              {
+                "method": "book",
+                "args": [440, 450]
+              },
+              {
+                "method": "book",
+                "args": [450, 460]
+              },
+              {
+                "method": "book",
+                "args": [460, 470]
+              },
+              {
+                "method": "book",
+                "args": [470, 480]
+              },
+              {
+                "method": "book",
+                "args": [480, 490]
+              },
+              {
+                "method": "book",
+                "args": [490, 500]
+              }
+            ],
+            [
+              {
+                "method": "book",
+                "args": [0, 10]
+              },
+              {
+                "method": "book",
+                "args": [10, 20]
+              },
+              {
+                "method": "book",
+                "args": [20, 30]
+              },
+              {
+                "method": "book",
+                "args": [30, 40]
+              },
+              {
+                "method": "book",
+                "args": [40, 50]
+              },
+              {
+                "method": "book",
+                "args": [50, 60]
+              },
+              {
+                "method": "book",
+                "args": [60, 70]
+              },
+              {
+                "method": "book",
+                "args": [70, 80]
+              },
+              {
+                "method": "book",
+                "args": [80, 90]
+              },
+              {
+                "method": "book",
+                "args": [90, 100]
+              },
+              {
+                "method": "book",
+                "args": [100, 110]
+              },
+              {
+                "method": "book",
+                "args": [110, 120]
+              },
+              {
+                "method": "book",
+                "args": [120, 130]
+              },
+              {
+                "method": "book",
+                "args": [130, 140]
+              },
+              {
+                "method": "book",
+                "args": [140, 150]
+              },
+              {
+                "method": "book",
+                "args": [150, 160]
+              },
+              {
+                "method": "book",
+                "args": [160, 170]
+              },
+              {
+                "method": "book",
+                "args": [170, 180]
+              },
+              {
+                "method": "book",
+                "args": [180, 190]
+              },
+              {
+                "method": "book",
+                "args": [190, 200]
+              },
+              {
+                "method": "book",
+                "args": [200, 210]
+              },
+              {
+                "method": "book",
+                "args": [210, 220]
+              },
+              {
+                "method": "book",
+                "args": [220, 230]
+              },
+              {
+                "method": "book",
+                "args": [230, 240]
+              },
+              {
+                "method": "book",
+                "args": [240, 250]
+              },
+              {
+                "method": "book",
+                "args": [250, 260]
+              },
+              {
+                "method": "book",
+                "args": [260, 270]
+              },
+              {
+                "method": "book",
+                "args": [270, 280]
+              },
+              {
+                "method": "book",
+                "args": [280, 290]
+              },
+              {
+                "method": "book",
+                "args": [290, 300]
+              },
+              {
+                "method": "book",
+                "args": [300, 310]
+              },
+              {
+                "method": "book",
+                "args": [310, 320]
+              },
+              {
+                "method": "book",
+                "args": [320, 330]
+              },
+              {
+                "method": "book",
+                "args": [330, 340]
+              },
+              {
+                "method": "book",
+                "args": [340, 350]
+              },
+              {
+                "method": "book",
+                "args": [350, 360]
+              },
+              {
+                "method": "book",
+                "args": [360, 370]
+              },
+              {
+                "method": "book",
+                "args": [370, 380]
+              },
+              {
+                "method": "book",
+                "args": [380, 390]
+              },
+              {
+                "method": "book",
+                "args": [390, 400]
+              },
+              {
+                "method": "book",
+                "args": [400, 410]
+              },
+              {
+                "method": "book",
+                "args": [410, 420]
+              },
+              {
+                "method": "book",
+                "args": [420, 430]
+              },
+              {
+                "method": "book",
+                "args": [430, 440]
+              },
+              {
+                "method": "book",
+                "args": [440, 450]
+              },
+              {
+                "method": "book",
+                "args": [450, 460]
+              },
+              {
+                "method": "book",
+                "args": [460, 470]
+              },
+              {
+                "method": "book",
+                "args": [470, 480]
+              },
+              {
+                "method": "book",
+                "args": [480, 490]
+              },
+              {
+                "method": "book",
+                "args": [490, 500]
+              }
+            ],
+            [
+              {
+                "method": "book",
+                "args": [0, 10]
+              },
+              {
+                "method": "book",
+                "args": [10, 20]
+              },
+              {
+                "method": "book",
+                "args": [20, 30]
+              },
+              {
+                "method": "book",
+                "args": [30, 40]
+              },
+              {
+                "method": "book",
+                "args": [40, 50]
+              },
+              {
+                "method": "book",
+                "args": [50, 60]
+              },
+              {
+                "method": "book",
+                "args": [60, 70]
+              },
+              {
+                "method": "book",
+                "args": [70, 80]
+              },
+              {
+                "method": "book",
+                "args": [80, 90]
+              },
+              {
+                "method": "book",
+                "args": [90, 100]
+              },
+              {
+                "method": "book",
+                "args": [100, 110]
+              },
+              {
+                "method": "book",
+                "args": [110, 120]
+              },
+              {
+                "method": "book",
+                "args": [120, 130]
+              },
+              {
+                "method": "book",
+                "args": [130, 140]
+              },
+              {
+                "method": "book",
+                "args": [140, 150]
+              },
+              {
+                "method": "book",
+                "args": [150, 160]
+              },
+              {
+                "method": "book",
+                "args": [160, 170]
+              },
+              {
+                "method": "book",
+                "args": [170, 180]
+              },
+              {
+                "method": "book",
+                "args": [180, 190]
+              },
+              {
+                "method": "book",
+                "args": [190, 200]
+              },
+              {
+                "method": "book",
+                "args": [200, 210]
+              },
+              {
+                "method": "book",
+                "args": [210, 220]
+              },
+              {
+                "method": "book",
+                "args": [220, 230]
+              },
+              {
+                "method": "book",
+                "args": [230, 240]
+              },
+              {
+                "method": "book",
+                "args": [240, 250]
+              },
+              {
+                "method": "book",
+                "args": [250, 260]
+              },
+              {
+                "method": "book",
+                "args": [260, 270]
+              },
+              {
+                "method": "book",
+                "args": [270, 280]
+              },
+              {
+                "method": "book",
+                "args": [280, 290]
+              },
+              {
+                "method": "book",
+                "args": [290, 300]
+              },
+              {
+                "method": "book",
+                "args": [300, 310]
+              },
+              {
+                "method": "book",
+                "args": [310, 320]
+              },
+              {
+                "method": "book",
+                "args": [320, 330]
+              },
+              {
+                "method": "book",
+                "args": [330, 340]
+              },
+              {
+                "method": "book",
+                "args": [340, 350]
+              },
+              {
+                "method": "book",
+                "args": [350, 360]
+              },
+              {
+                "method": "book",
+                "args": [360, 370]
+              },
+              {
+                "method": "book",
+                "args": [370, 380]
+              },
+              {
+                "method": "book",
+                "args": [380, 390]
+              },
+              {
+                "method": "book",
+                "args": [390, 400]
+              },
+              {
+                "method": "book",
+                "args": [400, 410]
+              },
+              {
+                "method": "book",
+                "args": [410, 420]
+              },
+              {
+                "method": "book",
+                "args": [420, 430]
+              },
+              {
+                "method": "book",
+                "args": [430, 440]
+              },
+              {
+                "method": "book",
+                "args": [440, 450]
+              },
+              {
+                "method": "book",
+                "args": [450, 460]
+              },
+              {
+                "method": "book",
+                "args": [460, 470]
+              },
+              {
+                "method": "book",
+                "args": [470, 480]
+              },
+              {
+                "method": "book",
+                "args": [480, 490]
+              },
+              {
+                "method": "book",
+                "args": [490, 500]
+              }
+            ],
+            [
+              {
+                "method": "book",
+                "args": [0, 10]
+              },
+              {
+                "method": "book",
+                "args": [10, 20]
+              },
+              {
+                "method": "book",
+                "args": [20, 30]
+              },
+              {
+                "method": "book",
+                "args": [30, 40]
+              },
+              {
+                "method": "book",
+                "args": [40, 50]
+              },
+              {
+                "method": "book",
+                "args": [50, 60]
+              },
+              {
+                "method": "book",
+                "args": [60, 70]
+              },
+              {
+                "method": "book",
+                "args": [70, 80]
+              },
+              {
+                "method": "book",
+                "args": [80, 90]
+              },
+              {
+                "method": "book",
+                "args": [90, 100]
+              },
+              {
+                "method": "book",
+                "args": [100, 110]
+              },
+              {
+                "method": "book",
+                "args": [110, 120]
+              },
+              {
+                "method": "book",
+                "args": [120, 130]
+              },
+              {
+                "method": "book",
+                "args": [130, 140]
+              },
+              {
+                "method": "book",
+                "args": [140, 150]
+              },
+              {
+                "method": "book",
+                "args": [150, 160]
+              },
+              {
+                "method": "book",
+                "args": [160, 170]
+              },
+              {
+                "method": "book",
+                "args": [170, 180]
+              },
+              {
+                "method": "book",
+                "args": [180, 190]
+              },
+              {
+                "method": "book",
+                "args": [190, 200]
+              },
+              {
+                "method": "book",
+                "args": [200, 210]
+              },
+              {
+                "method": "book",
+                "args": [210, 220]
+              },
+              {
+                "method": "book",
+                "args": [220, 230]
+              },
+              {
+                "method": "book",
+                "args": [230, 240]
+              },
+              {
+                "method": "book",
+                "args": [240, 250]
+              },
+              {
+                "method": "book",
+                "args": [250, 260]
+              },
+              {
+                "method": "book",
+                "args": [260, 270]
+              },
+              {
+                "method": "book",
+                "args": [270, 280]
+              },
+              {
+                "method": "book",
+                "args": [280, 290]
+              },
+              {
+                "method": "book",
+                "args": [290, 300]
+              },
+              {
+                "method": "book",
+                "args": [300, 310]
+              },
+              {
+                "method": "book",
+                "args": [310, 320]
+              },
+              {
+                "method": "book",
+                "args": [320, 330]
+              },
+              {
+                "method": "book",
+                "args": [330, 340]
+              },
+              {
+                "method": "book",
+                "args": [340, 350]
+              },
+              {
+                "method": "book",
+                "args": [350, 360]
+              },
+              {
+                "method": "book",
+                "args": [360, 370]
+              },
+              {
+                "method": "book",
+                "args": [370, 380]
+              },
+              {
+                "method": "book",
+                "args": [380, 390]
+              },
+              {
+                "method": "book",
+                "args": [390, 400]
+              },
+              {
+                "method": "book",
+                "args": [400, 410]
+              },
+              {
+                "method": "book",
+                "args": [410, 420]
+              },
+              {
+                "method": "book",
+                "args": [420, 430]
+              },
+              {
+                "method": "book",
+                "args": [430, 440]
+              },
+              {
+                "method": "book",
+                "args": [440, 450]
+              },
+              {
+                "method": "book",
+                "args": [450, 460]
+              },
+              {
+                "method": "book",
+                "args": [460, 470]
+              },
+              {
+                "method": "book",
+                "args": [470, 480]
+              },
+              {
+                "method": "book",
+                "args": [480, 490]
+              },
+              {
+                "method": "book",
+                "args": [490, 500]
+              }
+            ]
+          ]
+        }
+      }
+    ]
+  }
+}
