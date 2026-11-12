@@ -4670,3 +4670,33 @@ The owner said to continue building overnight with recommended answers, switchin
   - **No Session Manager:** there are no SSM endpoints and no SSM role, so an exec host can't be opened for debugging. This is deliberate for isolation; add it knowingly if wanted.
   - **Host root:** the exec service will hold the host's Docker socket, which is the host's root.
 - **Mistake caught before commit:** a prettier run over all of `docs/` reformatted 38 files, including ACCEPTED ADRs and the verbatim roadmap copy. I restored them to HEAD; nothing of it was committed.
+
+### 2026-11-12 — P5-W29-S01 (the interface schema; LLDQ-1, Q-P5-06; ADR-0040 PROPOSED)
+
+- **`packages/lld`**, a new workspace package on zod 4.6.7 with no new dependency:
+  - **`types.ts`:** the type grammar `int | float | bool | string | list<T> | map<string,T> | optional<T>`, four levels at most, including the scalar.
+    - `parseType` (whitespace allowed only between tokens), `formatType` and `fits(type, value)`.
+    - int is 64-bit in every language, and its values stay within ±2^53, so JSON and every language hold them exactly.
+  - **`interface.ts`:** `Interface` (class, constructor and methods). The names must work in all five languages:
+    - lower camel case for methods and params; none may be a keyword in Python, JS/TS, Java, C++ or Go, one of Java's `Object` methods, or a harness name;
+    - upper camel case for the class; it may not be one of Python's constants and typing names, a C++ macro, a `java.lang` name, or a JS global.
+    - Names are unique, every type parses, and only methods return `void`.
+  - **`scenario.ts`:**
+    - `Scenario`: calls, with `new` first and only first.
+    - `ResultLine`: a structural union of `{call, value}` and `{call, error}`; an error is printable ASCII of at most 200 characters.
+    - `checkScenario` checks methods, arity and arg types.
+  - **Generated and committed**, each with a test that fails while stale (`pnpm --filter @interval/lld codegen` regenerates):
+    - `schema/{interface,scenario,result}.schema.json`. The interface schema's description notes that its refinements live only in zod.
+    - `services/exec/lld/types.go`: Go structs, plus a `Decode` per contract that refuses unknown fields and trailing data and checks required fields, the union's exactly-one form, bounds and patterns. Patterns are compiled once.
+  - **Go tests** (`services/exec/lld/types_test.go`) feed hostile result lines and scenarios to `Decode`: a missing call, both forms, an unknown key, a negative index, non-ASCII, too long, two values, too many args.
+- **ADR-0040 (PROPOSED):** nested contracts are defined in zod, and their JSON Schema and Go are generated. This covers the timeline's direction too, which the 2026-11-12 audit flagged. **It amends Q-P5-06's overnight answer, which made JSON Schema the source.** That is noted on Q-P5-06, and the owner decides. Hand-written cross-language payloads are out of its scope.
+- **Reviewer fixes:**
+  - **Blocker:** the reversal of Q-P5-06 is now stated in the ADR and the question.
+  - **The result line:** its rule had been a refinement, dropped from the JSON Schema and Go. It is now structural, with generated Go validation.
+  - **Also:**
+    - more reserved class and method names;
+    - whitespace inside names is refused;
+    - int width written down;
+    - the emitter refuses anything it doesn't understand (unknown refs, unnamed item structs, duplicates);
+    - tests for `fits`, the result's limits and reserved names.
+- **For the owner:** ADR-0040, and whether int should instead be capped at 32 bits for idiomatic `int` starters. The current pick is 64-bit everywhere.

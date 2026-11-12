@@ -99,6 +99,8 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - Generators written in TypeScript (`packages/lld`) emit starter code and harnesses for the five languages, committed per problem and checked for staleness.
 - **Answer (overnight, recommended):** the suggested default.
 
+- **Built differently in P5-W29-S01, for the owner:** zod in `packages/lld` is the source; the JSON Schema and Go types (with generated validation) come from it. ADR-0040 (PROPOSED) records this.
+
 ### Q-P5-07 The external checker (P0 for W29)
 
 - Cite: EXEC-4 ("Checking happens outside the sandbox. A trusted checker replays the reference solution and checks invariants on the raw results.").
