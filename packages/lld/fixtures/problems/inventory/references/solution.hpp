@@ -30,7 +30,7 @@ class Inventory {
     std::lock_guard<std::mutex> hold(mu_);
     auto it = counts_.find(item);
     int64_t have = it == counts_.end() ? 0 : it->second;
-    if (have < amount) return false;
+    if (have - held_[item] < amount) return false;
     if (have == amount) counts_.erase(item);
     else counts_[item] = have - amount;
     return true;
@@ -74,10 +74,28 @@ class Inventory {
   void clear() {
     std::lock_guard<std::mutex> hold(mu_);
     counts_.clear();
+    held_.clear();
+  }
+
+  bool reserve(std::string item, int64_t amount) {
+    if (amount <= 0) throw std::invalid_argument("amount must be positive");
+    std::lock_guard<std::mutex> hold(mu_);
+    auto it = counts_.find(item);
+    int64_t have = it == counts_.end() ? 0 : it->second;
+    if (have - held_[item] < amount) return false;
+    held_[item] += amount;
+    return true;
+  }
+
+  int64_t reserved(std::string item) {
+    std::lock_guard<std::mutex> hold(mu_);
+    return held_[item];
   }
 
  private:
   int64_t capacity_;
   std::map<std::string, int64_t> counts_;
+  // The extension round: units held back, which take may not take.
+  std::map<std::string, int64_t> held_;
   std::mutex mu_;
 };

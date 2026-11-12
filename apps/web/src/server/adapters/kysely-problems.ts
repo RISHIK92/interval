@@ -23,6 +23,9 @@ export function kyselyProblemStore(db: Kysely<DB>): ProblemStore {
         checks: JSON.stringify(p.checks),
         limits: JSON.stringify(p.limits),
         visible: JSON.stringify(p.visible),
+        extension_statement: p.extension?.statement ?? null,
+        extension_interface:
+          p.extension === null ? null : JSON.stringify(p.extension.interface),
         private_key: p.privateKey,
         content_hash: p.contentHash,
         retired_at: null,

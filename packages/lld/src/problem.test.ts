@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
-import { Problem } from "./problem";
+import { interfaceFor, Problem, scenariosOf } from "./problem";
 
 // P5-W30-S01 (LLDQ-1 to LLDQ-4): a problem file, held to its interface throughout.
 const sample = JSON.parse(
@@ -74,4 +74,89 @@ test("threads only in the concurrency layer, and always there", () => {
   ).toBe(false);
   const { visible, hidden } = sample.layers;
   expect(ok({ ...sample, layers: { visible, hidden } })).toBe(true);
+});
+
+// P5-W31-S02a (§6.5, Q-P5-15): the extension round adds methods, and its scenarios are
+// judged against the extended interface; base layers never see the new methods.
+test("an extension adds methods its own scenarios use, never clashing with the base", () => {
+  const added = {
+    name: "reserve",
+    params: [
+      { name: "item", type: "string" },
+      { name: "amount", type: "int" },
+    ],
+    returns: "bool",
+  };
+  const uses = {
+    calls: [
+      { method: "new", args: [10] },
+      { method: "reserve", args: ["a", 1] },
+    ],
+  };
+  const withExt = (extension: object) => ({ ...sample, extension });
+  expect(ok(withExt({ methods: [added], scenarios: [uses] }))).toBe(true);
+  // A clash with a base method, an unused extension, a scenario of base methods only.
+  const clash = { ...added, name: "add" };
+  expect(ok(withExt({ methods: [clash], scenarios: [uses] }))).toBe(false);
+  expect(ok(withExt({ methods: [added], scenarios: [] }))).toBe(false);
+  expect(
+    ok(
+      withExt({
+        methods: [added],
+        scenarios: [{ calls: [{ method: "new", args: [10] }] }],
+      }),
+    ),
+  ).toBe(false);
+  // Base layers can't call it: they're judged against the base interface.
+  expect(
+    ok({
+      ...withExt({ methods: [added], scenarios: [uses] }),
+      layers: { ...sample.layers, visible: [uses] },
+    }),
+  ).toBe(false);
+  const parsed = Problem.parse(
+    withExt({ methods: [added], scenarios: [uses] }),
+  );
+  expect(scenariosOf(parsed).at(-1)).toEqual({
+    layer: "extension",
+    index: 0,
+    scenario: uses,
+  });
+  expect(
+    interfaceFor(parsed, "hidden").methods.map((m) => m.name),
+  ).not.toContain("reserve");
+  expect(
+    interfaceFor(parsed, "extension").methods.map((m) => m.name),
+  ).toContain("reserve");
+  // No threads in the extension layer, and the extended interface keeps its 20-method cap.
+  expect(
+    ok(
+      withExt({
+        methods: [added],
+        scenarios: [
+          {
+            ...uses,
+            concurrent: {
+              after: 1,
+              threads: [[uses.calls[1]], [uses.calls[1]]],
+            },
+          },
+        ],
+      }),
+    ),
+  ).toBe(false);
+  const many = Array.from({ length: 10 }, (_, i) => ({
+    ...added,
+    name: `extra${String(i)}`,
+  }));
+  expect(
+    ok(
+      withExt({
+        methods: many,
+        scenarios: [
+          { calls: [uses.calls[0], { method: "extra0", args: ["a", 1] }] },
+        ],
+      }),
+    ),
+  ).toBe(false);
 });

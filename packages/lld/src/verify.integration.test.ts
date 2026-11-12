@@ -9,6 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, expect, test } from "vitest";
 import { MUTATION_GATE, mutationScore } from "./mutation";
+import { Problem, scenariosOf } from "./problem";
 import { verify } from "./verify";
 
 // P5-W30-S01 (LLDQ-2, EXEC-4): verification on the fixture problem, in the real sandbox
@@ -39,28 +40,17 @@ test.runIf(integration)(
     const dir = copy();
     const written = verify(dir, { exec, mode: "write" });
     expect(written.failures).toEqual([]);
-    // One recording per scenario, in order: visible, hidden, then concurrency.
-    const layers = (
-      JSON.parse(readFileSync(join(dir, "problem.json"), "utf8")) as {
-        layers: {
-          visible: unknown[];
-          hidden: unknown[];
-          concurrency: unknown[];
-        };
-      }
-    ).layers;
+    // One recording per scenario, in order: visible, hidden, concurrency, extension.
+    const problem = Problem.parse(
+      JSON.parse(readFileSync(join(dir, "problem.json"), "utf8")),
+    );
     expect(
       written.expected.map((e) => `${e.layer} ${String(e.index)}`),
-    ).toEqual([
-      ...layers.visible.map((_, i) => `visible ${String(i)}`),
-      ...layers.hidden.map((_, i) => `hidden ${String(i)}`),
-      ...layers.concurrency.map((_, i) => `concurrency ${String(i)}`),
-    ]);
+    ).toEqual(scenariosOf(problem).map((s) => `${s.layer} ${String(s.index)}`));
+    expect(written.expected.at(-1)?.layer).toBe("extension");
     // Four threads of a hundred adds each, all counted: the references lock.
-    expect(written.expected.at(-1)?.results[1]).toEqual({
-      call: 1,
-      value: 400,
-    });
+    const concurrency = written.expected.find((e) => e.layer === "concurrency");
+    expect(concurrency?.results[1]).toEqual({ call: 1, value: 400 });
     expect(verify(dir, { exec, mode: "check" }).failures).toEqual([]);
   },
   SLOW,

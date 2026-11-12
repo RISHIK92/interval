@@ -41,4 +41,8 @@ for (const slug of slugs)
     expect(readFileSync(join(dir, "statement.md"), "utf8")).toMatch(
       /PROVISIONAL/,
     );
+    // P5-W31-S02a: an extension is revealed with its own statement.
+    expect(existsSync(join(dir, "extension.md"))).toBe(
+      problem.extension !== undefined,
+    );
   });

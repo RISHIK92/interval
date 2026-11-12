@@ -1,6 +1,8 @@
 export class Inventory {
   capacity: number;
   counts = new Map<string, number>();
+  // The extension round: units held back, which take may not take.
+  held = new Map<string, number>();
 
   constructor(capacity: number) {
     if (capacity < 0) throw new RangeError("negative capacity");
@@ -20,7 +22,7 @@ export class Inventory {
   take(item: string, amount: number): boolean {
     if (amount <= 0) throw new RangeError("amount must be positive");
     const have = this.counts.get(item) ?? 0;
-    if (have < amount) return false;
+    if (have - (this.held.get(item) ?? 0) < amount) return false;
     if (have === amount) this.counts.delete(item);
     else this.counts.set(item, have - amount);
     return true;
@@ -61,5 +63,18 @@ export class Inventory {
 
   clear(): void {
     this.counts.clear();
+    this.held.clear();
+  }
+
+  reserve(item: string, amount: number): boolean {
+    if (amount <= 0) throw new RangeError("amount must be positive");
+    const free = (this.counts.get(item) ?? 0) - (this.held.get(item) ?? 0);
+    if (free < amount) return false;
+    this.held.set(item, (this.held.get(item) ?? 0) + amount);
+    return true;
+  }
+
+  reserved(item: string): number {
+    return this.held.get(item) ?? 0;
   }
 }

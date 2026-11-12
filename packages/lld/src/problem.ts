@@ -1,12 +1,15 @@
 import { z } from "zod";
 import { Check } from "./check";
-import { Interface } from "./interface";
+import { Interface, Method } from "./interface";
 import { checkScenario, ResultLine, Scenario } from "./scenario";
 
 // P5-W30-S01 (LLDQ-1 to LLDQ-4, Q-P5-08): a problem as written, in
 // problems/lld/<slug>/problem.json beside its statement.md and references/. The visible
 // scenarios are shown to players; the hidden ones never reach a client (LLDQ-4). The
-// concurrency layer is W30-S02b's; the extension round arrives with W31-S02.
+// concurrency layer is W30-S02b's. The extension round (P5-W31-S02a, Q-P5-15) is
+// revealed mid-battle with its own extension.md: methods added to the interface, and
+// scenarios judged against the extended one. It adds and never changes: base behaviour
+// differs only after an extension method is called, so every base scenario still holds.
 export const Problem = z
   .strictObject({
     slug: z
@@ -27,6 +30,12 @@ export const Problem = z
       // P5-W30-S02b: scenarios with threads, run several times when verified.
       concurrency: z.array(Scenario).max(20).optional(),
     }),
+    extension: z
+      .strictObject({
+        methods: z.array(Method).min(1).max(10),
+        scenarios: z.array(Scenario).min(1).max(50),
+      })
+      .optional(),
   })
   .superRefine((p, ctx) => {
     for (const layer of ["visible", "hidden", "concurrency"] as const)
@@ -48,8 +57,36 @@ export const Problem = z
             message: problem,
           });
       });
+    if (p.extension !== undefined) {
+      const extended = Interface.safeParse(interfaceFor(p, "extension"));
+      for (const issue of extended.error?.issues ?? [])
+        ctx.addIssue({
+          code: "custom",
+          path: ["extension", "methods"],
+          message: `the extended interface: ${issue.message}`,
+        });
+      const added = new Set(p.extension.methods.map((m) => m.name));
+      p.extension.scenarios.forEach((s, i) => {
+        const at = ["extension", "scenarios", i];
+        if (s.concurrent !== undefined)
+          ctx.addIssue({
+            code: "custom",
+            path: at,
+            message: "threads belong in the concurrency layer",
+          });
+        if (!s.calls.some((c) => added.has(c.method)))
+          ctx.addIssue({
+            code: "custom",
+            path: at,
+            message: "an extension scenario calls an extension method",
+          });
+        if (extended.success)
+          for (const problem of checkScenario(extended.data, s))
+            ctx.addIssue({ code: "custom", path: at, message: problem });
+      });
+    }
     const returns = new Map(
-      p.interface.methods.map((m) => [m.name, m.returns]),
+      interfaceFor(p, "extension").methods.map((m) => [m.name, m.returns]),
     );
     for (const c of p.checks ?? []) {
       const r = returns.get(c.method);
@@ -76,18 +113,37 @@ export const Problem = z
   });
 export type Problem = z.infer<typeof Problem>;
 
+const LAYERS = ["visible", "hidden", "concurrency", "extension"] as const;
+export type Layer = (typeof LAYERS)[number];
+
+// The interface a layer is judged against: the base one, or after the reveal the base
+// with the extension's methods. A base layer's harness never calls an extension
+// method, so a solution written before the reveal still compiles.
+export function interfaceFor(
+  p: Pick<Problem, "interface" | "extension">,
+  layer: Layer,
+): Interface {
+  if (layer !== "extension" || p.extension === undefined) return p.interface;
+  return {
+    ...p.interface,
+    methods: [...p.interface.methods, ...p.extension.methods],
+  };
+}
+
 // Every scenario, in a fixed order: the expected results are recorded in this order.
 export function scenariosOf(p: Problem): {
-  layer: "visible" | "hidden" | "concurrency";
+  layer: Layer;
   index: number;
   scenario: Scenario;
 }[] {
-  return (["visible", "hidden", "concurrency"] as const).flatMap((layer) =>
-    (p.layers[layer] ?? []).map((scenario, index) => ({
-      layer,
-      index,
-      scenario,
-    })),
+  const layers: Record<Layer, Scenario[]> = {
+    visible: p.layers.visible,
+    hidden: p.layers.hidden,
+    concurrency: p.layers.concurrency ?? [],
+    extension: p.extension?.scenarios ?? [],
+  };
+  return LAYERS.flatMap((layer) =>
+    layers[layer].map((scenario, index) => ({ layer, index, scenario })),
   );
 }
 
@@ -95,7 +151,7 @@ export function scenariosOf(p: Problem): {
 // scenario, in scenariosOf order, written by verify and read by the loader (W31-S01).
 export const Expected = z.array(
   z.strictObject({
-    layer: z.enum(["visible", "hidden", "concurrency"]),
+    layer: z.enum(LAYERS),
     index: z.int().min(0),
     results: z.array(ResultLine),
   }),

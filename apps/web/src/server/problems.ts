@@ -1,5 +1,10 @@
 import { createHash } from "node:crypto";
-import { type Expected, type Problem, scenariosOf } from "@interval/lld";
+import {
+  type Expected,
+  interfaceFor,
+  type Problem,
+  scenariosOf,
+} from "@interval/lld";
 import type { FileStore, LoadedProblem, ProblemStore } from "./ports";
 
 // P5-W31-S01 (LLDQ-4, DB-6): LLD battle problems, from problems/lld into Postgres and
@@ -17,6 +22,8 @@ import type { FileStore, LoadedProblem, ProblemStore } from "./ports";
 export type ProblemSource = {
   problem: Problem;
   statement: string;
+  // extension.md, when the problem has an extension round (P5-W31-S02a).
+  extensionStatement?: string;
   expected: Expected;
 };
 
@@ -44,7 +51,18 @@ export function privateLayers(source: ProblemSource) {
 
 // expected.json comes from verify, which records one entry per scenario, in order; a
 // file that disagrees is stale or hand-edited, and nothing is loaded from it.
-function checkExpected({ problem, expected }: ProblemSource): void {
+function checkExpected({
+  problem,
+  expected,
+  extensionStatement,
+}: ProblemSource): void {
+  if ((problem.extension === undefined) !== (extensionStatement === undefined))
+    throw new Error(
+      `${problem.slug}: an extension round and extension.md go together`,
+    );
+  // It is what every player reads at the reveal.
+  if (extensionStatement?.trim() === "")
+    throw new Error(`${problem.slug}: extension.md is empty`);
   const scenarios = scenariosOf(problem);
   const where = (s: { layer: string; index: number }) =>
     `${s.layer} ${String(s.index)}`;
@@ -78,6 +96,13 @@ function rowOf(source: ProblemSource, contentHash: string): LoadedProblem {
     checks: problem.checks ?? [],
     limits: problem.limits,
     visible,
+    extension:
+      problem.extension === undefined || source.extensionStatement === undefined
+        ? null
+        : {
+            statement: source.extensionStatement,
+            interface: interfaceFor(problem, "extension"),
+          },
     privateKey: `lld/problems/${problem.slug}/${contentHash}.json`,
     contentHash,
   };
@@ -100,7 +125,12 @@ export async function loadProblems(
     const slug = source.problem.slug;
     const hash = createHash("sha256")
       .update(
-        JSON.stringify([source.problem, source.statement, source.expected]),
+        JSON.stringify([
+          source.problem,
+          source.statement,
+          source.extensionStatement ?? null,
+          source.expected,
+        ]),
       )
       .digest("hex");
     const was = live.get(slug);

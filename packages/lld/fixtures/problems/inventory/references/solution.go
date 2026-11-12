@@ -9,6 +9,8 @@ import (
 type Inventory struct {
 	capacity int64
 	counts   map[string]int64
+	// The extension round: units held back, which take may not take.
+	held map[string]int64
 	// The concurrency layer calls add from several goroutines at once.
 	mu sync.Mutex
 }
@@ -17,7 +19,7 @@ func NewInventory(capacity int64) *Inventory {
 	if capacity < 0 {
 		panic("negative capacity")
 	}
-	return &Inventory{capacity: capacity, counts: map[string]int64{}}
+	return &Inventory{capacity: capacity, counts: map[string]int64{}, held: map[string]int64{}}
 }
 
 func (s *Inventory) add(item string, amount int64) int64 {
@@ -45,7 +47,7 @@ func (s *Inventory) take(item string, amount int64) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	have := s.counts[item]
-	if have < amount {
+	if have-s.held[item] < amount {
 		return false
 	}
 	if have == amount {
@@ -115,4 +117,24 @@ func (s *Inventory) clear() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.counts = map[string]int64{}
+	s.held = map[string]int64{}
+}
+
+func (s *Inventory) reserve(item string, amount int64) bool {
+	if amount <= 0 {
+		panic("amount must be positive")
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.counts[item]-s.held[item] < amount {
+		return false
+	}
+	s.held[item] += amount
+	return true
+}
+
+func (s *Inventory) reserved(item string) int64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.held[item]
 }

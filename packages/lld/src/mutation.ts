@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
 import { python } from "./generate/python";
-import { Problem, scenariosOf } from "./problem";
+import { interfaceFor, Problem, scenariosOf } from "./problem";
 import type { Expected } from "./problem";
 
 // P5-W30-S02 (LLDQ-2; Phase 5 "Done when": tests catch at least 90% of injected bugs):
@@ -41,6 +41,9 @@ export function mutationScore(
       `${String(options.expected.length)} recorded results for ${String(scenarios.length)} scenarios`,
     );
   const harness = python(problem.interface);
+  // P5-W31-S02a: the extension layer through the extended interface's harness, in a
+  // file of its own beside the base one (both import the same solution.py).
+  const extensionHarness = "main_extension.py";
   const reference = join(dir, "references", harness.solutionFile);
   const mutants = z
     .array(Mutant)
@@ -57,6 +60,10 @@ export function mutationScore(
   const survivors: MutationScore["survivors"] = [];
   try {
     writeFileSync(join(work, harness.harnessFile), harness.harness);
+    writeFileSync(
+      join(work, extensionHarness),
+      python(interfaceFor(problem, "extension")).harness,
+    );
     const checks = join(work, "checks.json");
     writeFileSync(checks, JSON.stringify(problem.checks ?? []));
     // Whether any scenario tells this source apart from the reference's results.
@@ -69,7 +76,14 @@ export function mutationScore(
         // cwd: the temp dir, so a mutant's own file I/O stays there.
         const run = spawnSync(
           "python3",
-          ["-I", "-B", join(work, harness.harnessFile)],
+          [
+            "-I",
+            "-B",
+            join(
+              work,
+              s.layer === "extension" ? extensionHarness : harness.harnessFile,
+            ),
+          ],
           {
             cwd: work,
             input: JSON.stringify(s.scenario),

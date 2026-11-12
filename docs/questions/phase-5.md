@@ -140,6 +140,20 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - Run executes visible tests only and is never scored; Submit runs every layer.
 - **Answer (overnight, recommended):** the suggested default.
 
+### Q-P5-15 The battle's clock, scoring and judging (P0 for W31-S02)
+
+- Cite:
+  - §6.5: "take about 45 minutes", "Extension rounds: requirements change mid-match", "Scoring: weighted tests passed, then time".
+  - Q-P5-09 (who runs a battle). Its queue answer predates ADR-0041 (PROPOSED: Velox judges).
+- **Answers (owner, 2026-11-12):**
+  - **Clock:** 30 minutes on the base problem. Then the extension is revealed to every player at once, and 15 minutes remain. A submission is judged on the layers live when it was made: the base layers before the reveal, the base plus the extension after.
+  - **Weights:**
+    - visible 10%, hidden 40%, concurrency 20%, extension 30%;
+    - each layer's weight is split evenly across its scenarios;
+    - ties are broken by the time of the best submission.
+  - **Submissions:** Submit is unlimited, with a 30-second cooldown, and the best-scoring one counts. Run (visible tests only, never scored) has a 5-second cooldown.
+  - **Judging:** the Go game server owns the battle. It sends Run and Submit to Velox's `POST /judge` over HTTP, reads the result, scores it, and pushes the verdict over the match's WebSocket. Interval's judge client is in Go, in `services/game`.
+
 ### Q-P5-10 The editor (P0 for W31)
 
 - Cite: the Week 31 roadmap line ("the Monaco editor"), §6.5 ("desktop browsers").

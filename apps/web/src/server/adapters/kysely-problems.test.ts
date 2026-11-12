@@ -39,6 +39,7 @@ const problem = (slug: string, h: string): LoadedProblem => ({
   visible: [
     { scenario: { calls: [{ method: "new", args: [] }] }, results: [] },
   ],
+  extension: null,
   privateKey: `lld/problems/${slug}/${h}.json`,
   contentHash: h,
 });
@@ -82,4 +83,36 @@ test("the schema refuses a bad slug or a private key that isn't content-addresse
         /check constraint/,
       );
     });
+});
+
+// P5-W31-S02a: an extension's statement and interface are stored together, and cleared
+// together when a reload drops the extension.
+test("stores an extension's statement and interface, and clears both", async () => {
+  await inRollback(async (trx) => {
+    const store = kyselyProblemStore(trx);
+    const slug = `p-${randomUUID().slice(0, 8)}`;
+    const extended = {
+      ...problem(slug, hash("a")),
+      extension: {
+        statement: "# More",
+        interface: { class: "Box", constructor: { params: [] }, methods: [] },
+      },
+    };
+    await store.save(extended);
+    const read = () =>
+      trx
+        .selectFrom("lld_problem")
+        .select(["extension_statement", "extension_interface"])
+        .where("slug", "=", slug)
+        .executeTakeFirstOrThrow();
+    expect(await read()).toEqual({
+      extension_statement: "# More",
+      extension_interface: extended.extension.interface,
+    });
+    await store.save(problem(slug, hash("b")));
+    expect(await read()).toEqual({
+      extension_statement: null,
+      extension_interface: null,
+    });
+  });
 });

@@ -5099,3 +5099,40 @@ The owner said to continue building overnight with recommended answers, switchin
   Plus nits: the key/slug/hash check, the target printout, the comments, and the missing tests.
 - **Velox:** bb2e873 scores a Python `MemoryError` as the memory limit, which fixed the red-team `memory` attack's CI flake. Velox's CI is green.
 - **For the owner:** should there be an "owner reviewed" flag before PROVISIONAL problems can be used in battles? No decision covers it yet.
+
+### 2026-11-13 — P5-W31-S02a (extension rounds in the problem format; §6.5, Q-P5-15)
+
+- **Owner's answers (Q-P5-15, 2026-11-12):**
+  - **Clock:** 30 minutes on the base problem, then the extension is revealed to all players at once, with 15 minutes left.
+  - **Weights:** visible 10, hidden 40, concurrency 20, extension 30, each split evenly across its scenarios; ties go to the earlier best submission.
+  - **Submissions:** Submit is unlimited with a 30-second cooldown, and the best one counts. Run has a 5-second cooldown.
+  - **Judging:** the Go game server calls Velox.
+- **Format:**
+  - `problem.json` gains an optional `extension` (`methods`, and 1–50 `scenarios`) plus `extension.md`.
+  - **The rule:** an extension adds, and never changes, base behaviour. A base method may act differently only after an extension method is called.
+  - **Validation (zod):**
+    - the extended interface must parse: no clashing names, at most 20 methods in all;
+    - every extension scenario calls an extension method, has no threads, and fits the extended interface;
+    - checks may name extension methods.
+  - **Layers:** `scenariosOf` and `Expected` gain the `extension` layer, and `interfaceFor(problem, layer)` gives a layer's interface.
+- **Harness per layer:** `verify` and mutation scoring run the base layers through the base interface's harness, so a pre-reveal solution compiles. The extension layer uses the extended one. Random scenarios are base ones.
+- **Loading:**
+  - Migration `20261113010000` adds `extension_statement` and `extension_interface`, which are null together or set together. They're shown only after the reveal; the column comment says whoever serves them gates on it.
+  - The extension's scenarios and results stay in the bucket.
+  - A missing or blank `extension.md` loads nothing.
+- **Fixture:** `inventory` gets `reserve`/`reserved` in all six languages; `take` takes only unreserved stock, and `clear` clears reservations. It has three extension scenarios and verifies in every language through Velox's `exec` binary (`EXEC_BIN`).
+- **Tests:**
+  - **Unit:** the schema rules (clash, unused extension, base layers calling an extension method, threads, the 20-method cap), `scenariosOf`'s order and `interfaceFor`.
+  - **Loader:** row versus bucket, and no extension calls or results in the row; a blank or missing `extension.md` fails.
+  - **Postgres:** extension columns stored and cleared together.
+  - **Sandbox:** all six problems and the fixture.
+- **Sonnet review:** no blockers. Fixed:
+  - the extension columns were untested;
+  - the fixture's extension coverage was thin;
+  - a blank `extension.md` was allowed;
+  - plus nits (a dead `LAYERS` export, the column comment, missing rule tests).
+
+  The sandbox run's one failure was the verify test's own pre-extension layer list, now derived from `scenariosOf`.
+- **Next:**
+  - **W31-S02c:** extensions for the six problems (content, six languages each).
+  - **W31-S02b:** the battle lifecycle in the game server.

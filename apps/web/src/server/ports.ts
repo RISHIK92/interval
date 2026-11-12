@@ -20,7 +20,7 @@ import type {
 } from "@interval/api-client";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
-import type { Problem, ResultLine, Scenario } from "@interval/lld";
+import type { Interface, Problem, ResultLine, Scenario } from "@interval/lld";
 
 // The reasons a card explanation can state (ADR-0026/0027), as the worker names them.
 export const REASON_KINDS = [
@@ -1933,6 +1933,8 @@ export type LoadedProblem = Pick<
   checks: NonNullable<Problem["checks"]>;
   // The visible scenarios with their expected results, in the problem's order.
   visible: { scenario: Scenario; results: ResultLine[] }[];
+  // The extension round (P5-W31-S02a): shown only after the reveal; null without one.
+  extension: { statement: string; interface: Interface } | null;
   privateKey: string;
   contentHash: string;
 };

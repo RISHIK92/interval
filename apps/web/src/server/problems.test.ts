@@ -119,3 +119,71 @@ test("a failed bucket write leaves no row", async () => {
   await expect(loadProblems([source()], f)).rejects.toThrow(/bucket down/);
   expect(f.rows.size).toBe(0);
 });
+
+// P5-W31-S02a: an extension round's statement and interface go in the row, for the
+// reveal; its scenarios and results only to the bucket.
+test("an extension: its text and interface in the row, its scenarios only in the bucket", async () => {
+  const f = fakes();
+  const fixture = join(
+    import.meta.dirname,
+    "../../../../packages/lld/fixtures/problems/inventory",
+  );
+  const read = (name: string) => readFileSync(join(fixture, name), "utf8");
+  const withExtension: ProblemSource = {
+    problem: Problem.parse(JSON.parse(read("problem.json"))),
+    statement: read("statement.md"),
+    extensionStatement: read("extension.md"),
+    expected: Expected.parse(JSON.parse(read("expected.json"))),
+  };
+  await loadProblems([withExtension], f);
+  const row = f.rows.get("inventory");
+  if (row === undefined) throw new Error("no row");
+  expect(row.extension?.statement).toMatch(/reservations/);
+  expect(row.extension?.interface.methods.map((m) => m.name)).toContain(
+    "reserve",
+  );
+  for (const s of withExtension.problem.extension?.scenarios ?? [])
+    expect(JSON.stringify(row)).not.toContain(JSON.stringify(s.calls));
+  // Nor their results: the row's only results are the visible layer's.
+  const visibleCount = withExtension.problem.layers.visible.length;
+  expect(row.visible).toHaveLength(visibleCount);
+  expect(row.visible.map((v) => v.results)).toEqual(
+    withExtension.expected.slice(0, visibleCount).map((e) => e.results),
+  );
+  const judged = privateLayers(withExtension).scenarios.filter(
+    (s) => s.layer === "extension",
+  );
+  expect(judged).toHaveLength(
+    withExtension.problem.extension?.scenarios.length ?? -1,
+  );
+  // Without its extension.md, nothing loads.
+  const missing: ProblemSource = {
+    problem: withExtension.problem,
+    statement: withExtension.statement,
+    expected: withExtension.expected,
+  };
+  await expect(loadProblems([missing], fakes())).rejects.toThrow(
+    /extension\.md/,
+  );
+});
+
+test("an empty extension.md loads nothing", async () => {
+  const fixture = join(
+    import.meta.dirname,
+    "../../../../packages/lld/fixtures/problems/inventory",
+  );
+  const read = (name: string) => readFileSync(join(fixture, name), "utf8");
+  await expect(
+    loadProblems(
+      [
+        {
+          problem: Problem.parse(JSON.parse(read("problem.json"))),
+          statement: read("statement.md"),
+          extensionStatement: "  \n",
+          expected: Expected.parse(JSON.parse(read("expected.json"))),
+        },
+      ],
+      fakes(),
+    ),
+  ).rejects.toThrow(/extension\.md is empty/);
+});

@@ -2059,5 +2059,171 @@
         }
       }
     ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "reserve",
+        "params": [
+          {
+            "name": "item",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "reserved",
+        "params": [
+          {
+            "name": "item",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [10]
+          },
+          {
+            "method": "add",
+            "args": ["a", 5]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 3]
+          },
+          {
+            "method": "reserved",
+            "args": ["a"]
+          },
+          {
+            "method": "take",
+            "args": ["a", 3]
+          },
+          {
+            "method": "take",
+            "args": ["a", 2]
+          },
+          {
+            "method": "stock",
+            "args": ["a"]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 1]
+          },
+          {
+            "method": "reserved",
+            "args": ["b"]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5]
+          },
+          {
+            "method": "reserve",
+            "args": ["x", 1]
+          },
+          {
+            "method": "add",
+            "args": ["x", 2]
+          },
+          {
+            "method": "reserve",
+            "args": ["x", 2]
+          },
+          {
+            "method": "clear",
+            "args": []
+          },
+          {
+            "method": "reserved",
+            "args": ["x"]
+          },
+          {
+            "method": "add",
+            "args": ["x", 1]
+          },
+          {
+            "method": "take",
+            "args": ["x", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [20]
+          },
+          {
+            "method": "add",
+            "args": ["a", 4]
+          },
+          {
+            "method": "add",
+            "args": ["b", 3]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 4]
+          },
+          {
+            "method": "reserve",
+            "args": ["b", 1]
+          },
+          {
+            "method": "take",
+            "args": ["a", 1]
+          },
+          {
+            "method": "take",
+            "args": ["b", 2]
+          },
+          {
+            "method": "take",
+            "args": ["b", 1]
+          },
+          {
+            "method": "reserved",
+            "args": ["a"]
+          },
+          {
+            "method": "reserved",
+            "args": ["b"]
+          },
+          {
+            "method": "reserve",
+            "args": ["b", 1]
+          },
+          {
+            "method": "stock",
+            "args": ["b"]
+          },
+          {
+            "method": "reserve",
+            "args": ["b", -2]
+          }
+        ]
+      }
+    ]
   }
 }

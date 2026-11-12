@@ -171,6 +171,17 @@ Already in place, so not sliced again:
 - Goal: a battle match kind in the game server: rounds, the timed extension round, the clock, snapshots, reconnect grace, abandons.
 - Note (ADR-0041 PROPOSED): code goes to Velox's `POST /judge`, not the Valkey queue of Q-P5-09's answer, which predates it. This slice, or W31-S03, builds Interval's judge port and Velox adapter (the folded S08).
 
+### P5-W31-S02a Extension rounds in the problem format
+
+- IDs: §6.5, LLDQ-1 to LLDQ-3; Q-P5-15
+- Goal: `problem.json`'s optional `extension` (methods and scenarios) with `extension.md`. Base layers are judged through the base interface, and the extension through the extended one. The loader stores the extension's statement and interface for the reveal.
+- Built 2026-11-13.
+
+### P5-W31-S02c Extensions for the six problems
+
+- IDs: §6.5; Q-P5-15
+- Goal: an extension round for each of the six problems, with references in six languages, verified and mutation-gated.
+
 ### P5-W31-S03 The battle page and Monaco
 
 - IDs: §6.5

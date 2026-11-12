@@ -3,6 +3,8 @@ import java.util.*;
 public class Inventory {
   private final long capacity;
   private final TreeMap<String, Long> counts = new TreeMap<>();
+  // The extension round: units held back, which take may not take.
+  private final Map<String, Long> held = new HashMap<>();
 
   public Inventory(long capacity) {
     if (capacity < 0) throw new IllegalArgumentException("negative capacity");
@@ -23,7 +25,7 @@ public class Inventory {
   public synchronized boolean take(String item, long amount) {
     if (amount <= 0) throw new IllegalArgumentException("amount must be positive");
     long have = counts.getOrDefault(item, 0L);
-    if (have < amount) return false;
+    if (have - held.getOrDefault(item, 0L) < amount) return false;
     if (have == amount) counts.remove(item);
     else counts.put(item, have - amount);
     return true;
@@ -66,5 +68,17 @@ public class Inventory {
 
   public synchronized void clear() {
     counts.clear();
+    held.clear();
+  }
+
+  public synchronized boolean reserve(String item, long amount) {
+    if (amount <= 0) throw new IllegalArgumentException("amount must be positive");
+    if (counts.getOrDefault(item, 0L) - held.getOrDefault(item, 0L) < amount) return false;
+    held.merge(item, amount, Long::sum);
+    return true;
+  }
+
+  public synchronized long reserved(String item) {
+    return held.getOrDefault(item, 0L);
   }
 }

@@ -31,6 +31,9 @@ const sources: ProblemSource[] = readdirSync(root)
     return {
       problem,
       statement: read("statement.md"),
+      ...(problem.extension === undefined
+        ? {}
+        : { extensionStatement: read("extension.md") }),
       expected: Expected.parse(JSON.parse(read("expected.json"))),
     };
   });

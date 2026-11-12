@@ -9,6 +9,8 @@ class Inventory:
             raise ValueError("negative capacity")
         self.capacity = capacity
         self.counts: dict[str, int] = {}
+        # The extension round: units held back, which take may not take.
+        self.held: dict[str, int] = {}
         # The concurrency layer calls add from several threads at once.
         self.lock = threading.Lock()
 
@@ -26,7 +28,7 @@ class Inventory:
         if amount <= 0:
             raise ValueError("amount must be positive")
         with self.lock:
-            if self.counts.get(item, 0) < amount:
+            if self.counts.get(item, 0) - self.held.get(item, 0) < amount:
                 return False
             self.counts[item] -= amount
             if self.counts[item] == 0:
@@ -61,3 +63,17 @@ class Inventory:
     def clear(self) -> None:
         with self.lock:
             self.counts.clear()
+            self.held.clear()
+
+    def reserve(self, item: str, amount: int) -> bool:
+        if amount <= 0:
+            raise ValueError("amount must be positive")
+        with self.lock:
+            if self.counts.get(item, 0) - self.held.get(item, 0) < amount:
+                return False
+            self.held[item] = self.held.get(item, 0) + amount
+            return True
+
+    def reserved(self, item: str) -> int:
+        with self.lock:
+            return self.held.get(item, 0)

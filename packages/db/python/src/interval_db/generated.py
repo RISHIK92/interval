@@ -628,6 +628,8 @@ class LldProblem(TypedDict):
     content_hash: str
     retired_at: datetime | None
     loaded_at: datetime
+    extension_statement: str | None
+    extension_interface: JsonValue | None
 
 
 class Moment(TypedDict):

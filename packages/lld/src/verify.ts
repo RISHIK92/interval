@@ -11,7 +11,7 @@ import { basename, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { GENERATORS, runFiles } from "./generate/index";
-import { type Expected, Problem, scenariosOf } from "./problem";
+import { type Expected, interfaceFor, Problem, scenariosOf } from "./problem";
 import { randomScenario } from "./random";
 import { ResultLine, type Scenario } from "./scenario";
 import { fits, parseType } from "./types";
@@ -54,17 +54,28 @@ export function verify(
   const work = mkdtempSync(join(tmpdir(), `lld-verify-${problem.slug}-`));
   const failures: string[] = [];
   try {
-    const run = (language: string, scenario: Scenario): RunOutput => {
+    // Each scenario through the harness of its layer's interface (P5-W31-S02a): the
+    // extension's methods only in the extension layer; random scenarios are base ones.
+    const run = (
+      language: string,
+      scenario: Scenario,
+      layer: string,
+    ): RunOutput => {
       const generate = GENERATORS[language];
       if (generate === undefined)
         throw new Error(`no generator for ${language}`);
+      // Random scenarios ("random") are base ones, like every layer but the extension.
+      const iface = interfaceFor(
+        problem,
+        layer === "extension" ? "extension" : "hidden",
+      );
       const source = readFileSync(
-        join(dir, "references", generate(problem.interface).solutionFile),
+        join(dir, "references", generate(iface).solutionFile),
         "utf8",
       );
       const runDir = mkdtempSync(join(work, `${language}-`));
       for (const [name, body] of Object.entries(
-        runFiles(language, problem.interface, source),
+        runFiles(language, iface, source),
       ))
         writeFileSync(join(runDir, name), body);
       const out = execFileSync(
@@ -96,7 +107,10 @@ export function verify(
 
     // The canonical results.
     const returns = new Map(
-      problem.interface.methods.map((m) => [m.name, m.returns]),
+      interfaceFor(problem, "extension").methods.map((m) => [
+        m.name,
+        m.returns,
+      ]),
     );
     const record = (s: {
       layer: string;
@@ -116,7 +130,7 @@ export function verify(
       index: number;
       scenario: Scenario;
     }): ResultLine[] => {
-      const r = run("python", s.scenario);
+      const r = run("python", s.scenario, s.layer);
       if (r.verdict !== "ok")
         throw new Error(
           `python reference, ${where(s)}: ${r.verdict}\n${r.stderr.slice(0, 2000)}`,
@@ -210,7 +224,7 @@ export function verify(
       language: string,
       s: (typeof judged)[number],
     ): string | undefined => {
-      const r = run(language, s.scenario);
+      const r = run(language, s.scenario, s.layer);
       if (r.verdict !== "ok")
         return `${language} reference, ${where(s)}: ${r.verdict}\n${r.stderr.slice(0, 2000)}`;
       const files = {

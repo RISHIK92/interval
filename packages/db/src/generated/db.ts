@@ -639,6 +639,8 @@ export interface LldProblem {
   checks: Generated<Json>;
   content_hash: string;
   difficulty: LldDifficulty;
+  extension_interface: Json | null;
+  extension_statement: string | null;
   interface: Json;
   limits: Json;
   loaded_at: Generated<Timestamp>;

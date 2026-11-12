@@ -77,7 +77,7 @@ const Params = z
     "parameter names repeat",
   );
 
-const Method = z.strictObject({
+export const Method = z.strictObject({
   name: Name,
   params: Params,
   returns: z.union([z.literal("void"), Type]),
