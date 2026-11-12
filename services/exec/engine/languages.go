@@ -60,7 +60,7 @@ var images = func() map[string]imageEntry {
 
 const (
 	// The go build environment, set for the build only: the program gets none of it.
-	goBuild = "cp -r /opt/gocache /tmp/gocache && GOCACHE=/tmp/gocache GOPATH=/tmp/gopath GOTOOLCHAIN=local CGO_ENABLED=0 go build -o /tmp/main /code/main.go"
+	goBuild = "cp -r /opt/gocache /tmp/gocache && GOCACHE=/tmp/gocache GOPATH=/tmp/gopath GOTOOLCHAIN=local CGO_ENABLED=0 go build -o /tmp/main /code/*.go"
 )
 
 var languages = map[string]Language{

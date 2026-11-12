@@ -35,6 +35,8 @@ const RESERVED_CLASSES = new Set(
     "NULL EOF",
     "Main Harness Object String Integer Long Double Boolean Character Math System Exception Class Void Map Set",
     "JSON Array Number Error Promise Symbol",
+    // Names the generated harnesses use themselves (Java's single-file Main, C++'s namespace).
+    "IntervalJson Reader From Function ArrayList LinkedHashMap StringBuilder Throwable PrintStream FileDescriptor FileOutputStream StandardCharsets IOException StackOverflowError OutOfMemoryError ArithmeticException IllegalArgumentException UnsupportedOperationException RangeError TypeError",
   ]
     .join(" ")
     .split(" "),

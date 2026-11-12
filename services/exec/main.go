@@ -6,11 +6,13 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strings"
 
 	"interval/services/exec/engine"
@@ -32,11 +34,15 @@ func run(args []string) error {
 	}
 	flags := flag.NewFlagSet("run", flag.ContinueOnError)
 	language := flags.String("language", "python", "the submission's language: "+strings.Join(engine.Names(), ", "))
-	file := flags.String("file", "", "the source file")
+	file := flags.String("file", "", "the source file (the language's main file)")
+	dir := flags.String("dir", "", "or a directory: every file in it, the harness's main file among them")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err
 	}
-	source, err := os.ReadFile(*file)
+	if _, ok := engine.Lookup(*language); !ok {
+		return fmt.Errorf("%w: %q", engine.ErrUnknownLanguage, *language)
+	}
+	files, err := readFiles(*file, *dir, *language)
 	if err != nil {
 		return err
 	}
@@ -44,16 +50,12 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	lang, ok := engine.Lookup(*language)
-	if !ok {
-		return fmt.Errorf("%w: %q", engine.ErrUnknownLanguage, *language)
-	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
 	r := &engine.Runner{WorkDir: os.Getenv("EXEC_WORK_DIR"), Docker: "docker", Runtime: os.Getenv("EXEC_RUNTIME")}
 	res, err := r.Run(ctx, engine.Job{
 		Language: *language,
-		Files:    map[string]string{lang.Main: string(source)},
+		Files:    files,
 		Stdin:    string(stdin),
 		Limits:   defaults,
 	})
@@ -61,4 +63,36 @@ func run(args []string) error {
 		return err
 	}
 	return json.NewEncoder(os.Stdout).Encode(res)
+}
+
+// One file as the language's main file, or every regular file in a directory (a
+// harness and a submission, P5-W29-S02).
+func readFiles(file, dir, language string) (map[string]string, error) {
+	if (file == "") == (dir == "") {
+		return nil, errors.New("give --file or --dir")
+	}
+	if file != "" {
+		lang, _ := engine.Lookup(language)
+		source, err := os.ReadFile(file)
+		if err != nil {
+			return nil, err
+		}
+		return map[string]string{lang.Main: string(source)}, nil
+	}
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	files := map[string]string{}
+	for _, e := range entries {
+		if !e.Type().IsRegular() {
+			continue
+		}
+		body, err := os.ReadFile(filepath.Join(dir, e.Name()))
+		if err != nil {
+			return nil, err
+		}
+		files[e.Name()] = string(body)
+	}
+	return files, nil
 }

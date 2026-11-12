@@ -4700,3 +4700,40 @@ The owner said to continue building overnight with recommended answers, switchin
     - the emitter refuses anything it doesn't understand (unknown refs, unnamed item structs, duplicates);
     - tests for `fits`, the result's limits and reserved names.
 - **For the owner:** ADR-0040, and whether int should instead be capped at 32 bits for idiomatic `int` starters. The current pick is 64-bit everywhere.
+
+### 2026-11-12 — P5-W29-S02 (starter code and harness generators; LLDQ-1, EXEC-2; Q-P5-06)
+
+- **`packages/lld/src/generate/`:** one generator per runtime (Python, JavaScript, TypeScript, Java, C++, Go). Each gives the starter and the harness for an `Interface`.
+  - **The type mapping:** int is 64-bit everywhere (`long`, `int64_t`, `int64`); optional is `T | None`, `T | null`, boxed `T`, `std::optional`, `*T`.
+  - **The harness:**
+    - **Input and dispatch:** it reads the scenario on stdin, builds the class from call 0, then dispatches every call through a generated switch, with no reflection (a test checks this).
+    - **Types:** args become the declared types. Java and C++ use a small embedded JSON reader and writer; Go decodes `encoding/json` straight into typed variables.
+    - **Output:** one result line per call. Every throw becomes an error line: Python's `BaseException` (even `sys.exit`), Java's `Throwable` (except OutOfMemoryError, left for the memory verdict), C++'s `catch (...)`, and Go's recovered panics. Errors are cleaned to printable ASCII of at most 200 characters, even when a message getter throws.
+    - **Prints:** the submission's own prints go to stderr.
+    - **Exit:** the harness exits as soon as the results are flushed, so leftover threads can't hold the run.
+    - **Go:** generated per-type normalisers turn a nil slice or map into `[]` or `{}` (an optional stays null).
+    - **C++:** casts each return to the declared type, so a player's `int` still writes.
+    - **No collisions:** the C++ runtime lives in its own namespace, and Go's names and imports are prefixed. The harnesses' own Java and JS names are now reserved class names.
+  - **Engine:** Go builds `/code/*.go`. The CLI takes `--dir`, and checks the language before reading files.
+- **Fixture:** an `Inventory` interface covering every type form, with a reference solution in each runtime (`packages/lld/fixtures/inventory/`). It includes an idiomatic empty result (Go's nil slice), an unusual throw (`sys.exit`, a thrown string, `AssertionError`, `throw 42`, `panic(42)`), and a constructor that throws.
+- **Tests:**
+  - **Unit:** a switch arm for every method, no reflection, the mapped types, the run files.
+  - **Sandbox** (`EXEC_INTEGRATION=1`, 18 tests, also in CI's non-required sandbox job), for each runtime:
+    - the reference prints exactly the expected 18 lines, and its debug print reaches stderr only;
+    - a failed constructor gives error lines, not a crash;
+    - the starter compiles, and its methods give error lines.
+- **Reviewer fixes:**
+  - Go's nil collections;
+  - throws that escaped the handler (C++ non-std, Java Errors, Python `sys.exit`);
+  - name collisions with the player's code (C++, Go, Java);
+  - C++ overload ambiguity;
+  - leftover threads holding the run;
+  - JS functions and symbols as values;
+  - throwing error getters;
+  - a nil or empty instance after a failed constructor;
+  - the CLI's check order.
+- **For the checker (W29-S03), from the review.** A submission shares the harness's process, so it can always forge its stdout. The checker must therefore:
+  - parse strictly: exactly N lines, `call == i` in order, each a `ResultLine`;
+  - compare numbers numerically, and errors only as errors (their text differs by language);
+  - re-serialise the scenario it feeds;
+  - **never show a hidden-test run's output to the player**, since a submission can echo its stdin.
