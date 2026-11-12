@@ -1,0 +1,2103 @@
+{
+  "slug": "rate-limiter",
+  "title": "Rate limiter",
+  "difficulty": "medium",
+  "interface": {
+    "class": "RateLimiter",
+    "constructor": {
+      "params": [
+        {
+          "name": "limit",
+          "type": "int"
+        },
+        {
+          "name": "windowMs",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "allow",
+        "params": [
+          {
+            "name": "client",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "remaining",
+        "params": [
+          {
+            "name": "client",
+            "type": "string"
+          },
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 1000]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 100]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 200]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 500]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 1000]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 1000]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 1100]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 10]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["b", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 5]
+          },
+          {
+            "method": "allow",
+            "args": ["b", 10]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 9]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 10]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0, 10]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 0]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-1, 5]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 1]
+          },
+          {
+            "method": "allow",
+            "args": ["x", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["x", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["x", 1]
+          },
+          {
+            "method": "remaining",
+            "args": ["x", 1]
+          },
+          {
+            "method": "remaining",
+            "args": ["x", 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, 100]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 50]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 40]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 40]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 50]
+          },
+          {
+            "method": "allow",
+            "args": ["b", 10]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 50]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 149]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 150]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 100]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 50]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 99]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 100]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 100]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 5]
+          },
+          {
+            "method": "remaining",
+            "args": ["z", 0]
+          },
+          {
+            "method": "remaining",
+            "args": ["z", 0]
+          },
+          {
+            "method": "remaining",
+            "args": ["z", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["z", 0]
+          },
+          {
+            "method": "remaining",
+            "args": ["z", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["z", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["z", 0]
+          },
+          {
+            "method": "remaining",
+            "args": ["z", 4]
+          },
+          {
+            "method": "remaining",
+            "args": ["z", 5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 1000000]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 1000000000000]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 1000000000000]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 1000000999999]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 1000001000000]
+          },
+          {
+            "method": "allow",
+            "args": ["a", -5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 100]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 100]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 50]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 100]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 100]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 10]
+          },
+          {
+            "method": "allow",
+            "args": ["a", -20]
+          },
+          {
+            "method": "allow",
+            "args": ["a", -11]
+          },
+          {
+            "method": "allow",
+            "args": ["a", -10]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, 10]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 1]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 2]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 3]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 9]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 10]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 11]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 12]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 12]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 13]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 20]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 25]
+          },
+          {
+            "method": "allow",
+            "args": ["k", 30]
+          },
+          {
+            "method": "remaining",
+            "args": ["k", 30]
+          },
+          {
+            "method": "remaining",
+            "args": ["k", 40]
+          }
+        ]
+      }
+    ],
+    "concurrency": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [250, 1000]
+          },
+          {
+            "method": "remaining",
+            "args": ["c", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["c", 999]
+          },
+          {
+            "method": "allow",
+            "args": ["c", 1000]
+          },
+          {
+            "method": "remaining",
+            "args": ["c", 1000]
+          },
+          {
+            "method": "remaining",
+            "args": ["d", 5]
+          }
+        ],
+        "concurrent": {
+          "after": 1,
+          "threads": [
+            [
+              {
+                "method": "remaining",
+                "args": ["d", 5]
+              },
+              {
+                "method": "allow",
+                "args": ["d", 4]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              }
+            ],
+            [
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              }
+            ],
+            [
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              }
+            ],
+            [
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              },
+              {
+                "method": "allow",
+                "args": ["c", 0]
+              }
+            ]
+          ]
+        }
+      }
+    ]
+  }
+}

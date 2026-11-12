@@ -130,10 +130,11 @@ jobs:
   # EXEC-1, Q-P5-03 (P5-W28-S04): the execution engine's red-team suite (and, since
   # P5-W29-S02, the generated harnesses), on the runner's
   # Docker (runc; gVisor is checked on an execution host). Not required: a red run is
-  # read and acted on, but it doesn't block main.
+  # read and acted on, but it doesn't block main. Since P5-W30-S03 it also verifies
+  # every problem in problems/lld, in every language, with its mutation gate: 45 minutes.
   redteam:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     continue-on-error: true
     # P5-W30-S05: the judge's end-to-end test queues its jobs here.
     services:
@@ -182,4 +183,4 @@ jobs:
       - name: Generated harnesses and problem verification in every language
         env:
           EXEC_INTEGRATION: "1"
-        run: pnpm --filter @interval/lld exec vitest run src/generate/run.integration.test.ts src/verify.integration.test.ts
+        run: pnpm --filter @interval/lld exec vitest run src/generate/run.integration.test.ts src/verify.integration.test.ts src/problems.integration.test.ts

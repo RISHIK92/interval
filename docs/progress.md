@@ -4919,3 +4919,41 @@ The owner said to continue building overnight with recommended answers, switchin
   - **Go map races:** an unlocked Go map hit by two goroutines is a fatal runtime error that `recover` can't catch. Such a submission gets a crash verdict, not a wrong answer; players should be told.
   - **A flaky test:** "a reference that disagrees" failed once locally under load, probably a timeout in another language; it passed on rerun. It now names any stray failure if it recurs.
   - **Fixture size:** the concurrency scenario adds about 1,600 lines to the fixture's problem.json once prettier expands it.
+
+### 2026-11-12 — P5-W30-S03 (the first three problems; LLDQ-1 to LLDQ-4, §6.5, Q-P5-08)
+
+- **Three problems, all PROVISIONAL** (written during the build; the owner reviews them before launch, per Q-P5-08). Each lives in `problems/lld/<slug>/` with `problem.json`, `statement.md`, `expected.json`, and references in Python, JS, TS, Java, C++ and Go:
+  - **`lru-cache`** (easy):
+    - `lookup` (renamed from `get`, which is reserved in JS), `put`, `size`, and `keys` (most recent first).
+    - A capacity under 1 is an error, and so is a negative value.
+    - Concurrency: 4 threads interleave `put`s with `lookup`s of another thread's keys.
+  - **`rate-limiter`** (medium):
+    - A sliding-window log per client, over the window `(now - window, now]`, with `allow` and `remaining`.
+    - A refused request isn't recorded.
+    - Time never runs backwards for a client, and a `remaining` call sets the client's time too.
+    - Concurrency: 4×100 `allow`s at t=0 against a limit of 250.
+  - **`parking-lot`** (medium):
+    - Spots are numbered from 1 (`S1…`, `L1…`), and a car takes the lowest free one.
+    - A small car falls back to a large spot; a large car never takes a small one.
+    - Concurrency: 401 small cars fill 300 small spots and 101 large ones. Then judged `park` probes must return `L102` and `L103`, which proves no spot went to two cars.
+- **Gates:**
+  - every reference agrees on every scenario, and on 5 random ones;
+  - each concurrency scenario gives the same results on 3 runs per language;
+  - mutation scores on the Python references: lru 18/18, rate-limiter 27/27, parking-lot 48/48.
+- **Tests:**
+  - **`problems.test.ts`** (unit): every problem parses, its slug matches its directory, every reference exists, it has a concurrency layer, `expected.json` matches its scenarios, and the statement says PROVISIONAL.
+  - **`problems.integration.test.ts`**: verify with `--random 5`, plus the 90% mutation gate. It's added to CI's non-required `redteam` job, whose timeout goes from 30 to 45 minutes; each problem has a 10-minute test timeout, so a slow one is named.
+- **Reviewer fixes:**
+  - the LRU threads never called `lookup`;
+  - "no spot holds two cars" wasn't judged (the probes above);
+  - the meaning of `remaining` for the clock was ambiguous; it is now stated and tested;
+  - a negative `put` on an existing key wasn't tested;
+  - the time range was over-promised (now ±2^53);
+  - the test timeout exceeded the job's;
+  - reference tidying: `private readonly`, no impossible `??` fallbacks, matching helper names.
+- **For the owner / follow-up:**
+  - **Review the three problems' wording and difficulty before launch.**
+  - **The random scenarios are weak** (`packages/lld/src/random.ts`, committed in W30-S02):
+    - constructor ints aren't kept positive, despite the comment, so some random scenarios fail at `new`;
+    - string args come from a short alphabet, so `parking-lot`'s random `park` and `free` calls never use a real size and only exercise error paths.
+    - A per-problem value hint (for example, the allowed strings for a param) would fix both. Proposed for W30-S04, or as its own fix.

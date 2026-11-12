@@ -1,0 +1,3725 @@
+{
+  "slug": "lru-cache",
+  "title": "LRU cache",
+  "difficulty": "easy",
+  "interface": {
+    "class": "LRUCache",
+    "constructor": {
+      "params": [
+        {
+          "name": "capacity",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "lookup",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<int>"
+      },
+      {
+        "name": "put",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "size",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "keys",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "put",
+            "args": ["x", 5]
+          },
+          {
+            "method": "put",
+            "args": ["x", 6]
+          },
+          {
+            "method": "lookup",
+            "args": ["x"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["y", 7]
+          },
+          {
+            "method": "lookup",
+            "args": ["x"]
+          },
+          {
+            "method": "keys",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-1]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "put",
+            "args": ["a", 0]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["b", -1]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "keys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["d", 4]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["a", 10]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "lookup",
+            "args": ["z"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "lookup",
+            "args": ["z"]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["a", 3]
+          },
+          {
+            "method": "put",
+            "args": ["c", 4]
+          },
+          {
+            "method": "put",
+            "args": ["d", 5]
+          },
+          {
+            "method": "put",
+            "args": ["b", 6]
+          },
+          {
+            "method": "put",
+            "args": ["e", 7]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["c"]
+          },
+          {
+            "method": "lookup",
+            "args": ["d"]
+          },
+          {
+            "method": "lookup",
+            "args": ["e"]
+          },
+          {
+            "method": "keys",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1099511627776]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["b", 1]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["b"]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["c", 3]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "put",
+            "args": ["a", 1]
+          },
+          {
+            "method": "put",
+            "args": ["b", 2]
+          },
+          {
+            "method": "put",
+            "args": ["a", -5]
+          },
+          {
+            "method": "keys",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["a"]
+          }
+        ]
+      }
+    ],
+    "concurrency": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "lookup",
+            "args": ["t0k0"]
+          },
+          {
+            "method": "lookup",
+            "args": ["t3k99"]
+          },
+          {
+            "method": "lookup",
+            "args": ["bad"]
+          }
+        ],
+        "concurrent": {
+          "after": 1,
+          "threads": [
+            [
+              {
+                "method": "put",
+                "args": ["bad", -1]
+              },
+              {
+                "method": "put",
+                "args": ["t0k0", 0]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k0"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k1", 1]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k1"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k2", 2]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k2"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k3", 3]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k3"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k4", 4]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k4"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k5", 5]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k5"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k6", 6]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k6"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k7", 7]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k7"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k8", 8]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k8"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k9", 9]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k9"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k10", 10]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k10"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k11", 11]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k11"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k12", 12]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k12"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k13", 13]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k13"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k14", 14]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k14"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k15", 15]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k15"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k16", 16]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k16"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k17", 17]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k17"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k18", 18]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k18"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k19", 19]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k19"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k20", 20]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k20"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k21", 21]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k21"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k22", 22]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k22"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k23", 23]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k23"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k24", 24]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k24"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k25", 25]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k25"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k26", 26]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k26"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k27", 27]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k27"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k28", 28]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k28"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k29", 29]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k29"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k30", 30]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k30"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k31", 31]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k31"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k32", 32]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k32"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k33", 33]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k33"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k34", 34]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k34"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k35", 35]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k35"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k36", 36]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k36"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k37", 37]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k37"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k38", 38]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k38"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k39", 39]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k39"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k40", 40]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k40"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k41", 41]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k41"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k42", 42]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k42"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k43", 43]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k43"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k44", 44]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k44"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k45", 45]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k45"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k46", 46]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k46"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k47", 47]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k47"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k48", 48]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k48"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k49", 49]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k49"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k50", 50]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k50"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k51", 51]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k51"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k52", 52]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k52"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k53", 53]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k53"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k54", 54]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k54"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k55", 55]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k55"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k56", 56]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k56"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k57", 57]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k57"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k58", 58]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k58"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k59", 59]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k59"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k60", 60]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k60"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k61", 61]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k61"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k62", 62]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k62"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k63", 63]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k63"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k64", 64]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k64"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k65", 65]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k65"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k66", 66]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k66"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k67", 67]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k67"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k68", 68]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k68"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k69", 69]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k69"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k70", 70]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k70"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k71", 71]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k71"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k72", 72]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k72"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k73", 73]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k73"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k74", 74]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k74"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k75", 75]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k75"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k76", 76]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k76"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k77", 77]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k77"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k78", 78]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k78"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k79", 79]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k79"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k80", 80]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k80"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k81", 81]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k81"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k82", 82]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k82"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k83", 83]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k83"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k84", 84]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k84"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k85", 85]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k85"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k86", 86]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k86"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k87", 87]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k87"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k88", 88]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k88"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k89", 89]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k89"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k90", 90]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k90"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k91", 91]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k91"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k92", 92]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k92"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k93", 93]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k93"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k94", 94]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k94"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k95", 95]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k95"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k96", 96]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k96"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k97", 97]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k97"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k98", 98]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k98"]
+              },
+              {
+                "method": "put",
+                "args": ["t0k99", 99]
+              },
+              {
+                "method": "lookup",
+                "args": ["t1k99"]
+              }
+            ],
+            [
+              {
+                "method": "put",
+                "args": ["t1k0", 0]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k0"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k1", 1]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k1"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k2", 2]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k2"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k3", 3]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k3"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k4", 4]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k4"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k5", 5]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k5"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k6", 6]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k6"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k7", 7]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k7"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k8", 8]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k8"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k9", 9]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k9"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k10", 10]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k10"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k11", 11]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k11"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k12", 12]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k12"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k13", 13]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k13"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k14", 14]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k14"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k15", 15]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k15"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k16", 16]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k16"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k17", 17]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k17"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k18", 18]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k18"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k19", 19]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k19"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k20", 20]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k20"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k21", 21]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k21"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k22", 22]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k22"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k23", 23]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k23"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k24", 24]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k24"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k25", 25]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k25"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k26", 26]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k26"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k27", 27]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k27"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k28", 28]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k28"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k29", 29]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k29"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k30", 30]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k30"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k31", 31]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k31"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k32", 32]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k32"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k33", 33]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k33"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k34", 34]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k34"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k35", 35]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k35"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k36", 36]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k36"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k37", 37]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k37"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k38", 38]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k38"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k39", 39]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k39"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k40", 40]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k40"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k41", 41]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k41"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k42", 42]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k42"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k43", 43]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k43"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k44", 44]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k44"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k45", 45]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k45"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k46", 46]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k46"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k47", 47]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k47"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k48", 48]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k48"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k49", 49]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k49"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k50", 50]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k50"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k51", 51]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k51"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k52", 52]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k52"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k53", 53]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k53"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k54", 54]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k54"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k55", 55]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k55"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k56", 56]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k56"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k57", 57]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k57"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k58", 58]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k58"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k59", 59]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k59"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k60", 60]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k60"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k61", 61]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k61"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k62", 62]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k62"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k63", 63]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k63"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k64", 64]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k64"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k65", 65]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k65"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k66", 66]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k66"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k67", 67]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k67"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k68", 68]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k68"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k69", 69]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k69"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k70", 70]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k70"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k71", 71]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k71"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k72", 72]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k72"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k73", 73]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k73"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k74", 74]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k74"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k75", 75]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k75"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k76", 76]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k76"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k77", 77]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k77"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k78", 78]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k78"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k79", 79]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k79"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k80", 80]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k80"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k81", 81]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k81"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k82", 82]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k82"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k83", 83]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k83"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k84", 84]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k84"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k85", 85]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k85"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k86", 86]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k86"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k87", 87]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k87"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k88", 88]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k88"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k89", 89]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k89"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k90", 90]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k90"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k91", 91]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k91"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k92", 92]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k92"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k93", 93]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k93"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k94", 94]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k94"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k95", 95]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k95"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k96", 96]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k96"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k97", 97]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k97"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k98", 98]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k98"]
+              },
+              {
+                "method": "put",
+                "args": ["t1k99", 99]
+              },
+              {
+                "method": "lookup",
+                "args": ["t2k99"]
+              }
+            ],
+            [
+              {
+                "method": "put",
+                "args": ["t2k0", 0]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k0"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k1", 1]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k1"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k2", 2]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k2"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k3", 3]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k3"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k4", 4]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k4"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k5", 5]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k5"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k6", 6]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k6"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k7", 7]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k7"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k8", 8]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k8"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k9", 9]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k9"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k10", 10]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k10"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k11", 11]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k11"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k12", 12]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k12"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k13", 13]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k13"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k14", 14]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k14"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k15", 15]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k15"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k16", 16]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k16"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k17", 17]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k17"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k18", 18]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k18"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k19", 19]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k19"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k20", 20]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k20"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k21", 21]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k21"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k22", 22]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k22"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k23", 23]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k23"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k24", 24]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k24"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k25", 25]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k25"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k26", 26]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k26"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k27", 27]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k27"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k28", 28]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k28"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k29", 29]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k29"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k30", 30]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k30"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k31", 31]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k31"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k32", 32]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k32"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k33", 33]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k33"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k34", 34]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k34"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k35", 35]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k35"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k36", 36]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k36"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k37", 37]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k37"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k38", 38]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k38"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k39", 39]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k39"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k40", 40]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k40"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k41", 41]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k41"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k42", 42]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k42"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k43", 43]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k43"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k44", 44]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k44"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k45", 45]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k45"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k46", 46]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k46"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k47", 47]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k47"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k48", 48]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k48"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k49", 49]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k49"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k50", 50]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k50"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k51", 51]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k51"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k52", 52]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k52"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k53", 53]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k53"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k54", 54]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k54"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k55", 55]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k55"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k56", 56]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k56"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k57", 57]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k57"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k58", 58]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k58"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k59", 59]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k59"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k60", 60]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k60"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k61", 61]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k61"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k62", 62]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k62"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k63", 63]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k63"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k64", 64]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k64"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k65", 65]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k65"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k66", 66]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k66"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k67", 67]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k67"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k68", 68]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k68"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k69", 69]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k69"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k70", 70]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k70"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k71", 71]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k71"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k72", 72]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k72"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k73", 73]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k73"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k74", 74]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k74"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k75", 75]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k75"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k76", 76]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k76"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k77", 77]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k77"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k78", 78]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k78"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k79", 79]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k79"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k80", 80]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k80"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k81", 81]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k81"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k82", 82]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k82"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k83", 83]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k83"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k84", 84]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k84"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k85", 85]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k85"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k86", 86]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k86"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k87", 87]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k87"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k88", 88]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k88"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k89", 89]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k89"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k90", 90]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k90"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k91", 91]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k91"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k92", 92]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k92"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k93", 93]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k93"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k94", 94]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k94"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k95", 95]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k95"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k96", 96]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k96"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k97", 97]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k97"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k98", 98]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k98"]
+              },
+              {
+                "method": "put",
+                "args": ["t2k99", 99]
+              },
+              {
+                "method": "lookup",
+                "args": ["t3k99"]
+              }
+            ],
+            [
+              {
+                "method": "put",
+                "args": ["t3k0", 0]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k0"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k1", 1]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k1"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k2", 2]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k2"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k3", 3]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k3"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k4", 4]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k4"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k5", 5]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k5"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k6", 6]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k6"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k7", 7]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k7"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k8", 8]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k8"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k9", 9]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k9"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k10", 10]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k10"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k11", 11]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k11"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k12", 12]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k12"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k13", 13]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k13"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k14", 14]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k14"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k15", 15]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k15"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k16", 16]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k16"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k17", 17]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k17"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k18", 18]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k18"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k19", 19]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k19"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k20", 20]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k20"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k21", 21]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k21"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k22", 22]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k22"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k23", 23]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k23"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k24", 24]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k24"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k25", 25]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k25"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k26", 26]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k26"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k27", 27]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k27"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k28", 28]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k28"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k29", 29]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k29"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k30", 30]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k30"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k31", 31]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k31"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k32", 32]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k32"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k33", 33]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k33"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k34", 34]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k34"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k35", 35]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k35"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k36", 36]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k36"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k37", 37]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k37"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k38", 38]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k38"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k39", 39]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k39"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k40", 40]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k40"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k41", 41]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k41"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k42", 42]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k42"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k43", 43]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k43"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k44", 44]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k44"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k45", 45]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k45"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k46", 46]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k46"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k47", 47]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k47"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k48", 48]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k48"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k49", 49]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k49"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k50", 50]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k50"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k51", 51]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k51"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k52", 52]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k52"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k53", 53]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k53"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k54", 54]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k54"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k55", 55]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k55"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k56", 56]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k56"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k57", 57]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k57"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k58", 58]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k58"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k59", 59]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k59"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k60", 60]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k60"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k61", 61]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k61"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k62", 62]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k62"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k63", 63]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k63"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k64", 64]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k64"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k65", 65]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k65"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k66", 66]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k66"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k67", 67]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k67"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k68", 68]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k68"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k69", 69]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k69"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k70", 70]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k70"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k71", 71]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k71"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k72", 72]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k72"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k73", 73]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k73"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k74", 74]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k74"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k75", 75]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k75"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k76", 76]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k76"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k77", 77]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k77"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k78", 78]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k78"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k79", 79]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k79"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k80", 80]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k80"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k81", 81]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k81"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k82", 82]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k82"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k83", 83]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k83"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k84", 84]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k84"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k85", 85]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k85"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k86", 86]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k86"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k87", 87]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k87"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k88", 88]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k88"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k89", 89]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k89"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k90", 90]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k90"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k91", 91]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k91"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k92", 92]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k92"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k93", 93]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k93"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k94", 94]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k94"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k95", 95]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k95"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k96", 96]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k96"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k97", 97]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k97"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k98", 98]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k98"]
+              },
+              {
+                "method": "put",
+                "args": ["t3k99", 99]
+              },
+              {
+                "method": "lookup",
+                "args": ["t0k99"]
+              }
+            ]
+          ]
+        }
+      }
+    ]
+  }
+}
