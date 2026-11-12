@@ -65,14 +65,25 @@ async function loaded() {
       return Promise.resolve();
     },
   };
-  return { store, files, handoff, handed };
+  const made: { serverId: number; players: string[]; slug: string }[] = [];
+  const matches = {
+    createBattle: (serverId: number, players: string[], slug: string) => {
+      made.push({ serverId, players, slug });
+      return Promise.resolve(`match-${String(made.length)}`);
+    },
+  };
+  return { store, files, matches, handoff, handed, made };
 }
 
 test("a battle carries every language's harnesses and every scenario with its results", async () => {
   const deps = await loaded();
-  const id = await startBattle(deps, "inventory", ["ana", "bo"]);
+  const id = await startBattle(deps, 0, "inventory", ["ana", "bo"]);
   const [match] = deps.handed;
   if (match === undefined) throw new Error("nothing handed over");
+  // The match row names the problem; the handoff carries its id.
+  expect(deps.made).toEqual([
+    { serverId: 0, players: ["ana", "bo"], slug: "inventory" },
+  ]);
   expect(match.id).toBe(id);
   expect(match.players).toEqual(["ana", "bo"]);
   const b = match.battle;
@@ -101,14 +112,31 @@ test("a battle carries every language's harnesses and every scenario with its re
 // §6.6: a casual player nobody matched plays on alone, so one player is a battle too.
 test("no battle on a problem that isn't loaded, or without distinct players", async () => {
   const deps = await loaded();
-  await expect(startBattle(deps, "nope", ["ana", "bo"])).rejects.toThrow(
+  await expect(startBattle(deps, 0, "nope", ["ana", "bo"])).rejects.toThrow(
     /no such problem/,
   );
-  await expect(startBattle(deps, "inventory", [])).rejects.toThrow(/players/);
-  await expect(startBattle(deps, "inventory", ["ana", "ana"])).rejects.toThrow(
+  await expect(startBattle(deps, 0, "inventory", [])).rejects.toThrow(
     /players/,
   );
+  await expect(
+    startBattle(deps, 0, "inventory", ["ana", "ana"]),
+  ).rejects.toThrow(/players/);
   expect(deps.handed).toEqual([]);
-  await startBattle(deps, "inventory", ["ana"]);
+  expect(deps.made).toEqual([]);
+  await startBattle(deps, 0, "inventory", ["ana"]);
   expect(deps.handed).toHaveLength(1);
+});
+
+test("a battle that can't be handed over is thrown, not lost quietly", async () => {
+  const deps = await loaded();
+  const failing = {
+    ...deps,
+    handoff: {
+      put: () => Promise.reject(new Error("not a quiz")),
+      putBattle: () => Promise.reject(new Error("valkey down")),
+    },
+  };
+  await expect(startBattle(failing, 0, "inventory", ["ana"])).rejects.toThrow(
+    /valkey down/,
+  );
 });

@@ -184,6 +184,20 @@ export function kyselyMatches(
         return { id, serverId, players, mode, rounds };
       }),
 
+    createBattle: (serverId, players, slug) =>
+      inTransaction(async (trx) => {
+        const { id } = await trx
+          .insertInto("game_match")
+          .values({ server_id: serverId, mode: "battle", problem_slug: slug })
+          .returning("id")
+          .executeTakeFirstOrThrow();
+        await trx
+          .insertInto("game_match_player")
+          .values(players.map((user_id) => ({ match_id: id, user_id })))
+          .execute();
+        return id;
+      }),
+
     // P3-W17-S02 (BOT-2, Q-P3-26): a synthetic bot's match: the player's questions as
     // a match's are picked, the bot's answers drawn from real rates and times.
     createBot: (serverId, userId, mode) =>
@@ -396,6 +410,11 @@ export function memoryMatches(
         mode,
         rounds: bank.slice(0, LIVE_QUESTIONS[mode]),
       });
+    },
+    createBattle: (serverId, players) => {
+      const id = randomUUID();
+      matches.set(id, { serverId, players });
+      return Promise.resolve(id);
     },
     // No recorded runs in the fake: never a ghost.
     createGhost: () => Promise.resolve(null),

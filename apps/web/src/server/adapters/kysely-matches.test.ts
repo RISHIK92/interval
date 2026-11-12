@@ -937,3 +937,71 @@ test("Postgres: a bot plays a question at its real rate and live sprint time", a
   expect(await first(0.81)).toMatchObject({ n: 1, ms: 3700 });
   expect(((await first(0.81)) as { choice: number }).choice).not.toBe(0);
 });
+
+// P5-W31-S02b-2b (§6.5): a battle's match row names its problem; its players reach it
+// through the ticket flow (serverFor) like any match's.
+test("Postgres records a battle on its problem, for its players", async () => {
+  await expect(
+    db.transaction().execute(async (trx: Transaction<DB>) => {
+      const code = await trx
+        .insertInto("invite_code")
+        .values({
+          code: `BATTLE${randomUUID().slice(0, 8).toUpperCase()}`,
+          beta_group: "developer",
+          max_uses: 10,
+          expires_at: sql<Date>`now() + interval '1 day'`,
+        })
+        .returning("id")
+        .executeTakeFirstOrThrow();
+      const ids = [0, 1].map(() => `battle-${randomUUID()}`);
+      await trx
+        .insertInto("app_user")
+        .values(
+          ids.map((id) => ({
+            id,
+            name: "Ada",
+            email: `${id}@battle.example.test`,
+            beta_group: "developer" as const,
+            invite_code_id: code.id,
+          })),
+        )
+        .execute();
+      const slug = `b-${randomUUID().slice(0, 8)}`;
+      const hash = "a".repeat(64);
+      await trx
+        .insertInto("lld_problem")
+        .values({
+          slug,
+          title: "A problem",
+          difficulty: "easy",
+          statement: "# A problem",
+          interface: JSON.stringify({}),
+          limits: JSON.stringify({}),
+          visible: JSON.stringify([]),
+          private_key: `lld/problems/${slug}/${hash}.json`,
+          content_hash: hash,
+        })
+        .execute();
+      const matches = kyselyMatches(trx);
+      const id = await matches.createBattle(3, ids, slug);
+      const row = await trx
+        .selectFrom("game_match")
+        .select(["mode", "problem_slug", "server_id"])
+        .where("id", "=", id)
+        .executeTakeFirstOrThrow();
+      expect(row).toEqual({ mode: "battle", problem_slug: slug, server_id: 3 });
+      expect(await matches.serverFor(id, ids[1] ?? "")).toMatchObject({
+        serverId: 3,
+      });
+      throw new Rollback();
+    }),
+  ).rejects.toBeInstanceOf(Rollback);
+  // No battle on a problem that isn't loaded.
+  await expect(
+    db
+      .transaction()
+      .execute(async (trx: Transaction<DB>) =>
+        kyselyMatches(trx).createBattle(0, [], "no-such-problem"),
+      ),
+  ).rejects.toThrow(/foreign key/);
+});

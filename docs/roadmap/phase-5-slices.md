@@ -172,7 +172,7 @@ Already in place, so not sliced again:
 - Note (ADR-0041 PROPOSED): code goes to Velox's `POST /judge`, not the Valkey queue of Q-P5-09's answer, which predates it. This slice, or W31-S03, builds Interval's judge port and Velox adapter (the folded S08).
 - Split (2026-11-13):
   - **S02b-1, built 2026-11-13:** the battle definition (web to game server), the Go Velox client, and scoring.
-  - **S02b-2:** the battle actor (the clock and reveal, Run and Submit with cooldowns, verdicts, snapshots, reconnects, abandons and the result).
+  - **S02b-2, built 2026-11-13:** the battle actor (the clock and reveal, Run and Submit with cooldowns, verdicts, snapshots, reconnects, abandons and the result), and the battle's match row and stored result.
 
 ### P5-W31-S02a Extension rounds in the problem format
 

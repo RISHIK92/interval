@@ -3237,8 +3237,9 @@ class PostgresMatchResults:
                     ),
                 )
                 # P3-W18-S02 (§6.9): flagged for review, whatever the outcome; no
-                # penalty comes from here (an admin decides at /admin/fair-play).
-                if len(player.signals) >= FLAG_AT:
+                # penalty comes from here (an admin decides at /admin/fair-play). A
+                # battle's signals are its own (W31-S04), not these quiz ones.
+                if len(player.signals) >= FLAG_AT and mode != "battle":
                     conn.execute(
                         "insert into fair_play_flag (match_id, user_id, signals) "
                         "values (%s, %s, %s) on conflict do nothing",
@@ -3249,7 +3250,8 @@ class PostgresMatchResults:
                         match_id=str(result.match_id),
                         signals=len(player.signals),
                     )
-                if result.outcome not in ("finished", "abandoned"):
+                # P5-W31-S02b-2b: a battle (Q-P5-16) is no quiz evidence.
+                if result.outcome not in ("finished", "abandoned") or mode == "battle":
                     continue
                 row = conn.execute(
                     """
@@ -3296,6 +3298,10 @@ class PostgresMatchResults:
                         )
             # P3-W17-S03 (Q-P3-16): a friend challenge moves no rating; its runs are
             # kept at the ratings the players hold.
+            # P5-W31-S02b-2b (Q-P5-16): battles are stored now and rated from W32; they
+            # leave no ghost runs (those replay quiz answers).
+            if mode == "battle":
+                return True
             before = {} if done[6] else self._rate(result, players, replay)
             if result.outcome == "finished":
                 self._keep_runs(result, players, mode, before)

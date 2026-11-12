@@ -473,6 +473,7 @@ export interface GameMatch {
   id: Generated<string>;
   mode: Generated<string>;
   outcome: string | null;
+  problem_slug: string | null;
   rated_at: Timestamp | null;
   replay_rating: number | null;
   replay_rd: number | null;

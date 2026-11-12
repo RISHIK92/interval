@@ -810,3 +810,121 @@ def test_a_match_without_a_result_is_flagged_too(conn: psycopg.Connection) -> No
     result = _with_signals(_result(match_id, "void", _question(conn)), 4)
     assert PostgresMatchResults(conn).record(result)
     assert _flags(conn, match_id) == [("lra", 4, None, None)]
+
+
+def _battle(conn: psycopg.Connection, players: list[str]) -> str:
+    slug = "battle-results"
+    digest = "b" * 64
+    conn.execute(
+        "insert into lld_problem (slug, title, difficulty, statement, interface, "
+        "limits, visible, private_key, content_hash) values (%s, 'A problem', 'easy', "
+        "'# A', '{}', '{}', '[]', %s, %s) on conflict do nothing",
+        (slug, f"lld/problems/{slug}/{digest}.json", digest),
+    )
+    row = conn.execute(
+        "insert into game_match (server_id, mode, problem_slug) "
+        "values (0, 'battle', %s) returning id",
+        (slug,),
+    ).fetchone()
+    assert row is not None
+    for user_id in players:
+        conn.execute(
+            "insert into game_match_player (match_id, user_id) values (%s, %s)",
+            (row[0], user_id),
+        )
+    return str(row[0])
+
+
+def test_a_battle_is_stored_but_neither_rated_nor_kept_as_quiz_evidence(
+    conn: psycopg.Connection,
+) -> None:
+    """P5-W31-S02b-2b (Q-P5-16): a battle's points, best-submission times, abandons
+    and winner are stored; ratings come in W32, and a battle has no quiz answers or
+    ghost runs."""
+    a_user(conn, "lba")
+    a_user(conn, "lbb")
+    match_id = _battle(conn, ["lba", "lbb"])
+    result = MatchResult.model_validate(
+        {
+            "match_id": match_id,
+            "finished_at": "2026-11-13T12:45:00Z",
+            "outcome": "finished",
+            "winner": "lba",
+            "players": [
+                {
+                    "played_as": "lba",
+                    "total": 1000,
+                    "time_ms": 1_920_000,
+                    "abandoned": False,
+                    "answers": [],
+                },
+                {
+                    "played_as": "lbb",
+                    "total": 700,
+                    "time_ms": 600_000,
+                    "abandoned": False,
+                    "answers": [],
+                },
+            ],
+        }
+    )
+    assert PostgresMatchResults(conn).record(result) is True
+    assert conn.execute(
+        "select outcome, winner_id from game_match where id = %s", (match_id,)
+    ).fetchone() == ("finished", "lba")
+    assert conn.execute(
+        "select user_id, total, time_ms, abandoned from game_match_player "
+        "where match_id = %s order by user_id",
+        (match_id,),
+    ).fetchall() == [("lba", 1000, 1_920_000, False), ("lbb", 700, 600_000, False)]
+    for table in ("quiz_attempt", "rating_history", "ghost_run"):
+        assert conn.execute(
+            f"select count(*) from {table} where match_id = %s",
+            (match_id,),
+        ).fetchone() == (0,), table
+
+
+def test_an_abandoned_battle_is_stored_once_and_raises_no_quiz_flag(
+    conn: psycopg.Connection,
+) -> None:
+    """A battle's signals are its own (W31-S04): quiz signals on one flag nothing."""
+    a_user(conn, "lbc")
+    a_user(conn, "lbd")
+    match_id = _battle(conn, ["lbc", "lbd"])
+    signals = [{"kind": "focus", "round": 1, "ms": None}] * 3
+    result = MatchResult.model_validate(
+        {
+            "match_id": match_id,
+            "finished_at": "2026-11-13T12:45:00Z",
+            "outcome": "abandoned",
+            "winner": "lbc",
+            "players": [
+                {
+                    "played_as": "lbc",
+                    "total": 300,
+                    "time_ms": 60_000,
+                    "abandoned": False,
+                    "answers": [],
+                    "signals": signals,
+                },
+                {
+                    "played_as": "lbd",
+                    "total": 0,
+                    "time_ms": 2_700_000,
+                    "abandoned": True,
+                    "answers": [],
+                },
+            ],
+        }
+    )
+    results = PostgresMatchResults(conn)
+    assert results.record(result) is True
+    assert results.record(result) is False
+    assert conn.execute(
+        "select user_id, total, abandoned from game_match_player "
+        "where match_id = %s order by user_id",
+        (match_id,),
+    ).fetchall() == [("lbc", 300, False), ("lbd", 0, True)]
+    assert conn.execute(
+        "select count(*) from fair_play_flag where match_id = %s", (match_id,)
+    ).fetchone() == (0,)

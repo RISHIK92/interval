@@ -1,10 +1,11 @@
-import { randomUUID } from "node:crypto";
 import { GENERATORS, ResultLine, Scenario } from "@interval/lld";
 import { z } from "zod";
+import { log } from "./log";
 import type {
   BattleMatch,
   FileStore,
   MatchHandoff,
+  Matches,
   ProblemStore,
 } from "./ports";
 
@@ -30,7 +31,13 @@ const PrivateLayers = z.object({
 });
 
 export async function startBattle(
-  deps: { store: ProblemStore; files: FileStore; handoff: MatchHandoff },
+  deps: {
+    store: ProblemStore;
+    files: FileStore;
+    matches: Pick<Matches, "createBattle">;
+    handoff: MatchHandoff;
+  },
+  serverId: number,
   slug: string,
   players: string[],
 ): Promise<string> {
@@ -72,8 +79,10 @@ export async function startBattle(
           : [{ name: extended.harnessFile, content: extended.harness }],
     };
   }
+  // The match row first (it names the problem, ADR-0033): tickets and the worker's
+  // record find it by this id.
   const match: BattleMatch = {
-    id: randomUUID(),
+    id: await deps.matches.createBattle(serverId, players, slug),
     players,
     battle: {
       problem: slug,
@@ -87,6 +96,12 @@ export async function startBattle(
       })),
     },
   };
-  await deps.handoff.putBattle(match);
+  try {
+    await deps.handoff.putBattle(match);
+  } catch (error) {
+    // As a quiz match's (live.ts): its server can't play it without the definition.
+    log.error("game: battle not handed over", { matchId: match.id, error });
+    throw error;
+  }
   return match.id;
 }

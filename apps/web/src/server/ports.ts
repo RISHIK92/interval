@@ -760,6 +760,13 @@ export interface Matches {
     userId: string,
     mode: GameMode,
   ): Promise<LiveMatch | null>;
+  // P5-W31-S02b-2b (§6.5): an LLD battle on a loaded problem, for the game server's
+  // battle actor; its id. Its result is stored like any match's; ratings come in W32.
+  createBattle(
+    serverId: number,
+    players: string[],
+    slug: string,
+  ): Promise<string>;
   // The game server that owns the match, and the id the player plays as there (a guest
   // who signed up mid-match keeps the guest's, Q-P3-21), when the player is in it; null
   // otherwise (no such match, or not theirs).

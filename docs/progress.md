@@ -5247,3 +5247,24 @@ The owner said to continue building overnight with recommended answers, switchin
   - the worker storing a battle's result without quiz attempts or ratings.
 
   Until then a finished battle's result can't be recorded. Only the local `pnpm game:battle` makes one.
+
+### 2026-11-13 — P5-W31-S02b-2b (a battle's match row and stored result; Q-P5-16)
+
+- **Migration `20261113020000_battle_match`:** `game_match.mode` also allows `battle`, and a new `problem_slug` references `lld_problem`. A named check (`game_match_battle_problem_check`) requires a problem on battles, and only on them. The down migration was tested locally.
+- **Web:**
+  - `Matches.createBattle` makes the match row and its players. `startBattle` makes the row first, so tickets (`serverFor`) and the worker's record find the battle by its id, then hands the definition over.
+  - A failed handoff is logged and thrown, as a quiz match's is. The row stays unfinished, also as a quiz match's does; no reaper exists for either.
+  - `pnpm game:battle lru-cache <a> <b>` made a battle row with two players and its definition in Valkey under the same id.
+- **Worker `record`:** a battle is stored like any match: finish time, outcome, winner, and each player's points as `total`, best-submission time as `time_ms`, and abandoned.
+  - No quiz attempts or answers, no ratings (Q-P5-16: from W32; `rated_at` stays null, a natural marker for a backfill), no ghost runs.
+  - No quiz fair-play flags: a battle's signals are W31-S04's.
+- **Tests:**
+  - Postgres: the battle row and its players, `serverFor` for a battle, and a missing problem refused by the foreign key.
+  - The builder: the row created, the handoff failure thrown.
+  - The worker: a finished battle stored with no quiz, rating or ghost rows; an abandoned one stored once, with no flag from quiz signals.
+- **Sonnet review:** no blockers. Fixed:
+  - quiz flags on battles would have broken `/admin/fair-play`'s mode parse;
+  - a failed handoff was silent;
+  - the paired check was unnamed;
+  - tests were missing for the abandoned and repeated cases.
+- **W31-S02b is complete:** the battle definition, the judge client and scoring, the actor, the match row and the stored result. W31-S03 (the battle page and Monaco) can build on it.

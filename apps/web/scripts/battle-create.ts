@@ -7,6 +7,7 @@ import { Redis } from "ioredis";
 import { filesEnv } from "../src/env";
 import { startBattle } from "../src/server/battles";
 import { createDb } from "../src/server/adapters/kysely";
+import { kyselyMatches } from "../src/server/adapters/kysely-matches";
 import { kyselyProblemStore } from "../src/server/adapters/kysely-problems";
 import { s3Files } from "../src/server/adapters/s3-files";
 import { valkeyMatchHandoff } from "../src/server/adapters/valkey-match-handoff";
@@ -48,8 +49,11 @@ try {
       {
         store: kyselyProblemStore(db),
         files,
+        matches: kyselyMatches(db),
         handoff: valkeyMatchHandoff(redis),
       },
+      // Game server 0, as game:match: one local server.
+      0,
       slug,
       players,
     ),
