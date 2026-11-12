@@ -5042,3 +5042,25 @@ The owner said to continue building overnight with recommended answers, switchin
 - **In Interval:** `pnpm contracts:velox` writes the Go types beside the Velox packages that use them (`backend/lld`, `backend/judgejob`) and the schemas to `backend/contract/schema`.
 - **Time limits (owner, 2026-11-12):** wall clock for now. CPU time is read from the container's cgroup once the Linux execution hosts exist (EXEC-5). ADR-0041 says so.
 - **Next, S08:** the judge port with a Velox HTTP adapter in `packages/judge`, and the end-to-end flow through Velox's compose stack.
+
+### 2026-11-12 — P5-W30-S07 review fixes (Velox 82db997)
+
+- **The review was late:** a5c8f60 was pushed before its review; the CLAUDE.md order is review first, and it's back to that.
+- **Opus review of a5c8f60, two blockers, both fixed:**
+  - **Job ids:** `POST /judge` queued the client's raw bytes. Go matches JSON keys case-insensitively and the Lua claim script doesn't, so `{"ID":…}` could make a job get dropped, or rerun forever. It now queues the job re-encoded from what was decoded.
+  - **Who may submit:** `/judge` was open to any self-service API key, whose scopes the user picks, with any priority and no queue bound. Now only API key IDs the operator lists in `JUDGE_API_KEY_IDS` get in (closed when empty), and each queue is capped (503).
+- **Should-fix, all fixed:**
+  - **Job ownership:** a job belongs to the API key that submitted it. Another key gets 409 for its id and 404 for its result, and an owner's resubmit isn't queued again.
+  - **API log:** `/judge` calls go to Velox's API log, refusals included.
+  - **Contract test:** it walks nested objects and lists.
+  - **Queue tests:** they fail rather than skip when `VALKEY_URL` is set, and CI's Redis has a health check.
+  - **`exec serve`:** it has its own small Redis pool.
+- **Sonnet review of the fixes:** no blockers, five should-fix, all fixed. The owner key and the result expired on different clocks, which reopened the ownership fix: the owner TTL is now 24 h and `Finish` sets it to the result's. Also fixed:
+  - the SetNX/Get race;
+  - an honest memory ceiling for the queue cap;
+  - refusals now logged;
+  - duplicate resubmits.
+
+  Not fixed: a test of `logged`, because Velox's log service needs a database; the allowlist gate has one.
+- **Reviewer models (owner, 2026-11-12):** reviews run on Sonnet 5.5 from here. The owner's "never run Sonnet" rule is about OpenRouter (the app's models). The two reviews above were the first comparison: Opus found the deeper blockers (a JSON case-folding quirk, a multi-tenant hole), and Sonnet found a real follow-on bug in the fixes.
+- **W30-S08 is folded into the first W31 slice that submits code:** a client with no caller would be a dead export (ARCH-1).

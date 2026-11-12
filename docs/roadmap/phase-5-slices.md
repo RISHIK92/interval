@@ -151,10 +151,10 @@ Already in place, so not sliced again:
 
 - Built 2026-11-12 (Velox a5c8f60).
 
-### P5-W30-S08 Interval's Velox adapter
+### P5-W30-S08 Interval's Velox adapter (folded into W31)
 
 - IDs: EXEC-2, LOAD-3; ADR-0041 (PROPOSED)
-- Goal: `packages/judge` talks to Velox over HTTP (`VELOX_URL`, `VELOX_API_KEY`). The lld integration tests run against a local Velox.
+- Folded (2026-11-12): a client with no caller would be a dead export (ARCH-1). The first W31 slice that submits code builds Interval's judge port and its Velox HTTP adapter (`VELOX_URL`, `VELOX_API_KEY`, with an in-memory fake), in whichever service submits: the game server (Go) or the web app (TS), as Q-P5-09 settles. Local problem tooling already runs through Velox's `exec` binary (`EXEC_BIN`).
 
 ## Week 31: the battle
 
