@@ -34,9 +34,9 @@ func python(a Attack) Attack {
 }
 
 // The names a run may see in its environment: the image's own ENV, Docker's defaults,
-// and LC_CTYPE, which Python sets itself when it coerces the C locale (PEP 538). Never
-// the host's.
-var pythonEnv = `{"PATH", "HOSTNAME", "HOME", "LANG", "LC_CTYPE", "GPG_KEY", "PYTHON_VERSION", "PYTHON_SHA256"}`
+// PWD and SHLVL from the engine's wrapper shell, and LC_CTYPE, which Python sets itself
+// when it coerces the C locale (PEP 538). Never the host's.
+var pythonEnv = `{"PATH", "HOSTNAME", "HOME", "PWD", "SHLVL", "LANG", "LC_CTYPE", "GPG_KEY", "PYTHON_VERSION", "PYTHON_SHA256"}`
 
 func Python(l engine.Limits) []Attack {
 	return []Attack{

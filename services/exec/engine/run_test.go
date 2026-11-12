@@ -116,3 +116,82 @@ func TestACancelledRunStopsPromptlyAndLeavesNothing(t *testing.T) {
 	}
 	leftovers(t, r)
 }
+
+// P5-W28-S03 (EXEC-2, C-04): every launch language compiles once and runs; a compile
+// error is its own verdict, with the compiler's words in stderr.
+func TestEveryLanguage(t *testing.T) {
+	r := runner(t)
+	type program struct{ hello, echo, broken, loop string }
+	programs := map[string]program{
+		"python": {`print("hello")`, `import sys; print(sys.stdin.read(), end="")`, "", `while True: pass`},
+		"javascript": {`console.log("hello")`,
+			`process.stdout.write(require("fs").readFileSync(0, "utf8"))`, "", `while (true) {}`},
+		"typescript": {`const s: string = "hello"; console.log(s)`,
+			`import { readFileSync } from "node:fs"; const s: string = readFileSync(0, "utf8"); process.stdout.write(s)`,
+			"", `while (true) {}`},
+		"java": {
+			`public class Main { public static void main(String[] a) { System.out.println("hello"); } }`,
+			`public class Main { public static void main(String[] a) throws Exception { System.out.print(new String(System.in.readAllBytes())); } }`,
+			`public class Main { public static void main(String[] a) { int x = "no"; } }`,
+			`public class Main { public static void main(String[] a) { while (true) {} } }`},
+		"cpp": {
+			`#include <iostream>
+int main() { std::cout << "hello\n"; }`,
+			`#include <iostream>
+int main() { std::cout << std::cin.rdbuf(); }`,
+			`int main() { return nope; }`,
+			`int main() { volatile int x = 0; while (true) { x++; } }`},
+		"go": {
+			`package main
+import "fmt"
+func main() { fmt.Println("hello") }`,
+			`package main
+import ("io"; "os")
+func main() { io.Copy(os.Stdout, os.Stdin) }`,
+			`package main
+func main() { var x int = "no" }`,
+			`package main
+func main() { for {} }`},
+	}
+	for _, name := range Names() {
+		p := programs[name]
+		lang, _ := Lookup(name)
+		job := func(code, stdin string) Job {
+			return Job{Language: name, Files: map[string]string{lang.Main: code}, Stdin: stdin, Limits: small}
+		}
+		t.Run(name, func(t *testing.T) {
+			got, err := r.Run(context.Background(), job(p.hello, ""))
+			if err != nil || got.Verdict != OK || got.Stdout != "hello\n" {
+				t.Fatalf("hello: %v %+v", err, got)
+			}
+			got, err = r.Run(context.Background(), job(p.echo, "echo me"))
+			if err != nil || got.Verdict != OK || got.Stdout != "echo me" {
+				t.Fatalf("echo: %v %+v", err, got)
+			}
+			if p.broken != "" {
+				got, err = r.Run(context.Background(), job(p.broken, ""))
+				if err != nil || got.Verdict != CompileError || got.Stderr == "" {
+					t.Fatalf("compile error: %v %+v", err, got)
+				}
+			}
+			got, err = r.Run(context.Background(), job(p.loop, ""))
+			if err != nil || got.Verdict != TimeLimit {
+				t.Fatalf("loop: %v %+v", err, got)
+			}
+			leftovers(t, r)
+		})
+	}
+}
+
+// A runtime with its own heap (the JVM, Node) stops at the job's memory, and that is a
+// memory limit, not the program's failure.
+func TestARuntimesOwnHeapLimitIsAMemoryLimit(t *testing.T) {
+	r := runner(t)
+	got, err := r.Run(context.Background(), Job{Language: "java", Limits: small, Files: map[string]string{"Main.java": `
+import java.util.*;
+public class Main { public static void main(String[] a) { List<byte[]> h = new ArrayList<>(); while (true) h.add(new byte[1 << 20]); } }`}})
+	if err != nil || got.Verdict != MemoryLimit {
+		t.Fatalf("%v %+v", err, got.Verdict)
+	}
+	leftovers(t, r)
+}

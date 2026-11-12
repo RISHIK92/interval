@@ -45,6 +45,7 @@ func TestEveryIsolationRuleIsOnTheContainer(t *testing.T) {
 	has(t, args, "--label", "interval.exec=1")
 	has(t, args, "--name", "interval-exec-abc")
 	has(t, args, "--log-driver", "none")
+	has(t, args, "--entrypoint", "")
 	has(t, args, "--shm-size", "16m")
 	has(t, args, "--ulimit", "nofile=256:256")
 	has(t, args, "--ulimit", "fsize=16777216:16777216")
@@ -138,7 +139,8 @@ func TestTheFirstLimitHitIsTheVerdict(t *testing.T) {
 		want Verdict
 	}{
 		{outcome{output: true, timedOut: true, oom: true, exit: 137}, OutputLimit},
-		{outcome{timedOut: true, oom: true, exit: 137}, TimeLimit},
+		{outcome{timedOut: true, notCompiled: true, oom: true, exit: 137}, TimeLimit},
+		{outcome{notCompiled: true, oom: true, exit: 1}, CompileError},
 		{outcome{oom: true, exit: 137}, MemoryLimit},
 		{outcome{exit: 1}, RuntimeError},
 		{outcome{}, OK},
@@ -147,5 +149,34 @@ func TestTheFirstLimitHitIsTheVerdict(t *testing.T) {
 		if got := verdict(c.o); got != c.want {
 			t.Errorf("%+v: %s, want %s", c.o, got, c.want)
 		}
+	}
+}
+
+func TestEveryLanguageIsListedAndCompiledOnesSayReady(t *testing.T) {
+	if len(Names()) != len(languages) {
+		t.Fatalf("Names has %d, the table %d", len(Names()), len(languages))
+	}
+	for _, name := range Names() {
+		l, ok := Lookup(name)
+		if !ok {
+			t.Fatalf("%s isn't in the table", name)
+		}
+		script := l.Cmd(200)[2]
+		if l.Compile != "" && !strings.Contains(script, "printf '"+readyShell+"'") {
+			t.Errorf("%s: no READY: %s", name, script)
+		}
+		if l.Compile != "" && !strings.Contains(script, "</dev/null") {
+			t.Errorf("%s: the compiler can read the job's stdin", name)
+		}
+		if strings.Contains(script, "%!") || strings.Contains(script, "%d") {
+			t.Errorf("%s: unformatted: %s", name, script)
+		}
+	}
+	if ready != "\x1eREADY\n" || readyShell != `\036READY\n` {
+		t.Error("the marker's two spellings differ")
+	}
+	java, _ := Lookup("java")
+	if !strings.Contains(java.Cmd(200)[2], "-Xmx200m") {
+		t.Error("the JVM's heap isn't the job's memory")
 	}
 }

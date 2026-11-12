@@ -4560,3 +4560,45 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Not done:**
   - **For W28-S04:** the CI job (non-required, Q-P5-03), and an allowance for engines whose pid 1 is an init process (Judge0).
   - **Not decided:** whether `/proc/self/mountinfo` revealing the host's run-dir path matters. It discloses information but isn't an escape.
+
+### 2026-11-12 — P5-W28-S03 (five languages and compile-once; EXEC-2, C-04; Q-P5-04)
+
+- **Languages** (`engine/languages.go`), each pinned by digest and at least two weeks old:
+
+  | Language   | Image                                                                     | Notes                                                        |
+  | ---------- | ------------------------------------------------------------------------- | ------------------------------------------------------------ |
+  | python     | the worker's base                                                         |                                                              |
+  | javascript | `node:22.22.3-bookworm-slim` (the web's base)                             |                                                              |
+  | typescript | the same image                                                            | Node's type stripping                                        |
+  | java       | `eclipse-temurin:21.0.12.1_1-jdk`, 2026-10-26                             | `javac`, `-Xmx` set to the job's memory                      |
+  | cpp        | `gcc:14.3.0`, 2026-06-24                                                  | `g++ -O2 -std=c++20`                                         |
+  | go         | `interval-exec-go:1`, on `golang:1.27.3-alpine` (the game server's pin)    | a build cache warmed for common packages, copied into `/tmp` |
+
+  A cold `go build` took 40 s in the sandbox; with the cache it takes 2–3 s. `pnpm exec:images` builds the Go image, and `pnpm redteam` builds it first. The changes from Q-P5-04 are noted there for the owner.
+- **Compile once:** one container per submission runs `sh -c 'compile </dev/null >&2 || exit 1; printf READY; exec run'`.
+  - **Time:** the compile has its own budget (the language's overhead seconds), and the program's limit and `TimeMs` start at READY.
+  - **Verdicts:** no READY means `compile_error`. The marker is stripped only for compiled languages.
+  - **Limits:** a toolchain's memory and tmp overhead are added to the job's limits, and the combined values are validated too. **Shortcut, noted in code:** the memory overhead stays available to the program after compiling. Per-problem limits come from references run the same way (EXEC-2).
+  - **Heaps:** the JVM's and Node's heaps are sized to the job. Their own out-of-memory errors are scored `memory_limit`.
+- **Images' entrypoints are disabled** (`--entrypoint ""`): Temurin's and Node's ran before the submission, which the red-team probes caught.
+- **Red team in every language** (`redteam/native.go`):
+  - a native probe each for JS, TS, Java, C++ and Go, covering the image's own ENV allowlist (plus PWD and SHLVL from the wrapper shell), all capability sets 0, NoNewPrivs, Seccomp, EROFS-only writes and interfaces;
+  - an unreadable `/proc/self/status`, or a missing key, counts as an escape;
+  - a memory hog in JS, TS, C++ and Go. Java has none: its heap is the job's, so a heap hog never reaches the container's limit.
+  - **Result:** the whole suite (23 attacks) is contained, and the weak sandbox is caught by all 9 probes.
+- **Tests:** per language, hello, stdin, a compile error and a loop giving `time_limit`; a Java heap hog giving `memory_limit` (its 289 ms is the program's own time); unit tests for the language table, the marker, `</dev/null` and `-Xmx`.
+- **Reviewer fixes:**
+  - the overhead had been charged to the program's time;
+  - combined limits weren't validated;
+  - the JVM heap was a quarter of the container, so `runtime_error` was given where `memory_limit` was right;
+  - an unsound Java hog;
+  - Go and C++ probes that could pass without reading anything;
+  - the marker was stripped from interpreted output;
+  - a dead `Custom` field;
+  - the compiler could read stdin;
+  - the marker was spelled in two places.
+  - The suite also caught a mistake of mine: a hog whose source no longer compiled.
+- **Not done:**
+  - the local `interval-exec-go:1` tag isn't a digest (it's built locally);
+  - pids get no toolchain overhead: javac and `go build` fit in 32 today;
+  - a compiler that floods stderr is scored `output_limit`, not `compile_error`.

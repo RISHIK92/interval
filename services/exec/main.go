@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"strings"
 
 	"interval/services/exec/engine"
 )
@@ -30,7 +31,7 @@ func run(args []string) error {
 		return fmt.Errorf("usage: exec run --language L --file F < stdin")
 	}
 	flags := flag.NewFlagSet("run", flag.ContinueOnError)
-	language := flags.String("language", "python", "the submission's language")
+	language := flags.String("language", "python", "the submission's language: "+strings.Join(engine.Names(), ", "))
 	file := flags.String("file", "", "the source file")
 	if err := flags.Parse(args[1:]); err != nil {
 		return err

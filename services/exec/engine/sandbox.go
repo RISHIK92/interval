@@ -79,6 +79,9 @@ func (s Spec) createArgs(runtime string) []string {
 		"--workdir", "/code",
 		"-v", s.RunDir + ":/code:ro",
 		"--label", "interval.exec=1",
+		// An image's own entrypoint (Temurin's and Node's have one) never runs: only
+		// the command given here does.
+		"--entrypoint", "",
 	}
 	if runtime != "" {
 		args = append(args, "--runtime", runtime)

@@ -32,7 +32,7 @@ func TestExecEngineContainsEveryAttack(t *testing.T) {
 	// In the engine's own environment: it must never reach a run.
 	t.Setenv("INTERVAL_REDTEAM_CANARY", canary)
 	e := NewExecEngine()
-	for _, a := range Python(Limits) {
+	for _, a := range append(Python(Limits), Native(Limits.MemoryMB)...) {
 		t.Run(a.Name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 			defer cancel()
@@ -85,20 +85,21 @@ func (w weakEngine) Run(ctx context.Context, language, source, stdin string) (Ou
 	if err := os.WriteFile(filepath.Join(run, lang.Main), []byte(source), 0o644); err != nil {
 		return Outcome{}, err
 	}
-	args := append([]string{"run", "--rm", "-i", "--user", "65534:65534", "-v", run + ":/code:ro", lang.Image}, lang.Cmd...)
+	args := append([]string{"run", "--rm", "-i", "--user", "65534:65534", "-v", run + ":/code:ro", lang.Image}, lang.Cmd(Limits.MemoryMB)...)
 	cmd := exec.CommandContext(ctx, "docker", args...)
 	cmd.Stdin = strings.NewReader(stdin)
 	out, err := cmd.Output()
 	if err != nil {
 		return Outcome{}, err
 	}
-	return Outcome{Verdict: ok, Stdout: string(out)}, nil
+	// A compiled language's READY line, as the engine strips it.
+	return Outcome{Verdict: ok, Stdout: strings.TrimPrefix(string(out), "\x1eREADY\n")}, nil
 }
 
 func TestTheAttacksCatchAWeakSandbox(t *testing.T) {
 	integration(t)
 	w := weakEngine{dir: t.TempDir()}
-	for _, a := range Python(Limits) {
+	for _, a := range append(Python(Limits), Native(Limits.MemoryMB)...) {
 		if !a.CatchesWeak {
 			continue
 		}

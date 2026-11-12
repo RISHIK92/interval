@@ -29,6 +29,7 @@ const (
 	TimeLimit    Verdict = "time_limit"
 	MemoryLimit  Verdict = "memory_limit"
 	OutputLimit  Verdict = "output_limit"
+	CompileError Verdict = "compile_error"
 )
 
 type Job struct {
@@ -78,11 +79,23 @@ type capped struct {
 	max  int
 	over func()
 	hit  bool
+	// Called once, when the output starts with the READY marker.
+	ready func()
 }
 
 func (c *capped) Write(p []byte) (int, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.ready != nil {
+		defer func() {
+			if c.buf.Len() >= len(ready) {
+				if bytes.HasPrefix(c.buf.Bytes(), []byte(ready)) {
+					c.ready()
+				}
+				c.ready = nil
+			}
+		}()
+	}
 	room := c.max - c.buf.Len()
 	if len(p) > room {
 		c.buf.Write(p[:max(room, 0)])
@@ -156,14 +169,20 @@ func (r *Runner) Run(ctx context.Context, job Job) (Result, error) {
 			fmt.Fprintln(os.Stderr, "exec: container not removed:", name, err)
 		}
 	}()
-	spec := Spec{Name: name, Image: lang.Image, Cmd: lang.Cmd, RunDir: dir, Limits: job.Limits}
+	limits := lang.with(job.Limits)
+	// What Docker gets, toolchain included, is held to the same bounds.
+	if err := limits.validate(); err != nil {
+		return Result{}, err
+	}
+	spec := Spec{Name: name, Image: lang.Image, Cmd: lang.Cmd(job.Limits.MemoryMB), RunDir: dir, Limits: limits}
 	if _, err := r.docker(spec.createArgs(r.Runtime)...); err != nil {
 		return Result{}, err
 	}
-	return r.start(ctx, name, job)
+	return r.start(ctx, name, job, limits, lang)
 }
 
-func (r *Runner) start(ctx context.Context, name string, job Job) (Result, error) {
+func (r *Runner) start(ctx context.Context, name string, job Job, limits Limits, lang Language) (Result, error) {
+	compiles := lang.Compile != ""
 	cmd := exec.Command(r.Docker, "start", "-ai", name)
 	var once sync.Once
 	var timedOut atomic.Bool
@@ -179,9 +198,18 @@ func (r *Runner) start(ctx context.Context, name string, job Job) (Result, error
 			}
 		})
 	}
-	limit := job.Limits.OutputKB * 1024
+	limit := limits.OutputKB * 1024
 	stdout := &capped{max: limit, over: kill}
 	stderr := &capped{max: limit, over: kill}
+	var readyAt time.Time
+	readyCh := make(chan struct{})
+	if compiles {
+		// The program's clock starts here, when it has compiled.
+		stdout.ready = func() {
+			readyAt = time.Now()
+			close(readyCh)
+		}
+	}
 	cmd.Stdin = strings.NewReader(job.Stdin)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
@@ -189,16 +217,22 @@ func (r *Runner) start(ctx context.Context, name string, job Job) (Result, error
 		return Result{}, err
 	}
 	limitTime := time.Duration(job.Limits.Seconds) * time.Second
+	compileTime := time.Duration(lang.Overhead.Seconds) * time.Second
 	expire := func() {
 		timedOut.Store(true)
 		kill()
 	}
 	// The backstop, if the start time can't be read.
-	timer := time.AfterFunc(limitTime+startAllowance, expire)
+	timer := time.AfterFunc(compileTime+limitTime+startAllowance, expire)
 	done := make(chan struct{})
-	go r.deadline(name, limitTime, expire, done)
+	var compiled <-chan struct{}
+	if compiles {
+		compiled = readyCh
+	}
+	go r.deadline(name, compileTime, compiled, limitTime, expire, done)
 	stop := context.AfterFunc(ctx, kill)
 	waitErr := cmd.Wait()
+	finished := time.Now()
 	close(done)
 	timer.Stop()
 	stop()
@@ -230,23 +264,38 @@ func (r *Runner) start(ctx context.Context, name string, job Job) (Result, error
 		return Result{}, fmt.Errorf("container times: %w", err)
 	}
 	ran := ended.Sub(began)
+	out := stdout.buf.String()
+	didCompile := true
+	if compiles {
+		// A compiled language prints READY between its compiler and the program; the
+		// program's time is from there, on this host's clock.
+		didCompile = !readyAt.IsZero()
+		out = strings.TrimPrefix(out, ready)
+		ran = 0
+		if didCompile {
+			ran = finished.Sub(readyAt)
+		}
+	}
+	errs := stderr.buf.String()
 	return Result{
 		Verdict: verdict(outcome{
-			output:   stdout.hit || stderr.hit,
-			timedOut: timedOut.Load() || ran > limitTime,
-			oom:      parts[1] == "true",
-			exit:     exit,
+			output:      stdout.hit || stderr.hit,
+			timedOut:    timedOut.Load() || ran > limitTime,
+			notCompiled: !didCompile,
+			oom:         parts[1] == "true" || (lang.OutOfMemory != "" && strings.Contains(errs, lang.OutOfMemory)),
+			exit:        exit,
 		}),
 		ExitCode: exit,
-		Stdout:   stdout.buf.String(),
-		Stderr:   stderr.buf.String(),
+		Stdout:   out,
+		Stderr:   errs,
 		TimeMs:   ran.Milliseconds(),
 	}, nil
 }
 
 // Watches for the container to start, then kills it when its own time is up: the
-// limit runs from the program's start, not from when it was asked for.
-func (r *Runner) deadline(name string, limit time.Duration, expire func(), done <-chan struct{}) {
+// limit runs from the program's start, not from when it was asked for. A compiled
+// language first gets its compile budget; its program's limit runs from READY.
+func (r *Runner) deadline(name string, compileLimit time.Duration, compiled <-chan struct{}, limit time.Duration, expire func(), done <-chan struct{}) {
 	poll := time.NewTicker(50 * time.Millisecond)
 	defer poll.Stop()
 	for {
@@ -271,9 +320,21 @@ func (r *Runner) deadline(name string, limit time.Duration, expire func(), done 
 		if err != nil {
 			return
 		}
+		from := began
+		if compiled != nil {
+			select {
+			case <-done:
+				return
+			case <-compiled:
+				from = time.Now()
+			case <-time.After(time.Until(began.Add(compileLimit))):
+				expire()
+				return
+			}
+		}
 		select {
 		case <-done:
-		case <-time.After(time.Until(began.Add(limit))):
+		case <-time.After(time.Until(from.Add(limit))):
 			expire()
 		}
 		return
@@ -281,18 +342,20 @@ func (r *Runner) deadline(name string, limit time.Duration, expire func(), done 
 }
 
 type outcome struct {
-	output, timedOut, oom bool
-	exit                  int
+	output, timedOut, notCompiled, oom bool
+	exit                               int
 }
 
-// One verdict, the first limit that applies: too much output, then too long, then too
-// much memory, then the program's own failure.
+// One verdict, the first limit that applies: too much output, then too long, then code
+// that never compiled, then too much memory, then the program's own failure.
 func verdict(o outcome) Verdict {
 	switch {
 	case o.output:
 		return OutputLimit
 	case o.timedOut:
 		return TimeLimit
+	case o.notCompiled:
+		return CompileError
 	case o.oom:
 		return MemoryLimit
 	case o.exit != 0:

@@ -70,6 +70,11 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - each with nothing added but a non-root user;
   - each at least two weeks old (the owner's rule).
 - **Answer (overnight, recommended):** the suggested default.
+- **Built differently in P5-W28-S03, for the owner to confirm:**
+  - Java is `eclipse-temurin:21.0.12.1_1-jdk` and C++ is `gcc:14.3.0`. The current `21-jdk` and `14` builds were under two weeks old.
+  - Go is `golang:1.27.3-alpine` (the game server's pin), not 1.25.
+  - Go adds one thing beyond a user: a build cache warmed for common packages (`services/exec/images/go`). A cold `go build` in the sandbox took 40 s; with the cache it takes 2–3 s.
+  - Each image's own entrypoint is disabled (`--entrypoint ""`).
 
 ### Q-P5-05 Warm pools (P1 for W28)
 
