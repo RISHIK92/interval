@@ -8,3 +8,5 @@ export { Call, checkScenario, ResultLine, Scenario } from "./scenario";
 export { fits, formatType, parseType, type TypeAst } from "./types";
 // The Go emitter, for other packages' contracts (packages/judge, ADR-0040).
 export { goTypes } from "./go";
+// The harness generators, for the web app's battle definitions (P5-W31-S02b).
+export { GENERATORS } from "./generate/index";

@@ -5159,3 +5159,41 @@ The owner said to continue building overnight with recommended answers, switchin
 
   Its one "blocker", a Java long overflow in `around` with a radius near `Long.MAX_VALUE`, can't happen: the contract caps ints at ±2^53. Not changed.
 - **For the owner:** review the six extensions' wording and difficulty with the problems, before launch.
+
+### 2026-11-13 — P5-W31-S02b-1 (the battle definition, the judge client and scoring; §6.5, Q-P5-15, ADR-0041)
+
+- **W31-S02b is split in two:**
+  - **This slice:** what a battle is made of, and how it's judged and scored.
+  - **S02b-2:** the battle actor (the clock and reveal, Run and Submit with cooldowns, verdicts, snapshots, reconnects, abandons and the result).
+- **Go judge client (`services/game/judge`):**
+  - It posts a `JudgeJob` to Velox's `POST /judge` with `Bearer VELOX_API_KEY`, then polls `GET /judge/{id}` until the result is in or the context ends.
+  - The result is held to the contract, and to the job's own id.
+  - Its types are generated from Interval's zod contract into the game server, with a stale check. `packages/judge/src/go.ts` holds the one `goTypes` config that both the game server and `contracts:velox` use; Velox's copy is byte-for-byte unchanged.
+  - `VELOX_URL` and `VELOX_API_KEY` are added in S02b-2, where the actor first uses the client.
+- **The battle definition:**
+  - **What's in it:** `matchDef.Battle` with mode `"battle"`: the problem, limits and checks; per language, the solution file and harnesses for the base and the extended interface; and every scenario with its stdin and expected results.
+  - **Who builds it:** the web app (`apps/web/src/server/battles.ts`, `startBattle`) builds it from the loaded row and the private bucket file, which is zod-parsed at the boundary. It hands it over through Valkey (`putBattle`).
+  - **Where it stays:** like quiz keys, in Valkey and the game server (LLDQ-4).
+  - **Validation:** `parseMatch` checks layers, results, harnesses per language, and that a battle has no quiz rounds.
+  - **Until S02b-2:** the registry refuses battles rather than playing one as a quiz with no rounds.
+  - **The wire format:** pinned by `services/game/testdata/battle.json`, which both the TS handoff test and the Go parser test read.
+- **Players:** one player is a battle too. §6.6 has a casual player with no match continue solo, so the rule is at least one distinct player, not two.
+- **Scoring (Go):**
+  - **Points:** `score()` gives 0–1000, with each layer's weight split evenly across its scenarios. A layer with no scenarios drops out, and the rest are scaled to 1000.
+  - **Before the reveal:** a submission scores 0 on the extension, so at most 700.
+  - **Best counts:** `bestSubmission.improvedBy` keeps the best, and an equal score keeps the earlier time. The existing `winner()` (higher total, then lower time) decides.
+- **`pnpm game:battle <slug> <userId…>`:** a local dev script, like `game:match`. A real `lru-cache` battle came to about 110 KB in Valkey: all six languages, 17 scenarios, and extension harnesses only where they belong.
+- **Checks:**
+  - `pnpm check`: two runs each had one environmental failure under a load average of about 12, a Postgres deadlock between suites and the infra synth hook timeout. Every suite passed in a run, and both pass alone.
+  - **For the owner:** the shared local Postgres and OrbStack load make full runs flaky. CI hasn't shown it.
+- **Sonnet review:** no blockers. Fixed:
+  - **The client:**
+    - a single failed poll (5xx, network) lost an accepted job; it now retries 3 in a row;
+    - no per-request timeout (now 10 s);
+    - a zero `Poll` spun hot (now defaults to 250 ms);
+    - an oversized answer was truncated silently (now an explicit error).
+  - **Validation:** gaps that would only fail at a player's first submit. `validate()` now builds every judge job a submission would send (in each language, with a stand-in solution) and holds each to the contract: the language enum, files, limits, checks and every result line.
+  - **Job size:** a problem's scenarios can exceed a job's 100 runs. `jobs()` splits them, with the base layers through the base harness and the extension through the extended one, and no run returns its output. The S02b-2 actor uses it.
+  - **The web builder:** it asserts the extension keeps the solution file name (Java's is the class), and names the problem when its bucket file is unreadable.
+  - **Postgres `get`:** it parses its JSON columns with lld's contracts instead of casting.
+- **Kept as is:** a pre-reveal submission still caps at 700. Dropping the extension's 30% before the reveal would let a perfect base-only submission be unbeatable; the code's comment says so, and a test pins it.

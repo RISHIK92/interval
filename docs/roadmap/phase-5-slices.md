@@ -170,6 +170,9 @@ Already in place, so not sliced again:
 - IDs: LOAD-2, MATCH-6
 - Goal: a battle match kind in the game server: rounds, the timed extension round, the clock, snapshots, reconnect grace, abandons.
 - Note (ADR-0041 PROPOSED): code goes to Velox's `POST /judge`, not the Valkey queue of Q-P5-09's answer, which predates it. This slice, or W31-S03, builds Interval's judge port and Velox adapter (the folded S08).
+- Split (2026-11-13):
+  - **S02b-1, built 2026-11-13:** the battle definition (web to game server), the Go Velox client, and scoring.
+  - **S02b-2:** the battle actor (the clock and reveal, Run and Submit with cooldowns, verdicts, snapshots, reconnects, abandons and the result).
 
 ### P5-W31-S02a Extension rounds in the problem format
 

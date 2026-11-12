@@ -6,7 +6,7 @@ import type { GameMode, LiveMatch, MatchHandoff, Matches } from "./ports";
 // calls this.
 export async function startLiveMatch(
   matches: Matches,
-  handoff: MatchHandoff,
+  handoff: Pick<MatchHandoff, "put">,
   players: string[],
   mode: GameMode,
   options?: { unrated: boolean }, // a friend challenge (P3-W17-S03)
@@ -31,7 +31,7 @@ export async function startLiveMatch(
 // only when even a bot can't be made (the bank is short).
 export async function startReplayMatch(
   matches: Matches,
-  handoff: MatchHandoff,
+  handoff: Pick<MatchHandoff, "put">,
   userId: string,
   mode: GameMode,
 ): Promise<LiveMatch | null> {

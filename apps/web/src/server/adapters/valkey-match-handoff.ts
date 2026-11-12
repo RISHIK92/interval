@@ -20,5 +20,15 @@ export function valkeyMatchHandoff(redis: Redis): MatchHandoff {
       });
       await redis.set(`game:match:${match.id}`, body, "EX", HANDOFF_SECONDS);
     },
+    // P5-W31-S02b: a battle (mode "battle", no quiz rounds; services/game/battle.go).
+    putBattle: async (match) => {
+      const body = JSON.stringify({
+        players: match.players,
+        mode: "battle",
+        rounds: [],
+        battle: match.battle,
+      });
+      await redis.set(`game:match:${match.id}`, body, "EX", HANDOFF_SECONDS);
+    },
   };
 }

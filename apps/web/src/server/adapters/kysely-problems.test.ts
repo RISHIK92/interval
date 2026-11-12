@@ -33,7 +33,11 @@ const problem = (slug: string, h: string): LoadedProblem => ({
   title: "A problem",
   difficulty: "easy",
   statement: "# A problem",
-  interface: { class: "Box", constructor: { params: [] }, methods: [] },
+  interface: {
+    class: "Box",
+    constructor: { params: [] },
+    methods: [{ name: "size", params: [], returns: "int" }],
+  },
   checks: [],
   limits: { seconds: 5, memoryMB: 128 },
   visible: [
@@ -95,7 +99,11 @@ test("stores an extension's statement and interface, and clears both", async () 
       ...problem(slug, hash("a")),
       extension: {
         statement: "# More",
-        interface: { class: "Box", constructor: { params: [] }, methods: [] },
+        interface: {
+          class: "Box",
+          constructor: { params: [] },
+          methods: [{ name: "size", params: [], returns: "int" }],
+        },
       },
     };
     await store.save(extended);
@@ -114,5 +122,29 @@ test("stores an extension's statement and interface, and clears both", async () 
       extension_statement: null,
       extension_interface: null,
     });
+  });
+});
+
+// P5-W31-S02b: a live problem as saved, for a battle's definition; none once retired.
+test("gets a live problem as it was saved", async () => {
+  await inRollback(async (trx) => {
+    const store = kyselyProblemStore(trx);
+    const slug = `p-${randomUUID().slice(0, 8)}`;
+    const saved = {
+      ...problem(slug, hash("a")),
+      extension: {
+        statement: "# More",
+        interface: {
+          class: "Box",
+          constructor: { params: [] },
+          methods: [{ name: "size", params: [], returns: "int" }],
+        },
+      },
+    };
+    await store.save(saved);
+    expect(await store.get(slug)).toEqual(saved);
+    expect(await store.get("no-such-problem")).toBeNull();
+    await store.retire([slug]);
+    expect(await store.get(slug)).toBeNull();
   });
 });

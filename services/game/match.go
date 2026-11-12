@@ -46,6 +46,8 @@ type matchDef struct {
 	Mode    string    `json:"mode"` // sprintMode, or rounds ("fastest_finger" or none)
 	Rounds  []round   `json:"rounds"`
 	Ghost   *ghostDef `json:"ghost,omitempty"` // P3-W17-S01: the other seat replays a run
+	// P5-W31-S02b: an LLD battle (mode "battle"), in place of rounds.
+	Battle *battleDef `json:"battle,omitempty"`
 }
 
 // P3-W17-S01 (BOT-1, BOT-3): a recorded run replayed as a player. It is one of

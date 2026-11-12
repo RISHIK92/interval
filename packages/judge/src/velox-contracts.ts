@@ -8,6 +8,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Check, goTypes, Interface, ResultLine, Scenario } from "@interval/lld";
 import { z } from "zod";
+import { judgeGoTypes } from "./go";
 import { JudgeJob, JudgeResult } from "./job";
 
 const velox =
@@ -23,20 +24,7 @@ const files: Record<string, string> = {
     { Scenario, ResultLine, Check },
     { calls: "Call", concurrent: "Concurrent", "Concurrent.threads": "Call" },
   ),
-  "judgejob/types.go": goTypes(
-    "judge",
-    { JudgeJob, JudgeResult },
-    {
-      files: "File",
-      limits: "Limits",
-      "JudgeJob.runs": "Run",
-      "JudgeResult.runs": "RunResult",
-      expected: "ResultLine",
-      checks: "Check",
-      report: "Report",
-      firstMismatch: "Mismatch",
-    },
-  ),
+  "judgejob/types.go": judgeGoTypes("judge", "pnpm contracts:velox"),
 };
 // The schemas from the same zod as the Go, never the committed copies, which may be stale.
 const schemas = {

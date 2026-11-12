@@ -903,7 +903,28 @@ export interface PlayerRatings {
 // which never reads Postgres (ADR-0033).
 export interface MatchHandoff {
   put(match: LiveMatch): Promise<void>;
+  // P5-W31-S02b: an LLD battle, for the game server's battle actor.
+  putBattle(match: BattleMatch): Promise<void>;
 }
+
+// P5-W31-S02b (§6.5, Q-P5-15; LLDQ-4): an LLD battle as handed to the game server: the
+// harnesses per language, and every scenario with its expected results. It stays in
+// Valkey and the game server; no client ever receives it.
+export type BattleFile = { name: string; content: string };
+export type BattleMatch = {
+  id: string;
+  players: string[];
+  battle: {
+    problem: string;
+    limits: Problem["limits"];
+    checks: NonNullable<Problem["checks"]>;
+    languages: Record<
+      string,
+      { solution: string; base: BattleFile[]; extension: BattleFile[] }
+    >;
+    scenarios: { layer: string; stdin: string; expected: ResultLine[] }[];
+  };
+};
 
 // P3-W14-S05 (§6.7, Q-P3-11; owner, 2026-11-02): every account's username, chosen once
 // and never changed, shown on boards in place of its name. `username` is checked by
@@ -1942,6 +1963,8 @@ export type LoadedProblem = Pick<
 export interface ProblemStore {
   // The live problems (not retired): slug to content hash.
   hashes(): Promise<Map<string, string>>;
+  // A live problem, or null when there's none by that slug or it's retired.
+  get(slug: string): Promise<LoadedProblem | null>;
   // Insert or replace by slug; a retired problem loaded again is live again.
   save(problem: LoadedProblem): Promise<void>;
   retire(slugs: string[]): Promise<void>;

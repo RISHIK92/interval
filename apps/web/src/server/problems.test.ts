@@ -32,6 +32,7 @@ function fakes() {
             .map((r) => [r.slug, r.contentHash]),
         ),
       ),
+    get: (slug) => Promise.resolve(rows.get(slug) ?? null),
     save: (p) => {
       order.push(`row ${p.slug}`);
       rows.set(p.slug, { ...p, retired: false });

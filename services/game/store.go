@@ -98,10 +98,23 @@ func parseMatch(raw []byte) (matchDef, error) {
 	if err := json.Unmarshal(raw, &def); err != nil {
 		return matchDef{}, fmt.Errorf("not a match: %w", err)
 	}
-	if def.Mode != "" && def.Mode != "fastest_finger" && def.Mode != sprintMode {
+	if def.Mode != "" && def.Mode != "fastest_finger" && def.Mode != sprintMode && def.Mode != battleMode {
 		return matchDef{}, fmt.Errorf("no such mode: %q", def.Mode)
 	}
-	if len(def.Players) == 0 || len(def.Rounds) == 0 {
+	if (def.Mode == battleMode) != (def.Battle != nil) {
+		return matchDef{}, errors.New("a battle, and only a battle, carries its problem")
+	}
+	if def.Battle != nil {
+		if len(def.Rounds) > 0 || def.Ghost != nil {
+			return matchDef{}, errors.New("a battle has no quiz rounds or ghost")
+		}
+		if err := def.Battle.validate(); err != nil {
+			return matchDef{}, err
+		}
+	} else if len(def.Rounds) == 0 {
+		return matchDef{}, errors.New("a match needs players and rounds")
+	}
+	if len(def.Players) == 0 {
 		return matchDef{}, errors.New("a match needs players and rounds")
 	}
 	seen := map[string]bool{}
@@ -157,6 +170,8 @@ func (g *registry) over(id string) bool {
 	return over
 }
 
+var errBattleNotServed = errors.New("battles are not served yet")
+
 func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 	g.mu.Lock()
 	if g.over(id) {
@@ -171,6 +186,11 @@ func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 	def, err := g.store.load(ctx, id)
 	if err != nil {
 		return nil, err
+	}
+	// P5-W31-S02b: battles are defined and judged, but their actor is S02b-2's; until
+	// then one is refused rather than played as a quiz with no rounds.
+	if def.Battle != nil {
+		return nil, errBattleNotServed
 	}
 	saved, found, err := g.store.snapshot(ctx, id)
 	if err != nil {

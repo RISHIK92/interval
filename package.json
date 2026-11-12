@@ -13,6 +13,7 @@
     "files:init": "scripts/with-env.sh node apps/web/scripts/files-init.ts",
     "boards:rebuild": "scripts/with-env.sh node apps/web/scripts/boards-rebuild.ts",
     "problems:load": "scripts/with-env.sh node --import ./scripts/ts-resolve.mjs apps/web/scripts/problems-load.ts",
+    "game:battle": "scripts/with-env.sh node --import ./scripts/ts-resolve.mjs apps/web/scripts/battle-create.ts",
     "game:match": "scripts/with-env.sh node --import ./scripts/ts-resolve.mjs apps/web/scripts/match-create.ts",
     "events:codegen": "pnpm --filter @interval/events events:codegen",
     "tokens:codegen": "pnpm --filter @interval/tokens tokens:codegen",

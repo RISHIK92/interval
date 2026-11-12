@@ -1,6 +1,18 @@
 import type { DB } from "@interval/db";
 import type { Kysely } from "kysely";
+import { Check, Interface, ResultLine, Scenario } from "@interval/lld";
+import { z } from "zod";
 import type { ProblemStore } from "../ports";
+
+const Stored = z.object({
+  interface: Interface,
+  checks: z.array(Check),
+  limits: z.object({ seconds: z.int(), memoryMB: z.int() }),
+  visible: z.array(
+    z.object({ scenario: Scenario, results: z.array(ResultLine) }),
+  ),
+  extensionInterface: Interface.nullable(),
+});
 
 // P5-W31-S01 (LLDQ-4): LLD battle problems in Postgres, by slug.
 export function kyselyProblemStore(db: Kysely<DB>): ProblemStore {
@@ -12,6 +24,42 @@ export function kyselyProblemStore(db: Kysely<DB>): ProblemStore {
         .where("retired_at", "is", null)
         .execute();
       return new Map(rows.map((r) => [r.slug, r.content_hash]));
+    },
+    get: async (slug) => {
+      const row = await db
+        .selectFrom("lld_problem")
+        .selectAll()
+        .where("slug", "=", slug)
+        .where("retired_at", "is", null)
+        .executeTakeFirst();
+      if (row === undefined) return null;
+      // Parsed at the database boundary with the contract save wrote them from.
+      const stored = Stored.parse({
+        interface: row.interface,
+        checks: row.checks,
+        limits: row.limits,
+        visible: row.visible,
+        extensionInterface: row.extension_interface,
+      });
+      return {
+        slug: row.slug,
+        title: row.title,
+        difficulty: row.difficulty,
+        statement: row.statement,
+        interface: stored.interface,
+        checks: stored.checks,
+        limits: stored.limits,
+        visible: stored.visible,
+        extension:
+          row.extension_statement === null || stored.extensionInterface === null
+            ? null
+            : {
+                statement: row.extension_statement,
+                interface: stored.extensionInterface,
+              },
+        privateKey: row.private_key,
+        contentHash: row.content_hash,
+      };
     },
     save: async (p) => {
       const values = {

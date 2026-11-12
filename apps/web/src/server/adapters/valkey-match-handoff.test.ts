@@ -1,7 +1,9 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { Redis } from "ioredis";
 import { afterAll, expect, test } from "vitest";
-import type { LiveMatch } from "../ports";
+import type { BattleMatch, LiveMatch } from "../ports";
 import { valkeyMatchHandoff } from "./valkey-match-handoff";
 
 // P3-W15-S03 (Q-P3-22): the game server reads game:match:<id> (services/game/store.go).
@@ -85,6 +87,33 @@ test("a ghost match hands over the ghost's seat, label and answers", async () =>
       players: ["ada", "ghost:7"],
       ghost,
     });
+  } finally {
+    await redis.del(key);
+  }
+});
+
+// P5-W31-S02b: a battle as the game server reads it. Both sides test against
+// services/game/testdata/battle.json, which battle_test.go parses.
+test("puts a battle as the game server reads it", async () => {
+  const wire = JSON.parse(
+    readFileSync(
+      join(
+        import.meta.dirname,
+        "../../../../../services/game/testdata/battle.json",
+      ),
+      "utf8",
+    ),
+  ) as { players: string[]; battle: BattleMatch["battle"] };
+  const match: BattleMatch = {
+    id: randomUUID(),
+    players: wire.players,
+    battle: wire.battle,
+  };
+  const key = `game:match:${match.id}`;
+  try {
+    await valkeyMatchHandoff(redis).putBattle(match);
+    expect(JSON.parse((await redis.get(key)) ?? "null")).toEqual(wire);
+    expect(await redis.ttl(key)).toBeGreaterThan(3500);
   } finally {
     await redis.del(key);
   }

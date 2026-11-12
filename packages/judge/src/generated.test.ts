@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 import { z } from "zod";
+import { judgeGoTypes } from "./go";
 import { JudgeJob, JudgeResult } from "./job";
 
 // P5-W30-S05 (ADR-0040 PROPOSED): the judge's contract as JSON Schema, for any service,
@@ -24,4 +25,12 @@ test("the committed JSON Schemas are the ones the contract generates", () => {
       join(root, "schema", `${name}.schema.json`),
       `${JSON.stringify(z.toJSONSchema(schema, { io: "input" }), null, 2)}\n`,
     );
+});
+
+// P5-W31-S02b (ADR-0040): the game server's own Go copy, for its Velox client.
+test("the game server's Go types are the ones the contract generates", () => {
+  const file = join(root, "../../services/game/judge/types.go");
+  const fresh = judgeGoTypes("judge", "pnpm --filter @interval/judge codegen");
+  if (update) writeFileSync(file, fresh);
+  expect(readFileSync(file, "utf8")).toBe(fresh);
 });
