@@ -4630,3 +4630,43 @@ The owner said to continue building overnight with recommended answers, switchin
     - CI pulls the images first and runs one package at a time;
     - error and request tests;
     - a named status type, the decoded message, and the counts and comments corrected.
+
+### 2026-11-12 — P5-W28-S05 (execution hosts; EXEC-5, EXEC-3, LOAD-4, ARCH-4, ADR-0011; Q-P5-02, Q-P5-05)
+
+- **One image list:** `services/exec/engine/images.json`. Go embeds it, and a test checks it both ways against the language table. CDK reads it to mirror each distinct image into ECR. `EXEC_IMAGE_<LANGUAGE>` overrides an image, so the hosts can run the ECR copies (the W31 task sets them).
+- **Images:**
+  - `images/runsc`: gVisor `20261019.0` (published 2026-10-22), sha512-checked; it fails closed and keeps only `runsc`;
+  - `images/mirror`: `FROM` a pinned language image;
+  - `services/exec/Dockerfile`: the Go service plus the static docker CLI from `docker:29.9.2-cli` (2026-10-21).
+  - All built locally.
+- **AWS stack (`infra/src/exec-hosts.ts`):**
+  - **Subnets:** a new `exec` group, PRIVATE_ISOLATED, with no NAT or IGW route. RDS and Valkey are now pinned to the `data` group. Existing CIDRs are unchanged, but the /16 is full.
+  - **Interface endpoints** for ECR (api and dkr), Logs, ECS, ECS agent and ECS telemetry, with private DNS. Their security group allows the whole VPC on 443, since private DNS makes them every subnet's answer.
+  - **S3:** the exec subnets get their own S3 gateway endpoint, whose policy allows `s3:GetObject` on ECR's layer bucket and AL2023's repos only. The shared endpoint serves the other groups.
+  - **Host security group:** no inbound; out only on 443 and to Valkey.
+  - **Hosts:** `ExecCluster` with an `AsgCapacityProvider` over an explicit launch template: c7g.large on the ECS-optimized AL2023 ARM AMI, IMDSv2, a 40 GB encrypted gp3 root, min 0 and max 4.
+  - **User data:**
+    - a failure shuts the host down, so the group replaces it visibly;
+    - the AWS CLI is installed if the minimal AMI lacks it, then logs in to ECR;
+    - runsc is copied out and checked with `--version`, then merged into `daemon.json` (never overwritten) and Docker restarted;
+    - every image is pre-pulled, and `/var/lib/interval-exec` created.
+  - The exec task and service come with their consumer in W31.
+- **VM stack:** installs the same gVisor release (sha512-checked, `runsc --version`) and merges it into `daemon.json` before Docker first starts. In VM mode the engine shares the host; that is the mode's trade-off. **Deploying this changes the VM's user data**, so the VM restarts on its next deploy.
+- **Tests:**
+  - no route out of the exec subnets;
+  - their own S3 endpoint and its policy;
+  - RDS and Valkey only in `data`;
+  - endpoint placement and private DNS;
+  - the host security group's rules;
+  - the launch template, the ASG and the user data;
+  - the VM's checksum and its order before Docker starts;
+  - an existing test now lists the exec hosts among Valkey's clients.
+  - 100 infra tests pass, and both stacks synthesize.
+- **Reviewer fixes:**
+  - **Blocker:** the AWS CLI may be missing on the minimal AMI.
+  - Plus: silent boot failures; S3 egress to any bucket; `daemon.json` overwrites; the VM install unchecked; the unused shim; duplicate pulls; the reverse key check; and the docker socket's risk stated plainly in the Dockerfile.
+- **For the owner:**
+  - **Cost:** 6 interface endpoints in 2 AZs is about $85–95 a month in ap-south-1, running even with no hosts. They also carry the Fargate services' ECR and Logs traffic, which moves off the NAT.
+  - **No Session Manager:** there are no SSM endpoints and no SSM role, so an exec host can't be opened for debugging. This is deliberate for isolation; add it knowingly if wanted.
+  - **Host root:** the exec service will hold the host's Docker socket, which is the host's root.
+- **Mistake caught before commit:** a prettier run over all of `docs/` reformatted 38 files, including ACCEPTED ADRs and the verbatim roadmap copy. I restored them to HEAD; nothing of it was committed.

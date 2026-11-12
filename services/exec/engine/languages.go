@@ -1,7 +1,10 @@
 package engine
 
 import (
+	_ "embed"
+	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 )
 
@@ -34,8 +37,28 @@ type Overhead struct {
 	MemoryMB, Seconds, TmpMB int
 }
 
+// P5-W28-S05: the images, in one file the infra reads too (it mirrors them into ECR
+// for the isolated execution hosts, EXEC-5). Each is pinned by digest and at least two
+// weeks old; Go's is built here (images/go).
+//
+//go:embed images.json
+var imagesJSON []byte
+
+type imageEntry struct {
+	Image string `json:"image"`
+	Build string `json:"build,omitempty"`
+}
+
+var images = func() map[string]imageEntry {
+	var m map[string]imageEntry
+	if err := json.Unmarshal(imagesJSON, &m); err != nil {
+		// A build-time file: a broken one fails every test and the binary at start.
+		panic("engine/images.json: " + err.Error())
+	}
+	return m
+}()
+
 const (
-	node = "node:22.22.3-bookworm-slim@sha256:e21fc383b50d5347dc7a9f1cae45b8f4e2f0d39f7ade28e4eef7d2934522b752"
 	// The go build environment, set for the build only: the program gets none of it.
 	goBuild = "cp -r /opt/gocache /tmp/gocache && GOCACHE=/tmp/gocache GOPATH=/tmp/gopath GOTOOLCHAIN=local CGO_ENABLED=0 go build -o /tmp/main /code/main.go"
 )
@@ -44,19 +67,19 @@ var languages = map[string]Language{
 	// The worker's own base (workers/jobs/Dockerfile), built 2026-10-21. -I and -S: no
 	// user site, no PYTHON* variables, no current directory on the path.
 	"python": {
-		Image: "python:3.13.17-slim-bookworm@sha256:e32be0e55814a08977501ca863271d9bd02443710db8f2afaf8372e2c4508530",
+		Image: images["python"].Image,
 		Main:  "main.py",
 		Run:   "python3 -I -S /code/main.py",
 	},
 	// The web's own base (apps/web/Dockerfile). TypeScript runs through Node 22's type
 	// stripping, with no compiler.
-	"javascript": {Image: node, Main: "main.js", Run: "node --max-old-space-size=%d /code/main.js",
+	"javascript": {Image: images["javascript"].Image, Main: "main.js", Run: "node --max-old-space-size=%d /code/main.js",
 		Overhead: Overhead{MemoryMB: 64}, OutOfMemory: "JavaScript heap out of memory"},
-	"typescript": {Image: node, Main: "main.ts", Run: "node --max-old-space-size=%d /code/main.ts",
+	"typescript": {Image: images["typescript"].Image, Main: "main.ts", Run: "node --max-old-space-size=%d /code/main.ts",
 		Overhead: Overhead{MemoryMB: 64}, OutOfMemory: "JavaScript heap out of memory"},
 	// Built 2026-10-26; the 21-jdk tag's current build was a day old.
 	"java": {
-		Image:       "eclipse-temurin:21.0.12.1_1-jdk@sha256:5d90b26c0784ccf55af55f97cbcf7f3969c66a06299c93bdc72649219942a48f",
+		Image:       images["java"].Image,
 		Main:        "Main.java",
 		Compile:     "javac -d /tmp/out /code/Main.java",
 		Run:         "java -Xmx%dm -XX:+UseSerialGC -cp /tmp/out Main",
@@ -65,14 +88,14 @@ var languages = map[string]Language{
 	},
 	// Built 2026-06-24; the 14 tag's current build was a week old.
 	"cpp": {
-		Image:    "gcc:14.3.0@sha256:4e2d22617a3b4af1ad0150ba6ca3cb8a975c44c1abac6f9a09870b93cb5c363b",
+		Image:    images["cpp"].Image,
 		Main:     "main.cpp",
 		Compile:  "g++ -O2 -std=c++20 -o /tmp/main /code/main.cpp",
 		Run:      "/tmp/main",
 		Overhead: Overhead{MemoryMB: 256, Seconds: 5},
 	},
 	"go": {
-		Image:    "interval-exec-go:1",
+		Image:    images["go"].Image,
 		Main:     "main.go",
 		Compile:  goBuild,
 		Run:      "/tmp/main",
@@ -80,9 +103,13 @@ var languages = map[string]Language{
 	},
 }
 
-// Lookup gives a language by name.
+// Lookup gives a language by name. EXEC_IMAGE_<NAME> (EXEC_IMAGE_CPP, …) replaces its
+// image: the execution hosts run the copies mirrored into ECR.
 func Lookup(name string) (Language, bool) {
 	l, ok := languages[name]
+	if image := os.Getenv("EXEC_IMAGE_" + strings.ToUpper(name)); ok && image != "" {
+		l.Image = image
+	}
 	return l, ok
 }
 

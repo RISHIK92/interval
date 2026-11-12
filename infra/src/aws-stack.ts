@@ -25,6 +25,7 @@ import * as targets from "aws-cdk-lib/aws-scheduler-targets";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import type { Construct } from "constructs";
+import { createExecHosts } from "./exec-hosts.ts";
 import {
   createBuckets,
   createEventStream,
@@ -75,9 +76,18 @@ export class AwsStack extends Stack {
         { name: "public", subnetType: ec2.SubnetType.PUBLIC },
         { name: "app", subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
         { name: "data", subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+        // P5-W28-S05 (EXEC-5): the execution hosts, with no route out of the VPC. The
+        // eight /19s now fill the /16: a further group would re-carve every subnet.
+        { name: "exec", subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
       ],
       gatewayEndpoints: {
-        S3: { service: ec2.GatewayVpcEndpointAwsService.S3 },
+        // Every group but exec, which has its own, narrower one (exec-hosts.ts).
+        S3: {
+          service: ec2.GatewayVpcEndpointAwsService.S3,
+          subnets: ["public", "app", "data"].map((subnetGroupName) => ({
+            subnetGroupName,
+          })),
+        },
       },
     });
 
@@ -109,13 +119,16 @@ export class AwsStack extends Stack {
     // P3-W15-S03 (Q-P3-22): the game server reads its matches from Valkey; never Postgres.
     dataSg.addIngressRule(gameSg, ec2.Port.tcp(6379));
 
+    createExecHosts(this, { vpc, dataSg });
+
     const db = new rds.DatabaseInstance(this, "Db", {
       engine: rds.DatabaseInstanceEngine.postgres({
         version: rds.PostgresEngineVersion.VER_17_9,
       }),
       instanceType: new ec2.InstanceType("t4g.small"),
       vpc,
-      vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_ISOLATED },
+      // By name: the exec subnets are isolated too.
+      vpcSubnets: { subnetGroupName: "data" },
       securityGroups: [dataSg],
       databaseName: "interval",
       credentials: rds.Credentials.fromGeneratedSecret(DB_USER, {
@@ -138,7 +151,7 @@ export class AwsStack extends Stack {
 
     const cacheSubnets = new elasticache.CfnSubnetGroup(this, "CacheSubnets", {
       description: "Valkey in the isolated data subnets",
-      subnetIds: vpc.isolatedSubnets.map((s) => s.subnetId),
+      subnetIds: vpc.selectSubnets({ subnetGroupName: "data" }).subnetIds,
     });
     const cache = new elasticache.CfnReplicationGroup(this, "Cache", {
       replicationGroupDescription: "Interval Valkey (ADR-0011)",

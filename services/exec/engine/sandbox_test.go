@@ -180,3 +180,28 @@ func TestEveryLanguageIsListedAndCompiledOnesSayReady(t *testing.T) {
 		t.Error("the JVM's heap isn't the job's memory")
 	}
 }
+
+// P5-W28-S05: one list of images for the engine and the infra, each pinned.
+func TestEveryLanguageHasAPinnedImageThatCanBeReplaced(t *testing.T) {
+	for _, name := range Names() {
+		entry, ok := images[name]
+		if !ok {
+			t.Fatalf("%s has no image", name)
+		}
+		pinned := strings.Contains(entry.Image, "@sha256:")
+		if !pinned && entry.Build == "" {
+			t.Errorf("%s: %s is neither pinned nor built here", name, entry.Image)
+		}
+		if l, _ := Lookup(name); l.Image != entry.Image {
+			t.Errorf("%s: the table's image isn't the file's", name)
+		}
+	}
+	// No image the engine wouldn't use (the infra mirrors and pre-pulls every entry).
+	if len(images) != len(Names()) {
+		t.Errorf("images.json has %d entries for %d languages", len(images), len(Names()))
+	}
+	t.Setenv("EXEC_IMAGE_CPP", "123.dkr.ecr.ap-south-1.amazonaws.com/gcc@sha256:abc")
+	if l, _ := Lookup("cpp"); l.Image != "123.dkr.ecr.ap-south-1.amazonaws.com/gcc@sha256:abc" {
+		t.Errorf("override ignored: %s", l.Image)
+	}
+}

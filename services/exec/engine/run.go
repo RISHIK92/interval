@@ -123,7 +123,7 @@ func (r *Runner) docker(args ...string) (string, error) {
 
 // The run's input, checked before anything is made.
 func check(job Job) (Language, error) {
-	lang, ok := languages[job.Language]
+	lang, ok := Lookup(job.Language)
 	if !ok {
 		return Language{}, fmt.Errorf("%w: %q", ErrUnknownLanguage, job.Language)
 	}

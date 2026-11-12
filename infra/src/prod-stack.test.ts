@@ -251,6 +251,25 @@ describe("replacement safety", () => {
   });
 });
 
+// P5-W28-S05 (EXEC-3; Q-P5-02): the VM's runs use gVisor too.
+describe("gVisor", () => {
+  test("the pinned release is checked, installed and registered with Docker", () => {
+    const script = userDataScript();
+    expect(script).toContain(
+      "releases/release/20261019.0/aarch64/gvisor.tar.bz2",
+    );
+    expect(script).toContain(
+      "6b14b582cd3185169df54275eed8721d94c9b40e6cb1533d0d0c46573271c6d2d03db586ea1caac46a45e805797f00b115bead9fb93636a1ffa69f2430958977",
+    );
+    expect(script).toContain("sha512sum --check");
+    expect(script).toContain("/usr/local/bin/runsc");
+    // Registered before Docker first starts.
+    expect(script.indexOf("daemon.json")).toBeLessThan(
+      script.indexOf("systemctl enable --now docker"),
+    );
+  });
+});
+
 describe("user data", () => {
   test("fails fast, verifies the compose download and never force-formats", () => {
     const script = userDataScript();
