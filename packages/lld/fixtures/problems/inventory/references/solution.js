@@ -6,6 +6,7 @@ class Inventory {
   }
 
   add(item, amount) {
+    if (amount <= 0) throw new RangeError("amount must be positive");
     console.log("debug: add", item);
     let total = 0;
     for (const n of this.counts.values()) total += n;
@@ -15,6 +16,7 @@ class Inventory {
   }
 
   take(item, amount) {
+    if (amount <= 0) throw new RangeError("amount must be positive");
     const have = this.counts.get(item) ?? 0;
     if (have < amount) return false;
     if (have === amount) this.counts.delete(item);

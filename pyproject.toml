@@ -23,7 +23,7 @@ known-first-party = ["interval_db", "interval_jobs"]
 [tool.pyright]
 typeCheckingMode = "strict"
 pythonVersion = "3.13"
-include = ["workers/jobs/src", "workers/jobs/tests", "packages/db/python/src", "packages/db/python/tests", "scripts/tests"]
+include = ["workers/jobs/src", "workers/jobs/tests", "packages/db/python/src", "packages/db/python/tests", "scripts/tests", "packages/lld/tools"]
 venvPath = "."
 stubPath = "typings"
 venv = ".venv"

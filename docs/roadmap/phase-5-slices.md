@@ -103,6 +103,12 @@ Already in place, so not sliced again:
 - Goal: mutmut on each Python reference (90% killed is a test) and Hypothesis property tests; concurrency rules per language.
 - Q: Q-P5-08.
 
+### P5-W30-S02b Concurrency rules per language
+
+- IDs: LLDQ-3, §6.5 ("threads for Java, C++, Go, and Python; interleaved async operations for JS/TS")
+- Needs: W30-S02
+- Goal: a problem's concurrency layer, run through harnesses that call the solution from several threads, or with interleaved async calls, by each language's rules (split from W30-S02).
+
 ### P5-W30-S03 The first three problems
 
 - Goal: three problems, PROVISIONAL, with references in five languages, all checks passing.

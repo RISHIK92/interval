@@ -18,6 +18,9 @@ func NewInventory(capacity int64) *Inventory {
 }
 
 func (s *Inventory) add(item string, amount int64) int64 {
+	if amount <= 0 {
+		panic("amount must be positive")
+	}
 	fmt.Println("debug: add", item)
 	var total int64
 	for _, n := range s.counts {
@@ -31,6 +34,9 @@ func (s *Inventory) add(item string, amount int64) int64 {
 }
 
 func (s *Inventory) take(item string, amount int64) bool {
+	if amount <= 0 {
+		panic("amount must be positive")
+	}
 	have := s.counts[item]
 	if have < amount {
 		return false

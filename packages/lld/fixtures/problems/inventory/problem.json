@@ -242,6 +242,186 @@
             "args": ["a", 6]
           }
         ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          },
+          {
+            "method": "items",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1]
+          },
+          {
+            "method": "stock",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5]
+          },
+          {
+            "method": "add",
+            "args": ["a", 5]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1]
+          },
+          {
+            "method": "take",
+            "args": ["a", 5]
+          },
+          {
+            "method": "stock",
+            "args": ["a"]
+          },
+          {
+            "method": "items",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": ["a", 1]
+          },
+          {
+            "method": "add",
+            "args": ["a", 2]
+          },
+          {
+            "method": "add",
+            "args": ["a", 3]
+          },
+          {
+            "method": "snapshot",
+            "args": []
+          },
+          {
+            "method": "share",
+            "args": ["a"]
+          },
+          {
+            "method": "take",
+            "args": ["a", 2]
+          },
+          {
+            "method": "stock",
+            "args": ["a"]
+          },
+          {
+            "method": "share",
+            "args": ["b"]
+          },
+          {
+            "method": "take",
+            "args": ["a", 0]
+          },
+          {
+            "method": "add",
+            "args": ["c", -1]
+          },
+          {
+            "method": "group",
+            "args": [[], null]
+          },
+          {
+            "method": "flags",
+            "args": [[]]
+          },
+          {
+            "method": "none",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [10]
+          },
+          {
+            "method": "add",
+            "args": ["x", 4]
+          },
+          {
+            "method": "add",
+            "args": ["y", 4]
+          },
+          {
+            "method": "take",
+            "args": ["x", 4]
+          },
+          {
+            "method": "items",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["z", 6]
+          },
+          {
+            "method": "add",
+            "args": ["w", 1]
+          },
+          {
+            "method": "snapshot",
+            "args": []
+          },
+          {
+            "method": "share",
+            "args": ["y"]
+          },
+          {
+            "method": "take",
+            "args": ["y", 3]
+          },
+          {
+            "method": "take",
+            "args": ["y", 2]
+          },
+          {
+            "method": "stock",
+            "args": ["y"]
+          },
+          {
+            "method": "items",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3]
+          },
+          {
+            "method": "add",
+            "args": ["a", 1]
+          },
+          {
+            "method": "add",
+            "args": ["b", 0]
+          },
+          {
+            "method": "stock",
+            "args": ["a"]
+          },
+          {
+            "method": "stock",
+            "args": ["b"]
+          }
+        ]
       }
     ]
   }

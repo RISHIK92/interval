@@ -123,5 +123,200 @@
         "value": false
       }
     ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "error": "ValueError: over capacity"
+      },
+      {
+        "call": 3,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 5
+      },
+      {
+        "call": 2,
+        "error": "ValueError: over capacity"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": 5
+      },
+      {
+        "call": 9,
+        "value": {
+          "a": 5
+        }
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": 3
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "error": "ValueError: amount must be positive"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: amount must be positive"
+      },
+      {
+        "call": 16,
+        "value": {
+          "none": []
+        }
+      },
+      {
+        "call": 17,
+        "value": []
+      },
+      {
+        "call": 18,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 4
+      },
+      {
+        "call": 2,
+        "value": 4
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": ["y"]
+      },
+      {
+        "call": 5,
+        "value": 6
+      },
+      {
+        "call": 6,
+        "error": "ValueError: over capacity"
+      },
+      {
+        "call": 7,
+        "value": {
+          "y": 4,
+          "z": 6
+        }
+      },
+      {
+        "call": 8,
+        "value": 0.4
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": 1
+      },
+      {
+        "call": 12,
+        "value": ["y", "z"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "error": "ValueError: amount must be positive"
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": null
+      }
+    ]
   }
 ]

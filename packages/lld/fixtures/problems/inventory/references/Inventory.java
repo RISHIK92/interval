@@ -10,6 +10,7 @@ public class Inventory {
   }
 
   public long add(String item, long amount) {
+    if (amount <= 0) throw new IllegalArgumentException("amount must be positive");
     System.out.println("debug: add " + item);
     long total = 0;
     for (long n : counts.values()) total += n;
@@ -19,6 +20,7 @@ public class Inventory {
   }
 
   public boolean take(String item, long amount) {
+    if (amount <= 0) throw new IllegalArgumentException("amount must be positive");
     long have = counts.getOrDefault(item, 0L);
     if (have < amount) return false;
     if (have == amount) counts.remove(item);

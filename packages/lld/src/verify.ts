@@ -12,6 +12,7 @@ import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { GENERATORS, runFiles } from "./generate/index";
 import { Problem, scenariosOf } from "./problem";
+import { randomScenario } from "./random";
 import { ResultLine, type Scenario } from "./scenario";
 import { fits, parseType } from "./types";
 
@@ -37,7 +38,13 @@ type RunOutput = z.infer<typeof RunOutput>;
 
 export function verify(
   dir: string,
-  options: { exec: string; mode: "write" | "check" },
+  options: {
+    exec: string;
+    mode: "write" | "check";
+    // Seeded random scenarios, recorded from the Python reference and held to it in
+    // every other language (LLDQ-3); never stored.
+    random?: number;
+  },
 ): { failures: string[]; expected: Expected } {
   const problem = Problem.parse(
     JSON.parse(readFileSync(join(dir, "problem.json"), "utf8")),
@@ -84,14 +91,18 @@ export function verify(
       );
       return RunOutput.parse(JSON.parse(out));
     };
-    const where = (s: (typeof scenarios)[number]) =>
+    const where = (s: { layer: string; index: number }) =>
       `${s.layer} ${String(s.index)}`;
 
     // The canonical results.
     const returns = new Map(
       problem.interface.methods.map((m) => [m.name, m.returns]),
     );
-    const expected: Expected = scenarios.map((s) => {
+    const record = (s: {
+      layer: string;
+      index: number;
+      scenario: Scenario;
+    }): ResultLine[] => {
       const r = run("python", s.scenario);
       if (r.verdict !== "ok")
         throw new Error(
@@ -124,8 +135,13 @@ export function verify(
             `python reference, ${where(s)}: call ${String(i)} (${method}) returned a value that isn't its declared ${declared}`,
           );
       });
-      return { layer: s.layer, index: s.index, results };
-    });
+      return results;
+    };
+    const expected: Expected = scenarios.map((s) => ({
+      layer: s.layer,
+      index: s.index,
+      results: record(s),
+    }));
     const file = join(dir, "expected.json");
     const text = `${JSON.stringify(expected, null, 2)}\n`;
     if (options.mode === "write") writeFileSync(file, text);
@@ -140,10 +156,35 @@ export function verify(
     // Every other reference, held to them by the checker.
     const checks = join(work, "checks.json");
     writeFileSync(checks, JSON.stringify(problem.checks ?? []));
+    // The written scenarios, then the random ones: a Python reference that fails on a
+    // random scenario is a finding, not a crash of verify.
+    const judged: {
+      layer: string;
+      index: number;
+      scenario: Scenario;
+      results: ResultLine[];
+    }[] = scenarios.map((s, i) => {
+      const want = expected[i];
+      if (want === undefined)
+        throw new Error(`no expected results for ${where(s)}`);
+      return { ...s, results: want.results };
+    });
+    for (let k = 0; k < (options.random ?? 0); k++) {
+      const s = {
+        layer: "random",
+        index: k,
+        scenario: randomScenario(problem.interface, k + 1),
+      };
+      try {
+        judged.push({ ...s, results: record(s) });
+      } catch (error) {
+        failures.push(String(error instanceof Error ? error.message : error));
+      }
+    }
     for (const language of Object.keys(GENERATORS).filter(
       (l) => l !== "python",
     ))
-      scenarios.forEach((s, i) => {
+      judged.forEach((s) => {
         const r = run(language, s.scenario);
         if (r.verdict !== "ok") {
           failures.push(
@@ -157,10 +198,7 @@ export function verify(
           stdout: join(work, "stdout.txt"),
         };
         writeFileSync(files.scenario, JSON.stringify(s.scenario));
-        writeFileSync(
-          files.expected,
-          JSON.stringify(expected[i]?.results ?? []),
-        );
+        writeFileSync(files.expected, JSON.stringify(s.results));
         writeFileSync(files.stdout, r.stdout);
         try {
           execFileSync(options.exec, [

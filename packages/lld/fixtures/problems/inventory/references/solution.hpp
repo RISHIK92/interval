@@ -14,6 +14,7 @@ class Inventory {
   }
 
   int64_t add(std::string item, int64_t amount) {
+    if (amount <= 0) throw std::invalid_argument("amount must be positive");
     std::printf("debug: add %s\n", item.c_str());
     int64_t total = 0;
     for (const auto& c : counts_) total += c.second;
@@ -22,6 +23,7 @@ class Inventory {
   }
 
   bool take(std::string item, int64_t amount) {
+    if (amount <= 0) throw std::invalid_argument("amount must be positive");
     auto it = counts_.find(item);
     int64_t have = it == counts_.end() ? 0 : it->second;
     if (have < amount) return false;

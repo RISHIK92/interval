@@ -8,6 +8,7 @@ export class Inventory {
   }
 
   add(item: string, amount: number): number {
+    if (amount <= 0) throw new RangeError("amount must be positive");
     process.stdout.write("debug: add " + item + "\n");
     let total = 0;
     for (const n of this.counts.values()) total += n;
@@ -17,6 +18,7 @@ export class Inventory {
   }
 
   take(item: string, amount: number): boolean {
+    if (amount <= 0) throw new RangeError("amount must be positive");
     const have = this.counts.get(item) ?? 0;
     if (have < amount) return false;
     if (have === amount) this.counts.delete(item);

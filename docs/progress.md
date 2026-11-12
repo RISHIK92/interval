@@ -4843,3 +4843,39 @@ The owner said to continue building overnight with recommended answers, switchin
   - **Priority is strict, as LOAD-3 reads:** under sustained ranked load, "Run tests" waits. Should it instead get a share?
   - **Result lifetime:** a result is kept for one hour, so a resubmitted id is recognised as done within that window.
   - **Shutdown grace:** the stop timeout on ECS and the VM should cover a job's lease (W31/W32 infra).
+
+### 2026-11-12 — P5-W30-S02 (mutation and property tests; LLDQ-2, LLDQ-3; Q-P5-08)
+
+- **No new dependencies** (Q-P5-08's overnight answer had named mutmut and Hypothesis; noted there for the owner).
+- **`packages/lld/tools/mutants.py`** (standard-library `ast`, Python 3.9+; under ruff and pyright strict):
+  - one change per mutant:
+    - compare flips;
+    - arithmetic and augmented-assignment swaps;
+    - and/or swaps;
+    - true/false flips;
+    - int constants ±1;
+    - a dropped `not` (only that node);
+    - a `return` made `None`;
+    - a negated `if` or `while`;
+  - each mutant compiles and differs from the original;
+  - constants inside a `raise` or an annotation are skipped. Errors are compared by kind, so such mutants are equivalent and would only lower every score.
+- **`mutationScore`** (packages/lld/src/mutation.ts):
+  - **How it runs:** with the local `python3 -I -B` (no bytecode cache: two same-size mutants written within a second had shared a stale `.pyc`, so some never really ran), in its temp dir, 5 s per scenario.
+  - **How it's judged:** by `exec check` against verify's own results.
+  - **The baseline:** the unmutated reference runs first and must pass, or nothing is scored.
+  - **Errors:** any unexpected exit from the checker is an error.
+- **`random.ts`:** seeded scenarios from an interface (mulberry32): small values, keys from a short alphabet so they collide, positive constructor ints.
+- **`verify --random N --mutation`:**
+  - **`--random N`:** N random scenarios recorded from the Python reference, with every other reference held to them; they are never stored. A Python failure on one is reported.
+  - **`--mutation`:** gated at 90%, scored only when verification passed, and listing the survivors.
+- **Found by the new tools, and fixed:**
+  - **The references disagreed.** The fixture's references disagreed on a negative amount: Python raised, Go stored 2. All six now refuse a non-positive amount alike.
+  - **The fixture's tests were thin.** They were too thin for the gate; added boundary scenarios: zero capacity, filling exactly, taking everything, taking more than held, amounts of 0 and 1, and empty collections. Now **42 of 43 mutants are caught (98%)**. The one survivor can't be reached (a missing item's default once amounts are known positive).
+- **Concurrency rules** moved to their own slice, W30-S02b.
+- **Tests:**
+  - **Unit:** the generator's determinism and fit; the mutator's kinds, one changed line each on the line it names, no stray `+`, nothing from a `raise`.
+  - **Sandbox:** random agreement, the gate passed by the fixture and failed by a thin copy.
+- **Reviewer fixes:**
+  - **Blockers:** no baseline run, so a broken local Python would have counted every mutant as caught; Python 3.9 crashing on the annotations.
+  - **Should-fix:** scoring against a possibly stale `expected.json`; unexpected exit codes counted as survivors; equivalent mutants in the gate; the tool outside ruff and pyright; a weak mutator test; mutants running outside their temp dir.
+  - Plus the nits.

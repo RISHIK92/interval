@@ -9,6 +9,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, beforeAll, expect, test } from "vitest";
+import { MUTATION_GATE, mutationScore } from "./mutation";
 import { verify } from "./verify";
 
 // P5-W30-S01 (LLDQ-2, EXEC-4): verification on the fixture problem, in the real sandbox
@@ -48,9 +49,18 @@ test.runIf(integration)(
     const dir = copy();
     const written = verify(dir, { exec, mode: "write" });
     expect(written.failures).toEqual([]);
+    // One recording per scenario, in order: the visible ones, then the hidden.
+    const layers = (
+      JSON.parse(readFileSync(join(dir, "problem.json"), "utf8")) as {
+        layers: { visible: unknown[]; hidden: unknown[] };
+      }
+    ).layers;
     expect(
       written.expected.map((e) => `${e.layer} ${String(e.index)}`),
-    ).toEqual(["visible 0", "hidden 0", "hidden 1"]);
+    ).toEqual([
+      ...layers.visible.map((_, i) => `visible ${String(i)}`),
+      ...layers.hidden.map((_, i) => `hidden ${String(i)}`),
+    ]);
     expect(verify(dir, { exec, mode: "check" }).failures).toEqual([]);
   },
   SLOW,
@@ -95,6 +105,42 @@ test.runIf(integration)(
     const dir = copy();
     rmSync(join(dir, "expected.json"), { force: true });
     expect(verify(dir, { exec, mode: "check" }).failures[0]).toMatch(/missing/);
+  },
+  SLOW,
+);
+
+// P5-W30-S02 (LLDQ-2, LLDQ-3): random scenarios every reference agrees on, and a mutation
+// score the fixture's tests clear, while a thin test set doesn't.
+test.runIf(integration)(
+  "every reference agrees on random scenarios",
+  () => {
+    const dir = copy();
+    expect(verify(dir, { exec, mode: "check", random: 3 }).failures).toEqual(
+      [],
+    );
+  },
+  SLOW,
+);
+
+test.runIf(integration)(
+  "the fixture's tests catch at least 90% of the reference's mutants; thin tests don't",
+  () => {
+    const dir = copy();
+    const { expected } = verify(dir, { exec, mode: "check" });
+    const score = mutationScore(dir, { exec, expected });
+    expect(score.killed / score.total).toBeGreaterThanOrEqual(MUTATION_GATE);
+    const thin = copy();
+    const problem = JSON.parse(
+      readFileSync(join(thin, "problem.json"), "utf8"),
+    ) as {
+      layers: { hidden: unknown[] };
+    };
+    problem.layers.hidden = problem.layers.hidden.slice(0, 1);
+    writeFileSync(join(thin, "problem.json"), JSON.stringify(problem));
+    const rewritten = verify(thin, { exec, mode: "write" });
+    expect(rewritten.failures).toEqual([]);
+    const weak = mutationScore(thin, { exec, expected: rewritten.expected });
+    expect(weak.killed / weak.total).toBeLessThan(MUTATION_GATE);
   },
   SLOW,
 );

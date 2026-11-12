@@ -9,6 +9,8 @@ class Inventory:
         self.counts: dict[str, int] = {}
 
     def add(self, item: str, amount: int) -> int:
+        if amount <= 0:
+            raise ValueError("amount must be positive")
         print("debug: add", item)
         if sum(self.counts.values()) + amount > self.capacity:
             raise ValueError("over capacity")
@@ -16,6 +18,8 @@ class Inventory:
         return self.counts[item]
 
     def take(self, item: str, amount: int) -> bool:
+        if amount <= 0:
+            raise ValueError("amount must be positive")
         if self.counts.get(item, 0) < amount:
             return False
         self.counts[item] -= amount
