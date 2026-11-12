@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ import (
 // P5-W28-S01 (EXEC-3; Q-P5-02, ADR-0039 PROPOSED): what isolates one run. A fresh
 // container for every run, with no network, a read-only filesystem except a capped
 // /tmp, a non-root user with no capabilities, limits on memory, CPU and processes, and
-// no environment: only Docker's own defaults (PATH, HOSTNAME) are there. The run's
+// no environment from the host: only the image's own ENV and Docker's defaults. The run's
 // files are mounted read-only from a directory of its own, so it can't reach another
 // run's. On the execution hosts the runtime is gVisor (EXEC_RUNTIME=runsc).
 

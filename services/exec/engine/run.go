@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"bytes"
@@ -58,7 +58,7 @@ type Runner struct {
 }
 
 var (
-	errUnknownLanguage = errors.New("unknown language")
+	ErrUnknownLanguage = errors.New("unknown language")
 	errFileName        = errors.New("file name isn't a plain name")
 	errNotRun          = errors.New("the container didn't run to its end")
 )
@@ -112,7 +112,7 @@ func (r *Runner) docker(args ...string) (string, error) {
 func check(job Job) (Language, error) {
 	lang, ok := languages[job.Language]
 	if !ok {
-		return Language{}, fmt.Errorf("%w: %q", errUnknownLanguage, job.Language)
+		return Language{}, fmt.Errorf("%w: %q", ErrUnknownLanguage, job.Language)
 	}
 	for name := range job.Files {
 		if name == "" || name != filepath.Base(name) || name == "." || name == ".." {

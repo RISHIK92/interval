@@ -4524,3 +4524,39 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Not done:**
   - the docker CLI's own error lines can mix into a run's stderr (nit);
   - gVisor (`runsc`) is untested locally, including whether `OOMKilled` is reported under it. That is the owner's check on a Linux host, W28-S04.
+
+### 2026-11-12 — P5-W28-S02 (the red-team suite; EXEC-1, EXEC-3; Q-P5-03)
+
+- **Refactor:** the runner moved into `services/exec/engine`, so the suite can import it. Its behaviour is unchanged; only `ErrUnknownLanguage` and `Lookup` were exported.
+- **`services/exec/redteam`:**
+  - **`Engine`** is the interface any engine adapts to; `ExecEngine` adapts ours, at the suite's fixed `Limits`.
+  - **`Unsafe(attack, outcome, canary)`** flags any of:
+    - an `ESCAPED` line;
+    - the host's canary appearing;
+    - a verdict outside the attack's allowed set;
+    - a probe that never printed `DONE`, so a crash before its checks proves nothing.
+    - An engine error fails the test.
+  - **13 Python attacks:**
+    1. network (interfaces, routes, TCP and DNS);
+    2. a fork bomb, at twice the pid limit;
+    3. the environment (an allowlist of the image's own ENV, plus LC_CTYPE from PEP 538);
+    4. other processes;
+    5. writes outside `/tmp` (only EROFS counts as contained, and `/var/tmp` is world-writable, so it tests `--read-only` itself);
+    6. another submission's files: a concurrent neighbour holds a token in `/code`, `/tmp` and `/dev/shm`. A ready handshake checks it, and the search has a positive control (it must find its own copy);
+    7. memory, at 4× the limit;
+    8. cpu;
+    9. the wall clock (sleep);
+    10. CPU share (4 busy children against `--cpus`);
+    11. an output flood;
+    12. disk: `/tmp` and `/dev/shm` past their cap, in files under the per-file limit;
+    13. privilege: all capability sets 0, `NoNewPrivs` 1, `Seccomp` 2, `unshare(CLONE_NEWUSER)`, mount, chroot, setuid, shadow, the Docker socket, root.
+    - Output is line-buffered, so a kill can't lose an `ESCAPED`. Thresholds come from the limits.
+  - **A negative control:** a deliberately weak sandbox (non-root, nothing else) must be flagged by network, writes, disk and privilege.
+  - `pnpm redteam` runs it.
+- **Result, locally** (Docker Desktop, runc): every attack contained on both runs, and the weak sandbox caught.
+- **Reviewer fixes:**
+  - **Blockers:** crashes passed as contained; the write and privilege probes couldn't fail against a weakened sandbox.
+  - Plus: flushing; fork, disk and memory thresholds that a weak sandbox could pass through an OOM; host-independent network checks; the neighbour's handshake and `/dev/shm`; the environment allowlist; wall-clock and CPU-share attacks; the negative control.
+- **Not done:**
+  - **For W28-S04:** the CI job (non-required, Q-P5-03), and an allowance for engines whose pid 1 is an init process (Judge0).
+  - **Not decided:** whether `/proc/self/mountinfo` revealing the host's run-dir path matters. It discloses information but isn't an escape.

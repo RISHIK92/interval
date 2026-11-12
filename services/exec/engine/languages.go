@@ -1,4 +1,4 @@
-package main
+package engine
 
 // P5-W28-S01 (Q-P5-04): a language's image, pinned by digest, and how its code runs.
 // Python first; the other four come in W28-S03.
@@ -17,4 +17,10 @@ var languages = map[string]Language{
 		Main:  "main.py",
 		Cmd:   []string{"python3", "-I", "-S", "/code/main.py"},
 	},
+}
+
+// Lookup gives a language by name.
+func Lookup(name string) (Language, bool) {
+	l, ok := languages[name]
+	return l, ok
 }

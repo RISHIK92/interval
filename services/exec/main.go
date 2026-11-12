@@ -11,10 +11,12 @@ import (
 	"io"
 	"os"
 	"os/signal"
+
+	"interval/services/exec/engine"
 )
 
 // What a run gets unless told otherwise; problems set their own from W30.
-var defaults = Limits{MemoryMB: 256, CPUs: 1, Pids: 64, TmpMB: 64, Seconds: 10, OutputKB: 1024}
+var defaults = engine.Limits{MemoryMB: 256, CPUs: 1, Pids: 64, TmpMB: 64, Seconds: 10, OutputKB: 1024}
 
 func main() {
 	if err := run(os.Args[1:]); err != nil {
@@ -41,14 +43,14 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
-	lang, ok := languages[*language]
+	lang, ok := engine.Lookup(*language)
 	if !ok {
-		return fmt.Errorf("%w: %q", errUnknownLanguage, *language)
+		return fmt.Errorf("%w: %q", engine.ErrUnknownLanguage, *language)
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	r := &Runner{WorkDir: os.Getenv("EXEC_WORK_DIR"), Docker: "docker", Runtime: os.Getenv("EXEC_RUNTIME")}
-	res, err := r.Run(ctx, Job{
+	r := &engine.Runner{WorkDir: os.Getenv("EXEC_WORK_DIR"), Docker: "docker", Runtime: os.Getenv("EXEC_RUNTIME")}
+	res, err := r.Run(ctx, engine.Job{
 		Language: *language,
 		Files:    map[string]string{lang.Main: string(source)},
 		Stdin:    string(stdin),

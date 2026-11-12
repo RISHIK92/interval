@@ -27,6 +27,7 @@
     "format:go": "gofmt -w services/game services/exec cli/interval",
     "format-check:go": "sh -c 'out=$(gofmt -l services/game services/exec cli/interval) || exit 1; [ -z \"$out\" ] || { echo \"gofmt: $out\"; exit 1; }'",
     "vet:go": "(cd services/game && go vet ./...) && (cd services/exec && go vet ./...) && (cd cli/interval && go vet ./...)",
+    "redteam": "cd services/exec && EXEC_INTEGRATION=1 go test -count=1 -v ./redteam/",
     "test:go": "(cd services/game && go test ./...) && (cd services/exec && go test ./...) && (cd cli/interval && go test ./...)"
   },
   "devDependencies": {

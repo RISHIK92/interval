@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"errors"
@@ -124,7 +124,7 @@ func TestBadInputIsRefusedBeforeAnythingIsMade(t *testing.T) {
 			t.Errorf("%q: %v", name, err)
 		}
 	}
-	if _, err := r.Run(t.Context(), Job{Language: "cobol", Limits: good}); !errors.Is(err, errUnknownLanguage) {
+	if _, err := r.Run(t.Context(), Job{Language: "cobol", Limits: good}); !errors.Is(err, ErrUnknownLanguage) {
 		t.Error(err)
 	}
 	if _, err := r.Run(t.Context(), Job{Language: "python", Limits: Limits{}}); !errors.Is(err, errLimits) {
