@@ -9,7 +9,7 @@ Constants inside a raise or an annotation are left alone: errors are compared by
 never by message, so changing them can't be caught, and counting them would only lower
 every problem's score for nothing.
 
-Usage: python3 mutants.py solution.py
+Usage: python3 mutants.py solution.py   (or - for standard input)
 """
 
 from __future__ import annotations
@@ -168,5 +168,9 @@ def mutants(source: str) -> list[dict[str, object]]:
 
 
 if __name__ == "__main__":
-    with open(sys.argv[1], encoding="utf-8") as f:
-        json.dump(mutants(f.read()), sys.stdout)
+    # "-" reads standard input (a /dev/stdin path isn't openable for every pipe).
+    if sys.argv[1] == "-":
+        json.dump(mutants(sys.stdin.read()), sys.stdout)
+    else:
+        with open(sys.argv[1], encoding="utf-8") as f:
+            json.dump(mutants(f.read()), sys.stdout)

@@ -51,7 +51,7 @@ class C:
           [
             "-I",
             join(import.meta.dirname, "../tools/mutants.py"),
-            "/dev/stdin",
+            "-",
           ],
           {
             input: sample,
@@ -108,7 +108,7 @@ class C:
   // A constant inside a raise is never mutated.
   const raises = execFileSync(
     "python3",
-    ["-I", join(import.meta.dirname, "../tools/mutants.py"), "/dev/stdin"],
+    ["-I", join(import.meta.dirname, "../tools/mutants.py"), "-"],
     {
       input: "def f(x):\n    raise ValueError(3)\n",
       encoding: "utf8",
