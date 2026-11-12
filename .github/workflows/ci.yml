@@ -149,8 +149,8 @@ jobs:
       # (gcc is over 1 GB) must not happen inside a run.
       - name: Pull the language images
         run: |
-          grep -o '"[a-z.-]*:[^"]*@sha256:[0-9a-f]*"' services/exec/engine/languages.go \
-            | tr -d '"' | sort -u | xargs -n1 docker pull -q
+          jq -r '.[] | select(.build == null) | .image' services/exec/engine/images.json \
+            | sort -u | xargs -r -n1 docker pull -q
 
       - name: Engine integration tests and the red-team suite
         working-directory: services/exec
