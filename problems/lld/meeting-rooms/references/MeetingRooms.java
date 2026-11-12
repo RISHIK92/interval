@@ -28,6 +28,19 @@ public class MeetingRooms {
     return rooms.get((int) room - 1).remove(start) != null;
   }
 
+  // The extension round.
+  public synchronized boolean extend(long room, long start, long end) {
+    if (end <= start) throw new IllegalArgumentException("end must be after start");
+    if (room < 1 || room > rooms.size()) return false;
+    Map<Long, Long> meetings = rooms.get((int) room - 1);
+    if (!meetings.containsKey(start)) return false;
+    // Against the room's other meetings only: shrinking always fits.
+    for (Map.Entry<Long, Long> m : meetings.entrySet())
+      if (m.getKey() != start && start < m.getValue() && m.getKey() < end) return false;
+    meetings.put(start, end);
+    return true;
+  }
+
   public synchronized long free(long at) {
     long free = 0;
     for (Map<Long, Long> meetings : rooms) {

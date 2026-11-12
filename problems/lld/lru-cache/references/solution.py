@@ -37,3 +37,16 @@ class LRUCache:
     def keys(self) -> list[str]:
         with self.lock:
             return list(reversed(self.entries))
+
+    # The extension round.
+    def resize(self, capacity: int) -> None:
+        if capacity < 1:
+            raise ValueError("capacity must be at least 1")
+        with self.lock:
+            self.capacity = capacity
+            while len(self.entries) > capacity:
+                self.entries.popitem(last=False)
+
+    def peek(self, key: str) -> int | None:
+        with self.lock:
+            return self.entries.get(key)

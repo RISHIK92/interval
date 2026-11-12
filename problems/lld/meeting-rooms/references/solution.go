@@ -55,6 +55,30 @@ func (m *MeetingRooms) cancel(room int64, start int64) bool {
 	return true
 }
 
+// The extension round.
+func (m *MeetingRooms) extend(room int64, start int64, end int64) bool {
+	if end <= start {
+		panic("end must be after start")
+	}
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if room < 1 || room > int64(len(m.rooms)) {
+		return false
+	}
+	meetings := m.rooms[room-1]
+	if _, ok := meetings[start]; !ok {
+		return false
+	}
+	// Against the room's other meetings only: shrinking always fits.
+	for s, e := range meetings {
+		if s != start && start < e && s < end {
+			return false
+		}
+	}
+	meetings[start] = end
+	return true
+}
+
 func (m *MeetingRooms) free(at int64) int64 {
 	m.mu.Lock()
 	defer m.mu.Unlock()

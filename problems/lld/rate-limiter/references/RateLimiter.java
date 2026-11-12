@@ -6,6 +6,8 @@ public class RateLimiter {
   // Each client's allowed requests, oldest first, and the time of its last call.
   private final Map<String, ArrayDeque<Long>> log = new HashMap<>();
   private final Map<String, Long> last = new HashMap<>();
+  // The extension round: per-client limits, over the default.
+  private final Map<String, Long> limits = new HashMap<>();
 
   public RateLimiter(long limit, long windowMs) {
     if (limit < 1 || windowMs < 1) throw new IllegalArgumentException("limit and window must be at least 1");
@@ -24,12 +26,22 @@ public class RateLimiter {
 
   public synchronized boolean allow(String client, long nowMs) {
     ArrayDeque<Long> entries = current(client, nowMs);
-    if (entries.size() >= limit) return false;
+    if (entries.size() >= limitOf(client)) return false;
     entries.addLast(nowMs);
     return true;
   }
 
   public synchronized long remaining(String client, long nowMs) {
-    return limit - current(client, nowMs).size();
+    // Never below 0: a lowered limit can leave more allowed than it now permits.
+    return Math.max(0, limitOf(client) - current(client, nowMs).size());
+  }
+
+  public synchronized void setLimit(String client, long limit) {
+    if (limit < 1) throw new IllegalArgumentException("limit must be at least 1");
+    limits.put(client, limit);
+  }
+
+  public synchronized long limitOf(String client) {
+    return limits.getOrDefault(client, limit);
   }
 }

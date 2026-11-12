@@ -5,6 +5,8 @@ class RateLimiter {
     if (limit < 1 || windowMs < 1)
       throw new RangeError("limit and window must be at least 1");
     this.limit = limit;
+    // The extension round: per-client limits, over the default.
+    this.limits = new Map();
     this.window = windowMs;
     // Each client's allowed requests, oldest first, and the time of its last call.
     this.log = new Map();
@@ -24,13 +26,26 @@ class RateLimiter {
 
   allow(client, nowMs) {
     const log = this.current(client, nowMs);
-    if (log.length >= this.limit) return false;
+    if (log.length >= this.limitOf(client)) return false;
     log.push(nowMs);
     return true;
   }
 
   remaining(client, nowMs) {
-    return this.limit - this.current(client, nowMs).length;
+    // Never below 0: a lowered limit can leave more allowed than it now permits.
+    return Math.max(
+      0,
+      this.limitOf(client) - this.current(client, nowMs).length,
+    );
+  }
+
+  setLimit(client, limit) {
+    if (limit < 1) throw new RangeError("limit must be at least 1");
+    this.limits.set(client, limit);
+  }
+
+  limitOf(client) {
+    return this.limits.get(client) ?? this.limit;
   }
 }
 

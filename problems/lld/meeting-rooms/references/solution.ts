@@ -21,6 +21,20 @@ export class MeetingRooms {
     return this.rooms[room - 1]?.delete(start) ?? false;
   }
 
+  // The extension round.
+  extend(room: number, start: number, end: number): boolean {
+    if (end <= start) throw new RangeError("end must be after start");
+    const meetings = this.rooms[room - 1];
+    if (meetings === undefined || !meetings.has(start)) return false;
+    // Against the room's other meetings only: shrinking always fits.
+    const clash = [...meetings].some(
+      ([s, e]) => s !== start && start < e && s < end,
+    );
+    if (clash) return false;
+    meetings.set(start, end);
+    return true;
+  }
+
   free(at: number): number {
     return this.rooms.filter(
       (meetings) => ![...meetings].some(([s, e]) => s <= at && at < e),

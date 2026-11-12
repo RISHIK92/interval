@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <map>
 #include <mutex>
+#include <set>
 #include <stdexcept>
 #include <string>
 
@@ -26,6 +27,7 @@ class Bank {
     positive(amount);
     std::lock_guard<std::mutex> hold(mu_);
     int64_t& balance = at(account);
+    unfrozen(account);
     if (balance < amount) return false;
     balance -= amount;
     return true;
@@ -37,10 +39,30 @@ class Bank {
     std::lock_guard<std::mutex> hold(mu_);
     int64_t& from = at(source);
     int64_t& to = at(target);
+    unfrozen(source);
+    unfrozen(target);
     if (from < amount) return false;
     from -= amount;
     to += amount;
     return true;
+  }
+
+  void freeze(std::string account) {
+    std::lock_guard<std::mutex> hold(mu_);
+    at(account);
+    frozen_.insert(account);
+  }
+
+  void unfreeze(std::string account) {
+    std::lock_guard<std::mutex> hold(mu_);
+    at(account);
+    frozen_.erase(account);
+  }
+
+  bool isFrozen(std::string account) {
+    std::lock_guard<std::mutex> hold(mu_);
+    at(account);
+    return frozen_.count(account) > 0;
   }
 
   int64_t balance(std::string account) {
@@ -56,6 +78,10 @@ class Bank {
   }
 
  private:
+  void unfrozen(const std::string& account) const {
+    if (frozen_.count(account) > 0) throw std::runtime_error("account frozen");
+  }
+
   static void positive(int64_t amount) {
     if (amount <= 0) throw std::invalid_argument("amount must be positive");
   }
@@ -67,6 +93,8 @@ class Bank {
   }
 
   std::map<std::string, int64_t> accounts_;
+  // The extension round: frozen accounts send and receive nothing.
+  std::set<std::string> frozen_;
   // One lock for the whole ledger: a transfer touches two accounts at once, and a lock
   // per account would need an ordering to avoid deadlock.
   std::mutex mu_;

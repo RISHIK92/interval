@@ -1,5 +1,7 @@
 export class Bank {
   private readonly accounts = new Map<string, number>();
+  // The extension round: frozen accounts send and receive nothing.
+  private readonly frozen = new Set<string>();
 
   private get(account: string): number {
     const balance = this.accounts.get(account);
@@ -23,6 +25,7 @@ export class Bank {
   withdraw(account: string, amount: number): boolean {
     if (amount <= 0) throw new RangeError("amount must be positive");
     const balance = this.get(account);
+    this.unfrozen(account);
     if (balance < amount) return false;
     this.accounts.set(account, balance - amount);
     return true;
@@ -34,10 +37,31 @@ export class Bank {
       throw new RangeError("a transfer needs two accounts");
     const from = this.get(source);
     const to = this.get(target);
+    this.unfrozen(source);
+    this.unfrozen(target);
     if (from < amount) return false;
     this.accounts.set(source, from - amount);
     this.accounts.set(target, to + amount);
     return true;
+  }
+
+  private unfrozen(account: string): void {
+    if (this.frozen.has(account)) throw new Error("account frozen");
+  }
+
+  freeze(account: string): void {
+    this.get(account);
+    this.frozen.add(account);
+  }
+
+  unfreeze(account: string): void {
+    this.get(account);
+    this.frozen.delete(account);
+  }
+
+  isFrozen(account: string): boolean {
+    this.get(account);
+    return this.frozen.has(account);
   }
 
   balance(account: string): number {

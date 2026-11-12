@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import heapq
+import re
 import threading
 
 PREFIX = {"small": "S", "large": "L"}
@@ -17,6 +18,9 @@ class ParkingLot:
             "large": list(range(1, large + 1)),
         }
         self.cars: dict[str, tuple[str, int]] = {}
+        # The extension round: spots out of use, and how many of each size exist.
+        self.blocked: set[tuple[str, int]] = set()
+        self.counts = {"small": small, "large": large}
         self.lock = threading.Lock()
 
     def park(self, plate: str, size: str) -> str | None:
@@ -44,6 +48,35 @@ class ParkingLot:
         with self.lock:
             spot = self.cars.get(plate)
             return None if spot is None else PREFIX[spot[0]] + str(spot[1])
+
+    def _spot(self, spot: str) -> tuple[str, int]:
+        match = re.fullmatch(r"([SL])([1-9][0-9]*)", spot)
+        if match is None:
+            raise ValueError("unknown spot")
+        kind = "small" if match.group(1) == "S" else "large"
+        number = int(match.group(2))
+        if number > self.counts[kind]:
+            raise ValueError("unknown spot")
+        return kind, number
+
+    def block(self, spot: str) -> bool:
+        kind, number = self._spot(spot)
+        with self.lock:
+            if number not in self.spots[kind]:
+                return False
+            self.spots[kind].remove(number)
+            heapq.heapify(self.spots[kind])
+            self.blocked.add((kind, number))
+            return True
+
+    def unblock(self, spot: str) -> bool:
+        kind, number = self._spot(spot)
+        with self.lock:
+            if (kind, number) not in self.blocked:
+                return False
+            self.blocked.remove((kind, number))
+            heapq.heappush(self.spots[kind], number)
+            return True
 
     def free(self, size: str) -> int:
         if size not in PREFIX:

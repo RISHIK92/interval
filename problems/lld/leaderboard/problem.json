@@ -2182,5 +2182,165 @@
         }
       }
     ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "around",
+        "params": [
+          {
+            "name": "player",
+            "type": "string"
+          },
+          {
+            "name": "radius",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["p0", 1]
+          },
+          {
+            "method": "add",
+            "args": ["p1", 2]
+          },
+          {
+            "method": "add",
+            "args": ["p2", 3]
+          },
+          {
+            "method": "add",
+            "args": ["p3", 4]
+          },
+          {
+            "method": "add",
+            "args": ["p4", 5]
+          },
+          {
+            "method": "add",
+            "args": ["p5", 6]
+          },
+          {
+            "method": "add",
+            "args": ["p6", 7]
+          },
+          {
+            "method": "around",
+            "args": ["p3", 1]
+          },
+          {
+            "method": "around",
+            "args": ["p6", 2]
+          },
+          {
+            "method": "around",
+            "args": ["p0", 2]
+          },
+          {
+            "method": "around",
+            "args": ["p3", 0]
+          },
+          {
+            "method": "around",
+            "args": ["p3", 10]
+          },
+          {
+            "method": "around",
+            "args": ["nobody", 1]
+          },
+          {
+            "method": "around",
+            "args": ["p3", -1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["b", 5]
+          },
+          {
+            "method": "add",
+            "args": ["a", 5]
+          },
+          {
+            "method": "add",
+            "args": ["c", 5]
+          },
+          {
+            "method": "around",
+            "args": ["b", 1]
+          },
+          {
+            "method": "add",
+            "args": ["c", 1]
+          },
+          {
+            "method": "around",
+            "args": ["a", 1]
+          },
+          {
+            "method": "remove",
+            "args": ["c"]
+          },
+          {
+            "method": "around",
+            "args": ["a", 1]
+          },
+          {
+            "method": "around",
+            "args": ["c", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "around",
+            "args": ["x", 0]
+          },
+          {
+            "method": "add",
+            "args": ["x", 1]
+          },
+          {
+            "method": "around",
+            "args": ["x", 0]
+          },
+          {
+            "method": "around",
+            "args": ["x", 9007199254740991]
+          },
+          {
+            "method": "add",
+            "args": ["y", 2]
+          },
+          {
+            "method": "around",
+            "args": ["x", 1]
+          }
+        ]
+      }
+    ]
   }
 }

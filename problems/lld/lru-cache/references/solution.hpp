@@ -45,6 +45,24 @@ class LRUCache {
     return static_cast<int64_t>(order_.size());
   }
 
+  // The extension round.
+  void resize(int64_t capacity) {
+    if (capacity < 1) throw std::invalid_argument("capacity must be at least 1");
+    std::lock_guard<std::mutex> hold(mu_);
+    capacity_ = capacity;
+    while (static_cast<int64_t>(order_.size()) > capacity_) {
+      index_.erase(order_.back().first);
+      order_.pop_back();
+    }
+  }
+
+  std::optional<int64_t> peek(std::string key) {
+    std::lock_guard<std::mutex> hold(mu_);
+    auto it = index_.find(key);
+    if (it == index_.end()) return std::nullopt;
+    return it->second->second;
+  }
+
   std::vector<std::string> keys() {
     std::lock_guard<std::mutex> hold(mu_);
     std::vector<std::string> out;

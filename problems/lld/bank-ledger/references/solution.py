@@ -6,6 +6,8 @@ import threading
 class Bank:
     def __init__(self) -> None:
         self.accounts: dict[str, int] = {}
+        # The extension round: frozen accounts send and receive nothing.
+        self.frozen: set[str] = set()
         # One lock for the whole ledger: a transfer touches two accounts at once, and a
         # lock per account would need an ordering to avoid deadlock.
         self.lock = threading.Lock()
@@ -35,6 +37,7 @@ class Bank:
             raise ValueError("amount must be positive")
         with self.lock:
             self._known(account)
+            self._unfrozen(account)
             if self.accounts[account] < amount:
                 return False
             self.accounts[account] -= amount
@@ -48,11 +51,32 @@ class Bank:
         with self.lock:
             self._known(source)
             self._known(target)
+            self._unfrozen(source)
+            self._unfrozen(target)
             if self.accounts[source] < amount:
                 return False
             self.accounts[source] -= amount
             self.accounts[target] += amount
             return True
+
+    def _unfrozen(self, account: str) -> None:
+        if account in self.frozen:
+            raise ValueError("account frozen")
+
+    def freeze(self, account: str) -> None:
+        with self.lock:
+            self._known(account)
+            self.frozen.add(account)
+
+    def unfreeze(self, account: str) -> None:
+        with self.lock:
+            self._known(account)
+            self.frozen.discard(account)
+
+    def isFrozen(self, account: str) -> bool:
+        with self.lock:
+            self._known(account)
+            return account in self.frozen
 
     def balance(self, account: str) -> int:
         with self.lock:

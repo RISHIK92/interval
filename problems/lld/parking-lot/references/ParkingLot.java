@@ -10,9 +10,14 @@ public class ParkingLot {
   // Free spot numbers per size: the lowest is always first.
   private final Map<String, TreeSet<Long>> spots = new HashMap<>();
   private final Map<String, Spot> cars = new HashMap<>();
+  // The extension round: spots out of use, and how many of each size exist.
+  private final Set<Spot> blocked = new HashSet<>();
+  private final Map<String, Long> counts = new HashMap<>();
 
   public ParkingLot(long small, long large) {
     if (small < 0 || large < 0) throw new IllegalArgumentException("negative spot count");
+    counts.put("small", small);
+    counts.put("large", large);
     spots.put("small", new TreeSet<>());
     spots.put("large", new TreeSet<>());
     for (long i = 1; i <= small; i++) spots.get("small").add(i);
@@ -48,6 +53,34 @@ public class ParkingLot {
   public synchronized String where(String plate) {
     Spot spot = cars.get(plate);
     return spot == null ? null : spot.label();
+  }
+
+  private Spot spotOf(String spot) {
+    java.util.regex.Matcher m = java.util.regex.Pattern.compile("([SL])([1-9][0-9]*)").matcher(spot);
+    if (!m.matches()) throw new IllegalArgumentException("unknown spot");
+    String kind = m.group(1).equals("S") ? "small" : "large";
+    long number;
+    try {
+      number = Long.parseLong(m.group(2));
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("unknown spot");
+    }
+    if (number > counts.get(kind)) throw new IllegalArgumentException("unknown spot");
+    return new Spot(kind, number);
+  }
+
+  public synchronized boolean block(String spot) {
+    Spot s = spotOf(spot);
+    if (!spots.get(s.kind()).remove(s.number())) return false;
+    blocked.add(s);
+    return true;
+  }
+
+  public synchronized boolean unblock(String spot) {
+    Spot s = spotOf(spot);
+    if (!blocked.remove(s)) return false;
+    spots.get(s.kind()).add(s.number());
+    return true;
   }
 
   public synchronized long free(String size) {

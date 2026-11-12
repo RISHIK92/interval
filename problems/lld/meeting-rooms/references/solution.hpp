@@ -33,6 +33,21 @@ class MeetingRooms {
     return rooms_[static_cast<size_t>(room - 1)].erase(start) > 0;
   }
 
+  // The extension round.
+  bool extend(int64_t room, int64_t start, int64_t end) {
+    if (end <= start) throw std::invalid_argument("end must be after start");
+    std::lock_guard<std::mutex> hold(mu_);
+    if (room < 1 || room > static_cast<int64_t>(rooms_.size())) return false;
+    auto& meetings = rooms_[static_cast<size_t>(room - 1)];
+    auto it = meetings.find(start);
+    if (it == meetings.end()) return false;
+    // Against the room's other meetings only: shrinking always fits.
+    for (const auto& [s, e] : meetings)
+      if (s != start && start < e && s < end) return false;
+    it->second = end;
+    return true;
+  }
+
   int64_t free(int64_t at) {
     std::lock_guard<std::mutex> hold(mu_);
     int64_t count = 0;

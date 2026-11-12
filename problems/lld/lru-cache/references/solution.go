@@ -62,6 +62,32 @@ func (c *LRUCache) size() int64 {
 	return int64(c.order.Len())
 }
 
+// The extension round.
+func (c *LRUCache) resize(capacity int64) {
+	if capacity < 1 {
+		panic("capacity must be at least 1")
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.capacity = capacity
+	for int64(c.order.Len()) > capacity {
+		oldest := c.order.Back()
+		c.order.Remove(oldest)
+		delete(c.index, oldest.Value.(*lruEntry).key)
+	}
+}
+
+func (c *LRUCache) peek(key string) *int64 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	e, ok := c.index[key]
+	if !ok {
+		return nil
+	}
+	v := e.Value.(*lruEntry).value
+	return &v
+}
+
 func (c *LRUCache) keys() []string {
 	c.mu.Lock()
 	defer c.mu.Unlock()

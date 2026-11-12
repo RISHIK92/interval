@@ -4,6 +4,8 @@ public class Bank {
   // One monitor for the whole ledger: a transfer touches two accounts at once, and a lock
   // per account would need an ordering to avoid deadlock.
   private final Map<String, Long> accounts = new HashMap<>();
+  // The extension round: frozen accounts send and receive nothing.
+  private final Set<String> frozen = new HashSet<>();
 
   private long get(String account) {
     Long balance = accounts.get(account);
@@ -31,6 +33,7 @@ public class Bank {
   public synchronized boolean withdraw(String account, long amount) {
     positive(amount);
     long balance = get(account);
+    unfrozen(account);
     if (balance < amount) return false;
     accounts.put(account, balance - amount);
     return true;
@@ -41,10 +44,31 @@ public class Bank {
     if (source.equals(target)) throw new IllegalArgumentException("a transfer needs two accounts");
     long from = get(source);
     long to = get(target);
+    unfrozen(source);
+    unfrozen(target);
     if (from < amount) return false;
     accounts.put(source, from - amount);
     accounts.put(target, to + amount);
     return true;
+  }
+
+  private void unfrozen(String account) {
+    if (frozen.contains(account)) throw new IllegalStateException("account frozen");
+  }
+
+  public synchronized void freeze(String account) {
+    get(account);
+    frozen.add(account);
+  }
+
+  public synchronized void unfreeze(String account) {
+    get(account);
+    frozen.remove(account);
+  }
+
+  public synchronized boolean isFrozen(String account) {
+    get(account);
+    return frozen.contains(account);
   }
 
   public synchronized long balance(String account) {

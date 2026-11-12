@@ -67,6 +67,31 @@ func (l *Leaderboard) rank(player string) *int64 {
 	return nil
 }
 
+// The extension round.
+func (l *Leaderboard) around(player string, radius int64) []string {
+	if radius < 0 {
+		panic("negative radius")
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if _, ok := l.totals[player]; !ok {
+		return []string{}
+	}
+	players := l.ordered()
+	at := int64(0)
+	for i, p := range players {
+		if p == player {
+			at = int64(i)
+		}
+	}
+	size := int64(len(players))
+	from, to := max(0, at-radius), size
+	if radius < size {
+		to = min(size, at+radius+1)
+	}
+	return players[from:to]
+}
+
 func (l *Leaderboard) remove(player string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()

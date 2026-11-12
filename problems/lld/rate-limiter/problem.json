@@ -2099,5 +2099,223 @@
         }
       }
     ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "setLimit",
+        "params": [
+          {
+            "name": "client",
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "limitOf",
+        "params": [
+          {
+            "name": "client",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 100]
+          },
+          {
+            "method": "limitOf",
+            "args": ["a"]
+          },
+          {
+            "method": "setLimit",
+            "args": ["a", 3]
+          },
+          {
+            "method": "limitOf",
+            "args": ["a"]
+          },
+          {
+            "method": "limitOf",
+            "args": ["b"]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["b", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["b", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["b", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, 100]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 1]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 2]
+          },
+          {
+            "method": "setLimit",
+            "args": ["a", 1]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 3]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 3]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 100]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 101]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 102]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 102]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 102]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1, 10]
+          },
+          {
+            "method": "setLimit",
+            "args": ["a", 0]
+          },
+          {
+            "method": "setLimit",
+            "args": ["a", -1]
+          },
+          {
+            "method": "limitOf",
+            "args": ["a"]
+          },
+          {
+            "method": "setLimit",
+            "args": ["a", 2]
+          },
+          {
+            "method": "setLimit",
+            "args": ["a", 5]
+          },
+          {
+            "method": "limitOf",
+            "args": ["a"]
+          },
+          {
+            "method": "allow",
+            "args": ["a", 0]
+          },
+          {
+            "method": "remaining",
+            "args": ["a", 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, 50]
+          },
+          {
+            "method": "setLimit",
+            "args": ["x", 2]
+          },
+          {
+            "method": "allow",
+            "args": ["x", -10]
+          },
+          {
+            "method": "allow",
+            "args": ["x", -5]
+          },
+          {
+            "method": "allow",
+            "args": ["x", 0]
+          },
+          {
+            "method": "remaining",
+            "args": ["x", 0]
+          },
+          {
+            "method": "remaining",
+            "args": ["y", 0]
+          },
+          {
+            "method": "setLimit",
+            "args": ["x", 4]
+          },
+          {
+            "method": "remaining",
+            "args": ["x", 0]
+          },
+          {
+            "method": "allow",
+            "args": ["x", 0]
+          }
+        ]
+      }
+    ]
   }
 }

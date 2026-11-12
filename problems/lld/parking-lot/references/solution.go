@@ -2,6 +2,7 @@ package main
 
 import (
 	"container/heap"
+	"regexp"
 	"strconv"
 	"sync"
 )
@@ -36,7 +37,10 @@ func (c parkedCar) label() string {
 type ParkingLot struct {
 	spots map[string]*spotHeap
 	cars  map[string]parkedCar
-	mu    sync.Mutex
+	// The extension round: spots out of use, and how many of each size exist.
+	blocked map[parkedCar]bool
+	counts  map[string]int64
+	mu      sync.Mutex
 }
 
 func NewParkingLot(small int64, large int64) *ParkingLot {
@@ -50,7 +54,7 @@ func NewParkingLot(small int64, large int64) *ParkingLot {
 		}
 		return &h
 	}
-	return &ParkingLot{spots: map[string]*spotHeap{"small": fill(small), "large": fill(large)}, cars: map[string]parkedCar{}}
+	return &ParkingLot{spots: map[string]*spotHeap{"small": fill(small), "large": fill(large)}, cars: map[string]parkedCar{}, blocked: map[parkedCar]bool{}, counts: map[string]int64{"small": small, "large": large}}
 }
 
 func (p *ParkingLot) known(size string) *spotHeap {
@@ -107,6 +111,52 @@ func (p *ParkingLot) where(plate string) *string {
 	}
 	l := car.label()
 	return &l
+}
+
+var spotPattern = regexp.MustCompile(`^([SL])([1-9][0-9]{0,17})$`)
+
+func (p *ParkingLot) spotOf(spot string) parkedCar {
+	m := spotPattern.FindStringSubmatch(spot)
+	if m == nil {
+		panic("unknown spot")
+	}
+	kind := "large"
+	if m[1] == "S" {
+		kind = "small"
+	}
+	number, err := strconv.ParseInt(m[2], 10, 64)
+	if err != nil || number > p.counts[kind] {
+		panic("unknown spot")
+	}
+	return parkedCar{kind, number}
+}
+
+// The extension round: a spot out of use, and back.
+func (p *ParkingLot) block(spot string) bool {
+	s := p.spotOf(spot)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	h := p.spots[s.kind]
+	for i, n := range *h {
+		if n == s.number {
+			heap.Remove(h, i)
+			p.blocked[s] = true
+			return true
+		}
+	}
+	return false
+}
+
+func (p *ParkingLot) unblock(spot string) bool {
+	s := p.spotOf(spot)
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if !p.blocked[s] {
+		return false
+	}
+	delete(p.blocked, s)
+	heap.Push(p.spots[s.kind], s.number)
+	return true
 }
 
 func (p *ParkingLot) free(size string) int64 {

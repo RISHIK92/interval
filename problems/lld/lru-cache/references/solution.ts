@@ -1,5 +1,5 @@
 export class LRUCache {
-  private readonly capacity: number;
+  private capacity: number;
   // A Map keeps insertion order: the first key is the least recently used.
   private readonly entries = new Map<string, number>();
 
@@ -32,5 +32,19 @@ export class LRUCache {
 
   keys(): string[] {
     return [...this.entries.keys()].reverse();
+  }
+
+  // The extension round.
+  resize(capacity: number): void {
+    if (capacity < 1) throw new RangeError("capacity must be at least 1");
+    this.capacity = capacity;
+    for (const oldest of this.entries.keys()) {
+      if (this.entries.size <= capacity) break;
+      this.entries.delete(oldest);
+    }
+  }
+
+  peek(key: string): number | null {
+    return this.entries.get(key) ?? null;
   }
 }

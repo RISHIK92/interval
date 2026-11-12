@@ -2203,5 +2203,227 @@
         }
       }
     ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "block",
+        "params": [
+          {
+            "name": "spot",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "unblock",
+        "params": [
+          {
+            "name": "spot",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [3, 1]
+          },
+          {
+            "method": "block",
+            "args": ["S1"]
+          },
+          {
+            "method": "free",
+            "args": ["small"]
+          },
+          {
+            "method": "park",
+            "args": ["a", "small"]
+          },
+          {
+            "method": "park",
+            "args": ["b", "small"]
+          },
+          {
+            "method": "park",
+            "args": ["c", "small"]
+          },
+          {
+            "method": "park",
+            "args": ["d", "small"]
+          },
+          {
+            "method": "unblock",
+            "args": ["S1"]
+          },
+          {
+            "method": "free",
+            "args": ["small"]
+          },
+          {
+            "method": "park",
+            "args": ["d", "small"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 2]
+          },
+          {
+            "method": "park",
+            "args": ["a", "small"]
+          },
+          {
+            "method": "block",
+            "args": ["S1"]
+          },
+          {
+            "method": "block",
+            "args": ["S2"]
+          },
+          {
+            "method": "block",
+            "args": ["S2"]
+          },
+          {
+            "method": "unblock",
+            "args": ["S1"]
+          },
+          {
+            "method": "unblock",
+            "args": ["S2"]
+          },
+          {
+            "method": "unblock",
+            "args": ["S2"]
+          },
+          {
+            "method": "leave",
+            "args": ["a"]
+          },
+          {
+            "method": "block",
+            "args": ["S1"]
+          },
+          {
+            "method": "park",
+            "args": ["e", "small"]
+          },
+          {
+            "method": "free",
+            "args": ["small"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [2, 1]
+          },
+          {
+            "method": "block",
+            "args": ["S3"]
+          },
+          {
+            "method": "block",
+            "args": ["L2"]
+          },
+          {
+            "method": "block",
+            "args": ["X1"]
+          },
+          {
+            "method": "block",
+            "args": ["S0"]
+          },
+          {
+            "method": "block",
+            "args": ["s1"]
+          },
+          {
+            "method": "block",
+            "args": ["S01"]
+          },
+          {
+            "method": "block",
+            "args": ["L1"]
+          },
+          {
+            "method": "park",
+            "args": ["big", "large"]
+          },
+          {
+            "method": "free",
+            "args": ["large"]
+          },
+          {
+            "method": "unblock",
+            "args": ["L1"]
+          },
+          {
+            "method": "park",
+            "args": ["big", "large"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [12, 0]
+          },
+          {
+            "method": "block",
+            "args": ["S10"]
+          },
+          {
+            "method": "block",
+            "args": ["S2"]
+          },
+          {
+            "method": "park",
+            "args": ["a", "small"]
+          },
+          {
+            "method": "park",
+            "args": ["b", "small"]
+          },
+          {
+            "method": "free",
+            "args": ["small"]
+          },
+          {
+            "method": "unblock",
+            "args": ["S2"]
+          },
+          {
+            "method": "park",
+            "args": ["c", "small"]
+          },
+          {
+            "method": "where",
+            "args": ["c"]
+          },
+          {
+            "method": "unblock",
+            "args": ["S10"]
+          },
+          {
+            "method": "free",
+            "args": ["small"]
+          }
+        ]
+      }
+    ]
   }
 }

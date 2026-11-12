@@ -31,6 +31,18 @@ class LRUCache {
   keys() {
     return [...this.entries.keys()].reverse();
   }
+
+  // The extension round.
+  resize(capacity) {
+    if (capacity < 1) throw new RangeError("capacity must be at least 1");
+    this.capacity = capacity;
+    while (this.entries.size > capacity)
+      this.entries.delete(this.entries.keys().next().value);
+  }
+
+  peek(key) {
+    return this.entries.get(key) ?? null;
+  }
 }
 
 module.exports = { LRUCache };

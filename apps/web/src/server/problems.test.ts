@@ -13,6 +13,7 @@ const source = (): ProblemSource => ({
     JSON.parse(readFileSync(join(dir, "problem.json"), "utf8")),
   ),
   statement: readFileSync(join(dir, "statement.md"), "utf8"),
+  extensionStatement: readFileSync(join(dir, "extension.md"), "utf8"),
   expected: Expected.parse(
     JSON.parse(readFileSync(join(dir, "expected.json"), "utf8")),
   ),

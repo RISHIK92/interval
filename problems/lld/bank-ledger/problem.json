@@ -2205,5 +2205,257 @@
         }
       }
     ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "freeze",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "unfreeze",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "isFrozen",
+        "params": [
+          {
+            "name": "account",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 100]
+          },
+          {
+            "method": "open",
+            "args": ["b", 0]
+          },
+          {
+            "method": "freeze",
+            "args": ["a"]
+          },
+          {
+            "method": "isFrozen",
+            "args": ["a"]
+          },
+          {
+            "method": "isFrozen",
+            "args": ["b"]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 10]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", 10]
+          },
+          {
+            "method": "transfer",
+            "args": ["b", "a", 0]
+          },
+          {
+            "method": "deposit",
+            "args": ["a", 5]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "unfreeze",
+            "args": ["a"]
+          },
+          {
+            "method": "isFrozen",
+            "args": ["a"]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 10]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 50]
+          },
+          {
+            "method": "open",
+            "args": ["b", 50]
+          },
+          {
+            "method": "freeze",
+            "args": ["b"]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", 10]
+          },
+          {
+            "method": "transfer",
+            "args": ["b", "a", 10]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 60]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 50]
+          },
+          {
+            "method": "balance",
+            "args": ["a"]
+          },
+          {
+            "method": "balance",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "freeze",
+            "args": ["ghost"]
+          },
+          {
+            "method": "unfreeze",
+            "args": ["ghost"]
+          },
+          {
+            "method": "isFrozen",
+            "args": ["ghost"]
+          },
+          {
+            "method": "open",
+            "args": ["a", 1]
+          },
+          {
+            "method": "freeze",
+            "args": ["a"]
+          },
+          {
+            "method": "freeze",
+            "args": ["a"]
+          },
+          {
+            "method": "unfreeze",
+            "args": ["a"]
+          },
+          {
+            "method": "unfreeze",
+            "args": ["a"]
+          },
+          {
+            "method": "isFrozen",
+            "args": ["a"]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "open",
+            "args": ["a", 10]
+          },
+          {
+            "method": "open",
+            "args": ["b", 10]
+          },
+          {
+            "method": "freeze",
+            "args": ["a"]
+          },
+          {
+            "method": "withdraw",
+            "args": ["a", 11]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "a", 1]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "x", 1]
+          },
+          {
+            "method": "deposit",
+            "args": ["a", 0]
+          },
+          {
+            "method": "freeze",
+            "args": ["b"]
+          },
+          {
+            "method": "deposit",
+            "args": ["b", 3]
+          },
+          {
+            "method": "balance",
+            "args": ["b"]
+          },
+          {
+            "method": "unfreeze",
+            "args": ["a"]
+          },
+          {
+            "method": "transfer",
+            "args": ["a", "b", 5]
+          }
+        ]
+      }
+    ]
   }
 }

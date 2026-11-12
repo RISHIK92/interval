@@ -30,6 +30,15 @@ class Leaderboard {
     return this.ordered().indexOf(player) + 1;
   }
 
+  // The extension round.
+  around(player, radius) {
+    if (radius < 0) throw new RangeError("negative radius");
+    if (!this.totals.has(player)) return [];
+    const ordered = this.ordered();
+    const at = ordered.indexOf(player);
+    return ordered.slice(Math.max(0, at - radius), at + radius + 1);
+  }
+
   remove(player) {
     return this.totals.delete(player);
   }

@@ -181,6 +181,7 @@ Already in place, so not sliced again:
 
 - IDs: §6.5; Q-P5-15
 - Goal: an extension round for each of the six problems, with references in six languages, verified and mutation-gated.
+- Built 2026-11-13.
 
 ### P5-W31-S03 The battle page and Monaco
 

@@ -4,13 +4,15 @@ import "sync"
 
 type Bank struct {
 	accounts map[string]int64
+	// The extension round: frozen accounts send and receive nothing.
+	frozen map[string]bool
 	// One lock for the whole ledger: a transfer touches two accounts at once, and a lock
 	// per account would need an ordering to avoid deadlock.
 	mu sync.Mutex
 }
 
 func NewBank() *Bank {
-	return &Bank{accounts: map[string]int64{}}
+	return &Bank{accounts: map[string]int64{}, frozen: map[string]bool{}}
 }
 
 func positive(amount int64) {
@@ -53,6 +55,7 @@ func (b *Bank) withdraw(account string, amount int64) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	balance := b.get(account)
+	b.unfrozen(account)
 	if balance < amount {
 		return false
 	}
@@ -68,12 +71,41 @@ func (b *Bank) transfer(source string, target string, amount int64) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	from, to := b.get(source), b.get(target)
+	b.unfrozen(source)
+	b.unfrozen(target)
 	if from < amount {
 		return false
 	}
 	b.accounts[source] = from - amount
 	b.accounts[target] = to + amount
 	return true
+}
+
+func (b *Bank) unfrozen(account string) {
+	if b.frozen[account] {
+		panic("account frozen")
+	}
+}
+
+func (b *Bank) freeze(account string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.get(account)
+	b.frozen[account] = true
+}
+
+func (b *Bank) unfreeze(account string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.get(account)
+	delete(b.frozen, account)
+}
+
+func (b *Bank) isFrozen(account string) bool {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	b.get(account)
+	return b.frozen[account]
 }
 
 func (b *Bank) balance(account string) int64 {

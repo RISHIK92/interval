@@ -5136,3 +5136,26 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Next:**
   - **W31-S02c:** extensions for the six problems (content, six languages each).
   - **W31-S02b:** the battle lifecycle in the game server.
+
+### 2026-11-13 — P5-W31-S02c (extensions for the six problems; §6.5, Q-P5-15)
+
+- **One extension round per problem, PROVISIONAL like the problems.** Each adds methods whose effect reaches the existing ones, never changing base behaviour without an extension call. Each has its own `extension.md`, references in six languages (locked where state is shared), and 3–6 extension scenarios.
+
+  | Problem | Extension | Mutants caught |
+  | --- | --- | --- |
+  | `lru-cache` | `resize(capacity)` (evicts the least recently used down to the new size), `peek(key)` (reads without making the key recent) | 26/26 |
+  | `rate-limiter` | `setLimit(client, limit)`, `limitOf(client)`; requests already in the window count against a new limit, and `remaining` is floored at 0 (a no-op without `setLimit`) | 34/34 |
+  | `parking-lot` | `block(spot)`, `unblock(spot)`; a blocked spot is never assigned or counted free; spot names are strict | 70/70 |
+  | `bank-ledger` | `freeze`, `unfreeze`, `isFrozen`; a frozen account can't withdraw, send or receive transfers, but takes deposits | 45/45 |
+  | `leaderboard` | `around(player, radius)`, the players ranked within `radius` places, in rank order | 37/37 |
+  | `meeting-rooms` | `extend(room, start, end)`, which moves a meeting's end if the room is free for the added time; shrinking always fits | 58/58 |
+
+- **Mutation gaps closed:** `meeting-rooms` first scored 56/58. Its two survivors were real gaps, room 0 reaching the last room through Python's index -1 and another meeting ending exactly at start, and new scenarios now kill them.
+- **Gates:** all six verify in every language through Velox's `exec` binary, with 5 random base scenarios each, and pass the 90% mutation gate.
+- **Sonnet review:** statements clarified, with all six references already agreeing:
+  - in `meeting-rooms`, touching meetings don't clash;
+  - argument errors are checked first (`meeting-rooms`, `leaderboard`);
+  - spot names that fail are spelled out (`parking-lot`).
+
+  Its one "blocker", a Java long overflow in `around` with a radius near `Long.MAX_VALUE`, can't happen: the contract caps ints at ±2^53. Not changed.
+- **For the owner:** review the six extensions' wording and difficulty with the problems, before launch.

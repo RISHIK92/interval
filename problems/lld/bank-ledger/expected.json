@@ -516,5 +516,229 @@
         "value": 2000
       }
     ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "error": "ValueError: account frozen"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: account frozen"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: amount must be positive"
+      },
+      {
+        "call": 9,
+        "value": 105
+      },
+      {
+        "call": 10,
+        "value": 105
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": true
+      },
+      {
+        "call": 14,
+        "value": 95
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: account frozen"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: account frozen"
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": 50
+      },
+      {
+        "call": 10,
+        "value": 50
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "KeyError: 'unknown account'"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'unknown account'"
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'unknown account'"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": true
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: account frozen"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a transfer needs two accounts"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'unknown account'"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: amount must be positive"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": 13
+      },
+      {
+        "call": 10,
+        "value": 13
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "error": "ValueError: account frozen"
+      }
+    ]
   }
 ]

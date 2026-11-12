@@ -33,6 +33,19 @@ class Leaderboard {
     return std::find(players.begin(), players.end(), player) - players.begin() + 1;
   }
 
+  // The extension round.
+  std::vector<std::string> around(std::string player, int64_t radius) {
+    if (radius < 0) throw std::invalid_argument("negative radius");
+    std::lock_guard<std::mutex> hold(mu_);
+    if (!totals_.count(player)) return {};
+    std::vector<std::string> players = ordered();
+    int64_t at = std::find(players.begin(), players.end(), player) - players.begin();
+    int64_t size = static_cast<int64_t>(players.size());
+    int64_t from = std::max<int64_t>(0, at - radius);
+    int64_t to = radius >= size ? size : std::min<int64_t>(size, at + radius + 1);
+    return {players.begin() + from, players.begin() + to};
+  }
+
   bool remove(std::string player) {
     std::lock_guard<std::mutex> hold(mu_);
     return totals_.erase(player) > 0;

@@ -30,6 +30,17 @@ class Leaderboard:
                 return None
             return self._ordered().index(player) + 1
 
+    # The extension round.
+    def around(self, player: str, radius: int) -> list[str]:
+        if radius < 0:
+            raise ValueError("negative radius")
+        with self.lock:
+            if player not in self.totals:
+                return []
+            ordered = self._ordered()
+            at = ordered.index(player)
+            return ordered[max(0, at - radius) : at + radius + 1]
+
     def remove(self, player: str) -> bool:
         with self.lock:
             return self.totals.pop(player, None) is not None
