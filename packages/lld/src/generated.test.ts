@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 import { z } from "zod";
+import { Check } from "./check";
 import { goTypes } from "./go";
 import { Interface } from "./interface";
 import { ResultLine, Scenario } from "./scenario";
@@ -26,6 +27,7 @@ test("the committed JSON Schemas are the ones the zod contracts generate", () =>
     interface: Interface,
     scenario: Scenario,
     result: ResultLine,
+    check: Check,
   }))
     same(
       join(root, "schema", `${name}.schema.json`),
@@ -39,9 +41,24 @@ test("the committed JSON Schemas are the ones the zod contracts generate", () =>
 test("the checker's Go types are the ones the zod contracts generate", () => {
   same(
     join(root, "../../services/exec/lld/types.go"),
-    goTypes("lld", { Scenario, ResultLine }, { calls: "Call" }),
+    goTypes("lld", { Scenario, ResultLine, Check }, { calls: "Call" }),
     (committed, fresh) => {
       expect(committed).toBe(fresh);
     },
   );
+});
+
+test("the Go emitter refuses a rule it can't enforce, never dropping it", () => {
+  // A length on a list's strings, which a []string can't carry.
+  expect(() =>
+    goTypes(
+      "x",
+      { Bad: z.strictObject({ tags: z.array(z.string().max(5)) }) },
+      {},
+    ),
+  ).toThrow(/doesn't enforce "maxLength"/);
+  // A keyword it doesn't know at all.
+  expect(() =>
+    goTypes("x", { Bad: z.strictObject({ id: z.string().default("a") }) }, {}),
+  ).toThrow(/doesn't enforce "default"/);
 });

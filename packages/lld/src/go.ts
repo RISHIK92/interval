@@ -6,6 +6,10 @@ import { z } from "zod";
 // Decode function that refuses unknown fields and trailing data, then checks required
 // fields, a union's exactly-one variant, bounds and patterns. Sandbox output is
 // untrusted (EXEC-4), so Go gets the whole contract, never a hand-kept second copy.
+// One gap remains: Go's decoder matches keys case-insensitively and keeps the last of a
+// repeated key, where zod refuses both. Neither changes a verdict, since a submission
+// writes its own stdout anyway, but a strict contract on the Go side would need a
+// token-level decoder.
 // Only what these contracts use: objects, a union of objects at the root, arrays,
 // scalars and any JSON value (kept raw, json.RawMessage, for the checker to compare).
 type Node = {
@@ -22,6 +26,12 @@ type Node = {
   minLength?: number;
   maxLength?: number;
   pattern?: string;
+  enum?: string[];
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  description?: string;
+  additionalProperties?: boolean;
+  $schema?: string;
   $defs?: Record<string, Node>;
 };
 
@@ -59,6 +69,11 @@ export function goTypes(
       case "array": {
         if (node.items === undefined)
           throw new Error(`${owner}.${key}: no items`);
+        known(
+          node.items,
+          `${owner}.${key}[]`,
+          node.items.type === "object" ? undefined : "item",
+        );
         if (node.items.type === "object") {
           const name = itemNames[key];
           if (name === undefined)
@@ -76,7 +91,67 @@ export function goTypes(
   };
 
   // The checks on one present field, as Go statements.
+  // The keywords this emitter enforces, by the kind of node they sit on; anything else
+  // is refused, so a rule can't vanish between the zod contract and the checker. A
+  // list's scalar items are emitted as plain Go values with no checks of their own, so
+  // they may carry nothing but their type.
+  const BY_KIND: Record<string, string[]> = {
+    string: [
+      "type",
+      "minLength",
+      "maxLength",
+      "pattern",
+      "enum",
+      "description",
+    ],
+    integer: [
+      "type",
+      "minimum",
+      "maximum",
+      "exclusiveMinimum",
+      "exclusiveMaximum",
+      "description",
+    ],
+    number: [
+      "type",
+      "minimum",
+      "maximum",
+      "exclusiveMinimum",
+      "exclusiveMaximum",
+      "description",
+    ],
+    boolean: ["type", "description"],
+    array: ["type", "items", "minItems", "maxItems", "description"],
+    object: [
+      "type",
+      "properties",
+      "required",
+      "additionalProperties",
+      "description",
+      "$schema",
+      "$defs",
+    ],
+    union: ["anyOf", "description", "$schema", "$defs"],
+    ref: ["$ref"],
+    item: ["type", "$ref"],
+  };
+  const known = (node: Node, at: string, kind?: string) => {
+    const as =
+      kind ??
+      (node.$ref !== undefined
+        ? "ref"
+        : node.anyOf !== undefined
+          ? "union"
+          : (node.type ?? ""));
+    const allowed = BY_KIND[as];
+    if (allowed === undefined)
+      throw new Error(`${at}: the Go emitter doesn't handle this node`);
+    for (const k of Object.keys(node))
+      if (!allowed.includes(k))
+        throw new Error(`${at}: the Go emitter doesn't enforce "${k}" here`);
+  };
   const checks = (f: Field, owner: string): string[] => {
+    known(f.node, `${owner}.${f.key}`);
     const at = `${owner}.${f.key}`;
     const lines: string[] = [];
     const n = f.node;
@@ -89,8 +164,20 @@ export function goTypes(
         lines.push(
           `if *v.${f.goName} > ${String(n.maximum)} { return fmt.Errorf("${at}: above ${String(n.maximum)}") }`,
         );
+      if (n.exclusiveMinimum !== undefined)
+        lines.push(
+          `if *v.${f.goName} <= ${String(n.exclusiveMinimum)} { return fmt.Errorf("${at}: not above ${String(n.exclusiveMinimum)}") }`,
+        );
+      if (n.exclusiveMaximum !== undefined)
+        lines.push(
+          `if *v.${f.goName} >= ${String(n.exclusiveMaximum)} { return fmt.Errorf("${at}: not below ${String(n.exclusiveMaximum)}") }`,
+        );
     }
     if (n.type === "string") {
+      if (n.enum !== undefined)
+        lines.push(
+          `switch *v.${f.goName} {\ncase ${n.enum.map((e) => JSON.stringify(e)).join(", ")}:\ndefault:\nreturn fmt.Errorf("${at}: not one of its values")\n}`,
+        );
       if (n.pattern !== undefined) {
         // Compiled once, at package level.
         if (!patterns.includes(n.pattern)) patterns.push(n.pattern);
@@ -147,6 +234,7 @@ export function goTypes(
   };
 
   const struct = (name: string, node: Node) => {
+    known(node, name);
     if (node.type !== "object" || node.properties === undefined)
       throw new Error(`${name}: not an object with properties`);
     const fields = fieldsOf(node, name);
@@ -170,6 +258,7 @@ export function goTypes(
   const union = (name: string, variants: Node[]) => {
     const byKey = new Map<string, Field>();
     for (const v of variants) {
+      known(v, name);
       if (v.type !== "object")
         throw new Error(`${name}: a union of objects only`);
       for (const f of fieldsOf(v, name)) byKey.set(f.key, f);
@@ -201,6 +290,7 @@ export function goTypes(
     if (defs.length > 1)
       throw new Error(`${name}: more than z.json() in $defs`);
     jsonDef = defs[0] === undefined ? "" : `#/$defs/${defs[0]}`;
+    known(root, name);
     if (root.anyOf !== undefined) union(name, root.anyOf);
     else struct(name, root);
     out.push(

@@ -121,3 +121,53 @@ func DecodeResultLine(data []byte) (ResultLine, error) {
 	}
 	return v, v.Validate()
 }
+
+type Check struct {
+	Method    *string  `json:"method,omitempty"`
+	Compare   *string  `json:"compare,omitempty"`
+	Tolerance *float64 `json:"tolerance,omitempty"`
+}
+
+// Validate checks Check against its contract.
+func (v Check) Validate() error {
+	if !(v.Method != nil) {
+		return fmt.Errorf("Check.method: missing")
+	}
+	if len([]rune(*v.Method)) > 31 {
+		return fmt.Errorf("Check.method: too long")
+	}
+	if len([]rune(*v.Method)) < 1 {
+		return fmt.Errorf("Check.method: too short")
+	}
+	if !(v.Compare != nil) {
+		return fmt.Errorf("Check.compare: missing")
+	}
+	switch *v.Compare {
+	case "exact", "unordered", "approx":
+	default:
+		return fmt.Errorf("Check.compare: not one of its values")
+	}
+	if v.Tolerance != nil {
+		if *v.Tolerance > 0.1 {
+			return fmt.Errorf("Check.tolerance: above 0.1")
+		}
+		if *v.Tolerance <= 0 {
+			return fmt.Errorf("Check.tolerance: not above 0")
+		}
+	}
+	return nil
+}
+
+// DecodeCheck reads one Check: no unknown fields, nothing after it, every rule.
+func DecodeCheck(data []byte) (Check, error) {
+	var v Check
+	dec := json.NewDecoder(bytes.NewReader(data))
+	dec.DisallowUnknownFields()
+	if err := dec.Decode(&v); err != nil {
+		return v, err
+	}
+	if dec.More() {
+		return v, fmt.Errorf("Check: more than one value")
+	}
+	return v, v.Validate()
+}

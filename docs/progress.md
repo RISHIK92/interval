@@ -4737,3 +4737,29 @@ The owner said to continue building overnight with recommended answers, switchin
   - compare numbers numerically, and errors only as errors (their text differs by language);
   - re-serialise the scenario it feeds;
   - **never show a hidden-test run's output to the player**, since a submission can echo its stdin.
+
+### 2026-11-12 — P5-W29-S03 (the external checker; EXEC-4, LLDQ-4; Q-P5-07; ADR-0040 PROPOSED)
+
+- **`packages/lld/src/check.ts`, `Check`:** a comparison per method, `exact` (the default), `unordered` (a list as a multiset) or `approx` (a tolerance up to 0.1, 1e-9 by default, relative with an absolute floor). It is generated into Go with its `Decode`.
+- **`services/exec/checker`** (Go, outside the sandbox): `Check(scenario, expected, stdout, checks) (Report, error)`.
+  - **The problem's own data is checked first.** The scenario must be valid, expected lines valid and in order, checks valid and one per method, and a tolerance only on `approx`. A fault is `ErrProblem` (an error, never the player's verdict).
+  - **Strict parsing.** There must be exactly one generated-`Decode`d line per call, with `call == i`. Before any comparison, each value is bounded: a line up to 1 MB, nesting depth up to 64, numbers up to 400 characters. So a hostile result costs the checker little, since it runs without the sandbox's limits.
+  - **Comparing:**
+    - an error matches any error (messages differ by language);
+    - integers compare as their literal text (`-0` is `0`), so they are exact past 2^53;
+    - anything else compares as float64; a number out of range is never equal;
+    - unordered lists use one canonical spelling per number (`3`, `3.0`, `1e20` and `100000000000000000000` agree), built in one shared buffer.
+  - **The report** names a category only (output, wrong value, unexpected error, expected error) and the call. It never echoes output. For hidden tests, the caller shows the category only (LLDQ-4).
+- **The Go emitter** now enforces enums and exclusive bounds. It checks each node's keywords against its kind (scalar list items may carry only their type), including the union root and its variants, and refuses anything else rather than dropping a rule. Its header notes Go's case-insensitive, last-wins decoding of repeated keys, which changes no verdict.
+- **Tests:**
+  - **Go:** float spellings; int and float; map order; exact vs unordered; `1e20` vs its digits, both ways; approx with defaults, negatives and near zero; `-0`; out of range; errors matching only as errors.
+  - **Forged output fails:** extra, missing or blank lines; a wrong index; an unknown key; two values; non-JSON; huge lines; too deep; a number too long; value and error together.
+  - **The problem's faults** are `ErrProblem`.
+  - **TS:** `Check`, and the emitter refusing what it can't enforce.
+- **Reviewer fixes:**
+  - two CPU-exhaustion paths (quadratic canonical spelling of deep nesting, and huge integers through big.Int);
+  - `1e20` vs its digits under unordered;
+  - unvalidated problem data, which panicked or blamed the player;
+  - swallowed range errors;
+  - the guard letting rules through on scalar items and unions;
+  - plus docs and tests.
