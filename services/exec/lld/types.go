@@ -37,8 +37,54 @@ func (v Call) Validate() error {
 	return nil
 }
 
+type Concurrent struct {
+	After   *int64   `json:"after"`
+	Threads [][]Call `json:"threads"`
+}
+
+// Validate checks Concurrent against its contract.
+func (v Concurrent) Validate() error {
+	if !(v.After != nil) {
+		return fmt.Errorf("Concurrent.after: missing")
+	}
+	if *v.After < 1 {
+		return fmt.Errorf("Concurrent.after: below 1")
+	}
+	if *v.After > 9007199254740991 {
+		return fmt.Errorf("Concurrent.after: above 9007199254740991")
+	}
+	if !(v.Threads != nil) {
+		return fmt.Errorf("Concurrent.threads: missing")
+	}
+	if len(v.Threads) < 2 {
+		return fmt.Errorf("Concurrent.threads: fewer than 2")
+	}
+	if len(v.Threads) > 8 {
+		return fmt.Errorf("Concurrent.threads: more than 8")
+	}
+	for i := range v.Threads {
+		if len(v.Threads[i]) < 1 {
+			return fmt.Errorf("Concurrent.threads[%d]: fewer than 1", i)
+		}
+	}
+	for i := range v.Threads {
+		if len(v.Threads[i]) > 1000 {
+			return fmt.Errorf("Concurrent.threads[%d]: more than 1000", i)
+		}
+	}
+	for i := range v.Threads {
+		for j := range v.Threads[i] {
+			if err := v.Threads[i][j].Validate(); err != nil {
+				return fmt.Errorf("Concurrent.threads[%d][%d]: %w", i, j, err)
+			}
+		}
+	}
+	return nil
+}
+
 type Scenario struct {
-	Calls []Call `json:"calls"`
+	Calls      []Call      `json:"calls"`
+	Concurrent *Concurrent `json:"concurrent,omitempty"`
 }
 
 // Validate checks Scenario against its contract.
@@ -55,6 +101,11 @@ func (v Scenario) Validate() error {
 	for i := range v.Calls {
 		if err := v.Calls[i].Validate(); err != nil {
 			return fmt.Errorf("Scenario.calls[%d]: %w", i, err)
+		}
+	}
+	if v.Concurrent != nil {
+		if err := v.Concurrent.Validate(); err != nil {
+			return fmt.Errorf("Scenario.concurrent: %w", err)
 		}
 	}
 	return nil

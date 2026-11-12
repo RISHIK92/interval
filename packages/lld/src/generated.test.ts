@@ -41,7 +41,11 @@ test("the committed JSON Schemas are the ones the zod contracts generate", () =>
 test("the checker's Go types are the ones the zod contracts generate", () => {
   same(
     join(root, "../../services/exec/lld/types.go"),
-    goTypes("lld", { Scenario, ResultLine, Check }, { calls: "Call" }),
+    goTypes(
+      "lld",
+      { Scenario, ResultLine, Check },
+      { calls: "Call", concurrent: "Concurrent", "Concurrent.threads": "Call" },
+    ),
     (committed, fresh) => {
       expect(committed).toBe(fresh);
     },
@@ -61,4 +65,14 @@ test("the Go emitter refuses a rule it can't enforce, never dropping it", () => 
   expect(() =>
     goTypes("x", { Bad: z.strictObject({ id: z.string().default("a") }) }, {}),
   ).toThrow(/doesn't enforce "default"/);
+});
+
+test("the Go emitter takes a list of lists of objects only", () => {
+  expect(() =>
+    goTypes(
+      "x",
+      { Bad: z.strictObject({ grid: z.array(z.array(z.int())) }) },
+      {},
+    ),
+  ).toThrow(/a list of lists of objects only/);
 });

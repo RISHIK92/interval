@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import threading
+
 
 class Inventory:
     def __init__(self, capacity: int) -> None:
@@ -7,25 +9,29 @@ class Inventory:
             raise ValueError("negative capacity")
         self.capacity = capacity
         self.counts: dict[str, int] = {}
+        # The concurrency layer calls add from several threads at once.
+        self.lock = threading.Lock()
 
     def add(self, item: str, amount: int) -> int:
         if amount <= 0:
             raise ValueError("amount must be positive")
         print("debug: add", item)
-        if sum(self.counts.values()) + amount > self.capacity:
-            raise ValueError("over capacity")
-        self.counts[item] = self.counts.get(item, 0) + amount
-        return self.counts[item]
+        with self.lock:
+            if sum(self.counts.values()) + amount > self.capacity:
+                raise ValueError("over capacity")
+            self.counts[item] = self.counts.get(item, 0) + amount
+            return self.counts[item]
 
     def take(self, item: str, amount: int) -> bool:
         if amount <= 0:
             raise ValueError("amount must be positive")
-        if self.counts.get(item, 0) < amount:
-            return False
-        self.counts[item] -= amount
-        if self.counts[item] == 0:
-            del self.counts[item]
-        return True
+        with self.lock:
+            if self.counts.get(item, 0) < amount:
+                return False
+            self.counts[item] -= amount
+            if self.counts[item] == 0:
+                del self.counts[item]
+            return True
 
     def stock(self, item: str) -> int | None:
         return self.counts.get(item)
@@ -53,4 +59,5 @@ class Inventory:
         raise SystemExit(3)
 
     def clear(self) -> None:
-        self.counts.clear()
+        with self.lock:
+            self.counts.clear()

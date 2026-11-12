@@ -63,3 +63,36 @@ test("a result line holds a value or an error, never both", () => {
   ).toBe(false);
   expect(ResultLine.safeParse({ call: 1, error: "é" }).success).toBe(false);
 });
+
+// P5-W30-S02b (LLDQ-3, §6.5): threads after some calls, each fitting the interface.
+test("threads start after the constructor, within the calls, and never construct", () => {
+  const allow = { method: "allow", args: ["ana", 1] };
+  const problems = (concurrent: object) =>
+    checkScenario(iface, Scenario.parse({ ...scenario, concurrent }));
+  const parses = (concurrent: object) =>
+    Scenario.safeParse({ ...scenario, concurrent }).success;
+  expect(problems({ after: 1, threads: [[allow], [allow]] })).toEqual([]);
+  expect(problems({ after: 3, threads: [[allow], [allow]] })).toEqual([]);
+  // Threads with no call after them would be judged on nothing.
+  expect(problems({ after: 4, threads: [[allow], [allow]] })[0]).toMatch(
+    /no call follows/,
+  );
+  expect(
+    problems({
+      after: 1,
+      threads: [[allow], [{ method: "new", args: [3] }]],
+    })[0],
+  ).toMatch(/thread 1 call 0: "new"/);
+  expect(
+    problems({
+      after: 1,
+      threads: [[allow], [{ method: "allow", args: [] }]],
+    })[0],
+  ).toMatch(/thread 1 call 0: allow takes 2/);
+  expect(parses({ after: 0, threads: [[allow], [allow]] })).toBe(false);
+  expect(parses({ after: 1, threads: [[allow]] })).toBe(false);
+  expect(
+    parses({ after: 1, threads: Array.from({ length: 9 }, () => [allow]) }),
+  ).toBe(false);
+  expect(parses({ after: 1, threads: [[allow], []] })).toBe(false);
+});

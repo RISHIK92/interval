@@ -6,7 +6,7 @@ import { checkScenario, Scenario } from "./scenario";
 // P5-W30-S01 (LLDQ-1 to LLDQ-4, Q-P5-08): a problem as written, in
 // problems/lld/<slug>/problem.json beside its statement.md and references/. The visible
 // scenarios are shown to players; the hidden ones never reach a client (LLDQ-4). The
-// concurrency and extension layers arrive with their slices (W30-S02, W31-S02).
+// concurrency layer is W30-S02b's; the extension round arrives with W31-S02.
 export const Problem = z
   .strictObject({
     slug: z
@@ -24,11 +24,23 @@ export const Problem = z
     layers: z.strictObject({
       visible: z.array(Scenario).min(1).max(20),
       hidden: z.array(Scenario).min(1).max(100),
+      // P5-W30-S02b: scenarios with threads, run several times when verified.
+      concurrency: z.array(Scenario).max(20).optional(),
     }),
   })
   .superRefine((p, ctx) => {
-    for (const layer of ["visible", "hidden"] as const)
-      p.layers[layer].forEach((s, i) => {
+    for (const layer of ["visible", "hidden", "concurrency"] as const)
+      (p.layers[layer] ?? []).forEach((s, i) => {
+        // Threads belong in the concurrency layer, and only there.
+        if ((layer === "concurrency") !== (s.concurrent !== undefined))
+          ctx.addIssue({
+            code: "custom",
+            path: ["layers", layer, i],
+            message:
+              layer === "concurrency"
+                ? "a concurrency scenario needs threads"
+                : "threads belong in the concurrency layer",
+          });
         for (const problem of checkScenario(p.interface, s))
           ctx.addIssue({
             code: "custom",
@@ -65,10 +77,16 @@ export const Problem = z
 export type Problem = z.infer<typeof Problem>;
 
 // Every scenario, in a fixed order: the expected results are recorded in this order.
-export function scenariosOf(
-  p: Problem,
-): { layer: "visible" | "hidden"; index: number; scenario: Scenario }[] {
-  return (["visible", "hidden"] as const).flatMap((layer) =>
-    p.layers[layer].map((scenario, index) => ({ layer, index, scenario })),
+export function scenariosOf(p: Problem): {
+  layer: "visible" | "hidden" | "concurrency";
+  index: number;
+  scenario: Scenario;
+}[] {
+  return (["visible", "hidden", "concurrency"] as const).flatMap((layer) =>
+    (p.layers[layer] ?? []).map((scenario, index) => ({
+      layer,
+      index,
+      scenario,
+    })),
   );
 }

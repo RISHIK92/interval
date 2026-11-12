@@ -318,5 +318,23 @@
         "value": null
       }
     ]
+  },
+  {
+    "layer": "concurrency",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 400
+      },
+      {
+        "call": 2,
+        "value": ["a"]
+      }
+    ]
   }
 ]

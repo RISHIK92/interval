@@ -49,10 +49,14 @@ test.runIf(integration)(
     const dir = copy();
     const written = verify(dir, { exec, mode: "write" });
     expect(written.failures).toEqual([]);
-    // One recording per scenario, in order: the visible ones, then the hidden.
+    // One recording per scenario, in order: visible, hidden, then concurrency.
     const layers = (
       JSON.parse(readFileSync(join(dir, "problem.json"), "utf8")) as {
-        layers: { visible: unknown[]; hidden: unknown[] };
+        layers: {
+          visible: unknown[];
+          hidden: unknown[];
+          concurrency: unknown[];
+        };
       }
     ).layers;
     expect(
@@ -60,7 +64,13 @@ test.runIf(integration)(
     ).toEqual([
       ...layers.visible.map((_, i) => `visible ${String(i)}`),
       ...layers.hidden.map((_, i) => `hidden ${String(i)}`),
+      ...layers.concurrency.map((_, i) => `concurrency ${String(i)}`),
     ]);
+    // Four threads of a hundred adds each, all counted: the references lock.
+    expect(written.expected.at(-1)?.results[1]).toEqual({
+      call: 1,
+      value: 400,
+    });
     expect(verify(dir, { exec, mode: "check" }).failures).toEqual([]);
   },
   SLOW,
@@ -81,9 +91,9 @@ test.runIf(integration)(
     );
     const { failures } = verify(dir, { exec, mode: "check" });
     expect(failures.length).toBeGreaterThan(0);
-    expect(failures.every((f) => f.startsWith("javascript reference"))).toBe(
-      true,
-    );
+    expect(
+      failures.filter((f) => !f.startsWith("javascript reference")),
+    ).toEqual([]);
     expect(failures[0]).toContain("wrong value");
   },
   SLOW,
@@ -141,6 +151,31 @@ test.runIf(integration)(
     expect(rewritten.failures).toEqual([]);
     const weak = mutationScore(thin, { exec, expected: rewritten.expected });
     expect(weak.killed / weak.total).toBeLessThan(MUTATION_GATE);
+  },
+  SLOW,
+);
+
+// P5-W30-S02b (LLDQ-3, §6.5): the concurrency layer catches a race. Without its lock,
+// Java's add loses updates (or throws mid-update) when four threads collide; across
+// verify's runs that shows as a wrong stock.
+test.runIf(integration)(
+  "an unlocked reference fails the concurrency layer",
+  () => {
+    const dir = copy();
+    const java = join(dir, "references/Inventory.java");
+    const source = readFileSync(java, "utf8");
+    // No lock, and no print inside add: the window between read and write stays open.
+    const unlocked = source
+      .replace("public synchronized long add(", "public long add(")
+      .replace('System.out.println("debug: add " + item);', "");
+    expect(unlocked).not.toBe(source);
+    writeFileSync(java, unlocked);
+    const caught = Array.from({ length: 5 }).some(() =>
+      verify(dir, { exec, mode: "check" }).failures.some((f) =>
+        f.startsWith("java reference, concurrency 0"),
+      ),
+    );
+    expect(caught).toBe(true);
   },
   SLOW,
 );

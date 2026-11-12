@@ -423,6 +423,1641 @@
           }
         ]
       }
+    ],
+    "concurrency": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000]
+          },
+          {
+            "method": "stock",
+            "args": ["a"]
+          },
+          {
+            "method": "items",
+            "args": []
+          }
+        ],
+        "concurrent": {
+          "after": 1,
+          "threads": [
+            [
+              {
+                "method": "add",
+                "args": ["a", 0]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              }
+            ],
+            [
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              }
+            ],
+            [
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              }
+            ],
+            [
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              },
+              {
+                "method": "add",
+                "args": ["a", 1]
+              }
+            ]
+          ]
+        }
+      }
     ]
   }
 }

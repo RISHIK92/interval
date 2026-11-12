@@ -9,7 +9,8 @@ public class Inventory {
     this.capacity = capacity;
   }
 
-  public long add(String item, long amount) {
+  // The concurrency layer calls add from several threads at once.
+  public synchronized long add(String item, long amount) {
     if (amount <= 0) throw new IllegalArgumentException("amount must be positive");
     System.out.println("debug: add " + item);
     long total = 0;
@@ -19,7 +20,7 @@ public class Inventory {
     return counts.get(item);
   }
 
-  public boolean take(String item, long amount) {
+  public synchronized boolean take(String item, long amount) {
     if (amount <= 0) throw new IllegalArgumentException("amount must be positive");
     long have = counts.getOrDefault(item, 0L);
     if (have < amount) return false;
@@ -63,7 +64,7 @@ public class Inventory {
     throw new AssertionError("odd");
   }
 
-  public void clear() {
+  public synchronized void clear() {
     counts.clear();
   }
 }

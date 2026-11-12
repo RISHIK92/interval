@@ -17,6 +17,22 @@ test("each harness has an arm for every method and no reflection", () => {
   }
 });
 
+// P5-W30-S02b (§6.5): threads for Java, C++, Go and Python; awaited calls for JS/TS.
+test("each harness runs a scenario's threads its language's way", () => {
+  const construct: Record<string, RegExp> = {
+    python: /threading\.Barrier/,
+    javascript: /Promise\.all/,
+    typescript: /Promise\.all/,
+    java: /CyclicBarrier/,
+    cpp: /std::barrier/,
+    go: /intervalSync\.WaitGroup/,
+  };
+  for (const [language, generate] of Object.entries(GENERATORS))
+    expect(generate(iface).harness, language).toMatch(
+      construct[language] ?? /^$/,
+    );
+});
+
 test("each starter declares the class and every method", () => {
   for (const [language, generate] of Object.entries(GENERATORS)) {
     const g = generate(iface);

@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -16,6 +17,8 @@ class Inventory {
   int64_t add(std::string item, int64_t amount) {
     if (amount <= 0) throw std::invalid_argument("amount must be positive");
     std::printf("debug: add %s\n", item.c_str());
+    // The concurrency layer calls add from several threads at once.
+    std::lock_guard<std::mutex> hold(mu_);
     int64_t total = 0;
     for (const auto& c : counts_) total += c.second;
     if (total + amount > capacity_) throw std::runtime_error("over capacity");
@@ -24,6 +27,7 @@ class Inventory {
 
   bool take(std::string item, int64_t amount) {
     if (amount <= 0) throw std::invalid_argument("amount must be positive");
+    std::lock_guard<std::mutex> hold(mu_);
     auto it = counts_.find(item);
     int64_t have = it == counts_.end() ? 0 : it->second;
     if (have < amount) return false;
@@ -67,9 +71,13 @@ class Inventory {
   // A player's own int, not the declared int64_t: the harness casts it.
   int odd() { throw 42; }
 
-  void clear() { counts_.clear(); }
+  void clear() {
+    std::lock_guard<std::mutex> hold(mu_);
+    counts_.clear();
+  }
 
  private:
   int64_t capacity_;
   std::map<std::string, int64_t> counts_;
+  std::mutex mu_;
 };

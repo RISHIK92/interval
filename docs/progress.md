@@ -4879,3 +4879,43 @@ The owner said to continue building overnight with recommended answers, switchin
   - **Blockers:** no baseline run, so a broken local Python would have counted every mutant as caught; Python 3.9 crashing on the annotations.
   - **Should-fix:** scoring against a possibly stale `expected.json`; unexpected exit codes counted as survivors; equivalent mutants in the gate; the tool outside ruff and pyright; a weak mutator test; mutants running outside their temp dir.
   - Plus the nits.
+
+### 2026-11-12 — P5-W30-S02b (concurrency rules per language; LLDQ-3, §6.5)
+
+- **The contract:**
+  - A scenario may carry `concurrent: {after, threads}`: 2–8 threads of 1–1,000 calls each.
+  - The first `after` calls run, then every thread starts at once and all of them are joined, then the remaining calls run.
+  - At least one call must follow the threads, because what's judged is the state the later calls see. A thread's own results and errors aren't reported, so the result lines and the checker are unchanged.
+  - `Problem.layers.concurrency` holds only threaded scenarios, and the other layers refuse them.
+- **The harnesses (§6.5):**
+  - Each language's harness has one dispatch, shared by the main calls and the threads.
+  - Python, Java, C++ and Go use OS threads or goroutines, started behind a barrier (Go: one channel close), so they really collide.
+  - If a thread fails to start, the barrier is released and the run ends as a crash, not a timeout.
+  - **JS/TS:** every call is now awaited, and each thread is an async chain run under `Promise.all`.
+    - A promise that never settles ends the run as a crash (exit 1 on `beforeExit`), not as missing lines.
+    - **Behaviour change for existing JS/TS solutions:** a returned thenable is now awaited, and a solution's microtasks run between calls. This matches §6.5's "interleaved async operations".
+- **Go emitter (ADR-0040):**
+  - It now emits a list of lists of objects (`[][]Call`), with the inner bounds checked.
+  - A struct named twice must have the same shape.
+  - `services/exec/lld/types.go` is regenerated, so the checker and judge accept `concurrent`.
+- **verify:** each concurrency scenario runs 3 times per language, including Python's recording. Results that differ between runs fail as "flaky: the result depends on timing".
+- **The fixture:**
+  - The references take a lock: Python `threading.Lock`, Java `synchronized`, C++ `std::mutex`, Go `sync.Mutex`.
+  - The new scenario has four threads, each adding 1 to item "a" 100 times; one thread first makes a call that throws. The stock must then be 400.
+  - Mutation testing still passes the 90% gate.
+- **Tests:**
+  - **Unit:** the thread rules and bounds; the layer rule; each harness's thread construct; the emitter refusing a list of lists of scalars; Go `DecodeScenario` on threads.
+  - **Sandbox:** all six languages pass 3 runs each, and an unlocked Java reference is caught within 5 verify runs.
+- **Reviewer fixes:**
+  - **Threads with nothing after them:** they were allowed, and would have been judged on nothing; now refused.
+  - **Thread errors untested:** no test exercised a thread call that throws; the fixture's scenario now has one.
+  - **Thread start failure:** a failed start hung at the barrier until the time limit; it now ends as a crash.
+  - **Unsettled JS promises:** a JS promise that never settled made Node exit 0 with no output; it now exits 1.
+  - **Nits:** the emitter's same-name check, a dead branch in verify, the constructor's argument checks merged into checkCall, and the Go decode test.
+- **Not changed (nits):**
+  - A thread running out of memory follows each language's own main path: Java rethrows it, while C++ and Python report it as an error.
+  - The generator test checks each harness's thread construct by grep; the behaviour itself is covered by the sandbox tests.
+- **For the owner:**
+  - **Go map races:** an unlocked Go map hit by two goroutines is a fatal runtime error that `recover` can't catch. Such a submission gets a crash verdict, not a wrong answer; players should be told.
+  - **A flaky test:** "a reference that disagrees" failed once locally under load, probably a timeout in another language; it passed on rerun. It now names any stray failure if it recurs.
+  - **Fixture size:** the concurrency scenario adds about 1,600 lines to the fixture's problem.json once prettier expands it.

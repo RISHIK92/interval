@@ -3,11 +3,14 @@ package main
 import (
 	"fmt"
 	"sort"
+	"sync"
 )
 
 type Inventory struct {
 	capacity int64
 	counts   map[string]int64
+	// The concurrency layer calls add from several goroutines at once.
+	mu sync.Mutex
 }
 
 func NewInventory(capacity int64) *Inventory {
@@ -22,6 +25,8 @@ func (s *Inventory) add(item string, amount int64) int64 {
 		panic("amount must be positive")
 	}
 	fmt.Println("debug: add", item)
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	var total int64
 	for _, n := range s.counts {
 		total += n
@@ -37,6 +42,8 @@ func (s *Inventory) take(item string, amount int64) bool {
 	if amount <= 0 {
 		panic("amount must be positive")
 	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	have := s.counts[item]
 	if have < amount {
 		return false
@@ -105,5 +112,7 @@ func (s *Inventory) odd() int64 {
 }
 
 func (s *Inventory) clear() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.counts = map[string]int64{}
 }

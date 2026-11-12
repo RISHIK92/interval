@@ -22,8 +22,11 @@ import { fits, parseType } from "./types";
 // is then run and held to them by the Go checker. Any disagreement, or any reference
 // outside the problem's limits, fails verification.
 
+// Runs of each concurrency scenario, per language (P5-W30-S02b).
+const RUNS = 3;
+
 export type Expected = {
-  layer: "visible" | "hidden";
+  layer: "visible" | "hidden" | "concurrency";
   index: number;
   results: ResultLine[];
 }[];
@@ -93,12 +96,28 @@ export function verify(
     };
     const where = (s: { layer: string; index: number }) =>
       `${s.layer} ${String(s.index)}`;
+    // P5-W30-S02b: a concurrency scenario must give the same results on every run, in
+    // every language; one that doesn't is judged on timing, not on the code.
+    const runs = (layer: string) => (layer === "concurrency" ? RUNS : 1);
 
     // The canonical results.
     const returns = new Map(
       problem.interface.methods.map((m) => [m.name, m.returns]),
     );
     const record = (s: {
+      layer: string;
+      index: number;
+      scenario: Scenario;
+    }): ResultLine[] => {
+      const first = recordOnce(s);
+      for (let k = 1; k < runs(s.layer); k++)
+        if (!isDeepStrictEqual(first, recordOnce(s)))
+          throw new Error(
+            `python reference, ${where(s)}: flaky: the result depends on timing`,
+          );
+      return first;
+    };
+    const recordOnce = (s: {
       layer: string;
       index: number;
       scenario: Scenario;
@@ -181,46 +200,52 @@ export function verify(
         failures.push(String(error instanceof Error ? error.message : error));
       }
     }
+    const judge = (
+      language: string,
+      s: (typeof judged)[number],
+    ): string | undefined => {
+      const r = run(language, s.scenario);
+      if (r.verdict !== "ok")
+        return `${language} reference, ${where(s)}: ${r.verdict}\n${r.stderr.slice(0, 2000)}`;
+      const files = {
+        scenario: join(work, "scenario.json"),
+        expected: join(work, "expected-one.json"),
+        stdout: join(work, "stdout.txt"),
+      };
+      writeFileSync(files.scenario, JSON.stringify(s.scenario));
+      writeFileSync(files.expected, JSON.stringify(s.results));
+      writeFileSync(files.stdout, r.stdout);
+      try {
+        execFileSync(options.exec, [
+          "check",
+          "--scenario",
+          files.scenario,
+          "--expected",
+          files.expected,
+          "--stdout",
+          files.stdout,
+          "--checks",
+          checks,
+        ]);
+        return undefined;
+      } catch (error) {
+        const e = error as { status?: number; stdout?: Buffer };
+        // Exit 2 is a mismatch; anything else is the problem's or the tool's fault.
+        if (e.status !== 2) throw error;
+        return `${language} reference, ${where(s)}: ${String(e.stdout ?? "").trim()}`;
+      }
+    };
     for (const language of Object.keys(GENERATORS).filter(
       (l) => l !== "python",
     ))
-      judged.forEach((s) => {
-        const r = run(language, s.scenario);
-        if (r.verdict !== "ok") {
-          failures.push(
-            `${language} reference, ${where(s)}: ${r.verdict}\n${r.stderr.slice(0, 2000)}`,
-          );
-          return;
+      for (const s of judged)
+        for (let k = 0; k < runs(s.layer); k++) {
+          const failure = judge(language, s);
+          if (failure === undefined) continue;
+          // One failure per scenario is enough; more runs would repeat it.
+          failures.push(failure);
+          break;
         }
-        const files = {
-          scenario: join(work, "scenario.json"),
-          expected: join(work, "expected-one.json"),
-          stdout: join(work, "stdout.txt"),
-        };
-        writeFileSync(files.scenario, JSON.stringify(s.scenario));
-        writeFileSync(files.expected, JSON.stringify(s.results));
-        writeFileSync(files.stdout, r.stdout);
-        try {
-          execFileSync(options.exec, [
-            "check",
-            "--scenario",
-            files.scenario,
-            "--expected",
-            files.expected,
-            "--stdout",
-            files.stdout,
-            "--checks",
-            checks,
-          ]);
-        } catch (error) {
-          const e = error as { status?: number; stdout?: Buffer };
-          // Exit 2 is a mismatch; anything else is the problem's or the tool's fault.
-          if (e.status !== 2) throw error;
-          failures.push(
-            `${language} reference, ${where(s)}: ${String(e.stdout ?? "").trim()}`,
-          );
-        }
-      });
     return { failures, expected };
   } finally {
     rmSync(work, { recursive: true, force: true });

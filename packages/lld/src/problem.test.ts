@@ -10,7 +10,7 @@ const sample = JSON.parse(
     "utf8",
   ),
 ) as Record<string, unknown> & {
-  layers: { visible: unknown[]; hidden: unknown[] };
+  layers: { visible: unknown[]; hidden: unknown[]; concurrency: unknown[] };
 };
 const ok = (p: object) => Problem.safeParse(p).success;
 
@@ -60,4 +60,18 @@ test("a kebab-case slug, and hidden tests always", () => {
     false,
   );
   expect(ok({ ...sample, limits: { seconds: 0, memoryMB: 128 } })).toBe(false);
+});
+
+// P5-W30-S02b: threads belong in the concurrency layer, and every scenario there has them.
+test("threads only in the concurrency layer, and always there", () => {
+  const [threaded] = sample.layers.concurrency;
+  const plain = sample.layers.visible[0];
+  expect(
+    ok({ ...sample, layers: { ...sample.layers, visible: [threaded] } }),
+  ).toBe(false);
+  expect(
+    ok({ ...sample, layers: { ...sample.layers, concurrency: [plain] } }),
+  ).toBe(false);
+  const { visible, hidden } = sample.layers;
+  expect(ok({ ...sample, layers: { visible, hidden } })).toBe(true);
 });

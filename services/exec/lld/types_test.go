@@ -52,3 +52,23 @@ func TestDecodeScenarioHoldsTheContract(t *testing.T) {
 		}
 	}
 }
+
+// P5-W30-S02b: a scenario's threads, held to the same contract as its calls.
+func TestDecodeScenarioHoldsItsThreads(t *testing.T) {
+	const calls = `"calls":[{"method":"new","args":[3]},{"method":"get","args":[]}]`
+	const add = `{"method":"add","args":[1]}`
+	if _, err := DecodeScenario([]byte(`{` + calls + `,"concurrent":{"after":1,"threads":[[` + add + `],[` + add + `]]}}`)); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range []string{
+		`{"after":1,"threads":[[` + add + `]]}`,                 // one thread
+		`{"after":1,"threads":[[` + add + `],[]]}`,              // an empty thread
+		`{"after":0,"threads":[[` + add + `],[` + add + `]]}`,   // before the constructor
+		`{"after":1,"threads":[[` + add + `],[{"method":""}]]}`, // a bad call inside
+		`{"threads":[[` + add + `],[` + add + `]]}`,             // no after
+	} {
+		if _, err := DecodeScenario([]byte(`{` + calls + `,"concurrent":` + c + `}`)); err == nil {
+			t.Errorf("accepted %s", c)
+		}
+	}
+}

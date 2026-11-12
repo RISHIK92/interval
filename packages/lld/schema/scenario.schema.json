@@ -25,6 +25,47 @@
         "required": ["method", "args"],
         "additionalProperties": false
       }
+    },
+    "concurrent": {
+      "type": "object",
+      "properties": {
+        "after": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "threads": {
+          "minItems": 2,
+          "maxItems": 8,
+          "type": "array",
+          "items": {
+            "minItems": 1,
+            "maxItems": 1000,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "method": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 31
+                },
+                "args": {
+                  "maxItems": 8,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema0"
+                  }
+                }
+              },
+              "required": ["method", "args"],
+              "additionalProperties": false
+            }
+          }
+        }
+      },
+      "required": ["after", "threads"],
+      "additionalProperties": false
     }
   },
   "required": ["calls"],

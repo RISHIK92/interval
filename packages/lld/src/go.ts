@@ -73,6 +73,16 @@ export function goTypes(
       case "array": {
         if (node.items === undefined)
           throw new Error(`${owner}.${key}: no items`);
+        // A list of lists of objects (a scenario's threads): the inner list's bounds are
+        // checked per item, below.
+        if (node.items.type === "array") {
+          known(node.items, `${owner}.${key}[]`);
+          if (node.items.items?.type !== "object")
+            throw new Error(
+              `${owner}.${key}[]: a list of lists of objects only`,
+            );
+          return `[]${typeOf(node.items, key, owner)}`;
+        }
         known(
           node.items,
           `${owner}.${key}[]`,
@@ -237,6 +247,19 @@ export function goTypes(
         lines.push(
           `if len(v.${f.goName}) > ${String(n.maxItems)} { return fmt.Errorf("${at}: more than ${String(n.maxItems)}") }`,
         );
+      const inner = n.items?.type === "array" ? n.items : undefined;
+      if (inner?.minItems !== undefined)
+        lines.push(
+          `for i := range v.${f.goName} { if len(v.${f.goName}[i]) < ${String(inner.minItems)} { return fmt.Errorf("${at}[%d]: fewer than ${String(inner.minItems)}", i) } }`,
+        );
+      if (inner?.maxItems !== undefined)
+        lines.push(
+          `for i := range v.${f.goName} { if len(v.${f.goName}[i]) > ${String(inner.maxItems)} { return fmt.Errorf("${at}[%d]: more than ${String(inner.maxItems)}", i) } }`,
+        );
+      if (inner !== undefined)
+        lines.push(
+          `for i := range v.${f.goName} { for j := range v.${f.goName}[i] { if err := v.${f.goName}[i][j].Validate(); err != nil { return fmt.Errorf("${at}[%d][%d]: %w", i, j, err) } } }`,
+        );
       if (n.items?.type === "object" || n.items?.anyOf !== undefined)
         lines.push(
           `for i := range v.${f.goName} { if err := v.${f.goName}[i].Validate(); err != nil { return fmt.Errorf("${at}[%d]: %w", i, err) } }`,
@@ -272,7 +295,15 @@ export function goTypes(
     );
   };
 
+  // A struct named twice must be the same struct (threads hold the calls' Call).
+  const shapes = new Map<string, string>();
   const struct = (name: string, node: Node) => {
+    const shape = JSON.stringify(node);
+    const seen = shapes.get(name);
+    if (seen === shape) return;
+    if (seen !== undefined)
+      throw new Error(`struct ${name}: two different shapes`);
+    shapes.set(name, shape);
     known(node, name);
     if (node.type !== "object" || node.properties === undefined)
       throw new Error(`${name}: not an object with properties`);
