@@ -48,11 +48,7 @@ class C:
       JSON.parse(
         execFileSync(
           "python3",
-          [
-            "-I",
-            join(import.meta.dirname, "../tools/mutants.py"),
-            "-",
-          ],
+          ["-I", join(import.meta.dirname, "../tools/mutants.py"), "-"],
           {
             input: sample,
             encoding: "utf8",
