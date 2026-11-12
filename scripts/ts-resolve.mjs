@@ -1,5 +1,6 @@
-// Lets a script under Node's type stripping import apps/web/src modules, whose relative
-// imports leave off ".ts" (the bundler adds it in the app). Standard library only.
+// Lets a script under Node's type stripping import modules whose relative imports leave
+// off ".ts" (the bundler adds it in the apps): apps/web/src, and packages/lld's verify
+// (P5-W30-S01). Standard library only.
 import { register } from "node:module";
 
 register(

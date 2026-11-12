@@ -3,5 +3,6 @@
 // the checker (W29-S03).
 export { Check } from "./check";
 export { Interface } from "./interface";
+export { Problem } from "./problem";
 export { Call, checkScenario, ResultLine, Scenario } from "./scenario";
 export { fits, formatType, parseType, type TypeAst } from "./types";

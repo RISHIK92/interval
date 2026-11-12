@@ -1,0 +1,127 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 3
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["apple", "pear"]
+      },
+      {
+        "call": 6,
+        "value": {
+          "apple": 3,
+          "pear": 2
+        }
+      },
+      {
+        "call": 7,
+        "value": 0.3
+      },
+      {
+        "call": 8,
+        "value": {
+          "none": ["a", "b"]
+        }
+      },
+      {
+        "call": 9,
+        "value": {
+          "x": ["c"]
+        }
+      },
+      {
+        "call": 10,
+        "value": [true, false, false]
+      },
+      {
+        "call": 11,
+        "error": "ValueError: over capacity"
+      },
+      {
+        "call": 12,
+        "value": true
+      },
+      {
+        "call": 13,
+        "value": false
+      },
+      {
+        "call": 14,
+        "value": []
+      },
+      {
+        "call": 15,
+        "error": "SystemExit: 3"
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: negative capacity"
+      },
+      {
+        "call": 1,
+        "error": "AttributeError: 'NoneType' object has no attribute 'items'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 5
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": ["a"]
+      },
+      {
+        "call": 4,
+        "value": false
+      }
+    ]
+  }
+]

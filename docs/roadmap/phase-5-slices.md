@@ -94,7 +94,8 @@ Already in place, so not sliced again:
 ### P5-W30-S01 Problem files and loading
 
 - IDs: LLDQ-1 to LLDQ-4
-- Goal: the `problems/lld/<slug>/` format, a loader and validator, and `load-lld-problems` into Postgres (problems, layers, hidden tests in the private bucket); the reference results recorded.
+- Goal: the `problems/lld/<slug>/` format, its validator, and `verify`, which records the reference results and holds every language's reference to them.
+- Built 2026-11-12. Loading into Postgres and the private bucket moved to W31-S01, beside the battles that first need it (ARCH-1).
 
 ### P5-W30-S02 Mutation testing and property tests
 

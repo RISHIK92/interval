@@ -173,7 +173,7 @@ jobs:
       - name: Install TS dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Generated harnesses in every language
+      - name: Generated harnesses and problem verification in every language
         env:
           EXEC_INTEGRATION: "1"
-        run: pnpm --filter @interval/lld exec vitest run src/generate/run.integration.test.ts
+        run: pnpm --filter @interval/lld exec vitest run src/generate/run.integration.test.ts src/verify.integration.test.ts

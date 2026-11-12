@@ -12,8 +12,13 @@ import { broken, expected, inventory, scenario } from "./inventory.fixture";
 // in the real sandbox (services/exec); all six print the same results. Needs Docker and
 // Go: EXEC_INTEGRATION=1.
 const integration = process.env["EXEC_INTEGRATION"] === "1";
+// A compile and a run in the sandbox, cold on a CI runner: well past vitest's 5 s.
+const SLOW = 300_000;
 const repo = join(import.meta.dirname, "../../../..");
-const fixtures = join(import.meta.dirname, "../../fixtures/inventory");
+const fixtures = join(
+  import.meta.dirname,
+  "../../fixtures/problems/inventory/references",
+);
 const iface = Interface.parse(inventory);
 let exec = "";
 
@@ -23,7 +28,7 @@ beforeAll(() => {
   execFileSync("go", ["build", "-o", exec, "."], {
     cwd: join(repo, "services/exec"),
   });
-});
+}, SLOW);
 
 function run(
   language: string,
@@ -75,6 +80,7 @@ for (const language of Object.keys(GENERATORS)) {
       expect(r.stdout).not.toContain("debug");
       expect(r.stderr).toContain("debug: add");
     },
+    SLOW,
   );
 
   test.runIf(integration)(
@@ -92,6 +98,7 @@ for (const language of Object.keys(GENERATORS)) {
         .map((l) => ResultLine.parse(JSON.parse(l)));
       expect(lines.map((l) => "error" in l)).toEqual([true, true]);
     },
+    SLOW,
   );
 
   test.runIf(integration)(
@@ -109,5 +116,6 @@ for (const language of Object.keys(GENERATORS)) {
       expect(lines[0]).toEqual({ call: 0, value: null });
       expect(lines.slice(1).every((l) => "error" in l)).toBe(true);
     },
+    SLOW,
   );
 }

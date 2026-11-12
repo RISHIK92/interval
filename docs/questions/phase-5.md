@@ -126,6 +126,8 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
 
 ## Week 31: the battle
 
+- **Built differently in P5-W30-S01, for the owner:** problems are JSON (`problem.json`, with `statement.md` and `references/` beside it), not YAML. The repo has no YAML parser on the TS side, and its zod contract validates JSON directly. The expected results are recorded in `expected.json` by `verify`.
+
 ### Q-P5-09 Who runs a battle (P0 for W31)
 
 - Cite: LOAD-2 (the match-actor model), ADR-0033 (the Go game server), LOAD-3 (the execution queue's priorities).

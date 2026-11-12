@@ -1,0 +1,248 @@
+{
+  "slug": "inventory",
+  "title": "Inventory (fixture)",
+  "difficulty": "easy",
+  "interface": {
+    "class": "Inventory",
+    "constructor": {
+      "params": [
+        {
+          "name": "capacity",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "add",
+        "params": [
+          {
+            "name": "item",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "int"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "take",
+        "params": [
+          {
+            "name": "item",
+            "type": "string"
+          },
+          {
+            "name": "amount",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "stock",
+        "params": [
+          {
+            "name": "item",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<int>"
+      },
+      {
+        "name": "items",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "snapshot",
+        "params": [],
+        "returns": "map<string,int>"
+      },
+      {
+        "name": "share",
+        "params": [
+          {
+            "name": "item",
+            "type": "string"
+          }
+        ],
+        "returns": "float"
+      },
+      {
+        "name": "group",
+        "params": [
+          {
+            "name": "names",
+            "type": "list<string>"
+          },
+          {
+            "name": "label",
+            "type": "optional<string>"
+          }
+        ],
+        "returns": "map<string,list<string>>"
+      },
+      {
+        "name": "flags",
+        "params": [
+          {
+            "name": "values",
+            "type": "list<optional<bool>>"
+          }
+        ],
+        "returns": "list<bool>"
+      },
+      {
+        "name": "none",
+        "params": [],
+        "returns": "list<map<string,int>>"
+      },
+      {
+        "name": "odd",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "clear",
+        "params": [],
+        "returns": "void"
+      }
+    ]
+  },
+  "checks": [
+    {
+      "method": "share",
+      "compare": "approx",
+      "tolerance": 1e-9
+    },
+    {
+      "method": "items",
+      "compare": "unordered"
+    }
+  ],
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [10]
+          },
+          {
+            "method": "add",
+            "args": ["apple", 3]
+          },
+          {
+            "method": "add",
+            "args": ["pear", 2]
+          },
+          {
+            "method": "stock",
+            "args": ["apple"]
+          },
+          {
+            "method": "stock",
+            "args": ["kiwi"]
+          },
+          {
+            "method": "items",
+            "args": []
+          },
+          {
+            "method": "snapshot",
+            "args": []
+          },
+          {
+            "method": "share",
+            "args": ["apple"]
+          },
+          {
+            "method": "group",
+            "args": [["a", "b"], null]
+          },
+          {
+            "method": "group",
+            "args": [["c"], "x"]
+          },
+          {
+            "method": "flags",
+            "args": [[true, null, false]]
+          },
+          {
+            "method": "add",
+            "args": ["fig", 100]
+          },
+          {
+            "method": "take",
+            "args": ["pear", 1]
+          },
+          {
+            "method": "take",
+            "args": ["kiwi", 1]
+          },
+          {
+            "method": "none",
+            "args": []
+          },
+          {
+            "method": "odd",
+            "args": []
+          },
+          {
+            "method": "clear",
+            "args": []
+          },
+          {
+            "method": "items",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-1]
+          },
+          {
+            "method": "items",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5]
+          },
+          {
+            "method": "add",
+            "args": ["a", 5]
+          },
+          {
+            "method": "share",
+            "args": ["a"]
+          },
+          {
+            "method": "items",
+            "args": []
+          },
+          {
+            "method": "take",
+            "args": ["a", 6]
+          }
+        ]
+      }
+    ]
+  }
+}

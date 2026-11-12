@@ -4763,3 +4763,33 @@ The owner said to continue building overnight with recommended answers, switchin
   - swallowed range errors;
   - the guard letting rules through on scalar items and unions;
   - plus docs and tests.
+
+### 2026-11-12 — P5-W30-S01 (problem files and verification; LLDQ-1 to LLDQ-4, EXEC-4; Q-P5-07, Q-P5-08)
+
+- **`packages/lld/src/problem.ts`, `Problem`:**
+  - slug (kebab case), title, difficulty, interface, checks, limits, and `layers` (visible and hidden, at least one of each);
+  - every scenario must fit the interface;
+  - every check must name a real method that returns something; `unordered` needs a list; a tolerance needs `approx`.
+- **Layout:** `problems/lld/<slug>/` holds `problem.json`, `statement.md`, `references/` (one file per language) and `expected.json`.
+  - **JSON, not the YAML of Q-P5-08's overnight answer:** the TS side has no YAML parser, and zod validates JSON directly. This is noted on Q-P5-08.
+- **`exec check`:** the Go checker as a CLI. Exit 0 is pass, 2 a mismatch, and 1 the problem's own fault (`ErrProblem`) or bad usage. `exec run` gains `--seconds` and `--memory`.
+- **`verify` (`pnpm --filter @interval/lld verify <problem dir> [--check]`):**
+  - **The canonical results** are the Python reference's (LLDQ-2), run through the real engine over every scenario. They are checked before being recorded: one line per call, in order, each value of its method's declared type. The slug must also match its directory.
+  - **The other references** (every other language's) are held to those results by `exec check`. A reference that fails, exceeds the problem's limits or disagrees fails verification, with its stderr.
+  - **`--check`** compares the committed `expected.json` as JSON (prettier's layout never matters), and reports it missing or stale.
+- **Fixture:** `packages/lld/fixtures/problems/inventory` (the W29 interface and its six references, moved here) is verified, and its `expected.json` is committed.
+- **Tests:**
+  - **Unit:** the problem rules.
+  - **Go:** the check CLI's exit codes, a malformed expected file, a bad check, missing or extra arguments, and run limits out of range.
+  - **Sandbox:** all references agree; a wrong one fails; stale and missing `expected.json` are reported. These are in CI's sandbox job.
+  - The W29 harness tests got timeouts suited to a cold CI runner (one had failed CI at 5.6 s).
+- **Scope:** loading problems into Postgres and the private bucket moved to W31-S01, beside the battles that first need it (ARCH-1). `phase-5-slices.md` says so.
+- **Reviewer fixes:**
+  - the CLI pointed at a directory that doesn't exist yet;
+  - the canonical results weren't checked before being written;
+  - an unchecked cast of the engine's output;
+  - missing tests;
+  - a missing `expected.json` threw instead of reporting;
+  - problem rules now caught when a problem is written;
+  - slug vs directory;
+  - temporary directories left behind.

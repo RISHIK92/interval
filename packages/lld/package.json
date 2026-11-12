@@ -8,6 +8,7 @@
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc",
     "test": "vitest run",
+    "verify": "node --import ../../scripts/ts-resolve.mjs src/verify-cli.ts",
     "codegen": "UPDATE_GENERATED=1 vitest run src/generated.test.ts && prettier --write schema"
   },
   "dependencies": {
