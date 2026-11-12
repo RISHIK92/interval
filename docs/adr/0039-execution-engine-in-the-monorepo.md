@@ -3,7 +3,7 @@
 - Status: PROPOSED
 - Date: 2026-11-12
 - Supersedes: none
-- Superseded by: none
+- Superseded by: 0041 (PROPOSED), once accepted
 
 ## Context
 

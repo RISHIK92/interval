@@ -60,5 +60,5 @@ Option A for nested contracts that TS must interpret; ADR-0010 stays as it is fo
 - **Go:** the generated code includes a `Decode` per contract, which refuses unknown fields and trailing data and checks required fields, a union's exactly-one form, bounds and patterns. Go keeps no hand-written copy of a rule.
 - **Refinements** (naming, uniqueness, the type grammar) are not in the JSON Schema. The interface schema's description says so.
 - **Tooling:** `@interval/lld`'s tests need `gofmt` on PATH, since they run it on the generated Go. CI installs Go before `pnpm check`.
-- `packages/*/schema/*.schema.json` and `services/exec/lld/types.go` are generated. `pnpm --filter <pkg> schema|codegen` regenerates them; the tests fail while they are stale.
+- `packages/*/schema/*.schema.json` are generated. `pnpm --filter <pkg> codegen` regenerates them, and the tests fail while they are stale. The Go types are generated into Velox, the execution service (ADR-0041 PROPOSED), by `pnpm contracts:velox`; Velox's CI is to hold them to the schemas (P5-W30-S07).
 - Open: whether the owner wants this recorded for future nested contracts by default.

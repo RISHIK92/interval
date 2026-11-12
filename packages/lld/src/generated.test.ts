@@ -7,19 +7,16 @@ import { goTypes } from "./go";
 import { Interface } from "./interface";
 import { ResultLine, Scenario } from "./scenario";
 
-// P5-W29-S01 (ADR-0040 PROPOSED): what is generated from the zod contracts is committed,
-// and fails here while stale; `pnpm --filter @interval/lld codegen` (UPDATE_GENERATED=1)
-// writes it.
+// P5-W29-S01 (ADR-0040 PROPOSED): the JSON Schemas generated from the zod contracts are
+// committed, and fail here while stale; `pnpm --filter @interval/lld codegen`
+// (UPDATE_GENERATED=1) writes them. Velox's Go types come from the same contracts
+// (`pnpm contracts:velox`, ADR-0041 PROPOSED).
 const update = process.env["UPDATE_GENERATED"] === "1";
 const root = join(import.meta.dirname, "..");
 
-function same(
-  file: string,
-  fresh: string,
-  compare: (a: string, b: string) => void,
-) {
+function same(file: string, fresh: string) {
   if (update) writeFileSync(file, fresh);
-  compare(readFileSync(file, "utf8"), fresh);
+  expect(JSON.parse(readFileSync(file, "utf8"))).toEqual(JSON.parse(fresh));
 }
 
 test("the committed JSON Schemas are the ones the zod contracts generate", () => {
@@ -32,24 +29,19 @@ test("the committed JSON Schemas are the ones the zod contracts generate", () =>
     same(
       join(root, "schema", `${name}.schema.json`),
       `${JSON.stringify(z.toJSONSchema(schema, { io: "input" }), null, 2)}\n`,
-      (committed, fresh) => {
-        expect(JSON.parse(committed)).toEqual(JSON.parse(fresh));
-      },
     );
 });
 
-test("the checker's Go types are the ones the zod contracts generate", () => {
-  same(
-    join(root, "../../services/exec/lld/types.go"),
-    goTypes(
-      "lld",
-      { Scenario, ResultLine, Check },
-      { calls: "Call", concurrent: "Concurrent", "Concurrent.threads": "Call" },
-    ),
-    (committed, fresh) => {
-      expect(committed).toBe(fresh);
-    },
+test("the Go emitter gives formatted Go for the contracts, with a Decode per root", () => {
+  // goTypes runs gofmt, which fails on anything that isn't Go.
+  const go = goTypes(
+    "lld",
+    { Scenario, ResultLine, Check },
+    { calls: "Call", concurrent: "Concurrent", "Concurrent.threads": "Call" },
   );
+  for (const name of ["Scenario", "ResultLine", "Check"])
+    expect(go).toContain(`func Decode${name}(data []byte) (${name}, error)`);
+  expect(go).toContain("Threads [][]Call");
 });
 
 test("the Go emitter refuses a rule it can't enforce, never dropping it", () => {

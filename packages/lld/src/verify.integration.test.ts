@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import {
   cpSync,
   mkdtempSync,
@@ -8,32 +7,23 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, beforeAll, expect, test } from "vitest";
+import { afterAll, expect, test } from "vitest";
 import { MUTATION_GATE, mutationScore } from "./mutation";
 import { verify } from "./verify";
 
 // P5-W30-S01 (LLDQ-2, EXEC-4): verification on the fixture problem, in the real sandbox
-// and with the real checker. Needs Docker and Go: EXEC_INTEGRATION=1.
-const integration = process.env["EXEC_INTEGRATION"] === "1";
+// and with the real checker.
+// The execution engine's binary, with its `run` and `check` commands (Velox's, ADR-0041
+// PROPOSED); these tests skip without it.
+const exec = process.env["EXEC_BIN"] ?? "";
+const integration = exec !== "";
 // Every reference over every scenario, in the sandbox: minutes, not seconds.
 const SLOW = 600_000;
-const repo = join(import.meta.dirname, "../../..");
 const fixture = join(import.meta.dirname, "../fixtures/problems/inventory");
-let exec = "";
 const made: string[] = [];
 afterAll(() => {
   for (const dir of made) rmSync(dir, { recursive: true, force: true });
 });
-
-beforeAll(() => {
-  if (!integration) return;
-  const build = mkdtempSync(join(tmpdir(), "lld-exec-"));
-  made.push(build);
-  exec = join(build, "exec");
-  execFileSync("go", ["build", "-o", exec, "."], {
-    cwd: join(repo, "services/exec"),
-  });
-}, SLOW);
 
 const copy = () => {
   const root = mkdtempSync(join(tmpdir(), "lld-problem-"));

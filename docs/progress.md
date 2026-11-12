@@ -4986,3 +4986,31 @@ The owner said to continue building overnight with recommended answers, switchin
   - **Review all six problems** (W30-S03's and these) before launch.
   - **Naive model answers:** the `leaderboard` references re-sort on every call, and the `meeting-rooms` ones scan every meeting. Both are correct and within limits, but they model the naive design and no test exercises performance. Should model answers use sorted structures, and should a performance layer exist?
   - **Wall-clock time limits flake under load:** one solo run of the verify suite also hit the limit on trivial C++ and Go runs while the machine was busy (load average about 8); it passed 7/7 on rerun. The engine times limits on wall clock from READY. Velox (the owner's earlier judge, at `~/velox`) measures CPU time instead (user plus system), and that's worth adopting: judge the limit on the container's cgroup CPU time, with a generous wall-clock cap only for sleepers. Proposed as a small engine slice with an ADR-0039 amendment; the owner's call. Velox itself isn't fit to run Interval's judging: it runs every submission as a child process in one shared worker container, with network access to Redis and Postgres, shared files, memory measured only after the run, and no pids limit.
+
+### 2026-11-12 — P5-W30-S06 (retire services/exec; ADR-0041 PROPOSED)
+
+- **Owner's decision (2026-11-12):**
+  - Velox runs and judges code as an independent service, and Interval uses it.
+  - Velox speaks Interval's `JudgeJob`/`JudgeResult` contract, gets `services/exec`'s per-run sandbox gated by the red-team suite, and Claude commits and pushes Velox's `main`.
+  - `services/exec` is retired now.
+  - **ADR-0041 (PROPOSED)** records it and supersedes ADR-0039 once accepted. EXEC-1's Judge0 comparison stays, in Velox's red-team suite.
+- **Removed:**
+  - `services/exec`: engine, checker, red-team suite with its Judge0 adapter, judge workers, images and Dockerfiles. They are ported into Velox in S07 from git history.
+  - The exec hosts in the AWS stack, and the VM's gVisor install: W28-S05's infra changes, reverted exactly.
+  - The CI `redteam` job, the exec runbook, the root Go scripts' `services/exec` entries, the turbo inputs, and the `.gitignore` line.
+  - `packages/judge`'s Valkey client, whose only consumer was `services/exec`; S08 adds an HTTP port.
+- **`pnpm contracts:velox`** (`packages/judge/src/velox-contracts.ts`): writes the generated Go (`lld`, `judge`) and the JSON Schemas, fresh from zod, into `$VELOX_DIR/backend/contract` (default `../velox`). It refuses a directory that isn't a Velox checkout. The generated tests now check only the committed schemas, plus a positive `goTypes` test (formatted Go, a `Decode` per root).
+- **Problem tooling:** `verify`, mutation scoring and the lld integration tests take the engine binary from `EXEC_BIN`, Velox's CLI with `run` and `check`, from S07. Without it, `verify` exits saying so and the integration tests skip.
+- **Until S07 lands, problems can't be re-verified;** the problem-file unit checks still run.
+- **Roadmap:** S06, S07 (Velox: sandbox, checker, judge API, CLI, red-team) and S08 (Interval's HTTP adapter) are added to the phase-5 slices.
+- **Reviewer fixes:**
+  - the dead Valkey client;
+  - ADR-0041 promising an existing port, and contradicting itself on HTTP versus CLI (services use HTTP, tooling uses the CLI);
+  - the Judge0 comparison going unmentioned;
+  - the script writing to a missing `VELOX_DIR`, and copying possibly stale schemas;
+  - tense in ADR-0040, ADR-0039's superseded line, the emitter's default command, and comments.
+- **For the owner:**
+  - **Accept or reject ADR-0041** (and with it, the fate of ADR-0039).
+  - **Licence:** Velox has no licence file and has other contributors (Q-P5-01).
+  - **Where Velox is deployed** (EXEC-5).
+  - **How Interval authenticates to it.**

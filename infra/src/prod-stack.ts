@@ -40,13 +40,6 @@ const COMPOSE_SHA256 =
 const BUILDX_VERSION = "v0.38.1";
 const BUILDX_SHA256 =
   "3b83b3731916ba433feccaaa689fe5bcdc81c641d92c8e6c2ea865dfa141c97a";
-// P5-W28-S05 (EXEC-3; Q-P5-02): gVisor for the execution engine's runs, the same
-// release as the AWS hosts' (services/exec/images/runsc), published 2026-10-22. In VM
-// mode the engine shares this host: one VM has no separate execution hosts (EXEC-5's
-// isolation is the AWS mode's).
-const GVISOR_RELEASE = "20261019.0";
-const GVISOR_SHA512 =
-  "6b14b582cd3185169df54275eed8721d94c9b40e6cb1533d0d0c46573271c6d2d03db586ea1caac46a45e805797f00b115bead9fb93636a1ffa69f2430958977";
 
 // Changing these regenerates every secret on the next deploy, which would overwrite the
 // owner's real OpenRouter/Voyage keys and the live Postgres password. Do not edit.
@@ -168,7 +161,7 @@ export class ProdStack extends Stack {
     userData.addSignalOnExitCommand(instance);
     userData.addCommands(
       "set -euo pipefail",
-      "dnf install -y docker git bzip2",
+      "dnf install -y docker git",
       "mkdir -p /usr/local/lib/docker/cli-plugins",
       `curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-linux-aarch64`,
       `echo "${COMPOSE_SHA256}  /usr/local/lib/docker/cli-plugins/docker-compose" | sha256sum --check`,
@@ -176,15 +169,6 @@ export class ProdStack extends Stack {
       `curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-buildx https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-arm64`,
       `echo "${BUILDX_SHA256}  /usr/local/lib/docker/cli-plugins/docker-buildx" | sha256sum --check`,
       "chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx",
-      `curl -fsSL -o /tmp/gvisor.tar.bz2 https://storage.googleapis.com/gvisor/releases/release/${GVISOR_RELEASE}/aarch64/gvisor.tar.bz2`,
-      `echo "${GVISOR_SHA512}  /tmp/gvisor.tar.bz2" | sha512sum --check`,
-      "mkdir -p /tmp/gvisor && tar -xjf /tmp/gvisor.tar.bz2 -C /tmp/gvisor",
-      "find /tmp/gvisor -type f -name runsc -exec install -m 755 {} /usr/local/bin/ \\;",
-      "/usr/local/bin/runsc --version",
-      "rm -r /tmp/gvisor /tmp/gvisor.tar.bz2",
-      "mkdir -p /etc/docker",
-      // Merged into whatever Docker's package ships, never overwriting it.
-      `python3 -c 'import json, os; p = "/etc/docker/daemon.json"; c = json.load(open(p)) if os.path.exists(p) else {}; c.setdefault("runtimes", {})["runsc"] = {"path": "/usr/local/bin/runsc"}; json.dump(c, open(p, "w"))'`,
       // Nitro exposes EBS as NVMe; the volume id without the dash is the device serial.
       `VOLUME_ID="${data.volumeId}"`,
       'SERIAL="${VOLUME_ID//-/}"',

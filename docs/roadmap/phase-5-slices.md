@@ -128,6 +128,32 @@ Already in place, so not sliced again:
   - results are kept and handed to the waiting submitter.
 - Q: Q-P5-09.
 
+### P5-W30-S06 Retire services/exec
+
+- IDs: EXEC-1 to EXEC-5; ADR-0041 (PROPOSED)
+- Owner's decision (2026-11-12): Velox runs and judges code as an independent service, and Interval uses it.
+- Goal:
+  - remove `services/exec`, the exec hosts in the CDK stacks, the VM's gVisor and the CI `redteam` job;
+  - `pnpm contracts:velox` writes the JSON Schemas and generated Go into a Velox checkout;
+  - lld's verify and integration tests take the engine binary from `EXEC_BIN`.
+- S05's Valkey workers and its Valkey judge client left with `services/exec`. The `JudgeJob`/`JudgeResult` contract stays.
+
+### P5-W30-S07 Velox: the sandbox, checker, judge API and red-team suite
+
+- IDs: EXEC-1 to EXEC-4; ADR-0041 (PROPOSED). Work in the Velox repo (`RISHIK92/velox`).
+- Goal:
+  - **The sandbox:** each run gets a fresh container with gVisor, covering the six languages including Go, with time judged on CPU time plus a wall-clock cap.
+  - **The checker:** the LLD checker runs outside the sandbox.
+  - **Contract API:** `POST /judge` and `GET /judge/{id}` speak `JudgeJob`/`JudgeResult`.
+  - **Queues and workers:** priority queues, and leased, idempotent workers.
+  - **A CLI** with `run` and `check` for Interval's tooling.
+  - **Acceptance:** the red-team suite, Judge0 adapter included (EXEC-1), with the contract copy checked in Velox's CI.
+
+### P5-W30-S08 Interval's Velox adapter
+
+- IDs: EXEC-2, LOAD-3; ADR-0041 (PROPOSED)
+- Goal: `packages/judge` talks to Velox over HTTP (`VELOX_URL`, `VELOX_API_KEY`). The lld integration tests run against a local Velox.
+
 ## Week 31: the battle
 
 ### P5-W31-S01 Problem loading

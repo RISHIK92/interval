@@ -75,20 +75,16 @@ describe("database", () => {
     expect(db.DeletionPolicy).toBe("Snapshot");
   });
 
-  test("Postgres accepts the app tasks only; Valkey those, the game server and the execution hosts", () => {
+  test("Postgres accepts the app tasks only; Valkey those and the game server", () => {
     const app = groupId("Web, jobs and migrate tasks");
     // P3-W15-S03: the game server reads its matches from Valkey (Q-P3-22).
     const game = groupId("Game servers, reachable from the load balancer only");
-    // P5-W28-S05: the execution engine takes its runs from a Valkey queue (W31).
-    const exec = groupId(
-      "Execution hosts: no inbound; out only to endpoints and Valkey",
-    );
     const ingress = all("AWS::EC2::SecurityGroupIngress").map(
       ([, r]) => r.Properties,
     );
     for (const [port, sources] of [
       [5432, [app]],
-      [6379, [app, game, exec]],
+      [6379, [app, game]],
     ] as const) {
       const rules = ingress.filter((p) => p["FromPort"] === port);
       expect(
@@ -1658,129 +1654,5 @@ describe("web push (P3-W17-S05b, Q-P3-18)", () => {
       (e) => e.Name === "VAPID_SUBJECT",
     );
     expect(JSON.stringify(subject?.Value)).toContain("https://");
-  });
-});
-
-// P5-W28-S05 (EXEC-5, EXEC-3; Q-P5-02, Q-P5-05): the execution hosts.
-describe("execution hosts", () => {
-  const refs = (value: unknown): string[] =>
-    JSON.stringify(value).match(/"Ref":"([^"]+)"/g) ?? [];
-
-  test("their subnets have no route out of the VPC", () => {
-    const routes = all("AWS::EC2::Route");
-    expect(routes.length).toBeGreaterThan(0);
-    for (const [, route] of routes)
-      expect(refs(route.Properties["RouteTableId"]).join()).not.toMatch(
-        /Vpcexec/,
-      );
-    // ...but S3, through their own gateway endpoint, for two buckets only: ECR's layers
-    // and Amazon Linux's packages. The shared endpoint serves every other group.
-    const gateways = all("AWS::EC2::VPCEndpoint").filter(
-      ([, e]) => e.Properties["VpcEndpointType"] === "Gateway",
-    );
-    expect(gateways).toHaveLength(2);
-    const execS3 = gateways.find(([id]) => id.includes("ExecS3"));
-    const shared = gateways.find(([id]) => !id.includes("ExecS3"));
-    if (execS3 === undefined || shared === undefined) throw new Error("no S3");
-    for (const id of refs(execS3[1].Properties["RouteTableIds"]))
-      expect(id).toMatch(/Vpcexec/);
-    expect(refs(shared[1].Properties["RouteTableIds"]).join()).not.toMatch(
-      /Vpcexec/,
-    );
-    const policy = JSON.stringify(execS3[1].Properties["PolicyDocument"]);
-    expect(policy).toContain("starport-layer-bucket");
-    expect(policy).toContain("al2023-repos-");
-    expect(policy).toContain('"Action":"s3:GetObject"');
-  });
-
-  test("Postgres and Valkey stay in the data subnets only", () => {
-    const [, dbSubnets] = only("AWS::RDS::DBSubnetGroup");
-    const [, cacheSubnets] = only("AWS::ElastiCache::SubnetGroup");
-    for (const group of [dbSubnets, cacheSubnets]) {
-      const ids = refs(group.Properties["SubnetIds"]);
-      expect(ids.length).toBe(2);
-      for (const id of ids) expect(id).toMatch(/Vpcdata/);
-    }
-  });
-
-  test("ECR, ECS and Logs endpoints sit in the exec subnets, open to the VPC on 443", () => {
-    const iface = all("AWS::EC2::VPCEndpoint").filter(
-      ([, e]) => e.Properties["VpcEndpointType"] === "Interface",
-    );
-    const names = iface.map(([, e]) =>
-      JSON.stringify(e.Properties["ServiceName"]),
-    );
-    for (const service of [
-      "ecr.api",
-      "ecr.dkr",
-      "logs",
-      "ecs-agent",
-      "ecs-telemetry",
-    ])
-      expect(names.some((n) => n.includes(service))).toBe(true);
-    expect(names.some((n) => /\.ecs"/.test(n) || n.endsWith('ecs"'))).toBe(
-      true,
-    );
-    for (const [, e] of iface) {
-      expect(e.Properties["PrivateDnsEnabled"]).toBe(true);
-      for (const id of refs(e.Properties["SubnetIds"]))
-        expect(id).toMatch(/Vpcexec/);
-    }
-    const sg = groupId("VPC endpoints for the isolated execution hosts");
-    const [, group] = all("AWS::EC2::SecurityGroup").find(
-      ([id]) => id === sg,
-    ) ?? ["", { Properties: {} }];
-    expect(JSON.stringify(group.Properties["SecurityGroupIngress"])).toContain(
-      '"FromPort":443',
-    );
-  });
-
-  test("hosts take nothing in, and reach out only on 443 and to Valkey", () => {
-    const sg = groupId(
-      "Execution hosts: no inbound; out only to endpoints and Valkey",
-    );
-    const [, group] = all("AWS::EC2::SecurityGroup").find(
-      ([id]) => id === sg,
-    ) ?? ["", { Properties: {} }];
-    expect(group.Properties["SecurityGroupIngress"]).toBeUndefined();
-    const ingress = all("AWS::EC2::SecurityGroupIngress").filter(([, i]) =>
-      JSON.stringify(i.Properties["GroupId"]).includes(sg),
-    );
-    expect(ingress).toEqual([]);
-    const egress = [
-      ...((group.Properties["SecurityGroupEgress"] as unknown[] | undefined) ??
-        []),
-      ...all("AWS::EC2::SecurityGroupEgress")
-        .filter(([, e]) => JSON.stringify(e.Properties["GroupId"]).includes(sg))
-        .map(([, e]) => e.Properties),
-    ];
-    const ports = egress
-      .map((e) => (e as { FromPort?: number }).FromPort)
-      .sort();
-    expect(ports).toEqual([443, 6379]);
-  });
-
-  test("ARM ECS hosts that boot with gVisor and every language image", () => {
-    template.hasResourceProperties("AWS::EC2::LaunchTemplate", {
-      LaunchTemplateData: Match.objectLike({
-        InstanceType: "c7g.large",
-        MetadataOptions: Match.objectLike({ HttpTokens: "required" }),
-      }),
-    });
-    template.hasResourceProperties("AWS::AutoScaling::AutoScalingGroup", {
-      MinSize: "0",
-      MaxSize: "4",
-    });
-    expect(json).toMatch(/ecs\/optimized-ami\/amazon-linux-2023\/arm64/);
-    const [, lt] = only("AWS::EC2::LaunchTemplate");
-    const script = JSON.stringify(lt.Properties);
-    expect(script).toContain("/usr/local/bin/runsc");
-    expect(script).toContain("runtimes");
-    expect(script).toContain("shutdown -h now");
-    expect(script).toContain("dnf install -y awscli-2");
-    // runsc's image and the five distinct language images (JS and TS share Node's).
-    expect(script.match(/docker pull /g)?.length).toBe(6);
-    expect(script).toContain("/var/lib/interval-exec");
-    template.resourceCountIs("AWS::ECS::CapacityProvider", 1);
   });
 });

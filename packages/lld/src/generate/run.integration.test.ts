@@ -2,33 +2,25 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { beforeAll, expect, test } from "vitest";
+import { expect, test } from "vitest";
 import { Interface } from "../interface";
 import { ResultLine } from "../scenario";
 import { GENERATORS, runFiles } from "./index";
 import { broken, expected, inventory, scenario } from "./inventory.fixture";
 
 // P5-W29-S02 (LLDQ-1, EXEC-2): each language's harness, with a reference solution, run
-// in the real sandbox (services/exec); all six print the same results. Needs Docker and
-// Go: EXEC_INTEGRATION=1.
-const integration = process.env["EXEC_INTEGRATION"] === "1";
+// in the real sandbox; all six print the same results.
+// The execution engine's binary, with its `run` and `check` commands (Velox's, ADR-0041
+// PROPOSED); these tests skip without it.
+const exec = process.env["EXEC_BIN"] ?? "";
+const integration = exec !== "";
 // A compile and a run in the sandbox, cold on a CI runner: well past vitest's 5 s.
 const SLOW = 300_000;
-const repo = join(import.meta.dirname, "../../../..");
 const fixtures = join(
   import.meta.dirname,
   "../../fixtures/problems/inventory/references",
 );
 const iface = Interface.parse(inventory);
-let exec = "";
-
-beforeAll(() => {
-  if (!integration) return;
-  exec = join(mkdtempSync(join(tmpdir(), "lld-exec-")), "exec");
-  execFileSync("go", ["build", "-o", exec, "."], {
-    cwd: join(repo, "services/exec"),
-  });
-}, SLOW);
 
 function run(
   language: string,

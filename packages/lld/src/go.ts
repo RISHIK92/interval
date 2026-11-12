@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { z } from "zod";
 
-// P5-W29-S01 (ADR-0040 PROPOSED): Go types for the checker (services/exec), generated
+// P5-W29-S01 (ADR-0040 PROPOSED): Go types for the checker (in Velox, ADR-0041), generated
 // from the same zod definitions as everything else, with their rules: each type gets a
 // Decode function that refuses unknown fields and trailing data, then checks required
 // fields, a union's exactly-one variant, bounds and patterns. Sandbox output is
@@ -45,7 +45,7 @@ export function goTypes(
   // "Owner.field" picks one field where two contracts share a field name.
   itemNames: Record<string, string>,
   // The command that writes the file, named in its header.
-  regenerate = "pnpm --filter @interval/lld codegen",
+  regenerate = "pnpm contracts:velox",
 ): string {
   const out: string[] = [];
   const names = new Set<string>();

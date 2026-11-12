@@ -1,6 +1,6 @@
 {
   "extends": "@interval/config/tsconfig.base.json",
-  // Only bundled (Next, Metro, vitest), never run by Node itself, as api-client.
+  // Bundled (vitest); src/velox-contracts.ts also runs under Node with scripts/ts-resolve.mjs.
   "compilerOptions": { "module": "preserve", "moduleResolution": "bundler" },
   "include": ["src"]
 }
