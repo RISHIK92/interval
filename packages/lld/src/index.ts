@@ -6,3 +6,5 @@ export { Interface } from "./interface";
 export { Problem } from "./problem";
 export { Call, checkScenario, ResultLine, Scenario } from "./scenario";
 export { fits, formatType, parseType, type TypeAst } from "./types";
+// The Go emitter, for other packages' contracts (packages/judge, ADR-0040).
+export { goTypes } from "./go";

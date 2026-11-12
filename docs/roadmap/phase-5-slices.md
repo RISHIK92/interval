@@ -111,13 +111,24 @@ Already in place, so not sliced again:
 
 - Goal: problems 4–6, as S03.
 
+### P5-W30-S05 The judge: a service-agnostic job contract and async workers
+
+- IDs: EXEC-2, EXEC-4, LOAD-3, LOAD-5, LLDQ-4
+- Owner's request (2026-11-12): judging that any service can use, run by async workers. It was W31-S01 ("the execution queue"), brought forward and made general.
+- Goal:
+  - `packages/judge`: `JudgeJob` and `JudgeResult` in zod, with JSON Schema and Go generated (ADR-0040), and a TS client;
+  - Valkey priority lists (ranked, rooms, casual, run), with `exec serve` workers taking the highest first;
+  - jobs are idempotent and claimed atomically, re-queued when a worker dies, and stop gracefully;
+  - results are kept and handed to the waiting submitter.
+- Q: Q-P5-09.
+
 ## Week 31: the battle
 
-### P5-W31-S01 The execution queue
+### P5-W31-S01 Problem loading
 
-- IDs: LOAD-3, LOAD-5
-- Goal: Valkey priority lists, with `services/exec` consuming in priority order, idempotent by submission id, with verdicts on a reply key.
-- Q: Q-P5-09.
+- IDs: LLDQ-4, DB-6
+- Needs: W30-S01
+- Goal: `problems/lld/*` into Postgres (problems, layers, visible tests), with hidden tests and expected results in the private bucket (moved here from W30-S01).
 
 ### P5-W31-S02 The battle lifecycle
 

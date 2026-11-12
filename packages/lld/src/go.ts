@@ -26,6 +26,7 @@ type Node = {
   minLength?: number;
   maxLength?: number;
   pattern?: string;
+  format?: string;
   enum?: string[];
   exclusiveMinimum?: number;
   exclusiveMaximum?: number;
@@ -40,8 +41,11 @@ const exported = (name: string) => name.charAt(0).toUpperCase() + name.slice(1);
 export function goTypes(
   pkg: string,
   schemas: Record<string, z.ZodType>,
-  // A list of objects becomes a struct of this name (calls: "Call").
+  // A list of objects, or an object field, becomes a struct of this name (calls: "Call");
+  // "Owner.field" picks one field where two contracts share a field name.
   itemNames: Record<string, string>,
+  // The command that writes the file, named in its header.
+  regenerate = "pnpm --filter @interval/lld codegen",
 ): string {
   const out: string[] = [];
   const names = new Set<string>();
@@ -72,16 +76,34 @@ export function goTypes(
         known(
           node.items,
           `${owner}.${key}[]`,
-          node.items.type === "object" ? undefined : "item",
+          node.items.type === "object" || node.items.anyOf !== undefined
+            ? undefined
+            : "item",
         );
+        // A list of a union of objects: one struct for the union, as at the root.
+        if (node.items.anyOf !== undefined) {
+          const name = itemNames[`${owner}.${key}`] ?? itemNames[key];
+          if (name === undefined)
+            throw new Error(`${owner}.${key}: no struct name for its items`);
+          union(name, node.items.anyOf);
+          return `[]${name}`;
+        }
         if (node.items.type === "object") {
-          const name = itemNames[key];
+          const name = itemNames[`${owner}.${key}`] ?? itemNames[key];
           if (name === undefined)
             throw new Error(`${owner}.${key}: no struct name for its items`);
           struct(name, node.items);
           return `[]${name}`;
         }
         return `[]${typeOf(node.items, key, owner).replace(/^\*/, "")}`;
+      }
+      // An object-valued field: a struct of its own, named like a list's items.
+      case "object": {
+        const name = itemNames[`${owner}.${key}`] ?? itemNames[key];
+        if (name === undefined)
+          throw new Error(`${owner}.${key}: no struct name for it`);
+        struct(name, node);
+        return `*${name}`;
       }
       default:
         throw new Error(
@@ -101,6 +123,7 @@ export function goTypes(
       "minLength",
       "maxLength",
       "pattern",
+      "format",
       "enum",
       "description",
     ],
@@ -146,6 +169,12 @@ export function goTypes(
     const allowed = BY_KIND[as];
     if (allowed === undefined)
       throw new Error(`${at}: the Go emitter doesn't handle this node`);
+    // A format (uuid, date-time) is enforced only through the pattern zod writes
+    // beside it: one without a pattern would go unchecked.
+    if ("format" in node && node.pattern === undefined)
+      throw new Error(
+        `${at}: the Go emitter can't enforce a format without a pattern`,
+      );
     for (const k of Object.keys(node))
       if (!allowed.includes(k))
         throw new Error(`${at}: the Go emitter doesn't enforce "${k}" here`);
@@ -195,6 +224,10 @@ export function goTypes(
           `if len([]rune(*v.${f.goName})) < ${String(n.minLength)} { return fmt.Errorf("${at}: too short") }`,
         );
     }
+    if (n.type === "object")
+      lines.push(
+        `if err := v.${f.goName}.Validate(); err != nil { return fmt.Errorf("${at}: %w", err) }`,
+      );
     if (n.type === "array") {
       if (n.minItems !== undefined)
         lines.push(
@@ -204,7 +237,7 @@ export function goTypes(
         lines.push(
           `if len(v.${f.goName}) > ${String(n.maxItems)} { return fmt.Errorf("${at}: more than ${String(n.maxItems)}") }`,
         );
-      if (n.items?.type === "object")
+      if (n.items?.type === "object" || n.items?.anyOf !== undefined)
         lines.push(
           `for i := range v.${f.goName} { if err := v.${f.goName}[i].Validate(); err != nil { return fmt.Errorf("${at}[%d]: %w", i, err) } }`,
         );
@@ -224,11 +257,17 @@ export function goTypes(
       node: child,
     }));
 
-  const emit = (name: string, fields: Field[], validate: string[]) => {
+  const emit = (
+    name: string,
+    fields: Field[],
+    validate: string[],
+    required: Set<string>,
+  ) => {
     if (names.has(name)) throw new Error(`struct ${name} defined twice`);
     names.add(name);
     out.push(
-      `type ${name} struct {\n${fields.map((f) => `\t${f.goName} ${f.type} \`json:"${f.key},omitempty"\``).join("\n")}\n}`,
+      // omitempty only where a field may be absent: a required empty list stays [].
+      `type ${name} struct {\n${fields.map((f) => `\t${f.goName} ${f.type} \`json:"${f.key}${required.has(f.key) ? "" : ",omitempty"}"\``).join("\n")}\n}`,
       `// Validate checks ${name} against its contract.\nfunc (v ${name}) Validate() error {\n${validate.join("\n")}\nreturn nil\n}`,
     );
   };
@@ -250,7 +289,7 @@ export function goTypes(
       else if (body.length > 0)
         validate.push(`if ${present(f)} {`, ...body, "}");
     }
-    emit(name, fields, validate);
+    emit(name, fields, validate, required);
   };
 
   // A union of objects: one struct holding every field, valid when exactly one variant
@@ -280,7 +319,16 @@ export function goTypes(
       const body = checks(f, name);
       if (body.length > 0) validate.push(`if ${present(f)} {`, ...body, "}");
     }
-    emit(name, fields, validate);
+    emit(
+      name,
+      fields,
+      validate,
+      new Set(
+        fields
+          .map((f) => f.key)
+          .filter((k) => variants.every((v) => (v.required ?? []).includes(k))),
+      ),
+    );
   };
 
   for (const [name, schema] of Object.entries(schemas)) {
@@ -305,7 +353,7 @@ export function goTypes(
   ];
   const source = [
     "// Code generated by @interval/lld (src/go.ts) from its zod contracts; DO NOT EDIT.",
-    "// Regenerate with `pnpm --filter @interval/lld codegen` (ADR-0040 PROPOSED).",
+    `// Regenerate with \`${regenerate}\` (ADR-0040 PROPOSED).`,
     "",
     `package ${pkg}`,
     "",

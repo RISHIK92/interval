@@ -4793,3 +4793,53 @@ The owner said to continue building overnight with recommended answers, switchin
   - problem rules now caught when a problem is written;
   - slug vs directory;
   - temporary directories left behind.
+
+### 2026-11-12 — P5-W30-S05 (the judge: a service-agnostic job contract and async workers; EXEC-2, EXEC-4, LOAD-3, LOAD-5, LLDQ-4; owner's request)
+
+- **The owner's request (2026-11-12):** "make sure the code judging is completely adaptable to any other service as well, make use async workers". It was W31-S01 ("the execution queue"), brought forward and made general. W31-S01 is now problem loading.
+- **`packages/judge`**, a new workspace package that knows nothing about battles:
+  - **`JudgeJob`:**
+    - an id (the idempotency key, LOAD-5) and a priority (ranked, rooms, casual, run);
+    - a language, files and limits;
+    - 1 to 100 runs of `{stdin, expected?, checks?, returnOutput?}`;
+    - `submittedAt`.
+  - **`JudgeResult`:** `done` or `failed` (the engine's or the job's fault, never the code's), and per run a verdict, time, the checker's report, and output only when asked for (LLDQ-4).
+  - JSON Schema (for any service, Python's included) and Go are generated (ADR-0040), and stale-checked.
+  - **A TS client** over a three-method port (push, blpop, get): `submit` validates and then queues; `result` waits on the reply, falling back to the stored result.
+- **`services/exec/judge`, and `exec serve`:**
+  - **Claiming:** a Lua script takes the highest-priority job and leases it in the same atomic step, so a job is never out of the queue without a lease. Duplicates are dropped there (already leased, or already answered).
+  - **Leases:** each names its owner, and only the owner extends or releases it. A job's lease is set from its runs (each at its limit, plus 30 s).
+  - **Results:** stored once (`SET NX`, kept one hour) and handed to the waiting submitter. If storing fails, the lease is kept, so the reaper hands the job on.
+  - **The reaper** re-queues expired leases atomically, at the front, and removes unreadable ones.
+  - **Bounds:** jobs up to 8 MB, returned output up to 8 MB per job, errors up to 500 characters, and every result validated before it is stored.
+  - **Logging:** one line per job (priority, language, runs, status, `queueMs`, `runMs`), the basis of the verdict-latency metric.
+  - **Settings:** `EXEC_CONCURRENCY`, by default the CPUs but one. It stops gracefully, finishing the jobs it has claimed.
+  - It uses go-redis v9.22.0, the game server's own pin. The exec image copies the new packages.
+- **The Go emitter (ADR-0040):** object fields, unions as list items, owner-qualified struct names, a `format` only beside its pattern, and `omitempty` only on optional fields (a required empty list now stays `[]`; checked against everything the checker decodes).
+- **Tests:**
+  - **Go, against the local Valkey:**
+    - strict priority;
+    - a job run once (duplicates while it runs and after it finishes);
+    - a dead worker's job taken back;
+    - only a lease's owner releases it;
+    - an unreadable lease removed while the rest are reaped;
+    - a malformed, unreadable or oversized job;
+    - a graceful stop;
+    - 20 jobs across 4 workers;
+    - all under `-race`.
+  - **End to end, in the sandbox:** a real job, judged right and wrong, with no output unless asked.
+  - **TS:** the contract and the client.
+  - **CI:** the sandbox job gains Valkey and the judge's tests.
+- **Reviewer fixes:**
+  - **Blockers:** a popped job could be lost on a Valkey error or a crash (now claimed and leased atomically); the generated schemas weren't formatted.
+  - **Should-fix:**
+    - the done-then-lease race;
+    - a fixed lease shorter than a long job, and releases not tied to their owner;
+    - one bad lease stalling the reaper, which also re-queued in two steps;
+    - errors swallowed at stop;
+    - unbounded error, job and output sizes;
+    - the metric counted twice and missing its queue time.
+- **For the owner:**
+  - **Priority is strict, as LOAD-3 reads:** under sustained ranked load, "Run tests" waits. Should it instead get a share?
+  - **Result lifetime:** a result is kept for one hour, so a resubmitted id is recognised as done within that window.
+  - **Shutdown grace:** the stop timeout on ECS and the VM should cover a job's lease (W31/W32 infra).

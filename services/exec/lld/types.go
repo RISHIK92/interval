@@ -13,8 +13,8 @@ import (
 var pattern0 = regexp.MustCompile("^[\\x20-\\x7e]{0,200}$")
 
 type Call struct {
-	Method *string           `json:"method,omitempty"`
-	Args   []json.RawMessage `json:"args,omitempty"`
+	Method *string           `json:"method"`
+	Args   []json.RawMessage `json:"args"`
 }
 
 // Validate checks Call against its contract.
@@ -38,7 +38,7 @@ func (v Call) Validate() error {
 }
 
 type Scenario struct {
-	Calls []Call `json:"calls,omitempty"`
+	Calls []Call `json:"calls"`
 }
 
 // Validate checks Scenario against its contract.
@@ -75,7 +75,7 @@ func DecodeScenario(data []byte) (Scenario, error) {
 }
 
 type ResultLine struct {
-	Call  *int64          `json:"call,omitempty"`
+	Call  *int64          `json:"call"`
 	Value json.RawMessage `json:"value,omitempty"`
 	Error *string         `json:"error,omitempty"`
 }
@@ -123,8 +123,8 @@ func DecodeResultLine(data []byte) (ResultLine, error) {
 }
 
 type Check struct {
-	Method    *string  `json:"method,omitempty"`
-	Compare   *string  `json:"compare,omitempty"`
+	Method    *string  `json:"method"`
+	Compare   *string  `json:"compare"`
 	Tolerance *float64 `json:"tolerance,omitempty"`
 }
 

@@ -1,0 +1,6 @@
+{
+  "extends": "@interval/config/tsconfig.base.json",
+  // Only bundled (Next, Metro, vitest), never run by Node itself, as api-client.
+  "compilerOptions": { "module": "preserve", "moduleResolution": "bundler" },
+  "include": ["src"]
+}

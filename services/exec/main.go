@@ -10,13 +10,21 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
+	"syscall"
+	"time"
+
+	"github.com/redis/go-redis/v9"
 
 	"interval/services/exec/checker"
 	"interval/services/exec/engine"
+	"interval/services/exec/judge"
 	"interval/services/exec/lld"
 )
 
@@ -28,6 +36,8 @@ func main() {
 	switch {
 	case len(os.Args) > 1 && os.Args[1] == "run":
 		err = run(os.Args[2:])
+	case len(os.Args) > 1 && os.Args[1] == "serve":
+		err = serve()
 	case len(os.Args) > 1 && os.Args[1] == "check":
 		var passed bool
 		passed, err = check(os.Args[2:])
@@ -35,7 +45,7 @@ func main() {
 			os.Exit(2)
 		}
 	default:
-		err = errors.New("usage: exec run --language L (--file F | --dir D) < stdin | exec check --scenario F --expected F --stdout F [--checks F]")
+		err = errors.New("usage: exec run --language L (--file F | --dir D) < stdin | exec check --scenario F --expected F --stdout F [--checks F] | exec serve")
 	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "exec:", err)
@@ -191,4 +201,43 @@ func check(args []string) (bool, error) {
 		return false, err
 	}
 	return report.Passed, nil
+}
+
+// serve runs the judge's workers until SIGTERM or SIGINT, finishing the jobs it holds
+// (P5-W30-S05). Every setting comes from the environment (ADR-0011): VALKEY_URL,
+// EXEC_CONCURRENCY (by default the CPUs but one), EXEC_WORK_DIR, EXEC_RUNTIME.
+func serve() error {
+	url := os.Getenv("VALKEY_URL")
+	if url == "" {
+		return errors.New("VALKEY_URL is not set")
+	}
+	opts, err := redis.ParseURL(url)
+	if err != nil {
+		return fmt.Errorf("VALKEY_URL: %w", err)
+	}
+	concurrency := max(runtime.NumCPU()-1, 1)
+	if v := os.Getenv("EXEC_CONCURRENCY"); v != "" {
+		if concurrency, err = strconv.Atoi(v); err != nil || concurrency < 1 || concurrency > 64 {
+			return fmt.Errorf("EXEC_CONCURRENCY %q: 1 to 64", v)
+		}
+	}
+	client := redis.NewClient(opts)
+	defer client.Close()
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	if err := client.Ping(ctx).Err(); err != nil {
+		return fmt.Errorf("valkey: %w", err)
+	}
+	log := slog.New(slog.NewJSONHandler(os.Stderr, nil))
+	log.Info("judge: serving", "concurrency", concurrency)
+	w := &judge.Worker{
+		Store:       judge.Store{Client: client, Prefix: "judge"},
+		Runner:      &engine.Runner{WorkDir: os.Getenv("EXEC_WORK_DIR"), Docker: "docker", Runtime: os.Getenv("EXEC_RUNTIME")},
+		Concurrency: concurrency,
+		// Past the longest job: 100 runs of 30 s would be far longer, but a real job's
+		// runs are a scenario each, seconds apiece; a lease is renewed per job, W32.
+		Lease: 10 * time.Minute,
+		Log:   log,
+	}
+	return w.Serve(ctx)
 }

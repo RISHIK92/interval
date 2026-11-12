@@ -1,0 +1,23 @@
+{
+  "name": "@interval/judge",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "codegen": "UPDATE_GENERATED=1 vitest run src/generated.test.ts && prettier --write schema"
+  },
+  "dependencies": {
+    "@interval/lld": "workspace:*",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@interval/config": "workspace:*"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
