@@ -63,6 +63,8 @@ export type LearnerState = "due_for_review" | "explored" | "mastered" | "practic
 
 export type LearningGoal = "finish-that-book" | "stack-i-use" | "stay-sharp" | "system-design-interviews";
 
+export type LldDifficulty = "easy" | "hard" | "medium";
+
 export type MomentLinkType = "anchor" | "page_top" | "text_fragment";
 
 export type Numeric = ColumnType<string, number | string, number | string>;
@@ -631,6 +633,21 @@ export interface ListenQueue {
   added_at: Generated<Timestamp>;
   explainer_id: Int8;
   user_id: string;
+}
+
+export interface LldProblem {
+  checks: Generated<Json>;
+  content_hash: string;
+  difficulty: LldDifficulty;
+  interface: Json;
+  limits: Json;
+  loaded_at: Generated<Timestamp>;
+  private_key: string;
+  retired_at: Timestamp | null;
+  slug: string;
+  statement: string;
+  title: string;
+  visible: Json;
 }
 
 export interface Moment {
@@ -1321,6 +1338,7 @@ export interface DB {
   item_feedback: ItemFeedback;
   item_tagging: ItemTagging;
   listen_queue: ListenQueue;
+  lld_problem: LldProblem;
   moment: Moment;
   moment_boundary_override: MomentBoundaryOverride;
   moment_concept: MomentConcept;

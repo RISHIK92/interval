@@ -332,6 +332,9 @@ importers:
       '@interval/game-client':
         specifier: workspace:*
         version: link:../../packages/game-client
+      '@interval/lld':
+        specifier: workspace:*
+        version: link:../../packages/lld
       '@interval/scoring':
         specifier: workspace:*
         version: link:../../packages/scoring

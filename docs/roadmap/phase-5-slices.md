@@ -163,11 +163,13 @@ Already in place, so not sliced again:
 - IDs: LLDQ-4, DB-6
 - Needs: W30-S01
 - Goal: `problems/lld/*` into Postgres (problems, layers, visible tests), with hidden tests and expected results in the private bucket (moved here from W30-S01).
+- Built 2026-11-12: `pnpm problems:load` (TS, apps/web; the `Problem` contract is zod-only, ADR-0040).
 
 ### P5-W31-S02 The battle lifecycle
 
 - IDs: LOAD-2, MATCH-6
 - Goal: a battle match kind in the game server: rounds, the timed extension round, the clock, snapshots, reconnect grace, abandons.
+- Note (ADR-0041 PROPOSED): code goes to Velox's `POST /judge`, not the Valkey queue of Q-P5-09's answer, which predates it. This slice, or W31-S03, builds Interval's judge port and Velox adapter (the folded S08).
 
 ### P5-W31-S03 The battle page and Monaco
 

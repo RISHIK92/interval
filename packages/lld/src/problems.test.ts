@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 import { GENERATORS } from "./generate/index";
-import { Problem, scenariosOf } from "./problem";
+import { Expected, Problem, scenariosOf } from "./problem";
 
 // P5-W30-S03 (LLDQ-1 to LLDQ-4, Q-P5-08): every problem in problems/lld is whole: a
 // valid problem.json named for its directory, a reference in every language, a
@@ -28,9 +28,9 @@ for (const slug of slugs)
       const file = generate(problem.interface).solutionFile;
       expect(existsSync(join(dir, "references", file)), file).toBe(true);
     }
-    const expected = JSON.parse(
-      readFileSync(join(dir, "expected.json"), "utf8"),
-    ) as { layer: string; index: number; results: unknown[] }[];
+    const expected = Expected.parse(
+      JSON.parse(readFileSync(join(dir, "expected.json"), "utf8")),
+    );
     const scenarios = scenariosOf(problem);
     expect(expected.map((e) => `${e.layer} ${String(e.index)}`)).toEqual(
       scenarios.map((s) => `${s.layer} ${String(s.index)}`),

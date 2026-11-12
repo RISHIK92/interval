@@ -54,6 +54,7 @@ type LearnerState = Literal["explored", "practiced", "mastered", "due_for_review
 type LearningGoal = Literal[
     "system-design-interviews", "stack-i-use", "finish-that-book", "stay-sharp"
 ]
+type LldDifficulty = Literal["easy", "medium", "hard"]
 type MomentLinkType = Literal["anchor", "text_fragment", "page_top"]
 type PathStatus = Literal["draft", "live", "retired"]
 type QuestionBatchKind = Literal["draft", "validate"]
@@ -612,6 +613,21 @@ class ListenQueue(TypedDict):
     user_id: str
     explainer_id: int
     added_at: datetime
+
+
+class LldProblem(TypedDict):
+    slug: str
+    title: str
+    difficulty: LldDifficulty
+    statement: str
+    interface: JsonValue
+    checks: JsonValue
+    limits: JsonValue
+    visible: JsonValue
+    private_key: str
+    content_hash: str
+    retired_at: datetime | None
+    loaded_at: datetime
 
 
 class Moment(TypedDict):

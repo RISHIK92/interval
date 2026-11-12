@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { python } from "./generate/python";
 import { Problem, scenariosOf } from "./problem";
-import type { Expected } from "./verify";
+import type { Expected } from "./problem";
 
 // P5-W30-S02 (LLDQ-2; Phase 5 "Done when": tests catch at least 90% of injected bugs):
 // each mutant of the Python reference (tools/mutants.py) is run over every scenario and

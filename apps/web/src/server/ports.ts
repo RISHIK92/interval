@@ -20,6 +20,7 @@ import type {
 } from "@interval/api-client";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
+import type { Problem, ResultLine, Scenario } from "@interval/lld";
 
 // The reasons a card explanation can state (ADR-0026/0027), as the worker names them.
 export const REASON_KINDS = [
@@ -1919,4 +1920,27 @@ export interface AdminTts {
   pick(sampleId: string, by: string): Promise<boolean>;
   // A sample's stored audio, for the admin-only audio route.
   fileKey(sampleId: string): Promise<string | null>;
+}
+
+// P5-W31-S01 (LLDQ-4, DB-6): LLD battle problems as loaded into Postgres. The row holds
+// what a player may see; the hidden layers live in the private bucket at privateKey.
+// Shapes from the problem contract (packages/lld), not repeated here.
+export type LoadedProblem = Pick<
+  Problem,
+  "slug" | "title" | "difficulty" | "interface" | "limits"
+> & {
+  statement: string;
+  checks: NonNullable<Problem["checks"]>;
+  // The visible scenarios with their expected results, in the problem's order.
+  visible: { scenario: Scenario; results: ResultLine[] }[];
+  privateKey: string;
+  contentHash: string;
+};
+
+export interface ProblemStore {
+  // The live problems (not retired): slug to content hash.
+  hashes(): Promise<Map<string, string>>;
+  // Insert or replace by slug; a retired problem loaded again is live again.
+  save(problem: LoadedProblem): Promise<void>;
+  retire(slugs: string[]): Promise<void>;
 }

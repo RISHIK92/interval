@@ -5064,3 +5064,38 @@ The owner said to continue building overnight with recommended answers, switchin
   Not fixed: a test of `logged`, because Velox's log service needs a database; the allowlist gate has one.
 - **Reviewer models (owner, 2026-11-12):** reviews run on Sonnet 5.5 from here. The owner's "never run Sonnet" rule is about OpenRouter (the app's models). The two reviews above were the first comparison: Opus found the deeper blockers (a JSON case-folding quirk, a multi-tenant hole), and Sonnet found a real follow-on bug in the fixes.
 - **W30-S08 is folded into the first W31 slice that submits code:** a client with no caller would be a dead export (ARCH-1).
+
+### 2026-11-12 — P5-W31-S01 (problem loading; LLDQ-4, DB-6)
+
+- **Migration `20261113000000_lld_problems`:** `lld_problem` holds only what a player may see, per LLDQ-4.
+  - The row: the slug (with `Problem`'s pattern), the title, the difficulty (an enum), the statement, the interface, the checks and limits, and the visible scenarios with their expected results.
+  - `private_key`, which a check ties to `lld/problems/<slug>/<content_hash>.json`.
+  - `retired_at` and `loaded_at`.
+  - The down migration was tested locally.
+- **`pnpm problems:load`** (`apps/web/scripts/problems-load.ts`, `apps/web/src/server/problems.ts`):
+  - **Why TS:** the `Problem` contract and its refinements exist only in zod, and a Python loader would need a second validator.
+  - **Before loading:** it parses every problem and checks each `expected.json` against its scenarios. A single bad problem loads nothing.
+  - **Bucket first:** every layer, with its expected results, goes to the private bucket at a content-addressed key, before the row is upserted. The file is put back even for an unchanged problem, so a lost bucket heals on the next load. Superseded files are kept for battles on older versions.
+  - **Retiring:** problems gone from disk are retired, not deleted, and come back when loaded again. It prints its target database and bucket first, because the owner runs it at release.
+  - **Locally:** all six problems loaded; a second run reported all six unchanged.
+- **Elsewhere:**
+  - `packages/lld` exports a zod `Expected` (moved from verify.ts's TS type) and `scenariosOf`.
+  - The web depends on `@interval/lld`, and its Dockerfile copies it; `test_compose_prod.py` caught that.
+- **Tests:**
+  - **Load logic:**
+    - bucket before row, with nothing hidden in the row;
+    - unchanged loads, which still put the file back;
+    - a changed problem gets a new key;
+    - retire and revive;
+    - one bad problem among good ones loads nothing;
+    - a failed bucket write leaves no row.
+  - **Postgres:** upsert, retire, revive, and the schema's checks.
+- **Sonnet review:** four should-fix items, all fixed:
+  - a stale skip when the bucket was lost;
+  - hand-written `unknown` types, now lld's own;
+  - a silent `[]` for missing results;
+  - partial loads, now documented and rerunnable.
+
+  Plus nits: the key/slug/hash check, the target printout, the comments, and the missing tests.
+- **Velox:** bb2e873 scores a Python `MemoryError` as the memory limit, which fixed the red-team `memory` attack's CI flake. Velox's CI is green.
+- **For the owner:** should there be an "owner reviewed" flag before PROVISIONAL problems can be used in battles? No decision covers it yet.

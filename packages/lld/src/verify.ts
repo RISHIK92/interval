@@ -11,7 +11,7 @@ import { basename, join } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
 import { GENERATORS, runFiles } from "./generate/index";
-import { Problem, scenariosOf } from "./problem";
+import { type Expected, Problem, scenariosOf } from "./problem";
 import { randomScenario } from "./random";
 import { ResultLine, type Scenario } from "./scenario";
 import { fits, parseType } from "./types";
@@ -24,12 +24,6 @@ import { fits, parseType } from "./types";
 
 // Runs of each concurrency scenario, per language (P5-W30-S02b).
 const RUNS = 3;
-
-export type Expected = {
-  layer: "visible" | "hidden" | "concurrency";
-  index: number;
-  results: ResultLine[];
-}[];
 
 // The engine's answer, read at the boundary: another process's output.
 const RunOutput = z.object({

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { Check } from "./check";
 import { Interface } from "./interface";
-import { checkScenario, Scenario } from "./scenario";
+import { checkScenario, ResultLine, Scenario } from "./scenario";
 
 // P5-W30-S01 (LLDQ-1 to LLDQ-4, Q-P5-08): a problem as written, in
 // problems/lld/<slug>/problem.json beside its statement.md and references/. The visible
@@ -90,3 +90,14 @@ export function scenariosOf(p: Problem): {
     })),
   );
 }
+
+// A problem's expected.json (P5-W30-S01): the Python reference's results for every
+// scenario, in scenariosOf order, written by verify and read by the loader (W31-S01).
+export const Expected = z.array(
+  z.strictObject({
+    layer: z.enum(["visible", "hidden", "concurrency"]),
+    index: z.int().min(0),
+    results: z.array(ResultLine),
+  }),
+);
+export type Expected = z.infer<typeof Expected>;
