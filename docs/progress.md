@@ -5014,3 +5014,31 @@ The owner said to continue building overnight with recommended answers, switchin
   - **Licence:** Velox has no licence file and has other contributors (Q-P5-01).
   - **Where Velox is deployed** (EXEC-5).
   - **How Interval authenticates to it.**
+
+### 2026-11-12 — P5-W30-S07 (Velox: sandbox, checker, judge API, red-team; ADR-0041 PROPOSED)
+
+- **In Velox** (`RISHIK92/velox` a5c8f60, pushed to `main`; the owner's two uncommitted files left untouched):
+  - **The port:** `services/exec` ported from Interval's history, changing only import paths and names (`velox-run-*` containers, the `velox-exec-go:1` image).
+    - `backend/engine`: the per-run sandbox, the six languages, compile once.
+    - `backend/checker`.
+    - `backend/judgejob`: priority queues and leased, idempotent workers.
+    - `backend/lld`.
+    - `backend/redteam`: the 22 attacks, Judge0 adapter included.
+    - `backend/cmd/exec`: `run` and `check` for tooling, `serve` for the workers.
+  - **Over HTTP:** `POST /judge` and `GET /judge/{id}`, in the `JudgeJob`/`JudgeResult` contract, under Velox's existing API-key scopes (`submit`, `status`).
+    - A job outside the contract gets 400, an oversized one 413, and a pending result 404.
+    - Tested against a real Redis.
+  - **The workers** (`exec serve`) use Velox's `REDIS_ADDR` and `REDIS_PASSWORD`, so the API and the workers share one queue.
+  - **`backend/contract`:** the schemas from `pnpm contracts:velox`, and a test that the generated Go types' fields and optional fields match them. It catches drift, as tested by changing a schema.
+  - **Running it:**
+    - a `judge-engine` CI job: vet, unit tests, every language in the sandbox, and the red-team suite;
+    - a `judge-worker` compose service (Docker socket, `EXEC_WORK_DIR` at the same path on host and container);
+    - the red-team runbook, moved to `docs/runbooks/redteam.md`;
+    - a README section.
+- **Results:**
+  - Velox's CI is green on every job, the new `judge-engine` one included, with the red-team suite on GitHub's runner.
+  - Locally, all 22 attacks are contained and the engine passes its sandbox tests.
+  - Interval's lld suites with `EXEC_BIN` set to Velox's binary pass 30 of 31. The one failure is the known wall-clock flake under local load (C++, the concurrency scenario).
+- **In Interval:** `pnpm contracts:velox` writes the Go types beside the Velox packages that use them (`backend/lld`, `backend/judgejob`) and the schemas to `backend/contract/schema`.
+- **Time limits (owner, 2026-11-12):** wall clock for now. CPU time is read from the container's cgroup once the Linux execution hosts exist (EXEC-5). ADR-0041 says so.
+- **Next, S08:** the judge port with a Velox HTTP adapter in `packages/judge`, and the end-to-end flow through Velox's compose stack.

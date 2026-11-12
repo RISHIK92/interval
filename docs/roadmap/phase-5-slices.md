@@ -142,12 +142,14 @@ Already in place, so not sliced again:
 
 - IDs: EXEC-1 to EXEC-4; ADR-0041 (PROPOSED). Work in the Velox repo (`RISHIK92/velox`).
 - Goal:
-  - **The sandbox:** each run gets a fresh container with gVisor, covering the six languages including Go, with time judged on CPU time plus a wall-clock cap.
+  - **The sandbox:** each run gets a fresh container with gVisor, covering the six languages including Go. Time stays on the wall clock until the Linux hosts exist, then moves to cgroup CPU time (owner, 2026-11-12).
   - **The checker:** the LLD checker runs outside the sandbox.
   - **Contract API:** `POST /judge` and `GET /judge/{id}` speak `JudgeJob`/`JudgeResult`.
   - **Queues and workers:** priority queues, and leased, idempotent workers.
   - **A CLI** with `run` and `check` for Interval's tooling.
   - **Acceptance:** the red-team suite, Judge0 adapter included (EXEC-1), with the contract copy checked in Velox's CI.
+
+- Built 2026-11-12 (Velox a5c8f60).
 
 ### P5-W30-S08 Interval's Velox adapter
 

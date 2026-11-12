@@ -70,7 +70,7 @@ The owner's answers (2026-11-12) settle four things:
 - **Interval's problem tooling** (`verify`, mutation scoring, the lld integration tests): it runs locally against Velox's command-line binary, with `run` and `check` as `services/exec` had them, named by `EXEC_BIN`.
 - **In Velox:**
   - **The sandbox:** each run gets a fresh container (no network, read-only root, non-root, capabilities dropped, pids, memory and CPU limits, gVisor in production), with Go among the language strategies.
-  - **Time limits:** judged on CPU time (Velox's existing accounting) with a wall-clock cap, which fixes the wall-clock flakiness seen in P5-W30-S04.
+  - **Time limits** (owner, 2026-11-12): wall clock from the program's start (or from READY after compiling), as `services/exec` had them, for now. Once the Linux execution hosts exist (EXEC-5), they're judged on CPU time read from the container's cgroup (`cpu.stat`, sampled while it runs, and unforgeable), with a wall-clock cap for programs that sleep. That fixes the flakiness under host load seen in P5-W30-S04. Docker Desktop and OrbStack keep the wall clock.
   - **Checking:** the LLD checker runs in the worker.
   - **The red-team suite** becomes Velox's acceptance test, Judge0 adapter included, so EXEC-1's comparison ("against a hardened Velox and against Judge0") still runs.
   - **Queues:** priority queues, and leased, idempotent jobs.
