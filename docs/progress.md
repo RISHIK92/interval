@@ -4602,3 +4602,31 @@ The owner said to continue building overnight with recommended answers, switchin
   - the local `interval-exec-go:1` tag isn't a digest (it's built locally);
   - pids get no toolchain overhead: javac and `go build` fit in 32 today;
   - a compiler that floods stderr is scored `output_limit`, not `compile_error`.
+
+### 2026-11-12 — P5-W28-S04 (Judge0 comparison and the engine decision; EXEC-1; Q-P5-03; ADR-0039 PROPOSED)
+
+- **`redteam/judge0.go`:** Judge0 CE through `POST /submissions?base64_encoded=true&wait=true`.
+  - **Requests** carry the suite's limits (time, memory in KB, processes, `max_file_size` capped at the stock 4096 KB, network off).
+  - **Verdicts** map from its statuses: 3 ok, 5 time, 6 compile, 8 (SIGXFSZ) output, 7–12 runtime, or memory when SIGKILL comes at the memory limit. 13 and 14, and any non-2xx, are engine errors.
+  - Its base64 `message` is decoded into the error.
+- **Tests:** a fake Judge0 checks every request field and each status's mapping, and that a 422 or an unknown language is an engine error. `TestJudge0ContainsEveryAttack` runs the 13 Python attacks when `JUDGE0_URL` is set. Judge0 CE's Node 12, tsc 3.7 and Go 1.13 predate the native probes, which check our images anyway.
+- **Attacks made layout-neutral:**
+  - A missing path counts as unwritable, but a write refused only by permissions still fails.
+  - The neighbour search skips directories that aren't there.
+  - "Other processes" now walks the run's own ancestry: anything that is neither pid 1, its ancestors nor itself is another's. This covers an engine's own init (isolate), and a shared pid namespace too.
+- **`docs/runbooks/exec-redteam.md`:**
+  - what the suite runs, and the results table: ours contains all 22 locally; gVisor and Judge0 are **owner to run**;
+  - standing Judge0 up on a Linux VM, including its `MAX_*` caps;
+  - sorting each Judge0 UNSAFE line into a real escape, a missing EXEC-3 control (which counts) or a layout mismatch (which doesn't), before EXEC-1's rule is applied;
+  - the decision. ADR-0039 stays PROPOSED until both rows are in.
+- **CI:** a `redteam` job with `continue-on-error`, on pushes and pull requests. It builds the Go image, pre-pulls the pinned language images (the engine bounds each docker call at 30 s), and runs `go test -p 1 ./engine/ ./redteam/`.
+- **Reviewer fixes:**
+  - **Blockers:**
+    - a `max_file_size` past Judge0's cap would have failed every submission;
+    - Docker-layout assumptions would have decided EXEC-1 before the run. The fix: Python only, layout-neutral probes and the triage.
+  - **Also:**
+    - status 8 maps to an output limit (the timeout allowance is gone);
+    - the ancestry check replaces a pid count;
+    - CI pulls the images first and runs one package at a time;
+    - error and request tests;
+    - a named status type, the decoded message, and the counts and comments corrected.

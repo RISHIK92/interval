@@ -126,3 +126,35 @@ jobs:
         env:
           CDK_DISABLE_CLI_TELEMETRY: "true"
         run: pnpm --filter @interval/infra synth
+
+  # EXEC-1, Q-P5-03 (P5-W28-S04): the execution engine's red-team suite, on the runner's
+  # Docker (runc; gVisor is checked on an execution host). Not required: a red run is
+  # read and acted on, but it doesn't block main.
+  redteam:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: "1.27.3"
+          cache: false
+
+      - name: Go's runner image
+        run: docker build -q -t interval-exec-go:1 services/exec/images/go
+
+      # The engine bounds each docker call at 30 s: a cold pull of the compilers' images
+      # (gcc is over 1 GB) must not happen inside a run.
+      - name: Pull the language images
+        run: |
+          grep -o '"[a-z.-]*:[^"]*@sha256:[0-9a-f]*"' services/exec/engine/languages.go \
+            | tr -d '"' | sort -u | xargs -n1 docker pull -q
+
+      - name: Engine integration tests and the red-team suite
+        working-directory: services/exec
+        env:
+          EXEC_INTEGRATION: "1"
+        # One package at a time: the timing attacks mustn't share the runner's CPUs.
+        run: go test -p 1 -count=1 -v ./engine/ ./redteam/

@@ -9,8 +9,8 @@ import (
 	"time"
 )
 
-// P5-W28-S01 (EXEC-3): real runs in Docker. Set EXEC_INTEGRATION=1 to run them; CI's
-// runners and machines without Docker skip them.
+// P5-W28-S01 (EXEC-3): real runs in Docker. Set EXEC_INTEGRATION=1 to run them (CI's
+// non-required redteam job does); machines without Docker skip them.
 func runner(t *testing.T) *Runner {
 	t.Helper()
 	if os.Getenv("EXEC_INTEGRATION") != "1" {

@@ -83,26 +83,42 @@ print(sorted(os.environ))
 `}),
 		python(Attack{Name: "other processes", Allowed: []string{ok}, Source: `
 import os
-pids = [p for p in os.listdir("/proc") if p.isdigit()]
+# Every visible process must be this run's own: pid 1 (an engine's init or the program
+# itself), the program's ancestors, or itself. Anything else is another's.
+def parent(pid):
+    for line in open(f"/proc/{pid}/status"):
+        if line.startswith("PPid:"):
+            return int(line.split()[1])
+    return 0
+own = {1, os.getpid()}
+p = os.getpid()
+while p > 1:
+    p = parent(p)
+    own.add(p)
+pids = {int(p) for p in os.listdir("/proc") if p.isdigit()}
 first = open("/proc/1/cmdline", "rb").read().replace(b"\0", b" ").decode()
-print("pids", len(pids), "pid 1:", first)
-if len(pids) > 5:
-    print("ESCAPED: sees", len(pids), "processes")
-# Engines with an init process (Judge0's isolate) need their own allowance here.
-if "python" not in first:
-    print("ESCAPED: pid 1 is", first)
+print("pids", sorted(pids), "own", sorted(own), "pid 1:", first)
+for other in pids - own:
+    try:
+        cmd = open(f"/proc/{other}/cmdline", "rb").read().replace(b"\0", b" ").decode()
+    except OSError:
+        continue
+    print("ESCAPED: sees another process", other, cmd)
 print(open("/proc/1/environ", "rb").read())
 `}),
 		python(Attack{Name: "writes outside /tmp", Allowed: []string{ok}, CatchesWeak: true, Source: `
 import errno
-# /var/tmp is writable by anyone in the image: only a read-only filesystem stops it.
+# /var/tmp is writable by anyone in the image: only a read-only filesystem stops it. A
+# path that isn't there (another engine's layout) can't be written, which is fine.
 for path in ["/code/x", "/x", "/etc/x", "/usr/x", "/var/tmp/x"]:
     try:
         with open(path, "w") as f:
             f.write("x")
         print("ESCAPED: wrote", path)
     except OSError as e:
-        if e.errno != errno.EROFS:
+        if e.errno == errno.ENOENT:
+            print("absent", path)
+        elif e.errno != errno.EROFS:
             print("ESCAPED: only permissions stopped", path, e)
         else:
             print("read-only", path)
@@ -132,7 +148,11 @@ for root, dirs, files in os.walk("/"):
 deadline = time.time() + 3
 while time.time() < deadline:
     for base in ["/tmp", "/dev/shm", "/code"]:
-        for name in os.listdir(base):
+        try:
+            names = os.listdir(base)
+        except OSError:
+            continue
+        for name in names:
             look(os.path.join(base, name))
     for pid in os.listdir("/proc"):
         if pid.isdigit():

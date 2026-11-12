@@ -34,38 +34,45 @@ func TestExecEngineContainsEveryAttack(t *testing.T) {
 	e := NewExecEngine()
 	for _, a := range append(Python(Limits), Native(Limits.MemoryMB)...) {
 		t.Run(a.Name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-			defer cancel()
-			var wg sync.WaitGroup
-			if a.Beside != nil {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					n, err := e.Run(ctx, a.Beside.Language, a.Beside.Source, a.Beside.Stdin)
-					if err != nil {
-						t.Errorf("neighbour: %v", err)
-						return
-					}
-					// Its secret must have been in place, or the search proves nothing.
-					if !strings.Contains(n.Stdout, neighbourReady) || n.Verdict != ok {
-						t.Errorf("neighbour never got ready: %s %q", n.Verdict, n.Stdout)
-					}
-				}()
-				// Started first, so its secret is there while the search runs.
-				time.Sleep(500 * time.Millisecond)
-			}
-			o, err := e.Run(ctx, a.Language, a.Source, a.Stdin)
-			wg.Wait()
-			if err != nil {
-				t.Fatalf("engine error (counts as a failure): %v", err)
-			}
-			if why := Unsafe(a, o, canary); why != "" {
-				t.Errorf("UNSAFE: %s\n%s", why, o.Stdout)
-				return
-			}
-			t.Logf("contained (%s): %.400s", o.Verdict, o.Stdout)
+			runAttack(t, e, a, canary)
 		})
 	}
+}
+
+// runAttack runs one attack (and its neighbour, at the same time) and fails on anything
+// it wasn't contained by. An engine error is a failure, never a skip.
+func runAttack(t *testing.T, e Engine, a Attack, canary string) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	var wg sync.WaitGroup
+	if a.Beside != nil {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			n, err := e.Run(ctx, a.Beside.Language, a.Beside.Source, a.Beside.Stdin)
+			if err != nil {
+				t.Errorf("neighbour: %v", err)
+				return
+			}
+			// Its secret must have been in place, or the search proves nothing.
+			if !strings.Contains(n.Stdout, neighbourReady) || n.Verdict != ok {
+				t.Errorf("neighbour never got ready: %s %q", n.Verdict, n.Stdout)
+			}
+		}()
+		// Started first, so its secret is there while the search runs.
+		time.Sleep(500 * time.Millisecond)
+	}
+	o, err := e.Run(ctx, a.Language, a.Source, a.Stdin)
+	wg.Wait()
+	if err != nil {
+		t.Fatalf("engine error (counts as a failure): %v", err)
+	}
+	if why := Unsafe(a, o, canary); why != "" {
+		t.Errorf("UNSAFE: %s\n%s", why, o.Stdout)
+		return
+	}
+	t.Logf("contained (%s): %.400s", o.Verdict, o.Stdout)
 }
 
 // weakEngine is a sandbox with none of EXEC-3 but a non-root user: the attacks marked
