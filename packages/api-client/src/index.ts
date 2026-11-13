@@ -449,6 +449,9 @@ export const PushPreferences = z.object({
   digest: z.boolean(),
   pathReminder: z.boolean(),
   dailyChallenge: z.boolean(),
+  // P5-W32 (Q-P5-12, Q-P5-19): a registered window's reminder, 15 minutes before. Absent
+  // from the app, which has no battles (§6.5): a save without it keeps it as it was.
+  battleWindow: z.boolean().optional(),
   hour: z.number().int().min(PUSH_HOURS.min).max(PUSH_HOURS.max),
 });
 export type PushPreferences = z.infer<typeof PushPreferences>;

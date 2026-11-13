@@ -3982,6 +3982,22 @@ class PostgresReminders:
             for u, z, h, d, p, g in rows
         ]
 
+    def claim_windows(self, now: datetime) -> list[str]:
+        rows = self._conn.execute(
+            """
+            update battle_window_registration r set reminded_at = %(now)s
+            where r.reminded_at is null and r.remind_at <= %(now)s
+              and r.window_at > %(now)s
+              and exists (select 1 from push_preference p
+                where p.user_id = r.user_id and p.battle_window)
+              and exists (select 1 from user_entitlement e
+                where e.user_id = r.user_id and e.capability = 'push.notify')
+            returning r.user_id
+            """,
+            {"now": now},
+        ).fetchall()
+        return sorted(str(u) for (u,) in rows)
+
     def sent_on(self, user_id: str, local_day: date) -> bool:
         return (
             self._conn.execute(

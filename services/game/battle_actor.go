@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -385,7 +386,41 @@ func (a *actor) finishBattle(p *play) {
 			}
 		}
 	}
+	p.places = places(a.def.Players, p.totals, p.times, p.abandoned)
 	a.finish(p)
+}
+
+// Q-P5-18: a battle's placings, by points, then time, the abandoned last together;
+// equal points and time share a place (1, 2, 2, 4), as the worker ranks a room.
+func places(players []string, totals map[string]int, times map[string]time.Duration, abandoned []string) map[string]int {
+	order := slices.Clone(players)
+	gone := func(p string) bool { return slices.Contains(abandoned, p) }
+	before := func(x, y string) bool {
+		if gone(x) || gone(y) {
+			return !gone(x) && gone(y) // the abandoned are last, together
+		}
+		if totals[x] != totals[y] {
+			return totals[x] > totals[y]
+		}
+		return times[x] < times[y]
+	}
+	slices.SortStableFunc(order, func(x, y string) int {
+		switch {
+		case before(x, y):
+			return -1
+		case before(y, x):
+			return 1
+		}
+		return 0
+	})
+	out := map[string]int{}
+	for i, p := range order {
+		out[p] = i + 1
+		if i > 0 && !before(order[i-1], p) {
+			out[p] = out[order[i-1]]
+		}
+	}
+	return out
 }
 
 // The code message as a client sends it: {"type":"run"|"submit","language":…,"code":…}.

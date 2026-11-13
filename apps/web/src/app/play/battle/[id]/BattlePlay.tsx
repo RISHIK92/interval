@@ -81,6 +81,29 @@ export function outsidePaste(pasted: string, known: string[]): number | null {
   return text.length;
 }
 
+// P5-W32: you, the opponent in a 1v1, and numbered opponents in a room (C-03).
+export function names(
+  players: string[],
+  you: string | null,
+): Record<string, string> {
+  const others = players.filter((p) => p !== you);
+  return Object.fromEntries(
+    players.map((p) => [
+      p,
+      p === you
+        ? "You"
+        : others.length === 1
+          ? "Opponent"
+          : `Opponent ${String(others.indexOf(p) + 1)}`,
+    ]),
+  );
+}
+
+// Q-P5-19: alone, a casual player meets the reference pace: when a strong solver
+// typically passes each layer.
+const PACE =
+  "Reference pace: the visible tests by 10:00, the hidden ones by 25:00, the extension by 40:00.";
+
 function clock(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000));
   return `${String(Math.floor(s / 60))}:${String(s % 60).padStart(2, "0")}`;
@@ -279,18 +302,24 @@ export function BattleView({
   if (state.phase === "cancelled")
     return <p className="text-ink-muted">This battle was cancelled.</p>;
   if (state.phase === "final") {
-    const outcome = {
-      won: "You won.",
-      lost: "You lost.",
-      draw: "A draw.",
-    }[state.outcome];
+    const players = Object.keys(state.totals);
+    const label = names(players, state.you);
+    const place = state.you === null ? undefined : state.places[state.you];
+    const outcome =
+      players.length === 1
+        ? "Finished."
+        : players.length > 2 && place !== undefined
+          ? `You placed ${String(place)} of ${String(players.length)}.`
+          : { won: "You won.", lost: "You lost.", draw: "A draw." }[
+              state.outcome
+            ];
     return (
       <section aria-label="Result" className="flex flex-col gap-2">
         <h2 className="text-title">{outcome}</h2>
         <ul>
-          {Object.entries(state.totals).map(([player, points]) => (
+          {players.map((player) => (
             <li key={player}>
-              {player === state.you ? "You" : "Opponent"}: {points} points
+              {label[player]}: {state.totals[player]} points
               {state.abandoned.includes(player) ? " (abandoned)" : ""}
             </li>
           ))}
@@ -353,7 +382,7 @@ export function BattleView({
               : Object.entries(playing.best)
                   .map(
                     ([player, points]) =>
-                      `${player === playing.you ? "You" : "Opponent"} ${String(points)}`,
+                      `${names(Object.keys(playing.best), playing.you)[player] ?? player} ${String(points)}`,
                   )
                   .join(" · ")}
           </span>
@@ -386,6 +415,9 @@ export function BattleView({
             {playing?.submitting === true ? "Submitting…" : "Submit"}
           </button>
         </div>
+        {playing !== null && Object.keys(playing.best).length === 1 && (
+          <p className="text-ink-muted">{PACE}</p>
+        )}
         {playing?.notice != null && (
           <p role="status" className="text-ink-muted">
             {playing.notice}

@@ -762,10 +762,12 @@ export interface Matches {
   ): Promise<LiveMatch | null>;
   // P5-W31-S02b-2b (§6.5): an LLD battle on a loaded problem, for the game server's
   // battle actor; its id. Its result is stored like any match's; ratings come in W32.
+  // P5-W32: unrated, as a casual or solo battle is (Q-P5-19).
   createBattle(
     serverId: number,
     players: string[],
     slug: string,
+    options?: { unrated: boolean },
   ): Promise<string>;
   // The game server that owns the match, and the id the player plays as there (a guest
   // who signed up mid-match keeps the guest's, Q-P3-21), when the player is in it; null
@@ -906,6 +908,9 @@ export interface AgentHook {
 // P3-W16-S01 (ADR-0034): a player's quick-game rating; 1500 before their first match.
 export interface PlayerRatings {
   of(userId: string): Promise<number>;
+  // P5-W32 (Q-P5-18): the 1v1 battle rating in the human league, for the casual queue's
+  // bands (1500 before a first rated battle).
+  battleOf(userId: string): Promise<number>;
   // P3-W18-S02 (§6.9; owner, 2026-11-05): the player's confirmed fair-play penalties,
   // newest first: the rating each removed (0 when its match gained nothing).
   adjustments(userId: string): Promise<{ penalty: number; playedAt: Date }[]>;
@@ -1816,6 +1821,35 @@ export interface BattleSnapshots {
   ): Promise<{ player: string; snapshots: BattleSnapshot[] } | null>;
 }
 
+// P5-W32 (§6.6, MATCH-7; Q-P5-12, Q-P5-19): ranked battle windows' registrations and
+// grouping. Times are a window's start (battle-windows.ts).
+export type WindowPlayer = { userId: string; rating: number };
+export interface BattleWindows {
+  register(windowAt: Date, userId: string, remindAt: Date): Promise<void>;
+  unregister(windowAt: Date, userId: string): Promise<void>;
+  // Null when not registered; the battle once grouped.
+  registration(
+    windowAt: Date,
+    userId: string,
+  ): Promise<{ matchId: string | null } | null>;
+  // The window's grouping, for the first caller at or after its start, or one coming
+  // back a minute after a claim that left players ungrouped: its problem (`pick` when
+  // first claimed) and its ungrouped players by room rating, best first; `first` for
+  // the window's first claim. Null when another caller has it.
+  claim(
+    windowAt: Date,
+    now: Date,
+    pick: () => Promise<string>,
+  ): Promise<{
+    problem: string;
+    players: WindowPlayer[];
+    first: boolean;
+  } | null>;
+  // The claim is still being worked: no reclaim for another minute.
+  extend(windowAt: Date, now: Date): Promise<void>;
+  assign(windowAt: Date, matchId: string, userIds: string[]): Promise<void>;
+}
+
 export interface AdminFairPlay {
   pending(): Promise<FairPlayFlagRow[]>;
   // The flagged player, or null when the flag isn't pending (decided already).
@@ -1926,7 +1960,8 @@ export interface Listening {
 }
 
 // Opt-in pushes (Q-P4-13, P4-W24-S01): which kinds, the hour, and the device's zone.
-export type PushKind = "digest" | "path_reminder" | "daily_challenge";
+export type PushKind =
+  "digest" | "path_reminder" | "daily_challenge" | "battle_window"; // P5-W32
 export interface PushSettings {
   // Defaults (all off, 18:00) for a user who never saved.
   get(userId: string): Promise<PushPreferences>;

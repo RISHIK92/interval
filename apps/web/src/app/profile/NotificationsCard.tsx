@@ -23,6 +23,11 @@ const KINDS = [
     name: "Your break is ready",
     what: "When your feed has something you haven't opened.",
   },
+  {
+    key: "battleWindow",
+    name: "Battle windows",
+    what: "15 minutes before a ranked window you registered for.",
+  },
 ] as const;
 
 const HOURS = Array.from(
@@ -79,7 +84,7 @@ export function NotificationsCard(props: {
             role="switch"
             className="mt-1 size-5"
             disabled={saving}
-            checked={saved[kind.key]}
+            checked={saved[kind.key] ?? false}
             aria-describedby={`push-${kind.key}-what`}
             onChange={(e) => {
               void change({ ...saved, [kind.key]: e.target.checked });

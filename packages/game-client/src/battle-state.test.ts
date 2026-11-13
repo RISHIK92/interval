@@ -108,7 +108,12 @@ test("others' bests update; the final names the outcome; nothing follows it", ()
     { type: "joined", you: "ada" },
     start,
     { type: "best", best: { ada: 700, bob: 1000 } },
-    { type: "final", totals: { ada: 700, bob: 1000 }, winner: "bob" },
+    {
+      type: "final",
+      totals: { ada: 700, bob: 1000 },
+      winner: "bob",
+      places: { bob: 1, ada: 2 },
+    },
     { type: "best", best: { ada: 1000, bob: 1000 } },
   );
   expect(s).toEqual({
@@ -117,6 +122,7 @@ test("others' bests update; the final names the outcome; nothing follows it", ()
     outcome: "lost",
     totals: { ada: 700, bob: 1000 },
     abandoned: [],
+    places: { bob: 1, ada: 2 },
   });
   expect(BATTLE.over(s)).toBe(true);
 });

@@ -70,10 +70,10 @@
       "props": { "explainer_id": "id", "concept_id": "id" }
     },
     "push_setting_changed": {
-      "version": 1,
-      "description": "A push kind was turned on or off (P4-W24-S01, Q-P4-13), for the opt-in metric (W24-S02).",
+      "version": 2,
+      "description": "A push kind was turned on or off (P4-W24-S01, Q-P4-13), for the opt-in metric (W24-S02). Version 2 adds battle_window, a registered ranked window's reminder (P5-W32, Q-P5-19).",
       "props": {
-        "kind": ["digest", "path_reminder", "daily_challenge"],
+        "kind": ["digest", "path_reminder", "daily_challenge", "battle_window"],
         "on": "boolean"
       }
     },
@@ -315,6 +315,11 @@
       "version": 1,
       "description": "The agent hook said the task finished (P3-W17-S04, §7): how long it ran, and whether a place was saved.",
       "props": { "elapsed_ms": "count", "place_saved": "boolean" }
+    },
+    "battle_window_grouped": {
+      "version": 1,
+      "description": "A ranked battle window's registrants were grouped at its start (P5-W32, MATCH-7, Q-P5-19): how many were registered, and how many are in a battle with others (rooms of 4, 3 or 2; one left over plays solo). For the at-least-80%-matched metric. Emitted once per grouping, under the poll that made it.",
+      "props": { "registered": "count", "matched": "count" }
     },
     "match_found": {
       "version": 2,

@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Expected, GENERATORS, Problem } from "@interval/lld";
 import { expect, test } from "vitest";
-import { startBattle } from "./battles";
+import { groupWindow, startBattle } from "./battles";
 import type {
   BattleMatch,
+  BattleWindows,
   FileStore,
   LoadedProblem,
   MatchHandoff,
@@ -65,10 +66,25 @@ async function loaded() {
       return Promise.resolve();
     },
   };
-  const made: { serverId: number; players: string[]; slug: string }[] = [];
+  const made: {
+    serverId: number;
+    players: string[];
+    slug: string;
+    unrated?: boolean;
+  }[] = [];
   const matches = {
-    createBattle: (serverId: number, players: string[], slug: string) => {
-      made.push({ serverId, players, slug });
+    createBattle: (
+      serverId: number,
+      players: string[],
+      slug: string,
+      options?: { unrated: boolean },
+    ) => {
+      made.push({
+        serverId,
+        players,
+        slug,
+        ...(options === undefined ? {} : { unrated: options.unrated }),
+      });
       return Promise.resolve(`match-${String(made.length)}`);
     },
   };
@@ -126,8 +142,57 @@ test("no battle on a problem that isn't loaded, or without distinct players", as
   ).rejects.toThrow(/players/);
   expect(deps.handed).toEqual([]);
   expect(deps.made).toEqual([]);
-  await startBattle(deps, 0, "inventory", ["ana"]);
+  // C-03 (P5-W32): rooms of up to 4.
+  await expect(
+    startBattle(deps, 0, "inventory", ["a", "b", "c", "d", "e"]),
+  ).rejects.toThrow(/players/);
+  await startBattle(deps, 0, "inventory", ["ana"], { unrated: true });
   expect(deps.handed).toHaveLength(1);
+  expect(deps.made[0]?.unrated).toBe(true);
+});
+
+// P5-W32 (Q-P5-19): a window's registrants into rooms of 4, then 3 or 2, one alone
+// and unranked; all on the window's problem; a failed group stays for the next poll.
+test("a window groups its registrants by rating on one problem", async () => {
+  const deps = await loaded();
+  const assigned: { matchId: string; users: string[] }[] = [];
+  const windows: BattleWindows = {
+    register: () => Promise.resolve(),
+    unregister: () => Promise.resolve(),
+    registration: () => Promise.resolve(null),
+    extend: () => Promise.resolve(),
+    claim: async (_at, _now, pick) => ({
+      first: true,
+      problem: await pick(),
+      players: ["p1", "p2", "p3", "p4", "p5"].map((userId, i) => ({
+        userId,
+        rating: 30 - i,
+      })),
+    }),
+    assign: (_at, matchId, users) => {
+      assigned.push({ matchId, users });
+      return Promise.resolve();
+    },
+  };
+  const at = new Date("2026-11-13T15:30:00Z");
+  expect(await groupWindow({ ...deps, windows }, at, () => at)).toEqual({
+    grouped: 5,
+    matched: 4,
+    first: true,
+  });
+  expect(assigned.map((a) => a.users)).toEqual([
+    ["p1", "p2", "p3", "p4"],
+    ["p5"],
+  ]);
+  expect(deps.made.map((m) => [m.slug, m.unrated])).toEqual([
+    ["inventory", false],
+    ["inventory", true],
+  ]);
+  // Another poll's claim: nothing made again.
+  const taken = { ...windows, claim: () => Promise.resolve(null) };
+  expect(
+    await groupWindow({ ...deps, windows: taken }, at, () => at),
+  ).toBeNull();
 });
 
 test("a battle that can't be handed over is thrown, not lost quietly", async () => {

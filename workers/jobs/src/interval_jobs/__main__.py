@@ -87,7 +87,7 @@ from interval_jobs.question_trial import TrialError, run_trial, trial_moments
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.ranking.scoring import BREAK_MINUTES
 from interval_jobs.recalibration import recalibrate
-from interval_jobs.reminders import run_push_due
+from interval_jobs.reminders import run_push_due, run_window_reminders
 from interval_jobs.scenes import draw as draw_scenes
 from interval_jobs.seasons import close_season
 from interval_jobs.segment import segment_item
@@ -139,6 +139,11 @@ def main(argv: list[str]) -> None:
     commands.add_parser(
         "push-due",
         help="send the opt-in pushes whose hour has come (hourly, P4-W24-S01b)",
+    )
+    commands.add_parser(
+        "window-reminders-due",
+        help="push registered players 15 minutes before their battle window"
+        " (every 5 minutes, P5-W32)",
     )
     commands.add_parser(
         "recompute-due",
@@ -406,6 +411,16 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.command == "push-due":
         # Q-P4-13: hourly; each user at most once a day, in their own hours.
         out = run_push_due(services, web_push(), native_push(), datetime.now(UTC))
+        print(
+            json.dumps({"sent": out.sent, "skipped": out.skipped, "failed": out.failed})
+        )
+        return
+
+    if args.command == "window-reminders-due":
+        # Q-P5-19: every 5 minutes; each registration's reminder once.
+        out = run_window_reminders(
+            services, web_push(), native_push(), datetime.now(UTC)
+        )
         print(
             json.dumps({"sent": out.sent, "skipped": out.skipped, "failed": out.failed})
         )

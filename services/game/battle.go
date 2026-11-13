@@ -75,6 +75,8 @@ var layerWeights = map[string]float64{
 
 const maxBattlePoints = 1000
 
+const maxBattlePlayers = 4
+
 // A judge job holds at most this many runs (packages/judge), and a problem up to 190
 // scenarios: a submission is judged in jobs of this size.
 const maxRunsPerJob = 100

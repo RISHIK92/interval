@@ -2487,6 +2487,11 @@ class InMemoryReminders:
         self.digests: dict[str, PushNotice] = {}
         self.sent: dict[tuple[str, date], PushKind] = {}
         self.browsers: dict[str, list[PushTarget]] = {}
+        self.windows_due: list[str] = []  # P5-W32: due window reminders, claimed once
+
+    def claim_windows(self, now: datetime) -> list[str]:
+        due, self.windows_due = self.windows_due, []
+        return due
 
     def candidates(self) -> list[PushCandidate]:
         return list(self.people)

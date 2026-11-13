@@ -370,3 +370,29 @@ def test_a_finish_counts_as_activity_even_once_its_rights_change(
         (original, done_item),
     )
     assert PostgresReminders(conn).path_due("rm11", NOW) is None
+
+
+# P5-W32 (Q-P5-12, Q-P5-19): a registered window's reminder, due 15 minutes before, to
+# those with the kind on and push on their plan; claimed once.
+def test_window_reminders_are_claimed_once_when_due(conn: psycopg.Connection) -> None:
+    for user in ("rw1", "rw2", "rw3"):
+        a_user(conn, user)
+    conn.execute(
+        "insert into push_preference (user_id, battle_window, time_zone) values"
+        " ('rw1', true, 'UTC'), ('rw2', false, 'UTC'), ('rw3', true, 'UTC')"
+    )
+    window = NOW + timedelta(minutes=10)
+    conn.execute(
+        "insert into battle_window_registration (window_at, user_id, remind_at)"
+        " values (%(w)s, 'rw1', %(r)s), (%(w)s, 'rw2', %(r)s),"
+        " (%(later)s, 'rw3', %(later_r)s)",
+        {
+            "w": window,
+            "r": window - timedelta(minutes=15),
+            "later": window + timedelta(days=1),
+            "later_r": window + timedelta(days=1) - timedelta(minutes=15),
+        },
+    )
+    store = PostgresReminders(conn)
+    assert [u for u in store.claim_windows(NOW) if u.startswith("rw")] == ["rw1"]
+    assert [u for u in store.claim_windows(NOW) if u.startswith("rw")] == []

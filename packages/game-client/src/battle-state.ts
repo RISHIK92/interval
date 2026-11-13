@@ -56,6 +56,8 @@ const Message = z.discriminatedUnion("type", [
     totals: Bests,
     winner: z.string(),
     abandoned: z.array(z.string()).optional(),
+    // P5-W32: each player's place (1 the best), as the game server ranks a room.
+    places: z.record(z.string(), z.number().int().min(1)).optional(),
   }),
   z.object({ type: z.literal("cancelled") }),
 ]);
@@ -95,6 +97,7 @@ export type BattleState =
       outcome: "won" | "lost" | "draw";
       totals: Record<string, number>;
       abandoned: string[];
+      places: Record<string, number>;
     }
   | { phase: "cancelled" };
 
@@ -180,6 +183,7 @@ function battleStep(
               : "lost",
         totals: message.totals,
         abandoned: message.abandoned ?? [],
+        places: message.places ?? {},
       };
     case "cancelled":
       return { phase: "cancelled" };

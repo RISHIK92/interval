@@ -71,6 +71,8 @@ describe("the event list (Q-P1-20)", () => {
         "explainer_finished",
         // The owner-approved W24-S01 plan (2026-11-11): for W24-S02's opt-in metric.
         "push_setting_changed",
+        // The owner's answers of 2026-11-13 (Q-P5-19, P5-W32): the 80% matched metric.
+        "battle_window_grouped",
       ].sort(),
     );
   });

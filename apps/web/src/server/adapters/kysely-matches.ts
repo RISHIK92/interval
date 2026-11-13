@@ -184,11 +184,16 @@ export function kyselyMatches(
         return { id, serverId, players, mode, rounds };
       }),
 
-    createBattle: (serverId, players, slug) =>
+    createBattle: (serverId, players, slug, options) =>
       inTransaction(async (trx) => {
         const { id } = await trx
           .insertInto("game_match")
-          .values({ server_id: serverId, mode: "battle", problem_slug: slug })
+          .values({
+            server_id: serverId,
+            mode: "battle",
+            problem_slug: slug,
+            unrated: options?.unrated ?? false,
+          })
           .returning("id")
           .executeTakeFirstOrThrow();
         await trx

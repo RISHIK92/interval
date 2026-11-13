@@ -223,6 +223,7 @@ type play struct {
 	reveal    map[string]any // its reveal, for a player who missed it
 	answers   map[string][]answerRec
 	signals   map[string][]fairPlaySignal // P3-W18-S02: fair-play signals, per player
+	places    map[string]int              // P5-W32: a battle's placings, 1 the best
 	sprint    *sprintRun                  // a sprint's own state, once it has begun
 	battle    *battleRun                  // a battle's own state, once it has begun
 	countdown time.Time                   // when the countdown before the first question ends; zero: none running
@@ -483,6 +484,9 @@ func (a *actor) finish(p *play) {
 	final := map[string]any{"type": "final", "totals": p.totals, "winner": won}
 	if p.sprint != nil {
 		final["review"] = a.review(p)
+	}
+	if p.places != nil {
+		final["places"] = p.places
 	}
 	outcome := "finished"
 	if len(p.abandoned) > 0 {

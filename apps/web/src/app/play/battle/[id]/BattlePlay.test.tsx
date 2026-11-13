@@ -1,7 +1,7 @@
 import type { BattleState } from "@interval/game-client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
-import { BattleView, codeFor, outsidePaste } from "./BattlePlay";
+import { BattleView, codeFor, names, outsidePaste } from "./BattlePlay";
 import { type CodeEditorProps, removedBy } from "./CodeEditor";
 
 // P5-W31-S03 (§6.5; Q-P5-15, Q-P5-16; LLDQ-4): the battle's screen for each state.
@@ -103,6 +103,7 @@ test("the end: the outcome and points; a lost connection says how to rejoin", ()
     outcome: "won",
     totals: { ada: 1000, bob: 300 },
     abandoned: ["bob"],
+    places: { ada: 1, bob: 2 },
   });
   expect(html).toContain("You won.");
   expect(html).toContain("Opponent: 300 points (abandoned)");
@@ -141,4 +142,39 @@ test("text cut from the editor and pasted back is the player's own", () => {
   ]);
   expect(cut).toEqual([block]);
   expect(outsidePaste(block, ["class Cache:\n", ...cut])).toBeNull();
+});
+
+// P5-W32 (C-03, Q-P5-19): rooms number their opponents; a room's end names your place;
+// alone, the reference pace.
+test("a room numbers the opponents; a 1v1 has the opponent", () => {
+  expect(names(["a", "b", "c"], "b")).toEqual({
+    a: "Opponent 1",
+    b: "You",
+    c: "Opponent 2",
+  });
+  expect(names(["a", "b"], "a")).toEqual({ a: "You", b: "Opponent" });
+});
+
+test("a room's end names your place; a solo one the points; alone, the pace", () => {
+  const room = show({
+    phase: "final",
+    you: "b",
+    outcome: "lost",
+    totals: { a: 1000, b: 700, c: 400 },
+    abandoned: [],
+    places: { a: 1, b: 2, c: 3 },
+  });
+  expect(room).toContain("You placed 2 of 3.");
+  expect(room).toContain("Opponent 2: 400 points");
+  const solo = show({
+    phase: "final",
+    you: "a",
+    outcome: "won",
+    totals: { a: 700 },
+    abandoned: [],
+    places: { a: 1 },
+  });
+  expect(solo).toContain("Finished.");
+  expect(show({ ...playing, best: { ada: 0 } })).toContain("Reference pace");
+  expect(show(playing)).not.toContain("Reference pace");
 });

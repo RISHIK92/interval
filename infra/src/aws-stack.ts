@@ -240,7 +240,7 @@ export class AwsStack extends Stack {
             { name: "version", type: "int" },
             {
               name: "props",
-              type: "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean,game:string,wait_ms:bigint,opponent:string,explainer_id:string,on:boolean>",
+              type: "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean,game:string,wait_ms:bigint,opponent:string,explainer_id:string,on:boolean,registered:bigint,matched:bigint>",
             },
           ],
         },
@@ -941,6 +941,44 @@ export class AwsStack extends Stack {
       }),
     });
 
+    // P5-W32 (Q-P5-12, Q-P5-19): EventBridge Scheduler runs `window-reminders-due`
+    // every 5 minutes: registered players' window reminders, each claimed once. It
+    // pushes, so it gets the push secrets push-due has; no queue.
+    // The push secrets push-due and window-reminders-due both send with.
+    const pushSecrets = {
+      DB_PASSWORD: secrets.DB_PASSWORD,
+      VAPID_PRIVATE_KEY: ecs.Secret.fromSecretsManager(vapidPrivate),
+      APNS_KEY: ecs.Secret.fromSecretsManager(apnsKey),
+      APNS_KEY_ID: ecs.Secret.fromSecretsManager(apnsKeyId),
+      APNS_TEAM_ID: ecs.Secret.fromSecretsManager(apnsTeamId),
+      FCM_SERVICE_ACCOUNT: ecs.Secret.fromSecretsManager(fcmAccount),
+    };
+    const windowRemindersTask = taskDefinition("WindowReminders");
+    const windowRemindersContainer = windowRemindersTask.addContainer(
+      "window-reminders-due",
+      {
+        image: image("workers/jobs/Dockerfile"),
+        entryPoint: withDatabaseUrl(
+          '/app/.venv/bin/python -m interval_jobs "$@"',
+        ),
+        command: ["window-reminders-due"],
+        environment,
+        secrets: pushSecrets,
+        logging: logging("window-reminders-due"),
+      },
+    );
+    new scheduler.Schedule(this, "WindowRemindersSchedule", {
+      schedule: scheduler.ScheduleExpression.rate(Duration.minutes(5)),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: windowRemindersTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // The next run catches anything due: claims make a rerun send nothing twice.
+        retryAttempts: 0,
+        maxEventAge: Duration.minutes(5),
+      }),
+    });
+
     // P4-W24-S01b (Q-P4-13): EventBridge Scheduler runs `push-due` hourly. Each user
     // gets at most one opt-in push a day, at or after their hour in their own zone; the
     // day is claimed in the database before sending, so a rerun sends nothing twice. It
@@ -953,14 +991,7 @@ export class AwsStack extends Stack {
       ),
       command: ["push-due"],
       environment,
-      secrets: {
-        DB_PASSWORD: secrets.DB_PASSWORD,
-        VAPID_PRIVATE_KEY: ecs.Secret.fromSecretsManager(vapidPrivate),
-        APNS_KEY: ecs.Secret.fromSecretsManager(apnsKey),
-        APNS_KEY_ID: ecs.Secret.fromSecretsManager(apnsKeyId),
-        APNS_TEAM_ID: ecs.Secret.fromSecretsManager(apnsTeamId),
-        FCM_SERVICE_ACCOUNT: ecs.Secret.fromSecretsManager(fcmAccount),
-      },
+      secrets: pushSecrets,
       logging: logging("push-due"),
     });
     new scheduler.Schedule(this, "PushDueSchedule", {
@@ -1279,10 +1310,11 @@ export class AwsStack extends Stack {
       "VAPID_SUBJECT",
       `https://${distribution.distributionDomainName}`,
     );
-    pushDueContainer.addEnvironment(
-      "VAPID_SUBJECT",
-      `https://${distribution.distributionDomainName}`,
-    );
+    for (const container of [pushDueContainer, windowRemindersContainer])
+      container.addEnvironment(
+        "VAPID_SUBJECT",
+        `https://${distribution.distributionDomainName}`,
+      );
 
     // OPS-2, OPS-4 (W6-S05): one dashboard and the alarms. No alarm notifies anyone
     // yet; they show in the console (owner, 2026-10-26; paging is out of scope).

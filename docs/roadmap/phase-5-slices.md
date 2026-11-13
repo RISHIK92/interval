@@ -262,22 +262,27 @@ Already in place, so not sliced again:
 
 - IDs: C-03; Q-P5-18
 - Goal: battles of up to 4 on the game server and the web (`startBattle`, `pnpm game:battle`); the battle page names each opponent and shows a room's placing.
+- Built 2026-11-13, with the rest of Week 32 as one unit (owner's process change).
 
 ### P5-W32-S02 Windows, registration, reminders
 
 - IDs: MATCH-7, §6.6
 - Goal: scheduled windows, registration, a reminder push kind, and matching at window start (at least 80% matched is the metric).
-- Q: Q-P5-12.
+- Q: Q-P5-12, Q-P5-19.
+- Built 2026-11-13.
 
 ### P5-W32-S03 Scheduled scaling
 
 - IDs: LOAD-4, EXEC-5
 - Goal: scale execution hosts before windows (EventBridge Scheduler; the VM timer); synthesized.
+- **Deferred, for the owner (2026-11-13):** Velox runs the code (ADR-0041), so its hosts are Velox's own concern (Q-P5-19). The game server isn't autoscaled by design: a match's socket must reach its owning server, so more capacity means another numbered server with its own route, and window matches placed on it. That is more than a scheduled scale-up, and the beta doesn't need it yet: the game server only holds sockets.
 
 ### P5-W32-S04 The casual queue and solo fallback
 
 - IDs: MATCH-7, BOT-5
 - Goal: always open; after 60 seconds, solo and unranked against a reference timeline.
+- Q: Q-P5-19.
+- Built 2026-11-13.
 
 ## Week 33: the AI league
 

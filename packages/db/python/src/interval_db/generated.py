@@ -200,6 +200,21 @@ class BattleSnapshot(TypedDict):
     slot: int
 
 
+class BattleWindow(TypedDict):
+    window_at: datetime
+    grouping_at: datetime
+    problem_slug: str
+
+
+class BattleWindowRegistration(TypedDict):
+    window_at: datetime
+    user_id: str
+    registered_at: datetime
+    remind_at: datetime
+    reminded_at: datetime | None
+    match_id: UUID | None
+
+
 class BoardScore(TypedDict):
     attempt_id: int
     board: str
@@ -823,6 +838,7 @@ class PushPreference(TypedDict):
     hour: int
     time_zone: str
     updated_at: datetime
+    battle_window: bool
 
 
 class PushSent(TypedDict):

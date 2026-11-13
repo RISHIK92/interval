@@ -219,6 +219,21 @@ export interface BattleSnapshot {
   user_id: string;
 }
 
+export interface BattleWindow {
+  grouping_at: Timestamp;
+  problem_slug: string;
+  window_at: Timestamp;
+}
+
+export interface BattleWindowRegistration {
+  match_id: string | null;
+  registered_at: Generated<Timestamp>;
+  remind_at: Timestamp;
+  reminded_at: Timestamp | null;
+  user_id: string;
+  window_at: Timestamp;
+}
+
 export interface BoardScore {
   attempt_id: Int8;
   board: string;
@@ -835,6 +850,7 @@ export interface Pronunciation {
 }
 
 export interface PushPreference {
+  battle_window: Generated<boolean>;
   daily_challenge: Generated<boolean>;
   digest: Generated<boolean>;
   hour: Generated<number>;
@@ -1343,6 +1359,8 @@ export interface DB {
   battle_rating: BattleRating;
   battle_rating_history: BattleRatingHistory;
   battle_snapshot: BattleSnapshot;
+  battle_window: BattleWindow;
+  battle_window_registration: BattleWindowRegistration;
   board_score: BoardScore;
   book: Book;
   book_chapter: BookChapter;

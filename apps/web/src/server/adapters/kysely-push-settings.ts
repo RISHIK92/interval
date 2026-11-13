@@ -8,6 +8,7 @@ const DEFAULTS: PushPreferences = {
   digest: false,
   pathReminder: false,
   dailyChallenge: false,
+  battleWindow: false,
   hour: 18,
 };
 
@@ -16,7 +17,13 @@ export function kyselyPushSettings(db: Kysely<DB>): PushSettings {
     get: async (userId) => {
       const row = await db
         .selectFrom("push_preference")
-        .select(["digest", "path_reminder", "daily_challenge", "hour"])
+        .select([
+          "digest",
+          "path_reminder",
+          "daily_challenge",
+          "battle_window",
+          "hour",
+        ])
         .where("user_id", "=", userId)
         .executeTakeFirst();
       return row === undefined
@@ -25,6 +32,7 @@ export function kyselyPushSettings(db: Kysely<DB>): PushSettings {
             digest: row.digest,
             pathReminder: row.path_reminder,
             dailyChallenge: row.daily_challenge,
+            battleWindow: row.battle_window,
             hour: row.hour,
           };
     },
@@ -41,9 +49,11 @@ export function kyselyPushSettings(db: Kysely<DB>): PushSettings {
         digest: boolean;
         path_reminder: boolean;
         daily_challenge: boolean;
+        battle_window: boolean;
       }>`
         with before as (
-          select digest, path_reminder, daily_challenge from push_preference
+          select digest, path_reminder, daily_challenge, battle_window
+          from push_preference
           where user_id = ${userId}
           for update
         )
@@ -51,12 +61,14 @@ export function kyselyPushSettings(db: Kysely<DB>): PushSettings {
           digest = ${next.digest},
           path_reminder = ${next.pathReminder},
           daily_challenge = ${next.dailyChallenge},
+          battle_window = coalesce(${next.battleWindow ?? null}::boolean, p.battle_window),
           hour = ${next.hour},
           time_zone = ${timeZone},
           updated_at = now()
         from before
         where p.user_id = ${userId}
-        returning before.digest, before.path_reminder, before.daily_challenge
+        returning before.digest, before.path_reminder, before.daily_challenge,
+          before.battle_window
       `.execute(db);
       const was = result.rows[0];
       if (was === undefined) throw new Error("push settings: row not saved");
@@ -65,6 +77,7 @@ export function kyselyPushSettings(db: Kysely<DB>): PushSettings {
         digest: next.digest,
         path_reminder: next.pathReminder,
         daily_challenge: next.dailyChallenge,
+        battle_window: next.battleWindow ?? old.battle_window,
       };
       return (Object.keys(now) as PushKind[])
         .filter((kind) => now[kind] !== old[kind])

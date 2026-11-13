@@ -5502,3 +5502,39 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Fair play:** a room's gain and penalty are in OpenSkill mu.
 - **Sonnet review:** no blockers. Fixed the abandoned guard and the warn level.
 - **Left as nits:** the admin page's gain mixes Glicko points and mu with no unit; a few test gaps (all-abandoned rooms, an AI-league room).
+
+### 2026-11-13 — P5 Week 32, the rest (rooms, the casual queue, ranked windows, reminders; §6.6, MATCH-7, C-03, Q-P5-12, Q-P5-19)
+
+- **Process (owner):** a roadmap week is built as one unit: questions once (Q-P5-19), one Sonnet review, one commit.
+- **Rooms of up to 4:**
+  - the game server caps battles at 4 and sends `places` (points, then time, the abandoned last together);
+  - `startBattle` caps at 4 and takes `{unrated}`;
+  - the battle page numbers opponents, names a room's placing, and shows the reference pace when solo.
+- **The casual queue:**
+  - `/api/battle/queue` reuses `valkeyMatchmaking` (prefix `mm:<region>:battle:`), making unrated 1v1s on a random problem, banded by 1v1 battle rating;
+  - after 60 s the lobby leaves the queue, looks once more for a match made meanwhile, and only then starts solo (`/api/battle/solo`, one at a time per player);
+  - `/play` gets an "LLD battle" card, and `/play/battle` is the lobby.
+- **Ranked windows (`battle-windows.ts`, the only place the schedule lives):**
+  - 21:00 nightly plus 11:00 at weekends in `BATTLE_WINDOW_TIME_ZONE` (empty means UTC), 45 minutes each;
+  - registration and unregistration close 5 minutes before;
+  - migration `20261113080000_battle_windows` adds registrations (with `remind_at`), the window's grouping claim, and `push_preference.battle_window`;
+  - the first poll at or after the start claims the grouping: rooms of 4 by room rating, then 3 or 2, and one left over alone and unrated, all on one random problem;
+  - a stale claim (over a minute old, extended after each group) is retaken for players still ungrouped;
+  - the event `battle_window_grouped` {registered, matched} is emitted once per window, for the 80% metric (its props are in the Glue struct).
+- **Reminders:**
+  - the push kind `battle_window`: optional in the API, so the app's saves keep it; the Profile switch; `push_setting_changed` v2;
+  - `window-reminders-due` claims due registrations in one UPDATE … RETURNING and sends through push-due's shared `_send`, apart from the one-a-day cap;
+  - it runs on the VM's `interval-windows.timer` and an EventBridge schedule every 5 minutes, sharing push-due's secrets.
+- **W32-S03 (scheduled scaling) is deferred** for the owner; the reason is in phase-5-slices.
+- **Sonnet review fixed:**
+  - an empty time zone broke every window route;
+  - a match made at 59 s could leave a player in two battles;
+  - a slow grouping could be retaken and double-group players;
+  - the metric was re-emitted on retakes;
+  - unregistering mid-grouping lost the battle;
+  - solo battles could stack;
+  - the reminder said "15 minutes" when late.
+- **For the owner:**
+  - set `BATTLE_WINDOW_TIME_ZONE` in the deployments' env (both run UTC until then);
+  - window grouping includes every registrant, absent or not (they abandon and rank last), as registration implies;
+  - the windows' DB-5 query in `packages/events/queries` isn't written yet.

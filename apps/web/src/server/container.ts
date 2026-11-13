@@ -56,7 +56,13 @@ import { kyselyPushSubscriptions } from "./adapters/kysely-push-subscriptions";
 import { valkeyChallenges } from "./adapters/valkey-challenges";
 import { valkeyRateLimits } from "./adapters/valkey-rate-limits";
 import { valkeyMatchHandoff } from "./adapters/valkey-match-handoff";
-import { queuePrefix, valkeyMatchmaking } from "./adapters/valkey-matchmaking";
+import {
+  CASUAL_BATTLE_PREFIX,
+  queuePrefix,
+  valkeyMatchmaking,
+} from "./adapters/valkey-matchmaking";
+import { kyselyBattleWindows } from "./adapters/kysely-battle-windows";
+import { randomProblem, startBattle } from "./battles";
 import { startLiveMatch, startReplayMatch } from "./live";
 import { kyselyFollows, kyselyUsernames } from "./adapters/kysely-people";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
@@ -81,6 +87,7 @@ import type {
   AdminDaily,
   AdminFairPlay,
   BattleSnapshots,
+  BattleWindows,
   AdminExplainers,
   AdminScenes,
   Listening,
@@ -435,6 +442,49 @@ export function follows(): Follows {
 // P3-W15-S02 (ADR-0033): live matches, for match tickets.
 export function matches(): Matches {
   return kyselyMatches(db());
+}
+
+// P5-W32 (Q-P5-19): what an LLD battle is made from, and the casual queue's unrated
+// 1v1s on a random problem, banded by 1v1 battle rating.
+export function battleDeps(): Parameters<typeof startBattle>[0] {
+  return {
+    store: problems(),
+    files: files(),
+    matches: matches(),
+    handoff: valkeyMatchHandoff(valkeyClient()),
+  };
+}
+
+export function casualBattles(): Matchmaking {
+  return valkeyMatchmaking(
+    valkeyClient(),
+    async (players) =>
+      startBattle(battleDeps(), 0, await randomProblem(problems()), players, {
+        unrated: true,
+      }),
+    Date.now,
+    CASUAL_BATTLE_PREFIX,
+  );
+}
+
+// P5-W32 (Q-P5-19): one solo battle at a time per player, each holding a game server
+// actor for its 45 minutes. shortcut: a solo finished early still holds the lock to
+// 45:00; clear it on the result if players ask for back-to-back solos.
+export async function soloAllowed(userId: string): Promise<boolean> {
+  return (
+    (await valkeyClient().set(
+      `battle:solo:${userId}`,
+      "1",
+      "EX",
+      45 * 60,
+      "NX",
+    )) === "OK"
+  );
+}
+
+// P5-W32 (§6.6, MATCH-7): ranked battle windows.
+export function battleWindows(): BattleWindows {
+  return kyselyBattleWindows(db());
 }
 
 // P5-W31-S04b (§6.9, Q-P5-17): battle players' code snapshots, for fair-play review.

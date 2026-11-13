@@ -206,6 +206,23 @@ export function gameEnv(): GameEnv | null {
   return cachedGame;
 }
 
+// P5-W32 (Q-P5-12): ranked battle windows run in the deployment's region's time
+// (one region), an IANA zone; UTC when unset.
+export function windowTimeZone(
+  source: Record<string, string | undefined> = process.env,
+): string {
+  // Empty (as .env.example leaves it) is unset.
+  const zone = source["BATTLE_WINDOW_TIME_ZONE"] || "UTC";
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: zone });
+  } catch (error) {
+    throw new Error(`Invalid BATTLE_WINDOW_TIME_ZONE: ${zone}`, {
+      cause: error,
+    });
+  }
+  return zone;
+}
+
 // P3-W17-S05b (§7, Q-P3-18): web push's public VAPID key (base64url, the uncompressed
 // 65-byte P-256 point), handed to browsers that subscribe. Not set: push isn't offered.
 // The worker holds the private key.

@@ -119,6 +119,10 @@ func parseMatch(raw []byte) (matchDef, error) {
 	if len(def.Players) == 0 {
 		return matchDef{}, errors.New("a match needs players and rounds")
 	}
+	// C-03: a battle is a 1v1 or a room of up to 4 (P5-W32).
+	if def.Battle != nil && len(def.Players) > maxBattlePlayers {
+		return matchDef{}, errors.New("a battle has at most 4 players")
+	}
 	seen := map[string]bool{}
 	for _, p := range def.Players {
 		if p == "" || seen[p] {

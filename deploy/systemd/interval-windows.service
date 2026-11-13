@@ -1,0 +1,16 @@
+# VM mode (ADR-0011), P5-W32 (Q-P5-12, Q-P5-19): push registered players 15 minutes
+# before their ranked battle window. Started by interval-windows.timer; the AWS stack
+# runs the same command every 5 minutes from EventBridge Scheduler.
+[Unit]
+Description=Interval window-reminders-due
+# Requisite, not Requires: a stack stopped for maintenance skips the run instead of
+# being started again by the timer.
+Requisite=interval.service
+After=interval.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/interval
+ExecStart=/opt/interval/deploy/bin/stack.sh run window-reminders-due
+# A oneshot has no start timeout by default: a hung run would stop the timer for good.
+TimeoutStartSec=4min

@@ -147,6 +147,8 @@ return 1`;
 
 // P3-W16-S04 (Q-P3-23): each mode's own queue, both feeding the one rating (MATCH-2).
 export const queuePrefix = (mode: GameMode) => `mm:${REGION}:${mode}:`;
+// P5-W32 (Q-P5-19): the casual battle queue, unrated 1v1s.
+export const CASUAL_BATTLE_PREFIX = `mm:${REGION}:battle:`;
 
 export function valkeyMatchmaking(
   redis: Redis,

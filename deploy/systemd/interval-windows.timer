@@ -1,0 +1,11 @@
+# VM mode (ADR-0011), P5-W32 (Q-P5-19): every 5 minutes; each reminder is claimed once,
+# so an extra run sends nothing twice.
+[Unit]
+Description=Interval window-reminders-due every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+
+[Install]
+WantedBy=timers.target

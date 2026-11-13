@@ -145,6 +145,61 @@ def _push_one(
         # that day either.
         if not store.claim(person.user_id, day, notice.kind):
             return
+    _send(unit, web, native, person.user_id, notice, browsers, phones, out)
+
+
+# P5-W32 (Q-P5-12, Q-P5-19): a registered ranked window's reminder, 15 minutes before.
+WINDOW = PushNotice(
+    "battle_window",
+    # Not "in 15 minutes": a late registration's reminder goes on the next run.
+    "Your battle window starts soon",
+    "Rooms are matched at the start: be there.",
+    "/play/battle",
+)
+
+
+def run_window_reminders(
+    unit: Unit, web: WebPush | None, native: NativePush | None, now: datetime
+) -> PushRun:
+    """Each due registration's reminder, claimed before sending (LOAD-5): a failure
+    isn't retried, as the daily pushes aren't. Apart from the one-a-day cap: the player
+    asked for it by registering."""
+    out = PushRun()
+    with unit() as s:
+        users = s.store.reminders.claim_windows(now)
+    for user_id in users:
+        try:
+            with unit() as s:
+                browsers: list[PushTarget] = (
+                    s.store.reminders.web_targets(user_id) if web is not None else []
+                )
+                phones: list[NativeTarget] = (
+                    s.store.device_tokens.for_user(user_id)
+                    if native is not None
+                    else []
+                )
+            if not (browsers or phones):
+                out.skipped += 1
+                continue
+            _send(unit, web, native, user_id, WINDOW, browsers, phones, out)
+        except Exception as error:  # one user's data: never everyone after them
+            out.failed += 1
+            log.error(
+                "push: not delivered", user_id=user_id, error=type(error).__name__
+            )
+    return out
+
+
+def _send(
+    unit: Unit,
+    web: WebPush | None,
+    native: NativePush | None,
+    user_id: str,
+    notice: PushNotice,
+    browsers: list[PushTarget],
+    phones: list[NativeTarget],
+    out: PushRun,
+) -> None:
     sent = 0
     gone_web: list[str] = []
     gone_phones: list[str] = []
@@ -163,7 +218,7 @@ def _push_one(
                 s.store.device_tokens.drop(token)
     if sent > 0:
         out.sent += 1
-        log.info("push: sent", user_id=person.user_id, kind=notice.kind, to=sent)
+        log.info("push: sent", user_id=user_id, kind=notice.kind, to=sent)
     else:
         out.failed += 1
-        log.error("push: not delivered", user_id=person.user_id, kind=notice.kind)
+        log.error("push: not delivered", user_id=user_id, kind=notice.kind)

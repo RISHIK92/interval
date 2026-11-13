@@ -11,7 +11,7 @@ from typing import Literal, cast
 
 from interval_jobs.adapters.memory import InMemoryDeviceTokens, InMemoryReminders
 from interval_jobs.ports import NativeTarget, PushCandidate, PushNotice, PushTarget
-from interval_jobs.reminders import Unit, run_push_due
+from interval_jobs.reminders import Unit, run_push_due, run_window_reminders
 
 # 12:30 UTC is 18:00 in Kolkata (UTC+05:30).
 NOON = datetime(2026, 11, 11, 12, 30, tzinfo=UTC)
@@ -217,3 +217,14 @@ def test_one_users_error_never_stops_the_rest() -> None:
     store.reminders.digest = digest  # type: ignore[method-assign]
     out = run_push_due(unit, None, FakePhone(), NOON)
     assert (out.sent, out.failed) == (1, 1)
+
+
+# P5-W32 (Q-P5-12, Q-P5-19): a window's reminder, once, outside the daily cap.
+def test_a_due_window_reminder_goes_once_to_the_registered() -> None:
+    store, unit = setup(person())
+    store.reminders.windows_due = ["u1"]
+    store.reminders.sent[("u1", date(2026, 11, 11))] = "digest"  # the daily cap: spent
+    web, phone = FakeWeb(), FakePhone()
+    assert run_window_reminders(unit, web, phone, NOON).sent == 1
+    assert phone.sent == [("tok", "Your battle window starts soon", "/play/battle")]
+    assert run_window_reminders(unit, web, phone, NOON).sent == 0

@@ -302,6 +302,20 @@ def test_a_systemd_timer_runs_prune_snapshots_daily() -> None:
     assert re.search(r"systemctl enable --now interval-snapshots\.timer", deploy)
 
 
+# P5-W32 (Q-P5-19): battle window reminders every 5 minutes, as EventBridge does in AWS.
+def test_a_systemd_timer_runs_window_reminders_every_5_minutes() -> None:
+    timer = (SYSTEMD / "interval-windows.timer").read_text()
+    service = (SYSTEMD / "interval-windows.service").read_text()
+    assert "OnUnitActiveSec=5min" in timer
+    assert re.search(
+        r"^ExecStart=.*stack\.sh run window-reminders-due$", service, re.MULTILINE
+    )
+    assert "Requisite=interval.service" in service
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert "interval-windows.service interval-windows.timer" in deploy
+    assert re.search(r"systemctl enable --now interval-windows\.timer", deploy)
+
+
 # Q-2 (P2-W8-S03): this week's question spot checks, as EventBridge Scheduler does in
 # AWS.
 def test_a_systemd_timer_runs_spot_check_due_weekly() -> None:

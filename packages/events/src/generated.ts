@@ -5,6 +5,7 @@ export const EVENT_NAMES = [
   "agent_task_finished",
   "agent_task_started",
   "article_finished",
+  "battle_window_grouped",
   "book_checkpoint_finished",
   "book_checkpoint_started",
   "book_deleted",
@@ -60,6 +61,7 @@ export const EVENT_VERSIONS = {
   agent_task_finished: 1,
   agent_task_started: 1,
   article_finished: 3,
+  battle_window_grouped: 1,
   book_checkpoint_finished: 1,
   book_checkpoint_started: 1,
   book_deleted: 1,
@@ -96,7 +98,7 @@ export const EVENT_VERSIONS = {
   path_started: 1,
   player_followed: 1,
   player_unfollowed: 1,
-  push_setting_changed: 1,
+  push_setting_changed: 2,
   pwa_installed: 1,
   question_flagged: 1,
   quiz_answered: 1,
@@ -119,6 +121,10 @@ export const propsSchemas = {
   article_finished: z.strictObject({
     method: z.enum(["return_prompt", "mark_done", "auto"]),
     item_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
+  }),
+  battle_window_grouped: z.strictObject({
+    registered: z.number().int().nonnegative(),
+    matched: z.number().int().nonnegative(),
   }),
   book_checkpoint_finished: z.strictObject({
     attempt_id: z.string().regex(/^[1-9][0-9]{0,18}$/),
@@ -259,7 +265,12 @@ export const propsSchemas = {
   player_followed: z.strictObject({}),
   player_unfollowed: z.strictObject({}),
   push_setting_changed: z.strictObject({
-    kind: z.enum(["digest", "path_reminder", "daily_challenge"]),
+    kind: z.enum([
+      "digest",
+      "path_reminder",
+      "daily_challenge",
+      "battle_window",
+    ]),
     on: z.boolean(),
   }),
   pwa_installed: z.strictObject({}),
@@ -349,6 +360,12 @@ export const envelopeSchema = z.discriminatedUnion("name", [
     name: z.literal("article_finished"),
     version: z.literal(3),
     props: propsSchemas.article_finished,
+  }),
+  z.strictObject({
+    ...base,
+    name: z.literal("battle_window_grouped"),
+    version: z.literal(1),
+    props: propsSchemas.battle_window_grouped,
   }),
   z.strictObject({
     ...base,
@@ -569,7 +586,7 @@ export const envelopeSchema = z.discriminatedUnion("name", [
   z.strictObject({
     ...base,
     name: z.literal("push_setting_changed"),
-    version: z.literal(1),
+    version: z.literal(2),
     props: propsSchemas.push_setting_changed,
   }),
   z.strictObject({

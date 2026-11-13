@@ -6,6 +6,7 @@ import {
   parseGameEnv,
   parseGitHubEnv,
   parsePushEnv,
+  windowTimeZone,
 } from "./env";
 
 const valid = {
@@ -255,5 +256,19 @@ describe("parsePushEnv", () => {
     expect(parsePushEnv({ VAPID_PUBLIC_KEY: key })).toEqual({
       VAPID_PUBLIC_KEY: key,
     });
+  });
+});
+
+// P5-W32 (Q-P5-12): the windows' zone; empty, as .env.example leaves it, is UTC.
+describe("windowTimeZone", () => {
+  test("a zone, UTC when unset or empty, and a bad one refused", () => {
+    expect(windowTimeZone({ BATTLE_WINDOW_TIME_ZONE: "Asia/Kolkata" })).toBe(
+      "Asia/Kolkata",
+    );
+    expect(windowTimeZone({})).toBe("UTC");
+    expect(windowTimeZone({ BATTLE_WINDOW_TIME_ZONE: "" })).toBe("UTC");
+    expect(() =>
+      windowTimeZone({ BATTLE_WINDOW_TIME_ZONE: "Mars/Base" }),
+    ).toThrow(/BATTLE_WINDOW_TIME_ZONE/);
   });
 });

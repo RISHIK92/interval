@@ -1,8 +1,10 @@
 import { GENERATORS, ResultLine, Scenario } from "@interval/lld";
 import { z } from "zod";
+import { group } from "./battle-windows";
 import { log } from "./log";
 import type {
   BattleMatch,
+  BattleWindows,
   FileStore,
   MatchHandoff,
   Matches,
@@ -40,9 +42,15 @@ export async function startBattle(
   serverId: number,
   slug: string,
   players: string[],
+  options?: { unrated: boolean }, // P5-W32: a casual or solo battle (Q-P5-19)
 ): Promise<string> {
-  if (players.length === 0 || new Set(players).size !== players.length)
-    throw new Error("a battle needs distinct players");
+  // C-03: a 1v1 or a room of up to 4; one alone for solo play (P5-W32).
+  if (
+    players.length === 0 ||
+    players.length > 4 ||
+    new Set(players).size !== players.length
+  )
+    throw new Error("a battle needs 1 to 4 distinct players");
   const problem = await deps.store.get(slug);
   if (problem === null) throw new Error(`no such problem: ${slug}`);
   const file = await deps.files.get(problem.privateKey);
@@ -84,7 +92,7 @@ export async function startBattle(
   // The match row first (it names the problem, ADR-0033): tickets and the worker's
   // record find it by this id.
   const match: BattleMatch = {
-    id: await deps.matches.createBattle(serverId, players, slug),
+    id: await deps.matches.createBattle(serverId, players, slug, options),
     players,
     battle: {
       problem: slug,
@@ -111,4 +119,51 @@ export async function startBattle(
     throw error;
   }
   return match.id;
+}
+
+// P5-W32 (Q-P5-19): a live problem at random, for a casual battle or a window.
+export async function randomProblem(store: ProblemStore): Promise<string> {
+  const slugs = [...(await store.hashes()).keys()];
+  const slug = slugs[Math.floor(Math.random() * slugs.length)];
+  if (slug === undefined) throw new Error("no live problems: load them first");
+  return slug;
+}
+
+// P5-W32 (§6.6, MATCH-7; Q-P5-19): a window's battles, made by the first poll at or after
+// its start: registrants by room rating into rooms of 4 (3, 2, or one alone, unranked),
+// all on the window's problem. A group whose battle fails stays ungrouped (logged) and a
+// poll a minute on tries it again. Returns how many were registered and how many are in
+// a battle with others (the 80% matched metric) and whether this was the window's first
+// grouping, or null when another poll has it.
+export async function groupWindow(
+  deps: Parameters<typeof startBattle>[0] & { windows: BattleWindows },
+  windowAt: Date,
+  now: () => Date,
+): Promise<{ grouped: number; matched: number; first: boolean } | null> {
+  const claimed = await deps.windows.claim(windowAt, now(), () =>
+    randomProblem(deps.store),
+  );
+  if (claimed === null) return null;
+  let matched = 0;
+  for (const players of group(claimed.players)) {
+    const users = players.map((p) => p.userId);
+    let matchId: string;
+    try {
+      matchId = await startBattle(deps, 0, claimed.problem, users, {
+        unrated: users.length === 1,
+      });
+    } catch (error) {
+      log.error("battle: window group not started", {
+        windowAt: windowAt.toISOString(),
+        error,
+      });
+      continue;
+    }
+    // A battle started is assigned or the grouping fails loudly: never regrouped into
+    // a second one by the next claim.
+    await deps.windows.assign(windowAt, matchId, users);
+    await deps.windows.extend(windowAt, now());
+    if (users.length > 1) matched += users.length;
+  }
+  return { grouped: claimed.players.length, matched, first: claimed.first };
 }

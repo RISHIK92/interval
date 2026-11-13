@@ -17,6 +17,7 @@ type EventName = Literal[
     "agent_task_finished",
     "agent_task_started",
     "article_finished",
+    "battle_window_grouped",
     "book_checkpoint_finished",
     "book_checkpoint_started",
     "book_deleted",
@@ -73,6 +74,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "agent_task_finished": 1,
     "agent_task_started": 1,
     "article_finished": 3,
+    "battle_window_grouped": 1,
     "book_checkpoint_finished": 1,
     "book_checkpoint_started": 1,
     "book_deleted": 1,
@@ -109,7 +111,7 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "path_started": 1,
     "player_followed": 1,
     "player_unfollowed": 1,
-    "push_setting_changed": 1,
+    "push_setting_changed": 2,
     "pwa_installed": 1,
     "question_flagged": 1,
     "quiz_answered": 1,
@@ -140,6 +142,11 @@ class AgentTaskStartedProps(_Model):
 class ArticleFinishedProps(_Model):
     method: Literal["return_prompt", "mark_done", "auto"]
     item_id: str = Field(pattern=r"^[1-9][0-9]{0,18}$")
+
+
+class BattleWindowGroupedProps(_Model):
+    registered: int = Field(ge=0, strict=True)
+    matched: int = Field(ge=0, strict=True)
 
 
 class BookCheckpointFinishedProps(_Model):
@@ -330,7 +337,7 @@ class PlayerUnfollowedProps(_Model):
 
 
 class PushSettingChangedProps(_Model):
-    kind: Literal["digest", "path_reminder", "daily_challenge"]
+    kind: Literal["digest", "path_reminder", "daily_challenge", "battle_window"]
     on: StrictBool
 
 
@@ -431,6 +438,12 @@ class ArticleFinishedEvent(_EnvelopeBase):
     name: Literal["article_finished"]
     version: Literal[3]
     props: ArticleFinishedProps
+
+
+class BattleWindowGroupedEvent(_EnvelopeBase):
+    name: Literal["battle_window_grouped"]
+    version: Literal[1]
+    props: BattleWindowGroupedProps
 
 
 class BookCheckpointFinishedEvent(_EnvelopeBase):
@@ -651,7 +664,7 @@ class PlayerUnfollowedEvent(_EnvelopeBase):
 
 class PushSettingChangedEvent(_EnvelopeBase):
     name: Literal["push_setting_changed"]
-    version: Literal[1]
+    version: Literal[2]
     props: PushSettingChangedProps
 
 
@@ -726,6 +739,7 @@ type Envelope = Annotated[
     AgentTaskFinishedEvent
     | AgentTaskStartedEvent
     | ArticleFinishedEvent
+    | BattleWindowGroupedEvent
     | BookCheckpointFinishedEvent
     | BookCheckpointStartedEvent
     | BookDeletedEvent

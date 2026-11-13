@@ -54,6 +54,7 @@ const OFF = {
   digest: false,
   pathReminder: false,
   dailyChallenge: false,
+  battleWindow: false,
   hour: 18,
 };
 
@@ -85,6 +86,26 @@ test("all off at 18:00 until saved; a save reports only what it turned on or off
       .where("user_id", "=", user)
       .executeTakeFirstOrThrow();
     expect(row).toEqual({ time_zone: "UTC", hour: 10 });
+  });
+});
+
+// P5-W32: the app has no battles, so its saves leave the window reminder as it was.
+test("a save without the battle window kind keeps it", async () => {
+  await inRollback(async (trx, user) => {
+    const store = kyselyPushSettings(trx);
+    expect(
+      await store.save(user, { ...OFF, battleWindow: true }, "UTC"),
+    ).toEqual([{ kind: "battle_window", on: true }]);
+    const fromApp = {
+      digest: true,
+      pathReminder: false,
+      dailyChallenge: false,
+      hour: 18,
+    };
+    expect(await store.save(user, fromApp, "UTC")).toEqual([
+      { kind: "digest", on: true },
+    ]);
+    expect((await store.get(user)).battleWindow).toBe(true);
   });
 });
 

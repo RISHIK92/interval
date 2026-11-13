@@ -592,8 +592,9 @@ describe("containers", () => {
     // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due,
     // spot-check-due, question-batches, recalibrate-difficulty, sync-github-due,
     // suggest-technologies, daily-challenge-due, game-0 (ADR-0033), close-season,
-    // push-due (P4-W24-S01b), prune-snapshots (P5-W31-S04b-2)
-    expect(tasks.length).toBe(17);
+    // push-due (P4-W24-S01b), prune-snapshots (P5-W31-S04b-2), window-reminders-due
+    // (P5-W32)
+    expect(tasks.length).toBe(18);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -857,8 +858,9 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
       target.EcsParameters.NetworkConfiguration.AwsvpcConfiguration;
     expect(network.AssignPublicIp ?? "DISABLED").toBe("DISABLED");
     expect(JSON.stringify(network.SecurityGroups)).toContain("AppSg");
-    // Each schedule's role may run its own task only (twelve schedules: push-due the
-    // eleventh, P4-W24-S01b; prune-snapshots the twelfth, P5-W31-S04b-2).
+    // Each schedule's role may run its own task only (thirteen schedules: push-due the
+    // eleventh, P4-W24-S01b; prune-snapshots the twelfth, P5-W31-S04b-2;
+    // window-reminders-due the thirteenth, P5-W32).
     const runTask = all("AWS::IAM::Policy").flatMap(([, policy]) =>
       (
         policy.Properties["PolicyDocument"] as {
@@ -866,7 +868,12 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(12);
+    expect(runTask).toHaveLength(13);
+    expect(
+      runTask.filter((st) =>
+        JSON.stringify(st.Resource).includes("WindowRemindersTask"),
+      ),
+    ).toHaveLength(1);
     expect(
       runTask.filter((st) =>
         JSON.stringify(st.Resource).includes("PruneSnapshotsTask"),
@@ -1112,7 +1119,7 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     "../../packages/events/queries",
   );
   const PROPS =
-    "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean,game:string,wait_ms:bigint,opponent:string,explainer_id:string,on:boolean>";
+    "struct<kind:string,item_id:string,moment_id:string,method:string,question_id:string,path_id:string,section_id:string,passed:boolean,game:string,wait_ms:bigint,opponent:string,explainer_id:string,on:boolean,registered:bigint,matched:bigint>";
   // Phase 1 (Q-P1-21) and Phase 2 (P2-W9-S08, Q-P2-20) "done when".
   const FILES = [
     "return_rate.sql",

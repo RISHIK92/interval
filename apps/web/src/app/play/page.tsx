@@ -63,6 +63,14 @@ const GAMES: {
     capability: "play.estimation",
     start: { action: startEstimationAction, label: "Start a round" },
   },
+  // P5-W32 (§6.5, §6.6): ranked windows and the casual queue start at /play/battle.
+  {
+    name: "LLD battle",
+    format:
+      "Ranked windows in rooms of up to 4, or a casual 1v1, about 45 minutes",
+    win: "Most points from passed tests; a tie goes to whoever got there first",
+    capability: "play.battle",
+  },
 ];
 
 // P3-W13-S01: the Play tab (§6.1, §6.3). Each game is playable once its own slice
@@ -202,6 +210,13 @@ export default async function PlayPage(props: {
                   className="mt-auto self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
                 >
                   Play live
+                </Link>
+              ) : game.capability === "play.battle" && live ? (
+                <Link
+                  href="/play/battle"
+                  className="mt-auto self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+                >
+                  Battle
                 </Link>
               ) : game.capability === "play.daily" && today !== null ? (
                 <DailyPlay status={today} />

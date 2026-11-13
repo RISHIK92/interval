@@ -1530,7 +1530,7 @@ class NativePush(Protocol):
         ...
 
 
-PushKind = Literal["daily_challenge", "path_reminder", "digest"]
+PushKind = Literal["daily_challenge", "path_reminder", "digest", "battle_window"]
 
 
 @dataclass(frozen=True)
@@ -1579,6 +1579,11 @@ class Reminders(Protocol):
 
     def claim(self, user_id: str, local_day: date, kind: PushKind) -> bool:
         """The day's one push; False when it was already claimed."""
+        ...
+
+    def claim_windows(self, now: datetime) -> list[str]:
+        """P5-W32: users whose registered window's reminder is due, the kind on and on a
+        plan with push.notify; claimed (each once), so a rerun sends nothing twice."""
         ...
 
     def web_targets(self, user_id: str) -> list[PushTarget]:

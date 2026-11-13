@@ -212,6 +212,16 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - **A room's order:** the best submission's points, ties to whoever reached them first. Equal points and time share a rank, and abandoned players rank last, together.
   - **Seasons:** battle ratings are soft-reset monthly with quick games, at the same season close.
 
+### Q-P5-19 Windows' grouping, the casual queue, scaling and reminders (P0 for W32)
+
+- Cite: §6.6, MATCH-7, LOAD-4, EXEC-5, ADR-0041, Q-P5-12.
+- **Answers (owner, 2026-11-13):**
+  - **Grouping:** at a window's start, registrants are sorted by room rating and cut into rooms of 4. A remainder of 3 is a room of 3 and 2 is a 1v1; a remainder of 1 plays solo, unranked. Everyone in a window gets the same random problem.
+  - **Casual:** an unrated 1v1 battle. After 60 s with nobody, the player plays it alone, unrated, against a "reference pace": when a strong solver typically passes each layer, fixed per problem (visible by 10:00, hidden by 25:00, extension by 40:00).
+  - **Scaling:** Interval's AWS stack scales the game server up 10 minutes before each window and down after it. Velox's hosts are Velox's own concern, and the VM does nothing.
+  - **Reminders:** only registered players get the window's reminder push (Q-P5-12's kind, off until opted in), 15 minutes before.
+- **Process (owner, 2026-11-13):** from W32 on, a roadmap week is built and committed as one unit (questions once, one review), to finish the product sooner.
+
 ### Q-P5-12 Windows (P1 for W32)
 
 - Cite: §6.6 ("nightly per region plus weekends, with registration and reminders"), MATCH-7, LOAD-4.
