@@ -1290,6 +1290,9 @@ class Store(Protocol):
     def reminders(self) -> "Reminders": ...
 
     @property
+    def interviewer(self) -> "InterviewerQuestions": ...
+
+    @property
     def scenes(self) -> "Scenes": ...
 
 
@@ -2168,3 +2171,22 @@ class ExplainerToVoice:
     explainer_id: int
     concept_id: int
     script: str
+
+
+# P5-W33 (§6.2, AI-1, AI-2, OPS-4; Q-P5-13): "ask the interviewer" in AI-league battles.
+@dataclass(frozen=True)
+class InterviewerAsk:
+    user_id: str
+    question: str
+    statement: str  # the problem's statement, as every player reads it
+    notes: str  # its interviewer.md: what the interviewer knows and players don't
+
+
+class InterviewerQuestions(Protocol):
+    def to_answer(self, question_id: int) -> InterviewerAsk | None:
+        """A pending question with its problem; None when answered already or gone."""
+        ...
+
+    def save(self, question_id: int, answer: str | None, model: str | None) -> None:
+        """The answer, or None: the interviewer couldn't answer (shown as such)."""
+        ...

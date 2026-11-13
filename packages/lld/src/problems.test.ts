@@ -45,4 +45,8 @@ for (const slug of slugs)
     expect(existsSync(join(dir, "extension.md"))).toBe(
       problem.extension !== undefined,
     );
+    // P5-W33 (Q-P5-13): an AI-league problem's interviewer answers from its notes.
+    expect(existsSync(join(dir, "interviewer.md"))).toBe(
+      problem.league === "ai",
+    );
   });

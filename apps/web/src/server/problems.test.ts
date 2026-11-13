@@ -195,3 +195,22 @@ test("an empty extension.md loads nothing", async () => {
     ),
   ).rejects.toThrow(/extension\.md is empty/);
 });
+
+// P5-W33 (Q-P5-13): an AI-league problem's interviewer needs its notes, and only it has them.
+test("an AI-league problem and interviewer.md go together", async () => {
+  const f = fakes();
+  const ai = source();
+  ai.problem = { ...ai.problem, league: "ai" };
+  await expect(loadProblems([ai], f)).rejects.toThrow(/interviewer\.md/);
+  const human = { ...source(), interviewerNotes: "Values are never null." };
+  await expect(loadProblems([human], f)).rejects.toThrow(/interviewer\.md/);
+  await loadProblems(
+    [{ ...ai, interviewerNotes: "Values are never null." }],
+    f,
+  );
+  const [row] = [...f.rows.values()];
+  expect(row).toMatchObject({
+    league: "ai",
+    interviewerNotes: "Values are never null.",
+  });
+});

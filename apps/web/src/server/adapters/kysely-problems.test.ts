@@ -33,6 +33,7 @@ const problem = (slug: string, h: string): LoadedProblem => ({
   title: "A problem",
   difficulty: "easy",
   league: "human",
+  interviewerNotes: null,
   statement: "# A problem",
   interface: {
     class: "Box",

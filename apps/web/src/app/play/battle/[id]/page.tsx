@@ -4,12 +4,14 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { gameEnv } from "../../../../env";
 import {
+  battleQuestions,
   entitlements,
   matches,
   problems,
   sessionReader,
 } from "../../../../server/container";
 import { BattlePlay } from "./BattlePlay";
+import { Interviewer } from "./Interviewer";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +62,13 @@ export default async function BattlePage(props: {
         examples={problem.visible.map((v) => JSON.stringify(v.scenario.calls))}
         starters={starters}
       />
+      {/* §6.2 (Q-P5-13): the AI league's vague requirements have an interviewer. */}
+      {problem.league === "ai" && (
+        <Interviewer
+          matchId={id.data}
+          initial={await battleQuestions().list(id.data, actor.userId)}
+        />
+      )}
     </main>
   );
 }

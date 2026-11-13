@@ -5572,3 +5572,29 @@ The owner said to continue building overnight with recommended answers, switchin
   - bests from before a game-server restart aren't compared;
   - a re-registration in the other league after its grouping waits for the one-minute reclaim.
 - **Next, part 2:** the problem format's interviewer notes, up to 3 extension rounds, the failure layer, the interviewer (Q-P5-13), and 2 AI-league problems.
+
+### 2026-11-14 — P5 Week 33, part 2 (ask the interviewer; 2 AI-league problems; §6.2, AI-1, AI-2, AI-3, OPS-4, Q-P5-13, Q-P5-20)
+
+- **Owner (Q-P5-20 amended), lean now and full later:** the 3-round and injected-collaborator format waits for a slice after W34–W35.
+- **Migration `20261113100000_interviewer`:** the AI feature `interviewer`, `lld_problem.interviewer_notes`, and `battle_question`.
+- **Loader:** an AI-league problem needs its `interviewer.md`, and a human one mustn't have it; the problems test checks this too. The notes stay server-side: no page or route serialises them.
+- **Asking:**
+  - `/api/battle/[id]/questions` is same-origin and signed-in; it takes a question of up to 500 characters;
+  - `BattleQuestions.ask` runs under a per-player advisory lock: a player of this open AI-league battle, at most 10 questions;
+  - the answer is queued as `answer_interviewer` (a new message; SQS and its grants follow MESSAGE_NAMES); a failed enqueue marks the question unavailable;
+  - the battle page's interviewer panel labels each answer AI and polls while one is pending.
+- **Worker:**
+  - `interviewer.py` puts the notes and statement in the system message and the question alone, fenced as data;
+  - it answers with QUESTIONS_MODEL through the gateway, under the player's budget;
+  - an answer quoting 40 or more characters of the notes is withheld;
+  - no model, over budget, or a model failure on the queue's last attempt shows the question unanswered, never pending forever;
+  - a redelivered question isn't asked again.
+- **Two PROVISIONAL AI-league problems for the owner's review, written by two Sonnet agents and checked here:**
+  - **order-book:** place, cancel, remaining, best and depth; the extension adds modify and traded. All six references agree, and the mutation gate caught 127 of 133 (95%).
+  - **file-system:** mkdir, write, appendTo (`append` is a Go builtin), read, ls and rm; the extension adds mv and size. 100% of mutants caught.
+  - Both have interviewer notes settling every vague point, and hidden layers mostly error paths.
+- **Sonnet review fixed:**
+  - answers stuck pending on a model or queue failure;
+  - the 10-question limit could be raced;
+  - the notes could be exfiltrated through the prompt.
+- **Verify under load:** with several verify and mutation runs at once, Velox's 5 s limit tripped at random. Run them one at a time.

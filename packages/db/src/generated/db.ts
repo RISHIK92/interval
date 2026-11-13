@@ -5,7 +5,7 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "concept_drafting" | "embeddings" | "explainer" | "notes" | "paths" | "project_notes" | "questions" | "scenes" | "tagging" | "technologies" | "tts";
+export type AiFeature = "concept_drafting" | "embeddings" | "explainer" | "interviewer" | "notes" | "paths" | "project_notes" | "questions" | "scenes" | "tagging" | "technologies" | "tts";
 
 export type AiProvider = "elevenlabs" | "google" | "groq" | "inworld" | "openrouter" | "polly" | "voyage";
 
@@ -186,6 +186,18 @@ export interface AuthVerification {
   identifier: string;
   updated_at: Generated<Timestamp>;
   value: string;
+}
+
+export interface BattleQuestion {
+  answer: string | null;
+  answered_at: Timestamp | null;
+  asked_at: Generated<Timestamp>;
+  id: Generated<Int8>;
+  match_id: string;
+  model: string | null;
+  question: string;
+  status: Generated<string>;
+  user_id: string;
 }
 
 export interface BattleRating {
@@ -700,6 +712,7 @@ export interface LldProblem {
   extension_interface: Json | null;
   extension_statement: string | null;
   interface: Json;
+  interviewer_notes: string | null;
   league: Generated<string>;
   limits: Json;
   loaded_at: Generated<Timestamp>;
@@ -1367,6 +1380,7 @@ export interface DB {
   auth_account: AuthAccount;
   auth_session: AuthSession;
   auth_verification: AuthVerification;
+  battle_question: BattleQuestion;
   battle_rating: BattleRating;
   battle_rating_history: BattleRatingHistory;
   battle_season_standing: BattleSeasonStanding;

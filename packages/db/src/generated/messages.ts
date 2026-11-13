@@ -6,6 +6,10 @@ export const messageSchemas = {
   agent_nudge: z.strictObject({
     task_id: z.number().int().min(1),
   }),
+  // Answer a player's question to the interviewer in an AI-league battle, from the problem's interviewer notes (§6.2, Q-P5-13, P5-W33).
+  answer_interviewer: z.strictObject({
+    question_id: z.number().int().min(1),
+  }),
   // Make one book chapter's checkpoint: tag its sessions, draft and validate its questions (§5F, Q-P2-35, P2-W11-S06).
   book_checkpoint: z.strictObject({
     chapter_id: z.number().int().min(1),

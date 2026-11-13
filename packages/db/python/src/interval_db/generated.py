@@ -20,6 +20,7 @@ type AiFeature = Literal[
     "explainer",
     "tts",
     "scenes",
+    "interviewer",
 ]
 type AiProvider = Literal[
     "openrouter", "voyage", "groq", "google", "elevenlabs", "inworld", "polly"
@@ -167,6 +168,18 @@ class AuthVerification(TypedDict):
     expires_at: datetime
     created_at: datetime
     updated_at: datetime
+
+
+class BattleQuestion(TypedDict):
+    id: int
+    match_id: UUID
+    user_id: str
+    question: str
+    asked_at: datetime
+    status: str
+    answer: str | None
+    model: str | None
+    answered_at: datetime | None
 
 
 class BattleRating(TypedDict):
@@ -690,6 +703,7 @@ class LldProblem(TypedDict):
     extension_statement: str | None
     extension_interface: JsonValue | None
     league: str
+    interviewer_notes: str | None
 
 
 class Moment(TypedDict):

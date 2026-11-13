@@ -178,3 +178,38 @@ test("a room's end names your place; a solo one the points; alone, the pace", ()
   expect(show({ ...playing, best: { ada: 0 } })).toContain("Reference pace");
   expect(show(playing)).not.toContain("Reference pace");
 });
+
+// P5-W33 (Q-P5-13): the interviewer's answers are labelled AI; the 10th question ends
+// the asking.
+test("the interviewer labels its answers AI and stops at 10", async () => {
+  const { InterviewerView } = await import("./Interviewer");
+  const q = (n: number, status: "pending" | "answered" | "unavailable") => ({
+    id: String(n),
+    question: `Q${String(n)}?`,
+    status,
+    answer: status === "answered" ? `A${String(n)}.` : null,
+  });
+  const html = renderToStaticMarkup(
+    <InterviewerView
+      asked={[q(1, "answered"), q(2, "pending"), q(3, "unavailable")]}
+      draft=""
+      notice={null}
+      onDraft={() => undefined}
+      onAsk={() => undefined}
+    />,
+  );
+  expect(html).toContain(">AI</span>A1.");
+  expect(html).toContain("Thinking…");
+  expect(html).toContain("couldn&#x27;t answer that one");
+  expect(html).toContain("7 of 10 questions left");
+  const full = renderToStaticMarkup(
+    <InterviewerView
+      asked={Array.from({ length: 10 }, (_, i) => q(i, "answered"))}
+      draft=""
+      notice={null}
+      onDraft={() => undefined}
+      onAsk={() => undefined}
+    />,
+  );
+  expect(full).not.toContain("Your question");
+});

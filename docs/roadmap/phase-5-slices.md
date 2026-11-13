@@ -291,12 +291,13 @@ Already in place, so not sliced again:
 - IDs: §6.2
 - Goal: its own problem pool, more extension rounds and separate ratings and boards.
 - Q: Q-P5-20.
-- Part built 2026-11-13: the league through battles (a problem's pool, the lobby's Human/AI toggle, a casual queue and window grouping per league, the match's league), and season battle boards per league (/play/boards/battles, standings kept at the season close). Still to build: the problem format's interviewer notes, up to 3 extension rounds and the failure layer, and 2 AI-league problems.
+- Part built 2026-11-13: the league through battles (a problem's pool, the lobby's Human/AI toggle, a casual queue and window grouping per league, the match's league), and season battle boards per league (/play/boards/battles, standings kept at the season close). Part 2 built 2026-11-14 (lean, Q-P5-20 amended): interviewer notes, and 2 AI-league problems (order-book, file-system) of one extension each, whose hidden layers drive error paths. The 3-round and injected-collaborator format is deferred to a slice after W34–W35.
 
 ### P5-W33-S02 Ask the interviewer
 
 - IDs: §6.2, AI-1, AI-2, OPS-4
 - Q: Q-P5-13.
+- Built 2026-11-14.
 
 ### P5-W33-S03 Human-league fair play review
 

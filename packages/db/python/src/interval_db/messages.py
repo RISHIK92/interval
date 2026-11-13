@@ -33,6 +33,13 @@ class AgentNudge(_Message):
     task_id: Annotated[int, Field(ge=1)]
 
 
+class AnswerInterviewer(_Message):
+    """Answer a player's question to the interviewer in an AI-league battle, from the
+    problem's interviewer notes (§6.2, Q-P5-13, P5-W33)."""
+
+    question_id: Annotated[int, Field(ge=1)]
+
+
 class BookCheckpoint(_Message):
     """Make one book chapter's checkpoint: tag its sessions, draft and validate its
     questions (§5F, Q-P2-35, P2-W11-S06)."""
@@ -153,6 +160,7 @@ class ValidateQuestion(_Message):
 
 type MessageName = Literal[
     "agent_nudge",
+    "answer_interviewer",
     "book_checkpoint",
     "book_process",
     "check_link",
@@ -173,6 +181,7 @@ type MessageName = Literal[
 
 MESSAGES: dict[MessageName, type[_Message]] = {
     "agent_nudge": AgentNudge,
+    "answer_interviewer": AnswerInterviewer,
     "book_checkpoint": BookCheckpoint,
     "book_process": BookProcess,
     "check_link": CheckLink,

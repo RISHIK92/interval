@@ -62,6 +62,7 @@ import {
   valkeyMatchmaking,
 } from "./adapters/valkey-matchmaking";
 import { kyselyBattleBoards } from "./adapters/kysely-battle-boards";
+import { kyselyBattleQuestions } from "./adapters/kysely-battle-questions";
 import { kyselyBattleWindows } from "./adapters/kysely-battle-windows";
 import { randomProblem, startBattle } from "./battles";
 import { startLiveMatch, startReplayMatch } from "./live";
@@ -88,6 +89,7 @@ import type {
   AdminDaily,
   AdminFairPlay,
   BattleBoards,
+  BattleQuestions,
   BattleSnapshots,
   BattleWindows,
   League,
@@ -487,6 +489,11 @@ export async function soloAllowed(userId: string): Promise<boolean> {
       "NX",
     )) === "OK"
   );
+}
+
+// P5-W33 (§6.2, Q-P5-13): interviewer questions in AI-league battles.
+export function battleQuestions(): BattleQuestions {
+  return kyselyBattleQuestions(db());
 }
 
 // P5-W33 (§6.7, Q-P5-20): this season's battle boards.

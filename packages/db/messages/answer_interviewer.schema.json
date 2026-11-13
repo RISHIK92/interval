@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Answer a player's question to the interviewer in an AI-league battle, from the problem's interviewer notes (§6.2, Q-P5-13, P5-W33).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["question_id"],
+  "properties": {
+    "question_id": { "type": "integer", "minimum": 1 }
+  }
+}

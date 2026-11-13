@@ -43,6 +43,7 @@ const problem: LoadedProblem = {
   title: "LRU cache",
   difficulty: "easy",
   league: "human",
+  interviewerNotes: null,
   statement: "# LRU cache\n\nKeep the most recent.",
   interface: {
     class: "LRUCache",

@@ -1,0 +1,4912 @@
+{
+  "slug": "order-book",
+  "title": "Order book",
+  "difficulty": "hard",
+  "league": "ai",
+  "interface": {
+    "class": "OrderBook",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "place",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "side",
+            "type": "string"
+          },
+          {
+            "name": "price",
+            "type": "int"
+          },
+          {
+            "name": "qty",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "cancel",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "remaining",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<int>"
+      },
+      {
+        "name": "best",
+        "params": [
+          {
+            "name": "side",
+            "type": "string"
+          }
+        ],
+        "returns": "optional<int>"
+      },
+      {
+        "name": "depth",
+        "params": [
+          {
+            "name": "side",
+            "type": "string"
+          },
+          {
+            "name": "levels",
+            "type": "int"
+          }
+        ],
+        "returns": "list<int>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 101, 5]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 102, 5]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 101, 3]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 5]
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 102, 10]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 5]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 100, 4]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 100, 4]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 100, 6]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 3]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 5]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 10, 5]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 10, 7]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "place",
+            "args": ["d", "sell", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["e", "buy", 10, 5]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "remaining",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["s1", "sell", 12, 3]
+          },
+          {
+            "method": "place",
+            "args": ["s2", "sell", 10, 3]
+          },
+          {
+            "method": "place",
+            "args": ["s3", "sell", 11, 3]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 12, 8]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 9]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "remaining",
+            "args": ["s1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["b1", "buy", 8, 3]
+          },
+          {
+            "method": "place",
+            "args": ["b2", "buy", 10, 3]
+          },
+          {
+            "method": "place",
+            "args": ["b3", "buy", 9, 3]
+          },
+          {
+            "method": "place",
+            "args": ["s", "sell", 8, 8]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 9]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "remaining",
+            "args": ["b1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 5]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 9, 5]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 1]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 1]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 0]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 10, 5]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 10, 3]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 11, 4]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 1]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 2]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 9]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 3]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", -1]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", -1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 5, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 7, 2]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 7, 3]
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 6, 4]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 2]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 3]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 10]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "hold", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "Buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 0, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", -5, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 1000001, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 1000000, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 1, 1000000]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 0]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, -1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1000001]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1000000]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "place",
+            "args": ["", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["", "buy", 0, 0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 11, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 20, 1]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 50, 1]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "cancel",
+            "args": ["ghost"]
+          },
+          {
+            "method": "cancel",
+            "args": [""]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 3]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "cancel",
+            "args": ["ghost"]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 2]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 5]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 2]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 10, 1]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 3]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 4]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 1]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 10, 4]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "place",
+            "args": ["d", "sell", 10, 1]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 3]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 11, 3]
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 5]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "best",
+            "args": ["hold"]
+          },
+          {
+            "method": "best",
+            "args": ["BUY"]
+          },
+          {
+            "method": "best",
+            "args": [""]
+          },
+          {
+            "method": "depth",
+            "args": ["hold", 1]
+          },
+          {
+            "method": "depth",
+            "args": ["", 1]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 1]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "remaining",
+            "args": ["x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": [""]
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 3, 3]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 3, 1]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 3, 2]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 10, 3]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 11, 1]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 12, 1]
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 11, 5]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 5]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 5]
+          },
+          {
+            "method": "remaining",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 9, 1]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 8, 1]
+          },
+          {
+            "method": "place",
+            "args": ["d", "sell", 9, 5]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 5]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 5]
+          },
+          {
+            "method": "remaining",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 5]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 10, 5]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 5]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 10, 5]
+          },
+          {
+            "method": "remaining",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 5]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 11, 5]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 10, 6]
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 11, 7]
+          },
+          {
+            "method": "place",
+            "args": ["e", "buy", 11, 7]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 5]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 5]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 1000000, 1000000]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 1, 1000000]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 1000000, 3]
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 1, 3]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 2]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 3]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["d", "sell", 10, 1]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "place",
+            "args": ["e", "buy", 10, 1]
+          },
+          {
+            "method": "remaining",
+            "args": ["d"]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["e", "buy", 10, 2]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "remaining",
+            "args": ["e"]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 9, 2]
+          },
+          {
+            "method": "place",
+            "args": ["d", "sell", 9, 2]
+          },
+          {
+            "method": "place",
+            "args": ["e", "buy", 11, 6]
+          },
+          {
+            "method": "remaining",
+            "args": ["e"]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 3]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 11, 2]
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 11, 2]
+          },
+          {
+            "method": "place",
+            "args": ["e", "sell", 9, 6]
+          },
+          {
+            "method": "remaining",
+            "args": ["e"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 3]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 5]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 10, 3]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 10, 1]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 3]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 3]
+          },
+          {
+            "method": "remaining",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 3]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 3]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 0]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 10, 1]
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "place",
+            "args": ["d", "sell", 10, 2]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["c"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 4]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 10]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 2]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 2]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 5, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 5, 1]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 5, 1]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "cancel",
+            "args": ["c"]
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 5, 5]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "remaining",
+            "args": ["d"]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          }
+        ]
+      }
+    ],
+    "concurrency": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 3]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 3]
+          }
+        ],
+        "concurrent": {
+          "after": 1,
+          "threads": [
+            [
+              {
+                "method": "place",
+                "args": ["a0", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a1", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a2", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a3", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a4", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a5", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a6", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a7", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a8", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a9", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a10", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a11", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a12", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a13", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a14", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a15", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a16", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a17", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a18", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a19", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a20", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a21", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a22", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a23", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a24", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a25", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a26", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a27", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a28", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a29", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a30", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a31", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a32", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a33", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a34", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a35", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a36", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a37", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a38", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a39", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a40", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a41", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a42", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a43", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a44", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a45", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a46", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a47", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a48", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a49", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a50", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a51", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a52", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a53", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a54", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a55", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a56", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a57", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a58", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a59", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a60", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a61", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a62", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a63", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a64", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a65", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a66", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a67", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a68", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a69", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a70", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a71", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a72", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a73", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a74", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a75", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a76", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a77", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a78", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a79", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a80", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a81", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a82", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a83", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a84", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a85", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a86", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a87", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a88", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a89", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a90", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a91", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a92", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a93", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a94", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a95", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a96", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a97", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a98", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a99", "buy", 10, 1]
+              }
+            ],
+            [
+              {
+                "method": "place",
+                "args": ["b0", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b1", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b2", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b3", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b4", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b5", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b6", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b7", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b8", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b9", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b10", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b11", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b12", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b13", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b14", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b15", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b16", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b17", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b18", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b19", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b20", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b21", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b22", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b23", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b24", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b25", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b26", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b27", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b28", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b29", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b30", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b31", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b32", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b33", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b34", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b35", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b36", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b37", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b38", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b39", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b40", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b41", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b42", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b43", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b44", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b45", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b46", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b47", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b48", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b49", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b50", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b51", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b52", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b53", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b54", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b55", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b56", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b57", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b58", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b59", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b60", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b61", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b62", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b63", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b64", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b65", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b66", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b67", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b68", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b69", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b70", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b71", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b72", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b73", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b74", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b75", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b76", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b77", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b78", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b79", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b80", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b81", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b82", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b83", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b84", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b85", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b86", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b87", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b88", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b89", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b90", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b91", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b92", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b93", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b94", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b95", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b96", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b97", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b98", "buy", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b99", "buy", 10, 1]
+              }
+            ],
+            [
+              {
+                "method": "place",
+                "args": ["c0", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c1", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c2", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c3", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c4", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c5", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c6", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c7", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c8", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c9", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c10", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c11", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c12", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c13", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c14", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c15", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c16", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c17", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c18", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c19", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c20", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c21", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c22", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c23", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c24", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c25", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c26", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c27", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c28", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c29", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c30", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c31", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c32", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c33", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c34", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c35", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c36", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c37", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c38", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c39", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c40", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c41", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c42", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c43", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c44", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c45", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c46", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c47", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c48", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c49", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c50", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c51", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c52", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c53", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c54", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c55", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c56", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c57", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c58", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c59", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c60", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c61", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c62", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c63", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c64", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c65", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c66", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c67", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c68", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c69", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c70", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c71", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c72", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c73", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c74", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c75", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c76", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c77", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c78", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c79", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c80", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c81", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c82", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c83", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c84", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c85", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c86", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c87", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c88", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c89", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c90", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c91", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c92", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c93", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c94", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c95", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c96", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c97", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c98", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c99", "sell", 10, 1]
+              }
+            ],
+            [
+              {
+                "method": "place",
+                "args": ["d0", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d1", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d2", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d3", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d4", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d5", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d6", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d7", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d8", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d9", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d10", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d11", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d12", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d13", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d14", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d15", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d16", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d17", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d18", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d19", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d20", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d21", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d22", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d23", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d24", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d25", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d26", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d27", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d28", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d29", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d30", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d31", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d32", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d33", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d34", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d35", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d36", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d37", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d38", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d39", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d40", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d41", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d42", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d43", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d44", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d45", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d46", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d47", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d48", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d49", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d50", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d51", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d52", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d53", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d54", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d55", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d56", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d57", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d58", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d59", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d60", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d61", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d62", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d63", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d64", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d65", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d66", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d67", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d68", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d69", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d70", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d71", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d72", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d73", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d74", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d75", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d76", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d77", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d78", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d79", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d80", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d81", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d82", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d83", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d84", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d85", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d86", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d87", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d88", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d89", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d90", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d91", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d92", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d93", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d94", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d95", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d96", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d97", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d98", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d99", "sell", 10, 1]
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 2]
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "place",
+            "args": ["z", "buy", 9, 5]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 2]
+          }
+        ],
+        "concurrent": {
+          "after": 1,
+          "threads": [
+            [
+              {
+                "method": "place",
+                "args": ["a0", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a1", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a2", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a3", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a4", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a5", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a6", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a7", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a8", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a9", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a10", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a11", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a12", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a13", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a14", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a15", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a16", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a17", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a18", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a19", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a20", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a21", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a22", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a23", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a24", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a25", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a26", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a27", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a28", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a29", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a30", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a31", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a32", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a33", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a34", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a35", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a36", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a37", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a38", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a39", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a40", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a41", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a42", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a43", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a44", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a45", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a46", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a47", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a48", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["a49", "sell", 10, 1]
+              }
+            ],
+            [
+              {
+                "method": "place",
+                "args": ["b0", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b1", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b2", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b3", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b4", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b5", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b6", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b7", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b8", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b9", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b10", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b11", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b12", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b13", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b14", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b15", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b16", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b17", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b18", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b19", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b20", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b21", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b22", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b23", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b24", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b25", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b26", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b27", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b28", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b29", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b30", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b31", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b32", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b33", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b34", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b35", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b36", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b37", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b38", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b39", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b40", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b41", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b42", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b43", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b44", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b45", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b46", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b47", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b48", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["b49", "sell", 10, 1]
+              }
+            ],
+            [
+              {
+                "method": "place",
+                "args": ["c0", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c1", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c2", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c3", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c4", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c5", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c6", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c7", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c8", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c9", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c10", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c11", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c12", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c13", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c14", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c15", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c16", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c17", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c18", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c19", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c20", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c21", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c22", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c23", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c24", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c25", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c26", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c27", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c28", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c29", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c30", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c31", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c32", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c33", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c34", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c35", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c36", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c37", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c38", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c39", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c40", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c41", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c42", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c43", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c44", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c45", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c46", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c47", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c48", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["c49", "sell", 10, 1]
+              }
+            ],
+            [
+              {
+                "method": "place",
+                "args": ["d0", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d1", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d2", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d3", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d4", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d5", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d6", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d7", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d8", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d9", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d10", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d11", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d12", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d13", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d14", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d15", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d16", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d17", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d18", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d19", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d20", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d21", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d22", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d23", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d24", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d25", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d26", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d27", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d28", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d29", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d30", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d31", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d32", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d33", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d34", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d35", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d36", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d37", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d38", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d39", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d40", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d41", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d42", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d43", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d44", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d45", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d46", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d47", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d48", "sell", 10, 1]
+              },
+              {
+                "method": "place",
+                "args": ["d49", "sell", 10, 1]
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 4]
+          },
+          {
+            "method": "best",
+            "args": ["buy"]
+          },
+          {
+            "method": "cancel",
+            "args": ["a0"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 4]
+          }
+        ],
+        "concurrent": {
+          "after": 1,
+          "threads": [
+            [
+              {
+                "method": "place",
+                "args": ["a0", "buy", 7, 1]
+              },
+              {
+                "method": "place",
+                "args": ["p0", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p1", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p2", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p3", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p4", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p5", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p6", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p7", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p8", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p9", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p10", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p11", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p12", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p13", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p14", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p15", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p16", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p17", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p18", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p19", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p20", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p21", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p22", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p23", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p24", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p25", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p26", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p27", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p28", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p29", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p30", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p31", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p32", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p33", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p34", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p35", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p36", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p37", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p38", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p39", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p40", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p41", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p42", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p43", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p44", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p45", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p46", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p47", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p48", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p49", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p50", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p51", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p52", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p53", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p54", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p55", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p56", "buy", 7, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p57", "buy", 5, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p58", "buy", 6, 2]
+              },
+              {
+                "method": "place",
+                "args": ["p59", "buy", 7, 2]
+              }
+            ],
+            [
+              {
+                "method": "place",
+                "args": ["q0", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q1", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q2", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q3", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q4", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q5", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q6", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q7", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q8", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q9", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q10", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q11", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q12", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q13", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q14", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q15", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q16", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q17", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q18", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q19", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q20", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q21", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q22", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q23", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q24", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q25", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q26", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q27", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q28", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q29", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q30", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q31", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q32", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q33", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q34", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q35", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q36", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q37", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q38", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q39", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q40", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q41", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q42", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q43", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q44", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q45", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q46", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q47", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q48", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q49", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q50", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q51", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q52", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q53", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q54", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q55", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q56", "buy", 7, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q57", "buy", 5, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q58", "buy", 6, 3]
+              },
+              {
+                "method": "place",
+                "args": ["q59", "buy", 7, 3]
+              }
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "modify",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "qty",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "traded",
+        "params": [],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "traded",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 5]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 3]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 2]
+          },
+          {
+            "method": "traded",
+            "args": []
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 5]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 5]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 2]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 10, 3]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "traded",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 2]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 3]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 10, 3]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 1]
+          },
+          {
+            "method": "traded",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 2]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 2]
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 10, 3]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "remaining",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "modify",
+            "args": ["ghost", 3]
+          },
+          {
+            "method": "modify",
+            "args": ["", 3]
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 2]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 0]
+          },
+          {
+            "method": "modify",
+            "args": ["a", -1]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 1000001]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 1000000]
+          },
+          {
+            "method": "depth",
+            "args": ["sell", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 2]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 3]
+          },
+          {
+            "method": "modify",
+            "args": ["b", 3]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 1]
+          },
+          {
+            "method": "traded",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 3]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 10, 1]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 1]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 5]
+          },
+          {
+            "method": "remaining",
+            "args": ["a"]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 1]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 2]
+          },
+          {
+            "method": "traded",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 3]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 10, 1]
+          },
+          {
+            "method": "traded",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["c", "sell", 10, 2]
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 12, 2]
+          },
+          {
+            "method": "traded",
+            "args": []
+          },
+          {
+            "method": "best",
+            "args": ["sell"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "buy", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "buy", 11, 1]
+          },
+          {
+            "method": "modify",
+            "args": ["a", 9]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 3]
+          },
+          {
+            "method": "modify",
+            "args": ["b", 4]
+          },
+          {
+            "method": "depth",
+            "args": ["buy", 3]
+          },
+          {
+            "method": "traded",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "traded",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["a", "sell", 10, 1]
+          },
+          {
+            "method": "place",
+            "args": ["b", "sell", 11, 2]
+          },
+          {
+            "method": "place",
+            "args": ["c", "buy", 11, 3]
+          },
+          {
+            "method": "traded",
+            "args": []
+          },
+          {
+            "method": "place",
+            "args": ["d", "buy", 5, 1]
+          },
+          {
+            "method": "traded",
+            "args": []
+          },
+          {
+            "method": "cancel",
+            "args": ["d"]
+          },
+          {
+            "method": "traded",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

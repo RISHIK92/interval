@@ -58,6 +58,7 @@ export function kyselyProblemStore(db: Kysely<DB>): ProblemStore {
                 statement: row.extension_statement,
                 interface: stored.extensionInterface,
               },
+        interviewerNotes: row.interviewer_notes,
         privateKey: row.private_key,
         contentHash: row.content_hash,
       };
@@ -78,6 +79,7 @@ export function kyselyProblemStore(db: Kysely<DB>): ProblemStore {
         difficulty: p.difficulty,
         statement: p.statement,
         league: p.league,
+        interviewer_notes: p.interviewerNotes,
         // jsonb as JSON text: pg would send a JS array as a Postgres array, not JSON.
         interface: JSON.stringify(p.interface),
         checks: JSON.stringify(p.checks),

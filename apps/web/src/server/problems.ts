@@ -24,6 +24,8 @@ export type ProblemSource = {
   statement: string;
   // extension.md, when the problem has an extension round (P5-W31-S02a).
   extensionStatement?: string;
+  // P5-W33 (Q-P5-13): interviewer.md, an AI-league problem's notes for the interviewer.
+  interviewerNotes?: string;
   expected: Expected;
 };
 
@@ -55,6 +57,7 @@ function checkExpected({
   problem,
   expected,
   extensionStatement,
+  interviewerNotes,
 }: ProblemSource): void {
   if ((problem.extension === undefined) !== (extensionStatement === undefined))
     throw new Error(
@@ -63,6 +66,12 @@ function checkExpected({
   // It is what every player reads at the reveal.
   if (extensionStatement?.trim() === "")
     throw new Error(`${problem.slug}: extension.md is empty`);
+  // An AI-league problem's requirements are vague on purpose: the interviewer answers
+  // from its notes, which only it has (Q-P5-13).
+  if ((problem.league === "ai") !== Boolean(interviewerNotes?.trim()))
+    throw new Error(
+      `${problem.slug}: an AI-league problem and interviewer.md go together`,
+    );
   const scenarios = scenariosOf(problem);
   const where = (s: { layer: string; index: number }) =>
     `${s.layer} ${String(s.index)}`;
@@ -104,6 +113,7 @@ function rowOf(source: ProblemSource, contentHash: string): LoadedProblem {
             statement: source.extensionStatement,
             interface: interfaceFor(problem, "extension"),
           },
+    interviewerNotes: source.interviewerNotes ?? null,
     privateKey: `lld/problems/${problem.slug}/${contentHash}.json`,
     contentHash,
   };
@@ -130,6 +140,7 @@ export async function loadProblems(
           source.problem,
           source.statement,
           source.extensionStatement ?? null,
+          source.interviewerNotes ?? null,
           source.expected,
         ]),
       )

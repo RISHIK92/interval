@@ -64,6 +64,7 @@ from interval_jobs.ports import (
     Finished,
     GitHubSyncInput,
     GrantResult,
+    InterviewerAsk,
     ItemDecisions,
     MomentLink,
     MomentRow,
@@ -2040,6 +2041,7 @@ class InMemoryStore:
         self.agent_nudges = InMemoryAgentNudges()
         self.device_tokens = InMemoryDeviceTokens()
         self.reminders = InMemoryReminders()
+        self.interviewer = InMemoryInterviewer()
         self.scenes = InMemoryScenes()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
@@ -2475,6 +2477,20 @@ class InMemoryOcr:
         if isinstance(answer, Exception):
             raise answer
         return answer
+
+
+class InMemoryInterviewer:
+    """P5-W33: interviewer questions as Postgres keeps them (tests set `pending`)."""
+
+    def __init__(self) -> None:
+        self.pending: dict[int, InterviewerAsk] = {}
+        self.saved: dict[int, tuple[str | None, str | None]] = {}
+
+    def to_answer(self, question_id: int) -> InterviewerAsk | None:
+        return None if question_id in self.saved else self.pending.get(question_id)
+
+    def save(self, question_id: int, answer: str | None, model: str | None) -> None:
+        self.saved.setdefault(question_id, (answer, model))
 
 
 class InMemoryReminders:

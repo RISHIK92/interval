@@ -28,6 +28,7 @@ from pydantic import BaseModel
 
 from interval_db.messages import (
     AgentNudge,
+    AnswerInterviewer,
     BookCheckpoint,
     BookProcess,
     CheckLink,
@@ -66,6 +67,7 @@ from interval_jobs.feed.project_notes import queue_project_notes, write_project_
 from interval_jobs.frameable import framed_at
 from interval_jobs.github.sync import sync_user
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
+from interval_jobs.interviewer import answer as interviewer_answer
 from interval_jobs.link_health import check_link
 from interval_jobs.match_results import ResultsRedis, parse_result
 from interval_jobs.normalize import page_canonical, simhash
@@ -251,7 +253,46 @@ class Pipeline:
             "project_note": self._project_note_stage,
             "match_finished": self._match_stage,
             "agent_nudge": self._nudge_stage,
+            "answer_interviewer": self._interviewer_stage,
         }
+
+    # P5-W33 (§6.2, Q-P5-13): a player's question to the interviewer, answered with
+    # QUESTIONS_MODEL from the problem's notes. The network between two short units.
+    def _interviewer_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, AnswerInterviewer)
+        with self._unit() as services:
+            ask = services.store.interviewer.to_answer(message.question_id)
+        if ask is None:
+            return  # answered already (a redelivery), or gone with its match
+        if self._questions is None:
+            # The player isn't left waiting: said unanswered, and logged.
+            log.warn("interviewer: no model", question_id=message.question_id)
+            with self._unit() as services:
+                services.store.interviewer.save(message.question_id, None, None)
+            return
+        model = self._questions.model.removeprefix(BATCH_PREFIX)
+        try:
+            with self._questions.gateway() as gateway:
+                replied = interviewer_answer(gateway, model, ask)
+        except Exception:
+            # Retried by the queue; on its last try the player is told, not left
+            # waiting on a question that will never be answered.
+            if delivery.attempt >= ATTEMPTS:
+                with self._unit() as services:
+                    services.store.interviewer.save(message.question_id, None, None)
+            raise
+        if isinstance(replied, OverBudget):
+            # OPS-4, LOAD-5: over budget, said and shown as unanswered.
+            log.warn(
+                "interviewer: over budget",
+                question_id=message.question_id,
+                scope=replied.scope,
+            )
+            replied = None
+        with self._unit() as services:
+            services.store.interviewer.save(
+                message.question_id, replied, model if replied is not None else None
+            )
 
     # P3-W17-S05b (§7, Q-P3-18): 45 s into an agent's task, a push if it still runs.
     # The pushes go out between two short units: no transaction waits on the network.

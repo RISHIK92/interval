@@ -63,6 +63,7 @@ from interval_jobs.ports import (
     Finished,
     GitHubSyncInput,
     GrantResult,
+    InterviewerAsk,
     ItemDecisions,
     MomentLink,
     MomentRow,
@@ -4472,6 +4473,43 @@ class PostgresTtsSamples:
         )
 
 
+class PostgresInterviewer:
+    """Interviewer questions (P5-W33, Q-P5-13)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def to_answer(self, question_id: int) -> InterviewerAsk | None:
+        row = self._conn.execute(
+            """
+            select q.user_id, q.question, p.statement, p.interviewer_notes
+            from battle_question q
+            join game_match m on m.id = q.match_id
+            join lld_problem p on p.slug = m.problem_slug
+            where q.id = %s and q.status = 'pending'
+              and p.interviewer_notes is not null
+            """,
+            (question_id,),
+        ).fetchone()
+        return (
+            None
+            if row is None
+            else InterviewerAsk(str(row[0]), str(row[1]), str(row[2]), str(row[3]))
+        )
+
+    def save(self, question_id: int, answer: str | None, model: str | None) -> None:
+        self._conn.execute(
+            "update battle_question set status = %s, answer = %s, model = %s,"
+            " answered_at = now() where id = %s and status = 'pending'",
+            (
+                "answered" if answer is not None else "unavailable",
+                answer,
+                model,
+                question_id,
+            ),
+        )
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
@@ -4484,6 +4522,7 @@ class PostgresStore:
         self.agent_nudges = PostgresAgentNudges(conn)
         self.device_tokens = PostgresDeviceTokens(conn)
         self.reminders = PostgresReminders(conn)
+        self.interviewer = PostgresInterviewer(conn)
         self.scenes = PostgresScenes(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)

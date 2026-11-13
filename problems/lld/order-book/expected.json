@@ -1,0 +1,1976 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": 101
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["a:101:3"]
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": [101, 2, 102, 5]
+      },
+      {
+        "call": 8,
+        "value": ["a:101:2", "b:102:5"]
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": [102, 3]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["a:100:4", "b:100:2"]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 7,
+        "value": [100, 2]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["a:10:5", "b:10:2"]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 3
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": ["b:10:3", "d:10:1"]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["s2:10:3", "s3:11:3", "s1:12:2"]
+      },
+      {
+        "call": 5,
+        "value": [12, 1]
+      },
+      {
+        "call": 6,
+        "value": 12
+      },
+      {
+        "call": 7,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["b2:10:3", "b3:9:3", "b1:8:2"]
+      },
+      {
+        "call": 5,
+        "value": [8, 1]
+      },
+      {
+        "call": 6,
+        "value": 8
+      },
+      {
+        "call": 7,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": 9
+      },
+      {
+        "call": 4,
+        "value": 10
+      },
+      {
+        "call": 5,
+        "value": [9, 5]
+      },
+      {
+        "call": 6,
+        "value": [10, 5]
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": ["a:10:5"]
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 9
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": [10, 5]
+      },
+      {
+        "call": 5,
+        "value": [10, 5, 11, 4]
+      },
+      {
+        "call": 6,
+        "value": [10, 5, 11, 4]
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "error": "ValueError: negative levels"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: negative levels"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": [7, 5, 6, 4]
+      },
+      {
+        "call": 6,
+        "value": [7, 5, 6, 4, 5, 1]
+      },
+      {
+        "call": 7,
+        "value": [7, 5, 6, 4, 5, 1]
+      },
+      {
+        "call": 8,
+        "value": 7
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: side must be buy or sell"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: side must be buy or sell"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: side must be buy or sell"
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: price out of range"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: price out of range"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: price out of range"
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["a:1000000:1"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: quantity out of range"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: quantity out of range"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: quantity out of range"
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": 1000000
+      },
+      {
+        "call": 6,
+        "error": "ValueError: empty id"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: price out of range"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "error": "ValueError: duplicate id"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: duplicate id"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: duplicate id"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 10
+      },
+      {
+        "call": 7,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["a:10:1"]
+      },
+      {
+        "call": 3,
+        "error": "ValueError: duplicate id"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: duplicate id"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: duplicate id"
+      },
+      {
+        "call": 6,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "error": "ValueError: duplicate id"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "KeyError: 'unknown id'"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'unknown id'"
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": 3
+      },
+      {
+        "call": 5,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'unknown id'"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["a:10:2"]
+      },
+      {
+        "call": 3,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: duplicate id"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: duplicate id"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 14,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["a:10:2"]
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 15,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": [10, 4]
+      },
+      {
+        "call": 5,
+        "value": ["b:10:4"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": 10
+      },
+      {
+        "call": 10,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 16,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 10
+      },
+      {
+        "call": 5,
+        "value": 3
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "error": "ValueError: order is not open"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 17,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: side must be buy or sell"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: side must be buy or sell"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: side must be buy or sell"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: side must be buy or sell"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: side must be buy or sell"
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 18,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": 3
+      },
+      {
+        "call": 5,
+        "value": ["a:3:1"]
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": ["a:3:2"]
+      },
+      {
+        "call": 8,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 19,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["a:10:1", "b:10:1", "c:10:1"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 20,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["a:10:1", "b:11:1"]
+      },
+      {
+        "call": 5,
+        "value": [12, 1]
+      },
+      {
+        "call": 6,
+        "value": [11, 3]
+      },
+      {
+        "call": 7,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 21,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["a:10:1", "b:9:1"]
+      },
+      {
+        "call": 5,
+        "value": [8, 1]
+      },
+      {
+        "call": 6,
+        "value": [9, 3]
+      },
+      {
+        "call": 7,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 22,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["a:10:5"]
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": 5
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 23,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["a:10:5"]
+      },
+      {
+        "call": 4,
+        "value": ["c:10:1", "b:11:5"]
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": [11, 8]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 24,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["a:1000000:1000000"]
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": [1, 3]
+      },
+      {
+        "call": 8,
+        "value": [1000000, 3]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 25,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["a:10:1"]
+      },
+      {
+        "call": 3,
+        "value": ["a:10:1"]
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": ["a:10:1"]
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 26,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": ["a:10:1"]
+      },
+      {
+        "call": 4,
+        "value": ["a:10:1", "b:10:1"]
+      },
+      {
+        "call": 5,
+        "value": ["b:10:1"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 10
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 27,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["c:9:2", "d:9:2", "a:10:2"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [10, 2]
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 28,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": ["c:11:2", "d:11:2", "a:10:2"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [10, 2]
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 29,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["a:10:3"]
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": [10, 1]
+      },
+      {
+        "call": 7,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 30,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'unknown id'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 31,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": ["a:10:1", "c:10:1"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 32,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["a:10:4"]
+      },
+      {
+        "call": 3,
+        "value": 6
+      },
+      {
+        "call": 4,
+        "value": [10, 6]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 6
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "error": "ValueError: order is not open"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 33,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": ["b:5:1"]
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": 4
+      },
+      {
+        "call": 9,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "concurrency",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "concurrency",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [10, 200]
+      },
+      {
+        "call": 2,
+        "value": 10
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": [9, 5]
+      }
+    ]
+  },
+  {
+    "layer": "concurrency",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": [7, 101, 6, 100, 5, 100]
+      },
+      {
+        "call": 2,
+        "value": 7
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": [7, 100, 6, 100, 5, 100]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 3
+      },
+      {
+        "call": 5,
+        "value": [10, 3]
+      },
+      {
+        "call": 6,
+        "value": ["a:10:2"]
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["a:10:2", "b:10:1"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 4
+      },
+      {
+        "call": 7,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["b:10:2", "a:10:1"]
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [10, 2]
+      },
+      {
+        "call": 8,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": ["a:10:2", "b:10:1"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "KeyError: 'unknown id'"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'unknown id'"
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "error": "ValueError: quantity out of range"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: quantity out of range"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: quantity out of range"
+      },
+      {
+        "call": 7,
+        "value": 2
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": [10, 1000000]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["a:10:2"]
+      },
+      {
+        "call": 3,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 7,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": ["a:10:1"]
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": 5
+      },
+      {
+        "call": 7,
+        "value": [10, 5]
+      },
+      {
+        "call": 8,
+        "value": 5
+      },
+      {
+        "call": 9,
+        "error": "ValueError: order is not open"
+      },
+      {
+        "call": 10,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["a:10:1"]
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": ["c:10:2"]
+      },
+      {
+        "call": 7,
+        "value": 3
+      },
+      {
+        "call": 8,
+        "value": null
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": [11, 1, 10, 9]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": [11, 4, 10, 9]
+      },
+      {
+        "call": 7,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": []
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": ["a:10:1", "b:11:2"]
+      },
+      {
+        "call": 5,
+        "value": 3
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": 3
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 3
+      }
+    ]
+  }
+]

@@ -1825,6 +1825,30 @@ export interface BattleSnapshots {
   ): Promise<{ player: string; snapshots: BattleSnapshot[] } | null>;
 }
 
+// P5-W33 (§6.2, AI-1; Q-P5-13): "ask the interviewer" in an AI-league battle. At most
+// 10 questions a player a battle; the worker answers from the problem's notes, and the
+// answer is labelled AI wherever it's shown.
+export const INTERVIEWER_QUESTIONS = 10;
+export type BattleQuestion = {
+  id: string;
+  question: string;
+  status: "pending" | "answered" | "unavailable";
+  answer: string | null;
+};
+export interface BattleQuestions {
+  // The question's id; "limit" once 10 are asked; null when the user isn't a player
+  // of this AI-league battle while it's on.
+  ask(
+    matchId: string,
+    userId: string,
+    question: string,
+  ): Promise<string | "limit" | null>;
+  // This player's, oldest first.
+  list(matchId: string, userId: string): Promise<BattleQuestion[]>;
+  // Not queued for an answer: shown as unanswered, not waiting forever.
+  fail(questionId: string): Promise<void>;
+}
+
 // P5-W33 (§6.7, Q-P5-20): this season's battle boards, global, per league: the 1v1
 // rating (Glicko) and the room rating (OpenSkill's ordinal, mu - 3 sigma), of players
 // with a rated battle since the season began. `you` marks the viewer's row.
@@ -2059,6 +2083,8 @@ export type LoadedProblem = Pick<
   visible: { scenario: Scenario; results: ResultLine[] }[];
   // The extension round (P5-W31-S02a): shown only after the reveal; null without one.
   extension: { statement: string; interface: Interface } | null;
+  // P5-W33 (Q-P5-13): for the worker's interviewer only; never shown to a player.
+  interviewerNotes: string | null;
   privateKey: string;
   contentHash: string;
 };
