@@ -482,3 +482,12 @@ def test_daily_challenge_due_prints_what_it_did(
         "picked_tomorrow": True,
     }
     assert len(memory.daily.days) == 2
+
+
+def test_prune_snapshots_needs_the_private_bucket(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """P5-W31-S04b-2: without a bucket the objects can't go, so nothing is forgotten."""
+    monkeypatch.setattr(cli, "files", lambda: None)
+    with pytest.raises(SystemExit, match="PRIVATE_CONTENT_BUCKET"):
+        main(["prune-snapshots"])

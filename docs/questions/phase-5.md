@@ -188,6 +188,9 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - **Snapshots:**
     - The page posts its code every 30 seconds to `/api/battle/[id]/snapshot`, and only a player in an unfinished match can post. The web's FileStore writes it to the private bucket.
     - Snapshots are deleted after 90 days, or kept until a flag on that match is decided.
+    - **Clarified (owner, 2026-11-13, W31-S04b-2):**
+      - whichever is later: at least 90 days, and longer while a flag on the match waits for review;
+      - the bucket is versioned, so a deleted snapshot stays a noncurrent version for 30 more days before S3 expires it (about 120 days in all), as books do. No role may delete versions.
   - **Path:** signals go with the match result, as quick games' do (`game_match_player.signals`, read by `/admin/fair-play`). The page sends paste and focus over the match socket, and the worker stores them and raises flags. No analytics event carries them. This replaces Q-P5-10's "sent as DB-5 events".
   - **League:** every battle is in the human league until W32. W32 adds the league, and the AI league's battles then skip signals.
 

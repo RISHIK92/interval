@@ -10,11 +10,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import type { Construct } from "constructs";
-import {
-  createBuckets,
-  createEventStream,
-  grantBookDeletes,
-} from "./storage.ts";
+import { createBuckets, createEventStream, grantDeletes } from "./storage.ts";
 
 // Beta hosting (owner, 2026-10-25): one VM runs Postgres+pgvector, the web app and the
 // worker in Docker. This replaces RDS (DB-1) and Fargate (LOAD-1) for the beta; no ADR
@@ -199,11 +195,13 @@ export class ProdStack extends Stack {
     });
 
     const { privateContent, events } = createBuckets(this);
-    // The VM may read and add objects; it deletes only a user's book, as a delete marker,
-    // so old versions stay recoverable (P2-W11-S01).
+    // The VM may read and add objects; it deletes only a user's book (P2-W11-S01) and
+    // pruned battle snapshots (P5-W31-S04b-2), as delete markers, so old versions stay
+    // recoverable.
     privateContent.grantRead(role);
     privateContent.grantPut(role);
-    grantBookDeletes(privateContent, role);
+    grantDeletes(privateContent, role, "books/");
+    grantDeletes(privateContent, role, "battle-snapshots/");
     // DB-5: write-env.sh names this stream; the VM may only put records to it.
     createEventStream(this, events, EVENTS_STREAM).grantPutRecords(role);
 

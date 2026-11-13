@@ -34,7 +34,7 @@ import psycopg
 from interval_db.generated import BetaGroup, Capability, RightsProfile
 from interval_jobs import log
 from interval_jobs.adapters.ffmpeg_hls import FfmpegHls, HlsError
-from interval_jobs.adapters.postgres import PostgresAi
+from interval_jobs.adapters.postgres import PostgresAi, PostgresSnapshots
 from interval_jobs.adapters.redis_results import RedisResults
 from interval_jobs.compose import (
     ai_gateway,
@@ -91,6 +91,7 @@ from interval_jobs.reminders import run_push_due
 from interval_jobs.scenes import draw as draw_scenes
 from interval_jobs.seasons import close_season
 from interval_jobs.segment import segment_item
+from interval_jobs.snapshots import prune_snapshots
 from interval_jobs.tagging import TaggingError
 from interval_jobs.tagging_eval import (
     MIN_DIFFICULTY,
@@ -275,6 +276,11 @@ def main(argv: list[str]) -> None:
         help="publish today's daily challenge and pick tomorrow's (P3-W13-S05)",
     )
     commands.add_parser(
+        "prune-snapshots",
+        help="delete battle code snapshots past 90 days with no flag waiting"
+        " (P5-W31-S04b-2)",
+    )
+    commands.add_parser(
         "check-links-due",
         help="queue this week's link health check of every item (P1-W6-S03)",
     )
@@ -377,6 +383,18 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.command == "daily-challenge-due":
         with services() as s:
             print(json.dumps(run_daily(s.store, datetime.now(UTC))))
+        return
+
+    if args.command == "prune-snapshots":
+        # Q-P5-17: daily; each object is removed before its row, so a rerun finishes.
+        bucket = files()
+        if bucket is None:
+            sys.exit("prune-snapshots needs PRIVATE_CONTENT_BUCKET")
+        with psycopg.connect(database_url(), autocommit=True) as conn:
+            removed = prune_snapshots(
+                PostgresSnapshots(conn), bucket, datetime.now(UTC)
+            )
+        print(json.dumps({"removed": removed}))
         return
 
     if args.command == "check-links-due":

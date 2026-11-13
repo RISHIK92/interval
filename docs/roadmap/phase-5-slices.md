@@ -225,6 +225,7 @@ Already in place, so not sliced again:
 
 - IDs: §6.9, DB-6; Q-P5-17
 - Goal: a daily worker command that deletes the objects and rows of snapshots older than 90 days, unless a flag on that match is still pending. It runs from the VM's timer and an EventBridge schedule.
+- Built 2026-11-13.
 
 ## Week 32: rooms, windows, the casual queue
 

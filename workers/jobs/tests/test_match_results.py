@@ -816,7 +816,7 @@ def test_a_match_without_a_result_is_flagged_too(conn: psycopg.Connection) -> No
     assert _flags(conn, match_id) == [("lra", 4, None, None)]
 
 
-def _battle(conn: psycopg.Connection, players: list[str]) -> str:
+def a_battle(conn: psycopg.Connection, players: list[str]) -> str:
     slug = "battle-results"
     digest = "b" * 64
     conn.execute(
@@ -847,7 +847,7 @@ def test_a_battle_is_stored_but_neither_rated_nor_kept_as_quiz_evidence(
     ghost runs."""
     a_user(conn, "lba")
     a_user(conn, "lbb")
-    match_id = _battle(conn, ["lba", "lbb"])
+    match_id = a_battle(conn, ["lba", "lbb"])
     result = MatchResult.model_validate(
         {
             "match_id": match_id,
@@ -894,7 +894,7 @@ def test_an_abandoned_battle_is_stored_once_and_raises_no_quiz_flag(
     """A battle's signals are its own (W31-S04a): quiz signals on one flag nothing."""
     a_user(conn, "lbc")
     a_user(conn, "lbd")
-    match_id = _battle(conn, ["lbc", "lbd"])
+    match_id = a_battle(conn, ["lbc", "lbd"])
     signals = [{"kind": "focus", "round": 1, "ms": None}] * 3
     result = MatchResult.model_validate(
         {
@@ -938,7 +938,7 @@ def _battle_with(
     conn: psycopg.Connection, user: str, signals: list[dict[str, object]]
 ) -> str:
     a_user(conn, user)
-    match_id = _battle(conn, [user])
+    match_id = a_battle(conn, [user])
     result = MatchResult.model_validate(
         {
             "match_id": match_id,

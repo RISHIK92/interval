@@ -25,11 +25,7 @@ import * as targets from "aws-cdk-lib/aws-scheduler-targets";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import type { Construct } from "constructs";
-import {
-  createBuckets,
-  createEventStream,
-  grantBookDeletes,
-} from "./storage.ts";
+import { createBuckets, createEventStream, grantDeletes } from "./storage.ts";
 
 // Full-AWS deployment mode (ADR-0011): Fargate, RDS, ElastiCache (Valkey), SQS, S3,
 // behind CloudFront. Same env contract as the VM mode, so the apps do not change.
@@ -658,7 +654,7 @@ export class AwsStack extends Stack {
     });
     privateContent.grantRead(webTask.taskRole);
     privateContent.grantPut(webTask.taskRole);
-    grantBookDeletes(privateContent, webTask.taskRole);
+    grantDeletes(privateContent, webTask.taskRole, "books/");
     // P4.5-W26-S02 (owner, 2026-11-12): drafted scene timelines, read for review.
     media.grantRead(webTask.taskRole);
     eventStream.grantPutRecords(webTask.taskRole);
@@ -731,7 +727,7 @@ export class AwsStack extends Stack {
     privateContent.grantRead(jobsTask.taskRole);
     privateContent.grantPut(jobsTask.taskRole);
     // The worker removes a deleted book's file (remove_file), with the queue's retries.
-    grantBookDeletes(privateContent, jobsTask.taskRole);
+    grantDeletes(privateContent, jobsTask.taskRole, "books/");
     eventStream.grantPutRecords(jobsTask.taskRole);
     for (const queue of queues) {
       queue.grantSendMessages(jobsTask.taskRole);
@@ -909,6 +905,37 @@ export class AwsStack extends Stack {
         vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
         // Today's set serves without the run; a retry only re-attempts a failed
         // RunTask, and a rerun changes nothing twice.
+        retryAttempts: 2,
+        maxEventAge: Duration.hours(1),
+      }),
+    });
+
+    // P5-W31-S04b-2 (§6.9, Q-P5-17): EventBridge Scheduler runs `prune-snapshots`
+    // daily. It deletes battle code snapshots past 90 days whose match has no flag
+    // waiting: the objects from the private bucket, then their rows. No queue.
+    const pruneSnapshotsTask = taskDefinition("PruneSnapshots");
+    pruneSnapshotsTask.addContainer("prune-snapshots", {
+      image: image("workers/jobs/Dockerfile"),
+      entryPoint: withDatabaseUrl(
+        '/app/.venv/bin/python -m interval_jobs "$@"',
+      ),
+      command: ["prune-snapshots"],
+      environment,
+      secrets: { DB_PASSWORD: secrets.DB_PASSWORD },
+      logging: logging("prune-snapshots"),
+    });
+    grantDeletes(
+      privateContent,
+      pruneSnapshotsTask.taskRole,
+      "battle-snapshots/",
+    );
+    new scheduler.Schedule(this, "PruneSnapshotsSchedule", {
+      schedule: scheduler.ScheduleExpression.cron({ minute: "30", hour: "3" }),
+      target: new targets.EcsRunFargateTask(cluster, {
+        taskDefinition: pruneSnapshotsTask,
+        securityGroups: [appSg],
+        vpcSubnets: { subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS },
+        // A missed day is caught up by the next: what's due stays due.
         retryAttempts: 2,
         maxEventAge: Duration.hours(1),
       }),
@@ -1112,7 +1139,7 @@ export class AwsStack extends Stack {
     });
     // P2-W11: books read (book_process, ocr_page) and removed (remove_file) here.
     privateContent.grantRead(workerTask.taskRole);
-    grantBookDeletes(privateContent, workerTask.taskRole);
+    grantDeletes(privateContent, workerTask.taskRole, "books/");
     // P4-W22-S04: voice-explainers writes HLS here (and write-scenes timelines, which
     // the web reads for review).
     media.grantPut(workerTask.taskRole);

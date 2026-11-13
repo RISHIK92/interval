@@ -1,0 +1,12 @@
+# VM mode (ADR-0011), P5-W31-S04b-2 (Q-P5-17): daily. Persistent, so a VM that was off
+# at the scheduled time runs it once it is back; an extra run is harmless, since a
+# prune is idempotent.
+[Unit]
+Description=Interval prune-snapshots every day
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target

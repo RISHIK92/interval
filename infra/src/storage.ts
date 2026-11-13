@@ -34,17 +34,19 @@ export function createBuckets(scope: Construct): Buckets {
   return { privateContent, events };
 }
 
-// P2-W11-S01: a user deletes their own PDF book. Only s3:DeleteObject, under books/:
-// in the versioned bucket that adds a delete marker, so the old version stays
-// recoverable until the lifecycle rule expires it; never s3:DeleteObjectVersion.
-export function grantBookDeletes(
+// Only s3:DeleteObject, under one prefix: in the versioned bucket that adds a delete
+// marker, so the old version stays recoverable until the lifecycle rule expires it;
+// never s3:DeleteObjectVersion. P2-W11-S01: a user deletes their own PDF book (books/).
+// P5-W31-S04b-2: pruning battle snapshots (battle-snapshots/).
+export function grantDeletes(
   bucket: s3.IBucket,
   grantee: iam.IGrantable,
+  prefix: "books/" | "battle-snapshots/",
 ): void {
   grantee.grantPrincipal.addToPrincipalPolicy(
     new iam.PolicyStatement({
       actions: ["s3:DeleteObject"],
-      resources: [bucket.arnForObjects("books/*")],
+      resources: [bucket.arnForObjects(`${prefix}*`)],
     }),
   );
 }

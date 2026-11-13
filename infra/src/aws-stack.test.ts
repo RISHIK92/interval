@@ -592,8 +592,8 @@ describe("containers", () => {
     // web, jobs, worker, migrate, poll-due, recompute-due, check-links-due,
     // spot-check-due, question-batches, recalibrate-difficulty, sync-github-due,
     // suggest-technologies, daily-challenge-due, game-0 (ADR-0033), close-season,
-    // push-due (P4-W24-S01b)
-    expect(tasks.length).toBe(16);
+    // push-due (P4-W24-S01b), prune-snapshots (P5-W31-S04b-2)
+    expect(tasks.length).toBe(17);
     for (const [, task] of tasks) {
       expect(task.Properties["RuntimePlatform"]).toMatchObject({
         CpuArchitecture: "ARM64",
@@ -857,8 +857,8 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
       target.EcsParameters.NetworkConfiguration.AwsvpcConfiguration;
     expect(network.AssignPublicIp ?? "DISABLED").toBe("DISABLED");
     expect(JSON.stringify(network.SecurityGroups)).toContain("AppSg");
-    // Each schedule's role may run its own task only (eleven schedules, push-due the
-    // eleventh, P4-W24-S01b).
+    // Each schedule's role may run its own task only (twelve schedules: push-due the
+    // eleventh, P4-W24-S01b; prune-snapshots the twelfth, P5-W31-S04b-2).
     const runTask = all("AWS::IAM::Policy").flatMap(([, policy]) =>
       (
         policy.Properties["PolicyDocument"] as {
@@ -866,7 +866,12 @@ describe("adaptive polling (W2-S03, ING-3)", () => {
         }
       ).Statement.filter((st) => [st.Action].flat().includes("ecs:RunTask")),
     );
-    expect(runTask).toHaveLength(11);
+    expect(runTask).toHaveLength(12);
+    expect(
+      runTask.filter((st) =>
+        JSON.stringify(st.Resource).includes("PruneSnapshotsTask"),
+      ),
+    ).toHaveLength(1);
     const targets = runTask.map((st) => JSON.stringify(st.Resource));
     expect(targets.filter((t) => t.includes("PollDueTask"))).toHaveLength(1);
     expect(targets.filter((t) => t.includes("PushDueTask"))).toHaveLength(1);
@@ -1477,6 +1482,33 @@ describe("the daily challenge (P3-W13-S05, ADR-0031)", () => {
   });
 });
 
+describe("battle snapshot pruning (P5-W31-S04b-2, Q-P5-17)", () => {
+  test("EventBridge Scheduler runs prune-snapshots daily; it may delete from the private bucket, with no queue access", () => {
+    const schedule = scheduleFor("PruneSnapshotsTask");
+    expect(schedule.Properties["ScheduleExpression"]).toBe(
+      "cron(30 3 * * ? *)",
+    );
+    expect(containerNamed("prune-snapshots")?.Command).toEqual([
+      "prune-snapshots",
+    ]);
+    const actions = all("AWS::IAM::Policy")
+      .filter(([, policy]) =>
+        (policy.Properties["Roles"] as { Ref: string }[]).some((r) =>
+          r.Ref.startsWith("PruneSnapshotsTaskTaskRole"),
+        ),
+      )
+      .flatMap(([, policy]) =>
+        (
+          policy.Properties["PolicyDocument"] as {
+            Statement: { Action: string | string[] }[];
+          }
+        ).Statement.flatMap((st) => [st.Action].flat()),
+      );
+    expect(actions).toContain("s3:DeleteObject");
+    expect(actions.some((a) => a.startsWith("sqs:"))).toBe(false);
+  });
+});
+
 describe("monthly seasons (P3-W16-S06, Q-P3-13)", () => {
   test("EventBridge Scheduler runs close-season daily at 00:00 UTC (a failed 1st retried the next day), with only the DB secret and no queue", () => {
     const schedule = scheduleFor("CloseSeasonTask");
@@ -1530,7 +1562,7 @@ describe("question batches (P2-W8-S05, Q-P2-13)", () => {
 });
 
 describe("PDF books (P2-W11-S01)", () => {
-  test("only the web app and the worker delete, only books, only as a marker", () => {
+  test("only the web app and the worker delete books, the snapshot pruner its snapshots, only as a marker", () => {
     const policies = Object.values(
       template.findResources("AWS::IAM::Policy"),
     ) as {
@@ -1544,21 +1576,31 @@ describe("PDF books (P2-W11-S01)", () => {
         JSON.stringify(st.Action).includes("s3:Delete"),
       ),
     );
-    // The web task's role (its undo), and the jobs and worker tasks' (remove_file).
+    // The web task's role (its undo), the jobs and worker tasks' (remove_file), and
+    // P5-W31-S04b-2's pruner, under battle-snapshots/ only.
     expect(
       deleting.map((p) => JSON.stringify(p.Properties.Roles)).sort(),
     ).toEqual([
       expect.stringContaining("JobsTaskTaskRole"),
+      expect.stringContaining("PruneSnapshotsTaskTaskRole"),
       expect.stringContaining("WebTaskTaskRole"),
       expect.stringContaining("WorkerTaskTaskRole"),
     ]);
-    for (const policy of deleting)
+    for (const policy of deleting) {
+      const prefix = JSON.stringify(policy.Properties.Roles).includes(
+        "PruneSnapshots",
+      )
+        ? "battle-snapshots"
+        : "books";
       for (const st of policy.Properties.PolicyDocument.Statement.filter((x) =>
         JSON.stringify(x.Action).includes("s3:Delete"),
       )) {
         expect(st.Action).toBe("s3:DeleteObject");
-        expect(JSON.stringify(st.Resource)).toMatch(/\/books\/\*"\]\]\}$/);
+        expect(JSON.stringify(st.Resource)).toMatch(
+          new RegExp(`/${prefix}/\\*"\\]\\]\\}$`),
+        );
       }
+    }
   });
 
   test("a leaderboard write or invalidation that failed is counted (LOAD-5)", () => {

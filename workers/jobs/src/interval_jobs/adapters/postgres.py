@@ -3171,6 +3171,28 @@ class PostgresDailyChallenges:
         return row[1] if row[0] else None
 
 
+class PostgresSnapshots:
+    """A battle's code snapshots due for pruning (P5-W31-S04b-2, Q-P5-17)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def due(self, before: datetime, limit: int) -> list[str]:
+        return [
+            key
+            for (key,) in self._conn.execute(
+                "select s.key from battle_snapshot s where s.taken_at < %s "
+                "and not exists (select 1 from fair_play_flag f "
+                "where f.match_id = s.match_id and f.decision is null) "
+                "order by s.taken_at limit %s",
+                (before, limit),
+            )
+        ]
+
+    def forget(self, keys: list[str]) -> None:
+        self._conn.execute("delete from battle_snapshot where key = any(%s)", (keys,))
+
+
 class PostgresMatchResults:
     """Live match results (P3-W15-S05)."""
 

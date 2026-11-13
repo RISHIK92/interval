@@ -45,6 +45,7 @@ install -d -m 700 "$DATA_MOUNT/files" "$INTERVAL_ETC"
 for unit in interval.service interval-poll.service interval-poll.timer \
   interval-recompute.service interval-recompute.timer \
   interval-links.service interval-links.timer \
+  interval-snapshots.service interval-snapshots.timer \
   interval-spot-checks.service interval-spot-checks.timer \
   interval-question-batches.service interval-question-batches.timer \
   interval-recalibrate.service interval-recalibrate.timer \
@@ -68,6 +69,8 @@ systemctl enable --now interval-recompute.timer
 systemctl enable --now interval-push.timer
 # ING-6: checks every item's link weekly, as EventBridge Scheduler does in AWS mode.
 systemctl enable --now interval-links.timer
+# Q-P5-17: prunes battle code snapshots past 90 days daily, as EventBridge does in AWS.
+systemctl enable --now interval-snapshots.timer
 # Q-P2-40: reads connected users' repositories daily, as EventBridge Scheduler does.
 systemctl enable --now interval-github.timer
 # PER-4: suggests technologies for unclaimed packages weekly, as EventBridge does.

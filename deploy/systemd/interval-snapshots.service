@@ -1,0 +1,16 @@
+# VM mode (ADR-0011), P5-W31-S04b-2 (§6.9, Q-P5-17): delete battle code snapshots past
+# 90 days whose match has no fair-play flag waiting. Started by interval-snapshots.timer;
+# the AWS stack runs the same command daily from EventBridge Scheduler.
+[Unit]
+Description=Interval prune-snapshots
+# Requisite, not Requires: a stack stopped for maintenance skips the run instead of
+# being started again by the timer.
+Requisite=interval.service
+After=interval.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/interval
+ExecStart=/opt/interval/deploy/bin/stack.sh run prune-snapshots
+# A oneshot has no start timeout by default: a hung run would stop the timer for good.
+TimeoutStartSec=30min

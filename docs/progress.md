@@ -5437,3 +5437,20 @@ The owner said to continue building overnight with recommended answers, switchin
   - one corrupt object broke the review page.
 - **Flaky locally under full `pnpm check` concurrency:** `kysely-admin-daily`, `kysely-feed`, `kysely-progress` and mobile `sign-in`. Each passes alone, and the web and mobile suites pass together. None is touched by this slice.
 - **Next, S04b-2:** pruning after 90 days, unless the match has a pending flag. It runs from the VM timer and EventBridge.
+
+### 2026-11-13 — P5-W31-S04b-2 (pruning battle snapshots; §6.9, DB-6, Q-P5-17)
+
+- **`interval_jobs/snapshots.py`:** `prune_snapshots` takes due keys in batches of 500 and removes each object before its rows, so a run that fails midway leaves rows to retry. It is idempotent. `PostgresSnapshots.due` returns snapshots older than 90 days whose match has no undecided flag; `forget` deletes their rows.
+- **Command `prune-snapshots`:** it needs `PRIVATE_CONTENT_BUCKET` and prints `{"removed": n}`. The owner may want a line in CLAUDE.md's Commands, which isn't edited here: `scripts/with-env.sh uv run python -m interval_jobs prune-snapshots` (daily on EventBridge and the VM's `interval-snapshots.timer`).
+- **VM:** `deploy/systemd/interval-snapshots.{service,timer}`, daily and Persistent. `deploy.sh` installs and enables them.
+- **AWS:** a `PruneSnapshots` Fargate task and a daily EventBridge schedule at 03:30 UTC, with no queue access.
+  - `grantBookDeletes` became `grantDeletes(bucket, grantee, prefix)`. It is still `s3:DeleteObject` only, under one named prefix, and never a version delete.
+  - The pruner and the VM role get `battle-snapshots/`. Books' grants are unchanged.
+- **Owner (Q-P5-17 clarified):** "whichever is later". The 30-day noncurrent version after a delete (about 120 days in all) is accepted, as for books.
+- **Sonnet review:** no blockers.
+  - Fixed: no test pinned the 90-day cutoff. Both clarifications went to the owner.
+  - Not fixed (nits):
+    - no `taken_at` index, which beta volume doesn't need;
+    - a no-progress guard in the loop: `forget` deletes exactly what `due` returned;
+    - stricter absence assertions in the IAM tests.
+- **W31-S04 is complete:** signals and flags (S04a), and snapshots saved, viewed and pruned (S04b-1, S04b-2). Week 31 is built.

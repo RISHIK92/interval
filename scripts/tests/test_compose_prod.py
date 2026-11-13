@@ -286,6 +286,22 @@ def test_a_systemd_timer_runs_check_links_due_weekly() -> None:
     assert re.search(r"systemctl enable --now interval-links\.timer", deploy)
 
 
+# P5-W31-S04b-2 (Q-P5-17): battle snapshots pruned daily, as EventBridge does in AWS.
+def test_a_systemd_timer_runs_prune_snapshots_daily() -> None:
+    timer = (SYSTEMD / "interval-snapshots.timer").read_text()
+    service = (SYSTEMD / "interval-snapshots.service").read_text()
+    assert "OnCalendar=daily" in timer
+    assert "Persistent=true" in timer
+    assert re.search(
+        r"^ExecStart=.*stack\.sh run prune-snapshots$", service, re.MULTILINE
+    )
+    assert "Requisite=interval.service" in service
+    assert re.search(r"^TimeoutStartSec=", service, re.MULTILINE)
+    deploy = (ROOT / "deploy" / "bin" / "deploy.sh").read_text()
+    assert "interval-snapshots.service interval-snapshots.timer" in deploy
+    assert re.search(r"systemctl enable --now interval-snapshots\.timer", deploy)
+
+
 # Q-2 (P2-W8-S03): this week's question spot checks, as EventBridge Scheduler does in
 # AWS.
 def test_a_systemd_timer_runs_spot_check_due_weekly() -> None:
