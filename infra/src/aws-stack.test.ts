@@ -1596,10 +1596,11 @@ describe("PDF books (P2-W11-S01)", () => {
       expect.stringContaining("WorkerTaskTaskRole"),
     ]);
     for (const policy of deleting) {
+      // P5-W35: the pruner's are battle-snapshots/ and battle-best/.
       const prefix = JSON.stringify(policy.Properties.Roles).includes(
         "PruneSnapshots",
       )
-        ? "battle-snapshots"
+        ? "(battle-snapshots|battle-best)"
         : "books";
       for (const st of policy.Properties.PolicyDocument.Statement.filter((x) =>
         JSON.stringify(x.Action).includes("s3:Delete"),

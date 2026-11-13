@@ -37,11 +37,12 @@ export function createBuckets(scope: Construct): Buckets {
 // Only s3:DeleteObject, under one prefix: in the versioned bucket that adds a delete
 // marker, so the old version stays recoverable until the lifecycle rule expires it;
 // never s3:DeleteObjectVersion. P2-W11-S01: a user deletes their own PDF book (books/).
-// P5-W31-S04b-2: pruning battle snapshots (battle-snapshots/).
+// P5-W31-S04b-2: pruning battle snapshots (battle-snapshots/), and P5-W35 the best
+// submissions kept for the AI code review (battle-best/), by the same rule.
 export function grantDeletes(
   bucket: s3.IBucket,
   grantee: iam.IGrantable,
-  prefix: "books/" | "battle-snapshots/",
+  prefix: "books/" | "battle-snapshots/" | "battle-best/",
 ): void {
   grantee.grantPrincipal.addToPrincipalPolicy(
     new iam.PolicyStatement({

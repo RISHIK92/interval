@@ -8,6 +8,8 @@ import {
 import { log } from "../../../../../server/log";
 import { sameOrigin } from "../../../../../server/same-origin";
 
+import { forbidden } from "../../../../../server/capability";
+
 export const dynamic = "force-dynamic";
 
 const MATCH_ID =
@@ -32,6 +34,9 @@ export async function POST(
   if (!sameOrigin(request)) return new Response(null, { status: 403 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
+  // ADR-0036: the battle feature's capability, as its page asks.
+  const refused = await forbidden(actor, "play.battle");
+  if (refused !== null) return refused;
   const { id } = await context.params;
   if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY)
     return new Response(null, { status: 413 });

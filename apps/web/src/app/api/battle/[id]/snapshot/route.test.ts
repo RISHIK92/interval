@@ -9,7 +9,12 @@ import type {
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const claim = vi.fn<BattleSnapshots["claim"]>();
 const put = vi.fn<FileStore["put"]>(() => Promise.resolve());
+// ADR-0036: the battle capability, granted unless a test says not.
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../../../../server/container", () => ({
+  entitlements: () => ({ can }),
   sessionReader: () => ({ current }),
   battleSnapshots: () => ({ claim }),
   files: () => ({ put }),

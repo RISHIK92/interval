@@ -5634,3 +5634,26 @@ The owner said to continue building overnight with recommended answers, switchin
   - a corrupt replay frame giving a 500;
   - unstable frame order.
 - **Still to do:** S04, the Phase 5 wrap-up.
+
+### 2026-11-14 — Phase 5 wrap-up: drift audit, and its fixes from this phase
+
+- **The drift audit** is saved unchanged in `docs/audits/2026-11-14.md`.
+- **Fixed now (bugs from this phase):**
+  - **Pruning:** no delete grant covered the best submissions (`battle-best/`). In both deployed modes the first due best would have stopped every daily prune, snapshots included. The pruner and the VM role now get `battle-best/` deletes, and the infra tests check it.
+  - **ADR-0036:** the battle routes for review, questions, snapshot, dispute and replay now check `play.battle`, as the page does. The interviewer and the review cost model calls.
+  - **The replay route** logs a corrupt frame before its 404.
+- **For the owner, from the audit:**
+  - Accept or reject ADR-0039, 0040 and 0041.
+  - Velox's placement and wiring in both stacks, together with `QUESTIONS_MODEL` on AWS and `BATTLE_WINDOW_TIME_ZONE`.
+  - LOAD-3 priorities: battles all go as casual.
+  - EXEC-2's per-language limits.
+  - MATCH-6/C-31 casual rooms, versus Q-P5-19's 1v1 casual queue.
+  - Guests in battles (ADR-0029).
+  - AI-3 citations for the interviewer and the review.
+  - The text-check enums (ADR-0002).
+  - Boards and replays outside Redis and CloudFront.
+  - An "owner reviewed" gate for PROVISIONAL problems.
+  - Submit idempotency keys (LOAD-5).
+  - Metrics for judging failures and AI over-budget.
+  - The AiBox convention for the battle AI text.
+  - `packages/db/db/schema.sql`: an accidental dbmate dump committed in 380c932, unreferenced. To be removed with the owner's go-ahead.

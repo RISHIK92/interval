@@ -935,6 +935,8 @@ export class AwsStack extends Stack {
       pruneSnapshotsTask.taskRole,
       "battle-snapshots/",
     );
+    // P5-W35: and the best submissions, which prune by the same rule.
+    grantDeletes(privateContent, pruneSnapshotsTask.taskRole, "battle-best/");
     new scheduler.Schedule(this, "PruneSnapshotsSchedule", {
       schedule: scheduler.ScheduleExpression.cron({ minute: "30", hour: "3" }),
       target: new targets.EcsRunFargateTask(cluster, {

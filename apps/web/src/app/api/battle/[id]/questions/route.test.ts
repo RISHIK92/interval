@@ -11,7 +11,12 @@ const ask = vi.fn<BattleQuestions["ask"]>();
 const list = vi.fn<BattleQuestions["list"]>(() => Promise.resolve([]));
 const fail = vi.fn<BattleQuestions["fail"]>(() => Promise.resolve());
 const enqueue = vi.fn<JobQueue["enqueue"]>(() => Promise.resolve());
+// ADR-0036: the battle capability, granted unless a test says not.
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../../../../server/container", () => ({
+  entitlements: () => ({ can }),
   sessionReader: () => ({ current }),
   battleQuestions: () => ({ ask, list, fail }),
   jobQueue: () => ({ enqueue }),
@@ -83,4 +88,12 @@ test("a question that can't be queued is shown unanswered, and the error thrown"
   enqueue.mockRejectedValueOnce(new Error("queue down"));
   await expect(post({ question: "Q?" })).rejects.toThrow("queue down");
   expect(fail).toHaveBeenCalledWith("43");
+});
+
+// ADR-0036: a plan without battles can't ask (the interviewer costs model calls).
+test("a plan without battles is refused", async () => {
+  current.mockResolvedValue(ada);
+  can.mockResolvedValueOnce(false);
+  expect(await post({ question: "Q?" })).toBe(403);
+  expect(ask).not.toHaveBeenCalled();
 });

@@ -5,6 +5,9 @@ import {
   sessionReader,
 } from "../../../../../server/container";
 
+import { log } from "../../../../../server/log";
+import { forbidden } from "../../../../../server/capability";
+
 export const dynamic = "force-dynamic";
 
 // P5-W35 (DB-6; Q-P5-22): one frame of a finished battle's replay, for its players:
@@ -17,6 +20,9 @@ export async function GET(
 ): Promise<Response> {
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
+  // ADR-0036: the battle feature's capability, as its page asks.
+  const refused = await forbidden(actor, "play.battle");
+  if (refused !== null) return refused;
   const id = z.uuid().safeParse((await context.params).id);
   const n = z.coerce
     .number()
@@ -33,8 +39,9 @@ export async function GET(
   let stored: z.infer<typeof Stored>;
   try {
     stored = Stored.parse(JSON.parse(await new Response(file.body).text()));
-  } catch {
-    // A snapshot whose store failed partway: gone, as a missing one is.
+  } catch (error) {
+    // A snapshot whose store failed partway: gone, as a missing one is; logged.
+    log.error("battle: replay frame unreadable", { key: frame.key, error });
     return new Response(null, { status: 404 });
   }
   return Response.json(

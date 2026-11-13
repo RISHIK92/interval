@@ -7,6 +7,8 @@ import {
 import { log } from "../../../../../server/log";
 import { sameOrigin } from "../../../../../server/same-origin";
 
+import { forbidden } from "../../../../../server/capability";
+
 export const dynamic = "force-dynamic";
 
 // P5-W33 (§6.2, AI-1, OPS-4; Q-P5-13): "ask the interviewer" in an AI-league battle.
@@ -23,6 +25,9 @@ async function seat(
   if (!sameOrigin(request)) return new Response(null, { status: 403 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
+  // ADR-0036: the battle feature's capability, as its page asks.
+  const refused = await forbidden(actor, "play.battle");
+  if (refused !== null) return refused;
   const id = MATCH_ID.safeParse((await context.params).id);
   if (!id.success) return new Response(null, { status: 400 });
   return { userId: actor.userId, matchId: id.data };

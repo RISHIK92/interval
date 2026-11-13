@@ -10,7 +10,12 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const requestReview = vi.fn<BattleResults["requestReview"]>();
 const dropReview = vi.fn<BattleResults["dropReview"]>(() => Promise.resolve());
 const enqueue = vi.fn<JobQueue["enqueue"]>(() => Promise.resolve());
+// ADR-0036: the battle capability, granted unless a test says not.
+const can = vi.fn<(userId: string, capability: string) => Promise<boolean>>(
+  () => Promise.resolve(true),
+);
 vi.mock("../../../../../server/container", () => ({
+  entitlements: () => ({ can }),
   sessionReader: () => ({ current }),
   battleResults: () => ({ requestReview, dropReview }),
   jobQueue: () => ({ enqueue }),

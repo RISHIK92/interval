@@ -284,6 +284,7 @@ describe("permissions", () => {
     expect(policies).toMatch(/"s3:DeleteObject"/);
     expect(policies).toMatch(/books\/\*/);
     expect(policies).toMatch(/battle-snapshots\/\*/);
+    expect(policies).toMatch(/battle-best\/\*/);
     expect(policies).toMatch(/s3:PutObject/);
     expect(policies).toMatch(/s3:GetObject/);
   });

@@ -202,6 +202,7 @@ export class ProdStack extends Stack {
     privateContent.grantPut(role);
     grantDeletes(privateContent, role, "books/");
     grantDeletes(privateContent, role, "battle-snapshots/");
+    grantDeletes(privateContent, role, "battle-best/");
     // DB-5: write-env.sh names this stream; the VM may only put records to it.
     createEventStream(this, events, EVENTS_STREAM).grantPutRecords(role);
 
