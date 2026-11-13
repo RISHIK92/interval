@@ -169,6 +169,15 @@ class AuthVerification(TypedDict):
     updated_at: datetime
 
 
+class BattleSnapshot(TypedDict):
+    match_id: UUID
+    user_id: str
+    taken_at: datetime
+    language: str
+    key: str
+    slot: int
+
+
 class BoardScore(TypedDict):
     attempt_id: int
     board: str

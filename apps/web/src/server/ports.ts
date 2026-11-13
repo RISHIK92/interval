@@ -1797,6 +1797,25 @@ export type FairPlayFlagRow = {
 // Flags go to review before any penalty; a penalty removes the match's gain from the
 // player's rating and drops their ghost run of it, never touching the account (owner,
 // 2026-11-05).
+// P5-W31-S04b (§6.9, DB-6, Q-P5-17): a battle player's code every 30 s, kept in the
+// private bucket for review of a fair-play flag.
+export type BattleSnapshot = { takenAt: Date; language: string; key: string };
+export interface BattleSnapshots {
+  // Records a snapshot and returns the key to store it at; null when the user isn't a
+  // player of an unfinished battle, or their last snapshot is too recent.
+  claim(
+    matchId: string,
+    userId: string,
+    language: string,
+    at: Date,
+  ): Promise<string | null>;
+  // The flagged player's snapshots of the flag's match, oldest first; null for no such
+  // flag.
+  forFlag(
+    flagId: string,
+  ): Promise<{ player: string; snapshots: BattleSnapshot[] } | null>;
+}
+
 export interface AdminFairPlay {
   pending(): Promise<FairPlayFlagRow[]>;
   // The flagged player, or null when the flag isn't pending (decided already).

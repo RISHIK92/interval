@@ -72,6 +72,7 @@ export function codeFor(
 // without the paste, and what the player already had: this page's own text (the
 // statement and starters) and their code in the other languages.
 const PASTE_AT = 200;
+const SNAPSHOT_EVERY_MS = 30_000;
 
 export function outsidePaste(pasted: string, known: string[]): number | null {
   const text = pasted.trim();
@@ -102,6 +103,36 @@ export function BattlePlay({
   const [failed, setFailed] = useState(false);
   const [, tick] = useState(0);
   const live = useRef<ReturnType<typeof runLive<BattleState>> | null>(null);
+  // P5-W31-S04b (§6.9, Q-P5-17): the code every 30 s while the battle is on, for review
+  // of a fair-play flag; unchanged code adds nothing, so isn't sent again.
+  const latest = useRef({ code, language, playing: false });
+  useEffect(() => {
+    latest.current = { code, language, playing: state.phase === "playing" };
+  });
+  useEffect(() => {
+    let sent: string | null = null;
+    const timer = setInterval(() => {
+      const { code, language, playing } = latest.current;
+      const snapshot = JSON.stringify({ language, code });
+      if (!playing || snapshot === sent) return;
+      fetch(`/api/battle/${matchId}/snapshot`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: snapshot,
+      })
+        .then((res) => {
+          // Sent only once stored: a refused one goes again next time.
+          if (res.ok) sent = snapshot;
+          else console.error("battle: snapshot refused", res.status);
+        })
+        .catch((error: unknown) => {
+          console.error("battle: snapshot not sent", error);
+        });
+    }, SNAPSHOT_EVERY_MS);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [matchId]);
 
   useEffect(() => {
     const run = runLive({

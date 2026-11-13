@@ -5413,3 +5413,27 @@ The owner said to continue building overnight with recommended answers, switchin
   - blur and visibilitychange fire in pairs; the server ignores the duplicates;
   - focus messages aren't rate-limited; caps and the 30 s threshold bound them;
   - a page whose socket was down when it lost focus under-counts that away. Signals are hints for review (§6.9).
+
+### 2026-11-13 — P5-W31-S04b-1 (a battle's code snapshots, saved and viewed; §6.9, DB-6, Q-P5-17)
+
+- **Migration `20261113050000_battle_snapshot`:** `battle_snapshot (match_id, user_id, taken_at, language, key unique, slot)`. Postgres records each object's key, so pruning (S04b-2) never lists the bucket. `slot` is the 25-second slot, unique per player and match.
+- **`BattleSnapshots` port (Postgres):**
+  - `claim` is one insert…select. It records a snapshot only for a player of a battle match with no `finished_at` that is under an hour old, at most once in 25 s, and returns the key `battle-snapshots/<match>/<user>/<iso>.json`. Posts racing past the gap check meet the slot's unique key.
+  - `forFlag` lists a flag's player's snapshots of that match.
+- **`POST /api/battle/[id]/snapshot`:**
+  - It is same origin, needs a signed-in session, and takes a zod body `{language, code}` with a known language and at most 256 KB of code.
+  - A body over the limit is refused (413) from its length before it's parsed, and again after it's read.
+  - A refused claim gives 409. A failed store is logged and thrown, and its row stays, shown as missing.
+- **The page:** every 30 s while playing, it posts its code and language when they changed since the last stored snapshot. A refused or failed one goes again next time.
+- **Admin:**
+  - a battle flag on `/admin/fair-play` links to `/admin/fair-play/[flag]/snapshots`;
+  - that page is admin only and shows each snapshot's time, language and code;
+  - a missing or unreadable object says so (logged), and the others are still shown.
+- **Guest merge:** a guest's snapshot rows move to the account; guests have the beta plan, so they battle. A row in the same slot as the account's own (a self-match) stays with the guest. Its object isn't pruned; that's a noted shortcut.
+- **Sonnet review:** no blockers. Fixed:
+  - parallel posts could each pass the 25 s check (the slot key);
+  - the body was read whole before its limit;
+  - the page marked code as sent before it was stored;
+  - one corrupt object broke the review page.
+- **Flaky locally under full `pnpm check` concurrency:** `kysely-admin-daily`, `kysely-feed`, `kysely-progress` and mobile `sign-in`. Each passes alone, and the web and mobile suites pass together. None is touched by this slice.
+- **Next, S04b-2:** pruning after 90 days, unless the match has a pending flag. It runs from the VM timer and EventBridge.

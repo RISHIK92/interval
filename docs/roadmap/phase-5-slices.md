@@ -211,6 +211,20 @@ Already in place, so not sliced again:
 
 - IDs: §6.9, DB-6; Q-P5-17
 - Goal: the page posts its code every 30 seconds to `/api/battle/[id]/snapshot`, and only a player in an unfinished match can post. The private bucket keeps snapshots for 90 days, or until a flag on that match is decided.
+- Split (2026-11-13):
+  - **S04b-1:** saving the snapshots, and viewing them from a flag.
+  - **S04b-2:** the pruning job, with its VM timer and EventBridge schedule.
+
+### P5-W31-S04b-1 Saving and viewing snapshots
+
+- IDs: §6.9, DB-6; Q-P5-17
+- Goal: `battle_snapshot` rows and their objects in the private bucket; `POST /api/battle/[id]/snapshot`; the page's 30-second timer; `/admin/fair-play/[flag]/snapshots`; and a guest's snapshots moved to the account on sign-up.
+- Built 2026-11-13.
+
+### P5-W31-S04b-2 Pruning snapshots
+
+- IDs: §6.9, DB-6; Q-P5-17
+- Goal: a daily worker command that deletes the objects and rows of snapshots older than 90 days, unless a flag on that match is still pending. It runs from the VM's timer and an EventBridge schedule.
 
 ## Week 32: rooms, windows, the casual queue
 

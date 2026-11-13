@@ -188,6 +188,15 @@ export interface AuthVerification {
   value: string;
 }
 
+export interface BattleSnapshot {
+  key: string;
+  language: string;
+  match_id: string;
+  slot: Int8;
+  taken_at: Timestamp;
+  user_id: string;
+}
+
 export interface BoardScore {
   attempt_id: Int8;
   board: string;
@@ -1288,6 +1297,7 @@ export interface DB {
   auth_account: AuthAccount;
   auth_session: AuthSession;
   auth_verification: AuthVerification;
+  battle_snapshot: BattleSnapshot;
   board_score: BoardScore;
   book: Book;
   book_chapter: BookChapter;

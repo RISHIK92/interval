@@ -31,6 +31,7 @@ import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
 import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
+import { kyselyBattleSnapshots } from "./adapters/kysely-battle-snapshots";
 import { kyselyAdminExplainers } from "./adapters/kysely-admin-explainers";
 import { kyselyAdminScenes } from "./adapters/kysely-admin-scenes";
 import { kyselyListening } from "./adapters/kysely-listening";
@@ -79,6 +80,7 @@ import type {
   LiveMatch,
   AdminDaily,
   AdminFairPlay,
+  BattleSnapshots,
   AdminExplainers,
   AdminScenes,
   Listening,
@@ -433,6 +435,11 @@ export function follows(): Follows {
 // P3-W15-S02 (ADR-0033): live matches, for match tickets.
 export function matches(): Matches {
   return kyselyMatches(db());
+}
+
+// P5-W31-S04b (§6.9, Q-P5-17): battle players' code snapshots, for fair-play review.
+export function battleSnapshots(): BattleSnapshots {
+  return kyselyBattleSnapshots(db());
 }
 
 // P5-W31-S01, S03: LLD battle problems as loaded, for the battle page.

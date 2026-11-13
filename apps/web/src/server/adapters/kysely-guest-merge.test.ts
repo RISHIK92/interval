@@ -425,6 +425,38 @@ test("the guest's matches move to the account", async () => {
   });
 });
 
+// P5-W31-S04b: the guest's battle snapshots are the account's, with their keys.
+test("the guest's battle snapshots move to the account", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    const { id } = await trx
+      .insertInto("game_match")
+      .values({ server_id: 0 })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const takenAt = new Date("2026-11-13T10:00:30Z");
+    const key = `battle-snapshots/${id}/${guest}/${takenAt.toISOString()}.json`;
+    await trx
+      .insertInto("battle_snapshot")
+      .values({
+        match_id: id,
+        user_id: guest,
+        taken_at: takenAt,
+        language: "go",
+        key,
+        slot: 1,
+      })
+      .execute();
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    expect(
+      await trx
+        .selectFrom("battle_snapshot")
+        .select(["user_id", "key"])
+        .where("match_id", "=", id)
+        .execute(),
+    ).toEqual([{ user_id: account, key }]);
+  });
+});
+
 // P3-W18-S02 (§6.9): the guest's fair-play signals and flags are the account's; a
 // flag the account has for the same match (a self-match) stays as it is.
 test("the guest's fair-play signals and flags move to the account", async () => {

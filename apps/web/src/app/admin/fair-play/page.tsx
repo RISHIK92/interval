@@ -83,6 +83,14 @@ export default async function FairPlayPage(props: {
                   <input type="hidden" name="flagId" value={f.id} />
                   {/* A battle has no rating to remove until W32: review only. */}
                   {f.mode === "battle" ? (
+                    <a
+                      href={`/admin/fair-play/${f.id}/snapshots`}
+                      className={SECONDARY}
+                    >
+                      Code snapshots
+                    </a>
+                  ) : null}
+                  {f.mode === "battle" ? (
                     <p className="text-ink-muted">
                       Battles aren&apos;t rated yet, so there&apos;s no penalty
                       to give.

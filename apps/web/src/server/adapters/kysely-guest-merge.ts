@@ -192,6 +192,18 @@ export async function mergeGuest(
           and o.played_as is distinct from ${guestId})
     on conflict do nothing`.execute(trx);
 
+  // P5-W31-S04b: its battle code snapshots, for the flags above (guests battle: they
+  // have the beta plan). Their objects keep the guest's id in the key.
+  // Moved, not copied (the key is unique); one in the same 25 s slot as the account's own
+  // in a self-match stays with the guest, its object left for S04b-2's pruning to miss
+  // (shortcut: a near-impossible case; delete the object here if it's ever seen).
+  await sql`
+    update battle_snapshot g set user_id = ${accountId}
+    where g.user_id = ${guestId}
+      and not exists (select 1 from battle_snapshot o
+        where o.user_id = ${accountId} and o.match_id = g.match_id
+          and o.slot = g.slot)`.execute(trx);
+
   await trx.deleteFrom("app_user").where("id", "=", guestId).execute();
   return true;
 }
