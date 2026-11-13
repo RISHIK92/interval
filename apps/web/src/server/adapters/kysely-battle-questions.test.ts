@@ -81,7 +81,9 @@ test("only a player of an open AI-league battle asks, and only 10 times", async 
       expect(await questions.ask(human, ada, "Null?")).toBeNull();
       expect(await questions.ask(ai, bob, "Null?")).toBeNull();
       for (let i = 0; i < 10; i++)
-        expect(await questions.ask(ai, ada, `Q${String(i)}?`)).toMatch(/^\d+$/);
+        expect(await questions.ask(ai, ada, `Q${String(i)}?`)).toMatchObject({
+          id: expect.stringMatching(/^\d+$/) as unknown,
+        });
       expect(await questions.ask(ai, ada, "One more?")).toBe("limit");
       const listed = await questions.list(ai, ada);
       expect(listed).toHaveLength(10);

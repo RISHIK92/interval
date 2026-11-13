@@ -39,7 +39,7 @@ export function kyselyBattleQuestions(db: Kysely<DB>): BattleQuestions {
           .values({ match_id: matchId, user_id: userId, question })
           .returning("id")
           .executeTakeFirstOrThrow();
-        return id;
+        return { id };
       }),
 
     fail: async (questionId) => {

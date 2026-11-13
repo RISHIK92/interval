@@ -1842,7 +1842,7 @@ export interface BattleQuestions {
     matchId: string,
     userId: string,
     question: string,
-  ): Promise<string | "limit" | null>;
+  ): Promise<{ id: string } | "limit" | null>;
   // This player's, oldest first.
   list(matchId: string, userId: string): Promise<BattleQuestion[]>;
   // Not queued for an answer: shown as unanswered, not waiting forever.

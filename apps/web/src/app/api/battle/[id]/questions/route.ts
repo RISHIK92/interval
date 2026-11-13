@@ -46,13 +46,16 @@ export async function POST(
   try {
     await jobQueue().enqueue(
       "answer_interviewer",
-      { question_id: Number(asked) },
-      { idempotencyKey: `interviewer-${asked}` },
+      { question_id: Number(asked.id) },
+      { idempotencyKey: `interviewer-${asked.id}` },
     );
   } catch (error) {
     // Shown as unanswered (and logged), not left waiting on a job that doesn't exist.
-    log.error("battle: interviewer question not queued", { id: asked, error });
-    await battleQuestions().fail(asked);
+    log.error("battle: interviewer question not queued", {
+      id: asked.id,
+      error,
+    });
+    await battleQuestions().fail(asked.id);
     throw error;
   }
   return new Response(null, { status: 202 });

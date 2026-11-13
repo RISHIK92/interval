@@ -45,7 +45,7 @@ async function post(
 
 test("a question is kept and its answer queued once", async () => {
   current.mockResolvedValue(ada);
-  ask.mockResolvedValue("42");
+  ask.mockResolvedValue({ id: "42" });
   expect(await post({ question: "  Can a value be null?  " })).toBe(202);
   expect(ask).toHaveBeenCalledWith(MATCH, "u1", "Can a value be null?");
   expect(enqueue).toHaveBeenCalledWith(
@@ -79,7 +79,7 @@ test("signed out, another site, or a bad body: nothing asked", async () => {
 
 test("a question that can't be queued is shown unanswered, and the error thrown", async () => {
   current.mockResolvedValue(ada);
-  ask.mockResolvedValue("43");
+  ask.mockResolvedValue({ id: "43" });
   enqueue.mockRejectedValueOnce(new Error("queue down"));
   await expect(post({ question: "Q?" })).rejects.toThrow("queue down");
   expect(fail).toHaveBeenCalledWith("43");
