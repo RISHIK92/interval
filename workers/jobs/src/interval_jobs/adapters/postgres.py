@@ -3193,6 +3193,36 @@ class PostgresSnapshots:
         self._conn.execute("delete from battle_snapshot where key = any(%s)", (keys,))
 
 
+def _duel(
+    result: MatchResult, players: dict[str, str]
+) -> list[tuple[str, float]] | None:
+    """MATCH-1: a 1v1's two users and each one's score: 1 a win, 0.5 a draw, 0 a loss.
+    An abandon is a loss for the leaver and a win for the stayer, both gone a loss each
+    (owner, 2026-11-02). None when there aren't two players to rate (a guest who signed
+    up into its own opponent's account), logged."""
+    seats = [
+        (players[p.played_as], p) for p in result.players if p.played_as in players
+    ]
+    if len(seats) != 2 or len({user for user, _ in seats}) != 2:
+        log.info(
+            "game: match unrated", match_id=str(result.match_id), reason="one player"
+        )
+        return None
+    if result.outcome == "abandoned" and not any(p.abandoned for _, p in seats):
+        # Go never sends this; rating it would raise both players.
+        log.error("game: result refused", reason="abandoned with nobody leaving")
+        return None
+
+    def score(played_as: str, abandoned: bool) -> float:
+        if result.outcome == "abandoned":
+            return 0.0 if abandoned else 1.0
+        if result.winner is None:
+            return 0.5
+        return 1.0 if played_as == result.winner else 0.0
+
+    return [(user, score(p.played_as, p.abandoned)) for user, p in seats]
+
+
 class PostgresMatchResults:
     """Live match results (P3-W15-S05)."""
 
@@ -3217,7 +3247,7 @@ class PostgresMatchResults:
                 update game_match set finished_at = %s, outcome = %s, winner_id = %s
                 where id = %s and finished_at is null
                 returning created_at, mode, replay_seat, replay_rating, replay_rd,
-                          replay_volatility, unrated
+                          replay_volatility, unrated, league
                 """,
                 (result.finished_at, result.outcome, winner, result.match_id),
             ).fetchone()
@@ -3326,9 +3356,11 @@ class PostgresMatchResults:
                         )
             # P3-W17-S03 (Q-P3-16): a friend challenge moves no rating; its runs are
             # kept at the ratings the players hold.
-            # P5-W31-S02b-2b (Q-P5-16): battles are stored now and rated from W32; they
-            # leave no ghost runs (those replay quiz answers).
+            # P5-W31-S02b-2b (Q-P5-16): battles leave no ghost runs (those replay quiz
+            # answers); P5-W32-S01a rates them with their own ratings.
             if mode == "battle":
+                if not done[6]:
+                    self._rate_battle(result, players, str(done[7]))
                 return True
             before = {} if done[6] else self._rate(result, players, replay)
             if result.outcome == "finished":
@@ -3406,29 +3438,10 @@ class PostgresMatchResults:
             return {}
         if replay is not None:
             return self._rate_against_replay(result, players, replay[1])
-        seats = [
-            (players[p.played_as], p) for p in result.players if p.played_as in players
-        ]
-        users = sorted({user for user, _ in seats})
-        if len(seats) != 2 or len(users) != 2:
-            # A guest who signed up into its own opponent's account: no one to rate.
-            log.info(
-                "game: match unrated",
-                match_id=str(result.match_id),
-                reason="one player",
-            )
+        duel = _duel(result, players)
+        if duel is None:
             return {}
-        if result.outcome == "abandoned" and not any(p.abandoned for _, p in seats):
-            # Go never sends this; rating it would raise both players.
-            log.error("game: result refused", reason="abandoned with nobody leaving")
-            return {}
-
-        def score(played_as: str, abandoned: bool) -> float:
-            if result.outcome == "abandoned":
-                return 0.0 if abandoned else 1.0
-            if result.winner is None:
-                return 0.5
-            return 1.0 if played_as == result.winner else 0.0
+        users = sorted(user for user, _ in duel)
 
         conn = self._conn
         conn.execute(
@@ -3446,8 +3459,7 @@ class PostgresMatchResults:
                 (users,),
             ).fetchall()
         }
-        for (user, seat), (other, _) in ((seats[0], seats[1]), (seats[1], seats[0])):
-            points = score(seat.played_as, seat.abandoned)
+        for (user, points), (other, _) in ((duel[0], duel[1]), (duel[1], duel[0])):
             after = update(before[user], [(before[other], points)])
             conn.execute(
                 "update player_rating set rating = %s, rd = %s, volatility = %s, "
@@ -3474,6 +3486,67 @@ class PostgresMatchResults:
             "update game_match set rated_at = now() where id = %s", (result.match_id,)
         )
         return before
+
+    def _rate_battle(
+        self, result: MatchResult, players: dict[str, str], league: str
+    ) -> None:
+        """P5-W32-S01a (MATCH-1, Q-P5-18): a 1v1 battle's Glicko-2 ratings in its
+        league, apart from quick games', once, scored as a quick match is. A room of 3
+        or 4 is rated with OpenSkill (W32-S01b)."""
+        if result.outcome not in ("finished", "abandoned"):
+            return
+        if len(result.players) > 2:
+            log.info(
+                "game: match unrated", match_id=str(result.match_id), reason="room"
+            )
+            return
+        duel = _duel(result, players)
+        if duel is None:
+            return
+        conn = self._conn
+        users = sorted(user for user, _ in duel)
+        conn.execute(
+            "insert into battle_rating (user_id, league, rating, rd, volatility) "
+            "select u, %s, %s, %s, %s from unnest(%s::text[]) u on conflict do nothing",
+            (league, START.rating, START.rd, START.volatility, users),
+        )
+        # In user_id order, as quick ratings lock: no deadlock between two battles.
+        before = {
+            str(user): Glicko(float(rating), float(rd), float(volatility))
+            for user, rating, rd, volatility in conn.execute(
+                "select user_id, rating, rd, volatility from battle_rating "
+                "where user_id = any(%s) and league = %s order by user_id for update",
+                (users, league),
+            ).fetchall()
+        }
+        for (user, points), (other, _) in ((duel[0], duel[1]), (duel[1], duel[0])):
+            after = update(before[user], [(before[other], points)])
+            conn.execute(
+                "update battle_rating set rating = %s, rd = %s, volatility = %s, "
+                "games = games + 1, updated_at = now() "
+                "where user_id = %s and league = %s",
+                (after.rating, after.rd, after.volatility, user, league),
+            )
+            conn.execute(
+                """
+                insert into battle_rating_history (match_id, user_id, league,
+                  rating_before, rating_after, rd_after, volatility_after, score)
+                values (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    result.match_id,
+                    user,
+                    league,
+                    before[user].rating,
+                    after.rating,
+                    after.rd,
+                    after.volatility,
+                    points,
+                ),
+            )
+        conn.execute(
+            "update game_match set rated_at = now() where id = %s", (result.match_id,)
+        )
 
     def _rate_against_replay(
         self, result: MatchResult, players: dict[str, str], opponent: Glicko
@@ -3731,7 +3804,28 @@ class PostgresSeasons:
                         for after in [season_reset(Glicko(rating, rd, volatility))]
                     ],
                 )
-        log.info("game: season closed", season=season, ratings=len(rows))
+            # P5-W32-S01a (Q-P5-18): 1v1 battle ratings take the same soft reset, every
+            # league; they keep no season board. Locked in the order a battle locks.
+            battles = conn.execute(
+                "select user_id, league, rating, rd, volatility from battle_rating"
+                " order by user_id for update"
+            ).fetchall()
+            with conn.cursor() as cur:
+                cur.executemany(
+                    "update battle_rating set rating = %s, rd = %s, volatility = %s,"
+                    " updated_at = now() where user_id = %s and league = %s",
+                    [
+                        (after.rating, after.rd, after.volatility, user, league)
+                        for user, league, rating, rd, volatility in battles
+                        for after in [season_reset(Glicko(rating, rd, volatility))]
+                    ],
+                )
+        log.info(
+            "game: season closed",
+            season=season,
+            ratings=len(rows),
+            battle_ratings=len(battles),
+        )
         return True
 
 

@@ -169,6 +169,28 @@ class AuthVerification(TypedDict):
     updated_at: datetime
 
 
+class BattleRating(TypedDict):
+    user_id: str
+    league: str
+    rating: float
+    rd: float
+    volatility: float
+    games: int
+    updated_at: datetime
+
+
+class BattleRatingHistory(TypedDict):
+    match_id: UUID
+    user_id: str
+    league: str
+    rating_before: float
+    rating_after: float
+    rd_after: float
+    volatility_after: float
+    score: float
+    at: datetime
+
+
 class BattleSnapshot(TypedDict):
     match_id: UUID
     user_id: str
@@ -472,6 +494,7 @@ class GameMatch(TypedDict):
     replay_volatility: float | None
     unrated: bool
     problem_slug: str | None
+    league: str
 
 
 class GameMatchPlayer(TypedDict):

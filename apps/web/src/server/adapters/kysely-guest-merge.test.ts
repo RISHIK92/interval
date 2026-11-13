@@ -647,6 +647,80 @@ test("the more-played rating stays with the account, with its own history", asyn
   });
 });
 
+// P5-W32-S01a (Q-P5-18): battle ratings follow the same rule, league by league.
+test("per league, the more-played battle rating stays with the account, with its history", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    const rating = (
+      user_id: string,
+      league: string,
+      rating: number,
+      games: number,
+    ) => ({
+      user_id,
+      league,
+      rating,
+      rd: 100,
+      volatility: 0.06,
+      games,
+    });
+    await trx
+      .insertInto("battle_rating")
+      .values([
+        rating(guest, "human", 1700, 5),
+        rating(account, "human", 1400, 2),
+        rating(guest, "ai", 1600, 1),
+        rating(account, "ai", 1550, 4),
+      ])
+      .execute();
+    // A match has one league: one for each.
+    const match = async (league: "human" | "ai") =>
+      (
+        await trx
+          .insertInto("game_match")
+          .values({ server_id: 0, league })
+          .returning("id")
+          .executeTakeFirstOrThrow()
+      ).id;
+    const matches = { human: await match("human"), ai: await match("ai") };
+    const history = (user_id: string, league: "human" | "ai") => ({
+      match_id: matches[league],
+      user_id,
+      league,
+      rating_before: 1500,
+      rating_after: 1550,
+      rd_after: 100,
+      volatility_after: 0.06,
+      score: 1,
+    });
+    await trx
+      .insertInto("battle_rating_history")
+      .values([history(guest, "human"), history(account, "ai")])
+      .execute();
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    const kept = await trx
+      .selectFrom("battle_rating")
+      .select(["league", "rating", "games"])
+      .where("user_id", "=", account)
+      .orderBy("league")
+      .execute();
+    expect(kept).toEqual([
+      { league: "ai", rating: 1550, games: 4 },
+      { league: "human", rating: 1700, games: 5 },
+    ]);
+    expect(
+      await trx
+        .selectFrom("battle_rating_history")
+        .select(["user_id", "league"])
+        .where("match_id", "in", [matches.human, matches.ai])
+        .orderBy("league")
+        .execute(),
+    ).toEqual([
+      { user_id: account, league: "ai" },
+      { user_id: account, league: "human" },
+    ]);
+  });
+});
+
 test("an account with no rating takes the guest's", async () => {
   await inRollback(async (trx, { guest, account }) => {
     await trx

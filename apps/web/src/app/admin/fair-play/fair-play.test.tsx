@@ -101,7 +101,7 @@ test("a battle's flag describes its pastes and aways by minute", async () => {
   expect(html).toContain("Battle");
   expect(html).toContain("Minute 7: pasted 640 characters from outside");
   expect(html).toContain("Minute 12: away for 41 s");
-  expect(html).not.toContain('value="penalize"');
+  expect(html).toContain("Penalise (the match gained nothing)");
   expect(html).toContain('href="/admin/fair-play/7/snapshots"');
   expect(html).toContain("Dismiss");
 });

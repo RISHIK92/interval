@@ -188,6 +188,28 @@ export interface AuthVerification {
   value: string;
 }
 
+export interface BattleRating {
+  games: Generated<number>;
+  league: string;
+  rating: number;
+  rd: number;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+  volatility: number;
+}
+
+export interface BattleRatingHistory {
+  at: Generated<Timestamp>;
+  league: string;
+  match_id: string;
+  rating_after: number;
+  rating_before: number;
+  rd_after: number;
+  score: number;
+  user_id: string;
+  volatility_after: number;
+}
+
 export interface BattleSnapshot {
   key: string;
   language: string;
@@ -480,6 +502,7 @@ export interface GameMatch {
   finished_at: Timestamp | null;
   ghost_run_id: Int8 | null;
   id: Generated<string>;
+  league: Generated<string>;
   mode: Generated<string>;
   outcome: string | null;
   problem_slug: string | null;
@@ -1297,6 +1320,8 @@ export interface DB {
   auth_account: AuthAccount;
   auth_session: AuthSession;
   auth_verification: AuthVerification;
+  battle_rating: BattleRating;
+  battle_rating_history: BattleRatingHistory;
   battle_snapshot: BattleSnapshot;
   board_score: BoardScore;
   book: Book;

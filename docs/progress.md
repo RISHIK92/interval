@@ -5454,3 +5454,35 @@ The owner said to continue building overnight with recommended answers, switchin
     - a no-progress guard in the loop: `forget` deletes exactly what `due` returned;
     - stricter absence assertions in the IAM tests.
 - **W31-S04 is complete:** signals and flags (S04a), and snapshots saved, viewed and pruned (S04b-1, S04b-2). Week 31 is built.
+
+### 2026-11-13 — P5-W32-S01a (1v1 battle ratings; MATCH-1, ADR-0034, Q-P5-18)
+
+- **Owner's Q-P5-18 answers recorded:**
+  - two ratings: 1v1 battles on Glicko-2 and rooms on OpenSkill, each per league, both apart from quick games;
+  - a room is ordered by points then time, with abandoned players last;
+  - monthly soft resets with quick games.
+  - Also (owner): a battle flag's penalty removes the battle rating that match gained, as for quick games.
+
+  W32-S01 is split: S01a (this slice) and S01b (rooms and OpenSkill).
+
+- **Migration `20261113060000_battle_rating`:**
+  - `game_match.league` (`human` by default: quick games are human-only, §6.2; W33's AI-league battles say `ai`);
+  - `battle_rating` (per user and league);
+  - `battle_rating_history` (per match and user).
+- **Worker:**
+  - `_duel()` is pulled out of quick games' `_rate`: the two players and their scores, the same rules and log lines.
+  - `_rate_battle` rates a finished or abandoned, rated 1v1 battle once, with Glicko-2 (`ratings.update`), in its league, locking in `user_id` order. It writes the history and sets `rated_at`.
+  - A room of 3 or 4 is logged unrated until S01b.
+- **Season close:** in the same transaction it also soft-resets every battle rating (`season_reset`). There's no board for battles.
+- **Guest merge:** per league, the more-played battle rating stays with the account, with its history.
+- **`/admin/fair-play`:** a battle flag shows the battle rating its match gained. A penalty removes it from that league's battle rating (`penalizeBattle`), locked as rating a battle locks. The snapshots link stays.
+- **Sonnet review:** no blockers. The `_duel` refactor was checked identical, and lock order was checked.
+  - Fixed:
+    - the penalty copy and refusal (after the owner's answer);
+    - missing tests: an unrated battle, a room, a guest against its own account;
+    - a stale comment, a wrapped docstring, local names.
+  - Found while fixing: `greatest(0, null)` is 0 in Postgres, so the gain's `coalesce` goes inside it.
+- **Known limits:**
+  - a guest's penalised battle flag follows the quick-game rating rule in the merge, not the battle league's (an edge case);
+  - battles have no rating boards yet.
+- **Flaky locally under full `pnpm check` load:** connection timeouts in the web DB suites and a slow infra synth. Each passes alone.

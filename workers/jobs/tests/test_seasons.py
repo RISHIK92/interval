@@ -79,6 +79,11 @@ def test_postgres_keeps_the_final_board_and_resets_every_rating(
         " ('sa', 1700, 100, 0.06, 2), ('sb', 1450, 200, 0.06, 2),"
         " ('sc', 1900, 60, 0.07, 1)"
     )
+    # P5-W32-S01a (Q-P5-18): battle ratings, per league, are reset too.
+    conn.execute(
+        "insert into battle_rating (user_id, league, rating, rd, volatility, games)"
+        " values ('sa', 'human', 1300, 90, 0.06, 3), ('sa', 'ai', 1700, 200, 0.05, 1)"
+    )
     seasons = PostgresSeasons(conn)
     start, end = datetime(2031, 1, 1, tzinfo=UTC), datetime(2031, 2, 1, tzinfo=UTC)
 
@@ -100,6 +105,15 @@ def test_postgres_keeps_the_final_board_and_resets_every_rating(
     assert ratings["sa"] == pytest.approx((1650, 150, 0.06))
     assert ratings["sb"] == pytest.approx((1462.5, 200, 0.06))
     assert ratings["sc"] == pytest.approx((1800, 150, 0.07))
+    battles = {
+        str(league): (float(r), float(d), float(v))
+        for league, r, d, v in conn.execute(
+            "select league, rating, rd, volatility from battle_rating"
+            " where user_id = 'sa'"
+        ).fetchall()
+    }
+    assert battles["human"] == pytest.approx((1350, 150, 0.06))
+    assert battles["ai"] == pytest.approx((1650, 200, 0.05))
 
     # Once: a second close changes nothing.
     assert seasons.close("2031-01", start, end) is False

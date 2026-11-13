@@ -234,6 +234,20 @@ Already in place, so not sliced again:
 - IDs: MATCH-1, C-03
 - Goal: rooms of up to 4; OpenSkill ratings in the worker, separate per league.
 - Q: Q-P5-11.
+- Split (2026-11-13), after Q-P5-18:
+  - **S01a:** 1v1 battle ratings, Glicko-2 per league.
+  - **S01b:** rooms of 3 or 4, and OpenSkill.
+
+### P5-W32-S01a 1v1 battle ratings
+
+- IDs: MATCH-1, ADR-0034; Q-P5-18
+- Goal: a match's league; `battle_rating` and its history, per league and apart from quick games'; a finished or abandoned 1v1 battle rated once with Glicko-2; the monthly season soft reset; the guest merge.
+- Built 2026-11-13.
+
+### P5-W32-S01b Rooms and OpenSkill
+
+- IDs: MATCH-1, C-03; Q-P5-11, Q-P5-18
+- Goal: battles of 3 or 4 players on the game server and the web; `openskill` (Plackett-Luce) in the worker. A room ranks its players by points, then time; abandoned players rank last. A room rating per league, soft-reset with the season.
 
 ### P5-W32-S02 Windows, registration, reminders
 

@@ -839,12 +839,12 @@ def a_battle(conn: psycopg.Connection, players: list[str]) -> str:
     return str(row[0])
 
 
-def test_a_battle_is_stored_but_neither_rated_nor_kept_as_quiz_evidence(
+def test_a_battle_is_stored_but_not_quick_rated_nor_kept_as_quiz_evidence(
     conn: psycopg.Connection,
 ) -> None:
     """P5-W31-S02b-2b (Q-P5-16): a battle's points, best-submission times, abandons
-    and winner are stored; ratings come in W32, and a battle has no quiz answers or
-    ghost runs."""
+    and winner are stored; it's rated as a battle (W32-S01a), never as a quick game,
+    and keeps no quiz answers or ghost runs."""
     a_user(conn, "lba")
     a_user(conn, "lbb")
     match_id = a_battle(conn, ["lba", "lbb"])
@@ -983,3 +983,162 @@ def test_five_long_aways_flag_a_battle_player_and_four_do_not(
     assert _flags(conn, _battle_with(conn, "lfc", _aways(5))) == [
         ("lfc", 5, None, None)
     ]
+
+
+# P5-W32-S01a (MATCH-1, Q-P5-18): a 1v1 battle is rated with Glicko-2 in its league,
+# apart from quick games' ratings.
+def _battle_result(
+    match_id: str,
+    outcome: str,
+    winner: str | None,
+    players: list[tuple[str, int, bool]],
+) -> MatchResult:
+    return MatchResult.model_validate(
+        {
+            "match_id": match_id,
+            "finished_at": "2026-11-13T12:45:00Z",
+            "outcome": outcome,
+            "winner": winner,
+            "players": [
+                {
+                    "played_as": user,
+                    "total": total,
+                    "time_ms": 600_000,
+                    "abandoned": abandoned,
+                    "answers": [],
+                }
+                for user, total, abandoned in players
+            ],
+        }
+    )
+
+
+def _battle_ratings(
+    conn: psycopg.Connection, users: list[str], league: str = "human"
+) -> dict[str, tuple[float, int]]:
+    return {
+        user: (rating, games)
+        for user, rating, games in conn.execute(
+            "select user_id, rating, games from battle_rating "
+            "where user_id = any(%s) and league = %s",
+            (users, league),
+        ).fetchall()
+    }
+
+
+def test_a_decisive_battle_rates_both_players_in_its_league(
+    conn: psycopg.Connection,
+) -> None:
+    for user in ("bra", "brb"):
+        a_user(conn, user)
+    match_id = a_battle(conn, ["bra", "brb"])
+    result = _battle_result(
+        match_id, "finished", "bra", [("bra", 1000, False), ("brb", 700, False)]
+    )
+    results = PostgresMatchResults(conn)
+    assert results.record(result) is True
+    ratings = _battle_ratings(conn, ["bra", "brb"])
+    assert ratings["bra"][0] > 1500 > ratings["brb"][0]
+    assert ratings["bra"][1] == ratings["brb"][1] == 1
+    assert conn.execute(
+        "select user_id, league, rating_before, score from battle_rating_history "
+        "where match_id = %s order by user_id",
+        (match_id,),
+    ).fetchall() == [("bra", "human", 1500.0, 1.0), ("brb", "human", 1500.0, 0.0)]
+    assert conn.execute(
+        "select rated_at is not null from game_match where id = %s", (match_id,)
+    ).fetchone() == (True,)
+    # Quick-game ratings are another thing entirely.
+    assert conn.execute(
+        "select count(*) from player_rating where user_id in ('bra', 'brb')"
+    ).fetchone() == (0,)
+    # Recorded once, rated once.
+    assert results.record(result) is False
+    assert _battle_ratings(conn, ["bra"])["bra"][1] == 1
+
+
+def test_a_drawn_battle_moves_equal_ratings_nowhere(conn: psycopg.Connection) -> None:
+    for user in ("brc", "brd"):
+        a_user(conn, user)
+    match_id = a_battle(conn, ["brc", "brd"])
+    PostgresMatchResults(conn).record(
+        _battle_result(
+            match_id, "finished", None, [("brc", 700, False), ("brd", 700, False)]
+        )
+    )
+    ratings = _battle_ratings(conn, ["brc", "brd"])
+    assert ratings["brc"][0] == pytest.approx(1500)
+    assert ratings["brd"][0] == pytest.approx(1500)
+
+
+def test_an_abandoned_battle_is_a_loss_for_the_leaver(
+    conn: psycopg.Connection,
+) -> None:
+    for user in ("bre", "brf"):
+        a_user(conn, user)
+    match_id = a_battle(conn, ["bre", "brf"])
+    PostgresMatchResults(conn).record(
+        _battle_result(
+            match_id, "abandoned", "bre", [("bre", 300, False), ("brf", 0, True)]
+        )
+    )
+    ratings = _battle_ratings(conn, ["bre", "brf"])
+    assert ratings["bre"][0] > 1500 > ratings["brf"][0]
+
+
+def test_a_cancelled_battle_or_an_ai_league_one_leaves_the_human_ratings(
+    conn: psycopg.Connection,
+) -> None:
+    for user in ("brg", "brh"):
+        a_user(conn, user)
+    cancelled = a_battle(conn, ["brg", "brh"])
+    PostgresMatchResults(conn).record(
+        _battle_result(
+            cancelled, "cancelled", None, [("brg", 0, False), ("brh", 0, False)]
+        )
+    )
+    assert _battle_ratings(conn, ["brg", "brh"]) == {}
+    ai = a_battle(conn, ["brg", "brh"])
+    conn.execute("update game_match set league = 'ai' where id = %s", (ai,))
+    PostgresMatchResults(conn).record(
+        _battle_result(
+            ai, "finished", "brg", [("brg", 900, False), ("brh", 100, False)]
+        )
+    )
+    assert _battle_ratings(conn, ["brg", "brh"]) == {}
+    assert _battle_ratings(conn, ["brg", "brh"], "ai")["brg"][0] > 1500
+
+
+def test_unrated_rooms_and_self_battles_leave_battle_ratings_alone(
+    conn: psycopg.Connection,
+) -> None:
+    """An unrated battle (as a friend challenge is), a room of 3 (OpenSkill, W32-S01b)
+    and a guest who signed up into its opponent's account move no battle rating."""
+    for user in ("bri", "brj", "brk"):
+        a_user(conn, user)
+    unrated = a_battle(conn, ["bri", "brj"])
+    conn.execute("update game_match set unrated = true where id = %s", (unrated,))
+    room = a_battle(conn, ["bri", "brj", "brk"])
+    self_battle = a_battle(conn, ["bri"])
+    conn.execute(
+        "update game_match_player set played_as = 'guest-1' where match_id = %s",
+        (self_battle,),
+    )
+    conn.execute(
+        "insert into game_match_player (match_id, user_id, played_as) "
+        "values (%s, 'bri', 'bri')"
+        " on conflict do nothing",
+        (self_battle,),
+    )
+    results = PostgresMatchResults(conn)
+    win = [("bri", 900, False), ("brj", 100, False)]
+    assert results.record(_battle_result(unrated, "finished", "bri", win))
+    assert results.record(
+        _battle_result(room, "finished", "bri", [*win, ("brk", 50, False)])
+    )
+    assert results.record(
+        _battle_result(
+            self_battle, "finished", "bri", [("bri", 900, False), ("guest-1", 0, False)]
+        )
+    )
+    assert _battle_ratings(conn, ["bri", "brj", "brk"]) == {}

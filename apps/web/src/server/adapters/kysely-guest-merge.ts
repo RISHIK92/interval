@@ -175,6 +175,49 @@ export async function mergeGuest(
   }
   // Otherwise the guest's rating, history and season standings go with the guest.
 
+  // P5-W32-S01a (Q-P5-18): 1v1 battle ratings, by the same rule in each league: the
+  // more-played one stays with the account, with its own history. Locked in user_id
+  // order, as rating a battle locks.
+  const battleRatings = await sql<{
+    user_id: string;
+    league: string;
+    games: number;
+  }>`
+    select user_id, league, games from battle_rating
+    where user_id in (${guestId}, ${accountId})
+    order by user_id, league
+    for update`.execute(trx);
+  const battleGames = (id: string, league: string) =>
+    battleRatings.rows.find((r) => r.user_id === id && r.league === league)
+      ?.games;
+  for (const { league } of battleRatings.rows.filter(
+    (r) => r.user_id === guestId,
+  )) {
+    const guestPlayed = battleGames(guestId, league) ?? 0;
+    const accountPlayed = battleGames(accountId, league);
+    if (accountPlayed !== undefined && guestPlayed <= accountPlayed) continue;
+    await trx
+      .deleteFrom("battle_rating_history")
+      .where("user_id", "=", accountId)
+      .where("league", "=", league)
+      .execute();
+    await trx
+      .updateTable("battle_rating_history")
+      .set({ user_id: accountId })
+      .where("user_id", "=", guestId)
+      .where("league", "=", league)
+      .execute();
+    await sql`
+      insert into battle_rating
+        (user_id, league, rating, rd, volatility, games, updated_at)
+      select ${accountId}, league, rating, rd, volatility, games, updated_at
+      from battle_rating where user_id = ${guestId} and league = ${league}
+      on conflict (user_id, league) do update set
+        rating = excluded.rating, rd = excluded.rd,
+        volatility = excluded.volatility, games = excluded.games,
+        updated_at = excluded.updated_at`.execute(trx);
+  }
+
   // P3-W18-S02 (§6.9): its fair-play flags. Not those of a match the account played
   // too: a penalty there would drop the account's own run. A penalty only with the
   // rating it was taken from: the account's own was never lowered by it.

@@ -227,7 +227,7 @@ test("a dismissal changes no rating and keeps the run", async () => {
 });
 
 // P5-W31-S04a (Q-P5-17): a battle's flag, with its paste and away signals.
-test("a battle's flag shows its pastes and aways", async () => {
+test("a battle's flag shows its pastes, aways and gain; a penalty removes the gain", async () => {
   await inRollback(0, async (trx, { bob }) => {
     const slug = `fair-${randomUUID().slice(0, 8)}`;
     const hash = "f".repeat(64);
@@ -266,13 +266,50 @@ test("a battle's flag shows its pastes and aways", async () => {
       .insertInto("fair_play_flag")
       .values({ match_id: battle, user_id: bob, signals: 1 })
       .execute();
+    // P5-W32-S01a: the battle gained bob 30 in the human league's battle rating.
+    await trx
+      .insertInto("battle_rating")
+      .values({
+        user_id: bob,
+        league: "human",
+        rating: 1530,
+        rd: 200,
+        volatility: 0.06,
+        games: 1,
+      })
+      .execute();
+    await trx
+      .insertInto("battle_rating_history")
+      .values({
+        match_id: battle,
+        user_id: bob,
+        league: "human",
+        rating_before: 1500,
+        rating_after: 1530,
+        rd_after: 200,
+        volatility_after: 0.06,
+        score: 1,
+      })
+      .execute();
     const admin = kyselyAdminFairPlay(trx);
     const [row] = mine(await admin.pending(), battle);
-    expect(row).toMatchObject({ mode: "battle", gain: 0, signals });
-    // No penalty for a battle until it's rated (W32); it can be dismissed.
-    expect(await admin.decide(row?.id ?? "", bob, "penalize")).toBeNull();
-    expect(await admin.decide(row?.id ?? "", bob, "dismiss")).toEqual({
+    expect(row).toMatchObject({ mode: "battle", gain: 30, signals });
+    // A penalty removes that gain from the battle rating, as a quick match's does.
+    expect(await admin.decide(row?.id ?? "", bob, "penalize")).toEqual({
       userId: bob,
     });
+    const after = await trx
+      .selectFrom("battle_rating")
+      .select("rating")
+      .where("user_id", "=", bob)
+      .executeTakeFirstOrThrow();
+    expect(after.rating).toBe(1500);
+    expect(
+      await trx
+        .selectFrom("fair_play_flag")
+        .select(["decision", "penalty"])
+        .where("match_id", "=", battle)
+        .executeTakeFirstOrThrow(),
+    ).toEqual({ decision: "penalized", penalty: 30 });
   });
 });

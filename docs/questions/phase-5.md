@@ -204,6 +204,14 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - battle ratings are separate per league (§6.2) and from quick games.
 - **Answer (overnight, recommended):** the suggested default.
 
+### Q-P5-18 Battle ratings (P0 for W32-S01)
+
+- Cite: MATCH-1 ("Glicko-2 for 1v1, OpenSkill for rooms"), ADR-0034 (ratings in the Python worker), §6.6 ("with seasons and soft resets"), Q-P5-11, Q-P5-16 ("ratings start in W32 from the stored results").
+- **Answers (owner, 2026-11-13):**
+  - **Two ratings:** a 1v1 battle rating (Glicko-2) and a room rating (OpenSkill), each per league, both separate from quick games.
+  - **A room's order:** the best submission's points, ties to whoever reached them first. Equal points and time share a rank, and abandoned players rank last, together.
+  - **Seasons:** battle ratings are soft-reset monthly with quick games, at the same season close.
+
 ### Q-P5-12 Windows (P1 for W32)
 
 - Cite: §6.6 ("nightly per region plus weekends, with registration and reminders"), MATCH-7, LOAD-4.

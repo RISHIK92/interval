@@ -81,7 +81,7 @@ export default async function FairPlayPage(props: {
                 </ul>
                 <form action={decideFairPlayAction} className="flex gap-2">
                   <input type="hidden" name="flagId" value={f.id} />
-                  {/* A battle has no rating to remove until W32: review only. */}
+                  {/* P5-W31-S04b: a battle's code over time, for the review. */}
                   {f.mode === "battle" ? (
                     <a
                       href={`/admin/fair-play/${f.id}/snapshots`}
@@ -90,23 +90,17 @@ export default async function FairPlayPage(props: {
                       Code snapshots
                     </a>
                   ) : null}
-                  {f.mode === "battle" ? (
-                    <p className="text-ink-muted">
-                      Battles aren&apos;t rated yet, so there&apos;s no penalty
-                      to give.
-                    </p>
-                  ) : (
-                    <button
-                      type="submit"
-                      name="decision"
-                      value="penalize"
-                      className={ACT}
-                    >
-                      {f.gain > 0
-                        ? `Remove the gain (${String(Math.round(f.gain))})`
-                        : "Penalise (the match gained nothing)"}
-                    </button>
-                  )}
+
+                  <button
+                    type="submit"
+                    name="decision"
+                    value="penalize"
+                    className={ACT}
+                  >
+                    {f.gain > 0
+                      ? `Remove the gain (${String(Math.round(f.gain))})`
+                      : "Penalise (the match gained nothing)"}
+                  </button>
                   <button
                     type="submit"
                     name="decision"
