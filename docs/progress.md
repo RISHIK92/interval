@@ -5538,3 +5538,37 @@ The owner said to continue building overnight with recommended answers, switchin
   - set `BATTLE_WINDOW_TIME_ZONE` in the deployments' env (both run UTC until then);
   - window grouping includes every registrant, absent or not (they abandon and rank last), as registration implies;
   - the windows' DB-5 query in `packages/events/queries` isn't written yet.
+
+### 2026-11-13 — P5 Week 33, part 1 (the AI league through battles, battle boards, code similarity; §6.2, §6.7, §6.9, Q-P5-20)
+
+- **Owner's Q-P5-20 answers recorded:**
+  - AI problems: the format grows and Claude writes 2;
+  - a Human/AI toggle in the lobby;
+  - season boards per league;
+  - same-match code similarity at 85%.
+- **Leagues:**
+  - migration `20261113090000_battle_leagues` adds `lld_problem.league` (`league` in problem.json, absent meaning human), a league on window registrations, `battle_window` keyed per league, and `battle_season_standing`;
+  - `ProblemStore.pool(league)` feeds random problems;
+  - `startBattle({league})` sets the match's league;
+  - the casual queue is per league (`?league=`), and so are window registration and grouping (a player may move league until grouped; `assign` checks the league);
+  - the lobby has a Human/AI toggle.
+- **Code similarity (`services/game/similarity.go`):**
+  - after a human-league battle, each pair's best submissions in the same language are compared as 4-token shingles, with names and literals masked and comments stripped;
+  - both starters (base and extended) are left out;
+  - there must be at least 20 of the player's own shingles, and half the larger one shared;
+  - 85% or more of the smaller one is a `similar` signal on both, which flags (`flagged`), and the admin page describes it.
+- **Boards:**
+  - `/play/boards/battles` shows this season's 1v1 and room boards per league: players with a rated battle since the 1st, by history, since the season's reset touches every rating;
+  - the season close keeps the final standings per league and kind;
+  - the guest merge moves them with the rating it keeps.
+- **Sonnet review fixed:**
+  - the boards would have listed every past player after a reset;
+  - false positives on starter or short code, and a skeleton inside a full solution;
+  - comments could disguise a copy;
+  - the extended starter wasn't left out;
+  - assigning across a league move;
+  - a migration down that could fail.
+- **Known limits:**
+  - bests from before a game-server restart aren't compared;
+  - a re-registration in the other league after its grouping waits for the one-minute reclaim.
+- **Next, part 2:** the problem format's interviewer notes, up to 3 extension rounds, the failure layer, the interviewer (Q-P5-13), and 2 AI-league problems.

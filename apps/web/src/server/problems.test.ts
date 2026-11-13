@@ -24,6 +24,12 @@ function fakes() {
   const rows = new Map<string, LoadedProblem & { retired: boolean }>();
   const objects = new Map<string, string>();
   const store: ProblemStore = {
+    pool: (league) =>
+      Promise.resolve(
+        [...rows.values()]
+          .filter((r) => r.league === league)
+          .map((r) => r.slug),
+      ),
     hashes: () =>
       Promise.resolve(
         new Map(

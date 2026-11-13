@@ -940,6 +940,80 @@ CREATE TABLE public.auth_verification (
 
 
 --
+-- Name: battle_rating; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.battle_rating (
+    user_id text NOT NULL,
+    league text NOT NULL,
+    rating double precision NOT NULL,
+    rd double precision NOT NULL,
+    volatility double precision NOT NULL,
+    games integer DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT battle_rating_league_check CHECK ((league = ANY (ARRAY['human'::text, 'ai'::text])))
+);
+
+
+--
+-- Name: battle_rating_history; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.battle_rating_history (
+    match_id uuid NOT NULL,
+    user_id text NOT NULL,
+    league text NOT NULL,
+    rating_before double precision NOT NULL,
+    rating_after double precision NOT NULL,
+    rd_after double precision NOT NULL,
+    volatility_after double precision NOT NULL,
+    score double precision NOT NULL,
+    at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT battle_rating_history_league_check CHECK ((league = ANY (ARRAY['human'::text, 'ai'::text]))),
+    CONSTRAINT battle_rating_history_score_check CHECK ((score = ANY (ARRAY[(0)::double precision, (0.5)::double precision, (1)::double precision])))
+);
+
+
+--
+-- Name: battle_snapshot; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.battle_snapshot (
+    match_id uuid NOT NULL,
+    user_id text NOT NULL,
+    taken_at timestamp with time zone NOT NULL,
+    language text NOT NULL,
+    key text NOT NULL,
+    slot bigint NOT NULL
+);
+
+
+--
+-- Name: battle_window; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.battle_window (
+    window_at timestamp with time zone NOT NULL,
+    grouping_at timestamp with time zone NOT NULL,
+    problem_slug text NOT NULL
+);
+
+
+--
+-- Name: battle_window_registration; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.battle_window_registration (
+    window_at timestamp with time zone NOT NULL,
+    user_id text NOT NULL,
+    registered_at timestamp with time zone DEFAULT now() NOT NULL,
+    remind_at timestamp with time zone NOT NULL,
+    reminded_at timestamp with time zone,
+    match_id uuid
+);
+
+
+--
 -- Name: board_score; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1617,8 +1691,10 @@ CREATE TABLE public.game_match (
     replay_volatility double precision,
     unrated boolean DEFAULT false NOT NULL,
     problem_slug text,
+    league text DEFAULT 'human'::text NOT NULL,
     CONSTRAINT game_match_battle_problem_check CHECK (((mode = 'battle'::text) = (problem_slug IS NOT NULL))),
     CONSTRAINT game_match_check CHECK (((finished_at IS NULL) = (outcome IS NULL))),
+    CONSTRAINT game_match_league_check CHECK ((league = ANY (ARRAY['human'::text, 'ai'::text]))),
     CONSTRAINT game_match_mode_check CHECK ((mode = ANY (ARRAY['sprint'::text, 'fastest_finger'::text, 'battle'::text]))),
     CONSTRAINT game_match_outcome_check CHECK ((outcome = ANY (ARRAY['finished'::text, 'abandoned'::text, 'cancelled'::text, 'void'::text]))),
     CONSTRAINT game_match_replay_rd_check CHECK ((replay_rd > (0)::double precision)),
@@ -2348,6 +2424,7 @@ CREATE TABLE public.push_preference (
     hour smallint DEFAULT 18 NOT NULL,
     time_zone text NOT NULL,
     updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    battle_window boolean DEFAULT false NOT NULL,
     CONSTRAINT push_preference_hour_check CHECK (((hour >= 8) AND (hour <= 20))),
     CONSTRAINT push_preference_time_zone_check CHECK (((char_length(time_zone) >= 1) AND (char_length(time_zone) <= 64)))
 );
@@ -2707,6 +2784,40 @@ CREATE TABLE public.reason_report (
     reason text NOT NULL,
     reported_at timestamp with time zone DEFAULT now() NOT NULL,
     CONSTRAINT reason_report_reason_check CHECK ((reason = ANY (ARRAY['topic_match'::text, 'goal_match'::text, 'project_match'::text, 'level_fit'::text, 'time_fit'::text, 'quality'::text, 'freshness'::text, 'explore'::text])))
+);
+
+
+--
+-- Name: room_rating; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.room_rating (
+    user_id text NOT NULL,
+    league text NOT NULL,
+    mu double precision NOT NULL,
+    sigma double precision NOT NULL,
+    games integer DEFAULT 0 NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT room_rating_league_check CHECK ((league = ANY (ARRAY['human'::text, 'ai'::text]))),
+    CONSTRAINT room_rating_sigma_check CHECK ((sigma > (0)::double precision))
+);
+
+
+--
+-- Name: room_rating_history; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.room_rating_history (
+    match_id uuid NOT NULL,
+    user_id text NOT NULL,
+    league text NOT NULL,
+    mu_before double precision NOT NULL,
+    mu_after double precision NOT NULL,
+    sigma_after double precision NOT NULL,
+    rank integer NOT NULL,
+    at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT room_rating_history_league_check CHECK ((league = ANY (ARRAY['human'::text, 'ai'::text]))),
+    CONSTRAINT room_rating_history_rank_check CHECK (((rank >= 1) AND (rank <= 4)))
 );
 
 
@@ -3434,6 +3545,62 @@ ALTER TABLE ONLY public.auth_session
 
 ALTER TABLE ONLY public.auth_verification
     ADD CONSTRAINT auth_verification_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: battle_rating_history battle_rating_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_rating_history
+    ADD CONSTRAINT battle_rating_history_pkey PRIMARY KEY (match_id, user_id);
+
+
+--
+-- Name: battle_rating battle_rating_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_rating
+    ADD CONSTRAINT battle_rating_pkey PRIMARY KEY (user_id, league);
+
+
+--
+-- Name: battle_snapshot battle_snapshot_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_snapshot
+    ADD CONSTRAINT battle_snapshot_key_key UNIQUE (key);
+
+
+--
+-- Name: battle_snapshot battle_snapshot_match_id_user_id_slot_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_snapshot
+    ADD CONSTRAINT battle_snapshot_match_id_user_id_slot_key UNIQUE (match_id, user_id, slot);
+
+
+--
+-- Name: battle_snapshot battle_snapshot_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_snapshot
+    ADD CONSTRAINT battle_snapshot_pkey PRIMARY KEY (match_id, user_id, taken_at);
+
+
+--
+-- Name: battle_window battle_window_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_window
+    ADD CONSTRAINT battle_window_pkey PRIMARY KEY (window_at);
+
+
+--
+-- Name: battle_window_registration battle_window_registration_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_window_registration
+    ADD CONSTRAINT battle_window_registration_pkey PRIMARY KEY (window_at, user_id);
 
 
 --
@@ -4349,6 +4516,22 @@ ALTER TABLE ONLY public.reason_report
 
 
 --
+-- Name: room_rating_history room_rating_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.room_rating_history
+    ADD CONSTRAINT room_rating_history_pkey PRIMARY KEY (match_id, user_id);
+
+
+--
+-- Name: room_rating room_rating_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.room_rating
+    ADD CONSTRAINT room_rating_pkey PRIMARY KEY (user_id, league);
+
+
+--
 -- Name: schema_meta schema_meta_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4682,6 +4865,20 @@ CREATE INDEX auth_session_user_id ON public.auth_session USING btree (user_id);
 --
 
 CREATE INDEX auth_verification_identifier ON public.auth_verification USING btree (identifier);
+
+
+--
+-- Name: battle_rating_history_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX battle_rating_history_user ON public.battle_rating_history USING btree (user_id, at);
+
+
+--
+-- Name: battle_window_registration_remind; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX battle_window_registration_remind ON public.battle_window_registration USING btree (remind_at) WHERE (reminded_at IS NULL);
 
 
 --
@@ -5021,6 +5218,13 @@ CREATE INDEX reason_report_item ON public.reason_report USING btree (content_ite
 
 
 --
+-- Name: room_rating_history_user; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX room_rating_history_user ON public.room_rating_history USING btree (user_id, at);
+
+
+--
 -- Name: source_next_poll_at; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5237,6 +5441,70 @@ ALTER TABLE ONLY public.auth_account
 
 ALTER TABLE ONLY public.auth_session
     ADD CONSTRAINT auth_session_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: battle_rating_history battle_rating_history_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_rating_history
+    ADD CONSTRAINT battle_rating_history_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.game_match(id) ON DELETE CASCADE;
+
+
+--
+-- Name: battle_rating_history battle_rating_history_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_rating_history
+    ADD CONSTRAINT battle_rating_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: battle_rating battle_rating_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_rating
+    ADD CONSTRAINT battle_rating_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: battle_snapshot battle_snapshot_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_snapshot
+    ADD CONSTRAINT battle_snapshot_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.game_match(id) ON DELETE CASCADE;
+
+
+--
+-- Name: battle_snapshot battle_snapshot_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_snapshot
+    ADD CONSTRAINT battle_snapshot_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: battle_window battle_window_problem_slug_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_window
+    ADD CONSTRAINT battle_window_problem_slug_fkey FOREIGN KEY (problem_slug) REFERENCES public.lld_problem(slug);
+
+
+--
+-- Name: battle_window_registration battle_window_registration_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_window_registration
+    ADD CONSTRAINT battle_window_registration_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.game_match(id) ON DELETE SET NULL;
+
+
+--
+-- Name: battle_window_registration battle_window_registration_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_window_registration
+    ADD CONSTRAINT battle_window_registration_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
 
 
 --
@@ -6232,6 +6500,30 @@ ALTER TABLE ONLY public.reason_report
 
 
 --
+-- Name: room_rating_history room_rating_history_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.room_rating_history
+    ADD CONSTRAINT room_rating_history_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.game_match(id) ON DELETE CASCADE;
+
+
+--
+-- Name: room_rating_history room_rating_history_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.room_rating_history
+    ADD CONSTRAINT room_rating_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: room_rating room_rating_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.room_rating
+    ADD CONSTRAINT room_rating_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
 -- Name: season_standing season_standing_season_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6705,4 +6997,8 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261113020000'),
     ('20261113030000'),
     ('20261113030100'),
-    ('20261113040000');
+    ('20261113040000'),
+    ('20261113050000'),
+    ('20261113060000'),
+    ('20261113070000'),
+    ('20261113080000');

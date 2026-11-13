@@ -18,6 +18,8 @@ export const Problem = z
       .max(48),
     title: z.string().min(3).max(80),
     difficulty: z.enum(["easy", "medium", "hard"]),
+    // P5-W33 (§6.2, Q-P5-20): the league's pool it's drawn from; absent is human.
+    league: z.enum(["human", "ai"]).optional(),
     interface: Interface,
     checks: z.array(Check).max(20).optional(),
     limits: z.strictObject({

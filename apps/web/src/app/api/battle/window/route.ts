@@ -11,7 +11,7 @@ import {
   windowStatus,
   windowsFrom,
 } from "../../../../server/battle-windows";
-import { groupWindow } from "../../../../server/battles";
+import { groupWindow, leagueOf } from "../../../../server/battles";
 import { forbidden } from "../../../../server/capability";
 import type { Actor } from "../../../../server/ports";
 import { sameOrigin } from "../../../../server/same-origin";
@@ -53,6 +53,7 @@ export async function GET(request: Request): Promise<Response> {
       windowAt: at.toISOString(),
       status: windowStatus(at, now),
       registered: mine !== null,
+      league: mine?.league ?? null,
       matchId: mine?.matchId ?? null,
     },
     { headers: { "Cache-Control": "no-store" } },
@@ -65,7 +66,9 @@ export async function POST(request: Request): Promise<Response> {
   const at = current(new Date());
   if (windowStatus(at, new Date()) !== "open")
     return new Response(null, { status: 409 });
-  await battleWindows().register(at, actor.userId, remindAt(at));
+  const league = leagueOf(request);
+  if (league === null) return new Response(null, { status: 400 });
+  await battleWindows().register(at, actor.userId, remindAt(at), league);
   return new Response(null, { status: 204 });
 }
 
@@ -97,6 +100,7 @@ export async function PUT(request: Request): Promise<Response> {
     const grouped = await groupWindow(
       { ...battleDeps(), windows },
       at,
+      mine.league,
       () => new Date(),
     );
     // Once a window: a retaken claim's leftovers would skew the metric.

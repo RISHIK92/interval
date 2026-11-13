@@ -4,7 +4,11 @@ import {
   sessionReader,
   soloAllowed,
 } from "../../../../server/container";
-import { randomProblem, startBattle } from "../../../../server/battles";
+import {
+  leagueOf,
+  randomProblem,
+  startBattle,
+} from "../../../../server/battles";
 import { forbidden } from "../../../../server/capability";
 import { sameOrigin } from "../../../../server/same-origin";
 
@@ -14,6 +18,8 @@ export const dynamic = "force-dynamic";
 // against the reference pace the page shows. One at a time (soloAllowed).
 export async function POST(request: Request): Promise<Response> {
   if (!sameOrigin(request)) return new Response(null, { status: 403 });
+  const league = leagueOf(request);
+  if (league === null) return new Response(null, { status: 400 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
   const refused =
@@ -25,9 +31,9 @@ export async function POST(request: Request): Promise<Response> {
   const matchId = await startBattle(
     battleDeps(),
     0,
-    await randomProblem(problems()),
+    await randomProblem(problems(), league),
     [actor.userId],
-    { unrated: true },
+    { unrated: true, league },
   );
   return Response.json({ matchId }, { status: 201 });
 }

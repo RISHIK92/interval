@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { gameEnv, windowTimeZone } from "../../../env";
 import {
@@ -33,7 +34,10 @@ export default async function BattleLobbyPage() {
         <h1 className="text-display">LLD battles</h1>
         <p className="mt-1 text-ink-muted">
           Design and code a system against others in about 45 minutes, on a
-          desktop browser.
+          desktop browser.{" "}
+          <Link href="/play/boards/battles" className="underline">
+            Battle boards
+          </Link>
         </p>
       </header>
       <BattleLobby
@@ -41,6 +45,7 @@ export default async function BattleLobbyPage() {
           at: next.toISOString(),
           status: windowStatus(next, now),
           registered: mine !== null,
+          league: mine?.league ?? null,
           matchId: mine?.matchId ?? null,
         }}
       />

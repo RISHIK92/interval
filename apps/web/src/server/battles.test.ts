@@ -32,6 +32,12 @@ async function loaded() {
   const rows = new Map<string, LoadedProblem>();
   const objects = new Map<string, string>();
   const store: ProblemStore = {
+    pool: (league) =>
+      Promise.resolve(
+        [...rows.values()]
+          .filter((r) => r.league === league)
+          .map((r) => r.slug),
+      ),
     hashes: () =>
       Promise.resolve(new Map([...rows].map(([s, r]) => [s, r.contentHash]))),
     get: (slug) => Promise.resolve(rows.get(slug) ?? null),
@@ -161,7 +167,7 @@ test("a window groups its registrants by rating on one problem", async () => {
     unregister: () => Promise.resolve(),
     registration: () => Promise.resolve(null),
     extend: () => Promise.resolve(),
-    claim: async (_at, _now, pick) => ({
+    claim: async (_at, _league, _now, pick) => ({
       first: true,
       problem: await pick(),
       players: ["p1", "p2", "p3", "p4", "p5"].map((userId, i) => ({
@@ -169,13 +175,15 @@ test("a window groups its registrants by rating on one problem", async () => {
         rating: 30 - i,
       })),
     }),
-    assign: (_at, matchId, users) => {
+    assign: (_at, _league, matchId, users) => {
       assigned.push({ matchId, users });
       return Promise.resolve();
     },
   };
   const at = new Date("2026-11-13T15:30:00Z");
-  expect(await groupWindow({ ...deps, windows }, at, () => at)).toEqual({
+  expect(
+    await groupWindow({ ...deps, windows }, at, "human", () => at),
+  ).toEqual({
     grouped: 5,
     matched: 4,
     first: true,
@@ -191,7 +199,7 @@ test("a window groups its registrants by rating on one problem", async () => {
   // Another poll's claim: nothing made again.
   const taken = { ...windows, claim: () => Promise.resolve(null) };
   expect(
-    await groupWindow({ ...deps, windows: taken }, at, () => at),
+    await groupWindow({ ...deps, windows: taken }, at, "human", () => at),
   ).toBeNull();
 });
 

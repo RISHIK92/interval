@@ -140,3 +140,32 @@ def test_a_close_after_the_first_closes_the_month_just_ended_or_nothing() -> Non
     assert close_season(seasons, second) == {"season": "2026-11", "closed": True}
     late = datetime(2026, 12, 20, tzinfo=UTC)
     assert close_season(seasons, late) == {"season": "2026-11", "closed": False}
+
+
+def test_postgres_keeps_the_battle_boards_final_standings(
+    conn: psycopg.Connection,
+) -> None:
+    """P5-W33 (§6.7, Q-P5-20): per league and kind, each player's last of the season."""
+    a_user(conn, "sbx")
+    match = _match(conn)
+    room = _match(conn)
+    conn.execute(
+        "insert into battle_rating_history (match_id, user_id, league, rating_before,"
+        " rating_after, rd_after, volatility_after, score, at) values"
+        " (%s, 'sbx', 'ai', 1500, 1540, 200, 0.06, 1, '2032-03-10')",
+        (match,),
+    )
+    conn.execute(
+        "insert into room_rating_history (match_id, user_id, league, mu_before,"
+        " mu_after, sigma_after, rank, at) values"
+        " (%s, 'sbx', 'human', 25, 28, 4, 1, '2032-03-11')",
+        (room,),
+    )
+    start, end = datetime(2032, 3, 1, tzinfo=UTC), datetime(2032, 4, 1, tzinfo=UTC)
+    assert PostgresSeasons(conn).close("2032-03", start, end) is True
+    assert sorted(
+        conn.execute(
+            "select league, kind, rating from battle_season_standing"
+            " where season = '2032-03' and user_id = 'sbx'"
+        ).fetchall()
+    ) == [("ai", "duel", 1540.0), ("human", "room", 16.0)]

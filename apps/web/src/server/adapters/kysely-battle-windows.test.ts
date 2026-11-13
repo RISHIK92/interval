@@ -78,20 +78,25 @@ test("one poll claims a window, players best room rating first; a stale claim is
     const { users, slug } = await seed(trx);
     const [a, b, c] = users as [string, string, string];
     const windows = kyselyBattleWindows(trx);
-    for (const u of users) await windows.register(AT, u, later(-900));
+    for (const u of users) await windows.register(AT, u, later(-900), "human");
     await trx
       .insertInto("room_rating")
       .values({ user_id: c, league: "human", mu: 31, sigma: 5, games: 2 })
       .execute();
-    expect(await windows.registration(AT, a)).toEqual({ matchId: null });
-    const claimed = await windows.claim(AT, AT, () => Promise.resolve(slug));
+    expect(await windows.registration(AT, a)).toEqual({
+      matchId: null,
+      league: "human",
+    });
+    const claimed = await windows.claim(AT, "human", AT, () =>
+      Promise.resolve(slug),
+    );
     expect(claimed?.problem).toBe(slug);
     expect(claimed?.first).toBe(true);
     expect(claimed?.players.map((p) => p.userId)).toEqual([c, a, b]);
     expect(claimed?.players[0]?.rating).toBe(31);
     // Another poll meanwhile: not its to do.
     expect(
-      await windows.claim(AT, later(10), () => Promise.resolve("x")),
+      await windows.claim(AT, "human", later(10), () => Promise.resolve("x")),
     ).toBeNull();
     // c and a grouped; b's group failed. A minute on, b is taken up again.
     const { id: match } = await trx
@@ -99,12 +104,15 @@ test("one poll claims a window, players best room rating first; a stale claim is
       .values({ server_id: 0, mode: "battle", problem_slug: slug })
       .returning("id")
       .executeTakeFirstOrThrow();
-    await windows.assign(AT, match, [c, a]);
-    expect(await windows.registration(AT, a)).toEqual({ matchId: match });
+    await windows.assign(AT, "human", match, [c, a]);
+    expect(await windows.registration(AT, a)).toEqual({
+      matchId: match,
+      league: "human",
+    });
     expect(
-      await windows.claim(AT, later(30), () => Promise.resolve("x")),
+      await windows.claim(AT, "human", later(30), () => Promise.resolve("x")),
     ).toBeNull();
-    const again = await windows.claim(AT, later(75), () =>
+    const again = await windows.claim(AT, "human", later(75), () =>
       Promise.resolve("x"),
     );
     expect(again).toEqual({
@@ -114,6 +122,9 @@ test("one poll claims a window, players best room rating first; a stale claim is
     });
     // A grouped player can't take their registration back.
     await windows.unregister(AT, a);
-    expect(await windows.registration(AT, a)).toEqual({ matchId: match });
+    expect(await windows.registration(AT, a)).toEqual({
+      matchId: match,
+      league: "human",
+    });
   });
 });

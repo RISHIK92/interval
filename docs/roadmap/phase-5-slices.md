@@ -290,6 +290,8 @@ Already in place, so not sliced again:
 
 - IDs: §6.2
 - Goal: its own problem pool, more extension rounds and separate ratings and boards.
+- Q: Q-P5-20.
+- Part built 2026-11-13: the league through battles (a problem's pool, the lobby's Human/AI toggle, a casual queue and window grouping per league, the match's league), and season battle boards per league (/play/boards/battles, standings kept at the season close). Still to build: the problem format's interviewer notes, up to 3 extension rounds and the failure layer, and 2 AI-league problems.
 
 ### P5-W33-S02 Ask the interviewer
 
@@ -300,6 +302,8 @@ Already in place, so not sliced again:
 
 - IDs: §6.9
 - Goal: code similarity between submissions, an admin review queue, and rating-only penalties.
+- Q: Q-P5-20.
+- Built 2026-11-13. The game server compares each pair's best submissions in the same language after a human-league battle (4-token shingles, names and literals masked); 85% or more is a `similar` signal, which flags. The review queue (/admin/fair-play) and rating-only penalties were already built in W31 and W32.
 
 ## Week 34: scale and safety
 

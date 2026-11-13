@@ -48,6 +48,7 @@ test("registering while open asks for the reminder 15 minutes before", async () 
     new Date("2026-11-13T21:00:00Z"),
     "u1",
     new Date("2026-11-13T20:45:00Z"),
+    "human",
   );
   expect(await send("DELETE")).toBe(204);
 });

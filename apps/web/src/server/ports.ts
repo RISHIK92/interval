@@ -762,12 +762,12 @@ export interface Matches {
   ): Promise<LiveMatch | null>;
   // P5-W31-S02b-2b (§6.5): an LLD battle on a loaded problem, for the game server's
   // battle actor; its id. Its result is stored like any match's; ratings come in W32.
-  // P5-W32: unrated, as a casual or solo battle is (Q-P5-19).
+  // P5-W32: unrated, as a casual or solo battle is (Q-P5-19); P5-W33: its league.
   createBattle(
     serverId: number,
     players: string[],
     slug: string,
-    options?: { unrated: boolean },
+    options?: { unrated?: boolean; league?: League },
   ): Promise<string>;
   // The game server that owns the match, and the id the player plays as there (a guest
   // who signed up mid-match keeps the guest's, Q-P3-21), when the player is in it; null
@@ -908,9 +908,9 @@ export interface AgentHook {
 // P3-W16-S01 (ADR-0034): a player's quick-game rating; 1500 before their first match.
 export interface PlayerRatings {
   of(userId: string): Promise<number>;
-  // P5-W32 (Q-P5-18): the 1v1 battle rating in the human league, for the casual queue's
-  // bands (1500 before a first rated battle).
-  battleOf(userId: string): Promise<number>;
+  // P5-W32 (Q-P5-18): the 1v1 battle rating in a league, for the casual queue's bands
+  // (1500 before a first rated battle).
+  battleOf(userId: string, league: League): Promise<number>;
   // P3-W18-S02 (§6.9; owner, 2026-11-05): the player's confirmed fair-play penalties,
   // newest first: the rating each removed (0 when its match gained nothing).
   adjustments(userId: string): Promise<{ penalty: number; playedAt: Date }[]>;
@@ -928,11 +928,15 @@ export interface MatchHandoff {
 // harnesses per language, and every scenario with its expected results. It stays in
 // Valkey and the game server; no client ever receives it.
 export type BattleFile = { name: string; content: string };
+export type League = "human" | "ai"; // §6.2
 export type BattleMatch = {
   id: string;
   players: string[];
   battle: {
     problem: string;
+    league: League; // P5-W33: the game server checks code similarity in the human one
+    // P5-W33: each language's base starter, which similarity leaves out.
+    starters: Record<string, string>;
     limits: Problem["limits"];
     checks: NonNullable<Problem["checks"]>;
     languages: Record<
@@ -1784,7 +1788,7 @@ export interface AdminUniversities {
 // P5-W31-S04a (Q-P5-17): a battle's are a paste (chars) or an away (ms), its round the
 // battle's minute.
 export type FairPlaySignal = {
-  kind: "speed" | "focus" | "paste" | "away";
+  kind: "speed" | "focus" | "paste" | "away" | "similar";
   round: number;
   ms: number | null;
   chars?: number | undefined;
@@ -1821,23 +1825,44 @@ export interface BattleSnapshots {
   ): Promise<{ player: string; snapshots: BattleSnapshot[] } | null>;
 }
 
+// P5-W33 (§6.7, Q-P5-20): this season's battle boards, global, per league: the 1v1
+// rating (Glicko) and the room rating (OpenSkill's ordinal, mu - 3 sigma), of players
+// with a rated battle since the season began. `you` marks the viewer's row.
+export type BattleBoardRow = { name: string; rating: number; you: boolean };
+export interface BattleBoards {
+  top(
+    league: League,
+    kind: "duel" | "room",
+    since: Date,
+    viewer: string,
+    limit: number,
+  ): Promise<BattleBoardRow[]>;
+}
+
 // P5-W32 (§6.6, MATCH-7; Q-P5-12, Q-P5-19): ranked battle windows' registrations and
 // grouping. Times are a window's start (battle-windows.ts).
 export type WindowPlayer = { userId: string; rating: number };
 export interface BattleWindows {
-  register(windowAt: Date, userId: string, remindAt: Date): Promise<void>;
+  // P5-W33 (Q-P5-20): in one league; registering again moves the player to it.
+  register(
+    windowAt: Date,
+    userId: string,
+    remindAt: Date,
+    league: League,
+  ): Promise<void>;
   unregister(windowAt: Date, userId: string): Promise<void>;
-  // Null when not registered; the battle once grouped.
+  // Null when not registered; the league and the battle once grouped.
   registration(
     windowAt: Date,
     userId: string,
-  ): Promise<{ matchId: string | null } | null>;
+  ): Promise<{ matchId: string | null; league: League } | null>;
   // The window's grouping, for the first caller at or after its start, or one coming
   // back a minute after a claim that left players ungrouped: its problem (`pick` when
   // first claimed) and its ungrouped players by room rating, best first; `first` for
   // the window's first claim. Null when another caller has it.
   claim(
     windowAt: Date,
+    league: League,
     now: Date,
     pick: () => Promise<string>,
   ): Promise<{
@@ -1846,8 +1871,14 @@ export interface BattleWindows {
     first: boolean;
   } | null>;
   // The claim is still being worked: no reclaim for another minute.
-  extend(windowAt: Date, now: Date): Promise<void>;
-  assign(windowAt: Date, matchId: string, userIds: string[]): Promise<void>;
+  extend(windowAt: Date, league: League, now: Date): Promise<void>;
+  // Only rows still in the league: one who moved meanwhile is grouped in theirs.
+  assign(
+    windowAt: Date,
+    league: League,
+    matchId: string,
+    userIds: string[],
+  ): Promise<void>;
 }
 
 export interface AdminFairPlay {
@@ -2022,6 +2053,7 @@ export type LoadedProblem = Pick<
   "slug" | "title" | "difficulty" | "interface" | "limits"
 > & {
   statement: string;
+  league: League; // P5-W33: its league's pool
   checks: NonNullable<Problem["checks"]>;
   // The visible scenarios with their expected results, in the problem's order.
   visible: { scenario: Scenario; results: ResultLine[] }[];
@@ -2034,6 +2066,8 @@ export type LoadedProblem = Pick<
 export interface ProblemStore {
   // The live problems (not retired): slug to content hash.
   hashes(): Promise<Map<string, string>>;
+  // P5-W33 (Q-P5-20): a league's live problems.
+  pool(league: League): Promise<string[]>;
   // A live problem, or null when there's none by that slug or it's retired.
   get(slug: string): Promise<LoadedProblem | null>;
   // Insert or replace by slug; a retired problem loaded again is live again.

@@ -57,10 +57,11 @@ import { valkeyChallenges } from "./adapters/valkey-challenges";
 import { valkeyRateLimits } from "./adapters/valkey-rate-limits";
 import { valkeyMatchHandoff } from "./adapters/valkey-match-handoff";
 import {
-  CASUAL_BATTLE_PREFIX,
+  casualBattlePrefix,
   queuePrefix,
   valkeyMatchmaking,
 } from "./adapters/valkey-matchmaking";
+import { kyselyBattleBoards } from "./adapters/kysely-battle-boards";
 import { kyselyBattleWindows } from "./adapters/kysely-battle-windows";
 import { randomProblem, startBattle } from "./battles";
 import { startLiveMatch, startReplayMatch } from "./live";
@@ -86,8 +87,10 @@ import type {
   LiveMatch,
   AdminDaily,
   AdminFairPlay,
+  BattleBoards,
   BattleSnapshots,
   BattleWindows,
+  League,
   AdminExplainers,
   AdminScenes,
   Listening,
@@ -455,15 +458,19 @@ export function battleDeps(): Parameters<typeof startBattle>[0] {
   };
 }
 
-export function casualBattles(): Matchmaking {
+export function casualBattles(league: League): Matchmaking {
   return valkeyMatchmaking(
     valkeyClient(),
     async (players) =>
-      startBattle(battleDeps(), 0, await randomProblem(problems()), players, {
-        unrated: true,
-      }),
+      startBattle(
+        battleDeps(),
+        0,
+        await randomProblem(problems(), league),
+        players,
+        { unrated: true, league },
+      ),
     Date.now,
-    CASUAL_BATTLE_PREFIX,
+    casualBattlePrefix(league),
   );
 }
 
@@ -480,6 +487,11 @@ export async function soloAllowed(userId: string): Promise<boolean> {
       "NX",
     )) === "OK"
   );
+}
+
+// P5-W33 (§6.7, Q-P5-20): this season's battle boards.
+export function battleBoards(): BattleBoards {
+  return kyselyBattleBoards(db());
 }
 
 // P5-W32 (§6.6, MATCH-7): ranked battle windows.

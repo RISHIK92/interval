@@ -191,6 +191,14 @@ class BattleRatingHistory(TypedDict):
     at: datetime
 
 
+class BattleSeasonStanding(TypedDict):
+    season: str
+    user_id: str
+    league: str
+    kind: str
+    rating: float
+
+
 class BattleSnapshot(TypedDict):
     match_id: UUID
     user_id: str
@@ -204,6 +212,7 @@ class BattleWindow(TypedDict):
     window_at: datetime
     grouping_at: datetime
     problem_slug: str
+    league: str
 
 
 class BattleWindowRegistration(TypedDict):
@@ -213,6 +222,7 @@ class BattleWindowRegistration(TypedDict):
     remind_at: datetime
     reminded_at: datetime | None
     match_id: UUID | None
+    league: str
 
 
 class BoardScore(TypedDict):
@@ -679,6 +689,7 @@ class LldProblem(TypedDict):
     loaded_at: datetime
     extension_statement: str | None
     extension_interface: JsonValue | None
+    league: str
 
 
 class Moment(TypedDict):

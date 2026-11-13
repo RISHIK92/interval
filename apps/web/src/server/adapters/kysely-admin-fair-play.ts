@@ -15,7 +15,7 @@ const inTransaction = <T>(
 // As the worker stored them (services/game/fairplay.go).
 const Signals = z.array(
   z.object({
-    kind: z.enum(["speed", "focus", "paste", "away"]),
+    kind: z.enum(["speed", "focus", "paste", "away", "similar"]),
     round: z.number().int(),
     ms: z.number().int().nullable(),
     chars: z.number().int().optional(),

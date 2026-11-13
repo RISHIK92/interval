@@ -3878,8 +3878,35 @@ class PostgresSeasons:
                         for after in [season_reset(Glicko(rating, rd, volatility))]
                     ],
                 )
+            # P5-W33 (§6.7, Q-P5-20): the battle boards' final standings, per league and
+            # rating kind, from each player's last rated battle of the season (a room's
+            # as OpenSkill's ordinal, mu - 3 sigma), as quick games' are kept above.
+            conn.execute(
+                """
+                insert into battle_season_standing
+                  (season, user_id, league, kind, rating)
+                select distinct on (user_id, league) %(season)s, user_id, league,
+                       'duel', rating_after
+                from battle_rating_history
+                where at >= %(start)s and at < %(end)s
+                order by user_id, league, at desc, match_id desc
+                """,
+                {"season": season, "start": start, "end": end},
+            )
+            conn.execute(
+                """
+                insert into battle_season_standing
+                  (season, user_id, league, kind, rating)
+                select distinct on (user_id, league) %(season)s, user_id, league,
+                       'room', mu_after - 3 * sigma_after
+                from room_rating_history
+                where at >= %(start)s and at < %(end)s
+                order by user_id, league, at desc, match_id desc
+                """,
+                {"season": season, "start": start, "end": end},
+            )
             # P5-W32-S01a (Q-P5-18): 1v1 battle ratings take the same soft reset, every
-            # league; they keep no season board. Locked in the order a battle locks.
+            # league. Locked in the order a battle locks.
             battles = conn.execute(
                 "select user_id, league, rating, rd, volatility from battle_rating"
                 " order by user_id for update"

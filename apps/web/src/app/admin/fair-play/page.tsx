@@ -21,6 +21,8 @@ const describe = (s: FairPlaySignal) => {
       return `Round ${String(s.round)}: left the tab`;
     case "paste":
       return `Minute ${String(s.round)}: pasted ${String(s.chars ?? 0)} characters from outside`;
+    case "similar":
+      return "Its best code matches another player's in this battle";
     case "away":
       return `Minute ${String(s.round)}: away for ${String(Math.round((s.ms ?? 0) / 1000))} s`;
   }

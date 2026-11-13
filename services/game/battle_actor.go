@@ -43,7 +43,8 @@ type battleRun struct {
 	lastSub  map[string]time.Time
 	judging  map[string]bool // "player run" or "player submit": one judging of each at a time
 	best     map[string]bestSubmission
-	pending  int // judgings in flight
+	bestCode map[string]*codeMsg // P5-W33: each best's code, for code similarity
+	pending  int                 // judgings in flight
 }
 
 // Code from a player: a Run or a Submit.
@@ -61,7 +62,8 @@ type judgedMsg struct {
 	revealed bool          // judged with the extension (sent after the reveal)
 	passed   []bool        // per scenario of the battle; Run: only visible ones count
 	tests    []map[string]any
-	failed   bool // the judge failed: nothing is known about the code
+	failed   bool     // the judge failed: nothing is known about the code
+	code     *codeMsg // what was judged: kept when it's the player's best (P5-W33)
 }
 
 // A random (version 4) UUID for each judge job: crypto/rand never fails on the
@@ -85,7 +87,7 @@ func (a *actor) battle(p *play) {
 	b := &battleRun{
 		start: a.clock.Now(), away: map[string]bool{}, joined: map[string]bool{}, lost: map[string]time.Time{},
 		lastRun: map[string]time.Time{}, lastSub: map[string]time.Time{},
-		judging: map[string]bool{}, best: map[string]bestSubmission{},
+		judging: map[string]bool{}, best: map[string]bestSubmission{}, bestCode: map[string]*codeMsg{},
 	}
 	if a.from != nil && !a.from.Started.IsZero() {
 		// A restart: the same battle, on the same clock, with the bests it had. Whoever
@@ -276,9 +278,9 @@ func (a *actor) battleCode(p *play, e event) {
 	}()
 	go func() {
 		defer cancel()
-		out := judgedMsg{submit: msg.submit, sent: sent, at: at, revealed: revealed, failed: true}
+		out := judgedMsg{submit: msg.submit, sent: sent, at: at, revealed: revealed, failed: true, code: msg}
 		safely(a.log, "judging", func() {
-			judged := judgedMsg{submit: msg.submit, sent: sent, at: at, revealed: revealed, passed: make([]bool, scenarios)}
+			judged := judgedMsg{submit: msg.submit, sent: sent, at: at, revealed: revealed, passed: make([]bool, scenarios), code: msg}
 			for _, j := range jobs {
 				result, err := a.judge.Judge(ctx, j.job)
 				if err == nil && (result.Status == nil || *result.Status != "done" || len(result.Runs) != len(j.scenarios)) {
@@ -364,7 +366,11 @@ func (a *actor) battleJudged(p *play, e event) {
 			l["passed"]++
 		}
 	}
-	b.best[e.player] = b.best[e.player].improvedBy(points, j.at)
+	before := b.best[e.player]
+	b.best[e.player] = before.improvedBy(points, j.at)
+	if b.best[e.player] != before {
+		b.bestCode[e.player] = j.code
+	}
 	tell(map[string]any{"type": "submitted", "points": points, "layers": layers, "best": b.best[e.player].Points})
 	a.broadcast(p, map[string]any{"type": "best", "best": a.bests(p)})
 	a.persistBattle(p)
@@ -383,6 +389,23 @@ func (a *actor) finishBattle(p *play) {
 			p.times[player] = battleLength
 			if b.away[player] || !b.joined[player] {
 				p.abandoned = append(p.abandoned, player)
+			}
+		}
+	}
+	// §6.9 (Q-P5-20): in the human league, similar best submissions are a signal on
+	// both, for review. shortcut: bests from before a restart aren't kept, so aren't
+	// compared; persist them if restarts mid-battle become common.
+	if a.def.Battle.League != "ai" {
+		minute := b.minute(a.clock.Now())
+		// Both starters a player may have begun from: the base one and, after the reveal,
+		// the extended one.
+		starters := []map[string]string{a.def.Battle.Starters}
+		if e := a.def.Battle.Extension; e != nil {
+			starters = append(starters, e.Starters)
+		}
+		for _, pair := range similarPairs(b.bestCode, starters...) {
+			for _, player := range pair {
+				a.battleRaise(p, player, fairPlaySignal{Kind: "similar", Round: minute})
 			}
 		}
 	}

@@ -1209,3 +1209,10 @@ def test_an_unrated_or_cancelled_room_moves_nothing(conn: psycopg.Connection) ->
     results.record(_battle_result(cancelled, "cancelled", None, seats))
     results.record(_battle_result(unrated, "finished", "rme", seats))
     assert _room_skills(conn, users) == {}
+
+
+def test_similar_code_flags_a_battle_player(conn: psycopg.Connection) -> None:
+    """P5-W33 (Q-P5-20): copied best submissions in the human league go to review."""
+    similar: dict[str, object] = {"kind": "similar", "round": 45, "ms": None}
+    match_id = _battle_with(conn, "lfd", [similar])
+    assert _flags(conn, match_id) == [("lfd", 1, None, None)]

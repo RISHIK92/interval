@@ -42,6 +42,7 @@ const problem: LoadedProblem = {
   slug: "lru-cache",
   title: "LRU cache",
   difficulty: "easy",
+  league: "human",
   statement: "# LRU cache\n\nKeep the most recent.",
   interface: {
     class: "LRUCache",

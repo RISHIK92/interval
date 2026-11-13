@@ -210,6 +210,14 @@ export interface BattleRatingHistory {
   volatility_after: number;
 }
 
+export interface BattleSeasonStanding {
+  kind: string;
+  league: string;
+  rating: number;
+  season: string;
+  user_id: string;
+}
+
 export interface BattleSnapshot {
   key: string;
   language: string;
@@ -221,11 +229,13 @@ export interface BattleSnapshot {
 
 export interface BattleWindow {
   grouping_at: Timestamp;
+  league: Generated<string>;
   problem_slug: string;
   window_at: Timestamp;
 }
 
 export interface BattleWindowRegistration {
+  league: Generated<string>;
   match_id: string | null;
   registered_at: Generated<Timestamp>;
   remind_at: Timestamp;
@@ -690,6 +700,7 @@ export interface LldProblem {
   extension_interface: Json | null;
   extension_statement: string | null;
   interface: Json;
+  league: Generated<string>;
   limits: Json;
   loaded_at: Generated<Timestamp>;
   private_key: string;
@@ -1358,6 +1369,7 @@ export interface DB {
   auth_verification: AuthVerification;
   battle_rating: BattleRating;
   battle_rating_history: BattleRatingHistory;
+  battle_season_standing: BattleSeasonStanding;
   battle_snapshot: BattleSnapshot;
   battle_window: BattleWindow;
   battle_window_registration: BattleWindowRegistration;

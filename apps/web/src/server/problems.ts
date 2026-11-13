@@ -92,6 +92,7 @@ function rowOf(source: ProblemSource, contentHash: string): LoadedProblem {
     title: problem.title,
     difficulty: problem.difficulty,
     statement,
+    league: problem.league ?? "human",
     interface: problem.interface,
     checks: problem.checks ?? [],
     limits: problem.limits,

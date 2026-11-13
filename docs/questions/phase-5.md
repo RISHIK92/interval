@@ -245,6 +245,15 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - labelled AI, and logged for review.
 - **Answer (overnight, recommended):** the suggested default.
 
+### Q-P5-20 The AI league, battle boards and code similarity (P0 for W33)
+
+- Cite: §6.2 (leagues), §6.7 (season boards), §6.9 (code similarity), Q-P5-13, Q-P5-18.
+- **Answers (owner, 2026-11-13):**
+  - **AI-league problems:** the format gains a league tag, interviewer notes, up to 3 extension rounds revealed at 20:00, 30:00 and 38:00, and a `failure` layer whose scenarios inject errors from collaborators (a store that times out or throws) for the solution to handle. Claude writes 2 PROVISIONAL AI-league problems (references in six languages, verified, mutation-gated) for the owner's review.
+  - **Choosing a league:** a Human/AI toggle in the battle lobby, for the casual queue (a queue per league) and window registration (a grouping per league, at the same times).
+  - **Battle boards:** season boards per league on /play/boards, for the 1v1 rating (Glicko) and the room rating (OpenSkill ordinal, mu − 3σ). Global only. The season close keeps their final standings, as for quick games.
+  - **Code similarity (human league):** after a battle, each pair of players' best submissions in the same language is compared by normalized token similarity (identifiers and literals masked). 85% or more of the shorter one's tokens in common is a `similar` signal on both, which flags for review. Nothing across matches yet.
+
 ## Week 35: results
 
 ### Q-P5-14 The AI code review (P2 for W35)

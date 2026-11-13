@@ -37,7 +37,8 @@ class FairPlaySignal(_Strict):
     (Q-P5-17), a battle's: a paste of `chars` characters from outside the player's code,
     or an away of `ms`; its round is the battle's minute."""
 
-    kind: Literal["speed", "focus", "paste", "away"]
+    # P5-W33 (Q-P5-20): "similar", the human league's copied best submissions.
+    kind: Literal["speed", "focus", "paste", "away", "similar"]
     round: int = Field(ge=1, le=45)
     ms: int | None = Field(ge=0)
     chars: int | None = Field(default=None, ge=1)
@@ -56,7 +57,8 @@ class FairPlaySignal(_Strict):
 
 # Q-P3-20: this many signals in a quick match flag the player for review, nothing more.
 FLAG_AT = 3
-# Q-P5-17: a battle flags on any outside paste, or on this many long aways.
+# Q-P5-17: a battle flags on any outside paste, or on this many long aways; Q-P5-20,
+# on any similar code.
 BATTLE_AWAYS_FLAG_AT = 5
 
 
@@ -64,7 +66,9 @@ def flagged(mode: str, signals: list[FairPlaySignal]) -> bool:
     if mode != "battle":
         return len(signals) >= FLAG_AT
     aways = sum(s.kind == "away" for s in signals)
-    return aways >= BATTLE_AWAYS_FLAG_AT or any(s.kind == "paste" for s in signals)
+    return aways >= BATTLE_AWAYS_FLAG_AT or any(
+        s.kind in ("paste", "similar") for s in signals
+    )
 
 
 class PlayerResult(_Strict):

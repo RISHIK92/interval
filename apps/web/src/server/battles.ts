@@ -5,6 +5,7 @@ import { log } from "./log";
 import type {
   BattleMatch,
   BattleWindows,
+  League,
   FileStore,
   MatchHandoff,
   Matches,
@@ -42,7 +43,8 @@ export async function startBattle(
   serverId: number,
   slug: string,
   players: string[],
-  options?: { unrated: boolean }, // P5-W32: a casual or solo battle (Q-P5-19)
+  // P5-W32: a casual or solo battle is unrated (Q-P5-19); P5-W33: its league (Q-P5-20).
+  options?: { unrated?: boolean; league?: League },
 ): Promise<string> {
   // C-03: a 1v1 or a room of up to 4; one alone for solo play (P5-W32).
   if (
@@ -71,6 +73,7 @@ export async function startBattle(
   }
   const languages: BattleMatch["battle"]["languages"] = {};
   const starters: Record<string, string> = {};
+  const baseStarters: Record<string, string> = {};
   for (const [language, generate] of Object.entries(GENERATORS)) {
     const base = generate(problem.interface);
     const extended =
@@ -80,6 +83,7 @@ export async function startBattle(
     if (extended !== null && extended.solutionFile !== base.solutionFile)
       throw new Error(`${slug}: the extension renames the solution file`);
     if (extended !== null) starters[language] = extended.starter;
+    baseStarters[language] = base.starter;
     languages[language] = {
       solution: base.solutionFile,
       base: [{ name: base.harnessFile, content: base.harness }],
@@ -96,6 +100,8 @@ export async function startBattle(
     players,
     battle: {
       problem: slug,
+      league: options?.league ?? "human",
+      starters: baseStarters,
       limits: problem.limits,
       checks: problem.checks,
       languages,
@@ -121,11 +127,23 @@ export async function startBattle(
   return match.id;
 }
 
-// P5-W32 (Q-P5-19): a live problem at random, for a casual battle or a window.
-export async function randomProblem(store: ProblemStore): Promise<string> {
-  const slugs = [...(await store.hashes()).keys()];
+// P5-W33 (Q-P5-20): a request's league (?league=), human when absent; null when it
+// names no league.
+export function leagueOf(request: Request): League | null {
+  const league = new URL(request.url).searchParams.get("league") ?? "human";
+  return league === "human" || league === "ai" ? league : null;
+}
+
+// P5-W32 (Q-P5-19): a live problem at random from the league's pool (P5-W33), for a
+// casual battle or a window.
+export async function randomProblem(
+  store: ProblemStore,
+  league: League,
+): Promise<string> {
+  const slugs = await store.pool(league);
   const slug = slugs[Math.floor(Math.random() * slugs.length)];
-  if (slug === undefined) throw new Error("no live problems: load them first");
+  if (slug === undefined)
+    throw new Error(`no live ${league}-league problems: load them first`);
   return slug;
 }
 
@@ -138,10 +156,11 @@ export async function randomProblem(store: ProblemStore): Promise<string> {
 export async function groupWindow(
   deps: Parameters<typeof startBattle>[0] & { windows: BattleWindows },
   windowAt: Date,
+  league: League,
   now: () => Date,
 ): Promise<{ grouped: number; matched: number; first: boolean } | null> {
-  const claimed = await deps.windows.claim(windowAt, now(), () =>
-    randomProblem(deps.store),
+  const claimed = await deps.windows.claim(windowAt, league, now(), () =>
+    randomProblem(deps.store, league),
   );
   if (claimed === null) return null;
   let matched = 0;
@@ -151,6 +170,7 @@ export async function groupWindow(
     try {
       matchId = await startBattle(deps, 0, claimed.problem, users, {
         unrated: users.length === 1,
+        league,
       });
     } catch (error) {
       log.error("battle: window group not started", {
@@ -161,8 +181,8 @@ export async function groupWindow(
     }
     // A battle started is assigned or the grouping fails loudly: never regrouped into
     // a second one by the next claim.
-    await deps.windows.assign(windowAt, matchId, users);
-    await deps.windows.extend(windowAt, now());
+    await deps.windows.assign(windowAt, league, matchId, users);
+    await deps.windows.extend(windowAt, league, now());
     if (users.length > 1) matched += users.length;
   }
   return { grouped: claimed.players.length, matched, first: claimed.first };

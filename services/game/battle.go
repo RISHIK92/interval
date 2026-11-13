@@ -24,7 +24,10 @@ const (
 )
 
 type battleDef struct {
-	Problem   string                    `json:"problem"`
+	Problem string `json:"problem"`
+	League  string `json:"league"` // P5-W33: "human" or "ai" (§6.2)
+	// P5-W33: each language's base starter: what every player starts from isn't copying.
+	Starters  map[string]string         `json:"starters,omitempty"`
 	Limits    battleLimits              `json:"limits"`
 	Checks    []judge.Check             `json:"checks"`
 	Languages map[string]battleLanguage `json:"languages"`

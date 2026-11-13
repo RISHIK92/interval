@@ -15,13 +15,13 @@ export function kyselyRatings(db: Kysely<DB>): PlayerRatings {
           .where("user_id", "=", userId)
           .executeTakeFirst()
       )?.rating ?? START,
-    battleOf: async (userId) =>
+    battleOf: async (userId, league) =>
       (
         await db
           .selectFrom("battle_rating")
           .select("rating")
           .where("user_id", "=", userId)
-          .where("league", "=", "human")
+          .where("league", "=", league)
           .executeTakeFirst()
       )?.rating ?? START,
     // P3-W18-S02 (§6.9): the confirmed fair-play penalties, as /admin/fair-play left them.

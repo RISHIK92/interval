@@ -251,6 +251,16 @@ async function mergeLeagueRatings(
       where user_id = ${accountId} and league = ${league}`.execute(trx);
     await sql`update ${history} set user_id = ${accountId}
       where user_id = ${guestId} and league = ${league}`.execute(trx);
+    // P5-W33: and that rating's season standings, as quick games' go with theirs.
+    const kind = table === "battle_rating" ? "duel" : "room";
+    await sql`delete from battle_season_standing
+      where user_id = ${accountId} and league = ${league} and kind = ${kind}`.execute(
+      trx,
+    );
+    await sql`update battle_season_standing set user_id = ${accountId}
+      where user_id = ${guestId} and league = ${league} and kind = ${kind}`.execute(
+      trx,
+    );
     await sql`
       insert into ${sql.table(table)} (user_id, league, ${kept})
       select ${accountId}, league, ${kept}
