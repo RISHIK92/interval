@@ -338,6 +338,12 @@ export class AwsStack extends Stack {
         "push_opt_in.sql",
         "Weekly actives with a push turned on",
       ],
+      // Phase 5 (P5-W35-S03).
+      [
+        "WindowMatchedQuery",
+        "window_matched.sql",
+        "Window registrants matched into a battle with others, per week",
+      ],
     ] as const) {
       const query = new athena.CfnNamedQuery(this, id, {
         name: file.replace(".sql", ""),

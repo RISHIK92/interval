@@ -134,6 +134,14 @@ class RemoveFile(_Message):
     key: Annotated[str, Field(min_length=1)]
 
 
+class ReviewCode(_Message):
+    """Write the AI code review of a battle player's best submission, on their
+    request after the battle (§6.5, Q-P5-14, Q-P5-22, P5-W35)."""
+
+    match_id: Annotated[str, Field(min_length=1)]
+    user_id: Annotated[str, Field(min_length=1)]
+
+
 class SegmentItem(_Message):
     """Split one stored item into moments (ING-1 segment, ING-4)."""
 
@@ -174,6 +182,7 @@ type MessageName = Literal[
     "project_note",
     "recompute_feed",
     "remove_file",
+    "review_code",
     "segment_item",
     "tag_item",
     "validate_question",
@@ -195,6 +204,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "project_note": ProjectNote,
     "recompute_feed": RecomputeFeed,
     "remove_file": RemoveFile,
+    "review_code": ReviewCode,
     "segment_item": SegmentItem,
     "tag_item": TagItem,
     "validate_question": ValidateQuestion,

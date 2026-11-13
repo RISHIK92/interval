@@ -85,6 +85,7 @@ from interval_jobs.ports import (
     QuestionTarget,
     RankedEntry,
     RepoRead,
+    ReviewAsk,
     RevokeResult,
     RightsViolation,
     Section,
@@ -2042,6 +2043,7 @@ class InMemoryStore:
         self.device_tokens = InMemoryDeviceTokens()
         self.reminders = InMemoryReminders()
         self.interviewer = InMemoryInterviewer()
+        self.reviews = InMemoryReviews()
         self.scenes = InMemoryScenes()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
@@ -2379,6 +2381,7 @@ class InMemoryMatchResults:
 
     def __init__(self) -> None:
         self.recorded: dict[str, MatchResult] = {}
+        self.bests: dict[tuple[str, str], tuple[str, str]] = {}
 
     def record(self, result: MatchResult) -> bool:
         key = str(result.match_id)
@@ -2386,6 +2389,15 @@ class InMemoryMatchResults:
             return False
         self.recorded[key] = result
         return True
+
+    def players_of(self, match_id: str) -> dict[str, str]:
+        result = self.recorded.get(match_id)
+        return (
+            {} if result is None else {p.played_as: p.played_as for p in result.players}
+        )
+
+    def save_best(self, match_id: str, user_id: str, language: str, key: str) -> None:
+        self.bests[(match_id, user_id)] = (language, key)
 
 
 class InMemorySeasons:
@@ -2491,6 +2503,23 @@ class InMemoryInterviewer:
 
     def save(self, question_id: int, answer: str | None, model: str | None) -> None:
         self.saved.setdefault(question_id, (answer, model))
+
+
+class InMemoryReviews:
+    """P5-W35: AI code reviews as Postgres keeps them (tests set `pending`)."""
+
+    def __init__(self) -> None:
+        self.pending: dict[tuple[str, str], ReviewAsk] = {}
+        self.saved: dict[tuple[str, str], tuple[str | None, str | None]] = {}
+
+    def to_review(self, match_id: str, user_id: str) -> ReviewAsk | None:
+        key = (match_id, user_id)
+        return None if key in self.saved else self.pending.get(key)
+
+    def save(
+        self, match_id: str, user_id: str, review: str | None, model: str | None
+    ) -> None:
+        self.saved.setdefault((match_id, user_id), (review, model))
 
 
 class InMemoryReminders:

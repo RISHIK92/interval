@@ -255,7 +255,22 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - **Amended (owner, 2026-11-13, W33 part 2), lean now and full later:** interviewer notes and the "ask the interviewer" channel (Q-P5-13) now, with 2 AI-league problems of one extension each. "Harsher failure" for now means hidden scenarios that drive solutions into error paths (bad inputs, capacity limits, errors judged by kind). The 3-round and injected-collaborator format moves to a slice after W34–W35.
   - **Code similarity (human league):** after a battle, each pair of players' best submissions in the same language is compared by normalized token similarity (identifiers and literals masked). 85% or more of the shorter one's tokens in common is a `similar` signal on both, which flags for review. Nothing across matches yet.
 
+### Q-P5-21 Week 34: problems, the load test, the red team (P1 for W34)
+
+- **Answers (owner, 2026-11-14):**
+  - **Problems:** 4 more human-league problems, for 12 in all (elevator system, vending machine, URL shortener, task scheduler), PROVISIONAL for the owner's review.
+  - **Load test:** k6 (`brew install k6`, installed by the owner): a script in scripts/load/ that the owner runs against the local stack with Velox configured.
+  - **Red team (EXEC-1):** a runbook entry and a runner for a Linux host with gVisor. The rows that work on macOS run here; the owner runs the gVisor row.
+
 ## Week 35: results
+
+### Q-P5-22 Week 35: replays, disputes and the reviewed code (P0 for W35)
+
+- Cite: §6.5 (an AI code review after the match), DB-6 (snapshots), Phase 5's "done when" ("under 3% of results get disputed"), Q-P5-14, Q-P5-17.
+- **Answers (owner, 2026-11-14):**
+  - **Replays:** once a battle is over, its players can replay every player's code over time (a scrubber over the snapshots). Nobody outside the battle sees it; admins already can, for flags.
+  - **Disputes:** "Dispute this result" on the results page with a short reason, once per player per battle, within 7 days. Disputes go to /admin/disputes to be upheld or dismissed with a note. The metric is disputed battles over finished battles. No automatic rating change.
+  - **The reviewed code:** the game server hands each player's best submission (code and language) over with the result. The worker stores it in the private bucket (pruned as snapshots are), and the AI code review reads it.
 
 ### Q-P5-14 The AI code review (P2 for W35)
 

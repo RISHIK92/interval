@@ -71,6 +71,14 @@ def flagged(mode: str, signals: list[FairPlaySignal]) -> bool:
     )
 
 
+class BestCode(_Strict):
+    """P5-W35 (Q-P5-22): a battle player's best submission, as the game server held it
+    (its maxCodeBytes)."""
+
+    language: str = Field(min_length=1, max_length=20)
+    code: str = Field(max_length=256 * 1024)
+
+
 class PlayerResult(_Strict):
     played_as: str = Field(min_length=1)
     total: int = Field(ge=0)
@@ -82,6 +90,7 @@ class PlayerResult(_Strict):
     signals: list[FairPlaySignal] = Field(
         default_factory=list[FairPlaySignal], max_length=60
     )
+    best: BestCode | None = None  # P5-W35: a battle's, for its AI code review
 
 
 class MatchResult(_Strict):

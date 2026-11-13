@@ -66,6 +66,11 @@ export const messageSchemas = {
   remove_file: z.strictObject({
     key: z.string().min(1),
   }),
+  // Write the AI code review of a battle player's best submission, on their request after the battle (§6.5, Q-P5-14, Q-P5-22, P5-W35).
+  review_code: z.strictObject({
+    match_id: z.string().min(1),
+    user_id: z.string().min(1),
+  }),
   // Split one stored item into moments (ING-1 segment, ING-4).
   segment_item: z.strictObject({
     content_item_id: z.number().int().min(1),

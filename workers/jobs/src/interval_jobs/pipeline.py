@@ -18,6 +18,7 @@ tracking parameters, fetch refines the canonical URL from the page and fingerpri
 full text, and both link duplicates to the earliest-published item.
 """
 
+import json
 from collections.abc import Callable, Generator
 from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
@@ -43,6 +44,7 @@ from interval_db.messages import (
     ProjectNote,
     RecomputeFeed,
     RemoveFile,
+    ReviewCode,
     SegmentItem,
     TagItem,
     ValidateQuestion,
@@ -60,6 +62,7 @@ from interval_jobs.books.checkpoint import (
 )
 from interval_jobs.books.ocr import GAVE_UP, give_up, read_page
 from interval_jobs.books.process import process_book
+from interval_jobs.code_review import review as code_review
 from interval_jobs.concept_vectors import concept_text, text_hash
 from interval_jobs.embedding import embed_item
 from interval_jobs.feed.precompute import recompute_user_feed
@@ -69,7 +72,7 @@ from interval_jobs.github.sync import sync_user
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.interviewer import answer as interviewer_answer
 from interval_jobs.link_health import check_link
-from interval_jobs.match_results import ResultsRedis, parse_result
+from interval_jobs.match_results import MatchResult, ResultsRedis, parse_result
 from interval_jobs.normalize import page_canonical, simhash
 from interval_jobs.polling import MIN_INTERVAL, next_interval
 from interval_jobs.ports import (
@@ -254,10 +257,57 @@ class Pipeline:
             "match_finished": self._match_stage,
             "agent_nudge": self._nudge_stage,
             "answer_interviewer": self._interviewer_stage,
+            "review_code": self._review_stage,
         }
 
-    # P5-W33 (§6.2, Q-P5-13): a player's question to the interviewer, answered with
-    # QUESTIONS_MODEL from the problem's notes. The network between two short units.
+    # P5-W35 (§6.5, Q-P5-14, Q-P5-22): a battle player's AI code review, on request:
+    # their best submission from the bucket, QUESTIONS_MODEL through the gateway.
+    def _review_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, ReviewCode)
+        match_id, user_id = message.match_id, message.user_id
+
+        def unavailable(reason: str) -> None:
+            # Only a pending request changes: shown as unavailable, never waiting.
+            log.warn("battle: review not written", match_id=match_id, reason=reason)
+            with self._unit() as services:
+                services.store.reviews.save(match_id, user_id, None, None)
+
+        with self._unit() as services:
+            ask = services.store.reviews.to_review(match_id, user_id)
+        if ask is None:
+            # Written already (a redelivery: save changes nothing then), or its best
+            # submission is gone (pruned): a pending request is told so.
+            unavailable("nothing to review")
+            return
+        if self._questions is None or self._files is None:
+            unavailable("no model" if self._questions is None else "no bucket")
+            return
+        model = self._questions.model.removeprefix(BATCH_PREFIX)
+        try:
+            stored = self._files.get(ask.key)
+            if stored is None:
+                unavailable("code gone")
+                return
+            code = str(json.loads(stored)["code"])
+            with self._questions.gateway() as gateway:
+                written = code_review(
+                    gateway, model, user_id, ask.statement, ask.language, code
+                )
+            if isinstance(written, OverBudget):
+                # OPS-4, LOAD-5: over budget, said and shown as unavailable.
+                log.warn("battle: review over budget", match_id=match_id)
+                written = None
+            with self._unit() as services:
+                services.store.reviews.save(
+                    match_id, user_id, written, model if written is not None else None
+                )
+        except Exception:
+            # Retried by the queue; on its last try the player is told, not left
+            # waiting.
+            if delivery.attempt >= ATTEMPTS:
+                unavailable("failed")
+            raise
+
     def _interviewer_stage(self, message: BaseModel, delivery: Delivery) -> None:
         assert isinstance(message, AnswerInterviewer)
         with self._unit() as services:
@@ -341,6 +391,36 @@ class Pipeline:
         with self._unit() as services:
             recorded = services.store.match_results.record(result)
         log.info("game: result", match_id=message.match_id, recorded=recorded)
+        # Every delivery, not only the first recording: a retry after a crash between
+        # the two still keeps them (rows on conflict do nothing; the same object).
+        self._keep_bests(result)
+
+    # P5-W35 (Q-P5-22): each battle player's best submission into the private bucket,
+    # for the AI code review; the object first, then its row, so pruning finds it.
+    def _keep_bests(self, result: MatchResult) -> None:
+        bests = [(p.played_as, p.best) for p in result.players if p.best is not None]
+        if not bests:
+            return
+        if self._files is None:
+            log.warn("game: bests not kept", reason="no PRIVATE_CONTENT_BUCKET")
+            return
+        match_id = str(result.match_id)
+        with self._unit() as services:
+            users = services.store.match_results.players_of(match_id)
+        for played_as, best in bests:
+            user = users.get(played_as)
+            if user is None:
+                continue
+            key = f"battle-best/{match_id}/{user}.json"
+            self._files.put(
+                key,
+                json.dumps({"language": best.language, "code": best.code}).encode(),
+                "application/json",
+            )
+            with self._unit() as services:
+                services.store.match_results.save_best(
+                    match_id, user, best.language, key
+                )
 
     # P2-W11-S02: an uploaded PDF read into chapters and sessions.
     def _book_stage(self, message: BaseModel, delivery: Delivery) -> None:

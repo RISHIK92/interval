@@ -647,6 +647,47 @@ test("the more-played rating stays with the account, with its own history", asyn
   });
 });
 
+// P5-W35 (Q-P5-22): a guest's best submissions, reviews and disputes are the account's.
+test("the guest's best submissions, reviews and disputes move to the account", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    const { id } = await trx
+      .insertInto("game_match")
+      .values({ server_id: 0 })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("battle_best_submission")
+      .values({
+        match_id: id,
+        user_id: guest,
+        language: "go",
+        key: `best-${id}`,
+      })
+      .execute();
+    await trx
+      .insertInto("battle_review")
+      .values({ match_id: id, user_id: guest })
+      .execute();
+    await trx
+      .insertInto("battle_dispute")
+      .values({ match_id: id, user_id: guest, reason: "The judge timed out." })
+      .execute();
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    for (const table of [
+      "battle_best_submission",
+      "battle_review",
+      "battle_dispute",
+    ] as const)
+      expect(
+        await trx
+          .selectFrom(table)
+          .select("user_id")
+          .where("match_id", "=", id)
+          .execute(),
+      ).toEqual([{ user_id: account }]);
+  });
+});
+
 // P5-W32-S01a (Q-P5-18): battle ratings follow the same rule, league by league.
 test("per league, the more-played battle rating stays with the account, with its history", async () => {
   await inRollback(async (trx, { guest, account }) => {

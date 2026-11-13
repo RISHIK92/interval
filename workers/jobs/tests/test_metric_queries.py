@@ -18,7 +18,7 @@ PROPS = (
     "STRUCT(kind VARCHAR, item_id VARCHAR, moment_id VARCHAR, method VARCHAR, "
     "question_id VARCHAR, path_id VARCHAR, section_id VARCHAR, passed BOOLEAN, "
     "game VARCHAR, wait_ms BIGINT, opponent VARCHAR, explainer_id VARCHAR, "
-    '"on" BOOLEAN)'
+    '"on" BOOLEAN, registered BIGINT, matched BIGINT)'
 )
 
 type Row = tuple[str, int, int, float]
@@ -602,3 +602,25 @@ def test_push_opt_in_is_weekly_actives_with_a_kind_on_now(tmp_path: Path) -> Non
         event("push_setting_changed", "g", WEEK, guest=True, kind="digest", on=True),
     ]
     assert run("push_opt_in.sql", events, tmp_path) == [("student", 5, 3, 0.6)]
+
+
+# Phase 5 (P5-W35-S03, Q-P5-19): the share of window registrants matched, per week.
+def test_window_matched_sums_each_weeks_groupings(tmp_path: Path) -> None:
+    week = TODAY - days(9)
+    events = [
+        event("battle_window_grouped", "a", week, registered=10, matched=8),
+        event(
+            "battle_window_grouped",
+            "b",
+            week + timedelta(hours=3),
+            registered=6,
+            matched=6,
+        ),
+        event("battle_window_grouped", "c", TODAY - days(70), registered=4, matched=0),
+    ]
+    rows = run("window_matched.sql", events, tmp_path)
+    assert [(r[1], r[2], round(r[3], 4)) for r in rows] == [(16, 14, 0.875)]
+
+
+def test_window_matched_gives_no_rows_without_events(tmp_path: Path) -> None:
+    assert run("window_matched.sql", [], tmp_path) == []

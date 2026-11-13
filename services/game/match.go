@@ -517,6 +517,14 @@ type playerResult struct {
 	Abandoned bool             `json:"abandoned"`
 	Answers   []answerRec      `json:"answers"`
 	Signals   []fairPlaySignal `json:"signals"` // P3-W18-S02: never null
+	// P5-W35 (Q-P5-22): a battle player's best submission, for the results page's AI
+	// code review; none before a first submission.
+	Best *bestCode `json:"best,omitempty"`
+}
+
+type bestCode struct {
+	Language string `json:"language"`
+	Code     string `json:"code"`
 }
 
 func (a *actor) hand(p *play, outcome, won string) {
@@ -536,14 +544,20 @@ func (a *actor) hand(p *play, outcome, won string) {
 		if raised == nil {
 			raised = []fairPlaySignal{}
 		}
-		r.Players = append(r.Players, playerResult{
+		played := playerResult{
 			PlayedAs:  player,
 			Total:     p.totals[player],
 			TimeMs:    p.times[player].Milliseconds(),
 			Abandoned: slices.Contains(p.abandoned, player),
 			Answers:   given,
 			Signals:   raised,
-		})
+		}
+		if b := p.battle; b != nil {
+			if c := b.bestCode[player]; c != nil {
+				played.Best = &bestCode{Language: c.language, Code: c.code}
+			}
+		}
+		r.Players = append(r.Players, played)
 	}
 	a.publish(r)
 }

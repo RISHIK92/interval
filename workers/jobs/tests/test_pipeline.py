@@ -1101,3 +1101,35 @@ def test_a_match_result_is_recorded_once_and_a_missing_or_bad_one_is_dropped() -
     results.stored[f"game:result:{other}"] = b"{}"
     handler(MatchFinished(match_id=other), delivery)
     assert list(store.match_results.recorded) == [match_id]
+
+
+def test_a_battles_best_submissions_are_kept_once_for_its_review() -> None:
+    """P5-W35 (Q-P5-22): each player's best code into the bucket, then its row."""
+    golden = json.loads(
+        (Path(__file__).parents[3] / "services" / "game" / "testdata")
+        .joinpath("match_finished.json")
+        .read_bytes()
+    )
+    match_id = golden["match_id"]
+    golden["players"][0]["best"] = {"language": "python", "code": "class Cache: ..."}
+    store = InMemoryStore()
+    files = InMemoryFiles()
+
+    @contextmanager
+    def unit() -> Generator[StageServices]:
+        yield StageServices(store, web(), TrafilaturaExtractor())
+
+    results = _Results({f"game:result:{match_id}": json.dumps(golden).encode()})
+    handler = Pipeline(unit, InMemoryQueue(), results=results, files=files).handlers()[
+        "match_finished"
+    ]
+    delivery = Delivery(attempt=1, idempotency_key=f"match-{match_id}")
+    handler(MatchFinished(match_id=match_id), delivery)
+    handler(MatchFinished(match_id=match_id), delivery)
+    player = golden["players"][0]["played_as"]
+    key = f"battle-best/{match_id}/{player}.json"
+    assert json.loads(files.stored[key]) == {
+        "language": "python",
+        "code": "class Cache: ...",
+    }
+    assert store.match_results.bests == {(match_id, player): ("python", key)}

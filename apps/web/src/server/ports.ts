@@ -1849,6 +1849,81 @@ export interface BattleQuestions {
   fail(questionId: string): Promise<void>;
 }
 
+// P5-W35 (§6.5, DB-6; Q-P5-14, Q-P5-22): a battle's results page, for its players: the
+// standings, each player's code over time once it's over, the AI code review of their
+// best submission on request (labelled AI, never touching ratings), and a dispute.
+export type BattleStanding = {
+  userId: string;
+  name: string;
+  total: number;
+  timeMs: number | null;
+  abandoned: boolean;
+  place: number | null;
+  you: boolean;
+};
+export type BattleReview = {
+  status: "pending" | "ready" | "unavailable";
+  review: string | null;
+};
+export type BattleResult = {
+  problem: string;
+  league: League;
+  finishedAt: Date | null; // null while it's on
+  standings: BattleStanding[];
+  // The viewer's rating change from it, when it was rated: Glicko for a 1v1, OpenSkill
+  // mu for a room.
+  change: number | null;
+  hasBest: boolean;
+  review: BattleReview | null;
+  disputed: boolean;
+  disputeOpen: boolean; // over, and within DISPUTE_DAYS of the end
+};
+export type ReplayFrame = { userId: string; takenAt: Date; key: string };
+export const DISPUTE_DAYS = 7;
+export interface BattleResults {
+  // Null when the user wasn't a player.
+  of(matchId: string, userId: string): Promise<BattleResult | null>;
+  // Every player's snapshots, oldest first: only for a finished battle's player.
+  frames(matchId: string, userId: string): Promise<ReplayFrame[] | null>;
+  // "requested" or "pending" (queue it: a lost job is queued again, the queue's key
+  // keeps it once), "exists" (written), "no_code", or null when not a finished
+  // battle's player.
+  requestReview(
+    matchId: string,
+    userId: string,
+  ): Promise<"requested" | "pending" | "exists" | "no_code" | null>;
+  // A request that couldn't be queued: gone, so the player may ask again.
+  dropReview(matchId: string, userId: string): Promise<void>;
+  // Once a player, within DISPUTE_DAYS of the end.
+  dispute(
+    matchId: string,
+    userId: string,
+    reason: string,
+  ): Promise<"disputed" | "exists" | "late" | null>;
+}
+
+export type DisputeRow = {
+  matchId: string;
+  userId: string;
+  player: string;
+  reason: string;
+  createdAt: Date;
+};
+export interface AdminDisputes {
+  pending(): Promise<DisputeRow[]>;
+  // Phase 5's "done when" (under 3% disputed): battles finished in the last 30 days,
+  // and how many of them anyone disputed.
+  rate(): Promise<{ finished: number; disputed: number }>;
+  // False when it was decided already.
+  decide(
+    matchId: string,
+    userId: string,
+    decision: "upheld" | "dismissed",
+    note: string,
+    adminUserId: string,
+  ): Promise<boolean>;
+}
+
 // P5-W33 (§6.7, Q-P5-20): this season's battle boards, global, per league: the 1v1
 // rating (Glicko) and the room rating (OpenSkill's ordinal, mu - 3 sigma), of players
 // with a rated battle since the season began. `you` marks the viewer's row.

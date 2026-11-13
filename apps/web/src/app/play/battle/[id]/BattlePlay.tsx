@@ -243,6 +243,7 @@ export function BattlePlay({
 
   return (
     <BattleView
+      resultHref={`/play/battle/${matchId}/result`}
       state={state}
       failed={failed}
       statement={statement}
@@ -261,6 +262,7 @@ export function BattlePlay({
 }
 
 type ViewProps = {
+  resultHref: string;
   state: BattleState;
   failed: boolean;
   statement: string;
@@ -278,6 +280,7 @@ type ViewProps = {
 
 // The screen for a state: pure, so it can be shown in tests as it is.
 export function BattleView({
+  resultHref,
   state,
   failed,
   statement,
@@ -324,6 +327,10 @@ export function BattleView({
             </li>
           ))}
         </ul>
+        {/* P5-W35: the standings, replays, the AI review and a dispute. */}
+        <a href={resultHref} className="underline">
+          See the results
+        </a>
       </section>
     );
   }

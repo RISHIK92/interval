@@ -1211,6 +1211,27 @@ def test_an_unrated_or_cancelled_room_moves_nothing(conn: psycopg.Connection) ->
     assert _room_skills(conn, users) == {}
 
 
+def test_a_battle_records_each_players_place(conn: psycopg.Connection) -> None:
+    """P5-W35 (Q-P5-22): the results page's places, as a room ranks them."""
+    users = ["pla", "plb", "plc"]
+    for user in users:
+        a_user(conn, user)
+    match_id = a_battle(conn, users)
+    PostgresMatchResults(conn).record(
+        _battle_result(
+            match_id,
+            "abandoned",
+            "pla",
+            [("pla", 900, False), ("plb", 0, True), ("plc", 900, False)],
+        )
+    )
+    assert conn.execute(
+        "select user_id, place from game_match_player where match_id = %s"
+        " order by user_id",
+        (match_id,),
+    ).fetchall() == [("pla", 1), ("plb", 3), ("plc", 1)]
+
+
 def test_similar_code_flags_a_battle_player(conn: psycopg.Connection) -> None:
     """P5-W33 (Q-P5-20): copied best submissions in the human league go to review."""
     similar: dict[str, object] = {"kind": "similar", "round": 45, "ms": None}

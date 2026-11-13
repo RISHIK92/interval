@@ -139,3 +139,21 @@ func TestASkeletonInsideAFullSolutionIsntACopy(t *testing.T) {
 		t.Fatalf("commented copy: %.2f", s)
 	}
 }
+
+// P5-W35 (Q-P5-22): a battle's result carries each player's best submission.
+func TestABattlesResultCarriesEachBest(t *testing.T) {
+	a, clock, store, ada, _ := startBattle(t)
+	a.post(event{kind: "code", player: "ada", at: clock.Now(), code: &codeMsg{submit: true, language: "python", code: lruPython}})
+	nextOf(t, ada, "submitted")
+	settle(a)
+	clock.Advance(battleLength)
+	nextOf(t, ada, "final")
+	r := resultOf(t, store)
+	got := map[string]*bestCode{}
+	for _, p := range r.Players {
+		got[p.PlayedAs] = p.Best
+	}
+	if got["ada"] == nil || got["ada"].Language != "python" || got["ada"].Code != lruPython || got["bob"] != nil {
+		t.Fatalf("got %+v", got)
+	}
+}

@@ -1293,6 +1293,9 @@ class Store(Protocol):
     def interviewer(self) -> "InterviewerQuestions": ...
 
     @property
+    def reviews(self) -> "CodeReviews": ...
+
+    @property
     def scenes(self) -> "Scenes": ...
 
 
@@ -1481,6 +1484,14 @@ class MatchResults(Protocol):
         """Records the match's result and each player's answers as a match attempt,
         once: False when it was recorded already. Cancelled and void matches keep no
         answers (no result for anyone)."""
+        ...
+
+    def players_of(self, match_id: str) -> dict[str, str]:
+        """P5-W35: the match's players, by the id each plays as (Q-P3-21)."""
+        ...
+
+    def save_best(self, match_id: str, user_id: str, language: str, key: str) -> None:
+        """P5-W35 (Q-P5-22): where a battle player's best submission was stored."""
         ...
 
 
@@ -2189,4 +2200,25 @@ class InterviewerQuestions(Protocol):
 
     def save(self, question_id: int, answer: str | None, model: str | None) -> None:
         """The answer, or None: the interviewer couldn't answer (shown as such)."""
+        ...
+
+
+# P5-W35 (§6.5, AI-1, AI-3, OPS-4; Q-P5-14, Q-P5-22): the AI code review of a battle
+# player's best submission, on request after the battle; never touching ratings.
+@dataclass(frozen=True)
+class ReviewAsk:
+    statement: str  # the problem's statement
+    language: str
+    key: str  # the best submission in the private bucket
+
+
+class CodeReviews(Protocol):
+    def to_review(self, match_id: str, user_id: str) -> ReviewAsk | None:
+        """A requested, pending review with its code's place; None otherwise."""
+        ...
+
+    def save(
+        self, match_id: str, user_id: str, review: str | None, model: str | None
+    ) -> None:
+        """The review, or None: it couldn't be written (shown as such)."""
         ...

@@ -83,9 +83,20 @@ def test_due_after_90_days_unless_a_flag_waits(conn: psycopg.Connection) -> None
         "decided_at) values (%s, 'psc', 1, 'dismissed', now())",
         (decided,),
     )
+    # P5-W35 (Q-P5-22): a best submission goes by the same rule.
+    best = f"battle-best/{plain}/psa.json"
+    conn.execute(
+        "insert into battle_best_submission (match_id, user_id, language, key,"
+        " taken_at) values (%s, 'psa', 'go', %s, %s)",
+        (plain, best, NOW - timedelta(days=95)),
+    )
     snapshots = PostgresSnapshots(conn)
     before = NOW - timedelta(days=90)
-    due = set(snapshots.due(before, 10_000)) & {old, recent, waiting, reviewed}
-    assert due == {old, reviewed}
+    due = set(snapshots.due(before, 10_000)) & {old, recent, waiting, reviewed, best}
+    assert due == {old, reviewed, best}
+    snapshots.forget([best])
+    assert conn.execute(
+        "select count(*) from battle_best_submission where key = %s", (best,)
+    ).fetchone() == (0,)
     snapshots.forget([old])
     assert old not in snapshots.due(before, 10_000)

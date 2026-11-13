@@ -12,6 +12,7 @@ function Editor({ language, value }: CodeEditorProps) {
 const show = (state: BattleState, failed = false) =>
   renderToStaticMarkup(
     <BattleView
+      resultHref="/play/battle/m1/result"
       state={state}
       failed={failed}
       statement="# LRU cache"
@@ -106,6 +107,7 @@ test("the end: the outcome and points; a lost connection says how to rejoin", ()
     places: { ada: 1, bob: 2 },
   });
   expect(html).toContain("You won.");
+  expect(html).toContain('href="/play/battle/m1/result"');
   expect(html).toContain("Opponent: 300 points (abandoned)");
   expect(show(playing, true)).toContain("Reload to rejoin");
 });

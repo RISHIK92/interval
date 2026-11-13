@@ -327,14 +327,17 @@ Already in place, so not sliced again:
 
 - IDs: DB-6
 - Goal: a results page, and replays from snapshots.
+- Built 2026-11-14 (Q-P5-22).
 
 ### P5-W35-S02 The AI code review
 
 - Q: Q-P5-14.
+- Built 2026-11-14 (Q-P5-22).
 
 ### P5-W35-S03 Metrics
 
 - Goal: queries for the "Done when": matched, verdict latency, escapes, disputes, injected bugs caught.
+- Built 2026-11-14 (Q-P5-22).
 
 ### P5-W35-S04 Phase 5 wrap-up
 

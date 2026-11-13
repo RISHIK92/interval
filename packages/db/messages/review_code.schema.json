@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Write the AI code review of a battle player's best submission, on their request after the battle (§6.5, Q-P5-14, Q-P5-22, P5-W35).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["match_id", "user_id"],
+  "properties": {
+    "match_id": { "type": "string", "minLength": 1 },
+    "user_id": { "type": "string", "minLength": 1 }
+  }
+}

@@ -21,6 +21,7 @@ type AiFeature = Literal[
     "tts",
     "scenes",
     "interviewer",
+    "code_review",
 ]
 type AiProvider = Literal[
     "openrouter", "voyage", "groq", "google", "elevenlabs", "inworld", "polly"
@@ -170,6 +171,25 @@ class AuthVerification(TypedDict):
     updated_at: datetime
 
 
+class BattleBestSubmission(TypedDict):
+    match_id: UUID
+    user_id: str
+    language: str
+    key: str
+    taken_at: datetime
+
+
+class BattleDispute(TypedDict):
+    match_id: UUID
+    user_id: str
+    reason: str
+    created_at: datetime
+    decision: str | None
+    note: str | None
+    decided_at: datetime | None
+    decided_by: str | None
+
+
 class BattleQuestion(TypedDict):
     id: int
     match_id: UUID
@@ -202,6 +222,16 @@ class BattleRatingHistory(TypedDict):
     volatility_after: float
     score: float
     at: datetime
+
+
+class BattleReview(TypedDict):
+    match_id: UUID
+    user_id: str
+    requested_at: datetime
+    status: str
+    review: str | None
+    model: str | None
+    reviewed_at: datetime | None
 
 
 class BattleSeasonStanding(TypedDict):
@@ -543,6 +573,7 @@ class GameMatchPlayer(TypedDict):
     time_ms: int | None
     abandoned: bool | None
     signals: JsonValue | None
+    place: int | None
 
 
 class GameMatchQuestion(TypedDict):

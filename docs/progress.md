@@ -5598,3 +5598,39 @@ The owner said to continue building overnight with recommended answers, switchin
   - the 10-question limit could be raced;
   - the notes could be exfiltrated through the prompt.
 - **Verify under load:** with several verify and mutation runs at once, Velox's 5 s limit tripped at random. Run them one at a time.
+
+### 2026-11-14 — P5 Week 35, S01 to S03 (results and replays, the AI code review, disputes, metrics; §6.5, DB-6, AI-1, AI-3, OPS-4, Q-P5-14, Q-P5-22)
+
+- **Owner's Q-P5-22 answers recorded:**
+  - after a battle, its players replay everyone's code;
+  - a "Dispute this result" button feeds an admin queue;
+  - each player's best submission is stored for the AI review.
+- **Migration `20261114000000_battle_results`:** `game_match_player.place`, `battle_best_submission`, `battle_review` (the AI feature `code_review`), and `battle_dispute`.
+- **The game server** hands each battle player's best submission (code and language) over with the result.
+- **The worker:**
+  - on every delivery, it keeps the bests in the bucket (`battle-best/<match>/<user>.json`), then their rows. Pruning covers them, by the snapshots' rule;
+  - it stores places as a room ranks them;
+  - `review_code` reviews the best code with QUESTIONS_MODEL through the gateway, fenced and capped at 40 KB;
+  - a missing or corrupt code, no model, over budget, or a last-attempt failure shows the review unavailable, never pending forever.
+- **Web:**
+  - `/play/battle/[id]/result` for its players shows:
+    - the places, points, best times and the viewer's rating change;
+    - every player's code over time once it's over (Replay, by frame);
+    - "Review my best submission (AI)", labelled AI and never touching ratings;
+    - a dispute, once, within 7 days.
+  - The routes are review (a still-pending request is queued again; a failed enqueue is dropped so it can be asked again), dispute, and replay (a corrupt frame is a 404).
+  - `/admin/disputes` upholds or dismisses with a note, and shows the last 30 days' rate against the under-3% goal.
+  - The guest merge moves bests, reviews and disputes, and the battle's end links to the results.
+- **Metrics (S03):**
+  - `window_matched.sql` (Athena, saved in the stack; DuckDB-tested): window registrants matched per week, against the 80% goal;
+  - disputes come from `/admin/disputes`;
+  - verdict latency from the k6 load test (W34-S02, the owner's run);
+  - escapes from the red-team suite (W34-S03);
+  - injected bugs caught from verify's mutation gate, per problem.
+- **Sonnet review fixed:**
+  - bests lost on a retry;
+  - reviews stuck pending (pruned code, corrupt objects, a parse outside the retry guard, a lost job);
+  - code breaking out of its fence, with no size cap;
+  - a corrupt replay frame giving a 500;
+  - unstable frame order.
+- **Still to do:** S04, the Phase 5 wrap-up.

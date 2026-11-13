@@ -1138,6 +1138,8 @@ describe("Athena metric queries (W6-S04, DB-5)", () => {
     "listen_share.sql",
     "explainer_completion.sql",
     "push_opt_in.sql",
+    // Phase 5 (P5-W35-S03).
+    "window_matched.sql",
   ];
 
   test("a Glue table reads the Firehose events by day, with partition projection", () => {

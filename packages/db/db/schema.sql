@@ -39,7 +39,9 @@ CREATE TYPE public.ai_feature AS ENUM (
     'project_notes',
     'explainer',
     'tts',
-    'scenes'
+    'scenes',
+    'interviewer',
+    'code_review'
 );
 
 
@@ -940,6 +942,41 @@ CREATE TABLE public.auth_verification (
 
 
 --
+-- Name: battle_question; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.battle_question (
+    id bigint NOT NULL,
+    match_id uuid NOT NULL,
+    user_id text NOT NULL,
+    question text NOT NULL,
+    asked_at timestamp with time zone DEFAULT now() NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    answer text,
+    model text,
+    answered_at timestamp with time zone,
+    CONSTRAINT battle_question_answer_check CHECK (((answer IS NULL) OR (char_length(answer) <= 2000))),
+    CONSTRAINT battle_question_check CHECK (((status = 'answered'::text) = (answer IS NOT NULL))),
+    CONSTRAINT battle_question_question_check CHECK (((char_length(question) >= 1) AND (char_length(question) <= 500))),
+    CONSTRAINT battle_question_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'answered'::text, 'unavailable'::text])))
+);
+
+
+--
+-- Name: battle_question_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.battle_question ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.battle_question_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: battle_rating; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -975,6 +1012,22 @@ CREATE TABLE public.battle_rating_history (
 
 
 --
+-- Name: battle_season_standing; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.battle_season_standing (
+    season text NOT NULL,
+    user_id text NOT NULL,
+    league text NOT NULL,
+    kind text NOT NULL,
+    rating double precision NOT NULL,
+    CONSTRAINT battle_season_standing_kind_check CHECK ((kind = ANY (ARRAY['duel'::text, 'room'::text]))),
+    CONSTRAINT battle_season_standing_league_check CHECK ((league = ANY (ARRAY['human'::text, 'ai'::text]))),
+    CONSTRAINT battle_season_standing_season_check CHECK ((season ~ '^[0-9]{4}-[0-9]{2}$'::text))
+);
+
+
+--
 -- Name: battle_snapshot; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -995,7 +1048,9 @@ CREATE TABLE public.battle_snapshot (
 CREATE TABLE public.battle_window (
     window_at timestamp with time zone NOT NULL,
     grouping_at timestamp with time zone NOT NULL,
-    problem_slug text NOT NULL
+    problem_slug text NOT NULL,
+    league text DEFAULT 'human'::text NOT NULL,
+    CONSTRAINT battle_window_league_check CHECK ((league = ANY (ARRAY['human'::text, 'ai'::text])))
 );
 
 
@@ -1009,7 +1064,9 @@ CREATE TABLE public.battle_window_registration (
     registered_at timestamp with time zone DEFAULT now() NOT NULL,
     remind_at timestamp with time zone NOT NULL,
     reminded_at timestamp with time zone,
-    match_id uuid
+    match_id uuid,
+    league text DEFAULT 'human'::text NOT NULL,
+    CONSTRAINT battle_window_registration_league_check CHECK ((league = ANY (ARRAY['human'::text, 'ai'::text])))
 );
 
 
@@ -2060,9 +2117,13 @@ CREATE TABLE public.lld_problem (
     loaded_at timestamp with time zone DEFAULT now() NOT NULL,
     extension_statement text,
     extension_interface jsonb,
+    league text DEFAULT 'human'::text NOT NULL,
+    interviewer_notes text,
     CONSTRAINT lld_problem_check CHECK ((private_key = (((('lld/problems/'::text || slug) || '/'::text) || content_hash) || '.json'::text))),
     CONSTRAINT lld_problem_check1 CHECK (((extension_statement IS NULL) = (extension_interface IS NULL))),
     CONSTRAINT lld_problem_content_hash_check CHECK ((content_hash ~ '^[0-9a-f]{64}$'::text)),
+    CONSTRAINT lld_problem_interviewer_notes_check CHECK (((interviewer_notes IS NULL) OR ((length(interviewer_notes) >= 1) AND (length(interviewer_notes) <= 20000)))),
+    CONSTRAINT lld_problem_league_check CHECK ((league = ANY (ARRAY['human'::text, 'ai'::text]))),
     CONSTRAINT lld_problem_slug_check CHECK (((slug ~ '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'::text) AND (length(slug) <= 48))),
     CONSTRAINT lld_problem_title_check CHECK (((length(title) >= 3) AND (length(title) <= 80))),
     CONSTRAINT lld_problem_visible_check CHECK ((jsonb_typeof(visible) = 'array'::text))
@@ -3548,6 +3609,14 @@ ALTER TABLE ONLY public.auth_verification
 
 
 --
+-- Name: battle_question battle_question_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_question
+    ADD CONSTRAINT battle_question_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: battle_rating_history battle_rating_history_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3561,6 +3630,14 @@ ALTER TABLE ONLY public.battle_rating_history
 
 ALTER TABLE ONLY public.battle_rating
     ADD CONSTRAINT battle_rating_pkey PRIMARY KEY (user_id, league);
+
+
+--
+-- Name: battle_season_standing battle_season_standing_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_season_standing
+    ADD CONSTRAINT battle_season_standing_pkey PRIMARY KEY (season, league, kind, user_id);
 
 
 --
@@ -3592,7 +3669,7 @@ ALTER TABLE ONLY public.battle_snapshot
 --
 
 ALTER TABLE ONLY public.battle_window
-    ADD CONSTRAINT battle_window_pkey PRIMARY KEY (window_at);
+    ADD CONSTRAINT battle_window_pkey PRIMARY KEY (window_at, league);
 
 
 --
@@ -4868,6 +4945,13 @@ CREATE INDEX auth_verification_identifier ON public.auth_verification USING btre
 
 
 --
+-- Name: battle_question_player; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX battle_question_player ON public.battle_question USING btree (match_id, user_id);
+
+
+--
 -- Name: battle_rating_history_user; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5444,6 +5528,22 @@ ALTER TABLE ONLY public.auth_session
 
 
 --
+-- Name: battle_question battle_question_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_question
+    ADD CONSTRAINT battle_question_match_id_fkey FOREIGN KEY (match_id) REFERENCES public.game_match(id) ON DELETE CASCADE;
+
+
+--
+-- Name: battle_question battle_question_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_question
+    ADD CONSTRAINT battle_question_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
 -- Name: battle_rating_history battle_rating_history_match_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5465,6 +5565,14 @@ ALTER TABLE ONLY public.battle_rating_history
 
 ALTER TABLE ONLY public.battle_rating
     ADD CONSTRAINT battle_rating_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: battle_season_standing battle_season_standing_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.battle_season_standing
+    ADD CONSTRAINT battle_season_standing_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.app_user(id) ON DELETE CASCADE;
 
 
 --
@@ -7001,4 +7109,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20261113050000'),
     ('20261113060000'),
     ('20261113070000'),
-    ('20261113080000');
+    ('20261113080000'),
+    ('20261113090000'),
+    ('20261113100000');

@@ -175,6 +175,21 @@ export async function mergeGuest(
   }
   // Otherwise the guest's rating, history and season standings go with the guest.
 
+  // P5-W35 (Q-P5-22): its battles' best submissions, reviews and disputes; in a battle
+  // the account played too (a self-match), the account's own stay and the guest's go.
+  for (const table of [
+    "battle_best_submission",
+    "battle_review",
+    "battle_dispute",
+  ] as const)
+    await sql`
+      update ${sql.table(table)} g set user_id = ${accountId}
+      where g.user_id = ${guestId}
+        and not exists (select 1 from ${sql.table(table)} o
+          where o.user_id = ${accountId} and o.match_id = g.match_id)`.execute(
+      trx,
+    );
+
   // P5-W32-S01a, S01b (Q-P5-18): 1v1 battle ratings and room ratings, by the same
   // rule in each league.
   await mergeLeagueRatings(trx, guestId, accountId, "battle_rating");

@@ -84,6 +84,7 @@ from interval_jobs.ports import (
     QuestionTarget,
     RankedEntry,
     RepoRead,
+    ReviewAsk,
     RevokeResult,
     RightsViolation,
     Section,
@@ -3187,19 +3188,27 @@ class PostgresSnapshots:
         self._conn = conn
 
     def due(self, before: datetime, limit: int) -> list[str]:
+        # P5-W35 (Q-P5-22): best submissions go by the same rule.
         return [
             key
             for (key,) in self._conn.execute(
-                "select s.key from battle_snapshot s where s.taken_at < %s "
-                "and not exists (select 1 from fair_play_flag f "
-                "where f.match_id = s.match_id and f.decision is null) "
-                "order by s.taken_at limit %s",
+                "select key from ("
+                " select key, match_id, taken_at from battle_snapshot"
+                " union all"
+                " select key, match_id, taken_at from battle_best_submission) s"
+                " where s.taken_at < %s"
+                " and not exists (select 1 from fair_play_flag f"
+                " where f.match_id = s.match_id and f.decision is null)"
+                " order by s.taken_at limit %s",
                 (before, limit),
             )
         ]
 
     def forget(self, keys: list[str]) -> None:
         self._conn.execute("delete from battle_snapshot where key = any(%s)", (keys,))
+        self._conn.execute(
+            "delete from battle_best_submission where key = any(%s)", (keys,)
+        )
 
 
 def _duel(
@@ -3368,6 +3377,7 @@ class PostgresMatchResults:
             # P5-W31-S02b-2b (Q-P5-16): battles leave no ghost runs (those replay quiz
             # answers); P5-W32-S01a rates them with their own ratings.
             if mode == "battle":
+                self._place(result, players)
                 if not done[6]:
                     self._rate_battle(result, players, str(done[7]))
                 return True
@@ -3495,6 +3505,38 @@ class PostgresMatchResults:
             "update game_match set rated_at = now() where id = %s", (result.match_id,)
         )
         return before
+
+    def _place(self, result: MatchResult, players: dict[str, str]) -> None:
+        """P5-W35 (Q-P5-18, Q-P5-22): each battle player's place for the results page,
+        as a room is ranked (points, then time, the abandoned last together)."""
+        placed = [
+            Placed(players[p.played_as], p.total, p.time_ms, p.abandoned)
+            for p in result.players
+            if p.played_as in players
+        ]
+        for user, place in ranks(placed).items():
+            self._conn.execute(
+                "update game_match_player set place = %s"
+                " where match_id = %s and user_id = %s",
+                (min(place, 4), result.match_id, user),
+            )
+
+    def players_of(self, match_id: str) -> dict[str, str]:
+        return {
+            str(played): str(user)
+            for user, played in self._conn.execute(
+                "select user_id, coalesce(played_as, user_id) "
+                "from game_match_player where match_id = %s",
+                (match_id,),
+            ).fetchall()
+        }
+
+    def save_best(self, match_id: str, user_id: str, language: str, key: str) -> None:
+        self._conn.execute(
+            "insert into battle_best_submission (match_id, user_id, language, key) "
+            "values (%s, %s, %s, %s) on conflict do nothing",
+            (match_id, user_id, language, key),
+        )
 
     def _rate_battle(
         self, result: MatchResult, players: dict[str, str], league: str
@@ -4510,6 +4552,44 @@ class PostgresInterviewer:
         )
 
 
+class PostgresReviews:
+    """AI code reviews of battle submissions (P5-W35, Q-P5-22)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def to_review(self, match_id: str, user_id: str) -> ReviewAsk | None:
+        row = self._conn.execute(
+            """
+            select p.statement, b.language, b.key
+            from battle_review r
+            join battle_best_submission b
+              on b.match_id = r.match_id and b.user_id = r.user_id
+            join game_match m on m.id = r.match_id
+            join lld_problem p on p.slug = m.problem_slug
+            where r.match_id = %s and r.user_id = %s and r.status = 'pending'
+            """,
+            (match_id, user_id),
+        ).fetchone()
+        return None if row is None else ReviewAsk(str(row[0]), str(row[1]), str(row[2]))
+
+    def save(
+        self, match_id: str, user_id: str, review: str | None, model: str | None
+    ) -> None:
+        self._conn.execute(
+            "update battle_review set status = %s, review = %s, model = %s,"
+            " reviewed_at = now()"
+            " where match_id = %s and user_id = %s and status = 'pending'",
+            (
+                "ready" if review is not None else "unavailable",
+                review,
+                model,
+                match_id,
+                user_id,
+            ),
+        )
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
@@ -4523,6 +4603,7 @@ class PostgresStore:
         self.device_tokens = PostgresDeviceTokens(conn)
         self.reminders = PostgresReminders(conn)
         self.interviewer = PostgresInterviewer(conn)
+        self.reviews = PostgresReviews(conn)
         self.scenes = PostgresScenes(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)

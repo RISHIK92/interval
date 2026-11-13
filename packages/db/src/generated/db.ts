@@ -5,7 +5,7 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "concept_drafting" | "embeddings" | "explainer" | "interviewer" | "notes" | "paths" | "project_notes" | "questions" | "scenes" | "tagging" | "technologies" | "tts";
+export type AiFeature = "code_review" | "concept_drafting" | "embeddings" | "explainer" | "interviewer" | "notes" | "paths" | "project_notes" | "questions" | "scenes" | "tagging" | "technologies" | "tts";
 
 export type AiProvider = "elevenlabs" | "google" | "groq" | "inworld" | "openrouter" | "polly" | "voyage";
 
@@ -188,6 +188,25 @@ export interface AuthVerification {
   value: string;
 }
 
+export interface BattleBestSubmission {
+  key: string;
+  language: string;
+  match_id: string;
+  taken_at: Generated<Timestamp>;
+  user_id: string;
+}
+
+export interface BattleDispute {
+  created_at: Generated<Timestamp>;
+  decided_at: Timestamp | null;
+  decided_by: string | null;
+  decision: string | null;
+  match_id: string;
+  note: string | null;
+  reason: string;
+  user_id: string;
+}
+
 export interface BattleQuestion {
   answer: string | null;
   answered_at: Timestamp | null;
@@ -220,6 +239,16 @@ export interface BattleRatingHistory {
   score: number;
   user_id: string;
   volatility_after: number;
+}
+
+export interface BattleReview {
+  match_id: string;
+  model: string | null;
+  requested_at: Generated<Timestamp>;
+  review: string | null;
+  reviewed_at: Timestamp | null;
+  status: Generated<string>;
+  user_id: string;
 }
 
 export interface BattleSeasonStanding {
@@ -556,6 +585,7 @@ export interface GameMatch {
 export interface GameMatchPlayer {
   abandoned: boolean | null;
   match_id: string;
+  place: number | null;
   played_as: string | null;
   signals: Json | null;
   time_ms: Int8 | null;
@@ -1380,9 +1410,12 @@ export interface DB {
   auth_account: AuthAccount;
   auth_session: AuthSession;
   auth_verification: AuthVerification;
+  battle_best_submission: BattleBestSubmission;
+  battle_dispute: BattleDispute;
   battle_question: BattleQuestion;
   battle_rating: BattleRating;
   battle_rating_history: BattleRatingHistory;
+  battle_review: BattleReview;
   battle_season_standing: BattleSeasonStanding;
   battle_snapshot: BattleSnapshot;
   battle_window: BattleWindow;
