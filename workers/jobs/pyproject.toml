@@ -11,6 +11,8 @@ dependencies = [
     # P4-W19-S04b (owner, 2026-11-09): APNs only speaks HTTP/2; httpx needs h2 for it.
     "h2==4.4.1",
     "interval-db",
+    # P5-W32-S01b (Q-P5-11, owner-approved): OpenSkill for rooms (MATCH-1); 2026-01-11.
+    "openskill==6.2.0",
     "opentelemetry-api==1.45.1",
     "opentelemetry-sdk==1.45.1",
     "pdfplumber==0.11.7",

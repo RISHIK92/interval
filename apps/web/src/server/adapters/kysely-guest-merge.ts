@@ -175,48 +175,10 @@ export async function mergeGuest(
   }
   // Otherwise the guest's rating, history and season standings go with the guest.
 
-  // P5-W32-S01a (Q-P5-18): 1v1 battle ratings, by the same rule in each league: the
-  // more-played one stays with the account, with its own history. Locked in user_id
-  // order, as rating a battle locks.
-  const battleRatings = await sql<{
-    user_id: string;
-    league: string;
-    games: number;
-  }>`
-    select user_id, league, games from battle_rating
-    where user_id in (${guestId}, ${accountId})
-    order by user_id, league
-    for update`.execute(trx);
-  const battleGames = (id: string, league: string) =>
-    battleRatings.rows.find((r) => r.user_id === id && r.league === league)
-      ?.games;
-  for (const { league } of battleRatings.rows.filter(
-    (r) => r.user_id === guestId,
-  )) {
-    const guestPlayed = battleGames(guestId, league) ?? 0;
-    const accountPlayed = battleGames(accountId, league);
-    if (accountPlayed !== undefined && guestPlayed <= accountPlayed) continue;
-    await trx
-      .deleteFrom("battle_rating_history")
-      .where("user_id", "=", accountId)
-      .where("league", "=", league)
-      .execute();
-    await trx
-      .updateTable("battle_rating_history")
-      .set({ user_id: accountId })
-      .where("user_id", "=", guestId)
-      .where("league", "=", league)
-      .execute();
-    await sql`
-      insert into battle_rating
-        (user_id, league, rating, rd, volatility, games, updated_at)
-      select ${accountId}, league, rating, rd, volatility, games, updated_at
-      from battle_rating where user_id = ${guestId} and league = ${league}
-      on conflict (user_id, league) do update set
-        rating = excluded.rating, rd = excluded.rd,
-        volatility = excluded.volatility, games = excluded.games,
-        updated_at = excluded.updated_at`.execute(trx);
-  }
+  // P5-W32-S01a, S01b (Q-P5-18): 1v1 battle ratings and room ratings, by the same
+  // rule in each league.
+  await mergeLeagueRatings(trx, guestId, accountId, "battle_rating");
+  await mergeLeagueRatings(trx, guestId, accountId, "room_rating");
 
   // P3-W18-S02 (§6.9): its fair-play flags. Not those of a match the account played
   // too: a penalty there would drop the account's own run. A penalty only with the
@@ -249,4 +211,50 @@ export async function mergeGuest(
 
   await trx.deleteFrom("app_user").where("id", "=", guestId).execute();
   return true;
+}
+
+// Per league, the more-played rating stays with the account, with its own history
+// (`<table>_history`), as quick games' does. Locked in user_id order, as rating a match
+// locks.
+async function mergeLeagueRatings(
+  trx: Kysely<DB>,
+  guestId: string,
+  accountId: string,
+  table: "battle_rating" | "room_rating",
+): Promise<void> {
+  const ratings = await sql<{ user_id: string; league: string; games: number }>`
+    select user_id, league, games from ${sql.table(table)}
+    where user_id in (${guestId}, ${accountId})
+    order by user_id, league
+    for update`.execute(trx);
+  const games = (id: string, league: string) =>
+    ratings.rows.find((r) => r.user_id === id && r.league === league)?.games;
+  // The rating's own columns, copied as they are.
+  const columns =
+    table === "battle_rating"
+      ? ["rating", "rd", "volatility"]
+      : ["mu", "sigma"];
+  const kept = sql.join(
+    [...columns, "games", "updated_at"].map((c) => sql.ref(c)),
+  );
+  const updates = sql.join(
+    [...columns, "games", "updated_at"].map(
+      (c) => sql`${sql.ref(c)} = excluded.${sql.ref(c)}`,
+    ),
+  );
+  const history = sql.table(`${table}_history`);
+  for (const { league } of ratings.rows.filter((r) => r.user_id === guestId)) {
+    const guestPlayed = games(guestId, league) ?? 0;
+    const accountPlayed = games(accountId, league);
+    if (accountPlayed !== undefined && guestPlayed <= accountPlayed) continue;
+    await sql`delete from ${history}
+      where user_id = ${accountId} and league = ${league}`.execute(trx);
+    await sql`update ${history} set user_id = ${accountId}
+      where user_id = ${guestId} and league = ${league}`.execute(trx);
+    await sql`
+      insert into ${sql.table(table)} (user_id, league, ${kept})
+      select ${accountId}, league, ${kept}
+      from ${sql.table(table)} where user_id = ${guestId} and league = ${league}
+      on conflict (user_id, league) do update set ${updates}`.execute(trx);
+  }
 }

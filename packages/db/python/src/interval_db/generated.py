@@ -987,6 +987,26 @@ class ReasonReport(TypedDict):
     reported_at: datetime
 
 
+class RoomRating(TypedDict):
+    user_id: str
+    league: str
+    mu: float
+    sigma: float
+    games: int
+    updated_at: datetime
+
+
+class RoomRatingHistory(TypedDict):
+    match_id: UUID
+    user_id: str
+    league: str
+    mu_before: float
+    mu_after: float
+    sigma_after: float
+    rank: int
+    at: datetime
+
+
 class SchemaMeta(TypedDict):
     key: str
     value: str

@@ -1112,8 +1112,9 @@ def test_a_cancelled_battle_or_an_ai_league_one_leaves_the_human_ratings(
 def test_unrated_rooms_and_self_battles_leave_battle_ratings_alone(
     conn: psycopg.Connection,
 ) -> None:
-    """An unrated battle (as a friend challenge is), a room of 3 (OpenSkill, W32-S01b)
-    and a guest who signed up into its opponent's account move no battle rating."""
+    """An unrated battle (as a friend challenge is), a room of 3 (rated as a room,
+    W32-S01b) and a guest who signed up into its opponent's account move no 1v1
+    battle rating."""
     for user in ("bri", "brj", "brk"):
         a_user(conn, user)
     unrated = a_battle(conn, ["bri", "brj"])
@@ -1142,3 +1143,69 @@ def test_unrated_rooms_and_self_battles_leave_battle_ratings_alone(
         )
     )
     assert _battle_ratings(conn, ["bri", "brj", "brk"]) == {}
+
+
+# P5-W32-S01b (MATCH-1, Q-P5-18): a room of 3 or 4 is rated with OpenSkill in its
+# league, by points then time, the abandoned last; apart from 1v1 battle ratings.
+def _room_skills(
+    conn: psycopg.Connection, users: list[str], league: str = "human"
+) -> dict[str, tuple[float, int]]:
+    return {
+        user: (mu, games)
+        for user, mu, games in conn.execute(
+            "select user_id, mu, games from room_rating "
+            "where user_id = any(%s) and league = %s",
+            (users, league),
+        ).fetchall()
+    }
+
+
+def test_a_room_is_rated_with_openskill_once(conn: psycopg.Connection) -> None:
+    users = ["rma", "rmb", "rmc", "rmd"]
+    for user in users:
+        a_user(conn, user)
+    match_id = a_battle(conn, users)
+    result = _battle_result(
+        match_id,
+        "abandoned",
+        "rma",
+        [
+            ("rma", 1000, False),
+            ("rmb", 700, False),
+            ("rmc", 700, False),
+            ("rmd", 0, True),
+        ],
+    )
+    results = PostgresMatchResults(conn)
+    assert results.record(result) is True
+    skills = _room_skills(conn, users)
+    assert skills["rma"][0] > 25 > skills["rmd"][0]
+    assert skills["rmb"] == skills["rmc"]
+    assert all(games == 1 for _, games in skills.values())
+    assert conn.execute(
+        "select user_id, rank, mu_before from room_rating_history "
+        "where match_id = %s order by user_id",
+        (match_id,),
+    ).fetchall() == [
+        ("rma", 1, 25.0),
+        ("rmb", 2, 25.0),
+        ("rmc", 2, 25.0),
+        ("rmd", 4, 25.0),
+    ]
+    assert _battle_ratings(conn, users) == {}
+    assert results.record(result) is False
+    assert _room_skills(conn, ["rma"])["rma"][1] == 1
+
+
+def test_an_unrated_or_cancelled_room_moves_nothing(conn: psycopg.Connection) -> None:
+    users = ["rme", "rmf", "rmg"]
+    for user in users:
+        a_user(conn, user)
+    seats = [("rme", 900, False), ("rmf", 500, False), ("rmg", 100, False)]
+    cancelled = a_battle(conn, users)
+    unrated = a_battle(conn, users)
+    conn.execute("update game_match set unrated = true where id = %s", (unrated,))
+    results = PostgresMatchResults(conn)
+    results.record(_battle_result(cancelled, "cancelled", None, seats))
+    results.record(_battle_result(unrated, "finished", "rme", seats))
+    assert _room_skills(conn, users) == {}

@@ -248,6 +248,20 @@ Already in place, so not sliced again:
 
 - IDs: MATCH-1, C-03; Q-P5-11, Q-P5-18
 - Goal: battles of 3 or 4 players on the game server and the web; `openskill` (Plackett-Luce) in the worker. A room ranks its players by points, then time; abandoned players rank last. A room rating per league, soft-reset with the season.
+- Split (2026-11-13):
+  - **S01b-1:** the worker's room ratings.
+  - **S01b-2:** rooms on the game server, the web and the battle page.
+
+### P5-W32-S01b-1 Room ratings
+
+- IDs: MATCH-1; Q-P5-11, Q-P5-18
+- Goal: `openskill` 6.2.0 (Plackett-Luce); `room_rating` and its history per league; a room of 3 or 4 rated once by points, then time, with the abandoned last; the season reset; the guest merge; a room flag's penalty.
+- Built 2026-11-13.
+
+### P5-W32-S01b-2 Rooms of up to 4
+
+- IDs: C-03; Q-P5-18
+- Goal: battles of up to 4 on the game server and the web (`startBattle`, `pnpm game:battle`); the battle page names each opponent and shows a room's placing.
 
 ### P5-W32-S02 Windows, registration, reminders
 

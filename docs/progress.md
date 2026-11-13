@@ -5486,3 +5486,19 @@ The owner said to continue building overnight with recommended answers, switchin
   - a guest's penalised battle flag follows the quick-game rating rule in the merge, not the battle league's (an edge case);
   - battles have no rating boards yet.
 - **Flaky locally under full `pnpm check` load:** connection timeouts in the web DB suites and a slow infra synth. Each passes alone.
+
+### 2026-11-13 — P5-W32-S01b-1 (room ratings with OpenSkill; MATCH-1, Q-P5-11, Q-P5-18)
+
+- **New dependency:** `openskill==6.2.0` (worker; released 2026-01-11; typed; no runtime dependencies; approved through Q-P5-11).
+- **`room_ratings.py`:** Plackett-Luce.
+  - `ranks` orders by points, then time; ties share, and the abandoned are last together. A player who never submitted has 45:00 as their time.
+  - `room_season_reset` mirrors the Glicko reset: mu keeps 75% of its distance from 25, and sigma is at least 25/3 × 150/350.
+- **Migration `20261113070000_room_rating`:** `room_rating` and `room_rating_history` per league.
+- **The worker rates a room of 3 or 4 once.** These are logged as a warning and left unrated:
+  - a room past 4 players, or one where a guest played its own account;
+  - an "abandoned" result with nobody leaving, which is refused as for a 1v1.
+- **Season close:** it resets rooms too.
+- **Guest merge:** `mergeLeagueRatings(table)` covers both battle and room ratings.
+- **Fair play:** a room's gain and penalty are in OpenSkill mu.
+- **Sonnet review:** no blockers. Fixed the abandoned guard and the warn level.
+- **Left as nits:** the admin page's gain mixes Glicko points and mu with no unit; a few test gaps (all-abandoned rooms, an AI-league room).

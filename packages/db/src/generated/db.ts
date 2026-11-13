@@ -1006,6 +1006,26 @@ export interface ReasonReport {
   user_id: string;
 }
 
+export interface RoomRating {
+  games: Generated<number>;
+  league: string;
+  mu: number;
+  sigma: number;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
+export interface RoomRatingHistory {
+  at: Generated<Timestamp>;
+  league: string;
+  match_id: string;
+  mu_after: number;
+  mu_before: number;
+  rank: number;
+  sigma_after: number;
+  user_id: string;
+}
+
 export interface SchemaMeta {
   key: string;
   value: string;
@@ -1414,6 +1434,8 @@ export interface DB {
   ranking_config: RankingConfig;
   rating_history: RatingHistory;
   reason_report: ReasonReport;
+  room_rating: RoomRating;
+  room_rating_history: RoomRatingHistory;
   schema_meta: SchemaMeta;
   season_close: SeasonClose;
   season_standing: SeasonStanding;

@@ -313,3 +313,64 @@ test("a battle's flag shows its pastes, aways and gain; a penalty removes the ga
     ).toEqual({ decision: "penalized", penalty: 30 });
   });
 });
+
+// P5-W32-S01b: a room's gain is its OpenSkill mu, removed the same way.
+test("a room's flag shows its mu gain; a penalty removes it", async () => {
+  await inRollback(0, async (trx, { bob }) => {
+    const slug = `room-${randomUUID().slice(0, 8)}`;
+    const hash = "d".repeat(64);
+    await trx
+      .insertInto("lld_problem")
+      .values({
+        slug,
+        title: "A problem",
+        difficulty: "easy",
+        statement: "# A problem",
+        interface: JSON.stringify({}),
+        limits: JSON.stringify({}),
+        visible: JSON.stringify([]),
+        private_key: `lld/problems/${slug}/${hash}.json`,
+        content_hash: hash,
+      })
+      .execute();
+    const { id: room } = await trx
+      .insertInto("game_match")
+      .values({ server_id: 0, mode: "battle", problem_slug: slug })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("game_match_player")
+      .values({ match_id: room, user_id: bob, signals: JSON.stringify([]) })
+      .execute();
+    await trx
+      .insertInto("fair_play_flag")
+      .values({ match_id: room, user_id: bob, signals: 1 })
+      .execute();
+    await trx
+      .insertInto("room_rating")
+      .values({ user_id: bob, league: "human", mu: 28, sigma: 7, games: 1 })
+      .execute();
+    await trx
+      .insertInto("room_rating_history")
+      .values({
+        match_id: room,
+        user_id: bob,
+        league: "human",
+        mu_before: 25,
+        mu_after: 28,
+        sigma_after: 7,
+        rank: 1,
+      })
+      .execute();
+    const admin = kyselyAdminFairPlay(trx);
+    const [row] = mine(await admin.pending(), room);
+    expect(row).toMatchObject({ mode: "battle", gain: 3 });
+    await admin.decide(row?.id ?? "", bob, "penalize");
+    const after = await trx
+      .selectFrom("room_rating")
+      .select("mu")
+      .where("user_id", "=", bob)
+      .executeTakeFirstOrThrow();
+    expect(after.mu).toBe(25);
+  });
+});

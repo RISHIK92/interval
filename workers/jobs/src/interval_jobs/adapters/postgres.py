@@ -110,6 +110,14 @@ from interval_jobs.ports import (
 from interval_jobs.questions import ESTIMATE_PROMPT_VERSION
 from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.ratings import REPLAY_WEIGHT, START, Glicko, season_reset, update
+from interval_jobs.room_ratings import (
+    SKILL_START,
+    Placed,
+    Skill,
+    ranks,
+    rate_room,
+    room_season_reset,
+)
 from interval_jobs.technologies import TechnologySeed
 from interval_jobs.universities import UniversitySeed
 
@@ -3496,9 +3504,7 @@ class PostgresMatchResults:
         if result.outcome not in ("finished", "abandoned"):
             return
         if len(result.players) > 2:
-            log.info(
-                "game: match unrated", match_id=str(result.match_id), reason="room"
-            )
+            self._rate_room(result, players, league)
             return
         duel = _duel(result, players)
         if duel is None:
@@ -3542,6 +3548,74 @@ class PostgresMatchResults:
                     after.rd,
                     after.volatility,
                     points,
+                ),
+            )
+        conn.execute(
+            "update game_match set rated_at = now() where id = %s", (result.match_id,)
+        )
+
+    def _rate_room(
+        self, result: MatchResult, players: dict[str, str], league: str
+    ) -> None:
+        """P5-W32-S01b (MATCH-1, Q-P5-18): a room's OpenSkill ratings in its league,
+        once, by points then time, the abandoned last."""
+        placed = [
+            Placed(players[p.played_as], p.total, p.time_ms, p.abandoned)
+            for p in result.players
+            if p.played_as in players
+        ]
+        users = sorted({p.user for p in placed})
+        # C-03: rooms are of up to 4; the game server never makes more.
+        if result.outcome == "abandoned" and not any(p.abandoned for p in placed):
+            # Go never sends this, as for a 1v1.
+            log.error("game: result refused", reason="abandoned with nobody leaving")
+            return
+        if not 3 <= len(users) <= 4 or len(users) != len(placed):
+            # A guest who signed up into another player's account, or a room past C-03's
+            # 4 (a game-server bug): no room to rate.
+            log.warn(
+                "game: match unrated",
+                match_id=str(result.match_id),
+                reason="room seats",
+            )
+            return
+        conn = self._conn
+        conn.execute(
+            "insert into room_rating (user_id, league, mu, sigma) "
+            "select u, %s, %s, %s from unnest(%s::text[]) u on conflict do nothing",
+            (league, SKILL_START.mu, SKILL_START.sigma, users),
+        )
+        # In user_id order, as every rating locks.
+        before = {
+            str(user): Skill(float(mu), float(sigma))
+            for user, mu, sigma in conn.execute(
+                "select user_id, mu, sigma from room_rating "
+                "where user_id = any(%s) and league = %s order by user_id for update",
+                (users, league),
+            ).fetchall()
+        }
+        rank = ranks(placed)
+        after = rate_room(before, rank)
+        for user in users:
+            conn.execute(
+                "update room_rating set mu = %s, sigma = %s, games = games + 1, "
+                "updated_at = now() where user_id = %s and league = %s",
+                (after[user].mu, after[user].sigma, user, league),
+            )
+            conn.execute(
+                """
+                insert into room_rating_history (match_id, user_id, league, mu_before,
+                  mu_after, sigma_after, rank)
+                values (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    result.match_id,
+                    user,
+                    league,
+                    before[user].mu,
+                    after[user].mu,
+                    after[user].sigma,
+                    rank[user],
                 ),
             )
         conn.execute(
@@ -3820,11 +3894,27 @@ class PostgresSeasons:
                         for after in [season_reset(Glicko(rating, rd, volatility))]
                     ],
                 )
+            # P5-W32-S01b: and room ratings, OpenSkill's version of the same reset.
+            rooms = conn.execute(
+                "select user_id, league, mu, sigma from room_rating"
+                " order by user_id for update"
+            ).fetchall()
+            with conn.cursor() as cur:
+                cur.executemany(
+                    "update room_rating set mu = %s, sigma = %s, updated_at = now()"
+                    " where user_id = %s and league = %s",
+                    [
+                        (after.mu, after.sigma, user, league)
+                        for user, league, mu, sigma in rooms
+                        for after in [room_season_reset(Skill(mu, sigma))]
+                    ],
+                )
         log.info(
             "game: season closed",
             season=season,
             ratings=len(rows),
             battle_ratings=len(battles),
+            room_ratings=len(rooms),
         )
         return True
 

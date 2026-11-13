@@ -721,6 +721,51 @@ test("per league, the more-played battle rating stays with the account, with its
   });
 });
 
+// P5-W32-S01b: room ratings (OpenSkill) by the same rule.
+test("per league, the more-played room rating stays with the account, with its history", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    await trx
+      .insertInto("room_rating")
+      .values([
+        { user_id: guest, league: "human", mu: 30, sigma: 4, games: 3 },
+        { user_id: account, league: "human", mu: 22, sigma: 6, games: 1 },
+      ])
+      .execute();
+    const { id: match } = await trx
+      .insertInto("game_match")
+      .values({ server_id: 0 })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("room_rating_history")
+      .values({
+        match_id: match,
+        user_id: guest,
+        league: "human",
+        mu_before: 25,
+        mu_after: 30,
+        sigma_after: 4,
+        rank: 1,
+      })
+      .execute();
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    expect(
+      await trx
+        .selectFrom("room_rating")
+        .select(["mu", "sigma", "games"])
+        .where("user_id", "=", account)
+        .execute(),
+    ).toEqual([{ mu: 30, sigma: 4, games: 3 }]);
+    expect(
+      await trx
+        .selectFrom("room_rating_history")
+        .select("user_id")
+        .where("match_id", "=", match)
+        .execute(),
+    ).toEqual([{ user_id: account }]);
+  });
+});
+
 test("an account with no rating takes the guest's", async () => {
   await inRollback(async (trx, { guest, account }) => {
     await trx

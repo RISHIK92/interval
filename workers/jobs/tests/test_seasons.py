@@ -84,6 +84,11 @@ def test_postgres_keeps_the_final_board_and_resets_every_rating(
         "insert into battle_rating (user_id, league, rating, rd, volatility, games)"
         " values ('sa', 'human', 1300, 90, 0.06, 3), ('sa', 'ai', 1700, 200, 0.05, 1)"
     )
+    # P5-W32-S01b: and room ratings (OpenSkill).
+    conn.execute(
+        "insert into room_rating (user_id, league, mu, sigma, games)"
+        " values ('sb', 'human', 33, 1, 4)"
+    )
     seasons = PostgresSeasons(conn)
     start, end = datetime(2031, 1, 1, tzinfo=UTC), datetime(2031, 2, 1, tzinfo=UTC)
 
@@ -114,6 +119,11 @@ def test_postgres_keeps_the_final_board_and_resets_every_rating(
     }
     assert battles["human"] == pytest.approx((1350, 150, 0.06))
     assert battles["ai"] == pytest.approx((1650, 200, 0.05))
+    room = conn.execute(
+        "select mu, sigma from room_rating where user_id = 'sb'"
+    ).fetchone()
+    assert room is not None
+    assert (float(room[0]), float(room[1])) == pytest.approx((31, 25 / 3 * 150 / 350))
 
     # Once: a second close changes nothing.
     assert seasons.close("2031-01", start, end) is False

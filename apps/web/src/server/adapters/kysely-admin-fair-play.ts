@@ -41,11 +41,17 @@ export function kyselyAdminFairPlay(db: Kysely<DB>): AdminFairPlay {
             .onRef("h.match_id", "=", "f.match_id")
             .onRef("h.user_id", "=", "f.user_id"),
         )
-        // P5-W32-S01a: a battle's gain is in its own history.
+        // P5-W32-S01a, S01b: a battle's gain is in its own history, a 1v1's or a
+        // room's (its OpenSkill mu).
         .leftJoin("battle_rating_history as bh", (join) =>
           join
             .onRef("bh.match_id", "=", "f.match_id")
             .onRef("bh.user_id", "=", "f.user_id"),
+        )
+        .leftJoin("room_rating_history as rh", (join) =>
+          join
+            .onRef("rh.match_id", "=", "f.match_id")
+            .onRef("rh.user_id", "=", "f.user_id"),
         )
         .select([
           "f.id",
@@ -57,7 +63,9 @@ export function kyselyAdminFairPlay(db: Kysely<DB>): AdminFairPlay {
           sql`coalesce(p.signals, '[]'::jsonb)`.as("signals"),
           // greatest() skips nulls: the coalesce goes inside it.
           sql<number>`greatest(0, coalesce(h.rating_after - h.rating_before,
-            bh.rating_after - bh.rating_before, 0))`.as("gain"),
+            bh.rating_after - bh.rating_before, rh.mu_after - rh.mu_before, 0))`.as(
+            "gain",
+          ),
         ])
         .where("f.decision", "is", null)
         .orderBy("f.created_at")
@@ -155,14 +163,39 @@ export function kyselyAdminFairPlay(db: Kysely<DB>): AdminFairPlay {
   };
 }
 
-// P5-W32-S01a (owner, 2026-11-13): a battle's penalty, as a quick match's: the battle
-// rating that match gained, in its league; 0 when it gained nothing or was unrated.
-// Battles leave no ghost runs.
+// P5-W32-S01a (owner, 2026-11-13): a battle's penalty, as a quick match's: the rating
+// that match gained, in its league; 0 when it gained nothing or was unrated. A 1v1's
+// is its Glicko-2 battle rating, a room's (S01b) its OpenSkill mu. Battles leave no
+// ghost runs.
 async function penalizeBattle(
   trx: Kysely<DB>,
   flag: { match_id: string; user_id: string },
   league: string,
 ): Promise<number> {
+  const room = await trx
+    .selectFrom("room_rating_history")
+    .select(sql<number>`greatest(0, mu_after - mu_before)`.as("gain"))
+    .where("match_id", "=", flag.match_id)
+    .where("user_id", "=", flag.user_id)
+    .executeTakeFirst();
+  if (room !== undefined) {
+    // Locked like rating a room, so a room rated meanwhile can't be lost.
+    const held = await trx
+      .selectFrom("room_rating")
+      .select("user_id")
+      .where("user_id", "=", flag.user_id)
+      .where("league", "=", league)
+      .forUpdate()
+      .executeTakeFirst();
+    if (held === undefined || room.gain <= 0) return 0;
+    await trx
+      .updateTable("room_rating")
+      .set({ mu: sql<number>`mu - ${room.gain}`, updated_at: sql<Date>`now()` })
+      .where("user_id", "=", flag.user_id)
+      .where("league", "=", league)
+      .execute();
+    return room.gain;
+  }
   // Locked like rating a battle, so a battle rated meanwhile can't be lost.
   const held = await trx
     .selectFrom("battle_rating")
