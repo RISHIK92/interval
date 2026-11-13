@@ -352,3 +352,24 @@ test("a battle's code goes to the game server while its socket is open", async (
   expect(socket.sent).toHaveLength(2);
   live.stop();
 });
+
+// P5-W31-S04a: a battle's return to focus and large pastes, on the open socket only.
+test("a battle's back and paste go to the game server while its socket is open", async () => {
+  const h = harness([]);
+  h.deps.matchId = "battle-1";
+  const live = runLive(h.deps);
+  await flush();
+  const [socket] = h.sockets;
+  if (socket === undefined) throw new Error("no socket");
+  live.focusBack();
+  live.pasted(250);
+  expect(socket.sent.map((s) => JSON.parse(s) as unknown)).toEqual([
+    { type: "back" },
+    { type: "paste", chars: 250 },
+  ]);
+  socket.readyState = 0;
+  live.focusBack();
+  live.pasted(300);
+  expect(socket.sent).toHaveLength(2);
+  live.stop();
+});

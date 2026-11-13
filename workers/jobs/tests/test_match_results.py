@@ -730,6 +730,10 @@ def test_the_golden_result_carries_signals() -> None:
     "signal",
     [
         {"kind": "paste", "round": 1, "ms": None},
+        {"kind": "paste", "round": 1, "ms": 5, "chars": 300},
+        {"kind": "away", "round": 1, "ms": None},
+        {"kind": "focus", "round": 1, "ms": None, "chars": 3},
+        {"kind": "away", "round": 46, "ms": 31_000},
         {"kind": "speed", "round": 0, "ms": 100},
         {"kind": "speed", "round": 1, "ms": -1},
         {"kind": "focus", "round": 1, "ms": None, "extra": 1},
@@ -887,7 +891,7 @@ def test_a_battle_is_stored_but_neither_rated_nor_kept_as_quiz_evidence(
 def test_an_abandoned_battle_is_stored_once_and_raises_no_quiz_flag(
     conn: psycopg.Connection,
 ) -> None:
-    """A battle's signals are its own (W31-S04): quiz signals on one flag nothing."""
+    """A battle's signals are its own (W31-S04a): quiz signals on one flag nothing."""
     a_user(conn, "lbc")
     a_user(conn, "lbd")
     match_id = _battle(conn, ["lbc", "lbd"])
@@ -928,3 +932,54 @@ def test_an_abandoned_battle_is_stored_once_and_raises_no_quiz_flag(
     assert conn.execute(
         "select count(*) from fair_play_flag where match_id = %s", (match_id,)
     ).fetchone() == (0,)
+
+
+def _battle_with(
+    conn: psycopg.Connection, user: str, signals: list[dict[str, object]]
+) -> str:
+    a_user(conn, user)
+    match_id = _battle(conn, [user])
+    result = MatchResult.model_validate(
+        {
+            "match_id": match_id,
+            "finished_at": "2026-11-13T12:45:00Z",
+            "outcome": "finished",
+            "winner": user,
+            "players": [
+                {
+                    "played_as": user,
+                    "total": 1000,
+                    "time_ms": 600_000,
+                    "abandoned": False,
+                    "answers": [],
+                    "signals": signals,
+                }
+            ],
+        }
+    )
+    assert PostgresMatchResults(conn).record(result) is True
+    return match_id
+
+
+def _aways(count: int) -> list[dict[str, object]]:
+    return [{"kind": "away", "round": n, "ms": 31_000} for n in range(1, count + 1)]
+
+
+def test_one_outside_paste_flags_a_battle_player(conn: psycopg.Connection) -> None:
+    """P5-W31-S04a (Q-P5-17): any paste the game server counted (200+ characters,
+    not already the player's) goes to review, alone."""
+    paste: dict[str, object] = {"kind": "paste", "round": 7, "ms": None, "chars": 640}
+    match_id = _battle_with(conn, "lfa", [paste])
+    assert _flags(conn, match_id) == [("lfa", 1, None, None)]
+    assert conn.execute(
+        "select signals from game_match_player where match_id = %s", (match_id,)
+    ).fetchone() == ([paste],)
+
+
+def test_five_long_aways_flag_a_battle_player_and_four_do_not(
+    conn: psycopg.Connection,
+) -> None:
+    assert _flags(conn, _battle_with(conn, "lfb", _aways(4))) == []
+    assert _flags(conn, _battle_with(conn, "lfc", _aways(5))) == [
+        ("lfc", 5, None, None)
+    ]

@@ -5371,3 +5371,45 @@ The owner said to continue building overnight with recommended answers, switchin
   - the battle-state tests gained the no-extension reveal, a rejoin that keeps results, a late `joined`, and a refused Submit that frees only Submit.
   - the dead exports were removed, and so was the redundant store on a language switch.
 - **Not tested:** `BattlePlay`'s effects (the socket loop and sending), because `apps/web` has no DOM test environment. jsdom would be a new dependency.
+
+### 2026-11-13 — P5-W31-S04a (a battle's paste and focus signals, and its flags; §6.9, Q-P5-17)
+
+- **Owner's Q-P5-17 answers recorded:**
+  - a battle player is flagged for review on any paste of 200 or more characters that isn't already theirs, or on 5 or more focus losses of 30 s or longer;
+  - signals go with the match result, as quick games' do; this replaces Q-P5-10's "DB-5 events";
+  - snapshots go to the bucket through the web, kept 90 days or until a flag is decided;
+  - every battle is in the human league until W32.
+
+  W31-S04 is split: S04a (this one) and S04b (snapshots).
+
+- **The page:**
+  - It sends `focus` on a blur or a hidden page, and `back` on a return (`LiveRun.focusBack`).
+  - Monaco's paste hook sends `{"type":"paste","chars"}` when `outsidePaste` finds 200 or more characters that aren't in what the player already had:
+    - the editor without the paste;
+    - text recently cut or deleted from it (`removedBy`, the last 20), so a move within the code isn't a paste;
+    - the page's own statement and starters, including the extension's;
+    - the player's code in their other languages.
+- **Game server:**
+  - `readMessages` passes focus, back and paste to one `fairPlay` callback.
+  - A battle's actor times each focus loss until `back`, until the socket drops (a page without a socket can't say it's back), or until the end, never past 45:00. A loss of 30 s or more becomes an `away` signal with its `ms`.
+  - It counts a paste of 200 or more characters (checked again) as a `paste` signal with its `chars`. A paste read after the end doesn't count.
+  - A signal's `round` is the battle's minute. Each kind is capped at 20 per player. Every signal is persisted at once, so a restart keeps it.
+  - Quick games' signals are unchanged.
+- **Worker:**
+  - `FairPlaySignal` gains `paste` and `away`, `chars`, and rounds up to 45, with a validator that each kind has its own fields.
+  - `flagged(mode, signals)`: a battle is flagged on any paste or on 5 aways; quick games still at 3.
+  - Stored signals keep their old shape (`chars` only on a paste).
+- **Migration `20261113040000_battle_fair_play`:** `fair_play_flag.signals >= 1`, since one paste flags. The down migration restores `>= 3`.
+- **`/admin/fair-play`:**
+  - It shows a battle's flags as "Minute 7: pasted 640 characters from outside" and "Minute 12: away for 41 s".
+  - A battle flag can only be dismissed. Nothing is rated until W32, so there's no penalty to give; the adapter refuses one too.
+- **Sonnet review:** no blockers. Fixed:
+  - signals weren't persisted until the next judging, so a restart could lose a flagging paste;
+  - an away open when the socket dropped ran to the end;
+  - events read after 45:00 counted;
+  - a battle flag offered a meaningless penalty;
+  - cutting and pasting one's own code was counted as a paste.
+- **Not fixed (nits):**
+  - blur and visibilitychange fire in pairs; the server ignores the duplicates;
+  - focus messages aren't rate-limited; caps and the 30 s threshold bound them;
+  - a page whose socket was down when it lost focus under-counts that away. Signals are hints for review (§6.9).

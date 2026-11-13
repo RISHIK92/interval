@@ -1,8 +1,8 @@
 import type { BattleState } from "@interval/game-client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
-import { BattleView, codeFor } from "./BattlePlay";
-import type { CodeEditorProps } from "./CodeEditor";
+import { BattleView, codeFor, outsidePaste } from "./BattlePlay";
+import { type CodeEditorProps, removedBy } from "./CodeEditor";
 
 // P5-W31-S03 (§6.5; Q-P5-15, Q-P5-16; LLDQ-4): the battle's screen for each state.
 function Editor({ language, value }: CodeEditorProps) {
@@ -23,6 +23,7 @@ const show = (state: BattleState, failed = false) =>
       Editor={Editor}
       onLanguage={() => undefined}
       onCode={() => undefined}
+      onPaste={() => undefined}
       onSend={() => undefined}
     />,
   );
@@ -119,4 +120,25 @@ test("each battle and language keeps its own code; the starter until there's som
   expect(codeFor(read, "m1", starters, "go")).toBe("type Cache");
   expect(codeFor(read, "m2", starters, "go")).toBe("type Cache struct{}");
   expect(codeFor(read, "m2", starters, "java")).toBe("");
+});
+
+// P5-W31-S04a (Q-P5-17): only a long paste from outside the page and the player's code.
+test("a paste counts when it's 200+ characters and not already the player's", () => {
+  const long = "x".repeat(150) + "\n" + "y".repeat(60);
+  expect(outsidePaste(long, ["class Cache:"])).toBe(211);
+  expect(outsidePaste(`  ${long}\n`, [])).toBe(211);
+  expect(outsidePaste("z".repeat(199), [])).toBeNull();
+  expect(outsidePaste(long, [`before ${long} after`])).toBeNull();
+  expect(outsidePaste(long, ["", `def grow(self):\n${long}`])).toBeNull();
+});
+
+test("text cut from the editor and pasted back is the player's own", () => {
+  const block = "def get(self, key):\n" + "    pass\n".repeat(30);
+  const before = `class Cache:\n${block}`;
+  const cut = removedBy(before, [
+    { rangeOffset: 13, rangeLength: block.length },
+    { rangeOffset: 0, rangeLength: 0 }, // a plain insert removes nothing
+  ]);
+  expect(cut).toEqual([block]);
+  expect(outsidePaste(block, ["class Cache:\n", ...cut])).toBeNull();
 });

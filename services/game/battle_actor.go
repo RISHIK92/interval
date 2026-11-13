@@ -34,9 +34,10 @@ const (
 type battleRun struct {
 	start    time.Time
 	revealed bool
-	closing  bool            // the end is decided: no more code, the judgings in flight finish
-	away     map[string]bool // past the grace and not back (Q-P5-16)
-	joined   map[string]bool // seated at least once in this battle (or before its restart)
+	closing  bool                 // the end is decided: no more code, the judgings in flight finish
+	away     map[string]bool      // past the grace and not back (Q-P5-16)
+	lost     map[string]time.Time // P5-W31-S04a: when the page lost focus, until it's back
+	joined   map[string]bool      // seated at least once in this battle (or before its restart)
 	lastRun  map[string]time.Time
 	lastSub  map[string]time.Time
 	judging  map[string]bool // "player run" or "player submit": one judging of each at a time
@@ -81,7 +82,7 @@ func judgingKey(player string, submit bool) string {
 
 func (a *actor) battle(p *play) {
 	b := &battleRun{
-		start: a.clock.Now(), away: map[string]bool{}, joined: map[string]bool{},
+		start: a.clock.Now(), away: map[string]bool{}, joined: map[string]bool{}, lost: map[string]time.Time{},
 		lastRun: map[string]time.Time{}, lastSub: map[string]time.Time{},
 		judging: map[string]bool{}, best: map[string]bestSubmission{},
 	}
@@ -141,6 +142,14 @@ func (a *actor) battle(p *play) {
 			return
 		}
 	}
+	// An away still open at the end counts to the end (Q-P5-17).
+	over := a.clock.Now()
+	if last := b.start.Add(battleLength); over.After(last) {
+		over = last
+	}
+	for player := range b.lost {
+		a.cameBack(p, player, over)
+	}
 	a.finishBattle(p)
 }
 
@@ -199,7 +208,7 @@ func (a *actor) persistBattle(p *play) {
 	for player, s := range b.best {
 		totals[player], times[player] = s.Points, s.At
 	}
-	a.persist(snap{Started: b.start, Totals: totals, Times: times})
+	a.persist(snap{Started: b.start, Totals: totals, Times: times, Signals: p.signals})
 }
 
 // A Run or a Submit, checked here and judged off this goroutine.

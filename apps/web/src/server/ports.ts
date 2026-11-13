@@ -1776,17 +1776,20 @@ export interface AdminUniversities {
 }
 // P3-W18-S02 (§6.9, ADR-0006 C-14, Q-P3-20): a player flagged for review by their
 // signals in a live match (an answer under 400 ms, a focus change in a live round).
+// P5-W31-S04a (Q-P5-17): a battle's are a paste (chars) or an away (ms), its round the
+// battle's minute.
 export type FairPlaySignal = {
-  kind: "speed" | "focus";
+  kind: "speed" | "focus" | "paste" | "away";
   round: number;
   ms: number | null;
+  chars?: number | undefined;
 };
 export type FairPlayFlagRow = {
   id: string;
   userId: string;
   player: string; // their username, else their name (a guest)
   matchId: string;
-  mode: GameMode;
+  mode: GameMode | "battle";
   playedAt: Date;
   signals: FairPlaySignal[];
   gain: number; // the rating the match gained them: what a penalty would remove

@@ -7,18 +7,28 @@ import { decideFairPlayAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-const MODE: Record<GameMode, string> = {
+const MODE: Record<GameMode | "battle", string> = {
   sprint: "Sprint",
   fastest_finger: "Fastest finger",
+  battle: "Battle",
 };
 
-const describe = (s: FairPlaySignal) =>
-  s.kind === "speed"
-    ? `Round ${String(s.round)}: answered in ${String(s.ms ?? 0)} ms`
-    : `Round ${String(s.round)}: left the tab`;
+const describe = (s: FairPlaySignal) => {
+  switch (s.kind) {
+    case "speed":
+      return `Round ${String(s.round)}: answered in ${String(s.ms ?? 0)} ms`;
+    case "focus":
+      return `Round ${String(s.round)}: left the tab`;
+    case "paste":
+      return `Minute ${String(s.round)}: pasted ${String(s.chars ?? 0)} characters from outside`;
+    case "away":
+      return `Minute ${String(s.round)}: away for ${String(Math.round((s.ms ?? 0) / 1000))} s`;
+  }
+};
 
 // P3-W18-S02 (§6.9, ADR-0006 C-14, Q-P3-20): players with 3 or more fair-play signals
-// in a live match (an answer under 400 ms, a focus change in a live round). Flags come
+// in a live match (an answer under 400 ms, a focus change in a live round); P5-W31-S04a
+// (Q-P5-17), a battle's outside paste or five long aways. Flags come
 // here before any penalty; a penalty removes the rating that match gained, never the
 // account (owner, 2026-11-05).
 export default async function FairPlayPage(props: {
@@ -31,9 +41,11 @@ export default async function FairPlayPage(props: {
     <main className={ADMIN_MAIN}>
       <h1 className="text-title">Fair play</h1>
       <p className="text-sm text-ink-muted">
-        Live matches where a player had 3 or more signals: an answer under 400
-        ms after its question arrived, or leaving the tab during a round. A
-        signal isn&apos;t proof; nothing happens until you decide.
+        Quick matches where a player had 3 or more signals: an answer under 400
+        ms after its question arrived, or leaving the tab during a round.
+        Battles where a player pasted 200 or more characters from outside their
+        code, or was away 30 s or more five times. A signal isn&apos;t proof;
+        nothing happens until you decide.
       </p>
       {saved ? (
         <Card className="px-4 py-3 text-sm">
@@ -63,22 +75,30 @@ export default async function FairPlayPage(props: {
                   </span>
                 </p>
                 <ul className="list-disc pl-5 tabular-nums">
-                  {f.signals.map((s) => (
-                    <li key={`${s.kind}-${String(s.round)}`}>{describe(s)}</li>
+                  {f.signals.map((s, i) => (
+                    <li key={i}>{describe(s)}</li>
                   ))}
                 </ul>
                 <form action={decideFairPlayAction} className="flex gap-2">
                   <input type="hidden" name="flagId" value={f.id} />
-                  <button
-                    type="submit"
-                    name="decision"
-                    value="penalize"
-                    className={ACT}
-                  >
-                    {f.gain > 0
-                      ? `Remove the gain (${String(Math.round(f.gain))})`
-                      : "Penalise (the match gained nothing)"}
-                  </button>
+                  {/* A battle has no rating to remove until W32: review only. */}
+                  {f.mode === "battle" ? (
+                    <p className="text-ink-muted">
+                      Battles aren&apos;t rated yet, so there&apos;s no penalty
+                      to give.
+                    </p>
+                  ) : (
+                    <button
+                      type="submit"
+                      name="decision"
+                      value="penalize"
+                      className={ACT}
+                    >
+                      {f.gain > 0
+                        ? `Remove the gain (${String(Math.round(f.gain))})`
+                        : "Penalise (the match gained nothing)"}
+                    </button>
+                  )}
                   <button
                     type="submit"
                     name="decision"

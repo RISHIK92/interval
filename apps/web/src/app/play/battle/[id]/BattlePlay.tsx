@@ -67,6 +67,19 @@ export function codeFor(
   return read(`battle:${matchId}:${language}`) ?? starters[language] ?? "";
 }
 
+// P5-W31-S04a (§6.9, Q-P5-17): a paste this long that wasn't already there is a
+// fair-play signal (the game server checks the length again). "There" is the editor
+// without the paste, and what the player already had: this page's own text (the
+// statement and starters) and their code in the other languages.
+const PASTE_AT = 200;
+
+export function outsidePaste(pasted: string, known: string[]): number | null {
+  const text = pasted.trim();
+  if (text.length < PASTE_AT || known.some((k) => k.includes(text)))
+    return null;
+  return text.length;
+}
+
 function clock(ms: number): string {
   const s = Math.max(0, Math.ceil(ms / 1000));
   return `${String(Math.floor(s / 60))}:${String(s % 60).padStart(2, "0")}`;
@@ -118,10 +131,28 @@ export function BattlePlay({
       onOpponent: () => undefined,
     });
     live.current = run;
+    // P5-W31-S04a (§6.9): another tab or window, as blur or a hidden page, and back; the
+    // game server times it.
+    const lost = () => {
+      run.focusLost();
+    };
+    const back = () => {
+      run.focusBack();
+    };
+    const visibility = () => {
+      if (document.visibilityState === "hidden") run.focusLost();
+      else run.focusBack();
+    };
+    window.addEventListener("blur", lost);
+    window.addEventListener("focus", back);
+    document.addEventListener("visibilitychange", visibility);
     const timer = setInterval(() => {
       tick((n) => n + 1);
     }, 1000);
     return () => {
+      window.removeEventListener("blur", lost);
+      window.removeEventListener("focus", back);
+      document.removeEventListener("visibilitychange", visibility);
       clearInterval(timer);
       run.stop();
       live.current = null;
@@ -136,6 +167,20 @@ export function BattlePlay({
   const edit = (value: string) => {
     setCode(value);
     store(`battle:${matchId}:${language}`, value);
+  };
+  const paste = (pasted: string, had: string[]) => {
+    const extension = state.phase === "playing" ? state.extension : null;
+    const chars = outsidePaste(pasted, [
+      ...had,
+      statement,
+      ...Object.values(starters),
+      ...Object.values(extension?.starters ?? {}),
+      extension?.statement ?? "",
+      ...languages
+        .filter((l) => l !== language)
+        .map((l) => codeFor(stored, matchId, {}, l)),
+    ]);
+    if (chars !== null) live.current?.pasted(chars);
   };
   const send = (submit: boolean) => {
     if (live.current?.code(submit, language, code) === true)
@@ -155,6 +200,7 @@ export function BattlePlay({
       Editor={Editor}
       onLanguage={pick}
       onCode={edit}
+      onPaste={paste}
       onSend={send}
     />
   );
@@ -172,6 +218,7 @@ type ViewProps = {
   Editor: ComponentType<CodeEditorProps>;
   onLanguage: (language: string) => void;
   onCode: (code: string) => void;
+  onPaste: (pasted: string, had: string[]) => void;
   onSend: (submit: boolean) => void;
 };
 
@@ -188,6 +235,7 @@ export function BattleView({
   Editor,
   onLanguage,
   onCode,
+  onPaste,
   onSend,
 }: ViewProps) {
   if (failed)
@@ -279,7 +327,12 @@ export function BattleView({
                   .join(" · ")}
           </span>
         </div>
-        <Editor language={language} value={code} onChange={onCode} />
+        <Editor
+          language={language}
+          value={code}
+          onChange={onCode}
+          onPaste={onPaste}
+        />
         <div className="flex gap-3">
           <button
             type="button"

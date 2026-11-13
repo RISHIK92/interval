@@ -8,10 +8,26 @@ import { useEffect, useRef, useState } from "react";
 // its own workers and needs no bundler setup; Monaco marks it deprecated, so an upgrade
 // past 0.57 means moving to its ESM build.
 
-type Model = { getValue(): string; setValue(value: string): void };
+type Position = { lineNumber: number; column: number };
+type Range = {
+  startLineNumber: number;
+  startColumn: number;
+  endLineNumber: number;
+  endColumn: number;
+};
+type Model = {
+  getValue(): string;
+  setValue(value: string): void;
+  getOffsetAt(position: Position): number;
+};
 type Editor = {
   getModel(): Model | null;
-  onDidChangeModelContent(listener: () => void): void;
+  onDidChangeModelContent(
+    listener: (e: {
+      changes: { rangeOffset: number; rangeLength: number }[];
+    }) => void,
+  ): void;
+  onDidPaste(listener: (e: { range: Range }) => void): void;
   dispose(): void;
 };
 type Monaco = {
@@ -53,22 +69,41 @@ function loadMonaco(): Promise<Monaco> {
   return loading;
 }
 
+// The text a content change took out of `before` (a cut, a delete, a replaced
+// selection): Monaco's changes give only where and how long.
+export function removedBy(
+  before: string,
+  changes: { rangeOffset: number; rangeLength: number }[],
+): string[] {
+  return changes
+    .filter((c) => c.rangeLength > 0)
+    .map((c) => before.slice(c.rangeOffset, c.rangeOffset + c.rangeLength));
+}
+
 // packages/lld's language names are Monaco's own ids.
 export type CodeEditorProps = {
   language: string;
   value: string;
   onChange: (value: string) => void;
+  // P5-W31-S04a: what was pasted, and what the editor already had: its content without
+  // the paste, and the text recently cut or deleted from it (a move within the code).
+  onPaste?: (pasted: string, had: string[]) => void;
 };
 
-export function CodeEditor({ language, value, onChange }: CodeEditorProps) {
+export function CodeEditor({
+  language,
+  value,
+  onChange,
+  onPaste,
+}: CodeEditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<{ editor: Editor; monaco: Monaco } | null>(null);
   const [failed, setFailed] = useState(false);
   // The latest props, for the editor's listener (attached once) and for its creation,
   // which can finish after the player has already switched language.
-  const latest = useRef({ language, value, onChange });
+  const latest = useRef({ language, value, onChange, onPaste });
   useEffect(() => {
-    latest.current = { language, value, onChange };
+    latest.current = { language, value, onChange, onPaste };
   });
 
   useEffect(() => {
@@ -84,8 +119,32 @@ export function CodeEditor({ language, value, onChange }: CodeEditorProps) {
           fontSize: 14,
           scrollBeyondLastLine: false,
         });
-        made.onDidChangeModelContent(() => {
-          latest.current.onChange(made.getModel()?.getValue() ?? "");
+        // The content before each change, to keep what a change removed.
+        let before = latest.current.value;
+        const removed: string[] = [];
+        made.onDidChangeModelContent(({ changes }) => {
+          removed.push(...removedBy(before, changes));
+          // shortcut: the last 20 removals only; a move from further back counts as a paste.
+          removed.splice(0, Math.max(0, removed.length - 20));
+          before = made.getModel()?.getValue() ?? "";
+          latest.current.onChange(before);
+        });
+        made.onDidPaste(({ range }) => {
+          const model = made.getModel();
+          if (model === null) return;
+          const all = model.getValue();
+          const from = model.getOffsetAt({
+            lineNumber: range.startLineNumber,
+            column: range.startColumn,
+          });
+          const to = model.getOffsetAt({
+            lineNumber: range.endLineNumber,
+            column: range.endColumn,
+          });
+          latest.current.onPaste?.(all.slice(from, to), [
+            all.slice(0, from) + all.slice(to),
+            ...removed,
+          ]);
         });
         editor.current = { editor: made, monaco };
       })

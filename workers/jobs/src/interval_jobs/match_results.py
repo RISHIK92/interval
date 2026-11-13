@@ -10,10 +10,10 @@ services/game/testdata/match_finished.json. The queue message itself is codegen'
 
 import threading
 from datetime import datetime
-from typing import Literal, Protocol
+from typing import Literal, Protocol, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from interval_jobs import log
 from interval_jobs.ports import JobQueue
@@ -33,15 +33,38 @@ class MatchAnswer(_Strict):
 
 class FairPlaySignal(_Strict):
     """P3-W18-S02 (§6.9, Q-P3-20): an answer under 400 ms after its question arrived
-    (compensated; ms set), or a focus change while a question was live."""
+    (compensated; ms set), or a focus change while a question was live. P5-W31-S04a
+    (Q-P5-17), a battle's: a paste of `chars` characters from outside the player's code,
+    or an away of `ms`; its round is the battle's minute."""
 
-    kind: Literal["speed", "focus"]
-    round: int = Field(ge=1, le=30)
+    kind: Literal["speed", "focus", "paste", "away"]
+    round: int = Field(ge=1, le=45)
     ms: int | None = Field(ge=0)
+    chars: int | None = Field(default=None, ge=1)
+
+    # The game server has always sent speed with ms and focus without, so no stored or
+    # queued result is refused by this check.
+    @model_validator(mode="after")
+    def _fields_fit_kind(self) -> Self:
+        timed = self.kind in ("speed", "away")
+        if (self.ms is not None) != timed or (self.chars is not None) != (
+            self.kind == "paste"
+        ):
+            raise ValueError(f"a {self.kind} signal with the wrong fields")
+        return self
 
 
-# Q-P3-20: this many signals in a match flag the player for review, nothing more.
+# Q-P3-20: this many signals in a quick match flag the player for review, nothing more.
 FLAG_AT = 3
+# Q-P5-17: a battle flags on any outside paste, or on this many long aways.
+BATTLE_AWAYS_FLAG_AT = 5
+
+
+def flagged(mode: str, signals: list[FairPlaySignal]) -> bool:
+    if mode != "battle":
+        return len(signals) >= FLAG_AT
+    aways = sum(s.kind == "away" for s in signals)
+    return aways >= BATTLE_AWAYS_FLAG_AT or any(s.kind == "paste" for s in signals)
 
 
 class PlayerResult(_Strict):

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
@@ -229,15 +230,16 @@ func TestSignalsSurviveARestart(t *testing.T) {
 	}
 }
 
-// The socket passes {"type":"focus"} on; anything else that isn't an answer is dropped.
+// The socket passes focus, back and a paste with its length on; anything else that
+// isn't an answer is dropped.
 func TestTheSocketPassesFocusOn(t *testing.T) {
-	focused := make(chan struct{}, 4)
+	focused := make(chan string, 8)
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		conn, err := websocket.Accept(w, r, nil)
 		if err != nil {
 			return
 		}
-		readMessages(r.Context(), conn, 1024, func(int, int) {}, func() { focused <- struct{}{} }, func(*codeMsg) {})
+		readMessages(r.Context(), conn, 1024, func(int, int) {}, func(kind string, chars int) { focused <- fmt.Sprint(kind, chars) }, func(*codeMsg) {})
 	}))
 	t.Cleanup(srv.Close)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -247,14 +249,23 @@ func TestTheSocketPassesFocusOn(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = conn.CloseNow() }()
-	for _, msg := range []any{map[string]string{"type": "focus"}, map[string]string{"type": "other"}} {
+	for _, msg := range []any{
+		map[string]any{"type": "focus"}, map[string]any{"type": "other"},
+		map[string]any{"type": "back"}, map[string]any{"type": "paste"},
+		map[string]any{"type": "paste", "chars": -1}, map[string]any{"type": "paste", "chars": 250},
+	} {
 		raw, _ := json.Marshal(msg)
 		_ = conn.Write(ctx, websocket.MessageText, raw)
 	}
-	select {
-	case <-focused:
-	case <-ctx.Done():
-		t.Fatal("focus not passed on")
+	for _, want := range []string{"focus0", "back0", "paste250"} {
+		select {
+		case got := <-focused:
+			if got != want {
+				t.Fatalf("got %s, want %s", got, want)
+			}
+		case <-ctx.Done():
+			t.Fatalf("%s not passed on", want)
+		}
 	}
 	select {
 	case <-focused:

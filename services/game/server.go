@@ -150,7 +150,16 @@ func newHandler(cfg config, sockets *matchSockets, matches *registry, now func()
 		}
 		readMessages(ctx, conn, limit, func(n, choice int) {
 			a.answerAt(ticket.U, n, choice, matches.clock.Now())
-		}, func() { a.focus(ticket.U) }, code)
+		}, func(kind string, chars int) {
+			switch kind {
+			case "focus":
+				a.focus(ticket.U)
+			case "back":
+				a.back(ticket.U)
+			default:
+				a.paste(ticket.U, chars)
+			}
+		}, code)
 		// The socket ended: the player has the grace to come back (MATCH-6).
 		a.leave(ticket.U, player)
 	})
@@ -183,10 +192,11 @@ func measure(ctx context.Context, conn *websocket.Conn, report func(time.Duratio
 }
 
 // A player's answers, {"type":"answer","n":round,"choice":0-3}, focus changes,
-// {"type":"focus"} (P3-W18-S02), and a battle's code, {"type":"run"|"submit",...}
-// (P5-W31-S02b-2). Anything else, or anything over the limit, is dropped or ends the
+// {"type":"focus"} (P3-W18-S02), a battle's code, {"type":"run"|"submit",...}
+// (P5-W31-S02b-2), and a battle page's {"type":"back"} and {"type":"paste","chars":n}
+// (P5-W31-S04a). Anything else, or anything over the limit, is dropped or ends the
 // socket; the actor checks the rest.
-func readMessages(ctx context.Context, conn *websocket.Conn, limit int64, answer func(n, choice int), focus func(), code func(*codeMsg)) {
+func readMessages(ctx context.Context, conn *websocket.Conn, limit int64, answer func(n, choice int), fairPlay func(kind string, chars int), code func(*codeMsg)) {
 	conn.SetReadLimit(limit)
 	for {
 		_, data, err := conn.Read(ctx)
@@ -204,12 +214,17 @@ func readMessages(ctx context.Context, conn *websocket.Conn, limit int64, answer
 			Type   string `json:"type"`
 			N      *int   `json:"n"`
 			Choice *int   `json:"choice"`
+			Chars  *int   `json:"chars"`
 		}
 		if json.Unmarshal(data, &msg) != nil {
 			continue
 		}
-		if msg.Type == "focus" {
-			focus()
+		switch {
+		case msg.Type == "focus" || msg.Type == "back":
+			fairPlay(msg.Type, 0)
+			continue
+		case msg.Type == "paste" && msg.Chars != nil && *msg.Chars > 0:
+			fairPlay(msg.Type, *msg.Chars)
 			continue
 		}
 		if msg.Type != "answer" || msg.N == nil || msg.Choice == nil {

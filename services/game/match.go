@@ -95,10 +95,10 @@ func (realClock) Now() time.Time                         { return time.Now() }
 func (realClock) After(d time.Duration) <-chan time.Time { return time.After(d) }
 
 type event struct {
-	kind   string // join, leave, answer, focus, rtt, graceOver, sync; code, judged (battles)
+	kind   string // join, leave, answer, focus, rtt, graceOver, sync; code, judged, back, paste (battles)
 	player string
 	seat   seat
-	n      int // the round answered; for graceOver, the leave's generation
+	n      int // the round answered; for graceOver, the leave's generation; a paste's characters
 	choice int
 	rtt    time.Duration
 	at     time.Time // when an answer arrived
@@ -170,6 +170,15 @@ func (a *actor) answer(player string, n, choice int) {
 // P3-W18-S02: the player's page lost focus (another tab or window), as it arrived.
 func (a *actor) focus(player string) {
 	a.post(event{kind: "focus", player: player, at: a.clock.Now()})
+}
+
+// P5-W31-S04a: a battle's page is back in focus, or had text pasted into its editor.
+func (a *actor) back(player string) {
+	a.post(event{kind: "back", player: player, at: a.clock.Now()})
+}
+
+func (a *actor) paste(player string, chars int) {
+	a.post(event{kind: "paste", player: player, n: chars, at: a.clock.Now()})
 }
 
 func (a *actor) rtt(player string, d time.Duration) {
@@ -602,6 +611,11 @@ func (a *actor) handle(p *play, e event, cur *current) {
 			return // an old socket of a player already back on a new one
 		}
 		delete(p.seats, e.player)
+		if b := p.battle; b != nil {
+			// A page that loses its socket can't say it's back: an away open now ends here,
+			// and a disconnect is never one (Q-P5-16 has it away by other rules).
+			a.cameBack(p, e.player, a.clock.Now())
+		}
 		if !p.started {
 			return
 		}
@@ -637,7 +651,15 @@ func (a *actor) handle(p *play, e event, cur *current) {
 		}
 	case "rtt":
 		p.rtts[e.player] = e.rtt
+	case "back", "paste":
+		if p.battle != nil {
+			a.battleSignal(p, e)
+		}
 	case "focus":
+		if p.battle != nil {
+			a.battleSignal(p, e)
+			return
+		}
 		// Only while a question is live: a fastest-finger round being played, or a
 		// sprint's player's current question.
 		if s := p.sprint; s != nil {

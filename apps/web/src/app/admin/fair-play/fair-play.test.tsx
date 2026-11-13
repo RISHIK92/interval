@@ -83,6 +83,28 @@ test("each flag: the player, the match, every signal and what a penalty would re
   expect(html).toContain('value="7"');
 });
 
+test("a battle's flag describes its pastes and aways by minute", async () => {
+  current.mockResolvedValue(admin);
+  can.mockResolvedValue(true);
+  pending.mockResolvedValue([
+    {
+      ...flag,
+      mode: "battle",
+      gain: 0,
+      signals: [
+        { kind: "paste", round: 7, ms: null, chars: 640 },
+        { kind: "away", round: 12, ms: 41_400 },
+      ],
+    },
+  ]);
+  const html = await page();
+  expect(html).toContain("Battle");
+  expect(html).toContain("Minute 7: pasted 640 characters from outside");
+  expect(html).toContain("Minute 12: away for 41 s");
+  expect(html).not.toContain('value="penalize"');
+  expect(html).toContain("Dismiss");
+});
+
 test("nothing pending says so", async () => {
   current.mockResolvedValue(admin);
   can.mockResolvedValue(true);

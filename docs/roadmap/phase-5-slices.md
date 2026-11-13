@@ -197,6 +197,20 @@ Already in place, so not sliced again:
 
 - IDs: §6.9, DB-5, DB-6
 - Goal: paste, focus and 30-second snapshots in the human league; flags to review; never a penalty without review.
+- Split (2026-11-13), after Q-P5-17:
+  - **S04a:** the paste and focus signals and their flags.
+  - **S04b:** the 30-second snapshots to the private bucket, and their 90-day pruning.
+
+### P5-W31-S04a A battle's paste and focus signals
+
+- IDs: §6.9; Q-P5-17
+- Goal: an outside paste of 200 or more characters, and focus losses of 30 seconds or longer, recorded by the game server with the match result. A battle is flagged for review on any such paste or on five such aways.
+- Built 2026-11-13.
+
+### P5-W31-S04b A battle's code snapshots
+
+- IDs: §6.9, DB-6; Q-P5-17
+- Goal: the page posts its code every 30 seconds to `/api/battle/[id]/snapshot`, and only a player in an unfinished match can post. The private bucket keeps snapshots for 90 days, or until a flag on that match is decided.
 
 ## Week 32: rooms, windows, the casual queue
 

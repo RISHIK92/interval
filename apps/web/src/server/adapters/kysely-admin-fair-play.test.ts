@@ -225,3 +225,54 @@ test("a dismissal changes no rating and keeps the run", async () => {
     expect(await kyselyRatings(trx).adjustments(ada)).toEqual([]);
   });
 });
+
+// P5-W31-S04a (Q-P5-17): a battle's flag, with its paste and away signals.
+test("a battle's flag shows its pastes and aways", async () => {
+  await inRollback(0, async (trx, { bob }) => {
+    const slug = `fair-${randomUUID().slice(0, 8)}`;
+    const hash = "f".repeat(64);
+    await trx
+      .insertInto("lld_problem")
+      .values({
+        slug,
+        title: "A problem",
+        difficulty: "easy",
+        statement: "# A problem",
+        interface: JSON.stringify({}),
+        limits: JSON.stringify({}),
+        visible: JSON.stringify([]),
+        private_key: `lld/problems/${slug}/${hash}.json`,
+        content_hash: hash,
+      })
+      .execute();
+    const { id: battle } = await trx
+      .insertInto("game_match")
+      .values({ server_id: 0, mode: "battle", problem_slug: slug })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    const signals = [
+      { kind: "paste", round: 7, ms: null, chars: 640 },
+      { kind: "away", round: 12, ms: 41_000 },
+    ];
+    await trx
+      .insertInto("game_match_player")
+      .values({
+        match_id: battle,
+        user_id: bob,
+        signals: JSON.stringify(signals),
+      })
+      .execute();
+    await trx
+      .insertInto("fair_play_flag")
+      .values({ match_id: battle, user_id: bob, signals: 1 })
+      .execute();
+    const admin = kyselyAdminFairPlay(trx);
+    const [row] = mine(await admin.pending(), battle);
+    expect(row).toMatchObject({ mode: "battle", gain: 0, signals });
+    // No penalty for a battle until it's rated (W32); it can be dismissed.
+    expect(await admin.decide(row?.id ?? "", bob, "penalize")).toBeNull();
+    expect(await admin.decide(row?.id ?? "", bob, "dismiss")).toEqual({
+      userId: bob,
+    });
+  });
+});

@@ -66,6 +66,8 @@ const OPEN = 1; // WebSocket.OPEN
 export function runLive<S>(deps: LiveDeps<S>): {
   answer: (n: number, choice: number) => boolean;
   focusLost: () => void;
+  focusBack: () => void;
+  pasted: (chars: number) => void;
   code: (submit: boolean, language: string, code: string) => boolean;
   fallback: () => void;
   stop: () => void;
@@ -216,6 +218,16 @@ export function runLive<S>(deps: LiveDeps<S>): {
     focusLost: () => {
       if (socket?.readyState === OPEN)
         socket.send(JSON.stringify({ type: "focus" }));
+    },
+    // P5-W31-S04a (§6.9, Q-P5-17): a battle's page is back in focus, or had a large
+    // outside paste. The game server times the away and counts the paste.
+    focusBack: () => {
+      if (socket?.readyState === OPEN)
+        socket.send(JSON.stringify({ type: "back" }));
+    },
+    pasted: (chars) => {
+      if (socket?.readyState === OPEN)
+        socket.send(JSON.stringify({ type: "paste", chars }));
     },
     // P5-W31-S03: a battle's Run or Submit. False with no open socket: nothing was sent,
     // and the page lets the player send again.

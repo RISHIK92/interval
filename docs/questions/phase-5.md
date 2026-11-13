@@ -177,6 +177,20 @@ Priority: **P0** blocks the week's first slice; **P1** blocks a later slice; **P
   - paste, focus and 30-second snapshot signals for fair play in the human league (§6.9), sent as DB-5 events. Snapshots go to the private bucket (DB-6).
 - **Answer (overnight, recommended):** the suggested default; the dependency is listed in progress.md.
 
+### Q-P5-17 A battle's fair-play signals (P0 for W31-S04)
+
+- Cite:
+  - §6.9: "paste events, focus changes, … code snapshots every 30 seconds. Flags go to review before any penalty".
+  - §6.2: two leagues for battles; signals apply to the human league only.
+  - Q-P5-10 (signals "sent as DB-5 events"), DB-6 (snapshots in S3), and the quick games' signals (P3-W18-S02).
+- **Answers (owner, 2026-11-13):**
+  - **Flag rule:** a player is flagged for review on any paste of 200 or more characters that isn't already in their editor, or on 5 or more focus losses of 30 seconds or longer. Short pastes and quick glances never flag.
+  - **Snapshots:**
+    - The page posts its code every 30 seconds to `/api/battle/[id]/snapshot`, and only a player in an unfinished match can post. The web's FileStore writes it to the private bucket.
+    - Snapshots are deleted after 90 days, or kept until a flag on that match is decided.
+  - **Path:** signals go with the match result, as quick games' do (`game_match_player.signals`, read by `/admin/fair-play`). The page sends paste and focus over the match socket, and the worker stores them and raises flags. No analytics event carries them. This replaces Q-P5-10's "sent as DB-5 events".
+  - **League:** every battle is in the human league until W32. W32 adds the league, and the AI league's battles then skip signals.
+
 ## Week 32: rooms and windows
 
 ### Q-P5-11 OpenSkill (P0 for W32)

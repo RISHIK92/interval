@@ -15,12 +15,13 @@ const inTransaction = <T>(
 // As the worker stored them (services/game/fairplay.go).
 const Signals = z.array(
   z.object({
-    kind: z.enum(["speed", "focus"]),
+    kind: z.enum(["speed", "focus", "paste", "away"]),
     round: z.number().int(),
     ms: z.number().int().nullable(),
+    chars: z.number().int().optional(),
   }),
 );
-const Mode = z.enum(GAME_MODES);
+const Mode = z.enum([...GAME_MODES, "battle"]);
 
 export function kyselyAdminFairPlay(db: Kysely<DB>): AdminFairPlay {
   return {
@@ -85,6 +86,13 @@ export function kyselyAdminFairPlay(db: Kysely<DB>): AdminFairPlay {
         if (flag === undefined) return null;
         let penalty: number | null = null;
         if (decision === "penalize") {
+          // P5-W31-S04a: a battle has no rating to remove until W32, so no penalty.
+          const match = await trx
+            .selectFrom("game_match")
+            .select("mode")
+            .where("id", "=", flag.match_id)
+            .executeTakeFirstOrThrow();
+          if (match.mode === "battle") return null;
           // Locked like a rating update, so a match rated meanwhile can't be lost.
           const held = await trx
             .selectFrom("player_rating")
