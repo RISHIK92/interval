@@ -25,6 +25,7 @@ Already in place, and reused:
   - verdict explanations;
   - golden-design regression tests;
   - browser and server builds.
+- Built 2026-11-14.
 
 ## Week 39: the canvas
 

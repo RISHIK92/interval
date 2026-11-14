@@ -1,0 +1,203 @@
+{
+  "spec": "1.0",
+  "costPerMonth": 878.75,
+  "storageNeededGb": 930,
+  "storageGb": 500,
+  "scenarios": [
+    {
+      "id": "baseline",
+      "name": "A normal day",
+      "weight": 3,
+      "score": 0.285,
+      "targetsMet": false,
+      "p99Ms": null,
+      "availability": 0.7135000714285715,
+      "types": [
+        {
+          "type": "read",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0.7135000714285715,
+          "overloaded": true
+        },
+        {
+          "type": "write",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0.7135000714285715,
+          "overloaded": true
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 1,
+          "loadRps": 8400,
+          "utilization": 0.17,
+          "p50Ms": 1,
+          "p99Ms": 1.1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 6,
+          "loadRps": 8400,
+          "utilization": 1.4,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "db",
+          "kind": "sql_db",
+          "up": true,
+          "servers": 1,
+          "loadRps": 8400,
+          "utilization": 0.8,
+          "p50Ms": 10,
+          "p99Ms": 11.9
+        }
+      ],
+      "explanations": [
+        "api is overloaded: 8,400 requests/s is 140.0% of what its 6 server(s) handle.",
+        "\"read\": p99 unbounded (target 100 ms), 71.4% served.",
+        "\"write\": p99 unbounded (target 100 ms), 71.4% served."
+      ]
+    },
+    {
+      "id": "peak",
+      "name": "A launch-day spike",
+      "weight": 2,
+      "score": 0.285,
+      "targetsMet": false,
+      "p99Ms": null,
+      "availability": 0.10570371428571429,
+      "types": [
+        {
+          "type": "read",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0.09909723214285714,
+          "overloaded": true
+        },
+        {
+          "type": "write",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0.23783335714285714,
+          "overloaded": true
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 1,
+          "loadRps": 25200,
+          "utilization": 0.5,
+          "p50Ms": 1,
+          "p99Ms": 1.2
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 6,
+          "loadRps": 25200,
+          "utilization": 4.2,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "db",
+          "kind": "sql_db",
+          "up": true,
+          "servers": 1,
+          "loadRps": 25200,
+          "utilization": 2.4,
+          "p50Ms": null,
+          "p99Ms": null
+        }
+      ],
+      "explanations": [
+        "api is overloaded: 25,200 requests/s is 420.0% of what its 6 server(s) handle.",
+        "db is overloaded: 25,200 requests/s is 240.0% of what its 1 server(s) handle.",
+        "\"read\": p99 unbounded (target 200 ms), 9.9% served.",
+        "\"write\": p99 unbounded (target 200 ms), 23.8% served."
+      ]
+    },
+    {
+      "id": "zone",
+      "name": "A zone goes down",
+      "weight": 2,
+      "score": 0,
+      "targetsMet": false,
+      "p99Ms": null,
+      "availability": 0,
+      "types": [
+        {
+          "type": "read",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0,
+          "overloaded": false
+        },
+        {
+          "type": "write",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0,
+          "overloaded": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": false,
+          "servers": 1,
+          "loadRps": 8400,
+          "utilization": null,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": false,
+          "servers": 6,
+          "loadRps": 0,
+          "utilization": null,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "db",
+          "kind": "sql_db",
+          "up": false,
+          "servers": 1,
+          "loadRps": 0,
+          "utilization": null,
+          "p50Ms": null,
+          "p99Ms": null
+        }
+      ],
+      "explanations": [
+        "lb is down in this scenario.",
+        "api is down in this scenario.",
+        "db is down in this scenario.",
+        "\"read\": p99 unbounded (target 150 ms), 0.0% served.",
+        "\"write\": p99 unbounded (target 150 ms), 0.0% served."
+      ]
+    }
+  ],
+  "points": 12.2,
+  "baselinePassed": false,
+  "explanations": [
+    "Cost: $879 a month, against a budget of $6,000.",
+    "Storage: 930 GB needed by day 365; where writes are kept holds 500 GB."
+  ]
+}

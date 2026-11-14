@@ -5693,3 +5693,21 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Wiring:** the web takes `@interval/hld` (transpiled; in the Docker image).
 - **Environment note:** this shell's default Node is now 25 (Homebrew), and the repo needs 22. Commands run with nvm's v22.22.3 first on the PATH.
 - **Review:** combined with W37's engine review (W36 is schema and a static page).
+
+### 2026-11-14 — P6 Weeks 37–38 (the simulation engine and the problem format; CANVAS-3, CANVAS-5, HLDQ-1, Q-P6-02)
+
+- **Owner's answers:** Q-P6-02 (weighted scenarios with partial credit, M/M/c with Erlang C; cost unanswered, so a monthly budget scored like any target, for the owner to confirm). Q-P6-03 (W39's hints, autosave and preview) recorded ahead of W39.
+- **`problem.ts`:** an HLD problem: requirements, traffic (request types, each a read or a write and cacheable or not; working set, hot-key skew, storage and growth), the monthly budget, weighted scenarios (load multiple, a node, zone or region failure, p99 and availability targets), allowed components, the rubric (W41's judge) and concepts. It needs a baseline scenario (§6.4's gate).
+- **`simulate.ts`:** the deterministic analytical engine, pure TS so the canvas preview and the official scorer run the same code (CANVAS-5):
+  - load flows from the client in topological order; caches and CDNs answer cacheable reads (cache-aside or read-through) from a hit rate set by memory, working set and skew (a CDN's by its TTL); queues and streams end the caller's path and need consumers;
+  - each component is M/M/c: p50 and p99 from Erlang C's wait tail; overload is unbounded and serves only its share;
+  - availability from what protects each component: spare servers, read replicas and a standby, replication, a search shard's replicas; node, zone and region failures by component;
+  - a request is served only when its path reaches a database, store, index or worker, and a cache hits only with an origin behind it;
+  - the score per scenario: p99, availability, budget and storage (writes' stores against `storedGb + growth × horizon`), 1 at the target, 0 at twice it; a scenario that serves nothing scores 0. Points out of 60, and whether the baseline passed. Every verdict is explained in words.
+  - engine constants (hours a month, cache and CDN hit-rate caps, memory and storage prices) live in the versioned spec.
+- **`design.ts`:** now also rejects cycles, repeated routes on an edge, unpublished spec versions and fewer nodes than zones.
+- **Tests:** Erlang C closed forms; a sound design earns 60; an overloaded one fails the baseline; caches take load off the database; read-through matches cache-aside; designs that serve nothing (a client alone, a load balancer or CDN with nothing behind, a cache with no database) score 0; a queue's consumers do the work; golden designs (rewritten only with `UPDATE_GOLDEN=1`); the largest layered design simulates in well under 2 s.
+- **CLI:** `pnpm --filter @interval/hld simulate <problem.json> <design.json>`.
+- **Review (Sonnet):** the first engine draft's review found trivial designs scoring full points, exponential path enumeration and redundancy counted from node numbers; the engine was rewritten around those. The second review found a write dying when it passed through a CDN or read-through cache, storage counted from edges no write could reach (and object storage free), reads answered by a queue or a bare worker, the cache chosen by edge order, a route listed twice, and an infinite utilization. All fixed, each with a test.
+- **Known simplifications, for the owner's spec review:** a CDN's TTL has no staleness cost; a queue's retention is unpriced; a cache that's up is assumed always available (one that's down is bypassed); every datastore a write reaches must hold all the data.
+- **Checks:** `pnpm check` passed except web's DB-backed suites, which timed out under load; web alone passed, 1615 tests.

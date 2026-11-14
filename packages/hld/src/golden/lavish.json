@@ -1,0 +1,230 @@
+{
+  "spec": "1.0",
+  "costPerMonth": 31744.1,
+  "storageNeededGb": 930,
+  "storageGb": 2000,
+  "scenarios": [
+    {
+      "id": "baseline",
+      "name": "A normal day",
+      "weight": 3,
+      "score": 0.75,
+      "targetsMet": false,
+      "p99Ms": 32.9,
+      "availability": 0.9999999423714289,
+      "types": [
+        {
+          "type": "read",
+          "p50Ms": 22,
+          "p99Ms": 22,
+          "availability": 0.99999998999,
+          "overloaded": false
+        },
+        {
+          "type": "write",
+          "p50Ms": 31,
+          "p99Ms": 32.9,
+          "availability": 0.9999989900000099,
+          "overloaded": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 2,
+          "loadRps": 8400,
+          "utilization": 0.08,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 400,
+          "loadRps": 8400,
+          "utilization": 0.02,
+          "p50Ms": 20,
+          "p99Ms": 20
+        },
+        {
+          "id": "cache",
+          "kind": "cache",
+          "up": true,
+          "servers": 4,
+          "loadRps": 8000,
+          "utilization": 0.02,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "db",
+          "kind": "sql_db",
+          "up": true,
+          "servers": 3,
+          "loadRps": 480,
+          "utilization": 0.2,
+          "p50Ms": 10,
+          "p99Ms": 11.9
+        }
+      ],
+      "explanations": [
+        "cache answers 99.0% of the reads it may.",
+        "\"read\": p99 22 ms (target 100 ms), 100.0% served.",
+        "\"write\": p99 32.9 ms (target 100 ms), 100.0% served."
+      ]
+    },
+    {
+      "id": "peak",
+      "name": "A launch-day spike",
+      "weight": 2,
+      "score": 0.75,
+      "targetsMet": false,
+      "p99Ms": 36.1,
+      "availability": 0.9999999423714289,
+      "types": [
+        {
+          "type": "read",
+          "p50Ms": 22,
+          "p99Ms": 22,
+          "availability": 0.99999998999,
+          "overloaded": false
+        },
+        {
+          "type": "write",
+          "p50Ms": 31.2,
+          "p99Ms": 36.1,
+          "availability": 0.9999989900000099,
+          "overloaded": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 2,
+          "loadRps": 25200,
+          "utilization": 0.25,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 400,
+          "loadRps": 25200,
+          "utilization": 0.06,
+          "p50Ms": 20,
+          "p99Ms": 20
+        },
+        {
+          "id": "cache",
+          "kind": "cache",
+          "up": true,
+          "servers": 4,
+          "loadRps": 24000,
+          "utilization": 0.06,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "db",
+          "kind": "sql_db",
+          "up": true,
+          "servers": 3,
+          "loadRps": 1440,
+          "utilization": 0.6,
+          "p50Ms": 10.2,
+          "p99Ms": 15.1
+        }
+      ],
+      "explanations": [
+        "cache answers 99.0% of the reads it may.",
+        "\"read\": p99 22 ms (target 200 ms), 100.0% served.",
+        "\"write\": p99 36.1 ms (target 200 ms), 100.0% served."
+      ]
+    },
+    {
+      "id": "zone",
+      "name": "A zone goes down",
+      "weight": 2,
+      "score": 0.75,
+      "targetsMet": false,
+      "p99Ms": 32.9,
+      "availability": 0.9999999423393837,
+      "types": [
+        {
+          "type": "read",
+          "p50Ms": 22,
+          "p99Ms": 27.1,
+          "availability": 0.9999999899563524,
+          "overloaded": false
+        },
+        {
+          "type": "write",
+          "p50Ms": 31,
+          "p99Ms": 32.9,
+          "availability": 0.9999989900000099,
+          "overloaded": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 1,
+          "loadRps": 8400,
+          "utilization": 0.17,
+          "p50Ms": 1,
+          "p99Ms": 1.1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 200,
+          "loadRps": 8400,
+          "utilization": 0.04,
+          "p50Ms": 20,
+          "p99Ms": 20
+        },
+        {
+          "id": "cache",
+          "kind": "cache",
+          "up": true,
+          "servers": 2,
+          "loadRps": 8000,
+          "utilization": 0.04,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "db",
+          "kind": "sql_db",
+          "up": true,
+          "servers": 2,
+          "loadRps": 749.2,
+          "utilization": 0.2,
+          "p50Ms": 10,
+          "p99Ms": 11.9
+        }
+      ],
+      "explanations": [
+        "cache answers 95.6% of the reads it may.",
+        "\"read\": p99 27.1 ms (target 150 ms), 100.0% served.",
+        "\"write\": p99 32.9 ms (target 150 ms), 100.0% served."
+      ]
+    }
+  ],
+  "points": 45,
+  "baselinePassed": false,
+  "explanations": [
+    "Cost: $31,744 a month, against a budget of $6,000.",
+    "Storage: 930 GB needed by day 365; where writes are kept holds 2,000 GB."
+  ]
+}

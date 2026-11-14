@@ -22,12 +22,27 @@ export type ComponentStats = {
   costPerNodeHour: number; // USD
 };
 
+// The simulator's own constants: part of the versioned spec, so a change to one is a
+// balance patch with its notes, never a silent change to scores (CANVAS-4).
+export type EngineConstants = {
+  hoursPerMonth: number;
+  cdnContentChangeSeconds: number; // how often cacheable content changes, against a CDN's TTL
+  maxCdnHitRate: number;
+  maxCacheHitRate: number;
+  cdnPointsOfPresence: number; // a CDN's servers: it never runs short in practice
+  cacheMemoryCostPerGbHour: number; // USD, on top of a cache node's cost
+  storageCostPerGbMonth: number; // USD, a relational database's provisioned storage
+  kvStorageGbPerNode: number; // what one key-value node holds (replicas are copies)
+  objectStoragePerGbMonth: number; // USD, billed on what's kept
+};
+
 export type SpecVersion = {
   version: string;
   date: string; // ISO day it took effect
   provisional: boolean;
   components: Record<ComponentKind, ComponentStats>;
   notes: string[]; // the patch notes: what changed from the version before
+  engine: EngineConstants;
 };
 
 const V1_0: SpecVersion = {
@@ -37,6 +52,17 @@ const V1_0: SpecVersion = {
   notes: [
     "The first spec sheet: 12 components with their capacity, latency, availability and cost.",
   ],
+  engine: {
+    hoursPerMonth: 730,
+    cdnContentChangeSeconds: 600,
+    maxCdnHitRate: 0.95,
+    maxCacheHitRate: 0.99,
+    cdnPointsOfPresence: 20,
+    cacheMemoryCostPerGbHour: 0.005,
+    storageCostPerGbMonth: 0.115,
+    kvStorageGbPerNode: 1_000,
+    objectStoragePerGbMonth: 0.023,
+  },
   components: {
     client: {
       name: "Client",
