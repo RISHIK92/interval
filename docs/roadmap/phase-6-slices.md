@@ -31,6 +31,7 @@ Already in place, and reused:
 
 - IDs: CANVAS-1, CANVAS-2.
 - Goal: React Flow on the diagram library, configuration panels, "why" notes, autosave, preview simulation, and hints.
+- Built 2026-11-14, as solo practice (ADR-0042 PROPOSED) until W42's matches.
 
 ## Week 40: problem families
 

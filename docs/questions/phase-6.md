@@ -45,3 +45,5 @@ Phase 6 (docs/roadmap/phase-6.md) is HLD battles. The process is the owner's fro
   - **Hints:** come from the preview simulation, by rule (an overloaded component, a dead end, a single zone, an unkept write): no model calls.
   - **Autosave:** on the server, one design per user per match, debounced about 2 seconds, in Postgres. Its versions are the design's replay.
   - **Preview:** unlimited, in the browser. The official score is recomputed on the server at submit.
+  - **Where the canvas lives before W42 (owner, 2026-11-14):** solo practice for everyone. `/hld/practice` lists the practice problems, and each opens on the canvas, autosaved per player per problem. This is new product behaviour, recorded as ADR-0042 (PROPOSED).
+  - **The dependency (owner, 2026-11-14):** `@xyflow/react` 12.12.0, pinned exactly (CANVAS-1).

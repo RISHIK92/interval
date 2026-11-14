@@ -20,6 +20,7 @@ import type {
 } from "@interval/api-client";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
+import type { Design } from "@interval/hld";
 import type { Interface, Problem, ResultLine, Scenario } from "@interval/lld";
 
 // The reasons a card explanation can state (ADR-0026/0027), as the worker names them.
@@ -2174,4 +2175,20 @@ export interface ProblemStore {
   // Insert or replace by slug; a retired problem loaded again is live again.
   save(problem: LoadedProblem): Promise<void>;
   retire(slugs: string[]): Promise<void>;
+}
+
+// P6-W39 (CANVAS-2, ADR-0042 PROPOSED, Q-P6-03): a player's practice design, autosaved
+// from the canvas. The stored design is returned as it was kept: the caller parses it,
+// since a spec version may have retired since.
+export type SavedDesign = { design: unknown; version: number };
+export interface HldPracticeDesigns {
+  load(userId: string, slug: string): Promise<SavedDesign | null>;
+  // Saves over version `base` (0: nothing saved yet) and returns the new version; null
+  // when `base` is stale (another tab saved since), so nothing newer is overwritten.
+  save(
+    userId: string,
+    slug: string,
+    design: Design,
+    base: number,
+  ): Promise<number | null>;
 }

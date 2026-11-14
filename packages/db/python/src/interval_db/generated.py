@@ -45,6 +45,7 @@ type Capability = Literal[
     "agent.hook",
     "push.notify",
     "play.battle",
+    "play.hld",
 ]
 type ConceptEdgeType = Literal["prerequisite_of", "related_to", "applied_in"]
 type DependencyEcosystem = Literal["npm", "pypi", "go"]
@@ -658,6 +659,14 @@ class GraphVersion(TypedDict):
 class GuestStart(TypedDict):
     ip_key: bytes
     created_at: datetime
+
+
+class HldPracticeDesign(TypedDict):
+    user_id: str
+    problem_slug: str
+    version: int
+    design: JsonValue
+    saved_at: datetime
 
 
 class InviteCode(TypedDict):

@@ -25,7 +25,7 @@ export type BookStatus = "failed" | "ocr" | "processing" | "ready";
 
 export type BreakLength = "1-3" | "3-8" | "8-15";
 
-export type Capability = "admin.review" | "agent.hook" | "ai.budget.daily_cents" | "ai.notes.daily" | "books.count" | "books.max_mb" | "books.max_pages" | "feed.read" | "play.battle" | "play.daily" | "play.estimation" | "play.live" | "play.sprint" | "push.notify";
+export type Capability = "admin.review" | "agent.hook" | "ai.budget.daily_cents" | "ai.notes.daily" | "books.count" | "books.max_mb" | "books.max_pages" | "feed.read" | "play.battle" | "play.daily" | "play.estimation" | "play.hld" | "play.live" | "play.sprint" | "push.notify";
 
 export type ConceptEdgeType = "applied_in" | "prerequisite_of" | "related_to";
 
@@ -675,6 +675,14 @@ export interface GraphVersion {
 export interface GuestStart {
   created_at: Generated<Timestamp>;
   ip_key: Buffer;
+}
+
+export interface HldPracticeDesign {
+  design: Json;
+  problem_slug: string;
+  saved_at: Generated<Timestamp>;
+  user_id: string;
+  version: number;
 }
 
 export interface InviteCode {
@@ -1465,6 +1473,7 @@ export interface DB {
   goal_concept: GoalConcept;
   graph_version: GraphVersion;
   guest_start: GuestStart;
+  hld_practice_design: HldPracticeDesign;
   invite_code: InviteCode;
   item_concept: ItemConcept;
   item_concept_probability: ItemConceptProbability;

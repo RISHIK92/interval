@@ -5711,3 +5711,56 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Review (Sonnet):** the first engine draft's review found trivial designs scoring full points, exponential path enumeration and redundancy counted from node numbers; the engine was rewritten around those. The second review found a write dying when it passed through a CDN or read-through cache, storage counted from edges no write could reach (and object storage free), reads answered by a queue or a bare worker, the cache chosen by edge order, a route listed twice, and an infinite utilization. All fixed, each with a test.
 - **Known simplifications, for the owner's spec review:** a CDN's TTL has no staleness cost; a queue's retention is unpriced; a cache that's up is assumed always available (one that's down is bypassed); every datastore a write reaches must hold all the data.
 - **Checks:** `pnpm check` passed except web's DB-backed suites, which timed out under load; web alone passed, 1615 tests.
+
+### 2026-11-14 — P6 Week 39 (the canvas, as solo practice; CANVAS-1, CANVAS-2, CANVAS-5, OPS-3, Q-P6-03, ADR-0042 PROPOSED)
+
+- **Owner's answers (Q-P6-03):** hints by rule from the preview, with no model calls; autosave on the server; the preview unlimited in the browser, and the official score recomputed at submit (W42). Until W42 the canvas is solo practice for everyone. That's new product behaviour, so it's recorded as ADR-0042 (PROPOSED).
+- **New dependency:** `@xyflow/react` 12.12.0 in apps/web, pinned exactly; it brings zustand, classcat and @xyflow/system. CANVAS-1 names React Flow; the owner approved it.
+- **`packages/hld`:**
+  - `edit.ts`: the canvas's edits as pure functions:
+    - add a component, with a free id and the smallest valid config;
+    - remove one (with its edges; never the client);
+    - update config, note or position;
+    - connect (all the problem's request types) and set routes (none removes the edge);
+    - `check`, which says in words why a draft isn't valid yet;
+    - `configFields`, read from the catalog's zod bounds, so the form can't drift.
+  - `hints.ts`: up to 5, the most serious first:
+    - unserved request types;
+    - writes kept nowhere;
+    - overloaded components (once each);
+    - what goes down in each failure scenario;
+    - storage running out;
+    - over budget;
+    - components running hot.
+  - `practice.ts`: the URL shortener (PROVISIONAL) as the first practice problem, until W40's families. The simulation result gained `writesKept`.
+- **Data:**
+  - `play.hld`, a capability of its own (OPS-3), granted to the beta plan, so guests have it too;
+  - the `hld_practice_design` table: one design per player per problem, with a version. A save names the version it was made over, and a stale one (another tab saved since) is refused, never overwritten;
+  - the `HldPracticeDesigns` port and its Kysely adapter.
+- **Web:**
+  - `/hld/practice` lists the problems;
+  - `/hld/practice/<slug>` opens on the player's last autosave. A saved design that no longer parses starts over from the client;
+  - `Canvas.tsx` (React Flow):
+    - a palette of the problem's allowed components;
+    - drag, connect and delete;
+    - a config panel with bounded inputs, and the "why this choice" note (280 characters);
+    - an edge panel for which request types it carries;
+    - the issues list for an invalid draft;
+    - the live preview (points of 60, the baseline gate, each scenario's score, p99 and share served, cost against the budget) with hints;
+    - autosave about 2 s after the last valid change;
+  - the `saveDesign` action checks the session, the capability, the problem, the design's schema and its size;
+  - Play has a "System design practice" card.
+- **Not walked in a browser:** Chrome is off by the owner's rule, and the owner's dev server wasn't touched. The canvas is checked by its unit tests, type checks and a production build.
+- **Review (Sonnet):** fixed:
+  - the controlled React Flow nodes dropped their measured sizes, so they could stay unmeasured, with no handles to connect from; they now carry them;
+  - a change made while a save was in flight sent a second save over the same version, which was then refused as stale and stopped autosave; one save is now in flight at a time;
+  - a refused save no longer retries in a loop;
+  - reverting to the saved design shows "Saved." again;
+  - the action now also checks the design against the problem (its allowed components and request types, `fitsProblem`), bounds the version to the column's int4, and says "forbidden" rather than "signed-out" without the capability;
+  - edges are found by id, not by parsing it;
+  - a refused save is logged in the browser console.
+- **For the owner:** the save action has no per-player rate limit beyond the canvas's 2 s debounce (one row per player per problem, at most 64 KB). Add one if LOAD-5 should cover it.
+- **Unverified:** the measured-size fix follows React Flow's controlled-node contract, but nobody has dragged a node in a real browser yet.
+- **Checks:** the full `pnpm check` failed on this Mac under load: the local Postgres container restarted three times within the hour, and suites failed at file level, mobile's too. Run alone, each passes: hld (47), web (1630), the Python compose and db tests, `db:check`, and the web production build.
+- **Incident, fixed:** one of those Postgres restarts landed as the check helper put the AI cap back, so the global cap stayed at 500 cents. Nothing was spent (the worker wasn't running). It was set back to 30, and the helper now retries the restore until it reads back 30.
+- **Leftovers:** 15 `interval_check_*` scratch databases from interrupted checks remain in local Postgres. Dropping them needs your go-ahead.

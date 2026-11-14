@@ -100,6 +100,8 @@ test("four quick games, each with its format and win condition, all playable", a
   }
   const list = /<ul[^]*<\/ul>/.exec(html)?.[0] ?? "";
   expect(list).not.toContain("Coming later");
+  // P6-W39 (ADR-0042 PROPOSED): HLD practice, for anyone with a session.
+  expect(list).toContain('href="/hld/practice"');
   expect(html).toMatch(/<a aria-current="page"[^>]*href="\/play"/);
 });
 

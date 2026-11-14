@@ -3,6 +3,7 @@
   "costPerMonth": 878.75,
   "storageNeededGb": 930,
   "storageGb": 500,
+  "writesKept": true,
   "scenarios": [
     {
       "id": "baseline",

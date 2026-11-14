@@ -72,6 +72,7 @@ export type SimulationResult = {
   costPerMonth: number;
   storageNeededGb: number;
   storageGb: number | null; // where writes are kept; null: unlimited, or nowhere
+  writesKept: boolean; // some write reaches a datastore (or nothing needs keeping)
   scenarios: ScenarioResult[];
   points: number; // of SIMULATION_POINTS
   baselinePassed: boolean; // §6.4's gate for the rubric points
@@ -428,6 +429,7 @@ export function simulate(
     costPerMonth: 0,
     storageNeededGb: 0,
     storageGb: null,
+    writesKept: false,
     scenarios: [],
     points: 0,
     baselinePassed: false,
@@ -809,6 +811,8 @@ export function simulate(
     costPerMonth: Math.round(cost * 100) / 100,
     storageNeededGb,
     storageGb: storage.gb,
+    writesKept:
+      storage.gb !== null || storage.unlimited || storageNeededGb === 0,
     scenarios,
     points: Math.round(points * 10) / 10,
     baselinePassed:

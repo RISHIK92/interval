@@ -32,6 +32,7 @@ import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
 import { kyselyBattleSnapshots } from "./adapters/kysely-battle-snapshots";
+import { kyselyHldPracticeDesigns } from "./adapters/kysely-hld-practice-designs";
 import { kyselyAdminExplainers } from "./adapters/kysely-admin-explainers";
 import { kyselyAdminScenes } from "./adapters/kysely-admin-scenes";
 import { kyselyListening } from "./adapters/kysely-listening";
@@ -123,6 +124,7 @@ import type {
   FeedReader,
   GuestLimits,
   GuestSessions,
+  HldPracticeDesigns,
   InviteCodes,
   JobQueue,
   Leaderboards,
@@ -524,6 +526,11 @@ export function battleWindows(): BattleWindows {
 // P5-W31-S04b (§6.9, Q-P5-17): battle players' code snapshots, for fair-play review.
 export function battleSnapshots(): BattleSnapshots {
   return kyselyBattleSnapshots(db());
+}
+
+// P6-W39 (ADR-0042 PROPOSED, Q-P6-03): practice designs, autosaved from the canvas.
+export function hldPracticeDesigns(): HldPracticeDesigns {
+  return kyselyHldPracticeDesigns(db());
 }
 
 // P5-W31-S01, S03: LLD battle problems as loaded, for the battle page.

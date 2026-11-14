@@ -71,6 +71,13 @@ const GAMES: {
     win: "Most points from passed tests; a tie goes to whoever got there first",
     capability: "play.battle",
   },
+  // P6-W39 (§6.4, ADR-0042 PROPOSED): HLD practice, until HLD battles (W42).
+  {
+    name: "System design practice",
+    format: "Solo, no clock: design a system on the canvas",
+    win: "Simulation points out of 60 as the design runs through each scenario",
+    capability: "play.hld",
+  },
 ];
 
 // P3-W13-S01: the Play tab (§6.1, §6.3). Each game is playable once its own slice
@@ -217,6 +224,13 @@ export default async function PlayPage(props: {
                   className="mt-auto self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
                 >
                   Battle
+                </Link>
+              ) : game.capability === "play.hld" && actor !== null ? (
+                <Link
+                  href="/hld/practice"
+                  className="mt-auto self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+                >
+                  Practise
                 </Link>
               ) : game.capability === "play.daily" && today !== null ? (
                 <DailyPlay status={today} />
