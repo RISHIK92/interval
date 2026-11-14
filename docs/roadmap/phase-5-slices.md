@@ -311,15 +311,20 @@ Already in place, so not sliced again:
 ### P5-W34-S01 Problems 7–15
 
 - Goal: reach 12 to 15 problems.
+- Q: Q-P5-21.
+- Built 2026-11-14: 12 problems in all (10 human-league, 2 AI-league). The four new ones are elevator-system, vending-machine, url-shortener and task-scheduler: PROVISIONAL, verified in six languages, mutation-gated.
 
 ### P5-W34-S02 A load test of a window start
 
 - IDs: LOAD-4
 - Goal: k6 against the local stack: verdicts within 10 seconds for 95% of submissions.
+- Q: Q-P5-21.
+- Built 2026-11-14 (`pnpm load:prepare`, `scripts/load/window-start.js`, docs/runbooks/load-test.md). The run itself is the owner's: it needs k6 and Velox configured.
 
 ### P5-W34-S03 Red-team rerun
 
 - IDs: EXEC-1
+- Built 2026-11-14, in Velox (ADR-0041): all 22 attacks contained locally (Docker Desktop, runc). Under load, Go's memory hog once ended on the wall clock instead of the memory limit; run alone, it reaches `memory_limit`. Velox's docs/runbooks/redteam.md has it. The gVisor and Judge0 rows are still the owner's.
 
 ## Week 35: results and launch
 

@@ -30,7 +30,8 @@
     "format-check:go": "sh -c 'out=$(gofmt -l services/game cli/interval) || exit 1; [ -z \"$out\" ] || { echo \"gofmt: $out\"; exit 1; }'",
     "vet:go": "(cd services/game && go vet ./...) && (cd cli/interval && go vet ./...)",
     "contracts:velox": "pnpm --filter @interval/judge contracts:velox",
-    "test:go": "(cd services/game && go test ./...) && (cd cli/interval && go test ./...)"
+    "test:go": "(cd services/game && go test ./...) && (cd cli/interval && go test ./...)",
+    "load:prepare": "scripts/with-env.sh node --import ./scripts/ts-resolve.mjs apps/web/scripts/load-prepare.ts"
   },
   "devDependencies": {
     "@interval/config": "workspace:*",

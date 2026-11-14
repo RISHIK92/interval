@@ -1,0 +1,2346 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 25
+      },
+      {
+        "call": 3,
+        "value": 50
+      },
+      {
+        "call": 4,
+        "value": 75
+      },
+      {
+        "call": 5,
+        "value": 75
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": 0
+      },
+      {
+        "call": 9,
+        "value": "cola"
+      },
+      {
+        "call": 10,
+        "value": 100
+      },
+      {
+        "call": 11,
+        "value": [25]
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "value": 100
+      },
+      {
+        "call": 15,
+        "error": "ValueError: sold out"
+      },
+      {
+        "call": 16,
+        "value": [100]
+      },
+      {
+        "call": 17,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 5
+      },
+      {
+        "call": 2,
+        "value": 30
+      },
+      {
+        "call": 3,
+        "value": 40
+      },
+      {
+        "call": 4,
+        "value": 65
+      },
+      {
+        "call": 5,
+        "value": 65
+      },
+      {
+        "call": 6,
+        "value": [25, 25, 10, 5]
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 10,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": 5
+      },
+      {
+        "call": 9,
+        "value": 5
+      },
+      {
+        "call": 10,
+        "value": [5]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: invalid stock"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: invalid stock"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: invalid stock"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: invalid stock"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: invalid stock"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'unknown slot'"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'unknown slot'"
+      },
+      {
+        "call": 8,
+        "error": "KeyError: 'unknown slot'"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": "x"
+      },
+      {
+        "call": 12,
+        "value": 5
+      },
+      {
+        "call": 13,
+        "error": "ValueError: sold out"
+      },
+      {
+        "call": 14,
+        "value": 5
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "KeyError: 'unknown slot'"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'unknown slot'"
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'unknown slot'"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'unknown slot'"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'unknown slot'"
+      },
+      {
+        "call": 7,
+        "value": "x"
+      },
+      {
+        "call": 8,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 25
+      },
+      {
+        "call": 3,
+        "value": 50
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not enough credit"
+      },
+      {
+        "call": 5,
+        "value": 50
+      },
+      {
+        "call": 6,
+        "value": 3
+      },
+      {
+        "call": 7,
+        "value": 75
+      },
+      {
+        "call": 8,
+        "value": 100
+      },
+      {
+        "call": 9,
+        "value": 100
+      },
+      {
+        "call": 10,
+        "value": []
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": 2
+      },
+      {
+        "call": 13,
+        "error": "ValueError: not enough credit"
+      },
+      {
+        "call": 14,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 25
+      },
+      {
+        "call": 3,
+        "value": 50
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not enough credit"
+      },
+      {
+        "call": 5,
+        "value": [25, 25]
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not enough credit"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 5
+      },
+      {
+        "call": 3,
+        "value": 15
+      },
+      {
+        "call": 4,
+        "value": [10]
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": 100
+      },
+      {
+        "call": 7,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 8,
+        "value": [100]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 5
+      },
+      {
+        "call": 3,
+        "value": 10
+      },
+      {
+        "call": 4,
+        "value": 15
+      },
+      {
+        "call": 5,
+        "value": [5, 5]
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 100
+      },
+      {
+        "call": 3,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 4,
+        "value": 100
+      },
+      {
+        "call": 5,
+        "value": 3
+      },
+      {
+        "call": 6,
+        "value": [100]
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 25
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 10
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": 10
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": 10
+      },
+      {
+        "call": 10,
+        "value": []
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": 100
+      },
+      {
+        "call": 13,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 14,
+        "value": 100
+      },
+      {
+        "call": 15,
+        "value": 5
+      },
+      {
+        "call": 16,
+        "value": [100]
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": 5
+      },
+      {
+        "call": 19,
+        "value": []
+      },
+      {
+        "call": 20,
+        "value": 100
+      },
+      {
+        "call": 21,
+        "value": [25, 5]
+      },
+      {
+        "call": 22,
+        "value": 0
+      },
+      {
+        "call": 23,
+        "value": 4
+      },
+      {
+        "call": 24,
+        "value": 100
+      },
+      {
+        "call": 25,
+        "value": [10, 10, 10]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 25
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 10
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": 10
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 5
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": 5
+      },
+      {
+        "call": 13,
+        "value": []
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": 100
+      },
+      {
+        "call": 16,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 17,
+        "value": 200
+      },
+      {
+        "call": 18,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 19,
+        "value": 5
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 25
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 10
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": 10
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 5
+      },
+      {
+        "call": 11,
+        "value": []
+      },
+      {
+        "call": 12,
+        "value": 5
+      },
+      {
+        "call": 13,
+        "value": []
+      },
+      {
+        "call": 14,
+        "value": 5
+      },
+      {
+        "call": 15,
+        "value": []
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": 100
+      },
+      {
+        "call": 18,
+        "value": [25, 10, 10, 5, 5, 5]
+      },
+      {
+        "call": 19,
+        "value": 4
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 100
+      },
+      {
+        "call": 3,
+        "value": []
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 25
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": 25
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": 25
+      },
+      {
+        "call": 10,
+        "value": []
+      },
+      {
+        "call": 11,
+        "value": 25
+      },
+      {
+        "call": 12,
+        "value": []
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": 10
+      },
+      {
+        "call": 15,
+        "value": []
+      },
+      {
+        "call": 16,
+        "value": 10
+      },
+      {
+        "call": 17,
+        "value": []
+      },
+      {
+        "call": 18,
+        "value": 10
+      },
+      {
+        "call": 19,
+        "value": []
+      },
+      {
+        "call": 20,
+        "value": 10
+      },
+      {
+        "call": 21,
+        "value": []
+      },
+      {
+        "call": 22,
+        "value": null
+      },
+      {
+        "call": 23,
+        "value": 5
+      },
+      {
+        "call": 24,
+        "value": []
+      },
+      {
+        "call": 25,
+        "value": 5
+      },
+      {
+        "call": 26,
+        "value": []
+      },
+      {
+        "call": 27,
+        "value": 5
+      },
+      {
+        "call": 28,
+        "value": []
+      },
+      {
+        "call": 29,
+        "value": 5
+      },
+      {
+        "call": 30,
+        "value": []
+      },
+      {
+        "call": 31,
+        "value": 5
+      },
+      {
+        "call": 32,
+        "value": []
+      },
+      {
+        "call": 33,
+        "value": null
+      },
+      {
+        "call": 34,
+        "value": 100
+      },
+      {
+        "call": 35,
+        "value": 200
+      },
+      {
+        "call": 36,
+        "value": [100, 25, 25, 25, 10, 10]
+      },
+      {
+        "call": 37,
+        "value": 100
+      },
+      {
+        "call": 38,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 39,
+        "value": 125
+      },
+      {
+        "call": 40,
+        "value": 150
+      },
+      {
+        "call": 41,
+        "value": 175
+      },
+      {
+        "call": 42,
+        "value": 200
+      },
+      {
+        "call": 43,
+        "value": [100, 25, 25, 25, 10, 10]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 100
+      },
+      {
+        "call": 3,
+        "value": [100]
+      },
+      {
+        "call": 4,
+        "value": 100
+      },
+      {
+        "call": 5,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 6,
+        "value": 100
+      },
+      {
+        "call": 7,
+        "value": 5
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 25
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "tea"
+      },
+      {
+        "call": 5,
+        "value": 5
+      },
+      {
+        "call": 6,
+        "value": 25
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": 4
+      },
+      {
+        "call": 9,
+        "value": 0
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not enough credit"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 14,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 10
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "value": 10
+      },
+      {
+        "call": 7,
+        "error": "ValueError: sold out"
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "error": "ValueError: sold out"
+      },
+      {
+        "call": 10,
+        "value": 10
+      },
+      {
+        "call": 11,
+        "value": 20
+      },
+      {
+        "call": 12,
+        "error": "ValueError: sold out"
+      },
+      {
+        "call": 13,
+        "value": [10]
+      },
+      {
+        "call": 14,
+        "value": 0
+      },
+      {
+        "call": 15,
+        "value": 0
+      },
+      {
+        "call": 16,
+        "value": 0
+      },
+      {
+        "call": 17,
+        "value": "b"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 15,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 10
+      },
+      {
+        "call": 3,
+        "value": 20
+      },
+      {
+        "call": 4,
+        "value": [10]
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not enough credit"
+      },
+      {
+        "call": 7,
+        "value": 10
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 16,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 5
+      },
+      {
+        "call": 3,
+        "value": 10
+      },
+      {
+        "call": 4,
+        "value": 15
+      },
+      {
+        "call": 5,
+        "value": 20
+      },
+      {
+        "call": 6,
+        "value": 25
+      },
+      {
+        "call": 7,
+        "value": 30
+      },
+      {
+        "call": 8,
+        "value": 30
+      },
+      {
+        "call": 9,
+        "value": []
+      },
+      {
+        "call": 10,
+        "value": 0
+      },
+      {
+        "call": 11,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 17,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 5
+      },
+      {
+        "call": 2,
+        "value": 10
+      },
+      {
+        "call": 3,
+        "value": 20
+      },
+      {
+        "call": 4,
+        "value": 120
+      },
+      {
+        "call": 5,
+        "value": 145
+      },
+      {
+        "call": 6,
+        "value": 150
+      },
+      {
+        "call": 7,
+        "value": 250
+      },
+      {
+        "call": 8,
+        "value": 250
+      },
+      {
+        "call": 9,
+        "value": [100, 100, 25, 10, 5, 5, 5]
+      },
+      {
+        "call": 10,
+        "value": []
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": 10
+      },
+      {
+        "call": 13,
+        "value": [10]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 18,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 100
+      },
+      {
+        "call": 3,
+        "value": 200
+      },
+      {
+        "call": 4,
+        "value": 300
+      },
+      {
+        "call": 5,
+        "value": 400
+      },
+      {
+        "call": 6,
+        "value": 500
+      },
+      {
+        "call": 7,
+        "value": 600
+      },
+      {
+        "call": 8,
+        "value": 700
+      },
+      {
+        "call": 9,
+        "value": 800
+      },
+      {
+        "call": 10,
+        "value": 900
+      },
+      {
+        "call": 11,
+        "value": 1000
+      },
+      {
+        "call": 12,
+        "value": 1100
+      },
+      {
+        "call": 13,
+        "value": 1200
+      },
+      {
+        "call": 14,
+        "value": 1300
+      },
+      {
+        "call": 15,
+        "value": 1400
+      },
+      {
+        "call": 16,
+        "value": 1500
+      },
+      {
+        "call": 17,
+        "value": 1600
+      },
+      {
+        "call": 18,
+        "value": 1700
+      },
+      {
+        "call": 19,
+        "value": 1800
+      },
+      {
+        "call": 20,
+        "value": 1900
+      },
+      {
+        "call": 21,
+        "value": 2000
+      },
+      {
+        "call": 22,
+        "value": 2100
+      },
+      {
+        "call": 23,
+        "value": 2200
+      },
+      {
+        "call": 24,
+        "value": 2300
+      },
+      {
+        "call": 25,
+        "value": 2400
+      },
+      {
+        "call": 26,
+        "value": 2500
+      },
+      {
+        "call": 27,
+        "value": 2600
+      },
+      {
+        "call": 28,
+        "value": 2700
+      },
+      {
+        "call": 29,
+        "value": 2800
+      },
+      {
+        "call": 30,
+        "value": 2900
+      },
+      {
+        "call": 31,
+        "value": 3000
+      },
+      {
+        "call": 32,
+        "value": 3100
+      },
+      {
+        "call": 33,
+        "value": 3200
+      },
+      {
+        "call": 34,
+        "value": 3300
+      },
+      {
+        "call": 35,
+        "value": 3400
+      },
+      {
+        "call": 36,
+        "value": 3500
+      },
+      {
+        "call": 37,
+        "value": 3600
+      },
+      {
+        "call": 38,
+        "value": 3700
+      },
+      {
+        "call": 39,
+        "value": 3800
+      },
+      {
+        "call": 40,
+        "value": 3900
+      },
+      {
+        "call": 41,
+        "value": 4000
+      },
+      {
+        "call": 42,
+        "value": 4100
+      },
+      {
+        "call": 43,
+        "value": 4200
+      },
+      {
+        "call": 44,
+        "value": 4300
+      },
+      {
+        "call": 45,
+        "value": 4400
+      },
+      {
+        "call": 46,
+        "value": 4500
+      },
+      {
+        "call": 47,
+        "value": 4600
+      },
+      {
+        "call": 48,
+        "value": 4700
+      },
+      {
+        "call": 49,
+        "value": 4800
+      },
+      {
+        "call": 50,
+        "value": 4900
+      },
+      {
+        "call": 51,
+        "value": 4900
+      },
+      {
+        "call": 52,
+        "value": []
+      },
+      {
+        "call": 53,
+        "value": 0
+      },
+      {
+        "call": 54,
+        "value": 9
+      },
+      {
+        "call": 55,
+        "value": 100
+      },
+      {
+        "call": 56,
+        "value": 200
+      },
+      {
+        "call": 57,
+        "value": 300
+      },
+      {
+        "call": 58,
+        "value": 400
+      },
+      {
+        "call": 59,
+        "value": 500
+      },
+      {
+        "call": 60,
+        "value": 600
+      },
+      {
+        "call": 61,
+        "value": 700
+      },
+      {
+        "call": 62,
+        "value": 800
+      },
+      {
+        "call": 63,
+        "value": 900
+      },
+      {
+        "call": 64,
+        "value": 1000
+      },
+      {
+        "call": 65,
+        "value": 1100
+      },
+      {
+        "call": 66,
+        "value": 1200
+      },
+      {
+        "call": 67,
+        "value": 1300
+      },
+      {
+        "call": 68,
+        "value": 1400
+      },
+      {
+        "call": 69,
+        "value": 1500
+      },
+      {
+        "call": 70,
+        "value": 1600
+      },
+      {
+        "call": 71,
+        "value": 1700
+      },
+      {
+        "call": 72,
+        "value": 1800
+      },
+      {
+        "call": 73,
+        "value": 1900
+      },
+      {
+        "call": 74,
+        "value": 2000
+      },
+      {
+        "call": 75,
+        "value": 2100
+      },
+      {
+        "call": 76,
+        "value": 2200
+      },
+      {
+        "call": 77,
+        "value": 2300
+      },
+      {
+        "call": 78,
+        "value": 2400
+      },
+      {
+        "call": 79,
+        "value": 2500
+      },
+      {
+        "call": 80,
+        "value": 2600
+      },
+      {
+        "call": 81,
+        "value": 2700
+      },
+      {
+        "call": 82,
+        "value": 2800
+      },
+      {
+        "call": 83,
+        "value": 2900
+      },
+      {
+        "call": 84,
+        "value": 3000
+      },
+      {
+        "call": 85,
+        "value": 3100
+      },
+      {
+        "call": 86,
+        "value": 3200
+      },
+      {
+        "call": 87,
+        "value": 3300
+      },
+      {
+        "call": 88,
+        "value": 3400
+      },
+      {
+        "call": 89,
+        "value": 3500
+      },
+      {
+        "call": 90,
+        "value": 3600
+      },
+      {
+        "call": 91,
+        "value": 3700
+      },
+      {
+        "call": 92,
+        "value": 3800
+      },
+      {
+        "call": 93,
+        "value": 3900
+      },
+      {
+        "call": 94,
+        "value": 4000
+      },
+      {
+        "call": 95,
+        "value": 4100
+      },
+      {
+        "call": 96,
+        "value": 4200
+      },
+      {
+        "call": 97,
+        "value": 4300
+      },
+      {
+        "call": 98,
+        "value": 4400
+      },
+      {
+        "call": 99,
+        "value": 4500
+      },
+      {
+        "call": 100,
+        "value": 4600
+      },
+      {
+        "call": 101,
+        "value": 4700
+      },
+      {
+        "call": 102,
+        "value": 4800
+      },
+      {
+        "call": 103,
+        "value": 4900
+      },
+      {
+        "call": 104,
+        "value": 5000
+      },
+      {
+        "call": 105,
+        "value": [100]
+      },
+      {
+        "call": 106,
+        "error": "ValueError: not enough credit"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 19,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 1000000000
+      },
+      {
+        "call": 3,
+        "value": 100
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not enough credit"
+      },
+      {
+        "call": 5,
+        "value": "a"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 20,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 9
+      },
+      {
+        "call": 6,
+        "value": 2
+      },
+      {
+        "call": 7,
+        "value": "z"
+      },
+      {
+        "call": 8,
+        "value": "a"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 21,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 100
+      },
+      {
+        "call": 4,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": 25
+      },
+      {
+        "call": 10,
+        "value": 50
+      },
+      {
+        "call": 11,
+        "value": 60
+      },
+      {
+        "call": 12,
+        "error": "ValueError: not enough credit"
+      },
+      {
+        "call": 13,
+        "value": [25, 25, 10]
+      },
+      {
+        "call": 14,
+        "error": "KeyError: 'unknown slot'"
+      },
+      {
+        "call": 15,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "concurrency",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 6000
+      },
+      {
+        "call": 3,
+        "value": [
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 10, 10, 10, 10,
+          10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+          10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+          10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+          10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,
+          10, 10, 10, 10, 10, 10, 10, 10, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+          5, 5, 5, 5, 5, 5, 5
+        ]
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": 9
+      },
+      {
+        "call": 6,
+        "value": []
+      }
+    ]
+  },
+  {
+    "layer": "concurrency",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 100
+      },
+      {
+        "call": 3,
+        "value": 200
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": 9
+      },
+      {
+        "call": 6,
+        "value": []
+      },
+      {
+        "call": 7,
+        "value": 100
+      },
+      {
+        "call": 8,
+        "value": []
+      },
+      {
+        "call": 9,
+        "value": 8
+      }
+    ]
+  },
+  {
+    "layer": "concurrency",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 100
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": 2
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not enough credit"
+      },
+      {
+        "call": 6,
+        "value": 100
+      },
+      {
+        "call": 7,
+        "value": []
+      },
+      {
+        "call": 8,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "concurrency",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 8
+      },
+      {
+        "call": 3,
+        "value": 14
+      },
+      {
+        "call": 4,
+        "value": 20
+      },
+      {
+        "call": 5,
+        "value": "i5"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not enough credit"
+      },
+      {
+        "call": 7,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "concurrency",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 7500
+      },
+      {
+        "call": 3,
+        "value": 10
+      },
+      {
+        "call": 4,
+        "value": [
+          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+          100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+          100, 100, 100, 100, 100, 100, 100, 100, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25,
+          25, 25, 25, 25, 25, 25, 25, 25
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": 4
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 100
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": [25, 5]
+      },
+      {
+        "call": 10,
+        "value": 1
+      },
+      {
+        "call": 11,
+        "value": 3
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: count must be positive"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: count must be positive"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not a coin"
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 5
+      },
+      {
+        "call": 11,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 100
+      },
+      {
+        "call": 5,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": 5
+      },
+      {
+        "call": 8,
+        "value": 2
+      },
+      {
+        "call": 9,
+        "value": 200
+      },
+      {
+        "call": 10,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": 5
+      },
+      {
+        "call": 13,
+        "value": 2
+      },
+      {
+        "call": 14,
+        "value": [100, 100]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 100
+      },
+      {
+        "call": 4,
+        "error": "ValueError: no exact change"
+      },
+      {
+        "call": 5,
+        "value": 100
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": [100]
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": 100
+      },
+      {
+        "call": 11,
+        "value": [25, 5]
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": 0
+      },
+      {
+        "call": 14,
+        "error": "ValueError: sold out"
+      }
+    ]
+  }
+]

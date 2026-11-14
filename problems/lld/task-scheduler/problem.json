@@ -1,0 +1,3922 @@
+{
+  "slug": "task-scheduler",
+  "title": "Task scheduler",
+  "difficulty": "medium",
+  "interface": {
+    "class": "TaskScheduler",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "add",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "priority",
+            "type": "int"
+          },
+          {
+            "name": "deps",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "next",
+        "params": [],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "complete",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "status",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["build", 5, []]
+          },
+          {
+            "method": "add",
+            "args": ["test", 9, ["build"]]
+          },
+          {
+            "method": "add",
+            "args": ["lint", 5, []]
+          },
+          {
+            "method": "status",
+            "args": ["test"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["test"]
+          },
+          {
+            "method": "complete",
+            "args": ["build"]
+          },
+          {
+            "method": "status",
+            "args": ["test"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["lint"]
+          },
+          {
+            "method": "complete",
+            "args": ["test"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["test"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["c", 3, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["a", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, ["nope"]]
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["zzz"]
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["q"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["t1", 5, []]
+          },
+          {
+            "method": "add",
+            "args": ["t2", 5, []]
+          },
+          {
+            "method": "add",
+            "args": ["t3", 5, []]
+          },
+          {
+            "method": "add",
+            "args": ["t4", 7, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["root", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["early", 4, ["root"]]
+          },
+          {
+            "method": "add",
+            "args": ["late", 4, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["late"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["root"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["x", 1, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["x"]
+          },
+          {
+            "method": "complete",
+            "args": ["x"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 3, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 3, ["a", "ghost"]]
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          },
+          {
+            "method": "add",
+            "args": ["c", 3, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 3, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["a", 9, []]
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, ["a"]]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["s", 1, ["s"]]
+          },
+          {
+            "method": "status",
+            "args": ["s"]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, ["a"]]
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "complete",
+            "args": ["b"]
+          },
+          {
+            "method": "complete",
+            "args": ["nope"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["b"]
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "complete",
+            "args": ["b"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["b"]
+          },
+          {
+            "method": "complete",
+            "args": ["b"]
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["top", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["l", 1, ["top"]]
+          },
+          {
+            "method": "add",
+            "args": ["r", 1, ["top"]]
+          },
+          {
+            "method": "add",
+            "args": ["bot", 9, ["l", "r"]]
+          },
+          {
+            "method": "status",
+            "args": ["top"]
+          },
+          {
+            "method": "status",
+            "args": ["bot"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["top"]
+          },
+          {
+            "method": "status",
+            "args": ["l"]
+          },
+          {
+            "method": "complete",
+            "args": ["top"]
+          },
+          {
+            "method": "status",
+            "args": ["l"]
+          },
+          {
+            "method": "status",
+            "args": ["bot"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["bot"]
+          },
+          {
+            "method": "complete",
+            "args": ["l"]
+          },
+          {
+            "method": "status",
+            "args": ["bot"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["r"]
+          },
+          {
+            "method": "status",
+            "args": ["bot"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["bot"]
+          },
+          {
+            "method": "complete",
+            "args": ["bot"]
+          },
+          {
+            "method": "status",
+            "args": ["bot"]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 9, ["a"]]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, ["a"]]
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          },
+          {
+            "method": "add",
+            "args": ["c", 2, ["b"]]
+          },
+          {
+            "method": "status",
+            "args": ["c"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["neg", -5, []]
+          },
+          {
+            "method": "add",
+            "args": ["zero", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["big", 9007199254740991, []]
+          },
+          {
+            "method": "add",
+            "args": ["small", -9007199254740991, []]
+          },
+          {
+            "method": "add",
+            "args": ["neg2", -5, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["A", 2, ["", ""]]
+          },
+          {
+            "method": "add",
+            "args": ["a", 2, [""]]
+          },
+          {
+            "method": "status",
+            "args": ["A"]
+          },
+          {
+            "method": "status",
+            "args": [""]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": [""]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["A"]
+          },
+          {
+            "method": "status",
+            "args": ["B"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["d0", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["d1", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["d2", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["d3", 3, []]
+          },
+          {
+            "method": "add",
+            "args": ["d4", 4, []]
+          },
+          {
+            "method": "add",
+            "args": ["d5", 5, []]
+          },
+          {
+            "method": "add",
+            "args": ["all", 100, ["d0", "d1", "d2", "d3", "d4", "d5"]]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["all"]
+          },
+          {
+            "method": "complete",
+            "args": ["d0"]
+          },
+          {
+            "method": "complete",
+            "args": ["d1"]
+          },
+          {
+            "method": "complete",
+            "args": ["d2"]
+          },
+          {
+            "method": "complete",
+            "args": ["d3"]
+          },
+          {
+            "method": "complete",
+            "args": ["d4"]
+          },
+          {
+            "method": "status",
+            "args": ["all"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["d5"]
+          },
+          {
+            "method": "status",
+            "args": ["all"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["all"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["c0", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["c1", 1, ["c0"]]
+          },
+          {
+            "method": "add",
+            "args": ["c2", 2, ["c1"]]
+          },
+          {
+            "method": "add",
+            "args": ["c3", 3, ["c2"]]
+          },
+          {
+            "method": "add",
+            "args": ["c4", 4, ["c3"]]
+          },
+          {
+            "method": "add",
+            "args": ["c5", 5, ["c4"]]
+          },
+          {
+            "method": "add",
+            "args": ["c6", 6, ["c5"]]
+          },
+          {
+            "method": "add",
+            "args": ["c7", 7, ["c6"]]
+          },
+          {
+            "method": "add",
+            "args": ["c8", 8, ["c7"]]
+          },
+          {
+            "method": "add",
+            "args": ["c9", 9, ["c8"]]
+          },
+          {
+            "method": "add",
+            "args": ["c10", 10, ["c9"]]
+          },
+          {
+            "method": "add",
+            "args": ["c11", 11, ["c10"]]
+          },
+          {
+            "method": "add",
+            "args": ["c12", 12, ["c11"]]
+          },
+          {
+            "method": "add",
+            "args": ["c13", 13, ["c12"]]
+          },
+          {
+            "method": "add",
+            "args": ["c14", 14, ["c13"]]
+          },
+          {
+            "method": "add",
+            "args": ["c15", 15, ["c14"]]
+          },
+          {
+            "method": "add",
+            "args": ["c16", 16, ["c15"]]
+          },
+          {
+            "method": "add",
+            "args": ["c17", 17, ["c16"]]
+          },
+          {
+            "method": "add",
+            "args": ["c18", 18, ["c17"]]
+          },
+          {
+            "method": "add",
+            "args": ["c19", 19, ["c18"]]
+          },
+          {
+            "method": "add",
+            "args": ["c20", 20, ["c19"]]
+          },
+          {
+            "method": "add",
+            "args": ["c21", 21, ["c20"]]
+          },
+          {
+            "method": "add",
+            "args": ["c22", 22, ["c21"]]
+          },
+          {
+            "method": "add",
+            "args": ["c23", 23, ["c22"]]
+          },
+          {
+            "method": "add",
+            "args": ["c24", 24, ["c23"]]
+          },
+          {
+            "method": "add",
+            "args": ["c25", 25, ["c24"]]
+          },
+          {
+            "method": "add",
+            "args": ["c26", 26, ["c25"]]
+          },
+          {
+            "method": "add",
+            "args": ["c27", 27, ["c26"]]
+          },
+          {
+            "method": "add",
+            "args": ["c28", 28, ["c27"]]
+          },
+          {
+            "method": "add",
+            "args": ["c29", 29, ["c28"]]
+          },
+          {
+            "method": "add",
+            "args": ["c30", 30, ["c29"]]
+          },
+          {
+            "method": "add",
+            "args": ["c31", 31, ["c30"]]
+          },
+          {
+            "method": "add",
+            "args": ["c32", 32, ["c31"]]
+          },
+          {
+            "method": "add",
+            "args": ["c33", 33, ["c32"]]
+          },
+          {
+            "method": "add",
+            "args": ["c34", 34, ["c33"]]
+          },
+          {
+            "method": "add",
+            "args": ["c35", 35, ["c34"]]
+          },
+          {
+            "method": "add",
+            "args": ["c36", 36, ["c35"]]
+          },
+          {
+            "method": "add",
+            "args": ["c37", 37, ["c36"]]
+          },
+          {
+            "method": "add",
+            "args": ["c38", 38, ["c37"]]
+          },
+          {
+            "method": "add",
+            "args": ["c39", 39, ["c38"]]
+          },
+          {
+            "method": "add",
+            "args": ["c40", 40, ["c39"]]
+          },
+          {
+            "method": "add",
+            "args": ["c41", 41, ["c40"]]
+          },
+          {
+            "method": "add",
+            "args": ["c42", 42, ["c41"]]
+          },
+          {
+            "method": "add",
+            "args": ["c43", 43, ["c42"]]
+          },
+          {
+            "method": "add",
+            "args": ["c44", 44, ["c43"]]
+          },
+          {
+            "method": "add",
+            "args": ["c45", 45, ["c44"]]
+          },
+          {
+            "method": "add",
+            "args": ["c46", 46, ["c45"]]
+          },
+          {
+            "method": "add",
+            "args": ["c47", 47, ["c46"]]
+          },
+          {
+            "method": "add",
+            "args": ["c48", 48, ["c47"]]
+          },
+          {
+            "method": "add",
+            "args": ["c49", 49, ["c48"]]
+          },
+          {
+            "method": "add",
+            "args": ["c50", 50, ["c49"]]
+          },
+          {
+            "method": "add",
+            "args": ["c51", 51, ["c50"]]
+          },
+          {
+            "method": "add",
+            "args": ["c52", 52, ["c51"]]
+          },
+          {
+            "method": "add",
+            "args": ["c53", 53, ["c52"]]
+          },
+          {
+            "method": "add",
+            "args": ["c54", 54, ["c53"]]
+          },
+          {
+            "method": "add",
+            "args": ["c55", 55, ["c54"]]
+          },
+          {
+            "method": "add",
+            "args": ["c56", 56, ["c55"]]
+          },
+          {
+            "method": "add",
+            "args": ["c57", 57, ["c56"]]
+          },
+          {
+            "method": "add",
+            "args": ["c58", 58, ["c57"]]
+          },
+          {
+            "method": "add",
+            "args": ["c59", 59, ["c58"]]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c0"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c1"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c2"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c3"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c4"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c5"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c6"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c7"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c8"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c9"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c10"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c11"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c12"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c13"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c14"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c15"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c16"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c17"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c18"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c19"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c20"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c21"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c22"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c23"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c24"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c25"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c26"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c27"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c28"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c29"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c30"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c31"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c32"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c33"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c34"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c35"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c36"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c37"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c38"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c39"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c40"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c41"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c42"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c43"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c44"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c45"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c46"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c47"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c48"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c49"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c50"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c51"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c52"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c53"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c54"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c55"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c56"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c57"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c58"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["c59"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["c59"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["p0", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["p1", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["p2", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["p3", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["p4", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["p5", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["p6", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["p7", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["p8", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["p9", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["p10", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["p11", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["p12", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["p13", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["p14", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["p15", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["p16", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["p17", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["p18", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["p19", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["p20", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["p21", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["p22", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["p23", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["p24", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["p25", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["p26", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["p27", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["p28", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["p29", 2, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 5, []]
+          },
+          {
+            "method": "add",
+            "args": ["c", 1, ["q"]]
+          },
+          {
+            "method": "complete",
+            "args": ["b"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["c"]
+          }
+        ]
+      }
+    ],
+    "concurrency": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["root", 0, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["root"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["dup"]
+          },
+          {
+            "method": "status",
+            "args": ["t3-4"]
+          },
+          {
+            "method": "status",
+            "args": ["t0-0"]
+          }
+        ],
+        "concurrent": {
+          "after": 2,
+          "threads": [
+            [
+              {
+                "method": "add",
+                "args": ["dup", 99, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t0-0", 0, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t0-1", 1, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t0-2", 2, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t0-3", 3, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t0-4", 4, ["root"]]
+              }
+            ],
+            [
+              {
+                "method": "add",
+                "args": ["dup", 99, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t1-0", 10, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t1-1", 11, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t1-2", 12, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t1-3", 13, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t1-4", 14, ["root"]]
+              }
+            ],
+            [
+              {
+                "method": "add",
+                "args": ["dup", 99, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t2-0", 20, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t2-1", 21, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t2-2", 22, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t2-3", 23, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t2-4", 24, ["root"]]
+              }
+            ],
+            [
+              {
+                "method": "add",
+                "args": ["dup", 99, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t3-0", 30, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t3-1", 31, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t3-2", 32, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t3-3", 33, ["root"]]
+              },
+              {
+                "method": "add",
+                "args": ["t3-4", 34, ["root"]]
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["j0", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["j1", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["j2", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["j3", 3, []]
+          },
+          {
+            "method": "add",
+            "args": ["j4", 4, []]
+          },
+          {
+            "method": "add",
+            "args": ["j5", 5, []]
+          },
+          {
+            "method": "add",
+            "args": ["j6", 6, []]
+          },
+          {
+            "method": "add",
+            "args": ["j7", 7, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["j0"]
+          },
+          {
+            "method": "status",
+            "args": ["j7"]
+          },
+          {
+            "method": "complete",
+            "args": ["j0"]
+          },
+          {
+            "method": "complete",
+            "args": ["j1"]
+          },
+          {
+            "method": "complete",
+            "args": ["j2"]
+          },
+          {
+            "method": "complete",
+            "args": ["j3"]
+          },
+          {
+            "method": "complete",
+            "args": ["j4"]
+          },
+          {
+            "method": "complete",
+            "args": ["j5"]
+          },
+          {
+            "method": "complete",
+            "args": ["j6"]
+          },
+          {
+            "method": "complete",
+            "args": ["j7"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["j3"]
+          }
+        ],
+        "concurrent": {
+          "after": 9,
+          "threads": [
+            [
+              {
+                "method": "next",
+                "args": []
+              },
+              {
+                "method": "next",
+                "args": []
+              }
+            ],
+            [
+              {
+                "method": "next",
+                "args": []
+              },
+              {
+                "method": "next",
+                "args": []
+              }
+            ],
+            [
+              {
+                "method": "next",
+                "args": []
+              },
+              {
+                "method": "next",
+                "args": []
+              }
+            ],
+            [
+              {
+                "method": "next",
+                "args": []
+              },
+              {
+                "method": "next",
+                "args": []
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["c", 2, []]
+          },
+          {
+            "method": "add",
+            "args": ["d", 3, []]
+          },
+          {
+            "method": "add",
+            "args": ["e", 4, []]
+          },
+          {
+            "method": "add",
+            "args": ["f", 5, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          },
+          {
+            "method": "status",
+            "args": ["c"]
+          },
+          {
+            "method": "status",
+            "args": ["d"]
+          },
+          {
+            "method": "status",
+            "args": ["e"]
+          },
+          {
+            "method": "status",
+            "args": ["f"]
+          },
+          {
+            "method": "add",
+            "args": ["x", 5, ["a", "b", "c", "d", "e", "f"]]
+          },
+          {
+            "method": "status",
+            "args": ["x"]
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["x"]
+          }
+        ],
+        "concurrent": {
+          "after": 13,
+          "threads": [
+            [
+              {
+                "method": "complete",
+                "args": ["a"]
+              },
+              {
+                "method": "complete",
+                "args": ["b"]
+              },
+              {
+                "method": "complete",
+                "args": ["c"]
+              }
+            ],
+            [
+              {
+                "method": "complete",
+                "args": ["c"]
+              },
+              {
+                "method": "complete",
+                "args": ["d"]
+              },
+              {
+                "method": "complete",
+                "args": ["e"]
+              }
+            ],
+            [
+              {
+                "method": "complete",
+                "args": ["f"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "complete",
+                "args": ["zzz"]
+              }
+            ]
+          ]
+        }
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["w", 1, ["a"]]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["w"]
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["w"]
+          }
+        ],
+        "concurrent": {
+          "after": 3,
+          "threads": [
+            [
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              }
+            ],
+            [
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              }
+            ],
+            [
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              },
+              {
+                "method": "status",
+                "args": ["w"]
+              }
+            ],
+            [
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              },
+              {
+                "method": "status",
+                "args": ["a"]
+              }
+            ]
+          ]
+        }
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "cancel",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, ["a"]]
+          },
+          {
+            "method": "add",
+            "args": ["c", 1, ["b"]]
+          },
+          {
+            "method": "add",
+            "args": ["d", 9, []]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          },
+          {
+            "method": "status",
+            "args": ["c"]
+          },
+          {
+            "method": "status",
+            "args": ["d"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "complete",
+            "args": ["d"]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["top", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["l", 1, ["top"]]
+          },
+          {
+            "method": "add",
+            "args": ["r", 1, ["top"]]
+          },
+          {
+            "method": "add",
+            "args": ["bot", 1, ["l", "r"]]
+          },
+          {
+            "method": "add",
+            "args": ["solo", 1, []]
+          },
+          {
+            "method": "cancel",
+            "args": ["l"]
+          },
+          {
+            "method": "status",
+            "args": ["top"]
+          },
+          {
+            "method": "status",
+            "args": ["r"]
+          },
+          {
+            "method": "status",
+            "args": ["bot"]
+          },
+          {
+            "method": "cancel",
+            "args": ["top"]
+          },
+          {
+            "method": "status",
+            "args": ["r"]
+          },
+          {
+            "method": "status",
+            "args": ["solo"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 5, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, ["a"]]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["c", 1, []]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, ["a"]]
+          },
+          {
+            "method": "cancel",
+            "args": ["zz"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "status",
+            "args": ["b"]
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, []]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "add",
+            "args": ["c", 9, ["a"]]
+          },
+          {
+            "method": "status",
+            "args": ["c"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "status",
+            "args": ["c"]
+          },
+          {
+            "method": "add",
+            "args": ["d", 1, ["c"]]
+          },
+          {
+            "method": "cancel",
+            "args": ["c"]
+          },
+          {
+            "method": "status",
+            "args": ["d"]
+          },
+          {
+            "method": "cancel",
+            "args": ["d"]
+          },
+          {
+            "method": "cancel",
+            "args": ["d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["a", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["b", 1, []]
+          },
+          {
+            "method": "add",
+            "args": ["c", 1, ["a", "b"]]
+          },
+          {
+            "method": "add",
+            "args": ["d", 1, ["b"]]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["a"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "status",
+            "args": ["a"]
+          },
+          {
+            "method": "status",
+            "args": ["c"]
+          },
+          {
+            "method": "status",
+            "args": ["d"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "complete",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": ["k0", 0, []]
+          },
+          {
+            "method": "add",
+            "args": ["k1", 1, ["k0"]]
+          },
+          {
+            "method": "add",
+            "args": ["k2", 2, ["k1"]]
+          },
+          {
+            "method": "add",
+            "args": ["k3", 3, ["k2"]]
+          },
+          {
+            "method": "add",
+            "args": ["k4", 4, ["k3"]]
+          },
+          {
+            "method": "add",
+            "args": ["k5", 5, ["k4"]]
+          },
+          {
+            "method": "add",
+            "args": ["k6", 6, ["k5"]]
+          },
+          {
+            "method": "add",
+            "args": ["k7", 7, ["k6"]]
+          },
+          {
+            "method": "add",
+            "args": ["k8", 8, ["k7"]]
+          },
+          {
+            "method": "add",
+            "args": ["k9", 9, ["k8"]]
+          },
+          {
+            "method": "add",
+            "args": ["k10", 10, ["k9"]]
+          },
+          {
+            "method": "add",
+            "args": ["k11", 11, ["k10"]]
+          },
+          {
+            "method": "add",
+            "args": ["k12", 12, ["k11"]]
+          },
+          {
+            "method": "add",
+            "args": ["k13", 13, ["k12"]]
+          },
+          {
+            "method": "add",
+            "args": ["k14", 14, ["k13"]]
+          },
+          {
+            "method": "add",
+            "args": ["k15", 15, ["k14"]]
+          },
+          {
+            "method": "add",
+            "args": ["k16", 16, ["k15"]]
+          },
+          {
+            "method": "add",
+            "args": ["k17", 17, ["k16"]]
+          },
+          {
+            "method": "add",
+            "args": ["k18", 18, ["k17"]]
+          },
+          {
+            "method": "add",
+            "args": ["k19", 19, ["k18"]]
+          },
+          {
+            "method": "add",
+            "args": ["k20", 20, ["k19"]]
+          },
+          {
+            "method": "add",
+            "args": ["k21", 21, ["k20"]]
+          },
+          {
+            "method": "add",
+            "args": ["k22", 22, ["k21"]]
+          },
+          {
+            "method": "add",
+            "args": ["k23", 23, ["k22"]]
+          },
+          {
+            "method": "add",
+            "args": ["k24", 24, ["k23"]]
+          },
+          {
+            "method": "add",
+            "args": ["k25", 25, ["k24"]]
+          },
+          {
+            "method": "add",
+            "args": ["k26", 26, ["k25"]]
+          },
+          {
+            "method": "add",
+            "args": ["k27", 27, ["k26"]]
+          },
+          {
+            "method": "add",
+            "args": ["k28", 28, ["k27"]]
+          },
+          {
+            "method": "add",
+            "args": ["k29", 29, ["k28"]]
+          },
+          {
+            "method": "add",
+            "args": ["k30", 30, ["k29"]]
+          },
+          {
+            "method": "add",
+            "args": ["k31", 31, ["k30"]]
+          },
+          {
+            "method": "add",
+            "args": ["k32", 32, ["k31"]]
+          },
+          {
+            "method": "add",
+            "args": ["k33", 33, ["k32"]]
+          },
+          {
+            "method": "add",
+            "args": ["k34", 34, ["k33"]]
+          },
+          {
+            "method": "add",
+            "args": ["k35", 35, ["k34"]]
+          },
+          {
+            "method": "add",
+            "args": ["k36", 36, ["k35"]]
+          },
+          {
+            "method": "add",
+            "args": ["k37", 37, ["k36"]]
+          },
+          {
+            "method": "add",
+            "args": ["k38", 38, ["k37"]]
+          },
+          {
+            "method": "add",
+            "args": ["k39", 39, ["k38"]]
+          },
+          {
+            "method": "cancel",
+            "args": ["k10"]
+          },
+          {
+            "method": "status",
+            "args": ["k9"]
+          },
+          {
+            "method": "status",
+            "args": ["k10"]
+          },
+          {
+            "method": "status",
+            "args": ["k39"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "cancel",
+            "args": ["k5"]
+          },
+          {
+            "method": "cancel",
+            "args": ["k0"]
+          },
+          {
+            "method": "next",
+            "args": []
+          },
+          {
+            "method": "next",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -5657,3 +5657,24 @@ The owner said to continue building overnight with recommended answers, switchin
   - Metrics for judging failures and AI over-budget.
   - The AiBox convention for the battle AI text.
   - `packages/db/db/schema.sql`: an accidental dbmate dump committed in 380c932, unreferenced. To be removed with the owner's go-ahead.
+
+### 2026-11-14 — P5 Week 34 (problems 9–12, a window-start load test, the red-team rerun; LOAD-4, EXEC-1, Q-P5-21)
+
+- **Problems:** 12 in all (10 human-league, 2 AI-league). Four new, PROVISIONAL for the owner's review, written by Sonnet agents and verified here one at a time:
+
+  | Problem         | Mutants caught |
+  | --------------- | -------------- |
+  | elevator-system | 96%            |
+  | vending-machine | 99%            |
+  | url-shortener   | 97%            |
+  | task-scheduler  | 100%           |
+
+  All six references agree on each.
+  - **Why they had to go one at a time:** verify runs flaked with `time_limit` whenever several ran at once, or the Docker engine was cold. Velox's limit is wall-clock time, and on this Mac Docker's start-up alone takes about 4 of a problem's 5 s.
+  - **The same limit in battles:** until the cgroup CPU limit replaces it, a cold or loaded execution host can fail correct code.
+
+- **The load test (S02):**
+  - `pnpm load:prepare <slug> <players> <out.json>` makes local test players in rooms of 4, as a window's start would. It's local-only and unrated, and it was smoke-tested with 4 players, then cleaned up.
+  - `scripts/load/window-start.js` (k6) mints tickets as the web does, connects every player to game server 0 at once, and Submits the Python reference. The thresholds are p95 verdict under 10 s and no failures.
+  - docs/runbooks/load-test.md has the steps. The run is the owner's: k6 isn't installed, and Velox isn't configured here.
+- **The red-team rerun (S03, in Velox):** all 22 attacks contained. One verdict under load was the wall clock rather than the memory limit; alone, the memory limit. The gVisor and Judge0 rows are still the owner's.
