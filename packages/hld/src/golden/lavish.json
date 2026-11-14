@@ -188,9 +188,9 @@
           "id": "api",
           "kind": "app_service",
           "up": true,
-          "servers": 200,
+          "servers": 300,
           "loadRps": 8400,
-          "utilization": 0.04,
+          "utilization": 0.03,
           "p50Ms": 20,
           "p99Ms": 20
         },

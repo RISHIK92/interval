@@ -37,6 +37,7 @@ Already in place, and reused:
 
 - IDs: HLDQ-2, HLDQ-3.
 - Goal: 6 to 8 families, the variant generator, flawed-design catalogs, validation, and AI-league variants.
+- Built 2026-11-14: 8 families (Q-P6-04).
 
 ## Week 41: the AI judge and the coach
 

@@ -152,7 +152,11 @@ function station(
   // Every region is active: a second one doubles capacity (and cost).
   switch (node.kind) {
     case "client":
+      break;
     case "object_storage":
+      // Managed within a region; a second region holds a copy that serves on its own.
+      st.servers = regions;
+      st.redundancy = regions;
       break;
     case "cdn":
       st.servers = spec.engine.cdnPointsOfPresence;
@@ -227,13 +231,18 @@ function station(
     node.kind !== "cdn" &&
     node.kind !== "object_storage"
   ) {
+    // A zone is inside one region: the others carry on.
     if (node.kind === "sql_db") {
-      // Only a standby in another zone keeps the primary; half the replicas go too.
-      if (node.config.failover !== "multi_zone") st.up = false;
-      else st.servers = 1 + Math.floor(node.config.readReplicas / 2);
-    } else if (zonesOf(node) === 1) st.up = false;
+      // In the failed zone's region, only a standby in another zone keeps the primary,
+      // and half its replicas go too; with none, writes stop and that region's reads.
+      const { readReplicas: replicas, failover } = node.config;
+      const others = (regions - 1) * (1 + replicas);
+      const left = failover === "multi_zone" ? 1 + Math.floor(replicas / 2) : 0;
+      st.servers = others + left;
+      if (failover !== "multi_zone") st.writeServers = 0;
+    } else if (zonesOf(node) * regions === 1) st.up = false;
     else {
-      const share = 1 / zonesOf(node);
+      const share = 1 / (zonesOf(node) * regions);
       st.servers = lose(st.servers, share);
       st.writeServers = lose(st.writeServers, share);
       if (oneCopy) st.lostShare = share;
@@ -369,7 +378,7 @@ function storageOf(
   design: Design,
   problem: HldProblem,
   spec: SpecVersion,
-): { gb: number | null; unlimited: boolean } {
+): { gb: number | null; unlimited: boolean; copies: number } {
   const reached = new Set<string>();
   for (const r of problem.traffic.requests) {
     if (r.kind !== "write") continue;
@@ -387,15 +396,20 @@ function storageOf(
   }
   let gb: number | null = null;
   let unlimited = false;
+  let copies = 0; // object storage keeps a full copy in each of its regions
+
   const fits = (x: number) => (gb = gb === null ? x : Math.min(gb, x));
   for (const n of design.nodes) {
     if (!reached.has(n.id)) continue;
-    if (n.kind === "object_storage") unlimited = true;
+    if (n.kind === "object_storage") {
+      unlimited = true;
+      copies = Math.max(copies, n.config.regions);
+    }
     if (n.kind === "sql_db") fits(n.config.storageGb);
     if (n.kind === "kv_store")
       fits(n.config.nodes * spec.engine.kvStorageGbPerNode);
   }
-  return { gb, unlimited };
+  return { gb, unlimited, copies };
 }
 
 // 1 when the measure meets its target, falling linearly to 0 at twice the target
@@ -460,9 +474,7 @@ export function simulate(
   const storageNeededGb = t.storedGb + t.growthGbPerDay * t.horizonDays;
   const cost =
     costPerMonth(design, spec) +
-    (storage.unlimited
-      ? storageNeededGb * spec.engine.objectStoragePerGbMonth
-      : 0);
+    storageNeededGb * spec.engine.objectStoragePerGbMonth * storage.copies;
   explanations.push(
     `Cost: $${fmt(cost)} a month, against a budget of $${fmt(problem.budgetPerMonth)}.`,
   );

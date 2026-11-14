@@ -1,10 +1,17 @@
 import { randomUUID } from "node:crypto";
 import type { DB } from "@interval/db";
-import { type Design, URL_SHORTENER } from "@interval/hld";
+import { type Design, practiceProblems } from "@interval/hld";
 import { type Kysely, sql } from "kysely";
 import { afterAll, expect, test } from "vitest";
 import { createDb } from "./kysely";
 import { kyselyHldPracticeDesigns } from "./kysely-hld-practice-designs";
+
+// The first practice problem (P6-W40: each family's practice seed).
+const URL_SHORTENER = (() => {
+  const p = practiceProblems().find((x) => x.slug === "url-shortener");
+  if (p === undefined) throw new Error("no url-shortener practice problem");
+  return p;
+})();
 
 // P6-W39 (ADR-0042 PROPOSED, Q-P6-03): a practice design autosaves over the version it
 // was loaded at; a stale tab's save is refused.

@@ -1,4 +1,9 @@
-import { Design, PRACTICE_PROBLEMS, starterDesign } from "@interval/hld";
+import {
+  Design,
+  fitsProblem,
+  practiceProblems,
+  starterDesign,
+} from "@interval/hld";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import {
@@ -12,8 +17,9 @@ export const dynamic = "force-dynamic";
 
 // P6-W39 (CANVAS-1, CANVAS-2, ADR-0042 PROPOSED): one practice problem on the canvas,
 // from the player's last autosave. A saved design that no longer parses (its spec
-// version retired) starts over from the client, at the saved version so the next save
-// replaces it.
+// version retired) or no longer fits the problem (its components or request types
+// changed) starts over from the client, at the saved version so the next save replaces
+// it.
 export default async function PracticeProblemPage({
   params,
 }: {
@@ -23,7 +29,7 @@ export default async function PracticeProblemPage({
   if (actor === null) redirect("/play");
   if (!(await entitlements().can(actor.userId, "play.hld"))) redirect("/play");
   const { slug } = await params;
-  const problem = PRACTICE_PROBLEMS.find((p) => p.slug === slug);
+  const problem = practiceProblems().find((p) => p.slug === slug);
   if (problem === undefined) notFound();
   const saved = await hldPracticeDesigns().load(actor.userId, slug);
   const parsed = Design.safeParse(saved?.design);
@@ -39,7 +45,11 @@ export default async function PracticeProblemPage({
       </header>
       <Canvas
         problem={problem}
-        initial={parsed.success ? parsed.data : starterDesign()}
+        initial={
+          parsed.success && fitsProblem(parsed.data, problem).length === 0
+            ? parsed.data
+            : starterDesign()
+        }
         version={saved?.version ?? 0}
       />
     </main>

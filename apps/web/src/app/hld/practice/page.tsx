@@ -1,4 +1,4 @@
-import { PRACTICE_PROBLEMS } from "@interval/hld";
+import { practiceProblems } from "@interval/hld";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -26,7 +26,7 @@ export default async function PracticePage() {
         </p>
       </header>
       <ul className="flex flex-col gap-3">
-        {PRACTICE_PROBLEMS.map((p) => (
+        {practiceProblems().map((p) => (
           <li key={p.slug} className="rounded-md border border-line p-3">
             <Link
               href={`/hld/practice/${p.slug}`}

@@ -47,3 +47,22 @@ Phase 6 (docs/roadmap/phase-6.md) is HLD battles. The process is the owner's fro
   - **Preview:** unlimited, in the browser. The official score is recomputed on the server at submit.
   - **Where the canvas lives before W42 (owner, 2026-11-14):** solo practice for everyone. `/hld/practice` lists the practice problems, and each opens on the canvas, autosaved per player per problem. This is new product behaviour, recorded as ADR-0042 (PROPOSED).
   - **The dependency (owner, 2026-11-14):** `@xyflow/react` 12.12.0, pinned exactly (CANVAS-1).
+
+## Week 40: problem families
+
+### Q-P6-04 Families, variants, the AI league and practice (P0 for W40)
+
+- Cite: HLDQ-2, HLDQ-3, ADR-0042 (PROPOSED), Q-P5-20.
+- **Answers (owner, 2026-11-14):**
+  - **Families:** 8, PROVISIONAL for the owner's review:
+    - URL shortener;
+    - photo sharing (object storage and a CDN);
+    - news feed (fan-out through a queue and workers into a key-value timeline);
+    - chat (a stream and a key-value store);
+    - search and autocomplete (a search index);
+    - checkout (a relational primary, a queue and workers);
+    - metrics ingestion (a stream, workers and a key-value store);
+    - a rate limiter (latency-tight, key-value heavy).
+  - **Variants:** a seeded, validated pool. A variant is (family, league, seed), and its parameters come from the seed deterministically. A command generates seeds, validates them and records the passing ones per family. Matches draw from that pool, so a variant never fails mid-match, and the same seed rebuilds the same problem for replays and disputes.
+  - **The AI league:** the same families, with harder numbers (more traffic, tighter p99, less budget headroom) and a region-failure scenario. Validated like any variant.
+  - **Practice:** each family keeps reserved practice seeds, never used in matches.

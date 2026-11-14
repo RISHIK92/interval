@@ -11,7 +11,7 @@ import {
   updateNode,
 } from "./edit";
 import { COMPONENT_KINDS, CONFIG } from "./catalog";
-import { URL_SHORTENER } from "./practice";
+import { SHORTENER as URL_SHORTENER } from "./fixtures.test-helpers";
 
 // P6-W39 (CANVAS-1, CANVAS-2): the canvas's edits on a design.
 const at = { x: 10, y: 20 };

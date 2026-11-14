@@ -179,7 +179,7 @@
           "id": "db",
           "kind": "sql_db",
           "up": false,
-          "servers": 1,
+          "servers": 0,
           "loadRps": 0,
           "utilization": null,
           "p50Ms": null,

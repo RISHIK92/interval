@@ -425,6 +425,41 @@ describe("paths that only look complete", () => {
     ).toBe(true);
   });
 
+  test("object storage in two regions survives losing one", () => {
+    const blobs = (regions: number): Design => ({
+      ...SOUND,
+      nodes: [
+        ...SOUND.nodes.map((x) =>
+          "regions" in x.config
+            ? ({ ...x, config: { ...x.config, regions: 2 } } as typeof x)
+            : x,
+        ),
+        { ...extra.blobs, config: { regions } },
+      ],
+      edges: [...SOUND.edges, e("api", "blobs", "write")],
+    });
+    const problem = HldProblem.parse({
+      ...open,
+      scenarios: [
+        ...open.scenarios,
+        {
+          id: "region",
+          name: "A region goes down",
+          weight: 1,
+          load: 1,
+          failure: { scope: "region" },
+          targets: { p99Ms: 200, availability: 0.99 },
+        },
+      ],
+    });
+    const lost = (regions: number) =>
+      simulate(problem, Design.parse(blobs(regions)))
+        .scenarios.find((s) => s.id === "region")
+        ?.nodes.find((x) => x.id === "blobs")?.up;
+    expect(lost(2)).toBe(true);
+    expect(lost(1)).toBe(false);
+  });
+
   test("a route listed twice on one edge is refused", () => {
     expect(
       Design.safeParse({

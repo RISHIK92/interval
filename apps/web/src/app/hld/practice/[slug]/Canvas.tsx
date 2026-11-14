@@ -3,6 +3,7 @@
 import {
   addComponent,
   check,
+  fitsProblem,
   type ComponentKind,
   configFields,
   connect,
@@ -66,11 +67,19 @@ export function Canvas({
   // A design the server refused (not as stale) isn't sent again until it changes.
   const refusedJson = useRef<string | null>(null);
 
-  const issues = useMemo(() => check(design), [design]);
+  // What the server would refuse: the design's own checks, then the problem's.
+  const issues = useMemo(() => {
+    const own = check(design);
+    return own.length > 0 ? own : fitsProblem(design, problem);
+  }, [design, problem]);
   // Dragging changes the design on every frame; the preview follows when React can.
   const previewed = useDeferredValue(design);
   const result = useMemo(
-    () => (check(previewed).length === 0 ? simulate(problem, previewed) : null),
+    () =>
+      check(previewed).length === 0 &&
+      fitsProblem(previewed, problem).length === 0
+        ? simulate(problem, previewed)
+        : null,
     [problem, previewed],
   );
   const advice = useMemo(

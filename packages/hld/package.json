@@ -8,7 +8,8 @@
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc",
     "test": "vitest run",
-    "simulate": "node --import ../../scripts/ts-resolve.mjs src/simulate-cli.ts"
+    "simulate": "node --import ../../scripts/ts-resolve.mjs src/simulate-cli.ts",
+    "pool": "node --import ../../scripts/ts-resolve.mjs src/pool-cli.ts && prettier --write src/pool.json"
   },
   "dependencies": {
     "zod": "4.6.7"

@@ -1,7 +1,14 @@
-import { URL_SHORTENER } from "@interval/hld";
+import { practiceProblems } from "@interval/hld";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test, vi } from "vitest";
 import type { Actor, Entitlements } from "../../../server/ports";
+
+// The first practice problem (P6-W40: each family's practice seed).
+const URL_SHORTENER = (() => {
+  const p = practiceProblems().find((x) => x.slug === "url-shortener");
+  if (p === undefined) throw new Error("no url-shortener practice problem");
+  return p;
+})();
 
 // P6-W39 (ADR-0042 PROPOSED): the practice problems, for a player with the capability.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();

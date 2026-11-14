@@ -5764,3 +5764,42 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Checks:** the full `pnpm check` failed on this Mac under load: the local Postgres container restarted three times within the hour, and suites failed at file level, mobile's too. Run alone, each passes: hld (47), web (1630), the Python compose and db tests, `db:check`, and the web production build.
 - **Incident, fixed:** one of those Postgres restarts landed as the check helper put the AI cap back, so the global cap stayed at 500 cents. Nothing was spent (the worker wasn't running). It was set back to 30, and the helper now retries the restore until it reads back 30.
 - **Leftovers:** 15 `interval_check_*` scratch databases from interrupted checks remain in local Postgres. Dropping them needs your go-ahead.
+
+### 2026-11-14 — P6 Week 40 (problem families, variants, validation; HLDQ-2, HLDQ-3, Q-P6-04)
+
+- **Owner's answers (Q-P6-04):**
+  - 8 families;
+  - a seeded, validated pool;
+  - the AI league gets harder numbers and a region failure;
+  - practice uses reserved seeds.
+- **`packages/hld/src/families.ts`:** 8 PROVISIONAL families: URL shortener, photo sharing, news feed, chat, search and autocomplete, checkout, metrics ingestion, and a rate limiter. Each one has:
+  - its requirements, concepts and rubric;
+  - its allowed components;
+  - its request types with their shares;
+  - number ranges per league (traffic, working set, skew, storage, growth, p99);
+  - the shape of a design that solves it;
+  - its reserved practice seed.
+  - Write rates stay within a relational primary's 2,000 writes a second at three times baseline.
+- **`family.ts`:**
+  - **Variants:** a variant is (family, league, seed). A seeded generator (mulberry32 on a hash of all three) draws every number, so a seed always rebuilds the same problem.
+  - **Scenarios:** baseline, a 3× spike, and a lost zone, with the AI league also losing a region. Targets loosen as the scenario gets harder.
+  - **The reference design:** the family's shape on three zones (two regions in the AI league), with a standby in another zone and storage for the horizon. It's simulated, and whatever runs above 60% utilization in any scenario is grown until nothing does.
+  - **The budget:** the reference's cost plus 50% (human) or 20% (AI).
+  - **The flawed-design catalog (HLDQ-3):** single-zone everything (must fail only the zone scenario); compute cut to 115% of capacity at the spike (must fail only the spike); in the AI league, everything in one region at the same capacity (must fail only the region scenario).
+  - **`validate`** checks that the reference passes every scenario and each flawed design fails exactly its target.
+  - **`buildPool`** keeps the first 12 valid seeds per family and league, never a practice seed.
+- **`pool.json`**, from `pnpm --filter @interval/hld pool`. A test fails if it's stale or any entry stops validating.
+- **Practice (ADR-0042):** practice is now each family's practice seed in the human league, under the family's slug, so there are 8 practice problems. The hand-written URL shortener is back to being the engine's test fixture.
+- **Engine fixes:**
+  - object storage counted one server whatever its regions, so losing a region always took it down. Each region now counts, and its stored GB are billed once per region;
+  - a zone failure took a component's share across every region, and took a single-zone component down even when it had a second region. A zone is inside one region: it now takes 1/(zones × regions), and only a single-zone, single-region component goes down. A relational database loses only that region's share, and its primary unless the standby is in another zone. Two goldens moved (servers counts only; points unchanged).
+  - spec v1.0 is PROVISIONAL and no score has been recorded, so these have no patch note.
+- **Review (Sonnet):** no blockers. It found that the flaw catalog was only generic (zone, spike, region), so a variant never tested its family's lesson: removing the URL shortener's cache still scored 60. Fixed:
+  - families can carry a lesson flaw. The URL shortener, search and checkout drop their cache, which must fail only the spike, so pooled variants are ones where caching matters. Their traffic and write shares were set so that happens, with writes still within the primary's limit;
+  - the async families (news feed, chat, metrics), photo sharing's CDN and the rate limiter's lessons can't be shown by the simulator without failing every scenario, so their rubric carries them (the simulator measures capacity, latency, availability and cost, not why a write is asynchronous);
+  - single-zone isn't a flaw with a second active region, so the AI league's catalog uses the one-region design for that;
+  - `validate` has tests for all three ways a variant fails;
+  - the "AI is harder" test checks drawn problems (budget headroom, the region scenario, traffic), and different seeds make different problems;
+  - drawn numbers are rounded (no `0.7000000000000001`);
+  - a W39 practice design saved against the old `read`/`write` URL shortener no longer fits, so it starts over, and the canvas lists problem-fit issues as the server would.
+- **Not consumed yet:** `pool.json` waits for W42's matches.

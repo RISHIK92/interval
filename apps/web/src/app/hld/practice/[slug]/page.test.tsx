@@ -1,4 +1,4 @@
-import { starterDesign, URL_SHORTENER } from "@interval/hld";
+import { starterDesign, practiceProblems } from "@interval/hld";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
 import type {
@@ -6,6 +6,13 @@ import type {
   Entitlements,
   HldPracticeDesigns,
 } from "../../../../server/ports";
+
+// The first practice problem (P6-W40: each family's practice seed).
+const URL_SHORTENER = (() => {
+  const p = practiceProblems().find((x) => x.slug === "url-shortener");
+  if (p === undefined) throw new Error("no url-shortener practice problem");
+  return p;
+})();
 
 // P6-W39 (CANVAS-1, ADR-0042 PROPOSED): a practice problem's page opens on the player's
 // last autosave, or on the client alone.
@@ -68,6 +75,27 @@ test("a saved design that no longer parses starts over, at its version", async (
   await render(URL_SHORTENER.slug);
   expect(canvas).toHaveBeenCalledWith(
     expect.objectContaining({ initial: starterDesign(), version: 2 }),
+  );
+});
+
+test("a saved design from an older version of the problem starts over", async () => {
+  const old = {
+    ...starterDesign(),
+    nodes: [
+      ...starterDesign().nodes,
+      {
+        id: "lb",
+        kind: "load_balancer",
+        config: { zones: 1, regions: 1 },
+        note: "",
+      },
+    ],
+    edges: [{ from: "users", to: "lb", routes: ["read", "write"] }],
+  };
+  load.mockResolvedValueOnce({ design: old, version: 3 });
+  await render(URL_SHORTENER.slug);
+  expect(canvas).toHaveBeenCalledWith(
+    expect.objectContaining({ initial: starterDesign(), version: 3 }),
   );
 });
 

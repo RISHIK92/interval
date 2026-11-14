@@ -1,10 +1,17 @@
-import { starterDesign, URL_SHORTENER } from "@interval/hld";
+import { starterDesign, practiceProblems } from "@interval/hld";
 import { beforeEach, expect, test, vi } from "vitest";
 import type {
   Actor,
   Entitlements,
   HldPracticeDesigns,
 } from "../../../../server/ports";
+
+// The first practice problem (P6-W40: each family's practice seed).
+const URL_SHORTENER = (() => {
+  const p = practiceProblems().find((x) => x.slug === "url-shortener");
+  if (p === undefined) throw new Error("no url-shortener practice problem");
+  return p;
+})();
 
 // P6-W39 (ADR-0042 PROPOSED, Q-P6-03): the canvas's autosave checks everything it's sent.
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();

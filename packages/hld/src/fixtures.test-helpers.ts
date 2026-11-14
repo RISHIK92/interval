@@ -1,8 +1,67 @@
 import type { Design } from "./design";
-import { URL_SHORTENER } from "./practice";
+import { HldProblem } from "./problem";
 
-// Shared by the engine's tests and its golden designs.
-export const SHORTENER = URL_SHORTENER;
+// A URL shortener: reads (redirects) dominate and are cacheable; writes (new links)
+// are not. Hand-written, so the engine's tests and golden designs never move with
+// the families.
+export const SHORTENER = HldProblem.parse({
+  slug: "url-shortener",
+  title: "URL shortener",
+  timeLimitMinutes: 30,
+  requirements: ["Shorten a URL", "Redirect a short code to its URL"],
+  traffic: {
+    requests: [
+      { type: "read", rps: 8_000, kind: "read", cacheable: true },
+      { type: "write", rps: 400, kind: "write", cacheable: false },
+    ],
+    workingSetGb: 40,
+    hotKeySkew: 0.8,
+    storedGb: 200,
+    growthGbPerDay: 2,
+    horizonDays: 365,
+  },
+  budgetPerMonth: 6_000,
+  scenarios: [
+    {
+      id: "baseline",
+      name: "A normal day",
+      weight: 3,
+      load: 1,
+      targets: { p99Ms: 100, availability: 0.999 },
+    },
+    {
+      id: "peak",
+      name: "A launch-day spike",
+      weight: 2,
+      load: 3,
+      targets: { p99Ms: 200, availability: 0.995 },
+    },
+    {
+      id: "zone",
+      name: "A zone goes down",
+      weight: 2,
+      load: 1,
+      failure: { scope: "zone" },
+      targets: { p99Ms: 150, availability: 0.99 },
+    },
+  ],
+  allowedComponents: [
+    "load_balancer",
+    "app_service",
+    "cache",
+    "sql_db",
+    "kv_store",
+    "cdn",
+  ],
+  rubric: [
+    {
+      id: "caching",
+      criterion: "Caches redirects and explains its invalidation.",
+      weight: 1,
+    },
+  ],
+  concepts: ["caching", "replication"],
+});
 
 const edge = (from: string, to: string, ...routes: string[]) => ({
   from,
