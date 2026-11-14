@@ -246,6 +246,7 @@ def test_a_new_user_is_on_the_beta_plan(conn: psycopg.Connection) -> None:
         ("play.battle", None),  # P5-W31-S03
         ("play.daily", None),
         ("play.estimation", None),
+        ("play.hld", None),  # P6-W39, ADR-0042
         ("play.live", None),
         ("play.sprint", None),
         ("push.notify", None),  # ADR-0036
@@ -282,6 +283,7 @@ def test_per_user_grants_add_to_the_plan_without_duplicating_it(
         ("play.battle", None),  # P5-W31-S03
         ("play.daily", None),
         ("play.estimation", None),
+        ("play.hld", None),  # P6-W39, ADR-0042
         ("play.live", None),
         ("play.sprint", None),
         ("push.notify", None),  # ADR-0036
