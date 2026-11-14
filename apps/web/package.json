@@ -34,6 +34,7 @@
     "@interval/diagrams": "workspace:*",
     "@interval/events": "workspace:*",
     "@interval/game-client": "workspace:*",
+    "@interval/hld": "workspace:*",
     "@interval/lld": "workspace:*",
     "@interval/scoring": "workspace:*",
     "@opentelemetry/api": "1.9.1",

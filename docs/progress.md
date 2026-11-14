@@ -5678,3 +5678,18 @@ The owner said to continue building overnight with recommended answers, switchin
   - `scripts/load/window-start.js` (k6) mints tickets as the web does, connects every player to game server 0 at once, and Submits the Python reference. The thresholds are p95 verdict under 10 s and no failures.
   - docs/runbooks/load-test.md has the steps. The run is the owner's: k6 isn't installed, and Velox isn't configured here.
 - **The red-team rerun (S03, in Velox):** all 22 attacks contained. One verdict under load was the wall clock rather than the memory limit; alone, the memory limit. The gVisor and Judge0 rows are still the owner's.
+
+### 2026-11-14 — P6 Week 36 (the design schema, the component catalog, spec sheet v1; HLDQ-1, CANVAS-2, CANVAS-4, Q-P6-01)
+
+- **Phase 6 started:**
+  - docs/roadmap/phase-6-slices.md has one unit per week;
+  - docs/questions/phase-6.md has the owner's Q-P6-01 answers: 12 components; Claude drafts PROVISIONAL numbers; a public `/hld/spec`; Claude builds W36–W44, and the W45 cups are the owner's.
+- **`packages/hld` (TS, ARCH-2), a new workspace package:**
+  - `catalog.ts` lists the 12 component kinds with each one's zod config: nodes, zones and regions, and per kind memory, replicas, failover, partitions, replication, shards or TTL.
+  - `design.ts` is the versioned JSON graph (CANVAS-2). Nodes are typed by a discriminated union over kinds, each with an optional "why" note of up to 280 characters (empty while being drawn) and a canvas position. Edges route named request types.
+    - The graph is checked: unique ids, exactly one client, edges between real nodes, nothing into the client, no self-loops or duplicates.
+  - `spec.ts` is spec v1.0 (CANVAS-4), PROVISIONAL: per component its capacity and unit (with a relational database's write capacity), latency, availability and cost per node-hour, plus the patch notes and a version lookup.
+- **`/hld/spec`:** public, no sign-in. It shows every component's numbers and the patch notes.
+- **Wiring:** the web takes `@interval/hld` (transpiled; in the Docker image).
+- **Environment note:** this shell's default Node is now 25 (Homebrew), and the repo needs 22. Commands run with nvm's v22.22.3 first on the PATH.
+- **Review:** combined with W37's engine review (W36 is schema and a static page).
