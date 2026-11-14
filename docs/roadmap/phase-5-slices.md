@@ -348,3 +348,4 @@ Already in place, so not sliced again:
 
 - IDs: ADR-0013
 - Goal: the checklist, both stacks synthesized, and a drift audit.
+- Built 2026-11-14: docs/runbooks/phase-5-checklist.md, both stacks synthesized, docs/audits/2026-11-14.md.
