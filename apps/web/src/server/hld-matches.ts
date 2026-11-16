@@ -18,9 +18,11 @@ import type {
   HldMatch,
   HldMatches,
   HldSeat,
+  HldWindows,
   JobQueue,
   League,
 } from "./ports";
+import { group } from "./battle-windows";
 
 // P6-W42 (§6.4, CANVAS-5, MATCH-7; Q-P6-06, ADR-0043): an HLD match, run by the web app.
 // The official score is the preview's simulator, run here. A match moves on whenever
@@ -42,18 +44,61 @@ export async function startHldMatch(
   deps: HldDeps,
   players: string[],
   league: League,
-  options: { unrated: boolean; windowAt: Date | null },
+  options: {
+    unrated: boolean;
+    windowAt: Date | null;
+    // A window's own variant; otherwise one drawn from the pool.
+    variant?: { family: string; seed: number };
+  },
 ): Promise<string> {
-  const variant = drawVariant(league, deps.random);
+  const variant = options.variant ?? drawVariant(league, deps.random);
   const problem = problemOf({ ...variant, league });
   return deps.matches.create(
     players,
     { ...variant, league },
     {
-      ...options,
+      unrated: options.unrated,
+      windowAt: options.windowAt,
       minutes: problem.timeLimitMinutes,
     },
   );
+}
+
+// P6-W42 (MATCH-7, Q-P6-06): a ranked window's grouping, as LLD's (groupWindow): its
+// ungrouped registrants by HLD room rating into rooms of up to 4 on one variant; one
+// left alone plays solo, unrated. Null when another caller has the claim.
+export async function groupHldWindow(
+  deps: HldDeps & { windows: HldWindows },
+  windowAt: Date,
+  league: League,
+): Promise<{ grouped: number; matched: number } | null> {
+  const claimed = await deps.windows.claim(windowAt, league, deps.now(), () =>
+    drawVariant(league, deps.random),
+  );
+  if (claimed === null) return null;
+  let matched = 0;
+  for (const players of group(claimed.players)) {
+    const users = players.map((p) => p.userId);
+    let matchId: string;
+    try {
+      matchId = await startHldMatch(deps, users, league, {
+        unrated: users.length === 1,
+        windowAt,
+        variant: claimed.variant,
+      });
+    } catch (error) {
+      log.error("hld: window group not started", {
+        windowAt: windowAt.toISOString(),
+        error,
+      });
+      continue;
+    }
+    // A match started is assigned or the grouping fails loudly: never regrouped.
+    await deps.windows.assign(windowAt, league, matchId, users);
+    await deps.windows.extend(windowAt, league, deps.now());
+    if (users.length > 1) matched += users.length;
+  }
+  return { grouped: claimed.players.length, matched };
 }
 
 export function problemOf(

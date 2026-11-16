@@ -52,6 +52,7 @@ Already in place, and reused:
   - the match flow and the official simulation worker;
   - scoring: simulation 60, rubric 25, speed 15, with the baseline gate;
   - 1v1 and rooms, windows, and the casual queue.
+- Built 2026-11-16 in two parts (ADR-0043 PROPOSED): matches, scoring and the casual queue; then the ranked windows.
 
 ## Week 43: tournaments
 

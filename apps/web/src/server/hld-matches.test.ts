@@ -9,6 +9,7 @@ import {
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import {
   advance,
+  groupHldWindow,
   type HldDeps,
   JUDGE_WAIT_MS,
   problemOf,
@@ -351,6 +352,40 @@ describe("an HLD match", () => {
       { match_id: id },
       { idempotencyKey: `hld-rate-${id}` },
     );
+  });
+
+  test("a window's registrants are grouped into rooms of up to 4 on its variant", async () => {
+    const assigned: string[][] = [];
+    const players = ["a", "b", "c", "d", "e"].map((userId, i) => ({
+      userId,
+      rating: 30 - i,
+    }));
+    const result = await groupHldWindow(
+      {
+        ...deps,
+        windows: {
+          register: () => Promise.resolve(),
+          unregister: () => Promise.resolve(),
+          registration: () => Promise.resolve(null),
+          claim: () =>
+            Promise.resolve({ variant: { family: "chat", seed: 3 }, players }),
+          extend: () => Promise.resolve(),
+          assign: (_at, _league, _id, users) => {
+            assigned.push(users);
+            return Promise.resolve();
+          },
+        },
+      },
+      clock.now,
+      "human",
+    );
+    expect(assigned).toEqual([["a", "b", "c", "d"], ["e"]]);
+    expect(result).toEqual({ grouped: 5, matched: 4 });
+    const matches = [...world.rows.values()].map((r) => r.match);
+    expect(matches.map((m) => [m.family, m.seed, m.unrated])).toEqual([
+      ["chat", 3, false],
+      ["chat", 3, true], // alone: solo, unranked
+    ]);
   });
 
   test("someone else's match, or a design for another problem, is refused", async () => {

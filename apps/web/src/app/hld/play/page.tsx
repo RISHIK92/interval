@@ -1,10 +1,13 @@
 import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { windowTimeZone } from "../../../env";
+import { windowStatus, windowsFrom } from "../../../server/battle-windows";
 import {
   entitlements,
   hldDeps,
   hldMatches,
+  hldWindows,
   sessionReader,
 } from "../../../server/container";
 import { advance } from "../../../server/hld-matches";
@@ -21,6 +24,10 @@ export default async function HldPlayPage() {
   const deps = hldDeps();
   const open = await hldMatches().unscoredFor(actor.userId);
   for (const id of open) await advance(deps, id);
+  const now = new Date();
+  const [next] = windowsFrom(now, windowTimeZone());
+  if (next === undefined) throw new Error("no window in the coming week");
+  const mine = await hldWindows().registration(next, actor.userId);
   return (
     <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 pt-6 pb-12">
       <header>
@@ -37,7 +44,15 @@ export default async function HldPlayPage() {
           </Link>
         </p>
       </header>
-      <HldLobby />
+      <HldLobby
+        window={{
+          at: next.toISOString(),
+          status: windowStatus(next, now),
+          registered: mine !== null,
+          league: mine?.league ?? null,
+          matchId: mine?.matchId ?? null,
+        }}
+      />
     </main>
   );
 }

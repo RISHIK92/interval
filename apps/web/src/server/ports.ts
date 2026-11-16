@@ -2331,3 +2331,32 @@ export interface HldMatches {
   ratingChanges(id: string): Promise<Map<string, number>>;
   unscoredFor(userId: string): Promise<string[]>;
 }
+
+// P6-W42 (MATCH-7, Q-P6-06): HLD's ranked windows, at LLD's times, registered apart.
+export interface HldWindows {
+  // In one league; registering again moves the player to it, until grouped.
+  register(windowAt: Date, userId: string, league: League): Promise<void>;
+  unregister(windowAt: Date, userId: string): Promise<void>;
+  registration(
+    windowAt: Date,
+    userId: string,
+  ): Promise<{ matchId: string | null; league: League } | null>;
+  // As BattleWindows.claim: the window's variant (`pick` when first claimed) and its
+  // ungrouped players by HLD room rating, best first; null when another caller has it.
+  claim(
+    windowAt: Date,
+    league: League,
+    now: Date,
+    pick: () => { family: string; seed: number },
+  ): Promise<{
+    variant: { family: string; seed: number };
+    players: WindowPlayer[];
+  } | null>;
+  extend(windowAt: Date, league: League, now: Date): Promise<void>;
+  assign(
+    windowAt: Date,
+    league: League,
+    matchId: string,
+    userIds: string[],
+  ): Promise<void>;
+}

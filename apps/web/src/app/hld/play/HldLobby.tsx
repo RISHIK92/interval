@@ -2,19 +2,30 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import type { WindowStatus } from "../../../server/battle-windows";
 import type { League } from "../../../server/ports";
 
-// P6-W42 (MATCH-7, §6.2; Q-P6-06): the casual HLD queue: an unrated 1v1, polled each
-// second; after 60 s unmatched, a solo match instead.
+// P6-W42 (MATCH-7, §6.2; Q-P6-06): the casual HLD queue (an unrated 1v1, polled each
+// second; after 60 s unmatched, a solo match instead) and the next ranked window (rooms
+// of up to 4 by HLD rating, at LLD's times, registered apart).
 const POLL_MS = 1_000;
 const CASUAL_WAIT_MS = 60_000;
 
 const call = (url: string, method: string) =>
   fetch(url, { method, headers: { "content-type": "application/json" } });
 
-export function HldLobby() {
+export type HldWindow = {
+  at: string;
+  status: WindowStatus;
+  registered: boolean;
+  league: League | null;
+  matchId: string | null;
+};
+
+export function HldLobby({ window: initial }: { window: HldWindow }) {
   const router = useRouter();
-  const [league, setLeague] = useState<League>("human");
+  const [league, setLeague] = useState<League>(initial.league ?? "human");
+  const [windowState, setWindow] = useState(initial);
   const [state, setState] = useState<"idle" | "waiting" | "solo">("idle");
   const [problem, setProblem] = useState<string | null>(null);
   const q = `?league=${league}`;
@@ -72,6 +83,45 @@ export function HldLobby() {
     };
   }, [state, router, q]);
 
+  // The ranked window, once live: poll for the match it grouped us into.
+  useEffect(() => {
+    if (!windowState.registered || windowState.status !== "live") return;
+    if (windowState.matchId !== null) {
+      router.push(`/hld/match/${windowState.matchId}`);
+      return;
+    }
+    const timer = setInterval(() => {
+      call("/api/hld/window", "PUT")
+        .then(async (res) => {
+          if (!res.ok) return;
+          const { matchId } = (await res.json()) as { matchId: string | null };
+          if (matchId !== null) {
+            clearInterval(timer);
+            router.push(`/hld/match/${matchId}`);
+          }
+        })
+        .catch((error: unknown) => {
+          console.error("hld: window poll failed", error);
+        });
+    }, POLL_MS * 2);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [windowState, router]);
+
+  const register = async (on: boolean) => {
+    setProblem(null);
+    const res = await call(`/api/hld/window${q}`, on ? "POST" : "DELETE");
+    if (res.ok)
+      setWindow({ ...windowState, registered: on, league: on ? league : null });
+    else setProblem("Registration is closed for this window.");
+  };
+  const when = new Date(windowState.at).toLocaleString(undefined, {
+    weekday: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
   return (
     <div className="flex flex-col gap-4">
       <fieldset
@@ -118,6 +168,37 @@ export function HldLobby() {
         An unrated 1v1, about 30 minutes. Nobody within a minute? You design
         alone.
       </p>
+      <section aria-label="Ranked window" className="flex flex-col gap-2">
+        <h2 className="text-title">Ranked window</h2>
+        <p className="text-ink-muted">
+          {windowState.status === "live"
+            ? `Live now, since ${when}.`
+            : `Next: ${when}. Rooms of up to 4, matched by rating.`}
+        </p>
+        {windowState.status === "open" ? (
+          <button
+            type="button"
+            className="self-start rounded-md border border-line px-4 py-2"
+            onClick={() => {
+              void register(
+                !windowState.registered || windowState.league !== league,
+              );
+            }}
+          >
+            {windowState.registered && windowState.league === league
+              ? "Cancel registration"
+              : `Register (the ${league} league)`}
+          </button>
+        ) : windowState.registered ? (
+          <p className="text-sm">
+            You&apos;re registered; your room opens at the start.
+          </p>
+        ) : (
+          <p className="text-sm text-ink-muted">
+            Registration closed 5 minutes before.
+          </p>
+        )}
+      </section>
       {problem === null ? null : <p role="alert">{problem}</p>}
     </div>
   );

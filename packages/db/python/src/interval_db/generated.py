@@ -778,6 +778,22 @@ class HldRoomRatingHistory(TypedDict):
     at: datetime
 
 
+class HldWindow(TypedDict):
+    window_at: datetime
+    league: str
+    grouping_at: datetime
+    family: str
+    seed: int
+
+
+class HldWindowRegistration(TypedDict):
+    window_at: datetime
+    user_id: str
+    league: str
+    registered_at: datetime
+    match_id: UUID | None
+
+
 class InviteCode(TypedDict):
     id: int
     code: str

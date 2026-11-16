@@ -5887,6 +5887,17 @@ The owner said to continue building overnight with recommended answers, switchin
   - a pending practice-style uniqueness on (player, problem) made a match reuse an earlier match's pending judgement. Match judgements are now never shared.
   - Also fixed: ratings re-queued until rated; scoring waits only on graded designs; the deadline is enforced in SQL; a refused save after submitting says so; versions are capped; the result page shows the seat's own judgement.
 - **Left:**
-  - W42 part 2: HLD's ranked windows (registration, grouping into rooms of up to 4);
   - an appeal resolved after a match was scored doesn't re-score it;
   - matches move on only when someone looks (ADR-0043's open question).
+
+### 2026-11-16 — P6 Week 42, part 2 (HLD's ranked windows; MATCH-7, Q-P6-06)
+
+- **Data:** `hld_window_registration` (per window and player, in a league, with the match grouped into) and `hld_window` (the window's claim per league, with its pooled variant).
+- **Web:**
+  - `HldWindows` and its Kysely adapter, as LLD's windows: registering again moves the player's league until grouped; the first poll at or after the start claims the window (a stale claim with players left ungrouped can be taken again after a minute) and picks its variant; players are ordered by HLD room rating;
+  - `groupHldWindow`: rooms of up to 4 on the window's variant, one left alone solo and unrated (LLD's `group`);
+  - `/api/hld/window`: GET the next window and the player's place, POST to register while open (until 5 minutes before), DELETE to take it back, PUT (polled from the start) to group and answer with the player's match;
+  - the lobby's "Ranked window" section: register in the chosen league, and from the start it opens the player's room.
+- **Left, for the owner:**
+  - HLD windows send no reminder push yet; LLD's come from the worker's `window-reminders-due`, which reads only LLD registrations;
+  - no `battle_window_grouped`-style event for HLD's matched rate.

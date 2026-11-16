@@ -792,6 +792,22 @@ export interface HldRoomRatingHistory {
   user_id: string;
 }
 
+export interface HldWindow {
+  family: string;
+  grouping_at: Timestamp;
+  league: string;
+  seed: number;
+  window_at: Timestamp;
+}
+
+export interface HldWindowRegistration {
+  league: string;
+  match_id: string | null;
+  registered_at: Generated<Timestamp>;
+  user_id: string;
+  window_at: Timestamp;
+}
+
 export interface InviteCode {
   beta_group: BetaGroup;
   code: string;
@@ -1590,6 +1606,8 @@ export interface DB {
   hld_rating_history: HldRatingHistory;
   hld_room_rating: HldRoomRating;
   hld_room_rating_history: HldRoomRatingHistory;
+  hld_window: HldWindow;
+  hld_window_registration: HldWindowRegistration;
   invite_code: InviteCode;
   item_concept: ItemConcept;
   item_concept_probability: ItemConceptProbability;
