@@ -2237,6 +2237,9 @@ export interface HldJudgements {
     now: Date,
   ): Promise<"appealed" | "twice" | "late" | "not_judged" | null>;
   openAppeals(): Promise<HldAppeal[]>;
+  // Phase 6's "done when": under 5% of results disputed. Of the last 30 days' graded
+  // match judgements, how many were appealed (practice feedback isn't a result).
+  appealRate(now: Date): Promise<{ appealed: number; judged: number }>;
   // False when it's not an open appeal (resolved already, or gone).
   resolve(id: string, levels: Levels, by: string): Promise<boolean>;
   calibrationGrades(): Promise<Map<string, Record<string, number>>>;

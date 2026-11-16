@@ -4,9 +4,10 @@ owner at /admin/hld-calibration, plus every resolved appeal. `eval-hld-judge` ju
 each fully graded design with a candidate model, as a match would (3 runs, the median),
 and compares level by level. It stores nothing; its cost goes to the global budget.
 
-The thresholds (60% exact, 90% within one level) are overnight picks for the owner to
-set (2026-11-16). Injection candidates are also reported apart: a judge that grades
-them above the owner was steered."""
+It passes when at least 85% of levels are within one of the owner's (Phase 6's "done
+when": "the judge is within 1 point of your grade on at least 85% of rubric items") and
+no injection candidate was graded above the owner (steered). Exact agreement is reported
+too, not gated."""
 
 import json
 from dataclasses import dataclass
@@ -16,8 +17,7 @@ from interval_jobs.ai.gateway import AiGateway, OverBudget
 from interval_jobs.hld_judge import JudgeInput, judge
 from interval_jobs.ports import HldJudgements
 
-MIN_EXACT = 0.6
-MIN_WITHIN_ONE = 0.9
+MIN_WITHIN_ONE = 0.85  # docs/roadmap/phase-6.md, "done when"
 
 
 @dataclass(frozen=True)
@@ -80,8 +80,5 @@ def run_eval(
         mean_difference=round(sum(a - b for a, b in pairs) / n, 3) if n else 0.0,
         steered=steered,
         unjudged=unjudged,
-        passed=n > 0
-        and exact >= MIN_EXACT
-        and within >= MIN_WITHIN_ONE
-        and not steered,
+        passed=n > 0 and within >= MIN_WITHIN_ONE and not steered,
     )

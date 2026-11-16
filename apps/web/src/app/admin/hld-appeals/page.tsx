@@ -16,10 +16,21 @@ export default async function HldAppealsPage(props: {
 }) {
   await requireAdmin();
   const { saved, error } = await props.searchParams;
-  const appeals = await hldJudgements().openAppeals();
+  const [appeals, rate] = await Promise.all([
+    hldJudgements().openAppeals(),
+    hldJudgements().appealRate(new Date()),
+  ]);
   return (
     <main className={ADMIN_MAIN}>
       <h1 className="text-title">HLD appeals</h1>
+      <p className="text-sm text-ink-muted">
+        Last 30 days: {rate.appealed} of {rate.judged} graded match results
+        appealed
+        {rate.judged > 0
+          ? ` (${((100 * rate.appealed) / rate.judged).toFixed(1)}%; the goal is under 5%)`
+          : ""}
+        .
+      </p>
       {saved ? <p role="status">Saved.</p> : null}
       {error === "resolved" ? (
         <p role="alert" className="text-wrong">

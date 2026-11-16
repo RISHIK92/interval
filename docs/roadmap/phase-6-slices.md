@@ -67,3 +67,4 @@ Already in place, and reused:
 ## Week 45: the cups (the owner's)
 
 - Goal: a practice cup with beta universities, then the first University Cup. Claude prepares a runbook.
+- Runbook ready 2026-11-16: docs/runbooks/hld-cup.md; the phase checklist is docs/runbooks/phase-6-checklist.md.

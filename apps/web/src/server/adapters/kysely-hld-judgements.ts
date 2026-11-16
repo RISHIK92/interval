@@ -160,6 +160,26 @@ export function kyselyHldJudgements(db: Kysely<DB>): HldJudgements {
       return "late";
     },
 
+    appealRate: async (now) => {
+      const row = await db
+        .selectFrom("hld_judgement")
+        .select([
+          sql<number>`count(*)::int`.as("judged"),
+          sql<number>`count(*) filter (where appealed_at is not null)::int`.as(
+            "appealed",
+          ),
+        ])
+        .where("match_id", "is not", null)
+        .where("levels", "is not", null)
+        .where(
+          "requested_at",
+          ">",
+          sql<Date>`${now}::timestamptz - interval '30 days'`,
+        )
+        .executeTakeFirstOrThrow();
+      return { appealed: row.appealed, judged: row.judged };
+    },
+
     openAppeals: async () => {
       const rows = await db
         .selectFrom("hld_judgement as j")

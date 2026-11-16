@@ -178,6 +178,27 @@ test("an appeal: once, within 7 days, of a judged design; the owner's levels rep
     expect((await judgements.openAppeals()).some((a) => a.id === id)).toBe(
       false,
     );
+    // Practice feedback isn't a result: only a match's judgements count toward the rate.
+    const before = await judgements.appealRate(now);
+    const match = await trx
+      .insertInto("hld_match")
+      .values({
+        family: "chat",
+        league: "human",
+        seed: 3,
+        deadline_at: sql<Date>`now() + interval '30 minutes'`,
+      })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .updateTable("hld_judgement")
+      .set({ match_id: match.id })
+      .where("id", "=", id)
+      .execute();
+    expect(await judgements.appealRate(now)).toEqual({
+      appealed: before.appealed + 1,
+      judged: before.judged + 1,
+    });
   });
 });
 

@@ -165,6 +165,7 @@ function fakes(clock: { now: Date }) {
     get: () => Promise.resolve(null),
     appeal: () => Promise.resolve(null),
     openAppeals: () => Promise.resolve([]),
+    appealRate: () => Promise.resolve({ appealed: 0, judged: 0 }),
     resolve: () => Promise.resolve(false),
     calibrationGrades: () => Promise.resolve(new Map()),
     grade: () => Promise.resolve(),

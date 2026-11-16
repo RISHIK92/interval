@@ -5983,3 +5983,10 @@ The owner said to continue building overnight with recommended answers, switchin
   - the runbook's cleanup is exact;
   - an invalid design answers 400.
 - **Left:** a watch poll still costs about 7 queries and ships both designs each time (an ETag would cut it); byes count as "in the round" for spectating, which is the safe reading of Q-P6-08.
+
+### 2026-11-16 — P6 wrap-up: the cup runbook, the Phase 6 checklist, the "done when" gates
+
+- **The judge's gate** now matches Phase 6's "done when": it passes at 85% of levels within one of the owner's, with no steered injection design. Exact agreement is reported, not gated. It was 90% within one plus 60% exact, overnight picks.
+- **The appeal rate** ("under 5% of results disputed"): `/admin/hld-appeals` shows the last 30 days' appealed match judgements over graded ones. Practice feedback isn't a result.
+- **docs/runbooks/hld-cup.md:** before a cup (problems, the judge's eval, load, the worker, universities), making it, running it round by round, and afterwards (appeals, recording it).
+- **docs/runbooks/phase-6-checklist.md:** the "done when" mapped to where each is measured, what each week built, and the owner's items.
