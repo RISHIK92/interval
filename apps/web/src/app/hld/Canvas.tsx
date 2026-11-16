@@ -29,7 +29,6 @@ import "@xyflow/react/dist/style.css";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Feedback } from "./Feedback";
 import { MatchPanel } from "./MatchPanel";
-import { saveMatchDesign } from "./match/[id]/actions";
 import type { FeedbackView } from "./practice/feedback";
 import { saveDesign } from "./practice/[slug]/actions";
 
@@ -110,7 +109,18 @@ export function Canvas({
       inFlight.current = true;
       setSave("saving");
       (mode.kind === "match"
-        ? saveMatchDesign(mode.matchId, design, version.current)
+        ? fetch(`/api/hld/match/${mode.matchId}/design`, {
+            method: "PUT",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ design, base: version.current }),
+          }).then(async (r) => {
+            // 200 a save, 400 or 409 a refusal with its reason; anything else failed.
+            if (![200, 400, 409].includes(r.status))
+              throw new Error(`autosave: ${String(r.status)}`);
+            return (await r.json()) as
+              | { ok: true; version: number }
+              | { ok: false; reason: "invalid" | "stale" | "closed" };
+          })
         : saveDesign(problem.slug, design, version.current)
       )
         .then((r) => {

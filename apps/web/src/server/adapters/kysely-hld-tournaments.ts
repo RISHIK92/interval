@@ -207,6 +207,29 @@ export function kyselyHldTournaments(db: Kysely<DB>): HldTournaments {
       return done.numUpdatedRows > 0n;
     },
 
+    roundOf: async (matchId) => {
+      const mine = await db
+        .selectFrom("hld_tournament_pairing")
+        .select(["tournament_id", "round"])
+        .where("match_id", "=", matchId)
+        .executeTakeFirst();
+      if (mine === undefined) return null;
+      const rows = await db
+        .selectFrom("hld_tournament_pairing as p")
+        .leftJoin("hld_match as m", "m.id", "p.match_id")
+        .select(["p.player_a", "p.player_b", "p.match_id", "m.closed_at"])
+        .where("p.tournament_id", "=", mine.tournament_id)
+        .where("p.round", "=", mine.round)
+        .execute();
+      return {
+        players: rows.flatMap((r) =>
+          r.player_b === null ? [r.player_a] : [r.player_a, r.player_b],
+        ),
+        // A round is over once every one of its matches is (byes have none).
+        over: rows.every((r) => r.match_id === null || r.closed_at !== null),
+      };
+    },
+
     finish: async (id, at) => {
       const done = await db
         .updateTable("hld_tournament")

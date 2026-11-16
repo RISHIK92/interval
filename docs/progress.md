@@ -5944,3 +5944,42 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Left, for the owner:**
   - there are no reminders or notifications of a new round; players watch the tournament page;
   - the bracket shows the higher seed through on an exact tie, but nothing marks a bye's "win" in the bracket (byes happen only in Swiss).
+
+### 2026-11-16 — P6 Week 44 (spectating, replays, results with the rubric, cup problems, the load test; §6.4, HLDQ-3, LOAD-4, Q-P6-08)
+
+- **Owner's answers (Q-P6-08):**
+  - live spectating of tournament matches, but not by players in that round;
+  - replays for a match's players, and public for tournament matches once their round ends;
+  - 3 hand-written cup problems with the same validation;
+  - a k6 script the owner runs.
+- **Cup problems (`families.ts`, `CUPS`, PROVISIONAL):**
+  - a concert ticket sale (seat holds in a store, purchases through a queue; its lesson is the seat-map cache);
+  - live sports scores (a short-TTL CDN in front of a cache);
+  - ride-hailing dispatch (locations through a stream into a search index, assignment in SQL).
+  - Each is validated by `validate` at its seed per league: concert tickets and dispatch in the human league, scores in both. Their AI-league variants can't meet every flaw, since the database or index can't scale far enough.
+  - They're never in the pool or practice. `matchProblem` plays them at their seeds, and the admin tournament picker lists them first.
+- **Autosave and submit are API routes:** `PUT /api/hld/match/<id>/design` and `POST /api/hld/match/<id>/submit` replace the server actions, so a load test can drive them. The checks moved to `server/hld-match-requests.ts`.
+- **Spectating and replays:**
+  - `server/hld-watch.ts` decides access. A match's players replay it once it's over. A tournament match is live for anyone not in its round and a replay for anyone once the round is over. Casual and window matches stay with their players;
+  - `GET /api/hld/match/<id>/watch` returns each side's latest autosave and the clock;
+  - `GET /api/hld/match/<id>/replay` returns each player's autosaves, thinned to 200 frames with the last kept;
+  - pages: `/hld/match/<id>/watch` (polls every 5 s) and `/hld/match/<id>/replay` (one slider through time);
+  - `DesignView`: a read-only React Flow view with the preview simulation and the notes.
+  - The tournament page links each match to watch or replay.
+- **Results with the rubric:** the result page shows every player's level per criterion (labelled AI) and links to the replay.
+- **The load test:**
+  - `pnpm load:hld <players> <out.json>` (local databases only) makes signed-in test players, with sessions signed as Better Auth's cookie is. It enters and checks them into a tournament and starts round 1 through the real tournament code;
+  - `scripts/load/hld-round.js` (k6): every player autosaves 3 times and submits at once. The threshold is the submit round trip at p95 under 2 s;
+  - the runbook is in `docs/runbooks/load-test.md`;
+  - verified locally with 4 players against the dev server: the cookie authenticates, and autosave and submit return 200 and "submitted". The test data was removed. **The owner runs the real load.**
+- **Review (Sonnet):** no blockers; the copying rules held in every case traced. Fixed:
+  - the new routes read any body before checking it; they now refuse past 128 KB (declared, then actual) before parsing;
+  - the replay loaded every autosave in memory before thinning; it now picks frames from the versions alone and reads only their designs, and a finished replay is cacheable;
+  - the canvas and match panel check the status before trusting a body; spectating logs lost access;
+  - the "watch" link is hidden from a round's own players until the round is over;
+  - `thin` handles tiny limits;
+  - the load script refuses a database URL that names another host in its query;
+  - k6 counts failed autosaves;
+  - the runbook's cleanup is exact;
+  - an invalid design answers 400.
+- **Left:** a watch poll still costs about 7 queries and ships both designs each time (an ETag would cut it); byes count as "in the round" for spectating, which is the safe reading of Q-P6-08.

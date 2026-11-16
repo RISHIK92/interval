@@ -1,5 +1,6 @@
 import type { DB } from "@interval/db";
 import { type Kysely, type Selectable, sql } from "kysely";
+import { thin } from "../hld-watch";
 import type { HldMatch, HldMatches, HldSeat, League } from "../ports";
 
 // P6-W42 (§6.4, Q-P6-06, ADR-0043): HLD matches in Postgres. Every step that must happen
@@ -241,6 +242,49 @@ export function kyselyHldMatches(db: Kysely<DB>): HldMatches {
           .execute(),
       ]);
       return new Map([...duel, ...room].map((r) => [r.user_id, r.change]));
+    },
+
+    versions: async (id, perPlayer) => {
+      // The frames are picked from the versions alone; only their designs are read, so a
+      // 2,000-save match never comes into memory whole.
+      const all = await db
+        .selectFrom("hld_design_version")
+        .select(["user_id", "version"])
+        .where("match_id", "=", id)
+        .orderBy("saved_at")
+        .orderBy("version")
+        .execute();
+      const players = [...new Set(all.map((v) => v.user_id))];
+      const picked = players.flatMap((u) =>
+        thin(
+          all.filter((v) => v.user_id === u),
+          perPlayer,
+        ),
+      );
+      if (picked.length === 0) return [];
+      const rows = await db
+        .selectFrom("hld_design_version")
+        .select(["user_id", "version", "saved_at", "design"])
+        .where("match_id", "=", id)
+        .where((eb) =>
+          eb.or(
+            picked.map((p) =>
+              eb.and([
+                eb("user_id", "=", p.user_id),
+                eb("version", "=", p.version),
+              ]),
+            ),
+          ),
+        )
+        .orderBy("saved_at")
+        .orderBy("version")
+        .execute();
+      return rows.map((r) => ({
+        userId: r.user_id,
+        version: r.version,
+        savedAt: r.saved_at,
+        design: r.design,
+      }));
     },
 
     retired: async (league) => {

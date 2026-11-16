@@ -48,6 +48,22 @@ export default async function TournamentPage(props: {
       p.round === t.round &&
       (p.playerA === actor.userId || p.playerB === actor.userId),
   );
+  // Q-P6-08: a round's players don't see each other's designs until the round is over.
+  const shut = (round: number) =>
+    view.pairings.some(
+      (p) =>
+        p.round === round &&
+        (p.playerA === actor.userId || p.playerB === actor.userId),
+    ) && view.pairings.some((p) => p.round === round && !p.done);
+  const look = (p: { round: number; matchId: string | null; done: boolean }) =>
+    p.matchId === null || shut(p.round) ? null : (
+      <Link
+        href={`/hld/match/${p.matchId}/${p.done ? "replay" : "watch"}`}
+        className="underline"
+      >
+        {p.done ? "replay" : "watch"}
+      </Link>
+    );
   const name = (id: string | null) =>
     id === null ? "a bye" : (names.get(id) ?? id);
   return (
@@ -126,6 +142,21 @@ export default async function TournamentPage(props: {
           )}
         </p>
       )}
+      {t.round >= 1 && t.round <= 5 ? (
+        <section>
+          <h2 className="text-title">Round {t.round}</h2>
+          <ul className="text-sm">
+            {view.pairings
+              .filter((p) => p.round === t.round && p.matchId !== null)
+              .map((p) => (
+                <li key={p.slot}>
+                  {name(p.playerA)} v {name(p.playerB)}
+                  {look(p) === null ? null : <> · {look(p)}</>}
+                </li>
+              ))}
+          </ul>
+        </section>
+      ) : null}
       <section>
         <h2 className="text-title">Standings</h2>
         <table className="w-full text-sm tabular-nums">
@@ -178,6 +209,7 @@ export default async function TournamentPage(props: {
                   {games.map((p) => (
                     <li key={p.slot}>
                       {name(p.playerA)} v {name(p.playerB)}
+                      {look(p) === null ? null : <> · {look(p)}</>}
                       {p.done
                         ? p.winner === null
                           ? " · a tie: the higher seed goes through"

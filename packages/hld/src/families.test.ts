@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { FAMILIES } from "./families";
+import { CUPS, FAMILIES } from "./families";
+import { matchProblem } from "./match";
 import { buildPool, POOL_SIZE, validate, variant } from "./family";
 import { POOL } from "./pool";
 import { practiceProblems } from "./practice";
@@ -107,5 +108,24 @@ describe("validate", () => {
         `${flawed.id} should fail only "${flawed.targets}" but fails "baseline", "peak", "zone"`,
       ],
     );
+  });
+});
+
+// P6-W44 (HLDQ-3, Q-P6-08): the cup problems are valid at their seeds, playable by
+// matchProblem, and never in the match pool or practice.
+describe.each(CUPS)("$family.slug", ({ family, seeds }) => {
+  test("valid at each of its seeds, and only a tournament can play it", () => {
+    for (const league of ["human", "ai"] as const) {
+      const seed = seeds[league];
+      if (seed === undefined) continue;
+      expect(validate(variant(family, league, seed))).toEqual([]);
+      expect(matchProblem(family.slug, league, seed)?.slug).toBe(
+        `${family.slug}-${league}-${String(seed)}`,
+      );
+      expect(matchProblem(family.slug, league, seed + 1)).toBeNull();
+    }
+    expect(POOL[family.slug]).toBeUndefined();
+    expect(practiceProblems().some((p) => p.slug === family.slug)).toBe(false);
+    expect(FAMILIES.some((f) => f.slug === family.slug)).toBe(false);
   });
 });

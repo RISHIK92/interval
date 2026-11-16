@@ -3,7 +3,6 @@
 import type { Design } from "@interval/hld";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { submitMatchDesign } from "./match/[id]/actions";
 
 // P6-W42 (§6.4, Q-P6-06): a match's clock and its one submission. Submitting early
 // earns speed points if the design passes the baseline; at the deadline the last
@@ -86,12 +85,33 @@ export function MatchPanel({
           disabled={!ready || left === 0}
           className="self-start rounded-md border border-line px-2 py-1 text-sm disabled:opacity-50"
           onClick={() => {
-            void submitMatchDesign(matchId, design).then((r) => {
-              if (r === "submitted" || r === "already") {
-                setSubmitted(true);
-                router.refresh(); // the canvas stops saving once submitted
-              } else setSaid(SAID[r] ?? "Couldn't submit.");
-            });
+            void fetch(`/api/hld/match/${matchId}/submit`, {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ design }),
+            })
+              .then(async (res) => {
+                if (res.status === 401 || res.status === 403)
+                  return "signed-out";
+                // 200 and 409 carry the result; anything else is a refusal or an error.
+                if (res.status !== 200 && res.status !== 409) return "invalid";
+                const body = (await res.json()) as { result?: unknown };
+                return typeof body.result === "string"
+                  ? body.result
+                  : "invalid";
+              })
+              .then((r) => {
+                if (r === "submitted" || r === "already") {
+                  setSubmitted(true);
+                  router.refresh(); // the canvas stops saving once submitted
+                } else setSaid(SAID[r] ?? "Couldn't submit.");
+              })
+              .catch((error: unknown) => {
+                console.error("HLD submit failed", error);
+                setSaid(
+                  "Couldn't submit. Check your connection and try again.",
+                );
+              });
           }}
         >
           Submit the design

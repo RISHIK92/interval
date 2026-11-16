@@ -1,4 +1,4 @@
-import { FAMILIES, POOL } from "@interval/hld";
+import { CUPS, FAMILIES, POOL } from "@interval/hld";
 import Link from "next/link";
 import { hldTournaments } from "../../../server/container";
 import { Card } from "../../ui/Card";
@@ -35,17 +35,23 @@ export default async function HldTournamentsAdmin(props: {
   await requireAdmin();
   const { saved, error, round } = await props.searchParams;
   const all = await hldTournaments().list();
-  // Both leagues' pooled variants; the form checks the pick against its league.
+  // The hand-written cup problems first (W44), then both leagues' pooled variants; the
+  // form checks the pick against its league.
   const options = [
-    ...new Set(
-      FAMILIES.flatMap((f) =>
+    ...new Set([
+      ...CUPS.flatMap((c) =>
+        Object.values(c.seeds).map(
+          (seed) => `${c.family.slug}/${String(seed)}`,
+        ),
+      ),
+      ...FAMILIES.flatMap((f) =>
         (["human", "ai"] as const).flatMap((league) =>
           (POOL[f.slug]?.[league] ?? []).map(
             (seed) => `${f.slug}/${String(seed)}`,
           ),
         ),
       ),
-    ),
+    ]),
   ];
   return (
     <main className={ADMIN_MAIN}>

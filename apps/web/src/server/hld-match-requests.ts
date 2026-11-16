@@ -1,19 +1,12 @@
-"use server";
-
 import { Design, fitsProblem } from "@interval/hld";
-import { headers } from "next/headers";
 import { z } from "zod";
-import {
-  entitlements,
-  hldDeps,
-  hldMatches,
-  sessionReader,
-} from "../../../../server/container";
-import { problemOf, submitDesign } from "../../../../server/hld-matches";
+import { hldDeps, hldMatches } from "./container";
+import { problemOf, submitDesign } from "./hld-matches";
 
-// P6-W42 (Q-P6-03, Q-P6-06, ADR-0043): a match's autosave (every version kept: the
-// replay) and its one submission. Everything is checked here: the player, the
-// capability, the match still open, the design against the schema and the problem.
+// P6-W42, W44 (Q-P6-03, Q-P6-06, ADR-0043): a match's autosave (every version kept: the
+// replay) and its one submission, for the player the route has signed in. Everything
+// else is checked here: the match still open, the design against the schema and the
+// problem, its size. Routes rather than server actions, so a load test can drive them.
 const MAX_BYTES = 64 * 1024;
 // A save every 2 s for 30 minutes is 900; past this, it's not a person drawing.
 const MAX_VERSIONS = 2_000;
@@ -26,27 +19,15 @@ export type MatchSaveResult =
   | { ok: true; version: number }
   | {
       ok: false;
-      reason: "signed-out" | "forbidden" | "invalid" | "stale" | "closed";
+      reason: "invalid" | "stale" | "closed";
     };
 
-async function player(): Promise<
-  { userId: string } | "signed-out" | "forbidden"
-> {
-  const actor = await sessionReader().current(await headers());
-  if (actor === null) return "signed-out";
-  return (await entitlements().can(actor.userId, "play.hld"))
-    ? { userId: actor.userId }
-    : "forbidden";
-}
-
 export async function saveMatchDesign(
-  matchId: unknown,
+  userId: string,
+  matchId: string,
   design: unknown,
   base: unknown,
 ): Promise<MatchSaveResult> {
-  const seat = await player();
-  if (typeof seat === "string") return { ok: false, reason: seat };
-  const { userId } = seat;
   const id = z.uuid().safeParse(matchId);
   const version = Version.safeParse(base);
   const parsed = Design.safeParse(design);
@@ -84,14 +65,10 @@ export async function saveMatchDesign(
 }
 
 export async function submitMatchDesign(
-  matchId: unknown,
+  userId: string,
+  matchId: string,
   design: unknown,
-): Promise<
-  "submitted" | "already" | "closed" | "invalid" | "signed-out" | "forbidden"
-> {
-  const seat = await player();
-  if (typeof seat === "string") return seat;
-  const { userId } = seat;
+): Promise<"submitted" | "already" | "closed" | "invalid"> {
   const id = z.uuid().safeParse(matchId);
   const parsed = Design.safeParse(design);
   if (

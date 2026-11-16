@@ -108,6 +108,28 @@ test("made with its problems retired; entered, checked in, and started round by 
     expect(await tournaments.setMatch(id, 1, 0, match)).toBe(true);
     expect(await tournaments.setMatch(id, 1, 0, match)).toBe(false);
     expect(await tournaments.setMatch(id, 1, 1, match)).toBe(false); // a bye has none
+    // P6-W44: the round a match was played in, and whether it's over.
+    expect(await tournaments.roundOf(match)).toEqual({
+      players: expect.arrayContaining([ada, owner, bob]) as string[],
+      over: false,
+    });
+    await trx
+      .updateTable("hld_match")
+      .set({ closed_at: new Date() })
+      .where("id", "=", match)
+      .execute();
+    expect((await tournaments.roundOf(match))?.over).toBe(true);
+    await kyselyHldMatches(trx).saveVersion(
+      match,
+      ada,
+      {
+        version: 1,
+        spec: "1.0",
+        nodes: [{ id: "users", kind: "client", config: {}, note: "" }],
+        edges: [],
+      },
+      0,
+    );
     expect((await tournaments.get(id))?.round).toBe(1);
     expect(await tournaments.finish(id, new Date())).toBe(true);
     expect(await tournaments.finish(id, new Date())).toBe(false);

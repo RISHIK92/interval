@@ -56,6 +56,10 @@ export default async function HldResultPage({
           {match.unrated ? "Unrated" : "Rated"} · the {match.league} league ·{" "}
           <Link href="/hld/play" className="underline">
             Play again
+          </Link>{" "}
+          ·{" "}
+          <Link href={`/hld/match/${id.data}/replay`} className="underline">
+            Replay
           </Link>
         </p>
       </header>
@@ -114,6 +118,49 @@ export default async function HldResultPage({
               })}
             </tbody>
           </table>
+          {match.rubricIncluded === true ? (
+            <section>
+              <h2 className="text-title">
+                The rubric <span className="text-xs text-ink-muted">AI</span>
+              </h2>
+              <table className="w-full text-sm tabular-nums">
+                <thead>
+                  <tr className="text-left">
+                    <th>Player</th>
+                    {problem.rubric.map((c) => (
+                      <th key={c.id} title={c.criterion}>
+                        {c.id} /4
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((s) => {
+                    const j =
+                      s.judgementId === null
+                        ? undefined
+                        : byId.get(s.judgementId);
+                    const levels = j?.ownerLevels ?? j?.levels ?? null;
+                    return (
+                      <tr key={s.userId}>
+                        <td>{s.player}</td>
+                        {problem.rubric.map((c) => (
+                          <td key={c.id}>{levels?.[c.id]?.level ?? "–"}</td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              <ul className="mt-1 text-xs text-ink-muted">
+                {problem.rubric.map((c) => (
+                  <li key={c.id}>
+                    {c.id}: {c.criterion}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
         </>
       )}
       <Feedback

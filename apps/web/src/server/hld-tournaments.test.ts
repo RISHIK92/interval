@@ -105,6 +105,7 @@ function world(players: string[], universities: Record<string, string>) {
       p.matchId = matchId;
       return Promise.resolve(true);
     },
+    roundOf: () => Promise.resolve(null),
     finish: (_id, at) => {
       tournament = { ...tournament, finishedAt: at };
       return Promise.resolve(true);

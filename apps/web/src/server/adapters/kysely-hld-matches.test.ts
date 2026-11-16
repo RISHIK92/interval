@@ -81,6 +81,13 @@ test("versions count up while the match is open and the player hasn't submitted"
       await matches.saveVersion(id, "someone", starterDesign(), 0),
     ).toBeNull();
     expect((await matches.latestVersion(id, ada))?.version).toBe(2);
+    expect(
+      (await matches.versions(id, 200)).map((v) => [v.userId, v.version]),
+    ).toEqual([
+      [ada, 1],
+      [ada, 2],
+    ]);
+    expect((await matches.versions(id, 1)).map((v) => v.version)).toEqual([2]);
     expect(await matches.submit(id, ada, submission(new Date()))).toBe(true);
     expect(await matches.submit(id, ada, submission(new Date()))).toBe(false);
     expect(await matches.saveVersion(id, ada, starterDesign(), 2)).toBeNull(); // submitted

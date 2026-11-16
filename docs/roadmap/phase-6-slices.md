@@ -62,6 +62,7 @@ Already in place, and reused:
 ## Week 44: spectating and the cup's readiness
 
 - Goal: spectating, design replays, results with the rubric, a tournament load test, and 2 to 3 hand-written cup problems.
+- Built 2026-11-16 (Q-P6-08); the load test is the owner's to run.
 
 ## Week 45: the cups (the owner's)
 

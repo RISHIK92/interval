@@ -675,3 +675,270 @@ export const FAMILIES: readonly Family[] = [
     practiceSeeds: [2],
   },
 ];
+
+// P6-W44 (§6.4, HLDQ-3, Q-P6-08): the cup problems, hand-written, PROVISIONAL until the
+// owner reviews them. Validated as any variant, never in the match pool or practice: the
+// admin picks them for a tournament's rounds, and they're retired once used. Each keeps
+// one seed for each league it validates in (`seeds`), checked by the tests.
+export const CUPS: readonly {
+  family: Family;
+  seeds: Partial<Record<"human" | "ai", number>>;
+}[] = [
+  {
+    family: {
+      slug: "cup-concert-tickets",
+      title: "Concert ticket sale",
+      requirements: [
+        "Show a concert's seat map and prices.",
+        "Hold a seat for a buyer for a few minutes, never for two buyers at once.",
+        "Survive the rush when sales open.",
+      ],
+      concepts: ["flash traffic", "contention", "queues"],
+      rubric: rubric(
+        [
+          "holds",
+          "Explains how one seat can never be held or sold twice under contention.",
+        ],
+        [
+          "rush",
+          "Says how the system absorbs the opening rush: what queues, what is shed, what the buyer sees.",
+        ],
+      ),
+      allowedComponents: [
+        "cdn",
+        "load_balancer",
+        "app_service",
+        "cache",
+        "sql_db",
+        "kv_store",
+        "queue",
+        "worker",
+      ],
+      requests: [
+        { type: "seat_map", kind: "read", cacheable: true, share: 0.94 },
+        { type: "hold", kind: "write", cacheable: false, share: 0.04 },
+        { type: "buy", kind: "write", cacheable: false, share: 0.02 },
+      ],
+      ranges: {
+        human: {
+          rps: [6_000, 9_000],
+          workingSetGb: [1, 5],
+          hotKeySkew: [0.8, 0.95],
+          storedGb: [10, 50],
+          growthGbPerDay: [0.5, 2],
+          p99Ms: [100, 160],
+        },
+        ai: {
+          rps: [10_000, 14_000],
+          workingSetGb: [2, 8],
+          hotKeySkew: [0.8, 0.95],
+          storedGb: [20, 80],
+          growthGbPerDay: [1, 3],
+          p99Ms: [70, 110],
+        },
+      },
+      horizonDays: 30,
+      shape: {
+        nodes: [
+          users,
+          lb,
+          app("api", "Stateless: maps from the cache, holds in the store."),
+          cache(
+            "maps",
+            "Seat maps change rarely next to how often they're read.",
+          ),
+          kv("holds", "Each seat's hold, set only if free, with an expiry."),
+          queue(
+            "orders",
+            "Purchases wait here so the rush doesn't reach payment.",
+          ),
+          workers("checkout", "Charge and confirm, retrying safely."),
+          sql("sales", "Confirmed sales, the source of truth."),
+        ],
+        edges: [
+          e("users", "lb", "seat_map", "hold", "buy"),
+          e("lb", "api", "seat_map", "hold", "buy"),
+          e("api", "maps", "seat_map"),
+          e("api", "sales", "seat_map"),
+          e("api", "holds", "hold"),
+          e("api", "orders", "buy"),
+          e("orders", "checkout", "buy"),
+          e("checkout", "sales", "buy"),
+        ],
+      },
+      practiceSeeds: [],
+      lesson: { id: "no-cache", targets: "peak", without: "maps" },
+    },
+    seeds: { human: 1 },
+  },
+  {
+    family: {
+      slug: "cup-live-scores",
+      title: "Live sports scores",
+      requirements: [
+        "Show every live match's score, updated within seconds.",
+        "Post a score change from the stadium feed.",
+      ],
+      concepts: ["CDN", "read fan-out", "cache freshness"],
+      rubric: rubric(
+        [
+          "fresh",
+          "Explains how a new score reaches viewers within seconds despite caching.",
+        ],
+        [
+          "scale",
+          "Says what carries the read load at its peak, and why the source isn't touched.",
+        ],
+      ),
+      allowedComponents: [
+        "cdn",
+        "load_balancer",
+        "app_service",
+        "cache",
+        "kv_store",
+        "stream",
+        "worker",
+      ],
+      requests: [
+        { type: "scores", kind: "read", cacheable: true, share: 0.995 },
+        { type: "update", kind: "write", cacheable: false, share: 0.005 },
+      ],
+      ranges: {
+        human: {
+          rps: [8_000, 14_000],
+          workingSetGb: [1, 3],
+          hotKeySkew: [0.8, 0.95],
+          storedGb: [5, 20],
+          growthGbPerDay: [0.1, 1],
+          p99Ms: [120, 200],
+        },
+        ai: {
+          rps: [40_000, 60_000],
+          workingSetGb: [2, 5],
+          hotKeySkew: [0.8, 0.95],
+          storedGb: [10, 40],
+          growthGbPerDay: [0.5, 2],
+          p99Ms: [90, 140],
+        },
+      },
+      horizonDays: 90,
+      shape: {
+        nodes: [
+          users,
+          {
+            id: "cdn",
+            kind: "cdn",
+            config: { ttlSeconds: 5 },
+            note: "Serves scores near viewers; a short TTL keeps them fresh.",
+          },
+          lb,
+          app("api", "Stateless: reads scores, takes updates."),
+          cache("scores", "The live scores, all in memory."),
+          kv("matches", "Every match's score, the source of truth."),
+        ],
+        edges: [
+          e("users", "cdn", "scores"),
+          e("cdn", "lb", "scores"),
+          e("users", "lb", "update"),
+          e("lb", "api", "scores", "update"),
+          e("api", "scores", "scores"),
+          e("api", "matches", "scores", "update"),
+        ],
+      },
+      practiceSeeds: [],
+    },
+    seeds: { human: 1, ai: 1 },
+  },
+  {
+    family: {
+      slug: "cup-ride-dispatch",
+      title: "Ride-hailing dispatch",
+      requirements: [
+        "Drivers report their location every few seconds.",
+        "Riders find the nearest available drivers.",
+        "A ride is assigned to one driver only.",
+      ],
+      concepts: ["geospatial search", "write-heavy streams", "consistency"],
+      rubric: rubric(
+        [
+          "nearby",
+          "Explains how nearby drivers are found quickly as they move.",
+        ],
+        [
+          "assign",
+          "Says how one ride goes to one driver, even when two accept at once.",
+        ],
+      ),
+      allowedComponents: [
+        "load_balancer",
+        "app_service",
+        "cache",
+        "sql_db",
+        "kv_store",
+        "stream",
+        "worker",
+        "search_index",
+      ],
+      requests: [
+        { type: "location", kind: "write", cacheable: false, share: 0.8 },
+        { type: "nearby", kind: "read", cacheable: false, share: 0.18 },
+        { type: "assign", kind: "write", cacheable: false, share: 0.02 },
+      ],
+      ranges: {
+        human: {
+          rps: [3_000, 6_000],
+          workingSetGb: [5, 20],
+          hotKeySkew: [0.3, 0.6],
+          storedGb: [50, 200],
+          growthGbPerDay: [1, 5],
+          p99Ms: [100, 180],
+        },
+        ai: {
+          rps: [6_000, 9_000],
+          workingSetGb: [10, 40],
+          hotKeySkew: [0.3, 0.6],
+          storedGb: [100, 300],
+          growthGbPerDay: [2, 8],
+          p99Ms: [70, 120],
+        },
+      },
+      horizonDays: 90,
+      shape: {
+        nodes: [
+          users,
+          lb,
+          app(
+            "api",
+            "Stateless: takes locations, answers searches, assigns rides.",
+          ),
+          stream(
+            "locations",
+            "Absorbs the location firehose, partitioned by area.",
+          ),
+          workers("indexers", "Keep each driver's place in the index current."),
+          {
+            id: "geo",
+            kind: "search_index",
+            config: { shards: 4, replicas: 1, zones: 3, regions: 1 },
+            note: "Drivers by area, for nearby searches.",
+          },
+          sql(
+            "rides",
+            "Rides and their one driver, assigned in a transaction.",
+          ),
+        ],
+        edges: [
+          e("users", "lb", "location", "nearby", "assign"),
+          e("lb", "api", "location", "nearby", "assign"),
+          e("api", "locations", "location"),
+          e("locations", "indexers", "location"),
+          e("indexers", "geo", "location"),
+          e("api", "geo", "nearby"),
+          e("api", "rides", "assign"),
+        ],
+      },
+      practiceSeeds: [],
+    },
+    seeds: { human: 3 },
+  },
+];

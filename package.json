@@ -31,7 +31,8 @@
     "vet:go": "(cd services/game && go vet ./...) && (cd cli/interval && go vet ./...)",
     "contracts:velox": "pnpm --filter @interval/judge contracts:velox",
     "test:go": "(cd services/game && go test ./...) && (cd cli/interval && go test ./...)",
-    "load:prepare": "scripts/with-env.sh node --import ./scripts/ts-resolve.mjs apps/web/scripts/load-prepare.ts"
+    "load:prepare": "scripts/with-env.sh node --import ./scripts/ts-resolve.mjs apps/web/scripts/load-prepare.ts",
+    "load:hld": "scripts/with-env.sh node --import ./scripts/ts-resolve.mjs apps/web/scripts/hld-load-prepare.ts"
   },
   "devDependencies": {
     "@interval/config": "workspace:*",

@@ -1,4 +1,4 @@
-import { FAMILIES } from "./families";
+import { CUPS, FAMILIES } from "./families";
 import { type League, variant } from "./family";
 import { POOL } from "./pool";
 import { practiceProblems } from "./practice";
@@ -30,15 +30,19 @@ export function drawVariant(
 
 const built = new Map<string, HldProblem>();
 
-// A pooled variant's problem; null for one that isn't in the pool (never played).
+// A pooled variant's problem, or a cup's at its seed (W44); null for anything else.
 export function matchProblem(
   family: string,
   league: League,
   seed: number,
 ): HldProblem | null {
-  const f = FAMILIES.find((x) => x.slug === family);
-  if (f === undefined || !(POOL[family]?.[league].includes(seed) ?? false))
-    return null;
+  const cup = CUPS.find((c) => c.family.slug === family);
+  const f = cup?.family ?? FAMILIES.find((x) => x.slug === family);
+  const playable =
+    cup === undefined
+      ? (POOL[family]?.[league].includes(seed) ?? false)
+      : cup.seeds[league] === seed;
+  if (f === undefined || !playable) return null;
   const key = `${family}/${league}/${String(seed)}`;
   let problem = built.get(key);
   if (problem === undefined) {

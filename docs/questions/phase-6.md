@@ -105,3 +105,14 @@ Phase 6 (docs/roadmap/phase-6.md) is HLD battles. The process is the owner's fro
   - ties break by Buchholz (the opponents' points), then the total of match scores;
   - in the bracket, an exact tie goes to the higher seed;
   - university scores count Swiss points.
+
+## Week 44: spectating, replays, cup problems, the load test
+
+### Q-P6-08 Spectating, replays, cup problems and the load test (P0 for W44)
+
+- Cite: §6.4, HLDQ-3, Q-P6-03, Q-P6-07, LOAD-4.
+- **Answers (owner, 2026-11-16):**
+  - **Spectating:** any signed-in player can watch a tournament match live (each side's latest autosave, the clock, then the score), except players in that round. Casual and window matches aren't watchable live.
+  - **Replays:** a match's players can replay both designs once it's over. Tournament matches are public once their round ends; casual and window matches stay private to their players.
+  - **Cup problems:** 3 hand-written problems, each with its reference and flawed designs, validated by the same `validate`. They're kept out of the match pool and practice, offered only in the tournament picker, and retired once used. PROVISIONAL, for the owner's review: a concert ticket sale, live sports scores, and ride-hailing dispatch.
+  - **The load test:** a k6 script the owner runs (as Phase 5's): a prepared tournament round of N players autosaves and submits at once, measuring the submit and the simulation against the 2-second target.

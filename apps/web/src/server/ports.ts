@@ -2332,6 +2332,14 @@ export interface HldMatches {
   unscoredFor(userId: string): Promise<string[]>;
   // HLDQ-3: "<family>/<seed>" of the league's variants tournaments used.
   retired(league: League): Promise<Set<string>>;
+  // P6-W44 (Q-P6-08): the match's autosaves for its replay, oldest first, at most
+  // `perPlayer` of each player's, spread evenly with the last kept.
+  versions(
+    id: string,
+    perPlayer: number,
+  ): Promise<
+    { userId: string; version: number; savedAt: Date; design: unknown }[]
+  >;
 }
 
 // P6-W42 (MATCH-7, Q-P6-06): HLD's ranked windows, at LLD's times, registered apart.
@@ -2428,4 +2436,9 @@ export interface HldTournaments {
     matchId: string,
   ): Promise<boolean>;
   finish(id: string, at: Date): Promise<boolean>;
+  // P6-W44 (Q-P6-08): the tournament round a match was played in, its players, and
+  // whether every match of it is over; null for a match outside tournaments.
+  roundOf(
+    matchId: string,
+  ): Promise<{ players: string[]; over: boolean } | null>;
 }
