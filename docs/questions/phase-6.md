@@ -88,3 +88,20 @@ Phase 6 (docs/roadmap/phase-6.md) is HLD battles. The process is the owner's fro
   - **Speed:** 15 × (time left ÷ time limit) at submission, only for a design that passes the baseline. A design auto-submitted at the deadline earns 0.
   - **Ratings and windows:** separate from LLD's. HLD has its own Glicko (1v1) and OpenSkill (rooms) ratings per league, its own boards, and its own ranked windows at LLD's times with their own registration.
   - **A missing judgement:** results wait up to 15 minutes for every judgement. If any player's is unavailable, the match is scored for everyone on simulation and speed (out of 75, scaled to 100), logged and counted.
+
+## Week 43: tournaments
+
+### Q-P6-07 Rounds, schedule, problems and entry (P0 for W43)
+
+- Cite: §6.4 (University Cups), HLDQ-3, Q-P3-09, Q-P6-06.
+- **Answers (owner, 2026-11-16):**
+  - **Rounds:** each Swiss round pairs players 1v1 by tournament points (a bye counts as a win). A round is one HLD match on the tournament's problem for that round, scored as any match. 5 Swiss rounds, then the top 8 play quarter-finals, semi-finals and a final the same way.
+  - **Schedule:** the admin opens check-in (players confirm in the hour before the start), starts round 1, and starts each later round once the previous one is scored.
+  - **Problems:** the admin picks each round's problem from the pool (family and seed) when creating the tournament. It's recorded, and retired from matches. W44's hand-written cup problems use the same picker.
+  - **Entry:** any signed-in player (not a guest) with `play.hld`. Their university (Q-P3-09), fixed at check-in, counts toward the university standings: a university's score is its top 5 members' tournament points. A player with no university plays individually.
+- **Claude's defaults, for the owner to confirm:**
+  - tournament matches are unrated (a cup has its own standings);
+  - Swiss points are 1 for a win, ½ for a draw (an exact tie) and 1 for a bye;
+  - ties break by Buchholz (the opponents' points), then the total of match scores;
+  - in the bracket, an exact tie goes to the higher seed;
+  - university scores count Swiss points.

@@ -5901,3 +5901,46 @@ The owner said to continue building overnight with recommended answers, switchin
 - **Left, for the owner:**
   - HLD windows send no reminder push yet; LLD's come from the worker's `window-reminders-due`, which reads only LLD registrations;
   - no `battle_window_grouped`-style event for HLD's matched rate.
+
+### 2026-11-16 — P6 Week 43 (tournaments; §6.4, HLDQ-3, Q-P6-07)
+
+- **Owner's answers (Q-P6-07):**
+  - each round is a 1v1 HLD match, 5 Swiss rounds then the top 8;
+  - the admin opens check-in and starts each round;
+  - the admin picks each round's problem from the pool, and it's retired;
+  - signed-in players enter, with their university optional.
+- **Claude's defaults, for the owner to confirm:**
+  - tournament matches are unrated;
+  - Swiss points: a win or a bye 1, a draw ½;
+  - tiebreaks: Buchholz, then the match-score total;
+  - an exact bracket tie goes to the higher seed;
+  - university scores count Swiss points.
+- **`packages/hld/src/tournament.ts` (pure):**
+  - `tournamentStandings`, with its tiebreaks;
+  - `swissPairings`: down the standings, each with the next player they haven't met; with an odd count, the lowest-placed player without a bye gets one;
+  - `bracketSize` and `firstBracketRound`: 8 seeded 1v8, 4v5, 2v7, 3v6; with fewer checked in, 4 start at the semi-finals and 2 go straight to the final;
+  - `nextBracketRound` and `universityScores` (each university's top 5).
+  - `drawVariant` skips retired variants. The index exports `POOL`.
+- **Data:**
+  - `hld_tournament` (its round: 0, Swiss 1–5, bracket 6–8);
+  - `hld_tournament_round` (each round's variant);
+  - `hld_tournament_entry` (registration, check-in, and the university fixed at check-in);
+  - `hld_tournament_pairing` (in slot order; a bye has no match);
+  - `hld_retired_variant` (HLDQ-3).
+- **Web:**
+  - the `HldTournaments` port and its adapter. Rounds are claimed once (from → to); pairings follow, and are idempotent;
+  - `server/hld-tournaments.ts`: `viewTournament` (standings, universities, pairings with winners) and `nextRound`. `nextRound` moves the current round's matches on, waits until they're scored, then pairs the next Swiss round, seeds the bracket, advances the winners, or finishes;
+  - `/hld/tournaments` (the list) and `/hld/tournaments/<id>`: register, check in, withdraw; the player's match this round; standings, universities and the bracket;
+  - `/admin/hld-tournaments`: create (name, league, start in UTC, 8 rounds' problems from the pool, checked against the league and retired at once) and "Start round 1" / "Start the next round";
+  - the lobby links to tournaments.
+- **Review (Sonnet):** one blocker, fixed. A crash between claiming a round and recording its pairings left the tournament at a round with no pairings: the next press then skipped a Swiss round, or walked an empty bracket to "finished". Now:
+  - the pairings are written in the same transaction as the claim, with no matches yet;
+  - each match is made and attached once;
+  - the next press finishes any pairing still without its match.
+  - Also fixed:
+    - two designs that served nothing are no contest (no half-points for two no-shows);
+    - the round's problem is read before the claim;
+    - the pairing's greedy rematch rule and the bye's place in Buchholz are now said in comments.
+- **Left, for the owner:**
+  - there are no reminders or notifications of a new round; players watch the tournament page;
+  - the bracket shows the higher seed through on an exact tie, but nothing marks a bye's "win" in the bracket (byes happen only in Swiss).

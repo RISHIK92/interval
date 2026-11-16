@@ -135,6 +135,7 @@ function fakes(clock: { now: Date }) {
     ratingOf: () => Promise.resolve(1500),
     ratingChanges: () => Promise.resolve(new Map()),
     unscoredFor: () => Promise.resolve([]),
+    retired: () => Promise.resolve(new Set<string>()),
   };
   const judge: HldJudgements = {
     request: (userId, _slug, _input, baselinePassed, matchId) => {

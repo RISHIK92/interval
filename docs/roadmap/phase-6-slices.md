@@ -57,6 +57,7 @@ Already in place, and reused:
 ## Week 43: tournaments
 
 - Goal: Swiss rounds, the top-8 bracket, university scoring (each university's top 5), check-in, and admin tools.
+- Built 2026-11-16 (Q-P6-07).
 
 ## Week 44: spectating and the cup's readiness
 

@@ -63,7 +63,13 @@ describe("standings", () => {
 
 describe("a match's problem", () => {
   test("drawn from the pool, and rebuilt the same from its seed", () => {
-    const { family, seed } = drawVariant("ai", () => 0.5);
+    const { family, seed } = drawVariant("ai", () => 0.5, new Set());
+    const others = drawVariant(
+      "ai",
+      () => 0.5,
+      new Set([`${family}/${String(seed)}`]),
+    );
+    expect(others).not.toEqual({ family, seed });
     const problem = matchProblem(family, "ai", seed);
     expect(problem?.league).toBe("ai");
     expect(matchProblem(family, "ai", seed)).toBe(problem);

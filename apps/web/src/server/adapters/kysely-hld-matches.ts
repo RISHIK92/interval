@@ -243,6 +243,15 @@ export function kyselyHldMatches(db: Kysely<DB>): HldMatches {
       return new Map([...duel, ...room].map((r) => [r.user_id, r.change]));
     },
 
+    retired: async (league) => {
+      const rows = await db
+        .selectFrom("hld_retired_variant")
+        .select(["family", "seed"])
+        .where("league", "=", league)
+        .execute();
+      return new Set(rows.map((r) => `${r.family}/${String(r.seed)}`));
+    },
+
     unscoredFor: async (userId) => {
       const rows = await db
         .selectFrom("hld_match as m")

@@ -8,17 +8,21 @@ import type { HldProblem } from "./problem";
 // from the pool, drawn at random. A match keeps (family, seed), and the seed rebuilds the
 // same problem every time it's asked for (replays, disputes, scoring).
 
+// `retired`: "<family>/<seed>" of variants a tournament used, never drawn again (HLDQ-3).
 export function drawVariant(
   league: League,
   random: () => number,
+  retired: ReadonlySet<string>,
 ): { family: string; seed: number } {
-  const families = FAMILIES.filter(
-    (f) => (POOL[f.slug]?.[league].length ?? 0) > 0,
-  );
+  const open = (slug: string) =>
+    (POOL[slug]?.[league] ?? []).filter(
+      (s) => !retired.has(`${slug}/${String(s)}`),
+    );
+  const families = FAMILIES.filter((f) => open(f.slug).length > 0);
   const family = families[Math.floor(random() * families.length)];
   if (family === undefined)
     throw new Error(`no HLD variants for the ${league} league`);
-  const seeds = POOL[family.slug]?.[league] ?? [];
+  const seeds = open(family.slug);
   const seed = seeds[Math.floor(random() * seeds.length)];
   if (seed === undefined) throw new Error(`no seeds for ${family.slug}`);
   return { family: family.slug, seed };

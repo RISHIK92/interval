@@ -41,6 +41,10 @@ export default async function HldPlayPage() {
           ·{" "}
           <Link href="/hld/practice" className="underline">
             Practice
+          </Link>{" "}
+          ·{" "}
+          <Link href="/hld/tournaments" className="underline">
+            Tournaments
           </Link>
         </p>
       </header>

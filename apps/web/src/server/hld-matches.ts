@@ -51,7 +51,9 @@ export async function startHldMatch(
     variant?: { family: string; seed: number };
   },
 ): Promise<string> {
-  const variant = options.variant ?? drawVariant(league, deps.random);
+  const variant =
+    options.variant ??
+    drawVariant(league, deps.random, await deps.matches.retired(league));
   const problem = problemOf({ ...variant, league });
   return deps.matches.create(
     players,
@@ -72,8 +74,9 @@ export async function groupHldWindow(
   windowAt: Date,
   league: League,
 ): Promise<{ grouped: number; matched: number } | null> {
+  const retired = await deps.matches.retired(league);
   const claimed = await deps.windows.claim(windowAt, league, deps.now(), () =>
-    drawVariant(league, deps.random),
+    drawVariant(league, deps.random, retired),
   );
   if (claimed === null) return null;
   let matched = 0;

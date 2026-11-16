@@ -2330,6 +2330,8 @@ export interface HldMatches {
   ratingOf(userId: string, league: League): Promise<number>; // 1v1, for the queue's band
   ratingChanges(id: string): Promise<Map<string, number>>;
   unscoredFor(userId: string): Promise<string[]>;
+  // HLDQ-3: "<family>/<seed>" of the league's variants tournaments used.
+  retired(league: League): Promise<Set<string>>;
 }
 
 // P6-W42 (MATCH-7, Q-P6-06): HLD's ranked windows, at LLD's times, registered apart.
@@ -2359,4 +2361,71 @@ export interface HldWindows {
     matchId: string,
     userIds: string[],
   ): Promise<void>;
+}
+
+// P6-W43 (§6.4, HLDQ-3, Q-P6-07): HLD tournaments, run by the admin round by round.
+export type HldTournament = {
+  id: string;
+  name: string;
+  league: League;
+  startsAt: Date;
+  round: number; // 0 before the first; 1-5 Swiss, 6-8 the bracket
+  finishedAt: Date | null;
+};
+export type HldEntry = {
+  userId: string;
+  player: string;
+  checkedIn: boolean;
+  university: string | null; // its name, as it was at check-in
+};
+export type HldPairing = {
+  round: number;
+  slot: number; // its order in the round: a bracket's winners pair up in it
+  playerA: string;
+  playerB: string | null; // null: a bye
+  matchId: string | null;
+};
+export interface HldTournaments {
+  // Retires its variants (HLDQ-3) as it's made.
+  create(
+    t: {
+      name: string;
+      league: League;
+      startsAt: Date;
+      rounds: { family: string; seed: number }[];
+    },
+    by: string,
+  ): Promise<string>;
+  list(): Promise<HldTournament[]>;
+  get(id: string): Promise<HldTournament | null>;
+  rounds(
+    id: string,
+  ): Promise<{ round: number; family: string; seed: number }[]>;
+  // Before the first round only; false otherwise.
+  register(id: string, userId: string): Promise<boolean>;
+  unregister(id: string, userId: string): Promise<void>;
+  // In the hour before the start, before the first round, fixing the university.
+  checkIn(
+    id: string,
+    userId: string,
+    now: Date,
+  ): Promise<"checked_in" | "not_registered" | "not_open">;
+  entries(id: string): Promise<HldEntry[]>;
+  pairings(id: string): Promise<HldPairing[]>;
+  // Once per round, with its pairings (their matches not yet made): the tournament moves
+  // from `from` to `to` (a bracket of fewer than 8 skips rounds).
+  claimRound(
+    id: string,
+    from: number,
+    to: number,
+    pairings: HldPairing[],
+  ): Promise<boolean>;
+  // A pairing's match, once; false when it has one already.
+  setMatch(
+    id: string,
+    round: number,
+    slot: number,
+    matchId: string,
+  ): Promise<boolean>;
+  finish(id: string, at: Date): Promise<boolean>;
 }

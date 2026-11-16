@@ -34,7 +34,9 @@ import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
 import { kyselyBattleSnapshots } from "./adapters/kysely-battle-snapshots";
 import { kyselyHldJudgements } from "./adapters/kysely-hld-judgements";
 import { kyselyHldMatches } from "./adapters/kysely-hld-matches";
+import { kyselyHldTournaments } from "./adapters/kysely-hld-tournaments";
 import { kyselyHldWindows } from "./adapters/kysely-hld-windows";
+import type { TournamentDeps } from "./hld-tournaments";
 import { type HldDeps, startHldMatch } from "./hld-matches";
 import { kyselyHldPracticeDesigns } from "./adapters/kysely-hld-practice-designs";
 import { kyselyAdminExplainers } from "./adapters/kysely-admin-explainers";
@@ -131,6 +133,7 @@ import type {
   GuestSessions,
   HldJudgements,
   HldMatches,
+  HldTournaments,
   HldWindows,
   HldPracticeDesigns,
   InviteCodes,
@@ -549,6 +552,13 @@ export function hldJudgements(): HldJudgements {
 // P6-W42 (Q-P6-06, ADR-0043): HLD matches, and what moving one on needs.
 export function hldMatches(): HldMatches {
   return kyselyHldMatches(db());
+}
+// P6-W43 (Q-P6-07): HLD tournaments.
+export function hldTournaments(): HldTournaments {
+  return kyselyHldTournaments(db());
+}
+export function tournamentDeps(): TournamentDeps {
+  return { ...hldDeps(), tournaments: hldTournaments() };
 }
 export function hldWindows(): HldWindows {
   return kyselyHldWindows(db());

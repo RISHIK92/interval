@@ -11,3 +11,5 @@ export * from "./match";
 export * from "./score";
 export * from "./families";
 export * from "./family";
+export * from "./tournament";
+export * from "./pool";

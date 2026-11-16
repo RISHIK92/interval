@@ -758,6 +758,13 @@ class HldRatingHistory(TypedDict):
     at: datetime
 
 
+class HldRetiredVariant(TypedDict):
+    family: str
+    league: str
+    seed: int
+    retired_at: datetime
+
+
 class HldRoomRating(TypedDict):
     user_id: str
     league: str
@@ -776,6 +783,42 @@ class HldRoomRatingHistory(TypedDict):
     sigma_after: float
     rank: int
     at: datetime
+
+
+class HldTournament(TypedDict):
+    id: UUID
+    name: str
+    league: str
+    starts_at: datetime
+    round: int
+    finished_at: datetime | None
+    created_by: str | None
+    created_at: datetime
+
+
+class HldTournamentEntry(TypedDict):
+    tournament_id: UUID
+    user_id: str
+    registered_at: datetime
+    checked_in_at: datetime | None
+    university_id: int | None
+
+
+class HldTournamentPairing(TypedDict):
+    tournament_id: UUID
+    round: int
+    slot: int
+    player_a: str
+    player_b: str | None
+    match_id: UUID | None
+
+
+class HldTournamentRound(TypedDict):
+    tournament_id: UUID
+    round: int
+    family: str
+    seed: int
+    started_at: datetime | None
 
 
 class HldWindow(TypedDict):

@@ -772,6 +772,13 @@ export interface HldRatingHistory {
   volatility_after: number;
 }
 
+export interface HldRetiredVariant {
+  family: string;
+  league: string;
+  retired_at: Generated<Timestamp>;
+  seed: number;
+}
+
 export interface HldRoomRating {
   games: Generated<number>;
   league: string;
@@ -790,6 +797,42 @@ export interface HldRoomRatingHistory {
   rank: number;
   sigma_after: number;
   user_id: string;
+}
+
+export interface HldTournament {
+  created_at: Generated<Timestamp>;
+  created_by: string | null;
+  finished_at: Timestamp | null;
+  id: Generated<string>;
+  league: string;
+  name: string;
+  round: Generated<number>;
+  starts_at: Timestamp;
+}
+
+export interface HldTournamentEntry {
+  checked_in_at: Timestamp | null;
+  registered_at: Generated<Timestamp>;
+  tournament_id: string;
+  university_id: Int8 | null;
+  user_id: string;
+}
+
+export interface HldTournamentPairing {
+  match_id: string | null;
+  player_a: string;
+  player_b: string | null;
+  round: number;
+  slot: number;
+  tournament_id: string;
+}
+
+export interface HldTournamentRound {
+  family: string;
+  round: number;
+  seed: number;
+  started_at: Timestamp | null;
+  tournament_id: string;
 }
 
 export interface HldWindow {
@@ -1604,8 +1647,13 @@ export interface DB {
   hld_practice_design: HldPracticeDesign;
   hld_rating: HldRating;
   hld_rating_history: HldRatingHistory;
+  hld_retired_variant: HldRetiredVariant;
   hld_room_rating: HldRoomRating;
   hld_room_rating_history: HldRoomRatingHistory;
+  hld_tournament: HldTournament;
+  hld_tournament_entry: HldTournamentEntry;
+  hld_tournament_pairing: HldTournamentPairing;
+  hld_tournament_round: HldTournamentRound;
   hld_window: HldWindow;
   hld_window_registration: HldWindowRegistration;
   invite_code: InviteCode;
