@@ -8,9 +8,11 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import {
   entitlements,
+  hldJudgements,
   hldPracticeDesigns,
   sessionReader,
 } from "../../../../server/container";
+import { feedbackView } from "../feedback";
 import { Canvas } from "./Canvas";
 
 export const dynamic = "force-dynamic";
@@ -31,7 +33,10 @@ export default async function PracticeProblemPage({
   const { slug } = await params;
   const problem = practiceProblems().find((p) => p.slug === slug);
   if (problem === undefined) notFound();
-  const saved = await hldPracticeDesigns().load(actor.userId, slug);
+  const [saved, latest] = await Promise.all([
+    hldPracticeDesigns().load(actor.userId, slug),
+    hldJudgements().latest(actor.userId, slug),
+  ]);
   const parsed = Design.safeParse(saved?.design);
   return (
     <main className="flex flex-col gap-4 px-4 pt-6 pb-12">
@@ -51,6 +56,7 @@ export default async function PracticeProblemPage({
             : starterDesign()
         }
         version={saved?.version ?? 0}
+        feedback={latest === null ? null : feedbackView(latest)}
       />
     </main>
   );

@@ -6,3 +6,4 @@ export * from "./spec";
 export * from "./hints";
 export * from "./practice";
 export * from "./edit";
+export * from "./judge";

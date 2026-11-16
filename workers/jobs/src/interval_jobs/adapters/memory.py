@@ -64,6 +64,8 @@ from interval_jobs.ports import (
     Finished,
     GitHubSyncInput,
     GrantResult,
+    HldJudgeAsk,
+    HldLevels,
     InterviewerAsk,
     ItemDecisions,
     MomentLink,
@@ -2044,6 +2046,7 @@ class InMemoryStore:
         self.reminders = InMemoryReminders()
         self.interviewer = InMemoryInterviewer()
         self.reviews = InMemoryReviews()
+        self.hld_judgements = InMemoryHldJudgements()
         self.scenes = InMemoryScenes()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
@@ -2520,6 +2523,34 @@ class InMemoryReviews:
         self, match_id: str, user_id: str, review: str | None, model: str | None
     ) -> None:
         self.saved.setdefault((match_id, user_id), (review, model))
+
+
+class InMemoryHldJudgements:
+    """P6-W41: HLD judgements as Postgres keeps them (tests set `pending`)."""
+
+    def __init__(self) -> None:
+        self.pending: dict[str, HldJudgeAsk] = {}
+        self.saved: dict[str, tuple[HldLevels | None, str | None, str | None]] = {}
+        self.grades: dict[str, dict[str, int]] = {}
+        self.appeals: list[tuple[str, dict[str, int]]] = []
+
+    def to_judge(self, judgement_id: str) -> HldJudgeAsk | None:
+        return None if judgement_id in self.saved else self.pending.get(judgement_id)
+
+    def save(
+        self,
+        judgement_id: str,
+        levels: HldLevels | None,
+        coach: str | None,
+        model: str | None,
+    ) -> None:
+        self.saved.setdefault(judgement_id, (levels, coach, model))
+
+    def calibration_grades(self) -> dict[str, dict[str, int]]:
+        return self.grades
+
+    def resolved_appeals(self) -> list[tuple[str, dict[str, int]]]:
+        return self.appeals
 
 
 class InMemoryReminders:

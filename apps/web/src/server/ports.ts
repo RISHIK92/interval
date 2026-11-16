@@ -20,7 +20,7 @@ import type {
 } from "@interval/api-client";
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
-import type { Design } from "@interval/hld";
+import type { Design, JudgeInput, Levels } from "@interval/hld";
 import type { Interface, Problem, ResultLine, Scenario } from "@interval/lld";
 
 // The reasons a card explanation can state (ADR-0026/0027), as the worker names them.
@@ -2191,4 +2191,53 @@ export interface HldPracticeDesigns {
     design: Design,
     base: number,
   ): Promise<number | null>;
+}
+
+// P6-W41 (CANVAS-6, §6.4, Q-P6-05): the AI judge's levels and the coach's advice on a
+// design, on the player's request; one appeal each, re-graded by the owner; and the
+// owner's grades of the calibration set. Labelled AI wherever shown; never a rating.
+export type HldJudgement = {
+  id: string;
+  problemSlug: string;
+  status: "pending" | "ready" | "unavailable";
+  baselinePassed: boolean;
+  levels: Levels | null; // the judge's; null when not judged
+  coach: string | null;
+  requestedAt: Date;
+  appealedAt: Date | null;
+  ownerLevels: Levels | null; // replaces the judge's once an appeal is resolved
+};
+export type HldAppeal = HldJudgement & {
+  player: string;
+  reason: string;
+  input: JudgeInput;
+};
+export interface HldJudgements {
+  // A new request, or the one already waiting for this player and problem (LOAD-5).
+  request(
+    userId: string,
+    slug: string,
+    input: JudgeInput,
+    baselinePassed: boolean,
+  ): Promise<{ id: string; created: boolean }>;
+  // Its message couldn't be queued: the request goes, so the player may ask again.
+  drop(id: string): Promise<void>;
+  latest(userId: string, slug: string): Promise<HldJudgement | null>;
+  get(id: string, userId: string): Promise<HldJudgement | null>;
+  // Q-P6-05: once, within 7 days of the request, of a judgement that has levels.
+  appeal(
+    id: string,
+    userId: string,
+    reason: string,
+    now: Date,
+  ): Promise<"appealed" | "twice" | "late" | "not_judged" | null>;
+  openAppeals(): Promise<HldAppeal[]>;
+  // False when it's not an open appeal (resolved already, or gone).
+  resolve(id: string, levels: Levels, by: string): Promise<boolean>;
+  calibrationGrades(): Promise<Map<string, Record<string, number>>>;
+  grade(
+    candidateId: string,
+    levels: Record<string, number>,
+    by: string,
+  ): Promise<void>;
 }

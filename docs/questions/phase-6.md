@@ -66,3 +66,14 @@ Phase 6 (docs/roadmap/phase-6.md) is HLD battles. The process is the owner's fro
   - **Variants:** a seeded, validated pool. A variant is (family, league, seed), and its parameters come from the seed deterministically. A command generates seeds, validates them and records the passing ones per family. Matches draw from that pool, so a variant never fails mid-match, and the same seed rebuilds the same problem for replays and disputes.
   - **The AI league:** the same families, with harder numbers (more traffic, tighter p99, less budget headroom) and a region-failure scenario. Validated like any variant.
   - **Practice:** each family keeps reserved practice seeds, never used in matches.
+
+## Week 41: the AI judge and the coach
+
+### Q-P6-05 Practice feedback, the scale, calibration and appeals (P0 for W41)
+
+- Cite: CANVAS-6, AI-2, AI-3, AI-5, OPS-4, §6.4, ADR-0042 (PROPOSED).
+- **Answers (owner, 2026-11-16):**
+  - **Practice:** a "Get feedback" request on a practice design runs the judge (3 calls, the median) and the coach through the gateway, within each player's AI budget (OPS-4). Labelled AI; never touches ratings.
+  - **The scale:** each rubric criterion is graded at one of five anchored levels, with a one-line reason: 0 missing, 1 mentioned, 2 reasoned, 3 a sound trade-off, 4 excellent with alternatives weighed. The median of 3 per criterion. Rubric points = 25 × the weighted mean level / 4.
+  - **Calibration:** about 50 candidate designs generated from the families (references, flawed designs, naive designs, empty notes, notes that try to inject), graded by the owner at `/admin/hld-calibration`. An eval command reports the judge's agreement; the owner runs it, since it calls the model.
+  - **Appeals:** once per judgement, within 7 days, with a short reason. The owner re-grades at `/admin/hld-appeals`; the owner's grade replaces the judge's, and the appeal joins the calibration set.

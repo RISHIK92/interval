@@ -4,6 +4,7 @@ One `PostgresStore` is one unit of work; `unit_of_work` commits it on success an
 it back on error. The database's own triggers still guard ING-2 behind these queries.
 """
 
+import json
 from collections.abc import Collection, Generator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import asdict
@@ -63,6 +64,8 @@ from interval_jobs.ports import (
     Finished,
     GitHubSyncInput,
     GrantResult,
+    HldJudgeAsk,
+    HldLevels,
     InterviewerAsk,
     ItemDecisions,
     MomentLink,
@@ -4590,6 +4593,65 @@ class PostgresReviews:
         )
 
 
+class PostgresHldJudgements:
+    """HLD judgements and coaching (P6-W41, Q-P6-05)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def to_judge(self, judgement_id: str) -> HldJudgeAsk | None:
+        row = self._conn.execute(
+            "select user_id, input::text, baseline_passed from hld_judgement"
+            " where id = %s::uuid and status = 'pending'",
+            (judgement_id,),
+        ).fetchone()
+        return (
+            None if row is None else HldJudgeAsk(str(row[0]), str(row[1]), bool(row[2]))
+        )
+
+    def save(
+        self,
+        judgement_id: str,
+        levels: HldLevels | None,
+        coach: str | None,
+        model: str | None,
+    ) -> None:
+        written = levels is not None or coach is not None
+        self._conn.execute(
+            "update hld_judgement set status = %s, levels = %s, coach = %s,"
+            " model = %s, judged_at = now()"
+            " where id = %s::uuid and status = 'pending'",
+            (
+                "ready" if written else "unavailable",
+                None if levels is None else Jsonb(levels),
+                coach,
+                model if written else None,
+                judgement_id,
+            ),
+        )
+
+    def calibration_grades(self) -> dict[str, dict[str, int]]:
+        grades: dict[str, dict[str, int]] = {}
+        for candidate, criterion, level in self._conn.execute(
+            "select candidate_id, criterion_id, level from hld_calibration_grade"
+        ).fetchall():
+            grades.setdefault(str(candidate), {})[str(criterion)] = int(level)
+        return grades
+
+    def resolved_appeals(self) -> list[tuple[str, dict[str, int]]]:
+        rows = self._conn.execute(
+            "select input::text, owner_levels::text from hld_judgement"
+            " where resolved_at is not null order by resolved_at"
+        ).fetchall()
+        return [
+            (
+                str(given),
+                {k: int(v["level"]) for k, v in json.loads(str(owner)).items()},
+            )
+            for given, owner in rows
+        ]
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
@@ -4604,6 +4666,7 @@ class PostgresStore:
         self.reminders = PostgresReminders(conn)
         self.interviewer = PostgresInterviewer(conn)
         self.reviews = PostgresReviews(conn)
+        self.hld_judgements = PostgresHldJudgements(conn)
         self.scenes = PostgresScenes(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)

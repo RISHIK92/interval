@@ -38,6 +38,7 @@ from interval_db.messages import (
     FetchItem,
     GenerateQuestions,
     GithubSync,
+    JudgeHld,
     MatchFinished,
     MessageName,
     OcrPage,
@@ -69,6 +70,9 @@ from interval_jobs.feed.precompute import recompute_user_feed
 from interval_jobs.feed.project_notes import queue_project_notes, write_project_note
 from interval_jobs.frameable import framed_at
 from interval_jobs.github.sync import sync_user
+from interval_jobs.hld_judge import JudgeInput
+from interval_jobs.hld_judge import coach as hld_coach
+from interval_jobs.hld_judge import judge as hld_judge
 from interval_jobs.ingest.feed import NoValidEntryError, valid_entries
 from interval_jobs.interviewer import answer as interviewer_answer
 from interval_jobs.link_health import check_link
@@ -258,6 +262,7 @@ class Pipeline:
             "agent_nudge": self._nudge_stage,
             "answer_interviewer": self._interviewer_stage,
             "review_code": self._review_stage,
+            "judge_hld": self._hld_judge_stage,
         }
 
     # P5-W35 (§6.5, Q-P5-14, Q-P5-22): a battle player's AI code review, on request:
@@ -300,6 +305,70 @@ class Pipeline:
             with self._unit() as services:
                 services.store.reviews.save(
                     match_id, user_id, written, model if written is not None else None
+                )
+        except Exception:
+            # Retried by the queue; on its last try the player is told, not left
+            # waiting.
+            if delivery.attempt >= ATTEMPTS:
+                unavailable("failed")
+            raise
+
+    # P6-W41 (CANVAS-6, §6.4, Q-P6-05): an HLD design's rubric levels (the median of 3)
+    # and the coach's advice, on request, QUESTIONS_MODEL through the gateway. A design
+    # that fails the baseline earns no rubric points (§6.4), so it's only coached.
+    def _hld_judge_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, JudgeHld)
+        judgement_id = message.judgement_id
+
+        def unavailable(reason: str) -> None:
+            # Only a pending request changes: shown as unavailable, never waiting.
+            log.warn("hld: judgement not written", id=judgement_id, reason=reason)
+            with self._unit() as services:
+                services.store.hld_judgements.save(judgement_id, None, None, None)
+
+        with self._unit() as services:
+            ask = services.store.hld_judgements.to_judge(judgement_id)
+        if ask is None:
+            return  # written already (a redelivery), or gone with its player
+        if self._questions is None:
+            unavailable("no model")
+            return
+        model = self._questions.model.removeprefix(BATCH_PREFIX)
+        try:
+            design = JudgeInput.model_validate_json(ask.input)
+        except ValueError:
+            # The web app wrote it from the same schema: retrying won't mend it.
+            unavailable("malformed input")
+            return
+        try:
+            with self._questions.gateway() as gateway:
+                levels = (
+                    hld_judge(gateway, model, ask.user_id, design)
+                    if ask.baseline_passed
+                    else None
+                )
+                over = isinstance(levels, OverBudget)
+                if isinstance(levels, OverBudget):
+                    # OPS-4, LOAD-5: over budget, said and shown as unavailable; the
+                    # coach would be too.
+                    log.warn("hld: judge over budget", id=judgement_id)
+                    levels = None
+                elif ask.baseline_passed and levels is None:
+                    log.warn("hld: no valid judge run", id=judgement_id)
+                advice = (
+                    None if over else hld_coach(gateway, model, ask.user_id, design)
+                )
+                if isinstance(advice, OverBudget):
+                    log.warn("hld: coach over budget", id=judgement_id)
+                    advice = None
+            with self._unit() as services:
+                services.store.hld_judgements.save(
+                    judgement_id,
+                    None
+                    if levels is None
+                    else {k: v.model_dump() for k, v in levels.items()},
+                    advice,
+                    model if levels is not None or advice is not None else None,
                 )
         except Exception:
             # Retried by the queue; on its last try the player is told, not left

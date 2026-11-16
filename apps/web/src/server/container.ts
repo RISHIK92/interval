@@ -32,6 +32,7 @@ import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
 import { kyselyBattleSnapshots } from "./adapters/kysely-battle-snapshots";
+import { kyselyHldJudgements } from "./adapters/kysely-hld-judgements";
 import { kyselyHldPracticeDesigns } from "./adapters/kysely-hld-practice-designs";
 import { kyselyAdminExplainers } from "./adapters/kysely-admin-explainers";
 import { kyselyAdminScenes } from "./adapters/kysely-admin-scenes";
@@ -124,6 +125,7 @@ import type {
   FeedReader,
   GuestLimits,
   GuestSessions,
+  HldJudgements,
   HldPracticeDesigns,
   InviteCodes,
   JobQueue,
@@ -526,6 +528,11 @@ export function battleWindows(): BattleWindows {
 // P5-W31-S04b (§6.9, Q-P5-17): battle players' code snapshots, for fair-play review.
 export function battleSnapshots(): BattleSnapshots {
   return kyselyBattleSnapshots(db());
+}
+
+// P6-W41 (CANVAS-6, Q-P6-05): HLD judgements, appeals and calibration grades.
+export function hldJudgements(): HldJudgements {
+  return kyselyHldJudgements(db());
 }
 
 // P6-W39 (ADR-0042 PROPOSED, Q-P6-03): practice designs, autosaved from the canvas.

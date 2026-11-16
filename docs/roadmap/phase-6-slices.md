@@ -43,6 +43,7 @@ Already in place, and reused:
 
 - IDs: CANVAS-6, AI-2, AI-5.
 - Goal: the median-of-3 rubric judge, injection hardening, the calibration set, appeals, and the post-match coach.
+- Built 2026-11-16, on practice designs (Q-P6-05); W42 wires it into matches.
 
 ## Week 42: HLD matches
 

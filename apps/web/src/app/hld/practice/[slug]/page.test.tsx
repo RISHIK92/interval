@@ -23,6 +23,7 @@ vi.mock("../../../../server/container", () => ({
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
   hldPracticeDesigns: () => ({ load }),
+  hldJudgements: () => ({ latest: () => Promise.resolve(null) }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),

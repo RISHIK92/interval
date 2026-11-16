@@ -16,7 +16,7 @@ test("there are 8 families, each with its own slug", () => {
 });
 
 // CANVAS-3's regression check for variants: an engine or family change that breaks one
-// fails here; `pnpm --filter @interval/hld pool` rebuilds the file.
+// fails here; `pnpm --filter @interval/hld data` rebuilds the file.
 test("pool.json is what the families and the engine make now", () => {
   expect(buildPool(FAMILIES)).toEqual(pool);
 });

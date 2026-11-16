@@ -44,6 +44,10 @@ export const messageSchemas = {
   github_sync: z.strictObject({
     user_id: z.string().min(1),
   }),
+  // Judge an HLD design against its rubric (the median of 3) and write the coach's advice, on the player's request (CANVAS-6, Q-P6-05, P6-W41).
+  judge_hld: z.strictObject({
+    judgement_id: z.string().min(1),
+  }),
   // A live match has ended (P3-W15-S05, ADR-0033): record its result once. The result itself waits in Valkey at game:result:<match_id>, written by its game server (services/game); the worker's relay queues this from game:results.
   match_finished: z.strictObject({
     match_id: z.string().min(36),

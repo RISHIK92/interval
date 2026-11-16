@@ -22,6 +22,8 @@ type AiFeature = Literal[
     "scenes",
     "interviewer",
     "code_review",
+    "hld_judge",
+    "hld_coach",
 ]
 type AiProvider = Literal[
     "openrouter", "voyage", "groq", "google", "elevenlabs", "inworld", "polly"
@@ -659,6 +661,33 @@ class GraphVersion(TypedDict):
 class GuestStart(TypedDict):
     ip_key: bytes
     created_at: datetime
+
+
+class HldCalibrationGrade(TypedDict):
+    candidate_id: str
+    criterion_id: str
+    level: int
+    graded_by: str | None
+    graded_at: datetime
+
+
+class HldJudgement(TypedDict):
+    id: UUID
+    user_id: str
+    problem_slug: str
+    input: JsonValue
+    baseline_passed: bool
+    requested_at: datetime
+    status: str
+    levels: JsonValue | None
+    coach: str | None
+    model: str | None
+    judged_at: datetime | None
+    appeal_reason: str | None
+    appealed_at: datetime | None
+    owner_levels: JsonValue | None
+    resolved_at: datetime | None
+    resolved_by: str | None
 
 
 class HldPracticeDesign(TypedDict):

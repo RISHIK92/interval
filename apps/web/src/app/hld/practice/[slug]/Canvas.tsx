@@ -27,7 +27,9 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import type { FeedbackView } from "../feedback";
 import { saveDesign } from "./actions";
+import { Feedback } from "./Feedback";
 
 // P6-W39 (CANVAS-1, CANVAS-2, CANVAS-5; Q-P6-03): the HLD canvas. The design is the one
 // state; React Flow draws it, and every edit goes through packages/hld's pure functions.
@@ -44,10 +46,12 @@ export function Canvas({
   problem,
   initial,
   version: loadedVersion,
+  feedback,
 }: {
   problem: HldProblem;
   initial: Design;
   version: number;
+  feedback: FeedbackView | null;
 }) {
   const [design, setDesign] = useState(initial);
   const [selected, setSelected] = useState<Selection>(null);
@@ -362,6 +366,13 @@ export function Canvas({
             ))}
           </fieldset>
         ) : null}
+
+        <Feedback
+          slug={problem.slug}
+          design={design}
+          ready={issues.length === 0}
+          initial={feedback}
+        />
 
         <section
           className="flex flex-col gap-2 rounded-md border border-line p-3"

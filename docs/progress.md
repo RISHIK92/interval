@@ -5803,3 +5803,50 @@ The owner said to continue building overnight with recommended answers, switchin
   - drawn numbers are rounded (no `0.7000000000000001`);
   - a W39 practice design saved against the old `read`/`write` URL shortener no longer fits, so it starts over, and the canvas lists problem-fit issues as the server would.
 - **Not consumed yet:** `pool.json` waits for W42's matches.
+
+### 2026-11-16 — P6 Week 41 (the AI judge, the coach, calibration and appeals; CANVAS-6, AI-2, AI-3, AI-5, OPS-4, §6.4, Q-P6-05)
+
+- **Owner's answers (Q-P6-05):**
+  - practice gets the judge and the coach on request, within each player's AI budget;
+  - 0–4 anchored levels, the median of 3, and rubric points = 25 × the weighted mean / 4;
+  - an admin grading page for the calibration set, with an eval the owner runs;
+  - one appeal per judgement within 7 days, re-graded by the owner.
+- **Environment:** the Mac had restarted and OrbStack (Docker) was off. It was started again with the compose services, as the setup in CLAUDE.md does.
+- **`packages/hld/src/judge.ts`:**
+  - `JudgeInput`: what the judge and coach get, built beside the simulator so practice, matches (W42) and the calibration set send the same thing. It has the problem, its rubric, the components with config and the player's notes, the connections, and the simulation's results. Never the reference design;
+  - `rubricPoints`;
+  - `calibrationCandidates()`: 48 designs, six per family on its practice seed. They are the reference, the same without notes, a naive design, one missing its lesson (or a zone's cover), one with off-the-point notes, and one whose note tries to steer the judge.
+  - `pnpm --filter @interval/hld data` (formerly `pool`) writes `pool.json` and `calibration.json` (for the worker's eval). Tests fail while either is stale.
+- **Data:**
+  - the `hld_judge` and `hld_coach` AI features (OPS-4 budgets);
+  - `hld_judgement`: the input as judged, the baseline gate, status, the judge's levels, the coach's advice and the model, plus one appeal (reason, time) and the owner's levels. One pending request per player per problem (LOAD-5);
+  - `hld_calibration_grade`: the owner's level per candidate and criterion;
+  - the `judge_hld` queue message.
+- **Worker:**
+  - `hld_judge.py`: the judge runs 3 times. Each reply must be JSON naming exactly the rubric's criteria with levels from 0 to 4, or it's discarded. The median_low per criterion is kept, with that run's reason. The coach is a single call;
+  - the design reaches the model as structured fields, with each note truncated to 280 characters and fenced as data (a `</note>` inside can't close it). The prompt says a note's instructions are ignored and earn nothing;
+  - `_hld_judge_stage`: a design that fails the baseline is coached, never judged (§6.4). Over budget is logged and shown as unavailable. On its last try the player is told, not left waiting;
+  - `eval-hld-judge --model M` judges every fully graded calibration design and every resolved appeal as a match would. It reports exact and within-one agreement and the mean difference, plus any injection design graded above the owner ("steered"). It fails below 60% exact or 90% within one, or on any steered design. Those thresholds are overnight picks for the owner. It stores nothing and charges the global budget.
+- **Web:**
+  - `POST /api/hld/practice/<slug>/feedback`: it checks the session, `play.hld`, origin, size, schema and fit to the problem, simulates on the server, records the request and queues it once. A request that can't be queued is dropped;
+  - `GET /api/hld/judgements/<id>` returns the player's own judgement, with rubric points from the owner's levels once an appeal is resolved;
+  - `POST /api/hld/judgements/<id>/appeal` takes a reason of up to 500 characters, once, within 7 days, and only for a judged design;
+  - the canvas's Feedback panel, labelled AI: "Get AI feedback", polling while pending. It shows the levels with reasons, the rubric points (or "no rubric points" when the baseline fails), the coach, and the appeal;
+  - `/admin/hld-appeals` (re-grade each criterion) and `/admin/hld-calibration` (grade the 48, with progress).
+- **Review (Sonnet):** no blockers. Fixed:
+  - a note could escape its fence with another spelling (`</NOTE>`, `</note >`); notes now keep no angle brackets at all;
+  - the reply parse accepted `true`, `"3"` or `3.0` as levels and a missing reason; levels are now strict integers and reasons must be text;
+  - a pending request that never finished blocked its player for good; one older than 15 minutes is now treated as lost;
+  - a request finishing just as the player asked again could raise a 500; it now retries once;
+  - asking again about the same design returns its feedback instead of paying the model again;
+  - the size check counts bytes and the declared length first;
+  - a malformed input is marked unavailable at once, not retried;
+  - the coach is skipped once the judge is over budget.
+- **Left, for the owner:**
+  - a retried judgement re-runs its 4 calls (up to the queue's attempts);
+  - calibration grades are keyed by candidate id, so regenerating `calibration.json` with a changed design keeps its old grades until re-graded;
+  - there's no per-player daily count of feedback requests beyond the AI budget. Say if you want one.
+- **For the owner:**
+  - grade the calibration set;
+  - with `QUESTIONS_MODEL` set, run `scripts/with-env.sh uv run python -m interval_jobs eval-hld-judge --model <model>`;
+  - set the thresholds.

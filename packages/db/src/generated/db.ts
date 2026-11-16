@@ -5,7 +5,7 @@
 
 import type { ColumnType } from "kysely";
 
-export type AiFeature = "code_review" | "concept_drafting" | "embeddings" | "explainer" | "interviewer" | "notes" | "paths" | "project_notes" | "questions" | "scenes" | "tagging" | "technologies" | "tts";
+export type AiFeature = "code_review" | "concept_drafting" | "embeddings" | "explainer" | "hld_coach" | "hld_judge" | "interviewer" | "notes" | "paths" | "project_notes" | "questions" | "scenes" | "tagging" | "technologies" | "tts";
 
 export type AiProvider = "elevenlabs" | "google" | "groq" | "inworld" | "openrouter" | "polly" | "voyage";
 
@@ -675,6 +675,33 @@ export interface GraphVersion {
 export interface GuestStart {
   created_at: Generated<Timestamp>;
   ip_key: Buffer;
+}
+
+export interface HldCalibrationGrade {
+  candidate_id: string;
+  criterion_id: string;
+  graded_at: Generated<Timestamp>;
+  graded_by: string | null;
+  level: number;
+}
+
+export interface HldJudgement {
+  appeal_reason: string | null;
+  appealed_at: Timestamp | null;
+  baseline_passed: boolean;
+  coach: string | null;
+  id: Generated<string>;
+  input: Json;
+  judged_at: Timestamp | null;
+  levels: Json | null;
+  model: string | null;
+  owner_levels: Json | null;
+  problem_slug: string;
+  requested_at: Generated<Timestamp>;
+  resolved_at: Timestamp | null;
+  resolved_by: string | null;
+  status: Generated<string>;
+  user_id: string;
 }
 
 export interface HldPracticeDesign {
@@ -1473,6 +1500,8 @@ export interface DB {
   goal_concept: GoalConcept;
   graph_version: GraphVersion;
   guest_start: GuestStart;
+  hld_calibration_grade: HldCalibrationGrade;
+  hld_judgement: HldJudgement;
   hld_practice_design: HldPracticeDesign;
   invite_code: InviteCode;
   item_concept: ItemConcept;

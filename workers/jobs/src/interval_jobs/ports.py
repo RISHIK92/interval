@@ -1296,6 +1296,9 @@ class Store(Protocol):
     def reviews(self) -> "CodeReviews": ...
 
     @property
+    def hld_judgements(self) -> "HldJudgements": ...
+
+    @property
     def scenes(self) -> "Scenes": ...
 
 
@@ -2210,6 +2213,44 @@ class ReviewAsk:
     statement: str  # the problem's statement
     language: str
     key: str  # the best submission in the private bucket
+
+
+# P6-W41 (CANVAS-6, Q-P6-05): an HLD design's AI judgement and coaching, on the player's
+# request; the judge's input is packages/hld's JudgeInput, built by the web app.
+@dataclass(frozen=True)
+class HldJudgeAsk:
+    user_id: str
+    input: str  # JSON; the worker checks it against JudgeInput
+    baseline_passed: bool
+
+
+HldLevels = dict[str, dict[str, int | str]]  # criterion id: {level, reason}
+
+
+class HldJudgements(Protocol):
+    def to_judge(self, judgement_id: str) -> HldJudgeAsk | None:
+        """A requested, pending judgement; None otherwise (done, or gone)."""
+        ...
+
+    def save(
+        self,
+        judgement_id: str,
+        levels: HldLevels | None,
+        coach: str | None,
+        model: str | None,
+    ) -> None:
+        """What was written; with neither levels nor advice it's unavailable."""
+        ...
+
+    def calibration_grades(self) -> dict[str, dict[str, int]]:
+        """The owner's grades of the calibration set: candidate id to criterion id to
+        level (AI-5)."""
+        ...
+
+    def resolved_appeals(self) -> list[tuple[str, dict[str, int]]]:
+        """Each resolved appeal's judge input (JSON) and the owner's levels: they join
+        the calibration set (Q-P6-05)."""
+        ...
 
 
 class CodeReviews(Protocol):

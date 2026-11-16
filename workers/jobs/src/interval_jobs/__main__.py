@@ -12,6 +12,7 @@ Usage:
   python -m interval_jobs draft-concepts --topic T --model M --out F
   python -m interval_jobs eval-tagging --labels F --model M
   python -m interval_jobs eval-embeddings --queries F --model M
+  python -m interval_jobs eval-hld-judge --model M [--candidates F]
 """
 
 import argparse
@@ -36,6 +37,7 @@ from interval_jobs import log
 from interval_jobs.adapters.ffmpeg_hls import FfmpegHls, HlsError
 from interval_jobs.adapters.postgres import PostgresAi, PostgresSnapshots
 from interval_jobs.adapters.redis_results import RedisResults
+from interval_jobs.ai.gateway import OverBudget
 from interval_jobs.compose import (
     ai_gateway,
     database_url,
@@ -69,6 +71,7 @@ from interval_jobs.feed.precompute import (
     recompute_starter,
 )
 from interval_jobs.github.sync import enqueue_syncs
+from interval_jobs.hld_judge_eval import run_eval as run_hld_eval
 from interval_jobs.ingest.one import ingest_one
 from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
@@ -115,6 +118,7 @@ SEED_FILE = Path("workers/jobs/seeds/sources.yaml")
 CONCEPT_FILE = Path("workers/jobs/seeds/concepts.yaml")
 TECHNOLOGY_FILE = Path("workers/jobs/seeds/technologies.yaml")
 PRONUNCIATION_FILE = Path("workers/jobs/seeds/pronunciations.yaml")
+HLD_CALIBRATION_FILE = Path("packages/hld/src/calibration.json")
 TTS_SCRIPTS_FILE = Path("workers/jobs/seeds/tts_scripts.yaml")
 UNIVERSITY_FILE = Path("workers/jobs/seeds/universities.json")
 
@@ -194,6 +198,17 @@ def main(argv: list[str]) -> None:
     evaluate.add_argument(
         "--embedding-model",
         help="the concepts' Voyage model, for a decisions: model's shortlist",
+    )
+    # P6-W41 (CANVAS-6, AI-5): the HLD judge's agreement with the owner's grades.
+    hld_eval = commands.add_parser(
+        "eval-hld-judge",
+        help="score the HLD judge against the owner-graded calibration set",
+    )
+    hld_eval.add_argument("--model", required=True, help="OpenRouter model id")
+    hld_eval.add_argument(
+        "--candidates",
+        type=Path,
+        default=HLD_CALIBRATION_FILE,
     )
     vectors = commands.add_parser(
         "eval-embeddings",
@@ -683,6 +698,24 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
             sys.exit(str(error))
         print(json.dumps({"model": args.model, **asdict(report)}, default=str))
         if not report.passed:
+            sys.exit(1)
+        return
+
+    if args.command == "eval-hld-judge":
+        try:
+            with services() as s, httpx.Client() as http:
+                agreement = run_hld_eval(
+                    ai_gateway(s.ai, http),
+                    args.model,
+                    args.candidates,
+                    s.store.hld_judgements,
+                )
+        except (OSError, ValueError, ModelError) as error:
+            sys.exit(str(error))
+        if isinstance(agreement, OverBudget):
+            sys.exit(f"stopped: the {agreement.scope} AI budget is spent")
+        print(json.dumps({"model": args.model, **asdict(agreement)}))
+        if not agreement.passed:
             sys.exit(1)
         return
 

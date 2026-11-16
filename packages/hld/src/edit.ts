@@ -31,7 +31,9 @@ export function configFields(kind: ComponentKind): ConfigField[] {
 }
 
 // A new component's configuration: the smallest of everything.
-function defaultConfig(kind: ComponentKind): Record<string, number | string> {
+export function defaultConfig(
+  kind: ComponentKind,
+): Record<string, number | string> {
   return Object.fromEntries(
     configFields(kind).map((f) => [
       f.name,

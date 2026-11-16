@@ -9,7 +9,7 @@
     "typecheck": "tsc",
     "test": "vitest run",
     "simulate": "node --import ../../scripts/ts-resolve.mjs src/simulate-cli.ts",
-    "pool": "node --import ../../scripts/ts-resolve.mjs src/pool-cli.ts && prettier --write src/pool.json"
+    "data": "node --import ../../scripts/ts-resolve.mjs src/data-cli.ts && prettier --write src/pool.json src/calibration.json"
   },
   "dependencies": {
     "zod": "4.6.7"

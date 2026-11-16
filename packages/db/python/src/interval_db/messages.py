@@ -97,6 +97,13 @@ class GithubSync(_Message):
     user_id: Annotated[str, Field(min_length=1)]
 
 
+class JudgeHld(_Message):
+    """Judge an HLD design against its rubric (the median of 3) and write the coach's
+    advice, on the player's request (CANVAS-6, Q-P6-05, P6-W41)."""
+
+    judgement_id: Annotated[str, Field(min_length=1)]
+
+
 class MatchFinished(_Message):
     """A live match has ended (P3-W15-S05, ADR-0033): record its result once. The
     result itself waits in Valkey at game:result:<match_id>, written by its game
@@ -177,6 +184,7 @@ type MessageName = Literal[
     "fetch_item",
     "generate_questions",
     "github_sync",
+    "judge_hld",
     "match_finished",
     "ocr_page",
     "project_note",
@@ -199,6 +207,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "fetch_item": FetchItem,
     "generate_questions": GenerateQuestions,
     "github_sync": GithubSync,
+    "judge_hld": JudgeHld,
     "match_finished": MatchFinished,
     "ocr_page": OcrPage,
     "project_note": ProjectNote,

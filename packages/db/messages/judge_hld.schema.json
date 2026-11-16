@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Judge an HLD design against its rubric (the median of 3) and write the coach's advice, on the player's request (CANVAS-6, Q-P6-05, P6-W41).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["judgement_id"],
+  "properties": {
+    "judgement_id": { "type": "string", "minLength": 1 }
+  }
+}
