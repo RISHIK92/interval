@@ -80,11 +80,15 @@ test("made with its problems retired; entered, checked in, and started round by 
     expect(await tournaments.checkIn(id, ada, inTime)).toBe("checked_in");
     expect(await tournaments.checkIn(id, owner, inTime)).toBe("not_registered");
     expect(
-      (await tournaments.entries(id)).map((e) => [e.userId, e.checkedIn]),
-    ).toEqual([
-      [ada, true],
-      [bob, false],
-    ]);
+      (await tournaments.entries(id))
+        .map((e) => [e.userId, e.checkedIn])
+        .sort(),
+    ).toEqual(
+      [
+        [ada, true],
+        [bob, false],
+      ].sort(),
+    );
     const pairs = [
       { round: 1, slot: 1, playerA: bob, playerB: null, matchId: null },
       { round: 1, slot: 0, playerA: ada, playerB: owner, matchId: null },

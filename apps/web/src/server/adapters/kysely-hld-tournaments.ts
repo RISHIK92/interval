@@ -134,6 +134,7 @@ export function kyselyHldTournaments(db: Kysely<DB>): HldTournaments {
         ])
         .where("e.tournament_id", "=", id)
         .orderBy("e.registered_at")
+        .orderBy("e.user_id") // registered in the same instant: a stable order
         .execute();
       return rows.map((r) => ({
         userId: r.user_id,
