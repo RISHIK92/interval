@@ -4652,6 +4652,132 @@ class PostgresHldJudgements:
         ]
 
 
+class PostgresHldMatches:
+    """HLD match ratings (P6-W42, MATCH-1, Q-P6-06): Glicko-2 for a 1v1, OpenSkill for a
+    room of 3 or 4, from the places the web app set; per league, apart from LLD's."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def rate(self, match_id: str) -> bool:
+        conn = self._conn
+        # Locked, so two deliveries can't both rate it.
+        match = conn.execute(
+            "select league from hld_match where id = %s::uuid"
+            " and scored_at is not null and rated_at is null and not unrated"
+            " for update",
+            (match_id,),
+        ).fetchone()
+        if match is None:
+            return False
+        league = str(match[0])
+        placed = {
+            str(user): int(place)
+            for user, place in conn.execute(
+                "select user_id, place from hld_match_player"
+                " where match_id = %s::uuid and place is not null",
+                (match_id,),
+            ).fetchall()
+        }
+        users = sorted(placed)
+        if len(users) == 2:
+            self._rate_duel(match_id, league, users, placed)
+        elif len(users) in (3, 4):
+            self._rate_room(match_id, league, users, placed)
+        conn.execute(
+            "update hld_match set rated_at = now() where id = %s::uuid", (match_id,)
+        )
+        return len(users) >= 2
+
+    def _rate_duel(
+        self, match_id: str, league: str, users: list[str], placed: dict[str, int]
+    ) -> None:
+        conn = self._conn
+        conn.execute(
+            "insert into hld_rating (user_id, league, rating, rd, volatility) "
+            "select u, %s, %s, %s, %s from unnest(%s::text[]) u on conflict do nothing",
+            (league, START.rating, START.rd, START.volatility, users),
+        )
+        # In user_id order, as every rating locks: no deadlock between two matches.
+        before = {
+            str(user): Glicko(float(rating), float(rd), float(volatility))
+            for user, rating, rd, volatility in conn.execute(
+                "select user_id, rating, rd, volatility from hld_rating "
+                "where user_id = any(%s) and league = %s order by user_id for update",
+                (users, league),
+            ).fetchall()
+        }
+        a, b = users
+        for user, other in ((a, b), (b, a)):
+            ahead, behind = placed[user], placed[other]
+            score = 1.0 if ahead < behind else 0.5 if ahead == behind else 0.0
+            after = update(before[user], [(before[other], score)])
+            conn.execute(
+                "update hld_rating set rating = %s, rd = %s, volatility = %s, "
+                "games = games + 1, updated_at = now() "
+                "where user_id = %s and league = %s",
+                (after.rating, after.rd, after.volatility, user, league),
+            )
+            conn.execute(
+                """
+                insert into hld_rating_history (match_id, user_id, league,
+                  rating_before, rating_after, rd_after, volatility_after, score)
+                values (%s::uuid, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    match_id,
+                    user,
+                    league,
+                    before[user].rating,
+                    after.rating,
+                    after.rd,
+                    after.volatility,
+                    score,
+                ),
+            )
+
+    def _rate_room(
+        self, match_id: str, league: str, users: list[str], placed: dict[str, int]
+    ) -> None:
+        conn = self._conn
+        conn.execute(
+            "insert into hld_room_rating (user_id, league, mu, sigma) "
+            "select u, %s, %s, %s from unnest(%s::text[]) u on conflict do nothing",
+            (league, SKILL_START.mu, SKILL_START.sigma, users),
+        )
+        before = {
+            str(user): Skill(float(mu), float(sigma))
+            for user, mu, sigma in conn.execute(
+                "select user_id, mu, sigma from hld_room_rating "
+                "where user_id = any(%s) and league = %s order by user_id for update",
+                (users, league),
+            ).fetchall()
+        }
+        after = rate_room(before, placed)
+        for user in users:
+            conn.execute(
+                "update hld_room_rating set mu = %s, sigma = %s, games = games + 1, "
+                "updated_at = now() where user_id = %s and league = %s",
+                (after[user].mu, after[user].sigma, user, league),
+            )
+            conn.execute(
+                """
+                insert into hld_room_rating_history (match_id, user_id, league,
+                  mu_before, mu_after, sigma_after, rank)
+                values (%s::uuid, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    match_id,
+                    user,
+                    league,
+                    before[user].mu,
+                    after[user].mu,
+                    after[user].sigma,
+                    placed[user],
+                ),
+            )
+
+
 class PostgresStore:
     def __init__(self, conn: psycopg.Connection) -> None:
         self.paths = PostgresPaths(conn)
@@ -4667,6 +4793,7 @@ class PostgresStore:
         self.interviewer = PostgresInterviewer(conn)
         self.reviews = PostgresReviews(conn)
         self.hld_judgements = PostgresHldJudgements(conn)
+        self.hld_matches = PostgresHldMatches(conn)
         self.scenes = PostgresScenes(conn)
         self.daily = PostgresDailyChallenges(conn)
         self.sources = PostgresSources(conn)

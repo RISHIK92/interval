@@ -2,7 +2,7 @@
 
 import { type Design, LEVELS, RUBRIC_POINTS } from "@interval/hld";
 import { useEffect, useState } from "react";
-import type { FeedbackView } from "../feedback";
+import type { FeedbackView } from "./practice/feedback";
 
 // P6-W41 (CANVAS-6, AI-3, §6.4; Q-P6-05): the AI judge's rubric levels and the coach's
 // advice on the design as it was when asked, labelled AI; and one appeal. The worker
@@ -23,14 +23,12 @@ const REFUSED: Record<string, string> = {
 };
 
 export function Feedback({
-  slug,
-  design,
-  ready,
+  ask,
   initial,
 }: {
-  slug: string;
-  design: Design;
-  ready: boolean; // the design is valid for this problem
+  // Practice asks for feedback on the design as it stands; a match's results only show
+  // the feedback its submission got.
+  ask: { slug: string; design: Design; ready: boolean } | null;
   initial: FeedbackView | null;
 }) {
   const [view, setView] = useState(initial);
@@ -56,12 +54,13 @@ export function Feedback({
     };
   }, [pending, view]);
 
-  const ask = async () => {
+  const request = async () => {
+    if (ask === null) return;
     setError(null);
-    const r = await fetch(`/api/hld/practice/${slug}/feedback`, {
+    const r = await fetch(`/api/hld/practice/${ask.slug}/feedback`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(design),
+      body: JSON.stringify(ask.design),
     });
     if (!r.ok) {
       setError("Couldn't ask for feedback. Check the design and try again.");
@@ -102,16 +101,18 @@ export function Feedback({
       <h2 className="text-title">
         Feedback <span className="text-xs text-ink-muted">AI</span>
       </h2>
-      <button
-        type="button"
-        disabled={!ready || pending}
-        className="self-start rounded-md border border-line px-2 py-1 text-sm disabled:opacity-50"
-        onClick={() => {
-          void ask();
-        }}
-      >
-        {pending ? "Asking…" : "Get AI feedback"}
-      </button>
+      {ask === null ? null : (
+        <button
+          type="button"
+          disabled={!ask.ready || pending}
+          className="self-start rounded-md border border-line px-2 py-1 text-sm disabled:opacity-50"
+          onClick={() => {
+            void request();
+          }}
+        >
+          {pending ? "Asking…" : "Get AI feedback"}
+        </button>
+      )}
       {error !== null ? <p className="text-sm">{error}</p> : null}
       {view === null || pending ? null : view.status === "unavailable" ? (
         <p className="text-sm text-ink-muted">

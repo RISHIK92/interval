@@ -1,4 +1,4 @@
-import { practiceProblems, rubricPoints } from "@interval/hld";
+import { problemBySlug, rubricPoints } from "@interval/hld";
 import type { HldJudgement } from "../../../server/ports";
 
 // P6-W41 (CANVAS-6, Q-P6-05): a judgement as the canvas shows it: the levels (the
@@ -7,8 +7,7 @@ import type { HldJudgement } from "../../../server/ports";
 export type FeedbackView = ReturnType<typeof feedbackView>;
 
 export function feedbackView(j: HldJudgement) {
-  const rubric =
-    practiceProblems().find((p) => p.slug === j.problemSlug)?.rubric ?? [];
+  const rubric = problemBySlug(j.problemSlug)?.rubric ?? [];
   const levels = j.ownerLevels ?? j.levels;
   return {
     id: j.id,

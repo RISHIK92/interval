@@ -13,7 +13,7 @@ import {
   sessionReader,
 } from "../../../../server/container";
 import { feedbackView } from "../feedback";
-import { Canvas } from "./Canvas";
+import { Canvas } from "../../Canvas";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +56,10 @@ export default async function PracticeProblemPage({
             : starterDesign()
         }
         version={saved?.version ?? 0}
-        feedback={latest === null ? null : feedbackView(latest)}
+        mode={{
+          kind: "practice",
+          feedback: latest === null ? null : feedbackView(latest),
+        }}
       />
     </main>
   );

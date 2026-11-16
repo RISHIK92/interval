@@ -671,6 +671,14 @@ class HldCalibrationGrade(TypedDict):
     graded_at: datetime
 
 
+class HldDesignVersion(TypedDict):
+    match_id: UUID
+    user_id: str
+    version: int
+    design: JsonValue
+    saved_at: datetime
+
+
 class HldJudgement(TypedDict):
     id: UUID
     user_id: str
@@ -688,6 +696,36 @@ class HldJudgement(TypedDict):
     owner_levels: JsonValue | None
     resolved_at: datetime | None
     resolved_by: str | None
+    match_id: UUID | None
+
+
+class HldMatch(TypedDict):
+    id: UUID
+    family: str
+    league: str
+    seed: int
+    unrated: bool
+    window_at: datetime | None
+    started_at: datetime
+    deadline_at: datetime
+    closed_at: datetime | None
+    scored_at: datetime | None
+    rubric_included: bool | None
+    rated_at: datetime | None
+
+
+class HldMatchPlayer(TypedDict):
+    match_id: UUID
+    user_id: str
+    submitted_at: datetime | None
+    auto_submitted: bool
+    design: JsonValue | None
+    simulation_points: Decimal | None
+    baseline_passed: bool | None
+    speed_points: Decimal | None
+    judgement_id: UUID | None
+    total: Decimal | None
+    place: int | None
 
 
 class HldPracticeDesign(TypedDict):
@@ -696,6 +734,48 @@ class HldPracticeDesign(TypedDict):
     version: int
     design: JsonValue
     saved_at: datetime
+
+
+class HldRating(TypedDict):
+    user_id: str
+    league: str
+    rating: float
+    rd: float
+    volatility: float
+    games: int
+    updated_at: datetime
+
+
+class HldRatingHistory(TypedDict):
+    match_id: UUID
+    user_id: str
+    league: str
+    rating_before: float
+    rating_after: float
+    rd_after: float
+    volatility_after: float
+    score: float
+    at: datetime
+
+
+class HldRoomRating(TypedDict):
+    user_id: str
+    league: str
+    mu: float
+    sigma: float
+    games: int
+    updated_at: datetime
+
+
+class HldRoomRatingHistory(TypedDict):
+    match_id: UUID
+    user_id: str
+    league: str
+    mu_before: float
+    mu_after: float
+    sigma_after: float
+    rank: int
+    at: datetime
 
 
 class InviteCode(TypedDict):

@@ -7,3 +7,7 @@ export * from "./hints";
 export * from "./practice";
 export * from "./edit";
 export * from "./judge";
+export * from "./match";
+export * from "./score";
+export * from "./families";
+export * from "./family";

@@ -54,6 +54,7 @@ export async function POST(
     slug,
     judgeInput(problem, parsed.data, result),
     result.baselinePassed,
+    null,
   );
   if (asked.created)
     try {

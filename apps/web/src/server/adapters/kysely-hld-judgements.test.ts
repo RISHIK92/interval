@@ -63,17 +63,24 @@ test("one request waits at a time; a dropped one can be asked again", async () =
   await inRollback(async (trx) => {
     const judgements = kyselyHldJudgements(trx);
     const ada = await player(trx);
-    const first = await judgements.request(ada, "url-shortener", input, true);
-    expect(first.created).toBe(true);
-    expect(await judgements.request(ada, "url-shortener", input, true)).toEqual(
-      {
-        id: first.id,
-        created: false,
-      },
+    const first = await judgements.request(
+      ada,
+      "url-shortener",
+      input,
+      true,
+      null,
     );
+    expect(first.created).toBe(true);
+    expect(
+      await judgements.request(ada, "url-shortener", input, true, null),
+    ).toEqual({
+      id: first.id,
+      created: false,
+    });
     await judgements.drop(first.id);
     expect(
-      (await judgements.request(ada, "url-shortener", input, true)).created,
+      (await judgements.request(ada, "url-shortener", input, true, null))
+        .created,
     ).toBe(true);
     expect((await judgements.latest(ada, "url-shortener"))?.status).toBe(
       "pending",
@@ -85,7 +92,13 @@ test("the same design again gets its feedback; a lost request stops blocking", a
   await inRollback(async (trx) => {
     const judgements = kyselyHldJudgements(trx);
     const ada = await player(trx);
-    const first = await judgements.request(ada, "url-shortener", input, true);
+    const first = await judgements.request(
+      ada,
+      "url-shortener",
+      input,
+      true,
+      null,
+    );
     await trx
       .updateTable("hld_judgement")
       .set({
@@ -95,18 +108,19 @@ test("the same design again gets its feedback; a lost request stops blocking", a
       })
       .where("id", "=", first.id)
       .execute();
-    expect(await judgements.request(ada, "url-shortener", input, true)).toEqual(
-      {
-        id: first.id,
-        created: false,
-      },
-    );
+    expect(
+      await judgements.request(ada, "url-shortener", input, true, null),
+    ).toEqual({
+      id: first.id,
+      created: false,
+    });
     const changed = { ...input, title: "Changed" };
     const second = await judgements.request(
       ada,
       "url-shortener",
       changed,
       true,
+      null,
     );
     expect(second.created).toBe(true);
     await trx
@@ -119,6 +133,7 @@ test("the same design again gets its feedback; a lost request stops blocking", a
       "url-shortener",
       { ...input, title: "Again" },
       true,
+      null,
     );
     expect(third.created).toBe(true);
     expect((await judgements.get(second.id, ada))?.status).toBe("unavailable");
@@ -129,7 +144,13 @@ test("an appeal: once, within 7 days, of a judged design; the owner's levels rep
   await inRollback(async (trx) => {
     const judgements = kyselyHldJudgements(trx);
     const ada = await player(trx);
-    const { id } = await judgements.request(ada, "url-shortener", input, true);
+    const { id } = await judgements.request(
+      ada,
+      "url-shortener",
+      input,
+      true,
+      null,
+    );
     const now = new Date();
     expect(await judgements.appeal(id, ada, "Too low.", now)).toBe(
       "not_judged",

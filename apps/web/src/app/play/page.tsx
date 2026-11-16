@@ -71,11 +71,11 @@ const GAMES: {
     win: "Most points from passed tests; a tie goes to whoever got there first",
     capability: "play.battle",
   },
-  // P6-W39 (§6.4, ADR-0042 PROPOSED): HLD practice, until HLD battles (W42).
+  // P6-W42 (§6.4, MATCH-7, Q-P6-06): HLD battles and practice (ADR-0042 PROPOSED).
   {
-    name: "System design practice",
-    format: "Solo, no clock: design a system on the canvas",
-    win: "Simulation points out of 60 as the design runs through each scenario",
+    name: "System design battle",
+    format: "A 1v1 or solo, about 30 minutes; practice any time",
+    win: "Simulation 60, the AI rubric 25, speed 15",
     capability: "play.hld",
   },
 ];
@@ -227,10 +227,10 @@ export default async function PlayPage(props: {
                 </Link>
               ) : game.capability === "play.hld" && actor !== null ? (
                 <Link
-                  href="/hld/practice"
+                  href="/hld/play"
                   className="mt-auto self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
                 >
-                  Practise
+                  Battle
                 </Link>
               ) : game.capability === "play.daily" && today !== null ? (
                 <DailyPlay status={today} />

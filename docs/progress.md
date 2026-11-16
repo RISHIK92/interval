@@ -5850,3 +5850,43 @@ The owner said to continue building overnight with recommended answers, switchin
   - grade the calibration set;
   - with `QUESTIONS_MODEL` set, run `scripts/with-env.sh uv run python -m interval_jobs eval-hld-judge --model <model>`;
   - set the thresholds.
+
+### 2026-11-16 — P6 Week 42, part 1 (HLD matches: the casual queue, solo, scoring with the gate, ratings; §6.4, MATCH-1, MATCH-7, Q-P6-06, ADR-0043)
+
+- **Owner's answers (Q-P6-06):**
+  - matches run in the web app and Postgres (ADR-0043, PROPOSED: the roadmap's "simulation worker" is the web app's server-side simulation);
+  - speed is 15 × the time left, only past the baseline, and 0 at the deadline;
+  - HLD has its own ratings and windows;
+  - a missing judgement leaves the rubric out for everyone, scaled to 100.
+- **`packages/hld`:**
+  - `score.ts`: speed points, standings (the higher total first, a tie to the earlier submission, an exact tie sharing the place), the rubric gate, and the scaling;
+  - `match.ts`: `drawVariant` from the pool, `matchProblem` (the seed rebuilds it), and `problemBySlug` (practice or a pooled variant);
+  - the pool is now a generated module, `pool.ts`;
+  - the index exports the families and the variant generator.
+- **Data:**
+  - `hld_match` holds the variant, league, unrated, window, start, deadline, closed, scored, rubric included, and rated;
+  - `hld_match_player` holds the submission (auto or not), simulation, baseline, speed, the judgement, total and place;
+  - `hld_design_version` keeps every autosave (the replay);
+  - `hld_judgement.match_id`; one pending request per player and problem now applies to practice only;
+  - HLD's own `hld_rating` and `hld_room_rating`, with their histories;
+  - the `rate_hld_match` message.
+- **Web:**
+  - `server/hld-matches.ts`:
+    - start (a random pooled variant);
+    - submit (simulated on the server, recorded once, only while open by the database's clock);
+    - `advance`, run by anyone who looks at the match. At the deadline it submits each player's last valid autosave (or the client alone), then closes. It asks each submission's judgement once (claimed per seat, released and asked again if it couldn't be queued). It scores once the graded judgements are in or after 15 minutes, and queues the ratings until rated;
+  - the casual queue `/api/hld/queue` (Valkey matchmaking, banded by HLD 1v1 rating), solo after 60 s at `/api/hld/solo`, and `GET /api/hld/match/<id>` (moves it on);
+  - server actions autosave versions (capped at 2,000 a match) and submit;
+  - pages: `/hld/play` (the lobby; it also moves the player's own unscored matches on), `/hld/match/<id>` (the canvas in match mode, with the clock and Submit), and `/hld/match/<id>/result`. The results show places with simulation, rubric and speed points, the rating change, and the player's own AI judgement and coaching;
+  - the canvas moved to `app/hld/` and has two modes, practice and match;
+  - the Play card leads to `/hld/play`.
+- **Worker:** `rate_hld_match` rates a scored match once, from its places: Glicko-2 for a 1v1, OpenSkill for 3–4. Unrated and solo matches are never rated.
+- **Infra:** the AWS stack counts "hld: match scored without the rubric" as the `Interval/Hld ScoredWithoutRubric` metric (LOAD-5). Both stacks synthesize.
+- **Review (Sonnet):** two blockers fixed:
+  - concurrent requests could both skip queueing a judgement, and a failed queue write stranded it. A submission is now recorded first, its judgement claimed once per seat, and an unqueued one retried;
+  - a pending practice-style uniqueness on (player, problem) made a match reuse an earlier match's pending judgement. Match judgements are now never shared.
+  - Also fixed: ratings re-queued until rated; scoring waits only on graded designs; the deadline is enforced in SQL; a refused save after submitting says so; versions are capped; the result page shows the seat's own judgement.
+- **Left:**
+  - W42 part 2: HLD's ranked windows (registration, grouping into rooms of up to 4);
+  - an appeal resolved after a match was scored doesn't re-score it;
+  - matches move on only when someone looks (ADR-0043's open question).

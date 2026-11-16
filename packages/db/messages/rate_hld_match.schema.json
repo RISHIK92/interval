@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Rate a scored HLD match from its places, in HLD's own ratings (MATCH-1, Q-P6-06, P6-W42).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["match_id"],
+  "properties": {
+    "match_id": { "type": "string", "minLength": 1 }
+  }
+}

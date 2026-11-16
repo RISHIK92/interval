@@ -1,0 +1,56 @@
+import { FAMILIES } from "./families";
+import { type League, variant } from "./family";
+import { POOL } from "./pool";
+import { practiceProblems } from "./practice";
+import type { HldProblem } from "./problem";
+
+// P6-W42 (HLDQ-2, HLDQ-3; Q-P6-04, Q-P6-06): a match's problem: a validated variant
+// from the pool, drawn at random. A match keeps (family, seed), and the seed rebuilds the
+// same problem every time it's asked for (replays, disputes, scoring).
+
+export function drawVariant(
+  league: League,
+  random: () => number,
+): { family: string; seed: number } {
+  const families = FAMILIES.filter(
+    (f) => (POOL[f.slug]?.[league].length ?? 0) > 0,
+  );
+  const family = families[Math.floor(random() * families.length)];
+  if (family === undefined)
+    throw new Error(`no HLD variants for the ${league} league`);
+  const seeds = POOL[family.slug]?.[league] ?? [];
+  const seed = seeds[Math.floor(random() * seeds.length)];
+  if (seed === undefined) throw new Error(`no seeds for ${family.slug}`);
+  return { family: family.slug, seed };
+}
+
+const built = new Map<string, HldProblem>();
+
+// A pooled variant's problem; null for one that isn't in the pool (never played).
+export function matchProblem(
+  family: string,
+  league: League,
+  seed: number,
+): HldProblem | null {
+  const f = FAMILIES.find((x) => x.slug === family);
+  if (f === undefined || !(POOL[family]?.[league].includes(seed) ?? false))
+    return null;
+  const key = `${family}/${league}/${String(seed)}`;
+  let problem = built.get(key);
+  if (problem === undefined) {
+    problem = variant(f, league, seed).problem;
+    built.set(key, problem);
+  }
+  return problem;
+}
+
+// The problem a judgement was for, by its slug: a practice problem (the family's slug)
+// or a pooled variant ("<family>-<league>-<seed>"); null for neither.
+export function problemBySlug(slug: string): HldProblem | null {
+  const practice = practiceProblems().find((p) => p.slug === slug);
+  if (practice !== undefined) return practice;
+  const m = /^(.+)-(human|ai)-(\d+)$/.exec(slug);
+  if (m === null) return null;
+  const [, family = "", league, seed = ""] = m;
+  return matchProblem(family, league === "ai" ? "ai" : "human", Number(seed));
+}

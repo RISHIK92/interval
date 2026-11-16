@@ -2047,6 +2047,7 @@ class InMemoryStore:
         self.interviewer = InMemoryInterviewer()
         self.reviews = InMemoryReviews()
         self.hld_judgements = InMemoryHldJudgements()
+        self.hld_matches = InMemoryHldMatches()
         self.scenes = InMemoryScenes()
         self.daily = InMemoryDailyChallenges()
         drop_feed = self.feed.drop_missing
@@ -2551,6 +2552,19 @@ class InMemoryHldJudgements:
 
     def resolved_appeals(self) -> list[tuple[str, dict[str, int]]]:
         return self.appeals
+
+
+class InMemoryHldMatches:
+    """P6-W42: the matches rated, by id (Postgres's rating is tested against it)."""
+
+    def __init__(self) -> None:
+        self.rated: list[str] = []
+
+    def rate(self, match_id: str) -> bool:
+        if match_id in self.rated:
+            return False
+        self.rated.append(match_id)
+        return True
 
 
 class InMemoryReminders:

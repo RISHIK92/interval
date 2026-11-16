@@ -37,7 +37,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 const canvas = vi.fn();
-vi.mock("./Canvas", () => ({
+vi.mock("../../Canvas", () => ({
   Canvas: (props: unknown) => {
     canvas(props);
     return null;

@@ -26,7 +26,7 @@ export async function POST(request: Request): Promise<Response> {
     (await forbidden(actor, "play.battle")) ??
     (await forbidden(actor, "play.live"));
   if (refused !== null) return refused;
-  if (!(await soloAllowed(actor.userId)))
+  if (!(await soloAllowed(actor.userId, "battle")))
     return new Response(null, { status: 429 });
   const matchId = await startBattle(
     battleDeps(),

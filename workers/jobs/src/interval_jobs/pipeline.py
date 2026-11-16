@@ -43,6 +43,7 @@ from interval_db.messages import (
     MessageName,
     OcrPage,
     ProjectNote,
+    RateHldMatch,
     RecomputeFeed,
     RemoveFile,
     ReviewCode,
@@ -263,6 +264,7 @@ class Pipeline:
             "answer_interviewer": self._interviewer_stage,
             "review_code": self._review_stage,
             "judge_hld": self._hld_judge_stage,
+            "rate_hld_match": self._hld_rate_stage,
         }
 
     # P5-W35 (§6.5, Q-P5-14, Q-P5-22): a battle player's AI code review, on request:
@@ -376,6 +378,13 @@ class Pipeline:
             if delivery.attempt >= ATTEMPTS:
                 unavailable("failed")
             raise
+
+    # P6-W42 (MATCH-1, Q-P6-06, ADR-0043): a scored HLD match's ratings, by its places.
+    def _hld_rate_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, RateHldMatch)
+        with self._unit() as services:
+            if services.store.hld_matches.rate(message.match_id):
+                log.info("hld: match rated", match_id=message.match_id)
 
     def _interviewer_stage(self, message: BaseModel, delivery: Delivery) -> None:
         assert isinstance(message, AnswerInterviewer)

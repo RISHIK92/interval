@@ -77,3 +77,14 @@ Phase 6 (docs/roadmap/phase-6.md) is HLD battles. The process is the owner's fro
   - **The scale:** each rubric criterion is graded at one of five anchored levels, with a one-line reason: 0 missing, 1 mentioned, 2 reasoned, 3 a sound trade-off, 4 excellent with alternatives weighed. The median of 3 per criterion. Rubric points = 25 × the weighted mean level / 4.
   - **Calibration:** about 50 candidate designs generated from the families (references, flawed designs, naive designs, empty notes, notes that try to inject), graded by the owner at `/admin/hld-calibration`. An eval command reports the judge's agreement; the owner runs it, since it calls the model.
   - **Appeals:** once per judgement, within 7 days, with a short reason. The owner re-grades at `/admin/hld-appeals`; the owner's grade replaces the judge's, and the appeal joins the calibration set.
+
+## Week 42: HLD matches
+
+### Q-P6-06 Where matches run, speed, ratings and windows, a missing judgement (P0 for W42)
+
+- Cite: §6.4, MATCH-1, MATCH-7, LOAD-2, CANVAS-5, ARCH-1, ADR-0034, Q-P6-03.
+- **Answers (owner, 2026-11-16):**
+  - **Where:** in the web app and Postgres. The web app starts a match (its deadline in the row), autosaves each player's design versions (the replay, Q-P6-03), and computes the official simulation server-side at submission or the deadline. The Python worker judges, and rates by the places the web app sets. No new deployable (ARCH-1). Recorded as ADR-0043 (PROPOSED), since the roadmap says "the official simulation worker".
+  - **Speed:** 15 × (time left ÷ time limit) at submission, only for a design that passes the baseline. A design auto-submitted at the deadline earns 0.
+  - **Ratings and windows:** separate from LLD's. HLD has its own Glicko (1v1) and OpenSkill (rooms) ratings per league, its own boards, and its own ranked windows at LLD's times with their own registration.
+  - **A missing judgement:** results wait up to 15 minutes for every judgement. If any player's is unavailable, the match is scored for everyone on simulation and speed (out of 75, scaled to 100), logged and counted.

@@ -30,7 +30,7 @@ const toJudgement = (r: Row): HldJudgement => ({
 
 export function kyselyHldJudgements(db: Kysely<DB>): HldJudgements {
   return {
-    request: async (userId, slug, input, baselinePassed) => {
+    request: async (userId, slug, input, baselinePassed, matchId) => {
       const json = JSON.stringify(input);
       // A request still pending after STALE was lost (its message dropped, or its
       // worker gone after its last try): it no longer blocks asking again.
@@ -50,6 +50,7 @@ export function kyselyHldJudgements(db: Kysely<DB>): HldJudgements {
         .where("user_id", "=", userId)
         .where("problem_slug", "=", slug)
         .where("status", "<>", "unavailable")
+        .where(sql<boolean>`match_id is not distinct from ${matchId}::uuid`)
         .where(sql<boolean>`input = ${json}::jsonb`)
         .orderBy("requested_at", "desc")
         .limit(1)
@@ -65,11 +66,13 @@ export function kyselyHldJudgements(db: Kysely<DB>): HldJudgements {
             problem_slug: slug,
             input: json,
             baseline_passed: baselinePassed,
+            match_id: matchId,
           })
           .onConflict((c) =>
             c
               .columns(["user_id", "problem_slug"])
               .where("status", "=", "pending")
+              .where("match_id", "is", null)
               .doNothing(),
           )
           .returning("id")
@@ -81,6 +84,7 @@ export function kyselyHldJudgements(db: Kysely<DB>): HldJudgements {
           .where("user_id", "=", userId)
           .where("problem_slug", "=", slug)
           .where("status", "=", "pending")
+          .where(sql<boolean>`match_id is not distinct from ${matchId}::uuid`)
           .executeTakeFirst();
         if (waiting !== undefined) return { id: waiting.id, created: false };
       }
@@ -107,6 +111,15 @@ export function kyselyHldJudgements(db: Kysely<DB>): HldJudgements {
         .limit(1)
         .executeTakeFirst();
       return row === undefined ? null : toJudgement(row);
+    },
+
+    ofMatch: async (matchId) => {
+      const rows = await db
+        .selectFrom("hld_judgement")
+        .selectAll()
+        .where("match_id", "=", matchId)
+        .execute();
+      return rows.map((r) => ({ ...toJudgement(r), userId: r.user_id }));
     },
 
     get: async (id, userId) => {

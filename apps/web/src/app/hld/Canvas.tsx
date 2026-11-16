@@ -27,9 +27,11 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import type { FeedbackView } from "../feedback";
-import { saveDesign } from "./actions";
 import { Feedback } from "./Feedback";
+import { MatchPanel } from "./MatchPanel";
+import { saveMatchDesign } from "./match/[id]/actions";
+import type { FeedbackView } from "./practice/feedback";
+import { saveDesign } from "./practice/[slug]/actions";
 
 // P6-W39 (CANVAS-1, CANVAS-2, CANVAS-5; Q-P6-03): the HLD canvas. The design is the one
 // state; React Flow draws it, and every edit goes through packages/hld's pure functions.
@@ -40,18 +42,22 @@ const SAVE_AFTER_MS = 2_000;
 const label = (kind: string) => kind.replaceAll("_", " ");
 
 type Selection = { node: string } | { from: string; to: string } | null;
-type SaveState = "saved" | "saving" | "waiting" | "stale" | "failed";
+// P6-W42: practice (the AI feedback on request) or a match (its clock and submission).
+export type CanvasMode =
+  | { kind: "practice"; feedback: FeedbackView | null }
+  | { kind: "match"; matchId: string; deadline: string; submitted: boolean };
+type SaveState = "saved" | "saving" | "waiting" | "stale" | "failed" | "closed";
 
 export function Canvas({
   problem,
   initial,
   version: loadedVersion,
-  feedback,
+  mode,
 }: {
   problem: HldProblem;
   initial: Design;
   version: number;
-  feedback: FeedbackView | null;
+  mode: CanvasMode;
 }) {
   const [design, setDesign] = useState(initial);
   const [selected, setSelected] = useState<Selection>(null);
@@ -103,17 +109,26 @@ export function Canvas({
     const timer = setTimeout(() => {
       inFlight.current = true;
       setSave("saving");
-      saveDesign(problem.slug, design, version.current)
+      (mode.kind === "match"
+        ? saveMatchDesign(mode.matchId, design, version.current)
+        : saveDesign(problem.slug, design, version.current)
+      )
         .then((r) => {
           if (r.ok) {
             version.current = r.version;
             savedJson.current = json;
             setSave("saved");
           } else {
-            stale.current = r.reason === "stale";
+            stale.current = r.reason === "stale" || r.reason === "closed";
             refusedJson.current = json;
             console.error("HLD autosave refused", r.reason);
-            setSave(stale.current ? "stale" : "failed");
+            setSave(
+              r.reason === "closed"
+                ? "closed"
+                : stale.current
+                  ? "stale"
+                  : "failed",
+            );
           }
         })
         .catch((error: unknown) => {
@@ -129,7 +144,7 @@ export function Canvas({
     return () => {
       clearTimeout(timer);
     };
-  }, [design, issues, problem.slug, settled]);
+  }, [design, issues, problem.slug, settled, mode]);
 
   const edgeId = (e: { from: string; to: string }) => `${e.from}->${e.to}`;
   const nodes: Node[] = design.nodes.map((n) => {
@@ -256,6 +271,8 @@ export function Canvas({
               saving: "Saving…",
               stale:
                 "This design was saved in another tab. Reload to carry on from there.",
+              closed:
+                "Submitted, or the time is up: changes here are no longer saved.",
               failed:
                 "Couldn't save. Your changes are kept here; the next change tries again.",
             }[save]
@@ -367,12 +384,20 @@ export function Canvas({
           </fieldset>
         ) : null}
 
-        <Feedback
-          slug={problem.slug}
-          design={design}
-          ready={issues.length === 0}
-          initial={feedback}
-        />
+        {mode.kind === "practice" ? (
+          <Feedback
+            ask={{ slug: problem.slug, design, ready: issues.length === 0 }}
+            initial={mode.feedback}
+          />
+        ) : (
+          <MatchPanel
+            matchId={mode.matchId}
+            deadline={mode.deadline}
+            submitted={mode.submitted}
+            design={design}
+            ready={issues.length === 0}
+          />
+        )}
 
         <section
           className="flex flex-col gap-2 rounded-md border border-line p-3"

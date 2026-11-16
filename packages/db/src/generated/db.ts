@@ -685,6 +685,14 @@ export interface HldCalibrationGrade {
   level: number;
 }
 
+export interface HldDesignVersion {
+  design: Json;
+  match_id: string;
+  saved_at: Generated<Timestamp>;
+  user_id: string;
+  version: number;
+}
+
 export interface HldJudgement {
   appeal_reason: string | null;
   appealed_at: Timestamp | null;
@@ -694,6 +702,7 @@ export interface HldJudgement {
   input: Json;
   judged_at: Timestamp | null;
   levels: Json | null;
+  match_id: string | null;
   model: string | null;
   owner_levels: Json | null;
   problem_slug: string;
@@ -704,12 +713,83 @@ export interface HldJudgement {
   user_id: string;
 }
 
+export interface HldMatch {
+  closed_at: Timestamp | null;
+  deadline_at: Timestamp;
+  family: string;
+  id: Generated<string>;
+  league: string;
+  rated_at: Timestamp | null;
+  rubric_included: boolean | null;
+  scored_at: Timestamp | null;
+  seed: number;
+  started_at: Generated<Timestamp>;
+  unrated: Generated<boolean>;
+  window_at: Timestamp | null;
+}
+
+export interface HldMatchPlayer {
+  auto_submitted: Generated<boolean>;
+  baseline_passed: boolean | null;
+  design: Json | null;
+  judgement_id: string | null;
+  match_id: string;
+  place: number | null;
+  simulation_points: Numeric | null;
+  speed_points: Numeric | null;
+  submitted_at: Timestamp | null;
+  total: Numeric | null;
+  user_id: string;
+}
+
 export interface HldPracticeDesign {
   design: Json;
   problem_slug: string;
   saved_at: Generated<Timestamp>;
   user_id: string;
   version: number;
+}
+
+export interface HldRating {
+  games: Generated<number>;
+  league: string;
+  rating: number;
+  rd: number;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+  volatility: number;
+}
+
+export interface HldRatingHistory {
+  at: Generated<Timestamp>;
+  league: string;
+  match_id: string;
+  rating_after: number;
+  rating_before: number;
+  rd_after: number;
+  score: number;
+  user_id: string;
+  volatility_after: number;
+}
+
+export interface HldRoomRating {
+  games: Generated<number>;
+  league: string;
+  mu: number;
+  sigma: number;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+}
+
+export interface HldRoomRatingHistory {
+  at: Generated<Timestamp>;
+  league: string;
+  match_id: string;
+  mu_after: number;
+  mu_before: number;
+  rank: number;
+  sigma_after: number;
+  user_id: string;
 }
 
 export interface InviteCode {
@@ -1501,8 +1581,15 @@ export interface DB {
   graph_version: GraphVersion;
   guest_start: GuestStart;
   hld_calibration_grade: HldCalibrationGrade;
+  hld_design_version: HldDesignVersion;
   hld_judgement: HldJudgement;
+  hld_match: HldMatch;
+  hld_match_player: HldMatchPlayer;
   hld_practice_design: HldPracticeDesign;
+  hld_rating: HldRating;
+  hld_rating_history: HldRatingHistory;
+  hld_room_rating: HldRoomRating;
+  hld_room_rating_history: HldRoomRatingHistory;
   invite_code: InviteCode;
   item_concept: ItemConcept;
   item_concept_probability: ItemConceptProbability;

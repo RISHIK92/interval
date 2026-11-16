@@ -2214,15 +2214,20 @@ export type HldAppeal = HldJudgement & {
 };
 export interface HldJudgements {
   // A new request, or the one already waiting for this player and problem (LOAD-5).
+  // `matchId`: a match submission's (W42); null for practice. The same design is only
+  // ever reused within its own match or practice.
   request(
     userId: string,
     slug: string,
     input: JudgeInput,
     baselinePassed: boolean,
+    matchId: string | null,
   ): Promise<{ id: string; created: boolean }>;
   // Its message couldn't be queued: the request goes, so the player may ask again.
   drop(id: string): Promise<void>;
   latest(userId: string, slug: string): Promise<HldJudgement | null>;
+  // A match's judgements, for scoring it (W42).
+  ofMatch(matchId: string): Promise<(HldJudgement & { userId: string })[]>;
   get(id: string, userId: string): Promise<HldJudgement | null>;
   // Q-P6-05: once, within 7 days of the request, of a judgement that has levels.
   appeal(
@@ -2240,4 +2245,89 @@ export interface HldJudgements {
     levels: Record<string, number>,
     by: string,
   ): Promise<void>;
+}
+
+// P6-W42 (§6.4, MATCH-7, Q-P6-06, ADR-0043): HLD matches, run by the web app. A match is
+// a pooled variant with a deadline; players autosave versions (the replay) and submit
+// once; the web app closes, scores and places it, and the worker rates it.
+export type HldMatch = {
+  id: string;
+  family: string;
+  league: League;
+  seed: number;
+  unrated: boolean;
+  windowAt: Date | null;
+  startedAt: Date;
+  deadlineAt: Date;
+  closedAt: Date | null;
+  scoredAt: Date | null;
+  rubricIncluded: boolean | null;
+  ratedAt: Date | null;
+};
+export type HldSeat = {
+  userId: string;
+  player: string;
+  submittedAt: Date | null;
+  autoSubmitted: boolean;
+  simulationPoints: number | null;
+  baselinePassed: boolean | null;
+  speedPoints: number | null;
+  judgementId: string | null;
+  design: unknown; // as submitted; null until then
+  total: number | null;
+  place: number | null;
+};
+export type HldSubmission = {
+  design: Design;
+  simulationPoints: number;
+  baselinePassed: boolean;
+  speedPoints: number;
+  auto: boolean;
+  at: Date;
+};
+export interface HldMatches {
+  create(
+    players: string[],
+    variant: { family: string; league: League; seed: number },
+    options: { unrated: boolean; windowAt: Date | null; minutes: number },
+  ): Promise<string>;
+  get(id: string): Promise<{ match: HldMatch; seats: HldSeat[] } | null>;
+  // A player's autosave over version `base` (0: none yet), while the match is open; the
+  // new version, or null (stale, closed, or not their match).
+  saveVersion(
+    id: string,
+    userId: string,
+    design: Design,
+    base: number,
+  ): Promise<number | null>;
+  latestVersion(
+    id: string,
+    userId: string,
+  ): Promise<{ design: unknown; version: number } | null>;
+  // Once per player, and (unless submitted for them at the deadline) only while the
+  // match is open; false otherwise.
+  submit(id: string, userId: string, s: HldSubmission): Promise<boolean>;
+  // The judgement asked for a submission, kept by the first request to claim the seat;
+  // false when another got there first.
+  claimJudgement(
+    id: string,
+    userId: string,
+    judgementId: string,
+  ): Promise<boolean>;
+  // A claimed judgement that couldn't be queued: the seat is free to ask again.
+  releaseJudgement(
+    id: string,
+    userId: string,
+    judgementId: string,
+  ): Promise<void>;
+  close(id: string, at: Date): Promise<boolean>; // once
+  score(
+    id: string,
+    rubricIncluded: boolean,
+    standings: { userId: string; total: number; place: number }[],
+    at: Date,
+  ): Promise<boolean>; // once
+  ratingOf(userId: string, league: League): Promise<number>; // 1v1, for the queue's band
+  ratingChanges(id: string): Promise<Map<string, number>>;
+  unscoredFor(userId: string): Promise<string[]>;
 }

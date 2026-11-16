@@ -1299,6 +1299,9 @@ class Store(Protocol):
     def hld_judgements(self) -> "HldJudgements": ...
 
     @property
+    def hld_matches(self) -> "HldMatches": ...
+
+    @property
     def scenes(self) -> "Scenes": ...
 
 
@@ -2250,6 +2253,16 @@ class HldJudgements(Protocol):
     def resolved_appeals(self) -> list[tuple[str, dict[str, int]]]:
         """Each resolved appeal's judge input (JSON) and the owner's levels: they join
         the calibration set (Q-P6-05)."""
+        ...
+
+
+class HldMatches(Protocol):
+    """P6-W42 (MATCH-1, Q-P6-06, ADR-0043): HLD matches are scored and placed by the web
+    app; the worker rates them, in HLD's own ratings."""
+
+    def rate(self, match_id: str) -> bool:
+        """Rates a scored, rated match once, from its places; False when there was
+        nothing to rate (unrated, not scored, rated already, or one player)."""
         ...
 
 

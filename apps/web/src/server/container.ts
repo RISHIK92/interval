@@ -33,6 +33,8 @@ import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
 import { kyselyBattleSnapshots } from "./adapters/kysely-battle-snapshots";
 import { kyselyHldJudgements } from "./adapters/kysely-hld-judgements";
+import { kyselyHldMatches } from "./adapters/kysely-hld-matches";
+import { type HldDeps, startHldMatch } from "./hld-matches";
 import { kyselyHldPracticeDesigns } from "./adapters/kysely-hld-practice-designs";
 import { kyselyAdminExplainers } from "./adapters/kysely-admin-explainers";
 import { kyselyAdminScenes } from "./adapters/kysely-admin-scenes";
@@ -60,6 +62,7 @@ import { valkeyRateLimits } from "./adapters/valkey-rate-limits";
 import { valkeyMatchHandoff } from "./adapters/valkey-match-handoff";
 import {
   casualBattlePrefix,
+  casualHldPrefix,
   queuePrefix,
   valkeyMatchmaking,
 } from "./adapters/valkey-matchmaking";
@@ -126,6 +129,7 @@ import type {
   GuestLimits,
   GuestSessions,
   HldJudgements,
+  HldMatches,
   HldPracticeDesigns,
   InviteCodes,
   JobQueue,
@@ -489,13 +493,18 @@ export function casualBattles(league: League): Matchmaking {
 // P5-W32 (Q-P5-19): one solo battle at a time per player, each holding a game server
 // actor for its 45 minutes. shortcut: a solo finished early still holds the lock to
 // 45:00; clear it on the result if players ask for back-to-back solos.
-export async function soloAllowed(userId: string): Promise<boolean> {
+export async function soloAllowed(
+  userId: string,
+  game: "battle" | "hld",
+): Promise<boolean> {
+  // One solo game of each kind at a time, for about its length.
+  const minutes = game === "battle" ? 45 : 30;
   return (
     (await valkeyClient().set(
-      `battle:solo:${userId}`,
+      `${game}:solo:${userId}`,
       "1",
       "EX",
-      45 * 60,
+      minutes * 60,
       "NX",
     )) === "OK"
   );
@@ -533,6 +542,34 @@ export function battleSnapshots(): BattleSnapshots {
 // P6-W41 (CANVAS-6, Q-P6-05): HLD judgements, appeals and calibration grades.
 export function hldJudgements(): HldJudgements {
   return kyselyHldJudgements(db());
+}
+
+// P6-W42 (Q-P6-06, ADR-0043): HLD matches, and what moving one on needs.
+export function hldMatches(): HldMatches {
+  return kyselyHldMatches(db());
+}
+export function hldDeps(): HldDeps {
+  return {
+    matches: hldMatches(),
+    judgements: hldJudgements(),
+    queue: jobQueue(),
+    now: () => new Date(),
+    random: Math.random,
+  };
+}
+// The casual HLD queue (MATCH-7): unrated 1v1s, banded by HLD 1v1 rating, apart from
+// LLD's.
+export function casualHld(league: League): Matchmaking {
+  return valkeyMatchmaking(
+    valkeyClient(),
+    async (players) =>
+      startHldMatch(hldDeps(), players, league, {
+        unrated: true,
+        windowAt: null,
+      }),
+    Date.now,
+    casualHldPrefix(league),
+  );
 }
 
 // P6-W39 (ADR-0042 PROPOSED, Q-P6-03): practice designs, autosaved from the canvas.

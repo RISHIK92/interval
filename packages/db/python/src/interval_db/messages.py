@@ -128,6 +128,13 @@ class ProjectNote(_Message):
     user_id: Annotated[str, Field(min_length=1)]
 
 
+class RateHldMatch(_Message):
+    """Rate a scored HLD match from its places, in HLD's own ratings (MATCH-1,
+    Q-P6-06, P6-W42)."""
+
+    match_id: Annotated[str, Field(min_length=1)]
+
+
 class RecomputeFeed(_Message):
     """Rank one user's feed again and store it (CACHE-1, Q-P1-17, ADR-0008)."""
 
@@ -188,6 +195,7 @@ type MessageName = Literal[
     "match_finished",
     "ocr_page",
     "project_note",
+    "rate_hld_match",
     "recompute_feed",
     "remove_file",
     "review_code",
@@ -211,6 +219,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "match_finished": MatchFinished,
     "ocr_page": OcrPage,
     "project_note": ProjectNote,
+    "rate_hld_match": RateHldMatch,
     "recompute_feed": RecomputeFeed,
     "remove_file": RemoveFile,
     "review_code": ReviewCode,

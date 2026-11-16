@@ -1,15 +1,12 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { FAMILIES } from "./families";
-import { buildPool, POOL_SIZE, type Pool, validate, variant } from "./family";
+import { buildPool, POOL_SIZE, validate, variant } from "./family";
+import { POOL } from "./pool";
 import { practiceProblems } from "./practice";
 import { simulate } from "./simulate";
 
 // P6-W40 (HLDQ-2, HLDQ-3; Q-P6-04): the families, their variants and the pool.
-const pool = JSON.parse(
-  readFileSync(join(import.meta.dirname, "pool.json"), "utf8"),
-) as Pool;
+const pool = POOL;
 
 test("there are 8 families, each with its own slug", () => {
   expect(new Set(FAMILIES.map((f) => f.slug)).size).toBe(8);
@@ -17,7 +14,7 @@ test("there are 8 families, each with its own slug", () => {
 
 // CANVAS-3's regression check for variants: an engine or family change that breaks one
 // fails here; `pnpm --filter @interval/hld data` rebuilds the file.
-test("pool.json is what the families and the engine make now", () => {
+test("pool.ts is what the families and the engine make now", () => {
   expect(buildPool(FAMILIES)).toEqual(pool);
 });
 

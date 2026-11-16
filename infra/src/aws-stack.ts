@@ -410,6 +410,17 @@ export class AwsStack extends Stack {
       metricName: "EmitFailures",
       metricValue: "$.count",
     });
+    // P6-W42 (Q-P6-06, LOAD-5): an HLD match scored without the rubric, because a
+    // player's AI judgement was missing.
+    logGroup.addMetricFilter("HldScoredWithoutRubric", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "hld: match scored without the rubric",
+      ),
+      metricNamespace: "Interval/Hld",
+      metricName: "ScoredWithoutRubric",
+    });
     // P3-W17-S05b (LOAD-5): an agent hook nudge that couldn't be queued (the start
     // stood), and a push that failed (not retried: a late nudge is useless).
     logGroup.addMetricFilter("AgentNudgeNotQueued", {

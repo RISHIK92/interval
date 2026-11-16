@@ -62,6 +62,10 @@ export const messageSchemas = {
     content_item_id: z.number().int().min(1),
     user_id: z.string().min(1),
   }),
+  // Rate a scored HLD match from its places, in HLD's own ratings (MATCH-1, Q-P6-06, P6-W42).
+  rate_hld_match: z.strictObject({
+    match_id: z.string().min(1),
+  }),
   // Rank one user's feed again and store it (CACHE-1, Q-P1-17, ADR-0008).
   recompute_feed: z.strictObject({
     user_id: z.string().min(1),

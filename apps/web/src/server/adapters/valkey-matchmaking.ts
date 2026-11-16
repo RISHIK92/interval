@@ -150,6 +150,9 @@ export const queuePrefix = (mode: GameMode) => `mm:${REGION}:${mode}:`;
 // P5-W32 (Q-P5-19): the casual battle queues, unrated 1v1s, one per league (P5-W33).
 export const casualBattlePrefix = (league: League) =>
   `mm:${REGION}:battle:${league}:`;
+// P6-W42 (Q-P6-06): HLD's casual queue, apart from LLD's.
+export const casualHldPrefix = (league: League) =>
+  `mm:${REGION}:hld:${league}:`;
 
 export function valkeyMatchmaking(
   redis: Redis,
