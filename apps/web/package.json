@@ -20,7 +20,7 @@
     "@types/pg": "8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
-    "eslint-config-next": "16.4.3",
+    "eslint-config-next": "16.4.6",
     "monaco-editor": "0.57.0",
     "tailwindcss": "4.3.3"
   },
@@ -51,7 +51,7 @@
     "hls.js": "1.7.3",
     "ioredis": "6.0.0",
     "kysely": "0.29.7",
-    "next": "16.4.3",
+    "next": "16.4.6",
     "pdfjs-dist": "6.4.299",
     "pg": "8.23.1",
     "react": "19.3.1",
