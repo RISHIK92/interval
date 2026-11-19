@@ -14,10 +14,11 @@ test("there are 8 families, each with its own slug", () => {
 });
 
 // CANVAS-3's regression check for variants: an engine or family change that breaks one
-// fails here; `pnpm --filter @interval/hld data` rebuilds the file.
+// fails here; `pnpm --filter @interval/hld data` rebuilds the file. It simulates every
+// variant: about 2 s alone, but past the 5 s default when a 4-CPU machine runs all suites.
 test("pool.ts is what the families and the engine make now", () => {
   expect(buildPool(FAMILIES)).toEqual(pool);
-});
+}, 30_000);
 
 describe.each(FAMILIES)("$slug", (family) => {
   test("each league has a full pool of valid seeds, none of them for practice", () => {

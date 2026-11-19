@@ -6023,3 +6023,16 @@ The owner said to continue building overnight with recommended answers, switchin
   - the web suite passed (1,672 tests, including the fixed tournaments test), with type-check, lint and format;
   - HLD passed 112 and LLD passed everything but the Go emitter test (m6 has no Go);
   - Python isn't run there (no uv); CI runs everything.
+
+## 2026-11-19: The full check on m6; the Phase 7 plan drafted
+
+- **m6 runs everything now:** uv 0.13.7 (16 days old, checksum verified) is in `~/bin`, and Go is installed. The full `pnpm check --continue` against the walk stack passed 62 of 64 tasks, including Python and Go:
+  - **`@interval/hld`:** the pool regression test timed out at vitest's 5 s default while all suites shared 4 CPUs. It takes about 2 s alone, and now has a 30 s timeout.
+  - **`@interval/infra`:** the AWS stack's synth hook passed its 300 s limit under the same load. Alone, it passes all 71 tests in about 2 minutes, so it's left as is.
+- **The LLD battle walkthrough is still blocked:** without `VELOX_URL` the game server refuses battles, and configuring Velox is the owner's.
+- **Phase 7 (DRAFT, for the owner's review):** `docs/roadmap/phase-7-slices.md` and `docs/questions/phase-7.md` (Q-P7-01 to Q-P7-06). Nothing is built until they're approved.
+  - **W46:** a read-only agent-status and suggestions API shared by the surfaces, plus installers for agents with documented hooks.
+  - **W47:** the VS Code extension.
+  - **W48–49:** the desktop companion, blocked on its Electron or Tauri ADR.
+  - **W50–51:** community-submitted questions.
+  - **Institutional features:** undefined in the docs, so Q-P7-06 asks the owner.
