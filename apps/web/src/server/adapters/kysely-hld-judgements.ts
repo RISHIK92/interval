@@ -1,13 +1,16 @@
 import type { DB } from "@interval/db";
 import { JudgeInput, Levels } from "@interval/hld";
 import { type Kysely, type Selectable, sql } from "kysely";
-import type { HldJudgement, HldJudgements } from "../ports";
+import {
+  HLD_STALE_MINUTES,
+  type HldJudgement,
+  type HldJudgements,
+} from "../ports";
 
 // P6-W41 (CANVAS-6, Q-P6-05): HLD judgements, appeals and calibration grades. The
 // worker writes levels and advice; levels are checked against packages/hld's schema as
 // they're read, so a malformed row shows as unjudged, never as wrong points.
 const APPEAL_DAYS = 7;
-const STALE = "15 minutes"; // far past the worker's last try
 
 type Row = Selectable<DB["hld_judgement"]>;
 
@@ -32,7 +35,7 @@ export function kyselyHldJudgements(db: Kysely<DB>): HldJudgements {
   return {
     request: async (userId, slug, input, baselinePassed, matchId) => {
       const json = JSON.stringify(input);
-      // A request still pending after STALE was lost (its message dropped, or its
+      // A request still pending after HLD_STALE_MINUTES was lost (its message dropped, or its
       // worker gone after its last try): it no longer blocks asking again.
       await db
         .updateTable("hld_judgement")
@@ -40,7 +43,11 @@ export function kyselyHldJudgements(db: Kysely<DB>): HldJudgements {
         .where("user_id", "=", userId)
         .where("problem_slug", "=", slug)
         .where("status", "=", "pending")
-        .where("requested_at", "<", sql<Date>`now() - ${STALE}::interval`)
+        .where(
+          "requested_at",
+          "<",
+          sql<Date>`now() - make_interval(mins => ${HLD_STALE_MINUTES})`,
+        )
         .execute();
       // The same design again gets the feedback it already has, waiting or written,
       // rather than paying the model for it twice (OPS-4).

@@ -13,7 +13,7 @@ tasks they depend on are done.
   yet. A task can therefore only depend on earlier ones, so there are no cycles to
   check for.
 - `next()`: picks the ready task with the highest priority, marks it running and returns
-  its id. A task is ready when it is waiting to run and every one of its dependencies is
+  its id. A task is ready when it has not started and every one of its dependencies is
   done (a dependency that is only running isn't done). When several ready tasks share
   the highest priority, the one added first wins, whenever it became ready. Returns null
   when no task is ready.

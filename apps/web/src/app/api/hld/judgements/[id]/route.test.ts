@@ -68,6 +68,28 @@ test("an owner's re-grade replaces the judge's", async () => {
   });
 });
 
+// Found by the walkthrough: a request whose job was lost stayed "pending" forever, and
+// the panel kept its button disabled, so the player could never ask again.
+test("a request still pending past the stale limit shows as unavailable, so it can be asked again", async () => {
+  current.mockResolvedValue(ada);
+  get.mockResolvedValueOnce({
+    ...judgement,
+    status: "pending",
+    levels: null,
+    coach: null,
+    requestedAt: new Date(Date.now() - 20 * 60_000),
+  });
+  expect(await (await read()).json()).toMatchObject({ status: "unavailable" });
+  get.mockResolvedValueOnce({
+    ...judgement,
+    status: "pending",
+    levels: null,
+    coach: null,
+    requestedAt: new Date(),
+  });
+  expect(await (await read()).json()).toMatchObject({ status: "pending" });
+});
+
 test("someone else's, or none: not found", async () => {
   current.mockResolvedValue(ada);
   get.mockResolvedValueOnce(null);

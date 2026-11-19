@@ -303,6 +303,7 @@ export const FAMILIES: readonly Family[] = [
     title: "Chat",
     requirements: [
       "Send a message to a conversation.",
+      "Deliver it to the recipient, even if they're offline.",
       "Load a conversation's recent history.",
     ],
     concepts: ["streams", "ordering", "write-heavy workloads"],
@@ -611,7 +612,7 @@ export const FAMILIES: readonly Family[] = [
     slug: "rate-limiter",
     title: "Rate limiter",
     requirements: [
-      "Allow or refuse each API request against its client's limits, in a few milliseconds.",
+      "Allow or refuse each API request against its client's limits, adding very little latency.",
       "Change a client's limits without a restart.",
     ],
     concepts: ["counters", "consistency", "latency budgets"],

@@ -6,7 +6,8 @@ The goal (Phase 5's "done when"): at a ranked window's start, 95% of submissions
 
 - **k6:** `brew install k6`. It's the owner's tool (Q-P5-21), not a repo dependency.
 - **The local stack:** `docker compose up -d --wait`, then `pnpm db:migrate`, then `pnpm problems:load`. The problems' private files must be in the bucket.
-- **The game server** (`services/game`) on port 8080, with `VELOX_URL` and `VELOX_API_KEY` in `.env`.
+- **In `.env`:** `VALKEY_URL` (load:prepare reads it), `GAME_TICKET_SECRET` (at least 32 characters; k6 mints tickets with it), `VELOX_URL` and `VELOX_API_KEY`.
+- **The game server** as server 0 on port 8080 (the script connects to `/game/0/ws`): `cd services/game && GAME_SERVER_ID=0 ../../scripts/with-env.sh go run .`
 - **Velox** running, with that key's ID in Velox's `JUDGE_API_KEY_IDS`.
 
 ## Run it
@@ -42,7 +43,7 @@ The goal (Phase 6's "done when"): 95% of simulations finish within 2 seconds. Th
 
 - **k6:** `brew install k6`.
 - **The local stack:** `docker compose up -d --wait`, then `pnpm db:migrate`.
-- **The web app, as a production build** (`pnpm turbo build`, then `pnpm --filter @interval/web start --port 3100` with the env loaded). `next dev` compiles each route on its first request, which can take tens of seconds and would swamp the numbers. No worker is needed: the judge jobs just queue.
+- **The web app, as a production build** (`pnpm turbo build`, then `scripts/with-env.sh pnpm --filter @interval/web start --port 3100`). `next dev` compiles each route on its first request, which can take tens of seconds and would swamp the numbers. No worker is needed: the judge jobs just queue.
 
 ## Run it
 

@@ -5990,3 +5990,36 @@ The owner said to continue building overnight with recommended answers, switchin
 - **The appeal rate** ("under 5% of results disputed"): `/admin/hld-appeals` shows the last 30 days' appealed match judgements over graded ones. Practice feedback isn't a result.
 - **docs/runbooks/hld-cup.md:** before a cup (problems, the judge's eval, load, the worker, universities), making it, running it round by round, and afterwards (appeals, recording it).
 - **docs/runbooks/phase-6-checklist.md:** the "done when" mapped to where each is measured, what each week built, and the owner's items.
+
+### 2026-11-19 — The HLD browser walkthrough, two bugs it found, content pre-review, the owner's runs and decisions
+
+- **Where:** the owner's m6 VM over Tailscale (`dev@m6`), so the heavy work stays off the Mac:
+  - the repo's tracked files were copied over (no `.env`), and the compose stack runs on remapped ports, since m6 uses 5432;
+  - the env comes from `.env.example` plus fresh local secrets, in a VM-only file outside the repo;
+  - migrations, a production build, and `next start` on :3100.
+  - The Mac's Chrome walkthrough was abandoned: the extension lost the page under the Mac's memory pressure.
+- **The walkthrough** (Playwright, headless Chromium, 4 test players, each in its own browser context, 25 steps with screenshots):
+  - practice (canvas, configure, autosave, the 60/60 preview, ask for feedback);
+  - a solo match from the lobby;
+  - a casual 1v1 (matched, submitted, scored with the rubric left out, the replay);
+  - a tournament (created from the admin form, 3 registered and checked in, round 1 with a bye, live spectating by a non-player, the bye player refused, submissions, the public replay, the standings, round 2).
+  - The final run passed everything except a re-run artifact (two tournaments, so two buttons). LLD battles weren't walked: they need the game server and a configured Velox.
+- **Bugs found and fixed, each test first:**
+  - **The solo fallback never opened the match,** in the HLD lobby and in Phase 5's LLD battle lobby alike. Saying "solo" re-ran the queue effect, whose cleanup dropped the solo match's navigation; the match was made, and the page stayed on "Starting a solo match…". Navigation now waits on "still on this page" (a ref). The tests render the real lobbies in jsdom and run the minute outside `act`, as a browser does.
+  - **Lost feedback requests blocked the player for good.** A request whose job was lost stayed pending, and the panel kept its button disabled, so the 15-minute stale rule (applied only when asking again) never got a chance. Pending past `HLD_STALE_MINUTES` now shows as unavailable; one constant serves the adapter and the view.
+  - The tournaments adapter test assumed no other tournament had retired variants; it now checks only its own.
+- **New dev dependency:** `jsdom` 26.1.0 in apps/web, owner-approved. It was already in the lockfile through another package.
+- **Content pre-review (Sonnet):** no errors in spec v1.0, the 8 families or the 3 cups. Applied:
+  - the task-scheduler "ready" wording no longer collides with the "waiting" status;
+  - a leaderboard statement line is rewrapped;
+  - the rate limiter's requirement says "adding very little latency", not "a few milliseconds";
+  - chat's requirements now include delivery to an offline recipient (its rubric asks about it).
+  - Judgement calls left for the owner: no CDN staleness cost (the live-scores cup's 5-second TTL makes its CDN lesson unshowable in v1.0); stream partitions may be generous; rubrics have two criteria.
+- **For the owner:**
+  - `docs/runbooks/owner-runs.md`: both k6 load tests, the judge eval and Velox's red-team rows, with prerequisites, commands, reading and cleanup;
+  - `docs/owner-decisions.md`: ADRs 0039–0043 and the open questions, each with a recommendation;
+  - the load-test runbook gained the game server's start (`GAME_SERVER_ID=0`) and its env, and the cup runbook names `OPENROUTER_API_KEY` and `--model` for the eval.
+- **Checks on m6:**
+  - the web suite passed (1,672 tests, including the fixed tournaments test), with type-check, lint and format;
+  - HLD passed 112 and LLD passed everything but the Go emitter test (m6 has no Go);
+  - Python isn't run there (no uv); CI runs everything.

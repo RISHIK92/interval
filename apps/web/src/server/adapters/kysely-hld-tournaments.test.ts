@@ -69,9 +69,10 @@ test("made with its problems retired; entered, checked in, and started round by 
       { name: "Practice Cup", league: "human", startsAt, rounds },
       owner,
     );
-    expect(await kyselyHldMatches(trx).retired("human")).toEqual(
-      new Set(rounds.map((r) => `chat/${String(r.seed)}`)),
-    );
+    // Other tournaments in the database may have retired variants too: only ours count.
+    const retired = await kyselyHldMatches(trx).retired("human");
+    for (const r of rounds)
+      expect(retired.has(`chat/${String(r.seed)}`)).toBe(true);
     expect(await tournaments.register(id, ada)).toBe(true);
     expect(await tournaments.register(id, bob)).toBe(true);
     const early = new Date(startsAt.getTime() - 2 * 3600_000);

@@ -2206,6 +2206,7 @@
       "title": "Chat",
       "requirements": [
         "Send a message to a conversation.",
+        "Deliver it to the recipient, even if they're offline.",
         "Load a conversation's recent history.",
         "About 4,060 history, 1,740 send requests a second on a normal day.",
         "140 GB kept today, growing 3 GB a day: 1,235 GB within 365 days.",
@@ -2344,6 +2345,7 @@
       "title": "Chat",
       "requirements": [
         "Send a message to a conversation.",
+        "Deliver it to the recipient, even if they're offline.",
         "Load a conversation's recent history.",
         "About 4,060 history, 1,740 send requests a second on a normal day.",
         "140 GB kept today, growing 3 GB a day: 1,235 GB within 365 days.",
@@ -2482,6 +2484,7 @@
       "title": "Chat",
       "requirements": [
         "Send a message to a conversation.",
+        "Deliver it to the recipient, even if they're offline.",
         "Load a conversation's recent history.",
         "About 4,060 history, 1,740 send requests a second on a normal day.",
         "140 GB kept today, growing 3 GB a day: 1,235 GB within 365 days.",
@@ -2570,6 +2573,7 @@
       "title": "Chat",
       "requirements": [
         "Send a message to a conversation.",
+        "Deliver it to the recipient, even if they're offline.",
         "Load a conversation's recent history.",
         "About 4,060 history, 1,740 send requests a second on a normal day.",
         "140 GB kept today, growing 3 GB a day: 1,235 GB within 365 days.",
@@ -2708,6 +2712,7 @@
       "title": "Chat",
       "requirements": [
         "Send a message to a conversation.",
+        "Deliver it to the recipient, even if they're offline.",
         "Load a conversation's recent history.",
         "About 4,060 history, 1,740 send requests a second on a normal day.",
         "140 GB kept today, growing 3 GB a day: 1,235 GB within 365 days.",
@@ -2846,6 +2851,7 @@
       "title": "Chat",
       "requirements": [
         "Send a message to a conversation.",
+        "Deliver it to the recipient, even if they're offline.",
         "Load a conversation's recent history.",
         "About 4,060 history, 1,740 send requests a second on a normal day.",
         "140 GB kept today, growing 3 GB a day: 1,235 GB within 365 days.",
@@ -5512,7 +5518,7 @@
     "input": {
       "title": "Rate limiter",
       "requirements": [
-        "Allow or refuse each API request against its client's limits, in a few milliseconds.",
+        "Allow or refuse each API request against its client's limits, adding very little latency.",
         "Change a client's limits without a restart.",
         "About 10,476 check, 324 rules requests a second on a normal day.",
         "10 GB kept today, growing 0.5 GB a day: 193 GB within 365 days.",
@@ -5646,7 +5652,7 @@
     "input": {
       "title": "Rate limiter",
       "requirements": [
-        "Allow or refuse each API request against its client's limits, in a few milliseconds.",
+        "Allow or refuse each API request against its client's limits, adding very little latency.",
         "Change a client's limits without a restart.",
         "About 10,476 check, 324 rules requests a second on a normal day.",
         "10 GB kept today, growing 0.5 GB a day: 193 GB within 365 days.",
@@ -5780,7 +5786,7 @@
     "input": {
       "title": "Rate limiter",
       "requirements": [
-        "Allow or refuse each API request against its client's limits, in a few milliseconds.",
+        "Allow or refuse each API request against its client's limits, adding very little latency.",
         "Change a client's limits without a restart.",
         "About 10,476 check, 324 rules requests a second on a normal day.",
         "10 GB kept today, growing 0.5 GB a day: 193 GB within 365 days.",
@@ -5868,7 +5874,7 @@
     "input": {
       "title": "Rate limiter",
       "requirements": [
-        "Allow or refuse each API request against its client's limits, in a few milliseconds.",
+        "Allow or refuse each API request against its client's limits, adding very little latency.",
         "Change a client's limits without a restart.",
         "About 10,476 check, 324 rules requests a second on a normal day.",
         "10 GB kept today, growing 0.5 GB a day: 193 GB within 365 days.",
@@ -6002,7 +6008,7 @@
     "input": {
       "title": "Rate limiter",
       "requirements": [
-        "Allow or refuse each API request against its client's limits, in a few milliseconds.",
+        "Allow or refuse each API request against its client's limits, adding very little latency.",
         "Change a client's limits without a restart.",
         "About 10,476 check, 324 rules requests a second on a normal day.",
         "10 GB kept today, growing 0.5 GB a day: 193 GB within 365 days.",
@@ -6136,7 +6142,7 @@
     "input": {
       "title": "Rate limiter",
       "requirements": [
-        "Allow or refuse each API request against its client's limits, in a few milliseconds.",
+        "Allow or refuse each API request against its client's limits, adding very little latency.",
         "Change a client's limits without a restart.",
         "About 10,476 check, 324 rules requests a second on a normal day.",
         "10 GB kept today, growing 0.5 GB a day: 193 GB within 365 days.",

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { WindowStatus } from "../../../server/battle-windows";
 import type { League } from "../../../server/ports";
 
@@ -24,6 +24,15 @@ export type HldWindow = {
 
 export function HldLobby({ window: initial }: { window: HldWindow }) {
   const router = useRouter();
+  // Navigation waits on "still on this page", not on the effect that asked: saying
+  // "solo" re-runs that effect, and its cleanup would drop the solo match's navigation.
+  const onPage = useRef(true);
+  useEffect(() => {
+    onPage.current = true;
+    return () => {
+      onPage.current = false;
+    };
+  }, []);
   const [league, setLeague] = useState<League>(initial.league ?? "human");
   const [windowState, setWindow] = useState(initial);
   const [state, setState] = useState<"idle" | "waiting" | "solo">("idle");
@@ -33,9 +42,8 @@ export function HldLobby({ window: initial }: { window: HldWindow }) {
   useEffect(() => {
     if (state !== "waiting") return;
     const started = Date.now();
-    let stopped = false;
     const go = (id: string) => {
-      if (!stopped) router.push(`/hld/match/${id}`);
+      if (onPage.current) router.push(`/hld/match/${id}`);
     };
     const timer = setInterval(() => {
       void (async () => {
@@ -78,7 +86,6 @@ export function HldLobby({ window: initial }: { window: HldWindow }) {
       });
     }, POLL_MS);
     return () => {
-      stopped = true;
       clearInterval(timer);
     };
   }, [state, router, q]);

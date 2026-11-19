@@ -13,7 +13,7 @@ Week 45 is the owner's: first a practice cup with beta universities, then the fi
    - A cup problem is only listed for the leagues it validated in: concert tickets and ride dispatch are human-league only, while live scores is both.
 2. **The judge.**
    - Grade the calibration set at `/admin/hld-calibration`.
-   - With `QUESTIONS_MODEL` set, run `scripts/with-env.sh uv run python -m interval_jobs eval-hld-judge --model <model>`.
+   - With `OPENROUTER_API_KEY` in `.env`, run `scripts/with-env.sh uv run python -m interval_jobs eval-hld-judge --model <model id>` (the model is named on the command, not taken from `QUESTIONS_MODEL`).
    - It must pass, with at least 85% of levels within one of yours and no steered injection design, before a cup counts on the rubric.
    - Keep the per-user AI budget high enough for 4 calls per player per round.
 3. **Load.** Run the round load test in `docs/runbooks/load-test.md` with about the cup's expected field, against a production build. It needs p95 under 2 s.

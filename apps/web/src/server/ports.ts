@@ -2196,6 +2196,9 @@ export interface HldPracticeDesigns {
 // P6-W41 (CANVAS-6, §6.4, Q-P6-05): the AI judge's levels and the coach's advice on a
 // design, on the player's request; one appeal each, re-graded by the owner; and the
 // owner's grades of the calibration set. Labelled AI wherever shown; never a rating.
+// A judgement request still pending after this long was lost (its message dropped, or
+// its worker gone after its last try): shown as unavailable, and replaced when asked again.
+export const HLD_STALE_MINUTES = 15;
 export type HldJudgement = {
   id: string;
   problemSlug: string;

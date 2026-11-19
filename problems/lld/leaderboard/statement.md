@@ -14,8 +14,8 @@ Build a leaderboard that ranks players by their total points.
   no such player. A removed player who scores again starts from 0.
 
 The order is by total, highest first; players with equal totals are ordered by name.
-Names are printable ASCII, compared character by character by their code (so `"Bo"` comes before `"al"`, and `"al"` before
-`"bo"`). Totals stay within ±2^53.
+Names are printable ASCII, compared character by character by their code (so `"Bo"` comes
+before `"al"`, and `"al"` before `"bo"`). Totals stay within ±2^53.
 
 Several threads may add points at once (JavaScript and TypeScript: interleaved async
 calls). Every completed call must count.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // P5-W32 (Q-P5-19): the casual queue, which plays solo after 60 s with nobody, and the
 // next ranked window: register while it's open, and from its start, poll for the
@@ -27,6 +27,15 @@ function call(path: string, method: string): Promise<Response> {
 
 export function BattleLobby({ window: initial }: { window: Window }) {
   const router = useRouter();
+  // Navigation waits on "still on this page", not on the effect that asked: saying
+  // "solo" re-runs that effect, and its cleanup would drop the solo match's navigation.
+  const onPage = useRef(true);
+  useEffect(() => {
+    onPage.current = true;
+    return () => {
+      onPage.current = false;
+    };
+  }, []);
   const [casual, setCasual] = useState<"idle" | "waiting" | "solo">("idle");
   const [windowState, setWindow] = useState(initial);
   const [problem, setProblem] = useState<string | null>(null);
@@ -38,7 +47,6 @@ export function BattleLobby({ window: initial }: { window: Window }) {
   useEffect(() => {
     if (casual !== "waiting") return;
     const started = Date.now();
-    let stopped = false;
     const timer = setInterval(() => {
       void (async () => {
         if (Date.now() - started >= CASUAL_WAIT_MS) {
@@ -53,7 +61,7 @@ export function BattleLobby({ window: initial }: { window: Window }) {
               matchId?: string;
             };
             if (seat.status === "matched" && seat.matchId !== undefined) {
-              if (!stopped) router.push(`/play/battle/${seat.matchId}`);
+              if (onPage.current) router.push(`/play/battle/${seat.matchId}`);
               return;
             }
           }
@@ -67,7 +75,7 @@ export function BattleLobby({ window: initial }: { window: Window }) {
             return;
           }
           const { matchId } = (await res.json()) as { matchId: string };
-          if (!stopped) router.push(`/play/battle/${matchId}`);
+          if (onPage.current) router.push(`/play/battle/${matchId}`);
           return;
         }
         const res = await call(`/api/battle/queue${q}`, "PUT");
@@ -79,7 +87,7 @@ export function BattleLobby({ window: initial }: { window: Window }) {
         if (
           state.status === "matched" &&
           state.matchId !== undefined &&
-          !stopped
+          onPage.current
         ) {
           clearInterval(timer);
           router.push(`/play/battle/${state.matchId}`);
@@ -89,7 +97,6 @@ export function BattleLobby({ window: initial }: { window: Window }) {
       });
     }, POLL_MS);
     return () => {
-      stopped = true;
       clearInterval(timer);
     };
   }, [casual, router, q]);
