@@ -380,15 +380,16 @@ test("every card is full size in one sideways feed", async () => {
   expect(feed).not.toContain("size-9");
 });
 
-// ADR-0019: the design's right column, greyed until its features exist.
-test("the wide layout's column: path and review live, streak and battle coming later", async () => {
+// ADR-0019: the design's right column; the battle stays greyed until it exists. The
+// daily challenge's streak (Q-P3-07) is live since Phase 3.
+test("the wide layout's column: streak, path and review live, the battle coming later", async () => {
   current.mockResolvedValue(user);
   getFeed.mockResolvedValue(feedOf([card]));
   const html = await render();
   const start = html.indexOf('aria-label="At a glance"');
   const column = html.slice(start, html.indexOf("</aside>", start));
   for (const name of [
-    "Streak",
+    "No streak yet",
     "Your path",
     "Review queue",
     "Tonight’s battle",
@@ -397,7 +398,29 @@ test("the wide layout's column: path and review live, streak and battle coming l
   }
   // No active path's next step: a link to the paths, claiming nothing.
   expect(column).toMatch(/href="\/paths"[^]*?See the paths/);
-  expect(column.match(/Coming later/g)).toHaveLength(2);
+  expect(column.match(/Coming later/g)).toHaveLength(1);
+});
+
+test("the column names the streak and how many concepts are fading", async () => {
+  current.mockResolvedValue(user);
+  getFeed.mockResolvedValue(feedOf([card]));
+  dailyStatus.mockResolvedValueOnce({
+    today: "none",
+    streak: { days: 5, freezes: 0 },
+  });
+  dueReviews.mockResolvedValueOnce([
+    { conceptId: "c1", name: "Quorums", daysSince: 3 },
+    { conceptId: "c2", name: "Leases", daysSince: null },
+    { conceptId: "c3", name: "Raft", daysSince: 1 },
+  ]);
+  const html = await render();
+  const start = html.indexOf('aria-label="At a glance"');
+  const column = html
+    .slice(start, html.indexOf("</aside>", start))
+    .replace(/<[^>]+>/g, "|");
+  expect(column).toContain("5-day streak");
+  expect(column).toContain("3 concepts are fading");
+  expect(column).toContain("Review now · about 1 min");
 });
 
 // ADR-0019: the server says a plain hello by first name; the device picks the line.
@@ -614,7 +637,7 @@ test("a frameable card opens in the in-app reader, in this tab", async () => {
   ]);
   const html = await render();
   expect(html).toMatch(
-    /<a href="\/read\/10\?moment=1&amp;chip=3-8&amp;pos=1" data-read-item="10" data-read-moment="1" class="[^"]*">Read article<\/a>/,
+    /<a href="\/read\/10\?moment=1&amp;chip=3-8&amp;pos=1" data-read-item="10" data-read-moment="1" class="[^"]*">(?:<svg[^]*?<\/svg>)?Read article<\/a>/,
   );
   // Continue too, without data-item: the visibility prompt mustn't arm for it; the
   // reader marker asks on Back instead.
@@ -779,7 +802,7 @@ test("with concepts due, the second card is the review queue, saying why", async
   expect(firstCard).toBeLessThan(reviewAt);
   expect(reviewAt).toBeLessThan(secondCard);
   expect(html).toContain("Review 4 concepts · about 2 min");
-  expect(html).toContain("4 concepts due");
+  expect(html).toContain("4 concepts are fading");
   // Every card says why it's there (§5B): each due concept, and when it was last
   // recalled (owner, 2026-10-30: the card felt empty).
   expect(html).toContain("Due for review");

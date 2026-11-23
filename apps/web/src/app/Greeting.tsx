@@ -35,5 +35,9 @@ export function Greeting({
     },
     () => (firstName === null ? "Hey there." : `Hey, ${firstName}.`),
   );
-  return <h1 className="text-display">{line}</h1>;
+  return (
+    <h1 className="text-display lg:mt-1 lg:text-[34px] lg:leading-[1.1] lg:tracking-[-0.03em]">
+      {line}
+    </h1>
+  );
 }

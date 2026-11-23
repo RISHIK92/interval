@@ -4,18 +4,29 @@ import { AiDrafted } from "../../../ui/AiDrafted";
 import { useEffect, useState } from "react";
 import type { FingerState } from "@interval/game-client";
 import type { ViewProps } from "../LivePlay";
+import { LIVE_QUESTIONS } from "../../../../server/ports";
 
 const LETTERS = ["A", "B", "C", "D"];
+// Phones: a row per option. Wide screens: the design's cards side by side, each with
+// its letter in a key cap (Fastest finger, web).
 const OPTION =
-  "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left";
+  "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left lg:min-h-24 lg:rounded-[20px] lg:border-[1.5px] lg:px-3.5 lg:text-[17px] lg:font-semibold";
+const OPTIONS =
+  "flex flex-col lg:grid lg:grid-cols-[repeat(auto-fit,minmax(11.875rem,1fr))] lg:gap-3";
+const KEY =
+  "font-semibold lg:flex lg:h-7 lg:min-w-7 lg:items-center lg:justify-center lg:rounded-lg lg:border-[1.5px] lg:border-b-[3px] lg:border-track lg:text-[13px] lg:text-ink-muted";
+const QUESTION =
+  "text-lg font-semibold lg:mx-auto lg:max-w-[52.5rem] lg:text-center lg:text-[32px] lg:leading-[1.2] lg:font-bold lg:tracking-[-0.025em]";
 const OUTCOME = { won: "You won", lost: "You lost", draw: "A draw" } as const;
 
+const secondsTo = (endsAt: number) =>
+  Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+
 function SecondsLeft({ endsAt }: { endsAt: number }) {
-  const left = () => Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
-  const [seconds, setSeconds] = useState(left);
+  const [seconds, setSeconds] = useState(() => secondsTo(endsAt));
   useEffect(() => {
     const tick = () => {
-      setSeconds(Math.max(0, Math.ceil((endsAt - Date.now()) / 1000)));
+      setSeconds(secondsTo(endsAt));
     };
     tick();
     const timer = setInterval(tick, 250);
@@ -24,6 +35,62 @@ function SecondsLeft({ endsAt }: { endsAt: number }) {
     };
   }, [endsAt]);
   return <>{seconds}</>;
+}
+
+// The round's time as a bar draining to its end (wide screens). The state carries only
+// the round's end, so the bar's full length is the time left when the round arrived.
+function TimeBar({ endsAt }: { endsAt: number }) {
+  const [total] = useState(() => Math.max(1, endsAt - Date.now()));
+  const [left, setLeft] = useState(total);
+  useEffect(() => {
+    const tick = () => {
+      setLeft(Math.max(0, endsAt - Date.now()));
+    };
+    const timer = setInterval(tick, 250);
+    return () => {
+      clearInterval(timer);
+    };
+  }, [endsAt]);
+  return (
+    <div aria-hidden="true" className="hidden h-2 rounded bg-track lg:block">
+      <div
+        className="h-2 rounded bg-(--system-design-left) transition-[width] duration-200"
+        style={{ width: `${String(Math.min(100, (left / total) * 100))}%` }}
+      />
+    </div>
+  );
+}
+
+// Wide screens: the score as the design's tug of war, you in blue and the opponent in
+// orange; the words stay for screen readers.
+function ScoreBar({ mine, theirs }: { mine: number; theirs: number }) {
+  return (
+    <div aria-hidden="true" className="hidden items-center gap-3 lg:flex">
+      <span className="flex size-9 items-center justify-center rounded-full bg-(--distributed-systems-tint) text-[13px] font-bold text-(--distributed-systems-line)">
+        You
+      </span>
+      <span className="text-[28px] font-bold tabular-nums">{mine}</span>
+      <div className="flex h-3 flex-1 gap-1">
+        <div
+          className="rounded-md bg-(--distributed-systems-left)"
+          style={{ flex: mine + theirs === 0 ? 1 : mine }}
+        />
+        <div
+          className="rounded-md bg-(--system-design-left)"
+          style={{ flex: mine + theirs === 0 ? 1 : theirs }}
+        />
+      </div>
+      <span className="text-[28px] font-bold text-ink-muted tabular-nums">
+        {theirs}
+      </span>
+      <span className="flex size-9 items-center justify-center rounded-full bg-(--system-design-tint) text-[13px] font-bold text-(--system-design-line)">
+        Opp
+      </span>
+      <span className="ml-3 text-sm text-ink-muted">
+        {LIVE_QUESTIONS.fastest_finger} rounds
+      </span>
+    </div>
+  );
 }
 
 // Rounds taken: the player's own, and the opponent's.
@@ -73,9 +140,12 @@ export function FingerView({
     );
   const { mine, theirs } = score(state.totals, state.you);
   const header = (
-    <p className="text-sm font-semibold tabular-nums">
-      Rounds: you {mine} · opponent {theirs}
-    </p>
+    <>
+      <p className="text-sm font-semibold tabular-nums lg:sr-only">
+        Rounds: you {mine} · opponent {theirs}
+      </p>
+      <ScoreBar mine={mine} theirs={theirs} />
+    </>
   );
   if (state.phase === "countdown")
     return (
@@ -103,22 +173,25 @@ export function FingerView({
           ? "✓ You took this round"
           : "✗ Your opponent took this round";
     return (
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 lg:gap-5">
         {header}
-        <p role="status" className="font-semibold">
+        <p
+          role="status"
+          className="font-semibold lg:rounded-[14px] lg:bg-well lg:px-4 lg:py-3 lg:text-sm"
+        >
           {took}
         </p>
-        <p className="text-lg font-semibold">
+        <p className={QUESTION}>
           {state.stem}
           {state.ai ? <AiDrafted /> : null}
         </p>
-        <ul className="flex flex-col gap-1.5">
+        <ul className={`${OPTIONS} gap-1.5`}>
           {state.options.map((option, i) => (
             <li
               key={LETTERS[i]}
-              className={`${OPTION} ${i === state.correct ? "border-go bg-go-soft" : "border-hairline"}`}
+              className={`${OPTION} lg:flex-wrap ${i === state.correct ? "border-go bg-go-soft" : "border-hairline lg:border-track"}`}
             >
-              <span className="font-semibold">{LETTERS[i]}</span>
+              <span className={KEY}>{LETTERS[i]}</span>
               <span className="flex-1">{option}</span>
               {i === state.correct ? (
                 <span className="text-sm font-semibold">✓ Right answer</span>
@@ -135,22 +208,28 @@ export function FingerView({
     (you !== null && state.locked.players.includes(you));
   const opponentLocked = state.locked.players.some((p) => p !== you);
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 lg:gap-5">
+      <div className="flex items-center justify-between lg:flex-col lg:items-stretch lg:gap-5">
         {header}
-        <p
-          aria-label="Seconds left"
-          className="text-sm font-semibold tabular-nums"
-        >
-          Round {state.n} · <SecondsLeft endsAt={state.endsAt} />s
-        </p>
+        <div className="flex flex-col gap-2">
+          <p
+            aria-label="Seconds left"
+            className="text-sm font-semibold tabular-nums lg:flex lg:items-baseline lg:justify-between lg:font-normal lg:text-ink-muted"
+          >
+            <span>Round {state.n} · </span>
+            <span className="lg:text-lg lg:font-bold lg:text-(--system-design-line)">
+              <SecondsLeft endsAt={state.endsAt} />s
+            </span>
+          </p>
+          <TimeBar key={state.n} endsAt={state.endsAt} />
+        </div>
       </div>
-      <p role="status" aria-live="polite" className="text-sm">
+      <p role="status" aria-live="polite" className="text-sm lg:text-center">
         {lockedIn ? "🔒 You: locked in" : "You: choose an answer"} ·{" "}
         {opponentLocked ? "🔒 Opponent: locked in" : "⏳ Opponent: thinking"}
       </p>
-      <fieldset className="flex flex-col gap-2">
-        <legend className="mb-3 text-lg font-semibold">
+      <fieldset className={`${OPTIONS} gap-2`}>
+        <legend className={`mb-3 lg:mb-5 ${QUESTION}`}>
           {state.stem}
           {state.ai ? <AiDrafted /> : null}
         </legend>
@@ -162,9 +241,9 @@ export function FingerView({
             onClick={() => {
               onAnswer(state.n, i);
             }}
-            className={`${OPTION} cursor-pointer border-hairline disabled:opacity-60`}
+            className={`${OPTION} cursor-pointer border-hairline disabled:opacity-60 lg:border-track lg:bg-page lg:hover:border-ink-muted`}
           >
-            <span className="font-semibold">{LETTERS[i]}</span>
+            <span className={KEY}>{LETTERS[i]}</span>
             {option}
           </button>
         ))}

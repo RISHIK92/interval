@@ -5,6 +5,7 @@ import {
   starterDesign,
 } from "@interval/hld";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
   entitlements,
@@ -14,6 +15,8 @@ import {
 } from "../../../../server/container";
 import { feedbackView } from "../feedback";
 import { Canvas } from "../../Canvas";
+import { Cube } from "../../flow";
+import { FRAME, HEADER, HEADER_TILE, Requirements, TITLE } from "../../Frame";
 
 export const dynamic = "force-dynamic";
 
@@ -39,15 +42,37 @@ export default async function PracticeProblemPage({
   ]);
   const parsed = Design.safeParse(saved?.design);
   return (
-    <main className="flex flex-col gap-4 px-4 pt-6 pb-12">
-      <header className="mx-auto w-full max-w-6xl">
-        <h1 className="text-display">{problem.title}</h1>
-        <ul className="mt-1 list-disc pl-5 text-ink-muted">
-          {problem.requirements.map((r) => (
-            <li key={r}>{r}</li>
-          ))}
-        </ul>
+    <main className={FRAME}>
+      <header className={HEADER}>
+        <Link
+          href="/hld/practice"
+          aria-label="Back to practice"
+          className="hidden size-11 shrink-0 items-center justify-center rounded-xl border-[1.5px] text-ink lg:flex lg:border-hairline-strong"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            aria-hidden="true"
+          >
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </Link>
+        <span className={HEADER_TILE}>
+          <Cube size={30} ramp="system-design" />
+        </span>
+        <div className="lg:min-w-[200px] lg:flex-1">
+          <p className="hidden text-[13px] text-ink-muted lg:block">
+            HLD practice
+          </p>
+          <h1 className={TITLE}>{problem.title}</h1>
+        </div>
       </header>
+      <Requirements requirements={problem.requirements} />
       <Canvas
         problem={problem}
         initial={

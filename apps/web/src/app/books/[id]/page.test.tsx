@@ -7,6 +7,7 @@ import type { Actor, BookReading, Books } from "../../../server/ports";
 const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const reading = vi.fn<Books["reading"]>();
 const list = vi.fn<Books["list"]>(() => Promise.resolve([]));
+const outlines = vi.fn<Books["outlines"]>(() => Promise.resolve([]));
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
   preferences: () => ({
@@ -19,7 +20,7 @@ vi.mock("../../../server/container", () => ({
         firstName: null,
       }),
   }),
-  books: () => ({ reading, list }),
+  books: () => ({ reading, list, outlines }),
   events: () => ({ emit }),
 }));
 const emit = vi.fn();
@@ -125,4 +126,41 @@ test("opening a session emits book_opened with the ids and the visit", async () 
   reading.mockResolvedValueOnce(null);
   await expect(page()).rejects.toThrow("notFound");
   expect(emit).not.toHaveBeenCalled();
+});
+
+// Design "Book reader, web": on wide screens the chapter's sessions sit beside the pages.
+test("the chapter's sessions are listed, this one current, with its checkpoint after the last", async () => {
+  reading.mockResolvedValueOnce(session);
+  outlines.mockResolvedValueOnce([
+    {
+      bookId: "7",
+      title: "Designing Data Systems",
+      done: 1,
+      of: 3,
+      first: "70",
+      started: true,
+      next: "71",
+      chapters: [
+        {
+          chapterId: "91",
+          title: "Replication",
+          checkpoint: null,
+          sessions: [
+            { sessionId: "70", title: "Basics", minutes: 4, finished: true },
+            { sessionId: "71", title: "Leaders", minutes: 4, finished: false },
+            { sessionId: "72", title: "Lag", minutes: 4, finished: false },
+          ],
+        },
+      ],
+    },
+  ]);
+  const html = await page({ session: "71" });
+  expect(html).toContain('aria-label="Chapter contents"');
+  expect(html).toMatch(
+    /<a(?=[^>]*href="\/books\/7\?session=71")(?=[^>]*aria-current="page")/,
+  );
+  expect(html).toContain("Finished: </span></span>Basics");
+  expect(html).toContain("Replication · Session 2 of 3");
+  expect(html).toContain("60s checkpoint after session 3");
+  expect(html).toContain('href="/paths?open=book-7"');
 });

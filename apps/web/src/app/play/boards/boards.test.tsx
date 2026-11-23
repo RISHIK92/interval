@@ -177,7 +177,8 @@ test("an account not yet asked for a username shows as Player; a guest's own row
   standing.mockResolvedValueOnce({ userId: "g9", score: 3, rank: 2 });
   size.mockResolvedValueOnce(2);
   const html = await page();
-  expect(html).toContain("Player");
+  // The row's name, not the wide layout's column heading.
+  expect(html).toMatch(/#1<\/span><span[^>]*>Player</);
   expect(html).toMatch(/sticky[^>]*>[^]*?Guest \d{4}[^]*?#2 · top 100%/);
 });
 

@@ -12,6 +12,17 @@ import { TopicArt } from "./ui/TopicArt";
 // Deep links to the publisher, never copies (§3.2). A `read` link to the browser
 // carries data-item (and data-moment) so the return prompt can ask about it; one into
 // the in-app reader (ADR-0018) stays in this tab and asks on close.
+// The web design's pill carries a play mark; phones keep the plain pill.
+const PLAY = (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className="hidden size-3.5 lg:block"
+  >
+    <path d="M7 4.5v15l12-7.5z" fill="currentColor" />
+  </svg>
+);
+
 export function FeedCardLayout({
   title,
   attribution,
@@ -48,7 +59,7 @@ export function FeedCardLayout({
   yourNote?: string | null;
 }) {
   const className =
-    "inline-flex flex-1 items-center justify-center rounded-full bg-ink px-5 py-2.5 font-semibold text-page";
+    "inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-page lg:h-[50px] lg:basis-45 lg:py-0 lg:text-base";
   const readLink = read.inApp ? (
     <a
       href={read.href}
@@ -56,6 +67,7 @@ export function FeedCardLayout({
       data-read-moment={read.moment}
       className={className}
     >
+      {PLAY}
       {read.label}
     </a>
   ) : (
@@ -67,6 +79,7 @@ export function FeedCardLayout({
       rel="noopener noreferrer"
       className={className}
     >
+      {PLAY}
       {read.label}
     </a>
   );
@@ -76,12 +89,16 @@ export function FeedCardLayout({
         {topic === null ? null : (
           <TopicArt
             topic={topic}
-            className="block h-36 w-full rounded-t-3xl sm:h-44"
+            className="block h-36 w-full rounded-t-3xl sm:h-44 lg:h-[220px] lg:py-[42px]"
           />
         )}
-        <div className="flex flex-1 flex-col p-5">
-          <p className="text-sm text-ink-muted">{attribution}</p>
-          <h2 className="mt-1 text-title">{title}</h2>
+        <div className="flex flex-1 flex-col p-5 lg:px-6 lg:py-[22px]">
+          <p className="text-sm text-ink-muted lg:text-[13px] lg:font-medium">
+            {attribution}
+          </p>
+          <h2 className="mt-1 text-title lg:mt-2.5 lg:text-[26px] lg:leading-[1.15] lg:tracking-[-0.02em]">
+            {title}
+          </h2>
           {context === null ? null : (
             <p className="text-ink-muted">{context}</p>
           )}

@@ -4,6 +4,8 @@ UI reference only. Product rules come from docs/product.md and docs/decisions.md
 
 The visual design (owner, 2026-10-26) is in `app-design.html` (16 screens, light and dark) and `design-system.html` (tokens, type, components) in this folder. They are JavaScript bundles: open them in a browser. Where they show behavior the decisions don't have, an ADR comes first.
 
+The web layouts (owner, 2026-11-23) are in `web-design.html`: 17 desktop screens, light and dark, on the same tokens (Home, Explore, Paths, Paths first visit, Play hub, Fastest finger, HLD battle, LLD battle, Battle results, Leagues, Onboarding, Book reader, Audio player, Library, Review card, Profile, Desktop companion). The owner chose to build the features they show that don't exist yet; each one's behavior is asked before it's built (docs/questions/web-design.md).
+
 Extracted from the `SCREENS` and `FLOWS` arrays in docs/wireframes/interval-blueprint-wireframes.html (Oct 22 wireframes). Text is copied verbatim. Known disagreements with the Oct 23 blueprint: docs/conflicts.md.
 
 ## Screens

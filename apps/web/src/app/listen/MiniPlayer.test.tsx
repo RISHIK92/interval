@@ -82,6 +82,30 @@ test("the full player: AI under the switch, Original for later, the queue and th
   expect(html).not.toContain("Up next");
 });
 
+// Phones (wireframe 07) keep their Close and the controls' order: back, play, forward,
+// speed. Wide screens' Minimize is a separate control, shown only there.
+test("the full player on a phone: Close, then back, play, forward and speed", () => {
+  const html = renderToStaticMarkup(
+    <FullPlayer state={state} actions={actions} onClose={vi.fn()} />,
+  );
+  const buttons = html.match(/<button[^>]*>/g) ?? [];
+  const close = buttons.find((b) => b.includes('aria-label="Close"'));
+  expect(close).toBeDefined();
+  expect(close).not.toMatch(/class="([^"]* )?hidden[ "]/);
+  for (const b of buttons.filter((b) => b.includes("Minimize"))) {
+    expect(b).toMatch(/class="([^"]* )?hidden [^"]*\blg:flex\b/);
+  }
+  const labels = buttons
+    .map((b) => /aria-label="([^"]*)"/.exec(b)?.[1])
+    .filter((l) => l !== undefined && /seconds|Pause|Speed/.test(l));
+  expect(labels).toEqual([
+    "Back 15 seconds",
+    "Pause",
+    "Forward 15 seconds",
+    "Speed 1.25×. Change speed",
+  ]);
+});
+
 test("the queue done: Up next along the graph, to tap, never autoplayed", () => {
   const done = {
     ...state,

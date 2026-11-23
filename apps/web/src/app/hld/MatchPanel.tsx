@@ -69,21 +69,22 @@ export function MatchPanel({
   const seconds = Math.floor((left % 60_000) / 1_000);
   return (
     <section
-      className="flex flex-col gap-2 rounded-md border border-line p-3"
+      className="flex flex-col gap-2 rounded-md border border-line p-3 lg:mt-auto lg:rounded-none lg:border-0 lg:p-0 lg:pt-4"
       aria-live="polite"
     >
-      <h2 className="text-title">
+      {/* On a desktop the clock is in the page's header (Clock.tsx). */}
+      <h2 className="text-title lg:hidden">
         {String(minutes)}:{String(seconds).padStart(2, "0")} left
       </h2>
       {submitted ? (
-        <p className="text-sm">
+        <p className="text-sm lg:rounded-xl lg:bg-well lg:px-3 lg:py-3 lg:font-medium">
           Submitted. Waiting for the others and the judge…
         </p>
       ) : (
         <button
           type="button"
           disabled={!ready || left === 0}
-          className="self-start rounded-md border border-line px-2 py-1 text-sm disabled:opacity-50"
+          className="self-start rounded-md border border-line px-2 py-1 text-sm disabled:opacity-50 lg:h-12 lg:self-stretch lg:rounded-xl lg:border-0 lg:bg-ink lg:px-4 lg:text-[15px] lg:font-semibold lg:text-page"
           onClick={() => {
             void fetch(`/api/hld/match/${matchId}/submit`, {
               method: "POST",
@@ -117,9 +118,16 @@ export function MatchPanel({
           Submit the design
         </button>
       )}
-      {said === null ? null : <p className="text-sm">{said}</p>}
-      <p className="text-xs text-ink-muted">
-        Simulation 60, the AI rubric 25 (only if the baseline passes), speed 15.
+      {said === null ? null : <p className="text-sm lg:text-wrong">{said}</p>}
+      <p className="text-xs text-ink-muted lg:order-first lg:text-[13px]">
+        {/* On a desktop the canvas shows the weights as a bar. */}
+        <span className="lg:hidden">
+          Simulation 60, the AI rubric 25 (only if the baseline passes), speed
+          15.{" "}
+        </span>
+        <span className="hidden lg:inline">
+          The AI rubric counts only if the baseline passes.{" "}
+        </span>
         At the deadline your last autosave is submitted for you.
       </p>
     </section>

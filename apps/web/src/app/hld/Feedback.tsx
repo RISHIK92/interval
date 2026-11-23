@@ -95,17 +95,20 @@ export function Feedback({
 
   return (
     <section
-      className="flex flex-col gap-2 rounded-md border border-line p-3"
+      className="flex flex-col gap-2 rounded-md border border-line p-3 lg:mt-auto lg:rounded-[14px] lg:border-[1.5px] lg:border-dashed lg:border-hairline"
       aria-live="polite"
     >
-      <h2 className="text-title">
-        Feedback <span className="text-xs text-ink-muted">AI</span>
+      <h2 className="text-title lg:flex lg:items-center lg:justify-between lg:text-[15px] lg:font-semibold lg:tracking-normal">
+        Feedback{" "}
+        <span className="text-xs text-ink-muted lg:rounded-full lg:bg-well lg:px-2 lg:py-0.5 lg:text-[11px] lg:font-semibold">
+          AI
+        </span>
       </h2>
       {ask === null ? null : (
         <button
           type="button"
           disabled={!ask.ready || pending}
-          className="self-start rounded-md border border-line px-2 py-1 text-sm disabled:opacity-50"
+          className="self-start rounded-md border border-line px-2 py-1 text-sm disabled:opacity-50 lg:order-last lg:mt-2 lg:h-12 lg:self-stretch lg:rounded-xl lg:border-0 lg:bg-ink lg:px-4 lg:text-[15px] lg:font-semibold lg:text-page"
           onClick={() => {
             void request();
           }}

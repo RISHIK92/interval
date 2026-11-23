@@ -2,8 +2,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
 import type {
   Actor,
+  BattleWindows,
   DailyStatus,
   Entitlements,
+  HldTournaments,
+  HldWindows,
   PlayerRatings,
   Preferences,
   Usernames,
@@ -27,6 +30,16 @@ const ratingOf = vi.fn(() => Promise.resolve(1612.4));
 const adjustments = vi.fn<PlayerRatings["adjustments"]>(() =>
   Promise.resolve([]),
 );
+const lldRegistration = vi.fn<BattleWindows["registration"]>(() =>
+  Promise.resolve(null),
+);
+const hldRegistration = vi.fn<HldWindows["registration"]>(() =>
+  Promise.resolve(null),
+);
+const tournaments = vi.fn<HldTournaments["list"]>(() => Promise.resolve([]));
+const tournamentEntries = vi.fn<HldTournaments["entries"]>(() =>
+  Promise.resolve([]),
+);
 let gameConfigured = true;
 vi.mock("../../env", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -40,6 +53,9 @@ vi.mock("../../server/container", () => ({
   preferences: () => ({ get }),
   quizzes: () => ({ dailyStatus }),
   playerRatings: () => ({ of: ratingOf, adjustments }),
+  battleWindows: () => ({ registration: lldRegistration }),
+  hldWindows: () => ({ registration: hldRegistration }),
+  hldTournaments: () => ({ list: tournaments, entries: tournamentEntries }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -334,4 +350,61 @@ test("a confirmed fair-play penalty shows under the rating", async () => {
 test("no penalty, no adjustment line", async () => {
   current.mockResolvedValue(guest);
   expect(await page()).not.toContain("Fair-play adjustment");
+});
+
+// Play hub, web: the next ranked window and the player's registration in it, and the
+// next HLD tournament taking registrations, beside the games on wide screens.
+test("the hero names a registered window and the side shows the next tournament", async () => {
+  current.mockResolvedValue(account);
+  lldRegistration.mockResolvedValueOnce({ matchId: null, league: "human" });
+  tournaments.mockResolvedValueOnce([
+    {
+      id: "t1",
+      name: "Weekend cup",
+      league: "human",
+      startsAt: new Date("2026-11-28T19:00:00Z"),
+      round: 0,
+      finishedAt: null,
+    },
+  ]);
+  const html = await page();
+  expect(html).toContain("You&#x27;re registered");
+  expect(html).toContain("LLD battle,");
+  expect(words(html)).toMatch(/Weekend cup\|[^]*?Sat 28 Nov[^]*?Register/);
+  expect(html).toContain('href="/hld/tournaments/t1"');
+});
+
+test("a player already in the next tournament is told so instead of asked to register", async () => {
+  current.mockResolvedValue(account);
+  tournaments.mockResolvedValueOnce([
+    {
+      id: "t1",
+      name: "Weekend cup",
+      league: "human",
+      startsAt: new Date("2026-11-28T19:00:00Z"),
+      round: 0,
+      finishedAt: null,
+    },
+  ]);
+  tournamentEntries.mockResolvedValueOnce([
+    { userId: "u1", player: "ada", checkedIn: false, university: null },
+  ]);
+  const html = await page();
+  const cup = /<section aria-label="Next tournament"[^]*?<\/section>/.exec(
+    html,
+  )?.[0];
+  expect(cup).toContain("You&#x27;re registered");
+  expect(cup).not.toContain("Register<");
+  expect(tournamentEntries).toHaveBeenCalledWith("t1");
+});
+
+test("no window hero or tournament without the battles on the plan", async () => {
+  current.mockResolvedValue(account);
+  can.mockImplementation((_user, capability) =>
+    Promise.resolve(capability !== "play.battle" && capability !== "play.hld"),
+  );
+  const html = await page();
+  expect(html).not.toContain("Next ranked window");
+  expect(tournaments).not.toHaveBeenCalled();
+  expect(lldRegistration).not.toHaveBeenCalled();
 });

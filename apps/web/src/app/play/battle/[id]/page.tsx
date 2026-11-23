@@ -10,6 +10,7 @@ import {
   problems,
   sessionReader,
 } from "../../../../server/container";
+import { FRAME, TITLE } from "../../../hld/Frame";
 import { BattlePlay } from "./BattlePlay";
 import { Interviewer } from "./Interviewer";
 
@@ -43,21 +44,34 @@ export default async function BattlePage(props: {
       generate(problem.interface).starter,
     ]),
   );
+  const { interface: api } = problem;
+  const call = (name: string, params: { name: string }[]) =>
+    `${name}(${params.map((p) => p.name).join(", ")})`;
   return (
-    <main className="mx-auto flex max-w-7xl flex-col gap-4 px-4 pt-6 pb-12">
-      <header>
-        <h1 className="text-display">{problem.title}</h1>
-        <p className="mt-1 text-ink-muted">
-          An LLD battle, about 45 minutes. The extension comes at 30:00. Best
-          submission counts.
-        </p>
-      </header>
-      {/* §6.5: battles are played in desktop browsers. */}
-      <p className="text-ink-muted lg:hidden">
-        Battles are played on a desktop browser.
-      </p>
+    <main className={FRAME}>
       <BattlePlay
         matchId={id.data}
+        heading={
+          <>
+            <h1 className={TITLE}>{problem.title}</h1>
+            <p className="mt-1 text-ink-muted lg:mt-0 lg:text-[13px]">
+              An LLD battle, about 45 minutes. The extension comes at 30:00.
+              Best submission counts.
+            </p>
+            {/* §6.5: battles are played in desktop browsers. */}
+            <p className="mt-4 text-ink-muted lg:hidden">
+              Battles are played on a desktop browser.
+            </p>
+          </>
+        }
+        signatures={[
+          call(api.class, api.constructor.params),
+          ...api.methods.map(
+            (m) =>
+              call(m.name, m.params) +
+              (m.returns === "void" ? "" : ` → ${m.returns}`),
+          ),
+        ]}
         statement={problem.statement}
         examples={problem.visible.map((v) => JSON.stringify(v.scenario.calls))}
         starters={starters}

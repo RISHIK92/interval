@@ -58,3 +58,22 @@ test("the replay shows the moment's player, time and code", () => {
   expect(html).toContain("type Cache struct{}");
   expect(html).toContain('max="1"');
 });
+
+// Battle results, web: the outcome line, for a 1v1, a room, a tie, and a match not yet
+// scored.
+test("the outcome says won or lost with the score, a room's place, or nothing yet", async () => {
+  const { outcome } = await import("./ResultHero");
+  const p = (place: number | null, total: number | null, name = "Bo") => ({
+    place,
+    total,
+    name,
+  });
+  expect(outcome(p(1, 82), [p(2, 77)])).toBe("You won, 82 to 77");
+  expect(outcome(p(2, 70), [p(1, 77)])).toBe("You lost, 70 to 77");
+  expect(outcome(p(1, 77), [p(1, 77)])).toBe("A tie for first, 77 to 77");
+  expect(outcome(p(2, 60), [p(1, 80), p(3, 40), p(4, 1)])).toBe(
+    "You placed 2nd of 4",
+  );
+  expect(outcome(p(1, 50), [])).toBe("You scored 50");
+  expect(outcome(p(null, null), [p(null, null)])).toBe("Results");
+});

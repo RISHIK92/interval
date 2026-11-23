@@ -39,6 +39,9 @@
   --color-hairline: var(--hairline);
   --color-ink: var(--ink);
   --color-ink-muted: var(--ink-muted);
+  --color-ink-soft: var(--ink-soft);
+  --color-card: var(--card);
+  --color-hairline-strong: var(--hairline-strong);
   --color-go: var(--go);
   --color-go-text: var(--go-text);
   --color-go-soft: var(--go-soft);

@@ -65,9 +65,10 @@ export function ReplayView({
   const frame = frames[at];
   return (
     <section aria-label="Replay" className="flex flex-col gap-2">
-      <h2 className="text-title">Replay</h2>
+      <h2 className="text-title lg:text-section lg:tracking-normal">Replay</h2>
       <input
         type="range"
+        className="lg:accent-ink"
         min={0}
         max={frames.length - 1}
         value={at}
@@ -87,7 +88,7 @@ export function ReplayView({
           This moment&apos;s code is gone.
         </p>
       ) : (
-        <pre className="max-h-[50vh] overflow-auto rounded-md border border-line p-3 font-mono text-xs">
+        <pre className="max-h-[50vh] overflow-auto rounded-md border border-hairline p-3 font-mono text-xs lg:rounded-2xl lg:bg-well">
           {shown?.code ?? ""}
         </pre>
       )}

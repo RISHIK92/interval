@@ -77,15 +77,41 @@ export default async function BoardsPage(props: {
     );
 
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-5 px-4 pt-6 pb-24 lg:max-w-[52rem] lg:pt-10">
+    <main className="mx-auto flex max-w-xl flex-col gap-5 px-4 pt-6 pb-24 lg:max-w-[60rem] lg:gap-[18px] lg:px-8 lg:pt-7">
       <Link href="/play" className="text-sm text-ink-muted underline">
         Back to Play
       </Link>
-      <h1 className="text-display">Boards</h1>
+      {/* Wide screens: the design's league head (Leagues, web), on the board shown. */}
+      <div className="flex items-center gap-4">
+        <span
+          aria-hidden="true"
+          className="hidden size-16 shrink-0 items-center justify-center rounded-[18px] bg-(--distributed-systems-tint) lg:flex"
+        >
+          <svg viewBox="0 0 44 44" className="size-11">
+            <path d="M12 6h20l8 11H4z" fill="var(--distributed-systems-top)" />
+            <path d="M4 17h18v22z" fill="var(--distributed-systems-left)" />
+            <path
+              d="M22 17h18L22 39z"
+              fill="var(--distributed-systems-right)"
+            />
+          </svg>
+        </span>
+        <div>
+          <h1 className="text-display lg:text-[32px] lg:leading-[1.1] lg:tracking-[-0.03em]">
+            Boards
+          </h1>
+          <p className="mt-0.5 hidden text-sm text-ink-muted lg:block">
+            {GAME_LABELS[game]} · {SCOPE_LABELS[scope]} ·{" "}
+            <span className="font-semibold text-ink">
+              {PERIOD_LABELS[game][period]}
+            </span>
+          </p>
+        </div>
+      </div>
       {/* Wireframe 15: the filters are chips in one row. */}
       <nav
         aria-label="Filters"
-        className="flex items-center gap-2 overflow-x-auto pb-1"
+        className="flex items-center gap-2 overflow-x-auto pb-1 lg:flex-wrap lg:gap-3 lg:overflow-visible"
       >
         <Chips label="Game">
           {GAMES.map((g) => (
@@ -109,7 +135,9 @@ export default async function BoardsPage(props: {
           ))}
         </Chips>
       </nav>
-      <Card className="p-4">{body}</Card>
+      <Card className="p-4 lg:overflow-hidden lg:rounded-[20px] lg:p-0">
+        {body}
+      </Card>
     </main>
   );
 }
@@ -119,7 +147,7 @@ function Chips({ label, children }: { label: string; children: ReactNode }) {
     <div
       role="group"
       aria-label={label}
-      className="flex shrink-0 gap-2 border-r border-hairline pr-2 last:border-r-0 last:pr-0"
+      className="flex shrink-0 gap-2 border-r border-hairline pr-2 last:border-r-0 last:pr-0 lg:h-11 lg:gap-1 lg:rounded-[14px] lg:border-r-0 lg:bg-well lg:p-1 lg:pr-1"
     >
       {children}
     </div>
@@ -139,7 +167,7 @@ function Chip({
     <Link
       href={href}
       aria-current={on ? "page" : undefined}
-      className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold ${on ? "border-ink bg-ink text-page" : "border-hairline bg-page text-ink"}`}
+      className={`shrink-0 rounded-full border px-3 py-1.5 text-sm font-semibold lg:flex lg:items-center lg:rounded-[10px] lg:border-0 lg:px-3.5 lg:py-0 ${on ? "border-ink bg-ink text-page lg:bg-lift lg:text-ink lg:shadow-[0_1px_3px_rgba(16,18,23,0.14)]" : "border-hairline bg-page text-ink lg:bg-transparent lg:font-medium lg:text-ink-muted"}`}
     >
       {children}
     </Link>
@@ -147,7 +175,7 @@ function Chip({
 }
 
 function Empty({ children }: { children: ReactNode }) {
-  return <p className="text-ink-muted">{children}</p>;
+  return <p className="text-ink-muted lg:px-[18px] lg:py-4">{children}</p>;
 }
 
 // The player's own row is pinned under the list and stays in view as it scrolls
@@ -169,42 +197,52 @@ function Table({
 }) {
   return (
     <>
-      <p className="mb-2 text-sm text-ink-muted">{unit}</p>
+      <p className="mb-2 text-sm text-ink-muted lg:mb-0 lg:flex lg:border-b lg:border-hairline lg:px-[18px] lg:py-3 lg:text-[13px]">
+        <span className="hidden w-16 lg:inline">Rank</span>
+        <span className="hidden flex-1 lg:inline">Player</span>
+        {unit}
+      </p>
       {rows.length === 0 ? (
         <Empty>Nobody on this board yet.</Empty>
       ) : (
         // Not <ol>: tied players share a rank, which the list's own numbers wouldn't.
-        <ul className="flex flex-col">
+        <ul className="flex flex-col lg:py-1">
           {rows.map((row) => (
             <li
               key={row.id}
               aria-current={row.id === mine ? "true" : undefined}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2 ${row.id === mine ? "bg-well font-semibold" : ""}`}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2 lg:gap-0 lg:rounded-none lg:px-[18px] lg:py-2.5 lg:text-[15px] ${row.id === mine ? "bg-well font-semibold lg:bg-ink lg:py-[13px] lg:font-bold lg:text-page" : "lg:font-semibold"}`}
             >
-              <span className="w-10 text-numbers text-ink-muted">
+              <span
+                className={`w-10 text-numbers lg:w-16 lg:text-[15px] ${row.id === mine ? "text-ink-muted lg:text-page" : "text-ink-muted"}`}
+              >
                 #{row.rank}
               </span>
               <span className="flex-1 truncate">
                 {row.name}
                 {row.id === mine ? (
-                  <span className="ml-2 text-sm text-go-text">{mark}</span>
+                  <span className="ml-2 text-sm text-go-text lg:text-go">
+                    {mark}
+                  </span>
                 ) : null}
               </span>
-              <span className="text-numbers">{row.score}</span>
+              <span className="text-numbers lg:text-[15px]">{row.score}</span>
             </li>
           ))}
         </ul>
       )}
       {pinned !== null ? (
-        <p className="sticky bottom-4 mt-3 flex items-center gap-3 rounded-xl border border-hairline bg-well px-3 py-2 font-semibold shadow-card">
+        <p className="sticky bottom-4 mt-3 flex items-center gap-3 rounded-xl border border-hairline bg-well px-3 py-2 font-semibold shadow-card lg:m-3 lg:px-[18px] lg:py-3">
           <span className="flex-1 truncate">
             {pinned.name} <span className="text-sm text-go-text">{mark}</span>
           </span>
-          <span className="text-numbers">{pinned.note}</span>
-          <span className="text-numbers">{pinned.score}</span>
+          <span className="text-numbers lg:text-[15px]">{pinned.note}</span>
+          <span className="text-numbers lg:text-[15px]">{pinned.score}</span>
         </p>
       ) : missing === null ? null : (
-        <p className="mt-3 text-ink-muted">{missing}</p>
+        <p className="mt-3 text-ink-muted lg:m-0 lg:border-t lg:border-hairline lg:px-[18px] lg:py-3 lg:text-sm">
+          {missing}
+        </p>
       )}
     </>
   );

@@ -235,6 +235,31 @@ test("appearance offers light, dark and the device's own, this device's marked",
   expect(html).toMatch(/<input[^>]*name="back"[^>]*value="\/profile"/);
 });
 
+// The markup's order is what a screen reader and Tab follow; on phones it is also the
+// order shown, so wide screens may only rearrange it visually.
+test("the sections come in the phone order", async () => {
+  current.mockResolvedValue(user);
+  get.mockResolvedValue(preferences);
+  const html = await page();
+  const headings = [...html.matchAll(/<h2[^>]*>\s*([^<]+?)\s*<\/h2>/g)].map(
+    (match) => match[1],
+  );
+  expect(headings.filter((h) => h !== "Settings")).toEqual([
+    "Your goals",
+    "GitHub",
+    "Country",
+    "Friends",
+    "University",
+    "Agent hook",
+    "Notifications",
+    "Appearance",
+    "Your choices",
+    "Hidden sources",
+    "Inferred from your feedback",
+    "Your concepts",
+  ]);
+});
+
 // Q-P2-04, P2-W7-S02: what reading has explored, by topic (§3.1 learner state).
 test("Profile lists the user's concepts by topic with their states, or says how to start", async () => {
   current.mockResolvedValue(user);

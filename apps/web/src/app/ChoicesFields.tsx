@@ -55,7 +55,7 @@ export const LEVEL_NAMES: Record<(typeof LEVELS)[number], string> = {
 function Glyph({ topic }: { topic: Topic }) {
   const ink = `var(--${topic}-right)`;
   return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-6">
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="size-6 lg:size-8">
       {topic === "system-design" ? (
         <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" fill={ink} />
       ) : topic === "databases" ? (
@@ -84,6 +84,43 @@ function Glyph({ topic }: { topic: Topic }) {
   );
 }
 
+// The web design's goal pictures (2026-11): a block, a database, a book, a stopwatch, in
+// three tones of the goal's topic family. Wide screens only; decorative.
+function GoalArt({ goal, topic }: { goal: Goal; topic: Topic }) {
+  const c = (role: string) => `var(--${topic}-${role})`;
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 40 40"
+      className="hidden size-[38px] lg:block"
+    >
+      {goal === "system-design-interviews" ? (
+        <>
+          <path d="M20 6 32 12 20 18 8 12z" fill={c("top")} />
+          <path d="M8 12 20 18v14L8 26z" fill={c("left")} />
+          <path d="M20 18 32 12v14L20 32z" fill={c("right")} />
+        </>
+      ) : goal === "stack-i-use" ? (
+        <>
+          <path d="M9 11v18a11 4 0 0 0 22 0V11z" fill={c("left")} />
+          <ellipse cx="20" cy="11" rx="11" ry="4" fill={c("top")} />
+        </>
+      ) : goal === "finish-that-book" ? (
+        <>
+          <path d="M20 12c-4-3-9-3-13-1v18c4-2 9-2 13 1z" fill={c("top")} />
+          <path d="M20 12c4-3 9-3 13-1v18c-4-2-9-2-13 1z" fill={c("left")} />
+        </>
+      ) : (
+        <>
+          <circle cx="20" cy="22" r="12" fill={c("top")} />
+          <path d="M20 22V13a9 9 0 0 1 7.8 4.5z" fill={c("left")} />
+          <rect x="17" y="5" width="6" height="4" rx="1.5" fill={c("right")} />
+        </>
+      )}
+    </svg>
+  );
+}
+
 // One choice as a full-width card. The whole card is the label; the real input stays
 // focusable for keyboards and screen readers, so the card shows its focus ring.
 function Option({
@@ -91,6 +128,7 @@ function Option({
   title,
   detail,
   topic,
+  art,
   note,
 }: {
   input: InputHTMLAttributes<HTMLInputElement> & {
@@ -101,23 +139,42 @@ function Option({
   title: string;
   detail?: string;
   topic?: Topic;
+  // The wide screens' picture in place of the topic mark (goals).
+  art?: ReactNode;
   note?: string | undefined;
 }) {
   return (
-    <label className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-hairline p-4 has-checked:border-select has-checked:bg-select/10 has-focus-visible:ring-2 has-focus-visible:ring-select has-disabled:cursor-not-allowed has-disabled:opacity-50">
-      <input {...input} className="sr-only" />
+    // Wide screens (web design, 2026-11): a pictured choice is a tile in a two-column grid,
+    // its tick in the corner; the selected one is drawn with a heavier select edge.
+    <label
+      className={`group flex cursor-pointer items-center gap-3 rounded-2xl border border-hairline p-4 has-checked:border-select has-checked:bg-select/10 has-focus-visible:ring-2 has-focus-visible:ring-select has-disabled:cursor-not-allowed has-disabled:opacity-50 lg:has-checked:ring-1 lg:has-checked:ring-select ${topic === undefined ? "lg:py-[15px]" : "lg:relative lg:flex-col lg:items-start lg:rounded-[20px]"}`}
+    >
+      <input {...input} data-label={title} className="sr-only" />
       {topic === undefined ? null : (
         <span
-          className="flex size-12 shrink-0 items-center justify-center rounded-xl"
+          className="flex size-12 shrink-0 items-center justify-center rounded-xl lg:size-14 lg:rounded-[14px]"
           style={{ background: `var(--${topic}-tint)` }}
         >
-          <Glyph topic={topic} />
+          {art === undefined ? (
+            <Glyph topic={topic} />
+          ) : (
+            <>
+              <span className="flex lg:hidden">
+                <Glyph topic={topic} />
+              </span>
+              {art}
+            </>
+          )}
         </span>
       )}
-      <span className="min-w-0 flex-1">
-        <span className="block font-semibold">{title}</span>
+      <span
+        className={`min-w-0 flex-1 ${topic === undefined ? "" : "lg:pr-8"}`}
+      >
+        <span className="block font-semibold lg:text-[17px]">{title}</span>
         {detail === undefined ? null : (
-          <span className="block text-ink-muted">{detail}</span>
+          <span className="block text-ink-muted lg:mt-[3px] lg:text-sm">
+            {detail}
+          </span>
         )}
       </span>
       {note === undefined ? null : (
@@ -127,7 +184,7 @@ function Option({
       )}
       <span
         aria-hidden="true"
-        className="hidden size-6 shrink-0 items-center justify-center rounded-full bg-select text-page group-has-checked:flex"
+        className={`hidden size-6 shrink-0 items-center justify-center rounded-full bg-select text-page group-has-checked:flex ${topic === undefined ? "" : "lg:absolute lg:top-3.5 lg:right-3.5"}`}
       >
         <svg viewBox="0 0 24 24" className="size-4">
           <path
@@ -144,14 +201,16 @@ function Option({
   );
 }
 
-const OPTIONS = "flex flex-col gap-3";
+const OPTIONS = "flex flex-col gap-3 lg:gap-2";
+// Pictured choices sit two to a row on wide screens (web design).
+const TILES = "flex flex-col gap-3 lg:grid lg:grid-cols-2";
 
 // Profile fills the groups in with the saved choices; onboarding starts them empty.
 type Chosen = { current?: Preferences | undefined };
 
 export function GoalChoices({ current }: Chosen) {
   return (
-    <div className={OPTIONS}>
+    <div className={TILES}>
       {GOALS.map((goal) => {
         const [title, detail, topic] = GOAL_TEXT[goal];
         const live = isLive(goal);
@@ -168,6 +227,7 @@ export function GoalChoices({ current }: Chosen) {
             title={title}
             detail={detail}
             topic={topic}
+            art={<GoalArt goal={goal} topic={topic} />}
             note={live ? undefined : "Coming soon"}
           />
         );
@@ -178,7 +238,7 @@ export function GoalChoices({ current }: Chosen) {
 
 export function TopicChoices({ current }: Chosen) {
   return (
-    <div className={OPTIONS}>
+    <div className={TILES}>
       {TOPICS.map((topic) => (
         <Option
           key={topic}

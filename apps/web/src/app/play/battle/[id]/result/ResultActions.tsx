@@ -65,9 +65,14 @@ export function ResultActionsView({
   onDispute: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-6">
-      <section aria-label="Code review" className="flex flex-col gap-2">
-        <h2 className="text-title">Code review</h2>
+    <div className="flex flex-col gap-6 lg:gap-3">
+      <section
+        aria-label="Code review"
+        className="flex flex-col gap-2 lg:rounded-[20px] lg:border-[1.5px] lg:border-dashed lg:border-track lg:px-[18px] lg:py-4"
+      >
+        <h2 className="text-title lg:text-[15px] lg:font-semibold lg:tracking-normal">
+          Code review
+        </h2>
         {!hasBest ? (
           <p className="text-sm text-ink-muted">
             You didn&apos;t submit, so there&apos;s nothing to review.
@@ -76,7 +81,7 @@ export function ResultActionsView({
           <button
             type="button"
             onClick={onReview}
-            className="self-start rounded-md border border-line px-3 py-1"
+            className="self-start rounded-md border border-hairline px-3 py-1 lg:h-10 lg:rounded-xl lg:border-[1.5px] lg:border-track lg:px-3.5 lg:text-sm lg:font-semibold"
           >
             Review my best submission (AI)
           </button>
@@ -95,12 +100,19 @@ export function ResultActionsView({
               Written by AI from your best submission. It doesn&apos;t affect
               your rating.
             </p>
-            <p className="mt-1 whitespace-pre-wrap text-sm">{review.review}</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm lg:mt-2 lg:text-[15px] lg:leading-[1.55] lg:text-ink-muted">
+              {review.review}
+            </p>
           </div>
         )}
       </section>
-      <section aria-label="Dispute" className="flex flex-col gap-2">
-        <h2 className="text-title">Something wrong?</h2>
+      <section
+        aria-label="Dispute"
+        className="flex flex-col gap-2 lg:rounded-[20px] lg:border lg:border-hairline lg:px-[18px] lg:py-4"
+      >
+        <h2 className="text-title lg:text-[15px] lg:font-semibold lg:tracking-normal">
+          Something wrong?
+        </h2>
         {disputed ? (
           <p className="text-sm text-ink-muted">
             You disputed this result. We&apos;ll look at it.
@@ -124,12 +136,12 @@ export function ResultActionsView({
                 onReason(e.target.value);
               }}
               aria-label="What's wrong with this result"
-              className="rounded-md border border-line p-2 text-sm"
+              className="rounded-md border border-hairline p-2 text-sm lg:rounded-xl"
             />
             <button
               type="submit"
               disabled={reason.trim() === ""}
-              className="self-start rounded-md border border-line px-3 py-1 disabled:opacity-50"
+              className="self-start rounded-md border border-hairline px-3 py-1 disabled:opacity-50 lg:h-10 lg:rounded-xl lg:border-[1.5px] lg:border-track lg:px-3.5 lg:text-sm lg:font-semibold"
             >
               Dispute this result
             </button>

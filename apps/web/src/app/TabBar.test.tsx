@@ -63,6 +63,19 @@ test("Leagues, the wordmark and the profile show only in the wide sidebar", () =
   expect(html.match(/<a /g)).toHaveLength(5);
 });
 
+// The web design marks the profile row on Profile, and no tab on a page that is none.
+test("on Profile, the profile row is current; elsewhere maybe nothing is", () => {
+  const profile = renderToStaticMarkup(
+    <TabBar current="profile" firstName="ada" />,
+  );
+  expect(profile).toMatch(
+    /<a(?=[^>]*href="\/profile")(?=[^>]*aria-current="page")[^>]*>/,
+  );
+  expect(profile.match(/aria-current="page"/g)).toHaveLength(1);
+  const none = renderToStaticMarkup(<TabBar current={null} firstName="ada" />);
+  expect(none).not.toContain("aria-current");
+});
+
 // The design's profile row: the first name's initial and the name (owner, 2026-10-26).
 test("the sidebar's profile shows the initial and first name, or a glyph", () => {
   const named = renderToStaticMarkup(<TabBar current="home" firstName="ada" />);

@@ -35,7 +35,7 @@ export default async function NewBookPage(props: {
   };
   const message = error === undefined ? null : (errors[error] ?? null);
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[52rem] lg:pt-10 lg:pl-64">
+    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:mx-0 lg:max-w-[50.5rem] lg:pt-10 lg:pl-58">
       <TabBar current="paths" firstName={chosen.firstName} />
       <h1 className="text-display">Add a book</h1>
       <Card className="flex flex-col gap-4 p-5">

@@ -88,8 +88,13 @@ export function InterviewerView({
 }) {
   const left = LIMIT - asked.length;
   return (
-    <section aria-label="Ask the interviewer" className="flex flex-col gap-2">
-      <h2 className="text-title">Ask the interviewer</h2>
+    <section
+      aria-label="Ask the interviewer"
+      className="flex flex-col gap-2 lg:col-start-1 lg:row-start-3 lg:min-w-0 lg:px-5 lg:pb-5"
+    >
+      <h2 className="text-title lg:mt-3.5 lg:text-[15px] lg:font-semibold lg:tracking-normal">
+        Ask the interviewer
+      </h2>
       <p className="text-sm text-ink-muted">
         The requirements are open on purpose. Answers are written by AI from the
         interviewer&apos;s notes. {left} of {LIMIT} questions left.
@@ -107,7 +112,9 @@ export function InterviewerView({
                 </span>
               ) : (
                 <>
-                  <span className="mr-1 rounded bg-well px-1 text-xs">AI</span>
+                  <span className="mr-1 rounded bg-well px-1 text-xs lg:rounded-full lg:px-2 lg:py-0.5 lg:text-[11px] lg:font-semibold">
+                    AI
+                  </span>
                   {q.answer}
                 </>
               )}
@@ -130,12 +137,12 @@ export function InterviewerView({
               onDraft(e.target.value);
             }}
             aria-label="Your question"
-            className="min-w-0 flex-1 rounded-md border border-line px-2 py-1"
+            className="min-w-0 flex-1 rounded-md border border-line px-2 py-1 lg:rounded-xl lg:border-[1.5px] lg:bg-page lg:px-3 lg:py-2 lg:text-sm lg:border-hairline-strong"
           />
           <button
             type="submit"
             disabled={draft.trim() === ""}
-            className="rounded-md border border-line px-3 py-1 disabled:opacity-50"
+            className="rounded-md border border-line px-3 py-1 disabled:opacity-50 lg:rounded-xl lg:border-[1.5px] lg:px-4 lg:text-sm lg:font-semibold lg:border-hairline-strong"
           >
             Ask
           </button>

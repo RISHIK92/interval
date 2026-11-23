@@ -26,9 +26,11 @@ export default async function BattleBoardsPage() {
     ),
   );
   return (
-    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 pt-6 pb-12">
+    <main className="mx-auto flex max-w-3xl flex-col gap-6 px-4 pt-6 pb-12 lg:max-w-[60rem] lg:gap-[18px] lg:px-8 lg:pt-7">
       <header>
-        <h1 className="text-display">Battle boards</h1>
+        <h1 className="text-display lg:text-[32px] lg:tracking-[-0.03em]">
+          Battle boards
+        </h1>
         <p className="mt-1 text-ink-muted">
           This season, everyone rated in it.{" "}
           <Link href="/play/boards" className="underline">
@@ -36,10 +38,14 @@ export default async function BattleBoardsPage() {
           </Link>
         </p>
       </header>
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-6 sm:grid-cols-2 lg:gap-3.5">
         {BOARDS.map((b, i) => (
-          <section key={`${b.league}-${b.kind}`} aria-label={b.title}>
-            <h2 className="text-title">{b.title}</h2>
+          <section
+            key={`${b.league}-${b.kind}`}
+            aria-label={b.title}
+            className="lg:rounded-[20px] lg:border lg:border-hairline lg:bg-page lg:p-[18px] lg:shadow-card"
+          >
+            <h2 className="text-title lg:text-section">{b.title}</h2>
             {(boards[i] ?? []).length === 0 ? (
               <p className="text-sm text-ink-muted">Nobody yet this season.</p>
             ) : (

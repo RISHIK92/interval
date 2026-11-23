@@ -118,7 +118,7 @@ test("a frameable section opens in the in-app reader; Open original still leaves
   );
   expect(html).toMatch(
     // Marked for the Back prompt (ADR-0018), not for the tab-visibility one.
-    /<a href="\/read\/70\?moment=7&amp;chip=3-8&amp;pos=4" data-read-item="70" data-read-moment="7" class="[^"]*">Read article<\/a>/,
+    /<a href="\/read\/70\?moment=7&amp;chip=3-8&amp;pos=4" data-read-item="70" data-read-moment="7" class="[^"]*">(?:<svg[^]*?<\/svg>)?Read article<\/a>/,
   );
   expect(html).not.toContain("data-item");
 });

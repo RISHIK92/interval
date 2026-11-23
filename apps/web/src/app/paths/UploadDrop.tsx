@@ -32,11 +32,11 @@ export function UploadDrop({ maxMb }: { maxMb: number | null }) {
         input.current.files = files;
         send();
       }}
-      className="flex flex-col gap-4 rounded-2xl border border-dashed border-hairline bg-well p-5 sm:flex-row sm:items-center"
+      className="flex flex-col gap-4 rounded-2xl border border-dashed border-hairline bg-well p-5 sm:flex-row sm:items-center lg:min-h-[8.25rem] lg:rounded-[1.125rem] lg:border-2 lg:border-track lg:p-[1.125rem]"
     >
       <span
         aria-hidden="true"
-        className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-page"
+        className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-page lg:rounded-[0.875rem]"
       >
         <svg
           viewBox="0 0 24 24"
@@ -54,14 +54,14 @@ export function UploadDrop({ maxMb }: { maxMb: number | null }) {
         <span className="block font-semibold" aria-live="polite">
           {sending ? "Uploading…" : "Drop a PDF here"}
         </span>
-        <span className="block text-sm text-ink-muted">
+        <span className="block text-sm text-ink-muted lg:text-[0.8125rem] lg:leading-snug">
           A PDF you&apos;re allowed to use
           {maxMb === null ? "" : `, up to ${String(maxMb)} MB`}; protected (DRM)
           PDFs can&apos;t be read. It stays private to you. Checkpoints send a
           chapter&apos;s text to our AI providers to write questions.
         </span>
       </span>
-      <label className="cursor-pointer self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page has-focus-visible:ring-2 has-focus-visible:ring-select sm:self-auto">
+      <label className="cursor-pointer self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page has-focus-visible:ring-2 has-focus-visible:ring-select sm:self-auto lg:flex lg:h-12 lg:shrink-0 lg:items-center lg:py-0">
         Choose a file
         <input
           ref={input}

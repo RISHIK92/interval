@@ -13,6 +13,8 @@ const show = (state: BattleState, failed = false) =>
   renderToStaticMarkup(
     <BattleView
       resultHref="/play/battle/m1/result"
+      heading={<h1>LRU cache</h1>}
+      signatures={["LRUCache(capacity)", "get(key) → int"]}
       state={state}
       failed={failed}
       statement="# LRU cache"
@@ -59,6 +61,13 @@ test("playing: the clock, both bests, and no extension before the reveal", () =>
   expect(html.match(/disabled=""/g)).toBeNull();
 });
 
+test("the run button says Run on a phone and Run tests on a desktop", () => {
+  const html = show(playing);
+  const button = /<button[^>]*>(Run.*?)<\/button>/.exec(html)?.[1];
+  // A phone hides the desktop's longer label, so its name stays the plain "Run".
+  expect(button).toBe('Run<span class="hidden lg:inline"> tests</span>');
+});
+
 test("a Run shows each visible test; a Submit only counts per layer", () => {
   const html = show({
     ...playing,
@@ -81,7 +90,8 @@ test("a Run shows each visible test; a Submit only counts per layer", () => {
   expect(html).toContain("Test 2: failed at call 3: wrong value");
   expect(html).toContain("Test 3: failed (compile error)");
   expect(html).toContain("Submission: 700 points");
-  expect(html).toContain("Hidden: 9 of 10");
+  // On a desktop each layer is a row of the Tests column: its name, then its count.
+  expect(html).toMatch(/Hidden<span[^>]*>: <\/span><\/span><span[^>]*>9 of 10/);
   expect(html).toContain("wait 20 s");
 });
 

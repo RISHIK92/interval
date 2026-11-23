@@ -65,7 +65,7 @@ export default async function PathPage(props: {
     .flatMap((s) => s.readings)
     .find((r) => !r.finished && !r.linkBroken);
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[52rem] lg:pt-10 lg:pl-64">
+    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:mx-0 lg:max-w-[50.5rem] lg:pt-10 lg:pl-58">
       <TabBar current="paths" firstName={chosen.firstName} />
       <header className="flex flex-col gap-2">
         <h1 className="text-display">{path.name}</h1>

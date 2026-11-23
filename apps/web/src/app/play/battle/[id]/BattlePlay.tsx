@@ -6,7 +6,15 @@ import {
   battleSent,
   runLive,
 } from "@interval/game-client";
-import { type ComponentType, useEffect, useRef, useState } from "react";
+import {
+  type ComponentType,
+  type ReactNode,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import { ClockIcon } from "../../../hld/Clock";
+import { HEADER } from "../../../hld/Frame";
 import { openMatch } from "../../live/join";
 import { CodeEditor, type CodeEditorProps } from "./CodeEditor";
 
@@ -32,6 +40,10 @@ const LAYER_NAMES: Record<string, string> = {
 
 type Props = {
   matchId: string;
+  // The page's title block, for the frame's header.
+  heading: ReactNode;
+  // The interface's calls, one line each (the web design's "Interface").
+  signatures: string[];
   statement: string;
   examples: string[];
   starters: Record<string, string>;
@@ -111,6 +123,8 @@ function clock(ms: number): string {
 
 export function BattlePlay({
   matchId,
+  heading,
+  signatures,
   statement,
   examples,
   starters,
@@ -244,6 +258,8 @@ export function BattlePlay({
   return (
     <BattleView
       resultHref={`/play/battle/${matchId}/result`}
+      heading={heading}
+      signatures={signatures}
       state={state}
       failed={failed}
       statement={statement}
@@ -263,6 +279,8 @@ export function BattlePlay({
 
 type ViewProps = {
   resultHref: string;
+  heading: ReactNode;
+  signatures: string[];
   state: BattleState;
   failed: boolean;
   statement: string;
@@ -281,6 +299,8 @@ type ViewProps = {
 // The screen for a state: pure, so it can be shown in tests as it is.
 export function BattleView({
   resultHref,
+  heading,
+  signatures,
   state,
   failed,
   statement,
@@ -295,15 +315,75 @@ export function BattleView({
   onPaste,
   onSend,
 }: ViewProps) {
+  const playing = state.phase === "playing" ? state : null;
+  const seats = playing === null ? 0 : Object.keys(playing.best).length;
+  // The web design's frame (hld/Frame.tsx): the header across, then the problem, the
+  // code and the tests side by side on a desktop.
+  const header = (
+    <header className={HEADER}>
+      <span
+        className="hidden size-11 shrink-0 items-center justify-center rounded-xl bg-(--distributed-systems-tint) text-(--distributed-systems-right) lg:flex"
+        aria-hidden="true"
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m8 6-6 6 6 6M16 6l6 6-6 6" />
+        </svg>
+      </span>
+      <div className="lg:min-w-[200px] lg:flex-1">
+        <p className="hidden text-[13px] text-ink-muted lg:block">
+          LLD battle
+          {seats === 2
+            ? " · 1v1"
+            : seats > 2
+              ? ` · ${String(seats)} players`
+              : ""}{" "}
+          · {LANGUAGE_NAMES[language] ?? language}
+        </p>
+        {heading}
+      </div>
+      {playing === null ? null : (
+        <>
+          <span className="hidden h-[38px] items-center rounded-full bg-well px-3 text-sm text-ink-muted tabular-nums lg:flex">
+            {bests(playing)}
+          </span>
+          <span
+            role="timer"
+            aria-label="Time left"
+            className="hidden h-[38px] items-center gap-2 rounded-full bg-ink px-3.5 text-[17px] font-bold text-page tabular-nums lg:flex"
+          >
+            <ClockIcon />
+            {clock(playing.endsAt - now)}
+          </span>
+        </>
+      )}
+    </header>
+  );
+  const message = (body: ReactNode) => (
+    <>
+      {header}
+      <div className="lg:col-span-3 lg:row-start-2 lg:p-5">{body}</div>
+    </>
+  );
   if (failed)
-    return (
+    return message(
       <p className="text-ink-muted">
         The connection to the battle was lost. Reload to rejoin: your best
         submission stands.
-      </p>
+      </p>,
     );
   if (state.phase === "cancelled")
-    return <p className="text-ink-muted">This battle was cancelled.</p>;
+    return message(
+      <p className="text-ink-muted">This battle was cancelled.</p>,
+    );
   if (state.phase === "final") {
     const players = Object.keys(state.totals);
     const label = names(players, state.you);
@@ -316,7 +396,7 @@ export function BattleView({
           : { won: "You won.", lost: "You lost.", draw: "A draw." }[
               state.outcome
             ];
-    return (
+    return message(
       <section aria-label="Result" className="flex flex-col gap-2">
         <h2 className="text-title">{outcome}</h2>
         <ul>
@@ -328,88 +408,142 @@ export function BattleView({
           ))}
         </ul>
         {/* P5-W35: the standings, replays, the AI review and a dispute. */}
-        <a href={resultHref} className="underline">
+        <a
+          href={resultHref}
+          className="underline lg:flex lg:h-12 lg:w-fit lg:items-center lg:rounded-xl lg:bg-ink lg:px-5 lg:font-semibold lg:text-page lg:no-underline"
+        >
           See the results
         </a>
-      </section>
+      </section>,
     );
   }
-  const playing = state.phase === "playing" ? state : null;
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
-      <section aria-label="Problem" className="flex flex-col gap-4">
-        <pre className="whitespace-pre-wrap font-sans">{statement}</pre>
-        <div>
-          <h2 className="text-title">Examples</h2>
-          <ul className="mt-1 flex flex-col gap-1 font-mono text-sm">
+    <>
+      {header}
+      <section
+        aria-label="Problem"
+        className="flex flex-col gap-4 lg:col-start-1 lg:row-start-2 lg:min-w-0 lg:gap-1.5 lg:p-5"
+      >
+        <h2 className="hidden text-[15px] font-semibold lg:block">Interface</h2>
+        <pre className="hidden overflow-x-auto rounded-xl bg-well px-3 py-2.5 font-mono text-xs leading-[1.8] lg:block">
+          {signatures.join("\n")}
+        </pre>
+        <h2 className="hidden text-[15px] font-semibold lg:mt-3.5 lg:block">
+          Problem
+        </h2>
+        <pre className="whitespace-pre-wrap font-sans lg:text-sm lg:text-ink-muted">
+          {statement}
+        </pre>
+        <div className="lg:mt-3.5">
+          <h2 className="text-title lg:text-[15px] lg:font-semibold lg:tracking-normal">
+            Examples
+          </h2>
+          <ul className="mt-1 flex flex-col gap-1 font-mono text-sm lg:mt-1.5 lg:gap-1.5 lg:text-xs">
             {examples.map((calls, i) => (
-              <li key={i}>{calls}</li>
+              <li
+                key={i}
+                className="lg:overflow-x-auto lg:rounded-xl lg:bg-well lg:px-3 lg:py-2"
+              >
+                {calls}
+              </li>
             ))}
           </ul>
         </div>
         {playing?.extension != null && (
-          <div className="rounded-md border border-accent p-3">
-            <h2 className="text-title">Extension</h2>
-            <pre className="mt-1 whitespace-pre-wrap font-sans">
+          <div className="rounded-md border border-accent p-3 lg:mt-3.5 lg:rounded-2xl lg:border-0 lg:bg-(--system-design-tint) lg:text-[13px] lg:text-(--system-design-line)">
+            <h2 className="text-title lg:text-[13px] lg:font-bold lg:tracking-normal">
+              <span className="lg:hidden">Extension</span>
+              <span className="hidden lg:inline">Extension round is live.</span>
+            </h2>
+            <pre className="mt-1 whitespace-pre-wrap font-sans lg:font-medium">
               {playing.extension.statement}
             </pre>
             <details className="mt-2">
-              <summary>The new methods in {LANGUAGE_NAMES[language]}</summary>
-              <pre className="mt-1 overflow-x-auto font-mono text-sm">
+              <summary className="lg:font-semibold">
+                The new methods in {LANGUAGE_NAMES[language]}
+              </summary>
+              <pre className="mt-1 overflow-x-auto font-mono text-sm lg:text-xs">
                 {playing.extension.starters[language] ?? ""}
               </pre>
             </details>
           </div>
         )}
       </section>
-      <section aria-label="Your code" className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2">
-            Language
-            <select
-              value={language}
-              onChange={(e) => {
-                onLanguage(e.target.value);
-              }}
-              className="rounded-md border border-line px-2 py-1"
+      <section
+        aria-label="Your code"
+        className="flex flex-col gap-3 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:min-w-0 lg:gap-0 lg:border-x lg:border-hairline lg:p-5"
+      >
+        <div className="flex flex-col gap-3 lg:gap-0 lg:overflow-hidden lg:rounded-[18px] lg:border lg:border-hairline">
+          <div className="flex flex-wrap items-center gap-3 lg:gap-2 lg:border-b lg:border-hairline lg:px-3.5 lg:py-2.5 lg:text-[13px]">
+            <label className="flex items-center gap-2 lg:text-ink-muted">
+              Language
+              <select
+                value={language}
+                onChange={(e) => {
+                  onLanguage(e.target.value);
+                }}
+                className="rounded-md border border-line px-2 py-1 lg:rounded-lg lg:border-0 lg:bg-well lg:px-2.5 lg:font-mono lg:text-xs lg:font-semibold lg:text-ink"
+              >
+                {languages.map((l) => (
+                  <option key={l} value={l}>
+                    {LANGUAGE_NAMES[l] ?? l}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {/* On a desktop the clock and the bests are in the header. */}
+            <span
+              role="timer"
+              aria-label="Time left"
+              className="font-mono lg:hidden"
             >
-              {languages.map((l) => (
-                <option key={l} value={l}>
-                  {LANGUAGE_NAMES[l] ?? l}
-                </option>
-              ))}
-            </select>
-          </label>
-          <span aria-label="Time left" className="font-mono">
-            {playing === null ? "–" : clock(playing.endsAt - now)}
-          </span>
-          <span className="text-ink-muted">
-            {playing === null
-              ? "Connecting…"
-              : Object.entries(playing.best)
-                  .map(
-                    ([player, points]) =>
-                      `${names(Object.keys(playing.best), playing.you)[player] ?? player} ${String(points)}`,
-                  )
-                  .join(" · ")}
-          </span>
+              {playing === null ? "–" : clock(playing.endsAt - now)}
+            </span>
+            <span className="text-ink-muted lg:hidden">
+              {playing === null ? "Connecting…" : bests(playing)}
+            </span>
+            {playing === null ? (
+              <span className="hidden text-ink-muted lg:ml-auto lg:inline">
+                Connecting…
+              </span>
+            ) : null}
+          </div>
+          <Editor
+            language={language}
+            value={code}
+            onChange={onCode}
+            onPaste={onPaste}
+          />
         </div>
-        <Editor
-          language={language}
-          value={code}
-          onChange={onCode}
-          onPaste={onPaste}
-        />
-        <div className="flex gap-3">
+      </section>
+      <section
+        aria-label="Tests"
+        className="flex flex-col gap-3 lg:col-start-3 lg:row-span-2 lg:row-start-2 lg:min-w-0 lg:gap-1 lg:p-5"
+      >
+        <h2 className="hidden text-[15px] font-semibold lg:mb-1 lg:block">
+          Tests
+        </h2>
+        {playing?.ran == null && playing?.submitted == null ? (
+          <p className="hidden text-[13px] text-ink-muted lg:block">
+            Run the visible tests, or submit for points.
+          </p>
+        ) : null}
+        <div className="flex gap-3 lg:order-last lg:mt-auto lg:gap-2 lg:pt-4">
           <button
             type="button"
             disabled={playing === null || playing.running}
             onClick={() => {
               onSend(false);
             }}
-            className="rounded-md border border-line px-4 py-2 disabled:opacity-50"
+            className="rounded-md border border-line px-4 py-2 disabled:opacity-50 lg:h-[46px] lg:flex-1 lg:rounded-xl lg:border-[1.5px] lg:py-0 lg:text-sm lg:font-semibold lg:border-hairline-strong"
           >
-            {playing?.running === true ? "Running…" : "Run"}
+            {playing?.running === true ? (
+              "Running…"
+            ) : (
+              <>
+                Run<span className="hidden lg:inline"> tests</span>
+              </>
+            )}
           </button>
           <button
             type="button"
@@ -417,25 +551,39 @@ export function BattleView({
             onClick={() => {
               onSend(true);
             }}
-            className="rounded-md bg-accent px-4 py-2 text-on-accent disabled:opacity-50"
+            className="rounded-md bg-accent px-4 py-2 text-on-accent disabled:opacity-50 lg:h-[46px] lg:flex-1 lg:rounded-xl lg:bg-ink lg:py-0 lg:text-sm lg:font-semibold lg:text-page"
           >
             {playing?.submitting === true ? "Submitting…" : "Submit"}
           </button>
         </div>
         {playing !== null && Object.keys(playing.best).length === 1 && (
-          <p className="text-ink-muted">{PACE}</p>
+          <p className="text-ink-muted lg:order-3 lg:mt-3 lg:text-[13px]">
+            {PACE}
+          </p>
         )}
         {playing?.notice != null && (
-          <p role="status" className="text-ink-muted">
+          <p
+            role="status"
+            className="text-ink-muted lg:order-3 lg:mt-2 lg:rounded-xl lg:bg-well lg:px-3 lg:py-2.5 lg:text-[13px]"
+          >
             {playing.notice}
           </p>
         )}
         {playing?.ran != null && (
-          <div aria-label="Run">
-            <h2 className="text-title">Run: the visible tests</h2>
-            <ul>
+          <div aria-label="Run" className="lg:order-2 lg:mt-3">
+            <h2 className="text-title lg:text-sm lg:font-semibold lg:tracking-normal">
+              Run: the visible tests
+            </h2>
+            <ul className="lg:mt-1 lg:flex lg:flex-col lg:gap-1.5 lg:text-[13px]">
               {playing.ran.map((t, i) => (
-                <li key={i}>
+                <li
+                  key={i}
+                  className={
+                    t.passed
+                      ? "lg:text-go-text"
+                      : "lg:rounded-xl lg:bg-[color-mix(in_srgb,var(--wrong)_12%,var(--page))] lg:px-3 lg:py-2 lg:text-wrong"
+                  }
+                >
                   Test {i + 1}: {t.passed ? "passed" : "failed"}
                   {t.passed
                     ? ""
@@ -450,20 +598,78 @@ export function BattleView({
           </div>
         )}
         {playing?.submitted != null && (
-          <div aria-label="Submission">
-            <h2 className="text-title">
+          <div aria-label="Submission" className="lg:order-1">
+            <h2 className="text-title lg:text-sm lg:font-semibold lg:tracking-normal">
               Submission: {playing.submitted.points} points
             </h2>
             <ul>
               {Object.entries(playing.submitted.layers).map(([layer, l]) => (
-                <li key={layer}>
-                  {LAYER_NAMES[layer] ?? layer}: {l.passed} of {l.total}
+                <li
+                  key={layer}
+                  className="lg:flex lg:items-center lg:justify-between lg:border-b lg:border-hairline lg:py-2.5 lg:text-sm lg:last:border-b-0"
+                >
+                  <span>
+                    {LAYER_NAMES[layer] ?? layer}
+                    <span className="lg:hidden">: </span>
+                  </span>
+                  <span className="lg:flex lg:items-center lg:gap-1.5 lg:font-semibold lg:tabular-nums">
+                    {l.passed} of {l.total}
+                    <LayerIcon passed={l.passed} total={l.total} />
+                  </span>
                 </li>
               ))}
             </ul>
           </div>
         )}
       </section>
-    </div>
+    </>
+  );
+}
+
+function bests(playing: Extract<BattleState, { phase: "playing" }>): string {
+  return Object.entries(playing.best)
+    .map(
+      ([player, points]) =>
+        `${names(Object.keys(playing.best), playing.you)[player] ?? player} ${String(points)}`,
+    )
+    .join(" · ");
+}
+
+// The web design's marks for a layer: all passing, some, none.
+function LayerIcon({ passed, total }: { passed: number; total: number }) {
+  const shared = {
+    width: 17,
+    height: 17,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    role: "img",
+    className: "hidden lg:block",
+  };
+  if (passed === total)
+    return (
+      <svg {...shared} aria-label="All passing" color="var(--go)">
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8 12 3 3 5-6" />
+      </svg>
+    );
+  if (passed > 0)
+    return (
+      <svg
+        {...shared}
+        aria-label="Some failing"
+        color="var(--system-design-line)"
+      >
+        <path d="M12 3 2 20h20zM12 9v5M12 17h.01" />
+      </svg>
+    );
+  return (
+    <svg {...shared} aria-label="Failing" color="var(--wrong)">
+      <circle cx="12" cy="12" r="9" />
+      <path d="m9 9 6 6M15 9l-6 6" />
+    </svg>
   );
 }

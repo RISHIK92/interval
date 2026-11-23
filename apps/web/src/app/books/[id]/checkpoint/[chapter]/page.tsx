@@ -42,7 +42,7 @@ export default async function ChapterEndPage(props: {
   if (end?.bookId !== id) notFound();
   const here = `/books/${id}/checkpoint/${chapter}`;
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:max-w-[46rem] lg:pt-10 lg:pl-64">
+    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:mx-0 lg:max-w-[44.5rem] lg:pt-10 lg:pl-58">
       <TabBar current="paths" firstName={chosen.firstName} />
       <header className="flex flex-col gap-1">
         <p className="text-sm text-ink-muted">

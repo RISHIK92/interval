@@ -4,7 +4,9 @@ import type { ButtonHTMLAttributes } from "react";
 // red play pill comes with Play, with dark text in dark mode for contrast.
 const VARIANTS = {
   act: "bg-ink text-page",
-  secondary: "border border-hairline bg-page text-ink",
+  // On the web, the design's outline: a stronger line over whatever it sits on.
+  secondary:
+    "border border-hairline bg-page text-ink lg:border-[1.5px] lg:border-hairline-strong lg:bg-transparent",
 } as const;
 
 export function Button({

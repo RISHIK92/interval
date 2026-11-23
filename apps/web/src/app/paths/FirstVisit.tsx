@@ -4,6 +4,7 @@ import type { PathSummary, PathTimeline } from "../../server/ports";
 import { Card } from "../ui/Card";
 import { TopicArt } from "../ui/TopicArt";
 import { startPathAction } from "./actions";
+import { BookArt } from "./BookArt";
 import { ShowPicked } from "./ShowPicked";
 import { UploadDrop } from "./UploadDrop";
 
@@ -56,7 +57,7 @@ export function FirstVisit({
       >
         <header>
           <h1 className="text-display">Paths</h1>
-          <p className="mt-1 text-ink-muted">
+          <p className="mt-1 text-ink-muted lg:mt-1.5 lg:max-w-[35rem] lg:leading-snug">
             No paths yet. Add something you already want to read, or start from
             a ready-made path. Either way it becomes short sessions.
           </p>
@@ -64,21 +65,34 @@ export function FirstVisit({
         {preview !== null ? null : (
           <Card className="overflow-hidden">
             <HeroArt />
-            <section aria-label="Bring your own reading" className="p-5">
-              <h2 className="text-title">Bring your own reading</h2>
+            <div className="hidden lg:block">
+              <BookArt className="h-[12.5rem]" />
+            </div>
+            <section
+              aria-label="Bring your own reading"
+              className="p-5 lg:px-6 lg:pt-[1.375rem] lg:pb-6"
+            >
+              <h2 className="text-title lg:text-[1.375rem] lg:leading-tight lg:font-bold lg:tracking-tight">
+                Bring your own reading
+              </h2>
               <p className="mt-1 text-sm text-ink-muted">
                 We split it into short sessions, with a 60-second checkpoint
                 after each chapter.
               </p>
-              <div className="mt-4">
+              <div className="mt-4 lg:mt-3.5">
                 <UploadDrop maxMb={maxMb} />
               </div>
             </section>
           </Card>
         )}
-        <section aria-label="Ready-made paths" className="flex flex-col gap-3">
+        <section
+          aria-label="Ready-made paths"
+          className="flex flex-col gap-3 lg:gap-3.5"
+        >
           <div className="flex flex-wrap items-baseline gap-x-3">
-            <h2 className="text-section">Or start a ready-made path</h2>
+            <h2 className="text-section lg:text-xl lg:font-bold lg:tracking-tight">
+              Or start a ready-made path
+            </h2>
             {paths.length > 0 ? (
               <p className="text-sm text-ink-muted">
                 Pick one to preview it on the right
@@ -101,10 +115,10 @@ export function FirstVisit({
                       key={t ?? "all"}
                       href={href({ topic: t })}
                       aria-current={t === topic ? "true" : undefined}
-                      className={`rounded-full border px-3 py-1.5 text-sm ${
+                      className={`rounded-full border px-3 py-1.5 text-sm lg:flex lg:h-9 lg:items-center lg:border-[1.5px] lg:px-3.5 lg:py-0 ${
                         t === topic
                           ? "border-ink font-semibold"
-                          : "border-hairline text-ink-muted"
+                          : "border-hairline text-ink-muted lg:font-medium"
                       }`}
                     >
                       {t === null ? "All" : `#${t}`}
@@ -113,7 +127,7 @@ export function FirstVisit({
                 </nav>
               ) : null}
               <ul
-                className={`grid gap-3 ${preview === null ? "sm:grid-cols-2" : ""}`}
+                className={`grid gap-3 ${preview === null ? "sm:grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(13.75rem,1fr))]" : ""}`}
               >
                 {shown.map((p) => (
                   <li
@@ -131,30 +145,50 @@ export function FirstVisit({
                       aria-current={
                         preview?.pathId === p.pathId ? "true" : undefined
                       }
-                      className="block h-full overflow-hidden rounded-3xl border border-hairline bg-page aria-[current=true]:border-select aria-[current=true]:ring-2 aria-[current=true]:ring-select"
+                      className="relative block h-full overflow-hidden rounded-3xl border border-hairline bg-page aria-[current=true]:border-select aria-[current=true]:ring-2 aria-[current=true]:ring-select lg:flex lg:flex-col lg:rounded-[1.25rem] lg:border-2 lg:aria-[current=true]:ring-0"
                     >
                       {p.topic === null ? null : (
                         <TopicArt
                           topic={p.topic}
-                          className="block h-28 w-full"
+                          className="block h-28 w-full lg:h-24 lg:shrink-0"
                         />
                       )}
-                      <span className="flex flex-col gap-1 p-4">
+                      {preview?.pathId === p.pathId ? (
+                        <span
+                          aria-hidden="true"
+                          className="absolute top-2.5 right-2.5 hidden size-[1.625rem] items-center justify-center rounded-full bg-select text-page lg:flex"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            className="size-3.5"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="3"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="m5 12.5 4.5 4.5L19 7.5" />
+                          </svg>
+                        </span>
+                      ) : null}
+                      <span className="flex flex-col gap-1 p-4 lg:flex-1 lg:px-3.5 lg:pt-3 lg:pb-3.5">
                         {p.topic === null ? null : (
                           <span className="text-xs font-semibold text-ink-muted">
                             #{p.topic}
                           </span>
                         )}
-                        <span className="font-semibold">{p.name}</span>
-                        <span className="text-sm text-ink-muted">
+                        <span className="font-semibold lg:leading-tight">
+                          {p.name}
+                        </span>
+                        <span className="text-sm text-ink-muted lg:text-[0.8125rem]">
                           {p.sections} sections · about {p.minutes} min
                         </span>
-                        <span className="mt-2 flex items-center gap-2 text-sm">
-                          <span className="font-semibold">
+                        <span className="mt-2 flex items-center gap-2 text-sm lg:mt-auto lg:flex-wrap lg:gap-1.5 lg:pt-1.5 lg:text-[0.8125rem]">
+                          <span className="font-semibold tabular-nums lg:text-ink-muted">
                             {p.readings} sessions
                           </span>
                           {p.fitsGoal ? (
-                            <span className="rounded-md bg-well px-2 py-0.5 text-xs">
+                            <span className="rounded-md bg-well px-2 py-0.5 text-xs lg:rounded-full lg:font-semibold lg:text-ink-muted">
                               Fits your goal
                             </span>
                           ) : null}
@@ -190,31 +224,35 @@ function PathRail() {
   ];
   return (
     <aside aria-label="How paths work" className="flex flex-col gap-3">
-      <Card className="p-4">
+      <Card className="p-4 lg:rounded-[1.375rem] lg:p-[1.125rem]">
         <h2 className="font-semibold">How a path works</h2>
-        <ol className="mt-3 flex flex-col gap-3">
+        <ol className="mt-3 flex flex-col gap-3 lg:mt-3.5 lg:gap-3.5">
           {steps.map(([title, detail], index) => (
             <li key={title} className="flex gap-3">
-              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-well text-xs font-semibold">
+              <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-well text-xs font-semibold lg:size-7 lg:text-[0.8125rem] lg:font-bold">
                 {index + 1}
               </span>
               <span>
-                <span className="block text-sm font-semibold">{title}</span>
-                <span className="block text-sm text-ink-muted">{detail}</span>
+                <span className="block text-sm font-semibold lg:text-[0.9375rem]">
+                  {title}
+                </span>
+                <span className="block text-sm text-ink-muted lg:text-[0.8125rem] lg:leading-snug">
+                  {detail}
+                </span>
               </span>
             </li>
           ))}
         </ol>
       </Card>
-      <div className="rounded-3xl border border-dashed border-hairline p-4">
+      <div className="rounded-3xl border border-dashed border-hairline p-4 lg:rounded-[1.375rem] lg:border-[1.5px] lg:border-track lg:p-[1.125rem]">
         <h2 className="font-semibold">Your plan shows up here</h2>
-        <p className="mt-1 text-sm text-ink-muted">
+        <p className="mt-1 text-sm text-ink-muted lg:text-[0.8125rem] lg:leading-snug">
           Pick a path or add a book to see its plan here.
         </p>
       </div>
-      <div className="rounded-3xl bg-well p-4">
+      <div className="rounded-3xl bg-well p-4 lg:rounded-[1.25rem] lg:px-[1.125rem] lg:py-4">
         <h2 className="font-semibold">Read on your phone too</h2>
-        <p className="mt-1 text-sm text-ink-muted">
+        <p className="mt-1 text-sm text-ink-muted lg:text-[0.8125rem] lg:leading-snug">
           Your place in a book is saved. Stop here, pick up on your phone.
         </p>
       </div>
@@ -299,7 +337,8 @@ function PathPane({ path, close }: { path: PathTimeline; close: string }) {
   );
 }
 
-// A book becoming sessions: one block, then its short pieces (decorative).
+// A book becoming sessions: one block, then its short pieces (decorative). Phones'
+// picture; wide screens show the web design's BookArt instead.
 function HeroArt() {
   const tint = "var(--system-design-tint)";
   const right = "var(--system-design-right)";
@@ -314,7 +353,7 @@ function HeroArt() {
     <svg
       aria-hidden="true"
       viewBox="0 0 320 120"
-      className="block h-40 w-full"
+      className="block h-40 w-full lg:hidden"
       style={{ background: tint }}
     >
       <path d="M40 58 l50 -22 l50 22 l-50 22 z" fill={right} opacity="0.7" />

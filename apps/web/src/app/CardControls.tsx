@@ -5,7 +5,7 @@ import { StartQuiz, ZAP } from "./quiz/StartQuiz";
 
 // Round icon buttons beside the card's pill (design screen 2).
 const ROUND =
-  "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-hairline bg-page text-ink";
+  "flex size-11 shrink-0 cursor-pointer items-center justify-center rounded-full border border-hairline bg-page text-ink lg:size-[50px] lg:border-[1.5px] lg:border-hairline-strong lg:bg-transparent";
 const MENU_ITEM =
   "w-full rounded-xl px-3 py-2 text-left hover:bg-well focus-visible:bg-well";
 

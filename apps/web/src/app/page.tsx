@@ -40,7 +40,6 @@ import { FeedRow } from "./FeedRow";
 import { Greeting } from "./Greeting";
 import { NowReading } from "./NowReading";
 import { ReturnPrompt } from "./ReturnPrompt";
-import { TabBar } from "./TabBar";
 import { UndoNotInterested } from "./UndoNotInterested";
 import { MomentCard } from "./MomentCard";
 import { StartQuiz, ZAP } from "./quiz/StartQuiz";
@@ -49,6 +48,7 @@ import { DailyCard } from "./DailyCard";
 import { PathCard } from "./PathCard";
 import { ReviewCard } from "./ReviewCard";
 import { Card } from "./ui/Card";
+import { Page } from "./ui/Page";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +82,9 @@ export default async function HomePage({
   const header = (chip: Chip, continuing: string | null) => (
     <header className="flex items-start justify-between gap-4">
       <div>
-        <p className="text-sm text-ink-muted">How long is this break?</p>
+        <p className="text-sm text-ink-muted lg:font-medium">
+          How long is this break?
+        </p>
         <Greeting
           firstName={chosen.firstName}
           chip={chip}
@@ -279,206 +281,206 @@ export default async function HomePage({
     );
   };
   return (
-    <div className="mx-auto max-w-xl px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_18rem] lg:gap-8 lg:pt-10 lg:pr-8 lg:pb-10 lg:pl-68">
-      <main className="min-w-0 lg:w-full lg:max-w-[46rem] lg:justify-self-center lg:pl-16">
-        <div className="lg:flex lg:items-end lg:justify-between lg:gap-6">
-          {header(chip, continuing[0]?.sectionTitle ?? null)}
+    <Page
+      tab="home"
+      firstName={chosen.firstName}
+      rail={
+        <ComingLater
+          streak={playsDaily ? daily.streak : null}
+          path={pathNext}
+          due={due.length}
+        />
+      }
+    >
+      <div className="lg:mb-5 lg:flex lg:flex-wrap lg:items-end lg:justify-between lg:gap-x-6">
+        {header(chip, continuing[0]?.sectionTitle ?? null)}
+        {/* On the web, under the greeting and the chips rather than between them. */}
+        <div className="lg:order-last lg:mt-4 lg:w-full lg:empty:hidden">
           <AgentBanner
             startedAt={agentRun?.startedAt.getTime() ?? null}
             place={place}
             now={now.getTime()}
           />
-          <nav
-            aria-label="Break length"
-            className="my-4 lg:my-0 lg:w-72 lg:shrink-0"
-          >
-            {/* The design's segmented chips: a well, the chosen one lifted. */}
-            <ul className="flex gap-1 rounded-2xl bg-well p-1">
-              {CHIPS.map((option) => (
-                <li key={option} className="flex-1">
-                  <Link
-                    href={`/?chip=${option}`}
-                    aria-current={option === chip ? "true" : undefined}
-                    className={`block rounded-xl py-2 text-center ${option === chip ? "bg-lift shadow-card" : "text-ink-muted"}`}
-                  >
-                    {option === chip ? (
-                      <strong>{chipLabel(option)}</strong>
-                    ) : (
-                      chipLabel(option)
-                    )}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
         </div>
-        {/* The panel steps aside while the prompt asks (owner, 2026-10-26). */}
-        <ReturnPrompt chip={chip} initialAsk={ask}>
-          {reading === null || readingTitles === null ? null : (
-            <NowReading
-              reading={reading}
-              titles={readingTitles}
-              chip={chip}
-              note={readingNote}
-            />
-          )}
-        </ReturnPrompt>
-        {finished === null || next === undefined ? null : next === null ? (
-          <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
-            That was the last section.
-          </p>
-        ) : (
-          <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
-            Continue:{" "}
-            {/* In the reader when the page can be framed, as the cards do
-              (ADR-0018). */}
-            {next.frameable ? (
-              <a
-                href={readHref({
-                  itemId: finished.itemId,
-                  momentId: next.momentId,
-                  chip,
-                  from: "continue",
-                })}
-                data-read-item={finished.itemId}
-                data-read-moment={next.momentId}
-                className="font-semibold text-select"
-              >
-                {next.title}
-              </a>
-            ) : (
-              <a
-                href={outHref({
-                  itemId: finished.itemId,
-                  momentId: next.momentId,
-                  from: "continue",
-                  target: "section",
-                })}
-                data-item={finished.itemId}
-                data-moment={next.momentId}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-semibold text-select"
-              >
-                {next.title}
-              </a>
-            )}
-          </p>
-        )}
-        {/* The end of a section offers a test or the next one (wireframe 03, end). */}
-        {finished !== null &&
-        next !== undefined &&
-        testable.has(quizKey(finished.itemId, finished.momentId)) ? (
-          <StartQuiz
-            itemId={finished.itemId}
-            momentId={finished.momentId}
+        <nav
+          aria-label="Break length"
+          className="my-4 lg:my-0 lg:w-75 lg:shrink-0"
+        >
+          {/* The design's segmented chips: a well, the chosen one lifted. */}
+          <ul className="flex gap-1 rounded-2xl bg-well p-1 lg:h-12 lg:rounded-[14px]">
+            {CHIPS.map((option) => (
+              <li key={option} className="flex-1">
+                <Link
+                  href={`/?chip=${option}`}
+                  aria-current={option === chip ? "true" : undefined}
+                  className={`block rounded-xl py-2 text-center lg:flex lg:h-full lg:items-center lg:justify-center lg:rounded-[10px] lg:py-0 lg:text-[15px] ${option === chip ? "bg-lift shadow-card" : "text-ink-muted lg:font-medium lg:text-ink-soft"}`}
+                >
+                  {option === chip ? (
+                    <strong>{chipLabel(option)}</strong>
+                  ) : (
+                    chipLabel(option)
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      </div>
+      {/* The panel steps aside while the prompt asks (owner, 2026-10-26). */}
+      <ReturnPrompt chip={chip} initialAsk={ask}>
+        {reading === null || readingTitles === null ? null : (
+          <NowReading
+            reading={reading}
+            titles={readingTitles}
             chip={chip}
-            back={`/?chip=${chip}`}
-            className="mb-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
-          >
-            <svg
-              aria-hidden="true"
-              viewBox="0 0 24 24"
-              className="size-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinejoin="round"
-            >
-              <path d={ZAP} />
-            </svg>
-            Test yourself · 60s
-          </StartQuiz>
-        ) : null}
-        <ContinueReading cards={continuing} chip={chip} />
-        {undoable === null ? null : (
-          <UndoNotInterested itemId={undoable} chip={chip} />
+            note={readingNote}
+          />
         )}
-        {cards.length === 0 ? (
-          <>
-            <Card className="mt-6 p-8 text-center text-ink-muted">
-              <p>No moments yet.</p>
-            </Card>
+      </ReturnPrompt>
+      {finished === null || next === undefined ? null : next === null ? (
+        <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
+          That was the last section.
+        </p>
+      ) : (
+        <p role="status" className="my-4 rounded-2xl bg-well px-4 py-3">
+          Continue:{" "}
+          {/* In the reader when the page can be framed, as the cards do
+            (ADR-0018). */}
+          {next.frameable ? (
+            <a
+              href={readHref({
+                itemId: finished.itemId,
+                momentId: next.momentId,
+                chip,
+                from: "continue",
+              })}
+              data-read-item={finished.itemId}
+              data-read-moment={next.momentId}
+              className="font-semibold text-select"
+            >
+              {next.title}
+            </a>
+          ) : (
+            <a
+              href={outHref({
+                itemId: finished.itemId,
+                momentId: next.momentId,
+                from: "continue",
+                target: "section",
+              })}
+              data-item={finished.itemId}
+              data-moment={next.momentId}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-select"
+            >
+              {next.title}
+            </a>
+          )}
+        </p>
+      )}
+      {/* The end of a section offers a test or the next one (wireframe 03, end). */}
+      {finished !== null &&
+      next !== undefined &&
+      testable.has(quizKey(finished.itemId, finished.momentId)) ? (
+        <StartQuiz
+          itemId={finished.itemId}
+          momentId={finished.momentId}
+          chip={chip}
+          back={`/?chip=${chip}`}
+          className="mb-4 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            className="size-4"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          >
+            <path d={ZAP} />
+          </svg>
+          Test yourself · 60s
+        </StartQuiz>
+      ) : null}
+      <ContinueReading cards={continuing} chip={chip} />
+      {undoable === null ? null : (
+        <UndoNotInterested itemId={undoable} chip={chip} />
+      )}
+      {cards.length === 0 ? (
+        <>
+          <Card className="mt-6 p-8 text-center text-ink-muted">
+            <p>No moments yet.</p>
+          </Card>
+          {pathNext === null ? null : (
+            <div className="mt-4">
+              <PathCard next={pathNext} chip={chip} />
+            </div>
+          )}
+          {bookNext === null ? null : (
+            <div className="mt-4">
+              <BookCard next={bookNext} />
+            </div>
+          )}
+          {dailyCard === null ? null : <div className="mt-4">{dailyCard}</div>}
+          {/* With no cards to sit behind, the review shows alone (owner,
+            2026-10-28, Q-P2-21). */}
+          {due.length > 0 ? (
+            <div className="mt-4">
+              <ReviewCard due={due} chip={chip} />
+            </div>
+          ) : null}
+        </>
+      ) : (
+        // ADR-0019: one full-size card at a time, sideways; only a sliver of the next
+        // card's edge says there is more. Arrow keys scroll it once it has focus. The
+        // vertical padding, taken back by the negative margin, keeps card shadows from
+        // being clipped by the scroller.
+        <FeedRow>
+          <ul className="flex gap-2">
+            {/* P2-W10-S06 (Q-P2-27): the path's next step comes first; the
+              ranked cards keep their positions. */}
             {pathNext === null ? null : (
-              <div className="mt-4">
+              <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
                 <PathCard next={pathNext} chip={chip} />
-              </div>
+              </li>
             )}
             {bookNext === null ? null : (
-              <div className="mt-4">
+              <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
                 <BookCard next={bookNext} />
-              </div>
+              </li>
             )}
+            {/* P3-W13-S05: after the path and book; the ranked cards keep their
+              positions. */}
             {dailyCard === null ? null : (
-              <div className="mt-4">{dailyCard}</div>
+              <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
+                {dailyCard}
+              </li>
             )}
-            {/* With no cards to sit behind, the review shows alone (owner,
-              2026-10-28, Q-P2-21). */}
-            {due.length > 0 ? (
-              <div className="mt-4">
-                <ReviewCard due={due} chip={chip} />
-              </div>
-            ) : null}
-          </>
-        ) : (
-          // ADR-0019: one full-size card at a time, sideways; only a sliver of the next
-          // card's edge says there is more. Arrow keys scroll it once it has focus. The
-          // vertical padding, taken back by the negative margin, keeps card shadows from
-          // being clipped by the scroller.
-          <FeedRow>
-            <ul className="flex gap-2">
-              {/* P2-W10-S06 (Q-P2-27): the path's next step comes first; the
-                ranked cards keep their positions. */}
-              {pathNext === null ? null : (
+            {cards.map((card, index) => (
+              <Fragment
+                key={
+                  card.kind === "moment"
+                    ? `m${card.momentId}`
+                    : `a${card.itemId}`
+                }
+              >
                 <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
-                  <PathCard next={pathNext} chip={chip} />
+                  {renderCard(card, index)}
                 </li>
-              )}
-              {bookNext === null ? null : (
-                <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
-                  <BookCard next={bookNext} />
-                </li>
-              )}
-              {/* P3-W13-S05: after the path and book; the ranked cards keep their
-                positions. */}
-              {dailyCard === null ? null : (
-                <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
-                  {dailyCard}
-                </li>
-              )}
-              {cards.map((card, index) => (
-                <Fragment
-                  key={
-                    card.kind === "moment"
-                      ? `m${card.momentId}`
-                      : `a${card.itemId}`
-                  }
-                >
+                {/* P2-W9-S06 (Q-P2-17): the review takes the second slot; the
+                  cards keep their ranked positions. */}
+                {index === 0 && due.length > 0 ? (
                   <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
-                    {renderCard(card, index)}
+                    <ReviewCard due={due} chip={chip} />
                   </li>
-                  {/* P2-W9-S06 (Q-P2-17): the review takes the second slot; the
-                    cards keep their ranked positions. */}
-                  {index === 0 && due.length > 0 ? (
-                    <li className="w-[calc(100%-18px)] shrink-0 snap-start snap-always last:w-full">
-                      <ReviewCard due={due} chip={chip} />
-                    </li>
-                  ) : null}
-                </Fragment>
-              ))}
-            </ul>
-          </FeedRow>
-        )}
-      </main>
-      <ComingLater
-        path={
-          pathNext === null
-            ? null
-            : { pathId: pathNext.pathId, name: pathNext.pathName }
-        }
-        due={due.length}
-      />
-      <TabBar current="home" firstName={chosen.firstName} />
-    </div>
+                ) : null}
+              </Fragment>
+            ))}
+          </ul>
+        </FeedRow>
+      )}
+    </Page>
   );
 }

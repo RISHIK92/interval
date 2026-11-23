@@ -16,7 +16,7 @@ export function SectionProgress({
           {Array.from({ length: count }, (_, i) => (
             <span
               key={i}
-              className={`h-1.5 min-w-0 flex-1 rounded-full ${
+              className={`h-1.5 min-w-0 flex-1 rounded-full lg:h-2 ${
                 i < number - 1
                   ? "bg-go"
                   : i === number - 1
@@ -27,7 +27,7 @@ export function SectionProgress({
           ))}
         </div>
       ) : null}
-      <p className="mt-1.5 text-sm text-ink-muted">
+      <p className="mt-1.5 text-sm text-ink-muted lg:font-medium lg:text-ink-soft">
         {`Section ${String(number)} of ${String(count)}`}
       </p>
     </div>

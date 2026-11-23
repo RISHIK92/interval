@@ -11,6 +11,12 @@ export const colors = {
   hairline: { light: "#e4e6eb", dark: "#262a32" },
   ink: { light: "#101217", dark: "#f3f4f6" },
   "ink-muted": { light: "#666c78", dark: "#8f95a1" },
+  // The design system's second ink (--ink2): unselected navigation, supporting lines.
+  "ink-soft": { light: "#454a55", dark: "#bcc1cb" },
+  // The design system's card (--card): the page in light, a step above it in dark.
+  card: { light: "#ffffff", dark: "#15181d" },
+  // The design system's stronger line (--ln2): the outline of a quieter button.
+  "hairline-strong": { light: "#cdd1d8", dark: "#3a3f49" },
   go: { light: "#12a150", dark: "#35d07f" },
   "go-text": { light: "#0b7a3e", dark: "#35d07f" },
   "go-soft": { light: "#9fe3bb", dark: "#1d6b42" },

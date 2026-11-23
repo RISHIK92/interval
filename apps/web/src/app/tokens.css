@@ -7,6 +7,9 @@
   --hairline: light-dark(#e4e6eb, #262a32);
   --ink: light-dark(#101217, #f3f4f6);
   --ink-muted: light-dark(#666c78, #8f95a1);
+  --ink-soft: light-dark(#454a55, #bcc1cb);
+  --card: light-dark(#ffffff, #15181d);
+  --hairline-strong: light-dark(#cdd1d8, #3a3f49);
   --go: light-dark(#12a150, #35d07f);
   --go-text: light-dark(#0b7a3e, #35d07f);
   --go-soft: light-dark(#9fe3bb, #1d6b42);

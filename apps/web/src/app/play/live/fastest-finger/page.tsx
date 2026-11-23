@@ -3,6 +3,7 @@ import { z } from "zod";
 import { redirect } from "next/navigation";
 import { gameEnv } from "../../../../env";
 import { entitlements, sessionReader } from "../../../../server/container";
+import { LIVE_QUESTIONS } from "../../../../server/ports";
 import { requireUsername } from "../../../username/gate";
 import { LiveFinger } from "./LiveFinger";
 
@@ -27,12 +28,12 @@ export default async function LiveFingerPage(props: {
   )
     redirect("/play");
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-12 lg:pt-10">
+    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-12 lg:max-w-[56.5rem] lg:px-8 lg:pt-7">
       <header>
         <h1 className="text-display">Fastest finger</h1>
         <p className="mt-1 text-ink-muted">
-          You and one opponent, 7 rounds. The first right answer takes each
-          round; one answer each.
+          You and one opponent, {LIVE_QUESTIONS.fastest_finger} rounds. The
+          first right answer takes each round; one answer each.
         </p>
       </header>
       <LiveFinger

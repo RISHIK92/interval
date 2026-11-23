@@ -4,6 +4,7 @@ import { Design, type HldProblem, simulate } from "@interval/hld";
 import { Background, type Edge, type Node, ReactFlow } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useMemo } from "react";
+import { flowTheme, NodeLabel } from "./flow";
 
 // P6-W44 (Q-P6-08): a design shown, not edited: for spectators and replays. Its
 // simulation runs here, as the canvas's preview does (CANVAS-5).
@@ -32,7 +33,7 @@ export function DesignView({
   const nodes: Node[] = design.nodes.map((n) => ({
     id: n.id,
     position: n.position ?? { x: 0, y: 0 },
-    data: { label: `${n.id} · ${n.kind.replaceAll("_", " ")}` },
+    data: { label: <NodeLabel id={n.id} kind={n.kind} /> },
   }));
   const edges: Edge[] = design.edges.map((e) => ({
     id: `${e.from}->${e.to}`,
@@ -43,7 +44,10 @@ export function DesignView({
   return (
     <section className="flex flex-col gap-2 rounded-md border border-line p-3">
       <h2 className="text-title">{title}</h2>
-      <div className="h-80 rounded-md border border-line">
+      <div
+        className="h-80 overflow-hidden rounded-md border border-line lg:rounded-[20px] lg:border-hairline"
+        style={flowTheme}
+      >
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -52,7 +56,7 @@ export function DesignView({
           elementsSelectable={false}
           fitView
         >
-          <Background />
+          <Background gap={18} />
         </ReactFlow>
       </div>
       {result === null || result.scenarios.length === 0 ? null : (

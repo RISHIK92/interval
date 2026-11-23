@@ -30,32 +30,64 @@ export function ReviewCard({
   const more = due.length - NAMED;
   return (
     <article className="h-full">
-      <Card className="flex h-full flex-col">
+      {/* Wide screens (review card redesign, 2026-11): the Review family's ground, a pill
+        naming the card, the count on a raised inner card, the concepts as compact rows,
+        and no picture band. */}
+      <Card className="flex h-full flex-col lg:border-(--review-top) lg:bg-(--review-tint)">
         <ReviewArt />
-        <div className="flex flex-1 flex-col p-5">
-          <p className="text-sm text-ink-muted">Spaced review</p>
-          <h2 className="mt-1 text-title">
-            Review {one ? "1 concept" : `${String(due.length)} concepts`} ·
-            about {reviewMinutes(due.length)} min
-          </h2>
-          <p className="mt-3 text-ink">
-            Due for review: can you still recall {one ? "this" : "these"}?
+        <div className="flex flex-1 flex-col p-5 lg:gap-3.5 lg:p-[18px]">
+          <p className="text-sm text-ink-muted lg:flex lg:h-7 lg:items-center lg:gap-[7px] lg:self-start lg:rounded-full lg:bg-card lg:pr-[11px] lg:pl-[9px] lg:text-[13px] lg:font-semibold lg:text-(--review-line)">
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="hidden size-3.5 lg:block"
+            >
+              <rect
+                x="3"
+                y="7"
+                width="13"
+                height="14"
+                rx="3.5"
+                fill="currentColor"
+                opacity="0.35"
+              />
+              <rect
+                x="8"
+                y="3"
+                width="13"
+                height="14"
+                rx="3.5"
+                fill="currentColor"
+              />
+            </svg>
+            Spaced review
           </p>
-          <ol className="mt-3 flex flex-col gap-2">
+          <div className="lg:flex lg:flex-col lg:gap-3 lg:rounded-[18px] lg:bg-card lg:p-4">
+            <h2 className="mt-1 text-title lg:mt-0 lg:text-[21px] lg:leading-tight lg:font-semibold lg:tracking-[-0.02em]">
+              Review {one ? "1 concept" : `${String(due.length)} concepts`} ·
+              about {reviewMinutes(due.length)} min
+            </h2>
+            <p className="mt-3 text-ink lg:mt-0 lg:text-[13px] lg:font-medium lg:text-ink-muted">
+              Due for review: can you still recall {one ? "this" : "these"}?
+            </p>
+          </div>
+          <ol className="mt-3 flex flex-col gap-2 lg:mt-0">
             {due.slice(0, NAMED).map((concept, i) => (
               <li
                 key={concept.name}
-                className="flex items-center gap-3 rounded-2xl border border-hairline px-4 py-3"
+                className="flex items-center gap-3 rounded-2xl border border-hairline px-4 py-3 lg:gap-2.5 lg:rounded-none lg:border-0 lg:p-0"
               >
                 <span
                   aria-hidden="true"
-                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--review-tint) text-sm font-bold text-(--review-line)"
+                  className="flex size-7 shrink-0 items-center justify-center rounded-full bg-(--review-tint) text-sm font-bold text-(--review-line) lg:size-6 lg:bg-card lg:text-xs"
                 >
                   {i + 1}
                 </span>
-                <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="font-semibold">{concept.name}</span>
-                  <span className="text-sm text-ink-muted">
+                <span className="flex min-w-0 flex-1 flex-col lg:flex-row lg:items-center lg:justify-between lg:gap-2.5">
+                  <span className="font-semibold lg:text-sm">
+                    {concept.name}
+                  </span>
+                  <span className="text-sm text-ink-muted lg:text-[13px] lg:font-semibold lg:text-ink-soft">
                     {recalled(concept.daysSince)}
                   </span>
                 </span>
@@ -63,14 +95,26 @@ export function ReviewCard({
             ))}
           </ol>
           {more > 0 ? (
-            <p className="mt-2 text-sm text-ink-muted">and {more} more</p>
+            <p className="mt-2 text-sm text-ink-muted lg:mt-0">
+              and {more} more
+            </p>
           ) : null}
-          <form action={startReviewAction} className="mt-auto flex pt-4">
+          <form
+            action={startReviewAction}
+            className="mt-auto flex pt-4 lg:pt-0"
+          >
             <input type="hidden" name="chip" value={chip} />
             <button
               type="submit"
-              className="inline-flex flex-1 cursor-pointer items-center justify-center rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+              className="inline-flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-full bg-ink px-5 py-2.5 font-semibold text-page lg:h-[50px] lg:text-base"
             >
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 24 24"
+                className="hidden size-[13px] lg:block"
+              >
+                <path d="M7 4.5v15l12-7.5z" fill="currentColor" />
+              </svg>
               Start quiz
             </button>
           </form>
@@ -100,7 +144,7 @@ function ReviewArt() {
     <svg
       aria-hidden="true"
       viewBox="0 0 320 120"
-      className="block h-36 w-full rounded-t-3xl sm:h-44"
+      className="block h-36 w-full rounded-t-3xl sm:h-44 lg:hidden"
       style={{ background: c("tint") }}
     >
       {card(140, 64, -12, c("top"))}

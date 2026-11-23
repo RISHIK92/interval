@@ -49,7 +49,7 @@ afterEach(() => {
 });
 
 async function page(
-  search: { topic?: string; preview?: string } = {},
+  search: { topic?: string; preview?: string; open?: string } = {},
 ): Promise<string> {
   const { default: PathsPage } = await import("./page");
   return renderToStaticMarkup(
@@ -109,6 +109,23 @@ test("the active path comes first to continue; the others can be started or resu
   expect(html).toMatch(
     /<a(?=[^>]*href="\/paths")(?=[^>]*aria-current="page")[^>]*>/,
   );
+});
+
+// On a phone the list's heading stays even when the active path is the only one.
+test("only the active path: Other paths is still there, with nothing under it", async () => {
+  current.mockResolvedValue(user);
+  live.mockResolvedValueOnce([
+    {
+      ...summary,
+      pathId: "7",
+      name: "Replication",
+      mine: "active",
+      retired: false,
+    },
+  ]);
+  const html = await page();
+  expect(html).toContain('aria-label="All paths"');
+  expect(html).toContain("Other paths");
 });
 
 test("with no live paths, it says so", async () => {
@@ -482,4 +499,39 @@ test("no books but a followed path keeps the regular page and the book prompt", 
   const html = await page();
   expect(html).not.toContain("Bring your own reading");
   expect(html).toContain("Upload a PDF to read it in short sessions.");
+});
+
+// Design "Paths, web": on a wide screen the books and the active path are a list, and
+// the one picked (?open=, else the first) shows its next session and its chapters.
+test("wide screens list what the user follows and open the picked book's next session", async () => {
+  current.mockResolvedValue(user);
+  live.mockResolvedValueOnce([
+    {
+      ...summary,
+      pathId: "6",
+      name: "Caching",
+      mine: "active",
+      retired: false,
+    },
+  ]);
+  list.mockResolvedValueOnce([ready]);
+  outlines.mockResolvedValueOnce([outline]);
+  const html = await page({ open: "book-7" });
+  expect(html).toMatch(
+    /<a(?=[^>]*href="\/paths\?open=book-7")(?=[^>]*aria-current="true")[^>]*>/,
+  );
+  expect(html).toContain('href="/paths?open=path-6"');
+  // The next session, its place in the chapter, and the chapter's strip.
+  expect(html).toContain("Chapter 2 · Replication · next up");
+  expect(html).toMatch(
+    /href="\/books\/7\?session=72"[^>]*>.*Resume session 2<\/a>/,
+  );
+  expect(html).toContain("1 more session, then the Replication checkpoint");
+  expect(html).toContain("Session 2 of 3");
+  // A book's chapters never lock (Q-P2-35): the next one is numbered, not locked.
+  expect(html).toContain("Chapter 3 · Partitioning");
+  expect(html).toContain("60 seconds, after session 3 of Replication.");
+  // Each Delete has its own confirm.
+  expect(html).toContain('popoverTarget="delete-book-7-wide"');
+  expect(html).toContain('popoverTarget="delete-book-7"');
 });

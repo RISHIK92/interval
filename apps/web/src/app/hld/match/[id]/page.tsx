@@ -10,6 +10,9 @@ import {
 } from "../../../../server/container";
 import { advance, problemOf } from "../../../../server/hld-matches";
 import { Canvas } from "../../Canvas";
+import { Clock } from "../../Clock";
+import { Cube } from "../../flow";
+import { FRAME, HEADER, HEADER_TILE, Requirements, TITLE } from "../../Frame";
 
 export const dynamic = "force-dynamic";
 
@@ -33,21 +36,37 @@ export default async function HldMatchPage({
   const problem = problemOf(found.match);
   const latest = await hldMatches().latestVersion(id.data, actor.userId);
   const parsed = Design.safeParse(latest?.design);
+  const players = found.seats.length;
   return (
-    <main className="flex flex-col gap-4 px-4 pt-6 pb-12">
-      <header className="mx-auto w-full max-w-6xl">
-        <h1 className="text-display">{problem.title}</h1>
-        <p className="text-sm text-ink-muted">
+    <main className={FRAME}>
+      <header className={HEADER}>
+        <span className={HEADER_TILE}>
+          <Cube size={30} ramp="system-design" />
+        </span>
+        <div className="lg:min-w-[200px] lg:flex-1">
+          <p className="hidden text-[13px] text-ink-muted lg:block">
+            HLD battle ·{" "}
+            {players === 1
+              ? "solo"
+              : players === 2
+                ? "1v1"
+                : `${String(players)} players`}
+          </p>
+          <h1 className={TITLE}>{problem.title}</h1>
+          <p className="text-sm text-ink-muted lg:hidden">
+            {found.seats.map((s) => s.player).join(" vs ")}
+            {found.match.unrated ? " · unrated" : ""} · the {found.match.league}{" "}
+            league
+          </p>
+        </div>
+        <span className="hidden h-[38px] items-center rounded-full bg-well px-3 text-sm text-ink-muted lg:flex">
           {found.seats.map((s) => s.player).join(" vs ")}
           {found.match.unrated ? " · unrated" : ""} · the {found.match.league}{" "}
           league
-        </p>
-        <ul className="mt-1 list-disc pl-5 text-ink-muted">
-          {problem.requirements.map((r) => (
-            <li key={r}>{r}</li>
-          ))}
-        </ul>
+        </span>
+        <Clock deadline={found.match.deadlineAt.toISOString()} />
       </header>
+      <Requirements requirements={problem.requirements} />
       <Canvas
         problem={problem}
         initial={parsed.success ? parsed.data : starterDesign()}

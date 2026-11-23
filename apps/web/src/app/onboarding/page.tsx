@@ -24,11 +24,20 @@ const STEPS = [
   {
     title: "What should your breaks add up to?",
     subtitle: "We'll shape every pick around this.",
+    plan: "Goal",
     fields: <GoalChoices />,
   },
-  { title: "What do you want to learn?", fields: <TopicChoices /> },
-  { title: "Where are you now?", fields: <LevelChoices /> },
-  { title: "How long is a typical break?", fields: <BreakChoices /> },
+  {
+    title: "What do you want to learn?",
+    plan: "Topics",
+    fields: <TopicChoices />,
+  },
+  { title: "Where are you now?", plan: "Level", fields: <LevelChoices /> },
+  {
+    title: "How long is a typical break?",
+    plan: "Break length",
+    fields: <BreakChoices />,
+  },
 ];
 
 // §5A, C-21, P1-W4-S01, ADR-0015: four steps of one form, then the feed.
@@ -45,7 +54,7 @@ export default async function OnboardingPage(props: {
   const refused =
     missing !== undefined && Object.hasOwn(MISSING, missing) ? missing : null;
   return (
-    <main className="mx-auto max-w-md px-4 pt-6">
+    <main className="mx-auto max-w-md px-4 pt-6 lg:max-w-none lg:px-0 lg:pt-0">
       <form action={onboardingAction}>
         <OnboardingSteps
           steps={STEPS}
