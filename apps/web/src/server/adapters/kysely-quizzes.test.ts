@@ -2483,6 +2483,11 @@ test("a shared result keeps the streak it had on its day", async () => {
       const day = sql<string>`${TODAY} - ${back}::int`;
       await sql`insert into daily_challenge (day) values (${day})
         on conflict do nothing`.execute(trx);
+      // The local database may hold these days' sets already (pnpm demo:seed); the
+      // test's days have none, inside its rollback.
+      await sql`delete from daily_challenge_question where day = ${day}`.execute(
+        trx,
+      );
       const { rows } = await sql<{ share_id: string }>`insert into quiz_attempt
           (user_id, daily_day, started_at, ends_at, finished_at)
         values (${userId}, ${day}, now() - interval '1 hour', now(), now())

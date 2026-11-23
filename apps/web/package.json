@@ -12,7 +12,8 @@
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "next typegen && tsc",
-    "test": "../../scripts/with-env.sh vitest run"
+    "test": "../../scripts/with-env.sh vitest run",
+    "demo:seed": "../../scripts/with-env.sh node --import ../../scripts/ts-resolve.mjs scripts/demo-seed.ts"
   },
   "devDependencies": {
     "@interval/config": "workspace:*",
