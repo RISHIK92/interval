@@ -63,8 +63,18 @@ const EXIT_TEXT = {
     leave: "path",
   },
 } as const;
+// Phones: a row per option. Wide screens: the design's round (Fastest finger, web):
+// the question large and centred, the options as cards side by side, each letter in a
+// key cap.
 const OPTION =
-  "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left";
+  "flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left lg:min-h-24 lg:rounded-[20px] lg:border-[1.5px] lg:px-3.5 lg:text-[17px] lg:font-semibold";
+const OPTIONS =
+  "flex flex-col gap-2 lg:grid lg:grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))] lg:gap-3";
+const QUESTION =
+  "text-lg font-semibold lg:mx-auto lg:max-w-[52.5rem] lg:text-center lg:text-[32px] lg:leading-[1.2] lg:font-bold lg:tracking-[-0.025em]";
+// The black pill; on wide screens the design's 48px button, centred under the round.
+const ACT =
+  "inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 font-semibold text-page lg:h-12 lg:self-center lg:px-7 lg:py-0";
 const FINISH_FORM = "quiz-finish";
 const EXIT = "quiz-exit";
 
@@ -114,7 +124,7 @@ export default async function QuizPage({
     if (feedback === null) redirect(here);
     body = (
       <>
-        <p className="text-lg font-semibold">
+        <p className={QUESTION}>
           {feedback.stem}
           {feedback.aiDrafted ? <AiDrafted /> : null}
         </p>
@@ -123,7 +133,7 @@ export default async function QuizPage({
             {/* P3-W13-S04, S03b (C-27, AI-3): the real answer and where it comes
               from: a hand-written question's quoted sentence and page, or a
               moment's section, never its quote (Q-P2-12). */}
-            <dl className="grid grid-cols-2 gap-2">
+            <dl className="grid grid-cols-2 gap-2 lg:mx-auto lg:w-full lg:max-w-[32rem] lg:gap-3">
               <div className="rounded-2xl bg-well px-4 py-3">
                 <dt className="text-sm text-ink-muted">Your guess</dt>
                 <dd className="font-semibold">
@@ -139,7 +149,7 @@ export default async function QuizPage({
             </dl>
             <p
               role="status"
-              className={`rounded-2xl px-4 py-3 font-semibold ${feedback.score === 1 ? "bg-go-soft" : "bg-well"}`}
+              className={`rounded-2xl px-4 py-3 font-semibold lg:rounded-[14px] lg:text-center ${feedback.score === 1 ? "bg-go-soft" : "bg-well"}`}
             >
               {verdict(feedback.score)}: {points(feedback.score)} points
             </p>
@@ -157,14 +167,14 @@ export default async function QuizPage({
           </>
         ) : (
           <>
-            <ol className="flex flex-col gap-2">
+            <ol className={OPTIONS}>
               {feedback.options.map((option, i) => {
                 const right = i === feedback.correctOption;
                 const chosen = i === feedback.chosen;
                 return (
                   <li
                     key={LETTERS[i]}
-                    className={`${OPTION} ${right ? "border-go bg-go-soft" : chosen ? "border-wrong" : "border-hairline"}`}
+                    className={`${OPTION} lg:flex-wrap ${right ? "border-go bg-go-soft" : chosen ? "border-wrong" : "border-hairline lg:border-track"}`}
                   >
                     <Letter i={i} />
                     <span className="min-w-0 flex-1">{option}</span>
@@ -182,17 +192,14 @@ export default async function QuizPage({
             </ol>
             <p
               role="status"
-              className={`rounded-2xl px-4 py-3 font-semibold ${feedback.correct ? "bg-go-soft" : "bg-well"}`}
+              className={`rounded-2xl px-4 py-3 font-semibold lg:rounded-[14px] lg:text-center ${feedback.correct ? "bg-go-soft" : "bg-well"}`}
             >
               {feedback.correct ? "Correct." : "Not quite."}
             </p>
           </>
         )}
         <div className="flex flex-col gap-2">
-          <a
-            href={here}
-            className="inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 font-semibold text-page"
-          >
+          <a href={here} className={ACT}>
             Next question
           </a>
         </div>
@@ -204,7 +211,7 @@ export default async function QuizPage({
             Thanks. This question is out of quizzes until it&apos;s checked.
           </p>
         ) : (
-          <details className="rounded-2xl border border-hairline px-4 py-3">
+          <details className="rounded-2xl border border-hairline px-4 py-3 lg:mx-auto lg:w-full lg:max-w-[32rem] lg:rounded-[14px]">
             <summary className="cursor-pointer text-sm font-semibold">
               Report a problem with this question
             </summary>
@@ -228,7 +235,7 @@ export default async function QuizPage({
               </fieldset>
               <button
                 type="submit"
-                className="self-start rounded-full border border-hairline px-4 py-2 text-sm font-semibold"
+                className="self-start rounded-full border border-hairline px-4 py-2 text-sm font-semibold lg:border-[1.5px] lg:border-hairline-strong"
               >
                 Send report
               </button>
@@ -242,8 +249,8 @@ export default async function QuizPage({
     if (question === null) redirect("/");
     body =
       question === "over" ? (
-        <div className="flex flex-col gap-4">
-          <p role="status" className="text-lg font-semibold">
+        <div className="flex flex-col gap-4 lg:items-center lg:pt-10">
+          <p role="status" className={QUESTION}>
             {/* Out of questions before the clock: the sprint ends early (Q-P2-14). */}
             {attempt.review
               ? "That's every concept due."
@@ -251,24 +258,23 @@ export default async function QuizPage({
                 ? "That's every question for now."
                 : "Time's up."}
           </p>
-          <button
-            type="submit"
-            form={FINISH_FORM}
-            className="inline-flex items-center justify-center rounded-full bg-ink px-5 py-3 font-semibold text-page"
-          >
+          <button type="submit" form={FINISH_FORM} className={ACT}>
             See results
           </button>
         </div>
       ) : question.kind === "estimate" ? (
-        <form action={answerEstimateAction} className="flex flex-col gap-4">
+        <form
+          action={answerEstimateAction}
+          className="flex flex-col gap-4 lg:gap-5"
+        >
           <input type="hidden" name="attemptId" value={attemptId} />
           <input type="hidden" name="questionId" value={question.questionId} />
           <input type="hidden" name="chip" value={chip} />
-          <label htmlFor="guess" className="text-lg font-semibold">
+          <label htmlFor="guess" className={QUESTION}>
             {question.stem}
             {question.aiDrafted ? <AiDrafted /> : null}
           </label>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 lg:mx-auto lg:w-full lg:max-w-[32rem]">
             <input
               id="guess"
               name="guess"
@@ -278,14 +284,11 @@ export default async function QuizPage({
               min="0"
               required
               autoFocus
-              className="min-w-0 flex-1 rounded-2xl border border-hairline bg-page px-4 py-3 text-lg"
+              className="min-w-0 flex-1 rounded-2xl border border-hairline bg-page px-4 py-3 text-lg lg:h-14 lg:rounded-[14px] lg:border-[1.5px] lg:border-hairline-strong lg:text-xl lg:font-semibold lg:focus:border-select lg:focus:outline-none"
             />
             <span className="shrink-0 font-semibold">{question.unit}</span>
           </div>
-          <button
-            type="submit"
-            className="inline-flex cursor-pointer items-center justify-center rounded-full bg-ink px-5 py-3 font-semibold text-page"
-          >
+          <button type="submit" className={`${ACT} cursor-pointer`}>
             Answer
           </button>
         </form>
@@ -294,8 +297,8 @@ export default async function QuizPage({
           <input type="hidden" name="attemptId" value={attemptId} />
           <input type="hidden" name="questionId" value={question.questionId} />
           <input type="hidden" name="chip" value={chip} />
-          <fieldset className="flex flex-col gap-2">
-            <legend className="mb-3 text-lg font-semibold">
+          <fieldset className={OPTIONS}>
+            <legend className={`mb-3 lg:mb-5 ${QUESTION}`}>
               {question.stem}
               {question.aiDrafted ? <AiDrafted /> : null}
             </legend>
@@ -305,7 +308,7 @@ export default async function QuizPage({
                 type="submit"
                 name="chosen"
                 value={String(i)}
-                className={`${OPTION} cursor-pointer border-hairline hover:bg-well focus-visible:bg-well`}
+                className={`${OPTION} cursor-pointer border-hairline hover:bg-well focus-visible:bg-well lg:border-track lg:bg-page lg:hover:border-ink-muted lg:hover:bg-page`}
               >
                 <Letter i={i} />
                 <span className="min-w-0 flex-1">{option}</span>
@@ -317,7 +320,9 @@ export default async function QuizPage({
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+    // Wide screens: full screen as the design's round, a bar across the top and the
+    // round centred under it; phones keep one column.
+    <main className="mx-auto flex min-h-dvh w-full max-w-md flex-col gap-4 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:max-w-none lg:gap-0 lg:px-0 lg:pt-0 lg:pb-6">
       <h1 className="sr-only">
         {game
           ? attempt.title
@@ -327,7 +332,7 @@ export default async function QuizPage({
         <input type="hidden" name="attemptId" value={attemptId} />
         <input type="hidden" name="chip" value={chip} />
       </form>
-      <header className="flex items-center gap-3">
+      <header className="flex items-center gap-3 lg:gap-4 lg:border-b lg:border-hairline lg:px-6 lg:py-4">
         {/* Owner, 2026-10-28: no Finish button; Close warns first. A native popover:
           no script, no browser dialog. */}
         <button
@@ -335,7 +340,7 @@ export default async function QuizPage({
           popoverTarget={EXIT}
           aria-label="Close"
           title="Close"
-          className="flex size-9 cursor-pointer items-center justify-center rounded-full border border-hairline"
+          className="flex size-9 cursor-pointer items-center justify-center rounded-full border border-hairline lg:size-11 lg:rounded-[14px] lg:border-[1.5px] lg:border-hairline-strong"
         >
           <Glyph path="M6 6l12 12M18 6L6 18" />
         </button>
@@ -372,7 +377,7 @@ export default async function QuizPage({
             </button>
           </div>
         </div>
-        <p className="flex-1 font-semibold">
+        <p className="flex-1 font-semibold lg:text-[17px]">
           {kind === "review"
             ? "Review"
             : game
@@ -381,38 +386,47 @@ export default async function QuizPage({
                 ? "Checkpoint · 60s"
                 : "Test yourself · 60s"}
         </p>
-        <p className="text-sm text-ink-muted">{attempt.answered} answered</p>
+        <p className="text-sm text-ink-muted tabular-nums">
+          {attempt.answered} answered
+        </p>
       </header>
-      {/* An answer taken in the grace shows its feedback before the results; a
+      {/* Phones: its children sit in the column as they are. */}
+      <div className="contents lg:mx-auto lg:flex lg:w-full lg:max-w-[52.5rem] lg:flex-1 lg:flex-col lg:gap-5 lg:px-8 lg:pt-7">
+        {/* An answer taken in the grace shows its feedback before the results; a
         review has no clock. */}
-      {attempt.endsAt === null ? null : (
-        <Countdown
-          endsAt={attempt.endsAt.toISOString()}
-          finishForm={answered === undefined ? FINISH_FORM : null}
-        />
-      )}
-      {/* A game's title is its header. */}
-      {game ? null : <p className="text-sm text-ink-muted">{attempt.title}</p>}
-      {body}
-      <p className="mt-auto text-center text-xs text-ink-muted">
-        {checkpoint !== null
-          ? `Pass ${String(checkpoint.passMark)} of ${String(checkpoint.size)} ${
-              checkpoint.at.kind === "book"
-                ? "on this chapter"
-                : checkpoint.next === null
-                  ? "to finish the path"
-                  : `to unlock ${checkpoint.next.join(", ")}`
-            }`
-          : attempt.review
-            ? "One question per concept due for review"
-            : attempt.daily !== null
-              ? "Today's set, the same for everyone"
-              : attempt.sprint
-                ? "Questions picked for you"
-                : attempt.momentId === null
-                  ? "Questions from this article"
-                  : "Questions from this section"}
-      </p>
+        {attempt.endsAt === null ? null : (
+          <Countdown
+            endsAt={attempt.endsAt.toISOString()}
+            finishForm={answered === undefined ? FINISH_FORM : null}
+          />
+        )}
+        {/* A game's title is its header. */}
+        {game ? null : (
+          <p className="text-sm text-ink-muted lg:-mb-2 lg:text-center">
+            {attempt.title}
+          </p>
+        )}
+        {body}
+        <p className="mt-auto text-center text-xs text-ink-muted lg:pt-6 lg:text-[13px]">
+          {checkpoint !== null
+            ? `Pass ${String(checkpoint.passMark)} of ${String(checkpoint.size)} ${
+                checkpoint.at.kind === "book"
+                  ? "on this chapter"
+                  : checkpoint.next === null
+                    ? "to finish the path"
+                    : `to unlock ${checkpoint.next.join(", ")}`
+              }`
+            : attempt.review
+              ? "One question per concept due for review"
+              : attempt.daily !== null
+                ? "Today's set, the same for everyone"
+                : attempt.sprint
+                  ? "Questions picked for you"
+                  : attempt.momentId === null
+                    ? "Questions from this article"
+                    : "Questions from this section"}
+        </p>
+      </div>
     </main>
   );
 }
@@ -421,7 +435,7 @@ function Letter({ i }: { i: number }) {
   return (
     <span
       aria-hidden="true"
-      className="flex size-7 shrink-0 items-center justify-center rounded-full bg-well text-sm font-semibold"
+      className="flex size-7 shrink-0 items-center justify-center rounded-full bg-well text-sm font-semibold lg:min-w-7 lg:rounded-lg lg:border-[1.5px] lg:border-b-[3px] lg:border-track lg:bg-transparent lg:text-[13px] lg:text-ink-muted"
     >
       {LETTERS[i]}
     </span>
@@ -430,7 +444,8 @@ function Letter({ i }: { i: number }) {
 
 function Mark({ icon, children }: { icon: string; children: string }) {
   return (
-    <span className="flex shrink-0 items-center gap-1 text-sm font-semibold">
+    // Wide screens: under the option's text, in its card.
+    <span className="flex shrink-0 items-center gap-1 text-sm font-semibold lg:w-full lg:pl-10">
       <Glyph path={icon} />
       {children}
     </span>

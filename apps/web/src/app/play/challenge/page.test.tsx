@@ -8,6 +8,8 @@ const can = vi.fn<Entitlements["can"]>(() => Promise.resolve(true));
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
+  // The sidebar's profile row (the page's frame).
+  preferences: () => ({ get: () => Promise.resolve(null) }),
 }));
 vi.mock("../../username/gate", () => ({ requireUsername: vi.fn() }));
 vi.mock("./actions", () => ({ createChallengeAction: vi.fn() }));

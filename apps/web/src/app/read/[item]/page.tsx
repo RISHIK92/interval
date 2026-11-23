@@ -142,11 +142,13 @@ export default async function ReadPage({
   return (
     <main className="flex h-dvh flex-col">
       <h1 className="sr-only">{title}</h1>
-      <header className="flex shrink-0 items-center gap-3 border-b border-hairline px-4 py-2">
+      {/* Wide screens: the web design's full-screen bar (Book reader, web), the
+        page's address centred in it. */}
+      <header className="flex shrink-0 items-center gap-3 border-b border-hairline px-4 py-2 lg:gap-4 lg:px-6 lg:py-3">
         <a href={closeHref} aria-label="Close reader" className={ROUND}>
           <Glyph path="M6 6l12 12M18 6L6 18" />
         </a>
-        <p className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full bg-well px-3 py-1.5 text-sm text-ink-muted">
+        <p className="flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full bg-well px-3 py-1.5 text-sm text-ink-muted lg:mx-auto lg:max-w-[28rem] lg:py-2">
           <svg
             aria-hidden="true"
             viewBox="0 0 24 24"
@@ -257,7 +259,7 @@ export default async function ReadPage({
               ) : null}
               <button
                 type="submit"
-                className="inline-flex size-11 items-center justify-center rounded-full border border-hairline bg-page font-semibold text-ink sm:size-auto sm:px-4 sm:py-2.5"
+                className="inline-flex size-11 items-center justify-center rounded-full border border-hairline bg-page font-semibold text-ink sm:size-auto sm:px-4 sm:py-2.5 lg:border-[1.5px] lg:border-hairline-strong lg:px-5 lg:text-[15px]"
               >
                 <Glyph path="M5 12l5 5 9-10" className="size-5 sm:hidden" />
                 <span className="sr-only sm:not-sr-only">Mark done</span>
@@ -273,7 +275,7 @@ export default async function ReadPage({
                   // (owner, 2026-10-26); after Save the card is unknown, so none.
                   from: nextFrom,
                 })}
-                className="inline-flex size-11 items-center justify-center rounded-full bg-ink font-semibold text-page sm:size-auto sm:px-4 sm:py-2.5"
+                className="inline-flex size-11 items-center justify-center rounded-full bg-ink font-semibold text-page sm:size-auto sm:px-4 sm:py-2.5 lg:px-5 lg:text-[15px]"
               >
                 <Glyph
                   path="M5 12h14M13 6l6 6-6 6"

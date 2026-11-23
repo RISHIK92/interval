@@ -17,8 +17,8 @@ const show = (state: BattleState, failed = false) =>
       signatures={["LRUCache(capacity)", "get(key) → int"]}
       state={state}
       failed={failed}
-      statement="# LRU cache"
-      examples={['[{"method":"new","args":[2]}]']}
+      statement={"# LRU cache\n\nKeep the most recent."}
+      examples={["LRUCache(2)\nput(1, 1)\nget(1) → 1"]}
       languages={["python", "go"]}
       language="python"
       code="class LRUCache: ..."
@@ -46,8 +46,10 @@ const playing: BattleState = {
 
 test("connecting: the problem and the code are there, the buttons wait", () => {
   const html = show({ phase: "connecting", you: null });
-  expect(html).toContain("# LRU cache");
-  expect(html).toContain("[{&quot;method&quot;:&quot;new&quot;");
+  // The statement drawn without its title (the page's heading has it).
+  expect(html).toContain("Keep the most recent.");
+  expect(html).not.toContain("# LRU cache");
+  expect(html).toContain("get(1) → 1");
   expect(html).toContain("class LRUCache: ...");
   expect(html).toContain("Connecting");
   expect(html.match(/disabled=""/g)).toHaveLength(2);
@@ -103,7 +105,9 @@ test("after the reveal, the extension and its new methods in the player's langua
       starters: { python: "def resize(self, capacity)", go: "func" },
     },
   });
-  expect(html).toContain("# Resizing");
+  // The statement's Markdown is drawn, not printed: the heading without its "#".
+  expect(html).toContain("Resizing");
+  expect(html).not.toContain("# Resizing");
   expect(html).toContain("def resize(self, capacity)");
 });
 

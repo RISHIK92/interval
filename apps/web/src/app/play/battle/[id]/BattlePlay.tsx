@@ -17,6 +17,7 @@ import { ClockIcon } from "../../../hld/Clock";
 import { HEADER } from "../../../hld/Frame";
 import { openMatch } from "../../live/join";
 import { CodeEditor, type CodeEditorProps } from "./CodeEditor";
+import { Statement } from "./Statement";
 
 // P5-W31-S03 (§6.5; Q-P5-15, Q-P5-16; LLDQ-4): a battle's screen. The player writes in
 // their language, Runs the visible tests or Submits for points, and sees the clock, the
@@ -431,9 +432,9 @@ export function BattleView({
         <h2 className="hidden text-[15px] font-semibold lg:mt-3.5 lg:block">
           Problem
         </h2>
-        <pre className="whitespace-pre-wrap font-sans lg:text-sm lg:text-ink-muted">
-          {statement}
-        </pre>
+        <div className="lg:text-ink-muted">
+          <Statement markdown={statement} dropTitle />
+        </div>
         <div className="lg:mt-3.5">
           <h2 className="text-title lg:text-[15px] lg:font-semibold lg:tracking-normal">
             Examples
@@ -442,7 +443,7 @@ export function BattleView({
             {examples.map((calls, i) => (
               <li
                 key={i}
-                className="lg:overflow-x-auto lg:rounded-xl lg:bg-well lg:px-3 lg:py-2"
+                className="overflow-x-auto rounded-xl bg-well px-3 py-2 leading-[1.8] whitespace-pre"
               >
                 {calls}
               </li>
@@ -450,14 +451,17 @@ export function BattleView({
           </ul>
         </div>
         {playing?.extension != null && (
-          <div className="rounded-md border border-accent p-3 lg:mt-3.5 lg:rounded-2xl lg:border-0 lg:bg-(--system-design-tint) lg:text-[13px] lg:text-(--system-design-line)">
+          <div className="rounded-2xl bg-(--system-design-tint) p-4 text-(--system-design-line) lg:mt-3.5 lg:rounded-2xl lg:border-0 lg:bg-(--system-design-tint) lg:text-[13px] lg:text-(--system-design-line)">
             <h2 className="text-title lg:text-[13px] lg:font-bold lg:tracking-normal">
               <span className="lg:hidden">Extension</span>
               <span className="hidden lg:inline">Extension round is live.</span>
             </h2>
-            <pre className="mt-1 whitespace-pre-wrap font-sans lg:font-medium">
-              {playing.extension.statement}
-            </pre>
+            <div className="mt-1 lg:font-medium">
+              <Statement
+                markdown={playing.extension.statement}
+                dropTitle={false}
+              />
+            </div>
             <details className="mt-2">
               <summary className="lg:font-semibold">
                 The new methods in {LANGUAGE_NAMES[language]}
@@ -482,7 +486,7 @@ export function BattleView({
                 onChange={(e) => {
                   onLanguage(e.target.value);
                 }}
-                className="rounded-md border border-line px-2 py-1 lg:rounded-lg lg:border-0 lg:bg-well lg:px-2.5 lg:font-mono lg:text-xs lg:font-semibold lg:text-ink"
+                className="rounded-lg bg-well px-2 py-1 lg:rounded-lg lg:border-0 lg:bg-well lg:px-2.5 lg:font-mono lg:text-xs lg:font-semibold lg:text-ink"
               >
                 {languages.map((l) => (
                   <option key={l} value={l}>
@@ -535,7 +539,7 @@ export function BattleView({
             onClick={() => {
               onSend(false);
             }}
-            className="rounded-md border border-line px-4 py-2 disabled:opacity-50 lg:h-[46px] lg:flex-1 lg:rounded-xl lg:border-[1.5px] lg:py-0 lg:text-sm lg:font-semibold lg:border-hairline-strong"
+            className="rounded-full border-[1.5px] border-hairline-strong px-5 py-2.5 font-semibold disabled:opacity-50 lg:h-[46px] lg:flex-1 lg:rounded-xl lg:border-[1.5px] lg:py-0 lg:text-sm lg:font-semibold lg:border-hairline-strong"
           >
             {playing?.running === true ? (
               "Running…"
@@ -551,7 +555,7 @@ export function BattleView({
             onClick={() => {
               onSend(true);
             }}
-            className="rounded-md bg-accent px-4 py-2 text-on-accent disabled:opacity-50 lg:h-[46px] lg:flex-1 lg:rounded-xl lg:bg-ink lg:py-0 lg:text-sm lg:font-semibold lg:text-page"
+            className="rounded-full bg-ink px-5 py-2.5 font-semibold text-page disabled:opacity-50 lg:h-[46px] lg:flex-1 lg:rounded-xl lg:bg-ink lg:py-0 lg:text-sm lg:font-semibold lg:text-page"
           >
             {playing?.submitting === true ? "Submitting…" : "Submit"}
           </button>

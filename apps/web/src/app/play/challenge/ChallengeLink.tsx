@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useSyncExternalStore } from "react";
+import { Button } from "../../ui/Button";
 
 // Neither changes while the page is open: nothing to subscribe to.
 const still = () => () => undefined;
@@ -23,11 +24,11 @@ export function ChallengeLink({ token }: { token: string }) {
   const [note, setNote] = useState<string | null>(null);
   return (
     <div className="flex flex-col gap-3">
-      <p className="rounded-2xl bg-well px-4 py-3 font-mono text-sm break-all">
+      <p className="rounded-2xl bg-well px-4 py-3 font-mono text-sm break-all lg:rounded-[14px]">
         {href}
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <button
+        <Button
           type="button"
           onClick={() => {
             navigator.clipboard.writeText(href).then(
@@ -40,13 +41,14 @@ export function ChallengeLink({ token }: { token: string }) {
               },
             );
           }}
-          className="cursor-pointer rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+          className="cursor-pointer"
         >
           Copy link
-        </button>
+        </Button>
         {canShare ? (
-          <button
+          <Button
             type="button"
+            variant="secondary"
             onClick={() => {
               navigator
                 .share({ url: href, title: "A live match on Interval" })
@@ -61,10 +63,10 @@ export function ChallengeLink({ token }: { token: string }) {
                   setNote("Couldn't share: copy the link instead");
                 });
             }}
-            className="cursor-pointer rounded-full border border-hairline px-5 py-2.5 font-semibold"
+            className="cursor-pointer"
           >
             Share
-          </button>
+          </Button>
         ) : null}
         {note === null ? null : (
           <span role="status" className="text-sm text-ink-muted">

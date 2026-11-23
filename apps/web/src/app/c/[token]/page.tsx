@@ -11,6 +11,7 @@ import {
 import { requireUsername } from "../../username/gate";
 import { acceptChallengeAction } from "../../play/challenge/actions";
 import { TOKEN } from "../../play/challenge/token";
+import { CARD, Standalone, TITLE } from "../../Standalone";
 
 export const dynamic = "force-dynamic";
 
@@ -18,10 +19,12 @@ const GAME = { sprint: "a 60-second sprint", fastest_finger: "fastest finger" };
 
 function Frame({ children }: { children: ReactNode }) {
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-5 px-4 pt-10 pb-12">
-      <h1 className="text-display">A live challenge</h1>
+    <Standalone
+      className={`mx-auto flex max-w-xl flex-col gap-5 px-4 pt-10 pb-12 lg:max-w-md ${CARD}`}
+    >
+      <h1 className={`text-display ${TITLE}`}>A live challenge</h1>
       {children}
-    </main>
+    </Standalone>
   );
 }
 

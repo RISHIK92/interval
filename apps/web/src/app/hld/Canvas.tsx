@@ -18,7 +18,6 @@ import {
 } from "@interval/hld";
 import {
   Background,
-  Controls,
   type Edge,
   type EdgeChange,
   type Node,
@@ -28,8 +27,10 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Feedback } from "./Feedback";
-import { flowTheme, NodeLabel, SELECTED_NODE } from "./flow";
+import { FIT, FitOnGrow, ZoomControls } from "./FlowControls";
+import { flowTheme, NODE_STYLE, NodeLabel, SELECTED_NODE } from "./flow";
 import { MatchPanel } from "./MatchPanel";
+import { freeSpot } from "./placement";
 import type { FeedbackView } from "./practice/feedback";
 import { saveDesign } from "./practice/[slug]/actions";
 
@@ -166,6 +167,7 @@ export function Canvas({
       id: n.id,
       position: n.position ?? { x: 0, y: 0 },
       data: { label: <NodeLabel id={n.id} kind={n.kind} /> },
+      style: NODE_STYLE,
       deletable: n.kind !== "client",
       selected: chosen,
       ...(chosen ? { className: SELECTED_NODE } : {}),
@@ -242,12 +244,9 @@ export function Canvas({
             <button
               key={k}
               type="button"
-              className="rounded-md border border-line px-2 py-1 text-sm lg:h-8 lg:rounded-full lg:border-0 lg:bg-well lg:px-3 lg:py-0 lg:text-[13px] lg:font-medium lg:hover:bg-track"
+              className="rounded-full bg-well px-3 py-1.5 text-sm font-medium hover:bg-track lg:h-8 lg:rounded-full lg:border-0 lg:bg-well lg:px-3 lg:py-0 lg:text-[13px] lg:font-medium lg:hover:bg-track"
               onClick={() => {
-                const d = addComponent(design, k, {
-                  x: 80 + 40 * (design.nodes.length % 8),
-                  y: 60 * design.nodes.length,
-                });
+                const d = addComponent(design, k, freeSpot(design.nodes));
                 setDesign(d);
                 const added = d.nodes.at(-1);
                 if (added !== undefined) setSelected({ node: added.id });
@@ -259,7 +258,7 @@ export function Canvas({
           ))}
         </div>
         <div
-          className="h-[60vh] min-h-96 rounded-md border border-line lg:order-1 lg:min-h-[400px] lg:overflow-hidden lg:rounded-[20px] lg:border-hairline"
+          className="h-[60vh] min-h-96 overflow-hidden rounded-[20px] border border-hairline lg:order-1 lg:min-h-[400px] lg:overflow-hidden lg:rounded-[20px] lg:border-hairline"
           style={flowTheme}
         >
           <ReactFlow
@@ -280,9 +279,11 @@ export function Canvas({
               setSelected(null);
             }}
             fitView
+            fitViewOptions={FIT}
           >
             <Background gap={18} />
-            <Controls />
+            <ZoomControls />
+            <FitOnGrow count={design.nodes.length} />
           </ReactFlow>
         </div>
         {mode.kind === "match" ? (
@@ -334,7 +335,7 @@ export function Canvas({
           </p>
         ) : null}
         {node !== undefined ? (
-          <section className="flex flex-col gap-2 rounded-md border border-line p-3 lg:gap-0 lg:rounded-none lg:border-0 lg:p-0">
+          <section className="flex flex-col gap-2 rounded-3xl border border-hairline bg-card p-5 lg:gap-0 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0">
             <p className="hidden text-[13px] text-ink-muted lg:block">
               Selected
             </p>
@@ -350,14 +351,14 @@ export function Canvas({
                   key={f.name}
                   className="flex flex-col gap-1 text-sm lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:border-b lg:border-hairline lg:py-2 lg:text-ink-muted"
                 >
-                  {f.name}
+                  {f.label}
                   {f.type === "int" ? (
                     <input
                       type="number"
                       min={f.min}
                       max={f.max}
                       value={value}
-                      className="rounded-md border border-line px-2 py-1 lg:w-24 lg:rounded-lg lg:border-[1.5px] lg:bg-page lg:text-right lg:font-semibold lg:text-ink lg:border-hairline-strong"
+                      className="rounded-lg border-[1.5px] border-hairline-strong bg-page px-2 py-1 lg:w-24 lg:rounded-lg lg:border-[1.5px] lg:bg-page lg:text-right lg:font-semibold lg:text-ink lg:border-hairline-strong"
                       onChange={(e) => {
                         const n = Math.round(Number(e.target.value));
                         if (!Number.isFinite(n)) return;
@@ -373,7 +374,7 @@ export function Canvas({
                   ) : (
                     <select
                       value={value}
-                      className="rounded-md border border-line px-2 py-1 lg:rounded-lg lg:border-[1.5px] lg:bg-page lg:font-semibold lg:text-ink lg:border-hairline-strong"
+                      className="rounded-lg border-[1.5px] border-hairline-strong bg-page px-2 py-1 lg:rounded-lg lg:border-[1.5px] lg:bg-page lg:font-semibold lg:text-ink lg:border-hairline-strong"
                       onChange={(e) => {
                         setDesign((d) =>
                           updateNode(d, node.id, {
@@ -383,7 +384,9 @@ export function Canvas({
                       }}
                     >
                       {f.options.map((o) => (
-                        <option key={o}>{o}</option>
+                        <option key={o} value={o}>
+                          {label(o)}
+                        </option>
                       ))}
                     </select>
                   )}
@@ -396,7 +399,7 @@ export function Canvas({
                 value={node.note}
                 maxLength={NOTE_MAX}
                 rows={3}
-                className="rounded-md border border-line px-2 py-1 lg:rounded-[14px] lg:border-[1.5px] lg:bg-page lg:px-3 lg:py-2.5 lg:font-normal lg:leading-normal lg:border-hairline-strong"
+                className="rounded-[14px] border-[1.5px] border-hairline-strong bg-page px-3 py-2 lg:rounded-[14px] lg:border-[1.5px] lg:bg-page lg:px-3 lg:py-2.5 lg:font-normal lg:leading-normal lg:border-hairline-strong"
                 onChange={(e) => {
                   setDesign((d) =>
                     updateNode(d, node.id, { note: e.target.value }),
@@ -411,7 +414,7 @@ export function Canvas({
         ) : null}
 
         {edge !== undefined ? (
-          <fieldset className="flex flex-col gap-1 rounded-md border border-line p-3 text-sm lg:gap-0 lg:rounded-none lg:border-0 lg:p-0">
+          <fieldset className="flex flex-col gap-1 rounded-3xl border border-hairline bg-card p-5 text-sm lg:gap-0 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0">
             <legend className="px-1 lg:mb-2 lg:px-0 lg:text-[19px] lg:font-bold lg:tracking-[-0.01em]">
               {edge.from} → {edge.to} carries
             </legend>
@@ -455,7 +458,7 @@ export function Canvas({
       </aside>
 
       <section
-        className="flex flex-col gap-2 rounded-md border border-line p-3 lg:col-start-1 lg:row-start-3 lg:gap-1 lg:rounded-none lg:border-0 lg:border-r lg:border-hairline lg:px-5 lg:pt-[18px] lg:pb-5"
+        className="flex flex-col gap-2 rounded-3xl border border-hairline bg-card p-5 lg:col-start-1 lg:row-start-3 lg:gap-1 lg:rounded-none lg:border-0 lg:bg-transparent lg:border-r lg:border-hairline lg:px-5 lg:pt-[18px] lg:pb-5"
         aria-live="polite"
       >
         <h2 className="text-title lg:mb-1 lg:text-[15px] lg:font-semibold lg:tracking-normal">

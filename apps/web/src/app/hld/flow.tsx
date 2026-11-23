@@ -30,6 +30,14 @@ export const flowTheme = {
   "--xy-attribution-background-color": "transparent",
 } as CSSProperties;
 
+// The design's node card: compact, about 120 px wide, in place of React Flow's 150.
+export const NODE_STYLE: CSSProperties = {
+  width: 120,
+  padding: "10px 8px",
+  fontSize: 14,
+  lineHeight: 1.2,
+};
+
 // The design's selected node: the select tint, a 2px select border.
 export const SELECTED_NODE =
   "[--xy-node-background-color:var(--distributed-systems-tint)] [--xy-node-border:2px_solid_var(--select)]";
@@ -98,15 +106,18 @@ export function Cube({ size, ramp }: { size: number; ramp: string }) {
   );
 }
 
-// A node's face: its kind, then its name in the design.
+// A node's face, as the design's: its kind's icon, the kind at 14 px, then its name in
+// the design at 11 px.
 export function NodeLabel({ id, kind }: { id: string; kind: ComponentKind }) {
   return (
-    <span className="flex flex-col items-center gap-0.5">
+    <span className="flex flex-col items-center gap-1">
       <KindIcon kind={kind} />
-      <span className="text-[13px] font-semibold">
+      <span className="text-sm leading-tight font-semibold">
         {kind.replaceAll("_", " ")}
       </span>
-      <span className="text-[11px] font-medium text-ink-muted">{id}</span>
+      <span className="max-w-full truncate text-[11px] leading-none font-medium text-ink-muted">
+        {id}
+      </span>
     </span>
   );
 }

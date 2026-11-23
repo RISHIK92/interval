@@ -44,7 +44,7 @@ export function Replay({
   const now = all[step] ?? all.at(-1) ?? "";
   return (
     <div className="flex flex-col gap-4">
-      <label className="flex flex-col gap-1 text-sm">
+      <label className="flex flex-col gap-2 rounded-2xl bg-well px-4 py-3 text-sm font-semibold tabular-nums">
         {all.length === 0
           ? "Nothing was drawn."
           : `${new Date(now).toLocaleTimeString()} (${String(step + 1)} of ${String(all.length)})`}
@@ -56,6 +56,7 @@ export function Replay({
           onChange={(e) => {
             setStep(Number(e.target.value));
           }}
+          className="accent-(--select)"
         />
       </label>
       <div className="grid gap-4 lg:grid-cols-2">

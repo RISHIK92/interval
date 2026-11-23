@@ -1,10 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { WindowStatus } from "../../../server/battle-windows";
 import type { BattleMode } from "../../../server/ports";
 import { BATTLE_MODE_NAMES } from "../../battle-mode";
+import { BattleModeSwitch } from "../../BattleModeSwitch";
+import { CUBE, LOBBY_BUTTON, LobbyCard, TROPHY } from "../../LobbyCard";
+import { useWindowTime } from "../../windowTime";
+import { Button } from "../../ui/Button";
+import { setWindowRegistration } from "../../play/windowRegistration";
 
 // P6-W42 (MATCH-7, §6.2; Q-P6-06): the casual HLD queue (an unrated 1v1, polled each
 // second; after 60 s unmatched, a solo match instead) and the next ranked window (rooms
@@ -23,7 +28,15 @@ export type HldWindow = {
   matchId: string | null;
 };
 
-export function HldLobby({ window: initial }: { window: HldWindow }) {
+export function HldLobby({
+  window: initial,
+  header,
+  children,
+}: {
+  window: HldWindow;
+  header?: ReactNode; // the page's title, which the mode choice sits beside
+  children?: ReactNode; // more ways in (practice, tournaments), as list items
+}) {
   const router = useRouter();
   // Navigation waits on "still on this page", not on the effect that asked: saying
   // "solo" re-runs that effect, and its cleanup would drop the solo match's navigation.
@@ -121,8 +134,7 @@ export function HldLobby({ window: initial }: { window: HldWindow }) {
 
   const register = async (on: boolean) => {
     setProblem(null);
-    const res = await call(`/api/hld/window${q}`, on ? "POST" : "DELETE");
-    if (res.ok)
+    if (await setWindowRegistration("hld", on, battleMode))
       setWindow({
         ...windowState,
         registered: on,
@@ -130,91 +142,106 @@ export function HldLobby({ window: initial }: { window: HldWindow }) {
       });
     else setProblem("Registration is closed for this window.");
   };
-  const when = new Date(windowState.at).toLocaleString(undefined, {
-    weekday: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const when = useWindowTime(windowState.at) ?? "…";
 
   return (
-    <div className="flex flex-col gap-4">
-      <fieldset
-        disabled={state !== "idle"}
-        className="flex flex-wrap items-center gap-3"
-      >
-        <legend className="sr-only">Battle mode</legend>
-        {(["human", "ai"] as const).map((l) => (
-          <label key={l} className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="battleMode"
-              value={l}
-              checked={battleMode === l}
-              onChange={() => {
-                setBattleMode(l);
-              }}
-            />
-            {l === "human"
-              ? "Human mode: no AI tools"
-              : "AI mode: any tools, bigger problems, a lost region"}
-          </label>
-        ))}
-      </fieldset>
-      <button
-        type="button"
-        disabled={state !== "idle"}
-        className="self-start rounded-md bg-accent px-4 py-2 text-on-accent disabled:opacity-50"
-        onClick={() => {
-          setProblem(null);
-          void call(`/api/hld/queue${q}`, "POST").then((res) => {
-            if (res.ok) setState("waiting");
-            else setProblem("Couldn't join the queue. Try again.");
-          });
-        }}
-      >
-        {state === "idle"
-          ? "Find an opponent"
-          : state === "waiting"
-            ? "Looking for an opponent…"
-            : "Starting a solo match…"}
-      </button>
-      <p className="text-sm text-ink-muted">
-        An unrated 1v1, about 30 minutes. Nobody within a minute? You design
-        alone.
-      </p>
-      <section aria-label="Ranked window" className="flex flex-col gap-2">
-        <h2 className="text-title">Ranked window</h2>
-        <p className="text-ink-muted">
-          {windowState.status === "live"
-            ? `Live now, since ${when}.`
-            : `Next: ${when}. Rooms of up to 4, matched by rating.`}
-        </p>
-        {windowState.status === "open" ? (
-          <button
-            type="button"
-            className="self-start rounded-md border border-line px-4 py-2"
-            onClick={() => {
-              void register(
-                !windowState.registered ||
-                  windowState.battleMode !== battleMode,
-              );
-            }}
+    <div className="flex flex-col gap-4 lg:gap-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+        {header}
+        <BattleModeSwitch
+          value={battleMode}
+          details={{
+            human: "no AI tools",
+            ai: "any tools, bigger problems, a lost region",
+          }}
+          disabled={state !== "idle"}
+          onChange={setBattleMode}
+          className="lg:w-72 lg:shrink-0"
+        />
+      </div>
+      {/* Phones keep the order from before the web design (casual, then ranked);
+          the wide grid leads with the ranked window, as the design does. */}
+      <ul className="grid gap-3 sm:grid-cols-2 lg:gap-3.5">
+        <li>
+          <LobbyCard
+            title="Casual battle"
+            meta="Unrated"
+            art={CUBE}
+            tint="bg-(--system-design-tint)"
+            body="An unrated 1v1, about 30 minutes. Nobody within a minute? You design alone."
           >
-            {windowState.registered && windowState.battleMode === battleMode
-              ? "Cancel registration"
-              : `Register (${BATTLE_MODE_NAMES[battleMode]})`}
-          </button>
-        ) : windowState.registered ? (
-          <p className="text-sm">
-            You&apos;re registered; your room opens at the start.
-          </p>
-        ) : (
-          <p className="text-sm text-ink-muted">
-            Registration closed 5 minutes before.
-          </p>
-        )}
-      </section>
-      {problem === null ? null : <p role="alert">{problem}</p>}
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={state !== "idle"}
+              className={LOBBY_BUTTON}
+              onClick={() => {
+                setProblem(null);
+                void call(`/api/hld/queue${q}`, "POST").then((res) => {
+                  if (res.ok) setState("waiting");
+                  else setProblem("Couldn't join the queue. Try again.");
+                });
+              }}
+            >
+              {state === "idle"
+                ? "Find an opponent"
+                : state === "waiting"
+                  ? "Looking for an opponent…"
+                  : "Starting a solo match…"}
+            </Button>
+          </LobbyCard>
+        </li>
+        <li className="lg:order-first">
+          <LobbyCard
+            title="Ranked window"
+            meta={windowState.status === "live" ? "Live" : "30 min"}
+            art={TROPHY}
+            tint="bg-(--databases-tint) text-(--databases-right)"
+            body={
+              windowState.status === "live"
+                ? `Live now, since ${when}.`
+                : `Next: ${when}. Rooms of up to 4, matched by rating.`
+            }
+          >
+            {windowState.status === "open" ? (
+              <Button
+                type="button"
+                variant={
+                  windowState.registered &&
+                  windowState.battleMode === battleMode
+                    ? "secondary"
+                    : "act"
+                }
+                className={LOBBY_BUTTON}
+                onClick={() => {
+                  void register(
+                    !windowState.registered ||
+                      windowState.battleMode !== battleMode,
+                  );
+                }}
+              >
+                {windowState.registered && windowState.battleMode === battleMode
+                  ? "Cancel registration"
+                  : `Register (${BATTLE_MODE_NAMES[battleMode]})`}
+              </Button>
+            ) : windowState.registered ? (
+              <p className="text-sm font-semibold">
+                You&apos;re registered; your room opens at the start.
+              </p>
+            ) : (
+              <p className="text-sm text-ink-muted">
+                Registration closed 5 minutes before.
+              </p>
+            )}
+          </LobbyCard>
+        </li>
+        {children}
+      </ul>
+      {problem === null ? null : (
+        <p role="alert" className="rounded-2xl bg-well px-4 py-3 text-sm">
+          {problem}
+        </p>
+      )}
     </div>
   );
 }

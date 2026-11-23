@@ -10,6 +10,14 @@ import {
 } from "../../../../../server/container";
 import { problemOf } from "../../../../../server/hld-matches";
 import { accessTo } from "../../../../../server/hld-watch";
+import { Cube } from "../../../flow";
+import {
+  CloseLink,
+  HEADER,
+  HEADER_TILE,
+  TITLE,
+  VIEW_FRAME,
+} from "../../../Frame";
 import { Replay } from "./Replay";
 
 export const dynamic = "force-dynamic";
@@ -33,22 +41,37 @@ export default async function ReplayPage(props: {
   const problem = problemOf(found.match);
   const mine = found.seats.some((s) => s.userId === actor.userId);
   return (
-    <main className="flex flex-col gap-4 px-4 pt-6 pb-12">
-      <header className="mx-auto w-full max-w-6xl">
-        <h1 className="text-display">{problem.title}: replay</h1>
-        <p className="text-sm text-ink-muted">
+    <main className={VIEW_FRAME}>
+      <header className={HEADER}>
+        <CloseLink
+          href={mine ? `/hld/match/${id.data}/result` : "/hld/tournaments"}
+          label={mine ? "Back to the results" : "Back to tournaments"}
+        />
+        <span className={HEADER_TILE}>
+          <Cube size={30} ramp="system-design" />
+        </span>
+        <div className="lg:min-w-[200px] lg:flex-1">
+          <p className="hidden text-[13px] text-ink-muted lg:block">
+            HLD battle · replay
+          </p>
+          <h1 className={TITLE}>{problem.title}: replay</h1>
+        </div>
+        <p className="text-sm text-ink-muted lg:flex lg:h-[38px] lg:items-center lg:rounded-full lg:bg-well lg:px-3">
           {found.seats.map((s) => s.player).join(" vs ")}
           {mine ? (
             <>
               {" · "}
-              <Link href={`/hld/match/${id.data}/result`} className="underline">
+              <Link
+                href={`/hld/match/${id.data}/result`}
+                className="font-semibold text-ink underline underline-offset-2"
+              >
                 Results
               </Link>
             </>
           ) : null}
         </p>
       </header>
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="lg:p-5">
         <Replay matchId={id.data} problem={problem} />
       </div>
     </main>

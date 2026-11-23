@@ -9,19 +9,28 @@ import { CURRENT_SPEC } from "./spec";
 // nodes, a cycle); `check` says why, and the canvas saves and previews only valid ones.
 
 export type ConfigField =
-  | { name: string; type: "int"; min: number; max: number }
-  | { name: string; type: "choice"; options: readonly string[] };
+  | { name: string; label: string; type: "int"; min: number; max: number }
+  | {
+      name: string;
+      label: string;
+      type: "choice";
+      options: readonly string[];
+    };
 
-// A kind's configuration fields with their bounds, read from the catalog's schema so
-// the form can't drift from what a design accepts.
+// A kind's configuration fields with their bounds and labels, read from the catalog's
+// schema so the form can't drift from what a design accepts.
 export function configFields(kind: ComponentKind): ConfigField[] {
   return Object.entries(CONFIG[kind].shape).map(
     ([name, schema]): ConfigField => {
+      const label = schema.description;
+      if (label === undefined)
+        throw new Error(`${kind}.${name} has no label in the catalog`);
       if (schema instanceof z.ZodEnum)
-        return { name, type: "choice", options: schema.options };
+        return { name, label, type: "choice", options: schema.options };
       const int = schema as z.ZodNumber;
       return {
         name,
+        label,
         type: "int",
         min: int.minValue ?? 0,
         max: int.maxValue ?? 0,

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { isLocalRequest } from "../../server/local-request";
 import { AuthForm } from "../AuthForm";
 import { forgotPasswordAction } from "./actions";
+import { CARD, Standalone, TITLE } from "../Standalone";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,8 @@ const EMAIL = {
 export default async function ForgotPasswordPage() {
   const local = isLocalRequest(await headers());
   return (
-    <main className="mx-auto max-w-md px-4 pt-10 pb-12">
-      <h1 className="text-display">Reset your password</h1>
+    <Standalone className={`mx-auto max-w-md px-4 pt-10 pb-12 ${CARD}`}>
+      <h1 className={`text-display ${TITLE}`}>Reset your password</h1>
       <p className="mt-2 text-ink-muted">
         {local
           ? "On this machine, choose a new password straight away."
@@ -46,6 +47,6 @@ export default async function ForgotPasswordPage() {
           Back to sign in
         </Link>
       </p>
-    </main>
+    </Standalone>
   );
 }

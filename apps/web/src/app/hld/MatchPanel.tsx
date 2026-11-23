@@ -31,24 +31,28 @@ export function MatchPanel({
   ready: boolean;
 }) {
   const router = useRouter();
-  const [now, setNow] = useState(() => Date.now());
+  // Set once mounted: the server's clock would differ and break hydration (Clock.tsx).
+  const [now, setNow] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(wasSubmitted);
   const [said, setSaid] = useState<string | null>(null);
-  const left = Math.max(0, new Date(deadline).getTime() - now);
+  const left =
+    now === null ? null : Math.max(0, new Date(deadline).getTime() - now);
 
   useEffect(() => {
-    const tick = setInterval(() => {
+    const tick = () => {
       setNow(Date.now());
-    }, 1_000);
+    };
+    tick();
+    const timer = setInterval(tick, 1_000);
     return () => {
-      clearInterval(tick);
+      clearInterval(timer);
     };
   }, []);
 
   // Asking moves the match on (ADR-0043): it closes at the deadline, and its results
   // open once it's over for everyone.
   useEffect(() => {
-    if (!submitted && left > 0) return;
+    if (!submitted && (left === null || left > 0)) return;
     const poll = setInterval(() => {
       fetch(`/api/hld/match/${matchId}`)
         .then(async (r) => {
@@ -65,16 +69,16 @@ export function MatchPanel({
     };
   }, [submitted, left, matchId, router]);
 
-  const minutes = Math.floor(left / 60_000);
-  const seconds = Math.floor((left % 60_000) / 1_000);
   return (
     <section
-      className="flex flex-col gap-2 rounded-md border border-line p-3 lg:mt-auto lg:rounded-none lg:border-0 lg:p-0 lg:pt-4"
+      className="flex flex-col gap-2 rounded-3xl border border-hairline bg-card p-5 lg:mt-auto lg:bg-transparent lg:rounded-none lg:border-0 lg:p-0 lg:pt-4"
       aria-live="polite"
     >
       {/* On a desktop the clock is in the page's header (Clock.tsx). */}
       <h2 className="text-title lg:hidden">
-        {String(minutes)}:{String(seconds).padStart(2, "0")} left
+        {left === null
+          ? "\u00a0"
+          : `${String(Math.floor(left / 60_000))}:${String(Math.floor((left % 60_000) / 1_000)).padStart(2, "0")} left`}
       </h2>
       {submitted ? (
         <p className="text-sm lg:rounded-xl lg:bg-well lg:px-3 lg:py-3 lg:font-medium">
@@ -84,7 +88,7 @@ export function MatchPanel({
         <button
           type="button"
           disabled={!ready || left === 0}
-          className="self-start rounded-md border border-line px-2 py-1 text-sm disabled:opacity-50 lg:h-12 lg:self-stretch lg:rounded-xl lg:border-0 lg:bg-ink lg:px-4 lg:text-[15px] lg:font-semibold lg:text-page"
+          className="self-start rounded-full bg-ink px-5 py-2.5 font-semibold text-page disabled:opacity-50 lg:h-12 lg:self-stretch lg:rounded-xl lg:px-4 lg:text-[15px]"
           onClick={() => {
             void fetch(`/api/hld/match/${matchId}/submit`, {
               method: "POST",

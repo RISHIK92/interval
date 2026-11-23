@@ -16,6 +16,7 @@ const can = vi.fn<Entitlements["can"]>(() => Promise.resolve(true));
 vi.mock("../../../server/container", () => ({
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
+  preferences: () => ({ get: () => Promise.resolve(null) }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),

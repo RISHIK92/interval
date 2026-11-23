@@ -11,6 +11,8 @@ let gameConfigured = true;
 vi.mock("../../../../server/container", () => ({
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
+  // The sidebar's profile row (the page's frame).
+  preferences: () => ({ get: () => Promise.resolve(null) }),
 }));
 vi.mock("../../../username/gate", () => ({ requireUsername }));
 vi.mock("../../../../env", async (importOriginal) => ({

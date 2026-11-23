@@ -35,10 +35,13 @@ export async function shareLink(
 export function ShareButton({ shareId }: { shareId: string }) {
   const [said, setSaid] = useState<string | null>(null);
   return (
-    <div data-share={shareId} className="flex flex-col items-center gap-1">
+    <div
+      data-share={shareId}
+      className="flex flex-col items-center gap-1 lg:items-start"
+    >
       <button
         type="button"
-        className="cursor-pointer rounded-full border border-hairline px-5 py-2.5 font-semibold"
+        className="cursor-pointer rounded-full border border-hairline px-5 py-2.5 font-semibold lg:border-[1.5px] lg:border-hairline-strong"
         onClick={() => {
           void shareLink(`${location.origin}/daily/${shareId}`, navigator).then(
             setSaid,

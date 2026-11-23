@@ -177,7 +177,7 @@ export function CodeEditor({
   return (
     <div
       ref={host}
-      className="h-[60vh] min-h-80 w-full overflow-hidden rounded-md border border-line lg:h-[62vh] lg:min-h-[480px] lg:rounded-none lg:border-0"
+      className="h-[60vh] min-h-80 w-full overflow-hidden rounded-md border border-hairline lg:h-[62vh] lg:min-h-[480px] lg:rounded-none lg:border-0"
       aria-label={`Code editor (${language})`}
     />
   );

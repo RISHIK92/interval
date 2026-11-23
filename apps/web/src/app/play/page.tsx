@@ -3,22 +3,17 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { gameEnv, windowTimeZone } from "../../env";
-import { windowsFrom } from "../../server/battle-windows";
+import { windowStatus, windowsFrom } from "../../server/battle-windows";
 import {
   battleWindows,
   entitlements,
-  hldTournaments,
   hldWindows,
   playerRatings,
   preferences,
   quizzes,
   sessionReader,
 } from "../../server/container";
-import {
-  type DailyStatus,
-  type HldTournament,
-  LIVE_QUESTIONS,
-} from "../../server/ports";
+import { type DailyStatus, LIVE_QUESTIONS } from "../../server/ports";
 import { DailyPlay } from "../DailyCard";
 import {
   startDailyAction,
@@ -26,13 +21,13 @@ import {
   startSprintAction,
 } from "../quiz/actions";
 import { streakText } from "../streakText";
-import { TabBar } from "../TabBar";
 import { requireUsername } from "../username/gate";
 import { applyMatchEvidence } from "./live/evidence";
 import { Card } from "../ui/Card";
+import { Page } from "../ui/Page";
 import { GuestForm } from "./GuestForm";
-import { NextWindow } from "./NextWindow";
-import { BATTLE_MODE_NAMES } from "../battle-mode";
+import { type QuickGame, QuickGames } from "./QuickGames";
+import { RankedBattles } from "./RankedBattles";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +52,9 @@ const line = (path: ReactNode) => (
 // out; fastest finger is the live one (P3-W16-S05). In §6.3's order.
 // `start`: playable now (P3-W13-S02: the sprint; S04: estimation; S05: the daily
 // challenge, whose card also shows today's result and the streak); the rest arrive
-// with their slices. `icon` and `tint`: the wide layout's tile (Play hub, web).
+// with their slices. `icon` and `tint`: the wide layout's tile; `web`: the wide
+// layout's panel for the chosen game (Play hub, web), where the daily challenge is in
+// the rail instead.
 type Game = {
   name: string;
   format: string;
@@ -66,7 +63,7 @@ type Game = {
   start?: { action: () => Promise<void>; label: string };
   icon: ReactNode;
   tint: string;
-  minutes?: string;
+  web?: { format: string; about: string; panel: string; art: ReactNode };
 };
 
 const QUICK: Game[] = [
@@ -97,6 +94,48 @@ const QUICK: Game[] = [
       </>,
     ),
     tint: "bg-(--distributed-systems-tint) text-(--distributed-systems-line)",
+    web: {
+      format: "Solo or 1v1",
+      about: "Most correct answers in 60 seconds.",
+      panel: "bg-(--distributed-systems-tint)",
+      art: (
+        <svg aria-hidden="true" viewBox="0 0 64 72" className="w-[60px]">
+          <rect
+            x="24"
+            y="1"
+            width="16"
+            height="7"
+            rx="3"
+            fill="var(--distributed-systems-right)"
+          />
+          <rect
+            x="29"
+            y="7"
+            width="6"
+            height="7"
+            fill="var(--distributed-systems-top)"
+          />
+          <circle
+            cx="32"
+            cy="42"
+            r="25"
+            fill="none"
+            stroke="var(--distributed-systems-top)"
+            strokeWidth="7"
+          />
+          <path
+            d="M32 42V24a18 18 0 0 1 16 26z"
+            fill="var(--distributed-systems-right)"
+          />
+          <path
+            d="M32 42 22 50"
+            stroke="var(--distributed-systems-right)"
+            strokeWidth="5"
+            strokeLinecap="round"
+          />
+        </svg>
+      ),
+    },
   },
   {
     name: "Fastest finger",
@@ -105,19 +144,75 @@ const QUICK: Game[] = [
     capability: "play.live",
     icon: line(<path d="M13 2 4 14h7l-1 8 9-12h-7z" />),
     tint: "bg-live/10 text-wrong",
+    web: {
+      format: `1v1 live · ${String(LIVE_QUESTIONS.fastest_finger)} rounds`,
+      about: "First correct answer takes each round.",
+      panel: "bg-live/10",
+      art: (
+        <svg aria-hidden="true" viewBox="0 0 64 72" className="w-[54px]">
+          <path d="M38 2 8 42h22l-6 28 32-42H34z" className="fill-live" />
+          <path
+            d="M38 2 8 42h22l-6 28"
+            fill="none"
+            className="stroke-wrong"
+            strokeWidth="3"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+    },
   },
   {
     name: "Estimation",
-    format: "Solo or 1v1",
+    format: "Solo",
     win: "Scored by how many times off the answer is; full points within 1.25× of the answer",
     capability: "play.estimation",
     start: { action: startEstimationAction, label: "Start a round" },
     icon: line(<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />),
     tint: "bg-(--databases-tint) text-(--databases-line)",
+    web: {
+      format: "Solo",
+      about: "Full points within 1.25× of the answer.",
+      panel: "bg-(--databases-tint)",
+      art: (
+        <svg aria-hidden="true" viewBox="0 0 72 64" className="w-[64px]">
+          <rect
+            x="8"
+            y="30"
+            width="12"
+            height="26"
+            rx="3"
+            fill="var(--databases-top)"
+          />
+          <rect
+            x="26"
+            y="8"
+            width="12"
+            height="48"
+            rx="3"
+            fill="var(--databases-left)"
+          />
+          <rect
+            x="44"
+            y="22"
+            width="12"
+            height="34"
+            rx="3"
+            fill="var(--databases-right)"
+          />
+          <path
+            d="M2 60h68"
+            stroke="var(--databases-line)"
+            strokeWidth="4"
+            strokeLinecap="round"
+          />
+        </svg>
+      ),
+    },
   },
 ];
 
-const BATTLES: Game[] = [
+const BATTLES: (Game & { minutes: string; blurb: string })[] = [
   // P5-W32 (§6.5, §6.6): ranked windows and the casual queue start at /play/battle.
   {
     name: "LLD battle",
@@ -126,11 +221,12 @@ const BATTLES: Game[] = [
     win: "Most points from passed tests; a tie goes to whoever got there first",
     capability: "play.battle",
     minutes: "45 min",
+    blurb: "Casual 1v1 · ranked rooms of up to 4",
     icon: (
       <svg
         aria-hidden="true"
         viewBox="0 0 24 24"
-        className="size-[30px]"
+        className="size-[26px]"
         fill="none"
         stroke="currentColor"
         strokeWidth="2.4"
@@ -149,8 +245,9 @@ const BATTLES: Game[] = [
     win: "Simulation 60, the AI rubric 25, speed 15",
     capability: "play.hld",
     minutes: "30 min",
+    blurb: "1v1 or solo · practice any time",
     icon: (
-      <svg aria-hidden="true" viewBox="0 0 40 40" className="size-11">
+      <svg aria-hidden="true" viewBox="8 6 24 26" className="size-[26px]">
         <path d="M20 6 32 12 20 18 8 12z" fill="var(--system-design-top)" />
         <path d="M8 12 20 18v14L8 26z" fill="var(--system-design-left)" />
         <path d="M20 18 32 12v14L20 32z" fill="var(--system-design-right)" />
@@ -166,18 +263,78 @@ const allowedFor = (allowed: boolean[] | null, capability: Capability) =>
     ? null
     : allowed[GAMES.findIndex((g) => g.capability === capability)] === true;
 
-// Phones: the pill as it was; wide screens: the design's 40 px, 12 px-radius button.
-const ACT =
-  "rounded-full bg-ink px-5 py-2.5 font-semibold text-page lg:rounded-xl lg:px-4 lg:py-2 lg:text-sm";
-const QUIET =
-  "rounded-full border border-hairline px-5 py-2.5 font-semibold lg:rounded-xl lg:border-[1.5px] lg:border-track lg:px-4 lg:py-2 lg:text-sm";
-// The wide layout's side cards (Play hub, web).
-const SIDE = "rounded-[20px] border border-hairline bg-page p-4";
+// A game's way in: its own start, the lobby, or why it can't be played. Phones and
+// wide screens draw it differently; this decides it once for both.
+type Way =
+  | { kind: "note"; text: string }
+  | { kind: "live"; href: string }
+  | { kind: "battle"; href: string; practice: string | null }
+  | { kind: "daily"; status: DailyStatus }
+  | {
+      kind: "start";
+      action: () => Promise<void>;
+      label: string;
+      live: string | null;
+    };
+
+function wayIn(
+  game: Game,
+  allowed: boolean | null,
+  signedIn: boolean,
+  live: boolean,
+  today: DailyStatus | null,
+): Way {
+  if (allowed === false) return { kind: "note", text: "Not on your plan" };
+  // P3-W16-S05 (Q-P3-24): live only.
+  if (game.capability === "play.live" && live)
+    return { kind: "live", href: "/play/live/fastest-finger" };
+  if (
+    (game.capability === "play.battle" && live) ||
+    (game.capability === "play.hld" && signedIn)
+  )
+    // The design's Solo practice: HLD's practice (P6-W42); LLD has none of its own
+    // (its casual queue turns solo after 60 s, in the lobby).
+    return game.capability === "play.hld"
+      ? { kind: "battle", href: "/hld/play", practice: "/hld/practice" }
+      : { kind: "battle", href: "/play/battle", practice: null };
+  if (game.capability === "play.daily" && today !== null)
+    return { kind: "daily", status: today };
+  if (game.start !== undefined && signedIn)
+    return {
+      kind: "start",
+      ...game.start,
+      live:
+        game.capability === "play.sprint" && live ? "/play/live/sprint" : null,
+    };
+  return {
+    kind: "note",
+    text:
+      game.start !== undefined ||
+      (game.capability === "play.live" && gameEnv() !== null)
+        ? "Play as a guest below, or sign in"
+        : "Coming later",
+  };
+}
+
+// Phones: the pill as it was.
+const ACT = "rounded-full bg-ink px-5 py-2.5 font-semibold text-page";
+const QUIET = "rounded-full border border-hairline px-5 py-2.5 font-semibold";
+// Wide screens (Play hub, web): the black play button and the outlined one.
+const PLAY =
+  "flex h-10 shrink-0 cursor-pointer items-center gap-2 rounded-xl bg-ink px-4 text-[15px] font-semibold text-page";
+const OUTLINE =
+  "flex h-[42px] items-center rounded-xl border-[1.5px] border-ink px-4 text-[15px] font-semibold";
+const TRIANGLE = (
+  <svg aria-hidden="true" viewBox="0 0 10 10" className="size-2">
+    <path d="M1.5 0.5 9.5 5l-8 4.5z" fill="currentColor" />
+  </svg>
+);
 
 // P3-W13-S01: the Play tab (§6.1, §6.3). Each game is playable once its own slice
 // lands. Guests play here and only here (ADR-0029); signed-out visitors can start one.
-// Wide screens follow the design's Play hub: the games in tiles, the battles below and
-// the player's rating, streak and next tournament beside them.
+// Wide screens follow the design's Play hub: pick a quick game and how to play it, the
+// design battles below, and the next ranked window, the rating and the daily challenge
+// in the rail.
 export default async function PlayPage(props: {
   searchParams: Promise<{
     sprint?: string | string[];
@@ -206,93 +363,122 @@ export default async function PlayPage(props: {
           // P3-W18-S02 (§6.9): confirmed fair-play penalties, shown with it.
           playerRatings().adjustments(actor.userId),
         ]);
+  const signedIn = actor !== null;
   // P3-W16-S04 (Q-P3-23): the sprint's live 1v1, with both games on the plan and live
   // games configured.
   const live = gameEnv() !== null && allowedFor(allowed, "play.live") === true;
   // P5-W32, P6-W42 (MATCH-7): the lobbies' next ranked window and the player's
-  // registration in it, for the battles on their plan; and the next HLD tournament
-  // still taking registrations (P6-W43).
+  // registration in it, for the battles on their plan.
   const lld = live && allowedFor(allowed, "play.battle") === true;
-  const hld = actor !== null && allowedFor(allowed, "play.hld") === true;
-  const [next] = lld || hld ? windowsFrom(new Date(), windowTimeZone()) : [];
-  const [lldIn, hldIn, cup] =
-    actor === null
-      ? [null, null, null]
+  const hld = signedIn && allowedFor(allowed, "play.hld") === true;
+  const now = new Date();
+  const [next] = lld || hld ? windowsFrom(now, windowTimeZone()) : [];
+  const [lldIn, hldIn] =
+    actor === null || next === undefined
+      ? [null, null]
       : await Promise.all([
-          lld && next !== undefined
-            ? battleWindows().registration(next, actor.userId)
-            : null,
-          hld && next !== undefined
-            ? hldWindows().registration(next, actor.userId)
-            : null,
-          hld ? nextCup(actor.userId) : null,
+          lld ? battleWindows().registration(next, actor.userId) : null,
+          hld ? hldWindows().registration(next, actor.userId) : null,
         ]);
-  return (
-    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] lg:mx-0 lg:grid lg:max-w-none lg:grid-cols-[minmax(0,1fr)_16.5rem] lg:content-start lg:gap-x-6 lg:gap-y-5 lg:pt-7 lg:pr-6 lg:pl-58">
-      <header className="lg:col-start-1">
-        <h1 className="text-display lg:text-[34px] lg:tracking-[-0.03em]">
-          Play
-        </h1>
-        <p className="mt-1 text-ink-muted">
-          Quick games on what you read. What you miss comes back as reading.
-        </p>
-        {/* P3-W14-S06 (§6.7): every board, for players signed in or guests. Wide
-            screens have it in the rating card beside. */}
-        {actor === null ? null : (
-          <Link
-            href="/play/boards"
-            className="mt-3 inline-flex rounded-full border border-hairline px-4 py-2 text-sm font-semibold lg:hidden"
-          >
-            Boards
-          </Link>
+  const way = (game: Game) =>
+    wayIn(game, allowedFor(allowed, game.capability), signedIn, live, today);
+  const ranked = [
+    ...(lld
+      ? [{ game: "lld" as const, registered: lldIn?.battleMode ?? null }]
+      : []),
+    ...(hld
+      ? [{ game: "hld" as const, registered: hldIn?.battleMode ?? null }]
+      : []),
+  ];
+  const rail =
+    actor === null ? undefined : (
+      <>
+        {next === undefined || ranked.length === 0 ? null : (
+          <RankedBattles
+            at={next.toISOString()}
+            status={windowStatus(next, now)}
+            games={ranked}
+          />
         )}
-        {/* P3-W17-S03: a private live match by link. */}
+        {rating === null ? null : (
+          <RatingCard rating={rating} adjustments={adjustments} />
+        )}
+        {today === null ? null : <DailyRailCard status={today} />}
+      </>
+    );
+  return (
+    <Page
+      tab="play"
+      firstName={chosen?.firstName ?? null}
+      rail={rail}
+      railLabel="Your games"
+      className="flex flex-col gap-6 lg:gap-7"
+    >
+      <header className="lg:flex lg:items-end lg:justify-between lg:gap-6">
+        <div>
+          <h1 className="text-display lg:text-[34px] lg:tracking-[-0.03em]">
+            Play
+          </h1>
+          <p className="mt-1 text-ink-muted lg:mt-1.5 lg:text-ink-soft">
+            Quick games on what you read. What you miss comes back as reading.
+          </p>
+          {/* P3-W14-S06 (§6.7): every board, for players signed in or guests. Wide
+              screens have it in the rating card beside. */}
+          {actor === null ? null : (
+            <Link
+              href="/play/boards"
+              className="mt-3 inline-flex rounded-full border border-hairline px-4 py-2 text-sm font-semibold lg:hidden"
+            >
+              Boards
+            </Link>
+          )}
+          {/* P3-W17-S03: a private live match by link. */}
+          {live ? (
+            <Link
+              href="/play/challenge"
+              className="mt-3 ml-2 inline-flex rounded-full border border-hairline px-4 py-2 text-sm font-semibold lg:hidden"
+            >
+              Challenge a friend
+            </Link>
+          ) : null}
+          {rating === null ? null : (
+            <p className="mt-3 flex items-center gap-3 text-sm font-semibold tabular-nums lg:hidden">
+              Rating {Math.round(rating)}
+              {/* P3-W16-S06 (Q-P3-13): this month's quick-game season. */}
+              <Link
+                href="/play/boards?game=season"
+                className="underline underline-offset-2"
+              >
+                Season board
+              </Link>
+            </p>
+          )}
+          <Adjustments list={adjustments} className="lg:hidden" />
+        </div>
         {live ? (
           <Link
             href="/play/challenge"
-            className="mt-3 ml-2 inline-flex rounded-full border border-hairline px-4 py-2 text-sm font-semibold lg:ml-0"
+            className="hidden h-10 shrink-0 items-center gap-2 rounded-full border-[1.5px] border-hairline-strong px-4 text-[15px] font-semibold lg:inline-flex"
           >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="size-[18px]"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="9" cy="8" r="4" />
+              <path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1M19 8v6M16 11h6" />
+            </svg>
             Challenge a friend
           </Link>
         ) : null}
-        {rating === null ? null : (
-          <p className="mt-3 flex items-center gap-3 text-sm font-semibold tabular-nums lg:hidden">
-            Rating {Math.round(rating)}
-            {/* P3-W16-S06 (Q-P3-13): this month's quick-game season. */}
-            <Link
-              href="/play/boards?game=season"
-              className="underline underline-offset-2"
-            >
-              Season board
-            </Link>
-          </p>
-        )}
-        <Adjustments list={adjustments} className="lg:hidden" />
       </header>
-      {actor === null ? null : (
-        <aside className="hidden lg:col-start-2 lg:row-span-6 lg:row-start-1 lg:flex lg:flex-col lg:gap-3">
-          {rating === null ? null : (
-            <RatingCard rating={rating} adjustments={adjustments} />
-          )}
-          {today === null ? null : <StreakCard status={today} />}
-          {cup === null ? null : (
-            <CupCard cup={cup.cup} registered={cup.registered} />
-          )}
-        </aside>
-      )}
-      <TabBar current="play" firstName={chosen?.firstName ?? null} />
-      {next !== undefined && (lld || hld) ? (
-        <WindowHero
-          at={next}
-          registered={
-            lldIn !== null ? "LLD" : hldIn !== null ? "System design" : null
-          }
-          lld={lld}
-          hld={hld}
-        />
-      ) : null}
       {actor?.isGuest === true ? (
-        <p className="text-sm text-ink-muted lg:col-start-1">
+        <p className="text-sm text-ink-muted">
           <Link href="/sign-up" className="underline underline-offset-2">
             Sign up to keep your progress
           </Link>
@@ -300,104 +486,87 @@ export default async function PlayPage(props: {
       ) : null}
       {/* Start found nothing the player wasn't asked this week (Q-P3-04). */}
       {sprint === "none" ? (
-        <p
-          role="status"
-          className="rounded-2xl bg-well px-4 py-3 text-sm lg:col-start-1"
-        >
+        <p role="status" className="rounded-2xl bg-well px-4 py-3 text-sm">
           You&apos;ve answered every question we have this week. New ones arrive
           as articles come in.
         </p>
       ) : null}
       {estimation === "none" ? (
-        <p
-          role="status"
-          className="rounded-2xl bg-well px-4 py-3 text-sm lg:col-start-1"
-        >
+        <p role="status" className="rounded-2xl bg-well px-4 py-3 text-sm">
           You&apos;ve answered every estimation question we have this week. Try
           again in a few days.
         </p>
       ) : null}
       {daily === "none" ? (
-        <p
-          role="status"
-          className="rounded-2xl bg-well px-4 py-3 text-sm lg:col-start-1"
-        >
+        <p role="status" className="rounded-2xl bg-well px-4 py-3 text-sm">
           There&apos;s no daily challenge today.
         </p>
       ) : null}
-      <div className="flex flex-col gap-3 lg:col-start-1 lg:gap-5">
-        <ul className="grid gap-3 sm:grid-cols-2 lg:gap-3.5">
+      {/* Phones: the mobile design's cards, every game with its way in. */}
+      <div className="flex flex-col gap-3 lg:hidden">
+        <ul className="grid gap-3 sm:grid-cols-2">
           {QUICK.map((game) => (
             <li key={game.name}>
-              <Card className="flex h-full flex-col gap-2 p-5 lg:rounded-[18px] lg:p-3.5 lg:shadow-none">
-                <span
-                  className={`hidden size-10 items-center justify-center rounded-xl lg:mb-1 lg:flex ${game.tint}`}
-                >
-                  {game.icon}
-                </span>
-                <h2 className="text-title lg:text-[15px] lg:leading-tight lg:font-semibold lg:tracking-normal">
-                  {game.name}
-                </h2>
-                <p className="text-sm font-semibold lg:-mt-1.5 lg:text-[13px] lg:font-normal lg:text-ink-muted">
-                  {game.format}
-                </p>
-                <p className="text-sm text-ink-muted lg:text-[13px]">
-                  {game.win}
-                </p>
-                <Action
-                  game={game}
-                  allowed={allowedFor(allowed, game.capability)}
-                  signedIn={actor !== null}
-                  live={live}
-                  today={today}
-                />
+              <Card className="flex h-full flex-col gap-2 p-5">
+                <h2 className="text-title">{game.name}</h2>
+                <p className="text-sm font-semibold">{game.format}</p>
+                <p className="text-sm text-ink-muted">{game.win}</p>
+                <Action way={way(game)} />
               </Card>
             </li>
           ))}
         </ul>
-        {/* The design's heading, though the section holds LLD too; its name says so. */}
         <section aria-label="Battles" className="contents">
-          <h2 className="hidden text-section lg:block">
-            System design battles
-          </h2>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:gap-3.5">
+          <ul className="grid gap-3 sm:grid-cols-2">
             {BATTLES.map((game) => (
               <li key={game.name}>
-                <Card className="flex h-full flex-col gap-2 p-5 lg:flex-row lg:items-start lg:gap-4 lg:rounded-[22px] lg:p-[18px] lg:shadow-none">
-                  <span
-                    className={`hidden size-16 shrink-0 items-center justify-center rounded-2xl lg:flex ${game.tint}`}
-                  >
-                    {game.icon}
-                  </span>
-                  <div className="flex min-w-0 flex-1 flex-col gap-2 lg:self-stretch">
-                    <div className="flex items-center justify-between">
-                      <h2 className="text-title lg:text-section lg:tracking-normal">
-                        {game.name}
-                      </h2>
-                      <span className="hidden text-[13px] text-ink-muted lg:inline">
-                        {game.minutes}
-                      </span>
-                    </div>
-                    <p className="text-sm font-semibold lg:font-normal lg:text-ink-muted">
-                      {game.format}
-                    </p>
-                    <p className="text-sm text-ink-muted">{game.win}</p>
-                    <Action
-                      game={game}
-                      allowed={allowedFor(allowed, game.capability)}
-                      signedIn={actor !== null}
-                      live={live}
-                      today={today}
-                    />
-                  </div>
+                <Card className="flex h-full flex-col gap-2 p-5">
+                  <h2 className="text-title">{game.name}</h2>
+                  <p className="text-sm font-semibold">{game.format}</p>
+                  <p className="text-sm text-ink-muted">{game.win}</p>
+                  <Action way={way(game)} />
                 </Card>
               </li>
             ))}
           </ul>
         </section>
       </div>
+      {/* Wide screens: the design's Play hub. */}
+      <Card className="hidden flex-col gap-4 p-[21px] lg:flex">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-[18px] font-bold tracking-[-0.01em]">
+            Quick games
+          </h2>
+          <p className="text-[13px] text-ink-muted">Pick a mode, then play</p>
+        </div>
+        <QuickGames
+          games={QUICK.flatMap((game) =>
+            game.web === undefined
+              ? []
+              : [quickGame(game, game.web, way(game))],
+          )}
+        />
+      </Card>
+      <section
+        aria-label="Design battles"
+        className="hidden flex-col gap-3.5 lg:flex"
+      >
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-[18px] font-bold tracking-[-0.01em]">
+            Design battles
+          </h2>
+          <p className="text-[13px] text-ink-muted">Casual matches any time</p>
+        </div>
+        <ul className="grid grid-cols-2 gap-3.5">
+          {BATTLES.map((game) => (
+            <li key={game.name}>
+              <BattleCard game={game} way={way(game)} />
+            </li>
+          ))}
+        </ul>
+      </section>
       {actor === null ? (
-        <Card className="flex flex-col gap-4 p-5 lg:col-start-1">
+        <Card className="flex flex-col gap-4 p-5">
           <h2 className="text-title">Play without an account</h2>
           <p className="text-sm text-ink-muted">
             Interval is in private beta: a guest needs an invite code too.
@@ -416,84 +585,134 @@ export default async function PlayPage(props: {
           </p>
         </Card>
       ) : null}
-    </main>
+    </Page>
   );
 }
 
-// A game card's way in: its own start, the lobby, or why it can't be played.
-function Action({
-  game,
-  allowed,
-  signedIn,
-  live,
-  today,
-}: {
-  game: Game;
-  allowed: boolean | null;
-  signedIn: boolean;
-  live: boolean;
-  today: DailyStatus | null;
-}) {
-  if (allowed === false)
-    return (
-      <p className="mt-auto pt-2 text-sm text-ink-muted">Not on your plan</p>
-    );
-  if (game.capability === "play.live" && live)
-    // P3-W16-S05 (Q-P3-24): live only.
-    return (
-      <Link
-        href="/play/live/fastest-finger"
-        className={`mt-auto self-start ${ACT}`}
-      >
-        Play live
-      </Link>
-    );
-  if (
-    (game.capability === "play.battle" && live) ||
-    (game.capability === "play.hld" && signedIn)
-  )
-    return (
-      <div className="mt-auto flex flex-wrap gap-2 pt-2 lg:pt-1">
-        <Link
-          href={game.capability === "play.hld" ? "/hld/play" : "/play/battle"}
-          className={ACT}
-        >
-          <span className="lg:hidden">Battle</span>
-          <span className="hidden lg:inline">Find match</span>
+// Phones: a game card's way in.
+function Action({ way }: { way: Way }) {
+  switch (way.kind) {
+    case "note":
+      return <p className="mt-auto pt-2 text-sm text-ink-muted">{way.text}</p>;
+    case "live":
+      return (
+        <Link href={way.href} className={`mt-auto self-start ${ACT}`}>
+          Play live
         </Link>
-        {/* The design's Solo practice: HLD's practice (P6-W42); LLD has none of its
-            own (its casual queue turns solo after 60 s, in the lobby). */}
-        {game.capability === "play.hld" ? (
-          <Link href="/hld/practice" className={`hidden lg:inline ${QUIET}`}>
-            Solo practice
+      );
+    case "battle":
+      return (
+        <div className="mt-auto flex flex-wrap gap-2 pt-2">
+          <Link href={way.href} className={ACT}>
+            Battle
           </Link>
-        ) : null}
-      </div>
-    );
-  if (game.capability === "play.daily" && today !== null)
-    return <DailyPlay status={today} />;
-  if (game.start !== undefined && signedIn)
-    return (
-      <div className="mt-auto flex flex-wrap items-center gap-3 pt-2">
-        <form action={game.start.action}>
-          <button type="submit" className={`cursor-pointer ${ACT}`}>
-            {game.start.label}
-          </button>
-        </form>
-        {game.capability === "play.sprint" && live ? (
-          <Link href="/play/live/sprint" className={QUIET}>
-            Play 1v1 live
-          </Link>
-        ) : null}
-      </div>
-    );
+        </div>
+      );
+    case "daily":
+      return <DailyPlay status={way.status} />;
+    case "start":
+      return (
+        <div className="mt-auto flex flex-wrap items-center gap-3 pt-2">
+          <form action={way.action}>
+            <button type="submit" className={`cursor-pointer ${ACT}`}>
+              {way.label}
+            </button>
+          </form>
+          {way.live === null ? null : (
+            <Link href={way.live} className={QUIET}>
+              Play 1v1 live
+            </Link>
+          )}
+        </div>
+      );
+  }
+}
+
+// Wide screens: a quick game's tile and panel, with its ways in made here so the
+// server's start actions stay on the server.
+function quickGame(
+  game: Game,
+  web: NonNullable<Game["web"]>,
+  way: Way,
+): QuickGame {
+  const solo =
+    way.kind === "start" ? (
+      <form action={way.action} className="shrink-0">
+        <button type="submit" className={PLAY}>
+          {TRIANGLE}
+          Play solo
+        </button>
+      </form>
+    ) : null;
+  const liveHref =
+    way.kind === "start" ? way.live : way.kind === "live" ? way.href : null;
+  return {
+    name: game.name,
+    format: web.format,
+    about: web.about,
+    icon: game.icon,
+    tint: game.tint,
+    panel: web.panel,
+    art: web.art,
+    solo,
+    live:
+      liveHref === null ? null : (
+        <Link href={liveHref} className={PLAY}>
+          {TRIANGLE}
+          Play 1v1 live
+        </Link>
+      ),
+    note: way.kind === "note" ? way.text : "",
+  };
+}
+
+function BattleCard({
+  game,
+  way,
+}: {
+  game: (typeof BATTLES)[number];
+  way: Way;
+}) {
   return (
-    <p className="mt-auto pt-2 text-sm text-ink-muted">
-      {game.start !== undefined ||
-      (game.capability === "play.live" && gameEnv() !== null)
-        ? "Play as a guest below, or sign in"
-        : "Coming later"}
-    </p>
+    <div className="flex h-full flex-col gap-5 rounded-[20px] border border-hairline bg-card p-[18px]">
+      <div className="flex items-start gap-4">
+        <span
+          className={`flex size-13 shrink-0 items-center justify-center rounded-[14px] ${game.tint}`}
+        >
+          {game.icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[17px] leading-snug font-bold">{game.name}</h3>
+          <p className="mt-1 text-[13px] leading-snug text-ink-muted">
+            {game.blurb}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-full bg-well px-2.5 py-1 text-xs font-semibold">
+          {game.minutes}
+        </span>
+      </div>
+      <div className="mt-auto flex items-center gap-5">
+        {way.kind === "battle" ? (
+          <>
+            <Link href={way.href} className={OUTLINE}>
+              Find match
+            </Link>
+            {way.practice === null ? null : (
+              <Link
+                href={way.practice}
+                className="text-[15px] font-semibold text-ink-soft"
+              >
+                Solo practice
+              </Link>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-ink-muted">
+            {way.kind === "note" ? way.text : null}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -525,80 +744,10 @@ function Adjustments({
   ));
 }
 
-// The design's hero, from the lobbies' own data: the next ranked window (MATCH-7),
-// and whether the player is registered for it.
-function WindowHero({
-  at,
-  registered,
-  lld,
-  hld,
-}: {
-  at: Date;
-  registered: "LLD" | "System design" | null;
-  lld: boolean;
-  hld: boolean;
-}) {
-  return (
-    <section
-      aria-label="Next ranked window"
-      className="hidden overflow-hidden rounded-3xl border border-hairline bg-page shadow-card lg:col-start-1 lg:flex"
-    >
-      <div className="flex w-[140px] shrink-0 items-center justify-center bg-(--system-design-tint)">
-        <svg aria-hidden="true" viewBox="0 0 110 90" className="w-[110px]">
-          <path d="M36 20 58 31 36 42 14 31z" fill="var(--system-design-top)" />
-          <path d="M14 31 36 42v22L14 53z" fill="var(--system-design-left)" />
-          <path d="M36 42 58 31v22L36 64z" fill="var(--system-design-right)" />
-          <path
-            d="M58 52 72 50"
-            stroke="var(--system-design-line)"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeDasharray="2 7"
-          />
-          <path
-            d="M72 34v30a17 6 0 0 0 34 0V34z"
-            fill="var(--system-design-left)"
-          />
-          <ellipse
-            cx="89"
-            cy="34"
-            rx="17"
-            ry="6"
-            fill="var(--system-design-top)"
-          />
-        </svg>
-      </div>
-      <div className="flex flex-1 flex-wrap items-center gap-5 px-[22px] py-5">
-        <NextWindow
-          at={at.toISOString()}
-          label={registered === null ? "Ranked battles" : "You're registered"}
-          title={
-            registered === null
-              ? "The next ranked window,"
-              : `${registered} battle,`
-          }
-          body={
-            registered === null
-              ? "Register in a lobby until 5 minutes before it starts."
-              : "You're grouped by rating when it starts."
-          }
-        />
-        <div className="flex gap-2">
-          {lld && (registered === null || registered === "LLD") ? (
-            <Link href="/play/battle" className={QUIET}>
-              {registered === null ? "LLD lobby" : "Go to the lobby"}
-            </Link>
-          ) : null}
-          {hld && (registered === null || registered === "System design") ? (
-            <Link href="/hld/play" className={QUIET}>
-              {registered === null ? "System design lobby" : "Go to the lobby"}
-            </Link>
-          ) : null}
-        </div>
-      </div>
-    </section>
-  );
-}
+const RAIL =
+  "flex flex-col gap-3 rounded-[22px] border border-hairline bg-card p-[18px] shadow-card";
+const RAIL_BUTTON =
+  "flex h-9 flex-1 items-center justify-center rounded-[10px] bg-well text-sm font-semibold";
 
 function RatingCard({
   rating,
@@ -608,11 +757,8 @@ function RatingCard({
   adjustments: { penalty: number; playedAt: Date }[];
 }) {
   return (
-    <section
-      aria-label="Rating"
-      className="flex flex-col gap-3 rounded-[22px] border border-hairline bg-page p-[18px] shadow-card"
-    >
-      <div className="flex items-center gap-2.5">
+    <section aria-label="Rating" className={RAIL}>
+      <div className="flex items-center gap-3">
         <span className="flex size-9 items-center justify-center rounded-[10px] bg-(--distributed-systems-tint)">
           <svg aria-hidden="true" viewBox="0 0 24 24" className="size-[22px]">
             <path
@@ -623,25 +769,19 @@ function RatingCard({
           </svg>
         </span>
         <div className="flex-1">
-          <p className="font-semibold">Rating</p>
-          <p className="text-[13px] text-ink-muted">Quick games</p>
+          <p className="text-[15px] leading-tight font-semibold">Rating</p>
+          <p className="text-xs text-ink-muted">Quick games</p>
         </div>
-        <span className="text-[22px] font-bold tabular-nums">
+        <span className="text-[26px] leading-none font-bold tracking-[-0.02em] tabular-nums">
           {Math.round(rating)}
         </span>
       </div>
       <Adjustments list={adjustments} className="mt-0 text-[13px]" />
-      <div className="flex gap-2 text-sm font-semibold">
-        <Link
-          href="/play/boards?game=season"
-          className="flex-1 rounded-[10px] bg-well px-2.5 py-[7px] text-center"
-        >
+      <div className="flex gap-2">
+        <Link href="/play/boards?game=season" className={RAIL_BUTTON}>
           Season board
         </Link>
-        <Link
-          href="/play/boards"
-          className="flex-1 rounded-[10px] bg-well px-2.5 py-[7px] text-center"
-        >
+        <Link href="/play/boards" className={RAIL_BUTTON}>
           Boards
         </Link>
       </div>
@@ -649,76 +789,71 @@ function RatingCard({
   );
 }
 
-// Q-P3-07: the daily challenge's streak, a dot a day for the last week of it.
-function StreakCard({ status }: { status: DailyStatus }) {
+// §6.3, Q-P3-07: the daily challenge, a dot a day for the last week of its streak, and
+// today's way in or result.
+function DailyRailCard({ status }: { status: DailyStatus }) {
   const { today, streak } = status;
   const days = Math.min(streak.days, 7);
   return (
-    <section aria-label="Streak" className={`flex flex-col gap-2 ${SIDE}`}>
+    <section aria-label="Daily challenge" className={RAIL}>
+      <div className="flex items-start gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-(--review-tint) text-(--review-line)">
+          {QUICK[0]?.icon}
+        </span>
+        <div>
+          <h2 className="text-[15px] leading-tight font-semibold">
+            Daily challenge
+          </h2>
+          <p className="mt-0.5 text-xs leading-snug text-ink-muted">
+            Same set for everyone, one attempt
+          </p>
+        </div>
+      </div>
       <div className="flex items-center gap-2.5">
         <span aria-hidden="true" className="flex gap-[3px]">
           {Array.from({ length: 7 }, (_, i) => (
             <span
               key={i}
-              className={`size-[9px] rounded-full ${i < days ? "bg-go" : "border-[1.5px] border-ink-muted"}`}
+              className={`size-[9px] rounded-full ${i < days ? "bg-go" : "border border-ink-muted"}`}
             />
           ))}
         </span>
-        <span className="text-[15px] font-semibold">
+        <span className="text-[13px] font-semibold">
           {streakText(streak) ?? "No streak yet"}
         </span>
       </div>
-      <p className="text-[13px] text-ink-muted">
-        {today === "none"
-          ? "No challenge today."
-          : today !== "open" && today.finished
-            ? "Done for today."
-            : "Today's challenge is still to play."}
-      </p>
-    </section>
-  );
-}
-
-// P6-W43 (Q-P6-07): the next HLD tournament still taking registrations, and whether
-// the player is already in it.
-async function nextCup(
-  userId: string,
-): Promise<{ cup: HldTournament; registered: boolean } | null> {
-  const cup = (await hldTournaments().list()).find(
-    (t) => t.round === 0 && t.finishedAt === null,
-  );
-  if (cup === undefined) return null;
-  const entries = await hldTournaments().entries(cup.id);
-  return { cup, registered: entries.some((e) => e.userId === userId) };
-}
-
-function CupCard({
-  cup,
-  registered,
-}: {
-  cup: HldTournament;
-  registered: boolean;
-}) {
-  return (
-    <section aria-label="Next tournament" className={SIDE}>
-      <p className="text-[15px] font-semibold">{cup.name}</p>
-      <p className="mt-0.5 text-[13px] text-ink-muted tabular-nums">
-        {cup.startsAt.toLocaleString("en-GB", {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-          hour: "2-digit",
-          minute: "2-digit",
-          timeZone: "UTC",
-        })}{" "}
-        UTC · {BATTLE_MODE_NAMES[cup.battleMode]}
-      </p>
-      <Link
-        href={`/hld/tournaments/${cup.id}`}
-        className="mt-3 flex h-10 items-center justify-center rounded-xl border-[1.5px] border-track text-sm font-semibold"
-      >
-        {registered ? "You're registered" : "Register"}
-      </Link>
+      <div className="flex flex-col gap-2.5 rounded-xl bg-well px-3 py-2.5 text-[13px] leading-snug text-ink-soft">
+        {today === "none" ? (
+          <p>
+            No challenge today. Your score shares as a card that keeps the
+            questions hidden.
+          </p>
+        ) : today === "open" || !today.finished ? (
+          <>
+            <p>Your score shares as a card that keeps the questions hidden.</p>
+            <form action={startDailyAction}>
+              <button
+                type="submit"
+                className="h-9 w-full cursor-pointer rounded-[10px] bg-ink text-sm font-semibold text-page"
+              >
+                {today === "open"
+                  ? "Start today's challenge"
+                  : "Carry on with today's challenge"}
+              </button>
+            </form>
+          </>
+        ) : (
+          <p>
+            Today: {today.points} points ·{" "}
+            <a
+              href={`/quiz/${today.attemptId}/results?chip=3-8`}
+              className="font-semibold text-ink underline underline-offset-2"
+            >
+              See your results
+            </a>
+          </p>
+        )}
+      </div>
     </section>
   );
 }

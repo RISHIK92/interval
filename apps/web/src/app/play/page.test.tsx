@@ -5,7 +5,6 @@ import type {
   BattleWindows,
   DailyStatus,
   Entitlements,
-  HldTournaments,
   HldWindows,
   PlayerRatings,
   Preferences,
@@ -36,10 +35,6 @@ const lldRegistration = vi.fn<BattleWindows["registration"]>(() =>
 const hldRegistration = vi.fn<HldWindows["registration"]>(() =>
   Promise.resolve(null),
 );
-const tournaments = vi.fn<HldTournaments["list"]>(() => Promise.resolve([]));
-const tournamentEntries = vi.fn<HldTournaments["entries"]>(() =>
-  Promise.resolve([]),
-);
 let gameConfigured = true;
 vi.mock("../../env", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -55,7 +50,6 @@ vi.mock("../../server/container", () => ({
   playerRatings: () => ({ of: ratingOf, adjustments }),
   battleWindows: () => ({ registration: lldRegistration }),
   hldWindows: () => ({ registration: hldRegistration }),
-  hldTournaments: () => ({ list: tournaments, entries: tournamentEntries }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),
@@ -104,7 +98,7 @@ test("four quick games, each with its format and win condition, all playable", a
       "Score and streak",
     ],
     ["60-second sprint", "Solo or 1v1", "Most correct in 60 seconds"],
-    ["Estimation", "Solo or 1v1", "full points within 1.25× of the answer"],
+    ["Estimation", "Solo", "full points within 1.25× of the answer"],
     [
       "Fastest finger",
       "1v1 live, 7 rounds",
@@ -251,8 +245,12 @@ test("a round with nothing left to ask says so", async () => {
 test("signed out, every playable game points to the guest form", async () => {
   current.mockResolvedValue(null);
   const html = await page();
-  // Fastest finger too: live games are configured here.
-  expect(html.match(/Play as a guest below, or sign in/g)).toHaveLength(4);
+  // Fastest finger too: live games are configured here. Phones list every game;
+  // wide screens show the chosen quick game's panel (the sprint, at first).
+  const phone = html.slice(0, html.indexOf('aria-label="Design battles"'));
+  const [cards = "", panel = ""] = phone.split("Pick a mode, then play");
+  expect(cards.match(/Play as a guest below, or sign in/g)).toHaveLength(4);
+  expect(panel.match(/Play as a guest below, or sign in/g)).toHaveLength(1);
 });
 
 // P3-W13-S05 (§6.3, Q-P3-07): today's challenge, one attempt, and the streak.
@@ -352,59 +350,41 @@ test("no penalty, no adjustment line", async () => {
   expect(await page()).not.toContain("Fair-play adjustment");
 });
 
-// Play hub, web: the next ranked window and the player's registration in it, and the
-// next HLD tournament taking registrations, beside the games on wide screens.
-test("the hero names a registered window and the side shows the next tournament", async () => {
+// Play hub, web: on wide screens the chosen quick game's panel starts it as the cards do.
+test("the wide layout's sprint panel plays solo by the sprint's start, or a live 1v1", async () => {
+  current.mockResolvedValue(account);
+  const html = await page();
+  const panel = html.slice(html.indexOf("Pick a mode, then play"));
+  expect(panel).toMatch(/<form[^>]*>(?:(?!<\/form>)[^])*Play solo/);
+  expect(panel).toMatch(/name="quick-mode"[^>]*value="live"/);
+  // Without live games the sprint is solo only: no choice of how to play.
+  gameConfigured = false;
+  expect(await page()).not.toContain('name="quick-mode"');
+});
+
+// Play hub, web: the rail's ranked battles card, from the lobbies' own data: the next
+// ranked window (MATCH-7) and the player's registration in each battle on their plan.
+test("the rail shows the next window and a registration made in it", async () => {
   current.mockResolvedValue(account);
   lldRegistration.mockResolvedValueOnce({ matchId: null, battleMode: "human" });
-  tournaments.mockResolvedValueOnce([
-    {
-      id: "t1",
-      name: "Weekend cup",
-      battleMode: "human",
-      startsAt: new Date("2026-11-28T19:00:00Z"),
-      round: 0,
-      finishedAt: null,
-    },
-  ]);
   const html = await page();
-  expect(html).toContain("You&#x27;re registered");
-  expect(html).toContain("LLD battle,");
-  expect(words(html)).toMatch(/Weekend cup\|[^]*?Sat 28 Nov[^]*?Register/);
-  expect(html).toContain('href="/hld/tournaments/t1"');
-});
-
-test("a player already in the next tournament is told so instead of asked to register", async () => {
-  current.mockResolvedValue(account);
-  tournaments.mockResolvedValueOnce([
-    {
-      id: "t1",
-      name: "Weekend cup",
-      battleMode: "human",
-      startsAt: new Date("2026-11-28T19:00:00Z"),
-      round: 0,
-      finishedAt: null,
-    },
-  ]);
-  tournamentEntries.mockResolvedValueOnce([
-    { userId: "u1", player: "ada", checkedIn: false, university: null },
-  ]);
-  const html = await page();
-  const cup = /<section aria-label="Next tournament"[^]*?<\/section>/.exec(
+  const card = /<section aria-label="Ranked battles"[^]*?<\/section>/.exec(
     html,
   )?.[0];
-  expect(cup).toContain("You&#x27;re registered");
-  expect(cup).not.toContain("Register<");
-  expect(tournamentEntries).toHaveBeenCalledWith("t1");
+  expect(card).toContain("Next window");
+  expect(card).toContain("Registered · cancel");
+  expect(card).toMatch(/name="ranked-game"[^>]*value="hld"/);
+  expect(lldRegistration).toHaveBeenCalledOnce();
+  expect(hldRegistration).toHaveBeenCalledOnce();
 });
 
-test("no window hero or tournament without the battles on the plan", async () => {
+test("no ranked battles card without the battles on the plan", async () => {
   current.mockResolvedValue(account);
   can.mockImplementation((_user, capability) =>
     Promise.resolve(capability !== "play.battle" && capability !== "play.hld"),
   );
   const html = await page();
-  expect(html).not.toContain("Next ranked window");
-  expect(tournaments).not.toHaveBeenCalled();
+  expect(html).not.toContain("Ranked battles");
   expect(lldRegistration).not.toHaveBeenCalled();
+  expect(hldRegistration).not.toHaveBeenCalled();
 });

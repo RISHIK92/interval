@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
 import { HldLobby } from "./HldLobby";
 
@@ -104,4 +105,31 @@ test("registering names the chosen battle mode", () => {
   act(() => {
     root.unmount();
   });
+});
+
+// The window's time is in the player's own zone, which the server doesn't know: it
+// renders a placeholder, so hydration matches and the browser fills the time in.
+test("on the server, the next window shows no local time", () => {
+  const html = renderToString(
+    <HldLobby
+      window={{
+        at: "2026-11-24T21:00:00.000Z",
+        status: "open",
+        registered: false,
+        battleMode: null,
+        matchId: null,
+      }}
+    />,
+  );
+  expect(html).toContain("Next: …. Rooms of up to 4");
+  for (const day of [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ])
+    expect(html).not.toContain(day);
 });

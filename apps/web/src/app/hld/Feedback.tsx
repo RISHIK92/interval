@@ -95,7 +95,7 @@ export function Feedback({
 
   return (
     <section
-      className="flex flex-col gap-2 rounded-md border border-line p-3 lg:mt-auto lg:rounded-[14px] lg:border-[1.5px] lg:border-dashed lg:border-hairline"
+      className="flex flex-col gap-2 rounded-md border border-hairline p-3 lg:mt-auto lg:rounded-[14px] lg:border-[1.5px] lg:border-dashed lg:border-hairline"
       aria-live="polite"
     >
       <h2 className="text-title lg:flex lg:items-center lg:justify-between lg:text-[15px] lg:font-semibold lg:tracking-normal">
@@ -108,7 +108,7 @@ export function Feedback({
         <button
           type="button"
           disabled={!ask.ready || pending}
-          className="self-start rounded-md border border-line px-2 py-1 text-sm disabled:opacity-50 lg:order-last lg:mt-2 lg:h-12 lg:self-stretch lg:rounded-xl lg:border-0 lg:bg-ink lg:px-4 lg:text-[15px] lg:font-semibold lg:text-page"
+          className="self-start rounded-md border border-hairline px-2 py-1 text-sm disabled:opacity-50 lg:order-last lg:mt-2 lg:h-12 lg:self-stretch lg:rounded-xl lg:border-0 lg:bg-ink lg:px-4 lg:text-[15px] lg:font-semibold lg:text-page"
           onClick={() => {
             void request();
           }}
@@ -171,7 +171,7 @@ export function Feedback({
                 value={reason}
                 maxLength={500}
                 rows={3}
-                className="mt-1 w-full rounded-md border border-line px-2 py-1"
+                className="mt-1 w-full rounded-md border border-hairline px-2 py-1"
                 aria-label="Why the grades are wrong"
                 onChange={(e) => {
                   setReason(e.target.value);
@@ -180,7 +180,7 @@ export function Feedback({
               <button
                 type="button"
                 disabled={reason.trim() === ""}
-                className="mt-1 rounded-md border border-line px-2 py-1 disabled:opacity-50"
+                className="mt-1 rounded-md border border-hairline px-2 py-1 disabled:opacity-50"
                 onClick={() => {
                   void appeal();
                 }}

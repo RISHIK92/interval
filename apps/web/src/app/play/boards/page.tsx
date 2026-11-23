@@ -12,8 +12,9 @@ import {
   type Scope,
 } from "../../../server/board-view";
 import { type Game, GAMES, type Period, PERIODS } from "../../../server/boards";
-import { sessionReader } from "../../../server/container";
+import { preferences, sessionReader } from "../../../server/container";
 import { Card } from "../../ui/Card";
+import { INNER_PAGE_TITLE, Page, RailCard } from "../../ui/Page";
 import { requireUsername } from "../../username/gate";
 
 export const dynamic = "force-dynamic";
@@ -29,7 +30,10 @@ export default async function BoardsPage(props: {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/join");
   if (!actor.isGuest) await requireUsername(actor.userId, "/play/boards");
-  const view = await readBoard(actor, await props.searchParams, new Date());
+  const [view, chosen] = await Promise.all([
+    readBoard(actor, await props.searchParams, new Date()),
+    preferences().get(actor.userId),
+  ]);
   const { game, scope, period, scopes: allowed } = view;
   const href = (change: { game?: Game; scope?: Scope; period?: Period }) =>
     `/play/boards?${new URLSearchParams({ game, scope, period, ...change }).toString()}`;
@@ -76,9 +80,35 @@ export default async function BoardsPage(props: {
       />
     );
 
+  // Wide screens: Play's sidebar and the design's rail (Leagues, web), with what the
+  // boards really do; tiers and promotion zones aren't built.
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-5 px-4 pt-6 pb-24 lg:max-w-[60rem] lg:gap-[18px] lg:px-8 lg:pt-7">
-      <Link href="/play" className="text-sm text-ink-muted underline">
+    <Page
+      phoneTabBar={false}
+      tab="play"
+      firstName={chosen?.firstName ?? null}
+      railLabel="About the boards"
+      rail={
+        <>
+          <RailCard className="flex flex-col gap-2">
+            <span className="text-section">How boards work</span>
+            <span className="text-sm leading-normal text-ink-soft">
+              The top 50 of {PERIOD_LABELS[game][period].toLowerCase()}, with
+              your own row always in view. Tied players share a rank.
+            </span>
+          </RailCard>
+          <RailCard href="/play/boards/battles" className="flex flex-col gap-1">
+            <span className="text-[13px] text-ink-muted">This season</span>
+            <span className="text-[15px] leading-tight font-semibold">
+              Battle boards
+            </span>
+          </RailCard>
+        </>
+      }
+      className="flex flex-col gap-5 lg:gap-[18px]"
+    >
+      {/* The sidebar's Play does this on wide screens. */}
+      <Link href="/play" className="text-sm text-ink-muted underline lg:hidden">
         Back to Play
       </Link>
       {/* Wide screens: the design's league head (Leagues, web), on the board shown. */}
@@ -97,9 +127,7 @@ export default async function BoardsPage(props: {
           </svg>
         </span>
         <div>
-          <h1 className="text-display lg:text-[32px] lg:leading-[1.1] lg:tracking-[-0.03em]">
-            Boards
-          </h1>
+          <h1 className={INNER_PAGE_TITLE}>Boards</h1>
           <p className="mt-0.5 hidden text-sm text-ink-muted lg:block">
             {GAME_LABELS[game]} · {SCOPE_LABELS[scope]} ·{" "}
             <span className="font-semibold text-ink">
@@ -138,7 +166,7 @@ export default async function BoardsPage(props: {
       <Card className="p-4 lg:overflow-hidden lg:rounded-[20px] lg:p-0">
         {body}
       </Card>
-    </main>
+    </Page>
   );
 }
 

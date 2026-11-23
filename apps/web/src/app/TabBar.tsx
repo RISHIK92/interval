@@ -130,14 +130,17 @@ function Later(props: { name: string; icon: ReactNode; wideOnly?: boolean }) {
 export function TabBar({
   current,
   firstName,
+  phone = true,
 }: {
   current: Current | null;
   firstName: string | null;
+  // Pages that never had the phone tab bar keep the sidebar on wide screens only.
+  phone?: boolean;
 }) {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-10 flex border-t border-hairline bg-page pb-[env(safe-area-inset-bottom)] lg:inset-y-0 lg:right-auto lg:w-50 lg:flex-col lg:gap-1 lg:border-t-0 lg:border-r lg:px-3.5 lg:py-[22px]"
+      className={`fixed inset-x-0 bottom-0 z-10 ${phone ? "flex" : "hidden lg:flex"} border-t border-hairline bg-page pb-[env(safe-area-inset-bottom)] lg:inset-y-0 lg:right-auto lg:w-50 lg:flex-col lg:gap-1 lg:border-t-0 lg:border-r lg:px-3.5 lg:py-[22px]`}
     >
       {/* The web design's mark: a stroke and a green dot on ink, and the wordmark. */}
       <span className="hidden items-center gap-2.5 px-2 pb-[18px] text-[22px] leading-none font-bold tracking-[-0.03em] lg:flex">

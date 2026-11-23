@@ -88,6 +88,10 @@ test("a player sees the statement, the examples and starters, never the extensio
   expect(get).toHaveBeenCalledWith("lru-cache");
   expect(html).toContain("LRU cache");
   expect(html).toContain("Keep the most recent.");
+  // The statement's own title isn't repeated under the page's, and an example reads as
+  // the calls it makes.
+  expect(html).not.toContain("# LRU cache");
+  expect(html).toContain("LRUCache(2)");
   // Monaco fills this on the client, starting with the first language's starter.
   expect(html).toContain("Code editor (python)");
   expect(html).not.toContain("SECRET EXTENSION");

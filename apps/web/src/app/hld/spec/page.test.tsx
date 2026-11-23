@@ -17,3 +17,11 @@ test("the spec sheet lists the components, their numbers and the patch notes", (
   expect(html).not.toContain("The problem&#x27;s users");
   expect(html).toContain("Patch notes");
 });
+
+// The sheet is public and static: built once, with no request to read a session from,
+// so it stands alone without the app's frame.
+test("the spec sheet is static: no session read, no app frame", () => {
+  const page = SpecPage();
+  expect(page).not.toBeInstanceOf(Promise);
+  expect(renderToStaticMarkup(page)).not.toContain('aria-label="Main"');
+});

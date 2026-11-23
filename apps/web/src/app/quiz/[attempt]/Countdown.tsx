@@ -37,21 +37,22 @@ export function Countdown({
     };
   }, [endsAt, finishForm]);
   return (
-    <div>
+    <div className="lg:flex lg:flex-col">
       <div
         role="progressbar"
         aria-label="Time left"
         aria-valuemin={0}
         aria-valuemax={QUIZ_SECONDS}
         aria-valuenow={left}
-        className="h-1.5 overflow-hidden rounded-full bg-track"
+        className="h-1.5 overflow-hidden rounded-full bg-track lg:h-2 lg:rounded"
       >
+        {/* Wide screens: the design's round timer, in its orange. */}
         <div
-          className={`h-full rounded-full ${left <= 10 ? "bg-wrong" : "bg-ink"}`}
+          className={`h-full rounded-full lg:rounded ${left <= 10 ? "bg-wrong" : "bg-ink lg:bg-(--system-design-left)"}`}
           style={{ width: `${String((left / QUIZ_SECONDS) * 100)}%` }}
         />
       </div>
-      <p className="mt-1 text-right text-xs text-ink-muted tabular-nums">
+      <p className="mt-1 text-right text-xs text-ink-muted tabular-nums lg:order-first lg:mt-0 lg:mb-2 lg:text-lg lg:font-bold lg:text-(--system-design-line)">
         {left}s left
       </p>
     </div>

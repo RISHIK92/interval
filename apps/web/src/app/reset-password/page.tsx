@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AuthForm } from "../AuthForm";
 import { resetPasswordAction } from "./actions";
+import { CARD, Standalone, TITLE } from "../Standalone";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +15,8 @@ export default async function ResetPasswordPage({
   const { token } = await searchParams;
   if (typeof token !== "string" || token === "") {
     return (
-      <main className="mx-auto max-w-md px-4 pt-10 pb-12">
-        <h1 className="text-display">Reset your password</h1>
+      <Standalone className={`mx-auto max-w-md px-4 pt-10 pb-12 ${CARD}`}>
+        <h1 className={`text-display ${TITLE}`}>Reset your password</h1>
         <p role="alert" className="mt-2 text-wrong">
           That reset link is invalid or has expired.
         </p>
@@ -24,12 +25,12 @@ export default async function ResetPasswordPage({
             Send a new link
           </Link>
         </p>
-      </main>
+      </Standalone>
     );
   }
   return (
-    <main className="mx-auto max-w-md px-4 pt-10 pb-12">
-      <h1 className="text-display">Choose a new password</h1>
+    <Standalone className={`mx-auto max-w-md px-4 pt-10 pb-12 ${CARD}`}>
+      <h1 className={`text-display ${TITLE}`}>Choose a new password</h1>
       <AuthForm
         action={resetPasswordAction}
         submit="Set password"
@@ -43,6 +44,6 @@ export default async function ResetPasswordPage({
           },
         ]}
       />
-    </main>
+    </Standalone>
   );
 }

@@ -87,3 +87,21 @@ test("the sidebar's profile shows the initial and first name, or a glyph", () =>
   );
   expect(unnamed).toMatch(/href="\/profile"[^>]*><svg/);
 });
+
+test("a page without the phone tab bar keeps the sidebar on wide screens only", () => {
+  const nav = (phone?: boolean) =>
+    /<nav[^>]*class="([^"]*)"/.exec(
+      renderToStaticMarkup(
+        <TabBar
+          current="play"
+          firstName={null}
+          {...(phone === undefined ? {} : { phone })}
+        />,
+      ),
+    )?.[1] ?? "";
+  expect(nav(false).split(" ")).toEqual(
+    expect.arrayContaining(["hidden", "lg:flex"]),
+  );
+  expect(nav().split(" ")).toContain("flex");
+  expect(nav().split(" ")).not.toContain("hidden");
+});

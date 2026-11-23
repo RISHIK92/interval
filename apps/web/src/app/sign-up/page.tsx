@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { sessionReader } from "../../server/container";
 import { AuthForm } from "../AuthForm";
 import { signUpAction } from "./actions";
+import { CARD, Standalone, TITLE } from "../Standalone";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +14,8 @@ export default async function SignUpPage() {
   if (actor === null) redirect("/join");
   if (!actor.isGuest) redirect("/");
   return (
-    <main className="mx-auto max-w-md px-4 pt-10 pb-12">
-      <h1 className="text-display">Create your account</h1>
+    <Standalone className={`mx-auto max-w-md px-4 pt-10 pb-12 ${CARD}`}>
+      <h1 className={`text-display ${TITLE}`}>Create your account</h1>
       <p className="mt-2 text-ink-muted">
         Keep your games and progress, and use all of Interval on any device.
       </p>
@@ -43,6 +44,6 @@ export default async function SignUpPage() {
           Sign in
         </Link>
       </p>
-    </main>
+    </Standalone>
   );
 }

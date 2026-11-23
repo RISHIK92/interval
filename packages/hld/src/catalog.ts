@@ -4,53 +4,58 @@ import { z } from "zod";
 // from, and what each can be configured with. Their numbers live in spec.ts, the
 // public spec sheet; this file is only the shape.
 
-const nodes = (max: number) => z.int().min(1).max(max);
-// Spread over availability zones within a region, and over regions.
+const nodes = (max: number) => z.int().min(1).max(max).describe("Nodes");
+// Spread over availability zones within a region, and over regions. Each field's
+// description is its label where the player sets it (the canvas's Selected panel).
 const placement = {
-  zones: z.int().min(1).max(3),
-  regions: z.int().min(1).max(2),
+  zones: z.int().min(1).max(3).describe("Zones"),
+  regions: z.int().min(1).max(2).describe("Regions"),
 };
 
 // Each kind's configuration. A design names one per node.
 export const CONFIG = {
   // Where traffic comes from: the problem's users. Exactly one per design.
   client: z.strictObject({}),
-  cdn: z.strictObject({ ttlSeconds: z.int().min(0).max(86_400) }),
+  cdn: z.strictObject({
+    ttlSeconds: z.int().min(0).max(86_400).describe("Cache time (seconds)"),
+  }),
   load_balancer: z.strictObject({ ...placement }),
   app_service: z.strictObject({ nodes: nodes(200), ...placement }),
   cache: z.strictObject({
     nodes: nodes(64),
-    memoryGbPerNode: z.int().min(1).max(256),
+    memoryGbPerNode: z.int().min(1).max(256).describe("Memory per node (GB)"),
     ...placement,
   }),
   sql_db: z.strictObject({
-    readReplicas: z.int().min(0).max(15),
-    storageGb: z.int().min(10).max(16_000),
+    readReplicas: z.int().min(0).max(15).describe("Read replicas"),
+    storageGb: z.int().min(10).max(16_000).describe("Storage (GB)"),
     // How the primary survives a failure: not at all, a standby in its zone, or a
     // standby in another zone.
-    failover: z.enum(["none", "standby", "multi_zone"]),
-    regions: z.int().min(1).max(2),
+    failover: z.enum(["none", "standby", "multi_zone"]).describe("Failover"),
+    regions: z.int().min(1).max(2).describe("Regions"),
   }),
   kv_store: z.strictObject({
     nodes: nodes(100),
-    replication: z.int().min(1).max(5),
+    replication: z.int().min(1).max(5).describe("Copies of each key"),
     ...placement,
   }),
   queue: z.strictObject({
-    partitions: z.int().min(1).max(256),
-    retentionHours: z.int().min(1).max(168),
+    partitions: z.int().min(1).max(256).describe("Partitions"),
+    retentionHours: z.int().min(1).max(168).describe("Retention (hours)"),
     ...placement,
   }),
   worker: z.strictObject({ nodes: nodes(200), ...placement }),
-  object_storage: z.strictObject({ regions: z.int().min(1).max(2) }),
+  object_storage: z.strictObject({
+    regions: z.int().min(1).max(2).describe("Regions"),
+  }),
   search_index: z.strictObject({
-    shards: z.int().min(1).max(64),
-    replicas: z.int().min(0).max(5),
+    shards: z.int().min(1).max(64).describe("Shards"),
+    replicas: z.int().min(0).max(5).describe("Replicas"),
     ...placement,
   }),
   stream: z.strictObject({
-    partitions: z.int().min(1).max(512),
-    replication: z.int().min(1).max(3),
+    partitions: z.int().min(1).max(512).describe("Partitions"),
+    replication: z.int().min(1).max(3).describe("Copies of each event"),
     ...placement,
   }),
 } as const;

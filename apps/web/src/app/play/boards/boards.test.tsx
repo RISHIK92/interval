@@ -73,6 +73,8 @@ vi.mock("../../../server/container", () => ({
   }),
   playerCountries: () => ({ get: countryGet }),
   playerUniversities: () => ({ get: universityGet, names }),
+  // The sidebar's profile row (the page's frame).
+  preferences: () => ({ get: () => Promise.resolve(null) }),
 }));
 vi.mock("next/headers", () => ({
   headers: () => Promise.resolve(new Headers()),

@@ -9,6 +9,14 @@ import {
 } from "../../../../../server/container";
 import { problemOf } from "../../../../../server/hld-matches";
 import { accessTo } from "../../../../../server/hld-watch";
+import { Cube } from "../../../flow";
+import {
+  CloseLink,
+  HEADER,
+  HEADER_TILE,
+  TITLE,
+  VIEW_FRAME,
+} from "../../../Frame";
 import { Spectate } from "./Spectate";
 
 export const dynamic = "force-dynamic";
@@ -40,14 +48,23 @@ export default async function WatchPage(props: {
     })),
   );
   return (
-    <main className="flex flex-col gap-4 px-4 pt-6 pb-12">
-      <header className="mx-auto w-full max-w-6xl">
-        <h1 className="text-display">{problem.title}: live</h1>
-        <p className="text-sm text-ink-muted">
+    <main className={VIEW_FRAME}>
+      <header className={HEADER}>
+        <CloseLink href="/hld/tournaments" label="Back to tournaments" />
+        <span className={HEADER_TILE}>
+          <Cube size={30} ramp="system-design" />
+        </span>
+        <div className="lg:min-w-[200px] lg:flex-1">
+          <p className="hidden text-[13px] text-ink-muted lg:block">
+            HLD battle · live
+          </p>
+          <h1 className={TITLE}>{problem.title}: live</h1>
+        </div>
+        <span className="text-sm text-ink-muted lg:flex lg:h-[38px] lg:items-center lg:rounded-full lg:bg-well lg:px-3">
           {found.seats.map((s) => s.player).join(" vs ")}
-        </p>
+        </span>
       </header>
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="lg:p-5">
         <Spectate
           matchId={id.data}
           problem={problem}

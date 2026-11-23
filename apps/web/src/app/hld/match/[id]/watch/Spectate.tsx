@@ -31,14 +31,24 @@ export function Spectate({
 }) {
   const router = useRouter();
   const [state, setState] = useState(initial);
-  const [now, setNow] = useState(() => Date.now());
+  // Set once mounted: the server's clock would differ and break hydration (Clock.tsx).
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => {
+      setNow(Date.now());
+    };
+    tick();
+    const timer = setInterval(tick, POLL_MS);
+    return () => {
+      clearInterval(timer);
+    };
+  }, []);
   useEffect(() => {
     if (state.over) {
       router.push(`/hld/match/${matchId}/replay`);
       return;
     }
     const timer = setInterval(() => {
-      setNow(Date.now());
       fetch(`/api/hld/match/${matchId}/watch`)
         .then(async (r) => {
           if (r.ok) setState((await r.json()) as Watched);
@@ -52,12 +62,15 @@ export function Spectate({
       clearInterval(timer);
     };
   }, [state.over, matchId, router]);
-  const left = Math.max(0, new Date(state.deadline).getTime() - now);
+  const left =
+    now === null ? null : Math.max(0, new Date(state.deadline).getTime() - now);
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-ink-muted">
-        About {Math.ceil(left / 60_000)} minutes left. Designs update as they
-        autosave.
+        {left === null
+          ? ""
+          : `About ${String(Math.ceil(left / 60_000))} minutes left. `}
+        Designs update as they autosave.
       </p>
       <div className="grid gap-4 lg:grid-cols-2">
         {state.seats.map((s) => (

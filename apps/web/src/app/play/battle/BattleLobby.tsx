@@ -1,9 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { BattleMode } from "../../../server/ports";
 import { BATTLE_MODE_NAMES } from "../../battle-mode";
+import { BattleModeSwitch } from "../../BattleModeSwitch";
+import { LOBBY_BUTTON, LobbyCard, TROPHY } from "../../LobbyCard";
+import { useWindowTime } from "../../windowTime";
+import { Button } from "../../ui/Button";
+import { setWindowRegistration } from "../../play/windowRegistration";
 
 // P5-W32 (Q-P5-19): the casual queue, which plays solo after 60 s with nobody, and the
 // next ranked window: register while it's open, and from its start, poll for the
@@ -19,6 +24,21 @@ type Window = {
   matchId: string | null;
 };
 
+const CODE = (
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 24 24"
+    className="size-[30px]"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="m8 6-6 6 6 6M16 6l6 6-6 6" />
+  </svg>
+);
+
 function call(path: string, method: string): Promise<Response> {
   return fetch(path, {
     method,
@@ -26,7 +46,13 @@ function call(path: string, method: string): Promise<Response> {
   });
 }
 
-export function BattleLobby({ window: initial }: { window: Window }) {
+export function BattleLobby({
+  window: initial,
+  header,
+}: {
+  window: Window;
+  header?: ReactNode; // the page's title, which the mode choice sits beside
+}) {
   const router = useRouter();
   // Navigation waits on "still on this page", not on the effect that asked: saying
   // "solo" re-runs that effect, and its cleanup would drop the solo match's navigation.
@@ -138,8 +164,7 @@ export function BattleLobby({ window: initial }: { window: Window }) {
   };
   const register = async (on: boolean) => {
     setProblem(null);
-    const res = await call(`/api/battle/window${q}`, on ? "POST" : "DELETE");
-    if (res.ok)
+    if (await setWindowRegistration("lld", on, battleMode))
       setWindow({
         ...windowState,
         registered: on,
@@ -150,6 +175,7 @@ export function BattleLobby({ window: initial }: { window: Window }) {
 
   return (
     <BattleLobbyView
+      header={header}
       casual={casual}
       window={windowState}
       problem={problem}
@@ -167,6 +193,7 @@ export function BattleLobby({ window: initial }: { window: Window }) {
 
 // The lobby for a state: pure, so it can be shown in tests as it is.
 export function BattleLobbyView({
+  header,
   casual,
   window,
   problem,
@@ -175,6 +202,7 @@ export function BattleLobbyView({
   onCasual,
   onRegister,
 }: {
+  header?: ReactNode;
   casual: "idle" | "waiting" | "solo";
   window: Window;
   problem: string | null;
@@ -183,90 +211,91 @@ export function BattleLobbyView({
   onCasual: () => void;
   onRegister: (on: boolean) => void;
 }) {
-  const when = new Date(window.at).toLocaleString(undefined, {
-    weekday: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const when = useWindowTime(window.at) ?? "…";
   return (
-    <div className="flex flex-col gap-6">
-      {/* §6.2: the human mode is you alone; the AI mode allows any tools. */}
-      <fieldset
-        disabled={casual !== "idle"}
-        className="flex flex-wrap items-center gap-3"
-      >
-        <legend className="sr-only">Battle mode</legend>
-        {(["human", "ai"] as const).map((l) => (
-          <label key={l} className="flex items-center gap-2">
-            <input
-              type="radio"
-              name="battleMode"
-              value={l}
-              checked={battleMode === l}
-              onChange={() => {
-                onBattleMode(l);
-              }}
-            />
-            {l === "human"
-              ? "Human mode: no AI tools"
-              : "AI mode: any tools, bigger problems"}
-          </label>
-        ))}
-      </fieldset>
-      <section aria-label="Ranked window" className="flex flex-col gap-2">
-        <h2 className="text-title">Ranked window</h2>
-        <p className="text-ink-muted">
-          {window.status === "live"
-            ? `Live now, since ${when}.`
-            : `Next: ${when}, 45 minutes. Rooms of up to 4, matched by rating.`}
-        </p>
-        {window.status === "open" ? (
-          <button
-            type="button"
-            onClick={() => {
-              onRegister(
-                !window.registered || window.battleMode !== battleMode,
-              );
-            }}
-            className="self-start rounded-md bg-accent px-4 py-2 text-on-accent"
-          >
-            {window.registered
-              ? window.battleMode === battleMode
-                ? "Registered: cancel"
-                : `Switch to ${BATTLE_MODE_NAMES[battleMode]}`
-              : "Register"}
-          </button>
-        ) : window.registered ? (
-          <p>
-            {window.status === "live"
-              ? "Finding your room…"
-              : "You're registered. It starts soon."}
-          </p>
-        ) : (
-          <p className="text-ink-muted">Registration has closed.</p>
-        )}
-      </section>
-      <section aria-label="Casual battle" className="flex flex-col gap-2">
-        <h2 className="text-title">Casual battle</h2>
-        <p className="text-ink-muted">
-          Unrated 1v1, any time. Nobody within a minute, and you play solo
-          against the reference pace.
-        </p>
-        <button
-          type="button"
+    <div className="flex flex-col gap-4 lg:gap-5">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
+        {header}
+        {/* §6.2: the human mode is you alone; the AI mode allows any tools. */}
+        <BattleModeSwitch
+          value={battleMode}
+          details={{ human: "no AI tools", ai: "any tools, bigger problems" }}
           disabled={casual !== "idle"}
-          onClick={onCasual}
-          className="self-start rounded-md border border-line px-4 py-2 disabled:opacity-50"
-        >
-          {casual === "idle"
-            ? "Find a casual battle"
-            : casual === "waiting"
-              ? "Looking for an opponent…"
-              : "Starting solo…"}
-        </button>
-      </section>
+          onChange={onBattleMode}
+          className="lg:w-72 lg:shrink-0"
+        />
+      </div>
+      <ul className="grid gap-3 sm:grid-cols-2 lg:gap-3.5">
+        <li>
+          <LobbyCard
+            title="Ranked window"
+            meta={window.status === "live" ? "Live" : "45 min"}
+            art={TROPHY}
+            tint="bg-(--databases-tint) text-(--databases-right)"
+            body={
+              window.status === "live"
+                ? `Live now, since ${when}.`
+                : `Next: ${when}, 45 minutes. Rooms of up to 4, matched by rating.`
+            }
+          >
+            {window.status === "open" ? (
+              <Button
+                type="button"
+                onClick={() => {
+                  onRegister(
+                    !window.registered || window.battleMode !== battleMode,
+                  );
+                }}
+                variant={
+                  window.registered && window.battleMode === battleMode
+                    ? "secondary"
+                    : "act"
+                }
+                className={LOBBY_BUTTON}
+              >
+                {window.registered
+                  ? window.battleMode === battleMode
+                    ? "Registered: cancel"
+                    : `Switch to ${BATTLE_MODE_NAMES[battleMode]}`
+                  : "Register"}
+              </Button>
+            ) : window.registered ? (
+              <p className="text-sm font-semibold">
+                {window.status === "live"
+                  ? "Finding your room…"
+                  : "You're registered. It starts soon."}
+              </p>
+            ) : (
+              <p className="text-sm text-ink-muted">Registration has closed.</p>
+            )}
+          </LobbyCard>
+        </li>
+        <li>
+          <LobbyCard
+            title="Casual battle"
+            meta="Unrated"
+            art={CODE}
+            tint="bg-(--distributed-systems-tint) text-(--distributed-systems-right)"
+            body="Unrated 1v1, any time. Nobody within a minute, and you play solo against the reference pace."
+          >
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={casual !== "idle"}
+              onClick={onCasual}
+              className={LOBBY_BUTTON}
+            >
+              {casual === "idle"
+                ? "Find a casual battle"
+                : casual === "waiting"
+                  ? "Looking for an opponent…"
+                  : "Starting solo…"}
+            </Button>
+          </LobbyCard>
+        </li>
+      </ul>
       {problem !== null && (
-        <p role="alert" className="text-ink-muted">
+        <p role="alert" className="rounded-2xl bg-well px-4 py-3 text-sm">
           {problem}
         </p>
       )}

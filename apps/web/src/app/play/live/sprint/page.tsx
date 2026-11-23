@@ -2,9 +2,14 @@ import { headers } from "next/headers";
 import { z } from "zod";
 import { redirect } from "next/navigation";
 import { gameEnv } from "../../../../env";
-import { entitlements, sessionReader } from "../../../../server/container";
+import {
+  entitlements,
+  preferences,
+  sessionReader,
+} from "../../../../server/container";
 import { requireUsername } from "../../../username/gate";
 import { LiveSprint } from "./LiveSprint";
+import { INNER_PAGE_TITLE } from "../../../ui/Page";
 
 export const dynamic = "force-dynamic";
 
@@ -20,25 +25,30 @@ export default async function LiveSprintPage(props: {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/play");
   if (!actor.isGuest) await requireUsername(actor.userId, "/play/live/sprint");
-  const [sprint, live] = await Promise.all([
+  const [sprint, live, chosen] = await Promise.all([
     entitlements().can(actor.userId, "play.sprint"),
     entitlements().can(actor.userId, "play.live"),
+    preferences().get(actor.userId),
   ]);
   if (!sprint || !live || gameEnv() === null) redirect("/play");
   return (
-    <main className="mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-12 lg:pt-10">
-      <header>
-        <h1 className="text-display">Live sprint</h1>
-        <p className="mt-1 text-ink-muted">
-          You and one opponent, the same questions, 60 seconds. Most correct
-          wins.
-        </p>
-      </header>
-      <LiveSprint
-        matchId={
-          Match.safeParse((await props.searchParams).match).data ?? undefined
-        }
-      />
-    </main>
+    <LiveSprint
+      matchId={
+        Match.safeParse((await props.searchParams).match).data ?? undefined
+      }
+      frame={{
+        firstName: chosen?.firstName ?? null,
+        intro: (
+          <header>
+            <h1 className={INNER_PAGE_TITLE}>Live sprint</h1>
+            <p className="mt-1 text-ink-muted lg:mt-1.5">
+              You and one opponent, the same questions, 60 seconds. Most correct
+              wins.
+            </p>
+          </header>
+        ),
+        round: "mx-auto flex max-w-xl flex-col gap-6 px-4 pt-6 pb-12 lg:pt-10",
+      }}
+    />
   );
 }

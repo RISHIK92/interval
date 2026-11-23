@@ -12,6 +12,7 @@ import {
 } from "../../../../server/container";
 import { FRAME, TITLE } from "../../../hld/Frame";
 import { BattlePlay } from "./BattlePlay";
+import { examplesOf } from "./examples";
 import { Interviewer } from "./Interviewer";
 
 export const dynamic = "force-dynamic";
@@ -73,7 +74,7 @@ export default async function BattlePage(props: {
           ),
         ]}
         statement={problem.statement}
-        examples={problem.visible.map((v) => JSON.stringify(v.scenario.calls))}
+        examples={examplesOf(problem)}
         starters={starters}
       />
       {/* §6.2 (Q-P5-13): the AI mode's vague requirements have an interviewer. */}

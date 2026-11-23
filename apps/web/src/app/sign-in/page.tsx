@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { sessionReader } from "../../server/container";
 import { AuthForm } from "../AuthForm";
 import { signInAction } from "./actions";
+import { CARD, Standalone, TITLE } from "../Standalone";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,8 @@ export default async function SignInPage({
   if (actor !== null && !actor.isGuest) redirect("/");
   const { reset } = await searchParams;
   return (
-    <main className="mx-auto max-w-md px-4 pt-10 pb-12">
-      <h1 className="text-display">Sign in</h1>
+    <Standalone className={`mx-auto max-w-md px-4 pt-10 pb-12 ${CARD}`}>
+      <h1 className={`text-display ${TITLE}`}>Sign in</h1>
       {reset === "1" ? (
         <p role="status" className="mt-2 text-go-text">
           Your password was changed. Sign in with the new one.
@@ -53,6 +54,6 @@ export default async function SignInPage({
           Join with an invite code
         </Link>
       </p>
-    </main>
+    </Standalone>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Page } from "../../ui/Page";
 import {
   type ComponentType,
   type ReactNode,
@@ -108,17 +109,28 @@ export function ReplayFrame({
   );
 }
 
+// What a live game's page passes down: the player's name for the sidebar, the page's
+// title and intro, and the round's full-screen frame.
+export type LiveFrame = {
+  firstName: string | null;
+  intro: ReactNode;
+  round: string; // the match's <main> classes
+};
+
 // P3-W16-S04, S05 (Q-P3-23, Q-P3-24): a live 1v1 game. Queue (join, poll about once a
 // second, leave when the screen goes), then the match over the game server's socket,
-// then the result. Play again queues afresh.
+// then the result. Play again queues afresh. The queue sits in Play's frame on wide
+// screens (sidebar); the match is full screen.
 export function LivePlay<S>({
   mode,
   game: rules,
   current,
   View,
   matchId,
+  frame,
 }: {
   mode: GameMode;
+  frame: LiveFrame;
   // P3-W17-S03: a friend challenge's match, joined without the queue.
   matchId?: string | undefined;
   game: LiveGame<S>;
@@ -223,11 +235,20 @@ export function LivePlay<S>({
   };
   const finished = screen.kind === "match" && rules.over(screen.state);
 
-  return (
+  const body = (
     <div className="flex flex-col gap-6">
       {screen.kind === "queue" ? (
-        <div role="status" className="flex flex-col gap-1">
-          <p className="text-lg font-semibold">Finding an opponent…</p>
+        <div
+          role="status"
+          className="flex flex-col gap-1 lg:max-w-[30rem] lg:rounded-[20px] lg:border lg:border-hairline lg:bg-card lg:p-5 lg:shadow-card"
+        >
+          <p className="text-lg font-semibold lg:flex lg:items-center lg:gap-2 lg:text-section">
+            <span
+              aria-hidden="true"
+              className="hidden size-2 rounded-full bg-live lg:block"
+            />
+            Finding an opponent…
+          </p>
           <p className="text-sm text-ink-muted tabular-nums">
             Waiting <Waited since={screen.since} />
             s, matched by rating.
@@ -245,13 +266,16 @@ export function LivePlay<S>({
               setNoFallback(false);
               live.current?.fallback();
             }}
-            className="mt-3 cursor-pointer self-start rounded-full border border-hairline px-5 py-2.5 font-semibold"
+            className="mt-3 cursor-pointer self-start rounded-full border border-hairline px-5 py-2.5 font-semibold lg:rounded-xl lg:border-[1.5px] lg:border-hairline-strong lg:px-4 lg:py-2 lg:text-sm"
           >
             Play bot now
           </button>
         </div>
       ) : screen.kind === "error" ? (
-        <p role="alert" className="rounded-2xl bg-well px-4 py-3">
+        <p
+          role="alert"
+          className="rounded-2xl bg-well px-4 py-3 lg:max-w-[30rem] lg:rounded-[14px]"
+        >
           The live match couldn&apos;t go on. Try again in a moment.
         </p>
       ) : (
@@ -284,12 +308,28 @@ export function LivePlay<S>({
         {screen.kind === "match" && !finished ? null : (
           <Link
             href="/play"
-            className="rounded-full border border-hairline px-5 py-2.5 font-semibold"
+            className="rounded-full border border-hairline px-5 py-2.5 font-semibold lg:rounded-xl lg:border-[1.5px] lg:border-hairline-strong lg:px-4 lg:py-2 lg:text-sm"
           >
             {screen.kind === "queue" ? "Cancel" : "Back to Play"}
           </Link>
         )}
       </div>
     </div>
+  );
+  return screen.kind === "match" ? (
+    <main className={frame.round}>
+      {frame.intro}
+      {body}
+    </main>
+  ) : (
+    <Page
+      phoneTabBar={false}
+      tab="play"
+      firstName={frame.firstName}
+      className="flex flex-col gap-6"
+    >
+      {frame.intro}
+      {body}
+    </Page>
   );
 }

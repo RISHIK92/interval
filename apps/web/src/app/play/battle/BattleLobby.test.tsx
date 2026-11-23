@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
-import { BattleLobby } from "./BattleLobby";
+import { BattleLobby, BattleLobbyView } from "./BattleLobby";
 
 // P5-W32 (§6.6, Q-P5-19): nobody in the casual queue for a minute, so the lobby starts
 // a solo battle and opens it. Found by the P6 walkthrough in HLD's lobby, which shares
@@ -105,4 +106,37 @@ test("a registration moves to the other battle mode by name", () => {
   act(() => {
     root.unmount();
   });
+});
+
+// The window's time is in the player's own zone, which the server doesn't know: it
+// renders a placeholder, so hydration matches and the browser fills the time in.
+test("on the server, the next window shows no local time", () => {
+  const html = renderToString(
+    <BattleLobbyView
+      casual="idle"
+      window={{
+        at: "2026-11-24T21:00:00.000Z",
+        status: "open",
+        registered: false,
+        battleMode: null,
+        matchId: null,
+      }}
+      problem={null}
+      battleMode="human"
+      onBattleMode={() => undefined}
+      onCasual={() => undefined}
+      onRegister={() => undefined}
+    />,
+  );
+  expect(html).toContain("Next: …, 45 minutes.");
+  for (const day of [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ])
+    expect(html).not.toContain(day);
 });

@@ -137,12 +137,12 @@ export function InterviewerView({
               onDraft(e.target.value);
             }}
             aria-label="Your question"
-            className="min-w-0 flex-1 rounded-md border border-line px-2 py-1 lg:rounded-xl lg:border-[1.5px] lg:bg-page lg:px-3 lg:py-2 lg:text-sm lg:border-hairline-strong"
+            className="min-w-0 flex-1 rounded-md border border-hairline px-2 py-1 lg:rounded-xl lg:border-[1.5px] lg:bg-page lg:px-3 lg:py-2 lg:text-sm lg:border-hairline-strong"
           />
           <button
             type="submit"
             disabled={draft.trim() === ""}
-            className="rounded-md border border-line px-3 py-1 disabled:opacity-50 lg:rounded-xl lg:border-[1.5px] lg:px-4 lg:text-sm lg:font-semibold lg:border-hairline-strong"
+            className="rounded-md border border-hairline px-3 py-1 disabled:opacity-50 lg:rounded-xl lg:border-[1.5px] lg:px-4 lg:text-sm lg:font-semibold lg:border-hairline-strong"
           >
             Ask
           </button>

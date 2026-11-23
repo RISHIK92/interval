@@ -43,14 +43,27 @@ describe("building a design", () => {
 
   test("config fields carry the catalog's bounds", () => {
     expect(configFields("sql_db")).toEqual([
-      { name: "readReplicas", type: "int", min: 0, max: 15 },
-      { name: "storageGb", type: "int", min: 10, max: 16_000 },
+      {
+        name: "readReplicas",
+        label: "Read replicas",
+        type: "int",
+        min: 0,
+        max: 15,
+      },
+      {
+        name: "storageGb",
+        label: "Storage (GB)",
+        type: "int",
+        min: 10,
+        max: 16_000,
+      },
       {
         name: "failover",
+        label: "Failover",
         type: "choice",
         options: ["none", "standby", "multi_zone"],
       },
-      { name: "regions", type: "int", min: 1, max: 2 },
+      { name: "regions", label: "Regions", type: "int", min: 1, max: 2 },
     ]);
     expect(configFields("client")).toEqual([]);
   });
@@ -91,6 +104,11 @@ describe("building a design", () => {
       "the edges form a cycle",
     ]);
   });
+});
+
+test("every catalog field has a label for the form", () => {
+  for (const kind of COMPONENT_KINDS)
+    for (const f of configFields(kind)) expect(f.label).not.toBe("");
 });
 
 test("every catalog field is an int or a choice, so the form shows real bounds", () => {

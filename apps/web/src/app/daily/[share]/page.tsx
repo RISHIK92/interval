@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { env } from "../../../env";
 import { Card } from "../../ui/Card";
 import { dotLabel, loadShare, shareText } from "./share";
+import { Standalone, TITLE } from "../../Standalone";
 
 export const dynamic = "force-dynamic";
 
@@ -31,11 +32,11 @@ export default async function SharePage({ params }: Props) {
   if (share === null) notFound();
   const text = shareText(share);
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-6 px-4 pt-10 pb-12">
-      <Card className="flex flex-col items-center gap-3 p-8 text-center">
+    <Standalone className="mx-auto flex max-w-md flex-col gap-6 px-4 pt-10 pb-12 lg:max-w-[28rem] lg:pt-14 lg:pb-16">
+      <Card className="flex flex-col items-center gap-3 p-8 text-center lg:p-10">
         <p className="text-sm text-ink-muted">Interval daily challenge</p>
         <p className="text-sm text-ink-muted">{text.day}</p>
-        <h1 className="text-title">{text.points}</h1>
+        <h1 className={`text-title ${TITLE}`}>{text.points}</h1>
         {text.streak === null ? null : (
           <p className="font-semibold">{text.streak}</p>
         )}
@@ -55,10 +56,10 @@ export default async function SharePage({ params }: Props) {
       </Card>
       <a
         href="/play"
-        className="self-center rounded-full bg-ink px-5 py-2.5 font-semibold text-page"
+        className="self-center rounded-full bg-ink px-5 py-2.5 font-semibold text-page lg:flex lg:h-12 lg:items-center lg:px-6 lg:py-0"
       >
         Play today&apos;s challenge
       </a>
-    </main>
+    </Standalone>
   );
 }

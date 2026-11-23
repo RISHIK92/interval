@@ -7,6 +7,7 @@ import { FIELD } from "../ui/field";
 import { chooseUsernameAction } from "./actions";
 import { usernameOf } from "../../server/usernames";
 import { localPath } from "./next";
+import { Standalone, TITLE } from "../Standalone";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +33,14 @@ export default async function UsernamePage(props: {
   const next = localPath(raw);
   if ((await usernames().get(actor.userId)) !== null) redirect(next);
   return (
-    <main className="mx-auto flex max-w-md flex-col gap-6 px-4 pt-10">
-      <h1 className="text-display">Choose your username</h1>
+    // Its form is already a card: on wide screens the page sits under the bar as is.
+    <Standalone className="mx-auto flex max-w-md flex-col gap-6 px-4 pt-10 lg:max-w-[28rem] lg:pt-14 lg:pb-16">
+      <h1 className={`text-display ${TITLE}`}>Choose your username</h1>
       <p className="text-ink-muted">
         Other players see it on boards and follow you by it. It can&apos;t be
         changed later.
       </p>
-      <Card className="p-5">
+      <Card className="p-5 lg:p-7">
         <form action={chooseUsernameAction} className="flex flex-col gap-3">
           <input type="hidden" name="next" value={next} />
           <label htmlFor="username" className="text-section">
@@ -75,6 +77,6 @@ export default async function UsernamePage(props: {
           <Button type="submit">Save username</Button>
         </form>
       </Card>
-    </main>
+    </Standalone>
   );
 }
