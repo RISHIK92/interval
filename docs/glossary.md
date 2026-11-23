@@ -70,7 +70,7 @@ PER-2 also models mastery as "a probability updated by evidence". How the probab
 
 **Moment.** "A self-contained section of an article or book, sized to the time available", with a "continue from here" pointer. For web articles it is "a deep link into the publisher's original page, never a copy". Split at headings into 2 to 8 minute sections. §3.2, ING-4. Not a "chunk", "snippet" or "segment". See C-05.
 
-**Problem family.** An HLD template "with parameter ranges that generate many variants". 6 to 8 at launch. HLDQ-2.
+**Problem family.** An HLD template "with parameter ranges that generate many variants". 6 to 8 at launch (HLDQ-2); about 31 after ADR-0050, each in the practice or the battle pool.
 
 **Quick game.** A short, human-only game. Four: daily challenge, 60-second sprint, fastest finger, estimation. §6.3. See C-02.
 

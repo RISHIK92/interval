@@ -394,3 +394,15 @@ Conflicts with earlier decisions come first: they need a ruling, and some need a
   - One file per language, autosaved on the server.
   - The extension row stays hidden until it is revealed.
 - **Order of work:** LLD practice, then a live LLD walk with Velox, then the polish fixes, then these features, each reviewed and committed on its own. The practice catalog runs in parallel batches.
+
+### Q-WD-31 The HLD catalog and ADR-0050's open questions (owner, 2026-11-23)
+
+- **Catalog and engine:** about 31 HLD families (docs/hld-catalog.md), and the engine extended where the classics need it (ADR-0050, accepted).
+- **Season:** an HLD season is monthly, like the quick games' season. Spec v2.0 ships at a month boundary and v2.1 at the next one, each with patch notes on /hld/spec.
+- **Pool split:** it takes effect once the battle pool keeps at least 6 families. Practice designs saved on the 4 families moving to practice are kept.
+- **Order:**
+  1. Stage 0: the pool split and the four families that need no engine change.
+  2. v2.0: the external provider, backlog and lag, work units, and bandwidth and egress cost.
+  3. v2.1: the geo index, connection gateway, coordination service, fan-out, hot partitions and batching.
+- **Provider cost:** each family sets its external provider's price and rate limit.
+- **Still open:** simulating the web crawler's and the collaborative editor's lessons or leaving them to the rubric; rewriting unused cups on v2; whether difficulty changes the numbers; whether food-delivery-tracking and like-counters are far enough from their nearby cups.
