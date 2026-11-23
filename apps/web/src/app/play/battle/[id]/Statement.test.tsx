@@ -41,13 +41,22 @@ test("the title is left out only when asked", () => {
 });
 
 test("a note drops its markers and joins its lines", () => {
-  const root = draw(
-    "> PROVISIONAL: written during the build;\n> reviewed later.",
-  );
+  const root = draw("> Coins are in cents;\n> no floats.");
   expect(root.children).toHaveLength(1);
-  expect(text(root.children[0])).toBe(
-    "PROVISIONAL: written during the build; reviewed later.",
+  expect(text(root.children[0])).toBe("Coins are in cents; no floats.");
+});
+
+test("a leading PROVISIONAL note is the authors' marker, never shown to players", () => {
+  const root = draw(
+    "# Vending machine\n\n> PROVISIONAL (P5-W34-S01): written during the build;\n> the owner reviews it before launch.\n\nBuild a vending machine.\n\n> PROVISIONAL later on is the statement's own.",
+    true,
   );
+  expect([...root.children].map(text)).toEqual([
+    "Build a vending machine.",
+    "PROVISIONAL later on is the statement's own.",
+  ]);
+  // Without a title to drop, the note still leads.
+  expect(text(draw("> PROVISIONAL: draft.\n\nKeep it."))).toBe("Keep it.");
 });
 
 test("a list item that wraps onto indented lines stays one item", () => {

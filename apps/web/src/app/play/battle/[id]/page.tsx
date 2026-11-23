@@ -9,12 +9,15 @@ import {
   problems,
   sessionReader,
 } from "../../../../server/container";
-import { FRAME, TITLE } from "../../../hld/Frame";
+import { CANVAS_FRAME, TITLE } from "../../../hld/Frame";
 import { BattlePlay } from "./BattlePlay";
 import { Interviewer } from "./Interviewer";
 import { screenOf } from "./screen";
 
 export const dynamic = "force-dynamic";
+
+const ABOUT =
+  "An LLD battle, about 45 minutes. The extension comes at 30:00. Best submission counts.";
 
 // P5-W31-S03 (§6.5; Q-P5-15, Q-P5-16; LLDQ-4): an LLD battle, for its players, on a desktop
 // browser. The page has what any player may see: the statement, the visible examples,
@@ -39,31 +42,36 @@ export default async function BattlePage(props: {
   const problem = await problems().get(seat.problem);
   if (problem === null) notFound();
   return (
-    <main className={FRAME}>
+    // The frame fits the window on a desktop: each column scrolls on its own, and Run
+    // tests and Submit stay in view.
+    <main className={CANVAS_FRAME}>
       <BattlePlay
         matchId={id.data}
         heading={
           <>
             <h1 className={TITLE}>{problem.title}</h1>
-            <p className="mt-1 text-ink-muted lg:mt-0 lg:text-[13px]">
-              An LLD battle, about 45 minutes. The extension comes at 30:00.
-              Best submission counts.
-            </p>
+            {/* A desktop has it under the Tests heading. */}
+            <p className="mt-1 text-ink-muted lg:hidden">{ABOUT}</p>
             {/* §6.5: battles are played in desktop browsers. */}
             <p className="mt-4 text-ink-muted lg:hidden">
               Battles are played on a desktop browser.
             </p>
           </>
         }
+        about={ABOUT}
+        {...(problem.battleMode === "ai"
+          ? {
+              // §6.2 (Q-P5-13): the AI mode's vague requirements have an interviewer.
+              interviewer: (
+                <Interviewer
+                  matchId={id.data}
+                  initial={await battleQuestions().list(id.data, actor.userId)}
+                />
+              ),
+            }
+          : {})}
         {...screenOf(problem)}
       />
-      {/* §6.2 (Q-P5-13): the AI mode's vague requirements have an interviewer. */}
-      {problem.battleMode === "ai" && (
-        <Interviewer
-          matchId={id.data}
-          initial={await battleQuestions().list(id.data, actor.userId)}
-        />
-      )}
     </main>
   );
 }

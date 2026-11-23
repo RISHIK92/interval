@@ -19,7 +19,8 @@ const show = (
       practice={practice}
       resultHref="/play/battle/m1/result"
       heading={<h1>LRU cache</h1>}
-      signatures={["LRUCache(capacity)", "get(key) → int"]}
+      about="An LLD battle, about 45 minutes."
+      signatures={["LRUCache(capacity)", "put(key, value, ttl) → int"]}
       state={state}
       failed={failed}
       statement={"# LRU cache\n\nKeep the most recent."}
@@ -64,7 +65,9 @@ test("connecting: the problem and the code are there, the buttons wait", () => {
 test("playing: the clock, both bests, and no extension before the reveal", () => {
   const html = show(playing);
   expect(html).toContain("30:05");
-  expect(html).toContain("You 700 · Opponent 300");
+  // One pill each: yours says it's your best.
+  expect(html).toContain(">Your best · 700<");
+  expect(html).toContain(">Opponent 300<");
   expect(html).not.toContain("Extension");
   expect(html.match(/disabled=""/g)).toBeNull();
 });
@@ -88,8 +91,9 @@ test("a Run shows each visible test; a Submit only counts per layer", () => {
     submitted: {
       points: 700,
       layers: {
-        visible: { passed: 2, total: 2 },
+        concurrency: { passed: 0, total: 5 },
         hidden: { passed: 9, total: 10 },
+        visible: { passed: 2, total: 2 },
       },
     },
     notice: "wait 20 s",
@@ -101,6 +105,27 @@ test("a Run shows each visible test; a Submit only counts per layer", () => {
   // On a desktop each layer is a row of the Tests column: its name, then its count.
   expect(html).toMatch(/Hidden<span[^>]*>: <\/span><\/span><span[^>]*>9 of 10/);
   expect(html).toContain("wait 20 s");
+  // The layers in the order they're played, whatever order they came in.
+  const rows = [...html.matchAll(/(Visible|Hidden|Concurrency)<span/g)].map(
+    (m) => m[1],
+  );
+  expect(rows).toEqual(["Visible", "Hidden", "Concurrency"]);
+});
+
+test("the battle's brief is a note in the Tests column, not the header", () => {
+  const html = show(playing);
+  const header = /<header[\s\S]*?<\/header>/.exec(html)?.[0] ?? "";
+  const tests = /aria-label="Tests"[\s\S]*$/.exec(html)?.[0] ?? "";
+  expect(header).not.toContain("An LLD battle");
+  expect(tests).toContain("An LLD battle, about 45 minutes.");
+});
+
+test("a long signature wraps only after its commas", () => {
+  const html = show(playing);
+  // Each call is a line; its parameters are unbreakable pieces with a space between.
+  expect(html).toContain(
+    '<span class="whitespace-pre">put(key,</span> <span class="whitespace-pre">value,</span> <span class="whitespace-pre">ttl) → int</span>',
+  );
 });
 
 test("after the reveal, the extension and its new methods in the player's language", () => {

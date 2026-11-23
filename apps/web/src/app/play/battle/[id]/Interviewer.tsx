@@ -90,7 +90,7 @@ export function InterviewerView({
   return (
     <section
       aria-label="Ask the interviewer"
-      className="flex flex-col gap-2 lg:col-start-1 lg:row-start-3 lg:min-w-0 lg:px-5 lg:pb-5"
+      className="flex flex-col gap-2 lg:min-w-0"
     >
       <h2 className="text-title lg:mt-3.5 lg:text-[15px] lg:font-semibold lg:tracking-normal">
         Ask the interviewer

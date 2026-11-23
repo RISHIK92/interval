@@ -26,6 +26,9 @@ export function Statement({
         : [b];
     });
   if (dropTitle && /^# /.test(blocks[0] ?? "")) blocks.shift();
+  // A leading "> PROVISIONAL" note marks a statement the owner hasn't reviewed yet: it
+  // is for the authors, and stays in the file until the review.
+  if (/^> ?PROVISIONAL\b/.test(blocks[0] ?? "")) blocks.shift();
   return (
     <div className="flex flex-col gap-2.5 text-sm leading-relaxed lg:text-[13px]">
       {blocks.map((block, i) => (

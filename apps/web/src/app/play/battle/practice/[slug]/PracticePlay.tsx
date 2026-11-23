@@ -28,6 +28,7 @@ export function PracticePlay({
 }: {
   slug: string;
   heading: ReactNode;
+  about: ReactNode;
   signatures: string[];
   statement: string;
   examples: string[];

@@ -8,6 +8,7 @@ import {
 } from "@interval/game-client";
 import {
   type ComponentType,
+  Fragment,
   type ReactNode,
   useEffect,
   useRef,
@@ -44,6 +45,10 @@ type Props = {
   matchId: string | null;
   // The page's title block, for the frame's header.
   heading: ReactNode;
+  // What kind of game this is, under the Tests heading on a desktop.
+  about?: ReactNode;
+  // §6.2 (Q-P5-13): an AI-mode battle's interviewer, at the foot of the problem column.
+  interviewer?: ReactNode;
   // The interface's calls, one line each (the web design's "Interface").
   signatures: string[];
   statement: string;
@@ -155,6 +160,8 @@ function clock(ms: number): string {
 export function BattlePlay({
   matchId,
   heading,
+  about,
+  interviewer,
   signatures,
   statement,
   examples,
@@ -392,6 +399,8 @@ export function BattlePlay({
         practice === undefined ? "/play/battle" : "/play/battle/practice"
       }
       heading={heading}
+      about={about}
+      interviewer={interviewer}
       signatures={signatures}
       state={state}
       failed={failed}
@@ -427,6 +436,8 @@ type ViewProps = {
   // Where the header's × goes: the lobby, or the practice list.
   exitHref?: string;
   heading: ReactNode;
+  about?: ReactNode;
+  interviewer?: ReactNode;
   signatures: string[];
   state: BattleState;
   failed: boolean;
@@ -458,6 +469,8 @@ export function BattleView({
   resultHref,
   exitHref = "/play/battle",
   heading,
+  about,
+  interviewer,
   signatures,
   state,
   failed,
@@ -541,9 +554,14 @@ export function BattleView({
         </span>
       ) : playing === null ? null : (
         <>
-          <span className="hidden h-[38px] items-center rounded-full bg-well px-3 text-sm text-ink-muted tabular-nums lg:flex">
-            {bests(playing)}
-          </span>
+          {bests(playing).map((b) => (
+            <span
+              key={b}
+              className="hidden h-[38px] items-center rounded-full bg-well px-3 text-sm text-ink-muted tabular-nums lg:flex"
+            >
+              {b}
+            </span>
+          ))}
           <span
             role="timer"
             aria-label="Time left"
@@ -617,12 +635,14 @@ export function BattleView({
       {header}
       <section
         aria-label="Problem"
-        className="flex flex-col gap-4 lg:col-start-1 lg:row-start-2 lg:min-w-0 lg:gap-1.5 lg:p-5"
+        className="flex flex-col gap-4 lg:col-start-1 lg:row-span-2 lg:row-start-2 lg:min-h-0 lg:min-w-0 lg:gap-1.5 lg:overflow-y-auto lg:p-5 lg:[scrollbar-gutter:stable]"
       >
         <h2 className="hidden text-[15px] font-semibold lg:block">Interface</h2>
-        <pre className="hidden overflow-x-auto rounded-xl bg-well px-3 py-2.5 font-mono text-xs leading-[1.8] lg:block">
-          {signatures.join("\n")}
-        </pre>
+        <ul className="hidden rounded-xl bg-well px-3 py-2.5 font-mono text-xs leading-[1.8] lg:block">
+          {signatures.map((call, i) => (
+            <Signature key={i} call={call} />
+          ))}
+        </ul>
         <h2 className="hidden text-[15px] font-semibold lg:mt-3.5 lg:block">
           Problem
         </h2>
@@ -677,12 +697,14 @@ export function BattleView({
             </details>
           </div>
         )}
+        {interviewer}
       </section>
       <section
         aria-label="Your code"
-        className="flex flex-col gap-3 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:min-w-0 lg:gap-0 lg:border-x lg:border-hairline lg:p-5"
+        className="flex flex-col gap-3 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:min-h-0 lg:min-w-0 lg:gap-0 lg:overflow-y-auto lg:border-x lg:border-hairline lg:p-5"
       >
-        <div className="flex flex-col gap-3 lg:gap-0 lg:overflow-hidden lg:rounded-[18px] lg:border lg:border-hairline">
+        {/* On a desktop the card fills the column and the editor fills the card. */}
+        <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:gap-0 lg:overflow-hidden lg:rounded-[18px] lg:border lg:border-hairline">
           <div className="flex flex-wrap items-center gap-3 lg:gap-2 lg:border-b lg:border-hairline lg:px-3.5 lg:py-2.5 lg:text-[13px]">
             <label className="flex items-center gap-2 lg:text-ink-muted">
               Language
@@ -711,7 +733,7 @@ export function BattleView({
                   {playing === null ? "–" : clock(playing.endsAt - now)}
                 </span>
                 <span className="text-ink-muted lg:hidden">
-                  {playing === null ? "Connecting…" : bests(playing)}
+                  {playing === null ? "Connecting…" : bests(playing).join(", ")}
                 </span>
               </>
             ) : (
@@ -733,27 +755,114 @@ export function BattleView({
                     : "Autosaved")}
             </span>
           </div>
-          <Editor
-            language={language}
-            value={code}
-            onChange={onCode}
-            onPaste={onPaste}
-          />
+          <div className="lg:relative lg:min-h-[420px] lg:flex-1">
+            <Editor
+              language={language}
+              value={code}
+              onChange={onCode}
+              onPaste={onPaste}
+            />
+          </div>
         </div>
       </section>
       <section
         aria-label="Tests"
-        className="flex flex-col gap-3 lg:col-start-3 lg:row-span-2 lg:row-start-2 lg:min-w-0 lg:gap-1 lg:p-5"
+        className="flex flex-col gap-3 lg:col-start-3 lg:row-span-2 lg:row-start-2 lg:min-h-0 lg:min-w-0 lg:gap-0"
       >
-        <h2 className="hidden text-[15px] font-semibold lg:mb-1 lg:block">
-          Tests
-        </h2>
-        {playing?.ran == null && playing?.submitted == null ? (
-          <p className="hidden text-[13px] text-ink-muted lg:block">
-            Run the visible tests, or submit for points.
-          </p>
-        ) : null}
-        <div className="flex gap-3 lg:order-last lg:mt-auto lg:gap-2 lg:pt-4">
+        <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:gap-1 lg:overflow-y-auto lg:p-5 lg:[scrollbar-gutter:stable]">
+          <h2 className="hidden text-[15px] font-semibold lg:mb-1 lg:block">
+            Tests
+          </h2>
+          {about === undefined ? null : (
+            <p className="hidden text-[13px] leading-snug text-ink-muted lg:mb-2 lg:block">
+              {about}
+            </p>
+          )}
+          {playing?.ran == null && playing?.submitted == null ? (
+            <p className="hidden text-[13px] text-ink-muted lg:block">
+              Run the visible tests, or submit for points.
+            </p>
+          ) : null}
+          {practice === undefined &&
+            playing !== null &&
+            Object.keys(playing.best).length === 1 && (
+              <p className="text-ink-muted lg:order-3 lg:mt-3 lg:text-[13px]">
+                {PACE}
+              </p>
+            )}
+          {playing?.notice != null && (
+            <p
+              role="status"
+              className="text-ink-muted lg:order-3 lg:mt-2 lg:rounded-xl lg:bg-well lg:px-3 lg:py-2.5 lg:text-[13px]"
+            >
+              {playing.notice}
+            </p>
+          )}
+          {playing?.ran != null && (
+            <div
+              aria-label="Run"
+              aria-live="polite"
+              className="lg:order-2 lg:mt-3"
+            >
+              <h2 className="text-title lg:text-sm lg:font-semibold lg:tracking-normal">
+                Run: the visible tests
+              </h2>
+              <ul className="lg:mt-1 lg:flex lg:flex-col lg:gap-1.5 lg:text-[13px]">
+                {playing.ran.map((t, i) => (
+                  <li
+                    key={i}
+                    className={
+                      t.passed
+                        ? "lg:text-go-text"
+                        : "lg:rounded-xl lg:bg-[color-mix(in_srgb,var(--wrong)_12%,var(--page))] lg:px-3 lg:py-2 lg:text-wrong"
+                    }
+                  >
+                    Test {i + 1}: {t.passed ? "passed" : "failed"}
+                    {t.passed
+                      ? ""
+                      : t.verdict !== undefined && t.verdict !== "ok"
+                        ? ` (${t.verdict.replace("_", " ")})`
+                        : t.call !== undefined
+                          ? ` at call ${String(t.call)}: ${t.reason ?? ""}`
+                          : ""}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {playing?.submitted != null && (
+            <div
+              aria-label="Submission"
+              aria-live="polite"
+              className="lg:order-1"
+            >
+              <h2 className="text-title lg:text-sm lg:font-semibold lg:tracking-normal">
+                Submission: {playing.submitted.points} points
+              </h2>
+              <ul>
+                {Object.entries(playing.submitted.layers)
+                  .sort(([a], [b]) => rank(a) - rank(b))
+                  .map(([layer, l]) => (
+                    <li
+                      key={layer}
+                      className="lg:flex lg:items-center lg:justify-between lg:border-b lg:border-hairline lg:py-2.5 lg:text-sm lg:last:border-b-0"
+                    >
+                      <span>
+                        {LAYER_NAMES[layer] ?? layer}
+                        <span className="lg:hidden">: </span>
+                      </span>
+                      <span className="lg:flex lg:items-center lg:gap-1.5 lg:font-semibold lg:tabular-nums">
+                        {l.passed} of {l.total}
+                        <LayerIcon passed={l.passed} total={l.total} />
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          )}
+        </div>
+        {/* On a desktop, pinned under the scrolling results; on a phone, above them. */}
+        <div className="order-first flex gap-3 lg:order-none lg:shrink-0 lg:gap-2 lg:border-t lg:border-hairline lg:px-5 lg:py-4">
           <button
             type="button"
             disabled={playing === null || playing.running}
@@ -783,93 +892,45 @@ export function BattleView({
             {playing?.submitting === true ? "Submitting…" : "Submit"}
           </button>
         </div>
-        {practice === undefined &&
-          playing !== null &&
-          Object.keys(playing.best).length === 1 && (
-            <p className="text-ink-muted lg:order-3 lg:mt-3 lg:text-[13px]">
-              {PACE}
-            </p>
-          )}
-        {playing?.notice != null && (
-          <p
-            role="status"
-            className="text-ink-muted lg:order-3 lg:mt-2 lg:rounded-xl lg:bg-well lg:px-3 lg:py-2.5 lg:text-[13px]"
-          >
-            {playing.notice}
-          </p>
-        )}
-        {playing?.ran != null && (
-          <div
-            aria-label="Run"
-            aria-live="polite"
-            className="lg:order-2 lg:mt-3"
-          >
-            <h2 className="text-title lg:text-sm lg:font-semibold lg:tracking-normal">
-              Run: the visible tests
-            </h2>
-            <ul className="lg:mt-1 lg:flex lg:flex-col lg:gap-1.5 lg:text-[13px]">
-              {playing.ran.map((t, i) => (
-                <li
-                  key={i}
-                  className={
-                    t.passed
-                      ? "lg:text-go-text"
-                      : "lg:rounded-xl lg:bg-[color-mix(in_srgb,var(--wrong)_12%,var(--page))] lg:px-3 lg:py-2 lg:text-wrong"
-                  }
-                >
-                  Test {i + 1}: {t.passed ? "passed" : "failed"}
-                  {t.passed
-                    ? ""
-                    : t.verdict !== undefined && t.verdict !== "ok"
-                      ? ` (${t.verdict.replace("_", " ")})`
-                      : t.call !== undefined
-                        ? ` at call ${String(t.call)}: ${t.reason ?? ""}`
-                        : ""}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {playing?.submitted != null && (
-          <div
-            aria-label="Submission"
-            aria-live="polite"
-            className="lg:order-1"
-          >
-            <h2 className="text-title lg:text-sm lg:font-semibold lg:tracking-normal">
-              Submission: {playing.submitted.points} points
-            </h2>
-            <ul>
-              {Object.entries(playing.submitted.layers).map(([layer, l]) => (
-                <li
-                  key={layer}
-                  className="lg:flex lg:items-center lg:justify-between lg:border-b lg:border-hairline lg:py-2.5 lg:text-sm lg:last:border-b-0"
-                >
-                  <span>
-                    {LAYER_NAMES[layer] ?? layer}
-                    <span className="lg:hidden">: </span>
-                  </span>
-                  <span className="lg:flex lg:items-center lg:gap-1.5 lg:font-semibold lg:tabular-nums">
-                    {l.passed} of {l.total}
-                    <LayerIcon passed={l.passed} total={l.total} />
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </section>
     </>
   );
 }
 
-function bests(playing: Extract<BattleState, { phase: "playing" }>): string {
-  return Object.entries(playing.best)
-    .map(
-      ([player, points]) =>
-        `${names(Object.keys(playing.best), playing.you)[player] ?? player} ${String(points)}`,
-    )
-    .join(" · ");
+// Each player's best: the player's own says it's theirs.
+function bests(playing: Extract<BattleState, { phase: "playing" }>): string[] {
+  const label = names(Object.keys(playing.best), playing.you);
+  return Object.entries(playing.best).map(([player, points]) =>
+    player === playing.you
+      ? `Your best · ${String(points)}`
+      : `${label[player] ?? player} ${String(points)}`,
+  );
+}
+
+// The layers in the order they're played; one this screen doesn't know goes last.
+const LAYER_ORDER = Object.keys(LAYER_NAMES);
+const rank = (layer: string) => {
+  const i = LAYER_ORDER.indexOf(layer);
+  return i === -1 ? LAYER_ORDER.length : i;
+};
+
+// A call on one line, or, too long for the column, broken only after its commas with
+// the rest hanging under the name.
+function Signature({ call }: { call: string }) {
+  const parts = call.split(", ");
+  return (
+    <li className="indent-[-2ch] pl-[2ch]">
+      {parts.map((part, i) => (
+        <Fragment key={i}>
+          {i === 0 ? null : " "}
+          <span className="whitespace-pre">
+            {part}
+            {i < parts.length - 1 ? "," : ""}
+          </span>
+        </Fragment>
+      ))}
+    </li>
+  );
 }
 
 // The web design's marks for a layer: all passing, some, none.

@@ -509,7 +509,7 @@ export function Canvas({
                   >
                     {f.label}
                     <span
-                      className={`flex items-center gap-1.5 ${risky ? "text-(--system-design-line)" : ""}`}
+                      className={`flex min-w-0 items-center gap-1.5 lg:max-w-[62%] ${risky ? "text-(--system-design-line)" : ""}`}
                     >
                       {risky ? <WarnIcon label="At risk" /> : null}
                       {f.type === "int" ? (
@@ -536,7 +536,7 @@ export function Canvas({
                         <select
                           value={value}
                           aria-invalid={risky || undefined}
-                          className={`${FIELD} w-full lg:w-34`}
+                          className={`${FIELD} w-full min-w-0 lg:w-34 lg:max-w-full`}
                           onChange={(e) => {
                             setDesign((d) =>
                               updateNode(d, node.id, {
