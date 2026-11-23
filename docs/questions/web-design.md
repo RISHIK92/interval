@@ -406,3 +406,4 @@ Conflicts with earlier decisions come first: they need a ruling, and some need a
   3. v2.1: the geo index, connection gateway, coordination service, fan-out, hot partitions and batching.
 - **Provider cost:** each family sets its external provider's price and rate limit.
 - **Still open:** simulating the web crawler's and the collaborative editor's lessons or leaving them to the rubric; rewriting unused cups on v2; whether difficulty changes the numbers; whether food-delivery-tracking and like-counters are far enough from their nearby cups.
+- **Practice designs on families that became battle-only (owner, 2026-11-23):** deleted (chat, checkout, metrics-ingestion, rate-limiter), by migration `20261123130000_drop_retired_hld_practice_designs`. Their practice feedback rows (`hld_judgement` without a match) are kept.
