@@ -1,4 +1,10 @@
-import { practiceProblems } from "@interval/hld";
+import {
+  type Difficulty,
+  FAMILIES,
+  practiceProblems,
+  type Theme,
+  THEMES,
+} from "@interval/hld";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -7,19 +13,51 @@ import {
   preferences,
   sessionReader,
 } from "../../../server/container";
-import { CUBE } from "../../LobbyCard";
 import { Card } from "../../ui/Card";
 import { PAGE_TITLE, Page, RailCard } from "../../ui/Page";
 
 export const dynamic = "force-dynamic";
 
+// ADR-0050 §1: the catalog's theme names (docs/hld-catalog.md), in its order.
+const THEME_NAMES: Record<Theme, string> = {
+  storage: "Storage & files",
+  feeds: "Feeds & social",
+  messaging: "Messaging & notifications",
+  search: "Search",
+  commerce: "Commerce & payments",
+  realtime: "Real-time & location",
+  pipelines: "Data pipelines & analytics",
+  infrastructure: "Infrastructure building blocks",
+};
+
+// As LLD practice's table shows difficulty (ADR-0048).
+const DIFFICULTY_CHIPS: Record<Difficulty, string> = {
+  easy: "bg-go-soft text-go-text",
+  medium: "bg-(--system-design-tint) text-(--system-design-line)",
+  hard: "bg-[color-mix(in_srgb,var(--wrong)_12%,var(--page))] text-wrong",
+};
+
+const CELL = "px-3 py-2.5 lg:px-4";
+
 // P6-W39 (ADR-0042 PROPOSED): HLD practice. Design a system for a problem on the
-// canvas, with its simulation live as it's drawn; no clock, no opponent.
+// canvas, with its simulation live as it's drawn; no clock, no opponent. ADR-0050 §1:
+// the practice families (every family until the pools split, Q-WD-31), grouped by
+// theme with their difficulty.
 export default async function PracticePage() {
   const actor = await sessionReader().current(await headers());
   if (actor === null) redirect("/play");
   if (!(await entitlements().can(actor.userId, "play.hld"))) redirect("/play");
   const chosen = await preferences().get(actor.userId);
+  const rows = practiceProblems().flatMap((problem) => {
+    const family = FAMILIES.find((f) => f.slug === problem.slug);
+    return family === undefined
+      ? []
+      : [{ problem, theme: family.theme, difficulty: family.difficulty }];
+  });
+  const groups = THEMES.map((theme) => ({
+    theme,
+    rows: rows.filter((r) => r.theme === theme),
+  })).filter((g) => g.rows.length > 0);
   return (
     <Page
       tab="play"
@@ -55,59 +93,73 @@ export default async function PracticePage() {
           browser.
         </p>
       </header>
-      <ul className="grid gap-3 sm:grid-cols-2 lg:gap-3.5">
-        {practiceProblems().map((p) => (
-          <li key={p.slug}>
-            <Link
-              href={`/hld/practice/${p.slug}`}
-              className="group block h-full rounded-3xl focus-visible:ring-2 focus-visible:ring-select focus-visible:outline-none lg:rounded-[22px]"
-            >
-              <Card className="flex h-full gap-4 p-5 transition-colors lg:rounded-[22px] lg:p-[18px] lg:shadow-none lg:group-hover:border-hairline-strong">
-                <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-(--system-design-tint) lg:size-14">
-                  {CUBE}
-                </span>
-                <span className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <span className="flex items-start justify-between gap-3">
-                    <span className="text-section">{p.title}</span>
-                    <svg
-                      aria-hidden="true"
-                      viewBox="0 0 24 24"
-                      className="mt-1 size-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-0.5"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
+      {groups.map((g) => (
+        <section key={g.theme} aria-label={THEME_NAMES[g.theme]}>
+          <h2 className="mb-2 flex items-baseline gap-2 text-section">
+            {THEME_NAMES[g.theme]}
+            <span className="text-[13px] font-normal text-ink-muted tabular-nums">
+              {g.rows.length} {g.rows.length === 1 ? "problem" : "problems"}
+            </span>
+          </h2>
+          <Card className="overflow-hidden p-0 lg:rounded-[22px] lg:shadow-none">
+            <table className="w-full border-collapse text-left text-sm">
+              <thead className="text-[13px] text-ink-muted">
+                <tr className="border-b border-hairline">
+                  <th scope="col" className={CELL}>
+                    Problem
+                  </th>
+                  <th scope="col" className={`hidden md:table-cell ${CELL}`}>
+                    Concepts
+                  </th>
+                  <th scope="col" className={CELL}>
+                    Difficulty
+                  </th>
+                  <th scope="col" className={`hidden sm:table-cell ${CELL}`}>
+                    Budget
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {g.rows.map(({ problem: p, difficulty }) => (
+                  <tr
+                    key={p.slug}
+                    className="border-b border-hairline last:border-b-0"
+                  >
+                    <td className={CELL}>
+                      <Link
+                        href={`/hld/practice/${p.slug}`}
+                        className="font-semibold underline-offset-2 hover:underline"
+                      >
+                        {p.title}
+                      </Link>
+                      <span className="block text-[13px] text-ink-muted tabular-nums">
+                        {p.scenarios.length} scenarios
+                      </span>
+                    </td>
+                    <td
+                      className={`hidden text-ink-muted md:table-cell ${CELL}`}
                     >
-                      <path d="m9 6 6 6-6 6" />
-                    </svg>
-                  </span>
-                  <span className="text-[13px] text-ink-muted tabular-nums">
-                    {p.scenarios.length} scenarios · $
-                    {p.budgetPerMonth.toLocaleString("en-US")} a month budget
-                  </span>
-                  {p.concepts.length === 0 ? null : (
-                    <span className="mt-1 flex flex-wrap gap-1.5">
-                      <span className="sr-only">Concepts: </span>
-                      {p.concepts.map((c) => (
-                        <span
-                          key={c}
-                          className="rounded-full bg-well px-2.5 py-1 text-xs font-semibold text-ink-muted"
-                        >
-                          {c}
-                        </span>
-                      ))}
-                    </span>
-                  )}
-                  <span className="mt-1 line-clamp-2 text-sm text-ink-muted">
-                    {p.requirements.join(" · ")}
-                  </span>
-                </span>
-              </Card>
-            </Link>
-          </li>
-        ))}
-      </ul>
+                      {p.concepts.join(", ")}
+                    </td>
+                    <td className={CELL}>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${DIFFICULTY_CHIPS[difficulty]}`}
+                      >
+                        {difficulty}
+                      </span>
+                    </td>
+                    <td
+                      className={`hidden text-ink-muted tabular-nums sm:table-cell ${CELL}`}
+                    >
+                      ${p.budgetPerMonth.toLocaleString("en-US")} a month
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </section>
+      ))}
     </Page>
   );
 }

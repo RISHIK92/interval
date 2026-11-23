@@ -112,3 +112,12 @@ test("an unknown problem is not found; no session or capability goes to Play", a
   can.mockResolvedValueOnce(false);
   await expect(render(URL_SHORTENER.slug)).rejects.toThrow("redirect:/play");
 });
+
+// ADR-0050 §1, Q-WD-31: once the pools split, a battle family is not a practice
+// problem; a family new to practice is.
+test("a battle family is not found in practice; a practice family opens", async () => {
+  await expect(render("chat")).rejects.toThrow("notFound");
+  await expect(render("product-search")).rejects.toThrow("notFound");
+  const html = await render("distributed-cache");
+  expect(html).toContain("A caching tier for a slow database");
+});

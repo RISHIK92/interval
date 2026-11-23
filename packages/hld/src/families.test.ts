@@ -1,7 +1,17 @@
 import { describe, expect, test } from "vitest";
 import { CUPS, FAMILIES } from "./families";
-import { matchProblem } from "./match";
-import { buildPool, POOL_SIZE, validate, variant } from "./family";
+import { drawVariant, matchProblem } from "./match";
+import {
+  buildPool,
+  type Family,
+  matchFamilies,
+  POOL_SIZE,
+  poolSplit,
+  practiceFamilies,
+  SPLIT_AT,
+  validate,
+  variant,
+} from "./family";
 import { POOL } from "./pool";
 import { practiceProblems } from "./practice";
 import { simulate } from "./simulate";
@@ -9,8 +19,8 @@ import { simulate } from "./simulate";
 // P6-W40 (HLDQ-2, HLDQ-3; Q-P6-04): the families, their variants and the pool.
 const pool = POOL;
 
-test("there are 8 families, each with its own slug", () => {
-  expect(new Set(FAMILIES.map((f) => f.slug)).size).toBe(8);
+test("there are 12 families, each with its own slug", () => {
+  expect(new Set(FAMILIES.map((f) => f.slug)).size).toBe(12);
 });
 
 // CANVAS-3's regression check for variants: an engine or family change that breaks one
@@ -20,20 +30,22 @@ test("pool.ts is what the families and the engine make now", () => {
   expect(buildPool(FAMILIES)).toEqual(pool);
 }, 30_000);
 
-describe.each(FAMILIES)("$slug", (family) => {
+describe.each(matchFamilies(FAMILIES))("$slug", (family) => {
   test("each battle mode has a full pool of valid seeds, none of them for practice", () => {
     for (const battleMode of ["human", "ai"] as const) {
       const seeds = pool[family.slug]?.[battleMode] ?? [];
       expect(seeds).toHaveLength(POOL_SIZE);
       for (const seed of seeds) {
-        expect(family.practiceSeeds).not.toContain(seed);
+        expect(family.practiceSeeds ?? []).not.toContain(seed);
         expect(validate(variant(family, battleMode, seed))).toEqual([]);
       }
     }
   });
+});
 
-  test("its practice seed is valid too", () => {
-    for (const seed of family.practiceSeeds)
+describe.each(FAMILIES)("$slug", (family) => {
+  test("its practice seed is valid", () => {
+    for (const seed of family.practiceSeeds ?? [])
       expect(validate(variant(family, "human", seed))).toEqual([]);
   });
 
@@ -72,11 +84,111 @@ describe.each(FAMILIES)("$slug", (family) => {
   });
 });
 
-test("practice is each family's practice seed, under the family's slug", () => {
+test("practice is each practice family's practice seed, under the family's slug", () => {
   expect(practiceProblems().map((p) => p.slug)).toEqual(
-    FAMILIES.map((f) => f.slug),
+    practiceFamilies(FAMILIES).map((f) => f.slug),
   );
   expect(practiceProblems()[0]?.requirements.at(-1)).toMatch(/^A budget of \$/);
+});
+
+// ADR-0050 §1, Q-WD-31: the HLD practice pool, split from the battle pool once the
+// battle pool keeps at least SPLIT_AT families.
+describe("the pool split", () => {
+  const base = FAMILIES[0];
+  if (base === undefined) throw new Error("no families");
+  const made = (battle: number, practice: number): Family[] => [
+    ...Array.from({ length: battle }, (_, i): Family => ({
+      ...base,
+      slug: `b${String(i)}`,
+      pool: "battle",
+    })),
+    ...Array.from({ length: practice }, (_, i): Family => ({
+      ...base,
+      slug: `p${String(i)}`,
+      pool: "practice",
+      practiceSeeds: [1],
+    })),
+  ];
+
+  test("below the threshold every family is in practice and in matches, as before", () => {
+    const families = made(SPLIT_AT - 1, 4);
+    expect(poolSplit(families)).toBe(false);
+    expect(practiceFamilies(families)).toEqual(families);
+    expect(matchFamilies(families)).toEqual(families);
+  });
+
+  test("at the threshold practice has only practice families and matches only battle ones", () => {
+    const families = made(SPLIT_AT, 4);
+    expect(poolSplit(families)).toBe(true);
+    expect(practiceFamilies(families).map((f) => f.slug)).toEqual([
+      "p0",
+      "p1",
+      "p2",
+      "p3",
+    ]);
+    expect(matchFamilies(families).every((f) => f.pool === "battle")).toBe(
+      true,
+    );
+  });
+
+  test("is on today: stage 0 brings the battle pool to six", () => {
+    expect(poolSplit(FAMILIES)).toBe(true);
+    expect(matchFamilies(FAMILIES).map((f) => f.slug)).toEqual([
+      "chat",
+      "checkout",
+      "metrics-ingestion",
+      "rate-limiter",
+      "qa-forum",
+      "product-search",
+    ]);
+  });
+
+  // A practice family's shape and lesson have been seen with no clock: it never moves
+  // back. Add to this list; never take from it.
+  test.each([
+    "url-shortener",
+    "photo-sharing",
+    "news-feed",
+    "search-autocomplete",
+    "hotel-booking",
+    "distributed-cache",
+  ])("%s stays a practice family, never drawn for a match", (slug) => {
+    const family = FAMILIES.find((f) => f.slug === slug);
+    expect(family?.pool).toBe("practice");
+    let n = 0;
+    const random = () => (n = (n * 9301 + 49297) % 233280) / 233280;
+    for (let i = 0; i < 500; i++)
+      expect(drawVariant("human", random, new Set()).family).not.toBe(slug);
+    expect(practiceProblems().some((p) => p.slug === slug)).toBe(true);
+  });
+
+  test.each([
+    "url-shortener",
+    "photo-sharing",
+    "news-feed",
+    "search-autocomplete",
+  ])(
+    "a match played on %s before it moved to practice still rebuilds",
+    (slug) => {
+      const seed = POOL[slug]?.human[0];
+      expect(seed).toBeDefined();
+      expect(matchProblem(slug, "human", seed ?? 0)?.slug).toBe(
+        `${slug}-human-${String(seed)}`,
+      );
+    },
+  );
+
+  test("practice never shows a battle family, and matches never draw a practice one", () => {
+    const battle = new Set(
+      FAMILIES.filter((f) => f.pool === "battle").map((f) => f.slug),
+    );
+    expect(practiceProblems().some((p) => battle.has(p.slug))).toBe(false);
+    for (const battleMode of ["human", "ai"] as const)
+      for (let i = 0; i < 50; i++) {
+        const { family } = drawVariant(battleMode, () => i / 50, new Set());
+        expect(battle.has(family)).toBe(true);
+      }
+  });
 });
 
 // HLDQ-3's three ways a variant can be invalid, each caught.

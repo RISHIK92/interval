@@ -6,7 +6,7 @@
 // load:prepare.
 import { createHmac, randomBytes } from "node:crypto";
 import { writeFileSync } from "node:fs";
-import { FAMILIES, POOL, variant } from "@interval/hld";
+import { FAMILIES, matchFamilies, POOL, variant } from "@interval/hld";
 import { sql } from "kysely";
 import { createDb } from "../src/server/adapters/kysely";
 import { kyselyHldJudgements } from "../src/server/adapters/kysely-hld-judgements";
@@ -94,8 +94,8 @@ try {
     )
     .execute();
 
-  // A tournament on the first family's first 8 pooled variants, starting now.
-  const family = FAMILIES[0];
+  // A tournament on the first match family's first 8 pooled variants, starting now.
+  const family = matchFamilies(FAMILIES)[0];
   const seeds = family === undefined ? [] : (POOL[family.slug]?.human ?? []);
   if (family === undefined || seeds.length < 8)
     throw new Error("not enough pooled variants");

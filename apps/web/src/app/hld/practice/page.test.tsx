@@ -1,4 +1,4 @@
-import { practiceProblems } from "@interval/hld";
+import { FAMILIES, practiceProblems } from "@interval/hld";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test, vi } from "vitest";
 import type { Actor, Entitlements } from "../../../server/ports";
@@ -36,6 +36,25 @@ test("lists each practice problem with a link to its canvas", async () => {
   expect(html).toContain(`href="/hld/practice/${URL_SHORTENER.slug}"`);
   expect(html).toContain(URL_SHORTENER.title);
   expect(html).toContain('href="/hld/spec"');
+});
+
+// ADR-0050 §1, Q-WD-31: once the pools split, only practice families, grouped by theme
+// with their difficulty; never a battle family.
+test("groups the practice families by theme, each with its difficulty, and no battle family", async () => {
+  current.mockResolvedValue(ada);
+  const html = renderToStaticMarkup(await PracticePage());
+  expect(html).toContain('aria-label="Infrastructure building blocks"');
+  expect(html).toContain('aria-label="Commerce &amp; payments"');
+  expect(html).toContain('href="/hld/practice/hotel-booking"');
+  expect(html).toContain('href="/hld/practice/distributed-cache"');
+  expect(html).toMatch(/>easy</);
+  expect(html).toMatch(/>medium</);
+  for (const battle of FAMILIES.filter((f) => f.pool === "battle"))
+    expect(html).not.toContain(`href="/hld/practice/${battle.slug}"`);
+  // Grouped in the catalog's theme order: storage before infrastructure.
+  expect(html.indexOf("photo-sharing")).toBeLessThan(
+    html.indexOf("url-shortener"),
+  );
 });
 
 test("without a session or the capability, back to Play", async () => {

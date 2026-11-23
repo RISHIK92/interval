@@ -1,9 +1,9 @@
 import { z } from "zod";
 import type { ComponentKind } from "./catalog";
 import type { Design } from "./design";
-import { defaultConfig, removeNode } from "./edit";
+import { defaultConfig } from "./edit";
 import { FAMILIES } from "./families";
-import { variant } from "./family";
+import { validSeeds, variant } from "./family";
 import type { HldProblem } from "./problem";
 import { simulate, type SimulationResult } from "./simulate";
 
@@ -174,15 +174,15 @@ function naive(problem: HldProblem): Design {
 
 export function calibrationCandidates(): CalibrationCandidate[] {
   return FAMILIES.flatMap((family) => {
-    const seed = family.practiceSeeds[0];
-    if (seed === undefined)
-      throw new Error(`${family.slug} has no practice seed`);
+    // A battle family may have no practice seed (ADR-0050 §1): its first valid one.
+    const seed = family.practiceSeeds?.[0] ?? validSeeds(family, "human", 1)[0];
+    if (seed === undefined) throw new Error(`${family.slug} has no valid seed`);
     const v = variant(family, "human", seed);
     const lesson = family.lesson;
     const flawed =
-      lesson === undefined
-        ? (v.flawed.find((f) => f.targets === "zone")?.design ?? v.reference)
-        : removeNode(v.reference, lesson.without);
+      v.flawed.find((f) =>
+        lesson === undefined ? f.targets === "zone" : f.id === lesson.id,
+      )?.design ?? v.reference;
     const designs: [CalibrationCandidate["label"], Design][] = [
       ["reference", v.reference],
       ["no-notes", allNotes(v.reference, () => "")],

@@ -1,5 +1,5 @@
 import { CUPS, FAMILIES } from "./families";
-import { type BattleMode, variant } from "./family";
+import { type BattleMode, matchFamilies, variant } from "./family";
 import { POOL } from "./pool";
 import { practiceProblems } from "./practice";
 import type { HldProblem } from "./problem";
@@ -9,6 +9,7 @@ import type { HldProblem } from "./problem";
 // same problem every time it's asked for (replays, disputes, scoring).
 
 // `retired`: "<family>/<seed>" of variants a tournament used, never drawn again (HLDQ-3).
+// Once the pools split, only battle families are drawn (ADR-0050 §1, Q-WD-31).
 export function drawVariant(
   battleMode: BattleMode,
   random: () => number,
@@ -18,7 +19,9 @@ export function drawVariant(
     (POOL[slug]?.[battleMode] ?? []).filter(
       (s) => !retired.has(`${slug}/${String(s)}`),
     );
-  const families = FAMILIES.filter((f) => open(f.slug).length > 0);
+  const families = matchFamilies(FAMILIES).filter(
+    (f) => open(f.slug).length > 0,
+  );
   const family = families[Math.floor(random() * families.length)];
   if (family === undefined)
     throw new Error(`no HLD variants for the ${battleMode} mode`);

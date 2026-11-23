@@ -214,6 +214,23 @@ const judged = (level: number) => {
 };
 
 describe("an HLD match", () => {
+  // ADR-0050 §1, Q-WD-31: with the pools split, a match is drawn from battle families
+  // only, whatever the draw.
+  test("is drawn only from the battle pool", async () => {
+    for (let i = 0; i < 20; i++) {
+      const id = await startHldMatch(
+        { ...deps, random: () => i / 20 },
+        ["ada"],
+        "human",
+        { unrated: true, windowAt: null },
+      );
+      const family = FAMILIES.find(
+        (f) => f.slug === world.rows.get(id)?.match.family,
+      );
+      expect(family?.pool).toBe("battle");
+    }
+  });
+
   test("submitted by both, judged, scored with places, and queued for rating", async () => {
     const id = await startHldMatch(deps, ["ada", "bob"], "human", {
       unrated: false,

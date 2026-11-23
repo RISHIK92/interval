@@ -1,11 +1,13 @@
 import type { ComponentKind } from "./catalog";
 import type { DesignEdge, DesignNode } from "./design";
-import type { Family } from "./family";
+import type { Family, FamilyTemplate } from "./family";
 
-// P6-W40 (HLDQ-2; Q-P6-04): the 8 families, PROVISIONAL until the owner reviews them.
-// Each request type's write rate stays within a relational primary's 2,000 writes a
-// second at three times its baseline, and each family's traffic within what its shape
-// can carry, so the sizer can find a reference design.
+// P6-W40 (HLDQ-2; Q-P6-04), ADR-0050 stage 0: the families, PROVISIONAL until the owner
+// reviews them, each in the practice or the battle pool (docs/hld-catalog.md). A
+// relational primary's writes stay under 60% of its 2,000 a second at three times
+// baseline (the sizer can't add primaries, and grows replicas for a hot one), and each
+// family's traffic within what its shape can carry, so the sizer can find a reference
+// design.
 
 const z3 = { zones: 3, regions: 1 };
 const users: DesignNode = { id: "users", kind: "client", config: {}, note: "" };
@@ -87,6 +89,9 @@ const rubric = (...criteria: [string, string][]) =>
 export const FAMILIES: readonly Family[] = [
   {
     slug: "url-shortener",
+    pool: "practice",
+    theme: "infrastructure",
+    difficulty: "easy",
     title: "URL shortener",
     requirements: [
       served("Create a short code for a long URL.", "create", STORES),
@@ -162,6 +167,9 @@ export const FAMILIES: readonly Family[] = [
   },
   {
     slug: "photo-sharing",
+    pool: "practice",
+    theme: "storage",
+    difficulty: "medium",
     title: "Photo sharing",
     requirements: [
       served("Upload a photo with its caption.", "upload", ["object_storage"]),
@@ -249,6 +257,9 @@ export const FAMILIES: readonly Family[] = [
   },
   {
     slug: "news-feed",
+    pool: "practice",
+    theme: "feeds",
+    difficulty: "medium",
     title: "News feed",
     requirements: [
       served("Post an update to your followers.", "post", STORES),
@@ -329,6 +340,9 @@ export const FAMILIES: readonly Family[] = [
   },
   {
     slug: "chat",
+    pool: "battle",
+    theme: "messaging",
+    difficulty: "medium",
     title: "Chat",
     requirements: [
       served("Send a message to a conversation.", "send", [
@@ -411,6 +425,9 @@ export const FAMILIES: readonly Family[] = [
   },
   {
     slug: "search-autocomplete",
+    pool: "practice",
+    theme: "search",
+    difficulty: "medium",
     title: "Search and autocomplete",
     requirements: [
       served("Suggest completions as a user types.", "suggest", [
@@ -506,6 +523,9 @@ export const FAMILIES: readonly Family[] = [
   },
   {
     slug: "checkout",
+    pool: "battle",
+    theme: "commerce",
+    difficulty: "medium",
     title: "Checkout",
     requirements: [
       served("Browse products and their prices.", "browse", [
@@ -590,6 +610,9 @@ export const FAMILIES: readonly Family[] = [
   },
   {
     slug: "metrics-ingestion",
+    pool: "battle",
+    theme: "pipelines",
+    difficulty: "medium",
     title: "Metrics ingestion",
     requirements: [
       served("Accept metric points from many services.", "ingest", STORES),
@@ -664,6 +687,9 @@ export const FAMILIES: readonly Family[] = [
   },
   {
     slug: "rate-limiter",
+    pool: "battle",
+    theme: "infrastructure",
+    difficulty: "medium",
     title: "Rate limiter",
     requirements: [
       served(
@@ -734,6 +760,417 @@ export const FAMILIES: readonly Family[] = [
     },
     practiceSeeds: [2],
   },
+  // ADR-0050 stage 0 (docs/hld-catalog.md; Q-WD-31): four families the v1 engine can
+  // already simulate, PROVISIONAL like the rest. Numbers differ from the catalog's
+  // draft where a relational primary's 2,000 writes a second or the v1 engine's
+  // zone scenario needed it.
+  {
+    slug: "qa-forum",
+    pool: "battle",
+    theme: "feeds",
+    difficulty: "easy",
+    title: "Questions and answers forum",
+    requirements: [
+      served(
+        "Show a question with its answers, fast, mostly to readers who aren't signed in.",
+        "question_page",
+        ["cdn", "cache", "sql_db"],
+        true,
+      ),
+      served("Search questions by their words.", "search", ["search_index"]),
+      served("Post an answer.", "answer", ["sql_db"]),
+      served("Vote an answer up or down.", "vote", ["sql_db"]),
+    ],
+    concepts: ["caching", "read replicas", "read-heavy workloads"],
+    rubric: rubric(
+      [
+        "fresh",
+        "Explains how a new answer shows up on a cached page: a short TTL or a purge.",
+      ],
+      [
+        "votes",
+        "Says how vote counts avoid one hot row being locked by every voter.",
+      ],
+    ),
+    allowedComponents: [
+      "cdn",
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "search_index",
+    ],
+    requests: [
+      { type: "question_page", kind: "read", cacheable: true, share: 0.925 },
+      { type: "search", kind: "read", cacheable: false, share: 0.053 },
+      { type: "vote", kind: "write", cacheable: false, share: 0.015 },
+      { type: "answer", kind: "write", cacheable: false, share: 0.007 },
+    ],
+    ranges: {
+      human: {
+        rps: [7_500, 9_500],
+        workingSetGb: [10, 50],
+        hotKeySkew: [0.6, 0.9],
+        storedGb: [100, 500],
+        growthGbPerDay: [1, 3],
+        p99Ms: [120, 200],
+      },
+      ai: {
+        rps: [15_000, 17_000],
+        workingSetGb: [40, 100],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [400, 900],
+        growthGbPerDay: [2, 5],
+        p99Ms: [90, 140],
+      },
+    },
+    horizonDays: 365,
+    shape: {
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: pages from the cache, writes to the primary."),
+        cache("pages", "Rendered question pages, for a short time."),
+        {
+          id: "index",
+          kind: "search_index",
+          config: { shards: 2, replicas: 1, ...z3 },
+          note: "Questions by their words.",
+        },
+        sql(
+          "db",
+          "Questions, answers and votes, with replicas for page misses.",
+        ),
+      ],
+      edges: [
+        e("users", "lb", "question_page", "search", "vote", "answer"),
+        e("lb", "api", "question_page", "search", "vote", "answer"),
+        e("api", "pages", "question_page"),
+        e("api", "db", "question_page", "vote", "answer"),
+        e("api", "index", "search", "answer"),
+      ],
+    },
+    lesson: { id: "no-cache", targets: "peak", without: "pages" },
+  },
+  {
+    slug: "hotel-booking",
+    pool: "practice",
+    theme: "commerce",
+    difficulty: "medium",
+    title: "Hotel room booking",
+    requirements: [
+      served(
+        "Show which rooms are free in a city on given dates, fast; a few seconds stale is fine.",
+        "availability",
+        ["cache", "search_index"],
+        true,
+      ),
+      served("Book a room, never selling a room-night twice.", "book", [
+        "sql_db",
+      ]),
+      served("Take hotels' price and stock changes.", "partner_update", [
+        "sql_db",
+        "queue",
+      ]),
+    ],
+    concepts: ["caching", "transactions", "search indexes"],
+    rubric: rubric(
+      [
+        "twice",
+        "Explains how a room-night is never sold twice: a conditional update or a row lock on the primary.",
+      ],
+      [
+        "stale",
+        "Says what a guest sees when the cached availability was wrong at booking time.",
+      ],
+    ),
+    allowedComponents: [
+      "cdn",
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "search_index",
+      "queue",
+      "worker",
+    ],
+    requests: [
+      { type: "availability", kind: "read", cacheable: true, share: 0.945 },
+      { type: "partner_update", kind: "write", cacheable: false, share: 0.04 },
+      { type: "book", kind: "write", cacheable: false, share: 0.015 },
+    ],
+    ranges: {
+      human: {
+        rps: [2_200, 3_800],
+        workingSetGb: [5, 30],
+        hotKeySkew: [0.6, 0.9],
+        storedGb: [50, 300],
+        growthGbPerDay: [0.5, 2],
+        p99Ms: [120, 200],
+      },
+      ai: {
+        rps: [4_400, 5_600],
+        workingSetGb: [20, 60],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [200, 500],
+        growthGbPerDay: [1, 3],
+        p99Ms: [90, 140],
+      },
+    },
+    horizonDays: 365,
+    shape: {
+      nodes: [
+        users,
+        lb,
+        app(
+          "api",
+          "Stateless: searches the cache first, books on the primary.",
+        ),
+        cache("rooms", "Recent answers for a city and dates."),
+        {
+          id: "index",
+          kind: "search_index",
+          config: { shards: 2, replicas: 2, ...z3 },
+          note: "Free rooms by city and date, a few seconds behind.",
+        },
+        queue("updates", "Hotels' changes wait here."),
+        workers("sync", "Apply each change to the database and the index."),
+        sql("inventory", "Rooms, room-nights and bookings, the truth."),
+      ],
+      edges: [
+        e("users", "lb", "availability", "book", "partner_update"),
+        e("lb", "api", "availability", "book", "partner_update"),
+        e("api", "rooms", "availability"),
+        e("api", "index", "availability"),
+        e("api", "inventory", "book"),
+        e("api", "updates", "partner_update"),
+        e("updates", "sync", "partner_update"),
+        e("sync", "inventory", "partner_update"),
+        e("sync", "index", "partner_update"),
+      ],
+    },
+    lesson: { id: "no-cache", targets: "peak", without: "rooms" },
+    practiceSeeds: [1],
+  },
+  {
+    slug: "product-search",
+    pool: "battle",
+    theme: "search",
+    difficulty: "medium",
+    title: "Marketplace product search",
+    requirements: [
+      served(
+        "Search products by text, filters and facets, fast.",
+        "search",
+        ["search_index"],
+        true,
+      ),
+      served("Show a product's page.", "product_page", [
+        "cdn",
+        "cache",
+        "sql_db",
+      ]),
+      served(
+        "Take sellers' price and stock changes, searchable within a minute.",
+        "stock_change",
+        ["stream", "queue"],
+      ),
+      {
+        text: "Keep searching when a search node fails during a sale.",
+        covers: { rule: "scenario", scenario: "search_node" },
+      },
+    ],
+    concepts: ["search indexes", "replicas and shards", "streams"],
+    rubric: rubric(
+      [
+        "replicas",
+        "Explains what shards buy (room for the data) and what replicas buy (query capacity, surviving a node).",
+      ],
+      [
+        "stale",
+        "Says how a seller's change reaches the index, and why search may be briefly behind.",
+      ],
+    ),
+    allowedComponents: [
+      "cdn",
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "search_index",
+      "stream",
+      "queue",
+      "worker",
+    ],
+    requests: [
+      { type: "search", kind: "read", cacheable: false, share: 0.7 },
+      { type: "product_page", kind: "read", cacheable: true, share: 0.25 },
+      { type: "stock_change", kind: "write", cacheable: false, share: 0.05 },
+    ],
+    ranges: {
+      human: {
+        rps: [1_200, 2_400],
+        workingSetGb: [10, 40],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [200, 1_000],
+        growthGbPerDay: [2, 6],
+        p99Ms: [150, 250],
+      },
+      ai: {
+        rps: [2_400, 3_400],
+        workingSetGb: [30, 80],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [600, 1_500],
+        growthGbPerDay: [4, 8],
+        p99Ms: [110, 170],
+      },
+    },
+    horizonDays: 365,
+    shape: {
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: queries the index, pages from the cache."),
+        {
+          id: "index",
+          kind: "search_index",
+          config: { shards: 4, replicas: 1, ...z3 },
+          note: "Shards hold the catalog; replicas carry queries and cover a lost node.",
+        },
+        cache("pages", "Product pages, read far more than they change."),
+        sql("catalog", "Products, prices and stock: the catalog of record."),
+        stream("changes", "Sellers' changes, in order per product."),
+        workers("indexers", "Apply each change to the catalog and the index."),
+      ],
+      edges: [
+        e("users", "lb", "search", "product_page", "stock_change"),
+        e("lb", "api", "search", "product_page", "stock_change"),
+        e("api", "index", "search"),
+        e("api", "pages", "product_page"),
+        e("api", "catalog", "product_page"),
+        e("api", "changes", "stock_change"),
+        e("changes", "indexers", "stock_change"),
+        e("indexers", "catalog", "stock_change"),
+        e("indexers", "index", "stock_change"),
+      ],
+    },
+    scenarios: [
+      {
+        id: "search_node",
+        name: "A search node fails during a sale",
+        weight: 2,
+        load: 1.5,
+        failure: { scope: "node", kind: "search_index" },
+        p99x: 1.5,
+        availability: 0.995,
+      },
+    ],
+  },
+  {
+    slug: "distributed-cache",
+    pool: "practice",
+    theme: "infrastructure",
+    difficulty: "medium",
+    title: "A caching tier for a slow database",
+    requirements: [
+      served("Read a value by key, fast.", "get", ["cache"], true),
+      served("Write a value, kept in the database.", "put", ["sql_db"]),
+      {
+        text: "Keep the database standing when a cache node dies at the evening peak.",
+        covers: { rule: "scenario", scenario: "cache_node" },
+      },
+    ],
+    concepts: ["caching", "consistent hashing", "cache stampedes"],
+    rubric: rubric(
+      [
+        "spread",
+        "Explains how keys are spread so that adding or losing a node moves few of them (consistent hashing).",
+      ],
+      [
+        "stampede",
+        "Says how writes invalidate cached values, and how the database is protected from a stampede of misses.",
+      ],
+    ),
+    allowedComponents: ["load_balancer", "app_service", "cache", "sql_db"],
+    requests: [
+      { type: "get", kind: "read", cacheable: true, share: 0.985 },
+      { type: "put", kind: "write", cacheable: false, share: 0.015 },
+    ],
+    ranges: {
+      human: {
+        rps: [14_000, 15_500],
+        workingSetGb: [50, 300],
+        hotKeySkew: [0, 0.1],
+        storedGb: [200, 800],
+        growthGbPerDay: [0.5, 2],
+        p99Ms: [40, 80],
+      },
+      ai: {
+        rps: [28_000, 32_000],
+        workingSetGb: [100, 300],
+        hotKeySkew: [0, 0.1],
+        storedGb: [400, 1_000],
+        growthGbPerDay: [1, 3],
+        p99Ms: [30, 50],
+      },
+    },
+    horizonDays: 365,
+    shape: {
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: reads the cache first, the database on a miss."),
+        {
+          id: "cache",
+          kind: "cache",
+          config: { nodes: 6, memoryGbPerNode: 16, ...z3 },
+          note: "Many small nodes: losing one loses little of the working set.",
+        },
+        {
+          id: "db",
+          kind: "sql_db",
+          config: {
+            readReplicas: 0,
+            storageGb: 100,
+            failover: "multi_zone",
+            regions: 1,
+          },
+          note: "The slow database of record, kept away from most reads.",
+        },
+      ],
+      edges: [
+        e("users", "lb", "get", "put"),
+        e("lb", "api", "get", "put"),
+        e("api", "cache", "get"),
+        e("api", "db", "get", "put"),
+      ],
+    },
+    scenarios: [
+      {
+        id: "cache_node",
+        name: "A cache node dies at the evening peak",
+        weight: 2,
+        load: 2,
+        failure: { scope: "node", kind: "cache" },
+        p99x: 2,
+        availability: 0.995,
+      },
+    ],
+    lesson: {
+      id: "two-big-nodes",
+      targets: "cache_node",
+      node: "cache",
+      // The same memory on two nodes: one's loss takes half the working set.
+      configure: (c) => ({
+        nodes: 2,
+        memoryGbPerNode: Math.min(
+          256,
+          Math.ceil((Number(c["nodes"]) * Number(c["memoryGbPerNode"])) / 2),
+        ),
+      }),
+    },
+    practiceSeeds: [1],
+  },
 ];
 
 // P6-W44 (§6.4, HLDQ-3, Q-P6-08): the cup problems, hand-written, PROVISIONAL until the
@@ -741,7 +1178,7 @@ export const FAMILIES: readonly Family[] = [
 // admin picks them for a tournament's rounds, and they're retired once used. Each keeps
 // one seed for each battle mode it validates in (`seeds`), checked by the tests.
 export const CUPS: readonly {
-  family: Family;
+  family: FamilyTemplate;
   seeds: Partial<Record<"human" | "ai", number>>;
 }[] = [
   {
@@ -837,7 +1274,6 @@ export const CUPS: readonly {
           e("checkout", "sales", "buy"),
         ],
       },
-      practiceSeeds: [],
       lesson: { id: "no-cache", targets: "peak", without: "maps" },
     },
     seeds: { human: 1 },
@@ -921,7 +1357,6 @@ export const CUPS: readonly {
           e("api", "matches", "scores", "update"),
         ],
       },
-      practiceSeeds: [],
     },
     seeds: { human: 1, ai: 1 },
   },
@@ -1018,7 +1453,6 @@ export const CUPS: readonly {
           e("api", "rides", "assign"),
         ],
       },
-      practiceSeeds: [],
     },
     seeds: { human: 3 },
   },

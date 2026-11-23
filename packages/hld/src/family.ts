@@ -18,8 +18,24 @@ import { CURRENT_SPEC } from "./spec";
 
 export type BattleMode = "human" | "ai";
 type Span = readonly [number, number];
+type Config = Record<string, number | string>;
 
-export type Family = {
+// ADR-0050: what a practice list groups and labels a family by; neither changes a number.
+export const THEMES = [
+  "storage",
+  "feeds",
+  "messaging",
+  "search",
+  "commerce",
+  "realtime",
+  "pipelines",
+  "infrastructure",
+] as const;
+export type Theme = (typeof THEMES)[number];
+export type Difficulty = "easy" | "medium" | "hard";
+
+// What a variant is made from: a family's, or a cup's (cups are in neither pool).
+export type FamilyTemplate = {
   slug: string;
   title: string;
   // Each with the rule that says what in a design covers it (Q-WD-15).
@@ -49,13 +65,45 @@ export type Family = {
   // The reference design's shape: its nodes at their smallest, and its edges. The
   // sizer sets zones, regions, counts, memory and storage.
   shape: { nodes: DesignNode[]; edges: DesignEdge[] };
-  practiceSeeds: readonly number[];
+  // ADR-0050 §4: the family's own scenarios, run after the shared ones; targets are
+  // the baseline's p99 times `p99x`, and an availability.
+  scenarios?: (Omit<Scenario, "targets"> & {
+    p99x: number;
+    availability: number;
+  })[];
   // The family's own lesson as a flaw, where the simulator can show it: the reference
-  // without what the lesson is about, and the one scenario that must then fail. Where
-  // it can't (an asynchronous write path costs nothing the simulator measures), the
-  // rubric carries the lesson instead.
-  lesson?: { id: string; targets: string; without: string };
+  // without what the lesson is about (`without`), or with one node configured the
+  // naive way (`configure`, from the reference's own config: ADR-0050 §4), and the
+  // one scenario that must then fail. Where it can't (an asynchronous write path costs
+  // nothing the simulator measures), the rubric carries the lesson instead.
+  lesson?: { id: string; targets: string } & (
+    | { without: string }
+    | { node: string; configure: (config: Config) => Config }
+  );
 };
+
+// ADR-0048's pattern for HLD (ADR-0050 §1): a practice family is never drawn for a
+// match and never moves back to battles; it keeps its practice seed. A battle family
+// needs none once the split is on.
+export type Family = FamilyTemplate & {
+  theme: Theme;
+  difficulty: Difficulty;
+} & (
+    | { pool: "practice"; practiceSeeds: readonly number[] }
+    | { pool: "battle"; practiceSeeds?: readonly number[] }
+  );
+
+// Q-WD-31: the pools split only once the battle pool keeps at least this many
+// families; until then every family is in practice and in matches, as before.
+export const SPLIT_AT = 6;
+export const poolSplit = (families: readonly Family[]) =>
+  families.filter((f) => f.pool === "battle").length >= SPLIT_AT;
+export const matchFamilies = (families: readonly Family[]) =>
+  poolSplit(families) ? families.filter((f) => f.pool === "battle") : families;
+export const practiceFamilies = (families: readonly Family[]) =>
+  poolSplit(families)
+    ? families.filter((f) => f.pool === "practice")
+    : families;
 
 // mulberry32: small, fast and the same on every platform; seeds are 32-bit.
 function random(seed: number): () => number {
@@ -84,7 +132,11 @@ const fmt = (x: number) => Math.round(x).toLocaleString("en-US");
 
 // The scenarios every variant runs: a normal day, a spike, a zone's loss; the AI mode
 // also loses a region (Q-P6-04). Targets loosen as the scenario gets harder.
-function scenarios(battleMode: BattleMode, p99Ms: number): Scenario[] {
+function scenarios(
+  battleMode: BattleMode,
+  p99Ms: number,
+  own: FamilyTemplate["scenarios"],
+): Scenario[] {
   const list: Scenario[] = [
     {
       id: "baseline",
@@ -118,12 +170,17 @@ function scenarios(battleMode: BattleMode, p99Ms: number): Scenario[] {
       failure: { scope: "region" },
       targets: { p99Ms: p99Ms * 2, availability: 0.99 },
     });
+  for (const { p99x, availability, ...s } of own ?? [])
+    list.push({
+      ...s,
+      targets: { p99Ms: Math.round(p99Ms * p99x), availability },
+    });
   return list;
 }
 
 // The problem a seed makes, before its budget is known (the sizer finds the cost).
 function draft(
-  family: Family,
+  family: FamilyTemplate,
   battleMode: BattleMode,
   seed: number,
   budget: number,
@@ -164,7 +221,7 @@ function draft(
     ],
     traffic,
     budgetPerMonth: budget,
-    scenarios: scenarios(battleMode, p99Ms),
+    scenarios: scenarios(battleMode, p99Ms, family.scenarios),
     allowedComponents: family.allowedComponents,
     rubric: family.rubric,
     concepts: family.concepts,
@@ -198,7 +255,6 @@ const maxOf = (kind: ComponentKind, field: string) => {
   >;
   return shape[field]?.maxValue ?? 1;
 };
-type Config = Record<string, number | string>;
 const withConfig = (n: DesignNode, change: Config): DesignNode =>
   ({ ...n, config: { ...n.config, ...change } }) as DesignNode;
 const configOf = (n: DesignNode) => n.config as Config;
@@ -255,7 +311,7 @@ const HEADROOM = 0.6;
 // The family's shape sized for a problem: three zones, a second region in the AI
 // battle mode, a standby in another zone, storage for the horizon with room to spare; then
 // simulated, and whatever runs above HEADROOM grown, until nothing does.
-function size(family: Family, problem: HldProblem): Design {
+function size(family: FamilyTemplate, problem: HldProblem): Design {
   const t = problem.traffic;
   const needed = t.storedGb + t.growthGbPerDay * t.horizonDays;
   const regions = problem.battleMode === "ai" ? 2 : 1;
@@ -343,7 +399,7 @@ function size(family: Family, problem: HldProblem): Design {
 // The flawed-design catalog (HLDQ-3): the reference with one weakness each, and the one
 // scenario that weakness must fail.
 function flaws(
-  family: Family,
+  family: FamilyTemplate,
   reference: Design,
   problem: HldProblem,
 ): { id: string; targets: string; design: Design }[] {
@@ -355,7 +411,17 @@ function flaws(
           {
             id: lesson.id,
             targets: lesson.targets,
-            design: removeNode(reference, lesson.without),
+            design:
+              "without" in lesson
+                ? removeNode(reference, lesson.without)
+                : {
+                    ...reference,
+                    nodes: reference.nodes.map((n) =>
+                      n.id === lesson.node
+                        ? withConfig(n, lesson.configure(configOf(n)))
+                        : n,
+                    ),
+                  },
           },
         ]),
     // With a second active region, one zone's loss is survivable in any case, so the
@@ -410,7 +476,7 @@ type Variant = {
 };
 
 export function variant(
-  family: Family,
+  family: FamilyTemplate,
   battleMode: BattleMode,
   seed: number,
 ): Variant {
@@ -446,22 +512,33 @@ export function validate(v: Variant): string[] {
 export type Pool = Record<string, Record<BattleMode, number[]>>;
 export const POOL_SIZE = 12;
 
-// The playable seeds (HLDQ-3): the first POOL_SIZE valid ones per family and battle mode,
-// never a practice seed (Q-P6-04).
+// The first `count` valid seeds of a family in a battle mode, skipping its practice
+// seeds (Q-P6-04).
+export function validSeeds(
+  family: Family,
+  battleMode: BattleMode,
+  count: number,
+): number[] {
+  const found: number[] = [];
+  for (let seed = 1; found.length < count && seed <= 500; seed++)
+    if (
+      !(family.practiceSeeds ?? []).includes(seed) &&
+      validate(variant(family, battleMode, seed)).length === 0
+    )
+      found.push(seed);
+  return found;
+}
+
+// The playable seeds (HLDQ-3): the first POOL_SIZE valid ones per family and battle
+// mode, never a practice seed (Q-P6-04). Every family keeps its seeds, so a match played
+// before its family moved to practice still rebuilds for its replay and results; new
+// matches draw from battle families only (drawVariant, ADR-0050 §1).
 export function buildPool(families: readonly Family[]): Pool {
   const pool: Pool = {};
-  for (const f of families) {
-    const seeds = (battleMode: BattleMode) => {
-      const found: number[] = [];
-      for (let seed = 1; found.length < POOL_SIZE && seed <= 500; seed++)
-        if (
-          !f.practiceSeeds.includes(seed) &&
-          validate(variant(f, battleMode, seed)).length === 0
-        )
-          found.push(seed);
-      return found;
+  for (const f of families)
+    pool[f.slug] = {
+      human: validSeeds(f, "human", POOL_SIZE),
+      ai: validSeeds(f, "ai", POOL_SIZE),
     };
-    pool[f.slug] = { human: seeds("human"), ai: seeds("ai") };
-  }
   return pool;
 }
