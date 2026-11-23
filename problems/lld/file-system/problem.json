@@ -2,7 +2,7 @@
   "slug": "file-system",
   "title": "File system",
   "difficulty": "medium",
-  "league": "ai",
+  "battleMode": "ai",
   "interface": {
     "class": "FileSystem",
     "constructor": {

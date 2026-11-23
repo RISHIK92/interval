@@ -24,10 +24,10 @@ function fakes() {
   const rows = new Map<string, LoadedProblem & { retired: boolean }>();
   const objects = new Map<string, string>();
   const store: ProblemStore = {
-    pool: (league) =>
+    pool: (battleMode) =>
       Promise.resolve(
         [...rows.values()]
-          .filter((r) => r.league === league)
+          .filter((r) => r.battleMode === battleMode)
           .map((r) => r.slug),
       ),
     hashes: () =>
@@ -196,11 +196,11 @@ test("an empty extension.md loads nothing", async () => {
   ).rejects.toThrow(/extension\.md is empty/);
 });
 
-// P5-W33 (Q-P5-13): an AI-league problem's interviewer needs its notes, and only it has them.
-test("an AI-league problem and interviewer.md go together", async () => {
+// P5-W33 (Q-P5-13): an AI-mode problem's interviewer needs its notes, and only it has them.
+test("an AI-mode problem and interviewer.md go together", async () => {
   const f = fakes();
   const ai = source();
-  ai.problem = { ...ai.problem, league: "ai" };
+  ai.problem = { ...ai.problem, battleMode: "ai" };
   await expect(loadProblems([ai], f)).rejects.toThrow(/interviewer\.md/);
   const human = { ...source(), interviewerNotes: "Values are never null." };
   await expect(loadProblems([human], f)).rejects.toThrow(/interviewer\.md/);
@@ -210,7 +210,7 @@ test("an AI-league problem and interviewer.md go together", async () => {
   );
   const [row] = [...f.rows.values()];
   expect(row).toMatchObject({
-    league: "ai",
+    battleMode: "ai",
     interviewerNotes: "Values are never null.",
   });
 });

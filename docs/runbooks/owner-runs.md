@@ -98,6 +98,25 @@ Judge0 row (throwaway Linux VM with Docker; cgroup v1: boot with `systemd.unifie
    Decision: any unsafe result loses; if both pass, Velox stays.
    Note: the Judge0 go test names `-run Judge0` also match 3 unit tests in judge0_test.go that use fakes; the real suite is the one gated on `JUDGE0_URL`.
 
+## 5. Stand-alone question stems (Q-1, owner 2026-11-23)
+
+Rewrites each live question, multiple-choice or estimate, whose stem refers to its passage ("According to the passage, ..."), since sprints, the daily challenge, matches and battles show the question alone. For each one, QUESTIONS_MODEL (a `batch:` prefix is dropped: one call at a time) gets the moment's text as drafting reads it (only under a full-text rights profile, ING-2) and the old stem, with the options and the key (an estimate: its answer and unit), and is told not to give the key away. It returns a stand-alone stem. A stem that still refers to its source, or holds the correct option's words (whole words, case and punctuation aside) or an estimate's answer, is refused. Otherwise the blind validator answers the new stem again: a multiple-choice one must pick the key; an estimate must land within the drafting rule's factor of the answer (`ESTIMATE_AGREES`, 1.25 either way). Only then is the new stem saved. It calls a real model and spends the global AI budget (two calls per question).
+
+What a saved rewrite changes: the stem; `prompt_version` set to 1001 (`REWRITE_PROMPT_VERSION`: the rewrite's v1, past any draft's 1, 2, ...); `validator_model` and the validator's answer (or number); `validated_at` set to now, so the rewritten question enters the spot-check sample (Q-2) as new AI text should. What it keeps: `generator_model` (the model that drafted the options and the key), the options, the key, an estimate's answer and unit, and the citation.
+
+Needs first: local stack up and migrated (`stem_rewrite_tried_at`, migration 20261123110000), `QUESTIONS_MODEL` and its provider's key set, and a global AI budget high enough.
+
+```sh
+scripts/with-env.sh uv run python -m interval_jobs rewrite-stems [--limit N] [--retry-days D]
+```
+
+Which questions a run takes: every question sent is marked tried (`stem_rewrite_tried_at`), whatever came of it, except when the budget stops the run. A run takes the never-tried ones first (oldest question first), then those whose last try is more than `--retry-days` ago (default 7; oldest try first), and skips the rest. `--limit N` sends at most N of those, so each limited rerun moves on to questions not tried yet instead of paying again for the same failures. `--retry-days 0` tries every failed one again at once.
+
+Reading: prints `rewritten`, `disagreed` (the validator picked another option or number; left as it was), `broken` (the reply, or the validator's, broke a rule: still refers to its source, gives the key away, not the JSON asked for), `errors` (model errors), `no_text` (the moment's rights or tags no longer allow its text), `options_refer` (an option itself refers to the source, so a new stem can't fix it; these are never sent and need a review or a redraft), `changed` (its stem changed while it was being rewritten; left as it is now), `cooling_off` (tried within `--retry-days`; not sent this run) and `stopped`. Every rewrite is logged with its old and new stem.
+Exit: when the budget runs out, the run stops with "the global AI budget is spent" and exits non-zero. When model errors happened, the run finishes and then exits 2, so an outage isn't taken for a clean run.
+Rerun: safe. A rewritten stem no longer matches, so a rerun carries on with what is left; failed ones wait out `--retry-days`.
+Note: PROMPT_VERSION stays 1, so the question bank isn't redrafted: new drafts that name their source are refused at parse time, and this command fixes the existing ones.
+
 ## Flags (missing or inconsistent)
 
 - load-test.md never says how to start the game server nor that `GAME_SERVER_ID=0` is required (the script hardcodes `/game/0/ws`); `GAME_SERVER_ID` is not in .env.example.

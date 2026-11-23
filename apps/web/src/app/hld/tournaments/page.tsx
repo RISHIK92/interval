@@ -6,6 +6,7 @@ import {
   hldTournaments,
   sessionReader,
 } from "../../../server/container";
+import { BATTLE_MODE_NAMES } from "../../battle-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ export default async function TournamentsPage() {
               </Link>
               <p className="text-sm text-ink-muted">
                 {t.startsAt.toISOString().slice(0, 16).replace("T", " ")} UTC ·
-                the {t.league} league ·{" "}
+                {BATTLE_MODE_NAMES[t.battleMode]} ·{" "}
                 {t.finishedAt !== null
                   ? "finished"
                   : t.round === 0

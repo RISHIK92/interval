@@ -48,7 +48,7 @@ test("after a minute alone in the queue, the solo match opens", async () => {
           at: new Date(Date.now() + 3_600_000).toISOString(),
           status: "open",
           registered: false,
-          league: null,
+          battleMode: null,
           matchId: null,
         }}
       />,
@@ -71,6 +71,36 @@ test("after a minute alone in the queue, the solo match opens", async () => {
     globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
   ).IS_REACT_ACT_ENVIRONMENT = true;
   expect(push).toHaveBeenCalledWith("/hld/match/m-solo");
+  act(() => {
+    root.unmount();
+  });
+});
+
+// ADR-0047: the register button names the battle mode as the glossary does.
+test("registering names the chosen battle mode", () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  act(() => {
+    root.render(
+      <HldLobby
+        window={{
+          at: new Date(Date.now() + 3_600_000).toISOString(),
+          status: "open",
+          registered: false,
+          battleMode: null,
+          matchId: null,
+        }}
+      />,
+    );
+  });
+  const buttons = () =>
+    [...host.querySelectorAll("button")].map((b) => b.textContent);
+  expect(buttons()).toContain("Register (Human mode)");
+  act(() => {
+    host.querySelector<HTMLInputElement>('input[value="ai"]')?.click();
+  });
+  expect(buttons()).toContain("Register (AI mode)");
   act(() => {
     root.unmount();
   });

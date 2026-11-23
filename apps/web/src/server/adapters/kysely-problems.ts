@@ -46,7 +46,7 @@ export function kyselyProblemStore(db: Kysely<DB>): ProblemStore {
         title: row.title,
         difficulty: row.difficulty,
         statement: row.statement,
-        league: row.league === "ai" ? "ai" : "human",
+        battleMode: row.battle_mode === "ai" ? "ai" : "human",
         interface: stored.interface,
         checks: stored.checks,
         limits: stored.limits,
@@ -63,12 +63,12 @@ export function kyselyProblemStore(db: Kysely<DB>): ProblemStore {
         contentHash: row.content_hash,
       };
     },
-    pool: async (league) =>
+    pool: async (battleMode) =>
       (
         await db
           .selectFrom("lld_problem")
           .select("slug")
-          .where("league", "=", league)
+          .where("battle_mode", "=", battleMode)
           .where("retired_at", "is", null)
           .execute()
       ).map((r) => r.slug),
@@ -78,7 +78,7 @@ export function kyselyProblemStore(db: Kysely<DB>): ProblemStore {
         title: p.title,
         difficulty: p.difficulty,
         statement: p.statement,
-        league: p.league,
+        battle_mode: p.battleMode,
         interviewer_notes: p.interviewerNotes,
         // jsonb as JSON text: pg would send a JS array as a Postgres array, not JSON.
         interface: JSON.stringify(p.interface),

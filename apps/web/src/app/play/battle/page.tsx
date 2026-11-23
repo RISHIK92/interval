@@ -45,7 +45,7 @@ export default async function BattleLobbyPage() {
           at: next.toISOString(),
           status: windowStatus(next, now),
           registered: mine !== null,
-          league: mine?.league ?? null,
+          battleMode: mine?.battleMode ?? null,
           matchId: mine?.matchId ?? null,
         }}
       />

@@ -14,8 +14,8 @@ def match(
     for user in places:
         a_user(conn, user)
     row = conn.execute(
-        "insert into hld_match (family, league, seed, unrated, deadline_at, closed_at,"
-        " scored_at, rubric_included)"
+        "insert into hld_match (family, battle_mode, seed, unrated, deadline_at,"
+        " closed_at, scored_at, rubric_included)"
         " values ('chat', 'human', 3, %s, now() + interval '30 minutes', now(), now(),"
         " true) returning id::text",
         (unrated,),
@@ -37,7 +37,7 @@ def test_a_duel_is_rated_once_by_glicko(conn: psycopg.Connection) -> None:
     assert not matches.rate(id_)
     rows = dict(
         conn.execute(
-            "select user_id, rating from hld_rating where league = 'human'"
+            "select user_id, rating from hld_rating where battle_mode = 'human'"
             " and user_id in ('hlda', 'hldb')"
         ).fetchall()
     )

@@ -5,6 +5,7 @@ import { Card } from "../../ui/Card";
 import { requireAdmin } from "../guard";
 import { ACT, ADMIN_MAIN, SECONDARY } from "../style";
 import { createTournamentAction, nextRoundAction } from "./actions";
+import { BATTLE_MODE_NAMES } from "../../battle-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -35,8 +36,8 @@ export default async function HldTournamentsAdmin(props: {
   await requireAdmin();
   const { saved, error, round } = await props.searchParams;
   const all = await hldTournaments().list();
-  // The hand-written cup problems first (W44), then both leagues' pooled variants; the
-  // form checks the pick against its league.
+  // The hand-written cup problems first (W44), then both battle modes' pooled variants; the
+  // form checks the pick against its battle mode.
   const options = [
     ...new Set([
       ...CUPS.flatMap((c) =>
@@ -45,8 +46,8 @@ export default async function HldTournamentsAdmin(props: {
         ),
       ),
       ...FAMILIES.flatMap((f) =>
-        (["human", "ai"] as const).flatMap((league) =>
-          (POOL[f.slug]?.[league] ?? []).map(
+        (["human", "ai"] as const).flatMap((battleMode) =>
+          (POOL[f.slug]?.[battleMode] ?? []).map(
             (seed) => `${f.slug}/${String(seed)}`,
           ),
         ),
@@ -60,7 +61,7 @@ export default async function HldTournamentsAdmin(props: {
       {error ? (
         <p role="alert" className="text-wrong">
           Check the form: a name, a start, and 8 different pooled problems for
-          the league.
+          the battle mode.
         </p>
       ) : null}
       {round !== undefined && SAID[round] !== undefined ? (
@@ -77,7 +78,8 @@ export default async function HldTournamentsAdmin(props: {
                 {t.name}
               </Link>
               <span className="text-ink-muted">
-                {t.league} · {t.startsAt.toISOString().slice(0, 16)} UTC ·{" "}
+                {BATTLE_MODE_NAMES[t.battleMode]} ·{" "}
+                {t.startsAt.toISOString().slice(0, 16)} UTC ·{" "}
                 {t.finishedAt !== null
                   ? "finished"
                   : `round ${String(t.round)}`}
@@ -110,9 +112,9 @@ export default async function HldTournamentsAdmin(props: {
             />
           </label>
           <label className="flex flex-col gap-1">
-            League
+            Battle mode
             <select
-              name="league"
+              name="battleMode"
               className="self-start rounded-md border border-hairline p-1"
             >
               <option value="human">Human</option>
@@ -129,7 +131,7 @@ export default async function HldTournamentsAdmin(props: {
             />
           </label>
           <p className="text-ink-muted">
-            Each round&apos;s problem, from the chosen league&apos;s pool
+            Each round&apos;s problem, from the chosen battle mode&apos;s pool
             (family/seed). Each is used once, then retired from matches.
           </p>
           {ROUND_LABELS.map((label, i) => (

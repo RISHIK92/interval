@@ -106,7 +106,7 @@ import type {
   BattleResults,
   BattleSnapshots,
   BattleWindows,
-  League,
+  BattleMode,
   AdminExplainers,
   AdminScenes,
   Listening,
@@ -479,19 +479,19 @@ export function battleDeps(): Parameters<typeof startBattle>[0] {
   };
 }
 
-export function casualBattles(league: League): Matchmaking {
+export function casualBattles(battleMode: BattleMode): Matchmaking {
   return valkeyMatchmaking(
     valkeyClient(),
     async (players) =>
       startBattle(
         battleDeps(),
         0,
-        await randomProblem(problems(), league),
+        await randomProblem(problems(), battleMode),
         players,
-        { unrated: true, league },
+        { unrated: true, battleMode },
       ),
     Date.now,
-    casualBattlePrefix(league),
+    casualBattlePrefix(battleMode),
   );
 }
 
@@ -515,7 +515,7 @@ export async function soloAllowed(
   );
 }
 
-// P5-W33 (§6.2, Q-P5-13): interviewer questions in AI-league battles.
+// P5-W33 (§6.2, Q-P5-13): interviewer questions in AI-mode battles.
 export function battleQuestions(): BattleQuestions {
   return kyselyBattleQuestions(db());
 }
@@ -574,16 +574,16 @@ export function hldDeps(): HldDeps {
 }
 // The casual HLD queue (MATCH-7): unrated 1v1s, banded by HLD 1v1 rating, apart from
 // LLD's.
-export function casualHld(league: League): Matchmaking {
+export function casualHld(battleMode: BattleMode): Matchmaking {
   return valkeyMatchmaking(
     valkeyClient(),
     async (players) =>
-      startHldMatch(hldDeps(), players, league, {
+      startHldMatch(hldDeps(), players, battleMode, {
         unrated: true,
         windowAt: null,
       }),
     Date.now,
-    casualHldPrefix(league),
+    casualHldPrefix(battleMode),
   );
 }
 

@@ -220,8 +220,8 @@ export interface BattleQuestion {
 }
 
 export interface BattleRating {
+  battle_mode: string;
   games: Generated<number>;
-  league: string;
   rating: number;
   rd: number;
   updated_at: Generated<Timestamp>;
@@ -231,7 +231,7 @@ export interface BattleRating {
 
 export interface BattleRatingHistory {
   at: Generated<Timestamp>;
-  league: string;
+  battle_mode: string;
   match_id: string;
   rating_after: number;
   rating_before: number;
@@ -252,8 +252,8 @@ export interface BattleReview {
 }
 
 export interface BattleSeasonStanding {
+  battle_mode: string;
   kind: string;
-  league: string;
   rating: number;
   season: string;
   user_id: string;
@@ -269,14 +269,14 @@ export interface BattleSnapshot {
 }
 
 export interface BattleWindow {
+  battle_mode: Generated<string>;
   grouping_at: Timestamp;
-  league: Generated<string>;
   problem_slug: string;
   window_at: Timestamp;
 }
 
 export interface BattleWindowRegistration {
-  league: Generated<string>;
+  battle_mode: Generated<string>;
   match_id: string | null;
   registered_at: Generated<Timestamp>;
   remind_at: Timestamp;
@@ -564,11 +564,11 @@ export interface Follow {
 }
 
 export interface GameMatch {
+  battle_mode: Generated<string>;
   created_at: Generated<Timestamp>;
   finished_at: Timestamp | null;
   ghost_run_id: Int8 | null;
   id: Generated<string>;
-  league: Generated<string>;
   mode: Generated<string>;
   outcome: string | null;
   problem_slug: string | null;
@@ -714,11 +714,11 @@ export interface HldJudgement {
 }
 
 export interface HldMatch {
+  battle_mode: string;
   closed_at: Timestamp | null;
   deadline_at: Timestamp;
   family: string;
   id: Generated<string>;
-  league: string;
   rated_at: Timestamp | null;
   rubric_included: boolean | null;
   scored_at: Timestamp | null;
@@ -751,8 +751,8 @@ export interface HldPracticeDesign {
 }
 
 export interface HldRating {
+  battle_mode: string;
   games: Generated<number>;
-  league: string;
   rating: number;
   rd: number;
   updated_at: Generated<Timestamp>;
@@ -762,7 +762,7 @@ export interface HldRating {
 
 export interface HldRatingHistory {
   at: Generated<Timestamp>;
-  league: string;
+  battle_mode: string;
   match_id: string;
   rating_after: number;
   rating_before: number;
@@ -773,15 +773,15 @@ export interface HldRatingHistory {
 }
 
 export interface HldRetiredVariant {
+  battle_mode: string;
   family: string;
-  league: string;
   retired_at: Generated<Timestamp>;
   seed: number;
 }
 
 export interface HldRoomRating {
+  battle_mode: string;
   games: Generated<number>;
-  league: string;
   mu: number;
   sigma: number;
   updated_at: Generated<Timestamp>;
@@ -790,7 +790,7 @@ export interface HldRoomRating {
 
 export interface HldRoomRatingHistory {
   at: Generated<Timestamp>;
-  league: string;
+  battle_mode: string;
   match_id: string;
   mu_after: number;
   mu_before: number;
@@ -800,11 +800,11 @@ export interface HldRoomRatingHistory {
 }
 
 export interface HldTournament {
+  battle_mode: string;
   created_at: Generated<Timestamp>;
   created_by: string | null;
   finished_at: Timestamp | null;
   id: Generated<string>;
-  league: string;
   name: string;
   round: Generated<number>;
   starts_at: Timestamp;
@@ -836,15 +836,15 @@ export interface HldTournamentRound {
 }
 
 export interface HldWindow {
+  battle_mode: string;
   family: string;
   grouping_at: Timestamp;
-  league: string;
   seed: number;
   window_at: Timestamp;
 }
 
 export interface HldWindowRegistration {
-  league: string;
+  battle_mode: string;
   match_id: string | null;
   registered_at: Generated<Timestamp>;
   user_id: string;
@@ -910,6 +910,7 @@ export interface ListenQueue {
 }
 
 export interface LldProblem {
+  battle_mode: Generated<string>;
   checks: Generated<Json>;
   content_hash: string;
   difficulty: LldDifficulty;
@@ -917,7 +918,6 @@ export interface LldProblem {
   extension_statement: string | null;
   interface: Json;
   interviewer_notes: string | null;
-  league: Generated<string>;
   limits: Json;
   loaded_at: Generated<Timestamp>;
   private_key: string;
@@ -1126,6 +1126,7 @@ export interface Question {
   source_url: string | null;
   status: Generated<QuestionStatus>;
   stem: string;
+  stem_rewrite_tried_at: Timestamp | null;
   unit: string | null;
   validated_at: Timestamp | null;
   validator_answer: number | null;
@@ -1251,8 +1252,8 @@ export interface ReasonReport {
 }
 
 export interface RoomRating {
+  battle_mode: string;
   games: Generated<number>;
-  league: string;
   mu: number;
   sigma: number;
   updated_at: Generated<Timestamp>;
@@ -1261,7 +1262,7 @@ export interface RoomRating {
 
 export interface RoomRatingHistory {
   at: Generated<Timestamp>;
-  league: string;
+  battle_mode: string;
   match_id: string;
   mu_after: number;
   mu_before: number;

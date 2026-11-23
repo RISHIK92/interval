@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import type { BattleMode } from "../../../server/ports";
+import { BATTLE_MODE_NAMES } from "../../battle-mode";
 
 // P5-W32 (Q-P5-19): the casual queue, which plays solo after 60 s with nobody, and the
 // next ranked window: register while it's open, and from its start, poll for the
@@ -9,12 +11,11 @@ import { useEffect, useRef, useState } from "react";
 const CASUAL_WAIT_MS = 60_000;
 const POLL_MS = 1000;
 
-type League = "human" | "ai";
 type Window = {
   at: string;
   status: "open" | "closed" | "live";
   registered: boolean;
-  league: League | null; // the one registered in
+  battleMode: BattleMode | null; // the one registered in
   matchId: string | null;
 };
 
@@ -39,9 +40,11 @@ export function BattleLobby({ window: initial }: { window: Window }) {
   const [casual, setCasual] = useState<"idle" | "waiting" | "solo">("idle");
   const [windowState, setWindow] = useState(initial);
   const [problem, setProblem] = useState<string | null>(null);
-  // P5-W33 (§6.2, Q-P5-20): which league the queue and registration are for.
-  const [league, setLeague] = useState<League>(initial.league ?? "human");
-  const q = `?league=${league}`;
+  // P5-W33 (§6.2, Q-P5-20): which battle mode the queue and registration are for.
+  const [battleMode, setBattleMode] = useState<BattleMode>(
+    initial.battleMode ?? "human",
+  );
+  const q = `?mode=${battleMode}`;
 
   // The casual queue: polled each second; after 60 s, out of it and into a solo battle.
   useEffect(() => {
@@ -137,7 +140,11 @@ export function BattleLobby({ window: initial }: { window: Window }) {
     setProblem(null);
     const res = await call(`/api/battle/window${q}`, on ? "POST" : "DELETE");
     if (res.ok)
-      setWindow({ ...windowState, registered: on, league: on ? league : null });
+      setWindow({
+        ...windowState,
+        registered: on,
+        battleMode: on ? battleMode : null,
+      });
     else setProblem("Registration has closed for this window.");
   };
 
@@ -146,8 +153,8 @@ export function BattleLobby({ window: initial }: { window: Window }) {
       casual={casual}
       window={windowState}
       problem={problem}
-      league={league}
-      onLeague={setLeague}
+      battleMode={battleMode}
+      onBattleMode={setBattleMode}
       onCasual={() => {
         void startCasual();
       }}
@@ -163,16 +170,16 @@ export function BattleLobbyView({
   casual,
   window,
   problem,
-  league,
-  onLeague,
+  battleMode,
+  onBattleMode,
   onCasual,
   onRegister,
 }: {
   casual: "idle" | "waiting" | "solo";
   window: Window;
   problem: string | null;
-  league: League;
-  onLeague: (league: League) => void;
+  battleMode: BattleMode;
+  onBattleMode: (battleMode: BattleMode) => void;
   onCasual: () => void;
   onRegister: (on: boolean) => void;
 }) {
@@ -183,26 +190,26 @@ export function BattleLobbyView({
   });
   return (
     <div className="flex flex-col gap-6">
-      {/* §6.2: the human league is you alone; the AI league allows any tools. */}
+      {/* §6.2: the human mode is you alone; the AI mode allows any tools. */}
       <fieldset
         disabled={casual !== "idle"}
         className="flex flex-wrap items-center gap-3"
       >
-        <legend className="sr-only">League</legend>
+        <legend className="sr-only">Battle mode</legend>
         {(["human", "ai"] as const).map((l) => (
           <label key={l} className="flex items-center gap-2">
             <input
               type="radio"
-              name="league"
+              name="battleMode"
               value={l}
-              checked={league === l}
+              checked={battleMode === l}
               onChange={() => {
-                onLeague(l);
+                onBattleMode(l);
               }}
             />
             {l === "human"
-              ? "Human league: no AI tools"
-              : "AI league: any tools, bigger problems"}
+              ? "Human mode: no AI tools"
+              : "AI mode: any tools, bigger problems"}
           </label>
         ))}
       </fieldset>
@@ -217,14 +224,16 @@ export function BattleLobbyView({
           <button
             type="button"
             onClick={() => {
-              onRegister(!window.registered || window.league !== league);
+              onRegister(
+                !window.registered || window.battleMode !== battleMode,
+              );
             }}
             className="self-start rounded-md bg-accent px-4 py-2 text-on-accent"
           >
             {window.registered
-              ? window.league === league
+              ? window.battleMode === battleMode
                 ? "Registered: cancel"
-                : `Move to the ${league === "ai" ? "AI" : "human"} league`
+                : `Switch to ${BATTLE_MODE_NAMES[battleMode]}`
               : "Register"}
           </button>
         ) : window.registered ? (

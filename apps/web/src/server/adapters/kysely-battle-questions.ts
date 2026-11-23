@@ -27,7 +27,7 @@ export function kyselyBattleQuestions(db: Kysely<DB>): BattleQuestions {
                   where q.match_id = m.id and q.user_id = ${userId}) as asked
           from game_match m
           join game_match_player p on p.match_id = m.id and p.user_id = ${userId}
-          where m.id = ${matchId}::uuid and m.mode = 'battle' and m.league = 'ai'
+          where m.id = ${matchId}::uuid and m.mode = 'battle' and m.battle_mode = 'ai'
             and m.finished_at is null and m.created_at > now() - interval '1 hour'`.execute(
           trx,
         );

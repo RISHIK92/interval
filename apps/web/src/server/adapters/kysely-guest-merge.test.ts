@@ -688,17 +688,17 @@ test("the guest's best submissions, reviews and disputes move to the account", a
   });
 });
 
-// P5-W32-S01a (Q-P5-18): battle ratings follow the same rule, league by league.
-test("per league, the more-played battle rating stays with the account, with its history", async () => {
+// P5-W32-S01a (Q-P5-18): battle ratings follow the same rule, battle mode by battle mode.
+test("per battle mode, the more-played battle rating stays with the account, with its history", async () => {
   await inRollback(async (trx, { guest, account }) => {
     const rating = (
       user_id: string,
-      league: string,
+      battle_mode: string,
       rating: number,
       games: number,
     ) => ({
       user_id,
-      league,
+      battle_mode,
       rating,
       rd: 100,
       volatility: 0.06,
@@ -713,20 +713,20 @@ test("per league, the more-played battle rating stays with the account, with its
         rating(account, "ai", 1550, 4),
       ])
       .execute();
-    // A match has one league: one for each.
-    const match = async (league: "human" | "ai") =>
+    // A match has one battle mode: one for each.
+    const match = async (battleMode: "human" | "ai") =>
       (
         await trx
           .insertInto("game_match")
-          .values({ server_id: 0, league })
+          .values({ server_id: 0, battle_mode: battleMode })
           .returning("id")
           .executeTakeFirstOrThrow()
       ).id;
     const matches = { human: await match("human"), ai: await match("ai") };
-    const history = (user_id: string, league: "human" | "ai") => ({
-      match_id: matches[league],
+    const history = (user_id: string, battleMode: "human" | "ai") => ({
+      match_id: matches[battleMode],
       user_id,
-      league,
+      battle_mode: battleMode,
       rating_before: 1500,
       rating_after: 1550,
       rd_after: 100,
@@ -740,36 +740,36 @@ test("per league, the more-played battle rating stays with the account, with its
     expect(await mergeGuest(trx, guest, account)).toBe(true);
     const kept = await trx
       .selectFrom("battle_rating")
-      .select(["league", "rating", "games"])
+      .select(["battle_mode", "rating", "games"])
       .where("user_id", "=", account)
-      .orderBy("league")
+      .orderBy("battle_mode")
       .execute();
     expect(kept).toEqual([
-      { league: "ai", rating: 1550, games: 4 },
-      { league: "human", rating: 1700, games: 5 },
+      { battle_mode: "ai", rating: 1550, games: 4 },
+      { battle_mode: "human", rating: 1700, games: 5 },
     ]);
     expect(
       await trx
         .selectFrom("battle_rating_history")
-        .select(["user_id", "league"])
+        .select(["user_id", "battle_mode"])
         .where("match_id", "in", [matches.human, matches.ai])
-        .orderBy("league")
+        .orderBy("battle_mode")
         .execute(),
     ).toEqual([
-      { user_id: account, league: "ai" },
-      { user_id: account, league: "human" },
+      { user_id: account, battle_mode: "ai" },
+      { user_id: account, battle_mode: "human" },
     ]);
   });
 });
 
 // P5-W32-S01b: room ratings (OpenSkill) by the same rule.
-test("per league, the more-played room rating stays with the account, with its history", async () => {
+test("per battle mode, the more-played room rating stays with the account, with its history", async () => {
   await inRollback(async (trx, { guest, account }) => {
     await trx
       .insertInto("room_rating")
       .values([
-        { user_id: guest, league: "human", mu: 30, sigma: 4, games: 3 },
-        { user_id: account, league: "human", mu: 22, sigma: 6, games: 1 },
+        { user_id: guest, battle_mode: "human", mu: 30, sigma: 4, games: 3 },
+        { user_id: account, battle_mode: "human", mu: 22, sigma: 6, games: 1 },
       ])
       .execute();
     const { id: match } = await trx
@@ -782,7 +782,7 @@ test("per league, the more-played room rating stays with the account, with its h
       .values({
         match_id: match,
         user_id: guest,
-        league: "human",
+        battle_mode: "human",
         mu_before: 25,
         mu_after: 30,
         sigma_after: 4,

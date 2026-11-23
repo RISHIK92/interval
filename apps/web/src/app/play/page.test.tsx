@@ -356,12 +356,12 @@ test("no penalty, no adjustment line", async () => {
 // next HLD tournament taking registrations, beside the games on wide screens.
 test("the hero names a registered window and the side shows the next tournament", async () => {
   current.mockResolvedValue(account);
-  lldRegistration.mockResolvedValueOnce({ matchId: null, league: "human" });
+  lldRegistration.mockResolvedValueOnce({ matchId: null, battleMode: "human" });
   tournaments.mockResolvedValueOnce([
     {
       id: "t1",
       name: "Weekend cup",
-      league: "human",
+      battleMode: "human",
       startsAt: new Date("2026-11-28T19:00:00Z"),
       round: 0,
       finishedAt: null,
@@ -380,7 +380,7 @@ test("a player already in the next tournament is told so instead of asked to reg
     {
       id: "t1",
       name: "Weekend cup",
-      league: "human",
+      battleMode: "human",
       startsAt: new Date("2026-11-28T19:00:00Z"),
       round: 0,
       finishedAt: null,

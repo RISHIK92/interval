@@ -105,8 +105,11 @@ func TestOnlyTheSameLanguagesBestsArePaired(t *testing.T) {
 	}
 }
 
-func TestCopiedBestsAreSignalledInTheHumanLeague(t *testing.T) {
+func TestCopiedBestsAreSignalledInHumanMode(t *testing.T) {
 	a, clock, store, ada, bob := startBattle(t)
+	if a.def.Battle.Mode != "human" {
+		t.Fatalf("battle_mode read as %q", a.def.Battle.Mode)
+	}
 	for _, s := range []struct {
 		player string
 		seat   *fakeSeat
@@ -122,6 +125,34 @@ func TestCopiedBestsAreSignalledInTheHumanLeague(t *testing.T) {
 	for _, player := range []string{"ada", "bob"} {
 		got := signalsOf(t, store, player)
 		if len(got) != 1 || got[0].Kind != "similar" || got[0].Ms != nil || got[0].Chars != nil {
+			t.Fatalf("%s: %+v", player, got)
+		}
+	}
+}
+
+// ADR-0047 (Q-P5-20): the handoff's battle_mode names the mode; in AI mode, players may
+// share an assistant's code, so the same copied bests raise nothing.
+func TestCopiedBestsAreNotSignalledInAIMode(t *testing.T) {
+	a, clock, store, ada, bob := startBattle(t, func(m map[string]any) {
+		m["battle"].(map[string]any)["battle_mode"] = "ai"
+	})
+	if a.def.Battle.Mode != "ai" {
+		t.Fatalf("battle_mode read as %q", a.def.Battle.Mode)
+	}
+	for _, s := range []struct {
+		player string
+		seat   *fakeSeat
+		code   string
+	}{{"ada", ada, lruPython}, {"bob", bob, lruRenamed}} {
+		a.post(event{kind: "code", player: s.player, at: clock.Now(), code: &codeMsg{submit: true, language: "python", code: s.code}})
+		nextOf(t, s.seat, "submitted")
+	}
+	settle(a)
+	clock.Advance(battleLength)
+	nextOf(t, ada, "final")
+	resultOf(t, store)
+	for _, player := range []string{"ada", "bob"} {
+		if got := signalsOf(t, store, player); len(got) != 0 {
 			t.Fatalf("%s: %+v", player, got)
 		}
 	}

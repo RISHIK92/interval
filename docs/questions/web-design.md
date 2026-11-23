@@ -128,8 +128,8 @@ Conflicts with earlier decisions come first: they need a ruling, and some need a
 ### Q-WD-08 vs people / vs AI (P1)
 
 - **Design:** the Play hub header switch.
-- **Today:** quick games fall back to bots (BOT-3/BOT-4). The "AI league" in battles means AI tools are allowed, not an AI opponent.
-- **Recommendation:** "vs AI" means playing a bot on purpose: every quick game against its bot at once, rated at half (as the fallback is today). Battles stay in their leagues, and the switch doesn't show on the battle cards.
+- **Today:** quick games fall back to bots (BOT-3/BOT-4). Battles' "AI mode" (§6.2's "AI league", ADR-0047) means AI tools are allowed, not an AI opponent.
+- **Recommendation:** "vs AI" means playing a bot on purpose: every quick game against its bot at once, rated at half (as the fallback is today). Battles stay in their battle modes, and the switch doesn't show on the battle cards.
 
 ### Q-WD-09 Quick match (P1)
 

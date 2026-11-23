@@ -1,5 +1,5 @@
 """P5-W33 (§6.2, AI-1, OPS-4; Q-P5-13): the interviewer answers a player's question in
-an AI-league battle from the problem's notes, through the gateway, within budget."""
+an AI-mode battle from the problem's notes, through the gateway, within budget."""
 
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -117,13 +117,13 @@ def test_postgres_answers_a_pending_question_once(conn: psycopg.Connection) -> N
     a_user(conn, "iq1")
     conn.execute(
         "insert into lld_problem (slug, title, difficulty, statement, interface, "
-        "limits, visible, private_key, content_hash, league, interviewer_notes) "
+        "limits, visible, private_key, content_hash, battle_mode, interviewer_notes) "
         "values ('iq-cache', 'A cache', 'easy', '# A cache', '{}', '{}', '[]', "
         "%s, %s, 'ai', 'Values are never null.') on conflict do nothing",
         (f"lld/problems/iq-cache/{'d' * 64}.json", "d" * 64),
     )
     match = conn.execute(
-        "insert into game_match (server_id, mode, problem_slug, league) "
+        "insert into game_match (server_id, mode, problem_slug, battle_mode) "
         "values (0, 'battle', 'iq-cache', 'ai') returning id"
     ).fetchone()
     assert match is not None

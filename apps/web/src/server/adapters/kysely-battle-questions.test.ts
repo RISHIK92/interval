@@ -5,7 +5,7 @@ import { afterAll, expect, test } from "vitest";
 import { createDb } from "./kysely";
 import { kyselyBattleQuestions } from "./kysely-battle-questions";
 
-// P5-W33 (§6.2, Q-P5-13): a player asks in their open AI-league battle, at most 10 times.
+// P5-W33 (§6.2, Q-P5-13): a player asks in their open AI-mode battle, at most 10 times.
 const connectionString = process.env["DATABASE_URL"];
 if (connectionString === undefined) throw new Error("DATABASE_URL is not set");
 const db = createDb(connectionString);
@@ -16,7 +16,7 @@ afterAll(async () => {
 
 class Rollback extends Error {}
 
-test("only a player of an open AI-league battle asks, and only 10 times", async () => {
+test("only a player of an open AI-mode battle asks, and only 10 times", async () => {
   await expect(
     db.transaction().execute(async (trx: Kysely<DB>) => {
       const code = await trx
@@ -59,14 +59,19 @@ test("only a player of an open AI-league battle asks, and only 10 times", async 
           visible: JSON.stringify([]),
           private_key: `lld/problems/${slug}/${hash}.json`,
           content_hash: hash,
-          league: "ai",
+          battle_mode: "ai",
           interviewer_notes: "Values are never null.",
         })
         .execute();
-      const battle = async (league: "human" | "ai") => {
+      const battle = async (battleMode: "human" | "ai") => {
         const { id } = await trx
           .insertInto("game_match")
-          .values({ server_id: 0, mode: "battle", problem_slug: slug, league })
+          .values({
+            server_id: 0,
+            mode: "battle",
+            problem_slug: slug,
+            battle_mode: battleMode,
+          })
           .returning("id")
           .executeTakeFirstOrThrow();
         await trx

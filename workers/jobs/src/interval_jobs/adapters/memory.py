@@ -97,6 +97,7 @@ from interval_jobs.ports import (
     SimilarMoment,
     SourceRecord,
     SourceSettings,
+    StemCandidate,
     SyncResult,
     TagInput,
     TagMoment,
@@ -1461,6 +1462,7 @@ class StoredQuestion:
     difficulty: Difficulty | None = None
     calibrated_at: datetime | None = None
     validator_estimate: float | None = None
+    stem_tried_at: datetime | None = None
 
     @property
     def kind(self) -> QuestionKind:
@@ -1655,6 +1657,74 @@ class InMemoryQuestions:
         q.validator_model, q.validator_answer = model, answer
         q.validated_at = datetime.now(UTC)
         return True
+
+    def stem_candidates(self) -> list[StemCandidate]:
+        return [
+            StemCandidate(q.id, q.moment_id, q.draft, q.stem_tried_at)
+            for q in sorted(self.rows, key=lambda q: q.id)
+            if q.status == "live"
+        ]
+
+    def mark_stem_tried(self, question_id: int) -> None:
+        for q in self.rows:
+            if q.id == question_id:
+                q.stem_tried_at = datetime.now(UTC)
+
+    def rewrite_stem(
+        self,
+        question_id: int,
+        old_stem: str,
+        stem: str,
+        validator_model: str,
+        prompt_version: int,
+        validator_answer: int,
+    ) -> bool:
+        q = self._rewritable(question_id, old_stem, "choice")
+        if q is None:
+            return False
+        q.validator_answer = validator_answer
+        self._rewrite(q, stem, validator_model, prompt_version)
+        return True
+
+    def rewrite_estimate_stem(
+        self,
+        question_id: int,
+        old_stem: str,
+        stem: str,
+        validator_model: str,
+        prompt_version: int,
+        validator_estimate: float,
+    ) -> bool:
+        q = self._rewritable(question_id, old_stem, "estimate")
+        if q is None:
+            return False
+        q.validator_estimate = validator_estimate
+        self._rewrite(q, stem, validator_model, prompt_version)
+        return True
+
+    def _rewritable(
+        self, question_id: int, old_stem: str, kind: QuestionKind
+    ) -> StoredQuestion | None:
+        q = next((q for q in self.rows if q.id == question_id), None)
+        if (
+            q is None
+            or q.status != "live"
+            or q.kind != kind
+            or q.draft.stem != old_stem
+        ):
+            return None
+        return q
+
+    @staticmethod
+    def _rewrite(
+        q: StoredQuestion, stem: str, validator_model: str, prompt_version: int
+    ) -> None:
+        # q.model stays: it drafted the options and the key (as the database's
+        # generator_model).
+        q.draft = replace(q.draft, stem=stem)
+        q.prompt_version = prompt_version
+        q.validator_model = validator_model
+        q.validated_at = q.stem_tried_at = datetime.now(UTC)
 
     def record_estimate_verdict(
         self, question_id: int, model: str, answer: float, agrees: bool

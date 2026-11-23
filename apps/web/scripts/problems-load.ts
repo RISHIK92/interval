@@ -34,8 +34,8 @@ const sources: ProblemSource[] = readdirSync(root)
       ...(problem.extension === undefined
         ? {}
         : { extensionStatement: read("extension.md") }),
-      // P5-W33 (Q-P5-13): an AI-league problem's interviewer notes.
-      ...(problem.league === "ai"
+      // P5-W33 (Q-P5-13): an AI-mode problem's interviewer notes.
+      ...(problem.battleMode === "ai"
         ? { interviewerNotes: read("interviewer.md") }
         : {}),
       expected: Expected.parse(JSON.parse(read("expected.json"))),

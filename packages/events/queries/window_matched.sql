@@ -1,6 +1,6 @@
 -- Phase 5 "done when": at least 80% of window registrants get matched (P5-W35-S03,
 -- MATCH-7, Q-P5-19). Athena (Trino) SQL over the events table.
--- Each window's grouping, per league, sends one battle_window_grouped (its first claim):
+-- Each window's grouping, per battle mode, sends one battle_window_grouped (its first claim):
 -- how many were registered and how many are in a battle with others. Per ISO week of
 -- the last 8.
 select cast(date_trunc('week', from_iso8601_timestamp(occurred_at)) as date) as week,

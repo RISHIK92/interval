@@ -37,7 +37,7 @@ class FairPlaySignal(_Strict):
     (Q-P5-17), a battle's: a paste of `chars` characters from outside the player's code,
     or an away of `ms`; its round is the battle's minute."""
 
-    # P5-W33 (Q-P5-20): "similar", the human league's copied best submissions.
+    # P5-W33 (Q-P5-20): "similar", the human mode's copied best submissions.
     kind: Literal["speed", "focus", "paste", "away", "similar"]
     round: int = Field(ge=1, le=45)
     ms: int | None = Field(ge=0)

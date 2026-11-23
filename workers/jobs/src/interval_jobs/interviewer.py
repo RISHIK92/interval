@@ -1,4 +1,4 @@
-"""P5-W33 (§6.2, AI-1, AI-2, OPS-4; Q-P5-13): "ask the interviewer" in an AI-league
+"""P5-W33 (§6.2, AI-1, AI-2, OPS-4; Q-P5-13): "ask the interviewer" in an AI-mode
 battle. The requirements are vague on purpose; the interviewer answers a player's
 question from the problem's notes, briefly, as an interviewer would: it clarifies, it
 never solves. Through the gateway (ADR-0008), within the budgets; the answer is stored

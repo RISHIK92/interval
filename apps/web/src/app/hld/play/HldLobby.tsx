@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { WindowStatus } from "../../../server/battle-windows";
-import type { League } from "../../../server/ports";
+import type { BattleMode } from "../../../server/ports";
+import { BATTLE_MODE_NAMES } from "../../battle-mode";
 
 // P6-W42 (MATCH-7, §6.2; Q-P6-06): the casual HLD queue (an unrated 1v1, polled each
 // second; after 60 s unmatched, a solo match instead) and the next ranked window (rooms
@@ -18,7 +19,7 @@ export type HldWindow = {
   at: string;
   status: WindowStatus;
   registered: boolean;
-  league: League | null;
+  battleMode: BattleMode | null;
   matchId: string | null;
 };
 
@@ -33,11 +34,13 @@ export function HldLobby({ window: initial }: { window: HldWindow }) {
       onPage.current = false;
     };
   }, []);
-  const [league, setLeague] = useState<League>(initial.league ?? "human");
+  const [battleMode, setBattleMode] = useState<BattleMode>(
+    initial.battleMode ?? "human",
+  );
   const [windowState, setWindow] = useState(initial);
   const [state, setState] = useState<"idle" | "waiting" | "solo">("idle");
   const [problem, setProblem] = useState<string | null>(null);
-  const q = `?league=${league}`;
+  const q = `?mode=${battleMode}`;
 
   useEffect(() => {
     if (state !== "waiting") return;
@@ -120,7 +123,11 @@ export function HldLobby({ window: initial }: { window: HldWindow }) {
     setProblem(null);
     const res = await call(`/api/hld/window${q}`, on ? "POST" : "DELETE");
     if (res.ok)
-      setWindow({ ...windowState, registered: on, league: on ? league : null });
+      setWindow({
+        ...windowState,
+        registered: on,
+        battleMode: on ? battleMode : null,
+      });
     else setProblem("Registration is closed for this window.");
   };
   const when = new Date(windowState.at).toLocaleString(undefined, {
@@ -135,21 +142,21 @@ export function HldLobby({ window: initial }: { window: HldWindow }) {
         disabled={state !== "idle"}
         className="flex flex-wrap items-center gap-3"
       >
-        <legend className="sr-only">League</legend>
+        <legend className="sr-only">Battle mode</legend>
         {(["human", "ai"] as const).map((l) => (
           <label key={l} className="flex items-center gap-2">
             <input
               type="radio"
-              name="league"
+              name="battleMode"
               value={l}
-              checked={league === l}
+              checked={battleMode === l}
               onChange={() => {
-                setLeague(l);
+                setBattleMode(l);
               }}
             />
             {l === "human"
-              ? "Human league: no AI tools"
-              : "AI league: any tools, bigger problems, a lost region"}
+              ? "Human mode: no AI tools"
+              : "AI mode: any tools, bigger problems, a lost region"}
           </label>
         ))}
       </fieldset>
@@ -188,13 +195,14 @@ export function HldLobby({ window: initial }: { window: HldWindow }) {
             className="self-start rounded-md border border-line px-4 py-2"
             onClick={() => {
               void register(
-                !windowState.registered || windowState.league !== league,
+                !windowState.registered ||
+                  windowState.battleMode !== battleMode,
               );
             }}
           >
-            {windowState.registered && windowState.league === league
+            {windowState.registered && windowState.battleMode === battleMode
               ? "Cancel registration"
-              : `Register (the ${league} league)`}
+              : `Register (${BATTLE_MODE_NAMES[battleMode]})`}
           </button>
         ) : windowState.registered ? (
           <p className="text-sm">

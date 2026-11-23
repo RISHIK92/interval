@@ -10,7 +10,7 @@ Week 45 is the owner's: first a practice cup with beta universities, then the fi
 1. **Problems.** Review the 3 hand-written cup problems (`packages/hld/src/families.ts`, `CUPS`, PROVISIONAL) and the families' numbers in spec v1.0 (`/hld/spec`).
    - A cup needs 8 problems, one per round. Use the cups for the bracket, and pooled variants (or more hand-written cups) for the Swiss rounds.
    - Every pick is retired from matchmaking as the tournament is made (HLDQ-3), so don't reuse one across cups.
-   - A cup problem is only listed for the leagues it validated in: concert tickets and ride dispatch are human-league only, while live scores is both.
+   - A cup problem is only listed for the battle modes it validated in: concert tickets and ride dispatch are human mode only, while live scores is both.
 2. **The judge.**
    - Grade the calibration set at `/admin/hld-calibration`.
    - With `OPENROUTER_API_KEY` in `.env`, run `scripts/with-env.sh uv run python -m interval_jobs eval-hld-judge --model <model id>` (the model is named on the command, not taken from `QUESTIONS_MODEL`).
@@ -26,7 +26,7 @@ Week 45 is the owner's: first a practice cup with beta universities, then the fi
 
 At `/admin/hld-tournaments`, under "New tournament":
 
-- give it a name and a league;
+- give it a name and a battle mode;
 - set the start in UTC (check-in opens an hour before);
 - pick the 8 rounds' problems (rounds 1–5 Swiss, then the quarter-finals, semi-finals and final).
 

@@ -7,7 +7,7 @@ import type { BattleBoards } from "../ports";
 // usernames as quick games' boards show them (a guest's name otherwise).
 export function kyselyBattleBoards(db: Kysely<DB>): BattleBoards {
   return {
-    top: async (league, kind, since, viewer, limit) => {
+    top: async (battleMode, kind, since, viewer, limit) => {
       const rows =
         kind === "duel"
           ? await sql<{ user_id: string; name: string; rating: number }>`
@@ -15,9 +15,9 @@ export function kyselyBattleBoards(db: Kysely<DB>): BattleBoards {
               from battle_rating r
               join app_user u on u.id = r.user_id
               left join player_username n on n.user_id = r.user_id
-              where r.league = ${league}
+              where r.battle_mode = ${battleMode}
                 and exists (select 1 from battle_rating_history h
-                  where h.user_id = r.user_id and h.league = r.league
+                  where h.user_id = r.user_id and h.battle_mode = r.battle_mode
                     and h.at >= ${since})
               order by r.rating desc, r.user_id
               limit ${limit}`.execute(db)
@@ -27,9 +27,9 @@ export function kyselyBattleBoards(db: Kysely<DB>): BattleBoards {
               from room_rating r
               join app_user u on u.id = r.user_id
               left join player_username n on n.user_id = r.user_id
-              where r.league = ${league}
+              where r.battle_mode = ${battleMode}
                 and exists (select 1 from room_rating_history h
-                  where h.user_id = r.user_id and h.league = r.league
+                  where h.user_id = r.user_id and h.battle_mode = r.battle_mode
                     and h.at >= ${since})
               order by rating desc, r.user_id
               limit ${limit}`.execute(db);

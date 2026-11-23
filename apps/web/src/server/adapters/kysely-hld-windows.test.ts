@@ -5,7 +5,7 @@ import { afterAll, expect, test } from "vitest";
 import { createDb } from "./kysely";
 import { kyselyHldWindows } from "./kysely-hld-windows";
 
-// P6-W42 (MATCH-7, Q-P6-06): HLD's ranked windows: registration per league, a claim
+// P6-W42 (MATCH-7, Q-P6-06): HLD's ranked windows: registration per battle mode, a claim
 // once per window (its variant picked by the first), players by HLD room rating.
 const connectionString = process.env["DATABASE_URL"];
 if (connectionString === undefined) throw new Error("DATABASE_URL is not set");
@@ -65,7 +65,7 @@ test("registrants are claimed once, best rated first, on one variant", async () 
     await windows.unregister(at, cy);
     await trx
       .insertInto("hld_room_rating")
-      .values({ user_id: bob, league: "human", mu: 30, sigma: 5 })
+      .values({ user_id: bob, battle_mode: "human", mu: 30, sigma: 5 })
       .execute();
     const pick = () => ({ family: "chat", seed: 3 });
     const claimed = await windows.claim(at, "human", at, pick);
@@ -75,7 +75,7 @@ test("registrants are claimed once, best rated first, on one variant", async () 
     expect(await windows.claim(at, "human", at, pick)).toBeNull();
     expect(await windows.registration(at, bob)).toEqual({
       matchId: null,
-      league: "human",
+      battleMode: "human",
     });
     expect(await windows.registration(at, cy)).toBeNull();
   });

@@ -184,7 +184,7 @@ test("an appeal: once, within 7 days, of a judged design; the owner's levels rep
       .insertInto("hld_match")
       .values({
         family: "chat",
-        league: "human",
+        battle_mode: "human",
         seed: 3,
         deadline_at: sql<Date>`now() + interval '30 minutes'`,
       })

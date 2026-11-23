@@ -1,6 +1,6 @@
 import type { DB } from "@interval/db";
 import { type Kysely, type Selectable, sql } from "kysely";
-import type { HldTournament, HldTournaments, League } from "../ports";
+import type { HldTournament, HldTournaments, BattleMode } from "../ports";
 
 // P6-W43 (§6.4, HLDQ-3, Q-P6-07): HLD tournaments in Postgres. Starting a round is one
 // conditional update (the round moves on from the one before), so two admins pressing
@@ -16,7 +16,7 @@ const inTransaction = <T>(
 const toTournament = (r: Selectable<DB["hld_tournament"]>): HldTournament => ({
   id: r.id,
   name: r.name,
-  league: r.league as League, // the column's check allows only these
+  battleMode: r.battle_mode as BattleMode, // the column's check allows only these
   startsAt: r.starts_at,
   round: r.round,
   finishedAt: r.finished_at,
@@ -30,7 +30,7 @@ export function kyselyHldTournaments(db: Kysely<DB>): HldTournaments {
           .insertInto("hld_tournament")
           .values({
             name: t.name,
-            league: t.league,
+            battle_mode: t.battleMode,
             starts_at: t.startsAt,
             created_by: by,
           })
@@ -50,7 +50,7 @@ export function kyselyHldTournaments(db: Kysely<DB>): HldTournaments {
         // HLDQ-3: retired as soon as they're chosen, so no match draws them meanwhile.
         await trx
           .insertInto("hld_retired_variant")
-          .values(t.rounds.map((r) => ({ ...r, league: t.league })))
+          .values(t.rounds.map((r) => ({ ...r, battle_mode: t.battleMode })))
           .onConflict((c) => c.doNothing())
           .execute();
         return row.id;

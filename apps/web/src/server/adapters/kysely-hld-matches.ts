@@ -1,7 +1,7 @@
 import type { DB } from "@interval/db";
 import { type Kysely, type Selectable, sql } from "kysely";
 import { thin } from "../hld-watch";
-import type { HldMatch, HldMatches, HldSeat, League } from "../ports";
+import type { HldMatch, HldMatches, HldSeat, BattleMode } from "../ports";
 
 // P6-W42 (§6.4, Q-P6-06, ADR-0043): HLD matches in Postgres. Every step that must happen
 // once (a submission, closing, scoring) is one conditional statement, so two requests
@@ -19,7 +19,7 @@ const num = (v: string | number | null) => (v === null ? null : Number(v));
 const toMatch = (r: Selectable<DB["hld_match"]>): HldMatch => ({
   id: r.id,
   family: r.family,
-  league: r.league as League, // the column's check allows only these
+  battleMode: r.battle_mode as BattleMode, // the column's check allows only these
   seed: r.seed,
   unrated: r.unrated,
   windowAt: r.window_at,
@@ -39,7 +39,7 @@ export function kyselyHldMatches(db: Kysely<DB>): HldMatches {
           .insertInto("hld_match")
           .values({
             family: variant.family,
-            league: variant.league,
+            battle_mode: variant.battleMode,
             seed: variant.seed,
             unrated: options.unrated,
             window_at: options.windowAt,
@@ -215,12 +215,12 @@ export function kyselyHldMatches(db: Kysely<DB>): HldMatches {
         return true;
       }),
 
-    ratingOf: async (userId, league) => {
+    ratingOf: async (userId, battleMode) => {
       const row = await db
         .selectFrom("hld_rating")
         .select("rating")
         .where("user_id", "=", userId)
-        .where("league", "=", league)
+        .where("battle_mode", "=", battleMode)
         .executeTakeFirst();
       return row?.rating ?? START_RATING;
     },
@@ -287,11 +287,11 @@ export function kyselyHldMatches(db: Kysely<DB>): HldMatches {
       }));
     },
 
-    retired: async (league) => {
+    retired: async (battleMode) => {
       const rows = await db
         .selectFrom("hld_retired_variant")
         .select(["family", "seed"])
-        .where("league", "=", league)
+        .where("battle_mode", "=", battleMode)
         .execute();
       return new Set(rows.map((r) => `${r.family}/${String(r.seed)}`));
     },

@@ -2,17 +2,21 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { battleBoards, sessionReader } from "../../../../server/container";
-import type { League } from "../../../../server/ports";
+import type { BattleMode } from "../../../../server/ports";
 
 export const dynamic = "force-dynamic";
 
-// P5-W33 (§6.7, Q-P5-20): this season's battle boards, global, a pair per league: the
+// P5-W33 (§6.7, Q-P5-20): this season's battle boards, global, a pair per battle mode: the
 // 1v1 rating and the room rating. A season is a calendar month (UTC), as quick games'.
-const BOARDS: { league: League; kind: "duel" | "room"; title: string }[] = [
-  { league: "human", kind: "duel", title: "Human league, 1v1" },
-  { league: "human", kind: "room", title: "Human league, rooms" },
-  { league: "ai", kind: "duel", title: "AI league, 1v1" },
-  { league: "ai", kind: "room", title: "AI league, rooms" },
+const BOARDS: {
+  battleMode: BattleMode;
+  kind: "duel" | "room";
+  title: string;
+}[] = [
+  { battleMode: "human", kind: "duel", title: "Human mode, 1v1" },
+  { battleMode: "human", kind: "room", title: "Human mode, rooms" },
+  { battleMode: "ai", kind: "duel", title: "AI mode, 1v1" },
+  { battleMode: "ai", kind: "room", title: "AI mode, rooms" },
 ];
 
 export default async function BattleBoardsPage() {
@@ -22,7 +26,7 @@ export default async function BattleBoardsPage() {
   const since = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const boards = await Promise.all(
     BOARDS.map((b) =>
-      battleBoards().top(b.league, b.kind, since, actor.userId, 50),
+      battleBoards().top(b.battleMode, b.kind, since, actor.userId, 50),
     ),
   );
   return (
@@ -41,7 +45,7 @@ export default async function BattleBoardsPage() {
       <div className="grid gap-6 sm:grid-cols-2 lg:gap-3.5">
         {BOARDS.map((b, i) => (
           <section
-            key={`${b.league}-${b.kind}`}
+            key={`${b.battleMode}-${b.kind}`}
             aria-label={b.title}
             className="lg:rounded-[20px] lg:border lg:border-hairline lg:bg-page lg:p-[18px] lg:shadow-card"
           >

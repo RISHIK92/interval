@@ -32,6 +32,7 @@ import { applyMatchEvidence } from "./live/evidence";
 import { Card } from "../ui/Card";
 import { GuestForm } from "./GuestForm";
 import { NextWindow } from "./NextWindow";
+import { BATTLE_MODE_NAMES } from "../battle-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -710,7 +711,7 @@ function CupCard({
           minute: "2-digit",
           timeZone: "UTC",
         })}{" "}
-        UTC · the {cup.league} league
+        UTC · {BATTLE_MODE_NAMES[cup.battleMode]}
       </p>
       <Link
         href={`/hld/tournaments/${cup.id}`}

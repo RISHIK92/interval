@@ -213,7 +213,7 @@ async function startMatches(
     const matchId = await startHldMatch(
       deps,
       [p.playerA, p.playerB],
-      t.league,
+      t.battleMode,
       {
         unrated: true,
         windowAt: null,

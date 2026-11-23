@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-// P5-W33 (§6.9, Q-P5-20): code similarity in the human league. Two players' best
+// P5-W33 (§6.9, Q-P5-20): code similarity in human mode. Two players' best
 // submissions in the same language are tokenized, identifiers and literals masked, and
 // compared as 4-token shingles: the share of the shorter one's shingles also in the
 // other's. At or over similarAt, both get a `similar` signal for review; nothing more.

@@ -6057,3 +6057,22 @@ The owner said to continue building overnight with recommended answers, switchin
   - An endless reload came from a corrupted dev build cache (moved aside, not code).
   - 66% of live questions say "according to the passage" though sprints show no passage: a fix and a rewrite command are in progress.
 - **m6:** the owner's Mac data runs there as a copy (database `interval_mac`); the test database stays separate.
+
+## 2026-11-23: Battle mode (ADR-0047); stand-alone questions; Velox on m6
+
+- **ADR-0047 (owner's choice, a full rename):** the battle "league" (human or AI) is now "battle mode", in the database, TypeScript, Python and Go. "League" now means only ADR-0045's weekly cohort.
+  - One migration renames the column on 18 tables (tested down and up); no data moves.
+  - The UI says "Human mode" and "AI mode" through one mapping.
+  - `?league=` links still read as `?mode=`.
+  - Tests on both sides pin the wire key `battle_mode`, including that AI-mode battles raise no similarity signal.
+- **Stand-alone questions (owner-reported):** 667 of 1,024 live questions referred to "the passage", which sprints don't show.
+  - The prompt now asks for questions that stand alone, and the parser refuses a stem or option that refers to its source.
+  - `PROMPT_VERSION` stays 1, so the bank isn't redrafted.
+  - `interval_jobs rewrite-stems` rewrites existing multiple-choice and estimate stems. A rewrite is saved only when the blind validator agrees and the stem doesn't give the answer away.
+  - Rewrites are marked as tried (a new column), so `--limit` runs always move on to new questions.
+  - The owner runs it (docs/runbooks/owner-runs.md §5).
+- **Checks:** the full check passed; infra's AWS stack test passed when rerun alone, after timing out under load as it had before.
+- **m6:**
+  - Velox runs locally with a test key, on the default Docker runtime because gVisor isn't installed (local only); its `.env` was never read or written.
+  - Game server 0 runs on :8090, behind Caddy on :3300 for `/game/*`.
+  - The 12 LLD problems are loaded into the owner's data copy, which is migrated.

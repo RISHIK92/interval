@@ -73,7 +73,7 @@ The output file holds live session cookies for the test players: delete it after
 ```sql
 delete from hld_retired_variant r using hld_tournament_round tr, hld_tournament t
   where t.id = tr.tournament_id and t.name like 'Load %'
-    and r.family = tr.family and r.seed = tr.seed and r.league = t.league;
+    and r.family = tr.family and r.seed = tr.seed and r.battle_mode = t.battle_mode;
 delete from hld_tournament where name like 'Load %';
 delete from hld_match m where exists (select 1 from hld_match_player p
   where p.match_id = m.id and p.user_id like 'load-hld-%');

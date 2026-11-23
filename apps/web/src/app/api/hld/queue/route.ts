@@ -4,8 +4,8 @@ import {
   sessionReader,
 } from "../../../../server/container";
 import { forbidden } from "../../../../server/capability";
-import { leagueOf } from "../../../../server/battles";
-import type { Actor, League } from "../../../../server/ports";
+import { battleModeOf } from "../../../../server/battles";
+import type { Actor, BattleMode } from "../../../../server/ports";
 import { sameOrigin } from "../../../../server/same-origin";
 
 export const dynamic = "force-dynamic";
@@ -15,22 +15,22 @@ export const dynamic = "force-dynamic";
 // pairs), DELETE leaves. After 60 s unmatched the page plays solo (/api/hld/solo).
 async function player(
   request: Request,
-): Promise<{ actor: Actor; league: League } | Response> {
+): Promise<{ actor: Actor; battleMode: BattleMode } | Response> {
   if (!sameOrigin(request)) return new Response(null, { status: 403 });
-  const league = leagueOf(request);
-  if (league === null) return new Response(null, { status: 400 });
+  const battleMode = battleModeOf(request);
+  if (battleMode === null) return new Response(null, { status: 400 });
   const actor = await sessionReader().current(request.headers);
   if (actor === null) return new Response(null, { status: 401 });
-  return (await forbidden(actor, "play.hld")) ?? { actor, league };
+  return (await forbidden(actor, "play.hld")) ?? { actor, battleMode };
 }
 
 export async function POST(request: Request): Promise<Response> {
   const seat = await player(request);
   if (seat instanceof Response) return seat;
-  const { actor, league } = seat;
-  await casualHld(league).join(
+  const { actor, battleMode } = seat;
+  await casualHld(battleMode).join(
     actor.userId,
-    await hldMatches().ratingOf(actor.userId, league),
+    await hldMatches().ratingOf(actor.userId, battleMode),
   );
   return new Response(null, { status: 204 });
 }
@@ -38,7 +38,7 @@ export async function POST(request: Request): Promise<Response> {
 export async function PUT(request: Request): Promise<Response> {
   const seat = await player(request);
   if (seat instanceof Response) return seat;
-  const state = await casualHld(seat.league).poll(seat.actor.userId);
+  const state = await casualHld(seat.battleMode).poll(seat.actor.userId);
   return Response.json(
     state.status === "matched"
       ? { status: "matched", matchId: state.matchId }
@@ -50,6 +50,6 @@ export async function PUT(request: Request): Promise<Response> {
 export async function DELETE(request: Request): Promise<Response> {
   const seat = await player(request);
   if (seat instanceof Response) return seat;
-  await casualHld(seat.league).leave(seat.actor.userId);
+  await casualHld(seat.battleMode).leave(seat.actor.userId);
   return new Response(null, { status: 204 });
 }

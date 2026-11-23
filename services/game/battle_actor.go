@@ -392,10 +392,10 @@ func (a *actor) finishBattle(p *play) {
 			}
 		}
 	}
-	// §6.9 (Q-P5-20): in the human league, similar best submissions are a signal on
+	// §6.9 (Q-P5-20): in human mode, similar best submissions are a signal on
 	// both, for review. shortcut: bests from before a restart aren't kept, so aren't
 	// compared; persist them if restarts mid-battle become common.
-	if a.def.Battle.League != "ai" {
+	if a.def.Battle.Mode != "ai" {
 		minute := b.minute(a.clock.Now())
 		// Both starters a player may have begun from: the base one and, after the reveal,
 		// the extended one.

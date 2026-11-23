@@ -680,7 +680,7 @@ export const FAMILIES: readonly Family[] = [
 // P6-W44 (§6.4, HLDQ-3, Q-P6-08): the cup problems, hand-written, PROVISIONAL until the
 // owner reviews them. Validated as any variant, never in the match pool or practice: the
 // admin picks them for a tournament's rounds, and they're retired once used. Each keeps
-// one seed for each league it validates in (`seeds`), checked by the tests.
+// one seed for each battle mode it validates in (`seeds`), checked by the tests.
 export const CUPS: readonly {
   family: Family;
   seeds: Partial<Record<"human" | "ai", number>>;

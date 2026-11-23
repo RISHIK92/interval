@@ -523,6 +523,17 @@ type QuestionKind = Literal["choice", "estimate"]
 
 
 @dataclass(frozen=True)
+class StemCandidate:
+    """Owner, 2026-11-23 (`rewrite-stems`): a live question of the public bank, with
+    when its stem was last sent for a rewrite (None: never)."""
+
+    question_id: int
+    moment_id: int
+    draft: QuestionDraft | EstimateDraft
+    tried_at: datetime | None
+
+
+@dataclass(frozen=True)
 class QuestionTarget:
     """A moment questions may be drafted for (Q-P2-09): not a duplicate's, its source
     allows full text and moments (ING-2), and it has live concepts (an admin's
@@ -717,6 +728,45 @@ class Questions(Protocol):
     def record_verdict(self, question_id: int, model: str, answer: int) -> bool:
         """Live when the validator's answer is the key, rejected when not, keeping
         the answer; false (nothing changed) unless the question was pending."""
+        ...
+
+    # Owner, 2026-11-23: stems rewritten to stand alone (`rewrite-stems`).
+    def stem_candidates(self) -> list[StemCandidate]:
+        """Every live question of the public bank (not a book's), multiple-choice and
+        estimate, oldest first."""
+        ...
+
+    def mark_stem_tried(self, question_id: int) -> None:
+        """Its stem was sent for a rewrite now, whatever came of it."""
+        ...
+
+    def rewrite_stem(
+        self,
+        question_id: int,
+        old_stem: str,
+        stem: str,
+        validator_model: str,
+        prompt_version: int,
+        validator_answer: int,
+    ) -> bool:
+        """A multiple-choice question's new stem, under `prompt_version` (the
+        rewrite's), validated again now (`validator_model` answering
+        `validator_answer`, the key) and marked tried; the drafting model, options, key
+        and citation kept. False (nothing changed) unless it is still live with
+        `old_stem`."""
+        ...
+
+    def rewrite_estimate_stem(
+        self,
+        question_id: int,
+        old_stem: str,
+        stem: str,
+        validator_model: str,
+        prompt_version: int,
+        validator_estimate: float,
+    ) -> bool:
+        """As rewrite_stem, for an estimate: its answer, unit and citation kept, the
+        validator's number kept beside its verdict."""
         ...
 
     def record_estimate_verdict(
@@ -2190,7 +2240,7 @@ class ExplainerToVoice:
     script: str
 
 
-# P5-W33 (§6.2, AI-1, AI-2, OPS-4; Q-P5-13): "ask the interviewer" in AI-league battles.
+# P5-W33 (§6.2, AI-1, AI-2, OPS-4; Q-P5-13): "ask the interviewer" in AI-mode battles.
 @dataclass(frozen=True)
 class InterviewerAsk:
     user_id: str

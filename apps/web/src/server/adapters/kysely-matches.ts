@@ -193,7 +193,7 @@ export function kyselyMatches(
             mode: "battle",
             problem_slug: slug,
             unrated: options?.unrated ?? false,
-            league: options?.league ?? "human",
+            battle_mode: options?.battleMode ?? "human",
           })
           .returning("id")
           .executeTakeFirstOrThrow();

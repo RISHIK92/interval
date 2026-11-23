@@ -10,6 +10,7 @@ import {
 } from "../../../../server/container";
 import { viewTournament } from "../../../../server/hld-tournaments";
 import { checkInAction, registerAction, unregisterAction } from "./actions";
+import { BATTLE_MODE_NAMES } from "../../../battle-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,7 @@ export default async function TournamentPage(props: {
         <h1 className="text-display">{t.name}</h1>
         <p className="text-sm text-ink-muted">
           Starts {t.startsAt.toISOString().slice(0, 16).replace("T", " ")} UTC ·
-          the {t.league} league · 5 Swiss rounds, then the top 8 ·{" "}
+          {BATTLE_MODE_NAMES[t.battleMode]} · 5 Swiss rounds, then the top 8 ·{" "}
           {entries.filter((e) => e.checkedIn).length} checked in of{" "}
           {entries.length}
         </p>

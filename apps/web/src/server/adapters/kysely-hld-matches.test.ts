@@ -54,7 +54,7 @@ async function players(trx: Kysely<DB>, n: number): Promise<string[]> {
   return ids;
 }
 
-const variant = { family: "chat", league: "human" as const, seed: 3 };
+const variant = { family: "chat", battleMode: "human" as const, seed: 3 };
 const submission = (at: Date) => ({
   design: starterDesign(),
   simulationPoints: 40,

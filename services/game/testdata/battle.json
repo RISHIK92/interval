@@ -4,6 +4,7 @@
   "rounds": [],
   "battle": {
     "problem": "box",
+    "battle_mode": "ai",
     "limits": {
       "seconds": 5,
       "memoryMB": 128

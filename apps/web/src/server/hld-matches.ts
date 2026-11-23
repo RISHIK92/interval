@@ -20,7 +20,7 @@ import type {
   HldSeat,
   HldWindows,
   JobQueue,
-  League,
+  BattleMode,
 } from "./ports";
 import { group } from "./battle-windows";
 
@@ -43,7 +43,7 @@ export type HldDeps = {
 export async function startHldMatch(
   deps: HldDeps,
   players: string[],
-  league: League,
+  battleMode: BattleMode,
   options: {
     unrated: boolean;
     windowAt: Date | null;
@@ -53,11 +53,15 @@ export async function startHldMatch(
 ): Promise<string> {
   const variant =
     options.variant ??
-    drawVariant(league, deps.random, await deps.matches.retired(league));
-  const problem = problemOf({ ...variant, league });
+    drawVariant(
+      battleMode,
+      deps.random,
+      await deps.matches.retired(battleMode),
+    );
+  const problem = problemOf({ ...variant, battleMode });
   return deps.matches.create(
     players,
-    { ...variant, league },
+    { ...variant, battleMode },
     {
       unrated: options.unrated,
       windowAt: options.windowAt,
@@ -72,11 +76,14 @@ export async function startHldMatch(
 export async function groupHldWindow(
   deps: HldDeps & { windows: HldWindows },
   windowAt: Date,
-  league: League,
+  battleMode: BattleMode,
 ): Promise<{ grouped: number; matched: number } | null> {
-  const retired = await deps.matches.retired(league);
-  const claimed = await deps.windows.claim(windowAt, league, deps.now(), () =>
-    drawVariant(league, deps.random, retired),
+  const retired = await deps.matches.retired(battleMode);
+  const claimed = await deps.windows.claim(
+    windowAt,
+    battleMode,
+    deps.now(),
+    () => drawVariant(battleMode, deps.random, retired),
   );
   if (claimed === null) return null;
   let matched = 0;
@@ -84,7 +91,7 @@ export async function groupHldWindow(
     const users = players.map((p) => p.userId);
     let matchId: string;
     try {
-      matchId = await startHldMatch(deps, users, league, {
+      matchId = await startHldMatch(deps, users, battleMode, {
         unrated: users.length === 1,
         windowAt,
         variant: claimed.variant,
@@ -97,21 +104,21 @@ export async function groupHldWindow(
       continue;
     }
     // A match started is assigned or the grouping fails loudly: never regrouped.
-    await deps.windows.assign(windowAt, league, matchId, users);
-    await deps.windows.extend(windowAt, league, deps.now());
+    await deps.windows.assign(windowAt, battleMode, matchId, users);
+    await deps.windows.extend(windowAt, battleMode, deps.now());
     if (users.length > 1) matched += users.length;
   }
   return { grouped: claimed.players.length, matched };
 }
 
 export function problemOf(
-  m: Pick<HldMatch, "family" | "league" | "seed">,
+  m: Pick<HldMatch, "family" | "battleMode" | "seed">,
 ): HldProblem {
-  const problem = matchProblem(m.family, m.league, m.seed);
+  const problem = matchProblem(m.family, m.battleMode, m.seed);
   // Matches are only made from the pool, and the pool's test keeps every seed valid.
   if (problem === null)
     throw new Error(
-      `hld: ${m.family}/${m.league}/${String(m.seed)} isn't in the pool`,
+      `hld: ${m.family}/${m.battleMode}/${String(m.seed)} isn't in the pool`,
     );
   return problem;
 }

@@ -81,11 +81,11 @@ test("one poll claims a window, players best room rating first; a stale claim is
     for (const u of users) await windows.register(AT, u, later(-900), "human");
     await trx
       .insertInto("room_rating")
-      .values({ user_id: c, league: "human", mu: 31, sigma: 5, games: 2 })
+      .values({ user_id: c, battle_mode: "human", mu: 31, sigma: 5, games: 2 })
       .execute();
     expect(await windows.registration(AT, a)).toEqual({
       matchId: null,
-      league: "human",
+      battleMode: "human",
     });
     const claimed = await windows.claim(AT, "human", AT, () =>
       Promise.resolve(slug),
@@ -107,7 +107,7 @@ test("one poll claims a window, players best room rating first; a stale claim is
     await windows.assign(AT, "human", match, [c, a]);
     expect(await windows.registration(AT, a)).toEqual({
       matchId: match,
-      league: "human",
+      battleMode: "human",
     });
     expect(
       await windows.claim(AT, "human", later(30), () => Promise.resolve("x")),
@@ -124,7 +124,7 @@ test("one poll claims a window, players best room rating first; a stale claim is
     await windows.unregister(AT, a);
     expect(await windows.registration(AT, a)).toEqual({
       matchId: match,
-      league: "human",
+      battleMode: "human",
     });
   });
 });

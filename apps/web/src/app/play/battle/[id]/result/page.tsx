@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ResultActions } from "./ResultActions";
 import { Replay } from "./Replay";
 import { outcome, ResultHero } from "./ResultHero";
+import { BATTLE_MODE_NAMES } from "../../../../battle-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export default async function BattleResultPage(props: {
   );
   const me = result.standings.find((s) => s.you);
   const others = result.standings.filter((s) => !s.you);
-  const league = result.league === "ai" ? "AI league" : "Human league";
+  const battleMode = BATTLE_MODE_NAMES[result.battleMode];
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-6 pb-12 lg:max-w-[75rem] lg:gap-5 lg:px-7 lg:pt-3">
       <ResultHero
@@ -49,14 +50,14 @@ export default async function BattleResultPage(props: {
           others.length === 0
             ? "Solo"
             : `against ${others.map((o) => o.name).join(", ")}`,
-          league,
+          battleMode,
         ].join(" · ")}
         change={result.change}
       />
       <header className="lg:hidden">
         <h1 className="text-display">Battle results</h1>
         <p className="mt-1 text-ink-muted">
-          {result.problem} · {league}
+          {result.problem} · {battleMode}
           {result.finishedAt === null ? " · still on" : ""}
         </p>
       </header>

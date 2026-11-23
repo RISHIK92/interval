@@ -15,7 +15,7 @@ const ROUNDS = 8;
 
 const Tournament = z.object({
   name: z.string().trim().min(3).max(80),
-  league: z.enum(["human", "ai"]),
+  battleMode: z.enum(["human", "ai"]),
   startsAt: z.coerce.date(),
   rounds: z
     .array(z.string().regex(/^[a-z-]+\/\d+$/))
@@ -27,7 +27,7 @@ export async function createTournamentAction(form: FormData): Promise<void> {
   const actor = await requireAdmin();
   const parsed = Tournament.safeParse({
     name: textField(form, "name"),
-    league: textField(form, "league"),
+    battleMode: textField(form, "battleMode"),
     // datetime-local is the admin's local time without a zone: read it as UTC, as the
     // form says.
     startsAt: `${textField(form, "startsAt")}:00Z`,
@@ -36,16 +36,16 @@ export async function createTournamentAction(form: FormData): Promise<void> {
     ),
   });
   if (!parsed.success) redirect("/admin/hld-tournaments?error=invalid");
-  const { name, league, startsAt, rounds } = parsed.data;
+  const { name, battleMode, startsAt, rounds } = parsed.data;
   const picked = rounds.map((r) => {
     const [family = "", seed = ""] = r.split("/");
     return { family, seed: Number(seed) };
   });
-  // Only pooled variants of this league: validated, so a round can't fail mid-cup.
-  if (picked.some((p) => matchProblem(p.family, league, p.seed) === null))
+  // Only pooled variants of this battle mode: validated, so a round can't fail mid-cup.
+  if (picked.some((p) => matchProblem(p.family, battleMode, p.seed) === null))
     redirect("/admin/hld-tournaments?error=invalid");
   const id = await hldTournaments().create(
-    { name, league, startsAt, rounds: picked },
+    { name, battleMode, startsAt, rounds: picked },
     actor.userId,
   );
   redirect(`/admin/hld-tournaments?saved=${id}`);

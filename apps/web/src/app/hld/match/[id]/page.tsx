@@ -13,6 +13,7 @@ import { Canvas } from "../../Canvas";
 import { Clock } from "../../Clock";
 import { Cube } from "../../flow";
 import { FRAME, HEADER, HEADER_TILE, Requirements, TITLE } from "../../Frame";
+import { BATTLE_MODE_NAMES } from "../../../battle-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -55,14 +56,14 @@ export default async function HldMatchPage({
           <h1 className={TITLE}>{problem.title}</h1>
           <p className="text-sm text-ink-muted lg:hidden">
             {found.seats.map((s) => s.player).join(" vs ")}
-            {found.match.unrated ? " · unrated" : ""} · the {found.match.league}{" "}
-            league
+            {found.match.unrated ? " · unrated" : ""} ·{" "}
+            {BATTLE_MODE_NAMES[found.match.battleMode]}
           </p>
         </div>
         <span className="hidden h-[38px] items-center rounded-full bg-well px-3 text-sm text-ink-muted lg:flex">
           {found.seats.map((s) => s.player).join(" vs ")}
-          {found.match.unrated ? " · unrated" : ""} · the {found.match.league}{" "}
-          league
+          {found.match.unrated ? " · unrated" : ""} ·{" "}
+          {BATTLE_MODE_NAMES[found.match.battleMode]}
         </span>
         <Clock deadline={found.match.deadlineAt.toISOString()} />
       </header>

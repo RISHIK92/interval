@@ -79,14 +79,15 @@ def test_postgres_keeps_the_final_board_and_resets_every_rating(
         " ('sa', 1700, 100, 0.06, 2), ('sb', 1450, 200, 0.06, 2),"
         " ('sc', 1900, 60, 0.07, 1)"
     )
-    # P5-W32-S01a (Q-P5-18): battle ratings, per league, are reset too.
+    # P5-W32-S01a (Q-P5-18): battle ratings, per battle mode, are reset too.
     conn.execute(
-        "insert into battle_rating (user_id, league, rating, rd, volatility, games)"
-        " values ('sa', 'human', 1300, 90, 0.06, 3), ('sa', 'ai', 1700, 200, 0.05, 1)"
+        "insert into battle_rating"
+        " (user_id, battle_mode, rating, rd, volatility, games) values"
+        " ('sa', 'human', 1300, 90, 0.06, 3), ('sa', 'ai', 1700, 200, 0.05, 1)"
     )
     # P5-W32-S01b: and room ratings (OpenSkill).
     conn.execute(
-        "insert into room_rating (user_id, league, mu, sigma, games)"
+        "insert into room_rating (user_id, battle_mode, mu, sigma, games)"
         " values ('sb', 'human', 33, 1, 4)"
     )
     seasons = PostgresSeasons(conn)
@@ -111,9 +112,9 @@ def test_postgres_keeps_the_final_board_and_resets_every_rating(
     assert ratings["sb"] == pytest.approx((1462.5, 200, 0.06))
     assert ratings["sc"] == pytest.approx((1800, 150, 0.07))
     battles = {
-        str(league): (float(r), float(d), float(v))
-        for league, r, d, v in conn.execute(
-            "select league, rating, rd, volatility from battle_rating"
+        str(battle_mode): (float(r), float(d), float(v))
+        for battle_mode, r, d, v in conn.execute(
+            "select battle_mode, rating, rd, volatility from battle_rating"
             " where user_id = 'sa'"
         ).fetchall()
     }
@@ -145,18 +146,19 @@ def test_a_close_after_the_first_closes_the_month_just_ended_or_nothing() -> Non
 def test_postgres_keeps_the_battle_boards_final_standings(
     conn: psycopg.Connection,
 ) -> None:
-    """P5-W33 (§6.7, Q-P5-20): per league and kind, each player's last of the season."""
+    """P5-W33 (§6.7, Q-P5-20): per battle mode and kind, each player's last of the
+    season."""
     a_user(conn, "sbx")
     match = _match(conn)
     room = _match(conn)
     conn.execute(
-        "insert into battle_rating_history (match_id, user_id, league, rating_before,"
-        " rating_after, rd_after, volatility_after, score, at) values"
+        "insert into battle_rating_history (match_id, user_id, battle_mode,"
+        " rating_before, rating_after, rd_after, volatility_after, score, at) values"
         " (%s, 'sbx', 'ai', 1500, 1540, 200, 0.06, 1, '2032-03-10')",
         (match,),
     )
     conn.execute(
-        "insert into room_rating_history (match_id, user_id, league, mu_before,"
+        "insert into room_rating_history (match_id, user_id, battle_mode, mu_before,"
         " mu_after, sigma_after, rank, at) values"
         " (%s, 'sbx', 'human', 25, 28, 4, 1, '2032-03-11')",
         (room,),
@@ -165,7 +167,7 @@ def test_postgres_keeps_the_battle_boards_final_standings(
     assert PostgresSeasons(conn).close("2032-03", start, end) is True
     assert sorted(
         conn.execute(
-            "select league, kind, rating from battle_season_standing"
+            "select battle_mode, kind, rating from battle_season_standing"
             " where season = '2032-03' and user_id = 'sbx'"
         ).fetchall()
     ) == [("ai", "duel", 1540.0), ("human", "room", 16.0)]

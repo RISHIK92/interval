@@ -11,7 +11,7 @@ import { forbidden } from "../../../../../server/capability";
 
 export const dynamic = "force-dynamic";
 
-// P5-W33 (§6.2, AI-1, OPS-4; Q-P5-13): "ask the interviewer" in an AI-league battle.
+// P5-W33 (§6.2, AI-1, OPS-4; Q-P5-13): "ask the interviewer" in an AI-mode battle.
 // POST asks (at most 10 a battle) and queues the answer for the worker, which answers
 // from the problem's notes with QUESTIONS_MODEL; GET lists this player's questions and
 // answers, which the page labels AI.

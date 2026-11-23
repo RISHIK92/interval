@@ -6,9 +6,11 @@ Definitions quote or restructure source text. Citations: § = Part I section of 
 
 **Agent hook** (agent hook CLI). A CLI that tells Interval when a coding agent starts and finishes a task. "It sends only 'started' and 'finished' events, never prompts or code." `interval start` and `interval stop` work with any agent. §7, Phase 3. See C-09, C-10.
 
-**AI league.** The battle league where any AI tools are allowed. It measures "person plus tools: orchestration and judgment", with bigger scope, vague requirements, and an "ask the interviewer" channel. §6.2. See C-15.
+**AI mode.** The battle mode where any AI tools are allowed. It measures "person plus tools: orchestration and judgment", with bigger scope, vague requirements, and an "ask the interviewer" channel. §6.2 (its "AI league", ADR-0047). See C-15.
 
 **Balance patch.** A change to the public spec sheet's component stats, made only at season boundaries, with patch notes. §6.4, CANVAS-4.
+
+**Battle mode.** Battles have two modes from launch, human and AI, with separate ratings and leaderboards: `battle_mode` (`human` or `ai`) in data, `BattleMode` in TypeScript, `?mode=` in links. Quick games are human-only. §6.2, where it is called "league"; renamed by ADR-0047.
 
 **Bot.** A synthetic opponent "built from question difficulty and real players' answer times". Always labeled, half-weight rating changes, never in ranked battles. BOT-2 to BOT-5. See C-01.
 
@@ -50,11 +52,11 @@ Definitions quote or restructure source text. Citations: § = Part I section of 
 
 **HLD battle.** A high-level design match in desktop browsers, about 30 minutes: live 1v1, 4-player rooms, or tournaments. Scored simulation 60, trade-off quality 25, speed 15. §6.4.
 
-**Human league.** The league where no AI use is allowed. It measures individual skill. §6.2.
+**Human mode.** The battle mode where no AI use is allowed. It measures individual skill. §6.2 (its "human league", ADR-0047).
 
 **Knowledge map.** The view of "the user's slice of the concept graph". §5I.
 
-**League.** Battles have two leagues from launch, human and AI, with separate ratings and leaderboards. Quick games are human-only. §6.2.
+**League.** A weekly activity cohort of about 30 players in one of six tiers (Diamond, Ruby, Sapphire, Gold, Silver, Bronze), separate from skill ratings: points from matches, battles and reading checkpoints, a new league every Monday. ADR-0045. Not the battle mode: §6.2's "league" is the battle mode (ADR-0047).
 
 **Learner state.** Each user's state per concept, "updated by reading, notes, quizzes, and games". §3.1. States:
 - **unseen**: listed in §3.1. Not defined further.

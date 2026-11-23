@@ -199,7 +199,7 @@ async function sound(matchId: string): Promise<Design> {
   const found = await world.matches.get(matchId);
   const family = FAMILIES.find((f) => f.slug === found?.match.family);
   if (found === null || family === undefined) throw new Error("no match");
-  return variant(family, found.match.league, found.match.seed).reference;
+  return variant(family, found.match.battleMode, found.match.seed).reference;
 }
 
 const judged = (level: number) => {
@@ -373,7 +373,7 @@ describe("an HLD match", () => {
           claim: () =>
             Promise.resolve({ variant: { family: "chat", seed: 3 }, players }),
           extend: () => Promise.resolve(),
-          assign: (_at, _league, _id, users) => {
+          assign: (_at, _battleMode, _id, users) => {
             assigned.push(users);
             return Promise.resolve();
           },

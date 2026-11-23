@@ -53,6 +53,7 @@ from interval_jobs.ports import (
     SectionRow,
     SessionCandidate,
     SourceSettings,
+    StemCandidate,
     Store,
     TagResult,
     Tags,
@@ -125,6 +126,8 @@ class Probe(Protocol):
     def reviews(self) -> list[tuple[int, str, bool]]: ...
     def decide_review(self, question_id: int) -> None: ...
     def question_difficulty(self, question_id: int) -> str | None: ...
+    # Who drafted it, under which prompt, and who validated it last.
+    def question_writers(self, question_id: int) -> tuple[str, int, str | None]: ...
     def retire_question(self, question_id: int) -> None: ...
     def override_level(self, item_id: int, heading: str, level: str) -> None: ...
     def simhash(self, item_id: int) -> int | None: ...
@@ -282,6 +285,10 @@ class MemoryProbe:
 
     def question_difficulty(self, question_id: int) -> str | None:
         return next(q for q in self.s.questions.rows if q.id == question_id).difficulty
+
+    def question_writers(self, question_id: int) -> tuple[str, int, str | None]:
+        q = next(q for q in self.s.questions.rows if q.id == question_id)
+        return q.model, q.prompt_version, q.validator_model
 
     def override_level(self, item_id: int, heading: str, level: str) -> None:
         assert level in ("beginner", "intermediate", "advanced")
@@ -621,6 +628,15 @@ class PostgresProbe:
         ).fetchone()
         assert row is not None
         return None if row[0] is None else str(row[0])
+
+    def question_writers(self, question_id: int) -> tuple[str, int, str | None]:
+        row = self.conn.execute(
+            "select generator_model, prompt_version, validator_model from question "
+            "where id = %s",
+            (question_id,),
+        ).fetchone()
+        assert row is not None
+        return str(row[0]), int(row[1]), None if row[2] is None else str(row[2])
 
     def correct_moment_concepts(
         self, item_id: int, heading: str, slugs: list[str]
@@ -2701,6 +2717,65 @@ def test_a_verdict_makes_a_pending_question_live_or_rejected_once(
     (again, _) = s.questions.save(lag, [draft, draft], ["cg-lag"], "m", 1, "h2", None)
     assert s.questions.pending(again) == (lag, draft)
     assert s.questions.pending(wrong) is None
+
+
+# Owner, 2026-11-23 (`rewrite-stems`): a live question's stem rewritten to stand alone.
+def test_a_live_questions_stem_is_rewritten_once_keeping_the_rest(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    _, (_, lag, _), _ = _question_item(s, probe)
+    draft = QuestionDraft("Per the passage, why lag?", ("a", "b", "c", "d"), 2, "Lag")
+    live, pending = s.questions.save(
+        lag, [draft, draft], ["cg-lag"], "m", 1, "h1", None
+    )
+    s.questions.record_verdict(live, "v", 2)
+    # A local database may hold real questions: only this test's are looked at.
+    mine = [
+        c for c in s.questions.stem_candidates() if c.question_id in (live, pending)
+    ]
+    assert mine == [StemCandidate(live, lag, draft, None)]
+    # Only with the stem it was read with, and only while live.
+    assert not s.questions.rewrite_stem(live, "Why?", "Why does lag?", "r", 1001, 2)
+    assert not s.questions.rewrite_stem(pending, draft.stem, "Why lag?", "r", 1001, 2)
+    assert s.questions.rewrite_stem(live, draft.stem, "Why lag?", "r", 1001, 2)
+    assert not s.questions.rewrite_stem(live, draft.stem, "Again?", "r", 1001, 2)
+    (rewritten,) = [c for c in s.questions.stem_candidates() if c.question_id == live]
+    assert (rewritten.draft, rewritten.tried_at is not None) == (
+        replace(draft, stem="Why lag?"),
+        True,
+    )
+    # The drafting model stays (it wrote the options and key); the rewrite's prompt.
+    assert probe.question_writers(live) == ("m", 1001, "r")
+    sample = [q for q in s.questions.summary(100_000).sample if q.question_id == live]
+    assert [(q.validator_answer, q.status) for q in sample] == [(2, "live")]
+
+
+def test_a_live_estimates_stem_is_rewritten_and_a_try_is_remembered(
+    store: tuple[Store, Probe],
+) -> None:
+    s, probe = store
+    _, (_, lag, _), _ = _question_item(s, probe)
+    estimate = EstimateDraft("Per the text, how many ms?", 40, "ms", "lag of 40 ms")
+    eid = s.questions.save_estimate(lag, estimate, ["cg-lag"], "m", "e1", None)
+    assert eid is not None
+    s.questions.record_estimate_verdict(eid, "v", 41, True)
+
+    def mine() -> StemCandidate:
+        return next(c for c in s.questions.stem_candidates() if c.question_id == eid)
+
+    assert mine() == StemCandidate(eid, lag, estimate, None)
+    s.questions.mark_stem_tried(eid)
+    assert mine().tried_at is not None and mine().draft == estimate
+    # Not as a multiple-choice question: the kind must match.
+    assert not s.questions.rewrite_stem(
+        eid, estimate.stem, "How many ms?", "r", 1001, 1
+    )
+    assert s.questions.rewrite_estimate_stem(
+        eid, estimate.stem, "How many ms of lag?", "r", 1001, 39
+    )
+    assert mine().draft == replace(estimate, stem="How many ms of lag?")
+    assert probe.question_writers(eid) == ("m", 1001, "r")
 
 
 def test_the_summary_counts_by_status_and_samples_validated_questions(

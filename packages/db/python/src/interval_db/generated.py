@@ -207,7 +207,7 @@ class BattleQuestion(TypedDict):
 
 class BattleRating(TypedDict):
     user_id: str
-    league: str
+    battle_mode: str
     rating: float
     rd: float
     volatility: float
@@ -218,7 +218,7 @@ class BattleRating(TypedDict):
 class BattleRatingHistory(TypedDict):
     match_id: UUID
     user_id: str
-    league: str
+    battle_mode: str
     rating_before: float
     rating_after: float
     rd_after: float
@@ -240,7 +240,7 @@ class BattleReview(TypedDict):
 class BattleSeasonStanding(TypedDict):
     season: str
     user_id: str
-    league: str
+    battle_mode: str
     kind: str
     rating: float
 
@@ -258,7 +258,7 @@ class BattleWindow(TypedDict):
     window_at: datetime
     grouping_at: datetime
     problem_slug: str
-    league: str
+    battle_mode: str
 
 
 class BattleWindowRegistration(TypedDict):
@@ -268,7 +268,7 @@ class BattleWindowRegistration(TypedDict):
     remind_at: datetime
     reminded_at: datetime | None
     match_id: UUID | None
-    league: str
+    battle_mode: str
 
 
 class BoardScore(TypedDict):
@@ -565,7 +565,7 @@ class GameMatch(TypedDict):
     replay_volatility: float | None
     unrated: bool
     problem_slug: str | None
-    league: str
+    battle_mode: str
 
 
 class GameMatchPlayer(TypedDict):
@@ -702,7 +702,7 @@ class HldJudgement(TypedDict):
 class HldMatch(TypedDict):
     id: UUID
     family: str
-    league: str
+    battle_mode: str
     seed: int
     unrated: bool
     window_at: datetime | None
@@ -738,7 +738,7 @@ class HldPracticeDesign(TypedDict):
 
 class HldRating(TypedDict):
     user_id: str
-    league: str
+    battle_mode: str
     rating: float
     rd: float
     volatility: float
@@ -749,7 +749,7 @@ class HldRating(TypedDict):
 class HldRatingHistory(TypedDict):
     match_id: UUID
     user_id: str
-    league: str
+    battle_mode: str
     rating_before: float
     rating_after: float
     rd_after: float
@@ -760,14 +760,14 @@ class HldRatingHistory(TypedDict):
 
 class HldRetiredVariant(TypedDict):
     family: str
-    league: str
+    battle_mode: str
     seed: int
     retired_at: datetime
 
 
 class HldRoomRating(TypedDict):
     user_id: str
-    league: str
+    battle_mode: str
     mu: float
     sigma: float
     games: int
@@ -777,7 +777,7 @@ class HldRoomRating(TypedDict):
 class HldRoomRatingHistory(TypedDict):
     match_id: UUID
     user_id: str
-    league: str
+    battle_mode: str
     mu_before: float
     mu_after: float
     sigma_after: float
@@ -788,7 +788,7 @@ class HldRoomRatingHistory(TypedDict):
 class HldTournament(TypedDict):
     id: UUID
     name: str
-    league: str
+    battle_mode: str
     starts_at: datetime
     round: int
     finished_at: datetime | None
@@ -823,7 +823,7 @@ class HldTournamentRound(TypedDict):
 
 class HldWindow(TypedDict):
     window_at: datetime
-    league: str
+    battle_mode: str
     grouping_at: datetime
     family: str
     seed: int
@@ -832,7 +832,7 @@ class HldWindow(TypedDict):
 class HldWindowRegistration(TypedDict):
     window_at: datetime
     user_id: str
-    league: str
+    battle_mode: str
     registered_at: datetime
     match_id: UUID | None
 
@@ -910,7 +910,7 @@ class LldProblem(TypedDict):
     loaded_at: datetime
     extension_statement: str | None
     extension_interface: JsonValue | None
-    league: str
+    battle_mode: str
     interviewer_notes: str | None
 
 
@@ -1117,6 +1117,7 @@ class Question(TypedDict):
     source_url: str | None
     source_title: str | None
     validator_estimate: float | None
+    stem_rewrite_tried_at: datetime | None
 
 
 class QuestionBatch(TypedDict):
@@ -1238,7 +1239,7 @@ class ReasonReport(TypedDict):
 
 class RoomRating(TypedDict):
     user_id: str
-    league: str
+    battle_mode: str
     mu: float
     sigma: float
     games: int
@@ -1248,7 +1249,7 @@ class RoomRating(TypedDict):
 class RoomRatingHistory(TypedDict):
     match_id: UUID
     user_id: str
-    league: str
+    battle_mode: str
     mu_before: float
     mu_after: float
     sigma_after: float

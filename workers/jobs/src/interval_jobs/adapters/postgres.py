@@ -97,6 +97,7 @@ from interval_jobs.ports import (
     SimilarMoment,
     SourceRecord,
     SourceSettings,
+    StemCandidate,
     SyncResult,
     TagInput,
     TagMoment,
@@ -2174,6 +2175,121 @@ class PostgresQuestions:
         ).fetchone()
         return row is not None
 
+    def stem_candidates(self) -> list[StemCandidate]:
+        rows = self._conn.execute(
+            "select id, kind, moment_id, stem, options, correct, answer, unit, "
+            "citation, stem_rewrite_tried_at from question "
+            "where status = 'live' and moment_id is not null order by id"
+        ).fetchall()
+        found: list[StemCandidate] = []
+        for (
+            qid,
+            kind,
+            moment_id,
+            stem,
+            options,
+            correct,
+            answer,
+            unit,
+            cite,
+            tried,
+        ) in rows:
+            draft: QuestionDraft | EstimateDraft = (
+                EstimateDraft(str(stem), float(answer), str(unit), str(cite))
+                if kind == "estimate"
+                else QuestionDraft(
+                    str(stem), tuple(str(o) for o in options), int(correct), str(cite)
+                )
+            )
+            found.append(StemCandidate(int(qid), int(moment_id), draft, tried))
+        return found
+
+    def mark_stem_tried(self, question_id: int) -> None:
+        self._conn.execute(
+            "update question set stem_rewrite_tried_at = now() where id = %s",
+            (question_id,),
+        )
+
+    def rewrite_stem(
+        self,
+        question_id: int,
+        old_stem: str,
+        stem: str,
+        validator_model: str,
+        prompt_version: int,
+        validator_answer: int,
+    ) -> bool:
+        return self._rewrite(
+            question_id,
+            old_stem,
+            stem,
+            validator_model,
+            prompt_version,
+            "choice",
+            validator_answer,
+            None,
+        )
+
+    def rewrite_estimate_stem(
+        self,
+        question_id: int,
+        old_stem: str,
+        stem: str,
+        validator_model: str,
+        prompt_version: int,
+        validator_estimate: float,
+    ) -> bool:
+        return self._rewrite(
+            question_id,
+            old_stem,
+            stem,
+            validator_model,
+            prompt_version,
+            "estimate",
+            None,
+            validator_estimate,
+        )
+
+    def _rewrite(
+        self,
+        question_id: int,
+        old_stem: str,
+        stem: str,
+        validator_model: str,
+        prompt_version: int,
+        kind: QuestionKind,
+        answer: int | None,
+        estimate: float | None,
+    ) -> bool:
+        # generator_model stays: it drafted the options and the key. validated_at is
+        # now, so the new AI text enters the spot-check sample (Q-2).
+        row = self._conn.execute(
+            """
+            update question set
+              stem = %(stem)s,
+              prompt_version = %(version)s,
+              validator_model = %(model)s,
+              validator_answer = %(answer)s,
+              validator_estimate = %(estimate)s,
+              validated_at = now(),
+              stem_rewrite_tried_at = now()
+            where id = %(id)s and status = 'live' and kind = %(kind)s
+              and stem = %(old)s
+            returning id
+            """,
+            {
+                "id": question_id,
+                "old": old_stem,
+                "stem": stem,
+                "model": validator_model,
+                "version": prompt_version,
+                "answer": answer,
+                "estimate": estimate,
+                "kind": kind,
+            },
+        ).fetchone()
+        return row is not None
+
     def record_estimate_verdict(
         self, question_id: int, model: str, answer: float, agrees: bool
     ) -> bool:
@@ -3268,7 +3384,7 @@ class PostgresMatchResults:
                 update game_match set finished_at = %s, outcome = %s, winner_id = %s
                 where id = %s and finished_at is null
                 returning created_at, mode, replay_seat, replay_rating, replay_rd,
-                          replay_volatility, unrated, league
+                          replay_volatility, unrated, battle_mode
                 """,
                 (result.finished_at, result.outcome, winner, result.match_id),
             ).fetchone()
@@ -3542,15 +3658,15 @@ class PostgresMatchResults:
         )
 
     def _rate_battle(
-        self, result: MatchResult, players: dict[str, str], league: str
+        self, result: MatchResult, players: dict[str, str], battle_mode: str
     ) -> None:
         """P5-W32-S01a (MATCH-1, Q-P5-18): a 1v1 battle's Glicko-2 ratings in its
-        league, apart from quick games', once, scored as a quick match is. A room of 3
-        or 4 is rated with OpenSkill (W32-S01b)."""
+        battle mode, apart from quick games', once, scored as a quick match is. A room
+        of 3 or 4 is rated with OpenSkill (W32-S01b)."""
         if result.outcome not in ("finished", "abandoned"):
             return
         if len(result.players) > 2:
-            self._rate_room(result, players, league)
+            self._rate_room(result, players, battle_mode)
             return
         duel = _duel(result, players)
         if duel is None:
@@ -3558,17 +3674,18 @@ class PostgresMatchResults:
         conn = self._conn
         users = sorted(user for user, _ in duel)
         conn.execute(
-            "insert into battle_rating (user_id, league, rating, rd, volatility) "
+            "insert into battle_rating (user_id, battle_mode, rating, rd, volatility) "
             "select u, %s, %s, %s, %s from unnest(%s::text[]) u on conflict do nothing",
-            (league, START.rating, START.rd, START.volatility, users),
+            (battle_mode, START.rating, START.rd, START.volatility, users),
         )
         # In user_id order, as quick ratings lock: no deadlock between two battles.
         before = {
             str(user): Glicko(float(rating), float(rd), float(volatility))
             for user, rating, rd, volatility in conn.execute(
                 "select user_id, rating, rd, volatility from battle_rating "
-                "where user_id = any(%s) and league = %s order by user_id for update",
-                (users, league),
+                "where user_id = any(%s) and battle_mode = %s "
+                "order by user_id for update",
+                (users, battle_mode),
             ).fetchall()
         }
         for (user, points), (other, _) in ((duel[0], duel[1]), (duel[1], duel[0])):
@@ -3576,19 +3693,19 @@ class PostgresMatchResults:
             conn.execute(
                 "update battle_rating set rating = %s, rd = %s, volatility = %s, "
                 "games = games + 1, updated_at = now() "
-                "where user_id = %s and league = %s",
-                (after.rating, after.rd, after.volatility, user, league),
+                "where user_id = %s and battle_mode = %s",
+                (after.rating, after.rd, after.volatility, user, battle_mode),
             )
             conn.execute(
                 """
-                insert into battle_rating_history (match_id, user_id, league,
+                insert into battle_rating_history (match_id, user_id, battle_mode,
                   rating_before, rating_after, rd_after, volatility_after, score)
                 values (%s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     result.match_id,
                     user,
-                    league,
+                    battle_mode,
                     before[user].rating,
                     after.rating,
                     after.rd,
@@ -3601,10 +3718,10 @@ class PostgresMatchResults:
         )
 
     def _rate_room(
-        self, result: MatchResult, players: dict[str, str], league: str
+        self, result: MatchResult, players: dict[str, str], battle_mode: str
     ) -> None:
-        """P5-W32-S01b (MATCH-1, Q-P5-18): a room's OpenSkill ratings in its league,
-        once, by points then time, the abandoned last."""
+        """P5-W32-S01b (MATCH-1, Q-P5-18): a room's OpenSkill ratings in its battle
+        mode, once, by points then time, the abandoned last."""
         placed = [
             Placed(players[p.played_as], p.total, p.time_ms, p.abandoned)
             for p in result.players
@@ -3627,17 +3744,18 @@ class PostgresMatchResults:
             return
         conn = self._conn
         conn.execute(
-            "insert into room_rating (user_id, league, mu, sigma) "
+            "insert into room_rating (user_id, battle_mode, mu, sigma) "
             "select u, %s, %s, %s from unnest(%s::text[]) u on conflict do nothing",
-            (league, SKILL_START.mu, SKILL_START.sigma, users),
+            (battle_mode, SKILL_START.mu, SKILL_START.sigma, users),
         )
         # In user_id order, as every rating locks.
         before = {
             str(user): Skill(float(mu), float(sigma))
             for user, mu, sigma in conn.execute(
                 "select user_id, mu, sigma from room_rating "
-                "where user_id = any(%s) and league = %s order by user_id for update",
-                (users, league),
+                "where user_id = any(%s) and battle_mode = %s "
+                "order by user_id for update",
+                (users, battle_mode),
             ).fetchall()
         }
         rank = ranks(placed)
@@ -3645,19 +3763,19 @@ class PostgresMatchResults:
         for user in users:
             conn.execute(
                 "update room_rating set mu = %s, sigma = %s, games = games + 1, "
-                "updated_at = now() where user_id = %s and league = %s",
-                (after[user].mu, after[user].sigma, user, league),
+                "updated_at = now() where user_id = %s and battle_mode = %s",
+                (after[user].mu, after[user].sigma, user, battle_mode),
             )
             conn.execute(
                 """
-                insert into room_rating_history (match_id, user_id, league, mu_before,
-                  mu_after, sigma_after, rank)
+                insert into room_rating_history (match_id, user_id, battle_mode,
+                  mu_before, mu_after, sigma_after, rank)
                 values (%s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     result.match_id,
                     user,
-                    league,
+                    battle_mode,
                     before[user].mu,
                     after[user].mu,
                     after[user].sigma,
@@ -3924,61 +4042,62 @@ class PostgresSeasons:
                         for after in [season_reset(Glicko(rating, rd, volatility))]
                     ],
                 )
-            # P5-W33 (§6.7, Q-P5-20): the battle boards' final standings, per league and
-            # rating kind, from each player's last rated battle of the season (a room's
-            # as OpenSkill's ordinal, mu - 3 sigma), as quick games' are kept above.
+            # P5-W33 (§6.7, Q-P5-20): the battle boards' final standings, per battle
+            # mode and rating kind, from each player's last rated battle of the season
+            # (a room's as OpenSkill's ordinal, mu - 3 sigma), as quick games' are kept
+            # above.
             conn.execute(
                 """
                 insert into battle_season_standing
-                  (season, user_id, league, kind, rating)
-                select distinct on (user_id, league) %(season)s, user_id, league,
-                       'duel', rating_after
+                  (season, user_id, battle_mode, kind, rating)
+                select distinct on (user_id, battle_mode) %(season)s, user_id,
+                       battle_mode, 'duel', rating_after
                 from battle_rating_history
                 where at >= %(start)s and at < %(end)s
-                order by user_id, league, at desc, match_id desc
+                order by user_id, battle_mode, at desc, match_id desc
                 """,
                 {"season": season, "start": start, "end": end},
             )
             conn.execute(
                 """
                 insert into battle_season_standing
-                  (season, user_id, league, kind, rating)
-                select distinct on (user_id, league) %(season)s, user_id, league,
-                       'room', mu_after - 3 * sigma_after
+                  (season, user_id, battle_mode, kind, rating)
+                select distinct on (user_id, battle_mode) %(season)s, user_id,
+                       battle_mode, 'room', mu_after - 3 * sigma_after
                 from room_rating_history
                 where at >= %(start)s and at < %(end)s
-                order by user_id, league, at desc, match_id desc
+                order by user_id, battle_mode, at desc, match_id desc
                 """,
                 {"season": season, "start": start, "end": end},
             )
             # P5-W32-S01a (Q-P5-18): 1v1 battle ratings take the same soft reset, every
-            # league. Locked in the order a battle locks.
+            # battle mode. Locked in the order a battle locks.
             battles = conn.execute(
-                "select user_id, league, rating, rd, volatility from battle_rating"
+                "select user_id, battle_mode, rating, rd, volatility from battle_rating"
                 " order by user_id for update"
             ).fetchall()
             with conn.cursor() as cur:
                 cur.executemany(
                     "update battle_rating set rating = %s, rd = %s, volatility = %s,"
-                    " updated_at = now() where user_id = %s and league = %s",
+                    " updated_at = now() where user_id = %s and battle_mode = %s",
                     [
-                        (after.rating, after.rd, after.volatility, user, league)
-                        for user, league, rating, rd, volatility in battles
+                        (after.rating, after.rd, after.volatility, user, battle_mode)
+                        for user, battle_mode, rating, rd, volatility in battles
                         for after in [season_reset(Glicko(rating, rd, volatility))]
                     ],
                 )
             # P5-W32-S01b: and room ratings, OpenSkill's version of the same reset.
             rooms = conn.execute(
-                "select user_id, league, mu, sigma from room_rating"
+                "select user_id, battle_mode, mu, sigma from room_rating"
                 " order by user_id for update"
             ).fetchall()
             with conn.cursor() as cur:
                 cur.executemany(
                     "update room_rating set mu = %s, sigma = %s, updated_at = now()"
-                    " where user_id = %s and league = %s",
+                    " where user_id = %s and battle_mode = %s",
                     [
-                        (after.mu, after.sigma, user, league)
-                        for user, league, mu, sigma in rooms
+                        (after.mu, after.sigma, user, battle_mode)
+                        for user, battle_mode, mu, sigma in rooms
                         for after in [room_season_reset(Skill(mu, sigma))]
                     ],
                 )
@@ -4654,7 +4773,8 @@ class PostgresHldJudgements:
 
 class PostgresHldMatches:
     """HLD match ratings (P6-W42, MATCH-1, Q-P6-06): Glicko-2 for a 1v1, OpenSkill for a
-    room of 3 or 4, from the places the web app set; per league, apart from LLD's."""
+    room of 3 or 4, from the places the web app set; per battle mode, apart from
+    LLD's."""
 
     def __init__(self, conn: psycopg.Connection) -> None:
         self._conn = conn
@@ -4663,14 +4783,14 @@ class PostgresHldMatches:
         conn = self._conn
         # Locked, so two deliveries can't both rate it.
         match = conn.execute(
-            "select league from hld_match where id = %s::uuid"
+            "select battle_mode from hld_match where id = %s::uuid"
             " and scored_at is not null and rated_at is null and not unrated"
             " for update",
             (match_id,),
         ).fetchone()
         if match is None:
             return False
-        league = str(match[0])
+        battle_mode = str(match[0])
         placed = {
             str(user): int(place)
             for user, place in conn.execute(
@@ -4681,30 +4801,31 @@ class PostgresHldMatches:
         }
         users = sorted(placed)
         if len(users) == 2:
-            self._rate_duel(match_id, league, users, placed)
+            self._rate_duel(match_id, battle_mode, users, placed)
         elif len(users) in (3, 4):
-            self._rate_room(match_id, league, users, placed)
+            self._rate_room(match_id, battle_mode, users, placed)
         conn.execute(
             "update hld_match set rated_at = now() where id = %s::uuid", (match_id,)
         )
         return len(users) >= 2
 
     def _rate_duel(
-        self, match_id: str, league: str, users: list[str], placed: dict[str, int]
+        self, match_id: str, battle_mode: str, users: list[str], placed: dict[str, int]
     ) -> None:
         conn = self._conn
         conn.execute(
-            "insert into hld_rating (user_id, league, rating, rd, volatility) "
+            "insert into hld_rating (user_id, battle_mode, rating, rd, volatility) "
             "select u, %s, %s, %s, %s from unnest(%s::text[]) u on conflict do nothing",
-            (league, START.rating, START.rd, START.volatility, users),
+            (battle_mode, START.rating, START.rd, START.volatility, users),
         )
         # In user_id order, as every rating locks: no deadlock between two matches.
         before = {
             str(user): Glicko(float(rating), float(rd), float(volatility))
             for user, rating, rd, volatility in conn.execute(
                 "select user_id, rating, rd, volatility from hld_rating "
-                "where user_id = any(%s) and league = %s order by user_id for update",
-                (users, league),
+                "where user_id = any(%s) and battle_mode = %s "
+                "order by user_id for update",
+                (users, battle_mode),
             ).fetchall()
         }
         a, b = users
@@ -4715,19 +4836,19 @@ class PostgresHldMatches:
             conn.execute(
                 "update hld_rating set rating = %s, rd = %s, volatility = %s, "
                 "games = games + 1, updated_at = now() "
-                "where user_id = %s and league = %s",
-                (after.rating, after.rd, after.volatility, user, league),
+                "where user_id = %s and battle_mode = %s",
+                (after.rating, after.rd, after.volatility, user, battle_mode),
             )
             conn.execute(
                 """
-                insert into hld_rating_history (match_id, user_id, league,
+                insert into hld_rating_history (match_id, user_id, battle_mode,
                   rating_before, rating_after, rd_after, volatility_after, score)
                 values (%s::uuid, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     match_id,
                     user,
-                    league,
+                    battle_mode,
                     before[user].rating,
                     after.rating,
                     after.rd,
@@ -4737,39 +4858,40 @@ class PostgresHldMatches:
             )
 
     def _rate_room(
-        self, match_id: str, league: str, users: list[str], placed: dict[str, int]
+        self, match_id: str, battle_mode: str, users: list[str], placed: dict[str, int]
     ) -> None:
         conn = self._conn
         conn.execute(
-            "insert into hld_room_rating (user_id, league, mu, sigma) "
+            "insert into hld_room_rating (user_id, battle_mode, mu, sigma) "
             "select u, %s, %s, %s from unnest(%s::text[]) u on conflict do nothing",
-            (league, SKILL_START.mu, SKILL_START.sigma, users),
+            (battle_mode, SKILL_START.mu, SKILL_START.sigma, users),
         )
         before = {
             str(user): Skill(float(mu), float(sigma))
             for user, mu, sigma in conn.execute(
                 "select user_id, mu, sigma from hld_room_rating "
-                "where user_id = any(%s) and league = %s order by user_id for update",
-                (users, league),
+                "where user_id = any(%s) and battle_mode = %s "
+                "order by user_id for update",
+                (users, battle_mode),
             ).fetchall()
         }
         after = rate_room(before, placed)
         for user in users:
             conn.execute(
                 "update hld_room_rating set mu = %s, sigma = %s, games = games + 1, "
-                "updated_at = now() where user_id = %s and league = %s",
-                (after[user].mu, after[user].sigma, user, league),
+                "updated_at = now() where user_id = %s and battle_mode = %s",
+                (after[user].mu, after[user].sigma, user, battle_mode),
             )
             conn.execute(
                 """
-                insert into hld_room_rating_history (match_id, user_id, league,
+                insert into hld_room_rating_history (match_id, user_id, battle_mode,
                   mu_before, mu_after, sigma_after, rank)
                 values (%s::uuid, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     match_id,
                     user,
-                    league,
+                    battle_mode,
                     before[user].mu,
                     after[user].mu,
                     after[user].sigma,

@@ -96,7 +96,7 @@ class FakeBatches:
             )
         quote = re.split(r"(?<=[.!?])\s", passage.strip())[0][:200]
         one = {
-            "stem": "What does the passage say?",
+            "stem": "What does a write-ahead log do?",
             "options": ["It", "Something else", "Nothing", "Everything"],
             "correct": 0,
             "citation": quote,

@@ -91,6 +91,7 @@ from interval_jobs.questions import PROMPT_VERSION as QUESTIONS_PROMPT_VERSION
 from interval_jobs.ranking.scoring import BREAK_MINUTES
 from interval_jobs.recalibration import recalibrate
 from interval_jobs.reminders import run_push_due, run_window_reminders
+from interval_jobs.rewrite_stems import RETRY_AFTER, rewrite_stems
 from interval_jobs.scenes import draw as draw_scenes
 from interval_jobs.seasons import close_season
 from interval_jobs.segment import segment_item
@@ -351,6 +352,19 @@ def main(argv: list[str]) -> None:
         "suggest-technologies",
         help="ask QUESTIONS_MODEL to map unclaimed packages, for review (P2-W12-S03)",
     )
+    stems = commands.add_parser(
+        "rewrite-stems",
+        help="rewrite live questions' stems that refer to their passage so they stand "
+        "alone, with QUESTIONS_MODEL, validated again (Q-1)",
+    )
+    stems.add_argument("--limit", type=_rewrite_limit)
+    stems.add_argument(
+        "--retry-days",
+        type=_retry_days,
+        default=RETRY_AFTER.days,
+        help="leave a question whose rewrite failed alone this many days (default "
+        f"{RETRY_AFTER.days}; 0 tries every one again)",
+    )
     commands.add_parser(
         "sync-github-due",
         help="queue a read of each connected user's repositories, if active this week "
@@ -597,6 +611,10 @@ def _run(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
         print(json.dumps(asdict(outcome)))
         if outcome.stopped is not None:
             sys.exit(f"suggest-technologies stopped: {outcome.stopped}")
+        return
+
+    if args.command == "rewrite-stems":
+        _rewrite_stems(args.limit, timedelta(days=args.retry_days))
         return
 
     if args.command == "voice-explainers":
@@ -903,6 +921,20 @@ def _explainer_limit(value: str) -> int:
     return limit
 
 
+def _rewrite_limit(value: str) -> int:
+    limit = int(value)
+    if limit < 1:
+        raise argparse.ArgumentTypeError("--limit must be at least 1")
+    return limit
+
+
+def _retry_days(value: str) -> int:
+    days = int(value)
+    if days < 0:
+        raise argparse.ArgumentTypeError("--retry-days must be at least 0")
+    return days
+
+
 def _path_count(value: str) -> int:
     count = int(value)
     if not 1 <= count <= 20:
@@ -924,6 +956,35 @@ def _propose_paths(count: int) -> None:
         with job.gateway() as gateway:
             got = propose(unit, gateway, job.model, count)
     print(json.dumps(asdict(got), indent=2))
+
+
+def _rewrite_stems(limit: int | None, retry_after: timedelta) -> None:
+    """Owner, 2026-11-23: run by hand, within the daily AI budget; rerun to carry on."""
+
+    @contextmanager
+    def unit() -> Generator[Store]:
+        with services() as s:
+            yield s.store
+
+    with model_job("QUESTIONS_MODEL") as job:
+        if job is None:
+            sys.exit("rewrite-stems needs QUESTIONS_MODEL")
+        with job.gateway() as gateway:
+            # One call per question, not the batch tier: a rerun picks up at once.
+            got = rewrite_stems(
+                unit,
+                gateway,
+                job.model.removeprefix(BATCH_PREFIX),
+                limit,
+                retry_after=retry_after,
+                now=datetime.now(UTC),
+            )
+    print(json.dumps(asdict(got), indent=2))
+    if got.stopped is not None:
+        sys.exit(f"rewrite-stems stopped: {got.stopped}")
+    if got.errors:
+        # Finished, but a model outage must not look like a clean run.
+        sys.exit(2)
 
 
 def _voice_explainers(limit: int) -> None:

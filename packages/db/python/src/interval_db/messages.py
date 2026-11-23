@@ -34,7 +34,7 @@ class AgentNudge(_Message):
 
 
 class AnswerInterviewer(_Message):
-    """Answer a player's question to the interviewer in an AI-league battle, from the
+    """Answer a player's question to the interviewer in an AI-mode battle, from the
     problem's interviewer notes (§6.2, Q-P5-13, P5-W33)."""
 
     question_id: Annotated[int, Field(ge=1)]

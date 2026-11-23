@@ -43,9 +43,14 @@ func (f fakeJudge) Judge(ctx context.Context, job judge.JudgeJob) (judge.JudgeRe
 // Lets a "slow" judging finish.
 var release = make(chan struct{}, 16)
 
-func startBattle(t *testing.T) (*actor, *fakeClock, *memStore, *fakeSeat, *fakeSeat) {
+// Each edit changes the handoff first, as battleJSON's does.
+func startBattle(t *testing.T, edits ...func(m map[string]any)) (*actor, *fakeClock, *memStore, *fakeSeat, *fakeSeat) {
 	t.Helper()
-	def, err := parseMatch(battleJSON(t, nil))
+	def, err := parseMatch(battleJSON(t, func(m map[string]any) {
+		for _, edit := range edits {
+			edit(m)
+		}
+	}))
 	if err != nil {
 		t.Fatal(err)
 	}

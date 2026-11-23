@@ -5,7 +5,7 @@ import { afterAll, expect, test } from "vitest";
 import { createDb } from "./kysely";
 import { kyselyBattleBoards } from "./kysely-battle-boards";
 
-// P5-W33 (§6.7, Q-P5-20): a league's boards this season: 1v1 by rating, rooms by
+// P5-W33 (§6.7, Q-P5-20): a battle mode's boards this season: 1v1 by rating, rooms by
 // OpenSkill's ordinal; nobody unrated or rated only before the season.
 const connectionString = process.env["DATABASE_URL"];
 if (connectionString === undefined) throw new Error("DATABASE_URL is not set");
@@ -17,7 +17,7 @@ afterAll(async () => {
 
 class Rollback extends Error {}
 
-test("this season's boards per league and kind, the viewer marked", async () => {
+test("this season's boards per battle mode and kind, the viewer marked", async () => {
   await expect(
     db.transaction().execute(async (trx: Kysely<DB>) => {
       const code = await trx
@@ -55,7 +55,7 @@ test("this season's boards per league and kind, the viewer marked", async () => 
         .values([
           {
             user_id: a,
-            league: "ai",
+            battle_mode: "ai",
             rating: 1600,
             rd: 90,
             volatility: 0.06,
@@ -64,7 +64,7 @@ test("this season's boards per league and kind, the viewer marked", async () => 
           },
           {
             user_id: b,
-            league: "ai",
+            battle_mode: "ai",
             rating: 1700,
             rd: 90,
             volatility: 0.06,
@@ -74,7 +74,7 @@ test("this season's boards per league and kind, the viewer marked", async () => 
           // Rated only before the season: not on it.
           {
             user_id: c,
-            league: "ai",
+            battle_mode: "ai",
             rating: 1900,
             rd: 90,
             volatility: 0.06,
@@ -87,7 +87,7 @@ test("this season's boards per league and kind, the viewer marked", async () => 
         .insertInto("room_rating")
         .values({
           user_id: a,
-          league: "ai",
+          battle_mode: "ai",
           mu: 30,
           sigma: 2,
           games: 1,
@@ -96,18 +96,18 @@ test("this season's boards per league and kind, the viewer marked", async () => 
         .execute();
       // Only rated battles this season put a player on its board (the season's reset
       // touches every rating): a, b and a's room; c's last was before.
-      const match = async (league: "human" | "ai") =>
+      const match = async (battleMode: "human" | "ai") =>
         (
           await trx
             .insertInto("game_match")
-            .values({ server_id: 0, league })
+            .values({ server_id: 0, battle_mode: battleMode })
             .returning("id")
             .executeTakeFirstOrThrow()
         ).id;
       const history = (user_id: string, match_id: string, at: Date) => ({
         match_id,
         user_id,
-        league: "ai",
+        battle_mode: "ai",
         rating_before: 1500,
         rating_after: 1550,
         rd_after: 90,
@@ -130,7 +130,7 @@ test("this season's boards per league and kind, the viewer marked", async () => 
         .values({
           match_id: m1,
           user_id: a,
-          league: "ai",
+          battle_mode: "ai",
           mu_before: 25,
           mu_after: 30,
           sigma_after: 2,

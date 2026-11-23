@@ -4,6 +4,7 @@ import json
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -12,9 +13,14 @@ from interval_jobs import __main__ as cli
 from interval_jobs.__main__ import main
 from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
 from interval_jobs.adapters.memory_queue import InMemoryQueue
+from interval_jobs.ai.gateway import AiGateway
 from interval_jobs.concepts.graph import parse_concepts
 from interval_jobs.concepts.sync import sync_concepts
+from interval_jobs.pipeline import ModelJob
 from interval_jobs.ports import FeedEntry, Fetched, FetchKind, MomentRow
+from interval_jobs.rewrite_stems import RewriteRun
+
+from .test_pipeline import NoEmbeddings, TagLlm
 
 
 @dataclass
@@ -491,3 +497,77 @@ def test_prune_snapshots_needs_the_private_bucket(
     monkeypatch.setattr(cli, "files", lambda: None)
     with pytest.raises(SystemExit, match="PRIVATE_CONTENT_BUCKET"):
         main(["prune-snapshots"])
+
+
+def test_rewrite_stems_needs_the_question_model_and_a_positive_limit(
+    monkeypatch: pytest.MonkeyPatch, store: InMemoryStore
+) -> None:
+    with pytest.raises(SystemExit) as exit_info:
+        main(["rewrite-stems", "--limit", "0"])
+    assert exit_info.value.code == 2
+
+    @contextmanager
+    def no_model(variable: str) -> Generator[None]:
+        assert variable == "QUESTIONS_MODEL"
+        yield None
+
+    monkeypatch.setattr(cli, "model_job", no_model)
+    with pytest.raises(SystemExit, match="QUESTIONS_MODEL"):
+        main(["rewrite-stems"])
+    with pytest.raises(SystemExit) as exit_info:
+        main(["rewrite-stems", "--retry-days", "-1"])
+    assert exit_info.value.code == 2
+
+
+@pytest.mark.parametrize(
+    ("errors", "stopped", "code"),
+    [
+        (0, None, None),
+        # Model errors (an outage) finish the run, then exit 2 so they show.
+        (3, None, 2),
+        # A spent budget stops it, as before.
+        (0, "the global AI budget is spent", "rewrite-stems stopped: the global AI "
+         "budget is spent"),
+    ],
+)  # fmt: skip
+def test_rewrite_stems_exits_non_zero_after_model_errors(
+    monkeypatch: pytest.MonkeyPatch,
+    store: InMemoryStore,
+    capsys: pytest.CaptureFixture[str],
+    errors: int,
+    stopped: str | None,
+    code: int | str | None,
+) -> None:
+    @contextmanager
+    def gateway() -> Generator[AiGateway]:
+        yield AiGateway(InMemoryAi(store.users), TagLlm(), NoEmbeddings())
+
+    @contextmanager
+    def a_model(variable: str) -> Generator[ModelJob]:
+        yield ModelJob("batch:qwen-questions", gateway)
+
+    asked: list[tuple[str, int | None, timedelta]] = []
+
+    def fake_rewrite(
+        stores: object,
+        gateway: AiGateway,
+        model: str,
+        limit: int | None,
+        *,
+        retry_after: timedelta,
+        now: datetime,
+    ) -> RewriteRun:
+        asked.append((model, limit, retry_after))
+        return RewriteRun(1, 0, 0, errors, 0, 0, 0, 0, stopped)
+
+    monkeypatch.setattr(cli, "model_job", a_model)
+    monkeypatch.setattr(cli, "rewrite_stems", fake_rewrite)
+    if code is None:
+        main(["rewrite-stems", "--limit", "5", "--retry-days", "2"])
+    else:
+        with pytest.raises(SystemExit) as exit_info:
+            main(["rewrite-stems", "--limit", "5", "--retry-days", "2"])
+        assert exit_info.value.code == code
+    # One call at a time (no batch tier), the limit and cool-off as given.
+    assert asked == [("qwen-questions", 5, timedelta(days=2))]
+    assert json.loads(capsys.readouterr().out)["errors"] == errors

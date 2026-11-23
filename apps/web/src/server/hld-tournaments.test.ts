@@ -25,7 +25,7 @@ function world(players: string[], universities: Record<string, string>) {
   let tournament: HldTournament = {
     id: "t1",
     name: "Cup",
-    league: "human",
+    battleMode: "human",
     startsAt: new Date("2026-11-20T18:00:00Z"),
     round: 0,
     finishedAt: null,
@@ -53,7 +53,7 @@ function world(players: string[], universities: Record<string, string>) {
   const hldMatches = {
     create: (
       users: string[],
-      v: { family: string; league: "human" | "ai"; seed: number },
+      v: { family: string; battleMode: "human" | "ai"; seed: number },
     ) => {
       const id = `m${String(matches.size + 1)}`;
       matches.set(id, {

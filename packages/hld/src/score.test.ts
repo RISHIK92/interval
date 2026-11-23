@@ -71,7 +71,7 @@ describe("a match's problem", () => {
     );
     expect(others).not.toEqual({ family, seed });
     const problem = matchProblem(family, "ai", seed);
-    expect(problem?.league).toBe("ai");
+    expect(problem?.battleMode).toBe("ai");
     expect(matchProblem(family, "ai", seed)).toBe(problem);
     expect(matchProblem(family, "ai", 99_999)).toBeNull();
     expect(problemBySlug(`${family}-ai-${String(seed)}`)).toBe(problem);

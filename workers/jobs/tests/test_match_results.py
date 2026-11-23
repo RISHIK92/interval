@@ -985,8 +985,8 @@ def test_five_long_aways_flag_a_battle_player_and_four_do_not(
     ]
 
 
-# P5-W32-S01a (MATCH-1, Q-P5-18): a 1v1 battle is rated with Glicko-2 in its league,
-# apart from quick games' ratings.
+# P5-W32-S01a (MATCH-1, Q-P5-18): a 1v1 battle is rated with Glicko-2 in its battle
+# mode, apart from quick games' ratings.
 def _battle_result(
     match_id: str,
     outcome: str,
@@ -1014,19 +1014,19 @@ def _battle_result(
 
 
 def _battle_ratings(
-    conn: psycopg.Connection, users: list[str], league: str = "human"
+    conn: psycopg.Connection, users: list[str], battle_mode: str = "human"
 ) -> dict[str, tuple[float, int]]:
     return {
         user: (rating, games)
         for user, rating, games in conn.execute(
             "select user_id, rating, games from battle_rating "
-            "where user_id = any(%s) and league = %s",
-            (users, league),
+            "where user_id = any(%s) and battle_mode = %s",
+            (users, battle_mode),
         ).fetchall()
     }
 
 
-def test_a_decisive_battle_rates_both_players_in_its_league(
+def test_a_decisive_battle_rates_both_players_in_its_battle_mode(
     conn: psycopg.Connection,
 ) -> None:
     for user in ("bra", "brb"):
@@ -1041,7 +1041,7 @@ def test_a_decisive_battle_rates_both_players_in_its_league(
     assert ratings["bra"][0] > 1500 > ratings["brb"][0]
     assert ratings["bra"][1] == ratings["brb"][1] == 1
     assert conn.execute(
-        "select user_id, league, rating_before, score from battle_rating_history "
+        "select user_id, battle_mode, rating_before, score from battle_rating_history "
         "where match_id = %s order by user_id",
         (match_id,),
     ).fetchall() == [("bra", "human", 1500.0, 1.0), ("brb", "human", 1500.0, 0.0)]
@@ -1086,7 +1086,7 @@ def test_an_abandoned_battle_is_a_loss_for_the_leaver(
     assert ratings["bre"][0] > 1500 > ratings["brf"][0]
 
 
-def test_a_cancelled_battle_or_an_ai_league_one_leaves_the_human_ratings(
+def test_a_cancelled_battle_or_an_ai_mode_one_leaves_the_human_ratings(
     conn: psycopg.Connection,
 ) -> None:
     for user in ("brg", "brh"):
@@ -1099,7 +1099,7 @@ def test_a_cancelled_battle_or_an_ai_league_one_leaves_the_human_ratings(
     )
     assert _battle_ratings(conn, ["brg", "brh"]) == {}
     ai = a_battle(conn, ["brg", "brh"])
-    conn.execute("update game_match set league = 'ai' where id = %s", (ai,))
+    conn.execute("update game_match set battle_mode = 'ai' where id = %s", (ai,))
     PostgresMatchResults(conn).record(
         _battle_result(
             ai, "finished", "brg", [("brg", 900, False), ("brh", 100, False)]
@@ -1146,16 +1146,16 @@ def test_unrated_rooms_and_self_battles_leave_battle_ratings_alone(
 
 
 # P5-W32-S01b (MATCH-1, Q-P5-18): a room of 3 or 4 is rated with OpenSkill in its
-# league, by points then time, the abandoned last; apart from 1v1 battle ratings.
+# battle mode, by points then time, the abandoned last; apart from 1v1 battle ratings.
 def _room_skills(
-    conn: psycopg.Connection, users: list[str], league: str = "human"
+    conn: psycopg.Connection, users: list[str], battle_mode: str = "human"
 ) -> dict[str, tuple[float, int]]:
     return {
         user: (mu, games)
         for user, mu, games in conn.execute(
             "select user_id, mu, games from room_rating "
-            "where user_id = any(%s) and league = %s",
-            (users, league),
+            "where user_id = any(%s) and battle_mode = %s",
+            (users, battle_mode),
         ).fetchall()
     }
 
@@ -1233,7 +1233,7 @@ def test_a_battle_records_each_players_place(conn: psycopg.Connection) -> None:
 
 
 def test_similar_code_flags_a_battle_player(conn: psycopg.Connection) -> None:
-    """P5-W33 (Q-P5-20): copied best submissions in the human league go to review."""
+    """P5-W33 (Q-P5-20): copied best submissions in the human mode go to review."""
     similar: dict[str, object] = {"kind": "similar", "round": 45, "ms": None}
     match_id = _battle_with(conn, "lfd", [similar])
     assert _flags(conn, match_id) == [("lfd", 1, None, None)]

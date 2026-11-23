@@ -763,12 +763,12 @@ export interface Matches {
   ): Promise<LiveMatch | null>;
   // P5-W31-S02b-2b (§6.5): an LLD battle on a loaded problem, for the game server's
   // battle actor; its id. Its result is stored like any match's; ratings come in W32.
-  // P5-W32: unrated, as a casual or solo battle is (Q-P5-19); P5-W33: its league.
+  // P5-W32: unrated, as a casual or solo battle is (Q-P5-19); P5-W33: its battle mode.
   createBattle(
     serverId: number,
     players: string[],
     slug: string,
-    options?: { unrated?: boolean; league?: League },
+    options?: { unrated?: boolean; battleMode?: BattleMode },
   ): Promise<string>;
   // The game server that owns the match, and the id the player plays as there (a guest
   // who signed up mid-match keeps the guest's, Q-P3-21), when the player is in it; null
@@ -909,9 +909,9 @@ export interface AgentHook {
 // P3-W16-S01 (ADR-0034): a player's quick-game rating; 1500 before their first match.
 export interface PlayerRatings {
   of(userId: string): Promise<number>;
-  // P5-W32 (Q-P5-18): the 1v1 battle rating in a league, for the casual queue's bands
+  // P5-W32 (Q-P5-18): the 1v1 battle rating in a battle mode, for the casual queue's bands
   // (1500 before a first rated battle).
-  battleOf(userId: string, league: League): Promise<number>;
+  battleOf(userId: string, battleMode: BattleMode): Promise<number>;
   // P3-W18-S02 (§6.9; owner, 2026-11-05): the player's confirmed fair-play penalties,
   // newest first: the rating each removed (0 when its match gained nothing).
   adjustments(userId: string): Promise<{ penalty: number; playedAt: Date }[]>;
@@ -929,13 +929,15 @@ export interface MatchHandoff {
 // harnesses per language, and every scenario with its expected results. It stays in
 // Valkey and the game server; no client ever receives it.
 export type BattleFile = { name: string; content: string };
-export type League = "human" | "ai"; // §6.2
+export type BattleMode = "human" | "ai"; // §6.2
 export type BattleMatch = {
   id: string;
   players: string[];
   battle: {
     problem: string;
-    league: League; // P5-W33: the game server checks code similarity in the human one
+    // P5-W33: the game server checks code similarity in the human one; ADR-0047: the
+    // game server's JSON name.
+    battle_mode: BattleMode;
     // P5-W33: each language's base starter, which similarity leaves out.
     starters: Record<string, string>;
     limits: Problem["limits"];
@@ -1826,7 +1828,7 @@ export interface BattleSnapshots {
   ): Promise<{ player: string; snapshots: BattleSnapshot[] } | null>;
 }
 
-// P5-W33 (§6.2, AI-1; Q-P5-13): "ask the interviewer" in an AI-league battle. At most
+// P5-W33 (§6.2, AI-1; Q-P5-13): "ask the interviewer" in an AI-mode battle. At most
 // 10 questions a player a battle; the worker answers from the problem's notes, and the
 // answer is labelled AI wherever it's shown.
 export const INTERVIEWER_QUESTIONS = 10;
@@ -1838,7 +1840,7 @@ export type BattleQuestion = {
 };
 export interface BattleQuestions {
   // The question's id; "limit" once 10 are asked; null when the user isn't a player
-  // of this AI-league battle while it's on.
+  // of this AI-mode battle while it's on.
   ask(
     matchId: string,
     userId: string,
@@ -1868,7 +1870,7 @@ export type BattleReview = {
 };
 export type BattleResult = {
   problem: string;
-  league: League;
+  battleMode: BattleMode;
   finishedAt: Date | null; // null while it's on
   standings: BattleStanding[];
   // The viewer's rating change from it, when it was rated: Glicko for a 1v1, OpenSkill
@@ -1925,13 +1927,13 @@ export interface AdminDisputes {
   ): Promise<boolean>;
 }
 
-// P5-W33 (§6.7, Q-P5-20): this season's battle boards, global, per league: the 1v1
+// P5-W33 (§6.7, Q-P5-20): this season's battle boards, global, per battle mode: the 1v1
 // rating (Glicko) and the room rating (OpenSkill's ordinal, mu - 3 sigma), of players
 // with a rated battle since the season began. `you` marks the viewer's row.
 export type BattleBoardRow = { name: string; rating: number; you: boolean };
 export interface BattleBoards {
   top(
-    league: League,
+    battleMode: BattleMode,
     kind: "duel" | "room",
     since: Date,
     viewer: string,
@@ -1943,26 +1945,26 @@ export interface BattleBoards {
 // grouping. Times are a window's start (battle-windows.ts).
 export type WindowPlayer = { userId: string; rating: number };
 export interface BattleWindows {
-  // P5-W33 (Q-P5-20): in one league; registering again moves the player to it.
+  // P5-W33 (Q-P5-20): in one battle mode; registering again moves the player to it.
   register(
     windowAt: Date,
     userId: string,
     remindAt: Date,
-    league: League,
+    battleMode: BattleMode,
   ): Promise<void>;
   unregister(windowAt: Date, userId: string): Promise<void>;
-  // Null when not registered; the league and the battle once grouped.
+  // Null when not registered; the battle mode and the battle once grouped.
   registration(
     windowAt: Date,
     userId: string,
-  ): Promise<{ matchId: string | null; league: League } | null>;
+  ): Promise<{ matchId: string | null; battleMode: BattleMode } | null>;
   // The window's grouping, for the first caller at or after its start, or one coming
   // back a minute after a claim that left players ungrouped: its problem (`pick` when
   // first claimed) and its ungrouped players by room rating, best first; `first` for
   // the window's first claim. Null when another caller has it.
   claim(
     windowAt: Date,
-    league: League,
+    battleMode: BattleMode,
     now: Date,
     pick: () => Promise<string>,
   ): Promise<{
@@ -1971,11 +1973,11 @@ export interface BattleWindows {
     first: boolean;
   } | null>;
   // The claim is still being worked: no reclaim for another minute.
-  extend(windowAt: Date, league: League, now: Date): Promise<void>;
-  // Only rows still in the league: one who moved meanwhile is grouped in theirs.
+  extend(windowAt: Date, battleMode: BattleMode, now: Date): Promise<void>;
+  // Only rows still in the battle mode: one who moved meanwhile is grouped in theirs.
   assign(
     windowAt: Date,
-    league: League,
+    battleMode: BattleMode,
     matchId: string,
     userIds: string[],
   ): Promise<void>;
@@ -2153,7 +2155,7 @@ export type LoadedProblem = Pick<
   "slug" | "title" | "difficulty" | "interface" | "limits"
 > & {
   statement: string;
-  league: League; // P5-W33: its league's pool
+  battleMode: BattleMode; // P5-W33: its battle mode's pool
   checks: NonNullable<Problem["checks"]>;
   // The visible scenarios with their expected results, in the problem's order.
   visible: { scenario: Scenario; results: ResultLine[] }[];
@@ -2168,8 +2170,8 @@ export type LoadedProblem = Pick<
 export interface ProblemStore {
   // The live problems (not retired): slug to content hash.
   hashes(): Promise<Map<string, string>>;
-  // P5-W33 (Q-P5-20): a league's live problems.
-  pool(league: League): Promise<string[]>;
+  // P5-W33 (Q-P5-20): a battle mode's live problems.
+  pool(battleMode: BattleMode): Promise<string[]>;
   // A live problem, or null when there's none by that slug or it's retired.
   get(slug: string): Promise<LoadedProblem | null>;
   // Insert or replace by slug; a retired problem loaded again is live again.
@@ -2259,7 +2261,7 @@ export interface HldJudgements {
 export type HldMatch = {
   id: string;
   family: string;
-  league: League;
+  battleMode: BattleMode;
   seed: number;
   unrated: boolean;
   windowAt: Date | null;
@@ -2294,7 +2296,7 @@ export type HldSubmission = {
 export interface HldMatches {
   create(
     players: string[],
-    variant: { family: string; league: League; seed: number },
+    variant: { family: string; battleMode: BattleMode; seed: number },
     options: { unrated: boolean; windowAt: Date | null; minutes: number },
   ): Promise<string>;
   get(id: string): Promise<{ match: HldMatch; seats: HldSeat[] } | null>;
@@ -2333,11 +2335,11 @@ export interface HldMatches {
     standings: { userId: string; total: number; place: number }[],
     at: Date,
   ): Promise<boolean>; // once
-  ratingOf(userId: string, league: League): Promise<number>; // 1v1, for the queue's band
+  ratingOf(userId: string, battleMode: BattleMode): Promise<number>; // 1v1, for the queue's band
   ratingChanges(id: string): Promise<Map<string, number>>;
   unscoredFor(userId: string): Promise<string[]>;
-  // HLDQ-3: "<family>/<seed>" of the league's variants tournaments used.
-  retired(league: League): Promise<Set<string>>;
+  // HLDQ-3: "<family>/<seed>" of the battle mode's variants tournaments used.
+  retired(battleMode: BattleMode): Promise<Set<string>>;
   // P6-W44 (Q-P6-08): the match's autosaves for its replay, oldest first, at most
   // `perPlayer` of each player's, spread evenly with the last kept.
   versions(
@@ -2350,28 +2352,32 @@ export interface HldMatches {
 
 // P6-W42 (MATCH-7, Q-P6-06): HLD's ranked windows, at LLD's times, registered apart.
 export interface HldWindows {
-  // In one league; registering again moves the player to it, until grouped.
-  register(windowAt: Date, userId: string, league: League): Promise<void>;
+  // In one battle mode; registering again moves the player to it, until grouped.
+  register(
+    windowAt: Date,
+    userId: string,
+    battleMode: BattleMode,
+  ): Promise<void>;
   unregister(windowAt: Date, userId: string): Promise<void>;
   registration(
     windowAt: Date,
     userId: string,
-  ): Promise<{ matchId: string | null; league: League } | null>;
+  ): Promise<{ matchId: string | null; battleMode: BattleMode } | null>;
   // As BattleWindows.claim: the window's variant (`pick` when first claimed) and its
   // ungrouped players by HLD room rating, best first; null when another caller has it.
   claim(
     windowAt: Date,
-    league: League,
+    battleMode: BattleMode,
     now: Date,
     pick: () => { family: string; seed: number },
   ): Promise<{
     variant: { family: string; seed: number };
     players: WindowPlayer[];
   } | null>;
-  extend(windowAt: Date, league: League, now: Date): Promise<void>;
+  extend(windowAt: Date, battleMode: BattleMode, now: Date): Promise<void>;
   assign(
     windowAt: Date,
-    league: League,
+    battleMode: BattleMode,
     matchId: string,
     userIds: string[],
   ): Promise<void>;
@@ -2381,7 +2387,7 @@ export interface HldWindows {
 export type HldTournament = {
   id: string;
   name: string;
-  league: League;
+  battleMode: BattleMode;
   startsAt: Date;
   round: number; // 0 before the first; 1-5 Swiss, 6-8 the bracket
   finishedAt: Date | null;
@@ -2404,7 +2410,7 @@ export interface HldTournaments {
   create(
     t: {
       name: string;
-      league: League;
+      battleMode: BattleMode;
       startsAt: Date;
       rounds: { family: string; seed: number }[];
     },

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { BattleQuestion } from "../../../../server/ports";
 
-// P5-W33 (§6.2, AI-1; Q-P5-13): "ask the interviewer" in an AI-league battle. The
+// P5-W33 (§6.2, AI-1; Q-P5-13): "ask the interviewer" in an AI-mode battle. The
 // requirements are vague on purpose; the interviewer, a model answering from the
 // problem's notes, fills them in. At most 10 questions; answers are labelled AI.
 type Question = BattleQuestion;

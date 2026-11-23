@@ -21,13 +21,13 @@ test("pool.ts is what the families and the engine make now", () => {
 }, 30_000);
 
 describe.each(FAMILIES)("$slug", (family) => {
-  test("each league has a full pool of valid seeds, none of them for practice", () => {
-    for (const league of ["human", "ai"] as const) {
-      const seeds = pool[family.slug]?.[league] ?? [];
+  test("each battle mode has a full pool of valid seeds, none of them for practice", () => {
+    for (const battleMode of ["human", "ai"] as const) {
+      const seeds = pool[family.slug]?.[battleMode] ?? [];
       expect(seeds).toHaveLength(POOL_SIZE);
       for (const seed of seeds) {
         expect(family.practiceSeeds).not.toContain(seed);
-        expect(validate(variant(family, league, seed))).toEqual([]);
+        expect(validate(variant(family, battleMode, seed))).toEqual([]);
       }
     }
   });
@@ -41,11 +41,11 @@ describe.each(FAMILIES)("$slug", (family) => {
     expect(variant(family, "ai", 7)).toEqual(variant(family, "ai", 7));
   });
 
-  test("the AI league is harder: less budget headroom, a lost region, more traffic", () => {
+  test("the AI mode is harder: less budget headroom, a lost region, more traffic", () => {
     const rps = (p: { traffic: { requests: { rps: number }[] } }) =>
       p.traffic.requests.reduce((a, r) => a + r.rps, 0);
-    const headroom = (league: "human" | "ai", seed: number) => {
-      const v = variant(family, league, seed);
+    const headroom = (battleMode: "human" | "ai", seed: number) => {
+      const v = variant(family, battleMode, seed);
       return (
         v.problem.budgetPerMonth / simulate(v.problem, v.reference).costPerMonth
       );
@@ -57,9 +57,9 @@ describe.each(FAMILIES)("$slug", (family) => {
       expect(ai.scenarios.map((s) => s.id)).toContain("region");
       expect(human.scenarios.map((s) => s.id)).not.toContain("region");
     }
-    const mean = (league: "human" | "ai") =>
+    const mean = (battleMode: "human" | "ai") =>
       [3, 4, 5, 6, 7].reduce(
-        (a, seed) => a + rps(variant(family, league, seed).problem),
+        (a, seed) => a + rps(variant(family, battleMode, seed).problem),
         0,
       );
     expect(mean("ai")).toBeGreaterThan(mean("human"));
@@ -116,14 +116,14 @@ describe("validate", () => {
 // matchProblem, and never in the match pool or practice.
 describe.each(CUPS)("$family.slug", ({ family, seeds }) => {
   test("valid at each of its seeds, and only a tournament can play it", () => {
-    for (const league of ["human", "ai"] as const) {
-      const seed = seeds[league];
+    for (const battleMode of ["human", "ai"] as const) {
+      const seed = seeds[battleMode];
       if (seed === undefined) continue;
-      expect(validate(variant(family, league, seed))).toEqual([]);
-      expect(matchProblem(family.slug, league, seed)?.slug).toBe(
-        `${family.slug}-${league}-${String(seed)}`,
+      expect(validate(variant(family, battleMode, seed))).toEqual([]);
+      expect(matchProblem(family.slug, battleMode, seed)?.slug).toBe(
+        `${family.slug}-${battleMode}-${String(seed)}`,
       );
-      expect(matchProblem(family.slug, league, seed + 1)).toBeNull();
+      expect(matchProblem(family.slug, battleMode, seed + 1)).toBeNull();
     }
     expect(POOL[family.slug]).toBeUndefined();
     expect(practiceProblems().some((p) => p.slug === family.slug)).toBe(false);

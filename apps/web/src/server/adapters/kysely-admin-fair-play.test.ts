@@ -266,12 +266,12 @@ test("a battle's flag shows its pastes, aways and gain; a penalty removes the ga
       .insertInto("fair_play_flag")
       .values({ match_id: battle, user_id: bob, signals: 1 })
       .execute();
-    // P5-W32-S01a: the battle gained bob 30 in the human league's battle rating.
+    // P5-W32-S01a: the battle gained bob 30 in the human mode's battle rating.
     await trx
       .insertInto("battle_rating")
       .values({
         user_id: bob,
-        league: "human",
+        battle_mode: "human",
         rating: 1530,
         rd: 200,
         volatility: 0.06,
@@ -283,7 +283,7 @@ test("a battle's flag shows its pastes, aways and gain; a penalty removes the ga
       .values({
         match_id: battle,
         user_id: bob,
-        league: "human",
+        battle_mode: "human",
         rating_before: 1500,
         rating_after: 1530,
         rd_after: 200,
@@ -348,14 +348,20 @@ test("a room's flag shows its mu gain; a penalty removes it", async () => {
       .execute();
     await trx
       .insertInto("room_rating")
-      .values({ user_id: bob, league: "human", mu: 28, sigma: 7, games: 1 })
+      .values({
+        user_id: bob,
+        battle_mode: "human",
+        mu: 28,
+        sigma: 7,
+        games: 1,
+      })
       .execute();
     await trx
       .insertInto("room_rating_history")
       .values({
         match_id: room,
         user_id: bob,
-        league: "human",
+        battle_mode: "human",
         mu_before: 25,
         mu_after: 28,
         sigma_after: 7,

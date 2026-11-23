@@ -6,7 +6,7 @@ export const messageSchemas = {
   agent_nudge: z.strictObject({
     task_id: z.number().int().min(1),
   }),
-  // Answer a player's question to the interviewer in an AI-league battle, from the problem's interviewer notes (§6.2, Q-P5-13, P5-W33).
+  // Answer a player's question to the interviewer in an AI-mode battle, from the problem's interviewer notes (§6.2, Q-P5-13, P5-W33).
   answer_interviewer: z.strictObject({
     question_id: z.number().int().min(1),
   }),

@@ -1,6 +1,6 @@
 import type { Redis } from "ioredis";
 import { log } from "../log";
-import type { GameMode, League, Matchmaking, QueueState } from "../ports";
+import type { GameMode, BattleMode, Matchmaking, QueueState } from "../ports";
 
 // P3-W16-S02 (MATCH-3, Q-P3-14; owner, 2026-11-03): one region for now, carried in the
 // keys. A player's band starts at ±100 and widens by 100 every 2 s; a pair needs each
@@ -147,12 +147,12 @@ return 1`;
 
 // P3-W16-S04 (Q-P3-23): each mode's own queue, both feeding the one rating (MATCH-2).
 export const queuePrefix = (mode: GameMode) => `mm:${REGION}:${mode}:`;
-// P5-W32 (Q-P5-19): the casual battle queues, unrated 1v1s, one per league (P5-W33).
-export const casualBattlePrefix = (league: League) =>
-  `mm:${REGION}:battle:${league}:`;
+// P5-W32 (Q-P5-19): the casual battle queues, unrated 1v1s, one per battle mode (P5-W33).
+export const casualBattlePrefix = (battleMode: BattleMode) =>
+  `mm:${REGION}:battle:${battleMode}:`;
 // P6-W42 (Q-P6-06): HLD's casual queue, apart from LLD's.
-export const casualHldPrefix = (league: League) =>
-  `mm:${REGION}:hld:${league}:`;
+export const casualHldPrefix = (battleMode: BattleMode) =>
+  `mm:${REGION}:hld:${battleMode}:`;
 
 export function valkeyMatchmaking(
   redis: Redis,

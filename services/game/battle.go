@@ -25,7 +25,10 @@ const (
 
 type battleDef struct {
 	Problem string `json:"problem"`
-	League  string `json:"league"` // P5-W33: "human" or "ai" (§6.2)
+	// P5-W33: the battle mode (§6.2, ADR-0047), "human" or "ai": whether code similarity
+	// is a fair-play signal. Not matchDef.Mode, the match's kind (battleMode here; a
+	// quiz's sprintMode or rounds); hence battle_mode on the wire, beside that "mode".
+	Mode string `json:"battle_mode"`
 	// P5-W33: each language's base starter: what every player starts from isn't copying.
 	Starters  map[string]string         `json:"starters,omitempty"`
 	Limits    battleLimits              `json:"limits"`

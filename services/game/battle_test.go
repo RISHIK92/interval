@@ -20,9 +20,10 @@ func battleJSON(t *testing.T, edit func(m map[string]any)) []byte {
 		return map[string]any{"layer": layer, "stdin": `{"calls":[]}`, "expected": []any{map[string]any{"call": 0, "value": nil}}}
 	}
 	battle := map[string]any{
-		"problem": "lru-cache",
-		"limits":  map[string]any{"seconds": 5, "memoryMB": 128},
-		"checks":  []any{},
+		"problem":     "lru-cache",
+		"battle_mode": "human",
+		"limits":      map[string]any{"seconds": 5, "memoryMB": 128},
+		"checks":      []any{},
 		"languages": map[string]any{
 			"python": map[string]any{"solution": "solution.py", "base": []any{file}, "extension": []any{file}},
 		},
@@ -145,7 +146,7 @@ func TestParseMatchReadsTheWebAppsBattle(t *testing.T) {
 		t.Fatal(err)
 	}
 	b := def.Battle
-	if b.Problem != "box" || b.Languages["python"].Extension[0].Content != "# extended harness" ||
+	if b.Problem != "box" || b.Mode != "ai" || b.Languages["python"].Extension[0].Content != "# extended harness" ||
 		len(b.Scenarios) != 2 || *b.Checks[0].Compare != "unordered" {
 		t.Fatalf("%+v", b)
 	}

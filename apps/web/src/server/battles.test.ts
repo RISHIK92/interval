@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Expected, GENERATORS, Problem } from "@interval/lld";
 import { expect, test } from "vitest";
-import { groupWindow, startBattle } from "./battles";
+import { battleModeOf, groupWindow, startBattle } from "./battles";
 import type {
   BattleMatch,
   BattleWindows,
@@ -32,10 +32,10 @@ async function loaded() {
   const rows = new Map<string, LoadedProblem>();
   const objects = new Map<string, string>();
   const store: ProblemStore = {
-    pool: (league) =>
+    pool: (battleMode) =>
       Promise.resolve(
         [...rows.values()]
-          .filter((r) => r.league === league)
+          .filter((r) => r.battleMode === battleMode)
           .map((r) => r.slug),
       ),
     hashes: () =>
@@ -167,7 +167,7 @@ test("a window groups its registrants by rating on one problem", async () => {
     unregister: () => Promise.resolve(),
     registration: () => Promise.resolve(null),
     extend: () => Promise.resolve(),
-    claim: async (_at, _league, _now, pick) => ({
+    claim: async (_at, _battleMode, _now, pick) => ({
       first: true,
       problem: await pick(),
       players: ["p1", "p2", "p3", "p4", "p5"].map((userId, i) => ({
@@ -175,7 +175,7 @@ test("a window groups its registrants by rating on one problem", async () => {
         rating: 30 - i,
       })),
     }),
-    assign: (_at, _league, matchId, users) => {
+    assign: (_at, _battleMode, matchId, users) => {
       assigned.push({ matchId, users });
       return Promise.resolve();
     },
@@ -215,4 +215,25 @@ test("a battle that can't be handed over is thrown, not lost quietly", async () 
   await expect(startBattle(failing, 0, "inventory", ["ana"])).rejects.toThrow(
     /valkey down/,
   );
+});
+
+// ADR-0047 (Q-P5-20): ?mode= names the battle mode; a link from before the rename says
+// ?league=, read as ?mode= when that is absent.
+test("a request's battle mode: ?mode=, then an old ?league=, else human", () => {
+  const of = (query: string) =>
+    battleModeOf(new Request(`http://localhost/api/battle/queue${query}`));
+  expect(of("?mode=ai")).toBe("ai");
+  expect(of("?mode=human&league=ai")).toBe("human");
+  expect(of("?league=ai")).toBe("ai");
+  expect(of("")).toBe("human");
+  expect(of("?mode=quick")).toBeNull();
+});
+
+// ADR-0047 (Q-P5-20): the handoff names the battle mode as battle_mode, the game server's
+// key (services/game/battle.go); human unless the battle says otherwise.
+test("a battle hands over its battle mode", async () => {
+  const deps = await loaded();
+  await startBattle(deps, 0, "inventory", ["ana", "bo"], { battleMode: "ai" });
+  await startBattle(deps, 0, "inventory", ["ana", "bo"]);
+  expect(deps.handed.map((m) => m.battle.battle_mode)).toEqual(["ai", "human"]);
 });

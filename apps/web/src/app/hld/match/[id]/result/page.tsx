@@ -18,6 +18,7 @@ import {
   ResultHero,
 } from "../../../../play/battle/[id]/result/ResultHero";
 import { Waiting } from "./Waiting";
+import { BATTLE_MODE_NAMES } from "../../../../battle-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,7 @@ export default async function HldResultPage({
     total: s.total,
     name: s.player,
   });
-  const meta = `${match.unrated ? "Unrated" : "Rated"} · the ${match.league} league`;
+  const meta = `${match.unrated ? "Unrated" : "Rated"} · ${BATTLE_MODE_NAMES[match.battleMode]}`;
   // The viewer's own points, as the design's score breakdown (wide screens).
   const breakdown =
     me === undefined || match.scoredAt === null

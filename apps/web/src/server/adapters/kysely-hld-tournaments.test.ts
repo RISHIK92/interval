@@ -66,7 +66,7 @@ test("made with its problems retired; entered, checked in, and started round by 
     const [owner = "", ada = "", bob = ""] = await players(trx, 3);
     const startsAt = new Date("2030-06-01T18:00:00Z");
     const id = await tournaments.create(
-      { name: "Practice Cup", league: "human", startsAt, rounds },
+      { name: "Practice Cup", battleMode: "human", startsAt, rounds },
       owner,
     );
     // Other tournaments in the database may have retired variants too: only ours count.
@@ -103,7 +103,7 @@ test("made with its problems retired; entered, checked in, and started round by 
     ]);
     const match = await kyselyHldMatches(trx).create(
       [ada, owner],
-      { family: "chat", league: "human", seed: 3 },
+      { family: "chat", battleMode: "human", seed: 3 },
       { unrated: true, windowAt: null, minutes: 30 },
     );
     expect(await tournaments.setMatch(id, 1, 0, match)).toBe(true);

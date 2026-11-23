@@ -46,7 +46,7 @@ export const HldProblem = z
   .strictObject({
     slug: z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/),
     title: z.string().min(3).max(80),
-    league: z.enum(["human", "ai"]).optional(),
+    battleMode: z.enum(["human", "ai"]).optional(),
     timeLimitMinutes: z.int().min(10).max(90),
     requirements: z.array(z.string().min(1)).min(1).max(20),
     traffic: z.strictObject({

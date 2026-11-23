@@ -5,7 +5,7 @@ import {
   sessionReader,
 } from "../../../../server/container";
 import { windowStatus, windowsFrom } from "../../../../server/battle-windows";
-import { leagueOf } from "../../../../server/battles";
+import { battleModeOf } from "../../../../server/battles";
 import { forbidden } from "../../../../server/capability";
 import { groupHldWindow } from "../../../../server/hld-matches";
 import type { Actor } from "../../../../server/ports";
@@ -43,7 +43,7 @@ export async function GET(request: Request): Promise<Response> {
       windowAt: at.toISOString(),
       status: windowStatus(at, now),
       registered: mine !== null,
-      league: mine?.league ?? null,
+      battleMode: mine?.battleMode ?? null,
       matchId: mine?.matchId ?? null,
     },
     noStore,
@@ -56,9 +56,9 @@ export async function POST(request: Request): Promise<Response> {
   const at = current(new Date());
   if (windowStatus(at, new Date()) !== "open")
     return new Response(null, { status: 409 });
-  const league = leagueOf(request);
-  if (league === null) return new Response(null, { status: 400 });
-  await hldWindows().register(at, actor.userId, league);
+  const battleMode = battleModeOf(request);
+  if (battleMode === null) return new Response(null, { status: 400 });
+  await hldWindows().register(at, actor.userId, battleMode);
   return new Response(null, { status: 204 });
 }
 
@@ -84,7 +84,7 @@ export async function PUT(request: Request): Promise<Response> {
   if (mine === null || windowStatus(at, now) !== "live")
     return Response.json({ matchId: null }, noStore);
   if (mine.matchId === null) {
-    await groupHldWindow({ ...hldDeps(), windows }, at, mine.league);
+    await groupHldWindow({ ...hldDeps(), windows }, at, mine.battleMode);
     mine = await windows.registration(at, actor.userId);
   }
   return Response.json({ matchId: mine?.matchId ?? null }, noStore);

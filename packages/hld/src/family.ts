@@ -7,8 +7,8 @@ import { simulate } from "./simulate";
 import { CURRENT_SPEC } from "./spec";
 
 // P6-W40 (HLDQ-2, HLDQ-3; Q-P6-04): problem families. A family is a template: its
-// requests, the ranges its numbers are drawn from per league, and the shape of a design
-// that solves it. A variant is (family, league, seed); the seed decides every number,
+// requests, the ranges its numbers are drawn from per battle mode, and the shape of a design
+// that solves it. A variant is (family, battle mode, seed); the seed decides every number,
 // so the same seed always rebuilds the same problem (replays, disputes).
 //
 // Every variant is validated before it can be played: its reference design (the
@@ -16,7 +16,7 @@ import { CURRENT_SPEC } from "./spec";
 // scenario, and each flawed design (the reference with one weakness) fails exactly the
 // scenario it targets. Only seeds that pass go into the pool (pool.json).
 
-export type League = "human" | "ai";
+export type BattleMode = "human" | "ai";
 type Span = readonly [number, number];
 
 export type Family = {
@@ -34,7 +34,7 @@ export type Family = {
     share: number;
   }[];
   ranges: Record<
-    League,
+    BattleMode,
     {
       rps: Span; // all request types together, at baseline
       workingSetGb: Span;
@@ -67,10 +67,10 @@ function random(seed: number): () => number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }
-// One stream per family and league, so a seed means something different in each.
-function streamFor(family: string, league: League, seed: number) {
+// One stream per family and battle mode, so a seed means something different in each.
+function streamFor(family: string, battleMode: BattleMode, seed: number) {
   let h = 2166136261;
-  for (const c of `${family}/${league}/${String(seed)}`)
+  for (const c of `${family}/${battleMode}/${String(seed)}`)
     h = Math.imul(h ^ (c.codePointAt(0) ?? 0), 16777619);
   return random(h);
 }
@@ -81,9 +81,9 @@ const draw = (next: () => number, [lo, hi]: Span, step: number) =>
 
 const fmt = (x: number) => Math.round(x).toLocaleString("en-US");
 
-// The scenarios every variant runs: a normal day, a spike, a zone's loss; the AI league
+// The scenarios every variant runs: a normal day, a spike, a zone's loss; the AI mode
 // also loses a region (Q-P6-04). Targets loosen as the scenario gets harder.
-function scenarios(league: League, p99Ms: number): Scenario[] {
+function scenarios(battleMode: BattleMode, p99Ms: number): Scenario[] {
   const list: Scenario[] = [
     {
       id: "baseline",
@@ -108,7 +108,7 @@ function scenarios(league: League, p99Ms: number): Scenario[] {
       targets: { p99Ms: Math.round(p99Ms * 1.5), availability: 0.99 },
     },
   ];
-  if (league === "ai")
+  if (battleMode === "ai")
     list.push({
       id: "region",
       name: "A region goes down",
@@ -121,9 +121,14 @@ function scenarios(league: League, p99Ms: number): Scenario[] {
 }
 
 // The problem a seed makes, before its budget is known (the sizer finds the cost).
-function draft(family: Family, league: League, seed: number, budget: number) {
-  const next = streamFor(family.slug, league, seed);
-  const r = family.ranges[league];
+function draft(
+  family: Family,
+  battleMode: BattleMode,
+  seed: number,
+  budget: number,
+) {
+  const next = streamFor(family.slug, battleMode, seed);
+  const r = family.ranges[battleMode];
   const rps = draw(next, r.rps, 100);
   const traffic = {
     requests: family.requests.map(({ share, ...t }) => ({
@@ -140,9 +145,9 @@ function draft(family: Family, league: League, seed: number, budget: number) {
   const needed =
     traffic.storedGb + traffic.growthGbPerDay * traffic.horizonDays;
   return HldProblem.parse({
-    slug: `${family.slug}-${league}-${String(seed)}`,
+    slug: `${family.slug}-${battleMode}-${String(seed)}`,
     title: family.title,
-    league,
+    battleMode,
     timeLimitMinutes: 30,
     requirements: [
       ...family.requirements,
@@ -152,7 +157,7 @@ function draft(family: Family, league: League, seed: number, budget: number) {
     ],
     traffic,
     budgetPerMonth: budget,
-    scenarios: scenarios(league, p99Ms),
+    scenarios: scenarios(battleMode, p99Ms),
     allowedComponents: family.allowedComponents,
     rubric: family.rubric,
     concepts: family.concepts,
@@ -241,12 +246,12 @@ function sizedFor(
 const HEADROOM = 0.6;
 
 // The family's shape sized for a problem: three zones, a second region in the AI
-// league, a standby in another zone, storage for the horizon with room to spare; then
+// battle mode, a standby in another zone, storage for the horizon with room to spare; then
 // simulated, and whatever runs above HEADROOM grown, until nothing does.
 function size(family: Family, problem: HldProblem): Design {
   const t = problem.traffic;
   const needed = t.storedGb + t.growthGbPerDay * t.horizonDays;
-  const regions = problem.league === "ai" ? 2 : 1;
+  const regions = problem.battleMode === "ai" ? 2 : 1;
   let design: Design = {
     version: 1,
     spec: CURRENT_SPEC.version,
@@ -347,8 +352,8 @@ function flaws(
           },
         ]),
     // With a second active region, one zone's loss is survivable in any case, so the
-    // AI league's zone flaw is the one-region design below.
-    ...(problem.league === "ai"
+    // AI mode's zone flaw is the one-region design below.
+    ...(problem.battleMode === "ai"
       ? []
       : [
           {
@@ -372,7 +377,7 @@ function flaws(
       design: sizedFor(reference, problem, "peak", 1.15),
     },
   ];
-  if (problem.league === "ai")
+  if (problem.battleMode === "ai")
     list.push({
       id: "one-region",
       targets: "region",
@@ -397,13 +402,18 @@ type Variant = {
   flawed: { id: string; targets: string; design: Design }[];
 };
 
-export function variant(family: Family, league: League, seed: number): Variant {
-  const sizing = draft(family, league, seed, 1e9);
+export function variant(
+  family: Family,
+  battleMode: BattleMode,
+  seed: number,
+): Variant {
+  const sizing = draft(family, battleMode, seed, 1e9);
   const reference = size(family, sizing);
   const cost = simulate(sizing, reference).costPerMonth;
-  const budget = Math.ceil((cost * (league === "ai" ? 1.2 : 1.5)) / 100) * 100;
+  const budget =
+    Math.ceil((cost * (battleMode === "ai" ? 1.2 : 1.5)) / 100) * 100;
   return {
-    problem: draft(family, league, seed, budget),
+    problem: draft(family, battleMode, seed, budget),
     reference,
     flawed: flaws(family, reference, sizing),
   };
@@ -426,20 +436,20 @@ export function validate(v: Variant): string[] {
   return problems;
 }
 
-export type Pool = Record<string, Record<League, number[]>>;
+export type Pool = Record<string, Record<BattleMode, number[]>>;
 export const POOL_SIZE = 12;
 
-// The playable seeds (HLDQ-3): the first POOL_SIZE valid ones per family and league,
+// The playable seeds (HLDQ-3): the first POOL_SIZE valid ones per family and battle mode,
 // never a practice seed (Q-P6-04).
 export function buildPool(families: readonly Family[]): Pool {
   const pool: Pool = {};
   for (const f of families) {
-    const seeds = (league: League) => {
+    const seeds = (battleMode: BattleMode) => {
       const found: number[] = [];
       for (let seed = 1; found.length < POOL_SIZE && seed <= 500; seed++)
         if (
           !f.practiceSeeds.includes(seed) &&
-          validate(variant(f, league, seed)).length === 0
+          validate(variant(f, battleMode, seed)).length === 0
         )
           found.push(seed);
       return found;

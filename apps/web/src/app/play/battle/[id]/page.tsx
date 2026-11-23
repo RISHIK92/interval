@@ -76,8 +76,8 @@ export default async function BattlePage(props: {
         examples={problem.visible.map((v) => JSON.stringify(v.scenario.calls))}
         starters={starters}
       />
-      {/* §6.2 (Q-P5-13): the AI league's vague requirements have an interviewer. */}
-      {problem.league === "ai" && (
+      {/* §6.2 (Q-P5-13): the AI mode's vague requirements have an interviewer. */}
+      {problem.battleMode === "ai" && (
         <Interviewer
           matchId={id.data}
           initial={await battleQuestions().list(id.data, actor.userId)}

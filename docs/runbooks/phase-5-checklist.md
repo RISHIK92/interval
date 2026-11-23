@@ -29,14 +29,14 @@ Checked locally on 2026-11-14, before anything is deployed (ADR-0013).
 | W28–W30 | Velox as the execution service (ADR-0041 PROPOSED); the problem format and pipeline (verify, mutation, six languages)                                    |
 | W31     | LLD battles (the game server's actor, Velox judging, Monaco, an extension round, fair-play signals and snapshots)                                        |
 | W32     | 1v1 Glicko and room OpenSkill ratings; rooms of up to 4; ranked windows with registration, reminders and grouping; the casual queue with a solo fallback |
-| W33     | The AI league (pools, the toggle, per-league queues and windows); season battle boards; code similarity; ask the interviewer; 2 AI-league problems       |
+| W33     | AI mode (pools, the toggle, per-mode queues and windows); season battle boards; code similarity; ask the interviewer; 2 AI-mode problems                 |
 | W34     | 12 problems; the k6 load test; the red-team rerun                                                                                                        |
 | W35     | Results and replays; the AI code review; disputes; the metric query                                                                                      |
 
 ## Deferred
 
 - **W32-S03, scheduled scaling:** the game server can't simply scale; it needs a numbered second server.
-- **The full AI-league format,** with 3 extension rounds and injected collaborators. It comes after Phase 5 (Q-P5-20, amended).
+- **The full AI-mode format,** with 3 extension rounds and injected collaborators. It comes after Phase 5 (Q-P5-20, amended).
 
 ## For the owner
 

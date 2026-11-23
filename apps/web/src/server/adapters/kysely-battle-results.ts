@@ -14,7 +14,7 @@ export function kyselyBattleResults(db: Kysely<DB>): BattleResults {
       .innerJoin("game_match_player as p", "p.match_id", "m.id")
       .select([
         "m.problem_slug",
-        "m.league",
+        "m.battle_mode",
         "m.finished_at",
         sql<boolean>`coalesce(m.finished_at > now() - make_interval(days => ${DISPUTE_DAYS}), false)`.as(
           "dispute_open",
@@ -71,7 +71,7 @@ export function kyselyBattleResults(db: Kysely<DB>): BattleResults {
         .executeTakeFirst();
       return {
         problem: match.problem_slug,
-        league: match.league === "ai" ? "ai" : "human",
+        battleMode: match.battle_mode === "ai" ? "ai" : "human",
         finishedAt: match.finished_at,
         standings: players.map((p) => ({
           userId: p.user_id,

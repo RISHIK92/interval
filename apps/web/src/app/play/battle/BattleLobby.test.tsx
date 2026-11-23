@@ -48,7 +48,7 @@ test("after a minute alone in the queue, the solo battle opens", async () => {
           at: new Date(Date.now() + 3_600_000).toISOString(),
           status: "open",
           registered: false,
-          league: null,
+          battleMode: null,
           matchId: null,
         }}
       />,
@@ -71,6 +71,37 @@ test("after a minute alone in the queue, the solo battle opens", async () => {
     globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
   ).IS_REACT_ACT_ENVIRONMENT = true;
   expect(push).toHaveBeenCalledWith("/play/battle/b-solo");
+  act(() => {
+    root.unmount();
+  });
+});
+
+// ADR-0047: registered in one battle mode with the other chosen, the button names it as
+// the glossary does.
+test("a registration moves to the other battle mode by name", () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  act(() => {
+    root.render(
+      <BattleLobby
+        window={{
+          at: new Date(Date.now() + 3_600_000).toISOString(),
+          status: "open",
+          registered: true,
+          battleMode: "ai",
+          matchId: null,
+        }}
+      />,
+    );
+  });
+  const buttons = () =>
+    [...host.querySelectorAll("button")].map((b) => b.textContent);
+  expect(buttons()).toContain("Registered: cancel");
+  act(() => {
+    host.querySelector<HTMLInputElement>('input[value="human"]')?.click();
+  });
+  expect(buttons()).toContain("Switch to Human mode");
   act(() => {
     root.unmount();
   });

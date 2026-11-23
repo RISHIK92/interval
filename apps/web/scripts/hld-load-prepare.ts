@@ -103,7 +103,7 @@ try {
   const id = await tournaments.create(
     {
       name: `Load ${run}`,
-      league: "human",
+      battleMode: "human",
       startsAt: new Date(Date.now() + 30 * 60_000),
       rounds: seeds.slice(0, 8).map((seed) => ({ family: family.slug, seed })),
     },

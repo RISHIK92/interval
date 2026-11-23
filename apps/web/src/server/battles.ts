@@ -5,7 +5,7 @@ import { log } from "./log";
 import type {
   BattleMatch,
   BattleWindows,
-  League,
+  BattleMode,
   FileStore,
   MatchHandoff,
   Matches,
@@ -43,8 +43,8 @@ export async function startBattle(
   serverId: number,
   slug: string,
   players: string[],
-  // P5-W32: a casual or solo battle is unrated (Q-P5-19); P5-W33: its league (Q-P5-20).
-  options?: { unrated?: boolean; league?: League },
+  // P5-W32: a casual or solo battle is unrated (Q-P5-19); P5-W33: its battle mode (Q-P5-20).
+  options?: { unrated?: boolean; battleMode?: BattleMode },
 ): Promise<string> {
   // C-03: a 1v1 or a room of up to 4; one alone for solo play (P5-W32).
   if (
@@ -100,7 +100,7 @@ export async function startBattle(
     players,
     battle: {
       problem: slug,
-      league: options?.league ?? "human",
+      battle_mode: options?.battleMode ?? "human",
       starters: baseStarters,
       limits: problem.limits,
       checks: problem.checks,
@@ -127,23 +127,28 @@ export async function startBattle(
   return match.id;
 }
 
-// P5-W33 (Q-P5-20): a request's league (?league=), human when absent; null when it
-// names no league.
-export function leagueOf(request: Request): League | null {
-  const league = new URL(request.url).searchParams.get("league") ?? "human";
-  return league === "human" || league === "ai" ? league : null;
+// P5-W33 (Q-P5-20): a request's battle mode (?mode=), human when absent; null when it
+// names no battle mode. ADR-0047: a link from before the rename says ?league=, read as
+// ?mode= when that is absent. The read stays: only the lobbies' own API calls ever sent
+// ?league= (they now send ?mode=), but a lobby loaded before the rename, in an open tab
+// or the PWA's cached bundle, still does, and this keeps no state with which to read it
+// "once". With nothing deployed (ADR-0013), no stored link depends on it.
+export function battleModeOf(request: Request): BattleMode | null {
+  const params = new URL(request.url).searchParams;
+  const battleMode = params.get("mode") ?? params.get("league") ?? "human";
+  return battleMode === "human" || battleMode === "ai" ? battleMode : null;
 }
 
-// P5-W32 (Q-P5-19): a live problem at random from the league's pool (P5-W33), for a
+// P5-W32 (Q-P5-19): a live problem at random from the battle mode's pool (P5-W33), for a
 // casual battle or a window.
 export async function randomProblem(
   store: ProblemStore,
-  league: League,
+  battleMode: BattleMode,
 ): Promise<string> {
-  const slugs = await store.pool(league);
+  const slugs = await store.pool(battleMode);
   const slug = slugs[Math.floor(Math.random() * slugs.length)];
   if (slug === undefined)
-    throw new Error(`no live ${league}-league problems: load them first`);
+    throw new Error(`no live ${battleMode}-mode problems: load them first`);
   return slug;
 }
 
@@ -156,11 +161,11 @@ export async function randomProblem(
 export async function groupWindow(
   deps: Parameters<typeof startBattle>[0] & { windows: BattleWindows },
   windowAt: Date,
-  league: League,
+  battleMode: BattleMode,
   now: () => Date,
 ): Promise<{ grouped: number; matched: number; first: boolean } | null> {
-  const claimed = await deps.windows.claim(windowAt, league, now(), () =>
-    randomProblem(deps.store, league),
+  const claimed = await deps.windows.claim(windowAt, battleMode, now(), () =>
+    randomProblem(deps.store, battleMode),
   );
   if (claimed === null) return null;
   let matched = 0;
@@ -170,7 +175,7 @@ export async function groupWindow(
     try {
       matchId = await startBattle(deps, 0, claimed.problem, users, {
         unrated: users.length === 1,
-        league,
+        battleMode,
       });
     } catch (error) {
       log.error("battle: window group not started", {
@@ -181,8 +186,8 @@ export async function groupWindow(
     }
     // A battle started is assigned or the grouping fails loudly: never regrouped into
     // a second one by the next claim.
-    await deps.windows.assign(windowAt, league, matchId, users);
-    await deps.windows.extend(windowAt, league, now());
+    await deps.windows.assign(windowAt, battleMode, matchId, users);
+    await deps.windows.extend(windowAt, battleMode, now());
     if (users.length > 1) matched += users.length;
   }
   return { grouped: claimed.players.length, matched, first: claimed.first };

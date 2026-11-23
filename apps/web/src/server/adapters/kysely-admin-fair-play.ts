@@ -102,11 +102,11 @@ export function kyselyAdminFairPlay(db: Kysely<DB>): AdminFairPlay {
         if (decision === "penalize") {
           const match = await trx
             .selectFrom("game_match")
-            .select(["mode", "league"])
+            .select(["mode", "battle_mode"])
             .where("id", "=", flag.match_id)
             .executeTakeFirstOrThrow();
           if (match.mode === "battle") {
-            penalty = await penalizeBattle(trx, flag, match.league);
+            penalty = await penalizeBattle(trx, flag, match.battle_mode);
           } else {
             // Locked like a rating update, so a match rated meanwhile can't be lost.
             const held = await trx
@@ -164,13 +164,13 @@ export function kyselyAdminFairPlay(db: Kysely<DB>): AdminFairPlay {
 }
 
 // P5-W32-S01a (owner, 2026-11-13): a battle's penalty, as a quick match's: the rating
-// that match gained, in its league; 0 when it gained nothing or was unrated. A 1v1's
+// that match gained, in its battle mode; 0 when it gained nothing or was unrated. A 1v1's
 // is its Glicko-2 battle rating, a room's (S01b) its OpenSkill mu. Battles leave no
 // ghost runs.
 async function penalizeBattle(
   trx: Kysely<DB>,
   flag: { match_id: string; user_id: string },
-  league: string,
+  battleMode: string,
 ): Promise<number> {
   const room = await trx
     .selectFrom("room_rating_history")
@@ -184,7 +184,7 @@ async function penalizeBattle(
       .selectFrom("room_rating")
       .select("user_id")
       .where("user_id", "=", flag.user_id)
-      .where("league", "=", league)
+      .where("battle_mode", "=", battleMode)
       .forUpdate()
       .executeTakeFirst();
     if (held === undefined || room.gain <= 0) return 0;
@@ -192,7 +192,7 @@ async function penalizeBattle(
       .updateTable("room_rating")
       .set({ mu: sql<number>`mu - ${room.gain}`, updated_at: sql<Date>`now()` })
       .where("user_id", "=", flag.user_id)
-      .where("league", "=", league)
+      .where("battle_mode", "=", battleMode)
       .execute();
     return room.gain;
   }
@@ -201,7 +201,7 @@ async function penalizeBattle(
     .selectFrom("battle_rating")
     .select("user_id")
     .where("user_id", "=", flag.user_id)
-    .where("league", "=", league)
+    .where("battle_mode", "=", battleMode)
     .forUpdate()
     .executeTakeFirst();
   if (held === undefined) return 0;
@@ -220,7 +220,7 @@ async function penalizeBattle(
         updated_at: sql<Date>`now()`,
       })
       .where("user_id", "=", flag.user_id)
-      .where("league", "=", league)
+      .where("battle_mode", "=", battleMode)
       .execute();
   return penalty;
 }
