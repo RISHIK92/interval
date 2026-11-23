@@ -12,7 +12,8 @@ import { advance, problemOf } from "../../../../server/hld-matches";
 import { Canvas } from "../../Canvas";
 import { Clock } from "../../Clock";
 import { Cube } from "../../flow";
-import { FRAME, HEADER, HEADER_TILE, Requirements, TITLE } from "../../Frame";
+import { LeaveMatch } from "../../MatchPanel";
+import { CANVAS_FRAME, HEADER_TILE, TITLE } from "../../Frame";
 import { BATTLE_MODE_NAMES } from "../../../battle-mode";
 
 export const dynamic = "force-dynamic";
@@ -39,36 +40,38 @@ export default async function HldMatchPage({
   const parsed = Design.safeParse(latest?.design);
   const players = found.seats.length;
   return (
-    <main className={FRAME}>
-      <header className={HEADER}>
-        <span className={HEADER_TILE}>
-          <Cube size={30} ramp="system-design" />
-        </span>
-        <div className="lg:min-w-[200px] lg:flex-1">
-          <p className="hidden text-[13px] text-ink-muted lg:block">
-            HLD battle ·{" "}
-            {players === 1
-              ? "solo"
-              : players === 2
-                ? "1v1"
-                : `${String(players)} players`}
-          </p>
-          <h1 className={TITLE}>{problem.title}</h1>
-          <p className="text-sm text-ink-muted lg:hidden">
-            {found.seats.map((s) => s.player).join(" vs ")}
-            {found.match.unrated ? " · unrated" : ""} ·{" "}
-            {BATTLE_MODE_NAMES[found.match.battleMode]}
-          </p>
-        </div>
-        <span className="hidden h-[38px] items-center rounded-full bg-well px-3 text-sm text-ink-muted lg:flex">
-          {found.seats.map((s) => s.player).join(" vs ")}
-          {found.match.unrated ? " · unrated" : ""} ·{" "}
-          {BATTLE_MODE_NAMES[found.match.battleMode]}
-        </span>
-        <Clock deadline={found.match.deadlineAt.toISOString()} />
-      </header>
-      <Requirements requirements={problem.requirements} />
+    <main className={CANVAS_FRAME}>
       <Canvas
+        header={
+          <>
+            <LeaveMatch />
+            <span className={HEADER_TILE}>
+              <Cube size={30} ramp="system-design" />
+            </span>
+            <div className="lg:min-w-[200px] lg:flex-1">
+              <p className="hidden text-[13px] text-ink-muted lg:block">
+                HLD battle ·{" "}
+                {players === 1
+                  ? "solo"
+                  : players === 2
+                    ? "1v1"
+                    : `${String(players)} players`}
+              </p>
+              <h1 className={TITLE}>{problem.title}</h1>
+              <p className="text-sm text-ink-muted lg:hidden">
+                {found.seats.map((s) => s.player).join(" vs ")}
+                {found.match.unrated ? " · unrated" : ""} ·{" "}
+                {BATTLE_MODE_NAMES[found.match.battleMode]}
+              </p>
+            </div>
+            <span className="hidden h-[38px] items-center rounded-full bg-well px-3 text-sm text-ink-muted lg:flex">
+              {found.seats.map((s) => s.player).join(" vs ")}
+              {found.match.unrated ? " · unrated" : ""} ·{" "}
+              {BATTLE_MODE_NAMES[found.match.battleMode]}
+            </span>
+            <Clock deadline={found.match.deadlineAt.toISOString()} />
+          </>
+        }
         problem={problem}
         initial={parsed.success ? parsed.data : starterDesign()}
         version={latest?.version ?? 0}

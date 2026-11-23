@@ -1,4 +1,5 @@
 import { starterDesign, practiceProblems } from "@interval/hld";
+import type { ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, expect, test, vi } from "vitest";
 import type {
@@ -38,9 +39,9 @@ vi.mock("next/navigation", () => ({
 }));
 const canvas = vi.fn();
 vi.mock("../../Canvas", () => ({
-  Canvas: (props: unknown) => {
+  Canvas: (props: { header: ReactNode }) => {
     canvas(props);
-    return null;
+    return props.header;
   },
 }));
 
@@ -65,9 +66,13 @@ test("shows the problem and opens the canvas on the saved design", async () => {
   load.mockResolvedValueOnce({ design: saved, version: 4 });
   const html = await render(URL_SHORTENER.slug);
   expect(html).toContain(URL_SHORTENER.title);
-  expect(html).toContain(URL_SHORTENER.requirements[0]);
+  // The requirements are the canvas's: it shows what the design covers (Q-WD-15).
   expect(canvas).toHaveBeenCalledWith(
-    expect.objectContaining({ initial: saved, version: 4 }),
+    expect.objectContaining({
+      problem: URL_SHORTENER,
+      initial: saved,
+      version: 4,
+    }),
   );
 });
 

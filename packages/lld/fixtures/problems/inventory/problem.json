@@ -2,6 +2,7 @@
   "slug": "inventory",
   "title": "Inventory (fixture)",
   "difficulty": "easy",
+  "pool": "battle",
   "interface": {
     "class": "Inventory",
     "constructor": {

@@ -2,7 +2,7 @@ import type { ComponentKind } from "./catalog";
 import { CONFIG } from "./catalog";
 import type { Design, DesignEdge, DesignNode } from "./design";
 import { removeNode } from "./edit";
-import { HldProblem, type Scenario } from "./problem";
+import { type Cover, HldProblem, type Scenario } from "./problem";
 import { simulate } from "./simulate";
 import { CURRENT_SPEC } from "./spec";
 
@@ -22,7 +22,8 @@ type Span = readonly [number, number];
 export type Family = {
   slug: string;
   title: string;
-  requirements: string[];
+  // Each with the rule that says what in a design covers it (Q-WD-15).
+  requirements: { text: string; covers: Cover }[];
   concepts: string[];
   rubric: HldProblem["rubric"];
   allowedComponents: ComponentKind[];
@@ -150,10 +151,16 @@ function draft(
     battleMode,
     timeLimitMinutes: 30,
     requirements: [
-      ...family.requirements,
+      ...family.requirements.map((r) => r.text),
       `About ${traffic.requests.map((t) => `${fmt(t.rps)} ${t.type.replaceAll("_", " ")}`).join(", ")} requests a second on a normal day.`,
       `${fmt(traffic.storedGb)} GB kept today, growing ${String(traffic.growthGbPerDay)} GB a day: ${fmt(needed)} GB within ${String(traffic.horizonDays)} days.`,
       `A budget of $${fmt(budget)} a month.`,
+    ],
+    covers: [
+      ...family.requirements.map((r) => r.covers),
+      { rule: "scenario", scenario: "baseline" },
+      { rule: "storage" },
+      { rule: "budget" },
     ],
     traffic,
     budgetPerMonth: budget,

@@ -9,6 +9,7 @@ services/game/testdata/match_finished.json. The queue message itself is codegen'
 """
 
 import threading
+from collections.abc import Callable
 from datetime import datetime
 from typing import Literal, Protocol, Self
 from uuid import UUID
@@ -135,6 +136,38 @@ def _send(redis: ResultsRedis, queue: JobQueue, raw: bytes, prefix: str) -> None
     redis.lrem(working, 1, raw)
 
 
+def relay_list(
+    redis: ResultsRedis,
+    stop: threading.Event,
+    source: str,
+    send: Callable[[bytes], None],
+    wait_seconds: int = 1,
+) -> None:
+    """Moves entries from the `source` list to `send` until stopped. Each is moved to
+    a working list first and leaves it only once sent (`send` removes it), so a crash
+    re-sends it on the next start; the queue's key and the stage's once-only write
+    absorb a repeat."""
+    working = f"{source}:working"
+    resent = False
+    while not stop.is_set():
+        try:
+            # Several workers each re-send the working list at start, including entries
+            # another is still sending; the queue's key and the once-only write
+            # absorb that.
+            if not resent:
+                for raw in redis.lrange(working, 0, -1):
+                    send(raw)
+                resent = True
+            raw = redis.blmove(source, working, wait_seconds, "RIGHT", "LEFT")
+            if raw is not None:
+                send(raw)
+        except OSError as error:  # ConnectionError, TimeoutError: the adapter's
+            # Valkey away for a moment (a restart, a failover): the entries wait in
+            # it; say so and try again, rather than stopping every stage.
+            log.warn("game: relay waiting for valkey", source=source, error=str(error))
+            stop.wait(5)
+
+
 def relay(
     redis: ResultsRedis,
     queue: JobQueue,
@@ -142,27 +175,11 @@ def relay(
     prefix: str = "game:",
     wait_seconds: int = 1,
 ) -> None:
-    """Moves match ids from game:results to the queue until stopped. Each id is moved to
-    a working list first and leaves it only once queued, so a crash re-sends it on the
-    next start; the queue's key and the stage's once-only write absorb a repeat."""
-    working = f"{prefix}results:working"
-    resent = False
-    while not stop.is_set():
-        try:
-            # Several workers each re-send the working list at start, including ids
-            # another is still sending; the queue's key and the once-only write
-            # absorb that.
-            if not resent:
-                for raw in redis.lrange(working, 0, -1):
-                    _send(redis, queue, raw, prefix)
-                resent = True
-            raw = redis.blmove(
-                f"{prefix}results", working, wait_seconds, "RIGHT", "LEFT"
-            )
-            if raw is not None:
-                _send(redis, queue, raw, prefix)
-        except OSError as error:  # ConnectionError, TimeoutError: the adapter's
-            # Valkey away for a moment (a restart, a failover): the ids wait in it;
-            # say so and try again, rather than stopping every stage.
-            log.warn("game: result relay waiting for valkey", error=str(error))
-            stop.wait(5)
+    """Moves match ids from game:results to the queue until stopped."""
+    relay_list(
+        redis,
+        stop,
+        f"{prefix}results",
+        lambda raw: _send(redis, queue, raw, prefix),
+        wait_seconds,
+    )

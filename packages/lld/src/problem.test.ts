@@ -160,3 +160,30 @@ test("an extension adds methods its own scenarios use, never clashing with the b
     ),
   ).toBe(false);
 });
+
+// ADR-0048 (Q-WD-28): each problem is in one pool. A practice problem has its topic group
+// and concepts, may leave out the extension round, and is never the AI mode; a battle
+// problem always has an extension (the reveal at 30:00) and no topic.
+test("a pool for every problem, with practice's own rules", () => {
+  const without = (key: string, p: object) =>
+    Object.fromEntries(Object.entries(p).filter(([k]) => k !== key));
+  expect(ok(without("pool", sample))).toBe(false);
+  expect(ok({ ...sample, pool: "casual" })).toBe(false);
+  const practice = {
+    ...sample,
+    pool: "practice",
+    topic: "systems",
+    concepts: ["caching"],
+  };
+  expect(ok(practice)).toBe(true);
+  expect(ok({ ...practice, concepts: [] })).toBe(true);
+  expect(ok({ ...practice, battleMode: "ai" })).toBe(false);
+  expect(ok({ ...practice, topic: undefined })).toBe(false);
+  expect(ok({ ...practice, topic: "algorithms" })).toBe(false);
+  expect(ok({ ...practice, concepts: ["Not A Slug"] })).toBe(false);
+  expect(ok(without("extension", practice))).toBe(true);
+  // A battle problem: an extension always, and no topic or concepts.
+  expect(ok(without("extension", sample))).toBe(false);
+  expect(ok({ ...sample, topic: "systems" })).toBe(false);
+  expect(ok({ ...sample, concepts: [] })).toBe(false);
+});

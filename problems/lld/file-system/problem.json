@@ -2,6 +2,7 @@
   "slug": "file-system",
   "title": "File system",
   "difficulty": "medium",
+  "pool": "battle",
   "battleMode": "ai",
   "interface": {
     "class": "FileSystem",

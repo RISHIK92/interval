@@ -25,6 +25,6 @@ test("on the server, the watch page shows no time left", () => {
       }}
     />,
   );
-  expect(html).toContain("Designs update as they autosave.");
-  expect(html).not.toContain("minutes left");
+  expect(html).toContain("Designs update as the players autosave.");
+  expect(html).not.toContain("min left");
 });

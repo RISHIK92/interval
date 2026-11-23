@@ -56,7 +56,7 @@ test("after a minute alone in the queue, the solo match opens", async () => {
     );
   });
   const find = [...host.querySelectorAll("button")].find((b) =>
-    b.textContent.includes("Find an opponent"),
+    b.textContent.includes("Find a match"),
   );
   await act(async () => {
     find?.click();
@@ -97,11 +97,12 @@ test("registering names the chosen battle mode", () => {
   });
   const buttons = () =>
     [...host.querySelectorAll("button")].map((b) => b.textContent);
-  expect(buttons()).toContain("Register (Human mode)");
+  expect(buttons()).toContain("Register");
+  expect(host.textContent).toContain("In Human mode");
   act(() => {
     host.querySelector<HTMLInputElement>('input[value="ai"]')?.click();
   });
-  expect(buttons()).toContain("Register (AI mode)");
+  expect(host.textContent).toContain("In AI mode");
   act(() => {
     root.unmount();
   });
@@ -132,4 +133,122 @@ test("on the server, the next window shows no local time", () => {
     "Sunday",
   ])
     expect(html).not.toContain(day);
+});
+
+// The queue shows how long the player has waited, and lets them leave it: no solo match
+// starts after a cancel.
+test("waiting shows the time, and Cancel leaves the queue", async () => {
+  vi.useFakeTimers();
+  const fetchMock = vi.fn((url: string, init?: { method?: string }) => {
+    const method = init?.method ?? "GET";
+    if (method === "PUT")
+      return Promise.resolve(Response.json({ status: "waiting" }));
+    if (url.startsWith("/api/hld/solo"))
+      return Promise.resolve(Response.json({ matchId: "m-solo" }));
+    return Promise.resolve(new Response(null, { status: 204 }));
+  });
+  vi.stubGlobal("fetch", fetchMock);
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  act(() => {
+    root.render(
+      <HldLobby
+        window={{
+          at: new Date(Date.now() + 3_600_000).toISOString(),
+          status: "open",
+          registered: false,
+          battleMode: null,
+          matchId: null,
+        }}
+      />,
+    );
+  });
+  const button = (text: string) =>
+    [...host.querySelectorAll("button")].find((b) =>
+      b.textContent.includes(text),
+    );
+  await act(async () => {
+    button("Find a match")?.click();
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(42_000);
+  });
+  expect(host.textContent).toContain("Looking for an opponent…0:42");
+  expect(host.textContent).toContain("You'll design solo instead");
+  await act(async () => {
+    button("Cancel")?.click();
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  expect(
+    fetchMock.mock.calls.some(
+      ([url, init]) =>
+        url.startsWith("/api/hld/queue") && init?.method === "DELETE",
+    ),
+  ).toBe(true);
+  expect(button("Find a match")).toBeDefined();
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(30_000);
+  });
+  expect(
+    fetchMock.mock.calls.some(([url]) => url.startsWith("/api/hld/solo")),
+  ).toBe(false);
+  expect(push).not.toHaveBeenCalled();
+  act(() => {
+    root.unmount();
+  });
+});
+
+// One solo at a time: a refused solo says why and leads to the match still going,
+// rather than leaving the player at a dead end.
+test("a refused solo links to the open match", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((url: string, init?: { method?: string }) => {
+      if (url.startsWith("/api/hld/solo"))
+        return Promise.resolve(new Response(null, { status: 429 }));
+      if (init?.method === "PUT")
+        return Promise.resolve(Response.json({ status: "waiting" }));
+      return Promise.resolve(new Response(null, { status: 204 }));
+    }),
+  );
+  const host = document.createElement("div");
+  document.body.append(host);
+  const root = createRoot(host);
+  act(() => {
+    root.render(
+      <HldLobby
+        openMatch={{
+          id: "m-open",
+          deadline: new Date(Date.now() + 600_000).toISOString(),
+        }}
+        window={{
+          at: new Date(Date.now() + 3_600_000).toISOString(),
+          status: "open",
+          registered: false,
+          battleMode: null,
+          matchId: null,
+        }}
+      />,
+    );
+  });
+  await act(async () => {
+    [...host.querySelectorAll("button")]
+      .find((b) => b.textContent.includes("Find a match"))
+      ?.click();
+    await vi.advanceTimersByTimeAsync(0);
+  });
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(62_000);
+  });
+  expect(host.textContent).toContain("a solo match can't start yet");
+  expect(host.querySelector('a[href="/hld/match/m-open"]')?.textContent).toBe(
+    "Open your match",
+  );
+  expect(push).not.toHaveBeenCalled();
+  act(() => {
+    root.unmount();
+  });
 });

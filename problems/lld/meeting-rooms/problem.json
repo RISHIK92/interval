@@ -2,6 +2,9 @@
   "slug": "meeting-rooms",
   "title": "Meeting rooms",
   "difficulty": "medium",
+  "pool": "practice",
+  "topic": "systems",
+  "concepts": [],
   "interface": {
     "class": "MeetingRooms",
     "constructor": {

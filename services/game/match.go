@@ -33,6 +33,10 @@ type snap struct {
 	// P5-W31-S02b-2: a battle's start, so a restart plays on with the same clock; its
 	// Totals and Times are the players' best submissions.
 	Started time.Time `json:"started,omitzero"`
+	// ADR-0048: a practice session's last progress message, and whether its player had
+	// the extension revealed.
+	Seq      int  `json:"seq,omitempty"`
+	Revealed bool `json:"revealed,omitempty"`
 }
 
 // P3-W15-S05: a player's answer to a round, for the result (null fields: not answered).
@@ -95,7 +99,7 @@ func (realClock) Now() time.Time                         { return time.Now() }
 func (realClock) After(d time.Duration) <-chan time.Time { return time.After(d) }
 
 type event struct {
-	kind   string // join, leave, answer, focus, rtt, graceOver, sync; code, judged, back, paste (battles)
+	kind   string // join, leave, answer, focus, rtt, graceOver, sync; code, judged, back, paste, reveal (battles)
 	player string
 	seat   seat
 	n      int // the round answered; for graceOver, the leave's generation; a paste's characters
@@ -123,6 +127,10 @@ type actor struct {
 	save    func(snap)   // after each round and at the end; nil saves nothing
 	publish func(result) // the result, for the worker (P3-W15-S05); nil hands nothing
 	judge   judge.Judge  // a battle's judge (P5-W31-S02b-2): Velox
+	// ADR-0048: a practice Submit's progress, for the worker; nil hands nothing. And the
+	// practice player's daily caps; nil caps nothing.
+	progress func(practiceJudged)
+	limits   practiceLimits
 }
 
 func newActor(id string, def matchDef, c clock, log *slog.Logger) *actor {
@@ -175,6 +183,11 @@ func (a *actor) focus(player string) {
 // P5-W31-S04a: a battle's page is back in focus, or had text pasted into its editor.
 func (a *actor) back(player string) {
 	a.post(event{kind: "back", player: player, at: a.clock.Now()})
+}
+
+// ADR-0048: a practice player asks for the extension.
+func (a *actor) reveal(player string) {
+	a.post(event{kind: "reveal", player: player})
 }
 
 func (a *actor) paste(player string, chars int) {
@@ -552,7 +565,8 @@ func (a *actor) hand(p *play, outcome, won string) {
 			Answers:   given,
 			Signals:   raised,
 		}
-		if b := p.battle; b != nil {
+		// ADR-0048: practice has no AI code review, so its code stays here.
+		if b := p.battle; b != nil && !a.def.Battle.Practice {
 			if c := b.bestCode[player]; c != nil {
 				played.Best = &bestCode{Language: c.language, Code: c.code}
 			}
@@ -672,6 +686,10 @@ func (a *actor) handle(p *play, e event, cur *current) {
 	case "back", "paste":
 		if p.battle != nil {
 			a.battleSignal(p, e)
+		}
+	case "reveal":
+		if p.battle != nil {
+			a.practiceReveal(p)
 		}
 	case "focus":
 		if p.battle != nil {

@@ -26,7 +26,7 @@ from interval_db.generated import (
     RightsProfile,
     Topic,
 )
-from interval_db.messages import MessageName
+from interval_db.messages import MessageName, PracticeJudged
 from interval_jobs.events.generated import Envelope
 from interval_jobs.github.manifests import Dependency
 from interval_jobs.irt import Answer
@@ -1325,6 +1325,9 @@ class Store(Protocol):
     def match_results(self) -> "MatchResults": ...
 
     @property
+    def lld_practice(self) -> "LldPractice": ...
+
+    @property
     def seasons(self) -> "Seasons": ...
 
     @property
@@ -1548,6 +1551,28 @@ class MatchResults(Protocol):
 
     def save_best(self, match_id: str, user_id: str, language: str, key: str) -> None:
         """P5-W35 (Q-P5-22): where a battle player's best submission was stored."""
+        ...
+
+
+@dataclass(frozen=True)
+class PracticeKept:
+    """ADR-0048: a practice Submit counted for its player, who they are for the event
+    (DB-5), and whether it beat their best."""
+
+    user_id: str
+    is_guest: bool
+    beta_group: BetaGroup
+    improved: bool
+
+
+class LldPractice(Protocol):
+    """LLD practice bests (ADR-0048, Q-WD-28)."""
+
+    def keep(self, judged: PracticeJudged) -> PracticeKept | None:
+        """Counts one judged Submit for its practice match's player and keeps it as
+        their best when it scores more (an equal score keeps the earlier one). None
+        when it was counted already (its match and sequence number, LOAD-5), or it
+        isn't that player's practice on that problem."""
         ...
 
 

@@ -2,6 +2,7 @@
   "slug": "url-shortener",
   "title": "URL shortener",
   "difficulty": "medium",
+  "pool": "battle",
   "interface": {
     "class": "UrlShortener",
     "constructor": {

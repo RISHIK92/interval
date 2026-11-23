@@ -56,7 +56,7 @@ test("after a minute alone in the queue, the solo battle opens", async () => {
     );
   });
   const find = [...host.querySelectorAll("button")].find((b) =>
-    b.textContent.includes("Find a casual battle"),
+    b.textContent.includes("Find a match"),
   );
   await act(async () => {
     find?.click();
@@ -75,6 +75,29 @@ test("after a minute alone in the queue, the solo battle opens", async () => {
   act(() => {
     root.unmount();
   });
+});
+
+// Q-P5-19: one solo at a time. Refused, the lobby says a solo is running and leads to it.
+test("with a solo already running, the lobby links to it", () => {
+  const html = renderToString(
+    <BattleLobbyView
+      casual="idle"
+      window={{
+        at: "2026-11-24T21:00:00.000Z",
+        status: "open",
+        registered: false,
+        battleMode: null,
+        matchId: null,
+      }}
+      problem={{ soloRunning: "b-running" }}
+      battleMode="human"
+      onBattleMode={() => undefined}
+      onCasual={() => undefined}
+      onRegister={() => undefined}
+    />,
+  );
+  expect(html).toContain("You already have a solo battle running.");
+  expect(html).toContain('href="/play/battle/b-running"');
 });
 
 // ADR-0047: registered in one battle mode with the other chosen, the button names it as
@@ -139,4 +162,30 @@ test("on the server, the next window shows no local time", () => {
     "Sunday",
   ])
     expect(html).not.toContain(day);
+});
+
+// ADR-0048 (Q-WD-28): practice is the lobby's third way in, after the others.
+test("the lobby links to practice, after the ranked window and the casual queue", () => {
+  const html = renderToString(
+    <BattleLobbyView
+      casual="idle"
+      window={{
+        at: "2026-11-24T21:00:00.000Z",
+        status: "open",
+        registered: false,
+        battleMode: null,
+        matchId: null,
+      }}
+      problem={null}
+      battleMode="human"
+      onBattleMode={() => undefined}
+      onCasual={() => undefined}
+      onRegister={() => undefined}
+    />,
+  );
+  expect(html).toContain('href="/play/battle/practice"');
+  expect(html).toContain("No clock, unrated");
+  const at = (text: string) => html.indexOf(text);
+  expect(at("Ranked window")).toBeLessThan(at("Casual battle"));
+  expect(at("Casual battle")).toBeLessThan(at('href="/play/battle/practice"'));
 });

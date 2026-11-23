@@ -2,6 +2,7 @@
   "slug": "task-scheduler",
   "title": "Task scheduler",
   "difficulty": "medium",
+  "pool": "battle",
   "interface": {
     "class": "TaskScheduler",
     "constructor": {

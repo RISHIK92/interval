@@ -373,3 +373,21 @@ test("a battle's back and paste go to the game server while its socket is open",
   expect(socket.sent).toHaveLength(2);
   live.stop();
 });
+
+// ADR-0048 (Q-WD-28): a practice player's request for the extension, on the open socket.
+test("a practice reveal goes to the game server while its socket is open", async () => {
+  const h = harness([]);
+  h.deps.matchId = "practice-1";
+  const live = runLive(h.deps);
+  await flush();
+  const [socket] = h.sockets;
+  if (socket === undefined) throw new Error("no socket");
+  expect(live.reveal()).toBe(true);
+  expect(socket.sent.map((s) => JSON.parse(s) as unknown)).toEqual([
+    { type: "reveal" },
+  ]);
+  socket.readyState = 0;
+  expect(live.reveal()).toBe(false);
+  expect(socket.sent).toHaveLength(1);
+  live.stop();
+});

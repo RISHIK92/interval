@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Keep an LLD practice player's best result from one judged Submit, once per match and sequence number (ADR-0048, LOAD-5): per-layer counts, never code. The worker's relay queues this from the game server's game:practice list.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "match_id",
+    "seq",
+    "played_as",
+    "problem_slug",
+    "points",
+    "visible_passed",
+    "visible_total",
+    "hidden_passed",
+    "hidden_total",
+    "concurrency_passed",
+    "concurrency_total",
+    "extension_passed",
+    "extension_total",
+    "extension_revealed",
+    "language",
+    "judged_at"
+  ],
+  "properties": {
+    "match_id": {
+      "type": "string",
+      "minLength": 36
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "played_as": {
+      "type": "string",
+      "minLength": 1
+    },
+    "problem_slug": {
+      "type": "string",
+      "minLength": 1
+    },
+    "points": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "visible_passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "visible_total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "hidden_passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "hidden_total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "concurrency_passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "concurrency_total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "extension_passed": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "extension_total": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "extension_revealed": {
+      "type": "boolean"
+    },
+    "language": {
+      "type": "string",
+      "minLength": 1
+    },
+    "judged_at": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

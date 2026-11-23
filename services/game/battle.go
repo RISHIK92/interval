@@ -23,6 +23,10 @@ const (
 	battleLength = 45 * time.Minute
 )
 
+// ADR-0048 (Q-WD-28): a practice session has no clock for the player, only this cap, after
+// which the page starts another.
+const practiceLength = 60 * time.Minute
+
 type battleDef struct {
 	Problem string `json:"problem"`
 	// P5-W33: the battle mode (§6.2, ADR-0047), "human" or "ai": whether code similarity
@@ -38,6 +42,17 @@ type battleDef struct {
 	// P5-W31-S03: what players are shown at the reveal, and only then (the clock is this
 	// server's): extension.md, and the extended interface's starter code per language.
 	Extension *battleExtension `json:"extension,omitempty"`
+	// ADR-0048: LLD practice, one player, unrated: no reveal or end on the battle clock (the
+	// player reveals the extension), no fair-play signals, a progress message per Submit.
+	Practice bool `json:"practice,omitempty"`
+}
+
+// How long this battle can run: the battle's 45 minutes, or a practice session's cap.
+func (b *battleDef) length() time.Duration {
+	if b.Practice {
+		return practiceLength
+	}
+	return battleLength
 }
 
 type battleExtension struct {

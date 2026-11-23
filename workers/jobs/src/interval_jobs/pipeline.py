@@ -42,6 +42,7 @@ from interval_db.messages import (
     MatchFinished,
     MessageName,
     OcrPage,
+    PracticeJudged,
     ProjectNote,
     RateHldMatch,
     RecomputeFeed,
@@ -67,6 +68,7 @@ from interval_jobs.books.process import process_book
 from interval_jobs.code_review import review as code_review
 from interval_jobs.concept_vectors import concept_text, text_hash
 from interval_jobs.embedding import embed_item
+from interval_jobs.events.emitter import Emitter, EventContext
 from interval_jobs.feed.precompute import recompute_user_feed
 from interval_jobs.feed.project_notes import queue_project_notes, write_project_note
 from interval_jobs.frameable import framed_at
@@ -83,6 +85,7 @@ from interval_jobs.polling import MIN_INTERVAL, next_interval
 from interval_jobs.ports import (
     ConceptGraph,
     Delivery,
+    EventSink,
     Extractor,
     Fetcher,
     Files,
@@ -221,8 +224,11 @@ class Pipeline:
         github: GitHubApp | None = None,
         results: ResultsRedis | None = None,
         push: WebPush | None = None,
+        events: EventSink | None = None,
     ) -> None:
         self._unit = unit_of_work
+        # DB-5: where a stage's events go; None writes none (a stage's own tests).
+        self._events = events
         # P3-W17-S05b: None without VAPID keys; agent nudges are then skipped.
         self._push = push
         # P3-W15-S05: where game servers leave match results (Valkey).
@@ -260,6 +266,7 @@ class Pipeline:
             "github_sync": self._github_stage,
             "project_note": self._project_note_stage,
             "match_finished": self._match_stage,
+            "practice_judged": self._practice_stage,
             "agent_nudge": self._nudge_stage,
             "answer_interviewer": self._interviewer_stage,
             "review_code": self._review_stage,
@@ -472,6 +479,37 @@ class Pipeline:
         # Every delivery, not only the first recording: a retry after a crash between
         # the two still keeps them (rows on conflict do nothing; the same object).
         self._keep_bests(result)
+
+    # ADR-0048 (Q-WD-28): one judged LLD practice Submit, counted once and kept when it
+    # beats the player's best.
+    def _practice_stage(self, message: BaseModel, delivery: Delivery) -> None:
+        assert isinstance(message, PracticeJudged)
+        with self._unit() as services:
+            kept = services.store.lld_practice.keep(message)
+        log.info(
+            "game: practice progress",
+            match_id=message.match_id,
+            seq=message.seq,
+            kept=kept is not None,
+        )
+        if kept is None or self._events is None:
+            return
+        # After the commit, so a Submit counted is said once: a redelivery finds it
+        # counted and says nothing.
+        events = Emitter(self._events)
+        events.emit(
+            "lld_practice_submitted",
+            {
+                "problem_slug": message.problem_slug,
+                "points": message.points,
+                "hidden_passed": message.hidden_passed,
+                "hidden_total": message.hidden_total,
+                "extension_revealed": message.extension_revealed,
+                "improved": kept.improved,
+            },
+            EventContext(kept.user_id, kept.is_guest, kept.beta_group, None),
+        )
+        events.flush()
 
     # P5-W35 (Q-P5-22): each battle player's best submission into the private bucket,
     # for the AI code review; the object first, then its row, so pruning finds it.

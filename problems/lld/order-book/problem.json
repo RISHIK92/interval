@@ -2,6 +2,7 @@
   "slug": "order-book",
   "title": "Order book",
   "difficulty": "hard",
+  "pool": "battle",
   "battleMode": "ai",
   "interface": {
     "class": "OrderBook",

@@ -57,6 +57,9 @@ func (b *battleRun) minute(at time.Time) int {
 
 // focus, back or paste (e.n its characters) from a battle's player.
 func (a *actor) battleSignal(p *play, e event) {
+	if a.def.Battle.Practice {
+		return // ADR-0048: practice keeps no fair-play signals
+	}
 	b := p.battle
 	// Read after the end while judgings finish: a paste then is past time, and an away
 	// counts only to the end.
@@ -96,6 +99,9 @@ func (a *actor) cameBack(p *play, player string, at time.Time) {
 }
 
 func (a *actor) battleRaise(p *play, player string, s fairPlaySignal) {
+	if a.def.Battle.Practice {
+		return
+	}
 	n := 0
 	for _, raised := range p.signals[player] {
 		if raised.Kind == s.Kind {

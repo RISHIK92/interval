@@ -16,6 +16,13 @@ test("the spec sheet lists the components, their numbers and the patch notes", (
   expect(html).toContain("99.90%");
   expect(html).not.toContain("The problem&#x27;s users");
   expect(html).toContain("Patch notes");
+  expect(html).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+});
+
+// No frame, but never a dead end: the first focusable thing leads back to the lobby.
+test("the spec sheet leads back to HLD battles", () => {
+  const html = renderToStaticMarkup(<SpecPage />);
+  expect(html).toMatch(/<a[^>]*href="\/hld\/play"[^>]*>‹ HLD battles<\/a>/);
 });
 
 // The sheet is public and static: built once, with no request to read a session from,

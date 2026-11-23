@@ -177,3 +177,34 @@ test("a refused Submit frees only Submit", () => {
     ) ?? s;
   expect(s).toMatchObject({ running: true, submitting: false });
 });
+
+// ADR-0048 (Q-WD-28): a practice session's state says so, for a screen with no clock and
+// no opponent; the extension comes when the player reveals it.
+test("a practice session is marked, and its extension comes on request", () => {
+  let s = play(
+    { type: "joined", you: "ada" },
+    { ...start, practice: true, best: { ada: 0 }, seconds: 3600 },
+  );
+  expect(s).toMatchObject({
+    phase: "playing",
+    practice: true,
+    extension: null,
+  });
+  s =
+    BATTLE.step(
+      s,
+      {
+        type: "extension",
+        seconds: 3500,
+        statement: "# More",
+        starters: { python: "def more(): ..." },
+      },
+      0,
+    ) ?? s;
+  expect(s).toMatchObject({
+    practice: true,
+    extension: { statement: "# More" },
+  });
+  // A battle is no practice.
+  expect(play(start)).toMatchObject({ practice: false });
+});

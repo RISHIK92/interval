@@ -340,6 +340,26 @@
       "description": "The app was installed as a PWA (W5-S06).",
       "props": {}
     },
+    "lld_practice_started": {
+      "version": 1,
+      "description": "A player started an LLD practice session on a practice problem (ADR-0048, Q-WD-28): the problem and its difficulty, never code.",
+      "props": {
+        "problem_slug": "string",
+        "difficulty": ["easy", "medium", "hard"]
+      }
+    },
+    "lld_practice_submitted": {
+      "version": 1,
+      "description": "The worker kept one judged LLD practice Submit (ADR-0048): its points and hidden counts, whether the extension was revealed, and whether it improved the player's best. Counts only, never code (LLDQ-4).",
+      "props": {
+        "problem_slug": "string",
+        "points": "count",
+        "hidden_passed": "count",
+        "hidden_total": "count",
+        "extension_revealed": "boolean",
+        "improved": "boolean"
+      }
+    },
     "outbound_click": {
       "version": 1,
       "description": "A link to a publisher's page was followed.",

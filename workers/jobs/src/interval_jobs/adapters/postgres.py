@@ -26,6 +26,7 @@ from interval_db.generated import (
     RightsProfile,
     Topic,
 )
+from interval_db.messages import PracticeJudged
 from interval_jobs import log
 from interval_jobs.concepts.graph import TOPICS
 from interval_jobs.irt import Answer
@@ -73,6 +74,7 @@ from interval_jobs.ports import (
     NativeTarget,
     NoteBatchEntry,
     PathDraft,
+    PracticeKept,
     ProjectConcepts,
     ProjectNoteInput,
     Pronunciation,
@@ -3360,6 +3362,106 @@ def _duel(
     return [(user, score(p.played_as, p.abandoned)) for user, p in seats]
 
 
+_PRACTICE_COUNTS = (
+    "visible_passed",
+    "visible_total",
+    "hidden_passed",
+    "hidden_total",
+    "concurrency_passed",
+    "concurrency_total",
+    "extension_passed",
+    "extension_total",
+)
+
+
+class PostgresLldPractice:
+    """LLD practice bests (ADR-0048, Q-WD-28)."""
+
+    def __init__(self, conn: psycopg.Connection) -> None:
+        self._conn = conn
+
+    def keep(self, judged: PracticeJudged) -> PracticeKept | None:
+        conn = self._conn
+        with conn.transaction():
+            player = conn.execute(
+                """
+                select u.id, u.is_anonymous, u.beta_group
+                from game_match m
+                join game_match_player p on p.match_id = m.id
+                join app_user u on u.id = p.user_id
+                where m.id = %s and m.mode = 'practice' and m.problem_slug = %s
+                  and coalesce(p.played_as, p.user_id) = %s
+                """,
+                (judged.match_id, judged.problem_slug, judged.played_as),
+            ).fetchone()
+            if player is None:
+                log.warn(
+                    "game: practice progress for no practice player",
+                    match_id=judged.match_id,
+                )
+                return None
+            user = str(player[0])
+            counts = tuple(getattr(judged, name) for name in _PRACTICE_COUNTS)
+            best = (
+                judged.points,
+                *counts,
+                judged.language,
+                datetime.fromisoformat(judged.judged_at),
+            )
+            guest, group = bool(player[1]), player[2]
+            counted = conn.execute(
+                "insert into lld_practice_counted (match_id, seq) values (%s, %s) "
+                "on conflict do nothing",
+                (judged.match_id, judged.seq),
+            )
+            if counted.rowcount == 0:
+                return None
+            was = conn.execute(
+                "select points from lld_practice_best "
+                "where user_id = %s and problem_slug = %s for update",
+                (user, judged.problem_slug),
+            ).fetchone()
+            # Messages arrive late and out of order (LOAD-5), so the best is the most
+            # points seen, with every layer from that one Submit; an equal score keeps
+            # the one kept first.
+            conn.execute(
+                """
+                insert into lld_practice_best as b
+                  (user_id, problem_slug, points, visible_passed, visible_total,
+                   hidden_passed, hidden_total, concurrency_passed, concurrency_total,
+                   extension_passed, extension_total, language, achieved_at, submits)
+                values (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1)
+                on conflict (user_id, problem_slug) do update set
+                  submits = b.submits + 1,
+                  updated_at = now(),
+                  points = greatest(b.points, excluded.points),
+                  visible_passed = case when excluded.points > b.points
+                    then excluded.visible_passed else b.visible_passed end,
+                  visible_total = case when excluded.points > b.points
+                    then excluded.visible_total else b.visible_total end,
+                  hidden_passed = case when excluded.points > b.points
+                    then excluded.hidden_passed else b.hidden_passed end,
+                  hidden_total = case when excluded.points > b.points
+                    then excluded.hidden_total else b.hidden_total end,
+                  concurrency_passed = case when excluded.points > b.points
+                    then excluded.concurrency_passed else b.concurrency_passed end,
+                  concurrency_total = case when excluded.points > b.points
+                    then excluded.concurrency_total else b.concurrency_total end,
+                  extension_passed = case when excluded.points > b.points
+                    then excluded.extension_passed else b.extension_passed end,
+                  extension_total = case when excluded.points > b.points
+                    then excluded.extension_total else b.extension_total end,
+                  language = case when excluded.points > b.points
+                    then excluded.language else b.language end,
+                  achieved_at = case when excluded.points > b.points
+                    then excluded.achieved_at else b.achieved_at end
+                """,
+                (user, judged.problem_slug, *best),
+            )
+            improved = was is None or judged.points > int(was[0])
+            return PracticeKept(user, guest, group, improved)
+
+
 class PostgresMatchResults:
     """Live match results (P3-W15-S05)."""
 
@@ -3392,6 +3494,11 @@ class PostgresMatchResults:
                 return False  # recorded already, or no such match
             started: datetime = min(done[0], result.finished_at - timedelta(seconds=1))
             mode: str = done[1]
+            # ADR-0048: a practice session's progress was kept as it went
+            # (PostgresLldPractice); its end moves no rating, raises no flag and keeps
+            # no code for a review.
+            if mode == "practice":
+                return True
             # P3-W17-S01, S02: a ghost's or a bot's seat replays a run; it's no player.
             # Its seat and Glicko were kept with the match, so a run deleted since
             # changes nothing.
@@ -4908,6 +5015,7 @@ class PostgresStore:
         self.technologies = PostgresTechnologies(conn)
         self.universities = PostgresUniversities(conn)
         self.match_results = PostgresMatchResults(conn)
+        self.lld_practice = PostgresLldPractice(conn)
         self.seasons = PostgresSeasons(conn)
         self.agent_nudges = PostgresAgentNudges(conn)
         self.device_tokens = PostgresDeviceTokens(conn)

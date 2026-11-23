@@ -29,6 +29,14 @@ export default async function HldPlayPage() {
   const deps = hldDeps();
   const open = await hldMatches().unscoredFor(actor.userId);
   for (const id of open) await advance(deps, id);
+  // A match still being played: where the lobby sends a player refused a second solo.
+  const going = (
+    await Promise.all(
+      (await hldMatches().unscoredFor(actor.userId)).map((id) =>
+        hldMatches().get(id),
+      ),
+    )
+  ).find((f) => f !== null && f.match.closedAt === null);
   const now = new Date();
   const [next] = windowsFrom(now, windowTimeZone());
   if (next === undefined) throw new Error("no window in the coming week");
@@ -47,7 +55,22 @@ export default async function HldPlayPage() {
       railLabel="Your battles"
       rail={<HldRail ratings={{ human, ai }} />}
     >
+      {/* The sidebar's Play does this on wide screens. */}
+      <Link
+        href="/play"
+        className="mb-3 inline-block text-sm text-ink-muted underline lg:hidden"
+      >
+        Back to Play
+      </Link>
       <HldLobby
+        openMatch={
+          going === undefined || going === null
+            ? null
+            : {
+                id: going.match.id,
+                deadline: going.match.deadlineAt.toISOString(),
+              }
+        }
         header={
           <header>
             <h1 className={PAGE_TITLE}>System design battles</h1>
@@ -95,14 +118,14 @@ export default async function HldPlayPage() {
             body="Design any problem on the canvas, with its simulation live as you draw. No opponent."
           >
             <Link href="/hld/practice" className={QUIET}>
-              Solo practice
+              Practice
             </Link>
           </LobbyCard>
         </li>
         <li className="hidden lg:block">
           <LobbyCard
             title="Tournaments"
-            meta="Swiss, then top 8"
+            meta="Swiss, top 8"
             art={TROPHY}
             tint="bg-(--review-tint) text-(--review-line)"
             body="Five Swiss rounds, then a bracket of the top 8, with university standings."

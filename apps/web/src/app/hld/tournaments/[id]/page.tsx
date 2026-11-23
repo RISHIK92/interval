@@ -16,6 +16,7 @@ import { LOBBY_BUTTON } from "../../../LobbyCard";
 import { Button } from "../../../ui/Button";
 import { Card } from "../../../ui/Card";
 import { PAGE_TITLE, Page } from "../../../ui/Page";
+import { startsAt } from "../startsAt";
 
 export const dynamic = "force-dynamic";
 
@@ -89,10 +90,10 @@ export default async function TournamentPage(props: {
         </Link>
         <h1 className={`mt-1 ${PAGE_TITLE}`}>{t.name}</h1>
         <p className="mt-1 text-sm text-ink-muted tabular-nums">
-          Starts {t.startsAt.toISOString().slice(0, 16).replace("T", " ")} UTC ·
-          {BATTLE_MODE_NAMES[t.battleMode]} · 5 Swiss rounds, then the top 8 ·{" "}
-          {entries.filter((e) => e.checkedIn).length} checked in of{" "}
-          {entries.length}
+          {t.round === 0 && t.finishedAt === null ? "Starts" : "Started"}{" "}
+          {startsAt(t.startsAt)} · {BATTLE_MODE_NAMES[t.battleMode]} · 5 Swiss
+          rounds, then the top 8 · {entries.filter((e) => e.checkedIn).length}{" "}
+          checked in of {entries.length}
         </p>
       </header>
       {said !== undefined && SAID[said] !== undefined ? (
@@ -101,11 +102,34 @@ export default async function TournamentPage(props: {
         </p>
       ) : null}
       {t.round === 0 && t.finishedAt === null ? (
-        <Card className="flex flex-wrap items-center gap-3 p-5 lg:rounded-[22px] lg:p-[18px] lg:shadow-none">
+        <Card className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between lg:rounded-[22px] lg:p-[18px] lg:shadow-none">
+          <div className="flex flex-col gap-0.5">
+            <p className="flex items-center gap-2 font-semibold">
+              {me === undefined
+                ? "Not entered"
+                : me.checkedIn
+                  ? "Checked in"
+                  : "Registered"}
+              {me === undefined ? null : (
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${me.checkedIn ? "bg-go-soft text-go-text" : "bg-well text-ink-muted"}`}
+                >
+                  {me.checkedIn ? "Ready" : "Check-in needed"}
+                </span>
+              )}
+            </p>
+            <p className="text-sm text-ink-muted">
+              {me === undefined
+                ? actor.isGuest
+                  ? "Sign up to enter tournaments."
+                  : "Register now; check in from an hour before the start."
+                : me.checkedIn
+                  ? `You're in${me.university === null ? "" : ` for ${me.university}`}. Your first match shows here when round 1 starts.`
+                  : "Check in from an hour before the start, or you won't be paired."}
+            </p>
+          </div>
           {me === undefined ? (
-            actor.isGuest ? (
-              <p>Sign up to enter tournaments.</p>
-            ) : (
+            actor.isGuest ? null : (
               <form action={registerAction}>
                 <input type="hidden" name="id" value={t.id} />
                 <Button type="submit" className={LOBBY_BUTTON}>
@@ -114,13 +138,8 @@ export default async function TournamentPage(props: {
               </form>
             )
           ) : (
-            <>
-              {me.checkedIn ? (
-                <p className="font-semibold">
-                  You&apos;re checked in
-                  {me.university === null ? "" : ` for ${me.university}`}.
-                </p>
-              ) : (
+            <div className="flex flex-wrap items-center gap-2">
+              {me.checkedIn ? null : (
                 <form action={checkInAction}>
                   <input type="hidden" name="id" value={t.id} />
                   <Button type="submit" className={LOBBY_BUTTON}>
@@ -138,7 +157,7 @@ export default async function TournamentPage(props: {
                   Withdraw
                 </Button>
               </form>
-            </>
+            </div>
           )}
         </Card>
       ) : null}
@@ -172,7 +191,7 @@ export default async function TournamentPage(props: {
                 .filter((p) => p.round === t.round && p.matchId !== null)
                 .map((p) => (
                   <li key={p.slot} className={LINE}>
-                    {name(p.playerA)} v {name(p.playerB)}
+                    {name(p.playerA)} vs {name(p.playerB)}
                     {look(p) === null ? null : <> · {look(p)}</>}
                   </li>
                 ))}
@@ -194,10 +213,28 @@ export default async function TournamentPage(props: {
               </tr>
             </thead>
             <tbody>
+              {view.standings.length === 0 ? (
+                <tr className="border-t border-hairline">
+                  <td colSpan={5} className={`${CELL} text-ink-muted`}>
+                    Standings start after round 1.
+                  </td>
+                </tr>
+              ) : null}
               {view.standings.map((s, i) => (
-                <tr key={s.userId} className="border-t border-hairline">
+                <tr
+                  key={s.userId}
+                  aria-current={s.userId === actor.userId ? "true" : undefined}
+                  className={`border-t border-hairline ${s.userId === actor.userId ? "bg-well" : ""}`}
+                >
                   <td className={`${CELL} text-ink-muted`}>{i + 1}</td>
-                  <td className={`${CELL} font-semibold`}>{name(s.userId)}</td>
+                  <td className={`${CELL} font-semibold`}>
+                    {name(s.userId)}
+                    {s.userId === actor.userId ? (
+                      <span className="ml-1.5 rounded-md bg-lift px-1.5 py-0.5 text-xs font-semibold">
+                        You
+                      </span>
+                    ) : null}
+                  </td>
                   <td className={CELL}>{s.points}</td>
                   <td className={CELL}>{s.buchholz}</td>
                   <td className={CELL}>{s.total}</td>
@@ -240,7 +277,7 @@ export default async function TournamentPage(props: {
                 <ul className="text-sm">
                   {games.map((p) => (
                     <li key={p.slot} className={LINE}>
-                      {name(p.playerA)} v {name(p.playerB)}
+                      {name(p.playerA)} vs {name(p.playerB)}
                       {look(p) === null ? null : <> · {look(p)}</>}
                       {p.done
                         ? p.winner === null

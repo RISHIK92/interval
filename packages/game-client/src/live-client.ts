@@ -69,6 +69,7 @@ export function runLive<S>(deps: LiveDeps<S>): {
   focusBack: () => void;
   pasted: (chars: number) => void;
   code: (submit: boolean, language: string, code: string) => boolean;
+  reveal: () => boolean;
   fallback: () => void;
   stop: () => void;
 } {
@@ -236,6 +237,12 @@ export function runLive<S>(deps: LiveDeps<S>): {
       socket.send(
         JSON.stringify({ type: submit ? "submit" : "run", language, code }),
       );
+      return true;
+    },
+    // ADR-0048: a practice player asks for the extension. False with no open socket.
+    reveal: () => {
+      if (socket === null || socket.readyState !== OPEN) return false;
+      socket.send(JSON.stringify({ type: "reveal" }));
       return true;
     },
     // "Play bot now": taken at the queue's next turn (within a poll).

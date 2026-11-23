@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { BattleReview } from "../../../../../server/ports";
+import { AutoRefresh } from "./AutoRefresh";
 
 // P5-W35 (§6.5, AI-1; Q-P5-14, Q-P5-22): the AI code review of the player's best
 // submission, on request and labelled AI, never touching ratings; and a dispute of the
@@ -17,37 +18,55 @@ export function ResultActions(props: {
   const router = useRouter();
   const [reason, setReason] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const post = async (path: string, body?: unknown) => {
     setNotice(null);
-    const res = await fetch(`/api/battle/${props.matchId}/${path}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body ?? {}),
-    });
-    if (!res.ok) setNotice("That didn't go through. Try again later.");
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/battle/${props.matchId}/${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body ?? {}),
+      });
+      if (!res.ok) setNotice("That didn't go through. Try again later.");
+    } catch (error) {
+      console.error("battle: result action failed", error);
+      setNotice("That didn't go through. Check your connection and try again.");
+    } finally {
+      setBusy(false);
+    }
     router.refresh();
   };
   return (
-    <ResultActionsView
-      {...props}
-      reason={reason}
-      notice={notice}
-      onReason={setReason}
-      onReview={() => {
-        void post("review");
-      }}
-      onDispute={() => {
-        void post("dispute", { reason });
-      }}
-    />
+    <>
+      {props.review?.status === "pending" ? (
+        <AutoRefresh everyMs={REVIEW_REFRESH_MS} />
+      ) : null}
+      <ResultActionsView
+        {...props}
+        busy={busy}
+        reason={reason}
+        notice={notice}
+        onReason={setReason}
+        onReview={() => {
+          void post("review");
+        }}
+        onDispute={() => {
+          void post("dispute", { reason });
+        }}
+      />
+    </>
   );
 }
+
+const REVIEW_REFRESH_MS = 5_000;
 
 export function ResultActionsView({
   hasBest,
   review,
   disputed,
   disputeOpen,
+  busy = false,
   reason,
   notice,
   onReason,
@@ -58,6 +77,7 @@ export function ResultActionsView({
   review: BattleReview | null;
   disputed: boolean;
   disputeOpen: boolean;
+  busy?: boolean; // a request is out
   reason: string;
   notice: string | null;
   onReason: (reason: string) => void;
@@ -70,24 +90,41 @@ export function ResultActionsView({
         aria-label="Code review"
         className="flex flex-col gap-2 lg:rounded-[20px] lg:border-[1.5px] lg:border-dashed lg:border-track lg:px-[18px] lg:py-4"
       >
-        <h2 className="text-title lg:text-[15px] lg:font-semibold lg:tracking-normal">
+        <h2 className="flex items-center justify-between gap-3 text-title lg:text-[15px] lg:font-semibold lg:tracking-normal">
           Code review
+          <span className="rounded-md bg-well px-1.5 py-0.5 text-xs font-semibold tracking-normal text-ink-muted">
+            AI review
+          </span>
         </h2>
         {!hasBest ? (
           <p className="text-sm text-ink-muted">
             You didn&apos;t submit, so there&apos;s nothing to review.
           </p>
         ) : review === null ? (
-          <button
-            type="button"
-            onClick={onReview}
-            className="self-start rounded-md border border-hairline px-3 py-1 lg:h-10 lg:rounded-xl lg:border-[1.5px] lg:border-track lg:px-3.5 lg:text-sm lg:font-semibold"
-          >
-            Review my best submission (AI)
-          </button>
+          <>
+            <p className="text-sm text-ink-muted">
+              An AI review of your best submission: what holds up and what to
+              change. It doesn&apos;t affect your rating.
+            </p>
+            <button
+              type="button"
+              onClick={onReview}
+              disabled={busy}
+              className="self-start rounded-md border border-hairline px-3 py-1 disabled:opacity-50 lg:h-10 lg:rounded-xl lg:border-[1.5px] lg:border-hairline-strong lg:px-3.5 lg:text-sm lg:font-semibold"
+            >
+              {busy ? "Asking…" : "Review my best submission (AI)"}
+            </button>
+          </>
         ) : review.status === "pending" ? (
-          <p className="text-sm text-ink-muted">
-            Being written. Reload in a minute.
+          <p
+            role="status"
+            className="flex items-center gap-2 text-sm text-ink-muted"
+          >
+            <span
+              aria-hidden="true"
+              className="size-3.5 rounded-full border-2 border-track border-t-ink motion-safe:animate-spin"
+            />
+            Being written. It shows here by itself in a minute or so.
           </p>
         ) : review.status === "unavailable" ? (
           <p className="text-sm text-ink-muted">
@@ -111,7 +148,7 @@ export function ResultActionsView({
         className="flex flex-col gap-2 lg:rounded-[20px] lg:border lg:border-hairline lg:px-[18px] lg:py-4"
       >
         <h2 className="text-title lg:text-[15px] lg:font-semibold lg:tracking-normal">
-          Something wrong?
+          Something wrong with this result?
         </h2>
         {disputed ? (
           <p className="text-sm text-ink-muted">
@@ -136,11 +173,13 @@ export function ResultActionsView({
                 onReason(e.target.value);
               }}
               aria-label="What's wrong with this result"
-              className="rounded-md border border-hairline p-2 text-sm lg:rounded-xl"
+              placeholder="What looks wrong? A test that should have passed, a time, a player…"
+              rows={3}
+              className="rounded-md border border-hairline bg-page p-2 text-sm lg:rounded-xl lg:px-3"
             />
             <button
               type="submit"
-              disabled={reason.trim() === ""}
+              disabled={busy || reason.trim() === ""}
               className="self-start rounded-md border border-hairline px-3 py-1 disabled:opacity-50 lg:h-10 lg:rounded-xl lg:border-[1.5px] lg:border-track lg:px-3.5 lg:text-sm lg:font-semibold"
             >
               Dispute this result
@@ -149,7 +188,7 @@ export function ResultActionsView({
         )}
       </section>
       {notice !== null && (
-        <p role="status" className="text-sm text-ink-muted">
+        <p role="alert" className="rounded-2xl bg-well px-4 py-3 text-sm">
           {notice}
         </p>
       )}

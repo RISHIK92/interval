@@ -909,9 +909,42 @@ export interface ListenQueue {
   user_id: string;
 }
 
+export interface LldPracticeBest {
+  achieved_at: Timestamp;
+  concurrency_passed: number;
+  concurrency_total: number;
+  extension_passed: number;
+  extension_total: number;
+  hidden_passed: number;
+  hidden_total: number;
+  language: string;
+  points: number;
+  problem_slug: string;
+  submits: number;
+  updated_at: Generated<Timestamp>;
+  user_id: string;
+  visible_passed: number;
+  visible_total: number;
+}
+
+export interface LldPracticeCode {
+  code: string;
+  language: string;
+  problem_slug: string;
+  saved_at: Generated<Timestamp>;
+  user_id: string;
+  version: number;
+}
+
+export interface LldPracticeCounted {
+  match_id: string;
+  seq: number;
+}
+
 export interface LldProblem {
   battle_mode: Generated<string>;
   checks: Generated<Json>;
+  concepts: Generated<string[]>;
   content_hash: string;
   difficulty: LldDifficulty;
   extension_interface: Json | null;
@@ -920,11 +953,13 @@ export interface LldProblem {
   interviewer_notes: string | null;
   limits: Json;
   loaded_at: Generated<Timestamp>;
+  pool: Generated<string>;
   private_key: string;
   retired_at: Timestamp | null;
   slug: string;
   statement: string;
   title: string;
+  topic: string | null;
   visible: Json;
 }
 
@@ -1665,6 +1700,9 @@ export interface DB {
   item_feedback: ItemFeedback;
   item_tagging: ItemTagging;
   listen_queue: ListenQueue;
+  lld_practice_best: LldPracticeBest;
+  lld_practice_code: LldPracticeCode;
+  lld_practice_counted: LldPracticeCounted;
   lld_problem: LldProblem;
   moment: Moment;
   moment_boundary_override: MomentBoundaryOverride;

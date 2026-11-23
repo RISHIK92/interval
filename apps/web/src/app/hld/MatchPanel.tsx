@@ -2,7 +2,7 @@
 
 import type { Design } from "@interval/hld";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // P6-W42 (§6.4, Q-P6-06): a match's clock and its one submission. Submitting early
 // earns speed points if the design passes the baseline; at the deadline the last
@@ -135,5 +135,71 @@ export function MatchPanel({
         At the deadline your last autosave is submitted for you.
       </p>
     </section>
+  );
+}
+
+// Q-WD-16: the match header's way out (the design's ×). Leaving doesn't forfeit: it asks
+// first, since the last autosave is still submitted at the deadline.
+export function LeaveMatch() {
+  const router = useRouter();
+  const dialog = useRef<HTMLDialogElement>(null);
+  return (
+    <>
+      <button
+        type="button"
+        aria-label="Leave the match"
+        className="hidden size-11 shrink-0 items-center justify-center rounded-xl border-[1.5px] border-hairline-strong text-ink hover:bg-well focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-select lg:flex"
+        onClick={() => {
+          dialog.current?.showModal();
+        }}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+      <dialog
+        ref={dialog}
+        aria-labelledby="leave-match-title"
+        className="m-auto w-[min(26rem,calc(100%-2rem))] rounded-3xl border border-hairline bg-card p-6 text-ink backdrop:bg-black/40"
+      >
+        <h2 id="leave-match-title" className="text-[19px] font-bold">
+          Leave the match?
+        </h2>
+        <p className="mt-2 text-sm text-ink-soft">
+          Your last autosave is submitted at the deadline.
+        </p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button
+            type="button"
+            autoFocus
+            className="h-11 rounded-xl border-[1.5px] border-hairline-strong px-4 text-[15px] font-semibold hover:bg-well"
+            onClick={() => {
+              dialog.current?.close();
+            }}
+          >
+            Stay
+          </button>
+          <button
+            type="button"
+            className="h-11 rounded-xl bg-ink px-4 text-[15px] font-semibold text-page"
+            onClick={() => {
+              dialog.current?.close();
+              router.push("/hld/play");
+            }}
+          >
+            Leave
+          </button>
+        </div>
+      </dialog>
+    </>
   );
 }

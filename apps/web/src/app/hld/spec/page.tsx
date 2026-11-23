@@ -1,5 +1,6 @@
 import { CURRENT_SPEC, SPEC_VERSIONS } from "@interval/hld";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Card } from "../../ui/Card";
 import { PAGE_TITLE } from "../../ui/Page";
 
@@ -11,6 +12,14 @@ export const metadata: Metadata = {
   description: "The components of Interval's HLD battles and their numbers.",
 };
 
+// "2026-11-14" as "14 Nov 2026", the same in every zone (a date, not a moment).
+const day = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 const n = (value: number) => value.toLocaleString("en-US");
 const percent = (value: number) => `${(value * 100).toFixed(2)}%`;
 
@@ -27,9 +36,16 @@ export default function SpecPage() {
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-4 pt-6 pb-12 lg:gap-5 lg:px-8 lg:py-10">
       <header>
+        {/* Static, so no frame: a way back to the lobby, and the first stop for Tab. */}
+        <Link
+          href="/hld/play"
+          className="mb-3 inline-flex rounded-md text-[15px] font-semibold text-ink-soft hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-select"
+        >
+          ‹ HLD battles
+        </Link>
         <h1 className={PAGE_TITLE}>HLD spec sheet</h1>
         <p className="mt-1 text-ink-muted">
-          Version {spec.version}, from {spec.date}. Every simulation runs
+          Version {spec.version}, from {day(spec.date)}. Every simulation runs
           against one version. Numbers change only at season boundaries, with
           patch notes.
           {spec.provisional
@@ -92,7 +108,9 @@ export default function SpecPage() {
               <Card className="p-5 lg:rounded-[22px] lg:p-[18px] lg:shadow-none">
                 <p className="font-semibold tabular-nums">
                   {v.version}{" "}
-                  <span className="font-normal text-ink-muted">· {v.date}</span>
+                  <span className="font-normal text-ink-muted">
+                    · {day(v.date)}
+                  </span>
                 </p>
                 <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-sm text-ink-soft">
                   {v.notes.map((note) => (

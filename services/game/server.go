@@ -156,6 +156,8 @@ func newHandler(cfg config, sockets *matchSockets, matches *registry, now func()
 				a.focus(ticket.U)
 			case "back":
 				a.back(ticket.U)
+			case "reveal":
+				a.reveal(ticket.U)
 			default:
 				a.paste(ticket.U, chars)
 			}
@@ -194,7 +196,7 @@ func measure(ctx context.Context, conn *websocket.Conn, report func(time.Duratio
 // A player's answers, {"type":"answer","n":round,"choice":0-3}, focus changes,
 // {"type":"focus"} (P3-W18-S02), a battle's code, {"type":"run"|"submit",...}
 // (P5-W31-S02b-2), and a battle page's {"type":"back"} and {"type":"paste","chars":n}
-// (P5-W31-S04a). Anything else, or anything over the limit, is dropped or ends the
+// (P5-W31-S04a), and a practice page's {"type":"reveal"} (ADR-0048). Anything else, or anything over the limit, is dropped or ends the
 // socket; the actor checks the rest.
 func readMessages(ctx context.Context, conn *websocket.Conn, limit int64, answer func(n, choice int), fairPlay func(kind string, chars int), code func(*codeMsg)) {
 	conn.SetReadLimit(limit)
@@ -220,7 +222,7 @@ func readMessages(ctx context.Context, conn *websocket.Conn, limit int64, answer
 			continue
 		}
 		switch {
-		case msg.Type == "focus" || msg.Type == "back":
+		case msg.Type == "focus" || msg.Type == "back" || msg.Type == "reveal":
 			fairPlay(msg.Type, 0)
 			continue
 		case msg.Type == "paste" && msg.Chars != nil && *msg.Chars > 0:

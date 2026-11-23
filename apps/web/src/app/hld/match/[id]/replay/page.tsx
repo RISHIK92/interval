@@ -58,18 +58,15 @@ export default async function ReplayPage(props: {
         </div>
         <p className="text-sm text-ink-muted lg:flex lg:h-[38px] lg:items-center lg:rounded-full lg:bg-well lg:px-3">
           {found.seats.map((s) => s.player).join(" vs ")}
-          {mine ? (
-            <>
-              {" · "}
-              <Link
-                href={`/hld/match/${id.data}/result`}
-                className="font-semibold text-ink underline underline-offset-2"
-              >
-                Results
-              </Link>
-            </>
-          ) : null}
         </p>
+        {mine ? (
+          <Link
+            href={`/hld/match/${id.data}/result`}
+            className="text-sm font-semibold underline underline-offset-2 lg:flex lg:h-[38px] lg:items-center lg:rounded-full lg:border-[1.5px] lg:border-hairline-strong lg:px-4 lg:no-underline"
+          >
+            Results
+          </Link>
+        ) : null}
       </header>
       <div className="lg:p-5">
         <Replay matchId={id.data} problem={problem} />

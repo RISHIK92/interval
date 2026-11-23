@@ -25,6 +25,7 @@ from interval_db.generated import (
     RightsProfile,
     Topic,
 )
+from interval_db.messages import PracticeJudged
 from interval_jobs.concepts.graph import refuse_cycles
 from interval_jobs.irt import Answer
 from interval_jobs.match_results import MatchResult
@@ -73,6 +74,7 @@ from interval_jobs.ports import (
     NativeTarget,
     NoteBatchEntry,
     PathDraft,
+    PracticeKept,
     ProjectConcepts,
     ProjectNoteInput,
     Pronunciation,
@@ -2110,6 +2112,7 @@ class InMemoryStore:
         self.technologies = InMemoryTechnologies()
         self.universities = InMemoryUniversities()
         self.match_results = InMemoryMatchResults()
+        self.lld_practice = InMemoryLldPractice()
         self.seasons = InMemorySeasons()
         self.agent_nudges = InMemoryAgentNudges()
         self.device_tokens = InMemoryDeviceTokens()
@@ -2472,6 +2475,30 @@ class InMemoryMatchResults:
 
     def save_best(self, match_id: str, user_id: str, language: str, key: str) -> None:
         self.bests[(match_id, user_id)] = (language, key)
+
+
+class InMemoryLldPractice:
+    """LLD practice bests (ADR-0048): each practice match's player, by (match id, id
+    played as), and each player's best judged Submit per problem."""
+
+    def __init__(self) -> None:
+        self.players: dict[tuple[str, str], str] = {}
+        self.bests: dict[tuple[str, str], PracticeJudged] = {}
+        self.submits: dict[tuple[str, str], int] = {}
+        self.counted: set[tuple[str, int]] = set()
+
+    def keep(self, judged: PracticeJudged) -> PracticeKept | None:
+        user = self.players.get((judged.match_id, judged.played_as))
+        if user is None or (judged.match_id, judged.seq) in self.counted:
+            return None
+        self.counted.add((judged.match_id, judged.seq))
+        key = (user, judged.problem_slug)
+        self.submits[key] = self.submits.get(key, 0) + 1
+        best = self.bests.get(key)
+        improved = best is None or judged.points > best.points
+        if improved:
+            self.bests[key] = judged
+        return PracticeKept(user, False, "student", improved)
 
 
 class InMemorySeasons:

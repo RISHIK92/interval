@@ -2,6 +2,7 @@
   "slug": "bank-ledger",
   "title": "Bank ledger",
   "difficulty": "medium",
+  "pool": "battle",
   "interface": {
     "class": "Bank",
     "constructor": {

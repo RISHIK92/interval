@@ -21,7 +21,13 @@ import type {
 import type { MessageName, Messages } from "@interval/db/messages";
 import type { Envelope } from "@interval/events";
 import type { Design, JudgeInput, Levels } from "@interval/hld";
-import type { Interface, Problem, ResultLine, Scenario } from "@interval/lld";
+import type {
+  Interface,
+  PracticeTopic,
+  Problem,
+  ResultLine,
+  Scenario,
+} from "@interval/lld";
 
 // The reasons a card explanation can state (ADR-0026/0027), as the worker names them.
 export const REASON_KINDS = [
@@ -764,11 +770,16 @@ export interface Matches {
   // P5-W31-S02b-2b (§6.5): an LLD battle on a loaded problem, for the game server's
   // battle actor; its id. Its result is stored like any match's; ratings come in W32.
   // P5-W32: unrated, as a casual or solo battle is (Q-P5-19); P5-W33: its battle mode.
+  // ADR-0048: `practice`, a practice session (mode 'practice'), always unrated.
   createBattle(
     serverId: number,
     players: string[],
     slug: string,
-    options?: { unrated?: boolean; battleMode?: BattleMode },
+    options?: {
+      unrated?: boolean;
+      battleMode?: BattleMode;
+      practice?: boolean;
+    },
   ): Promise<string>;
   // The game server that owns the match, and the id the player plays as there (a guest
   // who signed up mid-match keeps the guest's, Q-P3-21), when the player is in it; null
@@ -949,6 +960,8 @@ export type BattleMatch = {
     scenarios: { layer: string; stdin: string; expected: ResultLine[] }[];
     // P5-W31-S03: shown at the reveal by the game server, which owns the clock.
     extension?: { statement: string; starters: Record<string, string> };
+    // ADR-0048: a practice session: no clock, the player reveals the extension.
+    practice?: true;
   };
 };
 
@@ -2156,6 +2169,10 @@ export type LoadedProblem = Pick<
 > & {
   statement: string;
   battleMode: BattleMode; // P5-W33: its battle mode's pool
+  // ADR-0048: practice or battle, for good; a practice problem's group and concepts.
+  pool: Problem["pool"];
+  topic: PracticeTopic | null;
+  concepts: string[];
   checks: NonNullable<Problem["checks"]>;
   // The visible scenarios with their expected results, in the problem's order.
   visible: { scenario: Scenario; results: ResultLine[] }[];
@@ -2170,13 +2187,80 @@ export type LoadedProblem = Pick<
 export interface ProblemStore {
   // The live problems (not retired): slug to content hash.
   hashes(): Promise<Map<string, string>>;
-  // P5-W33 (Q-P5-20): a battle mode's live problems.
+  // P5-W33 (Q-P5-20): a battle mode's live problems; never a practice one (ADR-0048).
   pool(battleMode: BattleMode): Promise<string[]>;
+  // ADR-0048 (Q-WD-28): the live practice problems, easiest first, each with its live
+  // concepts' names in the problem's order.
+  practice(): Promise<PracticeProblem[]>;
   // A live problem, or null when there's none by that slug or it's retired.
   get(slug: string): Promise<LoadedProblem | null>;
   // Insert or replace by slug; a retired problem loaded again is live again.
   save(problem: LoadedProblem): Promise<void>;
   retire(slugs: string[]): Promise<void>;
+}
+
+export type PracticeProblem = Pick<
+  LoadedProblem,
+  "slug" | "title" | "difficulty"
+> & { topic: PracticeTopic; concepts: string[] };
+
+// ADR-0048 (Q-WD-28): LLD practice. The player's code per problem and language,
+// autosaved by the page (each save over the version it was made from; null when stale,
+// as HldPracticeDesigns), and their best judged Submit per problem, which the worker
+// keeps from the game server's progress (per-layer counts only, LLDQ-4).
+export const PRACTICE_LAYERS = [
+  "visible",
+  "hidden",
+  "concurrency",
+  "extension",
+] as const;
+export type PracticeLayer = (typeof PRACTICE_LAYERS)[number];
+export type PracticeBest = {
+  slug: string;
+  points: number;
+  layers: Record<PracticeLayer, { passed: number; total: number }>;
+  language: string;
+  achievedAt: Date;
+  submits: number;
+};
+export type PracticeCode = { code: string; version: number };
+export interface LldPractice {
+  // Each language's saved code for the problem.
+  loadCode(userId: string, slug: string): Promise<Map<string, PracticeCode>>;
+  saveCode(
+    userId: string,
+    slug: string,
+    language: string,
+    code: string,
+    base: number,
+  ): Promise<number | null>;
+  best(userId: string): Promise<Map<string, PracticeBest>>;
+  bestFor(userId: string, slug: string): Promise<PracticeBest | null>;
+}
+
+// P5-W32 (Q-P5-19): one solo game of each kind at a time per player. The claim holds
+// the solo's match once it has one, so a solo that ended early frees it (claimSolo).
+export type SoloGame = "battle" | "hld";
+export interface SoloLocks {
+  // True when claimed for `seconds`; otherwise the holder's match, null while it's
+  // still being made.
+  claim(
+    userId: string,
+    game: SoloGame,
+    seconds: number,
+  ): Promise<true | { matchId: string | null }>;
+  // The claim's match, for as long as the claim has left.
+  bind(userId: string, game: SoloGame, matchId: string): Promise<void>;
+  // Only while the claim still holds that match.
+  release(userId: string, game: SoloGame, matchId: string): Promise<void>;
+}
+
+// ADR-0048: a player's open practice session, one at a time (Valkey, an hour: the game
+// server's cap), so a reload goes back to it.
+export type PracticeSession = { slug: string; matchId: string };
+export interface PracticeSessions {
+  get(userId: string): Promise<PracticeSession | null>;
+  set(userId: string, session: PracticeSession): Promise<void>;
 }
 
 // P6-W39 (CANVAS-2, ADR-0042 PROPOSED, Q-P6-03): a player's practice design, autosaved

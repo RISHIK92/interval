@@ -268,7 +268,7 @@ const allowedFor = (allowed: boolean[] | null, capability: Capability) =>
 type Way =
   | { kind: "note"; text: string }
   | { kind: "live"; href: string }
-  | { kind: "battle"; href: string; practice: string | null }
+  | { kind: "battle"; href: string; practice: string }
   | { kind: "daily"; status: DailyStatus }
   | {
       kind: "start";
@@ -292,11 +292,18 @@ function wayIn(
     (game.capability === "play.battle" && live) ||
     (game.capability === "play.hld" && signedIn)
   )
-    // The design's Solo practice: HLD's practice (P6-W42); LLD has none of its own
-    // (its casual queue turns solo after 60 s, in the lobby).
+    // Their practice: HLD's practice (P6-W42); LLD's (ADR-0048).
     return game.capability === "play.hld"
-      ? { kind: "battle", href: "/hld/play", practice: "/hld/practice" }
-      : { kind: "battle", href: "/play/battle", practice: null };
+      ? {
+          kind: "battle",
+          href: "/hld/play",
+          practice: "/hld/practice",
+        }
+      : {
+          kind: "battle",
+          href: "/play/battle",
+          practice: "/play/battle/practice",
+        };
   if (game.capability === "play.daily" && today !== null)
     return { kind: "daily", status: today };
   if (game.start !== undefined && signedIn)
@@ -695,16 +702,14 @@ function BattleCard({
         {way.kind === "battle" ? (
           <>
             <Link href={way.href} className={OUTLINE}>
-              Find match
+              Find a match
             </Link>
-            {way.practice === null ? null : (
-              <Link
-                href={way.practice}
-                className="text-[15px] font-semibold text-ink-soft"
-              >
-                Solo practice
-              </Link>
-            )}
+            <Link
+              href={way.practice}
+              className="text-[15px] font-semibold text-ink-soft"
+            >
+              Practice
+            </Link>
           </>
         ) : (
           <p className="text-sm text-ink-muted">

@@ -62,3 +62,40 @@ export const CONFIG = {
 
 export type ComponentKind = keyof typeof CONFIG;
 export const COMPONENT_KINDS = Object.keys(CONFIG) as ComponentKind[];
+
+// What a player reads for each kind: on the canvas, in the Selected panel and in hints.
+export const COMPONENT_NAMES: Record<ComponentKind, string> = {
+  client: "Client",
+  cdn: "CDN",
+  load_balancer: "Load balancer",
+  app_service: "App service",
+  worker: "Worker",
+  cache: "Cache",
+  sql_db: "SQL database",
+  kv_store: "Key-value store",
+  object_storage: "Object storage",
+  search_index: "Search index",
+  queue: "Queue",
+  stream: "Stream",
+};
+
+// Each node's name for a player, never its id: its kind's name, numbered when the
+// design has more than one of that kind ("App service 2").
+export function componentNames(
+  nodes: readonly { id: string; kind: ComponentKind }[],
+): Map<string, string> {
+  const total = new Map<ComponentKind, number>();
+  for (const n of nodes) total.set(n.kind, (total.get(n.kind) ?? 0) + 1);
+  const seen = new Map<ComponentKind, number>();
+  const names = new Map<string, string>();
+  for (const n of nodes) {
+    const i = (seen.get(n.kind) ?? 0) + 1;
+    seen.set(n.kind, i);
+    const name = COMPONENT_NAMES[n.kind];
+    names.set(
+      n.id,
+      (total.get(n.kind) ?? 0) > 1 ? `${name} ${String(i)}` : name,
+    );
+  }
+  return names;
+}

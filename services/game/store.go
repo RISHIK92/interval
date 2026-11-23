@@ -25,6 +25,42 @@ type matchStore interface {
 	// P3-W15-S05: the match's result for the Python worker: kept at game:result:<id>,
 	// its id pushed onto game:results.
 	publish(ctx context.Context, id string, raw []byte) error
+	// ADR-0048: a practice Submit's progress for the worker, pushed onto game:practice.
+	publishPractice(ctx context.Context, raw []byte) error
+	practiceLimits
+}
+
+// ADR-0048 (Q-WD-28): a practice player's daily caps, kept in Valkey. takePractice counts
+// one Run or Submit on the UTC day of `at`, or counts nothing and returns the refusal's
+// stable code when a cap is reached.
+type practiceLimits interface {
+	takePractice(ctx context.Context, user, problem string, submit bool, at time.Time) (string, error)
+}
+
+const (
+	practiceSubmitsPerDay     = 50
+	practiceSubmitsPerProblem = 20
+	practiceRunsPerDay        = 400
+	// Past the day's end in every time zone, then gone.
+	practiceCountTTL = 48 * time.Hour
+)
+
+// The counters one Run or Submit spends, each with its cap and the code that refuses it.
+type practiceCounter struct {
+	key  string
+	cap  int
+	code string
+}
+
+func practiceCounters(user, problem string, submit bool, at time.Time) []practiceCounter {
+	day := at.UTC().Format(time.DateOnly)
+	if !submit {
+		return []practiceCounter{{"practice:runs:" + user + ":" + day, practiceRunsPerDay, "daily_runs"}}
+	}
+	return []practiceCounter{
+		{"practice:subs:" + user + ":" + day, practiceSubmitsPerDay, "daily_submits"},
+		{"practice:psubs:" + user + ":" + problem + ":" + day, practiceSubmitsPerProblem, "daily_problem_submits"},
+	}
 }
 
 // As long as the match itself is kept (the web app's hour).
@@ -85,6 +121,41 @@ func (s redisStore) publish(ctx context.Context, id string, raw []byte) error {
 	return err
 }
 
+func (s redisStore) publishPractice(ctx context.Context, raw []byte) error {
+	return s.client.LPush(ctx, "game:practice", raw).Err()
+}
+
+// Checks every cap before counting any, in one step, so a refusal spends nothing and two
+// sockets can't both take the last one.
+var takeScript = redis.NewScript(`
+for i, key in ipairs(KEYS) do
+  if tonumber(redis.call('GET', key) or '0') >= tonumber(ARGV[i + 1]) then return i end
+end
+for _, key in ipairs(KEYS) do
+  redis.call('INCR', key)
+  redis.call('EXPIRE', key, ARGV[1])
+end
+return 0
+`)
+
+func (s redisStore) takePractice(ctx context.Context, user, problem string, submit bool, at time.Time) (string, error) {
+	counters := practiceCounters(user, problem, submit, at)
+	keys := make([]string, 0, len(counters))
+	args := []any{int(practiceCountTTL / time.Second)}
+	for _, c := range counters {
+		keys = append(keys, c.key)
+		args = append(args, c.cap)
+	}
+	refused, err := takeScript.Run(ctx, s.client, keys, args...).Int()
+	if err != nil {
+		return "", fmt.Errorf("practice limits: %w", err)
+	}
+	if refused > 0 && refused <= len(counters) {
+		return counters[refused-1].code, nil
+	}
+	return "", nil
+}
+
 func (s redisStore) save(ctx context.Context, id string, saved snap) error {
 	raw, err := json.Marshal(saved)
 	if err != nil {
@@ -122,6 +193,10 @@ func parseMatch(raw []byte) (matchDef, error) {
 	// C-03: a battle is a 1v1 or a room of up to 4 (P5-W32).
 	if def.Battle != nil && len(def.Players) > maxBattlePlayers {
 		return matchDef{}, errors.New("a battle has at most 4 players")
+	}
+	// ADR-0048: practice is one player's, and never the AI mode.
+	if def.Battle != nil && def.Battle.Practice && (len(def.Players) != 1 || def.Battle.Mode == "ai") {
+		return matchDef{}, errors.New("a practice battle is one player's, in the human mode")
 	}
 	seen := map[string]bool{}
 	for _, p := range def.Players {
@@ -222,9 +297,11 @@ func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 	a.save = func(s snap) {
 		// LOAD-5: the match plays on and only loses its restart point (a metric in the
 		// AWS stack counts these). The last one, "over", is tried three times: lost, a
-		// restart could play a finished match again from its last round.
+		// restart could play a finished match again from its last round. So is each of a
+		// practice session's (ADR-0048): lost, a restart would send its progress sequence
+		// number again, and the worker would drop that Submit as a repeat.
 		tries := 1
-		if s.Over {
+		if s.Over || (def.Battle != nil && def.Battle.Practice) {
 			tries = len(retryAfter) + 1
 		}
 		for try := 1; try <= tries; try++ {
@@ -261,6 +338,33 @@ func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 			}
 		}
 	}
+	a.limits = g.store
+	a.progress = func(pj practiceJudged) {
+		// Off the actor, so a Valkey blip doesn't hold up play. Order doesn't matter: the
+		// worker counts each sequence number once and keeps the most points, whatever
+		// order they arrive in. As a result: three tries, then said and counted (LOAD-5,
+		// the AWS stack's GamePracticeHandoffFailures metric); that Submit is lost to the
+		// worker, and the next one still counts.
+		raw, err := json.Marshal(pj)
+		if err != nil {
+			g.log.Error("game: practice progress not handed over", "match", id, "error", err.Error())
+			return
+		}
+		go func() {
+			for try := 1; try <= len(retryAfter)+1; try++ {
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				err := g.store.publishPractice(ctx, raw)
+				cancel()
+				if err == nil {
+					return
+				}
+				g.log.Error("game: practice progress not handed over", "match", id, "seq", pj.Seq, "try", try, "error", err.Error())
+				if try <= len(retryAfter) {
+					time.Sleep(retryAfter[try-1])
+				}
+			}
+		}()
+	}
 	g.actors[id] = a
 	go a.run() // recovers its own panics
 	go func() {
@@ -293,6 +397,54 @@ type memStore struct {
 	fail     bool // every save fails
 	pushed   [][]byte
 	failPush bool // every publish fails
+	// ADR-0048: practice progress pushed, and the daily counters.
+	practice     [][]byte
+	counts       map[string]int
+	failLimits   bool // every takePractice fails
+	failPractice bool // every publishPractice fails
+}
+
+func (s *memStore) publishPractice(_ context.Context, raw []byte) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.failPractice {
+		return errors.New("store down")
+	}
+	s.practice = append(s.practice, raw)
+	return nil
+}
+
+// The practice progress published so far, decoded.
+func (s *memStore) progress() []practiceJudged {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]practiceJudged, 0, len(s.practice))
+	for _, raw := range s.practice {
+		var p practiceJudged
+		if err := json.Unmarshal(raw, &p); err != nil {
+			panic("a published progress message isn't JSON: " + err.Error()) // tests only
+		}
+		out = append(out, p)
+	}
+	return out
+}
+
+func (s *memStore) takePractice(_ context.Context, user, problem string, submit bool, at time.Time) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.failLimits {
+		return "", errors.New("store down")
+	}
+	counters := practiceCounters(user, problem, submit, at)
+	for _, c := range counters {
+		if s.counts[c.key] >= c.cap {
+			return c.code, nil
+		}
+	}
+	for _, c := range counters {
+		s.counts[c.key]++
+	}
+	return "", nil
 }
 
 func (s *memStore) publish(_ context.Context, _ string, raw []byte) error {
@@ -321,7 +473,7 @@ func (s *memStore) results() []result {
 }
 
 func newMemStore(defs map[string]matchDef) *memStore {
-	return &memStore{defs: defs, snaps: map[string]snap{}}
+	return &memStore{defs: defs, snaps: map[string]snap{}, counts: map[string]int{}}
 }
 
 func (s *memStore) load(_ context.Context, id string) (matchDef, error) {
@@ -348,7 +500,7 @@ func (s *memStore) save(_ context.Context, id string, saved snap) error {
 		return errors.New("store down")
 	}
 	// A copy: the actor goes on changing its maps.
-	copied := snap{Next: saved.Next, Over: saved.Over, Started: saved.Started, Totals: map[string]int{}, Times: map[string]time.Duration{}}
+	copied := snap{Next: saved.Next, Over: saved.Over, Started: saved.Started, Seq: saved.Seq, Revealed: saved.Revealed, Totals: map[string]int{}, Times: map[string]time.Duration{}}
 	for k, v := range saved.Totals {
 		copied.Totals[k] = v
 	}

@@ -40,7 +40,8 @@ const LAYER_NAMES: Record<string, string> = {
 };
 
 type Props = {
-  matchId: string;
+  // ADR-0048: null while a practice page is starting its session.
+  matchId: string | null;
   // The page's title block, for the frame's header.
   heading: ReactNode;
   // The interface's calls, one line each (the web design's "Interface").
@@ -51,6 +52,35 @@ type Props = {
   // Tests swap Monaco for a plain field.
   Editor?: ComponentType<CodeEditorProps>;
   now?: () => number;
+  // ADR-0048 (Q-WD-28): LLD practice, whose page holds the session.
+  practice?: PracticeSession;
+};
+
+// What a practice page gives the screen: the player's best so far, whether the problem
+// has an extension, each language's saved code, how to save it, and what to do when the
+// session ends (`played`: it got as far as the battle's start).
+export type PracticeBestShown = {
+  points: number;
+  hidden: { passed: number; total: number };
+};
+export type PracticeSave = (
+  language: string,
+  code: string,
+  base: number,
+) => Promise<{ ok: true; version: number } | { ok: false; reason: string }>;
+type PracticeSession = {
+  best: PracticeBestShown | null;
+  hasExtension: boolean;
+  saved: Record<string, { code: string; version: number }>;
+  save: PracticeSave;
+  onEnded: (matchId: string, played: boolean) => void;
+};
+
+// ADR-0048: the autosave waits this long after the last edit.
+const SAVE_AFTER_MS = 2_000;
+const SAVE_REFUSED: Record<string, string> = {
+  stale: "Saved in another tab: reload to get it.",
+  "too-large": "Too much code to save.",
 };
 
 function stored(key: string): string | null {
@@ -131,11 +161,33 @@ export function BattlePlay({
   starters,
   Editor = CodeEditor,
   now = Date.now,
+  practice,
 }: Props) {
   const languages = Object.keys(starters);
   const [language, setLanguage] = useState(languages[0] ?? "python");
+  // A practice player's code is saved on the server, not in this tab (ADR-0048): what
+  // was saved, then each edit, per language, and the version each was saved at.
+  const practiceCode = useRef<Record<string, string>>(
+    Object.fromEntries(
+      Object.entries(practice?.saved ?? {}).map(([l, s]) => [l, s.code]),
+    ),
+  );
+  const versions = useRef<Record<string, number>>(
+    Object.fromEntries(
+      Object.entries(practice?.saved ?? {}).map(([l, s]) => [l, s.version]),
+    ),
+  );
+  const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+  const read = (key: string): string | null => {
+    if (practice === undefined) return stored(key);
+    const l = key.slice(key.lastIndexOf(":") + 1);
+    return practiceCode.current[l] ?? null;
+  };
   const [code, setCode] = useState(() =>
-    codeFor(stored, matchId, starters, language),
+    practice === undefined
+      ? codeFor(stored, matchId ?? "", starters, language)
+      : (practice.saved[language]?.code ?? starters[language] ?? ""),
   );
   const [state, setState] = useState<BattleState>(BATTLE.start);
   const [failed, setFailed] = useState(false);
@@ -147,7 +199,10 @@ export function BattlePlay({
   useEffect(() => {
     latest.current = { code, language, playing: state.phase === "playing" };
   });
+  const practicing = practice !== undefined;
   useEffect(() => {
+    // Practice keeps no fair-play record (ADR-0048).
+    if (practicing || matchId === null) return;
     let sent: string | null = null;
     const timer = setInterval(() => {
       const { code, language, playing } = latest.current;
@@ -170,9 +225,27 @@ export function BattlePlay({
     return () => {
       clearInterval(timer);
     };
-  }, [matchId]);
+  }, [matchId, practicing]);
+
+  // ADR-0048: a practice session that ended (its hour, or away past the grace), or that
+  // can't be joined (it ended while the page was away), is replaced by the page.
+  const ended = useRef(practice?.onEnded);
+  useEffect(() => {
+    ended.current = practice?.onEnded;
+  });
+  const played = useRef(false);
+  // The match the state is from: for a moment after the page moves to a new session,
+  // the state is still the old one's end.
+  const stateOf = useRef<string | null>(null);
+  useEffect(() => {
+    if (matchId === null || stateOf.current !== matchId) return;
+    if (state.phase === "playing") played.current = true;
+    if (state.phase === "final" || state.phase === "cancelled")
+      ended.current?.(matchId, played.current);
+  }, [state.phase, matchId]);
 
   useEffect(() => {
+    if (matchId === null) return;
     const run = runLive({
       game: BATTLE,
       matchId,
@@ -191,15 +264,29 @@ export function BattlePlay({
       },
       wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
       now,
-      onState: setState,
+      onState: (next) => {
+        stateOf.current = matchId;
+        setState(next);
+      },
       onError: () => {
-        setFailed(true);
+        if (ended.current === undefined) setFailed(true);
+        else ended.current(matchId, played.current);
       },
       fallback: () => Promise.resolve(null),
       onNoFallback: () => undefined,
       onOpponent: () => undefined,
     });
     live.current = run;
+    played.current = false;
+    const timer = setInterval(() => {
+      tick((n) => n + 1);
+    }, 1000);
+    if (practicing)
+      return () => {
+        clearInterval(timer);
+        run.stop();
+        live.current = null;
+      };
     // P5-W31-S04a (§6.9): another tab or window, as blur or a hidden page, and back; the
     // game server times it.
     const lost = () => {
@@ -215,9 +302,6 @@ export function BattlePlay({
     window.addEventListener("blur", lost);
     window.addEventListener("focus", back);
     document.addEventListener("visibilitychange", visibility);
-    const timer = setInterval(() => {
-      tick((n) => n + 1);
-    }, 1000);
     return () => {
       window.removeEventListener("blur", lost);
       window.removeEventListener("focus", back);
@@ -226,18 +310,44 @@ export function BattlePlay({
       run.stop();
       live.current = null;
     };
-  }, [matchId, now]);
+  }, [matchId, now, practicing]);
 
   // Every edit is stored as it's made (edit), so a switch only loads the other language.
   const pick = (next: string) => {
     setLanguage(next);
-    setCode(codeFor(stored, matchId, starters, next));
+    setCode(codeFor(read, matchId ?? "", starters, next));
+  };
+  // One save at a time per language, each over the version the last one made: two in
+  // flight at once would refuse each other as stale.
+  const saveChain = useRef<Record<string, Promise<void>>>({});
+  const autosave = (save: PracticeSave, l: string, value: string) => {
+    clearTimeout(saveTimers.current[l]);
+    saveTimers.current[l] = setTimeout(() => {
+      saveChain.current[l] = (saveChain.current[l] ?? Promise.resolve())
+        .then(() => save(l, value, versions.current[l] ?? 0))
+        .then((saved) => {
+          if (saved.ok) {
+            versions.current[l] = saved.version;
+            setSaving(null);
+          } else setSaving(SAVE_REFUSED[saved.reason] ?? "Couldn't save.");
+        })
+        .catch((error: unknown) => {
+          console.error("practice: code not saved", error);
+          setSaving("Couldn't save: trying again with your next edit.");
+        });
+    }, SAVE_AFTER_MS);
   };
   const edit = (value: string) => {
     setCode(value);
-    store(`battle:${matchId}:${language}`, value);
+    if (practice === undefined) {
+      if (matchId !== null) store(`battle:${matchId}:${language}`, value);
+      return;
+    }
+    practiceCode.current[language] = value;
+    autosave(practice.save, language, value);
   };
   const paste = (pasted: string, had: string[]) => {
+    if (practicing) return;
     const extension = state.phase === "playing" ? state.extension : null;
     const chars = outsidePaste(pasted, [
       ...had,
@@ -247,7 +357,7 @@ export function BattlePlay({
       extension?.statement ?? "",
       ...languages
         .filter((l) => l !== language)
-        .map((l) => codeFor(stored, matchId, {}, l)),
+        .map((l) => codeFor(stored, matchId ?? "", {}, l)),
     ]);
     if (chars !== null) live.current?.pasted(chars);
   };
@@ -255,10 +365,32 @@ export function BattlePlay({
     if (live.current?.code(submit, language, code) === true)
       setState((s) => battleSent(s, submit));
   };
+  // Ctrl or Cmd + Enter runs the visible tests, as in most code editors.
+  const run = useRef(send);
+  useEffect(() => {
+    run.current = send;
+  });
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        run.current(false);
+      }
+    };
+    window.addEventListener("keydown", key);
+    return () => {
+      window.removeEventListener("keydown", key);
+    };
+  }, []);
 
   return (
     <BattleView
-      resultHref={`/play/battle/${matchId}/result`}
+      resultHref={
+        matchId === null ? "/play/battle" : `/play/battle/${matchId}/result`
+      }
+      exitHref={
+        practice === undefined ? "/play/battle" : "/play/battle/practice"
+      }
       heading={heading}
       signatures={signatures}
       state={state}
@@ -274,12 +406,26 @@ export function BattlePlay({
       onCode={edit}
       onPaste={paste}
       onSend={send}
+      {...(practice === undefined
+        ? {}
+        : {
+            practice: {
+              best: practice.best,
+              canReveal: practice.hasExtension,
+              onReveal: () => {
+                live.current?.reveal();
+              },
+              saving,
+            },
+          })}
     />
   );
 }
 
 type ViewProps = {
   resultHref: string;
+  // Where the header's × goes: the lobby, or the practice list.
+  exitHref?: string;
   heading: ReactNode;
   signatures: string[];
   state: BattleState;
@@ -295,11 +441,22 @@ type ViewProps = {
   onCode: (code: string) => void;
   onPaste: (pasted: string, had: string[]) => void;
   onSend: (submit: boolean) => void;
+  // ADR-0048: LLD practice: the player's best, the extension on request (`canReveal`:
+  // the problem has one), and the autosave's trouble, if any.
+  practice?:
+    | {
+        best: PracticeBestShown | null;
+        canReveal: boolean;
+        onReveal: () => void;
+        saving: string | null;
+      }
+    | undefined;
 };
 
 // The screen for a state: pure, so it can be shown in tests as it is.
 export function BattleView({
   resultHref,
+  exitHref = "/play/battle",
   heading,
   signatures,
   state,
@@ -315,13 +472,40 @@ export function BattleView({
   onCode,
   onPaste,
   onSend,
+  practice,
 }: ViewProps) {
   const playing = state.phase === "playing" ? state : null;
+  const best =
+    practice === undefined
+      ? null
+      : practice.best === null
+        ? "Not started"
+        : `Your best: ${String(practice.best.points)} · hidden ${String(practice.best.hidden.passed)}/${String(practice.best.hidden.total)}`;
   const seats = playing === null ? 0 : Object.keys(playing.best).length;
   // The web design's frame (hld/Frame.tsx): the header across, then the problem, the
   // code and the tests side by side on a desktop.
   const header = (
     <header className={HEADER}>
+      <a
+        href={exitHref}
+        aria-label={
+          practice === undefined ? "Leave the battle" : "Leave practice"
+        }
+        className="hidden size-11 shrink-0 items-center justify-center rounded-xl border-[1.5px] border-hairline-strong lg:flex"
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <path d="M6 6l12 12M18 6 6 18" />
+        </svg>
+      </a>
       <span
         className="hidden size-11 shrink-0 items-center justify-center rounded-xl bg-(--distributed-systems-tint) text-(--distributed-systems-right) lg:flex"
         aria-hidden="true"
@@ -341,17 +525,21 @@ export function BattleView({
       </span>
       <div className="lg:min-w-[200px] lg:flex-1">
         <p className="hidden text-[13px] text-ink-muted lg:block">
-          LLD battle
-          {seats === 2
+          {practice === undefined ? "LLD battle" : "LLD practice"}
+          {seats === 2 && practice === undefined
             ? " · 1v1"
-            : seats > 2
+            : seats > 2 && practice === undefined
               ? ` · ${String(seats)} players`
               : ""}{" "}
           · {LANGUAGE_NAMES[language] ?? language}
         </p>
         {heading}
       </div>
-      {playing === null ? null : (
+      {best !== null ? (
+        <span className="hidden h-[38px] items-center rounded-full bg-well px-3 text-sm text-ink-muted tabular-nums lg:flex">
+          {best}
+        </span>
+      ) : playing === null ? null : (
         <>
           <span className="hidden h-[38px] items-center rounded-full bg-well px-3 text-sm text-ink-muted tabular-nums lg:flex">
             {bests(playing)}
@@ -384,6 +572,12 @@ export function BattleView({
   if (state.phase === "cancelled")
     return message(
       <p className="text-ink-muted">This battle was cancelled.</p>,
+    );
+  if (state.phase === "final" && practice !== undefined)
+    return message(
+      <p role="status" className="text-ink-muted">
+        This session ended. Starting a new session…
+      </p>,
     );
   if (state.phase === "final") {
     const players = Object.keys(state.totals);
@@ -450,6 +644,17 @@ export function BattleView({
             ))}
           </ul>
         </div>
+        {practice?.canReveal === true &&
+          playing !== null &&
+          playing.extension === null && (
+            <button
+              type="button"
+              onClick={practice.onReveal}
+              className="w-fit rounded-full border-[1.5px] border-hairline-strong px-4 py-2 text-sm font-semibold lg:mt-3.5 lg:rounded-xl"
+            >
+              Reveal the extension
+            </button>
+          )}
         {playing?.extension != null && (
           <div className="rounded-2xl bg-(--system-design-tint) p-4 text-(--system-design-line) lg:mt-3.5 lg:rounded-2xl lg:border-0 lg:bg-(--system-design-tint) lg:text-[13px] lg:text-(--system-design-line)">
             <h2 className="text-title lg:text-[13px] lg:font-bold lg:tracking-normal">
@@ -496,21 +701,37 @@ export function BattleView({
               </select>
             </label>
             {/* On a desktop the clock and the bests are in the header. */}
-            <span
-              role="timer"
-              aria-label="Time left"
-              className="font-mono lg:hidden"
-            >
-              {playing === null ? "–" : clock(playing.endsAt - now)}
-            </span>
-            <span className="text-ink-muted lg:hidden">
-              {playing === null ? "Connecting…" : bests(playing)}
-            </span>
-            {playing === null ? (
-              <span className="hidden text-ink-muted lg:ml-auto lg:inline">
-                Connecting…
+            {best === null ? (
+              <>
+                <span
+                  role="timer"
+                  aria-label="Time left"
+                  className="font-mono lg:hidden"
+                >
+                  {playing === null ? "–" : clock(playing.endsAt - now)}
+                </span>
+                <span className="text-ink-muted lg:hidden">
+                  {playing === null ? "Connecting…" : bests(playing)}
+                </span>
+              </>
+            ) : (
+              <span className="text-ink-muted tabular-nums lg:hidden">
+                {playing === null ? "Connecting…" : best}
               </span>
-            ) : null}
+            )}
+            {/* Where the code is kept: autosaved to the account in practice (ADR-0048), in
+                this tab in a battle. */}
+            <span
+              role="status"
+              className="text-ink-muted lg:ml-auto lg:text-[13px]"
+            >
+              {practice?.saving ??
+                (playing === null
+                  ? "Connecting…"
+                  : practice === undefined
+                    ? "Saved in this tab"
+                    : "Autosaved")}
+            </span>
           </div>
           <Editor
             language={language}
@@ -536,6 +757,8 @@ export function BattleView({
           <button
             type="button"
             disabled={playing === null || playing.running}
+            aria-keyshortcuts="Control+Enter Meta+Enter"
+            title="Run the visible tests (Ctrl+Enter)"
             onClick={() => {
               onSend(false);
             }}
@@ -560,11 +783,13 @@ export function BattleView({
             {playing?.submitting === true ? "Submitting…" : "Submit"}
           </button>
         </div>
-        {playing !== null && Object.keys(playing.best).length === 1 && (
-          <p className="text-ink-muted lg:order-3 lg:mt-3 lg:text-[13px]">
-            {PACE}
-          </p>
-        )}
+        {practice === undefined &&
+          playing !== null &&
+          Object.keys(playing.best).length === 1 && (
+            <p className="text-ink-muted lg:order-3 lg:mt-3 lg:text-[13px]">
+              {PACE}
+            </p>
+          )}
         {playing?.notice != null && (
           <p
             role="status"
@@ -574,7 +799,11 @@ export function BattleView({
           </p>
         )}
         {playing?.ran != null && (
-          <div aria-label="Run" className="lg:order-2 lg:mt-3">
+          <div
+            aria-label="Run"
+            aria-live="polite"
+            className="lg:order-2 lg:mt-3"
+          >
             <h2 className="text-title lg:text-sm lg:font-semibold lg:tracking-normal">
               Run: the visible tests
             </h2>
@@ -602,7 +831,11 @@ export function BattleView({
           </div>
         )}
         {playing?.submitted != null && (
-          <div aria-label="Submission" className="lg:order-1">
+          <div
+            aria-label="Submission"
+            aria-live="polite"
+            className="lg:order-1"
+          >
             <h2 className="text-title lg:text-sm lg:font-semibold lg:tracking-normal">
               Submission: {playing.submitted.points} points
             </h2>

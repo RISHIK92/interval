@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { elapsed, Timeline } from "./Timeline";
 
 // P5-W35 (DB-6; Q-P5-22): every player's code over time, from the 30-second snapshots,
 // once the battle is over: a scrubber over the frames, oldest first.
@@ -63,28 +64,28 @@ export function ReplayView({
   onAt: (at: number) => void;
 }) {
   const frame = frames[at];
+  const start = new Date(frames[0]?.takenAt ?? 0).getTime();
+  const labelOf = (i: number) =>
+    elapsed(new Date(frames[i]?.takenAt ?? 0).getTime() - start);
   return (
-    <section aria-label="Replay" className="flex flex-col gap-2">
+    <section aria-label="Replay" className="flex flex-col gap-2 lg:gap-3">
       <h2 className="text-title lg:text-section lg:tracking-normal">Replay</h2>
-      <input
-        type="range"
-        className="lg:accent-ink"
-        min={0}
-        max={frames.length - 1}
-        value={at}
-        aria-label="Moment in the battle"
-        onChange={(e) => {
-          onAt(Number(e.target.value));
-        }}
+      <Timeline
+        count={frames.length}
+        at={at}
+        onAt={onAt}
+        labelOf={labelOf}
+        name="Moment in the battle"
       />
       {frame !== undefined && (
         <p className="text-sm text-ink-muted">
-          {frame.name} · {new Date(frame.takenAt).toLocaleTimeString()}
+          <span className="font-semibold text-ink">{frame.name}</span> at{" "}
+          {labelOf(at)}
           {shown === null ? "" : ` · ${shown.language}`}
         </p>
       )}
       {missing ? (
-        <p className="text-sm text-ink-muted">
+        <p className="rounded-2xl bg-well px-4 py-3 text-sm text-ink-muted">
           This moment&apos;s code is gone.
         </p>
       ) : (

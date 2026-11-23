@@ -1,4 +1,4 @@
-import type { ComponentKind } from "@interval/hld";
+import type { ComponentKind, DesignNode } from "@interval/hld";
 import type { CSSProperties } from "react";
 
 // The web design's canvas ("HLD battle, web"): React Flow drawn in the design system's
@@ -19,8 +19,8 @@ export const flowTheme = {
   "--xy-edge-stroke-width": "3",
   "--xy-edge-label-background-color": "var(--page)",
   "--xy-edge-label-color": "var(--ink-muted)",
-  "--xy-handle-background-color": "var(--ink-muted)",
-  "--xy-handle-border-color": "var(--page)",
+  "--xy-handle-background-color": "var(--card)",
+  "--xy-handle-border-color": "var(--select)",
   "--xy-controls-button-background-color": "var(--page)",
   "--xy-controls-button-background-color-hover": "var(--well)",
   "--xy-controls-button-color": "var(--ink)",
@@ -32,15 +32,33 @@ export const flowTheme = {
 
 // The design's node card: compact, about 120 px wide, in place of React Flow's 150.
 export const NODE_STYLE: CSSProperties = {
-  width: 120,
+  width: 124,
   padding: "10px 8px",
-  fontSize: 14,
+  fontSize: 13,
   lineHeight: 1.2,
 };
 
 // The design's selected node: the select tint, a 2px select border.
 export const SELECTED_NODE =
   "[--xy-node-background-color:var(--distributed-systems-tint)] [--xy-node-border:2px_solid_var(--select)]";
+
+// The editing canvas's handles: drawn on a hovered, focused or selected card (always on a
+// touch screen, which can't hover), larger than React Flow's, in the select colour, with
+// a hit area wider than the dot. React Flow's stylesheet is unlayered, so it beats
+// Tailwind's layered utilities: these need `!`. Nodes and edges reached by Tab show
+// the select ring.
+export const EDIT_FLOW = [
+  "[&_.react-flow__handle]:size-2.5! [&_.react-flow__handle]:border-2!",
+  "[&_.react-flow__handle]:after:absolute [&_.react-flow__handle]:after:-inset-[7px] [&_.react-flow__handle]:after:content-['']",
+  "pointer-fine:[&_.react-flow__handle]:opacity-0 [&_.react-flow__handle]:transition-opacity",
+  "[&_.react-flow__node:hover_.react-flow__handle]:opacity-100",
+  "[&_.react-flow__node:focus-visible_.react-flow__handle]:opacity-100",
+  "[&_.react-flow__node.selected_.react-flow__handle]:opacity-100",
+  "[&_.react-flow__handle:hover]:bg-select!",
+  "[&_.react-flow__node:focus-visible]:outline-2! [&_.react-flow__node:focus-visible]:outline-offset-2! [&_.react-flow__node:focus-visible]:outline-select!",
+  "[&_.react-flow__edge:focus-visible_.react-flow__edge-path]:stroke-select! [&_.react-flow__edge:focus-visible_.react-flow__edge-path]:stroke-[5]!",
+  "[&_.react-flow__edge.selected_.react-flow__edge-path]:stroke-select",
+].join(" ");
 
 // Where traffic enters, what computes, what stores, what carries messages.
 const RAMP: Record<ComponentKind, string> = {
@@ -106,17 +124,63 @@ export function Cube({ size, ramp }: { size: number; ramp: string }) {
   );
 }
 
-// A node's face, as the design's: its kind's icon, the kind at 14 px, then its name in
-// the design at 11 px.
-export function NodeLabel({ id, kind }: { id: string; kind: ComponentKind }) {
+// A node's role in a few words, from its configuration: the second line of its card and
+// of the Selected title ("SQL database · primary + 2 replicas").
+export function nodeRole(node: DesignNode): string {
+  const count = (n: number, one: string, many = `${one}s`) =>
+    `${String(n)} ${n === 1 ? one : many}`;
+  const where = (c: { regions: number }) =>
+    c.regions > 1 ? ` · ${count(c.regions, "region")}` : "";
+  switch (node.kind) {
+    case "client":
+      return "users";
+    case "cdn":
+      return node.config.ttlSeconds >= 60
+        ? `caches ${String(Math.round(node.config.ttlSeconds / 60))} min`
+        : `caches ${String(node.config.ttlSeconds)} s`;
+    case "load_balancer":
+      return count(node.config.zones, "zone") + where(node.config);
+    case "app_service":
+    case "worker":
+    case "kv_store":
+      return count(node.config.nodes, "node") + where(node.config);
+    case "cache":
+      return `${count(node.config.nodes, "node")} × ${String(node.config.memoryGbPerNode)} GB`;
+    case "sql_db":
+      return (
+        (node.config.readReplicas > 0
+          ? `primary + ${count(node.config.readReplicas, "replica")}`
+          : "primary") + where(node.config)
+      );
+    case "queue":
+    case "stream":
+      return "async";
+    case "object_storage":
+      return "files" + where(node.config);
+    case "search_index":
+      return count(node.config.shards, "shard") + where(node.config);
+  }
+}
+
+// A node's face, as the design's: its kind's icon, its name at 13 px, then its role at
+// 11 px. Never its id: that's the design's key, not a word for the player.
+export function NodeLabel({
+  kind,
+  name,
+  role,
+}: {
+  kind: ComponentKind;
+  name: string;
+  role: string;
+}) {
   return (
-    <span className="flex flex-col items-center gap-1">
+    <span className="flex flex-col items-center gap-0.5">
       <KindIcon kind={kind} />
-      <span className="text-sm leading-tight font-semibold">
-        {kind.replaceAll("_", " ")}
+      <span className="mt-0.5 max-w-full truncate text-[13px] leading-tight font-semibold">
+        {name}
       </span>
-      <span className="max-w-full truncate text-[11px] leading-none font-medium text-ink-muted">
-        {id}
+      <span className="max-w-full truncate text-[11px] leading-tight font-medium text-ink-muted">
+        {role}
       </span>
     </span>
   );

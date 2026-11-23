@@ -1,11 +1,22 @@
 "use client";
 
-import { Design, type HldProblem, simulate } from "@interval/hld";
-import { Background, type Edge, type Node, ReactFlow } from "@xyflow/react";
+import {
+  componentNames,
+  Design,
+  type HldProblem,
+  simulate,
+} from "@interval/hld";
+import {
+  Background,
+  type Edge,
+  type Node,
+  Position,
+  ReactFlow,
+} from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useMemo } from "react";
 import { FIT, ZoomControls } from "./FlowControls";
-import { flowTheme, NODE_STYLE, NodeLabel } from "./flow";
+import { flowTheme, NODE_STYLE, NodeLabel, nodeRole } from "./flow";
 
 // P6-W44 (Q-P6-08): a design shown, not edited: for spectators and replays. Its
 // simulation runs here, as the canvas's preview does (CANVAS-5).
@@ -31,17 +42,24 @@ export function DesignView({
         <p className="text-sm text-ink-muted">Nothing drawn yet.</p>
       </section>
     );
+  const names = componentNames(design.nodes);
+  const nameOf = (id: string) => names.get(id) ?? id;
   const nodes: Node[] = design.nodes.map((n) => ({
     id: n.id,
     position: n.position ?? { x: 0, y: 0 },
-    data: { label: <NodeLabel id={n.id} kind={n.kind} /> },
+    data: {
+      label: <NodeLabel kind={n.kind} name={nameOf(n.id)} role={nodeRole(n)} />,
+    },
     style: NODE_STYLE,
+    sourcePosition: Position.Right,
+    targetPosition: Position.Left,
   }));
   const edges: Edge[] = design.edges.map((e) => ({
     id: `${e.from}->${e.to}`,
     source: e.from,
     target: e.to,
-    label: e.routes.join(", "),
+    type: "smoothstep",
+    label: e.routes.map((t) => t.replaceAll("_", " ")).join(", "),
   }));
   return (
     <section className={PANEL}>
@@ -74,7 +92,7 @@ export function DesignView({
           .filter((n) => n.note !== "")
           .map((n) => (
             <li key={n.id}>
-              <span className="font-semibold">{n.id}:</span> {n.note}
+              <span className="font-semibold">{nameOf(n.id)}:</span> {n.note}
             </li>
           ))}
       </ul>

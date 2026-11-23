@@ -18,6 +18,7 @@ import {
   ResultHero,
 } from "../../../../play/battle/[id]/result/ResultHero";
 import { Waiting } from "./Waiting";
+import { AutoRefresh } from "../../../../play/battle/[id]/result/AutoRefresh";
 import { BATTLE_MODE_NAMES } from "../../../../battle-mode";
 
 export const dynamic = "force-dynamic";
@@ -84,8 +85,16 @@ export default async function HldResultPage({
             : []),
           { label: "Speed", got: me.speedPoints, of: 15 },
         ];
-  const TH = "lg:py-2 lg:font-medium";
-  const TD = "lg:border-t lg:border-hairline lg:py-2";
+  const TH = "whitespace-nowrap py-2 pr-3 font-medium last:pr-0";
+  const TD = "border-t border-hairline py-2 pr-3 last:pr-0";
+  const you = (s: (typeof seats)[number]) => s.userId === actor.userId;
+  // The rubric's points went uncounted for this player, and why, in a line.
+  const rubricMissing =
+    me === undefined || match.scoredAt === null || match.rubricIncluded !== true
+      ? null
+      : me.baselinePassed !== true
+        ? "Your design didn't pass the baseline scenario, so the AI rubric didn't count."
+        : null;
   return (
     <main className="mx-auto flex max-w-4xl flex-col gap-6 px-4 pt-6 pb-12 lg:max-w-[75rem] lg:gap-5 lg:px-7 lg:pt-3">
       <ResultHero
@@ -93,7 +102,7 @@ export default async function HldResultPage({
         problem={problem.title}
         headline={
           match.scoredAt === null
-            ? "Scoring"
+            ? "Scoring…"
             : outcome(
                 me === undefined ? undefined : asPlayer(me),
                 others.map(asPlayer),
@@ -121,13 +130,16 @@ export default async function HldResultPage({
         </p>
       </header>
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5">
-        <div className="flex min-w-0 flex-col gap-6 lg:gap-3.5 lg:rounded-[22px] lg:border lg:border-hairline lg:px-[22px] lg:py-5">
+        <div className="flex min-w-0 flex-col gap-6 lg:gap-5 lg:rounded-[22px] lg:border lg:border-hairline lg:px-[22px] lg:py-5">
           {match.scoredAt === null ? (
             <Waiting matchId={id.data} />
           ) : (
             <>
               {match.rubricIncluded === false ? (
-                <p role="status" className="text-sm">
+                <p
+                  role="status"
+                  className="rounded-2xl bg-well px-4 py-3 text-sm"
+                >
                   A player&apos;s AI judgement couldn&apos;t be written, so this
                   match was scored on simulation and speed alone, scaled to 100.
                 </p>
@@ -158,101 +170,157 @@ export default async function HldResultPage({
                       </div>
                     </div>
                   ))}
+                  {rubricMissing === null ? null : (
+                    <p className="text-[13px] font-medium text-ink-muted">
+                      {rubricMissing}
+                    </p>
+                  )}
                 </section>
               )}
-              <table className="w-full text-sm tabular-nums">
-                <thead>
-                  <tr className="text-left lg:text-[13px] lg:text-ink-muted">
-                    <th className={TH}>Place</th>
-                    <th className={TH}>Player</th>
-                    <th className={TH}>Simulation /60</th>
-                    <th className={TH}>Rubric /{RUBRIC_POINTS}</th>
-                    <th className={TH}>Speed /15</th>
-                    <th className={TH}>Total</th>
-                    <th className={TH}>Rating</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((s) => {
-                    const change = changes.get(s.userId);
-                    return (
-                      <tr
-                        key={s.userId}
-                        className={
-                          s.userId === actor.userId
-                            ? "lg:font-semibold"
-                            : undefined
-                        }
-                      >
-                        <td className={TD}>{s.place}</td>
-                        <td className={TD}>
-                          {s.player}
-                          {s.autoSubmitted ? " (at the deadline)" : ""}
-                        </td>
-                        <td className={TD}>{s.simulationPoints}</td>
-                        <td className={TD}>{rubricOf(s) ?? "–"}</td>
-                        <td className={TD}>{s.speedPoints}</td>
-                        <td className={`font-semibold ${TD}`}>{s.total}</td>
-                        <td className={TD}>
-                          {change === undefined
-                            ? "–"
-                            : `${change >= 0 ? "+" : ""}${change.toFixed(1)}`}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-              {match.rubricIncluded === true ? (
-                <section>
-                  <h2 className="text-title lg:text-section lg:tracking-normal">
-                    The rubric{" "}
-                    <span className="text-xs text-ink-muted">AI</span>
-                  </h2>
+              <section aria-label="Standings" className="flex flex-col gap-2">
+                <h2 className="text-title lg:text-section lg:tracking-[-0.01em]">
+                  Standings
+                </h2>
+                <div className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:px-0">
                   <table className="w-full text-sm tabular-nums">
                     <thead>
-                      <tr className="text-left lg:text-[13px] lg:text-ink-muted">
+                      <tr className="text-left text-[13px] text-ink-muted">
+                        <th className={TH}>Place</th>
                         <th className={TH}>Player</th>
-                        {problem.rubric.map((c) => (
-                          <th key={c.id} title={c.criterion} className={TH}>
-                            {c.id} /4
-                          </th>
-                        ))}
+                        <th className={TH}>Simulation /60</th>
+                        <th className={TH}>Rubric /{RUBRIC_POINTS}</th>
+                        <th className={TH}>Speed /15</th>
+                        <th className={TH}>Total</th>
+                        <th className={TH}>Rating</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map((s) => {
-                        const levels = levelsOf(s.judgementId);
+                        const change = changes.get(s.userId);
                         return (
-                          <tr key={s.userId}>
-                            <td className={TD}>{s.player}</td>
-                            {problem.rubric.map((c) => (
-                              <td key={c.id} className={TD}>
-                                {levels?.[c.id]?.level ?? "–"}
-                              </td>
-                            ))}
+                          <tr
+                            key={s.userId}
+                            aria-current={you(s) ? "true" : undefined}
+                            className={
+                              you(s) ? "bg-well font-semibold" : undefined
+                            }
+                          >
+                            <td
+                              className={`${TD} pl-2 ${you(s) ? "rounded-l-lg" : ""}`}
+                            >
+                              {s.place === null ? "–" : ordinal(s.place)}
+                            </td>
+                            <td className={TD}>
+                              {s.player}
+                              {you(s) ? (
+                                <span className="ml-1.5 rounded-md bg-lift px-1.5 py-0.5 text-xs font-semibold">
+                                  You
+                                </span>
+                              ) : null}
+                              {s.autoSubmitted ? (
+                                <span className="block text-xs font-normal text-ink-muted">
+                                  submitted at the deadline
+                                </span>
+                              ) : null}
+                            </td>
+                            <td className={TD}>{s.simulationPoints}</td>
+                            <td className={TD}>{rubricOf(s) ?? "–"}</td>
+                            <td className={TD}>{s.speedPoints}</td>
+                            <td className={`${TD} font-bold`}>{s.total}</td>
+                            <td
+                              className={`${TD} ${you(s) ? "rounded-r-lg" : ""} ${change === undefined ? "" : change >= 0 ? "text-go-text" : "text-wrong"}`}
+                            >
+                              {change === undefined
+                                ? "–"
+                                : `${change >= 0 ? "+" : "−"}${Math.abs(change).toFixed(1)}`}
+                            </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
-                  <ul className="mt-1 text-xs text-ink-muted lg:mt-2">
-                    {problem.rubric.map((c) => (
-                      <li key={c.id}>
-                        {c.id}: {c.criterion}
-                      </li>
-                    ))}
-                  </ul>
+                </div>
+              </section>
+              {match.rubricIncluded === true ? (
+                <section
+                  aria-label="The rubric"
+                  className="flex flex-col gap-2"
+                >
+                  <h2 className="flex items-center justify-between gap-3 text-title lg:text-section lg:tracking-[-0.01em]">
+                    The rubric
+                    <span className="rounded-md bg-well px-1.5 py-0.5 text-xs font-semibold tracking-normal text-ink-muted">
+                      AI
+                    </span>
+                  </h2>
+                  <p className="text-[13px] text-ink-muted">
+                    Each criterion graded 0 to 4 by the AI judge.
+                  </p>
+                  <div className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+                    <table className="w-full text-sm tabular-nums">
+                      <thead>
+                        <tr className="text-left text-[13px] text-ink-muted">
+                          <th className={TH}>Criterion</th>
+                          {rows.map((s) => (
+                            <th key={s.userId} className={`${TH} text-right`}>
+                              {you(s) ? "You" : s.player}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {problem.rubric.map((c) => (
+                          <tr key={c.id}>
+                            <td className={`${TD} min-w-48`}>{c.criterion}</td>
+                            {rows.map((s) => {
+                              const level = levelsOf(s.judgementId)?.[c.id]
+                                ?.level;
+                              return (
+                                <td
+                                  key={s.userId}
+                                  className={`${TD} text-right whitespace-nowrap ${you(s) ? "font-semibold" : ""}`}
+                                >
+                                  {level === undefined
+                                    ? "–"
+                                    : `${String(level)} / 4`}
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </section>
               ) : null}
             </>
           )}
         </div>
         <div className="flex min-w-0 flex-col gap-6 lg:gap-3">
-          <Feedback
-            ask={null}
-            initial={mine === null ? null : feedbackView(mine)}
-          />
+          {mine === null || feedbackView(mine).status === "pending" ? (
+            <section
+              aria-label="Feedback"
+              className="flex flex-col gap-1 rounded-[20px] border-[1.5px] border-dashed border-track px-[18px] py-4"
+            >
+              {mine === null || match.scoredAt === null ? null : (
+                <AutoRefresh everyMs={FEEDBACK_REFRESH_MS} />
+              )}
+              <h2 className="flex items-center justify-between gap-3 text-[15px] font-semibold">
+                Feedback
+                <span className="rounded-md bg-well px-1.5 py-0.5 text-xs font-semibold text-ink-muted">
+                  AI
+                </span>
+              </h2>
+              <p className="text-sm text-ink-muted">
+                {mine !== null
+                  ? "The AI coach is writing feedback on your design. It shows here by itself, usually within a few minutes."
+                  : match.scoredAt === null
+                    ? "The AI judge's feedback on your design shows here once it's written."
+                    : "No AI feedback was written for your design in this match."}
+              </p>
+            </section>
+          ) : (
+            <Feedback ask={null} initial={feedbackView(mine)} />
+          )}
           <div className="hidden flex-wrap gap-2 lg:mt-1.5 lg:flex">
             <Link
               href={`/hld/match/${id.data}/replay`}
@@ -285,3 +353,8 @@ export default async function HldResultPage({
     </main>
   );
 }
+
+// Feedback can still be being written once the match is scored: the page looks again.
+const FEEDBACK_REFRESH_MS = 10_000;
+const ORDINALS = ["1st", "2nd", "3rd", "4th"];
+const ordinal = (place: number) => ORDINALS[place - 1] ?? String(place);

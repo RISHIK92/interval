@@ -10,10 +10,12 @@ export function LobbyCard({
   art,
   tint,
   body,
+  live = false,
   children,
 }: {
   title: string;
-  meta?: string; // the corner note: a duration, "Live"
+  meta?: string; // the corner chip: a duration, "Live"
+  live?: boolean; // the chip in the live colour, with its dot
   art: ReactNode;
   tint: string; // the tile's background (and colour), from a topic ramp
   body: ReactNode;
@@ -28,12 +30,20 @@ export function LobbyCard({
           {art}
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-2 lg:self-stretch">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-3">
             <h2 className="text-title lg:text-section lg:tracking-normal">
               {title}
             </h2>
             {meta === undefined ? null : (
-              <span className="shrink-0 text-[13px] text-ink-muted">
+              <span
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums ${live ? "bg-live/15 text-live" : "bg-well text-ink-muted"}`}
+              >
+                {live ? (
+                  <span
+                    aria-hidden="true"
+                    className="size-1.5 rounded-full bg-live motion-safe:animate-pulse"
+                  />
+                ) : null}
                 {meta}
               </span>
             )}

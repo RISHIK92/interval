@@ -1,3 +1,4 @@
+import type { Coverage } from "@interval/hld";
 import Link from "next/link";
 
 // The web design's battle frame ("HLD battle, web" and "LLD battle, web"): on a
@@ -5,8 +6,15 @@ import Link from "next/link";
 // or the code, the selection or the tests). The pages place their parts into it; on a
 // phone it's the single column it was.
 
-export const FRAME =
-  "mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-12 lg:my-10 lg:grid lg:min-h-[700px] lg:w-[calc(100%-80px)] lg:max-w-[1200px] lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_minmax(0,17.5rem)] lg:grid-rows-[auto_auto_1fr] lg:gap-0 lg:overflow-hidden lg:rounded-3xl lg:border lg:border-hairline lg:p-0";
+const FRAME_BASE =
+  "mx-auto flex w-full max-w-6xl flex-col gap-4 px-4 pt-6 pb-12 lg:my-10 lg:grid lg:w-[calc(100%-80px)] lg:max-w-[1200px] lg:grid-cols-[minmax(0,15rem)_minmax(0,1fr)_minmax(0,17.5rem)] lg:gap-0 lg:overflow-hidden lg:rounded-3xl lg:border lg:border-hairline lg:p-0";
+
+export const FRAME = `${FRAME_BASE} lg:min-h-[700px] lg:grid-rows-[auto_auto_1fr]`;
+
+// The HLD canvas's frame fits the window, as the design does: the palette under the
+// canvas and the submission at the foot of the right column stay in view, and each
+// column scrolls on its own.
+export const CANVAS_FRAME = `${FRAME_BASE} lg:h-[calc(100dvh-80px)] lg:min-h-[640px] lg:grid-rows-[auto_auto_minmax(0,1fr)]`;
 
 // The same frame for watching a match or its replay: the header row, then the designs
 // side by side.
@@ -46,25 +54,73 @@ export function CloseLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-export function Requirements({ requirements }: { requirements: string[] }) {
+// Q-WD-15: the problem's requirements as the design covers them, live as it's built.
+// Covered: a green card naming what covers it; not yet: a dashed card saying so.
+export function Requirements({ coverage }: { coverage: Coverage }) {
   return (
     <section
-      aria-label="Requirements"
-      className="-mt-3 lg:col-start-1 lg:row-start-2 lg:mt-0 lg:flex lg:flex-col lg:gap-1.5 lg:border-r lg:border-hairline lg:p-5 lg:pb-0"
+      aria-labelledby="requirements-title"
+      className="flex flex-col gap-1.5 lg:col-start-1 lg:row-start-2 lg:max-h-[45vh] lg:overflow-y-auto lg:border-r lg:border-hairline lg:p-5 lg:pb-0"
     >
-      <h2 className="mb-1 hidden text-[15px] font-semibold lg:block">
-        Requirements
+      <h2
+        id="requirements-title"
+        className="mb-1 flex items-baseline justify-between gap-2"
+      >
+        <span className="text-[15px] font-semibold">Requirements</span>
+        <span
+          aria-live="polite"
+          className="text-[13px] font-normal text-ink-muted tabular-nums"
+        >
+          {coverage.covered} of {coverage.total} covered
+        </span>
       </h2>
-      <ul className="list-disc pl-5 text-ink-muted lg:flex lg:list-none lg:flex-col lg:gap-1.5 lg:pl-0">
-        {requirements.map((r) => (
+      <ul className="flex flex-col gap-1.5">
+        {coverage.items.map((r) => (
           <li
-            key={r}
-            className="lg:rounded-xl lg:bg-well lg:px-[11px] lg:py-[9px] lg:text-sm lg:font-semibold lg:text-ink"
+            key={r.text}
+            aria-label={`${r.text}: ${r.covered ? `covered by ${r.by ?? "the design"}` : "nothing covers this yet"}`}
+            className={
+              r.covered
+                ? "rounded-xl bg-[color-mix(in_srgb,var(--go)_14%,var(--page))] px-[11px] py-2 text-go-text lg:py-[9px]"
+                : "rounded-xl border-[1.5px] border-dashed border-(--system-design-line) px-[11px] py-2 text-(--system-design-line) lg:py-[9px]"
+            }
           >
-            {r}
+            <span
+              aria-hidden="true"
+              className="flex items-start justify-between gap-2 text-sm font-semibold"
+            >
+              {r.text}
+              {r.covered ? (
+                <Mark d="m5 12.5 4.5 4.5L19 7.5" />
+              ) : (
+                <Mark d="M12 3 2 20h20zM12 9v5M12 17h.01" />
+              )}
+            </span>
+            <span aria-hidden="true" className="mt-0.5 block text-xs">
+              {r.covered ? r.by : "Nothing covers this yet"}
+            </span>
           </li>
         ))}
       </ul>
     </section>
+  );
+}
+
+function Mark({ d }: { d: string }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="mt-0.5 shrink-0"
+    >
+      <path d={d} />
+    </svg>
   );
 }

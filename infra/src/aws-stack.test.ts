@@ -456,6 +456,19 @@ describe("game server (ADR-0033)", () => {
     });
   });
 
+  // ADR-0048 (LOAD-5): practice progress the game server couldn't hand over, counted.
+  test("practice progress not handed over becomes a CloudWatch metric", () => {
+    template.hasResourceProperties("AWS::Logs::MetricFilter", {
+      FilterPattern: '{ $.msg = "game: practice progress not handed over" }',
+      MetricTransformations: [
+        Match.objectLike({
+          MetricNamespace: "Interval/Game",
+          MetricName: "PracticeHandoffFailures",
+        }),
+      ],
+    });
+  });
+
   // P3-W15-S05 (LOAD-5): a result the game server couldn't hand over, counted.
   test("a result not handed over becomes a CloudWatch metric", () => {
     template.hasResourceProperties("AWS::Logs::MetricFilter", {

@@ -45,6 +45,7 @@ type battleRun struct {
 	best     map[string]bestSubmission
 	bestCode map[string]*codeMsg // P5-W33: each best's code, for code similarity
 	pending  int                 // judgings in flight
+	seq      int                 // ADR-0048: practice progress messages sent
 }
 
 // Code from a player: a Run or a Submit.
@@ -89,10 +90,12 @@ func (a *actor) battle(p *play) {
 		lastRun: map[string]time.Time{}, lastSub: map[string]time.Time{},
 		judging: map[string]bool{}, best: map[string]bestSubmission{}, bestCode: map[string]*codeMsg{},
 	}
+	practice := a.def.Battle.Practice
 	if a.from != nil && !a.from.Started.IsZero() {
 		// A restart: the same battle, on the same clock, with the bests it had. Whoever
 		// had submitted had joined; the rest may still come back (Q-P5-16).
 		b.start = a.from.Started
+		b.seq, b.revealed = a.from.Seq, a.from.Revealed
 		for player, points := range a.from.Totals {
 			if at, ok := a.from.Times[player]; ok {
 				b.best[player] = bestSubmission{Points: points, At: at, Made: true}
@@ -105,11 +108,16 @@ func (a *actor) battle(p *play) {
 		b.joined[player] = true
 	}
 	elapsed := a.clock.Now().Sub(b.start)
-	revealAt := a.clock.After(max(0, battleReveal-elapsed))
-	end := a.clock.After(max(0, battleLength-elapsed))
-	if elapsed >= battleReveal {
-		b.revealed = true
-		revealAt = nil
+	length := a.def.Battle.length()
+	end := a.clock.After(max(0, length-elapsed))
+	// ADR-0048: in practice, the player reveals the extension (practiceReveal).
+	var revealAt <-chan time.Time
+	if !practice {
+		revealAt = a.clock.After(max(0, battleReveal-elapsed))
+		if elapsed >= battleReveal {
+			b.revealed = true
+			revealAt = nil
+		}
 	}
 	a.broadcast(p, a.battleState(p))
 	a.persistBattle(p)
@@ -147,7 +155,7 @@ func (a *actor) battle(p *play) {
 	}
 	// An away still open at the end counts to the end (Q-P5-17).
 	over := a.clock.Now()
-	if last := b.start.Add(battleLength); over.After(last) {
+	if last := b.start.Add(length); over.After(last) {
 		over = last
 	}
 	for player := range b.lost {
@@ -160,7 +168,8 @@ func (a *actor) battle(p *play) {
 // left (every player away).
 func (a *actor) battleDone(p *play) bool {
 	b := p.battle
-	allAway, allPerfect := true, b.revealed
+	// ADR-0048: a practice session goes on however well it's going.
+	allAway, allPerfect := true, b.revealed && !a.def.Battle.Practice
 	for _, player := range a.def.Players {
 		if b.away[player] {
 			continue
@@ -176,10 +185,14 @@ func (a *actor) battleDone(p *play) bool {
 // Where the battle stands, for everyone at the start and for a player coming back.
 func (a *actor) battleState(p *play) map[string]any {
 	b := p.battle
-	left := max(0, battleLength-a.clock.Now().Sub(b.start))
+	left := max(0, a.def.Battle.length()-a.clock.Now().Sub(b.start))
 	state := map[string]any{
 		"type": "battle", "problem": a.def.Battle.Problem, "seconds": seconds(left),
 		"revealed": b.revealed, "best": a.bests(p),
+	}
+	if a.def.Battle.Practice {
+		// ADR-0048: the page shows no clock; seconds is the session's cap.
+		state["practice"] = true
 	}
 	if b.revealed {
 		// A player back after the reveal is shown it again.
@@ -211,7 +224,7 @@ func (a *actor) persistBattle(p *play) {
 	for player, s := range b.best {
 		totals[player], times[player] = s.Points, s.At
 	}
-	a.persist(snap{Started: b.start, Totals: totals, Times: times, Signals: p.signals})
+	a.persist(snap{Started: b.start, Totals: totals, Times: times, Signals: p.signals, Seq: b.seq, Revealed: b.revealed && a.def.Battle.Practice})
 }
 
 // A Run or a Submit, checked here and judged off this goroutine.
@@ -229,7 +242,7 @@ func (a *actor) battleCode(p *play, e event) {
 			a.tell(p, e.player, seat, map[string]any{"type": "refused", "code": code, "reason": reason, "submit": msg.submit})
 		}
 	}
-	if b.closing || at >= battleLength {
+	if b.closing || at >= a.def.Battle.length() {
 		refuse("over", "the battle is over")
 		return
 	}
@@ -250,9 +263,26 @@ func (a *actor) battleCode(p *play, e event) {
 		refuse("cooldown", fmt.Sprintf("wait %d s", seconds(wait-e.at.Sub(prev))))
 		return
 	}
+	if a.def.Battle.Practice && a.limits != nil {
+		// ADR-0048: the daily caps, after every check that spends nothing.
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		code, err := a.limits.takePractice(ctx, e.player, a.def.Battle.Problem, msg.submit, e.at)
+		cancel()
+		if err != nil {
+			// Not counted, so not judged: the caps would mean nothing otherwise.
+			a.log.Error("game: practice limits unavailable", "player", e.player, "error", err.Error())
+			refuse("unavailable", "try again in a moment")
+			return
+		}
+		if code != "" {
+			refuse(code, practiceRefusals[code])
+			return
+		}
+	}
 	last[e.player] = e.at
-	// By when it was sent: the reveal's timer may not have been handled yet.
-	revealed := b.revealed || at >= battleReveal
+	// By when it was sent: the reveal's timer may not have been handled yet. A practice
+	// session has no timer: its player reveals.
+	revealed := b.revealed || (!a.def.Battle.Practice && at >= battleReveal)
 	include := func(s battleScenario) bool {
 		if !msg.submit {
 			return s.Layer == "visible"
@@ -373,7 +403,20 @@ func (a *actor) battleJudged(p *play, e event) {
 	}
 	tell(map[string]any{"type": "submitted", "points": points, "layers": layers, "best": b.best[e.player].Points})
 	a.broadcast(p, map[string]any{"type": "best", "best": a.bests(p)})
+	if a.def.Battle.Practice {
+		b.seq++
+	}
+	// Saved before the progress goes, so a restart doesn't send a sequence number again;
+	// the save is tried three times, and only when all fail can a restart reuse it (the
+	// worker then drops that Submit as a repeat, LOAD-5).
 	a.persistBattle(p)
+	if a.def.Battle.Practice && a.progress != nil {
+		a.progress(practiceJudged{
+			MatchID: a.id, Seq: b.seq, User: e.player, Problem: a.def.Battle.Problem,
+			Points: points, Layers: layers, Language: j.code.language,
+			At: j.sent.UTC().Format(time.RFC3339),
+		})
+	}
 }
 
 // The result: the best points win, an equal best going to whoever reached it first. A
@@ -386,8 +429,9 @@ func (a *actor) finishBattle(p *play) {
 		p.totals[player] = s.Points
 		p.times[player] = s.At
 		if !s.Made {
-			p.times[player] = battleLength
-			if b.away[player] || !b.joined[player] {
+			p.times[player] = a.def.Battle.length()
+			// ADR-0048: a practice session is never abandoned: it just ends.
+			if !a.def.Battle.Practice && (b.away[player] || !b.joined[player]) {
 				p.abandoned = append(p.abandoned, player)
 			}
 		}
@@ -395,7 +439,7 @@ func (a *actor) finishBattle(p *play) {
 	// §6.9 (Q-P5-20): in human mode, similar best submissions are a signal on
 	// both, for review. shortcut: bests from before a restart aren't kept, so aren't
 	// compared; persist them if restarts mid-battle become common.
-	if a.def.Battle.Mode != "ai" {
+	if a.def.Battle.Mode != "ai" && !a.def.Battle.Practice {
 		minute := b.minute(a.clock.Now())
 		// Both starters a player may have begun from: the base one and, after the reveal,
 		// the extended one.
@@ -457,4 +501,38 @@ func parseCode(data []byte) *codeMsg {
 		return nil
 	}
 	return &codeMsg{submit: msg.Type == "submit", language: msg.Language, code: msg.Code}
+}
+
+// ADR-0048 (Q-WD-28): what the worker keeps a practice player's best from, after each
+// judged Submit (LPUSH game:practice). Per-layer counts only (LLDQ-4), never code; seq
+// counts the session's messages from 1, so the worker takes each once (LOAD-5). The
+// shape is pinned in testdata/practice_judged.json for the worker's tests.
+type practiceJudged struct {
+	MatchID  string                    `json:"match_id"`
+	Seq      int                       `json:"seq"`
+	User     string                    `json:"user"`
+	Problem  string                    `json:"problem"`
+	Points   int                       `json:"points"`
+	Layers   map[string]map[string]int `json:"layers"`
+	Language string                    `json:"language"`
+	At       string                    `json:"at"`
+}
+
+// The words for each daily cap's refusal.
+var practiceRefusals = map[string]string{
+	"daily_runs":            "that's today's runs: try again tomorrow",
+	"daily_submits":         "that's today's submissions: try again tomorrow",
+	"daily_problem_submits": "that's today's submissions for this problem: try another",
+}
+
+// ADR-0048: the extension, when the practice player asks for it; once, and never in a
+// battle, whose clock reveals it.
+func (a *actor) practiceReveal(p *play) {
+	b := p.battle
+	if !a.def.Battle.Practice || a.def.Battle.Extension == nil || b.revealed || b.closing {
+		return
+	}
+	b.revealed = true
+	a.persistBattle(p)
+	a.broadcast(p, a.extensionMessage(max(0, practiceLength-a.clock.Now().Sub(b.start))))
 }

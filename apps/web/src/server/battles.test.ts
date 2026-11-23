@@ -2,7 +2,14 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Expected, GENERATORS, Problem } from "@interval/lld";
 import { expect, test } from "vitest";
-import { battleModeOf, groupWindow, startBattle } from "./battles";
+import {
+  battleModeOf,
+  groupWindow,
+  startBattle,
+  startPracticeSession,
+} from "./battles";
+import { memoryRateLimits } from "./adapters/valkey-rate-limits";
+import { memoryPracticeSessions } from "./adapters/valkey-practice-sessions";
 import type {
   BattleMatch,
   BattleWindows,
@@ -28,6 +35,18 @@ const source: ProblemSource = {
   expected: Expected.parse(JSON.parse(read("expected.json"))),
 };
 
+// ADR-0048: the same problem in the practice pool, under its own slug.
+const practiceSource: ProblemSource = {
+  ...source,
+  problem: {
+    ...source.problem,
+    slug: "inventory-practice",
+    pool: "practice",
+    topic: "systems",
+    concepts: [],
+  },
+};
+
 async function loaded() {
   const rows = new Map<string, LoadedProblem>();
   const objects = new Map<string, string>();
@@ -35,11 +54,12 @@ async function loaded() {
     pool: (battleMode) =>
       Promise.resolve(
         [...rows.values()]
-          .filter((r) => r.battleMode === battleMode)
+          .filter((r) => r.battleMode === battleMode && r.pool === "battle")
           .map((r) => r.slug),
       ),
     hashes: () =>
       Promise.resolve(new Map([...rows].map(([s, r]) => [s, r.contentHash]))),
+    practice: () => Promise.resolve([]),
     get: (slug) => Promise.resolve(rows.get(slug) ?? null),
     save: (p) => {
       rows.set(p.slug, p);
@@ -63,7 +83,7 @@ async function loaded() {
     },
     remove: () => Promise.resolve(),
   };
-  await loadProblems([source], { store, files });
+  await loadProblems([source, practiceSource], { store, files });
   const handed: BattleMatch[] = [];
   const handoff: MatchHandoff = {
     put: () => Promise.reject(new Error("not a quiz")),
@@ -77,19 +97,23 @@ async function loaded() {
     players: string[];
     slug: string;
     unrated?: boolean;
+    practice?: boolean;
   }[] = [];
   const matches = {
     createBattle: (
       serverId: number,
       players: string[],
       slug: string,
-      options?: { unrated: boolean },
+      options?: { unrated?: boolean; practice?: boolean },
     ) => {
       made.push({
         serverId,
         players,
         slug,
-        ...(options === undefined ? {} : { unrated: options.unrated }),
+        ...(options?.unrated === undefined ? {} : { unrated: options.unrated }),
+        ...(options?.practice === undefined
+          ? {}
+          : { practice: options.practice }),
       });
       return Promise.resolve(`match-${String(made.length)}`);
     },
@@ -236,4 +260,85 @@ test("a battle hands over its battle mode", async () => {
   await startBattle(deps, 0, "inventory", ["ana", "bo"], { battleMode: "ai" });
   await startBattle(deps, 0, "inventory", ["ana", "bo"]);
   expect(deps.handed.map((m) => m.battle.battle_mode)).toEqual(["ai", "human"]);
+});
+
+// ADR-0048 (Q-WD-28): a practice problem is never a battle's.
+test("a battle refuses a practice problem", async () => {
+  const deps = await loaded();
+  await expect(
+    startBattle(deps, 0, "inventory-practice", ["ana"]),
+  ).rejects.toThrow(/practice/);
+  expect(deps.made).toEqual([]);
+});
+
+// ADR-0048 (Q-WD-28): a practice session is the battle's handoff with practice set, for
+// one player, unrated; an open one on the same problem is gone back to, until it ends.
+test("a practice session hands over a practice battle and is reused while open", async () => {
+  const deps = {
+    ...(await loaded()),
+    sessions: memoryPracticeSessions(),
+    limits: memoryRateLimits(),
+  };
+  expect(await startPracticeSession(deps, "ana", "inventory", null)).toEqual({
+    status: "not-practice",
+  });
+  expect(await startPracticeSession(deps, "ana", "nope", null)).toEqual({
+    status: "not-practice",
+  });
+  const first = await startPracticeSession(
+    deps,
+    "ana",
+    "inventory-practice",
+    null,
+  );
+  expect(first).toEqual({
+    status: "started",
+    matchId: "match-1",
+    problem: expect.objectContaining({ difficulty: "easy" }) as unknown,
+  });
+  expect(deps.made).toEqual([
+    {
+      serverId: 0,
+      players: ["ana"],
+      slug: "inventory-practice",
+      unrated: true,
+      practice: true,
+    },
+  ]);
+  const [match] = deps.handed;
+  expect(match?.players).toEqual(["ana"]);
+  expect(match?.battle.practice).toBe(true);
+  expect(match?.battle.battle_mode).toBe("human");
+  expect(match?.battle.extension?.statement).toBe(source.extensionStatement);
+  // A reload goes back to it; once it has ended, a new one.
+  expect(
+    await startPracticeSession(deps, "ana", "inventory-practice", null),
+  ).toEqual({ status: "open", matchId: "match-1" });
+  expect(
+    await startPracticeSession(deps, "ana", "inventory-practice", "match-1"),
+  ).toMatchObject({ status: "started", matchId: "match-2" });
+  expect(deps.handed).toHaveLength(2);
+});
+
+test("starting practice sessions is rate-limited", async () => {
+  const deps = {
+    ...(await loaded()),
+    sessions: memoryPracticeSessions(),
+    limits: memoryRateLimits(),
+  };
+  let ended: string | null = null;
+  for (let i = 0; i < 20; i += 1) {
+    const started = await startPracticeSession(
+      deps,
+      "ana",
+      "inventory-practice",
+      ended,
+    );
+    if (started.status !== "started") throw new Error(started.status);
+    ended = started.matchId;
+  }
+  expect(
+    await startPracticeSession(deps, "ana", "inventory-practice", ended),
+  ).toEqual({ status: "limited" });
+  expect(deps.made).toHaveLength(20);
 });

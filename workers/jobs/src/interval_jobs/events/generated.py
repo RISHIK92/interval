@@ -43,6 +43,8 @@ type EventName = Literal[
     "github_disconnected",
     "guest_merged",
     "item_saved",
+    "lld_practice_started",
+    "lld_practice_submitted",
     "match_finished",
     "match_found",
     "note_deleted",
@@ -100,6 +102,8 @@ EVENT_VERSIONS: dict[EventName, int] = {
     "github_disconnected": 1,
     "guest_merged": 1,
     "item_saved": 1,
+    "lld_practice_started": 1,
+    "lld_practice_submitted": 1,
     "match_finished": 1,
     "match_found": 2,
     "note_deleted": 1,
@@ -281,6 +285,20 @@ class GuestMergedProps(_Model):
 
 class ItemSavedProps(_Model):
     pass
+
+
+class LldPracticeStartedProps(_Model):
+    problem_slug: str
+    difficulty: Literal["easy", "medium", "hard"]
+
+
+class LldPracticeSubmittedProps(_Model):
+    problem_slug: str
+    points: int = Field(ge=0, strict=True)
+    hidden_passed: int = Field(ge=0, strict=True)
+    hidden_total: int = Field(ge=0, strict=True)
+    extension_revealed: StrictBool
+    improved: StrictBool
 
 
 class MatchFinishedProps(_Model):
@@ -596,6 +614,18 @@ class ItemSavedEvent(_EnvelopeBase):
     props: ItemSavedProps
 
 
+class LldPracticeStartedEvent(_EnvelopeBase):
+    name: Literal["lld_practice_started"]
+    version: Literal[1]
+    props: LldPracticeStartedProps
+
+
+class LldPracticeSubmittedEvent(_EnvelopeBase):
+    name: Literal["lld_practice_submitted"]
+    version: Literal[1]
+    props: LldPracticeSubmittedProps
+
+
 class MatchFinishedEvent(_EnvelopeBase):
     name: Literal["match_finished"]
     version: Literal[1]
@@ -765,6 +795,8 @@ type Envelope = Annotated[
     | GithubDisconnectedEvent
     | GuestMergedEvent
     | ItemSavedEvent
+    | LldPracticeStartedEvent
+    | LldPracticeSubmittedEvent
     | MatchFinishedEvent
     | MatchFoundEvent
     | NoteDeletedEvent

@@ -42,6 +42,27 @@ export const Scenario = z.strictObject({
 });
 export type Scenario = z.infer<typeof Scenario>;
 
+// Q-WD-15: what covers a requirement, checked by rules against the design and its
+// simulation, never by a model. `request`: that request type is routed from the client
+// to a component of one of `through`'s kinds and served on a normal day (`fast`: within
+// the normal day's p99 target too). `scenario`: that scenario's targets are met.
+// `storage`: the stores writes reach hold the horizon's data. `budget`: the design
+// costs no more than the budget.
+export const Cover = z.discriminatedUnion("rule", [
+  z.strictObject({
+    rule: z.literal("request"),
+    request: Name,
+    through: z
+      .array(z.enum(COMPONENT_KINDS as [ComponentKind, ...ComponentKind[]]))
+      .min(1),
+    fast: z.literal(true).optional(),
+  }),
+  z.strictObject({ rule: z.literal("scenario"), scenario: Name }),
+  z.strictObject({ rule: z.literal("storage") }),
+  z.strictObject({ rule: z.literal("budget") }),
+]);
+export type Cover = z.infer<typeof Cover>;
+
 export const HldProblem = z
   .strictObject({
     slug: z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/),
@@ -49,6 +70,9 @@ export const HldProblem = z
     battleMode: z.enum(["human", "ai"]).optional(),
     timeLimitMinutes: z.int().min(10).max(90),
     requirements: z.array(z.string().min(1)).min(1).max(20),
+    // One per requirement, in the same order. Absent on a problem written before
+    // Q-WD-15: nothing then shows as covered.
+    covers: z.array(Cover).max(20).optional(),
     traffic: z.strictObject({
       requests: z.array(RequestType).min(1).max(8),
       workingSetGb: z.number().positive(), // the data reads touch
@@ -97,5 +121,25 @@ export const HldProblem = z
         path: ["traffic"],
         message: "a request type used twice",
       });
+    if (p.covers !== undefined && p.covers.length !== p.requirements.length)
+      ctx.addIssue({
+        code: "custom",
+        path: ["covers"],
+        message: "not one cover per requirement",
+      });
+    for (const [i, c] of (p.covers ?? []).entries()) {
+      if (c.rule === "request" && !types.includes(c.request))
+        ctx.addIssue({
+          code: "custom",
+          path: ["covers", i],
+          message: `no request type "${c.request}"`,
+        });
+      if (c.rule === "scenario" && !ids.includes(c.scenario))
+        ctx.addIssue({
+          code: "custom",
+          path: ["covers", i],
+          message: `no scenario "${c.scenario}"`,
+        });
+    }
   });
 export type HldProblem = z.infer<typeof HldProblem>;

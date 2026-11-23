@@ -38,6 +38,7 @@ function fakes() {
             .map((r) => [r.slug, r.contentHash]),
         ),
       ),
+    practice: () => Promise.resolve([]),
     get: (slug) => Promise.resolve(rows.get(slug) ?? null),
     save: (p) => {
       order.push(`row ${p.slug}`);
@@ -85,6 +86,18 @@ test("a new problem: its hidden layers to the bucket first, then a row without t
     expect(text).not.toContain(JSON.stringify(s.calls));
   const judged = JSON.parse(f.objects.get(row.privateKey) ?? "null") as unknown;
   expect(judged).toEqual(privateLayers(source()));
+});
+
+// ADR-0048 (Q-WD-28): the row says which pool the problem is in, and a practice
+// problem's group and concepts.
+test("a problem's pool, topic and concepts are loaded with it", async () => {
+  const f = fakes();
+  await loadProblems([source()], f);
+  expect(f.rows.get("lru-cache")).toMatchObject({
+    pool: "practice",
+    topic: "systems",
+    concepts: [],
+  });
 });
 
 test("an unchanged problem keeps its row, and its file is put back; a changed one gets a new key", async () => {

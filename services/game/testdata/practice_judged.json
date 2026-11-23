@@ -1,0 +1,27 @@
+{
+  "match_id": "6f1c2b8e-3d4a-4e5f-9a0b-1c2d3e4f5a6b",
+  "seq": 3,
+  "user": "user-1",
+  "problem": "lru-cache",
+  "points": 820,
+  "layers": {
+    "concurrency": {
+      "passed": 1,
+      "total": 2
+    },
+    "extension": {
+      "passed": 2,
+      "total": 3
+    },
+    "hidden": {
+      "passed": 9,
+      "total": 10
+    },
+    "visible": {
+      "passed": 1,
+      "total": 1
+    }
+  },
+  "language": "python",
+  "at": "2026-11-23T12:05:00Z"
+}

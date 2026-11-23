@@ -34,6 +34,8 @@ const Message = z.discriminatedUnion("type", [
     revealed: z.boolean(),
     best: Bests,
     extension: Extension.optional(),
+    // ADR-0048: a practice session: `seconds` is its cap, not a clock to show.
+    practice: z.boolean().optional(),
   }),
   Extension,
   z.object({ type: z.literal("ran"), tests: z.array(Test) }),
@@ -77,6 +79,8 @@ export type BattlePlaying = {
   phase: "playing";
   you: string | null;
   endsAt: number;
+  // ADR-0048: LLD practice: one player, no clock shown, the extension on request.
+  practice: boolean;
   extension: { statement: string; starters: Record<string, string> } | null;
   best: Record<string, number>;
   ran: BattleTest[] | null;
@@ -129,6 +133,7 @@ function battleStep(
         phase: "playing",
         you,
         endsAt: now + message.seconds * 1000,
+        practice: message.practice === true,
         extension: extensionOf(message.extension),
         best: message.best,
         ran: playing?.ran ?? null,

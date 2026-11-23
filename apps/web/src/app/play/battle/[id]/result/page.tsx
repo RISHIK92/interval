@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { battleResults, sessionReader } from "../../../../../server/container";
 import Link from "next/link";
+import { AutoRefresh } from "./AutoRefresh";
 import { ResultActions } from "./ResultActions";
 import { Replay } from "./Replay";
 import { outcome, ResultHero } from "./ResultHero";
@@ -62,35 +63,70 @@ export default async function BattleResultPage(props: {
         </p>
       </header>
       <div className="flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:items-start lg:gap-5">
-        <div className="flex min-w-0 flex-col gap-6 lg:gap-3.5 lg:rounded-[22px] lg:border lg:border-hairline lg:px-[22px] lg:py-5">
-          <section aria-label="Standings">
-            <h2 className="mb-2 hidden text-section lg:block">Standings</h2>
-            <table className="w-full text-sm tabular-nums">
-              <thead>
-                <tr className="text-left lg:text-[13px] lg:text-ink-muted">
-                  <th className="lg:py-2 lg:font-medium">Place</th>
-                  <th className="lg:py-2 lg:font-medium">Player</th>
-                  <th className="lg:py-2 lg:font-medium">Points</th>
-                  <th className="lg:py-2 lg:font-medium">Best at</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.standings.map((s) => (
-                  <tr
-                    key={s.userId}
-                    className={`lg:border-t lg:border-hairline ${s.you ? "font-semibold" : ""}`}
-                  >
-                    <td className="lg:py-2">{s.place ?? "–"}</td>
-                    <td className="lg:py-2">
-                      {names[s.userId]}
-                      {s.abandoned ? " (abandoned)" : ""}
-                    </td>
-                    <td className="lg:py-2 lg:font-bold">{s.total}</td>
-                    <td className="lg:py-2">{clock(s.timeMs)}</td>
+        <div className="flex min-w-0 flex-col gap-6 lg:gap-5 lg:rounded-[22px] lg:border lg:border-hairline lg:px-[22px] lg:py-5">
+          {result.finishedAt === null ? (
+            <section
+              role="status"
+              aria-label="Still on"
+              className="flex flex-col gap-2 rounded-2xl bg-well px-5 py-4"
+            >
+              <AutoRefresh everyMs={REFRESH_MS} />
+              <p className="flex items-center gap-2.5 text-section">
+                <span
+                  aria-hidden="true"
+                  className="size-2 rounded-full bg-live motion-safe:animate-pulse"
+                />
+                This battle is still on
+              </p>
+              <p className="text-sm text-ink-muted">
+                The standings below are as they are now. The final results,
+                rating change and replay show here by themselves once it ends.
+              </p>
+            </section>
+          ) : null}
+          <section aria-label="Standings" className="flex flex-col gap-2">
+            <h2 className="hidden text-section tracking-[-0.01em] lg:block">
+              Standings
+            </h2>
+            <div className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+              <table className="w-full text-sm tabular-nums">
+                <thead>
+                  <tr className="text-left text-[13px] text-ink-muted">
+                    <th className={TH}>Place</th>
+                    <th className={TH}>Player</th>
+                    <th className={TH}>Points</th>
+                    <th className={TH}>Best at</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {result.standings.map((s) => (
+                    <tr
+                      key={s.userId}
+                      aria-current={s.you ? "true" : undefined}
+                      className={s.you ? "bg-well font-semibold" : undefined}
+                    >
+                      <td
+                        className={`${TD} pl-2 ${s.you ? "rounded-l-lg" : ""}`}
+                      >
+                        {s.place === null ? "–" : ordinal(s.place)}
+                      </td>
+                      <td className={TD}>
+                        {names[s.userId]}
+                        {s.abandoned ? (
+                          <span className="ml-1.5 text-xs font-normal text-ink-muted">
+                            abandoned
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className={`${TD} font-bold`}>{s.total}</td>
+                      <td className={`${TD} ${s.you ? "rounded-r-lg" : ""}`}>
+                        {clock(s.timeMs)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             {result.change !== null && (
               <p className="mt-2 text-sm lg:hidden">
                 Your rating: {result.change >= 0 ? "+" : ""}
@@ -118,7 +154,7 @@ export default async function BattleResultPage(props: {
               disputeOpen={result.disputeOpen}
             />
           )}
-          <div className="hidden gap-2 lg:mt-1.5 lg:flex">
+          <div className="hidden flex-wrap gap-2 lg:mt-1.5 lg:flex">
             <Link
               href="/play/battle"
               className="flex h-[46px] items-center rounded-full bg-ink px-5 font-semibold text-page"
@@ -137,3 +173,9 @@ export default async function BattleResultPage(props: {
     </main>
   );
 }
+
+const REFRESH_MS = 10_000;
+const TH = "whitespace-nowrap py-2 pr-3 font-medium last:pr-0";
+const TD = "border-t border-hairline py-2 pr-3 last:pr-0";
+const ORDINALS = ["1st", "2nd", "3rd", "4th"];
+const ordinal = (place: number) => ORDINALS[place - 1] ?? String(place);

@@ -15,14 +15,7 @@ import {
 import { feedbackView } from "../feedback";
 import { Canvas } from "../../Canvas";
 import { Cube } from "../../flow";
-import {
-  CloseLink,
-  FRAME,
-  HEADER,
-  HEADER_TILE,
-  Requirements,
-  TITLE,
-} from "../../Frame";
+import { CANVAS_FRAME, CloseLink, HEADER_TILE, TITLE } from "../../Frame";
 
 export const dynamic = "force-dynamic";
 
@@ -48,21 +41,22 @@ export default async function PracticeProblemPage({
   ]);
   const parsed = Design.safeParse(saved?.design);
   return (
-    <main className={FRAME}>
-      <header className={HEADER}>
-        <CloseLink href="/hld/practice" label="Back to practice" />
-        <span className={HEADER_TILE}>
-          <Cube size={30} ramp="system-design" />
-        </span>
-        <div className="lg:min-w-[200px] lg:flex-1">
-          <p className="hidden text-[13px] text-ink-muted lg:block">
-            HLD practice
-          </p>
-          <h1 className={TITLE}>{problem.title}</h1>
-        </div>
-      </header>
-      <Requirements requirements={problem.requirements} />
+    <main className={CANVAS_FRAME}>
       <Canvas
+        header={
+          <>
+            <CloseLink href="/hld/practice" label="Back to practice" />
+            <span className={HEADER_TILE}>
+              <Cube size={30} ramp="system-design" />
+            </span>
+            <div className="lg:min-w-[200px] lg:flex-1">
+              <p className="hidden text-[13px] text-ink-muted lg:block">
+                HLD practice
+              </p>
+              <h1 className={TITLE}>{problem.title}</h1>
+            </div>
+          </>
+        }
         problem={problem}
         initial={
           parsed.success && fitsProblem(parsed.data, problem).length === 0

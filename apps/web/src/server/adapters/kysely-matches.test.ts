@@ -1006,6 +1006,17 @@ test("Postgres records a battle on its problem, for its players", async () => {
       expect(await matches.serverFor(id, ids[1] ?? "")).toMatchObject({
         serverId: 3,
       });
+      // ADR-0048: a practice session is a match of its own mode, always unrated.
+      const practice = await matches.createBattle(0, [ids[0] ?? ""], slug, {
+        practice: true,
+      });
+      expect(
+        await trx
+          .selectFrom("game_match")
+          .select(["mode", "problem_slug", "unrated"])
+          .where("id", "=", practice)
+          .executeTakeFirstOrThrow(),
+      ).toEqual({ mode: "practice", problem_slug: slug, unrated: true });
       throw new Rollback();
     }),
   ).rejects.toBeInstanceOf(Rollback);

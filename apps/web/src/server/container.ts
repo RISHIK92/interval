@@ -39,6 +39,7 @@ import { kyselyHldWindows } from "./adapters/kysely-hld-windows";
 import type { TournamentDeps } from "./hld-tournaments";
 import { type HldDeps, startHldMatch } from "./hld-matches";
 import { kyselyHldPracticeDesigns } from "./adapters/kysely-hld-practice-designs";
+import { kyselyLldPractice } from "./adapters/kysely-lld-practice";
 import { kyselyAdminExplainers } from "./adapters/kysely-admin-explainers";
 import { kyselyAdminScenes } from "./adapters/kysely-admin-scenes";
 import { kyselyListening } from "./adapters/kysely-listening";
@@ -61,7 +62,9 @@ import { kyselyAgentHook } from "./adapters/kysely-agent-hook";
 import { kyselyDevicePushTokens } from "./adapters/kysely-device-push-tokens";
 import { kyselyPushSubscriptions } from "./adapters/kysely-push-subscriptions";
 import { valkeyChallenges } from "./adapters/valkey-challenges";
+import { valkeyPracticeSessions } from "./adapters/valkey-practice-sessions";
 import { valkeyRateLimits } from "./adapters/valkey-rate-limits";
+import { valkeySoloLocks } from "./adapters/valkey-solo-locks";
 import { valkeyMatchHandoff } from "./adapters/valkey-match-handoff";
 import {
   casualBattlePrefix,
@@ -76,7 +79,7 @@ import {
 } from "./adapters/kysely-battle-results";
 import { kyselyBattleQuestions } from "./adapters/kysely-battle-questions";
 import { kyselyBattleWindows } from "./adapters/kysely-battle-windows";
-import { randomProblem, startBattle } from "./battles";
+import { randomProblem, startBattle, startPracticeSession } from "./battles";
 import { startLiveMatch, startReplayMatch } from "./live";
 import { kyselyFollows, kyselyUsernames } from "./adapters/kysely-people";
 import { kyselyQuizzes } from "./adapters/kysely-quizzes";
@@ -95,6 +98,7 @@ import type {
   DevicePushTokens,
   PushSubscriptions,
   RateLimits,
+  SoloLocks,
   Challenges,
   GameMode,
   LiveMatch,
@@ -136,6 +140,7 @@ import type {
   HldTournaments,
   HldWindows,
   HldPracticeDesigns,
+  LldPractice,
   InviteCodes,
   JobQueue,
   Leaderboards,
@@ -495,24 +500,25 @@ export function casualBattles(battleMode: BattleMode): Matchmaking {
   );
 }
 
-// P5-W32 (Q-P5-19): one solo battle at a time per player, each holding a game server
-// actor for its 45 minutes. shortcut: a solo finished early still holds the lock to
-// 45:00; clear it on the result if players ask for back-to-back solos.
-export async function soloAllowed(
-  userId: string,
-  game: "battle" | "hld",
-): Promise<boolean> {
-  // One solo game of each kind at a time, for about its length.
-  const minutes = game === "battle" ? 45 : 30;
-  return (
-    (await valkeyClient().set(
-      `${game}:solo:${userId}`,
-      "1",
-      "EX",
-      minutes * 60,
-      "NX",
-    )) === "OK"
-  );
+// P5-W32 (Q-P5-19): one solo game of each kind at a time per player, each holding a game
+// server actor for its length. Each solo's claim holds its match, so one that ended
+// early frees it (claimSolo).
+export function soloLocks(): SoloLocks {
+  return valkeySoloLocks(valkeyClient());
+}
+
+// ADR-0048 (Q-WD-28): LLD practice code and bests, and what a practice session is made
+// from: a battle's handoff, the player's open session, and the start's rate limit.
+export function lldPractice(): LldPractice {
+  return kyselyLldPractice(db());
+}
+
+export function practiceDeps(): Parameters<typeof startPracticeSession>[0] {
+  return {
+    ...battleDeps(),
+    sessions: valkeyPracticeSessions(valkeyClient()),
+    limits: rateLimits(),
+  };
 }
 
 // P5-W33 (§6.2, Q-P5-13): interviewer questions in AI-mode battles.

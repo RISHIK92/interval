@@ -2,6 +2,7 @@
   "slug": "vending-machine",
   "title": "Vending machine",
   "difficulty": "medium",
+  "pool": "battle",
   "interface": {
     "class": "VendingMachine",
     "constructor": { "params": [] },

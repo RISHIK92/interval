@@ -57,6 +57,25 @@ export const messageSchemas = {
     book_id: z.number().int().min(1),
     page_no: z.number().int().min(1),
   }),
+  // Keep an LLD practice player's best result from one judged Submit, once per match and sequence number (ADR-0048, LOAD-5): per-layer counts, never code. The worker's relay queues this from the game server's game:practice list.
+  practice_judged: z.strictObject({
+    concurrency_passed: z.number().int().min(0),
+    concurrency_total: z.number().int().min(0),
+    extension_passed: z.number().int().min(0),
+    extension_revealed: z.boolean(),
+    extension_total: z.number().int().min(0),
+    hidden_passed: z.number().int().min(0),
+    hidden_total: z.number().int().min(0),
+    judged_at: z.string().min(1),
+    language: z.string().min(1),
+    match_id: z.string().min(36),
+    played_as: z.string().min(1),
+    points: z.number().int().min(0),
+    problem_slug: z.string().min(1),
+    seq: z.number().int().min(1),
+    visible_passed: z.number().int().min(0),
+    visible_total: z.number().int().min(0),
+  }),
   // Write a user's line on why an item matters to their project, once per repository set (§5B, AI-3, OPS-4, P2-W12-S05).
   project_note: z.strictObject({
     content_item_id: z.number().int().min(1),

@@ -3,7 +3,14 @@
 // the checker (W29-S03).
 export { Check } from "./check";
 export { Interface } from "./interface";
-export { Expected, interfaceFor, Problem, scenariosOf } from "./problem";
+export {
+  Expected,
+  interfaceFor,
+  PRACTICE_TOPICS,
+  type PracticeTopic,
+  Problem,
+  scenariosOf,
+} from "./problem";
 export { Call, checkScenario, ResultLine, Scenario } from "./scenario";
 export { fits, formatType, parseType, type TypeAst } from "./types";
 // The Go emitter, for other packages' contracts (packages/judge, ADR-0040).

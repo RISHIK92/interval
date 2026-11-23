@@ -73,6 +73,9 @@ describe("the event list (Q-P1-20)", () => {
         "push_setting_changed",
         // The owner's answers of 2026-11-13 (Q-P5-19, P5-W32): the 80% matched metric.
         "battle_window_grouped",
+        // ADR-0048 (accepted by the owner, 2026-11-23): LLD practice, ids and counts only.
+        "lld_practice_started",
+        "lld_practice_submitted",
       ].sort(),
     );
   });

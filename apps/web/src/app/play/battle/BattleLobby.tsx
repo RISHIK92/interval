@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 import type { BattleMode } from "../../../server/ports";
@@ -7,7 +8,7 @@ import { BATTLE_MODE_NAMES } from "../../battle-mode";
 import { BattleModeSwitch } from "../../BattleModeSwitch";
 import { LOBBY_BUTTON, LobbyCard, TROPHY } from "../../LobbyCard";
 import { useWindowTime } from "../../windowTime";
-import { Button } from "../../ui/Button";
+import { Button, buttonClass } from "../../ui/Button";
 import { setWindowRegistration } from "../../play/windowRegistration";
 
 // P5-W32 (Q-P5-19): the casual queue, which plays solo after 60 s with nobody, and the
@@ -39,6 +40,10 @@ const CODE = (
   </svg>
 );
 
+// What went wrong, for the player: a sentence, or a solo already running (its match,
+// when made: Q-P5-19 allows one at a time).
+type Problem = string | { soloRunning: string | null };
+
 function call(path: string, method: string): Promise<Response> {
   return fetch(path, {
     method,
@@ -65,7 +70,7 @@ export function BattleLobby({
   }, []);
   const [casual, setCasual] = useState<"idle" | "waiting" | "solo">("idle");
   const [windowState, setWindow] = useState(initial);
-  const [problem, setProblem] = useState<string | null>(null);
+  const [problem, setProblem] = useState<Problem | null>(null);
   // P5-W33 (§6.2, Q-P5-20): which battle mode the queue and registration are for.
   const [battleMode, setBattleMode] = useState<BattleMode>(
     initial.battleMode ?? "human",
@@ -96,10 +101,16 @@ export function BattleLobby({
           }
           setCasual("solo");
           const res = await call(`/api/battle/solo${q}`, "POST");
+          if (res.status === 429) {
+            const { matchId } = (await res.json()) as {
+              matchId: string | null;
+            };
+            setProblem({ soloRunning: matchId });
+            setCasual("idle");
+            return;
+          }
           if (!res.ok) {
-            setProblem(
-              "Couldn't start a solo battle: one may be going already.",
-            );
+            setProblem("Couldn't start a solo battle. Try again.");
             setCasual("idle");
             return;
           }
@@ -205,7 +216,7 @@ export function BattleLobbyView({
   header?: ReactNode;
   casual: "idle" | "waiting" | "solo";
   window: Window;
-  problem: string | null;
+  problem: Problem | null;
   battleMode: BattleMode;
   onBattleMode: (battleMode: BattleMode) => void;
   onCasual: () => void;
@@ -286,17 +297,48 @@ export function BattleLobbyView({
               className={LOBBY_BUTTON}
             >
               {casual === "idle"
-                ? "Find a casual battle"
+                ? "Find a match"
                 : casual === "waiting"
                   ? "Looking for an opponent…"
                   : "Starting solo…"}
             </Button>
           </LobbyCard>
         </li>
+        {/* ADR-0048 (Q-WD-28): practice problems, apart from every battle pool. */}
+        <li>
+          <LobbyCard
+            title="Practice"
+            meta="No clock, unrated"
+            art={CODE}
+            tint="bg-(--system-design-tint) text-(--system-design-line)"
+            body="Run and submit against the full tests, and reveal the extension when you're ready."
+          >
+            <Link
+              href="/play/battle/practice"
+              className={`${buttonClass("secondary")} ${LOBBY_BUTTON}`}
+            >
+              Practice
+            </Link>
+          </LobbyCard>
+        </li>
       </ul>
       {problem !== null && (
         <p role="alert" className="rounded-2xl bg-well px-4 py-3 text-sm">
-          {problem}
+          {typeof problem === "string" ? (
+            problem
+          ) : problem.soloRunning === null ? (
+            "You already have a solo battle starting. Try again in a minute."
+          ) : (
+            <>
+              You already have a solo battle running.{" "}
+              <Link
+                href={`/play/battle/${problem.soloRunning}`}
+                className="font-semibold underline underline-offset-2"
+              >
+                Go back to it
+              </Link>
+            </>
+          )}
         </p>
       )}
     </div>

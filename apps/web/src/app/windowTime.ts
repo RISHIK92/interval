@@ -10,7 +10,7 @@ export function useWindowTime(at: string): string | null {
     () =>
       new Date(at).toLocaleString(undefined, {
         weekday: "long",
-        hour: "2-digit",
+        hour: "numeric",
         minute: "2-digit",
       }),
     () => null,

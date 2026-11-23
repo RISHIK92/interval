@@ -58,6 +58,13 @@ export default async function BattleLobbyPage() {
       <BattleLobby
         header={
           <header>
+            {/* Phones have no tab bar here; the sidebar's Play does this on wide screens. */}
+            <Link
+              href="/play"
+              className="mb-3 inline-flex text-[15px] font-semibold text-ink-soft lg:hidden"
+            >
+              ‹ Play
+            </Link>
             <h1 className={PAGE_TITLE}>LLD battles</h1>
             <p className="mt-1 text-ink-muted">
               Design and code a system against others in about 45 minutes, on a

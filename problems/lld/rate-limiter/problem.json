@@ -2,6 +2,7 @@
   "slug": "rate-limiter",
   "title": "Rate limiter",
   "difficulty": "medium",
+  "pool": "battle",
   "interface": {
     "class": "RateLimiter",
     "constructor": {

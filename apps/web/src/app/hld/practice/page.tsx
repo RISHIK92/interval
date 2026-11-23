@@ -58,18 +58,48 @@ export default async function PracticePage() {
       <ul className="grid gap-3 sm:grid-cols-2 lg:gap-3.5">
         {practiceProblems().map((p) => (
           <li key={p.slug}>
-            <Link href={`/hld/practice/${p.slug}`} className="block h-full">
-              <Card className="flex h-full gap-4 p-5 lg:rounded-[22px] lg:p-[18px] lg:shadow-none lg:hover:border-hairline-strong">
+            <Link
+              href={`/hld/practice/${p.slug}`}
+              className="group block h-full rounded-3xl focus-visible:ring-2 focus-visible:ring-select focus-visible:outline-none lg:rounded-[22px]"
+            >
+              <Card className="flex h-full gap-4 p-5 transition-colors lg:rounded-[22px] lg:p-[18px] lg:shadow-none lg:group-hover:border-hairline-strong">
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-(--system-design-tint) lg:size-14">
                   {CUBE}
                 </span>
-                <span className="flex min-w-0 flex-1 flex-col gap-1">
-                  <span className="text-section">{p.title}</span>
-                  <span className="text-[13px] text-ink-muted tabular-nums">
-                    {p.scenarios.length} scenarios · a budget of $
-                    {p.budgetPerMonth.toLocaleString("en-US")} a month
+                <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="text-section">{p.title}</span>
+                    <svg
+                      aria-hidden="true"
+                      viewBox="0 0 24 24"
+                      className="mt-1 size-4 shrink-0 text-ink-muted transition-transform group-hover:translate-x-0.5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m9 6 6 6-6 6" />
+                    </svg>
                   </span>
-                  <span className="mt-1 line-clamp-3 text-sm text-ink-muted">
+                  <span className="text-[13px] text-ink-muted tabular-nums">
+                    {p.scenarios.length} scenarios · $
+                    {p.budgetPerMonth.toLocaleString("en-US")} a month budget
+                  </span>
+                  {p.concepts.length === 0 ? null : (
+                    <span className="mt-1 flex flex-wrap gap-1.5">
+                      <span className="sr-only">Concepts: </span>
+                      {p.concepts.map((c) => (
+                        <span
+                          key={c}
+                          className="rounded-full bg-well px-2.5 py-1 text-xs font-semibold text-ink-muted"
+                        >
+                          {c}
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                  <span className="mt-1 line-clamp-2 text-sm text-ink-muted">
                     {p.requirements.join(" · ")}
                   </span>
                 </span>

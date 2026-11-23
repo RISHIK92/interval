@@ -50,3 +50,19 @@ for (const slug of slugs)
       problem.battleMode === "ai",
     );
   });
+
+// ADR-0048 (Q-WD-28): the first practice pool, apart from the battle pools for good.
+test("the practice pool is its own", () => {
+  const pools = slugs.map((slug) => {
+    const p = Problem.parse(
+      JSON.parse(readFileSync(join(problemsDir, slug, "problem.json"), "utf8")),
+    );
+    return [slug, p.pool] as const;
+  });
+  expect(
+    pools
+      .filter(([, pool]) => pool === "practice")
+      .map(([slug]) => slug)
+      .sort(),
+  ).toEqual(["elevator-system", "lru-cache", "meeting-rooms", "parking-lot"]);
+});

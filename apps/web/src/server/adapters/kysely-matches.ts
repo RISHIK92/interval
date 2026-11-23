@@ -190,9 +190,10 @@ export function kyselyMatches(
           .insertInto("game_match")
           .values({
             server_id: serverId,
-            mode: "battle",
+            // ADR-0048: a practice session is its own mode, never rated.
+            mode: options?.practice === true ? "practice" : "battle",
             problem_slug: slug,
-            unrated: options?.unrated ?? false,
+            unrated: (options?.unrated ?? false) || options?.practice === true,
             battle_mode: options?.battleMode ?? "human",
           })
           .returning("id")

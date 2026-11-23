@@ -43,6 +43,9 @@ const problem: LoadedProblem = {
   title: "LRU cache",
   difficulty: "easy",
   battleMode: "human",
+  pool: "battle",
+  topic: null,
+  concepts: [],
   interviewerNotes: null,
   statement: "# LRU cache\n\nKeep the most recent.",
   interface: {

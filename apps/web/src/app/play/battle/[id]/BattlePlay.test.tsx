@@ -9,9 +9,14 @@ function Editor({ language, value }: CodeEditorProps) {
   return <textarea aria-label={language} defaultValue={value} />;
 }
 
-const show = (state: BattleState, failed = false) =>
+const show = (
+  state: BattleState,
+  failed = false,
+  practice?: Parameters<typeof BattleView>[0]["practice"],
+) =>
   renderToStaticMarkup(
     <BattleView
+      practice={practice}
       resultHref="/play/battle/m1/result"
       heading={<h1>LRU cache</h1>}
       signatures={["LRUCache(capacity)", "get(key) → int"]}
@@ -35,6 +40,7 @@ const playing: BattleState = {
   phase: "playing",
   you: "ada",
   endsAt: 1_000 + 30 * 60_000 + 5_000,
+  practice: false,
   extension: null,
   best: { ada: 700, bob: 300 },
   ran: null,
@@ -228,4 +234,83 @@ test("the interviewer labels its answers AI and stops at 10", async () => {
     />,
   );
   expect(full).not.toContain("Your question");
+});
+
+// ADR-0048 (Q-WD-28): practice is the battle screen with no clock and no opponent, the
+// player's best, and the extension on request.
+const practicing = {
+  ...playing,
+  practice: true,
+  best: { ada: 0 },
+};
+const practiceView = {
+  best: { points: 820, hidden: { passed: 9, total: 10 } },
+  canReveal: true,
+  onReveal: () => undefined,
+  saving: null,
+};
+
+test("practice: no clock, no opponent, the best, and a reveal button", () => {
+  const html = show(practicing, false, practiceView);
+  expect(html).not.toContain('role="timer"');
+  expect(html).not.toContain("Opponent");
+  expect(html).not.toContain("Reference pace");
+  expect(html).toContain("LLD practice");
+  expect(html).toContain("Your best: 820 · hidden 9/10");
+  expect(html).toMatch(/<button[^>]*>Reveal the extension<\/button>/);
+  // Revealed, or a problem without an extension: no button.
+  expect(
+    show(practicing, false, { ...practiceView, canReveal: false }),
+  ).not.toContain("Reveal the extension");
+  expect(
+    show(
+      {
+        ...practicing,
+        extension: { statement: "# Resizing", starters: { python: "def r()" } },
+      },
+      false,
+      practiceView,
+    ),
+  ).not.toContain("Reveal the extension");
+  // Nothing judged yet: not started.
+  expect(show(practicing, false, { ...practiceView, best: null })).toContain(
+    "Not started",
+  );
+});
+
+test("practice: a session that ended says a new one is starting, not a result", () => {
+  const html = show(
+    {
+      phase: "final",
+      you: "ada",
+      outcome: "won",
+      totals: { ada: 700 },
+      abandoned: [],
+      places: { ada: 1 },
+    },
+    false,
+    practiceView,
+  );
+  expect(html).toContain("Starting a new session");
+  expect(html).not.toContain("See the results");
+});
+
+test("practice: an autosave that couldn't save says why", () => {
+  expect(
+    show(practicing, false, {
+      ...practiceView,
+      saving: "Saved in another tab: reload to get it.",
+    }),
+  ).toContain("Saved in another tab: reload to get it.");
+});
+
+// The design's frame: a way out in the header, and where the code is kept.
+test("the header leaves to the lobby; the editor says where the code is kept", () => {
+  const html = show(playing);
+  expect(html).toMatch(
+    /<a href="\/play\/battle" aria-label="Leave the battle"/,
+  );
+  expect(html).toContain("Saved in this tab");
+  expect(show(practicing, false, practiceView)).toContain("Autosaved");
+  expect(html).toMatch(/aria-keyshortcuts="Control\+Enter Meta\+Enter"/);
 });

@@ -1,3 +1,4 @@
+import type { ComponentKind } from "./catalog";
 import type { DesignEdge, DesignNode } from "./design";
 import type { Family } from "./family";
 
@@ -67,6 +68,19 @@ const e = (from: string, to: string, ...routes: string[]): DesignEdge => ({
   routes,
 });
 
+// A requirement covered once its request type is served through one of `through`'s
+// kinds (Q-WD-15); `fast` holds it to the normal day's p99 target too.
+const served = (
+  text: string,
+  request: string,
+  through: ComponentKind[],
+  fast?: true,
+): Family["requirements"][number] => ({
+  text,
+  covers: { rule: "request", request, through, ...(fast && { fast }) },
+});
+const STORES: ComponentKind[] = ["sql_db", "kv_store"];
+
 const rubric = (...criteria: [string, string][]) =>
   criteria.map(([id, criterion]) => ({ id, criterion, weight: 1 }));
 
@@ -75,8 +89,13 @@ export const FAMILIES: readonly Family[] = [
     slug: "url-shortener",
     title: "URL shortener",
     requirements: [
-      "Create a short code for a long URL.",
-      "Redirect a short code to its URL, fast.",
+      served("Create a short code for a long URL.", "create", STORES),
+      served(
+        "Redirect a short code to its URL, fast.",
+        "redirect",
+        ["cdn", "cache", ...STORES],
+        true,
+      ),
     ],
     concepts: ["caching", "replication", "read-heavy workloads"],
     rubric: rubric(
@@ -145,9 +164,15 @@ export const FAMILIES: readonly Family[] = [
     slug: "photo-sharing",
     title: "Photo sharing",
     requirements: [
-      "Upload a photo with its caption.",
-      "View photos, mostly recent and popular ones.",
-      "Load a photo's details: caption, owner and likes.",
+      served("Upload a photo with its caption.", "upload", ["object_storage"]),
+      served("View photos, mostly recent and popular ones.", "view", [
+        "cdn",
+        "object_storage",
+      ]),
+      served("Load a photo's details: caption, owner and likes.", "details", [
+        "cache",
+        ...STORES,
+      ]),
     ],
     concepts: ["CDN", "object storage", "metadata and blobs"],
     rubric: rubric(
@@ -226,8 +251,12 @@ export const FAMILIES: readonly Family[] = [
     slug: "news-feed",
     title: "News feed",
     requirements: [
-      "Post an update to your followers.",
-      "Read your feed: the newest posts from everyone you follow.",
+      served("Post an update to your followers.", "post", STORES),
+      served(
+        "Read your feed: the newest posts from everyone you follow.",
+        "feed",
+        ["cache", ...STORES],
+      ),
     ],
     concepts: ["fan-out on write", "queues", "precomputed timelines"],
     rubric: rubric(
@@ -302,9 +331,20 @@ export const FAMILIES: readonly Family[] = [
     slug: "chat",
     title: "Chat",
     requirements: [
-      "Send a message to a conversation.",
-      "Deliver it to the recipient, even if they're offline.",
-      "Load a conversation's recent history.",
+      served("Send a message to a conversation.", "send", [
+        "stream",
+        "queue",
+        ...STORES,
+      ]),
+      served(
+        "Deliver it to the recipient, even if they're offline.",
+        "send",
+        STORES,
+      ),
+      served("Load a conversation's recent history.", "history", [
+        "cache",
+        ...STORES,
+      ]),
     ],
     concepts: ["streams", "ordering", "write-heavy workloads"],
     rubric: rubric(
@@ -373,9 +413,16 @@ export const FAMILIES: readonly Family[] = [
     slug: "search-autocomplete",
     title: "Search and autocomplete",
     requirements: [
-      "Suggest completions as a user types.",
-      "Search documents by text and filters.",
-      "Index new and changed documents within a minute.",
+      served("Suggest completions as a user types.", "suggest", [
+        "cache",
+        "search_index",
+      ]),
+      served("Search documents by text and filters.", "search", [
+        "search_index",
+      ]),
+      served("Index new and changed documents within a minute.", "index", [
+        "search_index",
+      ]),
     ],
     concepts: ["search indexes", "sharding", "caching"],
     rubric: rubric(
@@ -461,9 +508,13 @@ export const FAMILIES: readonly Family[] = [
     slug: "checkout",
     title: "Checkout",
     requirements: [
-      "Browse products and their prices.",
-      "Place an order, charged exactly once.",
-      "Check an order's status.",
+      served("Browse products and their prices.", "browse", [
+        "cdn",
+        "cache",
+        ...STORES,
+      ]),
+      served("Place an order, charged exactly once.", "order", ["sql_db"]),
+      served("Check an order's status.", "status", ["cache", ...STORES]),
     ],
     concepts: ["transactions", "idempotency", "queues"],
     rubric: rubric(
@@ -541,8 +592,11 @@ export const FAMILIES: readonly Family[] = [
     slug: "metrics-ingestion",
     title: "Metrics ingestion",
     requirements: [
-      "Accept metric points from many services.",
-      "Query recent points for a dashboard.",
+      served("Accept metric points from many services.", "ingest", STORES),
+      served("Query recent points for a dashboard.", "query", [
+        "cache",
+        ...STORES,
+      ]),
     ],
     concepts: ["streams", "batching", "time series"],
     rubric: rubric(
@@ -612,8 +666,13 @@ export const FAMILIES: readonly Family[] = [
     slug: "rate-limiter",
     title: "Rate limiter",
     requirements: [
-      "Allow or refuse each API request against its client's limits, adding very little latency.",
-      "Change a client's limits without a restart.",
+      served(
+        "Allow or refuse each API request against its client's limits, adding very little latency.",
+        "check",
+        ["cache", "kv_store"],
+        true,
+      ),
+      served("Change a client's limits without a restart.", "rules", STORES),
     ],
     concepts: ["counters", "consistency", "latency budgets"],
     rubric: rubric(
@@ -690,9 +749,20 @@ export const CUPS: readonly {
       slug: "cup-concert-tickets",
       title: "Concert ticket sale",
       requirements: [
-        "Show a concert's seat map and prices.",
-        "Hold a seat for a buyer for a few minutes, never for two buyers at once.",
-        "Survive the rush when sales open.",
+        served("Show a concert's seat map and prices.", "seat_map", [
+          "cdn",
+          "cache",
+          ...STORES,
+        ]),
+        served(
+          "Hold a seat for a buyer for a few minutes, never for two buyers at once.",
+          "hold",
+          STORES,
+        ),
+        {
+          text: "Survive the rush when sales open.",
+          covers: { rule: "scenario", scenario: "peak" },
+        },
       ],
       concepts: ["flash traffic", "contention", "queues"],
       rubric: rubric(
@@ -777,8 +847,13 @@ export const CUPS: readonly {
       slug: "cup-live-scores",
       title: "Live sports scores",
       requirements: [
-        "Show every live match's score, updated within seconds.",
-        "Post a score change from the stadium feed.",
+        served(
+          "Show every live match's score, updated within seconds.",
+          "scores",
+          ["cdn", "cache", ...STORES],
+          true,
+        ),
+        served("Post a score change from the stadium feed.", "update", STORES),
       ],
       concepts: ["CDN", "read fan-out", "cache freshness"],
       rubric: rubric(
@@ -855,9 +930,14 @@ export const CUPS: readonly {
       slug: "cup-ride-dispatch",
       title: "Ride-hailing dispatch",
       requirements: [
-        "Drivers report their location every few seconds.",
-        "Riders find the nearest available drivers.",
-        "A ride is assigned to one driver only.",
+        served("Drivers report their location every few seconds.", "location", [
+          "search_index",
+          ...STORES,
+        ]),
+        served("Riders find the nearest available drivers.", "nearby", [
+          "search_index",
+        ]),
+        served("A ride is assigned to one driver only.", "assign", ["sql_db"]),
       ],
       concepts: ["geospatial search", "write-heavy streams", "consistency"],
       rubric: rubric(

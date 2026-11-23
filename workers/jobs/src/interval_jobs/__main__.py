@@ -41,6 +41,7 @@ from interval_jobs.ai.gateway import OverBudget
 from interval_jobs.compose import (
     ai_gateway,
     database_url,
+    event_sink,
     files,
     github_app,
     media_files,
@@ -77,6 +78,7 @@ from interval_jobs.ingest.seeds import SeedError, load_seeds
 from interval_jobs.invites import MAX_COUNT, display, issue_invites
 from interval_jobs.link_check import check_links
 from interval_jobs.link_health import queue_link_checks
+from interval_jobs.lld_practice import relay_practice
 from interval_jobs.match_results import relay
 from interval_jobs.native_push import push_test
 from interval_jobs.path_proposer import propose
@@ -880,6 +882,7 @@ def _consume(max_entries: int | None) -> None:
                 github=github_app(),
                 results=results,
                 push=web_push(),
+                events=event_sink(),
             )
 
             relay_failed: list[BaseException] = []
@@ -894,10 +897,22 @@ def _consume(max_entries: int | None) -> None:
                     relay_failed.append(error)
                     stop.set()
 
+            # ADR-0048: LLD practice progress, from game:practice the same way.
+            def relay_progress() -> None:
+                try:
+                    relay_practice(results, queue, stop)
+                except Exception as error:
+                    log.error("game: practice relay stopped", error=error)
+                    relay_failed.append(error)
+                    stop.set()
+
             relayer = threading.Thread(target=relay_results, name="relay-results")
+            progress = threading.Thread(target=relay_progress, name="relay-practice")
             relayer.start()
+            progress.start()
             run_consumers(queue_consumer(), pipeline.handlers(), stop, HEARTBEAT)
             relayer.join()
+            progress.join()
             if relay_failed:
                 raise SystemExit("consumer stopped: the result relay failed")
     finally:

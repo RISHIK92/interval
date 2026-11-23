@@ -33,6 +33,9 @@ const problem = (slug: string, h: string): LoadedProblem => ({
   title: "A problem",
   difficulty: "easy",
   battleMode: "human",
+  pool: "battle",
+  topic: null,
+  concepts: [],
   interviewerNotes: null,
   statement: "# A problem",
   interface: {
@@ -148,5 +151,48 @@ test("gets a live problem as it was saved", async () => {
     expect(await store.get("no-such-problem")).toBeNull();
     await store.retire([slug]);
     expect(await store.get(slug)).toBeNull();
+  });
+});
+
+// ADR-0048 (Q-WD-28): practice problems are in no battle pool, and only they are listed for
+// practice, with their topic and their live concepts' names; one never moves back.
+test("the practice pool is apart from the battle pools", async () => {
+  await inRollback(async (trx) => {
+    const store = kyselyProblemStore(trx);
+    const battle = `p-${randomUUID().slice(0, 8)}`;
+    const practice = `p-${randomUUID().slice(0, 8)}`;
+    const concept = `c-${randomUUID().slice(0, 8)}`;
+    await trx
+      .insertInto("concept")
+      .values({ slug: concept, name: "Caching", topic: "backend" })
+      .execute();
+    const practiced: LoadedProblem = {
+      ...problem(practice, hash("d")),
+      title: "Practice me",
+      difficulty: "medium",
+      pool: "practice",
+      topic: "systems",
+      concepts: ["no-such-concept", concept],
+    };
+    await store.save(problem(battle, hash("b")));
+    await store.save(practiced);
+    expect(await store.get(practice)).toEqual(practiced);
+    const human = await store.pool("human");
+    expect(human).toContain(battle);
+    expect(human).not.toContain(practice);
+    const listed = await store.practice();
+    expect(listed.map((p) => p.slug)).not.toContain(battle);
+    expect(listed.find((p) => p.slug === practice)).toEqual({
+      slug: practice,
+      title: "Practice me",
+      difficulty: "medium",
+      topic: "systems",
+      concepts: ["Caching"],
+    });
+    // Never back to battles, once its tests could have been probed.
+    await expect(store.save(problem(practice, hash("e")))).rejects.toThrow(
+      /practice/,
+    );
+    expect((await store.get(practice))?.pool).toBe("practice");
   });
 });

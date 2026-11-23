@@ -2,6 +2,9 @@
   "slug": "elevator-system",
   "title": "Elevator system",
   "difficulty": "hard",
+  "pool": "practice",
+  "topic": "systems",
+  "concepts": [],
   "interface": {
     "class": "ElevatorSystem",
     "constructor": {

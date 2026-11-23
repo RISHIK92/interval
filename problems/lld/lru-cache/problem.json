@@ -2,6 +2,9 @@
   "slug": "lru-cache",
   "title": "LRU cache",
   "difficulty": "easy",
+  "pool": "practice",
+  "topic": "systems",
+  "concepts": [],
   "interface": {
     "class": "LRUCache",
     "constructor": {

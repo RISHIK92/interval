@@ -3,32 +3,57 @@
 import {
   addComponent,
   check,
+  COMPONENT_NAMES,
+  componentNames,
+  coverage,
   fitsProblem,
   type ComponentKind,
   configFields,
   connect,
   type Design,
+  type DesignNode,
   type HldProblem,
   hints,
   NOTE_MAX,
   removeNode,
+  type ScenarioResult,
   setRoutes,
   simulate,
+  type SimulationResult,
+  starterDesign,
   updateNode,
 } from "@interval/hld";
 import {
   Background,
+  ConnectionMode,
   type Edge,
   type EdgeChange,
   type Node,
   type NodeChange,
+  Position,
   ReactFlow,
+  type ReactFlowInstance,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useDeferredValue,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Feedback } from "./Feedback";
 import { FIT, FitOnGrow, ZoomControls } from "./FlowControls";
-import { flowTheme, NODE_STYLE, NodeLabel, SELECTED_NODE } from "./flow";
+import { HEADER, Requirements } from "./Frame";
+import {
+  EDIT_FLOW,
+  flowTheme,
+  NODE_STYLE,
+  NodeLabel,
+  nodeRole,
+  SELECTED_NODE,
+} from "./flow";
 import { MatchPanel } from "./MatchPanel";
 import { freeSpot } from "./placement";
 import type { FeedbackView } from "./practice/feedback";
@@ -40,7 +65,18 @@ import { saveDesign } from "./practice/[slug]/actions";
 // rule; the design autosaves about 2 s after the last change.
 
 const SAVE_AFTER_MS = 2_000;
-const label = (kind: string) => kind.replaceAll("_", " ");
+// What the palette's drag carries: the kind of component dropped on the canvas.
+const KIND_MIME = "application/x-interval-hld-kind";
+// A dropped card is centred on the pointer (NODE_STYLE's width, about its height).
+const DROP_OFFSET = { x: 62, y: 36 };
+const capital = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+// A request type or a setting's option as a word: "multi_zone" → "Multi zone".
+const words = (s: string) => capital(s.replaceAll("_", " "));
+const OPTION_NAMES: Record<string, string> = {
+  none: "None",
+  standby: "Standby, same zone",
+  multi_zone: "Standby, other zone",
+};
 
 type Selection = { node: string } | { from: string; to: string } | null;
 // P6-W42: practice (the AI feedback on request) or a match (its clock and submission).
@@ -54,11 +90,14 @@ export function Canvas({
   initial,
   version: loadedVersion,
   mode,
+  header,
 }: {
   problem: HldProblem;
   initial: Design;
   version: number;
   mode: CanvasMode;
+  // The page's header row; practice adds its Start over to it.
+  header: ReactNode;
 }) {
   const [design, setDesign] = useState(initial);
   const [selected, setSelected] = useState<Selection>(null);
@@ -67,6 +106,7 @@ export function Canvas({
     Record<string, { width: number; height: number }>
   >({});
   const [save, setSave] = useState<SaveState>("saved");
+  const flow = useRef<ReactFlowInstance | null>(null);
   const version = useRef(loadedVersion);
   const savedJson = useRef(JSON.stringify(initial));
   // Once another tab has saved over us, nothing more is saved from here.
@@ -92,6 +132,22 @@ export function Canvas({
         ? simulate(problem, previewed)
         : null,
     [problem, previewed],
+  );
+  // Q-WD-15: what the design covers so far; nothing while it can't be simulated.
+  const covered = useMemo(
+    () =>
+      result === null
+        ? {
+            covered: 0,
+            total: problem.requirements.length,
+            items: problem.requirements.map((text) => ({
+              text,
+              covered: false,
+              by: null,
+            })),
+          }
+        : coverage(problem, previewed, result),
+    [problem, previewed, result],
   );
   const advice = useMemo(
     () => (result === null ? [] : hints(problem, result)),
@@ -158,6 +214,14 @@ export function Canvas({
     };
   }, [design, issues, problem.slug, settled, mode]);
 
+  const retry = () => {
+    refusedJson.current = null;
+    setSettled((n) => n + 1);
+  };
+
+  const names = useMemo(() => componentNames(design.nodes), [design.nodes]);
+  const nameOf = (id: string) => names.get(id) ?? id;
+  const allTypes = problem.traffic.requests.length;
   const edgeId = (e: { from: string; to: string }) => `${e.from}->${e.to}`;
   const nodes: Node[] = design.nodes.map((n) => {
     const size = sizes[n.id];
@@ -166,8 +230,15 @@ export function Canvas({
     return {
       id: n.id,
       position: n.position ?? { x: 0, y: 0 },
-      data: { label: <NodeLabel id={n.id} kind={n.kind} /> },
+      data: {
+        label: (
+          <NodeLabel kind={n.kind} name={nameOf(n.id)} role={nodeRole(n)} />
+        ),
+      },
+      ariaLabel: `${nameOf(n.id)}, ${nodeRole(n)}`,
       style: NODE_STYLE,
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
       deletable: n.kind !== "client",
       selected: chosen,
       ...(chosen ? { className: SELECTED_NODE } : {}),
@@ -178,7 +249,13 @@ export function Canvas({
     id: edgeId(e),
     source: e.from,
     target: e.to,
-    label: e.routes.join(", "),
+    type: "smoothstep",
+    interactionWidth: 24,
+    ariaLabel: `${nameOf(e.from)} to ${nameOf(e.to)}`,
+    // Every request type is the default; only a narrowed connection says what it carries.
+    ...(e.routes.length < allTypes
+      ? { label: e.routes.map((t) => t.replaceAll("_", " ")).join(", ") }
+      : {}),
     selected:
       selected !== null &&
       "from" in selected &&
@@ -213,9 +290,28 @@ export function Canvas({
     );
   };
 
+  // A drag between handles and the Selected panel's "Connect to…" both land here.
+  const link = (from: string, to: string) => {
+    setDesign((d) => connect(d, problem, from, to));
+  };
+  const startOver = () => {
+    if (!window.confirm("Start over? Your design is cleared.")) return;
+    setDesign(starterDesign());
+    setSelected(null);
+  };
+
   const kinds = problem.allowedComponents.filter(
     (k): k is Exclude<ComponentKind, "client"> => k !== "client",
   );
+  const add = (
+    kind: Exclude<ComponentKind, "client">,
+    position: { x: number; y: number },
+  ) => {
+    const d = addComponent(design, kind, position);
+    setDesign(d);
+    const added = d.nodes.at(-1);
+    if (added !== undefined) setSelected({ node: added.id });
+  };
   const node =
     selected !== null && "node" in selected
       ? design.nodes.find((n) => n.id === selected.node)
@@ -226,49 +322,96 @@ export function Canvas({
           (e) => e.from === selected.from && e.to === selected.to,
         )
       : undefined;
+  const risk =
+    node === undefined || result === null
+      ? NO_RISK
+      : risksOf(problem, result, node);
 
   // The parts go into the page's frame (Frame.tsx): the canvas in the middle, the
   // selection and the submission on the right, the simulation under the requirements.
   return (
     <>
-      <section className="flex flex-col gap-2 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:min-w-0 lg:gap-3 lg:p-5">
+      <header className={HEADER}>
+        {header}
+        {mode.kind === "practice" ? (
+          <button
+            type="button"
+            onClick={startOver}
+            className="self-start rounded-full border-[1.5px] border-hairline-strong px-4 py-1.5 text-sm font-semibold text-ink hover:bg-well focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-select lg:h-[38px] lg:self-auto"
+          >
+            Start over
+          </button>
+        ) : null}
+      </header>
+      <Requirements coverage={covered} />
+      <section className="flex flex-col gap-2 lg:col-start-2 lg:row-span-2 lg:row-start-2 lg:min-h-0 lg:min-w-0 lg:gap-3 lg:overflow-y-auto lg:p-5">
         <div
           className="flex flex-wrap gap-2 lg:order-2 lg:items-center lg:gap-1.5"
           role="toolbar"
           aria-label="Add a component"
         >
           <span className="mr-1 hidden text-[13px] text-ink-muted lg:inline">
-            Add
+            Drag in
           </span>
           {kinds.map((k) => (
             <button
               key={k}
               type="button"
-              className="rounded-full bg-well px-3 py-1.5 text-sm font-medium hover:bg-track lg:h-8 lg:rounded-full lg:border-0 lg:bg-well lg:px-3 lg:py-0 lg:text-[13px] lg:font-medium lg:hover:bg-track"
+              draggable
+              aria-label={`Add ${COMPONENT_NAMES[k]}`}
+              title="Click to add, or drag onto the canvas"
+              className="cursor-grab rounded-full bg-well px-3 py-1.5 text-sm font-medium hover:bg-track focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-select active:cursor-grabbing lg:h-8 lg:px-3 lg:py-0 lg:text-[13px]"
+              onDragStart={(e) => {
+                e.dataTransfer.setData(KIND_MIME, k);
+                e.dataTransfer.effectAllowed = "copy";
+              }}
               onClick={() => {
-                const d = addComponent(design, k, freeSpot(design.nodes));
-                setDesign(d);
-                const added = d.nodes.at(-1);
-                if (added !== undefined) setSelected({ node: added.id });
+                add(k, freeSpot(design.nodes));
               }}
             >
               <span className="lg:hidden">+ </span>
-              {label(k)}
+              {COMPONENT_NAMES[k]}
             </button>
           ))}
         </div>
         <div
-          className="h-[60vh] min-h-96 overflow-hidden rounded-[20px] border border-hairline lg:order-1 lg:min-h-[400px] lg:overflow-hidden lg:rounded-[20px] lg:border-hairline"
+          className={`relative h-[60vh] min-h-96 shrink-0 overflow-hidden rounded-[20px] border border-hairline lg:order-1 lg:h-auto lg:min-h-[420px] lg:flex-1 ${EDIT_FLOW}`}
           style={flowTheme}
+          onDragOver={(e) => {
+            if (!e.dataTransfer.types.includes(KIND_MIME)) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "copy";
+          }}
+          onDrop={(e) => {
+            const kind = kinds.find(
+              (k) => k === e.dataTransfer.getData(KIND_MIME),
+            );
+            if (kind === undefined || flow.current === null) return;
+            e.preventDefault();
+            const at = flow.current.screenToFlowPosition({
+              x: e.clientX,
+              y: e.clientY,
+            });
+            add(kind, {
+              x: Math.round(at.x - DROP_OFFSET.x),
+              y: Math.round(at.y - DROP_OFFSET.y),
+            });
+          }}
         >
           <ReactFlow
             nodes={nodes}
             edges={edges}
+            onInit={(instance) => {
+              flow.current = instance;
+            }}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={(c) => {
-              setDesign((d) => connect(d, problem, c.source, c.target));
+              link(c.source, c.target);
             }}
+            connectionMode={ConnectionMode.Loose}
+            connectionLineStyle={{ stroke: "var(--select)", strokeWidth: 3 }}
+            deleteKeyCode={["Backspace", "Delete"]}
             onNodeClick={(_, n) => {
               setSelected({ node: n.id });
             }}
@@ -285,6 +428,14 @@ export function Canvas({
             <ZoomControls />
             <FitOnGrow count={design.nodes.length} />
           </ReactFlow>
+          {design.edges.length === 0 ? (
+            <p className="pointer-events-none absolute top-3 left-3 z-10 max-w-[calc(100%-9rem)] rounded-xl border border-hairline bg-card px-3 py-2 text-[13px] leading-snug text-ink-muted">
+              {design.nodes.length <= 1
+                ? "Add a component from the list below: click it, or drag it onto the canvas."
+                : "Drag from a component's edge dot to another component to connect them."}
+            </p>
+          ) : null}
+          <SavePill save={save} blocked={issues.length > 0} onRetry={retry} />
         </div>
         {mode.kind === "match" ? (
           <div
@@ -303,162 +454,236 @@ export function Canvas({
             </span>
           </div>
         ) : null}
-        <p className="text-sm text-ink-muted lg:order-4" role="status">
-          {
-            {
-              saved: "Saved.",
-              waiting: "Changes not saved yet…",
-              saving: "Saving…",
-              stale:
-                "This design was saved in another tab. Reload to carry on from there.",
-              closed:
-                "Submitted, or the time is up: changes here are no longer saved.",
-              failed:
-                "Couldn't save. Your changes are kept here; the next change tries again.",
-            }[save]
-          }
-          {issues.length > 0 ? " Fix the problems below to save." : ""}
-        </p>
+        {save === "stale" || save === "closed" ? (
+          <p className="text-sm text-ink-muted lg:order-4">
+            {save === "stale"
+              ? "This design was saved in another tab. Reload to carry on from there."
+              : "Submitted, or the time is up: changes here are no longer saved."}
+          </p>
+        ) : null}
         {issues.length > 0 ? (
-          <ul className="list-disc pl-5 text-sm lg:order-5 lg:text-wrong">
-            {issues.map((i) => (
-              <li key={i}>{i}</li>
-            ))}
-          </ul>
+          <div className="text-sm lg:order-5">
+            <p className="font-semibold">Fix these to save the design:</p>
+            <ul className="list-disc pl-5 lg:text-wrong">
+              {issues.map((i) => (
+                <li key={i}>{i}</li>
+              ))}
+            </ul>
+          </div>
         ) : null}
       </section>
 
-      <aside className="flex flex-col gap-4 lg:col-start-3 lg:row-span-2 lg:row-start-2 lg:min-w-0 lg:border-l lg:border-hairline lg:p-5">
-        {node === undefined && edge === undefined ? (
-          <p className="hidden text-[13px] text-ink-muted lg:block">
-            Select a component or a connection to set it up.
-          </p>
-        ) : null}
-        {node !== undefined ? (
-          <section className="flex flex-col gap-2 rounded-3xl border border-hairline bg-card p-5 lg:gap-0 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0">
-            <p className="hidden text-[13px] text-ink-muted lg:block">
-              Selected
-            </p>
-            <h2 className="text-title lg:mb-2 lg:text-[19px]">
-              {node.id} · {label(node.kind)}
-            </h2>
-            {configFields(node.kind).map((f) => {
-              const value = (node.config as Record<string, number | string>)[
-                f.name
-              ];
-              return (
-                <label
-                  key={f.name}
-                  className="flex flex-col gap-1 text-sm lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:border-b lg:border-hairline lg:py-2 lg:text-ink-muted"
-                >
-                  {f.label}
-                  {f.type === "int" ? (
-                    <input
-                      type="number"
-                      min={f.min}
-                      max={f.max}
-                      value={value}
-                      className="rounded-lg border-[1.5px] border-hairline-strong bg-page px-2 py-1 lg:w-24 lg:rounded-lg lg:border-[1.5px] lg:bg-page lg:text-right lg:font-semibold lg:text-ink lg:border-hairline-strong"
-                      onChange={(e) => {
-                        const n = Math.round(Number(e.target.value));
-                        if (!Number.isFinite(n)) return;
-                        setDesign((d) =>
-                          updateNode(d, node.id, {
-                            config: {
-                              [f.name]: Math.min(f.max, Math.max(f.min, n)),
-                            },
-                          }),
-                        );
-                      }}
-                    />
-                  ) : (
-                    <select
-                      value={value}
-                      className="rounded-lg border-[1.5px] border-hairline-strong bg-page px-2 py-1 lg:rounded-lg lg:border-[1.5px] lg:bg-page lg:font-semibold lg:text-ink lg:border-hairline-strong"
-                      onChange={(e) => {
-                        setDesign((d) =>
-                          updateNode(d, node.id, {
-                            config: { [f.name]: e.target.value },
-                          }),
-                        );
-                      }}
+      <aside className="flex flex-col gap-4 lg:col-start-3 lg:row-span-2 lg:row-start-2 lg:min-h-0 lg:min-w-0 lg:gap-0 lg:border-l lg:border-hairline">
+        {/* The selection scrolls; the feedback or the submission stays at the foot. */}
+        <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:p-5 lg:[scrollbar-gutter:stable]">
+          {node === undefined && edge === undefined ? (
+            <div className="hidden flex-col items-start gap-1.5 rounded-[14px] border-[1.5px] border-dashed border-hairline-strong p-4 lg:flex">
+              <p className="text-[13px] text-ink-muted">Selected</p>
+              <p className="text-[15px] font-semibold">Nothing yet</p>
+              <p className="text-[13px] leading-snug text-ink-muted">
+                Pick a component or a connection on the canvas to set it up and
+                say why you chose it.
+              </p>
+            </div>
+          ) : null}
+          {node !== undefined ? (
+            <section
+              aria-label="Selected component"
+              className="flex flex-col gap-2 rounded-3xl border border-hairline bg-card p-5 lg:gap-0 lg:rounded-[14px] lg:border-[1.5px] lg:bg-transparent lg:p-4"
+            >
+              <p className="hidden text-[13px] text-ink-muted lg:block">
+                Selected
+              </p>
+              <h2 className="text-title lg:mb-2 lg:text-[19px] lg:leading-snug lg:font-bold lg:tracking-[-0.01em]">
+                {nameOf(node.id)} · {nodeRole(node)}
+              </h2>
+              {configFields(node.kind).map((f) => {
+                const value = (node.config as Record<string, number | string>)[
+                  f.name
+                ];
+                const risky = risk.fields.has(f.name);
+                return (
+                  <label
+                    key={f.name}
+                    className="flex flex-col gap-1 text-sm lg:min-h-11 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:border-b lg:border-hairline lg:py-1.5 lg:text-ink-soft"
+                  >
+                    {f.label}
+                    <span
+                      className={`flex items-center gap-1.5 ${risky ? "text-(--system-design-line)" : ""}`}
                     >
-                      {f.options.map((o) => (
-                        <option key={o} value={o}>
-                          {label(o)}
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </label>
-              );
-            })}
-            <label className="flex flex-col gap-1 text-sm lg:mt-3 lg:gap-1.5 lg:font-semibold">
-              Why this choice
-              <textarea
-                value={node.note}
-                maxLength={NOTE_MAX}
-                rows={3}
-                className="rounded-[14px] border-[1.5px] border-hairline-strong bg-page px-3 py-2 lg:rounded-[14px] lg:border-[1.5px] lg:bg-page lg:px-3 lg:py-2.5 lg:font-normal lg:leading-normal lg:border-hairline-strong"
-                onChange={(e) => {
-                  setDesign((d) =>
-                    updateNode(d, node.id, { note: e.target.value }),
-                  );
-                }}
-              />
-              <span className="text-xs text-ink-muted lg:font-normal">
-                {node.note.length}/{NOTE_MAX}
-              </span>
-            </label>
-          </section>
-        ) : null}
-
-        {edge !== undefined ? (
-          <fieldset className="flex flex-col gap-1 rounded-3xl border border-hairline bg-card p-5 text-sm lg:gap-0 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0">
-            <legend className="px-1 lg:mb-2 lg:px-0 lg:text-[19px] lg:font-bold lg:tracking-[-0.01em]">
-              {edge.from} → {edge.to} carries
-            </legend>
-            {problem.traffic.requests.map((r) => (
-              <label
-                key={r.type}
-                className="flex items-center gap-2 lg:border-b lg:border-hairline lg:py-2.5"
-              >
-                <input
-                  type="checkbox"
-                  checked={edge.routes.includes(r.type)}
-                  className="lg:size-4 lg:accent-(--select)"
+                      {risky ? <WarnIcon label="At risk" /> : null}
+                      {f.type === "int" ? (
+                        <input
+                          type="number"
+                          min={f.min}
+                          max={f.max}
+                          value={value}
+                          aria-invalid={risky || undefined}
+                          className={`${FIELD} w-full lg:w-20 lg:text-right`}
+                          onChange={(e) => {
+                            const n = Math.round(Number(e.target.value));
+                            if (!Number.isFinite(n)) return;
+                            setDesign((d) =>
+                              updateNode(d, node.id, {
+                                config: {
+                                  [f.name]: Math.min(f.max, Math.max(f.min, n)),
+                                },
+                              }),
+                            );
+                          }}
+                        />
+                      ) : (
+                        <select
+                          value={value}
+                          aria-invalid={risky || undefined}
+                          className={`${FIELD} w-full lg:w-34`}
+                          onChange={(e) => {
+                            setDesign((d) =>
+                              updateNode(d, node.id, {
+                                config: { [f.name]: e.target.value },
+                              }),
+                            );
+                          }}
+                        >
+                          {f.options.map((o) => (
+                            <option key={o} value={o}>
+                              {OPTION_NAMES[o] ?? words(o)}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+              {risk.said.length > 0 ? (
+                <ul className="mt-3 flex flex-col gap-1 rounded-xl bg-(--system-design-tint) px-3 py-2.5 text-[13px] leading-snug font-medium text-(--system-design-line)">
+                  {risk.said.map((r) => (
+                    <li key={r}>{r}</li>
+                  ))}
+                </ul>
+              ) : null}
+              <label className="mt-3 flex flex-col gap-1.5 text-sm">
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="font-semibold">Why this choice</span>
+                  <span className="text-xs text-ink-muted tabular-nums">
+                    {node.note.length}/{NOTE_MAX}
+                  </span>
+                </span>
+                <textarea
+                  value={node.note}
+                  maxLength={NOTE_MAX}
+                  rows={3}
+                  placeholder="What it's for and the trade-off you made"
+                  className="resize-none rounded-[14px] border-[1.5px] border-hairline-strong bg-page px-3 py-2.5 leading-normal placeholder:text-ink-muted focus-visible:border-select focus-visible:outline-none"
                   onChange={(e) => {
-                    const routes = e.target.checked
-                      ? [...edge.routes, r.type]
-                      : edge.routes.filter((t) => t !== r.type);
-                    setDesign((d) => setRoutes(d, edge.from, edge.to, routes));
-                    if (routes.length === 0) setSelected(null);
+                    setDesign((d) =>
+                      updateNode(d, node.id, { note: e.target.value }),
+                    );
                   }}
                 />
-                {r.type} ({r.kind}, {r.rps.toLocaleString("en-US")}/s)
               </label>
-            ))}
-          </fieldset>
-        ) : null}
+              <ConnectTo
+                options={design.nodes
+                  .filter(
+                    (n) =>
+                      n.id !== node.id &&
+                      !design.edges.some(
+                        (e) => e.from === node.id && e.to === n.id,
+                      ),
+                  )
+                  .map((n) => ({ id: n.id, name: nameOf(n.id) }))}
+                onPick={(to) => {
+                  link(node.id, to);
+                }}
+              />
+              {node.kind === "client" ? null : (
+                <RemoveButton
+                  label="Remove component"
+                  onClick={() => {
+                    setDesign((d) => removeNode(d, node.id));
+                    setSelected(null);
+                  }}
+                />
+              )}
+            </section>
+          ) : null}
 
-        {mode.kind === "practice" ? (
-          <Feedback
-            ask={{ slug: problem.slug, design, ready: issues.length === 0 }}
-            initial={mode.feedback}
-          />
-        ) : (
-          <MatchPanel
-            matchId={mode.matchId}
-            deadline={mode.deadline}
-            submitted={mode.submitted}
-            design={design}
-            ready={issues.length === 0}
-          />
-        )}
+          {edge !== undefined ? (
+            <fieldset className="flex flex-col gap-1 rounded-3xl border border-hairline bg-card p-5 text-sm lg:gap-0 lg:rounded-[14px] lg:border-[1.5px] lg:bg-transparent lg:p-4">
+              <p className="hidden text-[13px] text-ink-muted lg:block">
+                Selected connection
+              </p>
+              <legend className="sr-only">
+                {nameOf(edge.from)} to {nameOf(edge.to)}: what it carries
+              </legend>
+              <h2
+                aria-hidden="true"
+                className="px-1 lg:mb-2 lg:px-0 lg:text-[19px] lg:leading-snug lg:font-bold lg:tracking-[-0.01em]"
+              >
+                {nameOf(edge.from)} → {nameOf(edge.to)}
+              </h2>
+              <p className="text-[13px] text-ink-muted lg:mb-1">Carries</p>
+              {problem.traffic.requests.map((r) => (
+                <label
+                  key={r.type}
+                  className="flex items-center justify-between gap-2 py-1 lg:min-h-11 lg:border-b lg:border-hairline lg:py-1.5"
+                >
+                  <span className="flex flex-col">
+                    <span className="font-medium">
+                      {words(r.type)} requests
+                    </span>
+                    <span className="text-xs text-ink-muted">
+                      {r.kind === "write" ? "Writes" : "Reads"},{" "}
+                      {r.rps.toLocaleString("en-US")} a second
+                    </span>
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={edge.routes.includes(r.type)}
+                    className="size-4 accent-(--select)"
+                    onChange={(e) => {
+                      const routes = e.target.checked
+                        ? [...edge.routes, r.type]
+                        : edge.routes.filter((t) => t !== r.type);
+                      setDesign((d) =>
+                        setRoutes(d, edge.from, edge.to, routes),
+                      );
+                      if (routes.length === 0) setSelected(null);
+                    }}
+                  />
+                </label>
+              ))}
+              <RemoveButton
+                label="Remove connection"
+                onClick={() => {
+                  setDesign((d) => setRoutes(d, edge.from, edge.to, []));
+                  setSelected(null);
+                }}
+              />
+            </fieldset>
+          ) : null}
+        </div>
+        <div className="flex flex-col lg:max-h-[60%] lg:shrink-0 lg:overflow-y-auto lg:border-t lg:border-hairline lg:px-5 lg:pb-5">
+          {mode.kind === "practice" ? (
+            <Feedback
+              ask={{ slug: problem.slug, design, ready: issues.length === 0 }}
+              initial={mode.feedback}
+            />
+          ) : (
+            <MatchPanel
+              matchId={mode.matchId}
+              deadline={mode.deadline}
+              submitted={mode.submitted}
+              design={design}
+              ready={issues.length === 0}
+            />
+          )}
+        </div>
       </aside>
 
       <section
-        className="flex flex-col gap-2 rounded-3xl border border-hairline bg-card p-5 lg:col-start-1 lg:row-start-3 lg:gap-1 lg:rounded-none lg:border-0 lg:bg-transparent lg:border-r lg:border-hairline lg:px-5 lg:pt-[18px] lg:pb-5"
+        className="flex flex-col gap-2 rounded-3xl border border-hairline bg-card p-5 lg:col-start-1 lg:row-start-3 lg:min-h-0 lg:gap-1 lg:overflow-y-auto lg:rounded-none lg:border-0 lg:bg-transparent lg:border-r lg:border-hairline lg:px-5 lg:pt-[18px] lg:pb-5"
         aria-live="polite"
       >
         <h2 className="text-title lg:mb-1 lg:text-[15px] lg:font-semibold lg:tracking-normal">
@@ -492,31 +717,40 @@ export function Canvas({
               of ${problem.budgetPerMonth.toLocaleString("en-US")}
             </p>
             <ul className="flex flex-col gap-1 text-sm lg:gap-0">
-              {result.scenarios.map((s) => (
-                <li key={s.id} className={SCENARIO_ROW}>
-                  <span>
-                    <span className="lg:hidden">
-                      {s.targetsMet ? "✓" : "✗"}{" "}
+              {result.scenarios.map((s) => {
+                const state = s.targetsMet
+                  ? "passed"
+                  : s.score > 0
+                    ? "partly"
+                    : "failed";
+                const target = problem.scenarios.find(
+                  (x) => x.id === s.id,
+                )?.targets;
+                return (
+                  <li
+                    key={s.id}
+                    className={SCENARIO_ROW}
+                    title={scenarioDetail(s, target)}
+                  >
+                    <span className="min-w-0">
+                      <span className="lg:hidden">
+                        {s.targetsMet ? "✓" : "✗"}{" "}
+                      </span>
+                      {s.name}
+                      <span className="sr-only">
+                        . {scenarioDetail(s, target)}
+                      </span>
+                      <span
+                        aria-hidden="true"
+                        className="block text-xs text-ink-muted"
+                      >
+                        {scenarioLine(s, target)}
+                      </span>
                     </span>
-                    {s.name}
-                    <span className="lg:hidden">: </span>
-                    <span className="lg:block lg:text-xs lg:text-ink-muted">
-                      {Math.round(s.score * 100)}% · p99{" "}
-                      {s.p99Ms === null ? "unbounded" : `${String(s.p99Ms)} ms`}{" "}
-                      · {(s.availability * 100).toFixed(2)}% served
-                    </span>
-                  </span>
-                  <ScenarioIcon
-                    state={
-                      s.targetsMet
-                        ? "passed"
-                        : s.score > 0
-                          ? "partly"
-                          : "failed"
-                    }
-                  />
-                </li>
-              ))}
+                    <ScenarioIcon state={state} />
+                  </li>
+                );
+              })}
             </ul>
             {advice.length > 0 ? (
               <>
@@ -539,6 +773,234 @@ export function Canvas({
         )}
       </section>
     </>
+  );
+}
+
+const FIELD =
+  "h-9 rounded-[10px] border-[1.5px] border-hairline-strong bg-page px-2.5 font-semibold text-ink focus-visible:border-select focus-visible:outline-none aria-invalid:border-(--system-design-line)";
+
+// "98%", "99.95%", "100%": whole percents, but the last nines when they matter.
+function percent(share: number): string {
+  const x = share * 100;
+  return `${String(Number(x.toFixed(x >= 99 ? 2 : 0)))}%`;
+}
+
+type Targets = { p99Ms: number; availability: number } | undefined;
+
+// The scenario in one plain line: how much it serves, how fast, against its target.
+export function scenarioLine(s: ScenarioResult, target: Targets): string {
+  if (s.availability === 0) return "Serves nothing yet";
+  const p99 =
+    s.p99Ms === null
+      ? "requests back up"
+      : `p99 ${String(Math.round(s.p99Ms))} ms`;
+  return `Serves ${percent(s.availability)} · ${p99}${
+    target === undefined ? "" : ` (target ${String(target.p99Ms)} ms)`
+  }`;
+}
+
+// The full numbers, for the row's tooltip and screen readers.
+function scenarioDetail(s: ScenarioResult, target: Targets): string {
+  const p99 =
+    s.p99Ms === null ? "unbounded" : `${String(Math.round(s.p99Ms))} ms`;
+  return [
+    `Score ${String(Math.round(s.score * 100))}% of its weight`,
+    `${(s.availability * 100).toFixed(2)}% served${target === undefined ? "" : ` (target ${(target.availability * 100).toFixed(2)}%)`}`,
+    `p99 ${p99}${target === undefined ? "" : ` (target ${String(target.p99Ms)} ms)`}`,
+  ].join(" · ");
+}
+
+type Risk = { fields: ReadonlySet<string>; said: string[] };
+const NO_RISK: Risk = { fields: new Set(), said: [] };
+
+// The hints' rules for the one selected component (hints.ts): where it goes down with
+// nothing to take over, or can't keep up, and which of its settings that points at.
+export function risksOf(
+  problem: HldProblem,
+  result: SimulationResult,
+  node: DesignNode,
+): Risk {
+  const config = node.config as Record<string, number | string>;
+  const fields = new Set<string>();
+  const said: string[] = [];
+  for (const s of result.scenarios) {
+    const at = s.nodes.find((n) => n.id === node.id);
+    if (at === undefined) continue;
+    const scope = problem.scenarios.find((x) => x.id === s.id)?.failure?.scope;
+    if (!at.up) {
+      said.push(`Goes down in "${s.name}" with nothing to take over.`);
+      if ("failover" in config && config.failover !== "multi_zone")
+        fields.add("failover");
+      if (scope === "zone" && config.zones === 1) fields.add("zones");
+      if (scope === "region" && config.regions === 1) fields.add("regions");
+      if (scope === "node" && config.nodes === 1) fields.add("nodes");
+    } else if (at.utilization !== null && at.utilization >= 1) {
+      said.push(`Can't keep up in "${s.name}": give it more capacity.`);
+      for (const f of ["nodes", "readReplicas", "partitions", "shards"])
+        if (f in config) fields.add(f);
+    } else if (at.utilization !== null && at.utilization > 0.8)
+      said.push(`Runs hot in "${s.name}": past 80% busy, waits grow fast.`);
+  }
+  return { fields, said: [...new Set(said)].slice(0, 3) };
+}
+
+// The design's save state, as a small pill in the canvas's corner.
+function SavePill({
+  save,
+  blocked,
+  onRetry,
+}: {
+  save: SaveState;
+  blocked: boolean;
+  onRetry: () => void;
+}) {
+  const shown =
+    blocked && save !== "saved" && save !== "stale" && save !== "closed"
+      ? "blocked"
+      : save;
+  const text = {
+    saved: "Saved",
+    waiting: "Saving…",
+    saving: "Saving…",
+    blocked: "Not saved",
+    failed: "Not saved",
+    stale: "Saved in another tab",
+    closed: "No longer saving",
+  }[shown];
+  const why = {
+    saved: "Your design is saved.",
+    waiting: "Your changes are saved a moment after you stop editing.",
+    saving: "Saving your changes.",
+    blocked:
+      "The design can't be saved until the problems under the canvas are fixed.",
+    failed: "Couldn't save. Your changes are kept here.",
+    stale:
+      "This design was saved in another tab. Reload to carry on from there.",
+    closed: "Submitted, or the time is up: changes here are no longer saved.",
+  }[shown];
+  const tone =
+    shown === "saved"
+      ? "text-go-text"
+      : shown === "failed" || shown === "blocked" || shown === "stale"
+        ? "text-wrong"
+        : "text-ink-muted";
+  return (
+    <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+      <p
+        role="status"
+        title={why}
+        className={`flex h-7 items-center gap-1 rounded-full border border-hairline bg-card px-2.5 text-xs font-semibold ${tone}`}
+      >
+        {shown === "saved" ? (
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m5 12.5 4.5 4.5L19 7.5" />
+          </svg>
+        ) : null}
+        {text}
+        <span className="sr-only">. {why}</span>
+      </p>
+      {shown === "failed" ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="h-7 rounded-full bg-ink px-3 text-xs font-semibold text-page focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-select"
+        >
+          Retry
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+// The keyboard's way to draw a connection: pick where the selected component sends to.
+function ConnectTo({
+  options,
+  onPick,
+}: {
+  options: { id: string; name: string }[];
+  onPick: (to: string) => void;
+}) {
+  if (options.length === 0) return null;
+  return (
+    <label className="mt-3 flex flex-col gap-1.5 text-sm">
+      <span className="font-semibold">Connect to…</span>
+      <select
+        value=""
+        className={`${FIELD} w-full`}
+        onChange={(e) => {
+          if (e.target.value !== "") onPick(e.target.value);
+        }}
+      >
+        <option value="">Choose a component</option>
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function RemoveButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Or select it on the canvas and press Delete"
+      className="mt-3 flex items-center gap-1.5 self-start rounded-lg px-1 py-1 text-[13px] font-semibold text-wrong hover:underline focus-visible:outline-2 focus-visible:outline-select"
+    >
+      <svg
+        width="15"
+        height="15"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" />
+      </svg>
+      {label}
+    </button>
+  );
+}
+
+function WarnIcon({ label }: { label: string }) {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      role="img"
+      aria-label={label}
+      className="shrink-0"
+    >
+      <path d="M12 3 2 20h20zM12 9v5M12 17h.01" />
+    </svg>
   );
 }
 

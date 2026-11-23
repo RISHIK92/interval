@@ -120,6 +120,29 @@ class OcrPage(_Message):
     page_no: Annotated[int, Field(ge=1)]
 
 
+class PracticeJudged(_Message):
+    """Keep an LLD practice player's best result from one judged Submit, once per
+    match and sequence number (ADR-0048, LOAD-5): per-layer counts, never code.
+    The worker's relay queues this from the game server's game:practice list."""
+
+    concurrency_passed: Annotated[int, Field(ge=0)]
+    concurrency_total: Annotated[int, Field(ge=0)]
+    extension_passed: Annotated[int, Field(ge=0)]
+    extension_revealed: bool
+    extension_total: Annotated[int, Field(ge=0)]
+    hidden_passed: Annotated[int, Field(ge=0)]
+    hidden_total: Annotated[int, Field(ge=0)]
+    judged_at: Annotated[str, Field(min_length=1)]
+    language: Annotated[str, Field(min_length=1)]
+    match_id: Annotated[str, Field(min_length=36)]
+    played_as: Annotated[str, Field(min_length=1)]
+    points: Annotated[int, Field(ge=0)]
+    problem_slug: Annotated[str, Field(min_length=1)]
+    seq: Annotated[int, Field(ge=1)]
+    visible_passed: Annotated[int, Field(ge=0)]
+    visible_total: Annotated[int, Field(ge=0)]
+
+
 class ProjectNote(_Message):
     """Write a user's line on why an item matters to their project, once per
     repository set (§5B, AI-3, OPS-4, P2-W12-S05)."""
@@ -194,6 +217,7 @@ type MessageName = Literal[
     "judge_hld",
     "match_finished",
     "ocr_page",
+    "practice_judged",
     "project_note",
     "rate_hld_match",
     "recompute_feed",
@@ -218,6 +242,7 @@ MESSAGES: dict[MessageName, type[_Message]] = {
     "judge_hld": JudgeHld,
     "match_finished": MatchFinished,
     "ocr_page": OcrPage,
+    "practice_judged": PracticeJudged,
     "project_note": ProjectNote,
     "rate_hld_match": RateHldMatch,
     "recompute_feed": RecomputeFeed,

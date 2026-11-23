@@ -42,7 +42,7 @@ test("on phones, the lobby reads title and links, mode, casual, then ranked", as
     at('href="/hld/practice"'),
     at('href="/hld/tournaments"'),
     at('name="battleMode"'),
-    at("Find an opponent"),
+    at("Find a match"),
     at('aria-label="Ranked window"'),
   ];
   expect(order).toEqual([...order].sort((a, b) => a - b));

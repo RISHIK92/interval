@@ -7,9 +7,12 @@ import type {
   BattleWindows,
   BattleMode,
   FileStore,
+  LoadedProblem,
   MatchHandoff,
   Matches,
+  PracticeSessions,
   ProblemStore,
+  RateLimits,
 } from "./ports";
 
 // P5-W31-S02b (§6.5, Q-P5-15; LLDQ-4, ADR-0033): an LLD battle for the game server. The
@@ -33,13 +36,15 @@ const PrivateLayers = z.object({
   ),
 });
 
+type BattleDeps = {
+  store: ProblemStore;
+  files: FileStore;
+  matches: Pick<Matches, "createBattle">;
+  handoff: MatchHandoff;
+};
+
 export async function startBattle(
-  deps: {
-    store: ProblemStore;
-    files: FileStore;
-    matches: Pick<Matches, "createBattle">;
-    handoff: MatchHandoff;
-  },
+  deps: BattleDeps,
   serverId: number,
   slug: string,
   players: string[],
@@ -55,6 +60,22 @@ export async function startBattle(
     throw new Error("a battle needs 1 to 4 distinct players");
   const problem = await deps.store.get(slug);
   if (problem === null) throw new Error(`no such problem: ${slug}`);
+  // ADR-0048: a practice problem's tests may have been probed; it's never a battle's.
+  if (problem.pool === "practice")
+    throw new Error(`${slug}: a practice problem, not a battle's`);
+  return handOver(deps, serverId, problem, players, options ?? {});
+}
+
+// A battle's definition for the game server, from a loaded problem and its private
+// file, after its match row; its id.
+async function handOver(
+  deps: BattleDeps,
+  serverId: number,
+  problem: LoadedProblem,
+  players: string[],
+  options: { unrated?: boolean; battleMode?: BattleMode; practice?: boolean },
+): Promise<string> {
+  const slug = problem.slug;
   const file = await deps.files.get(problem.privateKey);
   if (file === null || file === "unchanged")
     throw new Error(`${slug}: its private file is missing; load the problems`);
@@ -100,7 +121,7 @@ export async function startBattle(
     players,
     battle: {
       problem: slug,
-      battle_mode: options?.battleMode ?? "human",
+      battle_mode: options.battleMode ?? "human",
       starters: baseStarters,
       limits: problem.limits,
       checks: problem.checks,
@@ -115,6 +136,7 @@ export async function startBattle(
         : {
             extension: { statement: problem.extension.statement, starters },
           }),
+      ...(options.practice === true ? { practice: true } : {}),
     },
   };
   try {
@@ -125,6 +147,44 @@ export async function startBattle(
     throw error;
   }
   return match.id;
+}
+
+// ADR-0048 (Q-WD-28): an LLD practice session, a practice battle for one player on a
+// practice problem, unrated. A player's open session on the same problem is gone back to
+// (a reload), unless the page says it has ended; starting one is rate-limited.
+const PRACTICE_STARTS_PER_HOUR = 20;
+
+export type PracticeStart =
+  | { status: "started"; matchId: string; problem: LoadedProblem }
+  | { status: "open"; matchId: string }
+  | { status: "not-practice" | "limited" };
+
+export async function startPracticeSession(
+  deps: BattleDeps & { sessions: PracticeSessions; limits: RateLimits },
+  userId: string,
+  slug: string,
+  ended: string | null,
+): Promise<PracticeStart> {
+  const problem = await deps.store.get(slug);
+  if (problem?.pool !== "practice") return { status: "not-practice" };
+  const open = await deps.sessions.get(userId);
+  if (open !== null && open.slug === slug && open.matchId !== ended)
+    return { status: "open", matchId: open.matchId };
+  if (
+    !(await deps.limits.allow(
+      `lld-practice:${userId}`,
+      PRACTICE_STARTS_PER_HOUR,
+      3600,
+    ))
+  )
+    return { status: "limited" };
+  const matchId = await handOver(deps, 0, problem, [userId], {
+    unrated: true,
+    battleMode: "human",
+    practice: true,
+  });
+  await deps.sessions.set(userId, { slug, matchId });
+  return { status: "started", matchId, problem };
 }
 
 // P5-W33 (Q-P5-20): a request's battle mode (?mode=), human when absent; null when it

@@ -3,6 +3,10 @@
 import type { HldProblem } from "@interval/hld";
 import { useEffect, useState } from "react";
 import { DesignView } from "../../../DesignView";
+import {
+  elapsed,
+  Timeline,
+} from "../../../../play/battle/[id]/result/Timeline";
 
 // P6-W44 (Q-P6-03, Q-P6-08): a finished match's designs as they were drawn: one slider
 // moves through time, and each player's design is the last autosave at that moment.
@@ -37,28 +41,36 @@ export function Replay({
         setFailed(true);
       });
   }, [matchId]);
-  if (failed) return <p>The replay couldn&apos;t be loaded.</p>;
+  if (failed)
+    return (
+      <p role="alert" className="rounded-2xl bg-well px-4 py-3 text-sm">
+        The replay couldn&apos;t be loaded. Reload the page to try again.
+      </p>
+    );
   if (data === null)
-    return <p className="text-ink-muted">Loading the replay…</p>;
+    return (
+      <p role="status" className="text-sm text-ink-muted">
+        Loading the replay…
+      </p>
+    );
   const all = times(data);
   const now = all[step] ?? all.at(-1) ?? "";
+  const start = new Date(all[0] ?? 0).getTime();
   return (
     <div className="flex flex-col gap-4">
-      <label className="flex flex-col gap-2 rounded-2xl bg-well px-4 py-3 text-sm font-semibold tabular-nums">
-        {all.length === 0
-          ? "Nothing was drawn."
-          : `${new Date(now).toLocaleTimeString()} (${String(step + 1)} of ${String(all.length)})`}
-        <input
-          type="range"
-          min={0}
-          max={Math.max(0, all.length - 1)}
-          value={step}
-          onChange={(e) => {
-            setStep(Number(e.target.value));
-          }}
-          className="accent-(--select)"
+      {all.length === 0 ? (
+        <p className="rounded-2xl bg-well px-4 py-3 text-sm text-ink-muted">
+          Nothing was drawn in this match.
+        </p>
+      ) : (
+        <Timeline
+          count={all.length}
+          at={step}
+          onAt={setStep}
+          labelOf={(i) => elapsed(new Date(all[i] ?? 0).getTime() - start)}
+          name="Moment in the match"
         />
-      </label>
+      )}
       <div className="grid gap-4 lg:grid-cols-2">
         {data.seats.map((s) => {
           const shown = [...s.frames].reverse().find((f) => f.at <= now);

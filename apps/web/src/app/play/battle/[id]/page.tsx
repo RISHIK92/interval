@@ -1,4 +1,3 @@
-import { GENERATORS } from "@interval/lld";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
@@ -12,8 +11,8 @@ import {
 } from "../../../../server/container";
 import { FRAME, TITLE } from "../../../hld/Frame";
 import { BattlePlay } from "./BattlePlay";
-import { examplesOf } from "./examples";
 import { Interviewer } from "./Interviewer";
+import { screenOf } from "./screen";
 
 export const dynamic = "force-dynamic";
 
@@ -39,15 +38,6 @@ export default async function BattlePage(props: {
   if (seat === null || seat.problem === null) notFound();
   const problem = await problems().get(seat.problem);
   if (problem === null) notFound();
-  const starters = Object.fromEntries(
-    Object.entries(GENERATORS).map(([language, generate]) => [
-      language,
-      generate(problem.interface).starter,
-    ]),
-  );
-  const { interface: api } = problem;
-  const call = (name: string, params: { name: string }[]) =>
-    `${name}(${params.map((p) => p.name).join(", ")})`;
   return (
     <main className={FRAME}>
       <BattlePlay
@@ -65,17 +55,7 @@ export default async function BattlePage(props: {
             </p>
           </>
         }
-        signatures={[
-          call(api.class, api.constructor.params),
-          ...api.methods.map(
-            (m) =>
-              call(m.name, m.params) +
-              (m.returns === "void" ? "" : ` → ${m.returns}`),
-          ),
-        ]}
-        statement={problem.statement}
-        examples={examplesOf(problem)}
-        starters={starters}
+        {...screenOf(problem)}
       />
       {/* §6.2 (Q-P5-13): the AI mode's vague requirements have an interviewer. */}
       {problem.battleMode === "ai" && (

@@ -895,6 +895,38 @@ class ListenQueue(TypedDict):
     added_at: datetime
 
 
+class LldPracticeBest(TypedDict):
+    user_id: str
+    problem_slug: str
+    points: int
+    visible_passed: int
+    visible_total: int
+    hidden_passed: int
+    hidden_total: int
+    concurrency_passed: int
+    concurrency_total: int
+    extension_passed: int
+    extension_total: int
+    language: str
+    achieved_at: datetime
+    submits: int
+    updated_at: datetime
+
+
+class LldPracticeCode(TypedDict):
+    user_id: str
+    problem_slug: str
+    language: str
+    code: str
+    version: int
+    saved_at: datetime
+
+
+class LldPracticeCounted(TypedDict):
+    match_id: UUID
+    seq: int
+
+
 class LldProblem(TypedDict):
     slug: str
     title: str
@@ -912,6 +944,9 @@ class LldProblem(TypedDict):
     extension_interface: JsonValue | None
     battle_mode: str
     interviewer_notes: str | None
+    pool: str
+    topic: str | None
+    concepts: list[str]
 
 
 class Moment(TypedDict):

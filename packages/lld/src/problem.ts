@@ -10,6 +10,19 @@ import { checkScenario, ResultLine, Scenario } from "./scenario";
 // revealed mid-battle with its own extension.md: methods added to the interface, and
 // scenarios judged against the extended one. It adds and never changes: base behaviour
 // differs only after an extension method is called, so every base scenario still holds.
+// ADR-0048 (Q-WD-28): a practice problem's group on the practice list.
+export const PRACTICE_TOPICS = [
+  "oop-basics",
+  "relationships",
+  "principles",
+  "solid",
+  "creational",
+  "structural",
+  "behavioural",
+  "systems",
+] as const;
+export type PracticeTopic = (typeof PRACTICE_TOPICS)[number];
+
 export const Problem = z
   .strictObject({
     slug: z
@@ -20,6 +33,17 @@ export const Problem = z
     difficulty: z.enum(["easy", "medium", "hard"]),
     // P5-W33 (§6.2, Q-P5-20): the battle mode's pool it's drawn from; absent is human.
     battleMode: z.enum(["human", "ai"]).optional(),
+    // ADR-0048: the pool it's in, for good: a practice problem never moves to battles once
+    // its tests could have been probed. Practice problems have a topic group and the
+    // concepts they teach (slugs from the concept graph).
+    pool: z.enum(["practice", "battle"]),
+    topic: z.enum(PRACTICE_TOPICS).optional(),
+    concepts: z
+      .array(
+        z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/, "a concept slug"),
+      )
+      .max(20)
+      .optional(),
     interface: Interface,
     checks: z.array(Check).max(20).optional(),
     limits: z.strictObject({
@@ -40,6 +64,22 @@ export const Problem = z
       .optional(),
   })
   .superRefine((p, ctx) => {
+    const issue = (path: string, message: string) => {
+      ctx.addIssue({ code: "custom", path: [path], message });
+    };
+    if (p.pool === "practice") {
+      if (p.battleMode === "ai")
+        issue("battleMode", "a practice problem has no interviewer");
+      if (p.topic === undefined) issue("topic", "a practice problem's group");
+      if (p.concepts === undefined)
+        issue("concepts", "a practice problem's concepts (may be empty)");
+    } else {
+      // Its extension is revealed to every player at 30:00 (Q-P5-15).
+      if (p.extension === undefined)
+        issue("extension", "a battle problem has an extension round");
+      if (p.topic !== undefined || p.concepts !== undefined)
+        issue("topic", "only a practice problem has a topic and concepts");
+    }
     for (const layer of ["visible", "hidden", "concurrency"] as const)
       (p.layers[layer] ?? []).forEach((s, i) => {
         // Threads belong in the concurrency layer, and only there.

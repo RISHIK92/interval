@@ -66,11 +66,22 @@ export function Spectate({
     now === null ? null : Math.max(0, new Date(state.deadline).getTime() - now);
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm text-ink-muted">
-        {left === null
-          ? ""
-          : `About ${String(Math.ceil(left / 60_000))} minutes left. `}
-        Designs update as they autosave.
+      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-muted">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-live/15 px-2.5 py-1 text-xs font-semibold text-live">
+          <span
+            aria-hidden="true"
+            className="size-1.5 rounded-full bg-live motion-safe:animate-pulse"
+          />
+          Live
+        </span>
+        {left === null ? null : (
+          <span className="font-semibold text-ink tabular-nums">
+            {left === 0
+              ? "Time's up: scoring next"
+              : `About ${String(Math.ceil(left / 60_000))} min left`}
+          </span>
+        )}
+        <span>Designs update as the players autosave.</span>
       </p>
       <div className="grid gap-4 lg:grid-cols-2">
         {state.seats.map((s) => (

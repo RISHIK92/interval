@@ -502,6 +502,17 @@ export class AwsStack extends Stack {
       metricNamespace: "Interval/Game",
       metricName: "SnapshotFailures",
     });
+    // ADR-0048 (LOAD-5): a practice Submit's progress the game server couldn't hand to the
+    // worker; the player's best misses that Submit.
+    logGroup.addMetricFilter("GamePracticeHandoffFailures", {
+      filterPattern: logs.FilterPattern.stringValue(
+        "$.msg",
+        "=",
+        "game: practice progress not handed over",
+      ),
+      metricNamespace: "Interval/Game",
+      metricName: "PracticeHandoffFailures",
+    });
     // P2-W11-S03: a scanned page (or book) OCR gave up on; the book finishes without it.
     logGroup.addMetricFilter("BookOcrGaveUp", {
       filterPattern: logs.FilterPattern.stringValue(
