@@ -334,3 +334,33 @@ Conflicts with earlier decisions come first: they need a ruling, and some need a
   - **"Picked for you":** only on cards ranked for the user, not starter cards.
   - **Path progress:** "7/18" counts readings done over readings in the path, skipped included.
   - **Library badge:** the due-review count, on every page.
+
+## LLD practice
+
+### Q-WD-28 Practice for LLD, like HLD's (owner request, 2026-11-23)
+
+- **Asked:** "also add practise match like hld for lld also".
+- **Answers (owner, 2026-11-23):**
+  - **Problems:** a separate practice pool. Each problem file says which pool it belongs to: `practice` or `battle`. Practice never shows a battle problem, so ranked battles stay fair; some of the existing problems move to practice.
+  - **A session:** the battle screen in practice mode.
+    - Run tests runs the visible tests; Submit runs the hidden tests. Velox judges both, as in a battle.
+    - The extension round is revealed when the player asks for it.
+    - No clock, no opponent, unrated.
+    - The code is autosaved for each problem, and the best result is kept so progress shows.
+  - **AI:** none for now. An AI code coach needs a budget, an eval and the AI rules (AI-1, OPS-4) first.
+- **The design (owner, 2026-11-23):** ADR-0048 (ACCEPTED): a practice battle on the game server.
+  - **Practice pool:** lru-cache, parking-lot, meeting-rooms and elevator-system. The human battle pool keeps six problems (leaderboard and five medium ones), so it has no hard problem; the AI pool is unchanged.
+  - **The extension:** revealed at any time, when the player asks.
+  - **Limits:** 50 submits a day in all, 20 per problem a day, and 400 runs a day, besides the 5 s run and 30 s submit cooldowns. A practice problem never moves back to battles.
+  - **Access:** the `play.battle` capability (no new plan setting).
+  - **Claude's choices:**
+    - Practice shares Velox's `casual` priority until a lower one exists, because a new priority is a change to Velox's contract.
+    - The best result keeps points and per-layer counts, not the code.
+
+## The Play page (owner's design, docs/wireframes/play-hub-web.png)
+
+### Q-WD-29 The Play page's choices (owner, 2026-11-23)
+
+- **Ranked battles card:** it registers in Human mode, with "Human mode · change in the lobby". AI mode is chosen in the lobby, and an AI-mode registration shows as such and can be cancelled from Play.
+- **Estimation:** the copy says "Solo". There is no live 1v1 estimation.
+- **Tournaments:** the next HLD tournament card stays off the Play page, as in the design. Tournaments are reached from the System design lobby.
