@@ -364,3 +364,33 @@ Conflicts with earlier decisions come first: they need a ruling, and some need a
 - **Ranked battles card:** it registers in Human mode, with "Human mode · change in the lobby". AI mode is chosen in the lobby, and an AI-mode registration shows as such and can be cancelled from Play.
 - **Estimation:** the copy says "Solo". There is no live 1v1 estimation.
 - **Tournaments:** the next HLD tournament card stays off the Play page, as in the design. Tournaments are reached from the System design lobby.
+
+### Q-WD-30 The LLD practice catalog (owner, 2026-11-23)
+
+- **Seed:** AlgoMaster's LLD practice list, used only for the idea space (its groups, sizes, concepts and difficulty spread). Every problem is our own, written in docs/lld-practice-catalog.md: 107 problems, PROVISIONAL until the owner reviews them.
+- **Topics:** practice problems carry a topic group and concepts from the graph.
+- **References:** six languages, as battle problems have.
+- **Optional for practice:** the extension round and the concurrency layer. Battle problems still need both.
+- **The 58 new concepts:** they go under a fifth topic, software design (ADR-0049, option 2).
+- **Pace:** batches of about 8, continuously. Each batch is verified, mutation-checked and reviewed, then committed as PROVISIONAL. CI's full verify is sharded or limited to changed problems first, so it still fits.
+
+### Battle answers (owner, 2026-11-23): Q-WD-14 to Q-WD-17
+
+- **Opponent progress (Q-WD-14):** shown as designed in both battles.
+  - LLD: each opponent's tests passed.
+  - HLD: each opponent's scenarios passed. Claude noted that this shows how close an opponent is to the reference; the owner chose it.
+  - Rooms: a compact pill per opponent in the header.
+- **Requirement coverage (Q-WD-15):** each requirement in the problem file names the components or scenarios that cover it. Coverage is computed by rules, not AI, and shown live in practice and matches. The rubric's criteria are never shown during a match.
+- **HLD (Q-WD-16):**
+  - The automatic preview stays, and the final action stays "Submit the design".
+  - Leave (×) goes to the lobby after a confirm. It isn't a forfeit: the last autosave is submitted at the deadline.
+  - Components can be dragged in from the palette as well as clicked.
+  - Risky config values get an inline warning from the existing hints.
+- **LLD (Q-WD-17):**
+  - Hints cost points in battles, in both modes: Nudge −1, Approach −3, Code sketch −6.
+    - Each level opens once per match and comes off the best submission's points. Results show the total.
+    - The hints are hand-written in each problem's files, PROVISIONAL for the owner's review.
+  - A failing visible test shows its name, a message and "Jump to line", with the line highlighted. Velox returns them (a Velox contract change). Hidden tests stay as counts (LLDQ-4).
+  - One file per language, autosaved on the server.
+  - The extension row stays hidden until it is revealed.
+- **Order of work:** LLD practice, then a live LLD walk with Velox, then the polish fixes, then these features, each reviewed and committed on its own. The practice catalog runs in parallel batches.

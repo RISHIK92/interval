@@ -6076,3 +6076,21 @@ The owner said to continue building overnight with recommended answers, switchin
   - Velox runs locally with a test key, on the default Docker runtime because gVisor isn't installed (local only); its `.env` was never read or written.
   - Game server 0 runs on :8090, behind Caddy on :3300 for `/game/*`.
   - The 12 LLD problems are loaded into the owner's data copy, which is migrated.
+
+## 2026-11-23: LLD practice (ADR-0048); HLD coverage; the battle design and UX sprint
+
+- **LLD practice (ADR-0048):** practice battles on the game server: no clock, solo, unrated, the extension on request.
+  - Daily caps are an atomic Lua check in Valkey (50 submits, 20 per problem, 400 runs).
+  - The best result is kept by the worker, counted once per (match, seq) in `lld_practice_counted` (LOAD-5).
+  - Practice lives in its own pool: lru-cache, parking-lot, meeting-rooms, elevator-system.
+  - Pages: `/play/battle/practice` (grouped table) and `/play/battle/practice/[slug]`.
+- **HLD:**
+  - Requirement coverage by rules in each problem ("3 of 4 covered", what covers each requirement).
+  - The canvas fits the screen; components are named with their roles; scenario lines and hints are plain language.
+  - Leave (×), drag-in, "Connect to…", "Start over" for practice, and inline risk warnings.
+- **The rest of the UX pass:**
+  - Results pages: Scoring…, standings, AI labels, a shared replay timeline.
+  - Lobbies: the queue countdown with Cancel, and a refused solo links to the running match. Solo locks are tied to their match.
+  - App-level not-found, error and loading pages; one set of labels; focus rings; back links on phones.
+- **Checks:** a reviewer found the practice repeat-counting bug, now fixed. `pnpm check` passes all 64 tasks.
+- **Not checked in a browser:** the owner stopped the dev server, so the last round has no screenshots. The live LLD/HLD walk is next when the servers can run again.
