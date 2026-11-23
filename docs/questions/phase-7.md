@@ -1,6 +1,6 @@
 # Phase 7 questions
 
-**DRAFT for the owner's review (2026-11-19).** Phase 7 (docs/roadmap/phase-7.md, the plan in docs/roadmap/phase-7-slices.md) is agent-waiting surfaces and growth. The recommendations are Claude's, not decisions.
+Phase 7 (docs/roadmap/phase-7.md, the plan in docs/roadmap/phase-7-slices.md) is agent-waiting surfaces and growth. The plan was approved by the owner on 2026-11-20 (build from W46, week by week). Answers are recorded under each question; an unanswered one still carries only Claude's recommendation.
 
 ### Q-P7-01 Which agents get an installer (P0 for W46)
 
@@ -11,14 +11,20 @@
   - **(c)** none: the extension and desktop app detect waits on their own.
 - **Recommendation:** (b), limited to agents whose hooks are documented and stable. (c) would need to watch the editor or terminal, and that risks seeing code, which §7 forbids.
 
+- **Answers (owner, 2026-11-20):** (b), all four agents whose hooks are documented: Claude Code (`UserPromptSubmit`/`Stop`), OpenAI Codex (`UserPromptSubmit`/`Stop`), Cursor (`beforeSubmitPrompt`/`stop`; beta, its gaps noted in docs/agent-hook.md) and Gemini CLI (`BeforeAgent`/`AfterAgent`). `interval hook install --agent <name>` writes the user-level config only (never a project's, which could be committed and turn the hook on for others), merged with what's there and kept as a backup; running it twice changes nothing; `interval hook uninstall --agent <name>` removes only Interval's entries.
+
 ### Q-P7-02 Does the read API show the suggestions themselves (P0 for W46)
 
 - Cite: §7 ("time-fitted suggestions and agent status"), CACHE-1.
 - **Recommendation:** yes. It returns the top few items from the user's precomputed feed that fit the expected wait, each linking to the web app. The surfaces render links and never content, so the rights profile (ING-2) still applies only in the web app.
 
+- **Answers (owner, 2026-11-20):** yes, links only: 3 suggestions, picked by the user's break length (the chip chosen at onboarding, or `?chip=` per request, as `/api/feed` does; PER-1), each a link into the web app. The CLI gets `interval status` from the same API.
+
 ### Q-P7-03 The extension's quick session: browser or webview (P0 for W47)
 
 - **Recommendation:** browser. The session, its sign-in and its event tracking (DB-5) stay in one place. A webview would need a second auth path and its own content-security rules.
+
+- **Answer (owner, 2026-11-20):** in the browser.
 
 ### Q-P7-04 The desktop technology (P0 for W48, needs an ADR)
 

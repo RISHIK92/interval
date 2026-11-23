@@ -1,6 +1,6 @@
 # Phase 7 slices
 
-**DRAFT for the owner's review (2026-11-19). Nothing here is built until the owner approves it.**
+Approved by the owner on 2026-11-20 (build from W46, week by week).
 
 Phase 7 (docs/roadmap/phase-7.md) is agent-waiting surfaces and growth, from week 46. As in Phases 5 and 6, each roadmap week is one unit: its questions are asked once at the start (docs/questions/phase-7.md), it gets one review, and it is one commit. The field key is the same as in Phase 5.
 
