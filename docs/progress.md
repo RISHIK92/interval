@@ -6036,3 +6036,24 @@ The owner said to continue building overnight with recommended answers, switchin
   - **W48–49:** the desktop companion, blocked on its Electron or Tauri ADR.
   - **W50–51:** community-submitted questions.
   - **Institutional features:** undefined in the docs, so Q-P7-06 asks the owner.
+
+## 2026-11-23: Web redesign to the owner's desktop designs; three ADRs accepted
+
+- **References:** the owner's design export "(10)" became `docs/wireframes/web-design.html`: 17 desktop screens in light and dark. Exports "(11)" and "(12)" render identically to the `app-design.html` and `design-system.html` already there.
+- **The redesign:** six agents on m6 restyled every built screen at `lg` and up; phones are unchanged.
+  - An independent review found one blocker: Profile's phone reading order. It and every should-fix were fixed with tests.
+  - Results: 1,693 web tests pass, and typecheck, lint and format are clean.
+- **Kept on phones too, deliberately:**
+  - dark cards at the design system's #15181D;
+  - HLD canvas nodes in tokens (a dark-mode fix);
+  - the reads for desktop-only cards (the server can't know the width).
+- **Demo data:** `pnpm demo:seed` (local only) so pages show their full state.
+- **Gaps:** about 60 things the designs show without a feature, each a question in `docs/questions/web-design.md` (Q-WD-01 to Q-WD-27).
+  - Owner answers so far: "Also fits" on desktop only, leagues as weekly cohorts per the design, Explore including AI "Ask anything", shields as held freezes.
+  - ADR-0044 (Also fits), ADR-0045 (weekly leagues) and ADR-0046 (Explore with search and Ask) were accepted by the owner.
+  - The owner chose to rename the battle "league" to "battle mode" everywhere (ADR-0047, next), so "league" means the weekly cohort only.
+- **Owner-reported bugs:**
+  - Onboarding's Continue failed only from the Tailscale address. The dev server blocked its dev resources, so `next.config.ts` allows m6's name locally; that change is not committed.
+  - An endless reload came from a corrupted dev build cache (moved aside, not code).
+  - 66% of live questions say "according to the passage" though sprints show no passage: a fix and a rewrite command are in progress.
+- **m6:** the owner's Mac data runs there as a copy (database `interval_mac`); the test database stays separate.
