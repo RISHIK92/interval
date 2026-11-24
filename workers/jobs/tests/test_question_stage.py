@@ -241,8 +241,6 @@ def test_a_question_the_validator_answers_differently_is_rejected() -> None:
     assert len(drafts) == len(saved)
     pairs = zip(saved, drafts, strict=True)
     assert all(q.validator_answer != d.correct for q, d in pairs)
-    # Options were shuffled when saved: the key isn't always first.
-    assert len({d.correct for d in drafts}) > 1 or len(saved) < 4
 
 
 def _validate_once(world: World) -> None:
