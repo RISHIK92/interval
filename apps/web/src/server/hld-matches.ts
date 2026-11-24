@@ -311,3 +311,58 @@ async function score(deps: HldDeps, matchId: string, now: Date): Promise<void> {
   )
     await queueRating(deps, match, seats.length);
 }
+
+// Q-WD-14 (owner, 2026-11-23): each opponent's progress during a match, as the number of
+// scenarios their latest autosave passes in the preview's simulation, of the problem's
+// all. Only the counts leave here: never the design, its notes, or which scenarios.
+export type OpponentProgress = {
+  total: number;
+  opponents: { player: string; passed: number }[];
+};
+
+// Counts remembered per (match, player, version), so polling doesn't re-simulate an
+// unchanged autosave. The oldest goes first past the cap.
+const COUNTS_KEPT = 5_000;
+
+export async function opponentProgress(
+  deps: Pick<HldDeps, "matches" | "now">,
+  counts: Map<string, number>,
+  matchId: string,
+  userId: string,
+): Promise<OpponentProgress | "not_player" | "closed"> {
+  const found = await deps.matches.get(matchId);
+  if (found === null || !found.seats.some((s) => s.userId === userId))
+    return "not_player";
+  const { match, seats } = found;
+  if (match.closedAt !== null || deps.now() >= match.deadlineAt)
+    return "closed";
+  const problem = problemOf(match);
+  const opponents = await Promise.all(
+    seats
+      .filter((s) => s.userId !== userId)
+      .map(async (s) => {
+        const latest = await deps.matches.latestVersion(matchId, s.userId);
+        const key = `${matchId}:${s.userId}:${String(latest?.version ?? 0)}`;
+        let passed = counts.get(key);
+        if (passed === undefined) {
+          // As at the deadline (`advance`): a version that doesn't fit the problem
+          // counts as the starting design.
+          const parsed = Design.safeParse(latest?.design);
+          const design =
+            parsed.success && fitsProblem(parsed.data, problem).length === 0
+              ? parsed.data
+              : starterDesign(problem.spec);
+          passed = simulate(problem, design).scenarios.filter(
+            (r) => r.targetsMet,
+          ).length;
+          if (counts.size >= COUNTS_KEPT) {
+            const oldest = counts.keys().next();
+            if (oldest.done !== true) counts.delete(oldest.value);
+          }
+          counts.set(key, passed);
+        }
+        return { player: s.player, passed };
+      }),
+  );
+  return { total: problem.scenarios.length, opponents };
+}

@@ -9,12 +9,14 @@ import {
   sessionReader,
 } from "../../../../server/container";
 import { advance, problemOf } from "../../../../server/hld-matches";
+import { matchProgress } from "../../../../server/hld-match-requests";
 import { Canvas } from "../../Canvas";
 import { Clock } from "../../Clock";
 import { Cube } from "../../flow";
 import { LeaveMatch } from "../../MatchPanel";
 import { CANVAS_FRAME, HEADER_TILE, TITLE } from "../../Frame";
 import { BATTLE_MODE_NAMES } from "../../../battle-mode";
+import { OpponentProgress } from "./OpponentProgress";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +41,10 @@ export default async function HldMatchPage({
   const latest = await hldMatches().latestVersion(id.data, actor.userId);
   const parsed = Design.safeParse(latest?.design);
   const players = found.seats.length;
+  // Q-WD-14: the opponents' counts from the first paint, so the header doesn't shift.
+  const progress = await matchProgress(actor.userId, id.data);
+  if (progress === "closed") redirect(`/hld/match/${id.data}/result`);
+  if (progress === "not_player") notFound();
   return (
     <main className={CANVAS_FRAME}>
       <Canvas
@@ -69,6 +75,7 @@ export default async function HldMatchPage({
               {found.match.unrated ? " · unrated" : ""} ·{" "}
               {BATTLE_MODE_NAMES[found.match.battleMode]}
             </span>
+            <OpponentProgress matchId={id.data} initial={progress} />
             <Clock deadline={found.match.deadlineAt.toISOString()} />
           </>
         }

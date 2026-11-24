@@ -1,7 +1,12 @@
 import { Design, fitsProblem } from "@interval/hld";
 import { z } from "zod";
 import { hldDeps, hldMatches } from "./container";
-import { problemOf, submitDesign } from "./hld-matches";
+import {
+  opponentProgress,
+  type OpponentProgress,
+  problemOf,
+  submitDesign,
+} from "./hld-matches";
 
 // P6-W42, W44 (Q-P6-03, Q-P6-06, ADR-0043): a match's autosave (every version kept: the
 // replay) and its one submission, for the player the route has signed in. Everything
@@ -79,4 +84,22 @@ export async function submitMatchDesign(
     return "invalid";
   const done = await submitDesign(hldDeps(), id.data, userId, parsed.data);
   return done === "not_player" ? "invalid" : done;
+}
+
+// Q-WD-14: the opponents' scenario counts, polled by each player's match page. The
+// counts are remembered in this process: another instance only simulates them again.
+const counts = new Map<string, number>();
+
+export async function matchProgress(
+  userId: string,
+  matchId: string,
+): Promise<OpponentProgress | "not_player" | "closed"> {
+  const id = z.uuid().safeParse(matchId);
+  if (!id.success) return "not_player";
+  return opponentProgress(
+    { matches: hldMatches(), now: () => new Date() },
+    counts,
+    id.data,
+    userId,
+  );
 }
