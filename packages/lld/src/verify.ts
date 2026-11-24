@@ -138,7 +138,7 @@ export function verify(
       const results = r.stdout
         .trimEnd()
         .split("\n")
-        .map((l) => ResultLine.parse(JSON.parse(l)));
+        .map((l) => recorded(ResultLine.parse(JSON.parse(l))));
       // The canonical results are checked before they are recorded: one line per call, in
       // order, each value of the type its method declares.
       if (results.length !== s.scenario.calls.length)
@@ -270,6 +270,12 @@ export function verify(
   } finally {
     rmSync(work, { recursive: true, force: true });
   }
+}
+
+// A reference's result line as expected.json records it. An error's line (Q-WD-17) is
+// where the reference's own code raised it: never part of what a submission is held to.
+export function recorded(line: ResultLine): ResultLine {
+  return "error" in line ? { call: line.call, error: line.error } : line;
 }
 
 function wordsIn(value: unknown): string[] {

@@ -650,6 +650,27 @@ export function BattleView({
   practice,
 }: ViewProps) {
   const playing = state.phase === "playing" ? state : null;
+  // Q-WD-17: the failing test's line the player jumped to, for the answer it came with.
+  // Highlighted until their next edit or run: an edit, a language switch or a Run or
+  // Submit sent (by button or keyboard, even one then refused) drops it, and the next
+  // answer's failing test is another.
+  const [jumped, setJumped] = useState<{
+    line: number;
+    failing: NonNullable<typeof playing>["failing"];
+  } | null>(null);
+  // The language last sent, set as a send starts: a failing line is in that code, so
+  // the link shows only while it's the one in the editor.
+  const sending = playing?.running === true || playing?.submitting === true;
+  const [sent, setSent] = useState({ sending: false, language });
+  if (sent.sending !== sending) {
+    setSent({ sending, language: sending ? language : sent.language });
+    if (sending) setJumped(null);
+  }
+  const jump =
+    jumped !== null && playing !== null && jumped.failing === playing.failing
+      ? jumped
+      : null;
+  const failing = playing?.failing ?? null;
   const best =
     practice === undefined
       ? null
@@ -882,6 +903,7 @@ export function BattleView({
               <select
                 value={language}
                 onChange={(e) => {
+                  setJumped(null);
                   onLanguage(e.target.value);
                 }}
                 className="rounded-lg bg-well px-2 py-1 lg:rounded-lg lg:border-0 lg:bg-well lg:px-2.5 lg:font-mono lg:text-xs lg:font-semibold lg:text-ink"
@@ -958,7 +980,11 @@ export function BattleView({
             <Editor
               language={language}
               value={code}
-              onChange={onCode}
+              onChange={(value) => {
+                setJumped(null);
+                onCode(value);
+              }}
+              jump={jump}
               onPaste={onPaste}
             />
           </div>
@@ -996,6 +1022,37 @@ export function BattleView({
             >
               {playing.notice}
             </p>
+          )}
+          {failing !== null && (
+            <div
+              role="group"
+              aria-label="Failing test"
+              className="rounded-md bg-[color-mix(in_srgb,var(--wrong)_12%,var(--page))] px-3 py-2 text-wrong lg:order-first lg:mt-1 lg:rounded-xl lg:text-[13px]"
+            >
+              <p className="break-words">
+                <span className="font-mono font-semibold">{failing.name}</span>
+                {failing.message === undefined
+                  ? " failed"
+                  : ` · ${failing.message}`}
+                {failing.line === undefined ||
+                sent.language !== language ? null : (
+                  <>
+                    {" · "}
+                    <button
+                      type="button"
+                      aria-label={`Jump to line ${String(failing.line)} of your code`}
+                      onClick={() => {
+                        if (failing.line !== undefined)
+                          setJumped({ line: failing.line, failing });
+                      }}
+                      className="font-semibold underline underline-offset-2"
+                    >
+                      Jump to line {failing.line}
+                    </button>
+                  </>
+                )}
+              </p>
+            </div>
           )}
           {playing?.ran != null && (
             <div

@@ -19,8 +19,37 @@ type Model = {
   getValue(): string;
   setValue(value: string): void;
   getOffsetAt(position: Position): number;
+  getLineCount(): number;
+  getLineFirstNonWhitespaceColumn(line: number): number;
 };
-type Editor = {
+type Decorations = { clear(): void };
+type RangeClass = new (
+  startLine: number,
+  startColumn: number,
+  endLine: number,
+  endColumn: number,
+) => unknown;
+// What a jump to a line uses of the editor.
+type Lines = {
+  getModel(): Pick<
+    Model,
+    "getLineCount" | "getLineFirstNonWhitespaceColumn"
+  > | null;
+  setPosition(position: Position): void;
+  revealLineInCenter(line: number): void;
+  createDecorationsCollection(
+    decorations: {
+      range: unknown;
+      options: {
+        isWholeLine: boolean;
+        className: string;
+        linesDecorationsClassName: string;
+      };
+    }[],
+  ): Decorations;
+  focus(): void;
+};
+type Editor = Omit<Lines, "getModel"> & {
   getModel(): Model | null;
   onDidChangeModelContent(
     listener: (e: {
@@ -31,6 +60,7 @@ type Editor = {
   dispose(): void;
 };
 type Monaco = {
+  Range: RangeClass;
   editor: {
     create(el: HTMLElement, options: Record<string, unknown>): Editor;
     setModelLanguage(model: Model, language: string): void;
@@ -80,6 +110,36 @@ export function removedBy(
     .map((c) => before.slice(c.rangeOffset, c.rangeOffset + c.rangeLength));
 }
 
+// Q-WD-17: a failing test's line, shown: the cursor at its first character, the line in
+// the middle of the view and highlighted, and the editor focused, so the keyboard is
+// where the link sent it. A line past the code (changed since the run) is its last.
+export function showLine(
+  editor: Lines,
+  Range: RangeClass,
+  line: number,
+): Decorations | null {
+  const model = editor.getModel();
+  if (model === null) return null;
+  const at = Math.max(1, Math.min(line, model.getLineCount()));
+  editor.setPosition({
+    lineNumber: at,
+    column: Math.max(1, model.getLineFirstNonWhitespaceColumn(at)),
+  });
+  editor.revealLineInCenter(at);
+  const shown = editor.createDecorationsCollection([
+    {
+      range: new Range(at, 1, at, 1),
+      options: {
+        isWholeLine: true,
+        className: "battle-failing-line",
+        linesDecorationsClassName: "battle-failing-gutter",
+      },
+    },
+  ]);
+  editor.focus();
+  return shown;
+}
+
 // packages/lld's language names are Monaco's own ids.
 export type CodeEditorProps = {
   language: string;
@@ -88,6 +148,9 @@ export type CodeEditorProps = {
   // P5-W31-S04a: what was pasted, and what the editor already had: its content without
   // the paste, and the text recently cut or deleted from it (a move within the code).
   onPaste?: (pasted: string, had: string[]) => void;
+  // Q-WD-17: a failing test's line to show and highlight, until it's cleared (null): a
+  // new object each time the player asks, so asking twice shows it again.
+  jump?: { line: number } | null;
 };
 
 export function CodeEditor({
@@ -95,6 +158,7 @@ export function CodeEditor({
   value,
   onChange,
   onPaste,
+  jump = null,
 }: CodeEditorProps) {
   const host = useRef<HTMLDivElement>(null);
   const editor = useRef<{ editor: Editor; monaco: Monaco } | null>(null);
@@ -167,6 +231,19 @@ export function CodeEditor({
     current.monaco.editor.setModelLanguage(model, language);
     if (model.getValue() !== value) model.setValue(value);
   }, [language, value]);
+
+  const highlighted = useRef<Decorations | null>(null);
+  useEffect(() => {
+    highlighted.current?.clear();
+    highlighted.current = null;
+    const current = editor.current;
+    if (current === null || jump === null) return;
+    highlighted.current = showLine(
+      current.editor,
+      current.monaco.Range,
+      jump.line,
+    );
+  }, [jump]);
 
   if (failed)
     return (

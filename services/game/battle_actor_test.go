@@ -14,7 +14,9 @@ import (
 // judge, on a fake clock.
 
 // Judges by the code: "perfect" passes every run, "none" fails every run, "error" is
-// the judge's own failure, and "slow" passes once the test lets it go.
+// the judge's own failure, and "slow" passes once the test lets it go. "explained"
+// fails every run with a failure's details, named or not: a judge breaking LLDQ-4,
+// which the game server must not pass on for a hidden test.
 type fakeJudge struct{ release chan struct{} }
 
 func (f fakeJudge) Judge(ctx context.Context, job judge.JudgeJob) (judge.JudgeResult, error) {
@@ -32,10 +34,18 @@ func (f fakeJudge) Judge(ctx context.Context, job judge.JudgeJob) (judge.JudgeRe
 	}
 	done, ok := "done", "ok"
 	result := judge.JudgeResult{Id: job.Id, Status: &done}
-	for range job.Runs {
+	for _, run := range job.Runs {
 		passed := code == "perfect"
 		ms := int64(3)
-		result.Runs = append(result.Runs, judge.RunResult{Verdict: &ok, TimeMs: &ms, Report: &judge.Report{Passed: &passed}})
+		r := judge.RunResult{Verdict: &ok, TimeMs: &ms, Report: &judge.Report{Passed: &passed}}
+		if code == "explained" {
+			name, message, line := "a hidden test", "call 1 (get): expected 1, got 2 (secret)", int64(14)
+			if run.Name != nil {
+				name = *run.Name
+			}
+			r.Failure = &judge.Failure{Name: &name, Message: &message, Line: &line}
+		}
+		result.Runs = append(result.Runs, r)
 	}
 	return result, nil
 }

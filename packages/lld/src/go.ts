@@ -336,8 +336,11 @@ export function goTypes(
     const fields = [...byKey.values()];
     const validate: string[] = ["matched := 0"];
     variants.forEach((v) => {
+      if ((v.required ?? []).length === 0)
+        throw new Error(`${name}: a union's variant needs a required field`);
       const own = new Set(Object.keys(v.properties ?? {}));
-      const has = [...own].map((k) => present(byKey.get(k) as Field));
+      // A variant's optional fields are neither needed nor ruled out.
+      const has = (v.required ?? []).map((k) => present(byKey.get(k) as Field));
       const lacks = fields
         .filter((f) => !own.has(f.key))
         .map((f) => `!(${present(f)})`);

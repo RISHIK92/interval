@@ -111,3 +111,13 @@
 html[data-player] body {
   padding-bottom: 5rem;
 }
+
+/* Q-WD-17: the battle editor's failing line, after "Jump to line" (CodeEditor.tsx). */
+.battle-failing-line {
+  background: color-mix(in srgb, var(--wrong) 16%, transparent);
+}
+.battle-failing-gutter {
+  background: var(--wrong);
+  width: 3px !important;
+  margin-left: 3px;
+}

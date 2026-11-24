@@ -96,3 +96,16 @@ test("threads start after the constructor, within the calls, and never construct
   ).toBe(false);
   expect(parses({ after: 1, threads: [[allow], []] })).toBe(false);
 });
+
+// Q-WD-17: an error may say the solution file's line it surfaced at; a value never does.
+test("an error line may carry its line in the solution file, a value line can't", () => {
+  expect(
+    ResultLine.safeParse({ call: 1, error: "KeyError: 'x'", line: 14 }).success,
+  ).toBe(true);
+  expect(
+    ResultLine.safeParse({ call: 1, error: "KeyError", line: 0 }).success,
+  ).toBe(false);
+  expect(ResultLine.safeParse({ call: 1, value: 3, line: 14 }).success).toBe(
+    false,
+  );
+});

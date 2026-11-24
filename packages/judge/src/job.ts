@@ -22,6 +22,12 @@ const Run = z.strictObject({
   checks: z.array(Check).max(20).optional(),
   // Off unless asked: a hidden test's output never reaches a player (LLDQ-4).
   returnOutput: z.boolean().optional(),
+  // Q-WD-17: a named run is a test the player may see (a visible one): if it fails, its
+  // result says why, with the name. A hidden test is never named (LLDQ-4).
+  name: z
+    .string()
+    .regex(/^[\x20-\x7e]{1,64}$/)
+    .optional(),
 });
 
 export const JudgeJob = z.strictObject({
@@ -52,6 +58,15 @@ const Mismatch = z.strictObject({
   reason: z.string().max(40),
 });
 
+// Q-WD-17: why a named run failed, for its player: the run's name, a short message
+// (expected against got, or the error), and the 1-based line of the player's file where
+// it surfaced, when the runtime said so reliably (never for a wrong value).
+const Failure = z.strictObject({
+  name: z.string().regex(/^[\x20-\x7e]{1,64}$/),
+  message: z.string().regex(/^[\x20-\x7e]{1,200}$/),
+  line: z.int().min(1).max(1_000_000).optional(),
+});
+
 export const JudgeResult = z.strictObject({
   id: z.uuid(),
   // failed: the engine's own fault, never the code's.
@@ -77,6 +92,8 @@ export const JudgeResult = z.strictObject({
           .optional(),
         stdout: z.string().optional(),
         stderr: z.string().optional(),
+        // Only on a named run that didn't pass; never on a hidden test's (LLDQ-4).
+        failure: Failure.optional(),
       }),
     )
     .max(100),

@@ -329,3 +329,83 @@ test("hints: the costs at the start, each text when opened, the spend", () => {
     BATTLE.step(s, { type: "hint", level: 4, text: "x", spent: 0 }, 0),
   ).toBeNull();
 });
+
+// Q-WD-17 (LLDQ-4): a failing visible test's name, message and line, from a Run or a
+// Submit's visible layer; the latest answer's first one is the failing-test box.
+test("a failing visible test comes with its name, message and line", () => {
+  const ran = play(start, {
+    type: "ran",
+    tests: [
+      { passed: true, verdict: "ok", name: "Test 1" },
+      {
+        passed: false,
+        verdict: "ok",
+        call: 2,
+        reason: "unexpected error",
+        name: "Test 2",
+        message: "call 2 (park): expected 1, got KeyError: 'x'",
+        line: 14,
+      },
+    ],
+  });
+  expect(ran).toMatchObject({
+    ran: [{ name: "Test 1" }, { name: "Test 2", line: 14 }],
+    failing: {
+      name: "Test 2",
+      message: "call 2 (park): expected 1, got KeyError: 'x'",
+      line: 14,
+    },
+  });
+  const submitted = play(
+    start,
+    {
+      type: "ran",
+      tests: [{ passed: false, name: "Test 1", message: "x", line: 3 }],
+    },
+    {
+      type: "submitted",
+      points: 100,
+      layers: {
+        visible: { passed: 0, total: 1 },
+        hidden: { passed: 1, total: 2 },
+      },
+      best: 100,
+      failures: [
+        { name: "Test 1", message: "call 1 (get): expected 1, got 2" },
+      ],
+    },
+  );
+  expect(submitted).toMatchObject({
+    submitted: {
+      failures: [
+        { name: "Test 1", message: "call 1 (get): expected 1, got 2" },
+      ],
+    },
+    failing: { name: "Test 1", message: "call 1 (get): expected 1, got 2" },
+  });
+  expect(
+    submitted.phase === "playing" ? submitted.failing?.line : "no",
+  ).toBeUndefined();
+  // A clean answer clears the box; a server older than Q-WD-17 sends none.
+  expect(
+    play(start, {
+      type: "submitted",
+      points: 1000,
+      layers: { visible: { passed: 1, total: 1 } },
+      best: 1000,
+    }),
+  ).toMatchObject({ submitted: { failures: [] }, failing: null });
+  expect(
+    play(start, { type: "ran", tests: [{ passed: false, verdict: "ok" }] }),
+  ).toMatchObject({ failing: null });
+});
+
+test("a line that isn't a line number is refused at the boundary", () => {
+  expect(
+    BATTLE.step(
+      play(start),
+      { type: "ran", tests: [{ passed: false, name: "Test 1", line: 0 }] },
+      0,
+    ),
+  ).toBeNull();
+});

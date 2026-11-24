@@ -16,6 +16,7 @@ export function judgeGoTypes(pkg: string, regenerate: string): string {
       checks: "Check",
       report: "Report",
       firstMismatch: "Mismatch",
+      failure: "Failure",
     },
     regenerate,
   );

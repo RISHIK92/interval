@@ -64,6 +64,8 @@ type judgedMsg struct {
 	revealed bool          // judged with the extension (sent after the reveal)
 	passed   []bool        // per scenario of the battle; Run: only visible ones count
 	tests    []map[string]any
+	// Q-WD-17: Submit: each failing visible test, why and where (its player's alone).
+	failures []map[string]any
 	failed   bool     // the judge failed: nothing is known about the code
 	code     *codeMsg // what was judged: kept when it's the player's best (P5-W33)
 }
@@ -419,8 +421,24 @@ func (a *actor) battleCode(p *play, e event) {
 					ok := run.Verdict != nil && *run.Verdict == "ok" &&
 						run.Report != nil && run.Report.Passed != nil && *run.Report.Passed
 					judged.passed[i] = ok
+					// Named only if visible (battleDef.jobs); whatever the judge says of
+					// any other run stays here (LLDQ-4).
+					name := j.job.Runs[k].Name
+					var failure map[string]any
+					if name != nil && !ok {
+						failure = map[string]any{"name": *name}
+						if f := run.Failure; f != nil && f.Message != nil {
+							failure["message"] = *f.Message
+							if f.Line != nil {
+								failure["line"] = *f.Line
+							}
+						}
+					}
 					if !msg.submit {
 						test := map[string]any{"passed": ok}
+						if name != nil {
+							test["name"] = *name
+						}
 						if run.Verdict != nil {
 							test["verdict"] = *run.Verdict
 						}
@@ -428,7 +446,12 @@ func (a *actor) battleCode(p *play, e event) {
 							test["call"] = *m.FirstMismatch.Call
 							test["reason"] = *m.FirstMismatch.Reason
 						}
+						for key, v := range failure {
+							test[key] = v
+						}
 						judged.tests = append(judged.tests, test)
+					} else if failure != nil {
+						judged.failures = append(judged.failures, failure)
 					}
 				}
 			}
@@ -441,8 +464,9 @@ func (a *actor) battleCode(p *play, e event) {
 	}()
 }
 
-// A judge's answer. Run: each visible test (Q-P5-16). Submit: points and passed/total
-// per layer, never which hidden test (LLDQ-4).
+// A judge's answer. Run: each visible test (Q-P5-16), a failing one with why and where
+// (Q-WD-17). Submit: points and passed/total per layer, never which hidden test (LLDQ-4),
+// and each failing visible test as a Run gives it.
 func (a *actor) battleJudged(p *play, e event) {
 	b := p.battle
 	if b.pending > 0 {
@@ -500,7 +524,11 @@ func (a *actor) battleJudged(p *play, e event) {
 	if b.best[e.player] != before {
 		b.bestCode[e.player] = j.code
 	}
-	tell(map[string]any{"type": "submitted", "points": points, "layers": layers, "best": a.points(p, e.player)})
+	submitted := map[string]any{"type": "submitted", "points": points, "layers": layers, "best": a.points(p, e.player)}
+	if len(j.failures) > 0 {
+		submitted["failures"] = j.failures
+	}
+	tell(submitted)
 	a.broadcastBests(p)
 	if a.def.Battle.Practice {
 		b.seq++

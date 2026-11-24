@@ -51,7 +51,41 @@ const SOLUTIONS: Record<string, string> = {
   go: "solution.go",
 };
 
+// Q-WD-17: where each reference raises "over capacity" (call 11) and the odd throw
+// (call 15), in its own file; null where the runtime gives no reliable line (a C++
+// exception, a JavaScript throw of a non-Error).
+const LINES: Record<string, [number | null, number | null]> = {
+  python: [23, 61],
+  javascript: [15, null],
+  typescript: [17, null],
+  java: [20, 66],
+  cpp: [null, null],
+  go: [37, 113],
+};
+
 for (const language of Object.keys(GENERATORS)) {
+  test.runIf(integration)(
+    `${language}: an error's line is where it surfaced in the solution file`,
+    () => {
+      const solution = readFileSync(
+        join(fixtures, SOLUTIONS[language] ?? ""),
+        "utf8",
+      );
+      const r = run(language, runFiles(language, iface, solution));
+      expect(r.verdict, r.stderr).toBe("ok");
+      const lines = r.stdout
+        .trimEnd()
+        .split("\n")
+        .map((l) => ResultLine.parse(JSON.parse(l)));
+      const lineOf = (call: number) => {
+        const l = lines[call];
+        return l !== undefined && "error" in l ? (l.line ?? null) : "no error";
+      };
+      expect([lineOf(11), lineOf(15)]).toEqual(LINES[language]);
+    },
+    SLOW,
+  );
+
   test.runIf(integration)(
     `${language}: the reference solution's results, every call`,
     () => {

@@ -27,13 +27,16 @@ export type Scenario = z.infer<typeof Scenario>;
 
 // A value, or the error the call raised: exactly one, said in the structure itself so
 // the generated JSON Schema and Go say it too. An error is printable ASCII (the harness
-// cleans and cuts it), so every language counts its length the same.
+// cleans and cuts it), so every language counts its length the same. Q-WD-17: an
+// error's `line` is where it surfaced in the solution file (1-based), when the runtime
+// says so reliably; it is never compared, and only a visible test's reaches a player.
 const CallIndex = z.int().nonnegative();
 export const ResultLine = z.union([
   z.strictObject({ call: CallIndex, value: z.json() }),
   z.strictObject({
     call: CallIndex,
     error: z.string().regex(/^[\x20-\x7e]{0,200}$/),
+    line: z.int().min(1).max(1_000_000).optional(),
   }),
 ]);
 export type ResultLine = z.infer<typeof ResultLine>;

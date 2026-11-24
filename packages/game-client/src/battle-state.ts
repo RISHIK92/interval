@@ -40,7 +40,14 @@ const Hints = z.object({
   opened: z.array(OpenedHint),
   spent: z.number().int().min(0),
 });
-const Test = z.object({
+// Q-WD-17 (LLDQ-4): a visible test's name, and when it failed why and the line of the
+// player's code it surfaced at, when the judge knows. Never a hidden test's.
+const Failure = z.object({
+  name: z.string().min(1).max(64),
+  message: z.string().min(1).max(200).optional(),
+  line: z.number().int().min(1).max(1_000_000).optional(),
+});
+const Test = Failure.partial({ name: true }).extend({
   passed: z.boolean(),
   verdict: z.string().optional(),
   call: z.number().int().min(0).optional(),
@@ -71,6 +78,7 @@ const Message = z.discriminatedUnion("type", [
     points: z.number().int().min(0),
     layers: z.record(z.string(), Layer),
     best: z.number().int().min(0),
+    failures: z.array(Failure).optional(),
   }),
   z.object({
     type: z.literal("refused"),
@@ -102,6 +110,7 @@ const Message = z.discriminatedUnion("type", [
 ]);
 type BattleMessage = z.infer<typeof Message>;
 type BattleTest = z.infer<typeof Test>;
+export type BattleFailure = z.infer<typeof Failure>;
 type BattleLayer = z.infer<typeof Layer>;
 
 function extensionOf(
@@ -124,7 +133,13 @@ export type BattlePlaying = {
   // Null: this battle offers no hints.
   hints: z.infer<typeof Hints> | null;
   ran: BattleTest[] | null;
-  submitted: { points: number; layers: Record<string, BattleLayer> } | null;
+  submitted: {
+    points: number;
+    layers: Record<string, BattleLayer>;
+    failures: BattleFailure[];
+  } | null;
+  // Q-WD-17: the failing-test box: the latest answer's first failing visible test.
+  failing: BattleFailure | null;
   // A Run or Submit sent and not yet answered: its button waits.
   running: boolean;
   submitting: boolean;
@@ -180,6 +195,7 @@ function battleStep(
         hints: message.hints ?? null,
         ran: playing?.ran ?? null,
         submitted: playing?.submitted ?? null,
+        failing: playing?.failing ?? null,
         running: false,
         submitting: false,
         notice: null,
@@ -192,18 +208,35 @@ function battleStep(
             endsAt: now + message.seconds * 1000,
             extension: extensionOf(message),
           };
-    case "ran":
-      return playing === null
-        ? state
-        : { ...playing, ...answered(false), ran: message.tests };
-    case "submitted":
-      return playing === null
-        ? state
-        : {
-            ...playing,
-            ...answered(true),
-            submitted: { points: message.points, layers: message.layers },
-          };
+    case "ran": {
+      if (playing === null) return state;
+      const failed = message.tests.find(
+        (t) => !t.passed && t.name !== undefined,
+      );
+      return {
+        ...playing,
+        ...answered(false),
+        ran: message.tests,
+        failing:
+          failed?.name === undefined
+            ? null
+            : { name: failed.name, message: failed.message, line: failed.line },
+      };
+    }
+    case "submitted": {
+      if (playing === null) return state;
+      const failures = message.failures ?? [];
+      return {
+        ...playing,
+        ...answered(true),
+        submitted: {
+          points: message.points,
+          layers: message.layers,
+          failures,
+        },
+        failing: failures[0] ?? null,
+      };
+    }
     case "refused":
       return playing === null
         ? state

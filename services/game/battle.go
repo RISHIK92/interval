@@ -204,7 +204,7 @@ type battleJob struct {
 // The jobs that judge code in one language on the scenarios `include` picks: the base
 // layers through the base interface's harness, the extension through the extended one,
 // each at most maxRunsPerJob runs. Results go back by category only (LLDQ-4): no run
-// returns its output.
+// returns its output, and only a visible test's failure is explained.
 func (b *battleDef) jobs(language, code string, include func(battleScenario) bool, priority string, at time.Time, newID func() string) []battleJob {
 	l := b.Languages[language]
 	var base, extension []int
@@ -215,6 +215,18 @@ func (b *battleDef) jobs(language, code string, include func(battleScenario) boo
 			base = append(base, i)
 		default:
 			extension = append(extension, i)
+		}
+	}
+	// Q-WD-17: each visible test is named by its place in the visible layer, as the battle
+	// screen numbers them, so a failing one comes back explained; a hidden test is never
+	// named, so never explained (LLDQ-4).
+	names := make([]*string, len(b.Scenarios))
+	visible := 0
+	for i, s := range b.Scenarios {
+		if s.Layer == "visible" {
+			visible++
+			name := fmt.Sprintf("Test %d", visible)
+			names[i] = &name
 		}
 	}
 	var out []battleJob
@@ -233,7 +245,7 @@ func (b *battleDef) jobs(language, code string, include func(battleScenario) boo
 				s := b.Scenarios[i]
 				var expected []judge.ResultLine
 				_ = json.Unmarshal(s.Expected, &expected) // checked by validate
-				runs = append(runs, judge.Run{Stdin: &s.Stdin, Expected: expected, Checks: b.Checks})
+				runs = append(runs, judge.Run{Stdin: &s.Stdin, Expected: expected, Checks: b.Checks, Name: names[i]})
 			}
 			id, lang, submitted := newID(), language, at.UTC().Format(time.RFC3339)
 			seconds, memory := b.Limits.Seconds, b.Limits.MemoryMB

@@ -291,6 +291,8 @@ export function cpp(iface: Interface): Generated {
     "      else call(obj, m, a, line);",
     "      line += '}';",
     "    } catch (const std::exception& e) {",
+    "      // Q-WD-17: a C++ exception carries no location, so its error line has none: no",
+    "      // line rather than a guess.",
     '      line = "{\\"call\\":" + std::to_string(i) + ",\\"error\\":";',
     '      h::put(line, h::clean(std::string("exception: ") + e.what()));',
     "      line += '}';",

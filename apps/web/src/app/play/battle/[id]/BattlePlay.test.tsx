@@ -56,6 +56,7 @@ const playing: BattleState = {
   hints: null,
   ran: null,
   submitted: null,
+  failing: null,
   running: false,
   submitting: false,
   notice: null,
@@ -107,6 +108,7 @@ test("a Run shows each visible test; a Submit only counts per layer", () => {
         hidden: { passed: 9, total: 10 },
         visible: { passed: 2, total: 2 },
       },
+      failures: [],
     },
     notice: "wait 20 s",
   });
@@ -435,4 +437,33 @@ test("an opponent's pill shows the hints they used", () => {
   expect(two).toContain("rsharma used hints: nudge, approach");
   // Your own hints are in your problem column, not your pill.
   expect(two).toContain(">Your best · 700 points<");
+});
+
+// Q-WD-17 (LLDQ-4): the failing visible test's name, its message, and a link to the line.
+test("a failing visible test shows its name, message and Jump to line", () => {
+  const html = show({
+    ...playing,
+    ran: [{ passed: false, verdict: "ok", name: "Test 1" }],
+    failing: {
+      name: "Test 1",
+      message: "call 2 (park): expected 1, got KeyError: 'x'",
+      line: 14,
+    },
+  });
+  expect(html).toMatch(/aria-label="Failing test"/);
+  expect(html).toContain("Test 1");
+  expect(html).toContain(
+    "call 2 (park): expected 1, got KeyError: &#x27;x&#x27;",
+  );
+  expect(html).toMatch(
+    /<button[^>]*type="button"[^>]*>Jump to line 14<\/button>/,
+  );
+  // No line (a wrong value, or C++): the name and message only.
+  const none = show({
+    ...playing,
+    failing: { name: "Test 1", message: "call 1 (get): expected 1, got 2" },
+  });
+  expect(none).toContain("call 1 (get): expected 1, got 2");
+  expect(none).not.toContain("Jump to line");
+  expect(show(playing)).not.toContain("Failing test");
 });

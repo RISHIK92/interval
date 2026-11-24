@@ -75,3 +75,21 @@ test("a run's files are the submission and the harness", () => {
   ]);
   expect(() => runFiles("cobol", iface, "")).toThrow(/cobol/);
 });
+
+// Q-WD-17: an error line says where in the solution file it surfaced, from the
+// runtime's own trace, in every language but C++, whose exceptions carry no location.
+test("each harness but C++'s reports an error's line in the solution file", () => {
+  const where: Record<string, RegExp> = {
+    python:
+      /traceback\.extract_tb[\s\S]*"solution\.py"[\s\S]*line\["line"\] = at/,
+    javascript: /solution\\\.js:[\s\S]*line\.line = at/,
+    typescript: /solution\\\.ts:[\s\S]*line\.line = at/,
+    java: /"Inventory\.java"\.equals\(f\.getFileName\(\)\)[\s\S]*\\"line\\":/,
+    go: /intervalRuntime\.Callers[\s\S]*"solution\.go"[\s\S]*failed\["line"\] = at/,
+  };
+  for (const [language, generate] of Object.entries(GENERATORS)) {
+    const harness = generate(iface).harness;
+    if (language === "cpp") expect(harness).not.toMatch(/\\"line\\"/);
+    else expect(harness, language).toMatch(where[language] ?? /^$/);
+  }
+});
