@@ -1237,3 +1237,37 @@ def test_similar_code_flags_a_battle_player(conn: psycopg.Connection) -> None:
     similar: dict[str, object] = {"kind": "similar", "round": 45, "ms": None}
     match_id = _battle_with(conn, "lfd", [similar])
     assert _flags(conn, match_id) == [("lfd", 1, None, None)]
+
+
+def test_a_battle_records_each_players_hints(conn: psycopg.Connection) -> None:
+    """Q-WD-17: what a player's hints cost (already off the total), for the results
+    page; nothing for a player who opened none."""
+    users = ["hna", "hnb"]
+    for user in users:
+        a_user(conn, user)
+    match_id = a_battle(conn, users)
+    body = _battle_result(
+        match_id, "finished", "hna", [("hna", 660, False), ("hnb", 300, False)]
+    ).model_dump(mode="json")
+    body["players"][0] |= {"hints": [1, 2], "hint_cost": 40}
+    PostgresMatchResults(conn).record(MatchResult.model_validate(body))
+    assert conn.execute(
+        "select user_id, total, hint_cost from game_match_player"
+        " where match_id = %s order by user_id",
+        (match_id,),
+    ).fetchall() == [("hna", 660, 40), ("hnb", 300, 0)]
+
+
+@pytest.mark.parametrize(
+    "hints",
+    [
+        {"hints": [4], "hint_cost": 0},
+        {"hints": [1, 1], "hint_cost": 20},
+        {"hints": [1], "hint_cost": -1},
+        {"hints": [1, 2, 3], "hint_cost": 101},
+    ],
+)
+def test_hints_that_are_not_levels_are_refused(hints: dict[str, object]) -> None:
+    body = json.loads((GOLDEN / "match_finished.json").read_bytes())
+    body["players"][0] |= hints
+    assert parse_result(json.dumps(body).encode()) is None

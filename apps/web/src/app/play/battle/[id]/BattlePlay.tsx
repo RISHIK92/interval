@@ -14,10 +14,13 @@ import {
   useRef,
   useState,
 } from "react";
+import { z } from "zod";
 import { ClockIcon } from "../../../hld/Clock";
 import { HEADER } from "../../../hld/Frame";
 import { openMatch } from "../../live/join";
 import { CodeEditor, type CodeEditorProps } from "./CodeEditor";
+import { HintPanel } from "./Hints";
+import { HINT_LEVELS } from "@interval/lld/hints";
 import { Statement } from "./Statement";
 
 // P5-W31-S03 (§6.5; Q-P5-15, Q-P5-16; LLDQ-4): a battle's screen. The player writes in
@@ -54,6 +57,11 @@ type Props = {
   statement: string;
   examples: string[];
   starters: Record<string, string>;
+  // Q-WD-14: each player's name, by the id the game server knows them as, for the
+  // opponents' pills.
+  players?: Record<string, string>;
+  // Q-WD-17: a battle's code as last autosaved on the server, per language.
+  autosaved?: Record<string, string>;
   // Tests swap Monaco for a plain field.
   Editor?: ComponentType<CodeEditorProps>;
   now?: () => number;
@@ -81,7 +89,11 @@ type PracticeSession = {
   onEnded: (matchId: string, played: boolean) => void;
 };
 
-// ADR-0048: the autosave waits this long after the last edit.
+// Q-WD-17: a language's autosave: none yet, an edit waiting to go, one out, the last one
+// in, or the last one failed (it waits for a Retry or the next edit).
+type AutosaveStatus = "idle" | "pending" | "saving" | "saved" | "failed";
+
+// ADR-0048, Q-WD-17: the autosave waits this long after the last edit.
 const SAVE_AFTER_MS = 2_000;
 const SAVE_REFUSED: Record<string, string> = {
   stale: "Saved in another tab: reload to get it.",
@@ -104,7 +116,53 @@ function store(key: string, value: string): void {
   }
 }
 
-// A battle's code in one language: this tab's saved copy, or the starter. Keyed by match
+// Q-WD-17: this tab's copy of a battle's code in one language, kept on every edit, and
+// whether the server has it yet. Keyed by match and language.
+const LocalCopy = z.object({ code: z.string(), unsaved: z.boolean() });
+type LocalCopy = z.infer<typeof LocalCopy>;
+const localKey = (matchId: string, language: string) =>
+  `battle:${matchId}:${language}`;
+
+export function localCopy(
+  read: (key: string) => string | null,
+  matchId: string,
+  language: string,
+): LocalCopy | null {
+  const raw = read(localKey(matchId, language));
+  if (raw === null) return null;
+  try {
+    const parsed = LocalCopy.safeParse(JSON.parse(raw));
+    return parsed.success ? parsed.data : null;
+  } catch {
+    return null; // not this page's: as if none
+  }
+}
+
+// Q-WD-17: a battle's code per language on load. The server's autosaved copy, unless
+// this tab holds code it never got (a save failed, then a reload): that wins, and goes
+// to the server again (`resend`). Then this tab's copy, then (by the caller) the
+// starter. Unsaved local code is newer than anything this tab saved; another device's
+// later save is the one thing it can overwrite.
+export function restoreBattleCode(
+  local: (language: string) => LocalCopy | null,
+  autosaved: Record<string, string>,
+  languages: string[],
+): { code: Record<string, string>; resend: string[] } {
+  const code: Record<string, string> = {};
+  const resend: string[] = [];
+  for (const l of languages) {
+    const mine = local(l);
+    const server = autosaved[l];
+    if (mine?.unsaved === true) {
+      code[l] = mine.code;
+      resend.push(l);
+    } else if (server !== undefined) code[l] = server;
+    else if (mine !== null) code[l] = mine.code;
+  }
+  return { code, resend };
+}
+
+// A battle's code in one language: what `read` finds, or the starter. Keyed by match
 // and language, so a reload or a switch back finds the work.
 export function codeFor(
   read: (key: string) => string | null,
@@ -166,6 +224,8 @@ export function BattlePlay({
   statement,
   examples,
   starters,
+  players = {},
+  autosaved = {},
   Editor = CodeEditor,
   now = Date.now,
   practice,
@@ -184,19 +244,44 @@ export function BattlePlay({
       Object.entries(practice?.saved ?? {}).map(([l, s]) => [l, s.version]),
     ),
   );
+  // Q-WD-17: a battle's code is autosaved on the server too: what was restored, then
+  // each edit, per language, and how each language's last save went.
+  const [restored] = useState(() =>
+    practice === undefined && matchId !== null
+      ? restoreBattleCode(
+          (l) => localCopy(stored, matchId, l),
+          autosaved,
+          languages,
+        )
+      : { code: {}, resend: [] },
+  );
+  const battleCode = useRef<Record<string, string>>({ ...restored.code });
+  const [autosaveStatus, setAutosaveStatus] = useState<
+    Record<string, AutosaveStatus>
+  >({});
+  const statusOf = (l: string, status: AutosaveStatus) => {
+    setAutosaveStatus((was) => ({ ...was, [l]: status }));
+  };
   const saveTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const read = (key: string): string | null => {
-    if (practice === undefined) return stored(key);
     const l = key.slice(key.lastIndexOf(":") + 1);
+    if (practice === undefined)
+      return (
+        battleCode.current[l] ??
+        localCopy(stored, matchId ?? "", l)?.code ??
+        null
+      );
     return practiceCode.current[l] ?? null;
   };
   const [code, setCode] = useState(() =>
     practice === undefined
-      ? codeFor(stored, matchId ?? "", starters, language)
+      ? (restored.code[language] ?? starters[language] ?? "")
       : (practice.saved[language]?.code ?? starters[language] ?? ""),
   );
   const [state, setState] = useState<BattleState>(BATTLE.start);
+  // Q-WD-17: a hint asked for with no open socket isn't sent: said, to try again.
+  const [hintNotice, setHintNotice] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const [, tick] = useState(0);
   const live = useRef<ReturnType<typeof runLive<BattleState>> | null>(null);
@@ -344,10 +429,57 @@ export function BattlePlay({
         });
     }, SAVE_AFTER_MS);
   };
+  // Q-WD-17: one language's code to the server, after the ones before it.
+  const sendCode = (l: string, value: string) => {
+    if (matchId === null) return;
+    statusOf(l, "saving");
+    saveChain.current[l] = (saveChain.current[l] ?? Promise.resolve())
+      .then(() =>
+        fetch(`/api/battle/${matchId}/code`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ language: l, code: value }),
+        }),
+      )
+      .then((res) => {
+        if (!res.ok) throw new Error(`refused: ${String(res.status)}`);
+        // An edit since is still to go: its own save says how it went.
+        if (battleCode.current[l] !== value) return;
+        store(
+          localKey(matchId, l),
+          JSON.stringify({ code: value, unsaved: false }),
+        );
+        statusOf(l, "saved");
+      })
+      .catch((error: unknown) => {
+        console.error("battle: code not autosaved", error);
+        statusOf(l, "failed");
+      });
+  };
+  // What this tab had and the server never got goes again at once.
+  const resend = useRef(sendCode);
+  useEffect(() => {
+    resend.current = sendCode;
+  });
+  useEffect(() => {
+    for (const l of restored.resend) resend.current(l, restored.code[l] ?? "");
+  }, [restored]);
   const edit = (value: string) => {
     setCode(value);
     if (practice === undefined) {
-      if (matchId !== null) store(`battle:${matchId}:${language}`, value);
+      if (matchId === null) return;
+      store(
+        localKey(matchId, language),
+        JSON.stringify({ code: value, unsaved: true }),
+      );
+      battleCode.current[language] = value;
+      const l = language;
+      // Not "Autosaved" while the edit waits to go.
+      statusOf(l, "pending");
+      clearTimeout(saveTimers.current[l]);
+      saveTimers.current[l] = setTimeout(() => {
+        sendCode(l, value);
+      }, SAVE_AFTER_MS);
       return;
     }
     practiceCode.current[language] = value;
@@ -364,7 +496,7 @@ export function BattlePlay({
       extension?.statement ?? "",
       ...languages
         .filter((l) => l !== language)
-        .map((l) => codeFor(stored, matchId ?? "", {}, l)),
+        .map((l) => codeFor(read, matchId ?? "", {}, l)),
     ]);
     if (chars !== null) live.current?.pasted(chars);
   };
@@ -402,6 +534,7 @@ export function BattlePlay({
       about={about}
       interviewer={interviewer}
       signatures={signatures}
+      players={players}
       state={state}
       failed={failed}
       statement={statement}
@@ -415,6 +548,24 @@ export function BattlePlay({
       onCode={edit}
       onPaste={paste}
       onSend={send}
+      onHint={(level) => {
+        setHintNotice(
+          live.current?.hint(level) === true
+            ? null
+            : "Not connected: try again in a moment.",
+        );
+      }}
+      hintNotice={hintNotice}
+      {...(practice === undefined
+        ? {
+            autosave: {
+              status: autosaveStatus[language] ?? "idle",
+              onRetry: () => {
+                sendCode(language, battleCode.current[language] ?? "");
+              },
+            },
+          }
+        : {})}
       {...(practice === undefined
         ? {}
         : {
@@ -439,6 +590,7 @@ type ViewProps = {
   about?: ReactNode;
   interviewer?: ReactNode;
   signatures: string[];
+  players?: Record<string, string>;
   state: BattleState;
   failed: boolean;
   statement: string;
@@ -452,6 +604,12 @@ type ViewProps = {
   onCode: (code: string) => void;
   onPaste: (pasted: string, had: string[]) => void;
   onSend: (submit: boolean) => void;
+  // Q-WD-17: the player opens a hint level (confirmed first in a battle), and what went
+  // wrong asking for the last one.
+  onHint?: (level: number) => void;
+  hintNotice?: string | null;
+  // Q-WD-17: how a battle's autosave went, and a way to send a failed one again.
+  autosave?: { status: AutosaveStatus; onRetry: () => void };
   // ADR-0048: LLD practice: the player's best, the extension on request (`canReveal`:
   // the problem has one), and the autosave's trouble, if any.
   practice?:
@@ -472,6 +630,7 @@ export function BattleView({
   about,
   interviewer,
   signatures,
+  players = {},
   state,
   failed,
   statement,
@@ -485,6 +644,9 @@ export function BattleView({
   onCode,
   onPaste,
   onSend,
+  onHint = () => undefined,
+  hintNotice = null,
+  autosave,
   practice,
 }: ViewProps) {
   const playing = state.phase === "playing" ? state : null;
@@ -554,12 +716,14 @@ export function BattleView({
         </span>
       ) : playing === null ? null : (
         <>
-          {bests(playing).map((b) => (
+          {pills(playing, players).map((b) => (
             <span
-              key={b}
-              className="hidden h-[38px] items-center rounded-full bg-well px-3 text-sm text-ink-muted tabular-nums lg:flex"
+              key={b.player}
+              title={b.title}
+              className="hidden h-[38px] items-center gap-1.5 rounded-full bg-well px-3 text-sm text-ink-muted tabular-nums lg:flex"
             >
-              {b}
+              {b.text}
+              {b.hint !== undefined && <HintBadge {...b.hint} />}
             </span>
           ))}
           <span
@@ -664,6 +828,13 @@ export function BattleView({
             ))}
           </ul>
         </div>
+        {playing?.hints != null && (
+          <HintPanel
+            hints={playing.hints}
+            onOpen={onHint}
+            notice={hintNotice}
+          />
+        )}
         {practice?.canReveal === true &&
           playing !== null &&
           playing.extension === null && (
@@ -733,7 +904,20 @@ export function BattleView({
                   {playing === null ? "–" : clock(playing.endsAt - now)}
                 </span>
                 <span className="text-ink-muted lg:hidden">
-                  {playing === null ? "Connecting…" : bests(playing).join(", ")}
+                  {playing === null
+                    ? "Connecting…"
+                    : pills(playing, players).map((b, i) => (
+                        <Fragment key={b.player}>
+                          {i === 0 ? "" : ", "}
+                          {b.text}
+                          {b.hint !== undefined && (
+                            <>
+                              {" "}
+                              <HintBadge {...b.hint} />
+                            </>
+                          )}
+                        </Fragment>
+                      ))}
                 </span>
               </>
             ) : (
@@ -741,18 +925,33 @@ export function BattleView({
                 {playing === null ? "Connecting…" : best}
               </span>
             )}
-            {/* Where the code is kept: autosaved to the account in practice (ADR-0048), in
-                this tab in a battle. */}
+            {/* Where the code is kept: autosaved to the account in practice (ADR-0048),
+                and on the server per language in a battle (Q-WD-17). */}
             <span
               role="status"
+              aria-live="polite"
               className="text-ink-muted lg:ml-auto lg:text-[13px]"
             >
               {practice?.saving ??
-                (playing === null
-                  ? "Connecting…"
-                  : practice === undefined
-                    ? "Saved in this tab"
-                    : "Autosaved")}
+                (autosave?.status === "saving" ||
+                autosave?.status === "pending" ? (
+                  "Saving…"
+                ) : autosave?.status === "failed" ? (
+                  <>
+                    Not saved ·{" "}
+                    <button
+                      type="button"
+                      onClick={autosave.onRetry}
+                      className="font-semibold text-ink underline"
+                    >
+                      Retry
+                    </button>
+                  </>
+                ) : autosave?.status === "saved" || playing !== null ? (
+                  "Autosaved"
+                ) : (
+                  "Connecting…"
+                ))}
             </span>
           </div>
           <div className="lg:relative lg:min-h-[420px] lg:flex-1">
@@ -897,13 +1096,80 @@ export function BattleView({
   );
 }
 
-// Each player's best: the player's own says it's theirs.
-function bests(playing: Extract<BattleState, { phase: "playing" }>): string[] {
-  const label = names(Object.keys(playing.best), playing.you);
-  return Object.entries(playing.best).map(([player, points]) =>
-    player === playing.you
-      ? `Your best · ${String(points)}`
-      : `${label[player] ?? player} ${String(points)}`,
+// "Robin Sharma" and "robin_s" are RS; a one-word name gives its first two letters.
+export function initials(name: string): string {
+  const words = name.split(/[\s._-]+/).filter((w) => w !== "");
+  const [first = "", second] = words;
+  return (
+    second === undefined
+      ? first.slice(0, 2)
+      : `${first[0] ?? ""}${second[0] ?? ""}`
+  ).toUpperCase();
+}
+
+// Q-WD-14: your best in points; each opponent's best as tests passed, by their initials
+// ("RS · 9 of 14 tests"), and compact in a room ("RS · 9/14"). An opponent the server
+// sends no count for (one older than Q-WD-14) has no pill.
+function pills(
+  playing: Extract<BattleState, { phase: "playing" }>,
+  players: Record<string, string>,
+): {
+  player: string;
+  text: string;
+  title?: string;
+  hint?: { shown: string; label: string };
+}[] {
+  const seated = Object.keys(playing.best);
+  const label = names(seated, playing.you);
+  const room = seated.length > 2;
+  return seated.flatMap((player) => {
+    if (player === playing.you)
+      return [
+        {
+          player,
+          text: `Your best · ${String(playing.best[player] ?? 0)} points`,
+        },
+      ];
+    const tests = playing.progress[player];
+    if (tests === undefined) return [];
+    const name = players[player];
+    const who =
+      name === undefined || initials(name) === ""
+        ? (label[player] ?? player)
+        : initials(name);
+    const count = `${String(tests.passed)} of ${String(tests.total)} tests`;
+    const full = name ?? label[player] ?? player;
+    // Q-WD-17 (owner, 2026-11-24): the hint levels they've opened are public.
+    const levels = [...(tests.hints ?? [])].sort((a, b) => a - b);
+    return [
+      {
+        player,
+        text: room
+          ? `${who} · ${String(tests.passed)}/${String(tests.total)}`
+          : `${who} · ${count}`,
+        title: `${full}: ${count}`,
+        ...(levels.length === 0
+          ? {}
+          : {
+              hint: {
+                shown: `${levels.length === 1 ? "Hint" : "Hints"} ${levels.join(", ")}`,
+                label: `${full} used hints: ${levels
+                  .map((l) => (HINT_LEVELS[l - 1] ?? "").toLowerCase())
+                  .join(", ")}`,
+              },
+            }),
+      },
+    ];
+  });
+}
+
+// Q-WD-17: an opponent's hints, as a badge on their pill; its words for a screen reader.
+function HintBadge({ shown, label }: { shown: string; label: string }) {
+  return (
+    <span className="rounded-full bg-(--system-design-tint) px-2 py-0.5 text-xs font-semibold text-(--system-design-line)">
+      <span aria-hidden="true">{shown}</span>
+      <span className="sr-only">{label}</span>
+    </span>
   );
 }
 

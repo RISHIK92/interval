@@ -45,6 +45,31 @@ type battleDef struct {
 	// ADR-0048: LLD practice, one player, unrated: no reveal or end on the battle clock (the
 	// player reveals the extension), no fair-play signals, a progress message per Submit.
 	Practice bool `json:"practice,omitempty"`
+	// Q-WD-17: "Stuck?" hints, hand-written per problem (problems/lld/<slug>/hints.md):
+	// the nudge, the approach and the code sketch, level n at [n-1]. Like the hidden
+	// tests they stay here: a text goes only to the player who opens it.
+	Hints []string `json:"hints,omitempty"`
+}
+
+// Q-WD-17 (owner, 2026-11-23; ×10, owner, 2026-11-24): what opening each level takes
+// off the player's best submission, Nudge −10, Approach −30, Code sketch −60; practice
+// is unscored, so free.
+var hintCosts = [3]int{10, 30, 60}
+
+func (b *battleDef) hintCosts() [3]int {
+	if b.Practice {
+		return [3]int{}
+	}
+	return hintCosts
+}
+
+// What the levels opened cost, all told.
+func (b *battleDef) hintCost(opened []int) int {
+	costs, total := b.hintCosts(), 0
+	for _, level := range opened {
+		total += costs[level-1]
+	}
+	return total
 }
 
 // How long this battle can run: the battle's 45 minutes, or a practice session's cap.
@@ -125,6 +150,16 @@ func (b *battleDef) validate() error {
 	}
 	if !visible {
 		return errors.New("a battle needs visible scenarios")
+	}
+	if b.Hints != nil {
+		if len(b.Hints) != len(hintCosts) {
+			return errors.New("a battle's hints are all three levels")
+		}
+		for _, h := range b.Hints {
+			if h == "" {
+				return errors.New("a battle's hint without its text")
+			}
+		}
 	}
 	if extension != (b.Extension != nil) {
 		return errors.New("a battle's extension scenarios and its extension text go together")
@@ -249,11 +284,24 @@ type bestSubmission struct {
 	Points int           `json:"points"`
 	At     time.Duration `json:"at"` // since the battle began
 	Made   bool          `json:"made"`
+	Passed int           `json:"passed"` // Q-WD-14: its tests passed, every layer judged
 }
 
-func (s bestSubmission) improvedBy(points int, at time.Duration) bestSubmission {
+func (s bestSubmission) improvedBy(points, passed int, at time.Duration) bestSubmission {
 	if s.Made && points <= s.Points {
 		return s
 	}
-	return bestSubmission{Points: points, At: at, Made: true}
+	return bestSubmission{Points: points, At: at, Made: true, Passed: passed}
+}
+
+// Q-WD-14: how many tests a player's best is out of: every base layer's, and the
+// extension's once it's revealed (a best from before the reveal passed none of them).
+func (b *battleDef) tests(revealed bool) int {
+	n := 0
+	for _, s := range b.Scenarios {
+		if s.Layer != "extension" || revealed {
+			n++
+		}
+	}
+	return n
 }

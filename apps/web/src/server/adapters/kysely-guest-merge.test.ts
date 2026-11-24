@@ -457,6 +457,30 @@ test("the guest's battle snapshots move to the account", async () => {
   });
 });
 
+// Q-WD-17: the guest's autosaved battle code is the account's, so a battle it's in finds
+// it after the sign-in.
+test("the guest's autosaved battle code moves to the account", async () => {
+  await inRollback(async (trx, { guest, account }) => {
+    const { id } = await trx
+      .insertInto("game_match")
+      .values({ server_id: 0 })
+      .returning("id")
+      .executeTakeFirstOrThrow();
+    await trx
+      .insertInto("battle_code")
+      .values({ match_id: id, user_id: guest, language: "go", code: "x" })
+      .execute();
+    expect(await mergeGuest(trx, guest, account)).toBe(true);
+    expect(
+      await trx
+        .selectFrom("battle_code")
+        .select(["user_id", "code"])
+        .where("match_id", "=", id)
+        .execute(),
+    ).toEqual([{ user_id: account, code: "x" }]);
+  });
+});
+
 // P3-W18-S02 (§6.9): the guest's fair-play signals and flags are the account's; a
 // flag the account has for the same match (a self-match) stays as it is.
 test("the guest's fair-play signals and flags move to the account", async () => {

@@ -3522,11 +3522,14 @@ class PostgresMatchResults:
                     continue
                 conn.execute(
                     "update game_match_player set total = %s, time_ms = %s, "
-                    "abandoned = %s, signals = %s where match_id = %s and user_id = %s",
+                    "abandoned = %s, hint_cost = %s, signals = %s "
+                    "where match_id = %s and user_id = %s",
                     (
                         player.total,
                         player.time_ms,
                         player.abandoned,
+                        # Q-WD-17: what the hints cost, for the results page
+                        player.hint_cost,
                         # chars only on a paste, as the game server sends it
                         Jsonb(
                             [

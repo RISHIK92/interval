@@ -2,10 +2,10 @@
 // Every problem is parsed and checked before any is loaded; an unchanged one is
 // skipped, and one gone from disk is retired. Same env as the web: DATABASE_URL and the
 // private bucket's (S3_ENDPOINT locally and on the VM).
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { S3Client } from "@aws-sdk/client-s3";
-import { Expected, Problem } from "@interval/lld";
+import { Expected, parseHints, Problem } from "@interval/lld";
 import { filesEnv } from "../src/env";
 import { createDb } from "../src/server/adapters/kysely";
 import { kyselyProblemStore } from "../src/server/adapters/kysely-problems";
@@ -37,6 +37,10 @@ const sources: ProblemSource[] = readdirSync(root)
       // P5-W33 (Q-P5-13): an AI-mode problem's interviewer notes.
       ...(problem.battleMode === "ai"
         ? { interviewerNotes: read("interviewer.md") }
+        : {}),
+      // Q-WD-17: the hints (a battle problem must have them; the loader checks).
+      ...(existsSync(join(root, slug, "hints.md"))
+        ? { hints: parseHints(read("hints.md")) }
         : {}),
       expected: Expected.parse(JSON.parse(read("expected.json"))),
     };

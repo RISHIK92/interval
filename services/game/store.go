@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"slices"
 	"sync"
 	"time"
@@ -299,9 +300,10 @@ func (g *registry) get(ctx context.Context, id string) (*actor, error) {
 		// AWS stack counts these). The last one, "over", is tried three times: lost, a
 		// restart could play a finished match again from its last round. So is each of a
 		// practice session's (ADR-0048): lost, a restart would send its progress sequence
-		// number again, and the worker would drop that Submit as a repeat.
+		// number again, and the worker would drop that Submit as a repeat. And the one
+		// that records a hint level (Q-WD-17): lost, a restart would refund it.
 		tries := 1
-		if s.Over || (def.Battle != nil && def.Battle.Practice) {
+		if s.Over || s.Retry || (def.Battle != nil && def.Battle.Practice) {
 			tries = len(retryAfter) + 1
 		}
 		for try := 1; try <= tries; try++ {
@@ -500,7 +502,7 @@ func (s *memStore) save(_ context.Context, id string, saved snap) error {
 		return errors.New("store down")
 	}
 	// A copy: the actor goes on changing its maps.
-	copied := snap{Next: saved.Next, Over: saved.Over, Started: saved.Started, Seq: saved.Seq, Revealed: saved.Revealed, Totals: map[string]int{}, Times: map[string]time.Duration{}}
+	copied := snap{Next: saved.Next, Over: saved.Over, Retry: saved.Retry, Started: saved.Started, Seq: saved.Seq, Revealed: saved.Revealed, Totals: map[string]int{}, Times: map[string]time.Duration{}}
 	for k, v := range saved.Totals {
 		copied.Totals[k] = v
 	}
@@ -514,6 +516,11 @@ func (s *memStore) save(_ context.Context, id string, saved snap) error {
 	copied.Answers = map[string][]answerRec{}
 	for k, v := range saved.Answers {
 		copied.Answers[k] = slices.Clone(v)
+	}
+	copied.Passed = maps.Clone(saved.Passed)
+	copied.Hints = map[string][]int{}
+	for k, v := range saved.Hints {
+		copied.Hints[k] = slices.Clone(v)
 	}
 	s.snaps[id] = copied
 	return nil

@@ -391,3 +391,20 @@ test("a practice reveal goes to the game server while its socket is open", async
   expect(socket.sent).toHaveLength(1);
   live.stop();
 });
+
+// Q-WD-17: a hint is asked for by its level; the game server sends its text.
+test("a hint is asked for while the socket is open", async () => {
+  const h = harness([]);
+  h.deps.matchId = "battle-1";
+  const live = runLive(h.deps);
+  await flush();
+  const [socket] = h.sockets;
+  if (socket === undefined) throw new Error("no socket");
+  expect(live.hint(3)).toBe(true);
+  expect(socket.sent.map((s) => JSON.parse(s) as unknown)).toEqual([
+    { type: "hint", level: 3 },
+  ]);
+  socket.readyState = 0;
+  expect(live.hint(1)).toBe(false);
+  live.stop();
+});

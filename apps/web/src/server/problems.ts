@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import {
   type Expected,
+  type Hints,
   interfaceFor,
   type Problem,
   scenariosOf,
@@ -26,6 +27,8 @@ export type ProblemSource = {
   extensionStatement?: string;
   // P5-W33 (Q-P5-13): interviewer.md, an AI-mode problem's notes for the interviewer.
   interviewerNotes?: string;
+  // Q-WD-17: hints.md's three levels; a battle problem must have them.
+  hints?: Hints;
   expected: Expected;
 };
 
@@ -41,6 +44,9 @@ type LoadReport = {
 export function privateLayers(source: ProblemSource) {
   return {
     slug: source.problem.slug,
+    // Q-WD-17: like the hidden layers, for the game server only, which sends each
+    // level to the player who opens it.
+    ...(source.hints === undefined ? {} : { hints: source.hints }),
     scenarios: scenariosOf(source.problem).map((s, i) => {
       const results = source.expected[i]?.results;
       // checkExpected has paired them; a judge file without results would pass anything.
@@ -58,7 +64,11 @@ function checkExpected({
   expected,
   extensionStatement,
   interviewerNotes,
+  hints,
 }: ProblemSource): void {
+  // Q-WD-17: every battle offers its three hint levels.
+  if (problem.pool === "battle" && hints === undefined)
+    throw new Error(`${problem.slug}: a battle problem needs hints.md`);
   if ((problem.extension === undefined) !== (extensionStatement === undefined))
     throw new Error(
       `${problem.slug}: an extension round and extension.md go together`,
@@ -145,6 +155,7 @@ export async function loadProblems(
           source.extensionStatement ?? null,
           source.interviewerNotes ?? null,
           source.expected,
+          source.hints ?? null,
         ]),
       )
       .digest("hex");

@@ -1,7 +1,13 @@
 import type { BattleState } from "@interval/game-client";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
-import { BattleView, codeFor, names, outsidePaste } from "./BattlePlay";
+import {
+  BattleView,
+  codeFor,
+  initials,
+  names,
+  outsidePaste,
+} from "./BattlePlay";
 import { type CodeEditorProps, removedBy } from "./CodeEditor";
 
 // P5-W31-S03 (§6.5; Q-P5-15, Q-P5-16; LLDQ-4): the battle's screen for each state.
@@ -13,10 +19,12 @@ const show = (
   state: BattleState,
   failed = false,
   practice?: Parameters<typeof BattleView>[0]["practice"],
+  players: Record<string, string> = {},
 ) =>
   renderToStaticMarkup(
     <BattleView
       practice={practice}
+      players={players}
       resultHref="/play/battle/m1/result"
       heading={<h1>LRU cache</h1>}
       about="An LLD battle, about 45 minutes."
@@ -44,6 +52,8 @@ const playing: BattleState = {
   practice: false,
   extension: null,
   best: { ada: 700, bob: 300 },
+  progress: { ada: { passed: 9, total: 14 }, bob: { passed: 4, total: 14 } },
+  hints: null,
   ran: null,
   submitted: null,
   running: false,
@@ -63,11 +73,13 @@ test("connecting: the problem and the code are there, the buttons wait", () => {
 });
 
 test("playing: the clock, both bests, and no extension before the reveal", () => {
-  const html = show(playing);
+  const html = show(playing, false, undefined, { bob: "Robin Sharma" });
   expect(html).toContain("30:05");
-  // One pill each: yours says it's your best.
-  expect(html).toContain(">Your best · 700<");
-  expect(html).toContain(">Opponent 300<");
+  // Q-WD-14: yours in points, the opponent's as tests passed, by their initials.
+  expect(html).toContain(">Your best · 700 points<");
+  expect(html).toContain(">RS · 4 of 14 tests<");
+  expect(html).toContain('title="Robin Sharma: 4 of 14 tests"');
+  expect(html).not.toContain("300");
   expect(html).not.toContain("Extension");
   expect(html.match(/disabled=""/g)).toBeNull();
 });
@@ -193,6 +205,33 @@ test("text cut from the editor and pasted back is the player's own", () => {
 
 // P5-W32 (C-03, Q-P5-19): rooms number their opponents; a room's end names your place;
 // alone, the reference pace.
+test("a room has a compact pill per opponent; a name unknown is numbered", () => {
+  const html = show(
+    {
+      ...playing,
+      best: { ada: 700, bob: 300, cy: 0 },
+      progress: {
+        ada: { passed: 9, total: 14 },
+        bob: { passed: 4, total: 14 },
+        cy: { passed: 0, total: 14 },
+      },
+    },
+    false,
+    undefined,
+    { bob: "robin_s" },
+  );
+  expect(html).toContain(">RS · 4/14<");
+  expect(html).toContain(">Opponent 2 · 0/14<");
+  expect(html).toContain(">Your best · 700 points<");
+});
+
+test("initials: two words' first letters, or one word's first two", () => {
+  expect(initials("Robin Sharma")).toBe("RS");
+  expect(initials("robin_s")).toBe("RS");
+  expect(initials("ada")).toBe("AD");
+  expect(initials("  ")).toBe("");
+});
+
 test("a room numbers the opponents; a 1v1 has the opponent", () => {
   expect(names(["a", "b", "c"], "b")).toEqual({
     a: "Opponent 1",
@@ -335,7 +374,65 @@ test("the header leaves to the lobby; the editor says where the code is kept", (
   expect(html).toMatch(
     /<a href="\/play\/battle" aria-label="Leave the battle"/,
   );
-  expect(html).toContain("Saved in this tab");
+  // Q-WD-17: a battle's code is autosaved on the server too.
+  expect(html).toContain("Autosaved");
+  expect(html).not.toContain("Saved in this tab");
   expect(show(practicing, false, practiceView)).toContain("Autosaved");
   expect(html).toMatch(/aria-keyshortcuts="Control\+Enter Meta\+Enter"/);
+});
+
+// Q-WD-17: the hints' rows in the problem column, and the opened ones; none offered, none
+// shown.
+test("hints: offered in the problem column when the battle has them", () => {
+  expect(show(playing)).not.toContain("Stuck?");
+  const html = show({
+    ...playing,
+    hints: {
+      costs: [10, 30, 60],
+      opened: [{ level: 1, text: "Think about recency." }],
+      spent: 10,
+    },
+  });
+  const problem = /aria-label="Problem"[\s\S]*?aria-label="Your code"/.exec(
+    html,
+  )?.[0];
+  expect(problem).toContain("Stuck? Hints cost points");
+  expect(problem).toContain("Think about recency.");
+  expect(problem).toContain("Hints: −10");
+});
+
+// Q-WD-17 (owner, 2026-11-24): a hint taken is public: the opponent's pill says which
+// levels, never the text.
+test("an opponent's pill shows the hints they used", () => {
+  const one = show(
+    {
+      ...playing,
+      progress: {
+        ada: { passed: 9, total: 14, hints: [] },
+        bob: { passed: 4, total: 14, hints: [2] },
+      },
+    },
+    false,
+    undefined,
+    { bob: "Robin Sharma" },
+  );
+  expect(one).toContain("RS · 4 of 14 tests");
+  expect(one).toContain(">Hint 2<");
+  expect(one).toContain("Robin Sharma used hints: approach");
+  const two = show(
+    {
+      ...playing,
+      progress: {
+        ada: { passed: 9, total: 14, hints: [1] },
+        bob: { passed: 4, total: 14, hints: [1, 2] },
+      },
+    },
+    false,
+    undefined,
+    { bob: "rsharma" },
+  );
+  expect(two).toContain(">Hints 1, 2<");
+  expect(two).toContain("rsharma used hints: nudge, approach");
+  // Your own hints are in your problem column, not your pill.
+  expect(two).toContain(">Your best · 700 points<");
 });

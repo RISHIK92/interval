@@ -37,6 +37,13 @@ type snap struct {
 	// the extension revealed.
 	Seq      int  `json:"seq,omitempty"`
 	Revealed bool `json:"revealed,omitempty"`
+	// Q-WD-14: how many tests each battle player's best passed, for the opponents' pills.
+	Passed map[string]int `json:"passed,omitempty"`
+	// Q-WD-17: the hint levels each battle player has opened, so a restart neither
+	// refunds nor charges one again.
+	Hints map[string][]int `json:"hints,omitempty"`
+	// Saved with retries, as an "over" one is: this one records a hint level.
+	Retry bool `json:"-"`
 }
 
 // P3-W15-S05: a player's answer to a round, for the result (null fields: not answered).
@@ -99,7 +106,7 @@ func (realClock) Now() time.Time                         { return time.Now() }
 func (realClock) After(d time.Duration) <-chan time.Time { return time.After(d) }
 
 type event struct {
-	kind   string // join, leave, answer, focus, rtt, graceOver, sync; code, judged, back, paste, reveal (battles)
+	kind   string // join, leave, answer, focus, rtt, graceOver, sync; code, judged, back, paste, reveal, hint (battles)
 	player string
 	seat   seat
 	n      int // the round answered; for graceOver, the leave's generation; a paste's characters
@@ -107,7 +114,7 @@ type event struct {
 	rtt    time.Duration
 	at     time.Time // when an answer arrived
 	done   chan struct{}
-	code   *codeMsg   // a battle's Run or Submit
+	code   *codeMsg   // a battle's Run or Submit (and n, a hint's level)
 	judged *judgedMsg // the judge's answer to one
 }
 
@@ -188,6 +195,11 @@ func (a *actor) back(player string) {
 // ADR-0048: a practice player asks for the extension.
 func (a *actor) reveal(player string) {
 	a.post(event{kind: "reveal", player: player})
+}
+
+// Q-WD-17: a battle player opens a hint level.
+func (a *actor) hint(player string, level int) {
+	a.post(event{kind: "hint", player: player, n: level})
 }
 
 func (a *actor) paste(player string, chars int) {
@@ -533,6 +545,10 @@ type playerResult struct {
 	// P5-W35 (Q-P5-22): a battle player's best submission, for the results page's AI
 	// code review; none before a first submission.
 	Best *bestCode `json:"best,omitempty"`
+	// Q-WD-17: the hint levels a battle player opened, in order, and what they took off
+	// Total (already taken off it).
+	Hints    []int `json:"hints,omitempty"`
+	HintCost int   `json:"hint_cost,omitempty"`
 }
 
 type bestCode struct {
@@ -570,6 +586,10 @@ func (a *actor) hand(p *play, outcome, won string) {
 			if c := b.bestCode[player]; c != nil {
 				played.Best = &bestCode{Language: c.language, Code: c.code}
 			}
+		}
+		if b := p.battle; b != nil && len(b.hints[player]) > 0 {
+			played.Hints = b.hints[player]
+			played.HintCost = a.def.Battle.hintCost(b.hints[player])
 		}
 		r.Players = append(r.Players, played)
 	}
@@ -609,7 +629,7 @@ func (a *actor) handle(p *play, e event, cur *current) {
 		if b := p.battle; b != nil {
 			// Back, from away or not (Q-P5-16): where the battle stands.
 			b.away[e.player], b.joined[e.player] = false, true
-			e.seat.send(a.battleState(p))
+			e.seat.send(a.battleState(p, e.player))
 		} else if !p.countdown.IsZero() {
 			left := max(0, p.countdown.Sub(a.clock.Now()))
 			e.seat.send(map[string]any{"type": "countdown", "seconds": seconds(left)})
@@ -690,6 +710,10 @@ func (a *actor) handle(p *play, e event, cur *current) {
 	case "reveal":
 		if p.battle != nil {
 			a.practiceReveal(p)
+		}
+	case "hint":
+		if p.battle != nil {
+			a.battleHint(p, e)
 		}
 	case "focus":
 		if p.battle != nil {

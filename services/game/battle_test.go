@@ -108,17 +108,17 @@ func TestBattleScoreWeighsLayers(t *testing.T) {
 
 func TestBestSubmissionCounts(t *testing.T) {
 	var best bestSubmission
-	best = best.improvedBy(0, time.Minute)
+	best = best.improvedBy(0, 0, time.Minute)
 	if !best.Made || best.At != time.Minute {
 		t.Fatalf("the first submission counts, even at 0: %+v", best)
 	}
-	best = best.improvedBy(500, 5*time.Minute)
-	best = best.improvedBy(400, 6*time.Minute) // worse: kept the better one
-	best = best.improvedBy(500, 7*time.Minute) // equal: kept the earlier time
+	best = best.improvedBy(500, 0, 5*time.Minute)
+	best = best.improvedBy(400, 0, 6*time.Minute) // worse: kept the better one
+	best = best.improvedBy(500, 0, 7*time.Minute) // equal: kept the earlier time
 	if best.Points != 500 || best.At != 5*time.Minute {
 		t.Fatalf("%+v", best)
 	}
-	if best = best.improvedBy(900, 40*time.Minute); best.Points != 900 || best.At != 40*time.Minute {
+	if best = best.improvedBy(900, 0, 40*time.Minute); best.Points != 900 || best.At != 40*time.Minute {
 		t.Fatalf("%+v", best)
 	}
 }

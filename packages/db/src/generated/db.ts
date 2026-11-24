@@ -196,6 +196,14 @@ export interface BattleBestSubmission {
   user_id: string;
 }
 
+export interface BattleCode {
+  code: string;
+  language: string;
+  match_id: string;
+  saved_at: Generated<Timestamp>;
+  user_id: string;
+}
+
 export interface BattleDispute {
   created_at: Generated<Timestamp>;
   decided_at: Timestamp | null;
@@ -584,6 +592,7 @@ export interface GameMatch {
 
 export interface GameMatchPlayer {
   abandoned: boolean | null;
+  hint_cost: Generated<number>;
   match_id: string;
   place: number | null;
   played_as: string | null;
@@ -1622,6 +1631,7 @@ export interface DB {
   auth_session: AuthSession;
   auth_verification: AuthVerification;
   battle_best_submission: BattleBestSubmission;
+  battle_code: BattleCode;
   battle_dispute: BattleDispute;
   battle_question: BattleQuestion;
   battle_rating: BattleRating;

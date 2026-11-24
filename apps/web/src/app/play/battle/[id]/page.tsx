@@ -3,7 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { gameEnv } from "../../../../env";
 import {
+  battleCode,
   battleQuestions,
+  battleResults,
   entitlements,
   matches,
   problems,
@@ -41,6 +43,12 @@ export default async function BattlePage(props: {
   if (seat === null || seat.problem === null) notFound();
   const problem = await problems().get(seat.problem);
   if (problem === null) notFound();
+  // Q-WD-14: the opponents' names, for their pills' initials; Q-WD-17: the player's
+  // code as last autosaved, for a reload or another device.
+  const [names, autosaved] = await Promise.all([
+    battleResults().names(id.data, actor.userId),
+    battleCode().load(id.data, actor.userId),
+  ]);
   return (
     // The frame fits the window on a desktop: each column scrolls on its own, and Run
     // tests and Submit stay in view.
@@ -59,6 +67,8 @@ export default async function BattlePage(props: {
           </>
         }
         about={ABOUT}
+        autosaved={autosaved}
+        players={names ?? {}}
         {...(problem.battleMode === "ai"
           ? {
               // §6.2 (Q-P5-13): the AI mode's vague requirements have an interviewer.

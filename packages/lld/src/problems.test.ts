@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, test } from "vitest";
 import { GENERATORS } from "./generate/index";
+import { parseHints } from "./hints";
 import { Expected, Problem, scenariosOf } from "./problem";
 
 // P5-W30-S03 (LLDQ-1 to LLDQ-4, Q-P5-08): every problem in problems/lld is whole: a
@@ -49,6 +50,10 @@ for (const slug of slugs)
     expect(existsSync(join(dir, "interviewer.md"))).toBe(
       problem.battleMode === "ai",
     );
+    // Q-WD-17: every problem's three hint levels, PROVISIONAL until reviewed.
+    const hints = readFileSync(join(dir, "hints.md"), "utf8");
+    expect(hints).toMatch(/PROVISIONAL/);
+    expect(parseHints(hints)).toHaveLength(3);
   });
 
 // ADR-0048 (Q-WD-28): the first practice pool, apart from the battle pools for good.

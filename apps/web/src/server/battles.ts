@@ -26,6 +26,8 @@ import type {
 // bucket boundary.
 const PrivateLayers = z.object({
   slug: z.string(),
+  // Q-WD-17: absent from a file loaded before hints, or a practice problem without them.
+  hints: z.tuple([z.string(), z.string(), z.string()]).optional(),
   scenarios: z.array(
     z.object({
       layer: z.enum(["visible", "hidden", "concurrency", "extension"]),
@@ -137,6 +139,7 @@ async function handOver(
             extension: { statement: problem.extension.statement, starters },
           }),
       ...(options.practice === true ? { practice: true } : {}),
+      ...(layers.hints === undefined ? {} : { hints: layers.hints }),
     },
   };
   try {

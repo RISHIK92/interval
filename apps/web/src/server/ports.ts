@@ -962,6 +962,9 @@ export type BattleMatch = {
     extension?: { statement: string; starters: Record<string, string> };
     // ADR-0048: a practice session: no clock, the player reveals the extension.
     practice?: true;
+    // Q-WD-17: the nudge, the approach and the code sketch, sent by the game server
+    // only to the player who opens one.
+    hints?: [string, string, string];
   };
 };
 
@@ -1822,6 +1825,24 @@ export type FairPlayFlagRow = {
 // Flags go to review before any penalty; a penalty removes the match's gain from the
 // player's rating and drops their ghost run of it, never touching the account (owner,
 // 2026-11-05).
+// Q-WD-17 (owner, 2026-11-23): a battle player's code per language, autosaved on the
+// server while the battle is open, for a reload or another device; it lives as long as
+// its match.
+export interface BattleCode {
+  // False when the user isn't a player of an open battle: nothing is saved. True
+  // otherwise, though a repeat within a second, or a save stamped before the last one,
+  // writes nothing.
+  save(
+    matchId: string,
+    userId: string,
+    language: string,
+    code: string,
+    at: Date,
+  ): Promise<boolean>;
+  // The player's last save in each language.
+  load(matchId: string, userId: string): Promise<Record<string, string>>;
+}
+
 // P5-W31-S04b (§6.9, DB-6, Q-P5-17): a battle player's code every 30 s, kept in the
 // private bucket for review of a fair-play flag.
 export type BattleSnapshot = { takenAt: Date; language: string; key: string };
@@ -1876,6 +1897,8 @@ export type BattleStanding = {
   abandoned: boolean;
   place: number | null;
   you: boolean;
+  // Q-WD-17: what the hints this player opened took off `total` (already off it).
+  hintCost: number;
 };
 export type BattleReview = {
   status: "pending" | "ready" | "unavailable";
@@ -1899,6 +1922,12 @@ export const DISPUTE_DAYS = 7;
 export interface BattleResults {
   // Null when the user wasn't a player.
   of(matchId: string, userId: string): Promise<BattleResult | null>;
+  // Q-WD-14: each player's name, by user id, for the live battle page's pills; null when
+  // the user isn't a player.
+  names(
+    matchId: string,
+    userId: string,
+  ): Promise<Record<string, string> | null>;
   // Every player's snapshots, oldest first: only for a finished battle's player.
   frames(matchId: string, userId: string): Promise<ReplayFrame[] | null>;
   // "requested" or "pending" (queue it: a lost job is queued again, the queue's key

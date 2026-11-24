@@ -77,3 +77,12 @@ test("the outcome says won or lost with the score, a room's place, or nothing ye
   expect(outcome(p(1, 50), [])).toBe("You scored 50");
   expect(outcome(p(null, null), [p(null, null)])).toBe("Results");
 });
+
+// Q-WD-17: what a player's hints cost, beside their points.
+test("points show what hints took off them, and nothing when none were opened", async () => {
+  const { Points } = await import("./Points");
+  expect(renderToStaticMarkup(<Points total={660} hintCost={40} />)).toMatch(
+    /^660<span[^>]*>Hints: −40<\/span>$/,
+  );
+  expect(renderToStaticMarkup(<Points total={700} hintCost={0} />)).toBe("700");
+});

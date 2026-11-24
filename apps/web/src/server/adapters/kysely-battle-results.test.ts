@@ -80,6 +80,7 @@ test("a battle's results, replays, review and dispute, for its players only", as
             total: 1000,
             time_ms: "60000",
             place: 1,
+            hint_cost: 40,
           },
           {
             match_id: match,
@@ -108,6 +109,14 @@ test("a battle's results, replays, review and dispute, for its players only", as
         ["Ada", 1, true],
         ["Bob", 2, false],
       ]);
+      // Q-WD-14: the live page's names only, for the opponents' pills.
+      expect(await results.names(match, ada)).toEqual({
+        [ada]: "Ada",
+        [bob]: "Bob",
+      });
+      expect(await results.names(match, eve)).toBeNull();
+      // Q-WD-17: what each player's hints cost.
+      expect(on?.standings.map((s) => s.hintCost)).toEqual([40, 0]);
       expect(on?.finishedAt).toBeNull();
       // While it's on: no replays, no review, no dispute.
       expect(await results.frames(match, ada)).toBeNull();

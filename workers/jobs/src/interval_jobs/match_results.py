@@ -11,7 +11,7 @@ services/game/testdata/match_finished.json. The queue message itself is codegen'
 import threading
 from collections.abc import Callable
 from datetime import datetime
-from typing import Literal, Protocol, Self
+from typing import Annotated, Literal, Protocol, Self
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
@@ -92,6 +92,19 @@ class PlayerResult(_Strict):
         default_factory=list[FairPlaySignal], max_length=60
     )
     best: BestCode | None = None  # P5-W35: a battle's, for its AI code review
+    # Q-WD-17: the hint levels a battle player opened, in order, and what they cost
+    # (already off `total`; at most 10 + 30 + 60); none from a game server older than
+    # it. Only the cost is stored.
+    hints: list[Annotated[int, Field(ge=1, le=3)]] = Field(
+        default_factory=list[int], max_length=3
+    )
+    hint_cost: int = Field(default=0, ge=0, le=100)
+
+    @model_validator(mode="after")
+    def _each_hint_once(self) -> Self:
+        if len(set(self.hints)) != len(self.hints):
+            raise ValueError("a hint level opened twice")
+        return self
 
 
 class MatchResult(_Strict):

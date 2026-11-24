@@ -40,6 +40,7 @@ export function kyselyBattleResults(db: Kysely<DB>): BattleResults {
           "p.time_ms",
           "p.abandoned",
           "p.place",
+          "p.hint_cost",
         ])
         .where("p.match_id", "=", matchId)
         .orderBy(sql`p.place nulls last`)
@@ -81,6 +82,7 @@ export function kyselyBattleResults(db: Kysely<DB>): BattleResults {
           abandoned: p.abandoned ?? false,
           place: p.place,
           you: p.user_id === userId,
+          hintCost: p.hint_cost,
         })),
         change: change.rows[0]?.change ?? null,
         hasBest: best !== undefined,
@@ -94,6 +96,23 @@ export function kyselyBattleResults(db: Kysely<DB>): BattleResults {
         disputed: disputed !== undefined,
         disputeOpen: match.dispute_open,
       };
+    },
+
+    names: async (matchId, userId) => {
+      const players = await db
+        .selectFrom("game_match_player as p")
+        .innerJoin("game_match as m", "m.id", "p.match_id")
+        .innerJoin("app_user as u", "u.id", "p.user_id")
+        .leftJoin("player_username as n", "n.user_id", "p.user_id")
+        .select([
+          "p.user_id",
+          sql<string>`coalesce(n.username, u.name)`.as("name"),
+        ])
+        .where("p.match_id", "=", matchId)
+        .where("m.mode", "=", "battle")
+        .execute();
+      if (!players.some((p) => p.user_id === userId)) return null;
+      return Object.fromEntries(players.map((p) => [p.user_id, p.name]));
     },
 
     frames: async (matchId, userId) => {

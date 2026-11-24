@@ -155,6 +155,7 @@ test("an extension: its text and interface in the row, its scenarios only in the
     statement: read("statement.md"),
     extensionStatement: read("extension.md"),
     expected: Expected.parse(JSON.parse(read("expected.json"))),
+    hints: HINTS,
   };
   await loadProblems([withExtension], f);
   const row = f.rows.get("inventory");
@@ -182,6 +183,7 @@ test("an extension: its text and interface in the row, its scenarios only in the
     problem: withExtension.problem,
     statement: withExtension.statement,
     expected: withExtension.expected,
+    hints: HINTS,
   };
   await expect(loadProblems([missing], fakes())).rejects.toThrow(
     /extension\.md/,
@@ -202,6 +204,7 @@ test("an empty extension.md loads nothing", async () => {
           statement: read("statement.md"),
           extensionStatement: "  \n",
           expected: Expected.parse(JSON.parse(read("expected.json"))),
+          hints: HINTS,
         },
       ],
       fakes(),
@@ -226,4 +229,47 @@ test("an AI-mode problem and interviewer.md go together", async () => {
     battleMode: "ai",
     interviewerNotes: "Values are never null.",
   });
+});
+
+// Q-WD-17: hints.md's three levels go to the bucket with the hidden layers, for the
+// game server, never to the row a page reads; a battle problem must have them.
+const HINTS: [string, string, string] = [
+  "Think about recency.",
+  "A map to a list.",
+  "get(k):\n  move to front",
+];
+const battleSource = (): ProblemSource => {
+  const s = source();
+  // A battle problem has no topic or concepts.
+  const problem = { ...s.problem, pool: "battle" as const };
+  delete problem.topic;
+  delete problem.concepts;
+  return { ...s, problem };
+};
+
+test("a battle problem needs its hints; a practice one may go without", async () => {
+  await expect(loadProblems([battleSource()], fakes())).rejects.toThrow(
+    /hints\.md/,
+  );
+  await expect(loadProblems([source()], fakes())).resolves.toMatchObject({
+    added: ["lru-cache"],
+  });
+});
+
+test("hints go to the bucket with the hidden layers, never to the row", async () => {
+  const f = fakes();
+  await loadProblems([{ ...battleSource(), hints: HINTS }], f);
+  const row = f.rows.get("lru-cache");
+  if (row === undefined) throw new Error("no row");
+  expect(JSON.parse(f.objects.get(row.privateKey) ?? "{}")).toMatchObject({
+    hints: HINTS,
+  });
+  expect(JSON.stringify(row)).not.toContain("Think about recency.");
+  // A change to a hint is a change to the problem.
+  const was = row.contentHash;
+  await loadProblems(
+    [{ ...battleSource(), hints: ["Other.", HINTS[1], HINTS[2]] }],
+    f,
+  );
+  expect(f.rows.get("lru-cache")?.contentHash).not.toBe(was);
 });

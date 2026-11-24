@@ -2,6 +2,7 @@
 // generators (W29-S02), the problem pipeline (W30) and, as generated JSON Schema and Go,
 // the checker (W29-S03).
 export { Check } from "./check";
+export { HINT_LEVELS, type Hints, parseHints } from "./hints";
 export { Interface } from "./interface";
 export {
   Expected,

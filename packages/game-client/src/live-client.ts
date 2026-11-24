@@ -70,6 +70,7 @@ export function runLive<S>(deps: LiveDeps<S>): {
   pasted: (chars: number) => void;
   code: (submit: boolean, language: string, code: string) => boolean;
   reveal: () => boolean;
+  hint: (level: number) => boolean;
   fallback: () => void;
   stop: () => void;
 } {
@@ -243,6 +244,12 @@ export function runLive<S>(deps: LiveDeps<S>): {
     reveal: () => {
       if (socket === null || socket.readyState !== OPEN) return false;
       socket.send(JSON.stringify({ type: "reveal" }));
+      return true;
+    },
+    // Q-WD-17: a battle player opens a hint level. False with no open socket.
+    hint: (level) => {
+      if (socket === null || socket.readyState !== OPEN) return false;
+      socket.send(JSON.stringify({ type: "hint", level }));
       return true;
     },
     // "Play bot now": taken at the queue's next turn (within a poll).

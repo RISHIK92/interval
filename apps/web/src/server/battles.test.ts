@@ -33,6 +33,12 @@ const source: ProblemSource = {
   statement: read("statement.md"),
   extensionStatement: read("extension.md"),
   expected: Expected.parse(JSON.parse(read("expected.json"))),
+  // Q-WD-17: a battle problem's three hint levels.
+  hints: [
+    "Count first.",
+    "A map of counts.",
+    "reserve(k):\n  check, then take",
+  ],
 };
 
 // ADR-0048: the same problem in the practice pool, under its own slug.
@@ -155,6 +161,8 @@ test("a battle carries every language's harnesses and every scenario with its re
   );
   // The extension's text, for the game server to show at the reveal.
   expect(b.extension?.statement).toBe(source.extensionStatement);
+  // Q-WD-17: the hints, for the game server to send only when asked.
+  expect(b.hints).toEqual(source.hints);
   expect(b.extension?.starters["python"]).toContain("def reserve(");
 });
 

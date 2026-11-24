@@ -182,6 +182,14 @@ class BattleBestSubmission(TypedDict):
     taken_at: datetime
 
 
+class BattleCode(TypedDict):
+    match_id: UUID
+    user_id: str
+    language: str
+    code: str
+    saved_at: datetime
+
+
 class BattleDispute(TypedDict):
     match_id: UUID
     user_id: str
@@ -577,6 +585,7 @@ class GameMatchPlayer(TypedDict):
     abandoned: bool | None
     signals: JsonValue | None
     place: int | None
+    hint_cost: int
 
 
 class GameMatchQuestion(TypedDict):

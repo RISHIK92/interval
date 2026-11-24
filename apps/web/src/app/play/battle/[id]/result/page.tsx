@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AutoRefresh } from "./AutoRefresh";
 import { ResultActions } from "./ResultActions";
 import { Replay } from "./Replay";
+import { Points } from "./Points";
 import { outcome, ResultHero } from "./ResultHero";
 import { BATTLE_MODE_NAMES } from "../../../../battle-mode";
 
@@ -118,7 +119,9 @@ export default async function BattleResultPage(props: {
                           </span>
                         ) : null}
                       </td>
-                      <td className={`${TD} font-bold`}>{s.total}</td>
+                      <td className={`${TD} font-bold`}>
+                        <Points total={s.total} hintCost={s.hintCost} />
+                      </td>
                       <td className={`${TD} ${s.you ? "rounded-r-lg" : ""}`}>
                         {clock(s.timeMs)}
                       </td>

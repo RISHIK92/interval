@@ -31,6 +31,7 @@ import { kyselyAdminQuestions } from "./adapters/kysely-admin-questions";
 import { kyselyAdminDaily } from "./adapters/kysely-admin-daily";
 import { kyselyGuestLimits } from "./adapters/kysely-guest-limits";
 import { kyselyAdminFairPlay } from "./adapters/kysely-admin-fair-play";
+import { kyselyBattleCode } from "./adapters/kysely-battle-code";
 import { kyselyBattleSnapshots } from "./adapters/kysely-battle-snapshots";
 import { kyselyHldJudgements } from "./adapters/kysely-hld-judgements";
 import { kyselyHldMatches } from "./adapters/kysely-hld-matches";
@@ -107,6 +108,7 @@ import type {
   AdminFairPlay,
   BattleBoards,
   BattleQuestions,
+  BattleCode,
   BattleResults,
   BattleSnapshots,
   BattleWindows,
@@ -543,6 +545,11 @@ export function battleBoards(): BattleBoards {
 // P5-W32 (§6.6, MATCH-7): ranked battle windows.
 export function battleWindows(): BattleWindows {
   return kyselyBattleWindows(db());
+}
+
+// Q-WD-17: battle players' autosaved code, per language.
+export function battleCode(): BattleCode {
+  return kyselyBattleCode(db());
 }
 
 // P5-W31-S04b (§6.9, Q-P5-17): battle players' code snapshots, for fair-play review.

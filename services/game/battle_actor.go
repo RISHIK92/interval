@@ -44,6 +44,7 @@ type battleRun struct {
 	judging  map[string]bool // "player run" or "player submit": one judging of each at a time
 	best     map[string]bestSubmission
 	bestCode map[string]*codeMsg // P5-W33: each best's code, for code similarity
+	hints    map[string][]int    // Q-WD-17: the levels each player has opened, in order
 	pending  int                 // judgings in flight
 	seq      int                 // ADR-0048: practice progress messages sent
 }
@@ -89,6 +90,7 @@ func (a *actor) battle(p *play) {
 		start: a.clock.Now(), away: map[string]bool{}, joined: map[string]bool{}, lost: map[string]time.Time{},
 		lastRun: map[string]time.Time{}, lastSub: map[string]time.Time{},
 		judging: map[string]bool{}, best: map[string]bestSubmission{}, bestCode: map[string]*codeMsg{},
+		hints: map[string][]int{},
 	}
 	practice := a.def.Battle.Practice
 	if a.from != nil && !a.from.Started.IsZero() {
@@ -96,9 +98,18 @@ func (a *actor) battle(p *play) {
 		// had submitted had joined; the rest may still come back (Q-P5-16).
 		b.start = a.from.Started
 		b.seq, b.revealed = a.from.Seq, a.from.Revealed
+		for player, levels := range a.from.Hints {
+			// Only real levels, each once: a damaged snapshot charges nothing it can't
+			// name, and never indexes past the costs.
+			for _, level := range levels {
+				if level >= 1 && level <= len(hintCosts) && !slices.Contains(b.hints[player], level) {
+					b.hints[player] = append(b.hints[player], level)
+				}
+			}
+		}
 		for player, points := range a.from.Totals {
 			if at, ok := a.from.Times[player]; ok {
-				b.best[player] = bestSubmission{Points: points, At: at, Made: true}
+				b.best[player] = bestSubmission{Points: points, At: at, Made: true, Passed: a.from.Passed[player]}
 				b.joined[player] = true
 			}
 		}
@@ -119,7 +130,10 @@ func (a *actor) battle(p *play) {
 			revealAt = nil
 		}
 	}
-	a.broadcast(p, a.battleState(p))
+	// Each seat its own: a player's hints are theirs alone.
+	for player, s := range p.seats {
+		a.tell(p, player, s, a.battleState(p, player))
+	}
 	a.persistBattle(p)
 	for !b.closing {
 		select {
@@ -129,6 +143,8 @@ func (a *actor) battle(p *play) {
 			b.revealed = true
 			revealAt = nil
 			a.broadcast(p, a.extensionMessage(battleLength-battleReveal))
+			// Every total now counts the extension's tests (Q-WD-14).
+			a.broadcastBests(p)
 		case <-end:
 			b.closing = true
 		case <-a.quit:
@@ -182,17 +198,28 @@ func (a *actor) battleDone(p *play) bool {
 	return allAway || allPerfect
 }
 
-// Where the battle stands, for everyone at the start and for a player coming back.
-func (a *actor) battleState(p *play) map[string]any {
+// Where the battle stands, for a player at the start or coming back.
+func (a *actor) battleState(p *play, player string) map[string]any {
 	b := p.battle
 	left := max(0, a.def.Battle.length()-a.clock.Now().Sub(b.start))
 	state := map[string]any{
 		"type": "battle", "problem": a.def.Battle.Problem, "seconds": seconds(left),
-		"revealed": b.revealed, "best": a.bests(p),
+		"revealed": b.revealed, "best": a.bests(p, player), "progress": a.testsPassed(p),
 	}
 	if a.def.Battle.Practice {
 		// ADR-0048: the page shows no clock; seconds is the session's cap.
 		state["practice"] = true
+	}
+	if a.def.Battle.Hints != nil {
+		// Q-WD-17: what each level costs, and the texts of those this player opened.
+		opened := []map[string]any{}
+		for _, level := range b.hints[player] {
+			opened = append(opened, map[string]any{"level": level, "text": a.def.Battle.Hints[level-1]})
+		}
+		state["hints"] = map[string]any{
+			"costs": a.def.Battle.hintCosts(), "opened": opened,
+			"spent": a.def.Battle.hintCost(b.hints[player]),
+		}
 	}
 	if b.revealed {
 		// A player back after the reveal is shown it again.
@@ -210,21 +237,87 @@ func (a *actor) extensionMessage(left time.Duration) map[string]any {
 	return msg
 }
 
-func (a *actor) bests(p *play) map[string]int {
-	out := map[string]int{}
+// Each player's best, to each seat as that player sees it: points (bests), and
+// (Q-WD-14) tests passed, counts only, never which tests (LLDQ-4), with (Q-WD-17) the
+// hint levels each has opened, never their text.
+func (a *actor) broadcastBests(p *play) {
+	for player, s := range p.seats {
+		a.tell(p, player, s, map[string]any{"type": "best", "best": a.bests(p, player), "progress": a.testsPassed(p)})
+	}
+}
+
+type testsPassed struct {
+	Passed int   `json:"passed"`
+	Total  int   `json:"total"`
+	Hints  []int `json:"hints"`
+}
+
+func (a *actor) testsPassed(p *play) map[string]testsPassed {
+	total := a.def.Battle.tests(p.battle.revealed)
+	out := map[string]testsPassed{}
 	for _, player := range a.def.Players {
-		out[player] = p.battle.best[player].Points
+		// Q-WD-17 (owner, 2026-11-24): a hint taken is public, as its levels.
+		levels := p.battle.hints[player]
+		if levels == nil {
+			levels = []int{}
+		}
+		out[player] = testsPassed{Passed: p.battle.best[player].Passed, Total: total, Hints: levels}
 	}
 	return out
 }
 
-func (a *actor) persistBattle(p *play) {
-	b := p.battle
-	totals, times := map[string]int{}, map[string]time.Duration{}
-	for player, s := range b.best {
-		totals[player], times[player] = s.Points, s.At
+// Each player's points as `viewer` is shown them: their own net of the hints they
+// opened (Q-WD-17), never below 0; another's as scored, since points stay private to
+// their player until the results (owner, 2026-11-24).
+func (a *actor) bests(p *play, viewer string) map[string]int {
+	out := map[string]int{}
+	for _, player := range a.def.Players {
+		out[player] = p.battle.best[player].Points
+		if player == viewer {
+			out[player] = a.points(p, player)
+		}
 	}
-	a.persist(snap{Started: b.start, Totals: totals, Times: times, Signals: p.signals, Seq: b.seq, Revealed: b.revealed && a.def.Battle.Practice})
+	return out
+}
+
+func (a *actor) points(p *play, player string) int {
+	b := p.battle
+	return max(0, b.best[player].Points-a.def.Battle.hintCost(b.hints[player]))
+}
+
+// Q-WD-17: a player opens a hint level: charged once per match (a level already open
+// is sent again, free), saved (retried) before its text goes so a restart neither
+// refunds nor charges it again. Every seat then hears which levels each player has
+// opened; only this one gets the text. Nothing is sent for a level that isn't one, a
+// battle without hints, or one that's over.
+func (a *actor) battleHint(p *play, e event) {
+	b := p.battle
+	hints := a.def.Battle.Hints
+	seat := p.seats[e.player]
+	if _, isPlayer := p.totals[e.player]; !isPlayer || hints == nil || e.n < 1 || e.n > len(hints) || b.closing || seat == nil {
+		return
+	}
+	if !slices.Contains(b.hints[e.player], e.n) {
+		b.hints[e.player] = append(b.hints[e.player], e.n)
+		a.saveBattle(p, true)
+		a.broadcastBests(p)
+	}
+	a.tell(p, e.player, seat, map[string]any{
+		"type": "hint", "level": e.n, "text": hints[e.n-1],
+		"spent": a.def.Battle.hintCost(b.hints[e.player]),
+	})
+}
+
+func (a *actor) persistBattle(p *play) { a.saveBattle(p, false) }
+
+// retry: this save records a hint level, which a restart must not refund.
+func (a *actor) saveBattle(p *play, retry bool) {
+	b := p.battle
+	totals, times, passed := map[string]int{}, map[string]time.Duration{}, map[string]int{}
+	for player, s := range b.best {
+		totals[player], times[player], passed[player] = s.Points, s.At, s.Passed
+	}
+	a.persist(snap{Started: b.start, Totals: totals, Times: times, Passed: passed, Hints: b.hints, Signals: p.signals, Seq: b.seq, Revealed: b.revealed && a.def.Battle.Practice, Retry: retry})
 }
 
 // A Run or a Submit, checked here and judged off this goroutine.
@@ -381,6 +474,12 @@ func (a *actor) battleJudged(p *play, e event) {
 		return
 	}
 	points := a.def.Battle.score(j.passed)
+	passed := 0
+	for _, ok := range j.passed {
+		if ok {
+			passed++
+		}
+	}
 	layers := map[string]map[string]int{}
 	for i, s := range a.def.Battle.Scenarios {
 		if s.Layer == "extension" && !j.revealed {
@@ -397,12 +496,12 @@ func (a *actor) battleJudged(p *play, e event) {
 		}
 	}
 	before := b.best[e.player]
-	b.best[e.player] = before.improvedBy(points, j.at)
+	b.best[e.player] = before.improvedBy(points, passed, j.at)
 	if b.best[e.player] != before {
 		b.bestCode[e.player] = j.code
 	}
-	tell(map[string]any{"type": "submitted", "points": points, "layers": layers, "best": b.best[e.player].Points})
-	a.broadcast(p, map[string]any{"type": "best", "best": a.bests(p)})
+	tell(map[string]any{"type": "submitted", "points": points, "layers": layers, "best": a.points(p, e.player)})
+	a.broadcastBests(p)
 	if a.def.Battle.Practice {
 		b.seq++
 	}
@@ -426,7 +525,7 @@ func (a *actor) finishBattle(p *play) {
 	b := p.battle
 	for _, player := range a.def.Players {
 		s := b.best[player]
-		p.totals[player] = s.Points
+		p.totals[player] = a.points(p, player)
 		p.times[player] = s.At
 		if !s.Made {
 			p.times[player] = a.def.Battle.length()
@@ -535,4 +634,5 @@ func (a *actor) practiceReveal(p *play) {
 	b.revealed = true
 	a.persistBattle(p)
 	a.broadcast(p, a.extensionMessage(max(0, practiceLength-a.clock.Now().Sub(b.start))))
+	a.broadcastBests(p)
 }

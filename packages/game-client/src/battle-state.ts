@@ -8,12 +8,37 @@ import type { LiveGame } from "./live-client";
 // counted down on this clock (`endsAt`).
 
 const Bests = z.record(z.string(), z.number().int().min(0));
+// Q-WD-14: each player's best as tests passed out of the live total: counts, never which
+// tests (LLDQ-4). Absent from a server older than it.
+const Progress = z.record(
+  z.string(),
+  z.object({
+    passed: z.number().int().min(0),
+    total: z.number().int().min(0),
+    // Q-WD-17 (owner, 2026-11-24): the hint levels the player has opened, public;
+    // never their text.
+    hints: z.array(z.number().int().min(1).max(3)).optional(),
+  }),
+);
 // A problem with no extension still has its reveal at 30:00, with no text: the clock's.
 const Extension = z.object({
   type: z.literal("extension"),
   seconds: z.number().min(0),
   statement: z.string().optional(),
   starters: z.record(z.string(), z.string()).optional(),
+});
+// Q-WD-17: hints that cost points. What each level costs (0 in practice), the texts this
+// player has opened (each only once asked for), and what they've cost so far.
+const HintLevel = z.number().int().min(1).max(3);
+const OpenedHint = z.object({ level: HintLevel, text: z.string() });
+const Hints = z.object({
+  costs: z.tuple([
+    z.number().int().min(0),
+    z.number().int().min(0),
+    z.number().int().min(0),
+  ]),
+  opened: z.array(OpenedHint),
+  spent: z.number().int().min(0),
 });
 const Test = z.object({
   passed: z.boolean(),
@@ -33,6 +58,8 @@ const Message = z.discriminatedUnion("type", [
     seconds: z.number().min(0),
     revealed: z.boolean(),
     best: Bests,
+    progress: Progress.optional(),
+    hints: Hints.optional(),
     extension: Extension.optional(),
     // ADR-0048: a practice session: `seconds` is its cap, not a clock to show.
     practice: z.boolean().optional(),
@@ -52,7 +79,17 @@ const Message = z.discriminatedUnion("type", [
     submit: z.boolean(),
   }),
   z.object({ type: z.literal("judge_error"), submit: z.boolean() }),
-  z.object({ type: z.literal("best"), best: Bests }),
+  z.object({
+    type: z.literal("hint"),
+    level: HintLevel,
+    text: z.string(),
+    spent: z.number().int().min(0),
+  }),
+  z.object({
+    type: z.literal("best"),
+    best: Bests,
+    progress: Progress.optional(),
+  }),
   z.object({
     type: z.literal("final"),
     totals: Bests,
@@ -83,6 +120,9 @@ export type BattlePlaying = {
   practice: boolean;
   extension: { statement: string; starters: Record<string, string> } | null;
   best: Record<string, number>;
+  progress: z.infer<typeof Progress>;
+  // Null: this battle offers no hints.
+  hints: z.infer<typeof Hints> | null;
   ran: BattleTest[] | null;
   submitted: { points: number; layers: Record<string, BattleLayer> } | null;
   // A Run or Submit sent and not yet answered: its button waits.
@@ -136,6 +176,8 @@ function battleStep(
         practice: message.practice === true,
         extension: extensionOf(message.extension),
         best: message.best,
+        progress: message.progress ?? {},
+        hints: message.hints ?? null,
         ran: playing?.ran ?? null,
         submitted: playing?.submitted ?? null,
         running: false,
@@ -174,8 +216,28 @@ function battleStep(
             ...answered(message.submit),
             notice: "The judge couldn't run that; try again.",
           };
+    case "hint": {
+      if (playing?.hints == null) return state;
+      const { opened } = playing.hints;
+      return {
+        ...playing,
+        hints: {
+          ...playing.hints,
+          opened: opened.some((h) => h.level === message.level)
+            ? opened
+            : [...opened, { level: message.level, text: message.text }],
+          spent: message.spent,
+        },
+      };
+    }
     case "best":
-      return playing === null ? state : { ...playing, best: message.best };
+      return playing === null
+        ? state
+        : {
+            ...playing,
+            best: message.best,
+            progress: message.progress ?? playing.progress,
+          };
     case "final":
       return {
         phase: "final",

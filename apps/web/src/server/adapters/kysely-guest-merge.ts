@@ -181,6 +181,8 @@ export async function mergeGuest(
     "battle_best_submission",
     "battle_review",
     "battle_dispute",
+    // Q-WD-17: its autosaved code, for a battle it's still in.
+    "battle_code",
   ] as const)
     await sql`
       update ${sql.table(table)} g set user_id = ${accountId}

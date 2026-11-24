@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, expect, test, vi } from "vitest";
 import type {
   Actor,
+  BattleCode,
+  BattleResults,
   Entitlements,
   LoadedProblem,
   Matches,
@@ -13,12 +15,18 @@ const current = vi.fn<(headers: Headers) => Promise<Actor | null>>();
 const can = vi.fn<Entitlements["can"]>(() => Promise.resolve(true));
 const serverFor = vi.fn<Matches["serverFor"]>();
 const get = vi.fn<(slug: string) => Promise<LoadedProblem | null>>();
+const names = vi.fn<BattleResults["names"]>(() => Promise.resolve(null));
+const load = vi.fn<BattleCode["load"]>(() =>
+  Promise.resolve({ python: "class Mine: ..." }),
+);
 let gameConfigured = true;
 vi.mock("../../../../server/container", () => ({
   sessionReader: () => ({ current }),
   entitlements: () => ({ can }),
   matches: () => ({ serverFor }),
   problems: () => ({ get }),
+  battleResults: () => ({ names }),
+  battleCode: () => ({ load }),
 }));
 vi.mock("../../../../env", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -89,6 +97,10 @@ test("a player sees the statement, the examples and starters, never the extensio
   const html = await page();
   expect(serverFor).toHaveBeenCalledWith(id, "u1");
   expect(get).toHaveBeenCalledWith("lru-cache");
+  // Q-WD-14: the players' names, for the opponents' pills.
+  expect(names).toHaveBeenCalledWith(id, "u1");
+  // Q-WD-17: the player's autosaved code, restored.
+  expect(load).toHaveBeenCalledWith(id, "u1");
   expect(html).toContain("LRU cache");
   expect(html).toContain("Keep the most recent.");
   // The statement's own title isn't repeated under the page's, and an example reads as
