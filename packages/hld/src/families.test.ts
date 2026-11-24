@@ -17,16 +17,19 @@ import { POOL } from "./pool";
 import { practiceProblems } from "./practice";
 import { removeNode } from "./edit";
 import { simulate } from "./simulate";
-import { SPEC_V2_FROM } from "./spec";
+import { SPEC_V2_FROM, SPEC_V21_FROM } from "./spec";
 
 // P6-W40 (HLDQ-2, HLDQ-3; Q-P6-04): the families, their variants and the pool.
 const pool = POOL;
 // A day before and the day of spec 2.0's season boundary (Q-WD-31).
 const BEFORE = new Date("2026-11-30T23:59:59Z");
 const FROM = new Date(`${SPEC_V2_FROM}T00:00:00Z`);
+// And spec 2.1's, a month later.
+const BEFORE_21 = new Date("2026-12-31T23:59:59Z");
+const FROM_21 = new Date(`${SPEC_V21_FROM}T00:00:00Z`);
 
-test("there are 19 families, each with its own slug", () => {
-  expect(new Set(FAMILIES.map((f) => f.slug)).size).toBe(19);
+test("there are 31 families, each with its own slug", () => {
+  expect(new Set(FAMILIES.map((f) => f.slug)).size).toBe(31);
 });
 
 // CANVAS-3's regression check for variants: an engine or family change that breaks one
@@ -91,10 +94,10 @@ describe.each(FAMILIES)("$slug", (family) => {
 });
 
 test("practice is each practice family's practice seed, under the family's slug", () => {
-  expect(practiceProblems(FROM).map((p) => p.slug)).toEqual(
+  expect(practiceProblems(FROM_21).map((p) => p.slug)).toEqual(
     practiceFamilies(FAMILIES).map((f) => f.slug),
   );
-  expect(practiceProblems(FROM)[0]?.requirements.at(-1)).toMatch(
+  expect(practiceProblems(FROM_21)[0]?.requirements.at(-1)).toMatch(
     /^A budget of \$/,
   );
 });
@@ -139,7 +142,7 @@ describe("the pool split", () => {
     );
   });
 
-  test("is on today: stage 0 brings the battle pool to six, stage 1 to ten", () => {
+  test("is on today: stage 0 brings the battle pool to six, stage 1 to ten, stage 2 to seventeen", () => {
     expect(poolSplit(FAMILIES)).toBe(true);
     expect(matchFamilies(FAMILIES).map((f) => f.slug)).toEqual([
       "chat",
@@ -152,6 +155,13 @@ describe("the pool split", () => {
       "video-on-demand",
       "payment-processing",
       "web-crawler",
+      "food-delivery-tracking",
+      "collaborative-editor",
+      "notification-service",
+      "job-scheduler",
+      "feature-flags",
+      "like-counters",
+      "ad-click-aggregation",
     ]);
   });
 
@@ -167,16 +177,31 @@ describe("the pool split", () => {
     "otp-login",
     "webhook-delivery",
     "image-resizer",
+    "nearby-places",
+    "presence",
+    "id-generator",
+    "wallet-ledger",
+    "feature-store",
   ])("%s stays a practice family, never drawn for a match", (slug) => {
     const family = FAMILIES.find((f) => f.slug === slug);
     expect(family?.pool).toBe("practice");
     let n = 0;
     const random = () => (n = (n * 9301 + 49297) % 233280) / 233280;
     for (let i = 0; i < 500; i++)
-      expect(drawVariant("human", random, new Set(), FROM).family).not.toBe(
+      expect(drawVariant("human", random, new Set(), FROM_21).family).not.toBe(
         slug,
       );
-    expect(practiceProblems(FROM).some((p) => p.slug === slug)).toBe(true);
+    expect(practiceProblems(FROM_21).some((p) => p.slug === slug)).toBe(true);
+  });
+
+  // ADR-0050 §1: a practice family has no battle seeds; those written before 2.1 keep
+  // theirs, so the matches of families that moved to practice still rebuild.
+  test("a practice family made on 2.1 has no battle seeds", () => {
+    for (const f of FAMILIES.filter(
+      (x) => x.pool === "practice" && familySpec(x) === "2.1",
+    ))
+      expect(POOL[f.slug]).toEqual({ spec: "2.1", human: [], ai: [] });
+    expect(POOL["otp-login"]?.human).toHaveLength(POOL_SIZE);
   });
 
   test.each([
@@ -199,14 +224,16 @@ describe("the pool split", () => {
     const battle = new Set(
       FAMILIES.filter((f) => f.pool === "battle").map((f) => f.slug),
     );
-    expect(practiceProblems(FROM).some((p) => battle.has(p.slug))).toBe(false);
+    expect(practiceProblems(FROM_21).some((p) => battle.has(p.slug))).toBe(
+      false,
+    );
     for (const battleMode of ["human", "ai"] as const)
       for (let i = 0; i < 50; i++) {
         const { family } = drawVariant(
           battleMode,
           () => i / 50,
           new Set(),
-          FROM,
+          FROM_21,
         );
         expect(battle.has(family)).toBe(true);
       }
@@ -307,6 +334,18 @@ test("every family keeps the spec version it was made on", () => {
     "video-on-demand": "2.0",
     "payment-processing": "2.0",
     "web-crawler": "2.0",
+    "nearby-places": "2.1",
+    "food-delivery-tracking": "2.1",
+    presence: "2.1",
+    "collaborative-editor": "2.1",
+    "notification-service": "2.1",
+    "id-generator": "2.1",
+    "job-scheduler": "2.1",
+    "feature-flags": "2.1",
+    "like-counters": "2.1",
+    "wallet-ledger": "2.1",
+    "ad-click-aggregation": "2.1",
+    "feature-store": "2.1",
   });
 });
 
@@ -388,6 +427,15 @@ describe("spec versions and the season boundary", () => {
       /the backlog outlives the retention/,
     ],
     "image-resizer/no-cdn": ["peak", /^resizers is overloaded/],
+    // The two lessons v2.0 had left to the rubric (owner, 2026-11-24), restored.
+    "image-resizer/renderers-for-the-average": [
+      "upload_burst",
+      /"original" isn't done in time: the backlog drains too slowly/,
+    ],
+    "web-crawler/short-frontier": [
+      "sitemap",
+      /"fetch" isn't done in time: the backlog outlives the retention/,
+    ],
     "file-sync/uploads-through-app": ["peak", /^api is overloaded/],
     "video-on-demand/transcoders-for-the-average": [
       "backlog",
@@ -479,5 +527,182 @@ describe("spec versions and the season boundary", () => {
     expect(simulate(v.problem, v.reference).costPerMonth).toBeLessThan(
       v.problem.budgetPerMonth,
     );
+  });
+});
+
+// ADR-0050 stage 2, Q-WD-31: spec 2.1 and its families arrive at the next monthly
+// boundary. Families on 1.0 and 2.0 stay there.
+describe("spec 2.1 and its season boundary", () => {
+  const V21 = FAMILIES.filter((f) => familySpec(f) === "2.1");
+
+  test("stage 2 is twelve families on 2.1, five of them practice", () => {
+    expect(V21.map((f) => [f.slug, f.pool])).toEqual([
+      ["nearby-places", "practice"],
+      ["food-delivery-tracking", "battle"],
+      ["presence", "practice"],
+      ["collaborative-editor", "battle"],
+      ["notification-service", "battle"],
+      ["id-generator", "practice"],
+      ["job-scheduler", "battle"],
+      ["feature-flags", "battle"],
+      ["like-counters", "battle"],
+      ["wallet-ledger", "practice"],
+      ["ad-click-aggregation", "battle"],
+      ["feature-store", "practice"],
+    ]);
+  });
+
+  test.each(["human", "ai"] as const)(
+    "before 2027-01-01 no %s match is drawn on a 2.1 family; from it, the seven battle ones are",
+    (battleMode) => {
+      const v21 = new Set(V21.map((f) => f.slug));
+      const drawn = (now: Date) =>
+        new Set(
+          Array.from(
+            { length: 400 },
+            (_, i) =>
+              drawVariant(battleMode, () => i / 400, new Set(), now).family,
+          ),
+        );
+      expect([...drawn(BEFORE_21)].some((f) => v21.has(f))).toBe(false);
+      expect([...drawn(FROM_21)].filter((f) => v21.has(f)).sort()).toEqual([
+        "ad-click-aggregation",
+        "collaborative-editor",
+        "feature-flags",
+        "food-delivery-tracking",
+        "job-scheduler",
+        "like-counters",
+        "notification-service",
+      ]);
+    },
+  );
+
+  test("practice offers a 2.1 family only from its boundary", () => {
+    const slugs = (now: Date) => practiceProblems(now).map((p) => p.slug);
+    for (const slug of [
+      "nearby-places",
+      "presence",
+      "id-generator",
+      "wallet-ledger",
+      "feature-store",
+    ]) {
+      expect(slugs(BEFORE_21)).not.toContain(slug);
+      expect(slugs(FROM_21)).toContain(slug);
+    }
+    expect(slugs(BEFORE_21)).toContain("otp-login");
+  });
+
+  test("a match records 2.1 and rebuilds under it, and no other", () => {
+    expect(variantSpec("like-counters")).toBe("2.1");
+    const seed = POOL["like-counters"]?.human[0] ?? 0;
+    expect(matchProblem("like-counters", "human", seed, "2.1")?.spec).toBe(
+      "2.1",
+    );
+    expect(matchProblem("like-counters", "human", seed, "2.0")).toBeNull();
+  });
+
+  // HLDQ-3 for stage 2: each lesson fails its target for the reason it teaches. A
+  // practice family is checked at its practice seed, a battle family at its first pooled
+  // seed in each mode.
+  const why: Record<string, [string, RegExp]> = {
+    "nearby-places/shards-not-replicas": [
+      "peak",
+      /^places's busiest partition is overloaded/,
+    ],
+    "food-delivery-tracking/positions-in-the-database": [
+      "baseline",
+      /^orders is overloaded/,
+    ],
+    "food-delivery-tracking/no-gateway": [
+      "baseline",
+      /^"track" requests never reach/,
+    ],
+    "presence/connect-sized-for-a-spike": ["zone", /^auth is overloaded/],
+    "presence/no-gateway": [
+      "baseline",
+      /^"status_change" requests never reach a connection gateway/,
+    ],
+    "collaborative-editor/broadcast-in-the-request": [
+      "baseline",
+      /^"edit": p99 [\d,.]+ ms \(target/,
+    ],
+    "collaborative-editor/no-gateway": [
+      "baseline",
+      /^"edit" requests never reach a connection gateway/,
+    ],
+    "notification-service/notify-inline": [
+      "provider_down",
+      /^"notify": .* 0\.0% served\.$/,
+    ],
+    "notification-service/campaign-inline": [
+      "baseline",
+      /^"campaign": p99 [\d,.]+ ms \(target/,
+    ],
+    "id-generator/no-blocks": ["baseline", /^leases is overloaded/],
+    "id-generator/quorum-in-two-zones": [
+      "zone",
+      /^leases has lost its quorum: 1 of 3 members left/,
+    ],
+    "job-scheduler/runners-for-the-average": [
+      "midnight",
+      /"fire" isn't done in time: the backlog drains too slowly/,
+    ],
+    "job-scheduler/no-leader": ["baseline", /^"lease" requests never reach/],
+    "feature-flags/no-cdn": ["peak", /^api is overloaded/],
+    "feature-flags/no-gateway": [
+      "baseline",
+      /^"change" requests never reach a connection gateway/,
+    ],
+    "like-counters/views-straight-to-counters": [
+      "peak",
+      /^counts's busiest partition is overloaded/,
+    ],
+    "wallet-ledger/credits-one-by-one": ["peak", /^ledger is overloaded/],
+    "ad-click-aggregation/per-click-increments": [
+      "peak",
+      /^counts's busiest partition is overloaded/,
+    ],
+    "feature-store/backfill-unbatched": ["overlap", /^online is overloaded/],
+  };
+  test.each(Object.entries(why))(
+    "%s fails %s for its reason",
+    (id, [target, reason]) => {
+      const [slug, lesson] = id.split("/");
+      const family = V21.find((f) => f.slug === slug);
+      if (family === undefined) throw new Error(`no ${id}`);
+      const modes =
+        family.pool === "practice"
+          ? [["human", family.practiceSeeds[0] ?? 1] as const]
+          : (["human", "ai"] as const).map(
+              (m) => [m, POOL[family.slug]?.[m][0] ?? 0] as const,
+            );
+      for (const [battleMode, seed] of modes) {
+        const v = variant(family, battleMode, seed);
+        const flaw = v.flawed.find((f) => f.id === lesson);
+        if (flaw === undefined) throw new Error(`no flaw ${id}`);
+        const at =
+          battleMode === "ai" && flaw.targets !== target
+            ? flaw.targets
+            : target;
+        const s = simulate(v.problem, flaw.design).scenarios.find(
+          (x) => x.id === at,
+        );
+        expect(s?.targetsMet, `${id} ${battleMode}`).toBe(false);
+        expect(s?.explanations).toContainEqual(expect.stringMatching(reason));
+      }
+    },
+  );
+
+  // A lesson may name a different target per battle mode: the AI mode's lost region is
+  // its harsher reconnect storm.
+  test("presence's storm lesson fails a lost zone, or in the AI mode a lost region", () => {
+    const family = V21.find((f) => f.slug === "presence");
+    if (family === undefined) throw new Error("no presence");
+    const target = (battleMode: "human" | "ai") =>
+      variant(family, battleMode, 1).flawed.find(
+        (f) => f.id === "connect-sized-for-a-spike",
+      )?.targets;
+    expect(target("human")).toBe("zone");
+    expect(target("ai")).toBe("region");
   });
 });

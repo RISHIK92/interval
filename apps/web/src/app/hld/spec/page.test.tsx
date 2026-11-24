@@ -6,10 +6,10 @@ import SpecPage from "./page";
 // patch notes, without the client (it's the traffic, not a component you size).
 test("the spec sheet lists the components, their numbers and the patch notes", () => {
   const html = renderToStaticMarkup(<SpecPage />);
-  expect(html).toContain("Version 2.0, from 1 Dec 2026, a season boundary.");
-  // A version is taken up by families made for it: 1.0's stay on 1.0 for good.
+  expect(html).toContain("Version 2.1, from 1 Jan 2027, a season boundary.");
+  // A version is taken up by families made for it: 1.0's and 2.0's stay on theirs.
   expect(html).toContain(
-    "Families made on version 1.0 stay on it, before and after that boundary; only families made for 2.0 run on 2.0, from it.",
+    "Families made on versions 1.0 and 2.0 stay on them, before and after that boundary; only families made for 2.1 run on 2.1, from it.",
   );
   expect(html).not.toContain("Until then every match");
   expect(html).toContain("provisional until launch");
@@ -52,7 +52,34 @@ test("the sheet shows 2.0: the provider marked new, the engine's bytes and backl
     "$0.02 a GB from a CDN, $0.09 a GB from anything else",
   );
   expect(html).toContain("A spike or outage lasts 15 minutes");
+  expect(html).toContain("a GB from anything else. From 2.0.");
   expect(html).toMatch(/2\.0 <span[^>]*>· 1 Dec 2026/);
   expect(html).toContain("New component: the external provider");
   expect(html).toContain("Every version 1.0 number is unchanged");
+});
+
+// ADR-0050 stage 2, Q-WD-31: v2.1 a month later, with its three kinds and its engine.
+test("the sheet shows 2.1: its kinds marked new, their numbers, the engine's rules, and its notes", () => {
+  const html = renderToStaticMarkup(<SpecPage />);
+  expect(html.match(/New in 2\.1/g)).toHaveLength(3);
+  expect(html).toContain("Geo index");
+  expect(html).toContain(
+    "5,000 queries/s per shard replica; writes 40,000/s per shard",
+  );
+  expect(html).toContain(
+    "20,000 messages/s per node; 50,000 connections per node; 1,000 Mbps of payload from 2.1",
+  );
+  expect(html).toContain(
+    "20,000 reads/s per member; writes 4,000/s through its leader, at 3 members",
+  );
+  expect(html).toContain(
+    "A nearby query asks the shards of 3 cells, however many shards there are. From 2.1.",
+  );
+  expect(html).toContain("reconnect within 30 seconds");
+  expect(html).toContain("A coordination service holds at most 8 GB.");
+  expect(html).toContain("go out 50 at a time. From 2.1.");
+  expect(html).toContain("waits at most 5 seconds to fill a batch. From 2.1.");
+  expect(html).toMatch(/2\.1 <span[^>]*>· 1 Jan 2027/);
+  expect(html).toContain("New component: the geo index");
+  expect(html).toContain("Every version 1.0 and 2.0 number is unchanged");
 });

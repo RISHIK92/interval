@@ -4,6 +4,7 @@ import {
   Design,
   LATEST_SPEC,
   SPEC_V2_FROM,
+  SPEC_V21_FROM,
   SPEC_VERSIONS,
   specInEffect,
   specVersion,
@@ -180,16 +181,56 @@ test("a stream's retention is required under 2.0 and refused under 1.0", () => {
   ]);
 });
 
+// ADR-0050 [batch]: an app service's or worker's batch size arrives with 2.1. A 2.1
+// design says it (1 for none), a 2.0 or 1.0 one can't; 2.1's kinds are refused before it.
+test("a batch size is required under 2.1 and refused before it; 2.1's kinds need 2.1", () => {
+  const withApi = (spec: string, config: Record<string, number>) => ({
+    ...shortener,
+    spec,
+    nodes: shortener.nodes.map((n) =>
+      n.id === "api" ? { ...n, config: { ...n.config, ...config } } : n,
+    ),
+  });
+  expect(issues(withApi("2.0", {}))).toEqual([]);
+  expect(issues(withApi("2.0", { batch: 10 }))).toEqual([
+    "spec 2.0 has no batch",
+  ]);
+  expect(issues(withApi("2.1", { batch: 10 }))).toEqual([]);
+  expect(issues(withApi("2.1", {}))).toEqual([
+    "batch is required under spec 2.1",
+  ]);
+  const coord = (spec: string, members: number) => ({
+    ...withApi(spec, spec === "2.1" ? { batch: 1 } : {}),
+    nodes: [
+      ...withApi(spec, spec === "2.1" ? { batch: 1 } : {}).nodes,
+      {
+        id: "leases",
+        kind: "coordination",
+        config: { members, zones: 3, regions: 1 },
+      },
+    ],
+  });
+  expect(issues(coord("2.1", 5))).toEqual([]);
+  expect(issues(coord("2.1", 4))).toEqual(["3, 5 or 7 members"]);
+  expect(issues(coord("2.0", 3))).toEqual(["spec 2.0 has no coordination"]);
+});
+
 describe("the spec sheet", () => {
   // ADR-0050 §6: v1.0 lists the 12 kinds of catalog v1; v2.0 adds the external
   // provider. The latest has every catalog kind.
-  test("each version lists its kinds: 1.0 the first 12, 2.0 the external provider too", () => {
-    expect(COMPONENT_KINDS).toHaveLength(13);
+  test("each version lists its kinds: 1.0 the first 12, 2.0 the external provider too, 2.1 three more", () => {
+    const V21 = ["geo_index", "connection_gateway", "coordination"];
+    expect(COMPONENT_KINDS).toHaveLength(16);
     expect(Object.keys(LATEST_SPEC.components).sort()).toEqual(
       [...COMPONENT_KINDS].sort(),
     );
+    expect(Object.keys(specVersion("2.0")?.components ?? {}).sort()).toEqual(
+      COMPONENT_KINDS.filter((k) => !V21.includes(k)).sort(),
+    );
     expect(Object.keys(specVersion("1.0")?.components ?? {}).sort()).toEqual(
-      COMPONENT_KINDS.filter((k) => k !== "external_api").sort(),
+      COMPONENT_KINDS.filter(
+        (k) => k !== "external_api" && !V21.includes(k),
+      ).sort(),
     );
   });
 
@@ -219,9 +260,32 @@ describe("the spec sheet", () => {
     }
   });
 
+  // ADR-0050 stage 2: 2.1 only adds; every 2.0 number and feature is 2.1's too.
+  test("2.1 changes no 2.0 number: it only adds kinds and features", () => {
+    const v2 = specVersion("2.0");
+    const v21 = specVersion("2.1");
+    expect(v21).toBe(LATEST_SPEC);
+    expect(v21?.engine).toEqual(v2?.engine);
+    for (const [kind, s] of Object.entries(v2?.components ?? {}))
+      expect(
+        v21?.components[kind as keyof typeof LATEST_SPEC.components],
+        kind,
+      ).toEqual(s);
+    expect(v21?.features).toMatchObject(v2?.features ?? {});
+    expect(v21?.features).toMatchObject({
+      geo: { cellsPerQuery: 3 },
+      gateway: { reconnectWindowSeconds: 30 },
+      coordination: { storageGb: 8, crossZoneMs: 2, crossRegionMs: 70 },
+      fanout: { parallelism: 50 },
+      hot: true,
+      batch: { maxWaitSeconds: 5 },
+    });
+  });
+
   test("versions are found by name; each is PROVISIONAL with its notes", () => {
     expect(specVersion("1.0")?.version).toBe("1.0");
-    expect(specVersion("2.0")).toBe(LATEST_SPEC);
+    expect(specVersion("2.0")?.version).toBe("2.0");
+    expect(specVersion("2.1")).toBe(LATEST_SPEC);
     expect(specVersion("9.9")).toBeNull();
     for (const spec of SPEC_VERSIONS) {
       expect(spec.provisional).toBe(true);
@@ -236,5 +300,13 @@ describe("the spec sheet", () => {
     expect(specInEffect("2.0", new Date("2026-12-01T00:00:00Z"))).toBe(true);
     expect(specInEffect("1.0", new Date("2026-11-30T23:59:59Z"))).toBe(true);
     expect(specInEffect("9.9", new Date("2030-01-01T00:00:00Z"))).toBe(false);
+  });
+
+  // Q-WD-31: v2.1 at the next monthly boundary, a month after v2.0's.
+  test("2.1 is in effect from the first of January 2027, not a moment before", () => {
+    expect(SPEC_V21_FROM).toBe("2027-01-01");
+    expect(specInEffect("2.1", new Date("2026-12-31T23:59:59Z"))).toBe(false);
+    expect(specInEffect("2.1", new Date("2027-01-01T00:00:00Z"))).toBe(true);
+    expect(specInEffect("2.0", new Date("2026-12-31T23:59:59Z"))).toBe(true);
   });
 });

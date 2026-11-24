@@ -178,3 +178,42 @@ describe("spec versions on the canvas", () => {
     ]);
   });
 });
+
+// ADR-0050 stage 2: 2.1's kinds and the batch size reach the canvas from 2.1 on.
+describe("spec 2.1 on the canvas", () => {
+  const V2 = specVersion("2.0");
+  if (V2 === null) throw new Error("no 2.0");
+
+  test("a batch size is offered to app services and workers from 2.1, never before", () => {
+    const names = (kind: "app_service" | "worker", spec: SpecVersion) =>
+      configFields(kind, spec).map((f) => f.name);
+    expect(names("worker", V2)).not.toContain("batch");
+    expect(names("worker", LATEST_SPEC)).toContain("batch");
+    expect(names("app_service", LATEST_SPEC)).toContain("batch");
+    expect(
+      addComponent(starterDesign("2.1"), "worker", at).nodes[1]?.config,
+    ).toEqual({ nodes: 1, batch: 1, zones: 1, regions: 1 });
+    expect(
+      addComponent(starterDesign("2.0"), "worker", at).nodes[1]?.config,
+    ).toEqual({ nodes: 1, zones: 1, regions: 1 });
+  });
+
+  test("2.1's kinds start at their smallest, and a 2.0 design with one is refused", () => {
+    expect(
+      addComponent(starterDesign("2.1"), "coordination", at).nodes[1]?.config,
+    ).toEqual({ members: 3, zones: 1, regions: 1 });
+    expect(
+      addComponent(starterDesign("2.1"), "geo_index", at).nodes[1]?.config,
+    ).toEqual({ shards: 1, replicas: 0, zones: 1, regions: 1 });
+    for (const kind of [
+      "geo_index",
+      "connection_gateway",
+      "coordination",
+    ] as const) {
+      expect(check(addComponent(starterDesign("2.1"), kind, at))).toEqual([]);
+      expect(check(addComponent(starterDesign("2.0"), kind, at))).toHaveLength(
+        1,
+      );
+    }
+  });
+});

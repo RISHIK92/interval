@@ -26,6 +26,9 @@ export type ComponentStats = {
   // Q-WD-31: numbers each problem sets in place of the sheet's (a provider's rate
   // limit and price per call), in words for the sheet.
   setByProblem?: string;
+  // ADR-0050 §2, spec 2.1: a connection gateway's second resource, the concurrent
+  // connections one node holds; its utilization is the larger of the two.
+  connectionCapacity?: number;
 };
 
 // The simulator's own constants: part of the versioned spec, so a change to one is a
@@ -60,6 +63,25 @@ export type Features = {
   // ADR-0051: a request type names what must do its work (a provider, a worker); a path
   // that never reaches one doesn't serve the type.
   requires?: true;
+  // Spec 2.1 (ADR-0050 stage 2, ADR-0052). [geo]: a nearby query asks only the shards
+  // of the cells it covers.
+  geo?: { cellsPerQuery: number };
+  // The connection gateway: the problem's concurrent connections, push delivery, and a
+  // reconnect storm when gateway servers are lost, spread over this window.
+  gateway?: { reconnectWindowSeconds: number };
+  // The coordination service: a quorum of members, a leader's write ceiling, a cap on
+  // what it may hold, and the commit's extra latency across zones and regions.
+  coordination?: {
+    storageGb: number;
+    crossZoneMs: number;
+    crossRegionMs: number;
+  };
+  // [fanout]: one request becoming many deliveries, this many sent at once.
+  fanout?: { parallelism: number };
+  hot?: true; // [hot]: a request type's share on its busiest partition
+  // [batch]: a worker's or app service's onward writes in batches; a worker waits at
+  // most this long to fill one.
+  batch?: { maxWaitSeconds: number };
 };
 
 export type SpecVersion = {
@@ -261,11 +283,81 @@ const V2_0: SpecVersion = {
   },
 };
 
+// Q-WD-31: v2.1 takes effect at the next monthly boundary after v2.0's.
+export const SPEC_V21_FROM = "2027-01-01";
+
+// ADR-0050 stage 2 (§2, §3, §5, PROVISIONAL like the rest), with ADR-0052's rules: the
+// geo index, the connection gateway and the coordination service; fan-out, hot
+// partitions and batching. Every 1.0 and 2.0 number is unchanged.
+const V2_1: SpecVersion = {
+  version: "2.1",
+  date: SPEC_V21_FROM,
+  provisional: true,
+  features: {
+    ...V2_0.features,
+    geo: { cellsPerQuery: 3 },
+    gateway: { reconnectWindowSeconds: 30 },
+    coordination: { storageGb: 8, crossZoneMs: 2, crossRegionMs: 70 },
+    fanout: { parallelism: 50 },
+    hot: true,
+    batch: { maxWaitSeconds: 5 },
+  },
+  notes: [
+    "New component: the geo index, an in-memory index of where things are. A nearby query asks only the 3 shards its cells fall in, so shards add query capacity, unlike a search index's. It holds positions, not history. Used by nearby places and food delivery tracking.",
+    "New component: the connection gateway, holding clients' persistent connections (50,000 a node) and pushing messages down them (20,000 a second a node). A gateway that loses servers sends their clients back to connect again within 30 seconds: a reconnect storm. Used by presence, the collaborative editor, food delivery tracking, feature flags and the notification service.",
+    "New component: the coordination service, a 3, 5 or 7 member consensus cluster for leases, leader election and ID blocks. It's up while a majority of its members is, its leader commits about 4,000 writes a second at 3 members (fewer with more), and it holds at most 8 GB. Used by the unique ID generator and the scheduled jobs service.",
+    "Fan-out: one request can become many deliveries (a post to its followers, a campaign to a segment). Everything after the first worker behind a queue, or the first app service when there's none, carries that many times the load, and the deliveries go out 50 at a time.",
+    "Hot partitions: a request type can put a share of its load on one partition of a key-value store, stream, queue or geo index (a viral post, a big merchant). That partition can overload while the rest idle; a cache in front takes hot reads, and batching takes hot writes.",
+    "Batching: workers and app services gain a batch size. A worker's or app service's onward writes go in batches of that many, and a worker waits at most 5 seconds to fill one. An app service's batch is an ID block it hands out without asking again.",
+    "Every version 1.0 and 2.0 number is unchanged, and so is every 1.0 and 2.0 family's result: they stay on their versions.",
+  ],
+  engine: V1_0.engine,
+  components: {
+    ...V2_0.components,
+    geo_index: {
+      name: "Geo index",
+      summary:
+        "An in-memory index of where things are (geohash, quadtree or S2 cells). A nearby query asks only the shards of the cells it covers; replicas add query capacity and survive failures. It keeps positions, never history.",
+      capacity: 5_000,
+      unit: "queries/s per shard replica",
+      writeCapacity: 40_000,
+      latencyMs: 5,
+      writeLatencyMs: 2,
+      availability: 0.999,
+      costPerNodeHour: 0.2,
+    },
+    connection_gateway: {
+      name: "Connection gateway",
+      summary:
+        "Holds clients' persistent connections (WebSocket or long-poll) and pushes messages down them. Fills on connections or on messages, whichever is nearer its limit.",
+      capacity: 20_000,
+      unit: "messages/s per node",
+      connectionCapacity: 50_000,
+      latencyMs: 2,
+      availability: 0.999,
+      costPerNodeHour: 0.15,
+      bandwidthMbps: 1_000,
+    },
+    coordination: {
+      name: "Coordination service",
+      summary:
+        "A small consensus cluster (etcd or ZooKeeper-like) for leases, leader election, locks and ID blocks. Up while a majority of its members is; every write commits through its leader.",
+      capacity: 20_000,
+      unit: "reads/s per member",
+      writeCapacity: 4_000,
+      latencyMs: 2,
+      writeLatencyMs: 8,
+      availability: 0.999,
+      costPerNodeHour: 0.2,
+    },
+  },
+};
+
 // Every version ever published, oldest first; a design names the one it was drawn
 // against.
-export const SPEC_VERSIONS: readonly SpecVersion[] = [V1_0, V2_0];
+export const SPEC_VERSIONS: readonly SpecVersion[] = [V1_0, V2_0, V2_1];
 // The newest version, whatever is in effect today: the sheet and the canvas's names.
-export const LATEST_SPEC = V2_0;
+export const LATEST_SPEC = V2_1;
 
 export function specVersion(version: string): SpecVersion | null {
   return SPEC_VERSIONS.find((s) => s.version === version) ?? null;

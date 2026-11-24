@@ -122,6 +122,23 @@ KINDS = {
         "with a rate limit and a price per call; work handed to it through a queue can "
         "wait out its outages, a call inside the request fails with it."
     ),
+    # Spec 2.1 (ADR-0050 stage 2): config "batch" on app_service and worker is a batch
+    # size (an app service's is an ID block), "members" a coordinator's quorum size.
+    "geo_index": (
+        "geo_index: an in-memory index of where things are (geohash, quadtree or S2 "
+        "cells); a nearby query asks only the few shards its cells fall in, replicas "
+        "share a busy area's queries, and it keeps positions, never history."
+    ),
+    "connection_gateway": (
+        "connection_gateway: holds clients' persistent connections (WebSocket or "
+        "long-poll) and pushes messages down them; it fills on connections or "
+        "messages, and when its servers are lost their clients all reconnect at once."
+    ),
+    "coordination": (
+        "coordination: a small consensus cluster (etcd or ZooKeeper-like) for leases, "
+        "leader election and ID blocks; it's up only while a majority of its members "
+        "is, every write goes through its leader, and it isn't a place to keep data."
+    ),
 }
 
 

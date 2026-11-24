@@ -50,7 +50,12 @@ export type Difficulty = "easy" | "medium" | "hard";
 //   same routes (the synchronous version of an asynchronous design);
 // - sending one request type along `route` (node ids) in place of its own edges.
 type Config = Record<string, number | string>;
-export type Lesson = { id: string; targets: string } & (
+// ADR-0052: what a lesson fails may differ by battle mode (the AI mode's region loss is
+// the harsher outage).
+export type Lesson = {
+  id: string;
+  targets: string | Record<BattleMode, string>;
+} & (
   | { without: string | string[] }
   | { node: string; configure: (config: Config) => Config }
   | { node: string; utilization: number }
@@ -64,7 +69,7 @@ export type FamilyTemplate = {
   title: string;
   // ADR-0050 §6: the spec version its variants are validated and played under (1.0
   // when absent); a family on a newer version is drawn only once it's in effect.
-  spec?: "2.0";
+  spec?: "2.0" | "2.1";
   // Each with the rule that says what in a design covers it (Q-WD-15).
   requirements: { text: string; covers: Cover }[];
   concepts: string[];
@@ -87,6 +92,9 @@ export type FamilyTemplate = {
       p99Ms: Span; // the baseline's target
       // The provider's rate limit, as a multiple of all request types together.
       providerShare?: Span;
+      // Spec 2.1: clients connected at once, as a multiple of all request types
+      // together (a presence client's heartbeat every 30 seconds is about 24).
+      connectionsPerRps?: Span;
     }
   >;
   horizonDays: number;
@@ -238,6 +246,17 @@ function draft(
           providerRps: Math.round(rps * draw(next, r.providerShare, 0.05)),
           providerCostPerCall: family.providerCostPerCall,
         };
+  // Drawn after the provider, so no earlier family's numbers move.
+  const connections =
+    r.connectionsPerRps === undefined
+      ? null
+      : {
+          connections: Math.max(
+            1000,
+            Math.round((rps * draw(next, r.connectionsPerRps, 1)) / 1000) *
+              1000,
+          ),
+        };
   const needed =
     traffic.storedGb + traffic.growthGbPerDay * traffic.horizonDays;
   return HldProblem.parse({
@@ -248,7 +267,7 @@ function draft(
     timeLimitMinutes: 30,
     requirements: [
       ...family.requirements.map((r) => r.text),
-      `About ${traffic.requests.map((t) => `${fmt(t.rps)} ${t.type.replaceAll("_", " ")}`).join(", ")} requests a second on a normal day.${provider === null ? "" : ` The external provider takes at most ${fmt(provider.providerRps)} calls a second, at $${String(provider.providerCostPerCall)} a call.`}`,
+      `About ${traffic.requests.map((t) => `${fmt(t.rps)} ${t.type.replaceAll("_", " ")}`).join(", ")} requests a second on a normal day.${provider === null ? "" : ` The external provider takes at most ${fmt(provider.providerRps)} calls a second, at $${String(provider.providerCostPerCall)} a call.`}${connections === null ? "" : ` About ${fmt(connections.connections)} clients stay connected.`}`,
       `${fmt(traffic.storedGb)} GB kept today, growing ${String(traffic.growthGbPerDay)} GB a day: ${fmt(needed)} GB within ${String(traffic.horizonDays)} days.`,
       `A budget of $${fmt(budget)} a month.`,
     ],
@@ -258,7 +277,7 @@ function draft(
       { rule: "storage" },
       { rule: "budget" },
     ],
-    traffic: { ...traffic, ...provider },
+    traffic: { ...traffic, ...provider, ...connections },
     budgetPerMonth: budget,
     scenarios: scenarios(battleMode, p99Ms, family.scenarios),
     allowedComponents: family.allowedComponents,
@@ -277,6 +296,9 @@ const COUNT: Partial<Record<ComponentKind, string>> = {
   stream: "partitions",
   sql_db: "readReplicas",
   search_index: "replicas",
+  // Spec 2.1: a nearby query's cells spread over shards; a gateway adds nodes.
+  geo_index: "shards",
+  connection_gateway: "nodes",
 };
 // Compute whose loss a spike shows first; caches and stores keep their memory and
 // storage, so a flaw in them would fail every scenario, not one.
@@ -285,6 +307,7 @@ const COMPUTE = new Set<ComponentKind>([
   "worker",
   "queue",
   "stream",
+  "connection_gateway",
 ]);
 
 const maxOf = (kind: ComponentKind, field: string) => {
@@ -336,6 +359,23 @@ const lagConsumer = (design: Design, problem: HldProblem, id: string) => {
   );
 };
 
+// Spec 2.1: a reconnect storm can make a zone's loss harsher than a spike for the
+// nodes behind it; the spike flaw leaves such a node alone (ADR-0052).
+const harsherElsewhere = (
+  result: ReturnType<typeof simulate>,
+  scenario: string,
+  id: string,
+) => {
+  const at = (s: (typeof result.scenarios)[number]) =>
+    s.nodes.find((n) => n.id === id)?.utilization ?? 0;
+  const here = result.scenarios.find((s) => s.id === scenario);
+  return (
+    specVersion(result.spec)?.features.gateway !== undefined &&
+    here !== undefined &&
+    result.scenarios.some((s) => at(s) > at(here))
+  );
+};
+
 function sizedFor(
   reference: Design,
   problem: HldProblem,
@@ -343,9 +383,8 @@ function sizedFor(
   utilization: number,
   only?: string,
 ): Design {
-  const nodes = simulate(problem, reference).scenarios.find(
-    (s) => s.id === scenario,
-  )?.nodes;
+  const result = simulate(problem, reference);
+  const nodes = result.scenarios.find((s) => s.id === scenario)?.nodes;
   return {
     ...reference,
     nodes: reference.nodes.map((n) => {
@@ -356,7 +395,8 @@ function sizedFor(
         used === 0 ||
         (only === undefined
           ? !COMPUTE.has(n.kind) ||
-            (n.kind === "worker" && lagConsumer(reference, problem, n.id))
+            (n.kind === "worker" && lagConsumer(reference, problem, n.id)) ||
+            harsherElsewhere(result, scenario, n.id)
           : n.id !== only)
       )
         return n;
@@ -470,7 +510,10 @@ function flaws(
   const list = [
     ...(family.lessons ?? []).map((lesson) => ({
       id: lesson.id,
-      targets: lesson.targets,
+      targets:
+        typeof lesson.targets === "string"
+          ? lesson.targets
+          : lesson.targets[problem.battleMode ?? "human"],
       design: flawed(reference, problem, lesson),
     })),
     // With a second active region, one zone's loss is survivable in any case, so the
@@ -682,13 +725,19 @@ export function validSeeds(
 // mode, never a practice seed (Q-P6-04). Every family keeps its seeds, so a match played
 // before its family moved to practice still rebuilds for its replay and results; new
 // matches draw from battle families only (drawVariant, ADR-0050 §1).
+// ADR-0050 §1: a practice family has no battle seeds. The families written before 2.1
+// keep theirs, so a match played before a family moved to practice still rebuilds.
+const SEEDED_PRACTICE = new Set(["1.0", "2.0"]);
+export const battleSeeded = (f: Family) =>
+  f.pool === "battle" || SEEDED_PRACTICE.has(familySpec(f));
+
 export function buildPool(families: readonly Family[]): Pool {
   const pool: Pool = {};
   for (const f of families)
     pool[f.slug] = {
       spec: familySpec(f),
-      human: validSeeds(f, "human", POOL_SIZE),
-      ai: validSeeds(f, "ai", POOL_SIZE),
+      human: battleSeeded(f) ? validSeeds(f, "human", POOL_SIZE) : [],
+      ai: battleSeeded(f) ? validSeeds(f, "ai", POOL_SIZE) : [],
     };
   return pool;
 }

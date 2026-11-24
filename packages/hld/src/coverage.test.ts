@@ -168,3 +168,24 @@ test("asynchronous work whose backlog never drains isn't covered", () => {
   expect(run(problem, starved).items[0]?.covered).toBe(false);
   expect(run(problem, STUDIO).items[0]?.covered).toBe(true);
 });
+
+// Spec 2.1's kinds in words: a geo index by its shards, a coordinator by its members.
+test("2.1's kinds say what sizes them", () => {
+  const family = (slug: string) => {
+    const f = FAMILIES.find((x) => x.slug === slug);
+    if (f === undefined) throw new Error(`no ${slug}`);
+    return variant(f, "human", 1);
+  };
+  const ids = family("id-generator");
+  expect(run(ids.problem, ids.reference).items[1]?.by).toBe(
+    "Coordination service, 3 members",
+  );
+  const nearby = family("nearby-places");
+  expect(run(nearby.problem, nearby.reference).items[0]?.by).toMatch(
+    /^Geo index, \d+ shards; p99 \d+ ms$/,
+  );
+  const flags = family("feature-flags");
+  expect(run(flags.problem, flags.reference).items[1]?.by).toMatch(
+    /^Connection gateway, \d+ nodes; done within \d+ seconds$/,
+  );
+});

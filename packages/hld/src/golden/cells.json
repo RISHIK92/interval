@@ -1,0 +1,197 @@
+{
+  "spec": "2.1",
+  "costPerMonth": 4562.5,
+  "storageNeededGb": 0,
+  "storageGb": null,
+  "writesKept": true,
+  "scenarios": [
+    {
+      "id": "baseline",
+      "name": "A normal day",
+      "weight": 3,
+      "score": 1,
+      "targetsMet": true,
+      "p99Ms": 26,
+      "availability": 0.9999973900024259,
+      "types": [
+        {
+          "type": "nearby",
+          "p50Ms": 26,
+          "p99Ms": 26,
+          "availability": 0.9999969900030299,
+          "overloaded": false
+        },
+        {
+          "type": "move",
+          "p50Ms": 23,
+          "p99Ms": 23,
+          "availability": 0.9999989900000099,
+          "overloaded": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 2,
+          "loadRps": 10000,
+          "utilization": 0.1,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 30,
+          "loadRps": 10000,
+          "utilization": 0.33,
+          "p50Ms": 20,
+          "p99Ms": 20
+        },
+        {
+          "id": "places",
+          "kind": "geo_index",
+          "up": true,
+          "servers": 16,
+          "loadRps": 26000,
+          "utilization": 0.3,
+          "p50Ms": 5,
+          "p99Ms": 5
+        }
+      ],
+      "explanations": [
+        "\"nearby\": p99 26 ms (target 100 ms), 100.0% served.",
+        "\"move\": p99 23 ms (target 100 ms), 100.0% served."
+      ]
+    },
+    {
+      "id": "peak",
+      "name": "A spike",
+      "weight": 2,
+      "score": 0.75,
+      "targetsMet": false,
+      "p99Ms": null,
+      "availability": 0.9999973900024259,
+      "types": [
+        {
+          "type": "nearby",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0.9999969900030299,
+          "overloaded": true
+        },
+        {
+          "type": "move",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0.9999989900000099,
+          "overloaded": true
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 2,
+          "loadRps": 30000,
+          "utilization": 0.3,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 30,
+          "loadRps": 30000,
+          "utilization": 1,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "places",
+          "kind": "geo_index",
+          "up": true,
+          "servers": 16,
+          "loadRps": 78000,
+          "utilization": 0.9,
+          "p50Ms": 5,
+          "p99Ms": 5.5
+        }
+      ],
+      "explanations": [
+        "api is overloaded: 30,000 requests/s is 100.0% of what its 30 server(s) handle.",
+        "places runs hot at 90.0%: waits grow fast past 80%.",
+        "\"nearby\": p99 unbounded (target 200 ms), 100.0% served.",
+        "\"move\": p99 unbounded (target 200 ms), 100.0% served."
+      ]
+    },
+    {
+      "id": "zone",
+      "name": "A zone goes down",
+      "weight": 2,
+      "score": 1,
+      "targetsMet": true,
+      "p99Ms": 26.7,
+      "availability": 0.9999973900024259,
+      "types": [
+        {
+          "type": "nearby",
+          "p50Ms": 26,
+          "p99Ms": 26.7,
+          "availability": 0.9999969900030299,
+          "overloaded": false
+        },
+        {
+          "type": "move",
+          "p50Ms": 23,
+          "p99Ms": 23.5,
+          "availability": 0.9999989900000099,
+          "overloaded": false
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 1,
+          "loadRps": 10000,
+          "utilization": 0.2,
+          "p50Ms": 1,
+          "p99Ms": 1.1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 15,
+          "loadRps": 10000,
+          "utilization": 0.67,
+          "p50Ms": 20,
+          "p99Ms": 20.5
+        },
+        {
+          "id": "places",
+          "kind": "geo_index",
+          "up": true,
+          "servers": 8,
+          "loadRps": 26000,
+          "utilization": 0.6,
+          "p50Ms": 5,
+          "p99Ms": 5.2
+        }
+      ],
+      "explanations": [
+        "\"nearby\": p99 26.7 ms (target 150 ms), 100.0% served.",
+        "\"move\": p99 23.5 ms (target 150 ms), 100.0% served."
+      ]
+    }
+  ],
+  "points": 55.7,
+  "baselinePassed": true,
+  "explanations": ["Cost: $4,563 a month, against a budget of $20,000."]
+}

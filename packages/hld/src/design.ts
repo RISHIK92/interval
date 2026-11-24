@@ -37,6 +37,9 @@ export const DesignNode = z.discriminatedUnion("kind", [
   nodeOf("search_index"),
   nodeOf("stream"),
   nodeOf("external_api"),
+  nodeOf("geo_index"),
+  nodeOf("connection_gateway"),
+  nodeOf("coordination"),
 ]);
 export type DesignNode = z.infer<typeof DesignNode>;
 

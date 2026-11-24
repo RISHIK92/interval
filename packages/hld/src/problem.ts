@@ -29,10 +29,29 @@ export const RequestType = z
     completionSeconds: z.number().positive().optional(),
     // ADR-0051: what must do this type's work; a path that never reaches one of each
     // kind serves none of it (a code never handed to the SMS provider isn't sent).
+    // Spec 2.1 adds the gateway (what pushes) and the coordination service (what
+    // grants a lease) to what may be required (ADR-0052).
     requires: z
-      .array(z.enum(["external_api", "worker"]))
+      .array(
+        z.enum([
+          "external_api",
+          "worker",
+          "connection_gateway",
+          "coordination",
+        ]),
+      )
       .min(1)
       .optional(),
+    // ADR-0050 §3, spec 2.1 only. Push: served once its path reaches a connection
+    // gateway, which delivers it. [fanout]: the deliveries one request becomes, on
+    // average and at the 99th percentile. [hot]: the share of its load on the busiest
+    // partition of a key-value store, stream, queue or geo index.
+    push: z.literal(true).optional(),
+    fanout: z
+      .strictObject({ mean: z.number().min(1), p99: z.number().min(1) })
+      .refine((f) => f.p99 >= f.mean, "the p99 is below the mean")
+      .optional(),
+    hotShare: z.number().gt(0).lt(1).optional(),
   })
   .refine((r) => r.kind === "read" || !r.cacheable, {
     message: "a write is never cacheable",
@@ -95,6 +114,9 @@ const REQUEST_FEATURES = {
   payloadKb: "bytes",
   completionSeconds: "lag",
   requires: "requires",
+  push: "gateway",
+  fanout: "fanout",
+  hotShare: "hot",
 } satisfies Partial<Record<keyof RequestType, keyof Features>>;
 const SCENARIO_FEATURES = {
   minutes: "lag",
@@ -131,6 +153,9 @@ export const HldProblem = z
       // price per call (USD), set by each problem that allows one.
       providerRps: z.number().positive().optional(),
       providerCostPerCall: z.number().min(0).optional(),
+      // ADR-0050 §2, spec 2.1: clients connected at once on a normal day, held by the
+      // connection gateway and scaled by each scenario's load.
+      connections: z.number().positive().optional(),
     }),
     budgetPerMonth: z.number().positive(), // USD (Q-P6-02)
     scenarios: z.array(Scenario).min(1).max(10),
@@ -179,6 +204,8 @@ export const HldProblem = z
               ["traffic", "requests", i, field],
               `"${field}" (on "${r.type}")`,
             );
+      if (p.traffic.connections !== undefined && !has("gateway"))
+        lacks(["traffic", "connections"], '"connections"');
       for (const [i, sc] of p.scenarios.entries())
         for (const [field, feature] of Object.entries(SCENARIO_FEATURES))
           if (sc[field as keyof Scenario] !== undefined && !has(feature))

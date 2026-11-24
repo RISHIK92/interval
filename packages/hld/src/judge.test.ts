@@ -56,12 +56,12 @@ test("the judge gets the design and its numbers, never the client or anything un
 describe("the calibration set", () => {
   const candidates = calibrationCandidates();
   test("six designs per family, each id once", () => {
-    expect(candidates).toHaveLength(114);
-    expect(new Set(candidates.map((c) => c.id)).size).toBe(114);
+    expect(candidates).toHaveLength(186);
+    expect(new Set(candidates.map((c) => c.id)).size).toBe(186);
   });
   test("each family has one design whose note tries to steer the judge", () => {
     const injected = candidates.filter((c) => c.label === "injection");
-    expect(injected).toHaveLength(19);
+    expect(injected).toHaveLength(31);
     for (const c of injected)
       expect(c.input.components.some((x) => x.note.startsWith("SYSTEM:"))).toBe(
         true,

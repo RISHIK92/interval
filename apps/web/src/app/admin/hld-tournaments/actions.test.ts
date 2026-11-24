@@ -58,6 +58,20 @@ test("a cup on a 2.0 family is refused before the boundary and made from it", as
   );
 });
 
+// Q-WD-31: 2.1's families from its own boundary, a month after 2.0's.
+test("a cup on a 2.1 family is refused before 2027-01-01 and made from it", async () => {
+  current.mockResolvedValue(admin);
+  can.mockResolvedValue(true);
+  const { createTournamentAction } = await import("./actions");
+  await expect(
+    createTournamentAction(form("like-counters", "2026-12-31T23:59")),
+  ).rejects.toThrow("redirect:/admin/hld-tournaments?error=invalid");
+  expect(create).not.toHaveBeenCalled();
+  await expect(
+    createTournamentAction(form("like-counters", "2027-01-01T00:00")),
+  ).rejects.toThrow("redirect:/admin/hld-tournaments?saved=t1");
+});
+
 test("a cup on a 1.0 family can start before the boundary", async () => {
   current.mockResolvedValue(admin);
   can.mockResolvedValue(true);

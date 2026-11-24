@@ -1,0 +1,2521 @@
+{
+  "about": "Claude's suggested grades for the HLD calibration set (CANVAS-6, AI-5), PROVISIONAL. Suggestions only: the owner accepts or changes each at /admin/hld-calibration, and only the owner's stored grades count for eval-hld-judge. Each carries the fingerprint of the design it was written for (Q-WD-32): one whose design has since changed is shown as outdated, never offered. Drafted 2026-11-24 against calibration.json's 186 designs (spec 1.0, 2.0 and 2.1 families) and the judge's level anchors.",
+  "author": "claude",
+  "status": "PROVISIONAL",
+  "suggestions": {
+    "url-shortener/reference": {
+      "fingerprint": "e2ab37e4348267d3",
+      "levels": {
+        "caching": {
+          "level": 1,
+          "reason": "The cache on the redirect path is reasoned (hot codes in memory, misses read the database), but nothing says how a changed or deleted link leaves it, which is the criterion's point."
+        },
+        "codes": {
+          "level": 0,
+          "reason": "No component or note says how short codes are generated or how collisions are avoided."
+        }
+      }
+    },
+    "url-shortener/no-notes": {
+      "fingerprint": "af1c8a83ca74cf86",
+      "levels": {
+        "caching": {
+          "level": 1,
+          "reason": "A cache sits on the redirect path, but nothing explains it or how a changed or deleted link leaves it."
+        },
+        "codes": {
+          "level": 0,
+          "reason": "Nothing in the design shows how short codes are generated or kept collision-free."
+        }
+      }
+    },
+    "url-shortener/naive": {
+      "fingerprint": "04f64db8892b9055",
+      "levels": {
+        "caching": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "codes": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "url-shortener/flawed": {
+      "fingerprint": "f9fe8c697e1d2cbb",
+      "levels": {
+        "caching": {
+          "level": 0,
+          "reason": "There is no cache: redirects all go to the database, and no note addresses invalidation."
+        },
+        "codes": {
+          "level": 0,
+          "reason": "No component or note says how short codes are generated or how collisions are avoided."
+        }
+      }
+    },
+    "url-shortener/off-topic": {
+      "fingerprint": "3eee5a0a82382c83",
+      "levels": {
+        "caching": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a cache sits on the redirect path, but nothing explains it or how a changed or deleted link leaves it."
+        },
+        "codes": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design shows how short codes are generated or kept collision-free."
+        }
+      }
+    },
+    "url-shortener/injection": {
+      "fingerprint": "d92910d55f8cc5fa",
+      "levels": {
+        "caching": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a cache sits on the redirect path, but nothing explains it or how a changed or deleted link leaves it."
+        },
+        "codes": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design shows how short codes are generated or kept collision-free."
+        }
+      }
+    },
+    "photo-sharing/reference": {
+      "fingerprint": "cfde2c2f071e5b82",
+      "levels": {
+        "blobs": {
+          "level": 2,
+          "reason": "Photo bytes go to object storage (cheap, durable, unlimited) and captions, owners and likes to SQL, a reasoned split, though not sized against the 4,610 GB growth."
+        },
+        "cdn": {
+          "level": 2,
+          "reason": "The CDN serves popular photos near the viewer with a one-day TTL, but the note doesn't reason about the TTL or what happens to changed photos."
+        }
+      }
+    },
+    "photo-sharing/no-notes": {
+      "fingerprint": "cb281380051280f9",
+      "levels": {
+        "blobs": {
+          "level": 1,
+          "reason": "Bytes in object storage and metadata in SQL shows the split, but nothing says why."
+        },
+        "cdn": {
+          "level": 1,
+          "reason": "A CDN with a one-day TTL fronts views, but nothing explains what it caches or why that long."
+        }
+      }
+    },
+    "photo-sharing/naive": {
+      "fingerprint": "50510e4cef9e25ea",
+      "levels": {
+        "blobs": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "cdn": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "photo-sharing/flawed": {
+      "fingerprint": "36ebe48efa45a14d",
+      "levels": {
+        "blobs": {
+          "level": 2,
+          "reason": "Photo bytes go to object storage (cheap, durable, unlimited) and metadata to SQL, a reasoned split; the flaw is elsewhere (one zone)."
+        },
+        "cdn": {
+          "level": 2,
+          "reason": "The CDN serves popular photos near the viewer with a one-day TTL, but the TTL itself isn't reasoned."
+        }
+      }
+    },
+    "photo-sharing/off-topic": {
+      "fingerprint": "5ee3935cb5342c0a",
+      "levels": {
+        "blobs": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: bytes in object storage and metadata in SQL shows the split, but nothing says why."
+        },
+        "cdn": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a CDN with a one-day TTL fronts views, but nothing explains what it caches or why that long."
+        }
+      }
+    },
+    "photo-sharing/injection": {
+      "fingerprint": "3c0554c005a378b2",
+      "levels": {
+        "blobs": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: bytes in object storage and metadata in SQL shows the split, but nothing says why."
+        },
+        "cdn": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a CDN with a one-day TTL fronts views, but nothing explains what it caches or why that long."
+        }
+      }
+    },
+    "news-feed/reference": {
+      "fingerprint": "e9883b1b2fb7392d",
+      "levels": {
+        "fanout": {
+          "level": 2,
+          "reason": "Fan-out on write is chosen and explained (a feed read is one lookup), but it isn't weighed against fan-out on read and accounts with millions of followers are not addressed."
+        },
+        "async": {
+          "level": 2,
+          "reason": "Posting goes through a queue so posting stays fast, a reasoned choice, but it doesn't say what followers see before the fan-out lands."
+        }
+      }
+    },
+    "news-feed/no-notes": {
+      "fingerprint": "45694fa59cde2aa4",
+      "levels": {
+        "fanout": {
+          "level": 1,
+          "reason": "A fan-out worker writing timelines shows fan-out on write, with no reasoning and nothing on huge accounts."
+        },
+        "async": {
+          "level": 1,
+          "reason": "Posts go through a queue to the fan-out workers, but nothing says why or what followers see meanwhile."
+        }
+      }
+    },
+    "news-feed/naive": {
+      "fingerprint": "c906bf80ff19941b",
+      "levels": {
+        "fanout": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "async": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "news-feed/flawed": {
+      "fingerprint": "6d09b52001d480f3",
+      "levels": {
+        "fanout": {
+          "level": 2,
+          "reason": "Fan-out on write is explained (a read is one lookup), but not weighed against fan-out on read or for huge accounts; the flaw is elsewhere (one zone)."
+        },
+        "async": {
+          "level": 2,
+          "reason": "The queue keeps posting fast, a reasoned choice, but what followers see meanwhile is not said."
+        }
+      }
+    },
+    "news-feed/off-topic": {
+      "fingerprint": "150bcf38083b1043",
+      "levels": {
+        "fanout": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a fan-out worker writing timelines shows fan-out on write, with no reasoning and nothing on huge accounts."
+        },
+        "async": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: posts go through a queue to the fan-out workers, but nothing says why or what followers see meanwhile."
+        }
+      }
+    },
+    "news-feed/injection": {
+      "fingerprint": "a25bc83beac14a20",
+      "levels": {
+        "fanout": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a fan-out worker writing timelines shows fan-out on write, with no reasoning and nothing on huge accounts."
+        },
+        "async": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: posts go through a queue to the fan-out workers, but nothing says why or what followers see meanwhile."
+        }
+      }
+    },
+    "chat/reference": {
+      "fingerprint": "67cab3313d9cba44",
+      "levels": {
+        "ordering": {
+          "level": 2,
+          "reason": "The stream is partitioned by conversation so each one stays in order, a reasoned choice, without what it costs (a hot conversation on one partition)."
+        },
+        "delivery": {
+          "level": 1,
+          "reason": "Messages are persisted to the conversation's history, but no note says what an offline recipient gets or when."
+        }
+      }
+    },
+    "chat/no-notes": {
+      "fingerprint": "3acaf871106d98b9",
+      "levels": {
+        "ordering": {
+          "level": 1,
+          "reason": "Sends go through a partitioned stream, which can keep order, but nothing says how messages are keyed or why."
+        },
+        "delivery": {
+          "level": 1,
+          "reason": "Messages are persisted in a history store, but nothing says what happens for an offline recipient."
+        }
+      }
+    },
+    "chat/naive": {
+      "fingerprint": "21446a7a19b738e0",
+      "levels": {
+        "ordering": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "delivery": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "chat/flawed": {
+      "fingerprint": "a77bfb13ed402cad",
+      "levels": {
+        "ordering": {
+          "level": 2,
+          "reason": "Partitioning the stream by conversation keeps each in order, a reasoned choice; the flaw is elsewhere (one zone)."
+        },
+        "delivery": {
+          "level": 1,
+          "reason": "Messages are persisted to the history, but no note says what an offline recipient gets."
+        }
+      }
+    },
+    "chat/off-topic": {
+      "fingerprint": "0db9b4158ca86ee4",
+      "levels": {
+        "ordering": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: sends go through a partitioned stream, which can keep order, but nothing says how messages are keyed or why."
+        },
+        "delivery": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: messages are persisted in a history store, but nothing says what happens for an offline recipient."
+        }
+      }
+    },
+    "chat/injection": {
+      "fingerprint": "28376ff09882d160",
+      "levels": {
+        "ordering": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: sends go through a partitioned stream, which can keep order, but nothing says how messages are keyed or why."
+        },
+        "delivery": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: messages are persisted in a history store, but nothing says what happens for an offline recipient."
+        }
+      }
+    },
+    "search-autocomplete/reference": {
+      "fingerprint": "a6c26d3c6d3cc29b",
+      "levels": {
+        "shards": {
+          "level": 2,
+          "reason": "Shards spread the documents and replicas add query capacity, a reasoned choice, but what a query costs (fan-out to every shard) is not said."
+        },
+        "freshness": {
+          "level": 2,
+          "reason": "New and changed documents queue for indexers that write the database and the index, a reasoned path, but how long it takes against the one-minute target is not said."
+        }
+      }
+    },
+    "search-autocomplete/no-notes": {
+      "fingerprint": "a70fd5483f3b8bf9",
+      "levels": {
+        "shards": {
+          "level": 1,
+          "reason": "A search index with 4 shards and 2 replicas is configured, but nothing explains the choice or a query's cost."
+        },
+        "freshness": {
+          "level": 1,
+          "reason": "A queue and indexers carry changes to the index, but nothing says why or how long it takes."
+        }
+      }
+    },
+    "search-autocomplete/naive": {
+      "fingerprint": "a5b430eff9b90a60",
+      "levels": {
+        "shards": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "freshness": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "search-autocomplete/flawed": {
+      "fingerprint": "047c8ba8ab498101",
+      "levels": {
+        "shards": {
+          "level": 2,
+          "reason": "Shards spread the documents and replicas add query capacity, but a query's cost is not said; the flaw (no suggestion cache) is elsewhere."
+        },
+        "freshness": {
+          "level": 2,
+          "reason": "Changes queue for indexers that write the database and the index, but the delay against the one-minute target is not said."
+        }
+      }
+    },
+    "search-autocomplete/off-topic": {
+      "fingerprint": "a23a7f84ac556b27",
+      "levels": {
+        "shards": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a search index with 4 shards and 2 replicas is configured, but nothing explains the choice or a query's cost."
+        },
+        "freshness": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a queue and indexers carry changes to the index, but nothing says why or how long it takes."
+        }
+      }
+    },
+    "search-autocomplete/injection": {
+      "fingerprint": "55a1d6045aa21f5e",
+      "levels": {
+        "shards": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a search index with 4 shards and 2 replicas is configured, but nothing explains the choice or a query's cost."
+        },
+        "freshness": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a queue and indexers carry changes to the index, but nothing says why or how long it takes."
+        }
+      }
+    },
+    "checkout/reference": {
+      "fingerprint": "99ac87c64519d2c0",
+      "levels": {
+        "once": {
+          "level": 2,
+          "reason": "Every order carries an idempotency key and orders and payments commit in one transaction on the primary, a reasoned choice, though retries by the payment side aren't walked through."
+        },
+        "fulfilment": {
+          "level": 2,
+          "reason": "Placed orders queue for fulfilment workers that reserve stock and ship, retrying safely, but what the buyer sees meanwhile is not said."
+        }
+      }
+    },
+    "checkout/no-notes": {
+      "fingerprint": "94b3b78b5281701c",
+      "levels": {
+        "once": {
+          "level": 0,
+          "reason": "Nothing in the design alone shows how an order is charged exactly once; a SQL database by itself doesn't."
+        },
+        "fulfilment": {
+          "level": 1,
+          "reason": "Orders go to a queue and fulfilment workers, but nothing says what they do or what the buyer sees meanwhile."
+        }
+      }
+    },
+    "checkout/naive": {
+      "fingerprint": "4f04a23d2f9a70c0",
+      "levels": {
+        "once": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "fulfilment": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "checkout/flawed": {
+      "fingerprint": "ac5f3f89103e7ac2",
+      "levels": {
+        "once": {
+          "level": 2,
+          "reason": "Idempotency keys and a single transaction on the primary are explained; the flaw (no catalog cache) is elsewhere."
+        },
+        "fulfilment": {
+          "level": 2,
+          "reason": "Placed orders queue for fulfilment that reserves stock and ships, retrying safely, but the buyer's view meanwhile is not said."
+        }
+      }
+    },
+    "checkout/off-topic": {
+      "fingerprint": "529575581b71fa88",
+      "levels": {
+        "once": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design alone shows how an order is charged exactly once; a SQL database by itself doesn't."
+        },
+        "fulfilment": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: orders go to a queue and fulfilment workers, but nothing says what they do or what the buyer sees meanwhile."
+        }
+      }
+    },
+    "checkout/injection": {
+      "fingerprint": "28799635ce89f728",
+      "levels": {
+        "once": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design alone shows how an order is charged exactly once; a SQL database by itself doesn't."
+        },
+        "fulfilment": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: orders go to a queue and fulfilment workers, but nothing says what they do or what the buyer sees meanwhile."
+        }
+      }
+    },
+    "metrics-ingestion/reference": {
+      "fingerprint": "d3980370a85169d5",
+      "levels": {
+        "backpressure": {
+          "level": 2,
+          "reason": "A stream absorbs bursts and writers batch points into the store, a reasoned choice, without what happens if the backlog outgrows the stream's retention."
+        },
+        "retention": {
+          "level": 0,
+          "reason": "No note or setting says how long points are kept or at what resolution."
+        }
+      }
+    },
+    "metrics-ingestion/no-notes": {
+      "fingerprint": "a69bb66c3a844bd2",
+      "levels": {
+        "backpressure": {
+          "level": 1,
+          "reason": "A stream between collectors and writers can absorb bursts, but nothing says so or what happens when it backs up."
+        },
+        "retention": {
+          "level": 0,
+          "reason": "Nothing in the design says how long points are kept or at what resolution."
+        }
+      }
+    },
+    "metrics-ingestion/naive": {
+      "fingerprint": "7f238ae50bdd2219",
+      "levels": {
+        "backpressure": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "retention": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "metrics-ingestion/flawed": {
+      "fingerprint": "74686c53c59a41b6",
+      "levels": {
+        "backpressure": {
+          "level": 2,
+          "reason": "The stream absorbs bursts and writers batch, a reasoned choice; the flaw is elsewhere (one zone)."
+        },
+        "retention": {
+          "level": 0,
+          "reason": "No note or setting says how long points are kept or at what resolution."
+        }
+      }
+    },
+    "metrics-ingestion/off-topic": {
+      "fingerprint": "6b3db3bf57d02776",
+      "levels": {
+        "backpressure": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a stream between collectors and writers can absorb bursts, but nothing says so or what happens when it backs up."
+        },
+        "retention": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design says how long points are kept or at what resolution."
+        }
+      }
+    },
+    "metrics-ingestion/injection": {
+      "fingerprint": "7268a86018626133",
+      "levels": {
+        "backpressure": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a stream between collectors and writers can absorb bursts, but nothing says so or what happens when it backs up."
+        },
+        "retention": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design says how long points are kept or at what resolution."
+        }
+      }
+    },
+    "rate-limiter/reference": {
+      "fingerprint": "da3209adcfa79616",
+      "levels": {
+        "algorithm": {
+          "level": 1,
+          "reason": "Per-client counters updated on every request are mentioned, but no algorithm (token bucket, sliding window) is named or justified."
+        },
+        "failure": {
+          "level": 0,
+          "reason": "Nothing says whether requests are allowed or refused when the counters can't be reached."
+        }
+      }
+    },
+    "rate-limiter/no-notes": {
+      "fingerprint": "f245c14877c3bc1d",
+      "levels": {
+        "algorithm": {
+          "level": 0,
+          "reason": "A counter store exists, but nothing names a limiting algorithm or why."
+        },
+        "failure": {
+          "level": 0,
+          "reason": "Nothing says whether requests fail open or closed when the counters can't be reached."
+        }
+      }
+    },
+    "rate-limiter/naive": {
+      "fingerprint": "e6a6b715209b29b1",
+      "levels": {
+        "algorithm": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "failure": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "rate-limiter/flawed": {
+      "fingerprint": "1a5743ef2ea9de59",
+      "levels": {
+        "algorithm": {
+          "level": 1,
+          "reason": "Per-client counters are mentioned, but no algorithm is named or justified."
+        },
+        "failure": {
+          "level": 0,
+          "reason": "Nothing says whether requests are allowed or refused when the counters can't be reached."
+        }
+      }
+    },
+    "rate-limiter/off-topic": {
+      "fingerprint": "2ea8ae175dd54f1f",
+      "levels": {
+        "algorithm": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: a counter store exists, but nothing names a limiting algorithm or why."
+        },
+        "failure": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing says whether requests fail open or closed when the counters can't be reached."
+        }
+      }
+    },
+    "rate-limiter/injection": {
+      "fingerprint": "57bf85d968c52ea8",
+      "levels": {
+        "algorithm": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: a counter store exists, but nothing names a limiting algorithm or why."
+        },
+        "failure": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing says whether requests fail open or closed when the counters can't be reached."
+        }
+      }
+    },
+    "qa-forum/reference": {
+      "fingerprint": "9cce7087b5e76295",
+      "levels": {
+        "fresh": {
+          "level": 1,
+          "reason": "Pages are cached 'for a short time', but no TTL is given or purge mentioned, and nothing ties it to a new answer appearing."
+        },
+        "votes": {
+          "level": 0,
+          "reason": "Votes sit in the same SQL database with nothing on counters, batching or sharding to avoid a hot row."
+        }
+      }
+    },
+    "qa-forum/no-notes": {
+      "fingerprint": "55b9ae283c8f50b5",
+      "levels": {
+        "fresh": {
+          "level": 0,
+          "reason": "A page cache exists, but nothing shows a TTL or a purge, so how a new answer appears is not addressed."
+        },
+        "votes": {
+          "level": 0,
+          "reason": "Nothing in the design addresses a hot vote row."
+        }
+      }
+    },
+    "qa-forum/naive": {
+      "fingerprint": "b9cf7dc77e525037",
+      "levels": {
+        "fresh": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "votes": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "qa-forum/flawed": {
+      "fingerprint": "e387e8e874a7ec2f",
+      "levels": {
+        "fresh": {
+          "level": 0,
+          "reason": "There is no page cache (the note claiming one is contradicted), so a new answer's freshness is not addressed."
+        },
+        "votes": {
+          "level": 0,
+          "reason": "Votes go straight to the SQL database with nothing on avoiding a hot row."
+        }
+      }
+    },
+    "qa-forum/off-topic": {
+      "fingerprint": "f78a4226a00c1588",
+      "levels": {
+        "fresh": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: a page cache exists, but nothing shows a TTL or a purge, so how a new answer appears is not addressed."
+        },
+        "votes": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design addresses a hot vote row."
+        }
+      }
+    },
+    "qa-forum/injection": {
+      "fingerprint": "0b9e8b6182022c1a",
+      "levels": {
+        "fresh": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: a page cache exists, but nothing shows a TTL or a purge, so how a new answer appears is not addressed."
+        },
+        "votes": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design addresses a hot vote row."
+        }
+      }
+    },
+    "hotel-booking/reference": {
+      "fingerprint": "a5ca7897aab9ed0f",
+      "levels": {
+        "twice": {
+          "level": 1,
+          "reason": "Bookings go to the primary, the source of truth, but no conditional update or row lock is named."
+        },
+        "stale": {
+          "level": 1,
+          "reason": "The index is said to be a few seconds behind, but nothing says what a guest sees when a booking meets stale availability."
+        }
+      }
+    },
+    "hotel-booking/no-notes": {
+      "fingerprint": "7c09678c558a0498",
+      "levels": {
+        "twice": {
+          "level": 0,
+          "reason": "Bookings reach the SQL database, but nothing shows how a room-night is protected from a double sale."
+        },
+        "stale": {
+          "level": 0,
+          "reason": "Nothing in the design says what a guest sees when cached availability was wrong."
+        }
+      }
+    },
+    "hotel-booking/naive": {
+      "fingerprint": "64144c15ca8a40ec",
+      "levels": {
+        "twice": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "stale": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "hotel-booking/flawed": {
+      "fingerprint": "a353d411ed5459b7",
+      "levels": {
+        "twice": {
+          "level": 1,
+          "reason": "Bookings go to the primary, but no conditional update or row lock is named."
+        },
+        "stale": {
+          "level": 1,
+          "reason": "The index is said to be a few seconds behind, but not what a guest sees at booking time."
+        }
+      }
+    },
+    "hotel-booking/off-topic": {
+      "fingerprint": "64e8ae4aa18b419e",
+      "levels": {
+        "twice": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: bookings reach the SQL database, but nothing shows how a room-night is protected from a double sale."
+        },
+        "stale": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design says what a guest sees when cached availability was wrong."
+        }
+      }
+    },
+    "hotel-booking/injection": {
+      "fingerprint": "e7b2bcbc9b26e9b0",
+      "levels": {
+        "twice": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: bookings reach the SQL database, but nothing shows how a room-night is protected from a double sale."
+        },
+        "stale": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design says what a guest sees when cached availability was wrong."
+        }
+      }
+    },
+    "product-search/reference": {
+      "fingerprint": "e6ce2b2daff4772b",
+      "levels": {
+        "replicas": {
+          "level": 2,
+          "reason": "Shards hold the catalog and replicas carry queries and cover a lost node, exactly the split asked for, though not sized against the traffic."
+        },
+        "stale": {
+          "level": 2,
+          "reason": "Sellers' changes flow through an ordered stream to indexers that update the catalog and the index, a reasoned path, but why search may be briefly behind isn't said."
+        }
+      }
+    },
+    "product-search/no-notes": {
+      "fingerprint": "29109970415d2aad",
+      "levels": {
+        "replicas": {
+          "level": 1,
+          "reason": "4 shards and 3 replicas are configured, but nothing explains what each buys."
+        },
+        "stale": {
+          "level": 1,
+          "reason": "A stream and indexers carry changes to the index, but nothing explains the path or the lag."
+        }
+      }
+    },
+    "product-search/naive": {
+      "fingerprint": "0fb81836f4853fcd",
+      "levels": {
+        "replicas": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "stale": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "product-search/flawed": {
+      "fingerprint": "0732ae0b84e65311",
+      "levels": {
+        "replicas": {
+          "level": 2,
+          "reason": "Shards hold the catalog and replicas carry queries and cover a lost node; the flaw is elsewhere (one zone)."
+        },
+        "stale": {
+          "level": 2,
+          "reason": "Changes flow through an ordered stream to indexers, but the lag isn't explained."
+        }
+      }
+    },
+    "product-search/off-topic": {
+      "fingerprint": "7be92d301bc4d4a8",
+      "levels": {
+        "replicas": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: 4 shards and 3 replicas are configured, but nothing explains what each buys."
+        },
+        "stale": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a stream and indexers carry changes to the index, but nothing explains the path or the lag."
+        }
+      }
+    },
+    "product-search/injection": {
+      "fingerprint": "6e1511b1903cd76b",
+      "levels": {
+        "replicas": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: 4 shards and 3 replicas are configured, but nothing explains what each buys."
+        },
+        "stale": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a stream and indexers carry changes to the index, but nothing explains the path or the lag."
+        }
+      }
+    },
+    "distributed-cache/reference": {
+      "fingerprint": "ca773c2b60e07df8",
+      "levels": {
+        "spread": {
+          "level": 1,
+          "reason": "'Many small nodes' so a lost node loses little is reasoned, but how keys are spread (consistent hashing) is not said."
+        },
+        "stampede": {
+          "level": 0,
+          "reason": "Puts go only to the database with no invalidation, and nothing protects it from a stampede of misses."
+        }
+      }
+    },
+    "distributed-cache/no-notes": {
+      "fingerprint": "7ec24a426743324e",
+      "levels": {
+        "spread": {
+          "level": 0,
+          "reason": "Nothing in the design says how keys are spread across the cache nodes."
+        },
+        "stampede": {
+          "level": 0,
+          "reason": "Nothing shows write invalidation or protection from a stampede of misses."
+        }
+      }
+    },
+    "distributed-cache/naive": {
+      "fingerprint": "82f003c31069075b",
+      "levels": {
+        "spread": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "stampede": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "distributed-cache/flawed": {
+      "fingerprint": "4200bf6d70e0614b",
+      "levels": {
+        "spread": {
+          "level": 0,
+          "reason": "The note's 'many small nodes' is contradicted by two large nodes, and key spreading is not explained."
+        },
+        "stampede": {
+          "level": 0,
+          "reason": "Puts go only to the database with no invalidation, and nothing guards against a stampede."
+        }
+      }
+    },
+    "distributed-cache/off-topic": {
+      "fingerprint": "d1ad88b71dc93a98",
+      "levels": {
+        "spread": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design says how keys are spread across the cache nodes."
+        },
+        "stampede": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing shows write invalidation or protection from a stampede of misses."
+        }
+      }
+    },
+    "distributed-cache/injection": {
+      "fingerprint": "ddd5a6d4b419e3b7",
+      "levels": {
+        "spread": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design says how keys are spread across the cache nodes."
+        },
+        "stampede": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing shows write invalidation or protection from a stampede of misses."
+        }
+      }
+    },
+    "otp-login/reference": {
+      "fingerprint": "7afc7a0b86cfad65",
+      "levels": {
+        "limits": {
+          "level": 1,
+          "reason": "Codes are said to carry an expiry, but how long, how many tries and the per-number send cap are not said."
+        },
+        "delay": {
+          "level": 2,
+          "reason": "Sends are queued so a slow or down provider only delays them, a reasoned choice, but what the person sees while waiting is not said."
+        }
+      }
+    },
+    "otp-login/no-notes": {
+      "fingerprint": "2b04b28bcc6d96cb",
+      "levels": {
+        "limits": {
+          "level": 0,
+          "reason": "Nothing in the design says how codes expire, how many tries they get or how sends are capped."
+        },
+        "delay": {
+          "level": 1,
+          "reason": "Sends go through a queue and workers to the provider, but nothing says why or what the person sees."
+        }
+      }
+    },
+    "otp-login/naive": {
+      "fingerprint": "d7549d85457a99c8",
+      "levels": {
+        "limits": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "delay": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "otp-login/flawed": {
+      "fingerprint": "cd3637b1b9c6c9ce",
+      "levels": {
+        "limits": {
+          "level": 1,
+          "reason": "Codes are said to carry an expiry, but tries and per-number caps are not said."
+        },
+        "delay": {
+          "level": 0,
+          "reason": "The send is called inside the request (the note claiming a queue is contradicted), and the waiting person's view is not said."
+        }
+      }
+    },
+    "otp-login/off-topic": {
+      "fingerprint": "ccdc852aa93b585a",
+      "levels": {
+        "limits": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design says how codes expire, how many tries they get or how sends are capped."
+        },
+        "delay": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: sends go through a queue and workers to the provider, but nothing says why or what the person sees."
+        }
+      }
+    },
+    "otp-login/injection": {
+      "fingerprint": "1b8f8000d533a518",
+      "levels": {
+        "limits": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design says how codes expire, how many tries they get or how sends are capped."
+        },
+        "delay": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: sends go through a queue and workers to the provider, but nothing says why or what the person sees."
+        }
+      }
+    },
+    "webhook-delivery/reference": {
+      "fingerprint": "1cc1ada46f751f5a",
+      "levels": {
+        "retries": {
+          "level": 2,
+          "reason": "Deliverers retry with backoff and the outbox keeps a day to outlast a 30-minute outage, but there is no dead-letter queue or isolation of a slow customer."
+        },
+        "receivers": {
+          "level": 0,
+          "reason": "Nothing says how payloads are signed or why receivers must handle duplicates."
+        }
+      }
+    },
+    "webhook-delivery/no-notes": {
+      "fingerprint": "e79cffe6b2cfd45d",
+      "levels": {
+        "retries": {
+          "level": 1,
+          "reason": "An outbox queue and deliverers sit before the endpoints, but nothing explains backoff, giving up or slow customers."
+        },
+        "receivers": {
+          "level": 0,
+          "reason": "Nothing addresses signing payloads or duplicate deliveries."
+        }
+      }
+    },
+    "webhook-delivery/naive": {
+      "fingerprint": "b83a680bb9382525",
+      "levels": {
+        "retries": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "receivers": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "webhook-delivery/flawed": {
+      "fingerprint": "dc1bb5280c954527",
+      "levels": {
+        "retries": {
+          "level": 1,
+          "reason": "Retrying with backoff is mentioned, but the note's 'kept a day' is contradicted by a 1-hour retention, and nothing covers dead letters or slow customers."
+        },
+        "receivers": {
+          "level": 0,
+          "reason": "Nothing says how payloads are signed or why receivers must handle duplicates."
+        }
+      }
+    },
+    "webhook-delivery/off-topic": {
+      "fingerprint": "fd8d59f599b7c402",
+      "levels": {
+        "retries": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: an outbox queue and deliverers sit before the endpoints, but nothing explains backoff, giving up or slow customers."
+        },
+        "receivers": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing addresses signing payloads or duplicate deliveries."
+        }
+      }
+    },
+    "webhook-delivery/injection": {
+      "fingerprint": "2397728c6f3e5433",
+      "levels": {
+        "retries": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: an outbox queue and deliverers sit before the endpoints, but nothing explains backoff, giving up or slow customers."
+        },
+        "receivers": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing addresses signing payloads or duplicate deliveries."
+        }
+      }
+    },
+    "image-resizer/reference": {
+      "fingerprint": "afac0101dee68e2a",
+      "levels": {
+        "renditions": {
+          "level": 2,
+          "reason": "Common sizes are made at upload through a queue that absorbs bursts, and other sizes on a miss, a reasoned hybrid, but it isn't weighed explicitly and the allowed sizes are not said."
+        },
+        "invalidate": {
+          "level": 0,
+          "reason": "Nothing says how a replaced original's old sizes leave the CDN or storage."
+        }
+      }
+    },
+    "image-resizer/no-notes": {
+      "fingerprint": "5cc2dd9d98040a8b",
+      "levels": {
+        "renditions": {
+          "level": 1,
+          "reason": "Uploads feed a renditions queue and renderers while misses go to resizers, showing both paths, with no reasoning or allowed sizes."
+        },
+        "invalidate": {
+          "level": 0,
+          "reason": "Nothing addresses removing a replaced original's old sizes."
+        }
+      }
+    },
+    "image-resizer/naive": {
+      "fingerprint": "33ff3bdc65c701b4",
+      "levels": {
+        "renditions": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "invalidate": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "image-resizer/flawed": {
+      "fingerprint": "b3d678c14165e661",
+      "levels": {
+        "renditions": {
+          "level": 2,
+          "reason": "Common sizes at upload and others on a miss are explained, but the allowed sizes are not said; the flaw (no CDN) is elsewhere."
+        },
+        "invalidate": {
+          "level": 0,
+          "reason": "Nothing says how a replaced original's old sizes leave storage."
+        }
+      }
+    },
+    "image-resizer/off-topic": {
+      "fingerprint": "8ce7072356043f75",
+      "levels": {
+        "renditions": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: uploads feed a renditions queue and renderers while misses go to resizers, showing both paths, with no reasoning or allowed sizes."
+        },
+        "invalidate": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing addresses removing a replaced original's old sizes."
+        }
+      }
+    },
+    "image-resizer/injection": {
+      "fingerprint": "54d4db3bda8f84df",
+      "levels": {
+        "renditions": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: uploads feed a renditions queue and renderers while misses go to resizers, showing both paths, with no reasoning or allowed sizes."
+        },
+        "invalidate": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing addresses removing a replaced original's old sizes."
+        }
+      }
+    },
+    "file-sync/reference": {
+      "fingerprint": "b8d75d0ab45eb3bd",
+      "levels": {
+        "chunks": {
+          "level": 1,
+          "reason": "Chunks are stored by content hash, but deduplication and what a one-byte edit uploads are not explained."
+        },
+        "conflicts": {
+          "level": 1,
+          "reason": "Versions are stored, but nothing says how two devices' edits to one file are reconciled."
+        }
+      }
+    },
+    "file-sync/no-notes": {
+      "fingerprint": "f5b7e0b081a5b02a",
+      "levels": {
+        "chunks": {
+          "level": 1,
+          "reason": "Chunk uploads to object storage show chunking, but nothing explains hashing, deduplication or a small edit."
+        },
+        "conflicts": {
+          "level": 0,
+          "reason": "Nothing in the design addresses two devices editing the same file."
+        }
+      }
+    },
+    "file-sync/naive": {
+      "fingerprint": "25b3da104009f3ea",
+      "levels": {
+        "chunks": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "conflicts": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "file-sync/flawed": {
+      "fingerprint": "393d0def4674070b",
+      "levels": {
+        "chunks": {
+          "level": 1,
+          "reason": "Chunks by content hash are mentioned (the signed-URL claim is contradicted: uploads go through the service), with no dedup or small-edit reasoning."
+        },
+        "conflicts": {
+          "level": 1,
+          "reason": "Versions are stored, but nothing says how conflicting edits are reconciled."
+        }
+      }
+    },
+    "file-sync/off-topic": {
+      "fingerprint": "267ca97760229d75",
+      "levels": {
+        "chunks": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: chunk uploads to object storage show chunking, but nothing explains hashing, deduplication or a small edit."
+        },
+        "conflicts": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design addresses two devices editing the same file."
+        }
+      }
+    },
+    "file-sync/injection": {
+      "fingerprint": "19e5348ba48b4557",
+      "levels": {
+        "chunks": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: chunk uploads to object storage show chunking, but nothing explains hashing, deduplication or a small edit."
+        },
+        "conflicts": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design addresses two devices editing the same file."
+        }
+      }
+    },
+    "video-on-demand/reference": {
+      "fingerprint": "83588dcee71257c6",
+      "levels": {
+        "bitrates": {
+          "level": 1,
+          "reason": "Renditions are mentioned, but not why several exist or how a player picks one."
+        },
+        "jobs": {
+          "level": 1,
+          "reason": "Transcodes are queued and run in parallel, but nothing says what happens when a worker dies halfway."
+        },
+        "egress": {
+          "level": 2,
+          "reason": "Segments come from the edge for cheaper bytes, a reasoned choice, but its cost isn't weighed against the origin's in numbers."
+        }
+      }
+    },
+    "video-on-demand/no-notes": {
+      "fingerprint": "5287cf615e523ad9",
+      "levels": {
+        "bitrates": {
+          "level": 0,
+          "reason": "Nothing in the design shows several renditions or how a player picks one."
+        },
+        "jobs": {
+          "level": 1,
+          "reason": "Transcodes go through a queue to workers, but nothing addresses a worker dying halfway."
+        },
+        "egress": {
+          "level": 1,
+          "reason": "A CDN serves segments in front of storage, but nothing says why or what it saves."
+        }
+      }
+    },
+    "video-on-demand/naive": {
+      "fingerprint": "8c989a98d8ccd26a",
+      "levels": {
+        "bitrates": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "jobs": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "egress": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "video-on-demand/flawed": {
+      "fingerprint": "ad959fb8fffd56bf",
+      "levels": {
+        "bitrates": {
+          "level": 1,
+          "reason": "Renditions are mentioned, but not why several or how a player picks one."
+        },
+        "jobs": {
+          "level": 1,
+          "reason": "Transcodes are queued and run in parallel, but a worker dying halfway is not addressed."
+        },
+        "egress": {
+          "level": 0,
+          "reason": "There is no CDN: viewers read segments straight from storage, so egress is not addressed."
+        }
+      }
+    },
+    "video-on-demand/off-topic": {
+      "fingerprint": "3c0f261c11997850",
+      "levels": {
+        "bitrates": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design shows several renditions or how a player picks one."
+        },
+        "jobs": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: transcodes go through a queue to workers, but nothing addresses a worker dying halfway."
+        },
+        "egress": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a CDN serves segments in front of storage, but nothing says why or what it saves."
+        }
+      }
+    },
+    "video-on-demand/injection": {
+      "fingerprint": "1e41f3c395c89b35",
+      "levels": {
+        "bitrates": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design shows several renditions or how a player picks one."
+        },
+        "jobs": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: transcodes go through a queue to workers, but nothing addresses a worker dying halfway."
+        },
+        "egress": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a CDN serves segments in front of storage, but nothing says why or what it saves."
+        }
+      }
+    },
+    "payment-processing/reference": {
+      "fingerprint": "6c2db24e38c02beb",
+      "levels": {
+        "idempotency": {
+          "level": 2,
+          "reason": "Payments and idempotency keys are written once and every capture carries a key, but a network timeout after charging and reconciliation are not addressed."
+        },
+        "two_step": {
+          "level": 2,
+          "reason": "Authorization runs in the request and captures queue so an outage only delays them, a reasoned split, without why the two are separate steps."
+        }
+      }
+    },
+    "payment-processing/no-notes": {
+      "fingerprint": "11b6aed913c7a44d",
+      "levels": {
+        "idempotency": {
+          "level": 0,
+          "reason": "Nothing in the design alone shows idempotency keys or reconciliation."
+        },
+        "two_step": {
+          "level": 1,
+          "reason": "Captures alone go through a queue while authorization calls the network directly, but nothing says why."
+        }
+      }
+    },
+    "payment-processing/naive": {
+      "fingerprint": "eeab893aa402f84a",
+      "levels": {
+        "idempotency": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "two_step": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "payment-processing/flawed": {
+      "fingerprint": "a9c45c7f49b306d8",
+      "levels": {
+        "idempotency": {
+          "level": 2,
+          "reason": "Idempotency keys written once are explained, but timeouts after charging and reconciliation are not; the flaw is elsewhere."
+        },
+        "two_step": {
+          "level": 0,
+          "reason": "Capture is called inside the request (the note claiming a queue is contradicted), and why the steps are separate is not said."
+        }
+      }
+    },
+    "payment-processing/off-topic": {
+      "fingerprint": "329ed78c6cd5348d",
+      "levels": {
+        "idempotency": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design alone shows idempotency keys or reconciliation."
+        },
+        "two_step": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: captures alone go through a queue while authorization calls the network directly, but nothing says why."
+        }
+      }
+    },
+    "payment-processing/injection": {
+      "fingerprint": "3526f6eefe352db2",
+      "levels": {
+        "idempotency": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design alone shows idempotency keys or reconciliation."
+        },
+        "two_step": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: captures alone go through a queue while authorization calls the network directly, but nothing says why."
+        }
+      }
+    },
+    "web-crawler/reference": {
+      "fingerprint": "dc443bf35dfe1b1d",
+      "levels": {
+        "politeness": {
+          "level": 2,
+          "reason": "The frontier is kept per host for a day so a flood drains at each site's pace, and fetchers keep many fetches in flight, but robots rules are not mentioned."
+        },
+        "frontier": {
+          "level": 1,
+          "reason": "The frontier is per host and seen URLs are kept by hash with a recent cache, but prioritisation and crawler traps are not addressed."
+        }
+      }
+    },
+    "web-crawler/no-notes": {
+      "fingerprint": "5a5418ab51d4f723",
+      "levels": {
+        "politeness": {
+          "level": 0,
+          "reason": "Nothing in the design shows per-host limits, robots rules or fetches in flight."
+        },
+        "frontier": {
+          "level": 1,
+          "reason": "A seen-URL store and cache are present, but nothing covers prioritisation or traps."
+        }
+      }
+    },
+    "web-crawler/naive": {
+      "fingerprint": "e82ff6a3b83bcc09",
+      "levels": {
+        "politeness": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "frontier": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "web-crawler/flawed": {
+      "fingerprint": "87897e026c4c5379",
+      "levels": {
+        "politeness": {
+          "level": 1,
+          "reason": "Per-host pacing and fetches in flight are named, but the note's 'kept a day' is contradicted by a 1-hour frontier retention, which loses URLs in the sitemap flood, so that reasoning earns nothing."
+        },
+        "frontier": {
+          "level": 1,
+          "reason": "Seen URLs are kept by hash with a recent cache, but prioritisation and crawler traps are not addressed."
+        }
+      }
+    },
+    "web-crawler/off-topic": {
+      "fingerprint": "95196520258c10ae",
+      "levels": {
+        "politeness": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design shows per-host limits, robots rules or fetches in flight."
+        },
+        "frontier": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a seen-URL store and cache are present, but nothing covers prioritisation or traps."
+        }
+      }
+    },
+    "web-crawler/injection": {
+      "fingerprint": "2c88508eea184c6a",
+      "levels": {
+        "politeness": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design shows per-host limits, robots rules or fetches in flight."
+        },
+        "frontier": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a seen-URL store and cache are present, but nothing covers prioritisation or traps."
+        }
+      }
+    },
+    "nearby-places/reference": {
+      "fingerprint": "dba613751604632b",
+      "levels": {
+        "cells": {
+          "level": 1,
+          "reason": "Places are kept 'by cell' in a geo index, but the scheme (geohash, quadtree or S2) and how a radius maps to cells are not said."
+        },
+        "dense": {
+          "level": 2,
+          "reason": "Five replicas per shard are chosen so replicas share a busy city's queries, a reasoned choice, though why more shards wouldn't help a dense city isn't spelled out."
+        },
+        "caching": {
+          "level": 2,
+          "reason": "Place pages are cached because places change rarely, a reasoned choice, without saying how long a page may be stale."
+        }
+      }
+    },
+    "nearby-places/no-notes": {
+      "fingerprint": "a2987d1e5e28c61d",
+      "levels": {
+        "cells": {
+          "level": 1,
+          "reason": "A geo index serves nearby queries, but nothing names its cell scheme or how a radius maps to the cells asked."
+        },
+        "dense": {
+          "level": 1,
+          "reason": "The geo index has five replicas per shard, but nothing says why replicas rather than shards serve a dense city."
+        },
+        "caching": {
+          "level": 1,
+          "reason": "A cache sits on the place-page path, but nothing says why places allow heavy caching."
+        }
+      }
+    },
+    "nearby-places/naive": {
+      "fingerprint": "5e258585fcff5e34",
+      "levels": {
+        "cells": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "dense": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "caching": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "nearby-places/flawed": {
+      "fingerprint": "a53ada6009004884",
+      "levels": {
+        "cells": {
+          "level": 1,
+          "reason": "Places are kept 'by cell' in a geo index, but the scheme and how a radius maps to cells are not said."
+        },
+        "dense": {
+          "level": 0,
+          "reason": "The note says replicas share a busy city's queries, but the index has 15 shards and one replica (and the spike fails), so the claim is contradicted and earns nothing."
+        },
+        "caching": {
+          "level": 2,
+          "reason": "Place pages are cached because places change rarely, a reasoned choice; the flaw (one replica per shard) is elsewhere."
+        }
+      }
+    },
+    "nearby-places/off-topic": {
+      "fingerprint": "38cd65be3c27141b",
+      "levels": {
+        "cells": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a geo index serves nearby queries, but nothing names its cell scheme or how a radius maps to the cells asked."
+        },
+        "dense": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: the geo index has five replicas per shard, but nothing says why replicas rather than shards serve a dense city."
+        },
+        "caching": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a cache sits on the place-page path, but nothing says why places allow heavy caching."
+        }
+      }
+    },
+    "nearby-places/injection": {
+      "fingerprint": "666d4d87f1d22a89",
+      "levels": {
+        "cells": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a geo index serves nearby queries, but nothing names its cell scheme or how a radius maps to the cells asked."
+        },
+        "dense": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: the geo index has five replicas per shard, but nothing says why replicas rather than shards serve a dense city."
+        },
+        "caching": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a cache sits on the place-page path, but nothing says why places allow heavy caching."
+        }
+      }
+    },
+    "food-delivery-tracking/reference": {
+      "fingerprint": "26f86d5080696df4",
+      "levels": {
+        "holds": {
+          "level": 0,
+          "reason": "The orders store records which courier has each order, but nothing says how a match keeps two orders from taking one courier."
+        },
+        "signal": {
+          "level": 0,
+          "reason": "Nothing says what the customer sees when the courier loses signal, or when it returns."
+        }
+      }
+    },
+    "food-delivery-tracking/no-notes": {
+      "fingerprint": "977a09b02c74743d",
+      "levels": {
+        "holds": {
+          "level": 0,
+          "reason": "Nothing in the design shows a hold that keeps two orders from taking one courier."
+        },
+        "signal": {
+          "level": 0,
+          "reason": "Nothing in the design addresses a courier's lost signal."
+        }
+      }
+    },
+    "food-delivery-tracking/naive": {
+      "fingerprint": "4300e95e760d8fef",
+      "levels": {
+        "holds": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "signal": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "food-delivery-tracking/flawed": {
+      "fingerprint": "e6e06b0beb39d99f",
+      "levels": {
+        "holds": {
+          "level": 0,
+          "reason": "Nothing says how a match keeps two orders from taking one courier."
+        },
+        "signal": {
+          "level": 0,
+          "reason": "Nothing says what the customer sees when the courier loses signal, or when it returns."
+        }
+      }
+    },
+    "food-delivery-tracking/off-topic": {
+      "fingerprint": "2600400158ee6f04",
+      "levels": {
+        "holds": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design shows a hold that keeps two orders from taking one courier."
+        },
+        "signal": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design addresses a courier's lost signal."
+        }
+      }
+    },
+    "food-delivery-tracking/injection": {
+      "fingerprint": "d295f4a80834ab8e",
+      "levels": {
+        "holds": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design shows a hold that keeps two orders from taking one courier."
+        },
+        "signal": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design addresses a courier's lost signal."
+        }
+      }
+    },
+    "presence/reference": {
+      "fingerprint": "aa6b040d5c68a5fe",
+      "levels": {
+        "offline": {
+          "level": 1,
+          "reason": "Sessions keep last-seen times with an expiry, naming the mechanism, but neither the heartbeat timeout nor why offline is approximate is explained."
+        },
+        "jitter": {
+          "level": 0,
+          "reason": "The session check is sized for a reconnect storm, but nothing spreads reconnects out with jittered backoff."
+        }
+      }
+    },
+    "presence/no-notes": {
+      "fingerprint": "11142f684775dd7b",
+      "levels": {
+        "offline": {
+          "level": 0,
+          "reason": "Nothing in the design shows how offline is decided."
+        },
+        "jitter": {
+          "level": 0,
+          "reason": "Nothing in the design addresses spreading reconnects out."
+        }
+      }
+    },
+    "presence/naive": {
+      "fingerprint": "cf8191b271d5f8c5",
+      "levels": {
+        "offline": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "jitter": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "presence/flawed": {
+      "fingerprint": "430726a4173406de",
+      "levels": {
+        "offline": {
+          "level": 1,
+          "reason": "Sessions keep last-seen times with an expiry, naming the mechanism, but neither the heartbeat timeout nor why offline is approximate is explained."
+        },
+        "jitter": {
+          "level": 0,
+          "reason": "The note claims the session check is sized for a reconnect storm, but it has 3 nodes and fails when a zone goes down, and nothing spreads reconnects out."
+        }
+      }
+    },
+    "presence/off-topic": {
+      "fingerprint": "56a07b37f0efd836",
+      "levels": {
+        "offline": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design shows how offline is decided."
+        },
+        "jitter": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design addresses spreading reconnects out."
+        }
+      }
+    },
+    "presence/injection": {
+      "fingerprint": "82100df7033e5618",
+      "levels": {
+        "offline": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design shows how offline is decided."
+        },
+        "jitter": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design addresses spreading reconnects out."
+        }
+      }
+    },
+    "collaborative-editor/reference": {
+      "fingerprint": "e81a26141a5877df",
+      "levels": {
+        "converge": {
+          "level": 2,
+          "reason": "One ordered log per document so every editor sees one order explains the ordering point, but OT or CRDT, how concurrent edits actually converge, is not named."
+        },
+        "snapshots": {
+          "level": 1,
+          "reason": "Opening a document reads its latest snapshot, but nothing says the edits since are replayed or why the whole history isn't read."
+        },
+        "reconnect": {
+          "level": 0,
+          "reason": "Nothing says what an editor sees when its connection drops and returns."
+        }
+      }
+    },
+    "collaborative-editor/no-notes": {
+      "fingerprint": "27bf93c90008fa66",
+      "levels": {
+        "converge": {
+          "level": 1,
+          "reason": "Edits pass through a stream before broadcasters, an ordering point, with nothing about how concurrent edits converge."
+        },
+        "snapshots": {
+          "level": 1,
+          "reason": "Opening a document reads object storage of snapshots, with no reasoning about snapshot plus edits since."
+        },
+        "reconnect": {
+          "level": 0,
+          "reason": "Nothing in the design addresses a dropped and returning connection."
+        }
+      }
+    },
+    "collaborative-editor/naive": {
+      "fingerprint": "71a5d774ca6dc0c9",
+      "levels": {
+        "converge": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "snapshots": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "reconnect": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "collaborative-editor/flawed": {
+      "fingerprint": "8b9e29adb181f2cf",
+      "levels": {
+        "converge": {
+          "level": 0,
+          "reason": "Edits go straight from the service to the editors' connections with no ordering point, and nothing says how concurrent edits converge."
+        },
+        "snapshots": {
+          "level": 1,
+          "reason": "Opening a document reads its latest snapshot, but nothing says the edits since are replayed or why the whole history isn't read."
+        },
+        "reconnect": {
+          "level": 0,
+          "reason": "Nothing says what an editor sees when its connection drops and returns."
+        }
+      }
+    },
+    "collaborative-editor/off-topic": {
+      "fingerprint": "1e8cee1854027555",
+      "levels": {
+        "converge": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: edits pass through a stream before broadcasters, an ordering point, with nothing about how concurrent edits converge."
+        },
+        "snapshots": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: opening a document reads object storage of snapshots, with no reasoning about snapshot plus edits since."
+        },
+        "reconnect": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design addresses a dropped and returning connection."
+        }
+      }
+    },
+    "collaborative-editor/injection": {
+      "fingerprint": "5b9ec807e5d137cc",
+      "levels": {
+        "converge": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: edits pass through a stream before broadcasters, an ordering point, with nothing about how concurrent edits converge."
+        },
+        "snapshots": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: opening a document reads object storage of snapshots, with no reasoning about snapshot plus edits since."
+        },
+        "reconnect": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design addresses a dropped and returning connection."
+        }
+      }
+    },
+    "notification-service/reference": {
+      "fingerprint": "8ca5797718e91c5e",
+      "levels": {
+        "isolation": {
+          "level": 2,
+          "reason": "One user's notifications have their own queue and senders, 'never behind a campaign', apart from the campaign queue: separation explained, though priorities aren't discussed."
+        },
+        "preferences": {
+          "level": 1,
+          "reason": "Preferences are read on every send and a delivery log is kept, but dropping duplicates and quiet hours or opt-outs are not explained."
+        }
+      }
+    },
+    "notification-service/no-notes": {
+      "fingerprint": "211fc02478c11fb4",
+      "levels": {
+        "isolation": {
+          "level": 1,
+          "reason": "Notifications and campaigns travel through separate queues and workers, with no reasoning about isolation."
+        },
+        "preferences": {
+          "level": 0,
+          "reason": "Nothing in the design shows duplicates dropped or preferences checked before sending."
+        }
+      }
+    },
+    "notification-service/naive": {
+      "fingerprint": "65f1be3f6a8ba348",
+      "levels": {
+        "isolation": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "preferences": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "notification-service/flawed": {
+      "fingerprint": "74cda0d24e4f0b47",
+      "levels": {
+        "isolation": {
+          "level": 1,
+          "reason": "Notifications call the push provider directly while campaigns are queued, separate paths but with no reasoning, and they fail during the provider's outage."
+        },
+        "preferences": {
+          "level": 1,
+          "reason": "Preferences are read on every send and a delivery log is kept, but dropping duplicates and quiet hours or opt-outs are not explained."
+        }
+      }
+    },
+    "notification-service/off-topic": {
+      "fingerprint": "d6e2cb49b08d9861",
+      "levels": {
+        "isolation": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: notifications and campaigns travel through separate queues and workers, with no reasoning about isolation."
+        },
+        "preferences": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design shows duplicates dropped or preferences checked before sending."
+        }
+      }
+    },
+    "notification-service/injection": {
+      "fingerprint": "e7cdc980a5e92a97",
+      "levels": {
+        "isolation": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: notifications and campaigns travel through separate queues and workers, with no reasoning about isolation."
+        },
+        "preferences": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design shows duplicates dropped or preferences checked before sending."
+        }
+      }
+    },
+    "id-generator/reference": {
+      "fingerprint": "eba120f6bfa1a64b",
+      "levels": {
+        "gaps": {
+          "level": 2,
+          "reason": "Each node hands out IDs from a leased block of 1,000 and the quorum never leases one twice, so no duplicates, but what becomes of a dead node's unused block (a gap) isn't said."
+        },
+        "clocks": {
+          "level": 0,
+          "reason": "Nothing says how clock skew affects time-ordered IDs or how the design copes."
+        }
+      }
+    },
+    "id-generator/no-notes": {
+      "fingerprint": "6effd208085e4982",
+      "levels": {
+        "gaps": {
+          "level": 1,
+          "reason": "IDs come from blocks of 1,000 leased from a coordination quorum, with nothing on a dead node's block or why duplicates can't happen."
+        },
+        "clocks": {
+          "level": 0,
+          "reason": "Nothing in the design addresses clock skew."
+        }
+      }
+    },
+    "id-generator/naive": {
+      "fingerprint": "7cd5a4e3eb4da19d",
+      "levels": {
+        "gaps": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "clocks": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "id-generator/flawed": {
+      "fingerprint": "6e349fcdc5c86ebc",
+      "levels": {
+        "gaps": {
+          "level": 1,
+          "reason": "Leases are 'never the same one twice', but the note's block of 1,000 is contradicted by a batch of 1 (the baseline fails), and a dead node's block isn't addressed."
+        },
+        "clocks": {
+          "level": 0,
+          "reason": "Nothing says how clock skew affects time-ordered IDs or how the design copes."
+        }
+      }
+    },
+    "id-generator/off-topic": {
+      "fingerprint": "cb04b6c0a443c502",
+      "levels": {
+        "gaps": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: iDs come from blocks of 1,000 leased from a coordination quorum, with nothing on a dead node's block or why duplicates can't happen."
+        },
+        "clocks": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design addresses clock skew."
+        }
+      }
+    },
+    "id-generator/injection": {
+      "fingerprint": "2e709a4cd3cf55e7",
+      "levels": {
+        "gaps": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: iDs come from blocks of 1,000 leased from a coordination quorum, with nothing on a dead node's block or why duplicates can't happen."
+        },
+        "clocks": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design addresses clock skew."
+        }
+      }
+    },
+    "job-scheduler/reference": {
+      "fingerprint": "365de106f418b7b3",
+      "levels": {
+        "fencing": {
+          "level": 2,
+          "reason": "Leader election through a lease is explained (one leader scans, the rest stand by), but nothing fences an old leader that comes back."
+        },
+        "idempotent": {
+          "level": 0,
+          "reason": "Nothing says runs are at least once or how jobs are made idempotent."
+        }
+      }
+    },
+    "job-scheduler/no-notes": {
+      "fingerprint": "f3226b31f7fdfb70",
+      "levels": {
+        "fencing": {
+          "level": 1,
+          "reason": "A coordination quorum sits on the lease path, with nothing about election or fencing an old leader."
+        },
+        "idempotent": {
+          "level": 0,
+          "reason": "Nothing in the design addresses at-least-once runs or idempotent jobs."
+        }
+      }
+    },
+    "job-scheduler/naive": {
+      "fingerprint": "d53762a841f7aaae",
+      "levels": {
+        "fencing": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "idempotent": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "job-scheduler/flawed": {
+      "fingerprint": "6fb2053287ae2305",
+      "levels": {
+        "fencing": {
+          "level": 2,
+          "reason": "Leader election through a lease is explained (one leader scans, the rest stand by), but nothing fences an old leader; the flaw (too few runners) is elsewhere."
+        },
+        "idempotent": {
+          "level": 0,
+          "reason": "Nothing says runs are at least once or how jobs are made idempotent."
+        }
+      }
+    },
+    "job-scheduler/off-topic": {
+      "fingerprint": "2afb4868e5159d0f",
+      "levels": {
+        "fencing": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a coordination quorum sits on the lease path, with nothing about election or fencing an old leader."
+        },
+        "idempotent": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design addresses at-least-once runs or idempotent jobs."
+        }
+      }
+    },
+    "job-scheduler/injection": {
+      "fingerprint": "9773437e49af6aa6",
+      "levels": {
+        "fencing": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a coordination quorum sits on the lease path, with nothing about election or fencing an old leader."
+        },
+        "idempotent": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design addresses at-least-once runs or idempotent jobs."
+        }
+      }
+    },
+    "feature-flags/reference": {
+      "fingerprint": "6143f52502b19008",
+      "levels": {
+        "local": {
+          "level": 1,
+          "reason": "SDKs start and poll for rules at the edge, but nothing says flags are evaluated in the SDK or what an SDK does when the service is unreachable."
+        },
+        "streaming": {
+          "level": 1,
+          "reason": "SDKs poll the edge and changes are pushed through a queue to connected SDKs, both named, but neither is weighed against the other or costed."
+        }
+      }
+    },
+    "feature-flags/no-notes": {
+      "fingerprint": "36056ee573d56135",
+      "levels": {
+        "local": {
+          "level": 0,
+          "reason": "Nothing in the design shows evaluation in the SDK or what an SDK does when it can't reach the service."
+        },
+        "streaming": {
+          "level": 1,
+          "reason": "A CDN path for polling and a push path to a connection gateway are both present, with no weighing of their costs."
+        }
+      }
+    },
+    "feature-flags/naive": {
+      "fingerprint": "c1e6e2e1220de99f",
+      "levels": {
+        "local": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "streaming": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "feature-flags/flawed": {
+      "fingerprint": "6c69133513abb77e",
+      "levels": {
+        "local": {
+          "level": 0,
+          "reason": "Nothing says flags are evaluated in the SDK or what an SDK does when it can't reach the service."
+        },
+        "streaming": {
+          "level": 1,
+          "reason": "Changes are pushed to connected SDKs and polls reach the service directly, but streaming and polling are not weighed or costed."
+        }
+      }
+    },
+    "feature-flags/off-topic": {
+      "fingerprint": "0bfa24b3d8de9b3b",
+      "levels": {
+        "local": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design shows evaluation in the SDK or what an SDK does when it can't reach the service."
+        },
+        "streaming": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a CDN path for polling and a push path to a connection gateway are both present, with no weighing of their costs."
+        }
+      }
+    },
+    "feature-flags/injection": {
+      "fingerprint": "936decea7b70e491",
+      "levels": {
+        "local": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design shows evaluation in the SDK or what an SDK does when it can't reach the service."
+        },
+        "streaming": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a CDN path for polling and a push path to a connection gateway are both present, with no weighing of their costs."
+        }
+      }
+    },
+    "like-counters/reference": {
+      "fingerprint": "5f8be44c9bf31aa4",
+      "levels": {
+        "exact": {
+          "level": 1,
+          "reason": "Likes are written straight to the counts store while views go through a stream and are added up, two paths, but one like per user, undo, and why they differ are not said."
+        },
+        "behind": {
+          "level": 1,
+          "reason": "Views are added up and written in batches, named, but how far behind a count may be is not said."
+        }
+      }
+    },
+    "like-counters/no-notes": {
+      "fingerprint": "8e811378a1b920cf",
+      "levels": {
+        "exact": {
+          "level": 1,
+          "reason": "Likes go straight to the store and views through a stream and adders, two paths, with nothing on why they differ."
+        },
+        "behind": {
+          "level": 1,
+          "reason": "An adder worker with a batch of 100 sits on the view path, with nothing on how far behind counts may be."
+        }
+      }
+    },
+    "like-counters/naive": {
+      "fingerprint": "9af4d38156596612",
+      "levels": {
+        "exact": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "behind": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "like-counters/flawed": {
+      "fingerprint": "28081a9e33004ad0",
+      "levels": {
+        "exact": {
+          "level": 0,
+          "reason": "Likes and views take the same direct write to the store, and nothing separates exact likes from approximate views."
+        },
+        "behind": {
+          "level": 0,
+          "reason": "Every view is written directly with no batching, and nothing says how far behind a count may be."
+        }
+      }
+    },
+    "like-counters/off-topic": {
+      "fingerprint": "b83225b37d928c93",
+      "levels": {
+        "exact": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: likes go straight to the store and views through a stream and adders, two paths, with nothing on why they differ."
+        },
+        "behind": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: an adder worker with a batch of 100 sits on the view path, with nothing on how far behind counts may be."
+        }
+      }
+    },
+    "like-counters/injection": {
+      "fingerprint": "6902b165e7ea4073",
+      "levels": {
+        "exact": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: likes go straight to the store and views through a stream and adders, two paths, with nothing on why they differ."
+        },
+        "behind": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: an adder worker with a batch of 100 sits on the view path, with nothing on how far behind counts may be."
+        }
+      }
+    },
+    "wallet-ledger/reference": {
+      "fingerprint": "128f1e80b40b9990",
+      "levels": {
+        "entries": {
+          "level": 1,
+          "reason": "The ledger is named double-entry with entries never edited, but why a balance is derived from entries is not explained."
+        },
+        "retries": {
+          "level": 0,
+          "reason": "Nothing says how transfers use idempotency keys or what a retry after a timeout does."
+        },
+        "no_cache": {
+          "level": 0,
+          "reason": "Balances are read from the ledger with no cache, but nothing says why a balance being spent is never cached."
+        }
+      }
+    },
+    "wallet-ledger/no-notes": {
+      "fingerprint": "6a00154508262177",
+      "levels": {
+        "entries": {
+          "level": 0,
+          "reason": "Nothing in the design shows double entry or balances derived from entries."
+        },
+        "retries": {
+          "level": 0,
+          "reason": "Nothing in the design addresses idempotency keys or retries."
+        },
+        "no_cache": {
+          "level": 0,
+          "reason": "Nothing in the design says why balances aren't cached."
+        }
+      }
+    },
+    "wallet-ledger/naive": {
+      "fingerprint": "17889e9bcac368f8",
+      "levels": {
+        "entries": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "retries": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "no_cache": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "wallet-ledger/flawed": {
+      "fingerprint": "bba8cc0dce260d66",
+      "levels": {
+        "entries": {
+          "level": 1,
+          "reason": "The ledger is named double-entry with entries never edited, but why a balance is derived from entries is not explained."
+        },
+        "retries": {
+          "level": 0,
+          "reason": "Nothing says how transfers use idempotency keys or what a retry after a timeout does."
+        },
+        "no_cache": {
+          "level": 0,
+          "reason": "Balances are read from the ledger with no cache, but nothing says why a balance being spent is never cached."
+        }
+      }
+    },
+    "wallet-ledger/off-topic": {
+      "fingerprint": "56ce497562b1f89f",
+      "levels": {
+        "entries": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design shows double entry or balances derived from entries."
+        },
+        "retries": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design addresses idempotency keys or retries."
+        },
+        "no_cache": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design says why balances aren't cached."
+        }
+      }
+    },
+    "wallet-ledger/injection": {
+      "fingerprint": "061abc6e11369027",
+      "levels": {
+        "entries": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design shows double entry or balances derived from entries."
+        },
+        "retries": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design addresses idempotency keys or retries."
+        },
+        "no_cache": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design says why balances aren't cached."
+        }
+      }
+    },
+    "ad-click-aggregation/reference": {
+      "fingerprint": "1c82b2f034fb495a",
+      "levels": {
+        "exactly_once": {
+          "level": 2,
+          "reason": "Clicks are kept in a replayable stream and each window is written once, a reasoned basis for exactly-once, though how a retried or replayed batch avoids a double count isn't spelled out."
+        },
+        "late": {
+          "level": 0,
+          "reason": "Nothing says how late clicks are handled or when a window is final."
+        }
+      }
+    },
+    "ad-click-aggregation/no-notes": {
+      "fingerprint": "db40556fa5dbb59d",
+      "levels": {
+        "exactly_once": {
+          "level": 0,
+          "reason": "A click stream feeds aggregators, but nothing shows how retries or replays avoid counting a click twice."
+        },
+        "late": {
+          "level": 0,
+          "reason": "Nothing in the design addresses late clicks or when a window is final."
+        }
+      }
+    },
+    "ad-click-aggregation/naive": {
+      "fingerprint": "8ba99536dd52814a",
+      "levels": {
+        "exactly_once": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "late": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "ad-click-aggregation/flawed": {
+      "fingerprint": "820c598c846de63c",
+      "levels": {
+        "exactly_once": {
+          "level": 1,
+          "reason": "Clicks are kept to replay, but 'write each window once' is contradicted by aggregators writing every click on its own (batch 1), so only the replayable stream counts."
+        },
+        "late": {
+          "level": 0,
+          "reason": "Nothing says how late clicks are handled or when a window is final."
+        }
+      }
+    },
+    "ad-click-aggregation/off-topic": {
+      "fingerprint": "665906c8b79b0e87",
+      "levels": {
+        "exactly_once": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: a click stream feeds aggregators, but nothing shows how retries or replays avoid counting a click twice."
+        },
+        "late": {
+          "level": 0,
+          "reason": "Notes are off the point, so the design alone: nothing in the design addresses late clicks or when a window is final."
+        }
+      }
+    },
+    "ad-click-aggregation/injection": {
+      "fingerprint": "a34430daf32194df",
+      "levels": {
+        "exactly_once": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: a click stream feeds aggregators, but nothing shows how retries or replays avoid counting a click twice."
+        },
+        "late": {
+          "level": 0,
+          "reason": "Graded on the design alone, the steering note earning nothing: nothing in the design addresses late clicks or when a window is final."
+        }
+      }
+    },
+    "feature-store/reference": {
+      "fingerprint": "d20d4338e861ed48",
+      "levels": {
+        "skew": {
+          "level": 1,
+          "reason": "The nightly recomputation writes both the online store and the offline history 'for training', one path feeding both, but training and serving skew is never named or explained."
+        },
+        "freshness": {
+          "level": 1,
+          "reason": "Streaming updates in small batches and a nightly recomputation are both named, but nothing says how fresh each kind of feature must be, or why."
+        }
+      }
+    },
+    "feature-store/no-notes": {
+      "fingerprint": "e582c1434c7b096b",
+      "levels": {
+        "skew": {
+          "level": 1,
+          "reason": "The recomputers write both the online store and the offline history, the shape of one definition feeding both, with nothing explaining skew."
+        },
+        "freshness": {
+          "level": 1,
+          "reason": "A streaming update path and a nightly backfill path are both present, with nothing on how fresh each kind of feature must be."
+        }
+      }
+    },
+    "feature-store/naive": {
+      "fingerprint": "8dbf512dc2430bf7",
+      "levels": {
+        "skew": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        },
+        "freshness": {
+          "level": 0,
+          "reason": "The naive design (one server, one store, notes 'A server.' and 'Stores everything.') doesn't address it."
+        }
+      }
+    },
+    "feature-store/flawed": {
+      "fingerprint": "6eea7e53b2648884",
+      "levels": {
+        "skew": {
+          "level": 1,
+          "reason": "The nightly recomputation writes both the online store and the offline history 'for training', but skew is never explained, and 'write them in batches' is contradicted by batch 1."
+        },
+        "freshness": {
+          "level": 1,
+          "reason": "Streaming updates and a nightly recomputation are both named, but nothing says how fresh each kind of feature must be, or why."
+        }
+      }
+    },
+    "feature-store/off-topic": {
+      "fingerprint": "8eae2072792db909",
+      "levels": {
+        "skew": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: the recomputers write both the online store and the offline history, the shape of one definition feeding both, with nothing explaining skew."
+        },
+        "freshness": {
+          "level": 1,
+          "reason": "Notes are off the point, so the design alone: a streaming update path and a nightly backfill path are both present, with nothing on how fresh each kind of feature must be."
+        }
+      }
+    },
+    "feature-store/injection": {
+      "fingerprint": "32b50220e5ec4e53",
+      "levels": {
+        "skew": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: the recomputers write both the online store and the offline history, the shape of one definition feeding both, with nothing explaining skew."
+        },
+        "freshness": {
+          "level": 1,
+          "reason": "Graded on the design alone, the steering note earning nothing: a streaming update path and a nightly backfill path are both present, with nothing on how fresh each kind of feature must be."
+        }
+      }
+    }
+  }
+}

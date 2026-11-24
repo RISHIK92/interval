@@ -75,6 +75,9 @@ const RAMP: Record<ComponentKind, string> = {
   queue: "review",
   stream: "review",
   external_api: "distributed-systems",
+  geo_index: "databases",
+  connection_gateway: "system-design",
+  coordination: "distributed-systems",
 };
 
 function KindIcon({ kind }: { kind: ComponentKind }) {
@@ -120,6 +123,58 @@ function KindIcon({ kind }: { kind: ComponentKind }) {
         <path d="M3 12h18M12 3c2.5 2.6 3.8 5.6 3.8 9s-1.3 6.4-3.8 9c-2.5-2.6-3.8-5.6-3.8-9S9.5 5.6 12 3z" />
       </svg>
     );
+  // Spec 2.1: a geo index as a map pin, a gateway as open connections fanning out, a
+  // coordinator as three members holding hands.
+  if (kind === "geo_index")
+    return (
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={c("right")}
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z" />
+        <circle cx="12" cy="9.5" r="2.5" />
+      </svg>
+    );
+  if (kind === "connection_gateway")
+    return (
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={c("right")}
+        strokeWidth="2"
+        strokeLinecap="round"
+        aria-hidden="true"
+      >
+        <circle cx="5" cy="12" r="2.5" />
+        <path d="M7.5 12h4M11.5 12l7-6M11.5 12h7M11.5 12l7 6" />
+      </svg>
+    );
+  if (kind === "coordination")
+    return (
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={c("right")}
+        strokeWidth="2"
+        aria-hidden="true"
+      >
+        <path d="M12 6 6 17h12z" />
+        <circle cx="12" cy="5" r="2.5" fill={c("top")} />
+        <circle cx="5.5" cy="18" r="2.5" fill={c("top")} />
+        <circle cx="18.5" cy="18" r="2.5" fill={c("top")} />
+      </svg>
+    );
   if (kind === "queue" || kind === "stream")
     return (
       <svg width="26" height="20" viewBox="0 0 52 40" aria-hidden="true">
@@ -160,8 +215,30 @@ export function nodeRole(node: DesignNode): string {
       return count(node.config.zones, "zone") + where(node.config);
     case "app_service":
     case "worker":
+      // Spec 2.1: a batch, when it batches.
+      return (
+        count(node.config.nodes, "node") +
+        ((node.config.batch ?? 1) > 1
+          ? ` · batches of ${String(node.config.batch)}`
+          : "") +
+        where(node.config)
+      );
     case "kv_store":
+    case "connection_gateway":
       return count(node.config.nodes, "node") + where(node.config);
+    case "geo_index":
+      return (
+        count(node.config.shards, "shard") +
+        (node.config.replicas > 0
+          ? ` · ${count(node.config.replicas, "replica")}`
+          : "") +
+        where(node.config)
+      );
+    case "coordination":
+      return (
+        `${count(node.config.members, "member")} · ${count(node.config.zones, "zone")}` +
+        where(node.config)
+      );
     case "cache":
       return `${count(node.config.nodes, "node")} × ${String(node.config.memoryGbPerNode)} GB`;
     case "sql_db":

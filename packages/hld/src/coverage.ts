@@ -57,7 +57,10 @@ function describe(node: DesignNode, design: Design): string {
       case "object_storage":
         return count(node.config.regions, "region");
       case "search_index":
+      case "geo_index":
         return count(node.config.shards, "shard");
+      case "coordination":
+        return count(node.config.members, "member");
       case "external_api":
         return null;
       default:

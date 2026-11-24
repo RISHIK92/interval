@@ -3,12 +3,16 @@ import {
   CLIPS,
   DIRECT,
   FRAGILE,
+  IDS,
   LAVISH,
+  LEASES,
   QUEUED,
   SHORTENER,
   SIGN_IN,
   SOUND,
   STUDIO,
+  TALLY,
+  VIEWS,
 } from "./fixtures.test-helpers";
 import { componentNames } from "./catalog";
 import { addComponent, updateNode } from "./edit";
@@ -108,6 +112,45 @@ describe("hints", () => {
   test("work done past its target says what the backlog needs", () => {
     expect(hints(CLIPS, simulate(CLIPS, STUDIO))).toContain(
       'In "Two hours of three times the uploads", upload work isn\'t done in time: its backlog needs consumers with room to drain it, and a queue that keeps it long enough.',
+    );
+  });
+});
+
+// Spec 2.1: a hot partition isn't fixed by more nodes, and a coordinator fails on its
+// quorum, so their hints say so.
+describe("spec 2.1 hints", () => {
+  test("a hot key's partition: more nodes won't help", () => {
+    const direct = {
+      ...TALLY,
+      nodes: TALLY.nodes.filter((n) => n.id !== "events" && n.id !== "adders"),
+      edges: [
+        ...TALLY.edges.filter(
+          (e) => !["events", "adders"].includes(e.from) && e.to !== "events",
+        ),
+        { from: "api", to: "counts", routes: ["view"] },
+      ],
+    };
+    const sync = HldProblem.parse({
+      ...VIEWS,
+      traffic: {
+        ...VIEWS.traffic,
+        requests: VIEWS.traffic.requests.map((t) => ({
+          ...t,
+          completionSeconds: undefined,
+        })),
+      },
+    });
+    expect(hints(sync, simulate(sync, direct))).toContain(
+      "The key-value store's busiest partition can't keep up in \"A normal day\": one key takes most of its load, so more nodes won't help. Answer hot reads from a cache, or batch hot writes.",
+    );
+  });
+
+  test("a coordinator that loses its quorum is told where its members are", () => {
+    const two = updateNode(LEASES, "coord", {
+      config: { members: 3, zones: 2, regions: 1 },
+    });
+    expect(hints(IDS, simulate(IDS, two))).toContain(
+      'In "A zone goes down", the coordination service loses its quorum: place its members so that no one zone or region holds a majority of them.',
     );
   });
 });

@@ -4,15 +4,23 @@ import { describe, expect, test } from "vitest";
 import { Design } from "./design";
 import { removeNode, updateNode } from "./edit";
 import {
+  CELLS,
   CLIPS,
   DIRECT,
   FRAGILE,
+  IDS,
   LAVISH,
+  LEASES,
+  LIVE,
+  NEARBY,
+  PRESENCE,
   QUEUED,
   SHORTENER,
   SIGN_IN,
   SOUND,
   STUDIO,
+  TALLY,
+  VIEWS,
 } from "./fixtures.test-helpers";
 import { HldProblem } from "./problem";
 import {
@@ -494,8 +502,8 @@ test("a spec version that doesn't exist gives an empty result, not an error", ()
 // a golden result fails here; UPDATE_GOLDEN=1 rewrites them after a deliberate change
 // (and a spec version's balance patch says so in its notes).
 // The first three stay pinned to spec 1.0 for ever (ADR-0050 §6): a 1.0 design's result
-// never moves when a new version lands. The rest are spec 2.0's, one per new component
-// and behaviour.
+// never moves when a new version lands. The next three are spec 2.0's, one per new
+// component and behaviour, and pinned likewise; the last four are 2.1's.
 describe("golden designs", () => {
   const goldens = {
     SOUND: [SHORTENER, SOUND],
@@ -504,6 +512,10 @@ describe("golden designs", () => {
     QUEUED: [SIGN_IN, QUEUED],
     DIRECT: [SIGN_IN, DIRECT],
     STUDIO: [CLIPS, STUDIO],
+    CELLS: [NEARBY, CELLS],
+    LIVE: [PRESENCE, LIVE],
+    LEASES: [IDS, LEASES],
+    TALLY: [VIEWS, TALLY],
   } as const;
   for (const [name, [problem, design]] of Object.entries(goldens)) {
     test(`${name} gives its recorded result`, () => {
@@ -901,4 +913,382 @@ test("the largest 2.0 design, queues, workers and providers, simulates far insid
   const started = performance.now();
   simulate(SIGN_IN, d);
   expect(performance.now() - started).toBeLessThan(500);
+});
+
+// ADR-0050 stage 2 (ADR-0052): spec 2.1's components and behaviours, each on only where
+// the design's version has it and the problem sets its field.
+describe("spec 2.1", () => {
+  const scenario = (r: ReturnType<typeof simulate>, id: string) => {
+    const s = r.scenarios.find((x) => x.id === id);
+    if (s === undefined) throw new Error(`no scenario ${id}`);
+    return s;
+  };
+  const node = (r: ReturnType<typeof simulate>, id: string, at: string) =>
+    scenario(r, at).nodes.find((n) => n.id === id);
+  const type = (r: ReturnType<typeof simulate>, t: string, at: string) =>
+    scenario(r, at).types.find((x) => x.type === t);
+
+  test("1.0 and 2.0 problems simulate the same under 2.1: every behaviour is opt-in", () => {
+    const as21 = (d: Design) => ({
+      ...d,
+      spec: "2.1",
+      nodes: d.nodes.map((n) =>
+        n.kind === "app_service" || n.kind === "worker"
+          ? { ...n, config: { ...n.config, batch: 1 } }
+          : n,
+      ),
+    });
+    const strip = (r: ReturnType<typeof simulate>) => ({ ...r, spec: "" });
+    expect(strip(simulate(SHORTENER, as21(SOUND)))).toEqual(
+      strip(simulate(SHORTENER, SOUND)),
+    );
+    expect(strip(simulate(SIGN_IN, as21(QUEUED)))).toEqual(
+      strip(simulate(SIGN_IN, QUEUED)),
+    );
+    expect(strip(simulate(CLIPS, as21(STUDIO)))).toEqual(
+      strip(simulate(CLIPS, STUDIO)),
+    );
+  });
+
+  test("2.1's kinds can't be simulated under 2.0", () => {
+    expect(simulate(NEARBY, { ...CELLS, spec: "2.0" }).explanations).toEqual([
+      "places: spec 2.0 has no geo index, so the design can't be simulated.",
+    ]);
+  });
+
+  test("a nearby query asks 3 shards, not all of them, so shards add query capacity", () => {
+    // 8,000 queries of 3 shard visits on 8 shards of 2 replicas at 5,000 each.
+    expect(node(simulate(NEARBY, CELLS), "places", "baseline")).toMatchObject({
+      loadRps: 24_000 + 2_000,
+      utilization: 0.3,
+    });
+    const wider = updateNode(CELLS, "places", {
+      config: { shards: 16, replicas: 1, zones: 2, regions: 1 },
+    });
+    expect(
+      node(simulate(NEARBY, wider), "places", "baseline")?.utilization,
+    ).toBe(0.15);
+    // Two shards: each query asks both.
+    const narrow = updateNode(CELLS, "places", {
+      config: { shards: 2, replicas: 3, zones: 2, regions: 1 },
+    });
+    expect(node(simulate(NEARBY, narrow), "places", "baseline")).toMatchObject({
+      loadRps: 16_000 + 2_000,
+      utilization: 0.4,
+    });
+  });
+
+  test("a geo index keeps positions, never history: it isn't where writes are kept", () => {
+    const kept = HldProblem.parse({
+      ...NEARBY,
+      traffic: { ...NEARBY.traffic, storedGb: 10 },
+    });
+    const r = simulate(kept, CELLS);
+    expect(r.writesKept).toBe(false);
+    expect(r.explanations).toContain(
+      "Storage: no write reaches a database or store, so nothing is kept.",
+    );
+  });
+
+  test("a geo shard with no copy goes down with its node", () => {
+    const lone = updateNode(CELLS, "places", {
+      config: { shards: 8, replicas: 0, zones: 2, regions: 1 },
+    });
+    const node1 = HldProblem.parse({
+      ...NEARBY,
+      scenarios: [
+        ...NEARBY.scenarios,
+        {
+          id: "geo_node",
+          name: "A geo node dies",
+          weight: 1,
+          load: 1,
+          failure: { scope: "node", kind: "geo_index" },
+          targets: { p99Ms: 150, availability: 0.99 },
+        },
+      ],
+    });
+    expect(node(simulate(node1, lone), "places", "geo_node")?.up).toBe(false);
+    expect(node(simulate(node1, CELLS), "places", "geo_node")?.up).toBe(true);
+  });
+
+  test("a gateway fills on connections or messages, whichever is nearer its limit", () => {
+    const r = simulate(PRESENCE, LIVE);
+    // 400,000 connections on 10 nodes of 50,000; 20,000 messages a second on 200,000.
+    expect(node(r, "gw", "baseline")).toMatchObject({
+      loadRps: 20_000,
+      utilization: 0.8,
+    });
+    const few = simulate(
+      PRESENCE,
+      updateNode(LIVE, "gw", { config: { nodes: 6, zones: 2, regions: 1 } }),
+    );
+    expect(scenario(few, "baseline").explanations).toContain(
+      "gw is overloaded: 400,000 connections is 133.3% of what its 6 server(s) hold.",
+    );
+  });
+
+  test("fan-out: after the first worker behind the stream, every hop carries the mean", () => {
+    const r = simulate(PRESENCE, LIVE);
+    expect(node(r, "fanners", "baseline")?.loadRps).toBe(1_000);
+    expect(node(r, "gw", "baseline")?.loadRps).toBe(20_000);
+    // Its deliveries go out 50 at a time: at the p99, 10 rounds of the gateway, or
+    // 1,000 for 50,000 contacts.
+    const wide = simulate(
+      HldProblem.parse({
+        ...PRESENCE,
+        traffic: {
+          ...PRESENCE.traffic,
+          requests: PRESENCE.traffic.requests.map((t) =>
+            t.type === "status"
+              ? { ...t, fanout: { mean: 20, p99: 50_000 } }
+              : t,
+          ),
+        },
+      }),
+      LIVE,
+    );
+    const lag = (x: ReturnType<typeof simulate>) =>
+      type(x, "status", "baseline")?.lagSeconds ?? 0;
+    expect(lag(wide)).toBeGreaterThan(lag(r) + 1);
+  });
+
+  test("with no queue, fan-out starts at the first app service, and the caller waits for it", () => {
+    const sync = HldProblem.parse({
+      ...PRESENCE,
+      traffic: {
+        ...PRESENCE.traffic,
+        requests: PRESENCE.traffic.requests.map((t) =>
+          t.type === "status" ? { ...t, completionSeconds: undefined } : t,
+        ),
+      },
+    });
+    const direct = {
+      ...LIVE,
+      nodes: LIVE.nodes.filter((n) => n.id !== "changes" && n.id !== "fanners"),
+      edges: [
+        ...LIVE.edges.filter(
+          (e) => !["changes", "fanners"].includes(e.from) && e.to !== "changes",
+        ),
+        { from: "api", to: "gw", routes: ["status"] },
+      ],
+    };
+    const r = simulate(sync, direct);
+    expect(node(r, "gw", "baseline")?.loadRps).toBe(20_000);
+    // 10 rounds of the gateway's p99 after the app service.
+    expect(type(r, "status", "baseline")?.p99Ms).toBeGreaterThan(
+      (node(r, "gw", "baseline")?.p99Ms ?? 0) * 10,
+    );
+  });
+
+  test("a pushed type is done when it reaches a gateway, and not without one when it requires it", () => {
+    const r = simulate(PRESENCE, removeNode(LIVE, "gw"));
+    expect(type(r, "status", "baseline")?.availability).toBe(0);
+    expect(scenario(r, "baseline").explanations).toContain(
+      '"status" requests never reach a connection gateway, which does their work, so none is served.',
+    );
+    expect(
+      type(simulate(PRESENCE, LIVE), "status", "baseline")?.availability,
+    ).toBeGreaterThan(0.999);
+  });
+
+  test("losing a gateway node sends its clients back: a reconnect storm on connect", () => {
+    const r = simulate(PRESENCE, LIVE);
+    // A tenth of 400,000 clients over 30 seconds.
+    expect(scenario(r, "gateway_node").explanations).toContain(
+      "gw loses 10.0% of its servers: 1,333 reconnects a second for 30 seconds.",
+    );
+    // The session store and app services see it on connect.
+    expect(node(r, "sessions", "gateway_node")?.loadRps).toBeCloseTo(
+      (node(r, "sessions", "baseline")?.loadRps ?? 0) + 1_333.3,
+      0,
+    );
+    expect(scenario(r, "baseline").explanations).not.toContainEqual(
+      expect.stringMatching(/reconnects/),
+    );
+  });
+
+  test("a coordinator's leader commits about 4,000 writes a second at 3 members, fewer with more", () => {
+    const r = simulate(IDS, LEASES);
+    // Blocks of 1,000: 20 lease writes a second; 8 ms plus 2 across zones.
+    expect(node(r, "coord", "baseline")).toMatchObject({
+      loadRps: 20,
+      p99Ms: 10,
+    });
+    const unbatched = simulate(
+      IDS,
+      updateNode(LEASES, "api", {
+        config: { nodes: 40, batch: 1, zones: 2, regions: 1 },
+      }),
+    );
+    expect(node(unbatched, "coord", "baseline")?.utilization).toBe(5);
+    expect(scenario(unbatched, "baseline").targetsMet).toBe(false);
+    const five = simulate(
+      IDS,
+      updateNode(LEASES, "api", {
+        config: { nodes: 40, batch: 10, zones: 2, regions: 1 },
+      }),
+    );
+    const seven = simulate(
+      IDS,
+      updateNode(
+        updateNode(LEASES, "api", {
+          config: { nodes: 40, batch: 10, zones: 2, regions: 1 },
+        }),
+        "coord",
+        { config: { members: 7, zones: 3, regions: 1 } },
+      ),
+    );
+    // 2,000 writes against 4,000, then against 4,000 × 3 / 7.
+    expect(node(five, "coord", "baseline")?.utilization).toBe(0.5);
+    expect(node(seven, "coord", "baseline")?.utilization).toBe(1.17);
+  });
+
+  test("a coordinator is down below a majority: 3 members in 2 zones lose one zone's 2", () => {
+    const two = updateNode(LEASES, "coord", {
+      config: { members: 3, zones: 2, regions: 1 },
+    });
+    const r = simulate(IDS, two);
+    expect(node(r, "coord", "zone")?.up).toBe(false);
+    expect(scenario(r, "zone").explanations).toContain(
+      "coord has lost its quorum: 1 of 3 members left, and it needs 2.",
+    );
+    expect(node(simulate(IDS, LEASES), "coord", "zone")?.up).toBe(true);
+    // Five in three zones lose two and keep three.
+    const five = updateNode(LEASES, "coord", {
+      config: { members: 5, zones: 3, regions: 1 },
+    });
+    expect(node(simulate(IDS, five), "coord", "zone")?.up).toBe(true);
+  });
+
+  test("a coordinator holds at most 8 GB: data kept there runs out of room", () => {
+    const big = HldProblem.parse({
+      ...IDS,
+      traffic: { ...IDS.traffic, storedGb: 50 },
+    });
+    const r = simulate(big, LEASES);
+    expect(r.storageGb).toBe(8);
+    expect(r.explanations).toContain(
+      "Storage: 50 GB needed by day 30; where writes are kept holds 8 GB.",
+    );
+  });
+
+  test("a hot key overloads its partition while the rest have room", () => {
+    const direct = {
+      ...TALLY,
+      nodes: TALLY.nodes.filter((n) => n.id !== "events" && n.id !== "adders"),
+      edges: [
+        ...TALLY.edges.filter(
+          (e) => !["events", "adders"].includes(e.from) && e.to !== "events",
+        ),
+        { from: "api", to: "counts", routes: ["view"] },
+      ],
+    };
+    const sync = HldProblem.parse({
+      ...VIEWS,
+      traffic: {
+        ...VIEWS.traffic,
+        requests: VIEWS.traffic.requests.map((t) => ({
+          ...t,
+          completionSeconds: undefined,
+        })),
+      },
+    });
+    const r = simulate(sync, direct);
+    // 80% of 30,000 on one node of 20,000, while the 4 nodes' even share is 7,500.
+    expect(node(r, "counts", "baseline")?.utilization).toBe(1.2);
+    expect(scenario(r, "baseline").explanations).toContain(
+      "counts's busiest partition is overloaded: a hot key puts 120.0% of one server's capacity on it while the rest have room.",
+    );
+    expect(type(r, "view", "baseline")?.availability).toBeCloseTo(
+      1 - 4_000 / 30_000,
+      3,
+    );
+  });
+
+  // The reviewer's cases (ADR-0052): no way around fan-out, batching or a lost zone.
+  test("a type that goes to many, with nothing to send its deliveries, isn't served", () => {
+    const bare = {
+      ...LIVE,
+      edges: [
+        ...LIVE.edges.filter((e) => !e.routes.includes("status")),
+        { from: "users", to: "gw", routes: ["status"] },
+        { from: "users", to: "lb", routes: ["connect"] },
+        { from: "lb", to: "api", routes: ["connect"] },
+        { from: "api", to: "sessions", routes: ["connect"] },
+      ].filter(
+        (e, i, all) =>
+          all.findIndex((x) => x.from === e.from && x.to === e.to) === i,
+      ),
+    };
+    const r = simulate(PRESENCE, bare);
+    expect(type(r, "status", "baseline")?.availability).toBe(0);
+    expect(scenario(r, "baseline").explanations).toContain(
+      '"status" requests each go to many, but nothing sends them: route them through an app service, or a worker behind a queue, so none is served.',
+    );
+  });
+
+  test("an app service batches only ID blocks; a worker never batches pushes", () => {
+    const blocked = updateNode(CELLS, "api", {
+      config: { nodes: 30, batch: 1_000, zones: 2, regions: 1 },
+    });
+    expect(node(simulate(NEARBY, blocked), "places", "baseline")?.loadRps).toBe(
+      node(simulate(NEARBY, CELLS), "places", "baseline")?.loadRps,
+    );
+    const batchedPush = updateNode(LIVE, "fanners", {
+      config: { nodes: 10, batch: 10, zones: 2, regions: 1 },
+    });
+    expect(
+      node(simulate(PRESENCE, batchedPush), "gw", "baseline")?.loadRps,
+    ).toBe(20_000);
+  });
+
+  test("a geo index with no replicas loses its lost zone's cells", () => {
+    const lone = updateNode(CELLS, "places", {
+      config: { shards: 8, replicas: 0, zones: 2, regions: 1 },
+    });
+    expect(scenario(simulate(NEARBY, lone), "zone").explanations).toContain(
+      "places loses 50.0% of its data: it keeps one copy.",
+    );
+  });
+
+  test("a coordinator's lost zone is in the region a lost region would take", () => {
+    const split = updateNode(LEASES, "coord", {
+      config: { members: 3, zones: 1, regions: 2 },
+    });
+    const region = HldProblem.parse({
+      ...IDS,
+      scenarios: [
+        ...IDS.scenarios,
+        {
+          id: "region",
+          name: "A region goes down",
+          weight: 2,
+          load: 1,
+          failure: { scope: "region" },
+          targets: { p99Ms: 100, availability: 0.99 },
+        },
+      ],
+    });
+    const r = simulate(region, split);
+    expect(node(r, "coord", "zone")?.up).toBe(true);
+    expect(node(r, "coord", "region")?.up).toBe(true);
+  });
+
+  test("batching takes hot writes off the partition, and a worker waits to fill a batch", () => {
+    const r = simulate(VIEWS, TALLY);
+    // 30,000 views in batches of 100: 300 writes a second.
+    expect(node(r, "counts", "baseline")?.loadRps).toBe(300);
+    expect(scenario(r, "baseline").targetsMet).toBe(true);
+    // 150 views a second a node: 0.67 s to fill a batch of 100, at most 5 s.
+    expect(node(r, "adders", "baseline")?.p99Ms).toBeGreaterThan(666);
+    const slow = simulate(
+      VIEWS,
+      updateNode(TALLY, "adders", {
+        config: { nodes: 200, batch: 1_000, zones: 2, regions: 1 },
+      }),
+    );
+    expect(node(slow, "adders", "baseline")?.p99Ms).toBeGreaterThan(5_000);
+    expect(node(slow, "adders", "baseline")?.p99Ms).toBeLessThan(5_100);
+  });
 });

@@ -75,7 +75,7 @@ export const POOL: Pool = {
   "image-resizer": {
     spec: "2.0",
     human: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
-    ai: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+    ai: [4, 6, 8, 9, 10, 11, 12, 14, 20, 22, 24, 26],
   },
   "file-sync": {
     spec: "2.0",
@@ -97,4 +97,44 @@ export const POOL: Pool = {
     human: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
     ai: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
   },
+  "nearby-places": { spec: "2.1", human: [], ai: [] },
+  "food-delivery-tracking": {
+    spec: "2.1",
+    human: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    ai: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  },
+  presence: { spec: "2.1", human: [], ai: [] },
+  "collaborative-editor": {
+    spec: "2.1",
+    human: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    ai: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  },
+  "notification-service": {
+    spec: "2.1",
+    human: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    ai: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  },
+  "id-generator": { spec: "2.1", human: [], ai: [] },
+  "job-scheduler": {
+    spec: "2.1",
+    human: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    ai: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  },
+  "feature-flags": {
+    spec: "2.1",
+    human: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    ai: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13],
+  },
+  "like-counters": {
+    spec: "2.1",
+    human: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    ai: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  },
+  "wallet-ledger": { spec: "2.1", human: [], ai: [] },
+  "ad-click-aggregation": {
+    spec: "2.1",
+    human: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    ai: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+  },
+  "feature-store": { spec: "2.1", human: [], ai: [] },
 };

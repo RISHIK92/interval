@@ -75,11 +75,14 @@ export function hints(problem: HldProblem, result: SimulationResult): string[] {
         !overloaded.has(n.id)
       ) {
         overloaded.add(n.id);
-        // A third party can't be given capacity (spec 2.0): only waited for.
+        // A third party can't be given capacity (spec 2.0): only waited for. Nor
+        // can a hot key's partition (spec 2.1): more nodes leave it where it is.
         add(
           n.kind === "external_api"
             ? `The ${name(n)} hits its rate limit in "${s.name}": it can't be scaled, so queue its calls or make fewer.`
-            : `The ${name(n)} can't keep up in "${s.name}": give it more capacity.`,
+            : n.hot === true
+              ? `The ${name(n)}'s busiest partition can't keep up in "${s.name}": one key takes most of its load, so more nodes won't help. Answer hot reads from a cache, or batch hot writes.`
+              : `The ${name(n)} can't keep up in "${s.name}": give it more capacity.`,
         );
       }
   }
@@ -108,10 +111,16 @@ export function hints(problem: HldProblem, result: SimulationResult): string[] {
         add(
           `In "${s.name}", the ${name(n)} is down and requests that call it fail: hand that work to a queue, so it waits instead.`,
         );
+    // Spec 2.1: a coordinator is down when it loses its quorum, not its last member.
+    for (const n of s.nodes)
+      if (!n.up && n.kind === "coordination")
+        add(
+          `In "${s.name}", the ${name(n)} loses its quorum: place its members so that no one zone or region holds a majority of them.`,
+        );
     // Grouped by kind, so a big design's outage still reads in one line.
     const down = new Map<ComponentKind, NodeResult[]>();
     for (const n of s.nodes)
-      if (!n.up && n.kind !== "external_api")
+      if (!n.up && n.kind !== "external_api" && n.kind !== "coordination")
         down.set(n.kind, [...(down.get(n.kind) ?? []), n]);
     const parts = [...down].map(([kind, [first, ...more]]) => ({
       text:

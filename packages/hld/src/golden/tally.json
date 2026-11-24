@@ -1,0 +1,251 @@
+{
+  "spec": "2.1",
+  "costPerMonth": 21177.3,
+  "storageNeededGb": 40,
+  "storageGb": 4000,
+  "writesKept": true,
+  "scenarios": [
+    {
+      "id": "baseline",
+      "name": "A normal day",
+      "weight": 3,
+      "score": 1,
+      "targetsMet": true,
+      "p99Ms": 31.2,
+      "availability": 0.9999999898749999,
+      "types": [
+        {
+          "type": "view",
+          "p50Ms": 31,
+          "p99Ms": 31.2,
+          "availability": 0.9999999898749999,
+          "overloaded": false,
+          "lagSeconds": 0.7
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 2,
+          "loadRps": 30000,
+          "utilization": 0.3,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 50,
+          "loadRps": 30000,
+          "utilization": 0.6,
+          "p50Ms": 20,
+          "p99Ms": 20
+        },
+        {
+          "id": "events",
+          "kind": "stream",
+          "up": true,
+          "servers": 4,
+          "loadRps": 30000,
+          "utilization": 0.48,
+          "p50Ms": 10,
+          "p99Ms": 10.1,
+          "hot": true
+        },
+        {
+          "id": "adders",
+          "kind": "worker",
+          "up": true,
+          "servers": 200,
+          "loadRps": 30000,
+          "utilization": 0.75,
+          "p50Ms": 383.3,
+          "p99Ms": 716.7
+        },
+        {
+          "id": "counts",
+          "kind": "kv_store",
+          "up": true,
+          "servers": 4,
+          "loadRps": 300,
+          "utilization": 0.01,
+          "p50Ms": 3,
+          "p99Ms": 3,
+          "hot": true
+        }
+      ],
+      "explanations": ["\"view\": p99 31.2 ms (target 100 ms), 100.0% served."]
+    },
+    {
+      "id": "peak",
+      "name": "A spike",
+      "weight": 2,
+      "score": 0.5,
+      "targetsMet": false,
+      "p99Ms": null,
+      "availability": 0.004663923135219462,
+      "types": [
+        {
+          "type": "view",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0.004663923135219462,
+          "overloaded": true,
+          "lagSeconds": 5400
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 2,
+          "loadRps": 90000,
+          "utilization": 0.9,
+          "p50Ms": 1.1,
+          "p99Ms": 1.4
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 50,
+          "loadRps": 90000,
+          "utilization": 1.8,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "events",
+          "kind": "stream",
+          "up": true,
+          "servers": 4,
+          "loadRps": 90000,
+          "utilization": 1.44,
+          "p50Ms": null,
+          "p99Ms": null,
+          "hot": true
+        },
+        {
+          "id": "adders",
+          "kind": "worker",
+          "up": true,
+          "servers": 200,
+          "loadRps": 90000,
+          "utilization": 2.25,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "counts",
+          "kind": "kv_store",
+          "up": true,
+          "servers": 4,
+          "loadRps": 900,
+          "utilization": 0.04,
+          "p50Ms": 3,
+          "p99Ms": 3.1,
+          "hot": true
+        }
+      ],
+      "explanations": [
+        "events holds 45,000,000 \"view\" requests at the worst and has done them 1.5 hours later (target 60 seconds, retention 24 hours).",
+        "98.9% of \"view\" isn't done in time: the backlog drains too slowly.",
+        "lb runs hot at 90.0%: waits grow fast past 80%.",
+        "api is overloaded: 90,000 requests/s is 180.0% of what its 50 server(s) handle.",
+        "events's busiest partition is overloaded: a hot key puts 144.0% of one server's capacity on it while the rest have room.",
+        "adders is overloaded: 90,000 requests/s is 225.0% of what its 200 server(s) handle.",
+        "\"view\": p99 unbounded (target 200 ms), 0.5% served."
+      ]
+    },
+    {
+      "id": "zone",
+      "name": "A zone goes down",
+      "weight": 2,
+      "score": 0.5,
+      "targetsMet": false,
+      "p99Ms": null,
+      "availability": 0.02777777749652777,
+      "types": [
+        {
+          "type": "view",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0.02777777749652777,
+          "overloaded": true,
+          "lagSeconds": 1800
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 1,
+          "loadRps": 30000,
+          "utilization": 0.6,
+          "p50Ms": 1,
+          "p99Ms": 1.2
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 25,
+          "loadRps": 30000,
+          "utilization": 1.2,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "events",
+          "kind": "stream",
+          "up": true,
+          "servers": 2,
+          "loadRps": 30000,
+          "utilization": 0.48,
+          "p50Ms": 10,
+          "p99Ms": 10.1,
+          "hot": true
+        },
+        {
+          "id": "adders",
+          "kind": "worker",
+          "up": true,
+          "servers": 100,
+          "loadRps": 30000,
+          "utilization": 1.5,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "counts",
+          "kind": "kv_store",
+          "up": true,
+          "servers": 2,
+          "loadRps": 300,
+          "utilization": 0.01,
+          "p50Ms": 3,
+          "p99Ms": 3,
+          "hot": true
+        }
+      ],
+      "explanations": [
+        "events holds 9,000,000 \"view\" requests at the worst and has done them 30 minutes later (target 60 seconds, retention 24 hours).",
+        "96.7% of \"view\" isn't done in time: the backlog drains too slowly.",
+        "api is overloaded: 30,000 requests/s is 120.0% of what its 25 server(s) handle.",
+        "adders is overloaded: 30,000 requests/s is 150.0% of what its 100 server(s) handle.",
+        "\"view\": p99 unbounded (target 150 ms), 2.8% served."
+      ]
+    }
+  ],
+  "points": 42.9,
+  "baselinePassed": true,
+  "explanations": [
+    "Cost: $21,177 a month, against a budget of $40,000.",
+    "Storage: 40 GB needed by day 30; where writes are kept holds 4,000 GB."
+  ]
+}

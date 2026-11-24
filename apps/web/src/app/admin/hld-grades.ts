@@ -30,6 +30,9 @@ export function gradesFrom(
   return out;
 }
 
+// The calibration form's "accept" value that takes every suggested level at once.
+export const ACCEPT_ALL = "*";
+
 export const LEVEL_OPTIONS = [
   "0 missing",
   "1 mentioned",

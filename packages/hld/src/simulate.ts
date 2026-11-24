@@ -31,6 +31,12 @@ import { type SpecVersion, specVersion, statsOf } from "./spec";
 // queue's backlog that drains after a spike or outage instead of failing it; [work],
 // a job's cost at a worker; [bytes], payload bandwidth and egress; and (ADR-0051) what
 // a request type requires to do its work, without which it isn't served.
+//
+// Spec 2.1 (ADR-0050 stage 2, ADR-0052) adds, likewise gated: the geo index (a nearby
+// query asks a few cells' shards), the connection gateway (connections held, push
+// delivery, a reconnect storm when its servers are lost), the coordination service (a
+// quorum, a leader's write ceiling, a cap on what it holds), [fanout], [hot] and
+// [batch].
 
 export const SIMULATION_POINTS = 60; // §6.4
 
@@ -39,6 +45,20 @@ const DATASTORES = new Set<ComponentKind>([
   "kv_store",
   "object_storage",
   "search_index",
+  // Spec 2.1: they answer what's asked of them, but the storage rule never counts a geo
+  // index (memory only) and holds a coordinator to its cap.
+  "geo_index",
+  "coordination",
+]);
+// Writes go to their own servers: a database's primary, a geo index's shard groups, a
+// coordinator's leader.
+const SPLIT = new Set<ComponentKind>(["sql_db", "geo_index", "coordination"]);
+// [hot], spec 2.1: what has partitions that a hot key can overload.
+const PARTITIONED = new Set<ComponentKind>([
+  "kv_store",
+  "stream",
+  "queue",
+  "geo_index",
 ]);
 const isCache = (kind: ComponentKind) => kind === "cache" || kind === "cdn";
 const isAsync = (kind: ComponentKind) => kind === "queue" || kind === "stream";
@@ -54,6 +74,8 @@ export type NodeResult = {
   utilization: number | null; // null: down
   p50Ms: number | null; // null: unbounded (down or overloaded)
   p99Ms: number | null;
+  // [hot], spec 2.1: its busiest partition, not its size, sets its utilization.
+  hot?: true;
 };
 export type TypeResult = {
   type: string;
@@ -103,7 +125,26 @@ type Station = {
   load: number;
   writeLoad: number;
   mbps: number; // [bytes]: payload arriving, in megabits a second
+  // Spec 2.1: the connections a gateway holds; [hot] the load on the busiest server for
+  // reads and for writes (its even share, plus a hot type's share).
+  conns: number;
+  busiest: number;
+  writeBusiest: number;
+  // The copies a hot read's share is spread over: each is as busy as the busiest.
+  hotCopies: number;
 };
+// A coordinator's quorum: a majority of all its members.
+const majority = (members: number) => Math.floor(members / 2) + 1;
+// The chance at least `need` of `n` members are up, each with availability `a`.
+function quorumUp(n: number, need: number, a: number): number {
+  let p = 0;
+  let choose = 1;
+  for (let k = 0; k <= n; k++) {
+    if (k > 0) choose = (choose * (n - k + 1)) / k;
+    if (k >= need) p += choose * a ** k * (1 - a) ** (n - k);
+  }
+  return p;
+}
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
 const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
@@ -170,6 +211,10 @@ function station(
     load: 0,
     writeLoad: 0,
     mbps: 0,
+    conns: 0,
+    busiest: 0,
+    writeBusiest: 0,
+    hotCopies: 1,
   };
   // Every region is active: a second one doubles capacity (and cost).
   switch (node.kind) {
@@ -213,19 +258,63 @@ function station(
       st.redundancy = 1 + node.config.replicas;
       st.shards = node.config.shards;
       break;
-    default: // app_service, cache, worker
+    case "geo_index":
+      // Reads: every shard replica answers its cells' queries. Writes: a shard's
+      // replicas apply each of its updates side by side, so a shard is one write server.
+      st.servers = (1 + node.config.replicas) * node.config.shards * regions;
+      st.writeServers = node.config.shards * regions;
+      st.redundancy = 1 + node.config.replicas;
+      st.writeRedundancy = st.redundancy;
+      st.shards = Math.min(
+        spec.features.geo?.cellsPerQuery ?? 1,
+        node.config.shards,
+      );
+      break;
+    case "coordination":
+      // Reads from any member; every write through the one leader.
+      st.servers = node.config.members;
+      st.writeServers = 1;
+      break;
+    default: // app_service, cache, worker, connection_gateway
       st.servers = node.config.nodes * regions;
       st.redundancy = st.servers;
   }
-  if (node.kind !== "sql_db") {
+  if (!SPLIT.has(node.kind)) {
     st.writeServers = st.servers;
     st.writeRedundancy = st.redundancy;
   }
 
   const failure = scenario.failure;
   if (failure === undefined || node.kind === "client") return st;
+  // A quorum: a node's loss takes one member, a zone's the zone holding most of them
+  // (spread evenly, the remainder in the first zones), a region's the second region's
+  // share (the remainder stays with the first, as a primary's majority would; ADR-0052).
+  // Below a majority of all its members, it's down.
+  if (node.kind === "coordination") {
+    const members = node.config.members;
+    const lost =
+      failure.scope === "node"
+        ? (failure.kind ?? node.kind) === node.kind
+          ? 1
+          : 0
+        : failure.scope === "zone"
+          ? // The lost zone is in the region a region's loss would take.
+            Math.ceil(
+              (regions === 1 ? members : Math.floor(members / regions)) /
+                node.config.zones,
+            )
+          : regions === 1
+            ? members
+            : Math.floor(members / regions);
+    st.servers = members - lost;
+    if (st.servers < majority(members)) st.up = false;
+    return st;
+  }
   const oneCopy =
-    (node.kind === "kv_store" || node.kind === "stream") && st.redundancy === 1;
+    (node.kind === "kv_store" ||
+      node.kind === "stream" ||
+      node.kind === "geo_index") &&
+    st.redundancy === 1;
   // A third party fails only when a scenario names it ("the provider is down"); our
   // zones and regions aren't its.
   if (node.kind === "external_api") {
@@ -249,6 +338,10 @@ function station(
       case "search_index":
         st.servers -= 1;
         if (node.config.replicas === 0) st.up = false; // a shard with no copy
+        break;
+      case "geo_index":
+        st.servers -= 1;
+        if (node.config.replicas === 0) st.up = false;
         break;
       default:
         if (oneCopy) st.lostShare = 1 / st.servers;
@@ -399,7 +492,11 @@ function costPerMonth(design: Design, spec: SpecVersion): number {
         hourly += per * n.config.partitions * regions;
         break;
       case "search_index":
+      case "geo_index":
         hourly += per * n.config.shards * (1 + n.config.replicas) * regions;
+        break;
+      case "coordination": // its members, wherever they are
+        hourly += per * n.config.members;
         break;
       default:
         hourly += per * n.config.nodes * regions;
@@ -446,6 +543,19 @@ function storageOf(
     if (n.kind === "kv_store")
       fits(n.config.nodes * spec.engine.kvStorageGbPerNode);
   }
+  // Spec 2.1: a coordinator holds leases and blocks. Where it's the only store writes
+  // reach, the data is kept there, and its cap is what fits (ADR-0052).
+  const stores = design.nodes.filter(
+    (n) =>
+      reached.has(n.id) &&
+      (n.kind === "object_storage" ||
+        n.kind === "sql_db" ||
+        n.kind === "kv_store"),
+  );
+  if (stores.length === 0)
+    for (const n of design.nodes)
+      if (reached.has(n.id) && n.kind === "coordination")
+        fits(spec.features.coordination?.storageGb ?? 0);
   return { gb, unlimited, copies };
 }
 
@@ -539,11 +649,11 @@ export function simulate(
   const client = design.nodes.find((n) => n.kind === "client");
   const totalRps = requests.reduce((a, r) => a + r.rps, 0);
   const { lag, work, bytes, failFast, requires } = spec.features;
-  // ADR-0051: what each request type requires and its routes never reach from the
-  // client (whatever is up: an outage is availability, not a missing step).
-  const missing = new Map(
+  const { gateway, fanout, hot, batch } = spec.features;
+  // The nodes each request type's routes reach from the client (whatever is up: an
+  // outage is availability, not a missing step), and their kinds.
+  const reachedIds = new Map(
     requests.map((r) => {
-      const reached = new Set<ComponentKind>();
       const todo = client === undefined ? [] : [client.id];
       const seen = new Set(todo);
       for (let id = todo.pop(); id !== undefined; id = todo.pop())
@@ -551,16 +661,84 @@ export function simulate(
           if (e.from === id && e.routes.includes(r.type) && !seen.has(e.to)) {
             seen.add(e.to);
             todo.push(e.to);
-            const to = design.nodes.find((n) => n.id === e.to);
-            if (to !== undefined) reached.add(to.kind);
           }
-      const left =
-        requires === undefined
-          ? []
-          : (r.requires ?? []).filter((k) => !reached.has(k));
-      return [r.type, left];
+      if (client !== undefined) seen.delete(client.id);
+      return [r.type, seen];
     }),
   );
+  const kindOf = new Map(design.nodes.map((n) => [n.id, n.kind]));
+  const reachedKinds = new Map(
+    [...reachedIds].map(([type, ids]) => [
+      type,
+      new Set([...ids].map((id) => kindOf.get(id) ?? "client")),
+    ]),
+  );
+  // ADR-0051: what each request type requires and its routes never reach.
+  const missing = new Map(
+    requests.map((r) => [
+      r.type,
+      requires === undefined
+        ? []
+        : (r.requires ?? []).filter(
+            (k) => reachedKinds.get(r.type)?.has(k) !== true,
+          ),
+    ]),
+  );
+  // Spec 2.1: the gateways the client's requests reach hold its connections, shared
+  // evenly (ADR-0052).
+  const holders =
+    gateway === undefined || t.connections === undefined
+      ? []
+      : design.nodes.filter(
+          (n) =>
+            n.kind === "connection_gateway" &&
+            requests.some((r) => reachedIds.get(r.type)?.has(n.id) === true),
+        );
+  // [fanout]: where a request type's deliveries start: the first worker behind a queue
+  // or stream on its path, or with none, its first app service.
+  const viaAsync = (type: string) =>
+    [...(reachedKinds.get(type) ?? [])].some(isAsync);
+  const fedByAsync = (id: string, type: string) =>
+    design.edges.some(
+      (e) =>
+        e.to === id &&
+        e.routes.includes(type) &&
+        isAsync(kindOf.get(e.from) ?? "client"),
+    );
+  // [batch] (ADR-0052): a worker writes to a store or coordinator in batches; an app
+  // service's batch is an ID block, leased from a coordinator. Calls to a provider and
+  // pushes stay one a request.
+  const batchTo = (
+    from: DesignNode,
+    to: DesignNode,
+    r: (typeof requests)[number],
+  ) =>
+    r.kind === "write" &&
+    (from.kind === "app_service"
+      ? to.kind === "coordination"
+      : DATASTORES.has(to.kind) || to.kind === "stream")
+      ? batchOf(from)
+      : 1;
+  // [fanout] (ADR-0052): a type that goes to many is served only when its path has
+  // somewhere its deliveries start.
+  const sends = new Map(
+    requests.map((r) => [
+      r.type,
+      fanout === undefined ||
+        r.fanout === undefined ||
+        [...(reachedIds.get(r.type) ?? [])].some((id) => {
+          const kind = kindOf.get(id);
+          return (
+            (kind === "worker" && fedByAsync(id, r.type)) ||
+            (kind === "app_service" && !viaAsync(r.type))
+          );
+        }),
+    ]),
+  );
+  const batchOf = (n: DesignNode) =>
+    batch !== undefined && (n.kind === "worker" || n.kind === "app_service")
+      ? (n.config.batch ?? 1)
+      : 1;
   const secondsPerMonth = spec.engine.hoursPerMonth * 3600;
   // [lag]: a scenario's own load for a request type (a burst of uploads).
   const loadFor = (scenario: Scenario, type: string) =>
@@ -588,6 +766,29 @@ export function simulate(
     const notes: string[] = [];
     // [lag]: each request type's arrivals at each node.
     const arrivals = new Map<string, Map<string, number>>();
+    // [fanout]: the nodes where each request type's deliveries started.
+    const fanned = new Map<string, Set<string>>();
+
+    // Spec 2.1: the gateways' connections, at the scenario's load. Servers a failure
+    // takes away send their share back to connect within the window: a reconnect
+    // storm, on the problem's "connect" requests when it has them, else on the gateway.
+    let storm = 0;
+    for (const n of holders) {
+      const st = at(n.id);
+      st.conns = ((t.connections ?? 0) * scenario.load) / holders.length;
+      const all = regionsOf(n) * ("nodes" in n.config ? n.config.nodes : 1);
+      const left = st.up ? st.servers : 0;
+      const rate =
+        (st.conns * (all - left)) /
+        all /
+        (gateway?.reconnectWindowSeconds ?? 1);
+      if (rate <= 0) continue;
+      notes.push(
+        `${n.id} loses ${pct((all - left) / all)} of its servers: ${fmt(rate)} reconnects a second for ${String(gateway?.reconnectWindowSeconds ?? 0)} seconds.`,
+      );
+      if (requests.some((r) => r.type === "connect")) storm += rate;
+      else st.load += rate;
+    }
 
     // Where a sender's request goes: the first cache that may answer it (another on the
     // same hop adds nothing), caches it merely passes through, the rest of its targets
@@ -616,36 +817,88 @@ export function simulate(
     for (const r of requests) {
       const arriving = new Map<string, number>();
       arrivals.set(r.type, arriving);
-      const send = (st: Station, rps: number) =>
-        arriving.set(st.node.id, (arriving.get(st.node.id) ?? 0) + rps);
       if (client !== undefined)
-        arriving.set(client.id, r.rps * loadFor(scenario, r.type));
+        arriving.set(
+          client.id,
+          r.rps * loadFor(scenario, r.type) +
+            (r.type === "connect" ? storm : 0),
+        );
+      // [fanout]: what hasn't fanned out yet, of what arrives at each node.
+      const fan = fanout === undefined ? undefined : r.fanout;
+      const before = new Map<string, number>();
+      if (client !== undefined && fan !== undefined)
+        before.set(client.id, arriving.get(client.id) ?? 0);
+      const here = new Set<string>();
+      fanned.set(r.type, here);
       for (const id of sorted) {
         const f = arriving.get(id) ?? 0;
         if (f <= 0) continue;
         const st = at(id);
         const kind = st.node.kind;
-        if (r.kind === "write" && kind === "sql_db") st.writeLoad += f;
+        // Spec 2.1: a geo index's nearby query asks the shards of a few cells.
+        const visits =
+          kind === "geo_index" && r.kind === "read" ? st.shards : 1;
+        if (r.kind === "write" && SPLIT.has(kind)) st.writeLoad += f;
         // [work]: a worker spends the request's work units on it.
         else if (kind === "worker" && work !== undefined)
           st.load += f * (r.work ?? 1);
-        else if (kind !== "client") st.load += f;
+        else if (kind !== "client") st.load += f * visits;
+        // [hot]: the busiest server takes its even share, or a hot type's share of its
+        // partition. Every copy applies every write; a read is answered by one of its
+        // copies (each region's, a geo shard's replicas).
+        if (hot !== undefined && PARTITIONED.has(kind)) {
+          const write = r.kind === "write" && SPLIT.has(kind);
+          const servers = write ? st.writeServers : st.servers;
+          const unit =
+            r.kind === "write"
+              ? 1
+              : regionsOf(st.node) * (kind === "geo_index" ? st.redundancy : 1);
+          const added = f * visits;
+          const busiest =
+            servers > 0
+              ? Math.max(added / servers, (f * (r.hotShare ?? 0)) / unit)
+              : 0;
+          if (write) st.writeBusiest += busiest;
+          else {
+            st.busiest += busiest;
+            if ((f * (r.hotShare ?? 0)) / unit > added / servers)
+              st.hotCopies = Math.max(st.hotCopies, unit);
+          }
+        }
         if (bytes !== undefined && r.payloadKb !== undefined)
           st.mbps += f * r.payloadKb * 0.008; // KB to megabits
         // A down cache is passed by; anything else that's down stops the request.
         if (!st.up && !isCache(kind)) continue;
-        const onward = isCache(kind) && r.cacheable ? f * (1 - hit(st)) : f;
+        let scale = isCache(kind) && r.cacheable ? 1 - hit(st) : 1;
+        // [fanout]: from where deliveries start, each request is `mean` of them.
+        let early = fan === undefined ? 0 : (before.get(id) ?? 0) / f;
+        if (
+          fan !== undefined &&
+          early > 0 &&
+          ((kind === "worker" && fedByAsync(id, r.type)) ||
+            (kind === "app_service" && !viaAsync(r.type)))
+        ) {
+          here.add(id);
+          scale *= early * fan.mean + (1 - early);
+          early = 0;
+        }
+        const send = (to: Station, share: number) => {
+          const rps = (f * scale * share) / batchTo(st.node, to.node, r);
+          arriving.set(to.node.id, (arriving.get(to.node.id) ?? 0) + rps);
+          if (early > 0)
+            before.set(to.node.id, (before.get(to.node.id) ?? 0) + rps * early);
+        };
         if (isAsync(kind)) {
-          for (const consumer of out(id, r.type)) send(consumer, onward);
+          for (const consumer of out(id, r.type)) send(consumer, 1);
           continue;
         }
         const rt = route(id, r.type, r.cacheable);
         const misses =
           rt.cache === null || rt.readThrough ? 1 : 1 - hit(rt.cache);
-        if (rt.cache !== null) send(rt.cache, onward);
-        for (const s of rt.hops) send(s, onward);
-        for (const s of rt.calls) send(s, onward * misses);
-        for (const s of rt.async) send(s, onward);
+        if (rt.cache !== null) send(rt.cache, 1);
+        for (const s of rt.hops) send(s, 1);
+        for (const s of rt.calls) send(s, misses);
+        for (const s of rt.async) send(s, 1);
       }
     }
 
@@ -684,8 +937,9 @@ export function simulate(
     // A component's own p50, p99, availability and utilization for one class of
     // request. Up while any copy is; a search query needs every shard.
     const own = (st: Station, write: boolean) => {
-      const stats = statsOf(spec, st.node.kind);
-      const primary = write && st.node.kind === "sql_db";
+      const node = st.node;
+      const stats = statsOf(spec, node.kind);
+      const primary = write && SPLIT.has(node.kind);
       const servers = primary ? st.writeServers : st.servers;
       if (!st.up || servers <= 0)
         return {
@@ -693,32 +947,104 @@ export function simulate(
           p99: Infinity,
           availability: 0,
           utilization: Infinity,
+          hot: false,
         };
       const capacity =
-        st.node.kind === "external_api"
+        node.kind === "external_api"
           ? (problem.traffic.providerRps ?? 0)
-          : primary
-            ? (stats.writeCapacity ?? stats.capacity)
-            : stats.capacity;
+          : node.kind === "coordination" && primary
+            ? // More members, slower commits.
+              ((stats.writeCapacity ?? stats.capacity) * 3) /
+              node.config.members
+            : primary
+              ? (stats.writeCapacity ?? stats.capacity)
+              : stats.capacity;
       // [bytes]: bytes fill a node as requests do; the larger counts.
-      const load =
+      let load =
         bytes !== undefined && stats.bandwidthMbps !== undefined && !primary
           ? Math.max(st.load, (st.mbps * stats.capacity) / stats.bandwidthMbps)
           : primary
             ? st.writeLoad
             : st.load;
-      const lat = stationLatency(
-        servers,
-        capacity,
-        load,
-        primary ? (stats.writeLatencyMs ?? stats.latencyMs) : stats.latencyMs,
-      );
+      // Spec 2.1: a gateway fills on connections as on messages.
+      if (stats.connectionCapacity !== undefined)
+        load = Math.max(
+          load,
+          (st.conns * stats.capacity) / stats.connectionCapacity,
+        );
+      let base = primary
+        ? (stats.writeLatencyMs ?? stats.latencyMs)
+        : stats.latencyMs;
+      // A coordinator's commit crosses its zones and regions.
+      const c = spec.features.coordination;
+      if (node.kind === "coordination" && primary && c !== undefined)
+        base +=
+          (node.config.zones > 1 ? c.crossZoneMs : 0) +
+          (node.config.regions > 1 ? c.crossRegionMs : 0);
+      let lat = stationLatency(servers, capacity, load, base);
+      let served = lat.utilization > 1 ? 1 / lat.utilization : 1;
+      // [hot]: its busiest server, on its own, when a hot type makes it busier than the
+      // rest; what's beyond its capacity isn't served.
+      const busiest = primary ? st.writeBusiest : st.busiest;
+      let hotSpot = false;
+      if (
+        hot !== undefined &&
+        load > 0 &&
+        busiest > load / servers + EPS &&
+        busiest / capacity > lat.utilization
+      ) {
+        hotSpot = true;
+        lat = stationLatency(1, capacity, busiest, base);
+        const copies = primary ? 1 : st.hotCopies;
+        served = Math.min(
+          served,
+          Math.max(0, 1 - (copies * Math.max(0, busiest - capacity)) / load),
+        );
+      }
+      // [batch], spec 2.1: a batching worker waits to fill a batch, at most the spec's
+      // wait (half of it at the median).
+      const size = node.kind === "worker" ? batchOf(node) : 1;
+      if (size > 1 && batch !== undefined) {
+        const per =
+          requests.reduce(
+            (a, r) =>
+              a +
+              (r.kind === "write"
+                ? (arrivals.get(r.type)?.get(node.id) ?? 0)
+                : 0),
+            0,
+          ) / servers;
+        const wait =
+          1000 *
+          Math.min(batch.maxWaitSeconds, per > 0 ? size / per : Infinity);
+        lat = { ...lat, p50: lat.p50 + wait / 2, p99: lat.p99 + wait };
+      }
       const copies = primary ? st.writeRedundancy : st.redundancy;
-      const up = (1 - (1 - stats.availability) ** copies) ** st.shards;
-      const served = lat.utilization > 1 ? 1 / lat.utilization : 1;
-      return { ...lat, availability: up * (1 - st.lostShare) * served };
+      // A coordinator is up while a majority of all its members is.
+      const up =
+        node.kind === "coordination"
+          ? quorumUp(
+              st.servers,
+              majority(node.config.members),
+              stats.availability,
+            )
+          : (1 - (1 - stats.availability) ** copies) **
+            (primary && node.kind === "geo_index" ? 1 : st.shards);
+      return {
+        ...lat,
+        availability: up * (1 - st.lostShare) * served,
+        hot: hotSpot,
+      };
     };
     // [bytes]: whether a node's payload fills it more than its requests do.
+    // Spec 2.1: whether a gateway's connections fill it more than its messages do.
+    const filledByConnections = (st: Station) => {
+      const stats = statsOf(spec, st.node.kind);
+      return (
+        stats.connectionCapacity !== undefined &&
+        (st.conns * stats.capacity) / stats.connectionCapacity > st.load
+      );
+    };
     const filledByBytes = (st: Station) => {
       const stats = statsOf(spec, st.node.kind);
       return (
@@ -745,6 +1071,8 @@ export function simulate(
     const doesWork = (st: Station, r: (typeof requests)[number]) =>
       DATASTORES.has(st.node.kind) ||
       st.node.kind === "external_api" ||
+      // Spec 2.1: a gateway delivers what's pushed.
+      (st.node.kind === "connection_gateway" && r.push === true) ||
       (st.node.kind === "worker" &&
         r.kind === "write" &&
         design.edges.some(
@@ -896,6 +1224,33 @@ export function simulate(
             // Sending nowhere, the request is done only where the work is done.
             else onward = doesWork(st, r) ? NOTHING : DEAD;
           }
+          // [batch]: an app service hands out a block it holds, asking onward only for
+          // the next block: like a cache's misses, that shows when it's often enough.
+          const block =
+            kind === "app_service" &&
+            r.kind === "write" &&
+            out(id, r.type).every((x) => x.node.kind === "coordination")
+              ? batchOf(st.node)
+              : 1;
+          if (block > 1)
+            onward = {
+              ...onward,
+              p50: 1 / block > 0.5 + EPS ? onward.p50 : 0,
+              p99: 1 / block > 0.01 + EPS ? onward.p99 : 0,
+            };
+          // [fanout]: from where its deliveries start, the rest of the path is waited
+          // for once per round of them sent at once.
+          const fan = r.fanout;
+          if (
+            fanout !== undefined &&
+            fan !== undefined &&
+            fanned.get(r.type)?.has(id) === true
+          )
+            onward = {
+              ...onward,
+              p50: onward.p50 * Math.ceil(fan.mean / fanout.parallelism),
+              p99: onward.p99 * Math.ceil(fan.p99 / fanout.parallelism),
+            };
           if (kind === "client") {
             rest.set(id, onward);
             continue;
@@ -921,7 +1276,8 @@ export function simulate(
         const routed =
           client !== undefined && out(client.id, r.type).length > 0;
         const left = missing.get(r.type) ?? [];
-        const served = s.reaches && left.length === 0 ? s.served : 0;
+        const unsent = !sends.get(r.type);
+        const served = s.reaches && left.length === 0 && !unsent ? s.served : 0;
         if (!routed)
           notes.push(
             `"${r.type}" requests go nowhere: the client doesn't send them.`,
@@ -933,6 +1289,10 @@ export function simulate(
         else if (left.length > 0)
           notes.push(
             `"${r.type}" requests never reach ${left.map(aKind).join(" or ")}, which does their work, so none is served.`,
+          );
+        else if (unsent)
+          notes.push(
+            `"${r.type}" requests each go to many, but nothing sends them: route them through an app service, or a worker behind a queue, so none is served.`,
           );
         return {
           type: r.type,
@@ -954,23 +1314,32 @@ export function simulate(
           const st = at(n.id);
           const reads = own(st, false);
           const writes =
-            n.kind === "sql_db" && st.writeLoad > 0 ? own(st, true) : reads;
+            SPLIT.has(n.kind) && st.writeLoad > 0 ? own(st, true) : reads;
           // A primary lost with no standby takes writes, not the node, away.
           const stopped = n.kind === "sql_db" && st.up && st.writeServers <= 0;
           const utilization = Math.max(
             reads.utilization,
             stopped ? 0 : writes.utilization,
           );
-          if (!st.up) notes.push(`${n.id} is down in this scenario.`);
+          if (!st.up)
+            notes.push(
+              n.kind === "coordination"
+                ? `${n.id} has lost its quorum: ${String(st.servers)} of ${String(n.config.members)} members left, and it needs ${String(majority(n.config.members))}.`
+                : `${n.id} is down in this scenario.`,
+            );
           else if (stopped)
             notes.push(
               `${n.id} has lost its primary and has no standby: writes stop.`,
             );
           else if (utilization >= 1)
             notes.push(
-              filledByBytes(st)
-                ? `${n.id} is overloaded: ${fmt(st.mbps)} Mbps is ${pct(utilization)} of the bandwidth its ${String(st.servers)} server(s) have.`
-                : `${n.id} is overloaded: ${fmt(st.load + st.writeLoad)} requests/s is ${pct(utilization)} of what its ${String(st.servers)} server(s) handle.`,
+              reads.hot || writes.hot
+                ? `${n.id}'s busiest partition is overloaded: a hot key puts ${pct(utilization)} of one server's capacity on it while the rest have room.`
+                : filledByConnections(st)
+                  ? `${n.id} is overloaded: ${fmt(st.conns)} connections is ${pct(utilization)} of what its ${String(st.servers)} server(s) hold.`
+                  : filledByBytes(st)
+                    ? `${n.id} is overloaded: ${fmt(st.mbps)} Mbps is ${pct(utilization)} of the bandwidth its ${String(st.servers)} server(s) have.`
+                    : `${n.id} is overloaded: ${fmt(st.load + st.writeLoad)} requests/s is ${pct(utilization)} of what its ${String(st.servers)} server(s) handle.`,
             );
           else if (utilization > 0.8)
             notes.push(
@@ -999,6 +1368,7 @@ export function simulate(
             utilization: st.up ? Math.round(utilization * 100) / 100 : null,
             p50Ms: finite(Math.max(reads.p50, stopped ? 0 : writes.p50)),
             p99Ms: finite(Math.max(reads.p99, stopped ? 0 : writes.p99)),
+            ...(reads.hot || writes.hot ? { hot: true as const } : {}),
           };
         });
 

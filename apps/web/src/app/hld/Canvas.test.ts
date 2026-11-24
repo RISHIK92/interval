@@ -9,6 +9,7 @@ import {
 } from "@interval/hld";
 import { expect, test } from "vitest";
 import { risksOf, scenarioLine } from "./Canvas";
+import { nodeRole } from "./flow";
 
 const SHORTENER = (() => {
   const p = practiceProblems(new Date()).find(
@@ -98,4 +99,57 @@ test("an external provider that's down and fails its callers says to queue the w
   expect(risk.said).toContain(
     'Down in "The SMS provider is down for 10 minutes", and what calls it fails: hand that work to a queue so it waits.',
   );
+});
+
+// Spec 2.1: a coordinator in one zone loses its quorum with that zone, and its warning
+// points at where its members are.
+test("a coordination service that loses its quorum points at its zones and members", () => {
+  const ids = allPracticeProblems().find((x) => x.slug === "id-generator");
+  if (ids === undefined) throw new Error("no id-generator practice problem");
+  let d = starterDesign(ids.spec);
+  for (const k of ["load_balancer", "app_service", "coordination"] as const)
+    d = addComponent(d, k, { x: 0, y: 0 });
+  const [users, lb, app, coord] = d.nodes.map((n) => n.id);
+  if (
+    users === undefined ||
+    lb === undefined ||
+    app === undefined ||
+    coord === undefined
+  )
+    throw new Error("nodes missing");
+  d = connect(d, ids, users, lb);
+  d = connect(d, ids, lb, app);
+  d = connect(d, ids, app, coord);
+  const node = d.nodes.find((n) => n.id === coord);
+  if (node === undefined) throw new Error("no coordinator");
+  const risk = risksOf(ids, simulate(ids, d), node);
+  expect([...risk.fields].sort()).toEqual(["members", "regions", "zones"]);
+  expect(risk.said).toContain(
+    'Loses its quorum in "A zone goes down": no one zone or region may hold a majority of its members.',
+  );
+});
+
+test("2.1's kinds and a batch read as their size on a node's face", () => {
+  const at = { x: 0, y: 0 };
+  let d = starterDesign("2.1");
+  for (const k of [
+    "geo_index",
+    "connection_gateway",
+    "coordination",
+    "worker",
+  ] as const)
+    d = addComponent(d, k, at);
+  const roles = d.nodes
+    .slice(1)
+    .map((n) =>
+      nodeRole(
+        n.kind === "worker" ? { ...n, config: { ...n.config, batch: 100 } } : n,
+      ),
+    );
+  expect(roles).toEqual([
+    "1 shard",
+    "1 node",
+    "3 members · 1 zone",
+    "1 node · batches of 100",
+  ]);
 });

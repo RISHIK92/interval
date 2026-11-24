@@ -213,6 +213,15 @@ def test_a_new_kind_is_explained_in_one_line_and_only_where_it_is_used() -> None
     assert "external_api" not in without
 
 
+def test_spec_2_1_kinds_are_explained_where_used() -> None:
+    """ADR-0050 §7, stage 2: a design with spec 2.1's kinds names each once."""
+    ids = next(c for c in CALIBRATION if c["id"] == "id-generator/reference")
+    prompt = describe(JudgeInput.model_validate(ids["input"]))
+    assert prompt.count(KINDS["coordination"]) == 1
+    assert KINDS["geo_index"] not in prompt
+    assert '"batch": 1000' in prompt
+
+
 def test_every_kind_in_the_calibration_set_beyond_spec_1_has_its_line() -> None:
     v1 = {
         "cdn",

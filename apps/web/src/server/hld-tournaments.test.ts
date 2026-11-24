@@ -251,6 +251,24 @@ describe("a tournament", () => {
     expect([...w.matches.values()][0]?.match.spec).toBe("2.0");
   });
 
+  test("a round on a 2.1 family waits for 2027-01-01", async () => {
+    const w = world(["a", "b"], {});
+    const seed = POOL["job-scheduler"]?.human[0] ?? 0;
+    w.deps.tournaments.rounds = () =>
+      Promise.resolve(
+        Array.from({ length: 8 }, (_, i) => ({
+          round: i + 1,
+          family: "job-scheduler",
+          seed,
+        })),
+      );
+    w.deps.now = () => new Date("2026-12-31T23:59:59Z");
+    expect(await nextRound(w.deps, "t1")).toBe("not_yet");
+    w.deps.now = () => new Date("2027-01-01T00:00:00Z");
+    expect(await nextRound(w.deps, "t1")).toBe("started");
+    expect([...w.matches.values()][0]?.match.spec).toBe("2.1");
+  });
+
   test("fewer than 2 checked in can't start", async () => {
     const w = world(["a"], {});
     expect(await nextRound(w.deps, "t1")).toBe("too_few");

@@ -728,11 +728,11 @@ Seven families are written on 2.0: otp-login, webhook-delivery and image-resizer
 - **Every family with a provider:** its latency (250 ms) and availability (99.5%) are the spec sheet's (ADR-0050 §2), not per family; each family sets only its price and its rate limit (Q-WD-31). The rate limit is drawn per battle mode as a multiple of all traffic.
 - **otp-login:** a `session` check is added (88%), so request_code is 4% and verify 8% (plan: 40% and 60%). Calling the provider inline then fails only the outage, not the normal day's 99.9% through a 99.5% provider. Traffic is 2k–4k rps (plan: 500–2k), so the spike flaw has app servers to cut. SMS costs $0.0005 a send, and the provider takes about 4–6 times the sends. The spike is the shared 3×, not mostly request_code. The budget is dominated by SMS.
 - **webhook-delivery:** delivered within 2 hours (plan: 5 minutes). Endpoints take 1.6–1.75 times the events, so a 30-minute outage and its drain outlive a 1-hour retention but not a day's. No 5% slow tail, and $0 a delivery.
-- **image-resizer:** 600–1,500 rps (plan: 3k–8k), so the resizers fit 200 nodes. A resize on a miss is 10 work units (plan: 20), and an upload makes its two common sizes at 20. The CDN keeps sizes 20 minutes (a 67% hit rate), so without it the spike, not the normal day, overloads the resizers. Image bytes aren't counted, since their egress would turn the no-CDN flaw into a budget flaw. "Uploads arrive in a burst" is left out: it pressed the app's bandwidth harder than the spike, so the spike flaw failed both (owner, 2026-11-24: ships now without it, revisit in v2.1). The "cold renditions" spike is the shared spike.
+- **image-resizer:** 600–1,500 rps (plan: 3k–8k), so the resizers fit 200 nodes. A resize on a miss is 10 work units (plan: 20), and an upload makes its two common sizes at 20. The CDN keeps sizes 20 minutes (a 67% hit rate), so without it the spike, not the normal day, overloads the resizers. Image bytes aren't counted, since their egress would turn the no-CDN flaw into a budget flaw. The "cold renditions" spike is the shared spike. Its upload burst, left out at first, is restored: see "Stage 2 as built".
 - **file-sync:** changes 75%, download 14%, upload_chunk 6% (4 MB), commit 5% (plan: 70/15/10/5). 500–2,000 GB stored, growing 5–15 GB a day (plan: 2,000–8,000 and 40–100), because the metadata database is where commits are kept and must hold the horizon's data (the storage rule). Download bytes aren't counted.
 - **video-on-demand:** 600–1,500 rps (plan: 5k–12k) with 500 KB segments (plan: 1.5 MB), so CDN egress is about $15k–40k a month. Uploads are 0.1% (plan: 1%) at 600 work units each (plan: 5 renditions at 600). No relational database in the reference (the storage rule). Its two lessons: without a CDN it fails on cost alone (ADR-0050's budget target); transcoders sized for the average fail the two-hour backlog.
 - **payment-processing:** payment_status 84%, authorize 8%, capture 8% (plan: 40/40/20), so inline capture stays within the normal day's target through a 99.5% network. The network-down scenario's availability target is 90%: authorizations can't succeed while it's down. 1k–2k rps (human) and 2k–2.4k (AI), for the primary's writes. $0.0002 a call (ADR-0050's figure), which dominates the budget.
-- **web-crawler:** no family scenario, and its own lessons aren't simulated. A slow site needs a per-scenario provider latency, which 2.0 doesn't have, and deduplication is still open (Q-WD-31), so the rubric carries both (owner, 2026-11-24: ships now, revisit in v2.1). Its one simulated flaw is the `requires` flaw below. Politeness is the provider's rate limit (2–2.5 times the fetches), and the frontier absorbs the spike within the hour. 500–2,000 GB stored, growing 50–150 GB a day (the seen-set must hold it).
+- **web-crawler:** politeness is the provider's rate limit (2–2.5 times the fetches). 500–2,000 GB stored, growing 50–150 GB a day (the seen-set must hold it). A slow site needs a per-scenario provider latency, which 2.0 doesn't have, and deduplication is still open (Q-WD-31), so the rubric carries both. Its own simulated lesson, left out at first, is restored: see "Stage 2 as built".
 
 What the engine does beyond ADR-0050's text, each only under 2.0, is recorded in ADR-0051 (ACCEPTED, owner, 2026-11-24):
 
@@ -746,6 +746,94 @@ What the engine does beyond ADR-0050's text, each only under 2.0, is recorded in
 - **The provider** fails only in a scenario that names it, never with our zone or region.
 - **Egress** is billed on reads' payloads by the client's first hop: a CDN for what it serves, the origin's price for the rest.
 - **Flaws:** `utilization` (a node sized for the average) and `route` (one request type re-routed) join `without` (now one node or several), `configure` and `bypass`; a flaw may target `budget`, or `baseline` when it leaves out what does the work. The shared spike flaw never cuts a worker whose every request type waits in a queue, and is left out where it would cut nothing.
+
+## Stage 2 as built (spec 2.1, PROVISIONAL)
+
+Spec 2.1 takes effect on 2027-01-01, the monthly season boundary after 2.0's (`SPEC_V21_FROM` in `packages/hld/src/spec.ts`, Q-WD-31). Before it, no match, tournament round or practice problem uses a 2.1 family. Families on 1.0 and 2.0 stay on their versions. What the engine does beyond ADR-0050's text is proposed in [ADR-0052](adr/0052-hld-spec-2-1-engine-rules.md) (PROPOSED: the owner accepts).
+
+Twelve families are written on 2.1, each with the pool, theme and difficulty planned above:
+
+- **Practice:** nearby-places, presence, id-generator, wallet-ledger and feature-store.
+- **Battle:** food-delivery-tracking, collaborative-editor, notification-service, job-scheduler, feature-flags, like-counters and ad-click-aggregation.
+
+Each battle family validates (HLDQ-3) in both battle modes, at least 15 of its first 16 seeds in each. Each practice family validates at its practice seed and its first 16 human seeds. Practice families made on 2.1 have no battle seeds (ADR-0050 §1). The calibration set grows to 186 designs, for the owner to grade.
+
+### The two 2.0 lessons, restored
+
+The owner asked for both. Each uses only 2.0's features, so both families stay on 2.0. Neither is drawn or offered before 2026-12-01, so no player has seen the earlier version. Their calibration designs change, and so do image-resizer's AI pool seeds; every other 1.0 and 2.0 entry is byte-identical.
+
+- **web-crawler:** a new scenario, "a sitemap floods the frontier: three times the fetches for 90 minutes".
+  - Politeness caps fetching at the provider's rate limit, so the flood waits in the frontier for 2 to 3 hours.
+  - Fetches are due within 4 hours (was 1).
+  - Flaw `short-frontier`: a frontier kept an hour loses the flood ("the backlog outlives the retention").
+  - Duplicate URLs stay the rubric's (ADR-0050 open question 5).
+- **image-resizer:** its upload burst, "four times as many uploads for an hour".
+  - Originals now upload straight to an originals bucket with signed URLs; the bucket announces each to the renditions queue.
+  - Dedicated renderers make the common sizes, apart from the resizers that serve misses.
+  - Sizes are due within 30 minutes (was 5).
+  - Flaw `renderers-for-the-average` misses the burst's target ("the backlog drains too slowly").
+  - Uploading through the app service filled its bandwidth harder in the burst than in the spike, which is why the burst was left out at first.
+
+### Where the families differ from the plan
+
+Each difference is so the simulator shows the lesson honestly, within what the engine's components hold. Several shared flaws limit traffic: the one-zone design must carry a spike through one load balancer (50,000 requests a second), and app services and workers stop at 200 nodes.
+
+- **nearby-places:**
+  - 7.5k–10k rps (plan: 3k–10k). On a Friday night one city takes 60% of nearby queries (`hotShare`).
+  - The reference's geo index keeps 5 replicas.
+  - Flaw `shards-not-replicas`: the same servers as more shards with one replica, so the busy city's shard overloads in the spike. The plan's flaw, a search index in place of the geo index, can't be made into a flaw that fails only the spike: a search index sized for nothing else fails every scenario.
+  - Places' positions are loaded, never written.
+- **food-delivery-tracking:**
+  - `track` is a pushed write (the courier's position to the watching customer), 30–60 connected customers per request a second.
+  - Courier history goes through a stream to batching archivers (batches of 100) into object storage.
+  - Flaw `positions-in-the-database`: positions written to the orders database, which can't take a normal day's (ADR-0052's baseline flaw). The plan's polling flaw would change the request type itself, which a flaw can't. Flaw `no-gateway` leaves out the push.
+- **presence:**
+  - 8k–15k rps with about 24 connections per request a second (plan: 1–4 million connected), so a spike fits one zone's load balancer and 200 app nodes.
+  - Heartbeats reach the session store through the app service. The gateway is the push leg only: one gateway both taking and pushing status changes would make a cycle.
+  - Connects go to their own session check (`auth`).
+  - Flaw `connect-sized-for-a-spike` (`auth` at 20% on a normal day): it fails the lost zone, whose third of the clients reconnect at once, or the lost region in the AI mode. The plan's single gateway node sends too small a storm once gateways are many.
+  - Flaw `no-gateway`.
+- **collaborative-editor:**
+  - The all-hands doc is the edit's fan-out at the 99th percentile, 5,000 editors (plan: a 200 p99 and a 2–10% hot share). The stream's partitions are far from their limit at these rates, so [hot] isn't used.
+  - Flaw `broadcast-in-the-request`: 100 rounds of the gateway inside the request, past a normal day's p99. Flaw `no-gateway`.
+  - Opening without snapshots stays the rubric's (ADR-0050 open question 5). Documents open from their snapshots in object storage.
+- **notification-service:**
+  - Shares: preferences read 84%, notify 10%, campaign 0.1%, preferences write 5.9% (plan: notify 60%, preferences 40%). Calling a 99.5% provider inline then fails only its outage, not the normal day.
+  - A campaign reaches 200 users on average and 100,000 at the 99th percentile (plan: 10,000 and 1 million).
+  - Notify is due within 15 minutes (plan: 1).
+  - The provider is down for 5 minutes (plan: throttled to half, which the engine can't do). It costs $0.000001 a call, rate-limited at 1.4–1.6 times all traffic.
+  - The p99 target is 400–600 ms, room for one provider call.
+  - Flaws: `notify-inline` (the outage) and `campaign-inline` (the baseline: the caller waits for every round of deliveries). Isolating campaigns from notifications stays the rubric's: both share the provider, so separate queues change nothing the simulator measures (ADR-0052 open question 3).
+- **id-generator:**
+  - 8k–15k rps (plan: 20k–60k), so the one-zone design carries a spike.
+  - App services lease ID blocks of 1,000.
+  - Flaw `no-blocks`: every ID through the leader, past its write ceiling on a normal day (the plan's flaw sent them to a relational primary, the same lesson). Flaw `quorum-in-two-zones` as planned.
+  - Nothing is stored beyond the leases.
+- **job-scheduler:**
+  - 1k–2k rps. A fire is 2 work units (plan: 50), so runners fit 200 nodes at midnight. Runners record runs in batches of 50.
+  - A fire is due within 30 minutes (plan: 30 seconds), so a 15-minute burst (plan: 10) can drain in time.
+  - One leader holds a lease: a `lease` type (0.1%) requires the coordination service (plan: every fire through it, which would cap fires at the leader's 4,000 writes a second).
+  - Flaws: `runners-for-the-average` (midnight) and `no-leader` (the baseline). The plan's "no queue" flaw passes once the sizer provisions runners for midnight, so the queue's lesson is the backlog drained within its target.
+- **feature-flags:**
+  - A change is 0.1% of requests (plan: 1%), pushed to 2,000 SDKs on average and 100,000 at the 99th percentile (each SDK hears its own project's flags). 50–80 connections per request a second.
+  - The CDN keeps rules 20 minutes. Flaws: `no-cdn` (the spike) as planned, and `no-gateway`.
+- **like-counters:**
+  - 15k–16.5k rps; views 60%, likes 25%, counts 15% (plan: 50/30/20).
+  - A viral post takes 75% of views (plan: 5–20%): a key-value partition takes 20,000 writes a second, so a smaller share never overloads it at traffic the shared flaws allow.
+  - Flaw `views-straight-to-counters` as planned.
+- **wallet-ledger:**
+  - 3k–4k rps. A big merchant's credits are their own type (18%), posted by batching workers (batches of 50); transfers are 8%.
+  - [hot] isn't used: the engine's hot partitions are key-value, stream, queue and geo partitions, not a database row. The hot row shows as the primary's write ceiling.
+  - Flaw `credits-one-by-one` (payday's spike) as planned.
+- **ad-click-aggregation:**
+  - 12.2k–13.3k rps. One campaign takes 65% of clicks (plan: 5–15%), for the same reason as like-counters. Clicks are counted within 2 minutes.
+  - The "aggregators replay an hour" scenario isn't added: no failure takes every worker down at once.
+  - Flaw `per-click-increments` as planned.
+- **feature-store:**
+  - 10k–15k rps; 100–300 GB stored (plan: 1–5 TB). The online store must hold the data (the storage rule), and a store sized for terabytes has room for any backfill.
+  - A backfill request is a chunk of 1,000 users (fan-out 1,000, 100 work units, 0.04% of requests).
+  - The overlap scenario is 30 times the backfill's chunks for an hour (plan: the peak plus a backfill). The p99 target is 40–60 ms.
+  - Flaw `backfill-unbatched` (the overlap) as planned.
 
 ## Order of work (proposed)
 

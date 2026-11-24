@@ -407,3 +407,14 @@ Conflicts with earlier decisions come first: they need a ruling, and some need a
 - **Provider cost:** each family sets its external provider's price and rate limit.
 - **Still open:** simulating the web crawler's and the collaborative editor's lessons or leaving them to the rubric; rewriting unused cups on v2; whether difficulty changes the numbers; whether food-delivery-tracking and like-counters are far enough from their nearby cups.
 - **Practice designs on families that became battle-only (owner, 2026-11-23):** deleted (chat, checkout, metrics-ingestion, rate-limiter), by migration `20261123130000_drop_retired_hld_practice_designs`. Their practice feedback rows (`hld_judgement` without a match) are kept.
+
+### Q-WD-32 Spec v2.1 (owner, 2026-11-24)
+
+- ADR-0052 is accepted. Its numbers stay PROVISIONAL.
+- **A coordinator on a region outage** loses the smaller half: ⌊members ÷ regions⌋.
+- **Rubric-only lessons for now:** web-crawler's duplicate URLs, collaborative-editor's snapshots, and notification-service's priority isolation.
+- **Calibration suggestions** are drafted for all 186 designs. Each is tied to its design's fingerprint, so a stale suggestion is caught by a test. Only the owner's accepted grades count.
+- **Messaging and payment providers are selectable on the external provider** (owner, 2026-11-24):
+  - Twilio, MSG91, Amazon (SNS/SES) and Vonage, over SMS, WhatsApp, email and voice, priced by the problem's region.
+  - Stripe, Razorpay and PayPal for payments.
+  - Real list prices from docs/hld-provider-prices.md (PROVISIONAL, seen 2026-11-24).

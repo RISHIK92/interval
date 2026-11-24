@@ -233,14 +233,14 @@ describe("an HLD match", () => {
   });
 
   // ADR-0050 §6, Q-WD-31: a match records the spec version its variant was validated
-  // under, and spec 2.0's families join at the season boundary.
-  test("records its variant's spec, and draws 2.0 families only from the boundary", async () => {
+  // under, and spec 2.0's and 2.1's families join at their season boundaries.
+  test("records its variant's spec, and draws 2.0 and 2.1 families only from their boundaries", async () => {
     const specs = async (now: string) => {
       clock.now = new Date(now);
       const seen = new Set<string>();
-      for (let i = 0; i < 40; i++) {
+      for (let i = 0; i < 60; i++) {
         const id = await startHldMatch(
-          { ...deps, random: () => i / 40 },
+          { ...deps, random: () => i / 60 },
           ["ada"],
           "human",
           { unrated: true, windowAt: null },
@@ -254,6 +254,8 @@ describe("an HLD match", () => {
     };
     expect(await specs("2026-11-30T23:59:00Z")).toEqual(["1.0"]);
     expect(await specs("2026-12-01T00:00:00Z")).toEqual(["1.0", "2.0"]);
+    expect(await specs("2026-12-31T23:59:00Z")).toEqual(["1.0", "2.0"]);
+    expect(await specs("2027-01-01T00:00:00Z")).toEqual(["1.0", "2.0", "2.1"]);
   });
 
   test("a 2.0 match rebuilds under 2.0, and a design drawn against 1.0 doesn't fit it", async () => {

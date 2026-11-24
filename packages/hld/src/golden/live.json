@@ -1,0 +1,395 @@
+{
+  "spec": "2.1",
+  "costPerMonth": 4642.8,
+  "storageNeededGb": 8,
+  "storageGb": 3000,
+  "writesKept": true,
+  "scenarios": [
+    {
+      "id": "baseline",
+      "name": "A normal day",
+      "weight": 3,
+      "score": 1,
+      "targetsMet": true,
+      "p99Ms": 34,
+      "availability": 0.9999999888958333,
+      "types": [
+        {
+          "type": "connect",
+          "p50Ms": 24,
+          "p99Ms": 24,
+          "availability": 0.999999989,
+          "overloaded": false
+        },
+        {
+          "type": "status",
+          "p50Ms": 34,
+          "p99Ms": 34,
+          "availability": 0.999999988875,
+          "overloaded": false,
+          "lagSeconds": 0.1
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 2,
+          "loadRps": 1200,
+          "utilization": 0.01,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 6,
+          "loadRps": 1200,
+          "utilization": 0.2,
+          "p50Ms": 20,
+          "p99Ms": 20
+        },
+        {
+          "id": "sessions",
+          "kind": "kv_store",
+          "up": true,
+          "servers": 3,
+          "loadRps": 1200,
+          "utilization": 0.02,
+          "p50Ms": 3,
+          "p99Ms": 3
+        },
+        {
+          "id": "changes",
+          "kind": "stream",
+          "up": true,
+          "servers": 4,
+          "loadRps": 1000,
+          "utilization": 0.01,
+          "p50Ms": 10,
+          "p99Ms": 10
+        },
+        {
+          "id": "fanners",
+          "kind": "worker",
+          "up": true,
+          "servers": 10,
+          "loadRps": 1000,
+          "utilization": 0.5,
+          "p50Ms": 50,
+          "p99Ms": 51.3
+        },
+        {
+          "id": "gw",
+          "kind": "connection_gateway",
+          "up": true,
+          "servers": 10,
+          "loadRps": 20000,
+          "utilization": 0.8,
+          "p50Ms": 2,
+          "p99Ms": 2.1
+        }
+      ],
+      "explanations": [
+        "\"connect\": p99 24 ms (target 200 ms), 100.0% served.",
+        "\"status\": p99 34 ms (target 200 ms), 100.0% served."
+      ]
+    },
+    {
+      "id": "peak",
+      "name": "A spike",
+      "weight": 2,
+      "score": 0.75,
+      "targetsMet": false,
+      "p99Ms": 35.2,
+      "availability": 0.1736111092005208,
+      "types": [
+        {
+          "type": "connect",
+          "p50Ms": 24,
+          "p99Ms": 25.2,
+          "availability": 0.999999989,
+          "overloaded": false
+        },
+        {
+          "type": "status",
+          "p50Ms": 34,
+          "p99Ms": 35.2,
+          "availability": 0.008333333240624971,
+          "overloaded": false,
+          "lagSeconds": 7200
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 2,
+          "loadRps": 3600,
+          "utilization": 0.04,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 6,
+          "loadRps": 3600,
+          "utilization": 0.6,
+          "p50Ms": 20,
+          "p99Ms": 21.2
+        },
+        {
+          "id": "sessions",
+          "kind": "kv_store",
+          "up": true,
+          "servers": 3,
+          "loadRps": 3600,
+          "utilization": 0.06,
+          "p50Ms": 3,
+          "p99Ms": 3
+        },
+        {
+          "id": "changes",
+          "kind": "stream",
+          "up": true,
+          "servers": 4,
+          "loadRps": 3000,
+          "utilization": 0.02,
+          "p50Ms": 10,
+          "p99Ms": 10
+        },
+        {
+          "id": "fanners",
+          "kind": "worker",
+          "up": true,
+          "servers": 10,
+          "loadRps": 3000,
+          "utilization": 1.5,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "gw",
+          "kind": "connection_gateway",
+          "up": true,
+          "servers": 10,
+          "loadRps": 60000,
+          "utilization": 2.4,
+          "p50Ms": null,
+          "p99Ms": null
+        }
+      ],
+      "explanations": [
+        "changes holds 1,575,000 \"status\" requests at the worst and has done them 2 hours later (target 60 seconds, retention 24 hours).",
+        "99.2% of \"status\" isn't done in time: the backlog drains too slowly.",
+        "fanners is overloaded: 3,000 requests/s is 150.0% of what its 10 server(s) handle.",
+        "gw is overloaded: 1,200,000 connections is 240.0% of what its 10 server(s) hold.",
+        "\"connect\": p99 25.2 ms (target 400 ms), 100.0% served.",
+        "\"status\": p99 35.2 ms (target 400 ms), 0.8% served."
+      ]
+    },
+    {
+      "id": "zone",
+      "name": "A zone goes down",
+      "weight": 2,
+      "score": 0.5,
+      "targetsMet": false,
+      "p99Ms": null,
+      "availability": 0.07203389751165251,
+      "types": [
+        {
+          "type": "connect",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0.3813559280084745,
+          "overloaded": true
+        },
+        {
+          "type": "status",
+          "p50Ms": null,
+          "p99Ms": null,
+          "availability": 0.010169491412288114,
+          "overloaded": true,
+          "lagSeconds": 2250
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 1,
+          "loadRps": 7866.7,
+          "utilization": 0.16,
+          "p50Ms": 1,
+          "p99Ms": 1.1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 3,
+          "loadRps": 7866.7,
+          "utilization": 2.62,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "sessions",
+          "kind": "kv_store",
+          "up": true,
+          "servers": 1,
+          "loadRps": 7866.7,
+          "utilization": 0.39,
+          "p50Ms": 3,
+          "p99Ms": 3.3
+        },
+        {
+          "id": "changes",
+          "kind": "stream",
+          "up": true,
+          "servers": 2,
+          "loadRps": 1000,
+          "utilization": 0.01,
+          "p50Ms": 10,
+          "p99Ms": 10
+        },
+        {
+          "id": "fanners",
+          "kind": "worker",
+          "up": true,
+          "servers": 5,
+          "loadRps": 1000,
+          "utilization": 1,
+          "p50Ms": null,
+          "p99Ms": null
+        },
+        {
+          "id": "gw",
+          "kind": "connection_gateway",
+          "up": true,
+          "servers": 5,
+          "loadRps": 20000,
+          "utilization": 1.6,
+          "p50Ms": null,
+          "p99Ms": null
+        }
+      ],
+      "explanations": [
+        "gw loses 50.0% of its servers: 6,667 reconnects a second for 30 seconds.",
+        "changes holds 337,500 \"status\" requests at the worst and has done them 38 minutes later (target 60 seconds, retention 24 hours).",
+        "97.3% of \"status\" isn't done in time: the backlog drains too slowly.",
+        "api is overloaded: 7,867 requests/s is 262.2% of what its 3 server(s) handle.",
+        "fanners is overloaded: 1,000 requests/s is 100.0% of what its 5 server(s) handle.",
+        "gw is overloaded: 400,000 connections is 160.0% of what its 5 server(s) hold.",
+        "\"connect\": p99 unbounded (target 300 ms), 38.1% served.",
+        "\"status\": p99 unbounded (target 300 ms), 1.0% served."
+      ]
+    },
+    {
+      "id": "gateway_node",
+      "name": "A gateway node dies",
+      "weight": 2,
+      "score": 1,
+      "targetsMet": true,
+      "p99Ms": 34.5,
+      "availability": 0.9999999888958333,
+      "types": [
+        {
+          "type": "connect",
+          "p50Ms": 24,
+          "p99Ms": 24.5,
+          "availability": 0.999999989,
+          "overloaded": false
+        },
+        {
+          "type": "status",
+          "p50Ms": 34,
+          "p99Ms": 34.5,
+          "availability": 0.999999988875,
+          "overloaded": false,
+          "lagSeconds": 0.1
+        }
+      ],
+      "nodes": [
+        {
+          "id": "lb",
+          "kind": "load_balancer",
+          "up": true,
+          "servers": 2,
+          "loadRps": 2533.3,
+          "utilization": 0.03,
+          "p50Ms": 1,
+          "p99Ms": 1
+        },
+        {
+          "id": "api",
+          "kind": "app_service",
+          "up": true,
+          "servers": 6,
+          "loadRps": 2533.3,
+          "utilization": 0.42,
+          "p50Ms": 20,
+          "p99Ms": 20.5
+        },
+        {
+          "id": "sessions",
+          "kind": "kv_store",
+          "up": true,
+          "servers": 3,
+          "loadRps": 2533.3,
+          "utilization": 0.04,
+          "p50Ms": 3,
+          "p99Ms": 3
+        },
+        {
+          "id": "changes",
+          "kind": "stream",
+          "up": true,
+          "servers": 4,
+          "loadRps": 1000,
+          "utilization": 0.01,
+          "p50Ms": 10,
+          "p99Ms": 10
+        },
+        {
+          "id": "fanners",
+          "kind": "worker",
+          "up": true,
+          "servers": 10,
+          "loadRps": 1000,
+          "utilization": 0.5,
+          "p50Ms": 50,
+          "p99Ms": 51.3
+        },
+        {
+          "id": "gw",
+          "kind": "connection_gateway",
+          "up": true,
+          "servers": 9,
+          "loadRps": 20000,
+          "utilization": 0.89,
+          "p50Ms": 2,
+          "p99Ms": 2.2
+        }
+      ],
+      "explanations": [
+        "gw loses 10.0% of its servers: 1,333 reconnects a second for 30 seconds.",
+        "gw runs hot at 88.9%: waits grow fast past 80%.",
+        "\"connect\": p99 24.5 ms (target 300 ms), 100.0% served.",
+        "\"status\": p99 34.5 ms (target 300 ms), 100.0% served."
+      ]
+    }
+  ],
+  "points": 50,
+  "baselinePassed": true,
+  "explanations": [
+    "Cost: $4,643 a month, against a budget of $30,000.",
+    "Storage: 8 GB needed by day 30; where writes are kept holds 3,000 GB."
+  ]
+}

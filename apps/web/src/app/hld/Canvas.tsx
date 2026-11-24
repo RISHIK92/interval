@@ -845,6 +845,22 @@ export function risksOf(
         );
       continue;
     }
+    // Spec 2.1: a coordinator goes down when a zone or region holds a majority of its
+    // members.
+    if (node.kind === "coordination" && !at.up) {
+      said.push(
+        `Loses its quorum in "${s.name}": no one zone or region may hold a majority of its members.`,
+      );
+      for (const f of ["zones", "members", "regions"]) fields.add(f);
+      continue;
+    }
+    // Spec 2.1: a hot key's partition isn't helped by more nodes.
+    if (at.hot === true && at.utilization !== null && at.utilization >= 1) {
+      said.push(
+        `Its busiest partition can't keep up in "${s.name}": more nodes won't help, so answer hot reads from a cache or batch hot writes.`,
+      );
+      continue;
+    }
     if (!at.up) {
       said.push(`Goes down in "${s.name}" with nothing to take over.`);
       if ("failover" in config && config.failover !== "multi_zone")

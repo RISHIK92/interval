@@ -76,3 +76,29 @@ def test_resolved_appeals_join_the_set() -> None:
     report = run_eval(gateway(Fixed(2)), "m", FILE, store)
     assert isinstance(report, Report)
     assert (report.designs, report.exact, report.passed) == (1, 1.0, True)
+
+
+SUGGESTIONS = FILE.with_name("calibration-suggestions.json")
+
+
+def test_claude_suggestions_never_count_as_grades() -> None:
+    # Owner decision 2026-11-24: the suggestions file sits beside the calibration set,
+    # but only the owner's stored grades are measured against.
+    suggestions = json.loads(SUGGESTIONS.read_text())["suggestions"]
+    assert "url-shortener/reference" in suggestions
+    store = InMemoryHldJudgements()
+    llm = Fixed(3)
+    report = run_eval(gateway(llm), "m", FILE, store)
+    assert isinstance(report, Report)
+    assert (report.designs, report.levels, report.passed) == (0, 0, False)
+    assert llm.calls == 0
+
+    owner = grades("url-shortener/reference", 4)
+    assert owner != {
+        k: v["level"]
+        for k, v in suggestions["url-shortener/reference"]["levels"].items()
+    }
+    store.grades = {"url-shortener/reference": owner}
+    report = run_eval(gateway(Fixed(4)), "m", FILE, store)
+    assert isinstance(report, Report)
+    assert (report.designs, report.exact) == (1, 1.0)

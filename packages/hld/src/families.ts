@@ -83,6 +83,45 @@ const provider = (id: string, note: string): DesignNode => ({
   config: {},
   note,
 });
+// Spec 2.1 (ADR-0050 stage 2): a batch size on every app service and worker (1: none),
+// and the three new kinds.
+const batched = (n: DesignNode, batch = 1): DesignNode =>
+  n.kind === "app_service" || n.kind === "worker"
+    ? { ...n, config: { ...n.config, batch } }
+    : n;
+const v21 = (shape: { nodes: DesignNode[]; edges: DesignEdge[] }) => ({
+  ...shape,
+  nodes: shape.nodes.map((n) =>
+    (n.kind === "app_service" || n.kind === "worker") &&
+    n.config.batch === undefined
+      ? batched(n)
+      : n,
+  ),
+});
+const geo = (id: string, replicas: number, note: string): DesignNode => ({
+  id,
+  kind: "geo_index",
+  config: { shards: 3, replicas, ...z3 },
+  note,
+});
+const gateway = (id: string, note: string): DesignNode => ({
+  id,
+  kind: "connection_gateway",
+  config: { nodes: 3, ...z3 },
+  note,
+});
+const coordinator = (id: string, note: string): DesignNode => ({
+  id,
+  kind: "coordination",
+  config: { members: 3, ...z3 },
+  note,
+});
+const stream21 = (id: string, note: string): DesignNode => ({
+  id,
+  kind: "stream",
+  config: { partitions: 3, replication: 3, retentionHours: 24, ...z3 },
+  note,
+});
 const e = (from: string, to: string, ...routes: string[]): DesignEdge => ({
   from,
   to,
@@ -1471,11 +1510,15 @@ export const FAMILIES: readonly Family[] = [
         true,
       ),
       served(
-        "Take an uploaded original; its common sizes ready within 5 minutes.",
+        "Take an uploaded original; its common sizes ready within 30 minutes.",
         "original",
         ["object_storage"],
         true,
       ),
+      {
+        text: "Keep making sizes on time when four times the uploads arrive for an hour.",
+        covers: { rule: "scenario", scenario: "upload_burst" },
+      },
     ],
     concepts: ["CDN", "object storage", "precomputed and on-the-fly work"],
     rubric: rubric(
@@ -1512,7 +1555,7 @@ export const FAMILIES: readonly Family[] = [
         share: 0.05,
         work: 20,
         payloadKb: 2_000,
-        completionSeconds: 300,
+        completionSeconds: 1_800,
         requires: ["worker"],
       },
     ],
@@ -1540,26 +1583,54 @@ export const FAMILIES: readonly Family[] = [
         users,
         cdn("edge", 1_200, "Each size, once made, served from the edge."),
         lb,
-        app("api", "Stateless: takes uploads, asks for a size on a miss."),
+        app("api", "Stateless: asks for a size on a miss."),
         workers("resizers", "Make a size from its original, once."),
-        objects("files", "Originals and every size made."),
-        queue("renditions", "Common sizes to make for each new original."),
+        objects("files", "Every size made."),
+        objects(
+          "originals",
+          "Originals, uploaded straight here with signed URLs; each new one is announced to the queue.",
+        ),
+        queue(
+          "renditions",
+          "Common sizes to make for each new original: a burst of uploads waits here.",
+        ),
+        workers("renderers", "Make each new original's common sizes."),
       ],
       edges: [
         e("users", "edge", "image"),
         e("edge", "lb", "image"),
-        e("users", "lb", "original"),
-        e("lb", "api", "image", "original"),
+        e("lb", "api", "image"),
         e("api", "resizers", "image"),
-        e("resizers", "files", "image", "original"),
-        e("api", "files", "original"),
-        e("api", "renditions", "original"),
-        e("renditions", "resizers", "original"),
+        e("resizers", "files", "image"),
+        // A signed upload, and the store's notice of each new original.
+        e("users", "originals", "original"),
+        e("originals", "renditions", "original"),
+        e("renditions", "renderers", "original"),
+        e("renderers", "files", "original"),
       ],
     },
+    scenarios: [
+      {
+        id: "upload_burst",
+        name: "Uploads arrive in a burst: four times as many for an hour",
+        weight: 2,
+        load: 1,
+        loads: { original: 4 },
+        minutes: 60,
+        p99x: 1.5,
+        availability: 0.995,
+      },
+    ],
     lessons: [
       // Every request resized again: the spike lands on the resizers.
       { id: "no-cdn", targets: "peak", bypass: ["edge"] },
+      // Renderers sized for the average: the burst backs up past its target.
+      {
+        id: "renderers-for-the-average",
+        targets: "upload_burst",
+        node: "renderers",
+        utilization: 0.4,
+      },
       // No queue to the resizers: originals are stored and their sizes never made.
       { id: "no-renditions", targets: "baseline", without: "renditions" },
     ],
@@ -1954,7 +2025,7 @@ export const FAMILIES: readonly Family[] = [
     title: "Web crawler",
     requirements: [
       served(
-        "Fetch each queued page within an hour, at the pace sites allow.",
+        "Fetch each queued page within 4 hours, at the pace sites allow.",
         "fetch",
         ["external_api"],
         true,
@@ -1971,6 +2042,10 @@ export const FAMILIES: readonly Family[] = [
         ["cache", "kv_store"],
         true,
       ),
+      {
+        text: "Lose no URL when a sitemap floods the frontier with three times the fetches for 90 minutes.",
+        covers: { rule: "scenario", scenario: "sitemap" },
+      },
     ],
     concepts: ["queues", "politeness", "deduplication"],
     rubric: rubric(
@@ -2000,7 +2075,7 @@ export const FAMILIES: readonly Family[] = [
         kind: "write",
         cacheable: false,
         share: 0.7,
-        completionSeconds: 3_600,
+        completionSeconds: 14_400,
         requires: ["external_api"],
       },
       {
@@ -2038,7 +2113,10 @@ export const FAMILIES: readonly Family[] = [
     shape: {
       nodes: [
         users,
-        queue("frontier", "URLs to fetch, in order, per host."),
+        queue(
+          "frontier",
+          "URLs to fetch, per host, kept a day: politeness drains a flood slowly.",
+        ),
         workers(
           "fetchers",
           "Many fetches in flight each, at each site's pace.",
@@ -2073,9 +2151,1495 @@ export const FAMILIES: readonly Family[] = [
         e("api", "seen", "seen_check"),
       ],
     },
-    // No web: URLs are queued and pages never fetched. Its own lessons (politeness,
-    // duplicate URLs) are the rubric's (ADR-0051).
-    lessons: [{ id: "no-provider", targets: "baseline", without: "web" }],
+    // Politeness caps fetching at what sites allow (the provider's rate limit), so a
+    // flood of URLs waits in the frontier until it's fetched: hours, not minutes.
+    scenarios: [
+      {
+        id: "sitemap",
+        name: "A sitemap floods the frontier: three times the fetches for 90 minutes",
+        weight: 2,
+        load: 1,
+        loads: { fetch: 3 },
+        minutes: 90,
+        p99x: 1.5,
+        availability: 0.995,
+      },
+    ],
+    lessons: [
+      // A frontier that keeps an hour: the flood outlives it, and its URLs are lost.
+      {
+        id: "short-frontier",
+        targets: "sitemap",
+        node: "frontier",
+        configure: () => ({ retentionHours: 1 }),
+      },
+      // No web: URLs are queued and pages never fetched. Duplicate URLs stay the
+      // rubric's (ADR-0052).
+      { id: "no-provider", targets: "baseline", without: "web" },
+    ],
+  },
+  // ADR-0050 stage 2 (spec 2.1, from SPEC_V21_FROM): the geo index, the connection
+  // gateway and the coordination service; fan-out, hot partitions and batching;
+  // PROVISIONAL like the rest. Where a number or lesson differs from the catalog's plan,
+  // docs/hld-catalog.md, "Stage 2 as built", says why.
+  {
+    slug: "nearby-places",
+    spec: "2.1",
+    pool: "practice",
+    theme: "realtime",
+    difficulty: "easy",
+    title: "Nearby places",
+    requirements: [
+      served("Find places near someone, fast.", "nearby", ["geo_index"], true),
+      served("Show a place's page.", "place", ["cache", "sql_db"]),
+      served("Post a review of a place.", "review", ["sql_db"]),
+      {
+        text: "Keep nearby search fast on a Friday night, when one city takes most of the queries.",
+        covers: { rule: "scenario", scenario: "peak" },
+      },
+    ],
+    concepts: ["geo index", "spatial cells", "hot partitions"],
+    rubric: rubric(
+      [
+        "cells",
+        "Explains the spatial scheme (geohash, quadtree or S2 cells) and how a radius maps to the cells a query asks.",
+      ],
+      [
+        "dense",
+        "Explains why a dense city's cells need replicas rather than more shards.",
+      ],
+      [
+        "caching",
+        "Says why places' slow change allows heavy caching of their pages.",
+      ],
+    ),
+    allowedComponents: [
+      "cdn",
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "search_index",
+      "geo_index",
+    ],
+    requests: [
+      {
+        type: "nearby",
+        kind: "read",
+        cacheable: false,
+        share: 0.8,
+        hotShare: 0.6,
+      },
+      { type: "place", kind: "read", cacheable: true, share: 0.18 },
+      { type: "review", kind: "write", cacheable: false, share: 0.02 },
+    ],
+    ranges: {
+      human: {
+        rps: [7_500, 10_000],
+        workingSetGb: [10, 40],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [20, 100],
+        growthGbPerDay: [0.2, 1],
+        p99Ms: [80, 150],
+      },
+      ai: {
+        rps: [10_000, 13_000],
+        workingSetGb: [20, 60],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [50, 150],
+        growthGbPerDay: [0.5, 1.5],
+        p99Ms: [60, 110],
+      },
+    },
+    horizonDays: 365,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: asks the geo index and the place pages."),
+        geo(
+          "places",
+          5,
+          "Places by cell; replicas share a busy city's queries.",
+        ),
+        cache("pages", "Place pages: places change rarely."),
+        sql("catalog", "Places and their reviews."),
+      ],
+      edges: [
+        e("users", "lb", "nearby", "place", "review"),
+        e("lb", "api", "nearby", "place", "review"),
+        e("api", "places", "nearby"),
+        e("api", "pages", "place"),
+        e("api", "catalog", "place", "review"),
+      ],
+    }),
+    lessons: [
+      // The same servers as more shards and one replica: the busy city's cells sit on
+      // two servers, however many shards there are.
+      {
+        id: "shards-not-replicas",
+        targets: "peak",
+        node: "places",
+        configure: (c) => ({
+          shards: Math.min(
+            64,
+            Math.ceil((Number(c["shards"]) * (1 + Number(c["replicas"]))) / 2),
+          ),
+          replicas: 1,
+        }),
+      },
+    ],
+    practiceSeeds: [1],
+  },
+  {
+    slug: "food-delivery-tracking",
+    spec: "2.1",
+    pool: "battle",
+    theme: "realtime",
+    difficulty: "hard",
+    title: "Food delivery tracking",
+    requirements: [
+      served(
+        "Take each courier's position every few seconds.",
+        "courier_location",
+        ["geo_index"],
+      ),
+      served(
+        "Find the nearest free couriers to a restaurant, fast.",
+        "match",
+        ["geo_index"],
+        true,
+      ),
+      served(
+        "Push the courier's position to the customer watching it.",
+        "track",
+        ["connection_gateway"],
+      ),
+      served("Keep each courier's route for 30 days.", "courier_location", [
+        "object_storage",
+      ]),
+    ],
+    concepts: ["geo index", "persistent connections", "push"],
+    rubric: rubric(
+      [
+        "holds",
+        "Explains how a match keeps two orders from taking one courier (a short hold).",
+      ],
+      [
+        "signal",
+        "Says what the customer sees when the courier's phone loses signal, and when it returns.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "object_storage",
+      "stream",
+      "worker",
+      "geo_index",
+      "connection_gateway",
+    ],
+    requests: [
+      {
+        type: "courier_location",
+        kind: "write",
+        cacheable: false,
+        share: 0.75,
+      },
+      { type: "match", kind: "read", cacheable: false, share: 0.05 },
+      {
+        type: "track",
+        kind: "write",
+        cacheable: false,
+        share: 0.2,
+        push: true,
+        requires: ["connection_gateway"],
+      },
+    ],
+    ranges: {
+      human: {
+        rps: [3_000, 8_000],
+        workingSetGb: [5, 20],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [50, 300],
+        growthGbPerDay: [2, 8],
+        p99Ms: [80, 150],
+        connectionsPerRps: [30, 60],
+      },
+      ai: {
+        rps: [8_000, 11_000],
+        workingSetGb: [10, 30],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [200, 500],
+        growthGbPerDay: [5, 12],
+        p99Ms: [60, 110],
+        connectionsPerRps: [30, 60],
+      },
+    },
+    horizonDays: 30,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        app(
+          "api",
+          "Stateless: positions in, matches out, pushes to customers.",
+        ),
+        geo("couriers", 1, "Where each courier is now, in memory."),
+        gateway(
+          "live",
+          "Customers' open connections: positions pushed to them.",
+        ),
+        stream21("positions", "Every position, in order, for the history."),
+        batched(
+          workers("archivers", "Write positions to storage in batches."),
+          100,
+        ),
+        objects("routes", "Courier routes for 30 days."),
+        sql("orders", "Orders and which courier has each."),
+      ],
+      edges: [
+        e("users", "lb", "courier_location", "match", "track"),
+        e("lb", "api", "courier_location", "match", "track"),
+        e("api", "couriers", "courier_location", "match"),
+        e("api", "orders", "match"),
+        e("api", "positions", "courier_location"),
+        e("positions", "archivers", "courier_location"),
+        e("archivers", "routes", "courier_location"),
+        e("api", "live", "track"),
+      ],
+    }),
+    lessons: [
+      // Positions written to the orders database: a normal day's updates are past
+      // what one primary takes.
+      {
+        id: "positions-in-the-database",
+        targets: "baseline",
+        route: { type: "courier_location", path: ["api", "orders"] },
+      },
+      // No gateway: customers are never pushed a position.
+      { id: "no-gateway", targets: "baseline", without: "live" },
+    ],
+  },
+  {
+    slug: "presence",
+    spec: "2.1",
+    pool: "practice",
+    theme: "realtime",
+    difficulty: "hard",
+    title: "Online presence and typing indicators",
+    requirements: [
+      served(
+        "Push a status change (online, offline, typing) to online contacts within 30 seconds.",
+        "status_change",
+        ["connection_gateway"],
+        true,
+      ),
+      served(
+        "Take a heartbeat from every connected user every 30 seconds.",
+        "heartbeat",
+        ["kv_store"],
+      ),
+      served(
+        "Check a session when a client connects, fast.",
+        "connect",
+        ["kv_store"],
+        true,
+      ),
+      {
+        text: "Survive a third of the gateways going at once: their users all reconnect.",
+        covers: { rule: "scenario", scenario: "zone" },
+      },
+    ],
+    concepts: ["persistent connections", "fan-out", "reconnect storms"],
+    rubric: rubric(
+      [
+        "offline",
+        "Explains how offline is decided (a heartbeat timeout) and why it's approximate.",
+      ],
+      [
+        "jitter",
+        "Says how reconnects are spread out (jittered backoff), and why.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "kv_store",
+      "stream",
+      "worker",
+      "connection_gateway",
+    ],
+    requests: [
+      { type: "heartbeat", kind: "write", cacheable: false, share: 0.8 },
+      {
+        type: "status_change",
+        kind: "write",
+        cacheable: false,
+        share: 0.15,
+        completionSeconds: 30,
+        push: true,
+        fanout: { mean: 50, p99: 2_000 },
+        requires: ["connection_gateway"],
+      },
+      { type: "connect", kind: "read", cacheable: false, share: 0.05 },
+    ],
+    ranges: {
+      human: {
+        rps: [8_000, 15_000],
+        workingSetGb: [5, 20],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [1, 5],
+        growthGbPerDay: [0, 0],
+        p99Ms: [80, 150],
+        connectionsPerRps: [22, 26],
+      },
+      ai: {
+        rps: [15_000, 20_000],
+        workingSetGb: [10, 30],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [3, 10],
+        growthGbPerDay: [0, 0],
+        p99Ms: [60, 110],
+        connectionsPerRps: [22, 26],
+      },
+    },
+    horizonDays: 30,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: heartbeats and status changes."),
+        app(
+          "auth",
+          "Checks a session on connect: sized for a reconnect storm.",
+        ),
+        kv("sessions", "Sessions and last-seen times, each with an expiry."),
+        stream21("changes", "Status changes, in order per user."),
+        workers("fanners", "Send each change to the user's online contacts."),
+        gateway("gateways", "Every connected client: changes pushed to them."),
+      ],
+      edges: [
+        e("users", "lb", "heartbeat", "status_change", "connect"),
+        e("lb", "api", "heartbeat", "status_change"),
+        e("lb", "auth", "connect"),
+        e("api", "sessions", "heartbeat", "status_change"),
+        e("auth", "sessions", "connect"),
+        e("api", "changes", "status_change"),
+        e("changes", "fanners", "status_change"),
+        e("fanners", "gateways", "status_change"),
+      ],
+    }),
+    lessons: [
+      // The session check sized for a spike: the reconnect storm swamps it. The AI
+      // mode's harsher storm is a lost region's.
+      {
+        id: "connect-sized-for-a-spike",
+        targets: { human: "zone", ai: "region" },
+        node: "auth",
+        utilization: 0.2,
+      },
+      // No gateway: status changes are never pushed.
+      { id: "no-gateway", targets: "baseline", without: "gateways" },
+    ],
+    practiceSeeds: [1],
+  },
+  {
+    slug: "collaborative-editor",
+    spec: "2.1",
+    pool: "battle",
+    theme: "realtime",
+    difficulty: "hard",
+    title: "Collaborative document editor",
+    requirements: [
+      served(
+        "Send each edit to the document's open editors within 5 seconds, in order.",
+        "edit",
+        ["connection_gateway"],
+        true,
+      ),
+      served("Open a document, fast.", "open", ["object_storage"], true),
+      served("Save a snapshot of a document.", "snapshot", ["object_storage"]),
+    ],
+    concepts: ["persistent connections", "fan-out", "ordered logs"],
+    rubric: rubric(
+      [
+        "converge",
+        "Explains how concurrent edits converge (OT or CRDT) and why the ordering point matters.",
+      ],
+      [
+        "snapshots",
+        "Says why opening a document reads a snapshot and the edits since, not the whole history.",
+      ],
+      [
+        "reconnect",
+        "Says what an editor sees when its connection drops and returns.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "kv_store",
+      "object_storage",
+      "stream",
+      "worker",
+      "connection_gateway",
+    ],
+    requests: [
+      {
+        type: "edit",
+        kind: "write",
+        cacheable: false,
+        share: 0.7,
+        completionSeconds: 5,
+        push: true,
+        // Three editors on most documents; the company all-hands doc has thousands.
+        fanout: { mean: 3, p99: 5_000 },
+        requires: ["connection_gateway"],
+      },
+      { type: "open", kind: "read", cacheable: false, share: 0.2 },
+      { type: "snapshot", kind: "write", cacheable: false, share: 0.1 },
+    ],
+    ranges: {
+      human: {
+        rps: [5_000, 12_000],
+        workingSetGb: [20, 80],
+        hotKeySkew: [0.4, 0.7],
+        storedGb: [500, 2_000],
+        growthGbPerDay: [5, 20],
+        p99Ms: [100, 150],
+        connectionsPerRps: [20, 40],
+      },
+      ai: {
+        rps: [12_000, 16_000],
+        workingSetGb: [40, 120],
+        hotKeySkew: [0.4, 0.7],
+        storedGb: [1_000, 3_000],
+        growthGbPerDay: [10, 30],
+        p99Ms: [90, 130],
+        connectionsPerRps: [20, 40],
+      },
+    },
+    horizonDays: 365,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: takes edits, opens documents."),
+        stream21(
+          "ops",
+          "One ordered log per document: every editor sees one order.",
+        ),
+        workers(
+          "broadcasters",
+          "Send each edit to the document's open editors.",
+        ),
+        gateway("editors", "Every open editor's connection."),
+        objects("snapshots", "Each document's latest snapshot."),
+      ],
+      edges: [
+        e("users", "lb", "edit", "open", "snapshot"),
+        e("lb", "api", "edit", "open", "snapshot"),
+        e("api", "ops", "edit"),
+        e("ops", "broadcasters", "edit"),
+        e("broadcasters", "editors", "edit"),
+        e("api", "snapshots", "open", "snapshot"),
+      ],
+    }),
+    lessons: [
+      // Broadcast inside the request: an edit to the all-hands doc waits for thousands
+      // of deliveries, 50 at a time.
+      {
+        id: "broadcast-in-the-request",
+        targets: "baseline",
+        bypass: ["ops", "broadcasters"],
+      },
+      // No gateway: edits are logged and never reach the other editors.
+      { id: "no-gateway", targets: "baseline", without: "editors" },
+    ],
+  },
+  {
+    slug: "notification-service",
+    spec: "2.1",
+    pool: "battle",
+    theme: "messaging",
+    difficulty: "hard",
+    title: "Notification service",
+    requirements: [
+      served(
+        "Send a notification to a user's devices within 15 minutes, through the push provider.",
+        "notify",
+        ["external_api"],
+        true,
+      ),
+      served(
+        "Send a campaign to every user in a segment within 30 minutes.",
+        "campaign",
+        ["external_api"],
+        true,
+      ),
+      served(
+        "Read a user's notification preferences, fast.",
+        "prefs_read",
+        ["cache", "kv_store"],
+        true,
+      ),
+      served("Change a user's preferences.", "prefs_write", ["kv_store"]),
+      {
+        text: "Keep notifications flowing when the push provider is down for 5 minutes.",
+        covers: { rule: "scenario", scenario: "provider_down" },
+      },
+    ],
+    concepts: ["third-party providers", "fan-out", "queues"],
+    rubric: rubric(
+      [
+        "isolation",
+        "Explains how a campaign never delays a password reset (separate queues and priorities).",
+      ],
+      [
+        "preferences",
+        "Says how duplicates are dropped and preferences (quiet hours, opt-outs) checked before sending.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "kv_store",
+      "queue",
+      "stream",
+      "worker",
+      "external_api",
+    ],
+    requests: [
+      { type: "prefs_read", kind: "read", cacheable: true, share: 0.84 },
+      {
+        type: "notify",
+        kind: "write",
+        cacheable: false,
+        share: 0.1,
+        completionSeconds: 900,
+        requires: ["external_api"],
+      },
+      {
+        type: "campaign",
+        kind: "write",
+        cacheable: false,
+        share: 0.001,
+        completionSeconds: 1_800,
+        fanout: { mean: 200, p99: 100_000 },
+        requires: ["external_api"],
+      },
+      { type: "prefs_write", kind: "write", cacheable: false, share: 0.059 },
+    ],
+    providerCostPerCall: 0.000001,
+    ranges: {
+      human: {
+        rps: [2_000, 6_000],
+        workingSetGb: [10, 40],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [100, 500],
+        growthGbPerDay: [1, 4],
+        p99Ms: [400, 600],
+        providerShare: [1.4, 1.6],
+      },
+      ai: {
+        rps: [6_000, 8_000],
+        workingSetGb: [30, 80],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [300, 800],
+        growthGbPerDay: [2, 6],
+        p99Ms: [350, 450],
+        providerShare: [1.4, 1.6],
+      },
+    },
+    horizonDays: 90,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: preferences, and queues every send."),
+        cache("prefs", "Preferences, read on every send."),
+        kv("store", "Preferences, device tokens and the delivery log."),
+        queue("alerts", "One user's notifications: never behind a campaign."),
+        workers("senders", "Send each notification, retrying."),
+        queue("campaigns", "Campaigns waiting to be expanded."),
+        workers("expanders", "Expand a campaign to its segment, in batches."),
+        provider("push", "The push provider: its rate limit and its outages."),
+      ],
+      edges: [
+        e("users", "lb", "prefs_read", "notify", "campaign", "prefs_write"),
+        e("lb", "api", "prefs_read", "notify", "campaign", "prefs_write"),
+        e("api", "prefs", "prefs_read"),
+        e("api", "store", "prefs_read", "prefs_write", "notify", "campaign"),
+        e("api", "alerts", "notify"),
+        e("alerts", "senders", "notify"),
+        e("senders", "push", "notify"),
+        e("api", "campaigns", "campaign"),
+        e("campaigns", "expanders", "campaign"),
+        e("expanders", "push", "campaign"),
+      ],
+    }),
+    scenarios: [
+      {
+        id: "provider_down",
+        name: "The push provider is down for 5 minutes",
+        weight: 2,
+        load: 1,
+        minutes: 5,
+        failure: { scope: "node", kind: "external_api" },
+        p99x: 1.5,
+        availability: 0.99,
+      },
+    ],
+    lessons: [
+      // Notifications sent inside the request: the provider's outage fails them.
+      {
+        id: "notify-inline",
+        targets: "provider_down",
+        bypass: ["alerts", "senders"],
+      },
+      // A campaign expanded inside the request: its caller waits for every round of
+      // deliveries.
+      {
+        id: "campaign-inline",
+        targets: "baseline",
+        bypass: ["campaigns", "expanders"],
+      },
+    ],
+  },
+  {
+    slug: "id-generator",
+    spec: "2.1",
+    pool: "practice",
+    theme: "infrastructure",
+    difficulty: "medium",
+    title: "Unique ID generator",
+    requirements: [
+      served(
+        "Hand out a unique, roughly time-ordered ID, fast.",
+        "next_id",
+        ["app_service"],
+        true,
+      ),
+      served(
+        "Lease ID blocks from somewhere that never hands one out twice.",
+        "next_id",
+        ["coordination"],
+      ),
+      {
+        text: "Keep handing out IDs when a zone goes down.",
+        covers: { rule: "scenario", scenario: "zone" },
+      },
+    ],
+    concepts: ["consensus", "ID blocks", "quorums"],
+    rubric: rubric(
+      [
+        "gaps",
+        "Says what happens to a leased block when its node dies: gaps are fine, duplicates never.",
+      ],
+      [
+        "clocks",
+        "Explains clock skew in time-based IDs and how the design copes.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "sql_db",
+      "kv_store",
+      "coordination",
+    ],
+    requests: [
+      {
+        type: "next_id",
+        kind: "write",
+        cacheable: false,
+        share: 1,
+        requires: ["coordination"],
+      },
+    ],
+    ranges: {
+      human: {
+        rps: [8_000, 15_000],
+        workingSetGb: [1, 2],
+        hotKeySkew: [0, 0],
+        storedGb: [0, 0],
+        growthGbPerDay: [0, 0],
+        p99Ms: [40, 80],
+      },
+      ai: {
+        rps: [15_000, 20_000],
+        workingSetGb: [1, 2],
+        hotKeySkew: [0, 0],
+        storedGb: [0, 0],
+        growthGbPerDay: [0, 0],
+        p99Ms: [30, 60],
+      },
+    },
+    horizonDays: 365,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        batched(
+          app("ids", "Hands out IDs from a block of 1,000 it has leased."),
+          1_000,
+        ),
+        coordinator("leases", "Leases blocks: never the same one twice."),
+      ],
+      edges: [
+        e("users", "lb", "next_id"),
+        e("lb", "ids", "next_id"),
+        e("ids", "leases", "next_id"),
+      ],
+    }),
+    lessons: [
+      // Every ID through the leader: a normal day is past what it commits.
+      {
+        id: "no-blocks",
+        targets: "baseline",
+        node: "ids",
+        configure: () => ({ batch: 1 }),
+      },
+      // Three members in two zones: the zone holding two takes the quorum with it.
+      {
+        id: "quorum-in-two-zones",
+        targets: "zone",
+        node: "leases",
+        configure: () => ({ zones: 2 }),
+      },
+    ],
+    practiceSeeds: [1],
+  },
+  {
+    slug: "job-scheduler",
+    spec: "2.1",
+    pool: "battle",
+    theme: "infrastructure",
+    difficulty: "hard",
+    title: "Scheduled jobs service",
+    requirements: [
+      served("Register a job with its schedule.", "schedule", ["sql_db"]),
+      served(
+        "Start each job that comes due within 30 minutes, exactly once.",
+        "fire",
+        ["worker"],
+        true,
+      ),
+      served("Keep one scheduler leader at a time, through a lease.", "lease", [
+        "coordination",
+      ]),
+      served("Show a job's run history.", "history", ["cache", "sql_db"]),
+      {
+        text: "At midnight, when a third of all jobs come due at once, start them on time.",
+        covers: { rule: "scenario", scenario: "midnight" },
+      },
+    ],
+    concepts: ["leader election", "queues", "bursts"],
+    rubric: rubric(
+      [
+        "fencing",
+        "Explains leader election and fencing: what stops an old leader that comes back.",
+      ],
+      [
+        "idempotent",
+        "Says why runs are at least once, and how jobs are made idempotent.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "queue",
+      "worker",
+      "coordination",
+    ],
+    requests: [
+      { type: "schedule", kind: "write", cacheable: false, share: 0.1 },
+      {
+        type: "fire",
+        kind: "write",
+        cacheable: false,
+        share: 0.6,
+        work: 2,
+        completionSeconds: 1_800,
+        requires: ["worker"],
+      },
+      { type: "history", kind: "read", cacheable: true, share: 0.299 },
+      {
+        type: "lease",
+        kind: "write",
+        cacheable: false,
+        share: 0.001,
+        requires: ["coordination"],
+      },
+    ],
+    ranges: {
+      human: {
+        rps: [1_000, 2_000],
+        workingSetGb: [10, 40],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [50, 200],
+        growthGbPerDay: [0.5, 2],
+        p99Ms: [150, 250],
+      },
+      ai: {
+        rps: [2_000, 2_400],
+        workingSetGb: [20, 60],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [100, 300],
+        growthGbPerDay: [1, 3],
+        p99Ms: [130, 200],
+      },
+    },
+    horizonDays: 365,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        app(
+          "scheduler",
+          "Its leader scans for due jobs and queues them; the rest stand by.",
+        ),
+        coordinator("leader", "The scheduler's lease: one leader at a time."),
+        queue("due", "Due runs: the midnight burst waits here."),
+        batched(
+          workers("runners", "Run each job; record runs in batches."),
+          50,
+        ),
+        cache("recent", "Recent run history."),
+        sql("jobs", "Jobs, their schedules and their runs."),
+      ],
+      edges: [
+        e("users", "lb", "schedule", "fire", "history", "lease"),
+        e("lb", "scheduler", "schedule", "fire", "history", "lease"),
+        e("scheduler", "leader", "lease"),
+        e("scheduler", "jobs", "schedule", "history"),
+        e("scheduler", "recent", "history"),
+        e("scheduler", "due", "fire"),
+        e("due", "runners", "fire"),
+        e("runners", "jobs", "fire"),
+      ],
+    }),
+    scenarios: [
+      {
+        id: "midnight",
+        name: "Midnight: six times the jobs come due for 15 minutes",
+        weight: 2,
+        load: 1,
+        loads: { fire: 6 },
+        minutes: 15,
+        p99x: 1.5,
+        availability: 0.995,
+      },
+    ],
+    lessons: [
+      // Runners sized for the average: the midnight burst backs up past its target.
+      {
+        id: "runners-for-the-average",
+        targets: "midnight",
+        node: "runners",
+        utilization: 0.4,
+      },
+      // No coordination service: nothing keeps one leader, so no lease is held.
+      { id: "no-leader", targets: "baseline", without: "leader" },
+    ],
+  },
+  {
+    slug: "feature-flags",
+    spec: "2.1",
+    pool: "battle",
+    theme: "infrastructure",
+    difficulty: "easy",
+    title: "Feature flags and remote config",
+    requirements: [
+      served(
+        "Give SDKs their rules when they start or poll, fast.",
+        "fetch_rules",
+        ["cdn", "cache"],
+        true,
+      ),
+      served(
+        "Push a flag change to every connected SDK within 10 seconds.",
+        "change",
+        ["connection_gateway"],
+        true,
+      ),
+      served("Show who changed what.", "audit", ["sql_db"]),
+    ],
+    concepts: ["CDN", "push", "local evaluation"],
+    rubric: rubric(
+      [
+        "local",
+        "Explains why flags are evaluated in the SDK, and what an SDK does when it can't reach the service.",
+      ],
+      [
+        "streaming",
+        "Weighs streaming changes against polling, and the cost of each.",
+      ],
+    ),
+    allowedComponents: [
+      "cdn",
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "queue",
+      "worker",
+      "connection_gateway",
+    ],
+    requests: [
+      { type: "fetch_rules", kind: "read", cacheable: true, share: 0.9 },
+      {
+        type: "change",
+        kind: "write",
+        cacheable: false,
+        share: 0.001,
+        completionSeconds: 10,
+        push: true,
+        fanout: { mean: 2_000, p99: 100_000 },
+        requires: ["connection_gateway"],
+      },
+      { type: "audit", kind: "read", cacheable: false, share: 0.099 },
+    ],
+    ranges: {
+      human: {
+        rps: [2_000, 6_000],
+        workingSetGb: [1, 5],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [1, 10],
+        growthGbPerDay: [0, 0.05],
+        p99Ms: [100, 150],
+        connectionsPerRps: [50, 80],
+      },
+      ai: {
+        rps: [6_000, 8_000],
+        workingSetGb: [2, 8],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [5, 20],
+        growthGbPerDay: [0, 0.1],
+        p99Ms: [80, 130],
+        connectionsPerRps: [50, 80],
+      },
+    },
+    horizonDays: 365,
+    shape: v21({
+      nodes: [
+        users,
+        cdn("edge", 1_200, "Rules from the edge: SDKs start and poll there."),
+        lb,
+        app("api", "Stateless: rules, changes and the audit log."),
+        cache("rules", "Each project's rules."),
+        sql("flags", "Flags, rules and who changed them."),
+        queue("changes", "Changes waiting to be pushed."),
+        workers("pushers", "Send each change to its project's SDKs."),
+        gateway("streams", "Every connected SDK."),
+      ],
+      edges: [
+        e("users", "edge", "fetch_rules"),
+        e("edge", "lb", "fetch_rules"),
+        e("users", "lb", "change", "audit"),
+        e("lb", "api", "fetch_rules", "change", "audit"),
+        e("api", "rules", "fetch_rules"),
+        e("api", "flags", "fetch_rules", "change", "audit"),
+        e("api", "changes", "change"),
+        e("changes", "pushers", "change"),
+        e("pushers", "streams", "change"),
+      ],
+    }),
+    lessons: [
+      // Every SDK's start goes to the service: a deploy that restarts them overloads it.
+      { id: "no-cdn", targets: "peak", bypass: ["edge"] },
+      // No gateway: changes are recorded and never pushed.
+      { id: "no-gateway", targets: "baseline", without: "streams" },
+    ],
+  },
+  {
+    slug: "like-counters",
+    spec: "2.1",
+    pool: "battle",
+    theme: "feeds",
+    difficulty: "medium",
+    title: "Likes and view counts",
+    requirements: [
+      served(
+        "Count every view, within a minute.",
+        "view",
+        ["stream", "kv_store"],
+        true,
+      ),
+      served("Record a like, exactly once.", "like", ["kv_store"]),
+      served(
+        "Show a post's counts, fast.",
+        "count",
+        ["cache", "kv_store"],
+        true,
+      ),
+      {
+        text: "Keep counting when one post goes viral and takes three quarters of all views.",
+        covers: { rule: "scenario", scenario: "peak" },
+      },
+    ],
+    concepts: ["hot partitions", "batching", "streams"],
+    rubric: rubric(
+      [
+        "exact",
+        "Explains exact likes (one per user, undoable) against approximate views, and why they differ.",
+      ],
+      [
+        "behind",
+        "Says how far behind a count may be, and how batching sets it.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "kv_store",
+      "queue",
+      "stream",
+      "worker",
+    ],
+    requests: [
+      {
+        type: "view",
+        kind: "write",
+        cacheable: false,
+        share: 0.6,
+        completionSeconds: 60,
+        hotShare: 0.75,
+      },
+      { type: "like", kind: "write", cacheable: false, share: 0.25 },
+      { type: "count", kind: "read", cacheable: true, share: 0.15 },
+    ],
+    ranges: {
+      human: {
+        rps: [15_000, 16_500],
+        workingSetGb: [10, 40],
+        hotKeySkew: [0.6, 0.9],
+        storedGb: [10, 50],
+        growthGbPerDay: [1, 4],
+        p99Ms: [60, 120],
+      },
+      ai: {
+        rps: [16_500, 18_000],
+        workingSetGb: [20, 60],
+        hotKeySkew: [0.6, 0.9],
+        storedGb: [30, 80],
+        growthGbPerDay: [2, 5],
+        p99Ms: [50, 100],
+      },
+    },
+    horizonDays: 365,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: likes, views and counts."),
+        stream21("events", "Every view, in order."),
+        batched(
+          workers("adders", "Add views up, and write counts in batches."),
+          100,
+        ),
+        kv("counts", "Each post's likes and views."),
+        cache("hot", "Counts of busy posts."),
+      ],
+      edges: [
+        e("users", "lb", "view", "like", "count"),
+        e("lb", "api", "view", "like", "count"),
+        e("api", "events", "view"),
+        e("events", "adders", "view"),
+        e("adders", "counts", "view"),
+        e("api", "counts", "like", "count"),
+        e("api", "hot", "count"),
+      ],
+    }),
+    lessons: [
+      // Every view written straight to its counter: the viral post's partition melts.
+      {
+        id: "views-straight-to-counters",
+        targets: "peak",
+        bypass: ["events", "adders"],
+      },
+    ],
+  },
+  {
+    slug: "wallet-ledger",
+    spec: "2.1",
+    pool: "practice",
+    theme: "commerce",
+    difficulty: "hard",
+    title: "Digital wallet and ledger",
+    requirements: [
+      served(
+        "Move money between two people: both entries or neither.",
+        "transfer",
+        ["sql_db"],
+      ),
+      served(
+        "Credit a big merchant's account within a minute.",
+        "merchant_credit",
+        ["sql_db"],
+        true,
+      ),
+      served("Show a balance, fast.", "balance", ["sql_db"], true),
+      served("Show a statement.", "statement", ["sql_db", "kv_store"]),
+      {
+        text: "Keep payments flowing on payday, when a big merchant's sale triples them.",
+        covers: { rule: "scenario", scenario: "peak" },
+      },
+    ],
+    concepts: ["double-entry ledgers", "batching", "hot rows"],
+    rubric: rubric(
+      [
+        "entries",
+        "Explains double entry, and why a balance is derived from entries, never edited.",
+      ],
+      [
+        "retries",
+        "Explains idempotency keys on transfers, and what a retry after a timeout does.",
+      ],
+      [
+        "no_cache",
+        "Says why a balance being spent is never read from a cache.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "kv_store",
+      "queue",
+      "worker",
+    ],
+    requests: [
+      { type: "balance", kind: "read", cacheable: false, share: 0.64 },
+      { type: "transfer", kind: "write", cacheable: false, share: 0.08 },
+      {
+        type: "merchant_credit",
+        kind: "write",
+        cacheable: false,
+        share: 0.18,
+        completionSeconds: 60,
+      },
+      { type: "statement", kind: "read", cacheable: false, share: 0.1 },
+    ],
+    ranges: {
+      human: {
+        rps: [3_000, 4_000],
+        workingSetGb: [10, 40],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [200, 800],
+        growthGbPerDay: [2, 6],
+        p99Ms: [100, 200],
+      },
+      ai: {
+        rps: [4_000, 4_500],
+        workingSetGb: [20, 60],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [400, 1_000],
+        growthGbPerDay: [3, 8],
+        p99Ms: [80, 150],
+      },
+    },
+    horizonDays: 365,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: transfers, balances and statements."),
+        sql("ledger", "Double-entry: every entry, never edited."),
+        queue("credits", "A big merchant's credits, waiting to be posted."),
+        batched(
+          workers("posters", "Post a merchant's credits in batches."),
+          50,
+        ),
+      ],
+      edges: [
+        e("users", "lb", "balance", "transfer", "merchant_credit", "statement"),
+        e("lb", "api", "balance", "transfer", "merchant_credit", "statement"),
+        e("api", "ledger", "balance", "transfer", "statement"),
+        e("api", "credits", "merchant_credit"),
+        e("credits", "posters", "merchant_credit"),
+        e("posters", "ledger", "merchant_credit"),
+      ],
+    }),
+    lessons: [
+      // Every credit on the primary as it comes: payday is past what it takes.
+      {
+        id: "credits-one-by-one",
+        targets: "peak",
+        bypass: ["credits", "posters"],
+      },
+    ],
+    practiceSeeds: [1],
+  },
+  {
+    slug: "ad-click-aggregation",
+    spec: "2.1",
+    pool: "battle",
+    theme: "pipelines",
+    difficulty: "hard",
+    title: "Ad click counting",
+    requirements: [
+      served(
+        "Count every click within 2 minutes: none lost, none twice.",
+        "click",
+        ["stream"],
+        true,
+      ),
+      served("Keep every raw click to reconcile.", "click", ["object_storage"]),
+      served(
+        "Show an ad's counts by minute, fast.",
+        "report",
+        ["cache", "kv_store"],
+        true,
+      ),
+      {
+        text: "Keep counting during a final's half-time ad, when one campaign takes two thirds of all clicks.",
+        covers: { rule: "scenario", scenario: "peak" },
+      },
+    ],
+    concepts: ["stream processing", "windows", "hot partitions"],
+    rubric: rubric(
+      [
+        "exactly_once",
+        "Explains exactly-once counting under retries and replays (idempotent window writes).",
+      ],
+      ["late", "Says how late clicks are handled and when a window is final."],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "kv_store",
+      "object_storage",
+      "queue",
+      "stream",
+      "worker",
+    ],
+    requests: [
+      {
+        type: "click",
+        kind: "write",
+        cacheable: false,
+        share: 0.9,
+        completionSeconds: 120,
+        hotShare: 0.65,
+      },
+      { type: "report", kind: "read", cacheable: true, share: 0.1 },
+    ],
+    ranges: {
+      human: {
+        rps: [12_200, 13_300],
+        workingSetGb: [10, 40],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [500, 2_000],
+        growthGbPerDay: [20, 60],
+        p99Ms: [60, 120],
+      },
+      ai: {
+        rps: [13_300, 13_800],
+        workingSetGb: [20, 60],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [1_000, 3_000],
+        growthGbPerDay: [30, 80],
+        p99Ms: [50, 100],
+      },
+    },
+    horizonDays: 90,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: takes clicks, answers reports."),
+        stream21("clicks", "Every click, kept to replay."),
+        batched(
+          workers(
+            "aggregators",
+            "Count clicks per ad per minute; write each window once.",
+          ),
+          100,
+        ),
+        kv("counts", "Each ad's counts by minute."),
+        cache("reports", "Recent windows of busy ads."),
+        batched(workers("archivers", "Write raw clicks in batches."), 100),
+        objects("raw", "Every raw click, to reconcile."),
+      ],
+      edges: [
+        e("users", "lb", "click", "report"),
+        e("lb", "api", "click", "report"),
+        e("api", "clicks", "click"),
+        e("clicks", "aggregators", "click"),
+        e("aggregators", "counts", "click"),
+        e("clicks", "archivers", "click"),
+        e("archivers", "raw", "click"),
+        e("api", "reports", "report"),
+        e("api", "counts", "report"),
+      ],
+    }),
+    lessons: [
+      // One increment per click: the half-time campaign's partition melts.
+      {
+        id: "per-click-increments",
+        targets: "peak",
+        node: "aggregators",
+        configure: () => ({ batch: 1 }),
+      },
+    ],
+  },
+  {
+    slug: "feature-store",
+    spec: "2.1",
+    pool: "practice",
+    theme: "pipelines",
+    difficulty: "hard",
+    title: "Feature store for recommendations",
+    requirements: [
+      served(
+        "Serve a user's features to a model, very fast.",
+        "features",
+        ["cache", "kv_store"],
+        true,
+      ),
+      served(
+        "Update features from behaviour events within a minute.",
+        "event",
+        ["stream"],
+        true,
+      ),
+      served(
+        "Recompute every user's features nightly, a chunk at a time, within 6 hours.",
+        "backfill",
+        ["worker"],
+        true,
+      ),
+      {
+        text: "Keep serving fast when the nightly backfill overlaps the evening peak.",
+        covers: { rule: "scenario", scenario: "overlap" },
+      },
+    ],
+    concepts: ["online and offline stores", "batching", "streams"],
+    rubric: rubric(
+      [
+        "skew",
+        "Explains training and serving skew, and how one definition feeds both paths.",
+      ],
+      [
+        "freshness",
+        "Says how fresh each kind of feature must be (batch against streaming), and why.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "kv_store",
+      "object_storage",
+      "queue",
+      "stream",
+      "worker",
+    ],
+    requests: [
+      { type: "features", kind: "read", cacheable: true, share: 0.8596 },
+      {
+        type: "event",
+        kind: "write",
+        cacheable: false,
+        share: 0.14,
+        completionSeconds: 60,
+      },
+      // One chunk of a thousand users, recomputed: a thousand feature writes.
+      {
+        type: "backfill",
+        kind: "write",
+        cacheable: false,
+        share: 0.0004,
+        work: 100,
+        completionSeconds: 21_600,
+        fanout: { mean: 1_000, p99: 1_000 },
+        requires: ["worker"],
+      },
+    ],
+    ranges: {
+      human: {
+        rps: [10_000, 15_000],
+        workingSetGb: [20, 100],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [100, 300],
+        growthGbPerDay: [0.5, 1],
+        p99Ms: [40, 60],
+      },
+      ai: {
+        rps: [15_000, 20_000],
+        workingSetGb: [50, 150],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [200, 500],
+        growthGbPerDay: [1, 2],
+        p99Ms: [35, 50],
+      },
+    },
+    horizonDays: 180,
+    shape: v21({
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: serves features, takes events and backfills."),
+        cache("hot", "Features of active users."),
+        kv("online", "Every user's latest features."),
+        stream21("events", "Behaviour events, in order per user."),
+        batched(workers("updaters", "Update features in small batches."), 10),
+        queue("backfills", "Tonight's recomputation, chunk by chunk."),
+        batched(
+          workers("recomputers", "Recompute features; write them in batches."),
+          100,
+        ),
+        objects("offline", "Every feature's history, for training."),
+      ],
+      edges: [
+        e("users", "lb", "features", "event", "backfill"),
+        e("lb", "api", "features", "event", "backfill"),
+        e("api", "hot", "features"),
+        e("api", "online", "features"),
+        e("api", "events", "event"),
+        e("events", "updaters", "event"),
+        e("updaters", "online", "event"),
+        e("api", "backfills", "backfill"),
+        e("backfills", "recomputers", "backfill"),
+        e("recomputers", "online", "backfill"),
+        e("recomputers", "offline", "backfill"),
+      ],
+    }),
+    scenarios: [
+      {
+        id: "overlap",
+        name: "The nightly backfill overlaps the evening: 30 times its chunks",
+        weight: 2,
+        load: 1,
+        loads: { backfill: 30 },
+        minutes: 60,
+        p99x: 1.5,
+        availability: 0.995,
+      },
+    ],
+    lessons: [
+      // The backfill written a feature at a time: the online store has no room for reads.
+      {
+        id: "backfill-unbatched",
+        targets: "overlap",
+        node: "recomputers",
+        configure: () => ({ batch: 1 }),
+      },
+    ],
+    practiceSeeds: [1],
   },
 ];
 
