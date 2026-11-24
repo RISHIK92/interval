@@ -57,6 +57,7 @@ const a_match = (id: string, ended: Partial<HldMatch> = {}) => {
       family: "url-shortener",
       battleMode: "human",
       seed: 1,
+      spec: "1.0",
       unrated: true,
       windowAt: null,
       startedAt: at,

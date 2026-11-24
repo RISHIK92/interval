@@ -6,7 +6,7 @@ import { Spectate } from "./Spectate";
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn() }) }));
 
 const problem = (() => {
-  const p = practiceProblems()[0];
+  const p = practiceProblems(new Date())[0];
   if (p === undefined) throw new Error("no practice problem");
   return p;
 })();

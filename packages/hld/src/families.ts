@@ -64,6 +64,25 @@ const workers = (id: string, note: string): DesignNode => ({
   config: { nodes: 3, ...z3 },
   note,
 });
+const objects = (id: string, note: string): DesignNode => ({
+  id,
+  kind: "object_storage",
+  config: { regions: 1 },
+  note,
+});
+const cdn = (id: string, ttlSeconds: number, note: string): DesignNode => ({
+  id,
+  kind: "cdn",
+  config: { ttlSeconds },
+  note,
+});
+// Spec 2.0: a third party, at its problem's rate limit and price.
+const provider = (id: string, note: string): DesignNode => ({
+  id,
+  kind: "external_api",
+  config: {},
+  note,
+});
 const e = (from: string, to: string, ...routes: string[]): DesignEdge => ({
   from,
   to,
@@ -162,7 +181,7 @@ export const FAMILIES: readonly Family[] = [
         e("api", "db", "redirect", "create"),
       ],
     },
-    lesson: { id: "no-cache", targets: "peak", without: "cache" },
+    lessons: [{ id: "no-cache", targets: "peak", without: "cache" }],
     practiceSeeds: [2],
   },
   {
@@ -518,7 +537,7 @@ export const FAMILIES: readonly Family[] = [
         e("indexers", "index", "index"),
       ],
     },
-    lesson: { id: "no-cache", targets: "peak", without: "suggestions" },
+    lessons: [{ id: "no-cache", targets: "peak", without: "suggestions" }],
     practiceSeeds: [1],
   },
   {
@@ -605,7 +624,7 @@ export const FAMILIES: readonly Family[] = [
         e("placed", "fulfilment", "order"),
       ],
     },
-    lesson: { id: "no-cache", targets: "peak", without: "catalog" },
+    lessons: [{ id: "no-cache", targets: "peak", without: "catalog" }],
     practiceSeeds: [2],
   },
   {
@@ -850,7 +869,7 @@ export const FAMILIES: readonly Family[] = [
         e("api", "index", "search", "answer"),
       ],
     },
-    lesson: { id: "no-cache", targets: "peak", without: "pages" },
+    lessons: [{ id: "no-cache", targets: "peak", without: "pages" }],
   },
   {
     slug: "hotel-booking",
@@ -949,7 +968,7 @@ export const FAMILIES: readonly Family[] = [
         e("sync", "index", "partner_update"),
       ],
     },
-    lesson: { id: "no-cache", targets: "peak", without: "rooms" },
+    lessons: [{ id: "no-cache", targets: "peak", without: "rooms" }],
     practiceSeeds: [1],
   },
   {
@@ -1156,20 +1175,907 @@ export const FAMILIES: readonly Family[] = [
         availability: 0.995,
       },
     ],
-    lesson: {
-      id: "two-big-nodes",
-      targets: "cache_node",
-      node: "cache",
-      // The same memory on two nodes: one's loss takes half the working set.
-      configure: (c) => ({
-        nodes: 2,
-        memoryGbPerNode: Math.min(
-          256,
-          Math.ceil((Number(c["nodes"]) * Number(c["memoryGbPerNode"])) / 2),
-        ),
-      }),
-    },
+    lessons: [
+      {
+        id: "two-big-nodes",
+        targets: "cache_node",
+        node: "cache",
+        // The same memory on two nodes: one's loss takes half the working set.
+        configure: (c) => ({
+          nodes: 2,
+          memoryGbPerNode: Math.min(
+            256,
+            Math.ceil((Number(c["nodes"]) * Number(c["memoryGbPerNode"])) / 2),
+          ),
+        }),
+      },
+    ],
     practiceSeeds: [1],
+  },
+  // ADR-0050 stage 1 (spec 2.0, from SPEC_V2_FROM): the families that need only the
+  // external provider, backlog and lag, work units and bytes, PROVISIONAL like the rest.
+  // Where a number differs from the catalog's plan, it is so the simulator shows the
+  // lesson: docs/hld-catalog.md, "Stage 1 as built", lists each.
+  {
+    slug: "otp-login",
+    spec: "2.0",
+    pool: "practice",
+    theme: "messaging",
+    difficulty: "easy",
+    title: "One-time code sign-in",
+    requirements: [
+      served(
+        "Check a signed-in session, fast.",
+        "session",
+        ["kv_store", "cache"],
+        true,
+      ),
+      served(
+        "Send a one-time code by SMS, delivered within 15 minutes.",
+        "request_code",
+        ["external_api"],
+        true,
+      ),
+      served("Check a code someone typed, fast.", "verify", ["kv_store"], true),
+      {
+        text: "Keep signing people in while the SMS provider is down for 10 minutes.",
+        covers: { rule: "scenario", scenario: "provider_down" },
+      },
+    ],
+    concepts: ["queues", "third-party providers", "retries"],
+    rubric: rubric(
+      [
+        "limits",
+        "Says how codes expire, how many tries a code gets, and how sends are capped per phone number, and why.",
+      ],
+      [
+        "delay",
+        "Explains what the person signing in sees while a code is delayed, and why the send is off the request.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "kv_store",
+      "queue",
+      "worker",
+      "external_api",
+    ],
+    requests: [
+      { type: "session", kind: "read", cacheable: false, share: 0.88 },
+      {
+        type: "request_code",
+        kind: "write",
+        cacheable: false,
+        share: 0.04,
+        completionSeconds: 900,
+        requires: ["external_api"],
+      },
+      { type: "verify", kind: "write", cacheable: false, share: 0.08 },
+    ],
+    providerCostPerCall: 0.0005,
+    ranges: {
+      human: {
+        rps: [2_000, 4_000],
+        workingSetGb: [1, 5],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [1, 5],
+        growthGbPerDay: [0.05, 0.2],
+        p99Ms: [400, 600],
+        providerShare: [0.17, 0.23],
+      },
+      ai: {
+        rps: [4_000, 6_000],
+        workingSetGb: [3, 10],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [3, 10],
+        growthGbPerDay: [0.1, 0.4],
+        p99Ms: [350, 450],
+        providerShare: [0.17, 0.23],
+      },
+    },
+    horizonDays: 30,
+    shape: {
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: checks sessions and codes, queues every send."),
+        kv("codes", "Sessions and codes, each with its expiry."),
+        queue(
+          "sends",
+          "Codes to send: a slow or down provider only delays them.",
+        ),
+        workers(
+          "senders",
+          "Send each code through the SMS provider, retrying.",
+        ),
+        provider(
+          "sms",
+          "The SMS provider: its rate limit, its price, its outages.",
+        ),
+      ],
+      edges: [
+        e("users", "lb", "session", "request_code", "verify"),
+        e("lb", "api", "session", "request_code", "verify"),
+        e("api", "codes", "session", "request_code", "verify"),
+        e("api", "sends", "request_code"),
+        e("sends", "senders", "request_code"),
+        e("senders", "sms", "request_code"),
+      ],
+    },
+    scenarios: [
+      {
+        id: "provider_down",
+        name: "The SMS provider is down for 10 minutes",
+        weight: 2,
+        load: 1,
+        minutes: 10,
+        failure: { scope: "node", kind: "external_api" },
+        p99x: 1.5,
+        availability: 0.99,
+      },
+    ],
+    lessons: [
+      // The provider called inside the request: its outage fails every send.
+      {
+        id: "provider-inline",
+        targets: "provider_down",
+        bypass: ["sends", "senders"],
+      },
+      // No provider: codes are stored and queued, and never sent.
+      { id: "no-provider", targets: "baseline", without: "sms" },
+    ],
+    practiceSeeds: [1],
+  },
+  {
+    slug: "webhook-delivery",
+    spec: "2.0",
+    pool: "practice",
+    theme: "messaging",
+    difficulty: "medium",
+    title: "Webhook delivery",
+    requirements: [
+      served(
+        "Deliver each event to the customer's URL within 2 hours, retrying while it's down.",
+        "event",
+        ["external_api"],
+        true,
+      ),
+      served("Show customers their delivery log.", "status", [
+        "kv_store",
+        "sql_db",
+      ]),
+      {
+        text: "Lose no event while customers' endpoints are down for 30 minutes.",
+        covers: { rule: "scenario", scenario: "endpoints_down" },
+      },
+    ],
+    concepts: ["queues", "retries and backoff", "at-least-once delivery"],
+    rubric: rubric(
+      [
+        "retries",
+        "Explains retries with backoff, when to give up (a dead-letter queue), and how one slow customer doesn't hold up the rest.",
+      ],
+      [
+        "receivers",
+        "Says how payloads are signed, and why customers must handle the same event twice.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "kv_store",
+      "sql_db",
+      "queue",
+      "stream",
+      "worker",
+      "external_api",
+    ],
+    requests: [
+      {
+        type: "event",
+        kind: "write",
+        cacheable: false,
+        share: 0.8,
+        completionSeconds: 7_200,
+        requires: ["external_api"],
+      },
+      { type: "status", kind: "read", cacheable: false, share: 0.2 },
+    ],
+    providerCostPerCall: 0,
+    ranges: {
+      human: {
+        rps: [2_000, 6_000],
+        workingSetGb: [10, 40],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [200, 800],
+        growthGbPerDay: [5, 15],
+        p99Ms: [100, 200],
+        providerShare: [1.3, 1.4],
+      },
+      ai: {
+        rps: [6_000, 9_000],
+        workingSetGb: [30, 80],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [600, 1_200],
+        growthGbPerDay: [10, 25],
+        p99Ms: [80, 140],
+        providerShare: [1.3, 1.4],
+      },
+    },
+    horizonDays: 30,
+    shape: {
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: logs each event and queues its delivery."),
+        kv("log", "Every delivery attempt, for customers to read."),
+        queue(
+          "outbox",
+          "Deliveries waiting, kept a day: long enough to outlast an outage.",
+        ),
+        workers("deliverers", "POST each event, retrying with backoff."),
+        provider(
+          "endpoints",
+          "Customers' URLs: slow, rate-limited, sometimes down.",
+        ),
+      ],
+      edges: [
+        e("users", "lb", "event", "status"),
+        e("lb", "api", "event", "status"),
+        e("api", "log", "event", "status"),
+        e("api", "outbox", "event"),
+        e("outbox", "deliverers", "event"),
+        e("deliverers", "endpoints", "event"),
+        e("deliverers", "log", "event"),
+      ],
+    },
+    scenarios: [
+      {
+        id: "endpoints_down",
+        name: "Customers' endpoints are down for 30 minutes",
+        weight: 2,
+        load: 1,
+        minutes: 30,
+        failure: { scope: "node", kind: "external_api" },
+        p99x: 1.5,
+        availability: 0.99,
+      },
+    ],
+    lessons: [
+      // An hour's retention: the outage and its drain outlast it, and events are lost.
+      {
+        id: "short-retention",
+        targets: "endpoints_down",
+        node: "outbox",
+        configure: () => ({ retentionHours: 1 }),
+      },
+      // No endpoints: events are logged and queued, and never delivered.
+      { id: "no-provider", targets: "baseline", without: "endpoints" },
+    ],
+    practiceSeeds: [1],
+  },
+  {
+    slug: "image-resizer",
+    spec: "2.0",
+    pool: "practice",
+    theme: "storage",
+    difficulty: "easy",
+    title: "Image resizing service",
+    requirements: [
+      served(
+        "Serve an image at the size a page asks for, fast.",
+        "image",
+        ["cdn", "object_storage"],
+        true,
+      ),
+      served(
+        "Take an uploaded original; its common sizes ready within 5 minutes.",
+        "original",
+        ["object_storage"],
+        true,
+      ),
+    ],
+    concepts: ["CDN", "object storage", "precomputed and on-the-fly work"],
+    rubric: rubric(
+      [
+        "renditions",
+        "Weighs resizing on the fly against sizes made at upload, and says which sizes are allowed.",
+      ],
+      [
+        "invalidate",
+        "Explains how a replaced original's old sizes leave the CDN and storage.",
+      ],
+    ),
+    allowedComponents: [
+      "cdn",
+      "load_balancer",
+      "app_service",
+      "cache",
+      "object_storage",
+      "queue",
+      "worker",
+    ],
+    requests: [
+      {
+        type: "image",
+        kind: "read",
+        cacheable: true,
+        share: 0.95,
+        work: 10,
+      },
+      {
+        type: "original",
+        kind: "write",
+        cacheable: false,
+        share: 0.05,
+        work: 20,
+        payloadKb: 2_000,
+        completionSeconds: 300,
+        requires: ["worker"],
+      },
+    ],
+    ranges: {
+      human: {
+        rps: [600, 1_500],
+        workingSetGb: [20, 80],
+        hotKeySkew: [0.6, 0.9],
+        storedGb: [500, 2_000],
+        growthGbPerDay: [10, 30],
+        p99Ms: [250, 400],
+      },
+      ai: {
+        rps: [1_500, 2_200],
+        workingSetGb: [40, 120],
+        hotKeySkew: [0.5, 0.8],
+        storedGb: [1_000, 3_000],
+        growthGbPerDay: [20, 50],
+        p99Ms: [200, 300],
+      },
+    },
+    horizonDays: 180,
+    shape: {
+      nodes: [
+        users,
+        cdn("edge", 1_200, "Each size, once made, served from the edge."),
+        lb,
+        app("api", "Stateless: takes uploads, asks for a size on a miss."),
+        workers("resizers", "Make a size from its original, once."),
+        objects("files", "Originals and every size made."),
+        queue("renditions", "Common sizes to make for each new original."),
+      ],
+      edges: [
+        e("users", "edge", "image"),
+        e("edge", "lb", "image"),
+        e("users", "lb", "original"),
+        e("lb", "api", "image", "original"),
+        e("api", "resizers", "image"),
+        e("resizers", "files", "image", "original"),
+        e("api", "files", "original"),
+        e("api", "renditions", "original"),
+        e("renditions", "resizers", "original"),
+      ],
+    },
+    lessons: [
+      // Every request resized again: the spike lands on the resizers.
+      { id: "no-cdn", targets: "peak", bypass: ["edge"] },
+      // No queue to the resizers: originals are stored and their sizes never made.
+      { id: "no-renditions", targets: "baseline", without: "renditions" },
+    ],
+    practiceSeeds: [1],
+  },
+  {
+    slug: "file-sync",
+    spec: "2.0",
+    pool: "battle",
+    theme: "storage",
+    difficulty: "medium",
+    title: "File sync across devices",
+    requirements: [
+      served(
+        "Tell a device what changed since it last asked, fast.",
+        "changes",
+        ["sql_db", "cache"],
+        true,
+      ),
+      served("Upload a file's changed chunks.", "upload_chunk", [
+        "object_storage",
+      ]),
+      served("Commit a file's new version.", "commit", ["sql_db"]),
+      served("Download a file.", "download", ["cdn", "object_storage"]),
+    ],
+    concepts: ["object storage", "signed uploads", "bandwidth"],
+    rubric: rubric(
+      [
+        "chunks",
+        "Explains chunking and deduplication by content hash, and what a one-byte edit uploads.",
+      ],
+      [
+        "conflicts",
+        "Says how two devices editing the same file are reconciled (conflict copies or versions).",
+      ],
+    ),
+    allowedComponents: [
+      "cdn",
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "object_storage",
+      "queue",
+      "worker",
+    ],
+    requests: [
+      { type: "changes", kind: "read", cacheable: false, share: 0.75 },
+      { type: "download", kind: "read", cacheable: true, share: 0.14 },
+      {
+        type: "upload_chunk",
+        kind: "write",
+        cacheable: false,
+        share: 0.06,
+        payloadKb: 4_000,
+      },
+      { type: "commit", kind: "write", cacheable: false, share: 0.05 },
+    ],
+    ranges: {
+      human: {
+        rps: [3_000, 6_000],
+        workingSetGb: [20, 60],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [500, 2_000],
+        growthGbPerDay: [5, 15],
+        p99Ms: [150, 250],
+      },
+      ai: {
+        rps: [6_000, 7_500],
+        workingSetGb: [40, 100],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [1_000, 3_000],
+        growthGbPerDay: [10, 20],
+        p99Ms: [110, 170],
+      },
+    },
+    horizonDays: 365,
+    shape: {
+      nodes: [
+        users,
+        lb,
+        app("api", "Stateless: cursors and versions; never the bytes."),
+        sql("meta", "Files, versions and each device's cursor."),
+        objects(
+          "chunks",
+          "Chunks by content hash, uploaded straight from devices with signed URLs.",
+        ),
+        cdn("edge", 3_600, "Chunks downloaded from the edge."),
+      ],
+      edges: [
+        e("users", "lb", "changes", "commit"),
+        e("lb", "api", "changes", "commit"),
+        e("api", "meta", "changes", "commit"),
+        e("users", "chunks", "upload_chunk"),
+        e("users", "edge", "download"),
+        e("edge", "chunks", "download"),
+      ],
+    },
+    // Every chunk through the app service: its bandwidth runs out in the spike.
+    lessons: [
+      {
+        id: "uploads-through-app",
+        targets: "peak",
+        route: { type: "upload_chunk", path: ["users", "lb", "api", "chunks"] },
+      },
+    ],
+  },
+  {
+    slug: "video-on-demand",
+    spec: "2.0",
+    pool: "battle",
+    theme: "storage",
+    difficulty: "hard",
+    title: "Video streaming service",
+    requirements: [
+      served("Stream a video's segments, fast.", "segment", ["cdn"], true),
+      served("Load a video's manifest.", "manifest", ["cdn", "object_storage"]),
+      served(
+        "Take an upload; its renditions ready within 30 minutes.",
+        "upload",
+        ["worker"],
+        true,
+      ),
+      {
+        text: "Keep transcoding on time when uploads back up for two hours.",
+        covers: { rule: "scenario", scenario: "backlog" },
+      },
+    ],
+    concepts: ["CDN", "egress cost", "transcoding pipelines"],
+    rubric: rubric(
+      [
+        "bitrates",
+        "Explains adaptive bitrate: why several renditions, and how a player picks one.",
+      ],
+      [
+        "jobs",
+        "Says what a long transcode does when a worker dies halfway (chunked jobs, retries).",
+      ],
+      [
+        "egress",
+        "Explains why segments come from a CDN, and what it costs against the origin.",
+      ],
+    ),
+    allowedComponents: [
+      "cdn",
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "object_storage",
+      "queue",
+      "worker",
+    ],
+    requests: [
+      {
+        type: "segment",
+        kind: "read",
+        cacheable: true,
+        share: 0.96,
+        payloadKb: 500,
+      },
+      { type: "manifest", kind: "read", cacheable: true, share: 0.039 },
+      {
+        type: "upload",
+        kind: "write",
+        cacheable: false,
+        share: 0.001,
+        work: 600,
+        completionSeconds: 1_800,
+        requires: ["worker"],
+      },
+    ],
+    ranges: {
+      human: {
+        rps: [600, 1_500],
+        workingSetGb: [100, 400],
+        hotKeySkew: [0.7, 0.95],
+        storedGb: [5_000, 20_000],
+        growthGbPerDay: [200, 500],
+        p99Ms: [150, 300],
+      },
+      ai: {
+        rps: [1_500, 2_500],
+        workingSetGb: [200, 600],
+        hotKeySkew: [0.7, 0.95],
+        storedGb: [10_000, 30_000],
+        growthGbPerDay: [300, 700],
+        p99Ms: [100, 200],
+      },
+    },
+    horizonDays: 365,
+    shape: {
+      nodes: [
+        users,
+        cdn(
+          "edge",
+          3_600,
+          "Segments and manifests from the edge: cheaper bytes.",
+        ),
+        objects("media", "Sources, renditions and manifests."),
+        lb,
+        app("api", "Stateless: takes uploads and queues their transcodes."),
+        queue("jobs", "Transcodes waiting: a burst of uploads waits here."),
+        workers("transcoders", "Make each rendition, in parallel."),
+      ],
+      edges: [
+        e("users", "edge", "segment", "manifest"),
+        e("edge", "media", "segment", "manifest"),
+        e("users", "lb", "upload"),
+        e("lb", "api", "upload"),
+        e("api", "media", "upload"),
+        e("api", "jobs", "upload"),
+        e("jobs", "transcoders", "upload"),
+        e("transcoders", "media", "upload"),
+      ],
+    },
+    scenarios: [
+      {
+        id: "backlog",
+        name: "Uploads back up: three times as many for two hours",
+        weight: 2,
+        load: 1,
+        loads: { upload: 3 },
+        minutes: 120,
+        p99x: 1.5,
+        availability: 0.995,
+      },
+    ],
+    lessons: [
+      // Segments from storage: origin bytes cost about four times a CDN's.
+      { id: "no-cdn", targets: "budget", bypass: ["edge"] },
+      // Transcoders sized for the average: the backlog misses its target.
+      {
+        id: "transcoders-for-the-average",
+        targets: "backlog",
+        node: "transcoders",
+        utilization: 0.4,
+      },
+      // No queue or transcoders: uploads are stored and never transcoded.
+      {
+        id: "no-transcoding",
+        targets: "baseline",
+        without: ["jobs", "transcoders"],
+      },
+    ],
+  },
+  {
+    slug: "payment-processing",
+    spec: "2.0",
+    pool: "battle",
+    theme: "commerce",
+    difficulty: "hard",
+    title: "Payment processing",
+    requirements: [
+      served(
+        "Authorize a card payment with the card network, fast.",
+        "authorize",
+        ["external_api"],
+        true,
+      ),
+      served(
+        "Capture an authorized payment within an hour.",
+        "capture",
+        ["external_api"],
+        true,
+      ),
+      served(
+        "Show a payment's status, fast.",
+        "payment_status",
+        ["sql_db", "cache"],
+        true,
+      ),
+      {
+        text: "When the card network is down for 5 minutes, fail authorizations honestly and capture later.",
+        covers: { rule: "scenario", scenario: "network_down" },
+      },
+    ],
+    concepts: ["third-party providers", "idempotency", "queues"],
+    rubric: rubric(
+      [
+        "idempotency",
+        "Explains what happens when the network times out after charging: idempotency keys and reconciliation.",
+      ],
+      [
+        "two_step",
+        "Says why authorization and capture are separate, and which one may wait.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "sql_db",
+      "queue",
+      "worker",
+      "external_api",
+    ],
+    requests: [
+      { type: "payment_status", kind: "read", cacheable: false, share: 0.84 },
+      {
+        type: "authorize",
+        kind: "write",
+        cacheable: false,
+        share: 0.08,
+        requires: ["external_api"],
+      },
+      {
+        type: "capture",
+        kind: "write",
+        cacheable: false,
+        share: 0.08,
+        completionSeconds: 3_600,
+        requires: ["external_api"],
+      },
+    ],
+    providerCostPerCall: 0.0002,
+    ranges: {
+      human: {
+        rps: [1_000, 2_000],
+        workingSetGb: [10, 40],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [100, 500],
+        growthGbPerDay: [1, 3],
+        p99Ms: [400, 600],
+        providerShare: [0.8, 1],
+      },
+      ai: {
+        rps: [2_000, 2_400],
+        workingSetGb: [30, 80],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [300, 800],
+        growthGbPerDay: [2, 5],
+        p99Ms: [350, 450],
+        providerShare: [0.8, 1],
+      },
+    },
+    horizonDays: 365,
+    shape: {
+      nodes: [
+        users,
+        lb,
+        app(
+          "api",
+          "Stateless: authorizes in the request, queues every capture, with an idempotency key.",
+        ),
+        sql("payments", "Payments and idempotency keys, written once."),
+        provider("network", "The card network: authorizes and captures."),
+        queue("captures", "Captures waiting: an outage only delays them."),
+        workers("capturers", "Capture each payment, retrying, and record it."),
+      ],
+      edges: [
+        e("users", "lb", "payment_status", "authorize", "capture"),
+        e("lb", "api", "payment_status", "authorize", "capture"),
+        e("api", "payments", "payment_status", "authorize"),
+        e("api", "network", "authorize"),
+        e("api", "captures", "capture"),
+        e("captures", "capturers", "capture"),
+        e("capturers", "network", "capture"),
+        e("capturers", "payments", "capture"),
+      ],
+    },
+    scenarios: [
+      {
+        id: "network_down",
+        name: "The card network is down for 5 minutes",
+        weight: 2,
+        load: 1,
+        minutes: 5,
+        failure: { scope: "node", kind: "external_api" },
+        p99x: 1.5,
+        // Authorizations fail while it's down, whatever the design.
+        availability: 0.9,
+      },
+    ],
+    lessons: [
+      // Captures in the request: the outage fails them too.
+      {
+        id: "capture-inline",
+        targets: "network_down",
+        bypass: ["captures", "capturers"],
+      },
+      // No card network: payments are recorded and never authorized or captured.
+      { id: "no-provider", targets: "baseline", without: "network" },
+    ],
+  },
+  {
+    slug: "web-crawler",
+    spec: "2.0",
+    pool: "battle",
+    theme: "search",
+    difficulty: "hard",
+    title: "Web crawler",
+    requirements: [
+      served(
+        "Fetch each queued page within an hour, at the pace sites allow.",
+        "fetch",
+        ["external_api"],
+        true,
+      ),
+      served(
+        "Parse each fetched page within an hour.",
+        "parse",
+        ["worker"],
+        true,
+      ),
+      served(
+        "Check whether a URL was seen before, fast.",
+        "seen_check",
+        ["cache", "kv_store"],
+        true,
+      ),
+    ],
+    concepts: ["queues", "politeness", "deduplication"],
+    rubric: rubric(
+      [
+        "politeness",
+        "Explains politeness: per-host rate limits, robots rules, and many fetches in flight per worker.",
+      ],
+      [
+        "frontier",
+        "Says how the frontier prioritises, skips URLs already seen, and avoids crawler traps.",
+      ],
+    ),
+    allowedComponents: [
+      "load_balancer",
+      "app_service",
+      "cache",
+      "kv_store",
+      "object_storage",
+      "queue",
+      "stream",
+      "worker",
+      "external_api",
+    ],
+    requests: [
+      {
+        type: "fetch",
+        kind: "write",
+        cacheable: false,
+        share: 0.7,
+        completionSeconds: 3_600,
+        requires: ["external_api"],
+      },
+      {
+        type: "parse",
+        kind: "write",
+        cacheable: false,
+        share: 0.2,
+        work: 10,
+        completionSeconds: 3_600,
+      },
+      { type: "seen_check", kind: "read", cacheable: true, share: 0.1 },
+    ],
+    providerCostPerCall: 0,
+    ranges: {
+      human: {
+        rps: [1_000, 3_000],
+        workingSetGb: [20, 80],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [500, 2_000],
+        growthGbPerDay: [50, 150],
+        p99Ms: [60, 120],
+        providerShare: [1.4, 1.75],
+      },
+      ai: {
+        rps: [3_000, 4_000],
+        workingSetGb: [60, 150],
+        hotKeySkew: [0.3, 0.6],
+        storedGb: [1_500, 3_000],
+        growthGbPerDay: [100, 200],
+        p99Ms: [40, 80],
+        providerShare: [1.4, 1.75],
+      },
+    },
+    horizonDays: 90,
+    shape: {
+      nodes: [
+        users,
+        queue("frontier", "URLs to fetch, in order, per host."),
+        workers(
+          "fetchers",
+          "Many fetches in flight each, at each site's pace.",
+        ),
+        provider("web", "The open web: slow, rate-limited by politeness."),
+        objects("pages", "Every page fetched, and its parsed text."),
+        // Spec 2.0: a stream says how long its backlog may wait.
+        {
+          id: "parsing",
+          kind: "stream",
+          config: { partitions: 3, replication: 3, retentionHours: 24, ...z3 },
+          note: "Fetched pages to parse, in order.",
+        },
+        workers("parsers", "Extract text and links."),
+        lb,
+        app("api", "Stateless: answers whether a URL was seen."),
+        cache("recent", "URLs seen lately."),
+        kv("seen", "Every URL seen, by its hash."),
+      ],
+      edges: [
+        e("users", "frontier", "fetch"),
+        e("frontier", "fetchers", "fetch"),
+        e("fetchers", "web", "fetch"),
+        e("fetchers", "pages", "fetch"),
+        e("users", "parsing", "parse"),
+        e("parsing", "parsers", "parse"),
+        e("parsers", "pages", "parse"),
+        e("parsers", "seen", "parse"),
+        e("users", "lb", "seen_check"),
+        e("lb", "api", "seen_check"),
+        e("api", "recent", "seen_check"),
+        e("api", "seen", "seen_check"),
+      ],
+    },
+    // No web: URLs are queued and pages never fetched. Its own lessons (politeness,
+    // duplicate URLs) are the rubric's (ADR-0051).
+    lessons: [{ id: "no-provider", targets: "baseline", without: "web" }],
   },
 ];
 
@@ -1274,7 +2180,7 @@ export const CUPS: readonly {
           e("checkout", "sales", "buy"),
         ],
       },
-      lesson: { id: "no-cache", targets: "peak", without: "maps" },
+      lessons: [{ id: "no-cache", targets: "peak", without: "maps" }],
     },
     seeds: { human: 1 },
   },

@@ -3,11 +3,13 @@ import {
   firstBracketRound,
   nextBracketRound,
   type Played,
+  specInEffect,
   SWISS_ROUNDS,
   swissPairings,
   type TournamentStanding,
   tournamentStandings,
   universityScores,
+  variantSpec,
 } from "@interval/hld";
 import { advance, type HldDeps, startHldMatch } from "./hld-matches";
 import type { HldPairing, HldTournament, HldTournaments } from "./ports";
@@ -124,7 +126,8 @@ export type NextRound =
   | "finished"
   | "waiting" // the current round's matches aren't all scored
   | "too_few" // fewer than 2 checked in
-  | "busy"; // another admin started it
+  | "busy" // another admin started it
+  | "not_yet"; // the round's problem is on a spec version not yet in effect
 
 export async function nextRound(
   deps: TournamentDeps,
@@ -182,8 +185,13 @@ export async function nextRound(
   } else return finish(deps, id);
 
   // The round's problem before the claim, so a missing one can't strand the cup.
-  if (!rounds.some((r) => r.round === to))
+  const problem = rounds.find((r) => r.round === to);
+  if (problem === undefined)
     throw new Error(`hld: tournament ${id} has no round ${String(to)}`);
+  // ADR-0050 §6, Q-WD-31: a version is played only from its season boundary, and a
+  // round can be started before the cup's own start.
+  const spec = variantSpec(problem.family);
+  if (spec !== null && !specInEffect(spec, deps.now())) return "not_yet";
   const pairings: HldPairing[] = pairs.map(([a, b], slot) => ({
     round: to,
     slot,

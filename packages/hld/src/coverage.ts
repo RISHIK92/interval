@@ -1,7 +1,8 @@
 import type { Design, DesignNode } from "./design";
 import type { Cover, HldProblem } from "./problem";
 import type { SimulationResult } from "./simulate";
-import { CURRENT_SPEC, specVersion } from "./spec";
+import { COMPONENT_NAMES } from "./catalog";
+import { specVersion } from "./spec";
 
 // Q-WD-15: which of a problem's requirements a design covers, by the rules the problem
 // carries (problem.ts's Cover), from the design and its simulation alone: no model, and
@@ -36,8 +37,9 @@ const duration = (seconds: number) => {
 
 // A component as the player knows it: its kind's name and the setting that sizes it.
 function describe(node: DesignNode, design: Design): string {
-  const name = (specVersion(design.spec) ?? CURRENT_SPEC).components[node.kind]
-    .name;
+  const name =
+    specVersion(design.spec)?.components[node.kind]?.name ??
+    COMPONENT_NAMES[node.kind];
   const detail = (() => {
     switch (node.kind) {
       case "client":
@@ -56,6 +58,8 @@ function describe(node: DesignNode, design: Design): string {
         return count(node.config.regions, "region");
       case "search_index":
         return count(node.config.shards, "shard");
+      case "external_api":
+        return null;
       default:
         return count(node.config.nodes, "node");
     }
@@ -103,6 +107,15 @@ function check(
         "; ",
       );
       if (cover.fast !== true) return by;
+      // [lag]: an asynchronous type is fast when its work is done within its target.
+      const completion = problem.traffic.requests.find(
+        (r) => r.type === cover.request,
+      )?.completionSeconds;
+      // A null lag is a backlog that never drains: never done in time.
+      if (result.lagSeconds !== undefined && completion !== undefined)
+        return result.lagSeconds !== null && result.lagSeconds <= completion
+          ? `${by}; done within ${result.lagSeconds < 1 ? "a second" : duration(Math.ceil(result.lagSeconds))}`
+          : null;
       const target =
         problem.scenarios.find((s) => s.id === "baseline")?.targets.p99Ms ?? 0;
       return result.p99Ms !== null && result.p99Ms <= target

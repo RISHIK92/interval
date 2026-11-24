@@ -1,9 +1,10 @@
 import { describe, expect, test } from "vitest";
 import { CUPS, FAMILIES } from "./families";
-import { drawVariant, matchProblem } from "./match";
+import { drawVariant, matchProblem, variantSpec } from "./match";
 import {
   buildPool,
   type Family,
+  familySpec,
   matchFamilies,
   POOL_SIZE,
   poolSplit,
@@ -14,13 +15,18 @@ import {
 } from "./family";
 import { POOL } from "./pool";
 import { practiceProblems } from "./practice";
+import { removeNode } from "./edit";
 import { simulate } from "./simulate";
+import { SPEC_V2_FROM } from "./spec";
 
 // P6-W40 (HLDQ-2, HLDQ-3; Q-P6-04): the families, their variants and the pool.
 const pool = POOL;
+// A day before and the day of spec 2.0's season boundary (Q-WD-31).
+const BEFORE = new Date("2026-11-30T23:59:59Z");
+const FROM = new Date(`${SPEC_V2_FROM}T00:00:00Z`);
 
-test("there are 12 families, each with its own slug", () => {
-  expect(new Set(FAMILIES.map((f) => f.slug)).size).toBe(12);
+test("there are 19 families, each with its own slug", () => {
+  expect(new Set(FAMILIES.map((f) => f.slug)).size).toBe(19);
 });
 
 // CANVAS-3's regression check for variants: an engine or family change that breaks one
@@ -85,10 +91,12 @@ describe.each(FAMILIES)("$slug", (family) => {
 });
 
 test("practice is each practice family's practice seed, under the family's slug", () => {
-  expect(practiceProblems().map((p) => p.slug)).toEqual(
+  expect(practiceProblems(FROM).map((p) => p.slug)).toEqual(
     practiceFamilies(FAMILIES).map((f) => f.slug),
   );
-  expect(practiceProblems()[0]?.requirements.at(-1)).toMatch(/^A budget of \$/);
+  expect(practiceProblems(FROM)[0]?.requirements.at(-1)).toMatch(
+    /^A budget of \$/,
+  );
 });
 
 // ADR-0050 §1, Q-WD-31: the HLD practice pool, split from the battle pool once the
@@ -131,7 +139,7 @@ describe("the pool split", () => {
     );
   });
 
-  test("is on today: stage 0 brings the battle pool to six", () => {
+  test("is on today: stage 0 brings the battle pool to six, stage 1 to ten", () => {
     expect(poolSplit(FAMILIES)).toBe(true);
     expect(matchFamilies(FAMILIES).map((f) => f.slug)).toEqual([
       "chat",
@@ -140,6 +148,10 @@ describe("the pool split", () => {
       "rate-limiter",
       "qa-forum",
       "product-search",
+      "file-sync",
+      "video-on-demand",
+      "payment-processing",
+      "web-crawler",
     ]);
   });
 
@@ -152,14 +164,19 @@ describe("the pool split", () => {
     "search-autocomplete",
     "hotel-booking",
     "distributed-cache",
+    "otp-login",
+    "webhook-delivery",
+    "image-resizer",
   ])("%s stays a practice family, never drawn for a match", (slug) => {
     const family = FAMILIES.find((f) => f.slug === slug);
     expect(family?.pool).toBe("practice");
     let n = 0;
     const random = () => (n = (n * 9301 + 49297) % 233280) / 233280;
     for (let i = 0; i < 500; i++)
-      expect(drawVariant("human", random, new Set()).family).not.toBe(slug);
-    expect(practiceProblems().some((p) => p.slug === slug)).toBe(true);
+      expect(drawVariant("human", random, new Set(), FROM).family).not.toBe(
+        slug,
+      );
+    expect(practiceProblems(FROM).some((p) => p.slug === slug)).toBe(true);
   });
 
   test.each([
@@ -172,7 +189,7 @@ describe("the pool split", () => {
     (slug) => {
       const seed = POOL[slug]?.human[0];
       expect(seed).toBeDefined();
-      expect(matchProblem(slug, "human", seed ?? 0)?.slug).toBe(
+      expect(matchProblem(slug, "human", seed ?? 0, "1.0")?.slug).toBe(
         `${slug}-human-${String(seed)}`,
       );
     },
@@ -182,10 +199,15 @@ describe("the pool split", () => {
     const battle = new Set(
       FAMILIES.filter((f) => f.pool === "battle").map((f) => f.slug),
     );
-    expect(practiceProblems().some((p) => battle.has(p.slug))).toBe(false);
+    expect(practiceProblems(FROM).some((p) => battle.has(p.slug))).toBe(false);
     for (const battleMode of ["human", "ai"] as const)
       for (let i = 0; i < 50; i++) {
-        const { family } = drawVariant(battleMode, () => i / 50, new Set());
+        const { family } = drawVariant(
+          battleMode,
+          () => i / 50,
+          new Set(),
+          FROM,
+        );
         expect(battle.has(family)).toBe(true);
       }
   });
@@ -224,6 +246,20 @@ describe("validate", () => {
   });
 });
 
+// ADR-0051: a flaw that leaves out what does the work fails the baseline, §6.4's gate,
+// and with it every scenario; it's valid when the baseline fails.
+test("a flaw aimed at the baseline must fail the baseline", () => {
+  const family = FAMILIES.find((f) => f.slug === "otp-login");
+  if (family === undefined) throw new Error("no otp-login");
+  const v = variant(family, "human", POOL["otp-login"]?.human[0] ?? 1);
+  const flaw = v.flawed.find((f) => f.id === "no-provider");
+  if (flaw === undefined) throw new Error("no flaw");
+  expect(validate({ ...v, flawed: [flaw] })).toEqual([]);
+  expect(
+    validate({ ...v, flawed: [{ ...flaw, design: v.reference }] }),
+  ).toEqual(['no-provider should fail "baseline" but fails nothing']);
+});
+
 // P6-W44 (HLDQ-3, Q-P6-08): the cup problems are valid at their seeds, playable by
 // matchProblem, and never in the match pool or practice.
 describe.each(CUPS)("$family.slug", ({ family, seeds }) => {
@@ -232,13 +268,216 @@ describe.each(CUPS)("$family.slug", ({ family, seeds }) => {
       const seed = seeds[battleMode];
       if (seed === undefined) continue;
       expect(validate(variant(family, battleMode, seed))).toEqual([]);
-      expect(matchProblem(family.slug, battleMode, seed)?.slug).toBe(
+      expect(matchProblem(family.slug, battleMode, seed, "1.0")?.slug).toBe(
         `${family.slug}-${battleMode}-${String(seed)}`,
       );
-      expect(matchProblem(family.slug, battleMode, seed + 1)).toBeNull();
+      expect(matchProblem(family.slug, battleMode, seed + 1, "1.0")).toBeNull();
     }
     expect(POOL[family.slug]).toBeUndefined();
-    expect(practiceProblems().some((p) => p.slug === family.slug)).toBe(false);
+    expect(practiceProblems(FROM).some((p) => p.slug === family.slug)).toBe(
+      false,
+    );
     expect(FAMILIES.some((f) => f.slug === family.slug)).toBe(false);
+  });
+});
+
+// A family never changes its spec version (owner, 2026-11-24): a match records the one
+// its family is on and rebuilds only under it, so moving a family would strand every
+// match played on it. A family that needs a new version's numbers is a new family.
+test("every family keeps the spec version it was made on", () => {
+  expect(
+    Object.fromEntries(FAMILIES.map((f) => [f.slug, familySpec(f)])),
+  ).toEqual({
+    "url-shortener": "1.0",
+    "photo-sharing": "1.0",
+    "news-feed": "1.0",
+    chat: "1.0",
+    "search-autocomplete": "1.0",
+    checkout: "1.0",
+    "metrics-ingestion": "1.0",
+    "rate-limiter": "1.0",
+    "qa-forum": "1.0",
+    "hotel-booking": "1.0",
+    "product-search": "1.0",
+    "distributed-cache": "1.0",
+    "otp-login": "2.0",
+    "webhook-delivery": "2.0",
+    "image-resizer": "2.0",
+    "file-sync": "2.0",
+    "video-on-demand": "2.0",
+    "payment-processing": "2.0",
+    "web-crawler": "2.0",
+  });
+});
+
+// ADR-0050 §6, Q-WD-31: spec 2.0 and its families arrive at a monthly season boundary.
+// Families on 1.0 stay there: their seeds, results and matches never move.
+describe("spec versions and the season boundary", () => {
+  const V2 = FAMILIES.filter((f) => familySpec(f) === "2.0");
+
+  test("stage 1 is seven families on 2.0; the rest stay on 1.0, as their pool says", () => {
+    expect(V2.map((f) => f.slug)).toEqual([
+      "otp-login",
+      "webhook-delivery",
+      "image-resizer",
+      "file-sync",
+      "video-on-demand",
+      "payment-processing",
+      "web-crawler",
+    ]);
+    for (const f of FAMILIES) expect(POOL[f.slug]?.spec).toBe(familySpec(f));
+    for (const { family } of CUPS) expect(familySpec(family)).toBe("1.0");
+  });
+
+  test.each(["human", "ai"] as const)(
+    "before the boundary no %s match is drawn on a 2.0 family; from it, they are",
+    (battleMode) => {
+      const v2 = new Set(V2.map((f) => f.slug));
+      const drawn = (now: Date) =>
+        new Set(
+          Array.from(
+            { length: 200 },
+            (_, i) =>
+              drawVariant(battleMode, () => i / 200, new Set(), now).family,
+          ),
+        );
+      expect([...drawn(BEFORE)].some((f) => v2.has(f))).toBe(false);
+      expect([...drawn(FROM)].filter((f) => v2.has(f)).sort()).toEqual([
+        "file-sync",
+        "payment-processing",
+        "video-on-demand",
+        "web-crawler",
+      ]);
+    },
+  );
+
+  test("practice offers a 2.0 family only from the boundary", () => {
+    const slugs = (now: Date) => practiceProblems(now).map((p) => p.slug);
+    for (const slug of ["otp-login", "webhook-delivery", "image-resizer"]) {
+      expect(slugs(BEFORE)).not.toContain(slug);
+      expect(slugs(FROM)).toContain(slug);
+    }
+    expect(slugs(BEFORE)).toContain("url-shortener");
+    for (const p of practiceProblems(FROM)) {
+      const family = FAMILIES.find((f) => f.slug === p.slug);
+      expect(family === undefined ? null : familySpec(family)).toBe(p.spec);
+    }
+  });
+
+  test("a match records its family's spec and rebuilds under it, and no other", () => {
+    expect(variantSpec("chat")).toBe("1.0");
+    expect(variantSpec("file-sync")).toBe("2.0");
+    expect(variantSpec("cup-live-scores")).toBe("1.0");
+    expect(variantSpec("nope")).toBeNull();
+    const seed = POOL["file-sync"]?.human[0] ?? 0;
+    expect(matchProblem("file-sync", "human", seed, "2.0")?.spec).toBe("2.0");
+    expect(matchProblem("file-sync", "human", seed, "1.0")).toBeNull();
+    expect(
+      matchProblem("chat", "human", POOL["chat"]?.human[0] ?? 0, "2.0"),
+    ).toBeNull();
+  });
+
+  // HLDQ-3 for stage 1: each lesson fails its target for the reason it teaches.
+  const why: Record<string, [string, RegExp]> = {
+    "otp-login/provider-inline": [
+      "provider_down",
+      /^"request_code": .* 0\.0% served\.$/,
+    ],
+    "webhook-delivery/short-retention": [
+      "endpoints_down",
+      /the backlog outlives the retention/,
+    ],
+    "image-resizer/no-cdn": ["peak", /^resizers is overloaded/],
+    "file-sync/uploads-through-app": ["peak", /^api is overloaded/],
+    "video-on-demand/transcoders-for-the-average": [
+      "backlog",
+      /"upload" isn't done in time: the backlog drains too slowly/,
+    ],
+    "payment-processing/capture-inline": [
+      "network_down",
+      /^"capture": .* 0\.0% served\.$/,
+    ],
+    // ADR-0051's `requires`: the work never done fails the baseline, the gate.
+    "otp-login/no-provider": [
+      "baseline",
+      /^"request_code" requests never reach an external provider/,
+    ],
+    "webhook-delivery/no-provider": [
+      "baseline",
+      /^"event" requests never reach an external provider/,
+    ],
+    "payment-processing/no-provider": [
+      "baseline",
+      /^"capture" requests never reach an external provider/,
+    ],
+    "web-crawler/no-provider": [
+      "baseline",
+      /^"fetch" requests never reach an external provider/,
+    ],
+    "video-on-demand/no-transcoding": [
+      "baseline",
+      /^"upload" requests never reach a worker/,
+    ],
+    "image-resizer/no-renditions": [
+      "baseline",
+      /^"original" requests never reach a worker/,
+    ],
+  };
+  test.each(Object.entries(why))(
+    "%s fails %s for its reason",
+    (id, [target, reason]) => {
+      const [slug, lesson] = id.split("/");
+      const family = V2.find((f) => f.slug === slug);
+      if (family === undefined) throw new Error(`no ${id}`);
+      for (const battleMode of ["human", "ai"] as const) {
+        const v = variant(
+          family,
+          battleMode,
+          POOL[family.slug]?.[battleMode][0] ?? 0,
+        );
+        const flaw = v.flawed.find((f) => f.id === lesson);
+        if (flaw === undefined) throw new Error(`no flaw ${id}`);
+        const s = simulate(v.problem, flaw.design).scenarios.find(
+          (x) => x.id === target,
+        );
+        expect(s?.targetsMet).toBe(false);
+        expect(s?.explanations).toContainEqual(expect.stringMatching(reason));
+      }
+    },
+  );
+
+  // ADR-0051: dropping the provider, or the queue that hands work to the workers, never
+  // pays: the work they do is what the request type requires.
+  test.each(V2.map((f) => [f.slug, f] as const))(
+    "%s: its reference without a provider or a queue loses points",
+    (_, family) => {
+      for (const battleMode of ["human", "ai"] as const) {
+        const v = variant(
+          family,
+          battleMode,
+          POOL[family.slug]?.[battleMode][0] ?? 1,
+        );
+        const full = simulate(v.problem, v.reference).points;
+        for (const n of v.reference.nodes)
+          if (n.kind === "external_api" || n.kind === "queue")
+            expect(
+              simulate(v.problem, removeNode(v.reference, n.id)).points,
+              `${family.slug} ${battleMode} without ${n.id}`,
+            ).toBeLessThan(full);
+      }
+    },
+  );
+
+  test("video without a CDN fails on its cost alone: origin bytes cost four times a CDN's", () => {
+    const family = V2.find((f) => f.slug === "video-on-demand");
+    if (family === undefined) throw new Error("no video-on-demand");
+    const v = variant(family, "human", POOL["video-on-demand"]?.human[0] ?? 0);
+    const flaw = v.flawed.find((f) => f.id === "no-cdn");
+    if (flaw === undefined) throw new Error("no flaw");
+    const r = simulate(v.problem, flaw.design);
+    expect(r.costPerMonth).toBeGreaterThan(v.problem.budgetPerMonth);
+    expect(simulate(v.problem, v.reference).costPerMonth).toBeLessThan(
+      v.problem.budgetPerMonth,
+    );
   });
 });

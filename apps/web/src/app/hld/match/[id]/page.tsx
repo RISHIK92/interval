@@ -73,7 +73,7 @@ export default async function HldMatchPage({
           </>
         }
         problem={problem}
-        initial={parsed.success ? parsed.data : starterDesign()}
+        initial={parsed.success ? parsed.data : starterDesign(problem.spec)}
         version={latest?.version ?? 0}
         mode={{
           kind: "match",

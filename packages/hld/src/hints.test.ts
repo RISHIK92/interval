@@ -1,8 +1,19 @@
 import { describe, expect, test } from "vitest";
-import { FRAGILE, LAVISH, SHORTENER, SOUND } from "./fixtures.test-helpers";
+import {
+  CLIPS,
+  DIRECT,
+  FRAGILE,
+  LAVISH,
+  QUEUED,
+  SHORTENER,
+  SIGN_IN,
+  SOUND,
+  STUDIO,
+} from "./fixtures.test-helpers";
 import { componentNames } from "./catalog";
-import { addComponent } from "./edit";
+import { addComponent, updateNode } from "./edit";
 import { hints } from "./hints";
+import { HldProblem } from "./problem";
 import { simulate } from "./simulate";
 
 // P6-W39 (Q-P6-03): hints by rule from the preview simulation.
@@ -64,5 +75,39 @@ describe("hints", () => {
       "App service 2",
       "SQL database",
     ]);
+  });
+
+  // Spec 2.0: a provider can't be scaled, and late work is its own hint.
+  test("a provider's outage that fails requests says to queue them", () => {
+    expect(hints(SIGN_IN, simulate(SIGN_IN, DIRECT))).toContain(
+      'In "The SMS provider is down for 10 minutes", the external provider is down and requests that call it fail: hand that work to a queue, so it waits instead.',
+    );
+    // Queued, the outage is waited out: nothing to say.
+    expect(hints(SIGN_IN, simulate(SIGN_IN, QUEUED))).toEqual([]);
+  });
+
+  test("a provider at its rate limit is never told to add capacity", () => {
+    const busy = HldProblem.parse({
+      ...SIGN_IN,
+      traffic: { ...SIGN_IN.traffic, providerRps: 200 },
+    });
+    expect(hints(busy, simulate(busy, DIRECT))).toContain(
+      'The external provider hits its rate limit in "A spike": it can\'t be scaled, so queue its calls or make fewer.',
+    );
+  });
+
+  test("work that never catches up is late too", () => {
+    const starved = updateNode(STUDIO, "transcoders", {
+      config: { nodes: 20 },
+    });
+    expect(hints(CLIPS, simulate(CLIPS, starved))).toContain(
+      'In "A normal day", upload work isn\'t done in time: its backlog needs consumers with room to drain it, and a queue that keeps it long enough.',
+    );
+  });
+
+  test("work done past its target says what the backlog needs", () => {
+    expect(hints(CLIPS, simulate(CLIPS, STUDIO))).toContain(
+      'In "Two hours of three times the uploads", upload work isn\'t done in time: its backlog needs consumers with room to drain it, and a queue that keeps it long enough.',
+    );
   });
 });

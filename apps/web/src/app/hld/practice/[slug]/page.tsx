@@ -33,7 +33,7 @@ export default async function PracticeProblemPage({
   if (actor === null) redirect("/play");
   if (!(await entitlements().can(actor.userId, "play.hld"))) redirect("/play");
   const { slug } = await params;
-  const problem = practiceProblems().find((p) => p.slug === slug);
+  const problem = practiceProblems(new Date()).find((p) => p.slug === slug);
   if (problem === undefined) notFound();
   const [saved, latest] = await Promise.all([
     hldPracticeDesigns().load(actor.userId, slug),
@@ -61,7 +61,7 @@ export default async function PracticeProblemPage({
         initial={
           parsed.success && fitsProblem(parsed.data, problem).length === 0
             ? parsed.data
-            : starterDesign()
+            : starterDesign(problem.spec)
         }
         version={saved?.version ?? 0}
         mode={{

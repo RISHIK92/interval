@@ -8,7 +8,9 @@ import type {
 
 // The first practice problem (P6-W40: each family's practice seed).
 const URL_SHORTENER = (() => {
-  const p = practiceProblems().find((x) => x.slug === "url-shortener");
+  const p = practiceProblems(new Date()).find(
+    (x) => x.slug === "url-shortener",
+  );
   if (p === undefined) throw new Error("no url-shortener practice problem");
   return p;
 })();
@@ -37,34 +39,39 @@ beforeEach(() => {
 });
 
 test("a valid design saves over the version it was made from", async () => {
-  expect(await saveDesign(slug, starterDesign(), 2)).toEqual({
+  expect(await saveDesign(slug, starterDesign("1.0"), 2)).toEqual({
     ok: true,
     version: 3,
   });
-  expect(save).toHaveBeenCalledWith("u1", slug, starterDesign(), 2);
+  expect(save).toHaveBeenCalledWith("u1", slug, starterDesign("1.0"), 2);
 });
 
 test("a stale save is reported, not forced", async () => {
   save.mockResolvedValueOnce(null);
-  expect(await saveDesign(slug, starterDesign(), 1)).toEqual({
+  expect(await saveDesign(slug, starterDesign("1.0"), 1)).toEqual({
     ok: false,
     reason: "stale",
   });
 });
 
 test.each([
-  ["an unknown problem", "no-such-problem", starterDesign(), 0],
-  ["a design that doesn't parse", slug, { ...starterDesign(), nodes: [] }, 0],
-  ["a negative version", slug, starterDesign(), -1],
-  ["a version that isn't a number", slug, starterDesign(), "2"],
-  ["a version past the column's range", slug, starterDesign(), 2 ** 31],
+  ["an unknown problem", "no-such-problem", starterDesign("1.0"), 0],
+  [
+    "a design that doesn't parse",
+    slug,
+    { ...starterDesign("1.0"), nodes: [] },
+    0,
+  ],
+  ["a negative version", slug, starterDesign("1.0"), -1],
+  ["a version that isn't a number", slug, starterDesign("1.0"), "2"],
+  ["a version past the column's range", slug, starterDesign("1.0"), 2 ** 31],
   [
     "a component the problem doesn't allow",
     slug,
     {
-      ...starterDesign(),
+      ...starterDesign("1.0"),
       nodes: [
-        ...starterDesign().nodes,
+        ...starterDesign("1.0").nodes,
         {
           id: "q",
           kind: "queue",
@@ -82,12 +89,12 @@ test.each([
 
 test("without a session or the capability, nothing is saved", async () => {
   current.mockResolvedValueOnce(null);
-  expect(await saveDesign(slug, starterDesign(), 0)).toEqual({
+  expect(await saveDesign(slug, starterDesign("1.0"), 0)).toEqual({
     ok: false,
     reason: "signed-out",
   });
   can.mockResolvedValueOnce(false);
-  expect(await saveDesign(slug, starterDesign(), 0)).toEqual({
+  expect(await saveDesign(slug, starterDesign("1.0"), 0)).toEqual({
     ok: false,
     reason: "forbidden",
   });

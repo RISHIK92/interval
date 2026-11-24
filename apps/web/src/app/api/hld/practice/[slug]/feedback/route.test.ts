@@ -50,13 +50,13 @@ async function post(body: unknown, to = slug): Promise<Response> {
 }
 
 test("a design is simulated here and its request queued once", async () => {
-  const res = await post(starterDesign());
+  const res = await post(starterDesign("1.0"));
   expect(res.status).toBe(202);
   expect(await res.json()).toEqual({ id: "j1" });
   const [userId, asked, input, baselinePassed] = request.mock.calls[0] ?? [];
   expect([userId, asked, baselinePassed]).toEqual(["u1", slug, false]);
   expect(input?.rubric).toEqual(
-    practiceProblems().find((p) => p.slug === slug)?.rubric,
+    practiceProblems(new Date()).find((p) => p.slug === slug)?.rubric,
   );
   expect(enqueue).toHaveBeenCalledWith(
     "judge_hld",
@@ -64,13 +64,13 @@ test("a design is simulated here and its request queued once", async () => {
     { idempotencyKey: "hld-judge-j1" },
   );
   request.mockResolvedValueOnce({ id: "j1", created: false });
-  expect((await post(starterDesign())).status).toBe(202);
+  expect((await post(starterDesign("1.0"))).status).toBe(202);
   expect(enqueue).toHaveBeenCalledTimes(1);
 });
 
 test("a design that doesn't parse or fit the problem is refused, unasked", async () => {
   expect((await post("{nope")).status).toBe(400);
-  expect((await post({ ...starterDesign(), nodes: [] })).status).toBe(400);
+  expect((await post({ ...starterDesign("1.0"), nodes: [] })).status).toBe(400);
   const queue = {
     id: "q",
     kind: "queue",
@@ -78,25 +78,27 @@ test("a design that doesn't parse or fit the problem is refused, unasked", async
     note: "",
   };
   const banned = {
-    ...starterDesign(),
-    nodes: [...starterDesign().nodes, queue],
+    ...starterDesign("1.0"),
+    nodes: [...starterDesign("1.0").nodes, queue],
   };
   expect((await post(banned)).status).toBe(400);
-  expect((await post(starterDesign(), "no-such-problem")).status).toBe(404);
+  expect((await post(starterDesign("1.0"), "no-such-problem")).status).toBe(
+    404,
+  );
   expect(request).not.toHaveBeenCalled();
 });
 
 test("signed out, without the capability, or from elsewhere: refused", async () => {
   current.mockResolvedValueOnce(null);
-  expect((await post(starterDesign())).status).toBe(401);
+  expect((await post(starterDesign("1.0"))).status).toBe(401);
   can.mockResolvedValueOnce(false);
-  expect((await post(starterDesign())).status).toBe(403);
+  expect((await post(starterDesign("1.0"))).status).toBe(403);
   const { POST } = await import("./route");
   const res = await POST(
     new Request(`http://localhost:3100/api/hld/practice/${slug}/feedback`, {
       method: "POST",
       headers: { origin: "https://elsewhere.example" },
-      body: JSON.stringify(starterDesign()),
+      body: JSON.stringify(starterDesign("1.0")),
     }),
     { params: Promise.resolve({ slug }) },
   );
@@ -105,6 +107,6 @@ test("signed out, without the capability, or from elsewhere: refused", async () 
 
 test("a request that can't be queued is dropped, so it can be asked again", async () => {
   enqueue.mockRejectedValueOnce(new Error("queue down"));
-  await expect(post(starterDesign())).rejects.toThrow("queue down");
+  await expect(post(starterDesign("1.0"))).rejects.toThrow("queue down");
   expect(drop).toHaveBeenCalledWith("j1");
 });

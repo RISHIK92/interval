@@ -54,9 +54,14 @@ async function players(trx: Kysely<DB>, n: number): Promise<string[]> {
   return ids;
 }
 
-const variant = { family: "chat", battleMode: "human" as const, seed: 3 };
+const variant = {
+  family: "chat",
+  battleMode: "human" as const,
+  seed: 3,
+  spec: "1.0",
+};
 const submission = (at: Date) => ({
-  design: starterDesign(),
+  design: starterDesign("1.0"),
   simulationPoints: 40,
   baselinePassed: true,
   speedPoints: 7.5,
@@ -74,11 +79,13 @@ test("versions count up while the match is open and the player hasn't submitted"
       windowAt: null,
       minutes: 30,
     });
-    expect(await matches.saveVersion(id, ada, starterDesign(), 0)).toBe(1);
-    expect(await matches.saveVersion(id, ada, starterDesign(), 0)).toBeNull(); // stale
-    expect(await matches.saveVersion(id, ada, starterDesign(), 1)).toBe(2);
+    expect(await matches.saveVersion(id, ada, starterDesign("1.0"), 0)).toBe(1);
     expect(
-      await matches.saveVersion(id, "someone", starterDesign(), 0),
+      await matches.saveVersion(id, ada, starterDesign("1.0"), 0),
+    ).toBeNull(); // stale
+    expect(await matches.saveVersion(id, ada, starterDesign("1.0"), 1)).toBe(2);
+    expect(
+      await matches.saveVersion(id, "someone", starterDesign("1.0"), 0),
     ).toBeNull();
     expect((await matches.latestVersion(id, ada))?.version).toBe(2);
     expect(
@@ -90,8 +97,10 @@ test("versions count up while the match is open and the player hasn't submitted"
     expect((await matches.versions(id, 1)).map((v) => v.version)).toEqual([2]);
     expect(await matches.submit(id, ada, submission(new Date()))).toBe(true);
     expect(await matches.submit(id, ada, submission(new Date()))).toBe(false);
-    expect(await matches.saveVersion(id, ada, starterDesign(), 2)).toBeNull(); // submitted
-    expect(await matches.saveVersion(id, bob, starterDesign(), 0)).toBe(1);
+    expect(
+      await matches.saveVersion(id, ada, starterDesign("1.0"), 2),
+    ).toBeNull(); // submitted
+    expect(await matches.saveVersion(id, bob, starterDesign("1.0"), 0)).toBe(1);
     expect(await matches.unscoredFor(ada)).toEqual([id]);
   });
 });
@@ -116,7 +125,9 @@ test("closing and scoring happen once; places and totals are kept", async () => 
     ).toBe(false); // not closed yet
     expect(await matches.close(id, now)).toBe(true);
     expect(await matches.close(id, now)).toBe(false);
-    expect(await matches.saveVersion(id, bob, starterDesign(), 0)).toBeNull(); // closed
+    expect(
+      await matches.saveVersion(id, bob, starterDesign("1.0"), 0),
+    ).toBeNull(); // closed
     const standings = [
       { userId: ada, total: 80, place: 1 },
       { userId: bob, total: 62.5, place: 2 },
@@ -130,5 +141,19 @@ test("closing and scoring happen once; places and totals are kept", async () => 
     );
     expect(await matches.unscoredFor(ada)).toEqual([]);
     expect(await matches.ratingOf(ada, "human")).toBe(1500);
+  });
+});
+
+// ADR-0050 §6: the spec version a match was drawn on is kept, so it rebuilds under it.
+test("a match keeps its spec version", async () => {
+  await inRollback(async (trx) => {
+    const matches = kyselyHldMatches(trx);
+    const [ada = ""] = await players(trx, 1);
+    const id = await matches.create(
+      [ada],
+      { family: "file-sync", battleMode: "human", seed: 1, spec: "2.0" },
+      { unrated: true, windowAt: null, minutes: 30 },
+    );
+    expect((await matches.get(id))?.match.spec).toBe("2.0");
   });
 });

@@ -1,5 +1,6 @@
 import {
   addComponent,
+  POOL,
   connect,
   type Design,
   FAMILIES,
@@ -231,6 +232,49 @@ describe("an HLD match", () => {
     }
   });
 
+  // ADR-0050 §6, Q-WD-31: a match records the spec version its variant was validated
+  // under, and spec 2.0's families join at the season boundary.
+  test("records its variant's spec, and draws 2.0 families only from the boundary", async () => {
+    const specs = async (now: string) => {
+      clock.now = new Date(now);
+      const seen = new Set<string>();
+      for (let i = 0; i < 40; i++) {
+        const id = await startHldMatch(
+          { ...deps, random: () => i / 40 },
+          ["ada"],
+          "human",
+          { unrated: true, windowAt: null },
+        );
+        const match = world.rows.get(id)?.match;
+        const family = FAMILIES.find((f) => f.slug === match?.family);
+        expect(match?.spec).toBe(family?.spec ?? "1.0");
+        seen.add(match?.spec ?? "");
+      }
+      return [...seen].sort();
+    };
+    expect(await specs("2026-11-30T23:59:00Z")).toEqual(["1.0"]);
+    expect(await specs("2026-12-01T00:00:00Z")).toEqual(["1.0", "2.0"]);
+  });
+
+  test("a 2.0 match rebuilds under 2.0, and a design drawn against 1.0 doesn't fit it", async () => {
+    clock.now = new Date("2026-12-01T09:00:00Z");
+    const seed = POOL["file-sync"]?.human[0] ?? 0;
+    const id = await startHldMatch(deps, ["ada"], "human", {
+      unrated: true,
+      windowAt: null,
+      variant: { family: "file-sync", seed },
+    });
+    const match = world.rows.get(id)?.match;
+    expect(match?.spec).toBe("2.0");
+    expect(problemOf(match ?? ({} as HldMatch)).spec).toBe("2.0");
+    expect(await submitDesign(deps, id, "ada", starterDesign("1.0"))).toBe(
+      "invalid",
+    );
+    expect(await submitDesign(deps, id, "ada", starterDesign("2.0"))).toBe(
+      "submitted",
+    );
+  });
+
   test("submitted by both, judged, scored with places, and queued for rating", async () => {
     const id = await startHldMatch(deps, ["ada", "bob"], "human", {
       unrated: false,
@@ -241,7 +285,7 @@ describe("an HLD match", () => {
     expect(await submitDesign(deps, id, "ada", design)).toBe("submitted");
     expect(await submitDesign(deps, id, "ada", design)).toBe("already");
     later(5);
-    expect(await submitDesign(deps, id, "bob", starterDesign())).toBe(
+    expect(await submitDesign(deps, id, "bob", starterDesign("1.0"))).toBe(
       "submitted",
     );
     const row = world.rows.get(id);
@@ -278,7 +322,7 @@ describe("an HLD match", () => {
       windowAt: null,
     });
     const draft = connect(
-      addComponent(starterDesign(), "app_service", { x: 0, y: 0 }),
+      addComponent(starterDesign("1.0"), "app_service", { x: 0, y: 0 }),
       problemOf(world.rows.get(id)?.match ?? ({} as HldMatch)),
       "users",
       "app-service",
@@ -287,7 +331,9 @@ describe("an HLD match", () => {
     await advance(deps, id);
     expect(world.rows.get(id)?.match.closedAt).toBeNull(); // not yet
     later(31);
-    expect(await submitDesign(deps, id, "bob", starterDesign())).toBe("closed");
+    expect(await submitDesign(deps, id, "bob", starterDesign("1.0"))).toBe(
+      "closed",
+    );
     await advance(deps, id);
     const row = world.rows.get(id);
     expect(row?.match.closedAt).not.toBeNull();
@@ -317,7 +363,7 @@ describe("an HLD match", () => {
       unrated: true,
       windowAt: null,
     });
-    await submitDesign(deps, id, "ada", starterDesign());
+    await submitDesign(deps, id, "ada", starterDesign("1.0"));
     judged(0);
     await advance(deps, id);
     expect(world.rows.get(id)?.match.scoredAt).not.toBeNull();
@@ -356,14 +402,14 @@ describe("an HLD match", () => {
       unrated: false,
       windowAt: null,
     });
-    await submitDesign(deps, id, "ada", starterDesign());
+    await submitDesign(deps, id, "ada", starterDesign("1.0"));
     enqueue.mockImplementation((name) =>
       name === "rate_hld_match"
         ? Promise.reject(new Error("queue down"))
         : Promise.resolve(),
     );
     await expect(
-      submitDesign(deps, id, "bob", starterDesign()),
+      submitDesign(deps, id, "bob", starterDesign("1.0")),
     ).rejects.toThrow("queue down");
     enqueue.mockImplementation(() => Promise.resolve());
     await advance(deps, id);
@@ -413,7 +459,7 @@ describe("an HLD match", () => {
       unrated: true,
       windowAt: null,
     });
-    expect(await submitDesign(deps, id, "eve", starterDesign())).toBe(
+    expect(await submitDesign(deps, id, "eve", starterDesign("1.0"))).toBe(
       "not_player",
     );
     const queue = {
@@ -428,8 +474,8 @@ describe("an HLD match", () => {
     if (!allowed.includes("queue"))
       expect(
         await submitDesign(deps, id, "ada", {
-          ...starterDesign(),
-          nodes: [...starterDesign().nodes, queue],
+          ...starterDesign("1.0"),
+          nodes: [...starterDesign("1.0").nodes, queue],
         }),
       ).toBe("invalid");
     expect(await submitDesign(deps, id, "ada", { nodes: [] })).toBe("invalid");

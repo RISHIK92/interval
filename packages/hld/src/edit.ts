@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { CONFIG, type ComponentKind } from "./catalog";
+import { CONFIG, type ComponentKind, FIELD_FEATURES } from "./catalog";
 import { Design, DESIGN_VERSION, type DesignNode } from "./design";
 import type { HldProblem } from "./problem";
-import { CURRENT_SPEC } from "./spec";
+import { type SpecVersion, specVersion } from "./spec";
 
 // P6-W39 (CANVAS-1, CANVAS-2): what the canvas does to a design, as pure functions, so
 // the browser only wires them up. A draft may be invalid while drawn (zones above
@@ -18,15 +18,31 @@ export type ConfigField =
     };
 
 // A kind's configuration fields with their bounds and labels, read from the catalog's
-// schema so the form can't drift from what a design accepts.
-export function configFields(kind: ComponentKind): ConfigField[] {
-  return Object.entries(CONFIG[kind].shape).map(
-    ([name, schema]): ConfigField => {
-      const label = schema.description;
+// schema so the form can't drift from what a design accepts; a field a spec version's
+// feature brings only under a version with it (ADR-0050 §6).
+export function configFields(
+  kind: ComponentKind,
+  spec: SpecVersion,
+): ConfigField[] {
+  const brought = FIELD_FEATURES[kind] ?? {};
+  // The provider's empty shape types its fields as `never`: read every kind's alike.
+  return Object.entries(CONFIG[kind].shape as Record<string, z.ZodType>)
+    .filter(([name]) => {
+      const feature = brought[name];
+      return feature === undefined || spec.features[feature] !== undefined;
+    })
+    .map(([name, field]): ConfigField => {
+      const label = field.description;
       if (label === undefined)
         throw new Error(`${kind}.${name} has no label in the catalog`);
+      const schema = field instanceof z.ZodOptional ? field.unwrap() : field;
       if (schema instanceof z.ZodEnum)
-        return { name, label, type: "choice", options: schema.options };
+        return {
+          name,
+          label,
+          type: "choice",
+          options: schema.options.map(String),
+        };
       const int = schema as z.ZodNumber;
       return {
         name,
@@ -35,27 +51,28 @@ export function configFields(kind: ComponentKind): ConfigField[] {
         min: int.minValue ?? 0,
         max: int.maxValue ?? 0,
       };
-    },
-  );
+    });
 }
 
 // A new component's configuration: the smallest of everything.
 export function defaultConfig(
   kind: ComponentKind,
+  spec: SpecVersion,
 ): Record<string, number | string> {
   return Object.fromEntries(
-    configFields(kind).map((f) => [
+    configFields(kind, spec).map((f) => [
       f.name,
       f.type === "int" ? f.min : (f.options[0] ?? ""),
     ]),
   );
 }
 
-// An empty design: the problem's client, ready to be built on.
-export function starterDesign(): Design {
+// An empty design, drawn against the problem's spec version: its client, ready to be
+// built on.
+export function starterDesign(spec: string): Design {
   return {
     version: DESIGN_VERSION,
-    spec: CURRENT_SPEC.version,
+    spec,
     nodes: [
       {
         id: "users",
@@ -78,10 +95,12 @@ export function addComponent(
   const taken = new Set(design.nodes.map((n) => n.id));
   let id = base;
   for (let i = 2; taken.has(id); i++) id = `${base}-${String(i)}`;
+  const spec = specVersion(design.spec);
+  if (spec === null) throw new Error(`no spec version ${design.spec}`);
   const node = {
     id,
     kind,
-    config: defaultConfig(kind),
+    config: defaultConfig(kind, spec),
     note: "",
     position,
   } as DesignNode;
@@ -178,8 +197,9 @@ export function check(design: Design): string[] {
   });
 }
 
-// What a valid design still can't have in this problem: components it doesn't allow,
-// and routes for request types it doesn't have.
+// What a valid design still can't have in this problem: another spec version than the
+// problem's (ADR-0050 §6: a 1.0 design would dodge 2.0's costs), components it doesn't
+// allow, and routes for request types it doesn't have.
 export function fitsProblem(design: Design, problem: HldProblem): string[] {
   const allowed = new Set<ComponentKind>([
     "client",
@@ -187,6 +207,11 @@ export function fitsProblem(design: Design, problem: HldProblem): string[] {
   ]);
   const types = new Set(problem.traffic.requests.map((r) => r.type));
   return [
+    ...(design.spec === problem.spec
+      ? []
+      : [
+          `drawn against spec ${design.spec}, but this problem uses spec ${problem.spec}`,
+        ]),
     ...design.nodes
       .filter((n) => !allowed.has(n.kind))
       .map(

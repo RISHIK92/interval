@@ -2347,6 +2347,7 @@ export type HldMatch = {
   family: string;
   battleMode: BattleMode;
   seed: number;
+  spec: string; // ADR-0050 §6: the spec version its variant is played and rebuilt under
   unrated: boolean;
   windowAt: Date | null;
   startedAt: Date;
@@ -2380,7 +2381,12 @@ export type HldSubmission = {
 export interface HldMatches {
   create(
     players: string[],
-    variant: { family: string; battleMode: BattleMode; seed: number },
+    variant: {
+      family: string;
+      battleMode: BattleMode;
+      seed: number;
+      spec: string;
+    },
     options: { unrated: boolean; windowAt: Date | null; minutes: number },
   ): Promise<string>;
   get(id: string): Promise<{ match: HldMatch; seats: HldSeat[] } | null>;

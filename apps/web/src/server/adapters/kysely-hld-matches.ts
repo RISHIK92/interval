@@ -21,6 +21,7 @@ const toMatch = (r: Selectable<DB["hld_match"]>): HldMatch => ({
   family: r.family,
   battleMode: r.battle_mode as BattleMode, // the column's check allows only these
   seed: r.seed,
+  spec: r.spec,
   unrated: r.unrated,
   windowAt: r.window_at,
   startedAt: r.started_at,
@@ -41,6 +42,7 @@ export function kyselyHldMatches(db: Kysely<DB>): HldMatches {
             family: variant.family,
             battle_mode: variant.battleMode,
             seed: variant.seed,
+            spec: variant.spec,
             unrated: options.unrated,
             window_at: options.windowAt,
             deadline_at: sql<Date>`now() + make_interval(mins => ${options.minutes})`,

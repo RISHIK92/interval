@@ -1,6 +1,6 @@
 "use server";
 
-import { matchProblem } from "@interval/hld";
+import { matchProblem, specInEffect, variantSpec } from "@interval/hld";
 import { notFound, redirect } from "next/navigation";
 import { z } from "zod";
 import { hldTournaments, tournamentDeps } from "../../../server/container";
@@ -41,9 +41,17 @@ export async function createTournamentAction(form: FormData): Promise<void> {
     const [family = "", seed = ""] = r.split("/");
     return { family, seed: Number(seed) };
   });
-  // Only pooled variants of this battle mode: validated, so a round can't fail mid-cup.
-  if (picked.some((p) => matchProblem(p.family, battleMode, p.seed) === null))
-    redirect("/admin/hld-tournaments?error=invalid");
+  // Only pooled variants of this battle mode: validated, so a round can't fail mid-cup;
+  // and on a spec version in effect when the cup starts (ADR-0050 §6, Q-WD-31).
+  const playable = (p: { family: string; seed: number }) => {
+    const spec = variantSpec(p.family);
+    return (
+      spec !== null &&
+      specInEffect(spec, startsAt) &&
+      matchProblem(p.family, battleMode, p.seed, spec) !== null
+    );
+  };
+  if (!picked.every(playable)) redirect("/admin/hld-tournaments?error=invalid");
   const id = await hldTournaments().create(
     { name, battleMode, startsAt, rounds: picked },
     actor.userId,

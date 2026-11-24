@@ -32,7 +32,7 @@ export async function POST(
   const refused = await forbidden(actor, "play.hld");
   if (refused !== null) return refused;
   const { slug } = await context.params;
-  const problem = practiceProblems().find((p) => p.slug === slug);
+  const problem = practiceProblems(new Date()).find((p) => p.slug === slug);
   if (problem === undefined) return new Response(null, { status: 404 });
   const declared = Number(request.headers.get("content-length") ?? 0);
   if (declared > MAX_BYTES) return new Response(null, { status: 413 });

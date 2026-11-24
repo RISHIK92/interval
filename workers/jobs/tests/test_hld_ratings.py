@@ -14,10 +14,10 @@ def match(
     for user in places:
         a_user(conn, user)
     row = conn.execute(
-        "insert into hld_match (family, battle_mode, seed, unrated, deadline_at,"
-        " closed_at, scored_at, rubric_included)"
-        " values ('chat', 'human', 3, %s, now() + interval '30 minutes', now(), now(),"
-        " true) returning id::text",
+        "insert into hld_match (family, battle_mode, seed, spec, unrated,"
+        " deadline_at, closed_at, scored_at, rubric_included)"
+        " values ('chat', 'human', 3, '1.0', %s, now() + interval '30 minutes',"
+        " now(), now(), true) returning id::text",
         (unrated,),
     ).fetchone()
     assert row is not None

@@ -10,6 +10,7 @@ import {
   speedPoints,
   standings,
   starterDesign,
+  variantSpec,
   type HldProblem,
 } from "@interval/hld";
 import { log } from "./log";
@@ -57,11 +58,17 @@ export async function startHldMatch(
       battleMode,
       deps.random,
       await deps.matches.retired(battleMode),
+      deps.now(),
     );
-  const problem = problemOf({ ...variant, battleMode });
+  // ADR-0050 §6: the spec version the variant's seeds were validated under, which the
+  // match records and is rebuilt under for ever.
+  const spec = variantSpec(variant.family);
+  if (spec === null)
+    throw new Error(`hld: ${variant.family} has no spec version`);
+  const problem = problemOf({ ...variant, battleMode, spec });
   return deps.matches.create(
     players,
-    { ...variant, battleMode },
+    { ...variant, battleMode, spec },
     {
       unrated: options.unrated,
       windowAt: options.windowAt,
@@ -83,7 +90,7 @@ export async function groupHldWindow(
     windowAt,
     battleMode,
     deps.now(),
-    () => drawVariant(battleMode, deps.random, retired),
+    () => drawVariant(battleMode, deps.random, retired, deps.now()),
   );
   if (claimed === null) return null;
   let matched = 0;
@@ -112,13 +119,13 @@ export async function groupHldWindow(
 }
 
 export function problemOf(
-  m: Pick<HldMatch, "family" | "battleMode" | "seed">,
+  m: Pick<HldMatch, "family" | "battleMode" | "seed" | "spec">,
 ): HldProblem {
-  const problem = matchProblem(m.family, m.battleMode, m.seed);
+  const problem = matchProblem(m.family, m.battleMode, m.seed, m.spec);
   // Matches are only made from the pool, and the pool's test keeps every seed valid.
   if (problem === null)
     throw new Error(
-      `hld: ${m.family}/${m.battleMode}/${String(m.seed)} isn't in the pool`,
+      `hld: ${m.family}/${m.battleMode}/${String(m.seed)} isn't in the pool at spec ${m.spec}`,
     );
   return problem;
 }
@@ -236,7 +243,7 @@ export async function advance(deps: HldDeps, matchId: string): Promise<void> {
       const design =
         parsed.success && fitsProblem(parsed.data, problem).length === 0
           ? parsed.data
-          : starterDesign();
+          : starterDesign(problem.spec);
       await record(deps, match, seat.userId, design, true);
     }
     await deps.matches.close(matchId, now);

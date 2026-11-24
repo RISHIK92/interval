@@ -20,6 +20,12 @@ export type ComponentStats = {
   // nodes there (W37 models both by placement and failover).
   availability: number;
   costPerNodeHour: number; // USD
+  // ADR-0050 [bytes]: what one node moves a second, in megabits; under version 2.0 its
+  // utilization is the larger of requests and bytes against capacity.
+  bandwidthMbps?: number;
+  // Q-WD-31: numbers each problem sets in place of the sheet's (a provider's rate
+  // limit and price per call), in words for the sheet.
+  setByProblem?: string;
 };
 
 // The simulator's own constants: part of the versioned spec, so a change to one is a
@@ -36,19 +42,42 @@ export type EngineConstants = {
   objectStoragePerGbMonth: number; // USD, billed on what's kept
 };
 
+// ADR-0050 §6: the engine's behaviours new since 1.0, each switched on by the version a
+// design was drawn against (never by comparing version strings), with the constants
+// it alone uses. A version without one simulates exactly as 1.0 did, for ever, since
+// replays, disputes and appeals re-run old designs.
+export type Features = {
+  // [lag]: a queue or stream builds a backlog its consumers drain later, instead of
+  // failing a spike or an outage beyond it; scenarios last `minutes`.
+  lag?: { defaultScenarioMinutes: number };
+  work?: true; // [work]: a request type's work units at a worker
+  // [bytes]: payload bandwidth on the nodes that carry it, and egress billed per GB.
+  bytes?: { cdnEgressPerGb: number; originEgressPerGb: number };
+  // With the external provider: a request type its outage cuts off fails at once,
+  // costing availability, not an unbounded p99 (a card network's outage refuses
+  // payments; it doesn't hang them).
+  failFast?: true;
+  // ADR-0051: a request type names what must do its work (a provider, a worker); a path
+  // that never reaches one doesn't serve the type.
+  requires?: true;
+};
+
 export type SpecVersion = {
   version: string;
-  date: string; // ISO day it took effect
+  date: string; // ISO day it took effect: a season boundary (CANVAS-4)
   provisional: boolean;
-  components: Record<ComponentKind, ComponentStats>;
+  // The kinds this version has: a design using any other is refused.
+  components: Partial<Record<ComponentKind, ComponentStats>>;
+  features: Features;
   notes: string[]; // the patch notes: what changed from the version before
   engine: EngineConstants;
 };
 
-const V1_0: SpecVersion = {
+const V1_0 = {
   version: "1.0",
   date: "2026-11-14",
   provisional: true,
+  features: {},
   notes: [
     "The first spec sheet: 12 components with their capacity, latency, availability and cost.",
   ],
@@ -185,13 +214,76 @@ const V1_0: SpecVersion = {
       costPerNodeHour: 0.08,
     },
   },
+} satisfies SpecVersion;
+
+// Q-WD-31: an HLD season is monthly, and v2.0 takes effect at the first boundary after
+// ADR-0050 was accepted. Before it, no match or practice problem is drawn on 2.0.
+export const SPEC_V2_FROM = "2026-12-01";
+
+// ADR-0050 stage 1 (§5, PROVISIONAL like 1.0): the external provider, backlog and lag,
+// work units, and payload bandwidth with egress. Every 1.0 number is unchanged.
+const V2_0: SpecVersion = {
+  version: "2.0",
+  date: SPEC_V2_FROM,
+  provisional: true,
+  features: {
+    lag: { defaultScenarioMinutes: 15 },
+    work: true,
+    bytes: { cdnEgressPerGb: 0.02, originEgressPerGb: 0.09 },
+    failFast: true,
+    requires: true,
+  },
+  notes: [
+    "New component: the external provider, a third party (card network, SMS, customers' endpoints, the open web) at the problem's rate limit and price per call. It can't be scaled, and it can go down. Used by one-time code sign-in, webhook delivery, payment processing and the web crawler.",
+    "Queues and streams now hold a backlog: when their consumers fall behind, or the provider behind them is down, work waits and drains afterwards. It counts as served when it's done within the request's completion target and the queue's retention; streams gain a retention setting. Used by one-time code sign-in, webhook delivery, payment processing, the web crawler, image resizing and video streaming.",
+    "Work units: a job can cost a worker many times a simple one (a transcode against a counter). Used by image resizing, video streaming and the web crawler.",
+    "Bytes: requests carry a payload. App services (1,000 Mbps a node) and load balancers (10,000 Mbps) fill on bytes as well as requests, and bytes served are billed: $0.02 a GB from a CDN, $0.09 from anything else. Used by image resizing, video streaming and file sync.",
+    "A request type an outage cuts off (the provider is down) now fails at once: it counts against what's served, not as an unbounded p99.",
+    "A request type says what must do its work: a code isn't sent until it reaches the SMS provider, and an upload isn't transcoded until it reaches a worker. A design that leaves that out serves none of it, however cheap.",
+    "Every version 1.0 number is unchanged, and so is every 1.0 family's result: they stay on 1.0.",
+  ],
+  engine: V1_0.engine,
+  components: {
+    ...V1_0.components,
+    load_balancer: { ...V1_0.components.load_balancer, bandwidthMbps: 10_000 },
+    app_service: { ...V1_0.components.app_service, bandwidthMbps: 1_000 },
+    external_api: {
+      name: "External provider",
+      summary:
+        "A third party the design calls but can't scale: a card network, an SMS or email provider, customers' webhook endpoints, the open web. It has a rate limit and a price per call, and it can go down.",
+      capacity: 0,
+      unit: "calls/s",
+      latencyMs: 250,
+      availability: 0.995,
+      costPerNodeHour: 0,
+      setByProblem: "each problem's rate limit and price per call",
+    },
+  },
 };
 
 // Every version ever published, oldest first; a design names the one it was drawn
 // against.
-export const SPEC_VERSIONS: readonly SpecVersion[] = [V1_0];
-export const CURRENT_SPEC = V1_0;
+export const SPEC_VERSIONS: readonly SpecVersion[] = [V1_0, V2_0];
+// The newest version, whatever is in effect today: the sheet and the canvas's names.
+export const LATEST_SPEC = V2_0;
 
 export function specVersion(version: string): SpecVersion | null {
   return SPEC_VERSIONS.find((s) => s.version === version) ?? null;
+}
+
+// A version is in effect from its season boundary on (UTC days).
+export function specInEffect(version: string, now: Date): boolean {
+  const spec = specVersion(version);
+  return spec !== null && spec.date <= now.toISOString().slice(0, 10);
+}
+
+// A kind's numbers in a version; the design was refused if the version lacks the kind.
+export function statsOf(
+  spec: SpecVersion,
+  kind: ComponentKind,
+): ComponentStats {
+  const stats = spec.components[kind];
+  if (stats === undefined)
+    throw new Error(`spec ${spec.version} has no ${kind}`);
+  return stats;
 }

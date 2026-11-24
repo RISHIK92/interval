@@ -1,3 +1,4 @@
+import { POOL } from "@interval/hld";
 import { describe, expect, test, vi } from "vitest";
 import {
   nextRound,
@@ -53,7 +54,12 @@ function world(players: string[], universities: Record<string, string>) {
   const hldMatches = {
     create: (
       users: string[],
-      v: { family: string; battleMode: "human" | "ai"; seed: number },
+      v: {
+        family: string;
+        battleMode: "human" | "ai";
+        seed: number;
+        spec: string;
+      },
     ) => {
       const id = `m${String(matches.size + 1)}`;
       matches.set(id, {
@@ -221,6 +227,28 @@ describe("a tournament", () => {
     w.noShows();
     const view = await viewTournament(w.deps, "t1");
     expect(view?.standings.map((s) => s.points)).toEqual([0, 0]);
+  });
+
+  // ADR-0050 §6, Q-WD-31: a round on a version not yet in effect waits for its season
+  // boundary, however early the admin presses.
+  test("a round on a spec version not yet in effect can't start before its boundary", async () => {
+    const w = world(["a", "b"], {});
+    const seed = POOL["file-sync"]?.human[0] ?? 0;
+    w.deps.tournaments.rounds = () =>
+      Promise.resolve(
+        Array.from({ length: 8 }, (_, i) => ({
+          round: i + 1,
+          family: "file-sync",
+          seed,
+        })),
+      );
+    w.deps.now = () => new Date("2026-11-30T23:59:59Z");
+    expect(await nextRound(w.deps, "t1")).toBe("not_yet");
+    expect(w.get().round).toBe(0);
+    expect(w.matches.size).toBe(0);
+    w.deps.now = () => new Date("2026-12-01T00:00:00Z");
+    expect(await nextRound(w.deps, "t1")).toBe("started");
+    expect([...w.matches.values()][0]?.match.spec).toBe("2.0");
   });
 
   test("fewer than 2 checked in can't start", async () => {

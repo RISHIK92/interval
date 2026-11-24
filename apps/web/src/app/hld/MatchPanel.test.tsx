@@ -15,7 +15,7 @@ test("the server renders the panel without a time left", () => {
       matchId="m1"
       deadline={deadline}
       submitted={false}
-      design={starterDesign()}
+      design={starterDesign("1.0")}
       ready
     />,
   );

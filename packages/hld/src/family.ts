@@ -2,9 +2,14 @@ import type { ComponentKind } from "./catalog";
 import { CONFIG } from "./catalog";
 import type { Design, DesignEdge, DesignNode } from "./design";
 import { removeNode } from "./edit";
-import { type Cover, HldProblem, type Scenario } from "./problem";
+import {
+  type Cover,
+  HldProblem,
+  type RequestType,
+  type Scenario,
+} from "./problem";
 import { simulate } from "./simulate";
-import { CURRENT_SPEC } from "./spec";
+import { type SpecVersion, specVersion } from "./spec";
 
 // P6-W40 (HLDQ-2, HLDQ-3; Q-P6-04): problem families. A family is a template: its
 // requests, the ranges its numbers are drawn from per battle mode, and the shape of a design
@@ -18,7 +23,6 @@ import { CURRENT_SPEC } from "./spec";
 
 export type BattleMode = "human" | "ai";
 type Span = readonly [number, number];
-type Config = Record<string, number | string>;
 
 // ADR-0050: what a practice list groups and labels a family by; neither changes a number.
 export const THEMES = [
@@ -34,22 +38,44 @@ export const THEMES = [
 export type Theme = (typeof THEMES)[number];
 export type Difficulty = "easy" | "medium" | "hard";
 
+// ADR-0050 §4: a family's own lesson as a flawed design, where the simulator can show
+// it, and what it must fail: a scenario, or `budget` (cost counts in every scenario, so
+// a flaw that only costs too much fails all of them on cost alone). A flaw that leaves
+// out what does a request type's work (ADR-0051) targets `baseline`, §6.4's gate, and
+// fails every scenario with it. The reference:
+// - `without` a node, or several (a queue and the workers it feeds);
+// - with a node configured the naive way (`configure`, from the reference's config);
+// - with a node cut to run at `utilization` on a normal day (sized for the average);
+// - `bypass`ing nodes: each removed, its senders sent straight to its targets for the
+//   same routes (the synchronous version of an asynchronous design);
+// - sending one request type along `route` (node ids) in place of its own edges.
+type Config = Record<string, number | string>;
+export type Lesson = { id: string; targets: string } & (
+  | { without: string | string[] }
+  | { node: string; configure: (config: Config) => Config }
+  | { node: string; utilization: number }
+  | { bypass: string[] }
+  | { route: { type: string; path: string[] } }
+);
+
 // What a variant is made from: a family's, or a cup's (cups are in neither pool).
 export type FamilyTemplate = {
   slug: string;
   title: string;
+  // ADR-0050 §6: the spec version its variants are validated and played under (1.0
+  // when absent); a family on a newer version is drawn only once it's in effect.
+  spec?: "2.0";
   // Each with the rule that says what in a design covers it (Q-WD-15).
   requirements: { text: string; covers: Cover }[];
   concepts: string[];
   rubric: HldProblem["rubric"];
   allowedComponents: ComponentKind[];
-  // Each request type's share of the traffic.
-  requests: {
-    type: string;
-    kind: "read" | "write";
-    cacheable: boolean;
-    share: number;
-  }[];
+  // Each request type's share of the traffic, with its spec 2.0 fields (work units,
+  // payload, completion target) when it has them.
+  requests: (Omit<RequestType, "rps"> & { share: number })[];
+  // Q-WD-31: the external provider's price per call, when the family has one; its
+  // rate limit is drawn per battle mode (`providerShare`).
+  providerCostPerCall?: number;
   ranges: Record<
     BattleMode,
     {
@@ -59,6 +85,8 @@ export type FamilyTemplate = {
       storedGb: Span;
       growthGbPerDay: Span;
       p99Ms: Span; // the baseline's target
+      // The provider's rate limit, as a multiple of all request types together.
+      providerShare?: Span;
     }
   >;
   horizonDays: number;
@@ -71,15 +99,9 @@ export type FamilyTemplate = {
     p99x: number;
     availability: number;
   })[];
-  // The family's own lesson as a flaw, where the simulator can show it: the reference
-  // without what the lesson is about (`without`), or with one node configured the
-  // naive way (`configure`, from the reference's own config: ADR-0050 §4), and the
-  // one scenario that must then fail. Where it can't (an asynchronous write path costs
-  // nothing the simulator measures), the rubric carries the lesson instead.
-  lesson?: { id: string; targets: string } & (
-    | { without: string }
-    | { node: string; configure: (config: Config) => Config }
-  );
+  // The family's own lessons as flaws, where the simulator can show them. Where it
+  // can't, the rubric carries the lesson instead.
+  lessons?: Lesson[];
 };
 
 // ADR-0048's pattern for HLD (ADR-0050 §1): a practice family is never drawn for a
@@ -179,6 +201,14 @@ function scenarios(
 }
 
 // The problem a seed makes, before its budget is known (the sizer finds the cost).
+export const familySpec = (family: FamilyTemplate) => family.spec ?? "1.0";
+const specOf = (family: FamilyTemplate): SpecVersion => {
+  const spec = specVersion(familySpec(family));
+  if (spec === null)
+    throw new Error(`${family.slug}: no spec ${familySpec(family)}`);
+  return spec;
+};
+
 function draft(
   family: FamilyTemplate,
   battleMode: BattleMode,
@@ -200,16 +230,25 @@ function draft(
     horizonDays: family.horizonDays,
   };
   const p99Ms = draw(next, r.p99Ms, 5);
+  // Drawn last, so a 1.0 family's numbers are what they always were.
+  const provider =
+    r.providerShare === undefined || family.providerCostPerCall === undefined
+      ? null
+      : {
+          providerRps: Math.round(rps * draw(next, r.providerShare, 0.05)),
+          providerCostPerCall: family.providerCostPerCall,
+        };
   const needed =
     traffic.storedGb + traffic.growthGbPerDay * traffic.horizonDays;
   return HldProblem.parse({
     slug: `${family.slug}-${battleMode}-${String(seed)}`,
     title: family.title,
     battleMode,
+    spec: familySpec(family),
     timeLimitMinutes: 30,
     requirements: [
       ...family.requirements.map((r) => r.text),
-      `About ${traffic.requests.map((t) => `${fmt(t.rps)} ${t.type.replaceAll("_", " ")}`).join(", ")} requests a second on a normal day.`,
+      `About ${traffic.requests.map((t) => `${fmt(t.rps)} ${t.type.replaceAll("_", " ")}`).join(", ")} requests a second on a normal day.${provider === null ? "" : ` The external provider takes at most ${fmt(provider.providerRps)} calls a second, at $${String(provider.providerCostPerCall)} a call.`}`,
       `${fmt(traffic.storedGb)} GB kept today, growing ${String(traffic.growthGbPerDay)} GB a day: ${fmt(needed)} GB within ${String(traffic.horizonDays)} days.`,
       `A budget of $${fmt(budget)} a month.`,
     ],
@@ -219,7 +258,7 @@ function draft(
       { rule: "storage" },
       { rule: "budget" },
     ],
-    traffic,
+    traffic: { ...traffic, ...provider },
     budgetPerMonth: budget,
     scenarios: scenarios(battleMode, p99Ms, family.scenarios),
     allowedComponents: family.allowedComponents,
@@ -282,11 +321,27 @@ function scaleCounts(
 
 // The reference's compute cut to run at `utilization` in one scenario: enough for every
 // gentler one, too little for that one.
+// A worker whose every request type waits in a queue for it ([lag], spec 2.0) absorbs
+// a spike as a backlog: cutting it is the lag lessons' flaw, not the spike's.
+const lagConsumer = (design: Design, problem: HldProblem, id: string) => {
+  const types = new Set(
+    design.edges.filter((e) => e.to === id).flatMap((e) => e.routes),
+  );
+  return (
+    specVersion(design.spec)?.features.lag !== undefined &&
+    types.size > 0 &&
+    problem.traffic.requests.every(
+      (r) => !types.has(r.type) || r.completionSeconds !== undefined,
+    )
+  );
+};
+
 function sizedFor(
   reference: Design,
   problem: HldProblem,
   scenario: string,
   utilization: number,
+  only?: string,
 ): Design {
   const nodes = simulate(problem, reference).scenarios.find(
     (s) => s.id === scenario,
@@ -296,7 +351,15 @@ function sizedFor(
     nodes: reference.nodes.map((n) => {
       const field = COUNT[n.kind];
       const used = nodes?.find((x) => x.id === n.id)?.utilization ?? 0;
-      if (field === undefined || !COMPUTE.has(n.kind) || used === 0) return n;
+      if (
+        field === undefined ||
+        used === 0 ||
+        (only === undefined
+          ? !COMPUTE.has(n.kind) ||
+            (n.kind === "worker" && lagConsumer(reference, problem, n.id))
+          : n.id !== only)
+      )
+        return n;
       const count = Number(configOf(n)[field]);
       const floor = Number(configOf(n)["zones"] ?? 1);
       const cut = Math.max(floor, Math.floor((count * used) / utilization));
@@ -312,12 +375,13 @@ const HEADROOM = 0.6;
 // battle mode, a standby in another zone, storage for the horizon with room to spare; then
 // simulated, and whatever runs above HEADROOM grown, until nothing does.
 function size(family: FamilyTemplate, problem: HldProblem): Design {
+  const spec = specOf(family);
   const t = problem.traffic;
   const needed = t.storedGb + t.growthGbPerDay * t.horizonDays;
   const regions = problem.battleMode === "ai" ? 2 : 1;
   let design: Design = {
     version: 1,
-    spec: CURRENT_SPEC.version,
+    spec: spec.version,
     nodes: family.shape.nodes.map((n) => {
       const c = configOf(n);
       const change: Config = {};
@@ -341,7 +405,7 @@ function size(family: FamilyTemplate, problem: HldProblem): Design {
         change["replication"] = 3;
         change["nodes"] = Math.max(
           3,
-          Math.ceil((needed * 2) / CURRENT_SPEC.engine.kvStorageGbPerNode),
+          Math.ceil((needed * 2) / spec.engine.kvStorageGbPerNode),
         );
       }
       return withConfig(n, change);
@@ -403,27 +467,12 @@ function flaws(
   reference: Design,
   problem: HldProblem,
 ): { id: string; targets: string; design: Design }[] {
-  const lesson = family.lesson;
   const list = [
-    ...(lesson === undefined
-      ? []
-      : [
-          {
-            id: lesson.id,
-            targets: lesson.targets,
-            design:
-              "without" in lesson
-                ? removeNode(reference, lesson.without)
-                : {
-                    ...reference,
-                    nodes: reference.nodes.map((n) =>
-                      n.id === lesson.node
-                        ? withConfig(n, lesson.configure(configOf(n)))
-                        : n,
-                    ),
-                  },
-          },
-        ]),
+    ...(family.lessons ?? []).map((lesson) => ({
+      id: lesson.id,
+      targets: lesson.targets,
+      design: flawed(reference, problem, lesson),
+    })),
     // With a second active region, one zone's loss is survivable in any case, so the
     // AI mode's zone flaw is the one-region design below.
     ...(problem.battleMode === "ai"
@@ -444,11 +493,11 @@ function flaws(
             },
           },
         ]),
-    {
-      id: "no-spike-headroom",
-      targets: "peak",
-      design: sizedFor(reference, problem, "peak", 1.15),
-    },
+    // Where nothing in the spike's path can be cut (it all waits in a queue, or sits at
+    // its smallest), there's no such flaw to make.
+    ...[sizedFor(reference, problem, "peak", 1.15)]
+      .filter((cut) => JSON.stringify(cut) !== JSON.stringify(reference))
+      .map((design) => ({ id: "no-spike-headroom", targets: "peak", design })),
   ];
   if (problem.battleMode === "ai")
     list.push({
@@ -467,6 +516,82 @@ function flaws(
       ),
     });
   return list;
+}
+
+function flawed(
+  reference: Design,
+  problem: HldProblem,
+  lesson: Lesson,
+): Design {
+  if ("without" in lesson)
+    return [lesson.without].flat().reduce(removeNode, reference);
+  if ("configure" in lesson)
+    return {
+      ...reference,
+      nodes: reference.nodes.map((n) =>
+        n.id === lesson.node ? withConfig(n, lesson.configure(configOf(n))) : n,
+      ),
+    };
+  if ("utilization" in lesson)
+    return sizedFor(
+      reference,
+      problem,
+      "baseline",
+      lesson.utilization,
+      lesson.node,
+    );
+  if ("bypass" in lesson) return lesson.bypass.reduce(bypass, reference);
+  const { type, path } = lesson.route;
+  const on = new Set(
+    path.slice(0, -1).map((from, i) => `${from}>${path[i + 1] ?? ""}`),
+  );
+  // The type leaves the edges it had from the path's first node on, then follows the
+  // path; edges left carrying nothing go.
+  const after = new Set<string>();
+  const todo = [path[0] ?? ""];
+  for (let id = todo.pop(); id !== undefined; id = todo.pop())
+    for (const e of reference.edges)
+      if (e.from === id && e.routes.includes(type) && !after.has(e.to)) {
+        after.add(e.to);
+        todo.push(e.to);
+      }
+  const edges = reference.edges
+    .map((e) =>
+      (e.from === path[0] || after.has(e.from)) && !on.has(`${e.from}>${e.to}`)
+        ? { ...e, routes: e.routes.filter((r) => r !== type) }
+        : e,
+    )
+    .filter((e) => e.routes.length > 0);
+  for (const pair of on) {
+    const [from = "", to = ""] = pair.split(">");
+    const at = edges.findIndex((e) => e.from === from && e.to === to);
+    const found = edges[at];
+    if (found === undefined) edges.push({ from, to, routes: [type] });
+    else if (!found.routes.includes(type))
+      edges[at] = { ...found, routes: [...found.routes, type] };
+  }
+  return { ...reference, edges };
+}
+
+// A node taken out, its senders sent straight to its targets for the routes both
+// carried.
+function bypass(design: Design, id: string): Design {
+  const into = design.edges.filter((e) => e.to === id);
+  const from = design.edges.filter((e) => e.from === id);
+  const edges = removeNode(design, id).edges.map((e) => ({ ...e }));
+  for (const a of into)
+    for (const b of from) {
+      const routes = a.routes.filter((r) => b.routes.includes(r));
+      if (routes.length === 0 || a.from === b.to) continue;
+      const found = edges.find((e) => e.from === a.from && e.to === b.to);
+      if (found === undefined) edges.push({ from: a.from, to: b.to, routes });
+      else
+        found.routes = [
+          ...found.routes,
+          ...routes.filter((r) => !found.routes.includes(r)),
+        ];
+    }
+  return { ...design, nodes: design.nodes.filter((n) => n.id !== id), edges };
 }
 
 type Variant = {
@@ -500,7 +625,26 @@ export function validate(v: Variant): string[] {
     if (!s.targetsMet) problems.push(`the reference design misses "${s.id}"`);
   for (const f of v.flawed) {
     const r = simulate(v.problem, f.design);
+    if (f.targets === "budget") {
+      // Over budget, and nothing else: with the budget lifted it meets every target.
+      const lifted = simulate(
+        { ...v.problem, budgetPerMonth: Infinity },
+        f.design,
+      ).scenarios.filter((s) => !s.targetsMet);
+      if (r.costPerMonth <= v.problem.budgetPerMonth || lifted.length > 0)
+        problems.push(
+          `${f.id} should fail only on its cost but ${r.costPerMonth <= v.problem.budgetPerMonth ? "is within budget" : `fails ${lifted.map((x) => `"${x.id}"`).join(", ")}`}`,
+        );
+      continue;
+    }
     const failed = r.scenarios.filter((s) => !s.targetsMet).map((s) => s.id);
+    if (f.targets === "baseline") {
+      if (!failed.includes("baseline"))
+        problems.push(
+          `${f.id} should fail "baseline" but fails ${failed.length === 0 ? "nothing" : failed.map((x) => `"${x}"`).join(", ")}`,
+        );
+      continue;
+    }
     if (failed.length !== 1 || failed[0] !== f.targets)
       problems.push(
         `${f.id} should fail only "${f.targets}" but fails ${failed.length === 0 ? "nothing" : failed.map((x) => `"${x}"`).join(", ")}`,
@@ -509,7 +653,12 @@ export function validate(v: Variant): string[] {
   return problems;
 }
 
-export type Pool = Record<string, Record<BattleMode, number[]>>;
+// ADR-0050 §6: each family's seeds with the spec version they were validated under; a
+// match drawn from them records it and rebuilds its problem under it.
+export type Pool = Record<
+  string,
+  { spec: string } & Record<BattleMode, number[]>
+>;
 export const POOL_SIZE = 12;
 
 // The first `count` valid seeds of a family in a battle mode, skipping its practice
@@ -537,6 +686,7 @@ export function buildPool(families: readonly Family[]): Pool {
   const pool: Pool = {};
   for (const f of families)
     pool[f.slug] = {
+      spec: familySpec(f),
       human: validSeeds(f, "human", POOL_SIZE),
       ai: validSeeds(f, "ai", POOL_SIZE),
     };

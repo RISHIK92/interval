@@ -28,7 +28,7 @@ export async function saveDesign(
   if (actor === null) return { ok: false, reason: "signed-out" };
   if (!(await entitlements().can(actor.userId, "play.hld")))
     return { ok: false, reason: "forbidden" };
-  const problem = practiceProblems().find((p) => p.slug === slug);
+  const problem = practiceProblems(new Date()).find((p) => p.slug === slug);
   const version = z.int().min(0).max(2_147_483_647).safeParse(base); // the column's int4
   const parsed = Design.safeParse(design);
   if (

@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { z } from "zod";
 import {
   addComponent,
   check,
@@ -12,19 +13,22 @@ import {
 } from "./edit";
 import { COMPONENT_KINDS, CONFIG } from "./catalog";
 import { SHORTENER as URL_SHORTENER } from "./fixtures.test-helpers";
+import { LATEST_SPEC, type SpecVersion, specVersion } from "./spec";
+
+const V1 = specVersion("1.0") as SpecVersion;
 
 // P6-W39 (CANVAS-1, CANVAS-2): the canvas's edits on a design.
 const at = { x: 10, y: 20 };
 
 describe("building a design", () => {
   test("the starter is a valid design with only the client", () => {
-    const d = starterDesign();
+    const d = starterDesign("1.0");
     expect(check(d)).toEqual([]);
     expect(d.nodes.map((n) => n.kind)).toEqual(["client"]);
   });
 
   test("a new component gets a free id and the smallest valid config", () => {
-    let d = addComponent(starterDesign(), "app_service", at);
+    let d = addComponent(starterDesign("1.0"), "app_service", at);
     d = addComponent(d, "app_service", at);
     expect(d.nodes.slice(1).map((n) => n.id)).toEqual([
       "app-service",
@@ -42,7 +46,7 @@ describe("building a design", () => {
   });
 
   test("config fields carry the catalog's bounds", () => {
-    expect(configFields("sql_db")).toEqual([
+    expect(configFields("sql_db", V1)).toEqual([
       {
         name: "readReplicas",
         label: "Read replicas",
@@ -65,11 +69,11 @@ describe("building a design", () => {
       },
       { name: "regions", label: "Regions", type: "int", min: 1, max: 2 },
     ]);
-    expect(configFields("client")).toEqual([]);
+    expect(configFields("client", V1)).toEqual([]);
   });
 
   test("a new edge carries every request type; narrowing to none removes it", () => {
-    let d = addComponent(starterDesign(), "load_balancer", at);
+    let d = addComponent(starterDesign("1.0"), "load_balancer", at);
     d = connect(d, URL_SHORTENER, "users", "load-balancer");
     expect(d.edges).toEqual([
       { from: "users", to: "load-balancer", routes: ["read", "write"] },
@@ -81,7 +85,7 @@ describe("building a design", () => {
   });
 
   test("removing a component takes its edges; the client stays", () => {
-    let d = addComponent(starterDesign(), "cache", at);
+    let d = addComponent(starterDesign("1.0"), "cache", at);
     d = connect(d, URL_SHORTENER, "users", "cache");
     d = removeNode(d, "cache");
     expect(d.nodes).toHaveLength(1);
@@ -90,7 +94,7 @@ describe("building a design", () => {
   });
 
   test("an invalid draft says where and why", () => {
-    let d = addComponent(starterDesign(), "app_service", at);
+    let d = addComponent(starterDesign("1.0"), "app_service", at);
     d = updateNode(d, "app-service", {
       config: { zones: 2 },
       note: "two zones",
@@ -108,33 +112,69 @@ describe("building a design", () => {
 
 test("every catalog field has a label for the form", () => {
   for (const kind of COMPONENT_KINDS)
-    for (const f of configFields(kind)) expect(f.label).not.toBe("");
+    for (const f of configFields(kind, LATEST_SPEC))
+      expect(f.label).not.toBe("");
 });
 
 test("every catalog field is an int or a choice, so the form shows real bounds", () => {
   for (const kind of COMPONENT_KINDS)
-    for (const [name, schema] of Object.entries(CONFIG[kind].shape)) {
-      const field = configFields(kind).find((f) => f.name === name);
-      if (schema.type === "enum") expect(field?.type).toBe("choice");
+    for (const [name, field_] of Object.entries(
+      CONFIG[kind].shape as Record<string, z.ZodType>,
+    )) {
+      // An optional field (a setting newer than its kind) has the same bounds.
+      const schema = field_ instanceof z.ZodOptional ? field_.unwrap() : field_;
+      const field = configFields(kind, LATEST_SPEC).find(
+        (f) => f.name === name,
+      );
+      if (schema instanceof z.ZodEnum) expect(field?.type).toBe("choice");
       else {
-        expect(schema.type).toBe("number");
-        expect(
-          Number.isInteger((schema as { minValue: number }).minValue),
-        ).toBe(true);
-        expect(
-          Number.isInteger((schema as { maxValue: number }).maxValue),
-        ).toBe(true);
+        expect(schema).toBeInstanceOf(z.ZodNumber);
+        const int = schema as z.ZodNumber;
+        expect(Number.isInteger(int.minValue)).toBe(true);
+        expect(Number.isInteger(int.maxValue)).toBe(true);
       }
     }
 });
 
 test("a design for this problem uses only its components and request types", () => {
-  let d = addComponent(starterDesign(), "queue", at);
+  let d = addComponent(starterDesign("1.0"), "queue", at);
   d = connect(d, URL_SHORTENER, "users", "queue");
   d = setRoutes(d, "users", "queue", ["read", "upload"]);
   expect(fitsProblem(d, URL_SHORTENER)).toEqual([
     "queue: this problem doesn't allow a queue",
     "users → queue: \"upload\" isn't one of this problem's requests",
   ]);
-  expect(fitsProblem(starterDesign(), URL_SHORTENER)).toEqual([]);
+  expect(fitsProblem(starterDesign("1.0"), URL_SHORTENER)).toEqual([]);
+});
+
+// ADR-0050 §6: a design is drawn against one spec version, and gets only what it has.
+describe("spec versions on the canvas", () => {
+  test("a stream's retention is offered from 2.0 on, never to a 1.0 design", () => {
+    const names = (spec: SpecVersion) =>
+      configFields("stream", spec).map((f) => f.name);
+    expect(names(V1)).not.toContain("retentionHours");
+    expect(names(LATEST_SPEC)).toContain("retentionHours");
+    expect(
+      addComponent(starterDesign("1.0"), "stream", at).nodes[1]?.config,
+    ).toEqual({ partitions: 1, replication: 1, zones: 1, regions: 1 });
+    expect(
+      addComponent(starterDesign("2.0"), "stream", at).nodes[1]?.config,
+    ).toMatchObject({ retentionHours: 1 });
+  });
+
+  test("an external provider is a 2.0 kind: a 1.0 design with one is refused", () => {
+    expect(
+      check(addComponent(starterDesign("2.0"), "external_api", at)),
+    ).toEqual([]);
+    expect(
+      check(addComponent(starterDesign("1.0"), "external_api", at)),
+    ).toEqual(["external-api kind: spec 1.0 has no external api"]);
+    expect(configFields("external_api", LATEST_SPEC)).toEqual([]);
+  });
+
+  test("a design for another spec version than its problem's doesn't fit it", () => {
+    expect(fitsProblem(starterDesign("2.0"), URL_SHORTENER)).toEqual([
+      "drawn against spec 2.0, but this problem uses spec 1.0",
+    ]);
+  });
 });

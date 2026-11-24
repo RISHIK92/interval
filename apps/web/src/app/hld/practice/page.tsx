@@ -48,7 +48,7 @@ export default async function PracticePage() {
   if (actor === null) redirect("/play");
   if (!(await entitlements().can(actor.userId, "play.hld"))) redirect("/play");
   const chosen = await preferences().get(actor.userId);
-  const rows = practiceProblems().flatMap((problem) => {
+  const rows = practiceProblems(new Date()).flatMap((problem) => {
     const family = FAMILIES.find((f) => f.slug === problem.slug);
     return family === undefined
       ? []

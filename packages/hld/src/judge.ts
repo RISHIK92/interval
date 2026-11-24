@@ -6,6 +6,7 @@ import { FAMILIES } from "./families";
 import { validSeeds, variant } from "./family";
 import type { HldProblem } from "./problem";
 import { simulate, type SimulationResult } from "./simulate";
+import { specVersion } from "./spec";
 
 // P6-W41 (CANVAS-6, AI-3; Q-P6-05): what the AI judge and coach are given, built here
 // beside the simulator so practice, matches (W42) and the calibration set all send the
@@ -72,7 +73,12 @@ export function judgeInput(
       .map((n) => ({
         id: n.id,
         kind: n.kind,
-        config: n.config,
+        // A setting a design never had (a 1.0 stream's retention) isn't sent.
+        config: Object.fromEntries(
+          Object.entries(
+            n.config as Record<string, number | string | undefined>,
+          ).flatMap(([k, v]) => (v === undefined ? [] : [[k, v] as const])),
+        ),
         note: n.note,
       })),
     connections: design.edges.map((e) => ({
@@ -143,13 +149,15 @@ const allNotes = (design: Design, note: (id: string) => string): Design => ({
 });
 
 function naive(problem: HldProblem): Design {
+  const spec = specVersion(problem.spec);
+  if (spec === null) throw new Error(`no spec version ${problem.spec}`);
   const store: ComponentKind = problem.allowedComponents.includes("sql_db")
     ? "sql_db"
     : "kv_store";
   const routes = problem.traffic.requests.map((r) => r.type);
   return {
     version: 1,
-    spec: "1.0",
+    spec: spec.version,
     nodes: [
       { id: "users", kind: "client", config: {}, note: "" },
       {
@@ -161,7 +169,7 @@ function naive(problem: HldProblem): Design {
       {
         id: "db",
         kind: store,
-        config: defaultConfig(store),
+        config: defaultConfig(store, spec),
         note: "Stores everything.",
       },
     ] as Design["nodes"],
@@ -178,7 +186,7 @@ export function calibrationCandidates(): CalibrationCandidate[] {
     const seed = family.practiceSeeds?.[0] ?? validSeeds(family, "human", 1)[0];
     if (seed === undefined) throw new Error(`${family.slug} has no valid seed`);
     const v = variant(family, "human", seed);
-    const lesson = family.lesson;
+    const lesson = family.lessons?.[0];
     const flawed =
       v.flawed.find((f) =>
         lesson === undefined ? f.targets === "zone" : f.id === lesson.id,

@@ -24,6 +24,7 @@ const list = (parts: { text: string; count: number }[]) => {
 const PLURALS: Partial<Record<ComponentKind, string>> = {
   object_storage: "object stores",
   search_index: "search indexes",
+  external_api: "external providers",
 };
 const plural = (kind: ComponentKind) =>
   PLURALS[kind] ?? `${lower(COMPONENT_NAMES[kind])}s`;
@@ -74,17 +75,44 @@ export function hints(problem: HldProblem, result: SimulationResult): string[] {
         !overloaded.has(n.id)
       ) {
         overloaded.add(n.id);
+        // A third party can't be given capacity (spec 2.0): only waited for.
         add(
-          `The ${name(n)} can't keep up in "${s.name}": give it more capacity.`,
+          n.kind === "external_api"
+            ? `The ${name(n)} hits its rate limit in "${s.name}": it can't be scaled, so queue its calls or make fewer.`
+            : `The ${name(n)} can't keep up in "${s.name}": give it more capacity.`,
         );
       }
   }
+  // [lag], spec 2.0: asynchronous work done later than its target.
+  for (const s of result.scenarios)
+    for (const t of s.types) {
+      const target = problem.traffic.requests.find(
+        (r) => r.type === t.type,
+      )?.completionSeconds;
+      if (
+        target !== undefined &&
+        t.lagSeconds !== undefined &&
+        // null: its backlog never drains
+        (t.lagSeconds === null || t.lagSeconds > target)
+      )
+        add(
+          `In "${s.name}", ${lower(typeName(t.type))} work isn't done in time: its backlog needs consumers with room to drain it, and a queue that keeps it long enough.`,
+        );
+    }
   for (const s of result.scenarios) {
     const name = named(s.nodes);
+    // A provider's outage is the scenario itself: what matters is whether the design
+    // waits it out.
+    for (const n of s.nodes)
+      if (!n.up && n.kind === "external_api" && !s.targetsMet)
+        add(
+          `In "${s.name}", the ${name(n)} is down and requests that call it fail: hand that work to a queue, so it waits instead.`,
+        );
     // Grouped by kind, so a big design's outage still reads in one line.
     const down = new Map<ComponentKind, NodeResult[]>();
     for (const n of s.nodes)
-      if (!n.up) down.set(n.kind, [...(down.get(n.kind) ?? []), n]);
+      if (!n.up && n.kind !== "external_api")
+        down.set(n.kind, [...(down.get(n.kind) ?? []), n]);
     const parts = [...down].map(([kind, [first, ...more]]) => ({
       text:
         first !== undefined && more.length === 0

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Features } from "./spec";
 
 // P6-W36 (HLDQ-1, CANVAS-2, CANVAS-4; Q-P6-01): the components an HLD design is built
 // from, and what each can be configured with. Their numbers live in spec.ts, the
@@ -56,9 +57,28 @@ export const CONFIG = {
   stream: z.strictObject({
     partitions: z.int().min(1).max(512).describe("Partitions"),
     replication: z.int().min(1).max(3).describe("Copies of each event"),
+    // ADR-0050 [lag], spec 2.0: how long a backlog may wait. Absent on a stream drawn
+    // before 2.0, which never held a backlog.
+    retentionHours: z
+      .int()
+      .min(1)
+      .max(168)
+      .optional()
+      .describe("Retention (hours)"),
     ...placement,
   }),
+  // ADR-0050 §2, spec 2.0: a third party at the problem's rate limit and price; nothing
+  // about it is the player's to set.
+  external_api: z.strictObject({}),
 } as const;
+
+// ADR-0050 §6: a setting a spec version's feature brings; a design drawn against a
+// version without that feature isn't offered it.
+export const FIELD_FEATURES: Partial<
+  Record<ComponentKind, Record<string, keyof Features>>
+> = {
+  stream: { retentionHours: "lag" },
+};
 
 export type ComponentKind = keyof typeof CONFIG;
 export const COMPONENT_KINDS = Object.keys(CONFIG) as ComponentKind[];
@@ -77,6 +97,7 @@ export const COMPONENT_NAMES: Record<ComponentKind, string> = {
   search_index: "Search index",
   queue: "Queue",
   stream: "Stream",
+  external_api: "External provider",
 };
 
 // Each node's name for a player, never its id: its kind's name, numbered when the

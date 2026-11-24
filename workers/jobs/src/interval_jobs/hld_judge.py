@@ -112,6 +112,19 @@ _COACH = (
 )
 
 
+# ADR-0050 §7: one line per component kind newer than spec 1.0, so the model knows what
+# it is. Only the kinds a design uses are explained, so a 1.0 design's prompt is
+# unchanged.
+KINDS = {
+    "external_api": (
+        "external_api: a third party the design calls but can't scale or keep up (a "
+        "card network, an SMS provider, customers' webhook endpoints, the open web), "
+        "with a rate limit and a price per call; work handed to it through a queue can "
+        "wait out its outages, a call inside the request fails with it."
+    ),
+}
+
+
 def _fence(note: str) -> str:
     # Data, fenced: no tag of any spelling ("</NOTE>", "< /note>") can open or close a
     # fence, because a note keeps no angle brackets.
@@ -129,6 +142,10 @@ def describe(design: JudgeInput) -> str:
     for c in design.components:
         config = json.dumps(c.config, sort_keys=True)
         parts.append(f"- {c.id} ({c.kind}) {config}\n  <note>{_fence(c.note)}</note>")
+    kinds = sorted({c.kind for c in design.components} & KINDS.keys())
+    if kinds:
+        parts.append("Component kinds:")
+        parts.extend(f"- {KINDS[k]}" for k in kinds)
     parts.append("Connections:")
     parts.extend(
         f"- {c.from_} -> {c.to}: {', '.join(c.carries)}" for c in design.connections

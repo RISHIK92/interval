@@ -103,7 +103,7 @@ test("made with its problems retired; entered, checked in, and started round by 
     ]);
     const match = await kyselyHldMatches(trx).create(
       [ada, owner],
-      { family: "chat", battleMode: "human", seed: 3 },
+      { family: "chat", battleMode: "human", seed: 3, spec: "1.0" },
       { unrated: true, windowAt: null, minutes: 30 },
     );
     expect(await tournaments.setMatch(id, 1, 0, match)).toBe(true);

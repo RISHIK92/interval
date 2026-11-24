@@ -186,6 +186,7 @@ test("an appeal: once, within 7 days, of a judged design; the owner's levels rep
         family: "chat",
         battle_mode: "human",
         seed: 3,
+        spec: "1.0",
         deadline_at: sql<Date>`now() + interval '30 minutes'`,
       })
       .returning("id")

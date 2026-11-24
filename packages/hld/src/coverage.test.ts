@@ -1,11 +1,12 @@
 import { describe, expect, test } from "vitest";
 import { coverage } from "./coverage";
 import type { Design } from "./design";
+import { updateNode } from "./edit";
 import { CUPS, FAMILIES } from "./families";
 import { variant } from "./family";
+import { CLIPS, QUEUED, SIGN_IN, STUDIO } from "./fixtures.test-helpers";
 import { HldProblem } from "./problem";
 import { simulate } from "./simulate";
-import { CURRENT_SPEC } from "./spec";
 
 // Q-WD-15: requirement coverage by the problem's own rules.
 
@@ -45,7 +46,7 @@ test("a naive design leaves what it doesn't build uncovered", () => {
   // Redirects straight to one small database; creating a link isn't routed at all.
   const naive: Design = {
     version: 1,
-    spec: CURRENT_SPEC.version,
+    spec: "1.0",
     nodes: [
       { id: "users", kind: "client", config: {}, note: "" },
       {
@@ -83,7 +84,7 @@ test("a naive design leaves what it doesn't build uncovered", () => {
 test("an empty design covers nothing", () => {
   const empty: Design = {
     version: 1,
-    spec: CURRENT_SPEC.version,
+    spec: "1.0",
     nodes: [{ id: "users", kind: "client", config: {}, note: "" }],
     edges: [],
   };
@@ -122,4 +123,48 @@ test("deterministic: the same inputs give the same coverage", () => {
   expect(run(shortener.problem, shortener.reference)).toEqual(
     run(shortener.problem, shortener.reference),
   );
+});
+
+// ADR-0050 [lag]: "fast" on asynchronous work holds it to its completion target, not
+// the caller's p99.
+test("asynchronous work is fast when it's done within its target", () => {
+  const problem = HldProblem.parse({
+    ...SIGN_IN,
+    requirements: ["Send a code within 15 minutes."],
+    covers: [
+      {
+        rule: "request",
+        request: "send_code",
+        through: ["external_api"],
+        fast: true,
+      },
+    ],
+  });
+  expect(run(problem, QUEUED).items[0]?.by).toBe(
+    "External provider; done within a second",
+  );
+  const slow = HldProblem.parse({
+    ...problem,
+    traffic: {
+      ...problem.traffic,
+      requests: problem.traffic.requests.map((r) =>
+        r.type === "send_code" ? { ...r, completionSeconds: 0.01 } : r,
+      ),
+    },
+  });
+  expect(run(slow, QUEUED).items[0]?.covered).toBe(false);
+});
+
+// [lag]: work that never catches up (lagSeconds null) is never fast.
+test("asynchronous work whose backlog never drains isn't covered", () => {
+  const problem = HldProblem.parse({
+    ...CLIPS,
+    requirements: ["Transcode an upload within 30 minutes."],
+    covers: [
+      { rule: "request", request: "upload", through: ["worker"], fast: true },
+    ],
+  });
+  const starved = updateNode(STUDIO, "transcoders", { config: { nodes: 20 } });
+  expect(run(problem, starved).items[0]?.covered).toBe(false);
+  expect(run(problem, STUDIO).items[0]?.covered).toBe(true);
 });

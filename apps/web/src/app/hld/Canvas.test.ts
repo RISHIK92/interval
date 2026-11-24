@@ -1,5 +1,6 @@
 import {
   addComponent,
+  allPracticeProblems,
   connect,
   practiceProblems,
   type ScenarioResult,
@@ -10,7 +11,9 @@ import { expect, test } from "vitest";
 import { risksOf, scenarioLine } from "./Canvas";
 
 const SHORTENER = (() => {
-  const p = practiceProblems().find((x) => x.slug === "url-shortener");
+  const p = practiceProblems(new Date()).find(
+    (x) => x.slug === "url-shortener",
+  );
   if (p === undefined) throw new Error("no url-shortener practice problem");
   return p;
 })();
@@ -48,7 +51,7 @@ test("a scenario row says what it serves and how fast, against its target", () =
 
 // Q-WD-16: the Selected panel warns on the settings behind a hint about the component.
 test("a database with no failover that goes down is flagged on its failover", () => {
-  let d = starterDesign();
+  let d = starterDesign("1.0");
   for (const k of ["load_balancer", "app_service", "sql_db"] as const)
     d = addComponent(d, k, { x: 0, y: 0 });
   const [users, lb, app, db] = d.nodes.map((n) => n.id);
@@ -68,4 +71,31 @@ test("a database with no failover that goes down is flagged on its failover", ()
   const risk = risksOf(SHORTENER, result, node);
   expect(risk.fields.has("failover")).toBe(true);
   expect(risk.said.some((r) => r.startsWith("Goes down in"))).toBe(true);
+});
+
+// Spec 2.0: an external provider has nothing to set; its warnings say what to do instead.
+test("an external provider that's down and fails its callers says to queue the work", () => {
+  const otp = allPracticeProblems().find((x) => x.slug === "otp-login");
+  if (otp === undefined) throw new Error("no otp-login practice problem");
+  let d = starterDesign(otp.spec);
+  for (const k of ["load_balancer", "app_service", "external_api"] as const)
+    d = addComponent(d, k, { x: 0, y: 0 });
+  const [users, lb, app, sms] = d.nodes.map((n) => n.id);
+  if (
+    users === undefined ||
+    lb === undefined ||
+    app === undefined ||
+    sms === undefined
+  )
+    throw new Error("nodes missing");
+  d = connect(d, otp, users, lb);
+  d = connect(d, otp, lb, app);
+  d = connect(d, otp, app, sms);
+  const node = d.nodes.find((n) => n.id === sms);
+  if (node === undefined) throw new Error("no provider");
+  const risk = risksOf(otp, simulate(otp, d), node);
+  expect(risk.fields.size).toBe(0);
+  expect(risk.said).toContain(
+    'Down in "The SMS provider is down for 10 minutes", and what calls it fails: hand that work to a queue so it waits.',
+  );
 });

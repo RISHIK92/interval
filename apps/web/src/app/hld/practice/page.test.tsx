@@ -5,7 +5,9 @@ import type { Actor, Entitlements } from "../../../server/ports";
 
 // The first practice problem (P6-W40: each family's practice seed).
 const URL_SHORTENER = (() => {
-  const p = practiceProblems().find((x) => x.slug === "url-shortener");
+  const p = practiceProblems(new Date()).find(
+    (x) => x.slug === "url-shortener",
+  );
   if (p === undefined) throw new Error("no url-shortener practice problem");
   return p;
 })();

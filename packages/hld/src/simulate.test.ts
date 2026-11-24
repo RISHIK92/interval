@@ -2,7 +2,18 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 import { Design } from "./design";
-import { FRAGILE, LAVISH, SHORTENER, SOUND } from "./fixtures.test-helpers";
+import { removeNode, updateNode } from "./edit";
+import {
+  CLIPS,
+  DIRECT,
+  FRAGILE,
+  LAVISH,
+  QUEUED,
+  SHORTENER,
+  SIGN_IN,
+  SOUND,
+  STUDIO,
+} from "./fixtures.test-helpers";
 import { HldProblem } from "./problem";
 import {
   erlangC,
@@ -482,8 +493,19 @@ test("a spec version that doesn't exist gives an empty result, not an error", ()
 // CANVAS-3: regression-tested against golden designs. A change to the engine that moves
 // a golden result fails here; UPDATE_GOLDEN=1 rewrites them after a deliberate change
 // (and a spec version's balance patch says so in its notes).
+// The first three stay pinned to spec 1.0 for ever (ADR-0050 §6): a 1.0 design's result
+// never moves when a new version lands. The rest are spec 2.0's, one per new component
+// and behaviour.
 describe("golden designs", () => {
-  for (const [name, design] of Object.entries({ SOUND, FRAGILE, LAVISH })) {
+  const goldens = {
+    SOUND: [SHORTENER, SOUND],
+    FRAGILE: [SHORTENER, FRAGILE],
+    LAVISH: [SHORTENER, LAVISH],
+    QUEUED: [SIGN_IN, QUEUED],
+    DIRECT: [SIGN_IN, DIRECT],
+    STUDIO: [CLIPS, STUDIO],
+  } as const;
+  for (const [name, [problem, design]] of Object.entries(goldens)) {
     test(`${name} gives its recorded result`, () => {
       const file = join(
         import.meta.dirname,
@@ -491,13 +513,306 @@ describe("golden designs", () => {
         `${name.toLowerCase()}.json`,
       );
       const got = JSON.parse(
-        JSON.stringify(simulate(SHORTENER, design)),
+        JSON.stringify(simulate(problem, design)),
       ) as unknown;
       if (process.env["UPDATE_GOLDEN"] === "1")
         writeFileSync(file, `${JSON.stringify(got, null, 2)}\n`);
       expect(got).toEqual(JSON.parse(readFileSync(file, "utf8")));
     });
   }
+});
+
+// ADR-0050 stage 1: spec 2.0's component and behaviours, each on only where the
+// design's version has it and the problem sets its field.
+describe("spec 2.0", () => {
+  const scenario = (r: ReturnType<typeof simulate>, id: string) => {
+    const s = r.scenarios.find((x) => x.id === id);
+    if (s === undefined) throw new Error(`no scenario ${id}`);
+    return s;
+  };
+  const node = (r: ReturnType<typeof simulate>, id: string, at: string) =>
+    scenario(r, at).nodes.find((n) => n.id === id);
+  const type = (r: ReturnType<typeof simulate>, t: string, at: string) =>
+    scenario(r, at).types.find((x) => x.type === t);
+
+  test("a 1.0 problem simulates the same under 2.0: every behaviour is opt-in", () => {
+    const v1 = simulate(SHORTENER, SOUND);
+    const v2 = simulate(SHORTENER, { ...SOUND, spec: "2.0" });
+    expect({ ...v2, spec: "1.0" }).toEqual(v1);
+  });
+
+  test("a 2.0 problem's fields do nothing to a design drawn against 1.0", () => {
+    const asV1 = simulate(CLIPS, { ...STUDIO, spec: "1.0" });
+    // No work units, no bytes, no backlog: the transcoders see one job an upload.
+    expect(node(asV1, "transcoders", "baseline")?.loadRps).toBe(20);
+    expect(node(asV1, "api", "baseline")?.utilization).toBe(0.01);
+    expect(type(asV1, "upload", "baseline")?.lagSeconds).toBeUndefined();
+    expect(asV1.explanations).not.toContainEqual(
+      expect.stringMatching(/^Of which/),
+    );
+  });
+
+  test("the external provider is one station at the problem's rate limit, billed per call", () => {
+    const r = simulate(SIGN_IN, QUEUED);
+    expect(node(r, "sms", "baseline")).toMatchObject({
+      loadRps: 80,
+      utilization: 0.2,
+    });
+    expect(node(r, "sms", "peak")?.utilization).toBe(0.6);
+    // 80 sends a second for a month at $0.0001 each.
+    expect(r.explanations).toContain(
+      "Of which $21,024 is the provider's calls and $0 is bytes served.",
+    );
+  });
+
+  test("called inside the request, the provider's outage fails what calls it", () => {
+    const r = simulate(SIGN_IN, DIRECT);
+    expect(scenario(r, "baseline").targetsMet).toBe(true);
+    // Its 250 ms is the caller's.
+    expect(type(r, "send_code", "baseline")?.p99Ms).toBeGreaterThan(250);
+    expect(type(r, "send_code", "provider_down")?.availability).toBe(0);
+    expect(scenario(r, "provider_down").targetsMet).toBe(false);
+    // It fails at once, so the scenario's p99 is the types that are served.
+    expect(scenario(r, "provider_down").p99Ms).toBe(
+      Math.max(
+        ...scenario(r, "provider_down")
+          .types.filter((t) => t.type !== "send_code")
+          .map((t) => t.p99Ms ?? 0),
+      ),
+    );
+  });
+
+  test("queued, the outage is a backlog, drained within the target", () => {
+    const r = simulate(SIGN_IN, QUEUED);
+    expect(r.scenarios.every((s) => s.targetsMet)).toBe(true);
+    // 80 a second for 10 minutes, drained at the 320 a second the provider has spare.
+    expect(scenario(r, "provider_down").explanations).toContain(
+      'q holds 48,000 "send_code" requests at the worst and has done them 13 minutes later (target 15 minutes, retention 24 hours).',
+    );
+    // Served as on a normal day (its synchronous part's availability), only later.
+    expect(type(r, "send_code", "provider_down")).toMatchObject({
+      availability: type(r, "send_code", "baseline")?.availability,
+      lagSeconds: 750,
+    });
+    // A normal day's lag is the consumers' p99, not the caller's.
+    expect(type(r, "send_code", "baseline")?.lagSeconds).toBeLessThan(1);
+    expect(type(r, "send_code", "baseline")?.p99Ms).toBeLessThan(100);
+  });
+
+  test("past the completion target, the share of the backlog beyond it isn't served", () => {
+    const long = HldProblem.parse({
+      ...SIGN_IN,
+      scenarios: SIGN_IN.scenarios.map((s) =>
+        s.id === "provider_down" ? { ...s, minutes: 30 } : s,
+      ),
+    });
+    const r = simulate(long, QUEUED);
+    const day = type(r, "send_code", "baseline")?.availability ?? 0;
+    // 30 minutes down and 7.5 draining: 2,250 s at the worst, against 900.
+    expect(type(r, "send_code", "provider_down")?.availability).toBeCloseTo(
+      (day * 900) / 2_250,
+      6,
+    );
+    expect(scenario(r, "provider_down").explanations).toContain(
+      '60.0% of "send_code" isn\'t done in time: the backlog drains too slowly.',
+    );
+  });
+
+  test("past the queue's retention, the backlog is lost", () => {
+    const patient = HldProblem.parse({
+      ...SIGN_IN,
+      traffic: {
+        ...SIGN_IN.traffic,
+        requests: SIGN_IN.traffic.requests.map((t) =>
+          t.type === "send_code" ? { ...t, completionSeconds: 86_400 } : t,
+        ),
+      },
+      scenarios: SIGN_IN.scenarios.map((s) =>
+        s.id === "provider_down" ? { ...s, minutes: 120 } : s,
+      ),
+    });
+    const retained = (hours: number) =>
+      updateNode(QUEUED, "q", { config: { retentionHours: hours } });
+    // Two hours down, half an hour draining: 9,000 s at the worst.
+    const kept = simulate(patient, retained(24));
+    const day = type(kept, "send_code", "baseline")?.availability ?? 0;
+    expect(type(kept, "send_code", "provider_down")?.availability).toBe(day);
+    const lost = simulate(patient, retained(1));
+    expect(type(lost, "send_code", "provider_down")?.availability).toBeCloseTo(
+      (day * 3_600) / 9_000,
+      6,
+    );
+    expect(scenario(lost, "provider_down").explanations).toContain(
+      '60.0% of "send_code" isn\'t done in time: the backlog outlives the retention.',
+    );
+  });
+
+  test("a job's work units load a worker, and a burst beyond it backs up", () => {
+    const r = simulate(CLIPS, STUDIO);
+    // 20 uploads a second at 300 jobs each, on 40 nodes of 200 jobs.
+    expect(node(r, "transcoders", "baseline")).toMatchObject({
+      loadRps: 6_000,
+      utilization: 0.75,
+    });
+    // Three times the uploads for two hours: twelve hours behind at the worst.
+    expect(type(r, "upload", "uploads")?.lagSeconds).toBe(43_200);
+    expect(scenario(r, "uploads").targetsMet).toBe(false);
+    const more = simulate(
+      CLIPS,
+      updateNode(STUDIO, "transcoders", { config: { nodes: 120 } }),
+    );
+    expect(scenario(more, "uploads").targetsMet).toBe(true);
+  });
+
+  test("late work misses the target however small its share of the traffic", () => {
+    const rare = HldProblem.parse({
+      ...CLIPS,
+      traffic: {
+        ...CLIPS.traffic,
+        requests: CLIPS.traffic.requests.map((t) =>
+          t.type === "upload" ? { ...t, rps: 2 } : t,
+        ),
+      },
+    });
+    const slow = updateNode(STUDIO, "transcoders", { config: { nodes: 4 } });
+    const s = scenario(simulate(rare, slow), "uploads");
+    // One upload in a thousand: the views alone keep 99.9% served.
+    expect(s.availability).toBeGreaterThan(0.995);
+    expect(s.targetsMet).toBe(false);
+  });
+
+  test("bytes fill an app service as requests do, and the larger counts", () => {
+    // 20 uploads of 2 MB are 320 Mbps: 8% of 4 nodes' 4,000 Mbps, against 0.5% by count.
+    expect(node(simulate(CLIPS, STUDIO), "api", "baseline")?.utilization).toBe(
+      0.08,
+    );
+  });
+
+  test("egress is billed by what hands the bytes to the client", () => {
+    const viaCdn = simulate(CLIPS, STUDIO);
+    // 1 GB a second of views for a month: $0.02 a GB from the CDN, $0.09 from storage.
+    expect(viaCdn.explanations).toContain(
+      "Of which $0 is the provider's calls and $52,560 is bytes served.",
+    );
+    const direct = simulate(CLIPS, {
+      ...STUDIO,
+      nodes: STUDIO.nodes.filter((n) => n.id !== "edge"),
+      edges: [
+        ...STUDIO.edges.filter((e) => e.from !== "edge" && e.to !== "edge"),
+        { from: "users", to: "files", routes: ["view"] },
+      ],
+    });
+    expect(direct.explanations).toContain(
+      "Of which $0 is the provider's calls and $236,520 is bytes served.",
+    );
+  });
+
+  // ADR-0051: what a request type requires must do its work; a design that leaves it
+  // out (the provider dropped, the queue to the workers gone) doesn't serve the type,
+  // however cheap it is.
+  test("a type whose path never reaches what it requires isn't served", () => {
+    const noSms = simulate(SIGN_IN, removeNode(QUEUED, "sms"));
+    expect(type(noSms, "send_code", "baseline")).toMatchObject({
+      availability: 0,
+      p99Ms: null,
+    });
+    expect(scenario(noSms, "baseline").targetsMet).toBe(false);
+    expect(scenario(noSms, "baseline").explanations).toContain(
+      '"send_code" requests never reach an external provider, which does their work, so none is served.',
+    );
+    expect(noSms.points).toBeLessThan(simulate(SIGN_IN, QUEUED).points);
+    // No queue: the uploads are stored and never transcoded.
+    const noJobs = simulate(CLIPS, removeNode(STUDIO, "jobs"));
+    expect(type(noJobs, "upload", "baseline")?.availability).toBe(0);
+    expect(scenario(noJobs, "baseline").explanations).toContain(
+      '"upload" requests never reach a worker, which does their work, so none is served.',
+    );
+    expect(noJobs.points).toBeLessThan(simulate(CLIPS, STUDIO).points);
+    // A 1.0 design has no such rule.
+    expect(
+      type(
+        simulate(CLIPS, { ...removeNode(STUDIO, "jobs"), spec: "1.0" }),
+        "upload",
+        "baseline",
+      )?.availability,
+    ).toBeGreaterThan(0);
+  });
+
+  test("a kind the design's spec version lacks gives an empty result, not an error", () => {
+    const r = simulate(SIGN_IN, { ...QUEUED, spec: "1.0" });
+    expect(r.points).toBe(0);
+    expect(r.explanations).toEqual([
+      "sms: spec 1.0 has no external provider, so the design can't be simulated.",
+    ]);
+  });
+
+  test("a backlog that never drains has no lag to give: null, which JSON keeps", () => {
+    // 20 uploads at 300 jobs on 20 nodes of 200: over capacity on a normal day.
+    const r = simulate(
+      CLIPS,
+      updateNode(STUDIO, "transcoders", { config: { nodes: 20 } }),
+    );
+    expect(type(r, "upload", "baseline")?.lagSeconds).toBeNull();
+    expect(
+      (JSON.parse(JSON.stringify(r)) as typeof r).scenarios[0]?.types.find(
+        (t) => t.type === "upload",
+      )?.lagSeconds,
+    ).toBeNull();
+    expect(scenario(r, "baseline").explanations).toContainEqual(
+      expect.stringMatching(/never catches up/),
+    );
+  });
+
+  test("the provider's calls and the bytes served are both billed from the baseline's loads", () => {
+    const doubled = (p: HldProblem) =>
+      HldProblem.parse({
+        ...p,
+        scenarios: p.scenarios.map((s) =>
+          s.id === "baseline" ? { ...s, load: 2 } : s,
+        ),
+      });
+    expect(simulate(doubled(SIGN_IN), QUEUED).explanations).toContain(
+      "Of which $42,048 is the provider's calls and $0 is bytes served.",
+    );
+    expect(simulate(doubled(CLIPS), STUDIO).explanations).toContain(
+      "Of which $0 is the provider's calls and $105,120 is bytes served.",
+    );
+  });
+
+  test("a node full of bytes says so: its bandwidth, not its requests", () => {
+    // 20 uploads of 40 MB: 6,400 Mbps against 4 nodes' 4,000.
+    const heavy = HldProblem.parse({
+      ...CLIPS,
+      traffic: {
+        ...CLIPS.traffic,
+        requests: CLIPS.traffic.requests.map((t) =>
+          t.type === "upload" ? { ...t, payloadKb: 40_000 } : t,
+        ),
+      },
+    });
+    const notes = scenario(simulate(heavy, STUDIO), "baseline").explanations;
+    expect(notes).toContain(
+      "api is overloaded: 6,400 Mbps is 160.0% of the bandwidth its 4 server(s) have.",
+    );
+  });
+
+  test("a provider fails only when its scenario says so: never with our zone", () => {
+    const zone = HldProblem.parse({
+      ...SIGN_IN,
+      scenarios: [
+        ...SIGN_IN.scenarios,
+        {
+          id: "zone",
+          name: "A zone goes down",
+          weight: 1,
+          load: 1,
+          failure: { scope: "zone" },
+          targets: { p99Ms: 600, availability: 0.99 },
+        },
+      ],
+    });
+    expect(node(simulate(zone, QUEUED), "sms", "zone")?.up).toBe(true);
+  });
 });
 
 // Phase 6's "done when": 95% of simulations finish within 2 s. The largest design the
@@ -533,5 +848,57 @@ test("the largest design simulates far inside 2 seconds", () => {
   });
   const started = performance.now();
   simulate(SHORTENER, d);
+  expect(performance.now() - started).toBeLessThan(500);
+});
+
+// ADR-0050's consequences: the same budget with spec 2.0's kinds and behaviours, a
+// backlog behind every layer of queues and workers, each worker calling a provider.
+test("the largest 2.0 design, queues, workers and providers, simulates far inside 2 seconds", () => {
+  const nodes: Design["nodes"] = [
+    { id: "users", kind: "client", config: {}, note: "" },
+    {
+      id: "api",
+      kind: "app_service",
+      config: { nodes: 10, zones: 2, regions: 1 },
+      note: "",
+    },
+  ];
+  const edges: Design["edges"] = [
+    { from: "users", to: "api", routes: ["session", "send_code", "verify"] },
+  ];
+  for (let i = 0; i < 12; i++) {
+    const [q, w, p] = [`q${String(i)}`, `w${String(i)}`, `p${String(i)}`];
+    nodes.push(
+      {
+        id: q,
+        kind: "queue",
+        config: { partitions: 2, retentionHours: 24, zones: 2, regions: 1 },
+        note: "",
+      },
+      {
+        id: w,
+        kind: "worker",
+        config: { nodes: 2, zones: 2, regions: 1 },
+        note: "",
+      },
+      { id: p, kind: "external_api", config: {}, note: "" },
+    );
+    edges.push(
+      { from: "api", to: q, routes: ["send_code"] },
+      { from: q, to: w, routes: ["send_code"] },
+      { from: w, to: p, routes: ["send_code"] },
+    );
+  }
+  nodes.push({
+    id: "codes",
+    kind: "kv_store",
+    config: { nodes: 3, replication: 3, zones: 3, regions: 1 },
+    note: "",
+  });
+  edges.push({ from: "api", to: "codes", routes: ["session", "verify"] });
+  const d = Design.parse({ version: 1, spec: "2.0", nodes, edges });
+  expect(d.nodes).toHaveLength(39);
+  const started = performance.now();
+  simulate(SIGN_IN, d);
   expect(performance.now() - started).toBeLessThan(500);
 });

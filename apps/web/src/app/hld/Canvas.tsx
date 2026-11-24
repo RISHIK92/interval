@@ -14,12 +14,14 @@ import {
   type DesignNode,
   type HldProblem,
   hints,
+  LATEST_SPEC,
   NOTE_MAX,
   removeNode,
   type ScenarioResult,
   setRoutes,
   simulate,
   type SimulationResult,
+  specVersion,
   starterDesign,
   updateNode,
 } from "@interval/hld";
@@ -296,7 +298,7 @@ export function Canvas({
   };
   const startOver = () => {
     if (!window.confirm("Start over? Your design is cleared.")) return;
-    setDesign(starterDesign());
+    setDesign(starterDesign(problem.spec));
     setSelected(null);
   };
 
@@ -497,7 +499,11 @@ export function Canvas({
               <h2 className="text-title lg:mb-2 lg:text-[19px] lg:leading-snug lg:font-bold lg:tracking-[-0.01em]">
                 {nameOf(node.id)} · {nodeRole(node)}
               </h2>
-              {configFields(node.kind).map((f) => {
+              {configFields(
+                node.kind,
+                // A design always names a published version (Design.parse).
+                specVersion(design.spec) ?? LATEST_SPEC,
+              ).map((f) => {
                 const value = (node.config as Record<string, number | string>)[
                   f.name
                 ];
@@ -827,6 +833,18 @@ export function risksOf(
     const at = s.nodes.find((n) => n.id === node.id);
     if (at === undefined) continue;
     const scope = problem.scenarios.find((x) => x.id === s.id)?.failure?.scope;
+    // Spec 2.0: a third party has nothing to set; what it does is waited out or not.
+    if (node.kind === "external_api") {
+      if (!at.up && !s.targetsMet)
+        said.push(
+          `Down in "${s.name}", and what calls it fails: hand that work to a queue so it waits.`,
+        );
+      else if (at.utilization !== null && at.utilization >= 1)
+        said.push(
+          `At its rate limit in "${s.name}": it can't be scaled, so queue its calls or make fewer.`,
+        );
+      continue;
+    }
     if (!at.up) {
       said.push(`Goes down in "${s.name}" with nothing to take over.`);
       if ("failover" in config && config.failover !== "multi_zone")

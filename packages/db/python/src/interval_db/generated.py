@@ -712,6 +712,7 @@ class HldMatch(TypedDict):
     scored_at: datetime | None
     rubric_included: bool | None
     rated_at: datetime | None
+    spec: str
 
 
 class HldMatchPlayer(TypedDict):

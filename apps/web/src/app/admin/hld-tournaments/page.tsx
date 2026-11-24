@@ -15,6 +15,7 @@ const SAID: Record<string, string> = {
   waiting: "The current round's matches aren't all scored yet.",
   too_few: "Fewer than 2 players have checked in.",
   busy: "Another admin started that round.",
+  not_yet: "That round's problem is on a spec version not in effect yet.",
 };
 const ROUND_LABELS = [
   "1",

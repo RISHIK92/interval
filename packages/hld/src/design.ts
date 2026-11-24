@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { CONFIG, type ComponentKind } from "./catalog";
-import { SPEC_VERSIONS } from "./spec";
+import { CONFIG, type ComponentKind, FIELD_FEATURES } from "./catalog";
+import { SPEC_VERSIONS, specVersion } from "./spec";
 
 // P6-W36 (CANVAS-2, HLDQ-1): a design is a versioned JSON graph. Nodes are components
 // with their configuration and a short "why this choice" note; edges send named
@@ -36,6 +36,7 @@ export const DesignNode = z.discriminatedUnion("kind", [
   nodeOf("object_storage"),
   nodeOf("search_index"),
   nodeOf("stream"),
+  nodeOf("external_api"),
 ]);
 export type DesignNode = z.infer<typeof DesignNode>;
 
@@ -66,7 +67,33 @@ export const Design = z
   })
   .superRefine((d, ctx) => {
     const ids = new Set<string>();
+    const spec = specVersion(d.spec);
     d.nodes.forEach((n, i) => {
+      // ADR-0050 §6: only the kinds its spec version has.
+      if (spec !== null && spec.components[n.kind] === undefined)
+        ctx.addIssue({
+          code: "custom",
+          path: ["nodes", i, "kind"],
+          message: `spec ${spec.version} has no ${n.kind.replaceAll("_", " ")}`,
+        });
+      // A field a version's feature brings: required under a version with it (a 2.0
+      // stream says how long its backlog may wait), refused under one without.
+      if (spec !== null)
+        for (const [field, feature] of Object.entries(
+          FIELD_FEATURES[n.kind] ?? {},
+        )) {
+          const set =
+            (n.config as Record<string, unknown>)[field] !== undefined;
+          const has = spec.features[feature] !== undefined;
+          if (set !== has)
+            ctx.addIssue({
+              code: "custom",
+              path: ["nodes", i, "config", field],
+              message: has
+                ? `${field} is required under spec ${spec.version}`
+                : `spec ${spec.version} has no ${field}`,
+            });
+        }
       // Nodes spread over zones: at least one in each.
       if (
         "nodes" in n.config &&

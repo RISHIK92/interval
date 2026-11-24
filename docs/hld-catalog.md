@@ -719,6 +719,34 @@ The four battle families that exist today could adopt v2 behaviours at a later b
 - **Rubric:** why evaluation is local, and what an SDK does when it can't reach the service; streaming against polling, and the cost of each.
 - **Components:** cdn, lb, app, cache, sql, gateway **NEW**. Behaviours: [fanout], [lag].
 
+## Stage 1 as built (spec 2.0, PROVISIONAL)
+
+Spec 2.0 takes effect on 2026-12-01, the first monthly season boundary after ADR-0050 (`SPEC_V2_FROM` in `packages/hld/src/spec.ts`, Q-WD-31). Before it, no match, tournament round or practice problem uses a 2.0 family. The 1.0 families stay on 1.0: their pool, calibration designs and results are unchanged, and their matches keep playing on 1.0 after the boundary.
+
+Seven families are written on 2.0: otp-login, webhook-delivery and image-resizer (practice), and file-sync, video-on-demand, payment-processing and web-crawler (battle). Each validates (HLDQ-3) in both battle modes. Where the numbers differ from the plan above, it's so the simulator shows the lesson:
+
+- **Every family with a provider:** its latency (250 ms) and availability (99.5%) are the spec sheet's (ADR-0050 §2), not per family; each family sets only its price and its rate limit (Q-WD-31). The rate limit is drawn per battle mode as a multiple of all traffic.
+- **otp-login:** a `session` check is added (88%), so request_code is 4% and verify 8% (plan: 40% and 60%). Calling the provider inline then fails only the outage, not the normal day's 99.9% through a 99.5% provider. Traffic is 2k–4k rps (plan: 500–2k), so the spike flaw has app servers to cut. SMS costs $0.0005 a send, and the provider takes about 4–6 times the sends. The spike is the shared 3×, not mostly request_code. The budget is dominated by SMS.
+- **webhook-delivery:** delivered within 2 hours (plan: 5 minutes). Endpoints take 1.6–1.75 times the events, so a 30-minute outage and its drain outlive a 1-hour retention but not a day's. No 5% slow tail, and $0 a delivery.
+- **image-resizer:** 600–1,500 rps (plan: 3k–8k), so the resizers fit 200 nodes. A resize on a miss is 10 work units (plan: 20), and an upload makes its two common sizes at 20. The CDN keeps sizes 20 minutes (a 67% hit rate), so without it the spike, not the normal day, overloads the resizers. Image bytes aren't counted, since their egress would turn the no-CDN flaw into a budget flaw. "Uploads arrive in a burst" is left out: it pressed the app's bandwidth harder than the spike, so the spike flaw failed both (owner, 2026-11-24: ships now without it, revisit in v2.1). The "cold renditions" spike is the shared spike.
+- **file-sync:** changes 75%, download 14%, upload_chunk 6% (4 MB), commit 5% (plan: 70/15/10/5). 500–2,000 GB stored, growing 5–15 GB a day (plan: 2,000–8,000 and 40–100), because the metadata database is where commits are kept and must hold the horizon's data (the storage rule). Download bytes aren't counted.
+- **video-on-demand:** 600–1,500 rps (plan: 5k–12k) with 500 KB segments (plan: 1.5 MB), so CDN egress is about $15k–40k a month. Uploads are 0.1% (plan: 1%) at 600 work units each (plan: 5 renditions at 600). No relational database in the reference (the storage rule). Its two lessons: without a CDN it fails on cost alone (ADR-0050's budget target); transcoders sized for the average fail the two-hour backlog.
+- **payment-processing:** payment_status 84%, authorize 8%, capture 8% (plan: 40/40/20), so inline capture stays within the normal day's target through a 99.5% network. The network-down scenario's availability target is 90%: authorizations can't succeed while it's down. 1k–2k rps (human) and 2k–2.4k (AI), for the primary's writes. $0.0002 a call (ADR-0050's figure), which dominates the budget.
+- **web-crawler:** no family scenario, and its own lessons aren't simulated. A slow site needs a per-scenario provider latency, which 2.0 doesn't have, and deduplication is still open (Q-WD-31), so the rubric carries both (owner, 2026-11-24: ships now, revisit in v2.1). Its one simulated flaw is the `requires` flaw below. Politeness is the provider's rate limit (2–2.5 times the fetches), and the frontier absorbs the spike within the hour. 500–2,000 GB stored, growing 50–150 GB a day (the seen-set must hold it).
+
+What the engine does beyond ADR-0050's text, each only under 2.0, is recorded in ADR-0051 (ACCEPTED, owner, 2026-11-24):
+
+- **Requires:** a request type names what must do its work (`requires`: `external_api`, `worker`). A type whose routes never reach one isn't served, so dropping the provider, or the queue that feeds the workers, never pays. request_code, event, authorize, capture and fetch require the provider; original (image-resizer) and upload (video-on-demand) require a worker. Each of those six families has a flaw that leaves it out (`no-provider`, `no-renditions`, `no-transcoding`) and fails the baseline, §6.4's gate.
+
+- **Per-type load:** a scenario can set a request type's own load (`loads`, "three times the uploads for two hours").
+- **Late work counts on its own:** work done too late misses the availability target however small its share of the traffic.
+- **Fail fast:** a request type the provider's outage cuts off counts against what's served, not as an unbounded p99.
+- **Retries:** behind a queue or stream, a provider's ordinary failures are retried; only a backlog past its limits is lost.
+- **The worst wait** is the spike's minutes plus the drain, and the share past a limit is 1 − limit ÷ worst wait.
+- **The provider** fails only in a scenario that names it, never with our zone or region.
+- **Egress** is billed on reads' payloads by the client's first hop: a CDN for what it serves, the origin's price for the rest.
+- **Flaws:** `utilization` (a node sized for the average) and `route` (one request type re-routed) join `without` (now one node or several), `configure` and `bypass`; a flaw may target `budget`, or `baseline` when it leaves out what does the work. The shared spike flaw never cuts a worker whose every request type waits in a queue, and is left out where it would cut nothing.
+
 ## Order of work (proposed)
 
 Following ADR-0050's staging:

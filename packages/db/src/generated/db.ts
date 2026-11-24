@@ -723,6 +723,7 @@ export interface HldMatch {
   rubric_included: boolean | null;
   scored_at: Timestamp | null;
   seed: number;
+  spec: string;
   started_at: Generated<Timestamp>;
   unrated: Generated<boolean>;
   window_at: Timestamp | null;

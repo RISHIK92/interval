@@ -63,17 +63,21 @@ describe("standings", () => {
 
 describe("a match's problem", () => {
   test("drawn from the pool, and rebuilt the same from its seed", () => {
-    const { family, seed } = drawVariant("ai", () => 0.5, new Set());
+    const now = new Date("2026-11-23T12:00:00Z");
+    const { family, seed } = drawVariant("ai", () => 0.5, new Set(), now);
     const others = drawVariant(
       "ai",
       () => 0.5,
       new Set([`${family}/${String(seed)}`]),
+      now,
     );
     expect(others).not.toEqual({ family, seed });
-    const problem = matchProblem(family, "ai", seed);
+    const problem = matchProblem(family, "ai", seed, "1.0");
     expect(problem?.battleMode).toBe("ai");
-    expect(matchProblem(family, "ai", seed)).toBe(problem);
-    expect(matchProblem(family, "ai", 99_999)).toBeNull();
+    expect(matchProblem(family, "ai", seed, "1.0")).toBe(problem);
+    expect(matchProblem(family, "ai", 99_999, "1.0")).toBeNull();
+    // A match rebuilds under the spec version it recorded, and no other.
+    expect(matchProblem(family, "ai", seed, "2.0")).toBeNull();
     expect(problemBySlug(`${family}-ai-${String(seed)}`)).toBe(problem);
     expect(problemBySlug("url-shortener")?.slug).toBe("url-shortener");
     expect(problemBySlug("nope-ai-1")).toBeNull();

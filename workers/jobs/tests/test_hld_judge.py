@@ -15,7 +15,7 @@ from interval_jobs.adapters.memory import InMemoryAi, InMemoryStore, StoredUser
 from interval_jobs.adapters.memory_queue import InMemoryQueue
 from interval_jobs.adapters.trafilatura_extractor import TrafilaturaExtractor
 from interval_jobs.ai.gateway import AiGateway
-from interval_jobs.hld_judge import JudgeInput, describe, median, parse
+from interval_jobs.hld_judge import KINDS, JudgeInput, describe, median, parse
 from interval_jobs.pipeline import ModelJob, Pipeline, StageServices
 from interval_jobs.ports import Completion, Delivery, HldJudgeAsk, Message, Usage
 
@@ -27,6 +27,7 @@ CALIBRATION = json.loads(
     (Path(__file__).parents[3] / "packages/hld/src/calibration.json").read_text()
 )
 REFERENCE = next(c for c in CALIBRATION if c["id"] == "url-shortener/reference")
+PROVIDER = next(c for c in CALIBRATION if c["id"] == "otp-login/reference")
 INJECTION = next(c for c in CALIBRATION if c["id"] == "url-shortener/injection")
 CRITERIA = [c["id"] for c in REFERENCE["input"]["rubric"]]
 
@@ -199,3 +200,36 @@ def test_median_of_two_is_the_lower() -> None:
     runs = [parse(levels(1, 3), CRITERIA), parse(levels(4, 4), CRITERIA)]
     chosen = median([r for r in runs if r is not None], CRITERIA)
     assert [v.level for v in chosen.values()] == [1, 3]
+
+
+def test_a_new_kind_is_explained_in_one_line_and_only_where_it_is_used() -> None:
+    """ADR-0050 §7: the model is told what spec 2.0's external provider is; a design
+    without one reads exactly as before."""
+    with_provider = describe(JudgeInput.model_validate(PROVIDER["input"]))
+    assert with_provider.count(KINDS["external_api"]) == 1
+    assert "Component kinds:" in with_provider
+    without = describe(JudgeInput.model_validate(REFERENCE["input"]))
+    assert "Component kinds:" not in without
+    assert "external_api" not in without
+
+
+def test_every_kind_in_the_calibration_set_beyond_spec_1_has_its_line() -> None:
+    v1 = {
+        "cdn",
+        "load_balancer",
+        "app_service",
+        "cache",
+        "sql_db",
+        "kv_store",
+        "queue",
+        "worker",
+        "object_storage",
+        "search_index",
+        "stream",
+    }
+    used = {
+        component["kind"]
+        for candidate in CALIBRATION
+        for component in candidate["input"]["components"]
+    }
+    assert used - v1 == set(KINDS)

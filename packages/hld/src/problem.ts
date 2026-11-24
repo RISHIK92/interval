@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { COMPONENT_KINDS, type ComponentKind } from "./catalog";
+import {
+  COMPONENT_KINDS,
+  COMPONENT_NAMES,
+  type ComponentKind,
+} from "./catalog";
+import { type Features, SPEC_VERSIONS, specVersion } from "./spec";
 
 // P6-W37 (HLDQ-1; Q-P6-02): an HLD problem: its requirements, numeric targets, traffic
 // shape, scenarios, rubric, concepts, allowed components and time limit. Scenarios are
@@ -15,10 +20,27 @@ export const RequestType = z
     kind: z.enum(["read", "write"]),
     // A read a cache or CDN may answer (a search or a personal feed may not be).
     cacheable: z.boolean(),
+    // ADR-0050 §3, spec 2.0 only; absent, as in every 1.0 problem, means today's
+    // behaviour. [work]: what one request costs a worker, in its jobs (a transcode is
+    // hundreds). [bytes]: its payload, in KB. [lag]: asynchronous work's target, in
+    // seconds after it is accepted, for a write handed to a queue or stream.
+    work: z.number().positive().optional(),
+    payloadKb: z.number().positive().optional(),
+    completionSeconds: z.number().positive().optional(),
+    // ADR-0051: what must do this type's work; a path that never reaches one of each
+    // kind serves none of it (a code never handed to the SMS provider isn't sent).
+    requires: z
+      .array(z.enum(["external_api", "worker"]))
+      .min(1)
+      .optional(),
   })
   .refine((r) => r.kind === "read" || !r.cacheable, {
     message: "a write is never cacheable",
+  })
+  .refine((r) => r.kind === "write" || r.completionSeconds === undefined, {
+    message: "only a write is done later",
   });
+export type RequestType = z.infer<typeof RequestType>;
 
 export const Failure = z.strictObject({
   scope: z.enum(["node", "zone", "region"]),
@@ -34,6 +56,10 @@ export const Scenario = z.strictObject({
   name: z.string().min(1).max(80),
   weight: z.number().positive(),
   load: z.number().positive(), // times baseline traffic
+  // ADR-0050 [lag], spec 2.0: how long the spike or outage lasts (the spec's default
+  // when absent), and request types whose load differs from `load` (a burst of uploads).
+  minutes: z.number().positive().optional(),
+  loads: z.record(Name, z.number().positive()).optional(),
   failure: Failure.optional(),
   targets: z.strictObject({
     p99Ms: z.number().positive(), // every request type's p99
@@ -63,11 +89,31 @@ export const Cover = z.discriminatedUnion("rule", [
 ]);
 export type Cover = z.infer<typeof Cover>;
 
+// The fields each spec version's feature brings (ADR-0050 §6, ADR-0051).
+const REQUEST_FEATURES = {
+  work: "work",
+  payloadKb: "bytes",
+  completionSeconds: "lag",
+  requires: "requires",
+} satisfies Partial<Record<keyof RequestType, keyof Features>>;
+const SCENARIO_FEATURES = {
+  minutes: "lag",
+  loads: "lag",
+} satisfies Partial<Record<keyof Scenario, keyof Features>>;
+
 export const HldProblem = z
   .strictObject({
     slug: z.string().regex(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/),
     title: z.string().min(3).max(80),
     battleMode: z.enum(["human", "ai"]).optional(),
+    // The spec version its numbers were validated under (ADR-0050 §6): designs for it
+    // are drawn against this version.
+    spec: z
+      .string()
+      .refine(
+        (v) => SPEC_VERSIONS.some((s) => s.version === v),
+        "no such spec version",
+      ),
     timeLimitMinutes: z.int().min(10).max(90),
     requirements: z.array(z.string().min(1)).min(1).max(20),
     // One per requirement, in the same order. Absent on a problem written before
@@ -81,6 +127,10 @@ export const HldProblem = z
       storedGb: z.number().min(0), // the data at the start
       growthGbPerDay: z.number().min(0),
       horizonDays: z.int().min(1).max(3650),
+      // ADR-0050 §2, Q-WD-31: the external provider's rate limit (calls a second) and
+      // price per call (USD), set by each problem that allows one.
+      providerRps: z.number().positive().optional(),
+      providerCostPerCall: z.number().min(0).optional(),
     }),
     budgetPerMonth: z.number().positive(), // USD (Q-P6-02)
     scenarios: z.array(Scenario).min(1).max(10),
@@ -100,6 +150,48 @@ export const HldProblem = z
     concepts: z.array(z.string().min(1)).max(20),
   })
   .superRefine((p, ctx) => {
+    const spec = specVersion(p.spec);
+    if (spec !== null) {
+      // ADR-0050 §6: only what its version has, so a 1.0 problem can never take on a
+      // behaviour that would move its results.
+      const lacks = (path: (string | number)[], what: string) => {
+        ctx.addIssue({
+          code: "custom",
+          path,
+          message: `spec ${spec.version} has no ${what}`,
+        });
+      };
+      for (const kind of new Set([
+        ...p.allowedComponents,
+        ...(p.traffic.providerRps === undefined &&
+        p.traffic.providerCostPerCall === undefined
+          ? []
+          : (["external_api"] as const)),
+      ]))
+        if (spec.components[kind] === undefined)
+          lacks(["allowedComponents"], COMPONENT_NAMES[kind].toLowerCase());
+      const has = (feature: keyof Features) =>
+        spec.features[feature] !== undefined;
+      for (const [i, r] of p.traffic.requests.entries())
+        for (const [field, feature] of Object.entries(REQUEST_FEATURES))
+          if (r[field as keyof RequestType] !== undefined && !has(feature))
+            lacks(
+              ["traffic", "requests", i, field],
+              `"${field}" (on "${r.type}")`,
+            );
+      for (const [i, sc] of p.scenarios.entries())
+        for (const [field, feature] of Object.entries(SCENARIO_FEATURES))
+          if (sc[field as keyof Scenario] !== undefined && !has(feature))
+            lacks(["scenarios", i, field], `"${field}" (in "${sc.id}")`);
+    }
+    for (const [i, r] of p.traffic.requests.entries())
+      for (const kind of r.requires ?? [])
+        if (!p.allowedComponents.includes(kind))
+          ctx.addIssue({
+            code: "custom",
+            path: ["traffic", "requests", i, "requires"],
+            message: `"${r.type}" requires ${kind}, which isn't allowed`,
+          });
     // §6.4: the baseline gate needs a baseline.
     if (!p.scenarios.some((s) => s.id === "baseline"))
       ctx.addIssue({
@@ -121,6 +213,24 @@ export const HldProblem = z
         path: ["traffic"],
         message: "a request type used twice",
       });
+    if (
+      p.allowedComponents.includes("external_api") &&
+      (p.traffic.providerRps === undefined ||
+        p.traffic.providerCostPerCall === undefined)
+    )
+      ctx.addIssue({
+        code: "custom",
+        path: ["traffic"],
+        message: "an external provider without its rate limit and price",
+      });
+    for (const [i, s] of p.scenarios.entries())
+      for (const t of Object.keys(s.loads ?? {}))
+        if (!types.includes(t))
+          ctx.addIssue({
+            code: "custom",
+            path: ["scenarios", i, "loads"],
+            message: `no request type "${t}"`,
+          });
     if (p.covers !== undefined && p.covers.length !== p.requirements.length)
       ctx.addIssue({
         code: "custom",

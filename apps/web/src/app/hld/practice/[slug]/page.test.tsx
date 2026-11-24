@@ -10,7 +10,9 @@ import type {
 
 // The first practice problem (P6-W40: each family's practice seed).
 const URL_SHORTENER = (() => {
-  const p = practiceProblems().find((x) => x.slug === "url-shortener");
+  const p = practiceProblems(new Date()).find(
+    (x) => x.slug === "url-shortener",
+  );
   if (p === undefined) throw new Error("no url-shortener practice problem");
   return p;
 })();
@@ -60,8 +62,8 @@ beforeEach(() => {
 
 test("shows the problem and opens the canvas on the saved design", async () => {
   const saved = {
-    ...starterDesign(),
-    nodes: [...starterDesign().nodes],
+    ...starterDesign("1.0"),
+    nodes: [...starterDesign("1.0").nodes],
   };
   load.mockResolvedValueOnce({ design: saved, version: 4 });
   const html = await render(URL_SHORTENER.slug);
@@ -80,15 +82,15 @@ test("a saved design that no longer parses starts over, at its version", async (
   load.mockResolvedValueOnce({ design: { version: 0 }, version: 2 });
   await render(URL_SHORTENER.slug);
   expect(canvas).toHaveBeenCalledWith(
-    expect.objectContaining({ initial: starterDesign(), version: 2 }),
+    expect.objectContaining({ initial: starterDesign("1.0"), version: 2 }),
   );
 });
 
 test("a saved design from an older version of the problem starts over", async () => {
   const old = {
-    ...starterDesign(),
+    ...starterDesign("1.0"),
     nodes: [
-      ...starterDesign().nodes,
+      ...starterDesign("1.0").nodes,
       {
         id: "lb",
         kind: "load_balancer",
@@ -101,7 +103,7 @@ test("a saved design from an older version of the problem starts over", async ()
   load.mockResolvedValueOnce({ design: old, version: 3 });
   await render(URL_SHORTENER.slug);
   expect(canvas).toHaveBeenCalledWith(
-    expect.objectContaining({ initial: starterDesign(), version: 3 }),
+    expect.objectContaining({ initial: starterDesign("1.0"), version: 3 }),
   );
 });
 
