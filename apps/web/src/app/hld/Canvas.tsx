@@ -2,6 +2,7 @@
 
 import {
   addComponent,
+  type ChannelId,
   check,
   COMPONENT_NAMES,
   componentNames,
@@ -16,6 +17,9 @@ import {
   hints,
   LATEST_SPEC,
   NOTE_MAX,
+  pickProvider,
+  type ProviderId,
+  providerOffer,
   removeNode,
   type ScenarioResult,
   setRoutes,
@@ -562,6 +566,16 @@ export function Canvas({
                   </label>
                 );
               })}
+              {node.kind === "external_api" ? (
+                <ProviderPick
+                  problem={problem}
+                  node={node}
+                  risky={risk.fields}
+                  onPick={(change) => {
+                    setDesign((d) => pickProvider(d, problem, node.id, change));
+                  }}
+                />
+              ) : null}
               {risk.said.length > 0 ? (
                 <ul className="mt-3 flex flex-col gap-1 rounded-xl bg-(--system-design-tint) px-3 py-2.5 text-[13px] leading-snug font-medium text-(--system-design-line)">
                   {risk.said.map((r) => (
@@ -817,6 +831,7 @@ function scenarioDetail(s: ScenarioResult, target: Targets): string {
 }
 
 type Risk = { fields: ReadonlySet<string>; said: string[] };
+const dollars = (x: number) => Math.round(x).toLocaleString("en-US");
 const NO_RISK: Risk = { fields: new Set(), said: [] };
 
 // The hints' rules for the one selected component (hints.ts): where it goes down with
@@ -829,6 +844,41 @@ export function risksOf(
   const config = node.config as Record<string, number | string>;
   const fields = new Set<string>();
   const said: string[] = [];
+  // ADR-0053: a provider picked from the problem's offer warns about its pick first:
+  // nothing usable picked, or fees that take the design over its budget.
+  const offered = providerOffer(problem);
+  const pick = result.scenarios
+    .find((s) => s.id === "baseline")
+    ?.nodes.find((n) => n.id === node.id)?.provider;
+  if (offered !== null && pick === null) {
+    said.push(
+      `Nothing picked that it can use: pick a provider and channel offered in ${offered.region}. Until then it does no work.`,
+    );
+    fields.add("provider").add("channel");
+  }
+  // Owner, 2026-11-24: card fees answer to their own target, apart from the budget.
+  const fees = result.fees;
+  if (
+    typeof pick === "string" &&
+    fees?.perPayment !== null &&
+    fees !== undefined &&
+    fees.perPayment > fees.target + 1e-9
+  ) {
+    said.push(
+      `Its fees per payment are over their target: ${pick} charges $${fees.perPayment.toFixed(2)} a payment, against $${fees.target.toFixed(2)}. A cheaper processor would meet it.`,
+    );
+    fields.add("provider").add("channel");
+  }
+  if (
+    typeof pick === "string" &&
+    result.costPerMonth > problem.budgetPerMonth &&
+    (result.providerCostPerMonth ?? 0) > result.costPerMonth / 2
+  ) {
+    said.push(
+      `The providers' fees take the design over budget: $${dollars(result.providerCostPerMonth ?? 0)} a month, against a budget of $${dollars(problem.budgetPerMonth)}. Send this one (${pick}) only what it delivers, or pick a cheaper provider or channel.`,
+    );
+    fields.add("provider").add("channel");
+  }
   for (const s of result.scenarios) {
     const at = s.nodes.find((n) => n.id === node.id);
     if (at === undefined) continue;
@@ -1015,6 +1065,114 @@ function RemoveButton({
       </svg>
       {label}
     </button>
+  );
+}
+
+// ADR-0053: an external provider's Provider and Channel, from the problem's offer, each
+// option with its price in the problem's region; one not offered there can't be picked.
+// Nothing shows where the problem sets the provider's price itself.
+function ProviderPick({
+  problem,
+  node,
+  risky,
+  onPick,
+}: {
+  problem: HldProblem;
+  node: Extract<DesignNode, { kind: "external_api" }>;
+  risky: ReadonlySet<string>;
+  onPick: (change: { provider?: ProviderId; channel?: ChannelId }) => void;
+}) {
+  const offer = providerOffer(problem, node.config.provider);
+  if (offer === null) return null;
+  const rows: {
+    name: "provider" | "channel";
+    label: string;
+    value: string | undefined;
+    options: { id: string; text: string; offered: boolean }[];
+  }[] = [
+    {
+      name: "provider",
+      label: "Provider",
+      value: node.config.provider,
+      options: offer.providers.map((p) => ({
+        id: p.id,
+        text: `${p.name} · ${p.from ?? `not offered in ${offer.region}`}`,
+        offered: p.from !== null,
+      })),
+    },
+    {
+      name: "channel",
+      label: "Channel",
+      value: node.config.channel,
+      options: offer.channels.map((c) => ({
+        id: c.id,
+        text:
+          node.config.provider === undefined
+            ? c.name
+            : `${c.name} · ${c.price ?? "not offered"}`,
+        offered: node.config.provider === undefined || c.price !== null,
+      })),
+    },
+  ];
+  return (
+    <>
+      {rows.map((row) => (
+        <label
+          key={row.name}
+          className="flex flex-col gap-1 text-sm lg:min-h-11 lg:flex-row lg:items-center lg:justify-between lg:gap-3 lg:border-b lg:border-hairline lg:py-1.5 lg:text-ink-soft"
+        >
+          {row.label}
+          <span
+            className={`flex min-w-0 items-center gap-1.5 lg:max-w-[62%] ${risky.has(row.name) ? "text-(--system-design-line)" : ""}`}
+          >
+            {risky.has(row.name) ? <WarnIcon label="At risk" /> : null}
+            <select
+              value={row.value ?? ""}
+              aria-invalid={risky.has(row.name) || undefined}
+              disabled={
+                row.name === "channel" && node.config.provider === undefined
+              }
+              className={`${FIELD} w-full min-w-0 lg:w-34 lg:max-w-full`}
+              onChange={(e) => {
+                const id = e.target.value;
+                const p = offer.providers.find((x) => x.id === id);
+                const c = offer.channels.find((x) => x.id === id);
+                if (row.name === "provider" && p !== undefined)
+                  onPick({ provider: p.id });
+                if (row.name === "channel" && c !== undefined)
+                  onPick({ channel: c.id });
+              }}
+            >
+              <option value="" disabled>
+                Pick one
+              </option>
+              {row.options.map((o) => (
+                <option key={o.id} value={o.id} disabled={!o.offered}>
+                  {o.text}
+                </option>
+              ))}
+            </select>
+          </span>
+        </label>
+      ))}
+      <p className="mt-2 text-[13px] leading-snug text-ink-muted">
+        Prices are list prices in {offer.region}, seen{" "}
+        {new Date(`${offer.seen}T00:00:00Z`).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+          timeZone: "UTC",
+        })}{" "}
+        and provisional; the{" "}
+        <a
+          href="/hld/spec#providers"
+          className="underline underline-offset-2 hover:text-ink"
+        >
+          spec sheet
+        </a>{" "}
+        has their sources.
+      </p>
+    </>
   );
 }
 

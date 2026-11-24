@@ -1,4 +1,4 @@
-import type { ComponentKind, DesignNode } from "@interval/hld";
+import { type ComponentKind, type DesignNode, pickName } from "@interval/hld";
 import type { CSSProperties } from "react";
 
 // The web design's canvas ("HLD battle, web"): React Flow drawn in the design system's
@@ -250,8 +250,12 @@ export function nodeRole(node: DesignNode): string {
     case "queue":
     case "stream":
       return "async";
+    // ADR-0053: who it is, once picked.
     case "external_api":
-      return "third party";
+      return node.config.provider === undefined ||
+        node.config.channel === undefined
+        ? "third party"
+        : pickName(node.config.provider, node.config.channel);
     case "object_storage":
       return "files" + where(node.config);
     case "search_index":

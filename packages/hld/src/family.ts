@@ -9,7 +9,8 @@ import {
   type Scenario,
 } from "./problem";
 import { simulate } from "./simulate";
-import { type SpecVersion, specVersion } from "./spec";
+import { cheapestFee } from "./providers";
+import { REGION_NAMES, type SpecVersion, specVersion } from "./spec";
 
 // P6-W40 (HLDQ-2, HLDQ-3; Q-P6-04): problem families. A family is a template: its
 // requests, the ranges its numbers are drawn from per battle mode, and the shape of a design
@@ -79,8 +80,15 @@ export type FamilyTemplate = {
   // payload, completion target) when it has them.
   requests: (Omit<RequestType, "rps"> & { share: number })[];
   // Q-WD-31: the external provider's price per call, when the family has one; its
-  // rate limit is drawn per battle mode (`providerShare`).
+  // rate limit is drawn per battle mode (`providerShare`). ADR-0053: or, in its place,
+  // what the player picks from: the users' region and channels (the reference's pick
+  // is its shape's).
   providerCostPerCall?: number;
+  // A card offer's fee target is drawn from the sheet: the cheapest processor's.
+  provider?: Omit<
+    NonNullable<HldProblem["traffic"]["provider"]>,
+    "feeTargetUsd"
+  >;
   ranges: Record<
     BattleMode,
     {
@@ -208,6 +216,31 @@ function scenarios(
   return list;
 }
 
+// ADR-0053 (owner, 2026-11-24): card fees per payment answer to the cheapest
+// processor's in the region, with no headroom, as the budget holds messaging fees.
+function withFeeTarget(
+  family: FamilyTemplate,
+): NonNullable<HldProblem["traffic"]["provider"]> | undefined {
+  const offer = family.provider;
+  if (offer === undefined || !offer.channels.includes("card")) return offer;
+  const target = cheapestFee(specOf(family), offer);
+  if (target === null) throw new Error(`${family.slug}: no processor offered`);
+  // In cents, rounded up, so the cheapest processor always meets it.
+  return { ...offer, feeTargetUsd: Math.ceil(target * 100 - 1e-9) / 100 };
+}
+
+// The provider's price, or (ADR-0053) where its users are and what the player picks.
+function offerWords(
+  p: Pick<HldProblem["traffic"], "providerCostPerCall" | "provider">,
+): string {
+  if (p.provider === undefined)
+    return `, at $${String(p.providerCostPerCall ?? 0)} a call.`;
+  const where = REGION_NAMES[p.provider.region];
+  return p.provider.ticketUsd === undefined
+    ? `. Its users are in ${where}: pick its provider and channel.`
+    : `. Its users are in ${where}, paying $${fmt(p.provider.ticketUsd)} on average: pick its provider.`;
+}
+
 // The problem a seed makes, before its budget is known (the sizer finds the cost).
 export const familySpec = (family: FamilyTemplate) => family.spec ?? "1.0";
 const specOf = (family: FamilyTemplate): SpecVersion => {
@@ -238,13 +271,20 @@ function draft(
     horizonDays: family.horizonDays,
   };
   const p99Ms = draw(next, r.p99Ms, 5);
-  // Drawn last, so a 1.0 family's numbers are what they always were.
+  // Drawn last, so a 1.0 family's numbers are what they always were. ADR-0053: a
+  // family that offers a pick draws its rate limit the same way.
+  const price =
+    family.provider === undefined
+      ? family.providerCostPerCall === undefined
+        ? null
+        : { providerCostPerCall: family.providerCostPerCall }
+      : { provider: withFeeTarget(family) };
   const provider =
-    r.providerShare === undefined || family.providerCostPerCall === undefined
+    r.providerShare === undefined || price === null
       ? null
       : {
           providerRps: Math.round(rps * draw(next, r.providerShare, 0.05)),
-          providerCostPerCall: family.providerCostPerCall,
+          ...price,
         };
   // Drawn after the provider, so no earlier family's numbers move.
   const connections =
@@ -259,6 +299,7 @@ function draft(
         };
   const needed =
     traffic.storedGb + traffic.growthGbPerDay * traffic.horizonDays;
+  const fees = provider?.provider?.feeTargetUsd;
   return HldProblem.parse({
     slug: `${family.slug}-${battleMode}-${String(seed)}`,
     title: family.title,
@@ -267,15 +308,21 @@ function draft(
     timeLimitMinutes: 30,
     requirements: [
       ...family.requirements.map((r) => r.text),
-      `About ${traffic.requests.map((t) => `${fmt(t.rps)} ${t.type.replaceAll("_", " ")}`).join(", ")} requests a second on a normal day.${provider === null ? "" : ` The external provider takes at most ${fmt(provider.providerRps)} calls a second, at $${String(provider.providerCostPerCall)} a call.`}${connections === null ? "" : ` About ${fmt(connections.connections)} clients stay connected.`}`,
+      `About ${traffic.requests.map((t) => `${fmt(t.rps)} ${t.type.replaceAll("_", " ")}`).join(", ")} requests a second on a normal day.${provider === null ? "" : ` The external provider takes at most ${fmt(provider.providerRps)} calls a second${offerWords(provider)}`}${connections === null ? "" : ` About ${fmt(connections.connections)} clients stay connected.`}`,
       `${fmt(traffic.storedGb)} GB kept today, growing ${String(traffic.growthGbPerDay)} GB a day: ${fmt(needed)} GB within ${String(traffic.horizonDays)} days.`,
       `A budget of $${fmt(budget)} a month.`,
+      ...(fees === undefined
+        ? []
+        : [
+            `Processing fees of at most $${fees.toFixed(2)} a payment, paid apart from the budget.`,
+          ]),
     ],
     covers: [
       ...family.requirements.map((r) => r.covers),
       { rule: "scenario", scenario: "baseline" },
       { rule: "storage" },
       { rule: "budget" },
+      ...(fees === undefined ? [] : [{ rule: "fees" as const }]),
     ],
     traffic: { ...traffic, ...provider, ...connections },
     budgetPerMonth: budget,
@@ -650,9 +697,15 @@ export function variant(
 ): Variant {
   const sizing = draft(family, battleMode, seed, 1e9);
   const reference = size(family, sizing);
-  const cost = simulate(sizing, reference).costPerMonth;
+  const sized = simulate(sizing, reference);
+  // ADR-0053: a picked provider's fees are budgeted at the reference's pick, with no
+  // headroom: a dearer pick goes over, and the rest keeps its headroom.
+  const fees = sized.providerCostPerMonth ?? 0;
   const budget =
-    Math.ceil((cost * (battleMode === "ai" ? 1.2 : 1.5)) / 100) * 100;
+    Math.ceil(
+      ((sized.costPerMonth - fees) * (battleMode === "ai" ? 1.2 : 1.5) + fees) /
+        100,
+    ) * 100;
   return {
     problem: draft(family, battleMode, seed, budget),
     reference,
@@ -668,6 +721,31 @@ export function validate(v: Variant): string[] {
     if (!s.targetsMet) problems.push(`the reference design misses "${s.id}"`);
   for (const f of v.flawed) {
     const r = simulate(v.problem, f.design);
+    // Card fees over their target, and nothing else (owner, 2026-11-24).
+    if (f.targets === "fees") {
+      const offer = v.problem.traffic.provider;
+      const lifted =
+        offer === undefined
+          ? []
+          : simulate(
+              {
+                ...v.problem,
+                traffic: {
+                  ...v.problem.traffic,
+                  provider: { ...offer, feeTargetUsd: Infinity },
+                },
+              },
+              f.design,
+            ).scenarios.filter((s) => !s.targetsMet);
+      const over =
+        (r.fees?.perPayment ?? 0) > (r.fees?.target ?? Infinity) &&
+        r.costPerMonth <= v.problem.budgetPerMonth;
+      if (!over || lifted.length > 0)
+        problems.push(
+          `${f.id} should fail only on its fees per payment but ${over ? `fails ${lifted.map((x) => `"${x.id}"`).join(", ")}` : "is within its fee target or over budget"}`,
+        );
+      continue;
+    }
     if (f.targets === "budget") {
       // Over budget, and nothing else: with the budget lifted it meets every target.
       const lifted = simulate(

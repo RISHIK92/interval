@@ -1,5 +1,6 @@
 import { COMPONENT_NAMES, type ComponentKind, componentNames } from "./catalog";
 import type { HldProblem } from "./problem";
+import { REGION_NAMES } from "./spec";
 import type { NodeResult, SimulationResult } from "./simulate";
 
 // P6-W39 (Q-P6-03): the canvas's hints, by rule from the preview simulation; no model
@@ -44,13 +45,34 @@ export function hints(problem: HldProblem, result: SimulationResult): string[] {
   const add = (hint: string) => {
     if (!found.includes(hint)) found.push(hint);
   };
+  // ADR-0053: a picked provider by its name too: "external provider (MSG91 SMS)".
   const named = (nodes: NodeResult[]) => {
     const names = componentNames(nodes);
-    return (n: NodeResult) => lower(names.get(n.id) ?? n.kind);
+    return (n: NodeResult) =>
+      lower(names.get(n.id) ?? n.kind) +
+      (typeof n.provider === "string" ? ` (${n.provider})` : "");
   };
   const baseline = result.scenarios.find((s) => s.id === "baseline");
+  // ADR-0053: a provider with nothing it can use does no work; that comes first, and
+  // the types waiting on it aren't sent looking for a database.
+  const unpicked = (baseline?.nodes ?? []).filter((n) => n.provider === null);
+  // Where the problem offers a pick; a node's provider is set only then.
+  const offer = problem.traffic.provider;
+  const region = offer === undefined ? "" : REGION_NAMES[offer.region];
+  for (const n of unpicked)
+    add(
+      `Pick the ${named(baseline?.nodes ?? [])(n)}'s provider and channel, from those offered in ${region}: until then it does no work.`,
+    );
   for (const t of baseline?.types ?? [])
-    if (t.availability === 0) {
+    if (
+      t.availability === 0 &&
+      !(
+        unpicked.length > 0 &&
+        problem.traffic.requests
+          .find((r) => r.type === t.type)
+          ?.requires?.includes("external_api") === true
+      )
+    ) {
       const write =
         problem.traffic.requests.find((r) => r.type === t.type)?.kind ===
         "write";
@@ -139,8 +161,31 @@ export function hints(problem: HldProblem, result: SimulationResult): string[] {
     add(
       `Storage runs out: the data grows to ${String(result.storageNeededGb)} GB by the end, so give it more room.`,
     );
+  // ADR-0053: where the picked provider's fees are most of the cost, it's the pick.
+  const picks = [
+    ...new Set(
+      (baseline?.nodes ?? []).flatMap((n) =>
+        typeof n.provider === "string" ? [n.provider] : [],
+      ),
+    ),
+  ];
+  // Card fees answer to their own target (owner, 2026-11-24).
+  const fees = result.fees;
+  if (
+    fees?.perPayment !== null &&
+    fees !== undefined &&
+    fees.perPayment > fees.target + 1e-9
+  )
+    add(
+      `Fees per payment at ${list(picks.map((p) => ({ text: p, count: 1 })))} are over their target: compare what each payment provider charges in ${region} at this ticket.`,
+    );
   if (result.costPerMonth > problem.budgetPerMonth)
-    add("The design costs more than the budget: trim capacity it doesn't use.");
+    add(
+      (result.providerCostPerMonth ?? 0) > result.costPerMonth / 2 &&
+        picks.length > 0
+        ? `The design costs more than the budget, and most of it is the ${list(picks.map((p) => ({ text: p, count: 1 })))} fees: send it only what it delivers, and compare what each provider and channel costs in ${region}.`
+        : "The design costs more than the budget: trim capacity it doesn't use.",
+    );
   const hot = new Set<string>();
   for (const s of result.scenarios) {
     const name = named(s.nodes);

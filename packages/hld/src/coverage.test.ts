@@ -189,3 +189,44 @@ test("2.1's kinds say what sizes them", () => {
     /^Connection gateway, \d+ nodes; done within \d+ seconds$/,
   );
 });
+
+// ADR-0053 (owner, 2026-11-24): card fees are paid apart from the budget, so neither
+// uncovers the other, nor the scenarios: a processor over its fee target leaves the
+// budget and every scenario covered, and an infrastructure over budget leaves the fees.
+describe("card fees and the budget cover apart", () => {
+  const family = FAMILIES.find((f) => f.slug === "payment-processing");
+  if (family === undefined) throw new Error("no payment-processing");
+  const v = variant(family, "human", 1);
+  const by = (design: Design, problem = v.problem) => {
+    const c = run(problem, design);
+    const at = (rule: string) =>
+      c.items[(problem.covers ?? []).findIndex((x) => x.rule === rule)]
+        ?.covered;
+    return {
+      budget: at("budget"),
+      fees: at("fees"),
+      scenarios: (problem.covers ?? []).every(
+        (x, i) => x.rule !== "scenario" || c.items[i]?.covered === true,
+      ),
+    };
+  };
+
+  test("PayPal over its fee target: the budget and the scenarios stay covered", () => {
+    const flaw = v.flawed.find((f) => f.id === "paypal-fees");
+    if (flaw === undefined) throw new Error("no paypal-fees");
+    expect(by(flaw.design)).toEqual({
+      budget: true,
+      fees: false,
+      scenarios: true,
+    });
+  });
+
+  test("Stripe on a design over budget: the fees stay covered", () => {
+    const tight = { ...v.problem, budgetPerMonth: 100 };
+    expect(by(v.reference, tight)).toEqual({
+      budget: false,
+      fees: true,
+      scenarios: false,
+    });
+  });
+});

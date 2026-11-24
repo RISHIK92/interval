@@ -47,6 +47,10 @@ export const JudgeInput = z.strictObject({
     baselinePassed: z.boolean(),
     costPerMonth: z.number(),
     budgetPerMonth: z.number(),
+    // Card payments (owner, 2026-11-24): fees per payment against their target, paid
+    // apart from the budget; absent where the problem has none.
+    feePerPayment: z.number().nullable().optional(),
+    feeTargetPerPayment: z.number().optional(),
     scenarios: z.array(
       z.strictObject({
         name: z.string(),
@@ -91,6 +95,15 @@ export function judgeInput(
       baselinePassed: result.baselinePassed,
       costPerMonth: result.costPerMonth,
       budgetPerMonth: problem.budgetPerMonth,
+      ...(result.fees === undefined
+        ? {}
+        : {
+            feePerPayment:
+              result.fees.perPayment === null
+                ? null
+                : Math.round(result.fees.perPayment * 100) / 100,
+            feeTargetPerPayment: result.fees.target,
+          }),
       scenarios: result.scenarios.map((s) => ({
         name: s.name,
         targetsMet: s.targetsMet,

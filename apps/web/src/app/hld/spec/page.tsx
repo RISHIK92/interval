@@ -1,8 +1,12 @@
 import {
+  CHANNEL_NAMES,
   type ComponentKind,
   type ComponentStats,
   type Features,
   LATEST_SPEC,
+  PROVIDER_NAMES,
+  priceLabel,
+  REGION_NAMES,
   SPEC_VERSIONS,
 } from "@interval/hld";
 import type { Metadata } from "next";
@@ -202,7 +206,7 @@ export default function SpecPage() {
                   percent(s.availability),
                   s.setByProblem === undefined
                     ? `$${s.costPerNodeHour.toFixed(3)}`
-                    : "Per call, set by each problem",
+                    : "Per call: each problem's price, or the picked provider's",
                 ].map((value, i) => (
                   <div key={STATS[i]}>
                     <dt className="text-[13px] text-ink-muted lg:sr-only">
@@ -230,6 +234,7 @@ export default function SpecPage() {
           </Card>
         </section>
       )}
+      <Providers />
       <section aria-label="Patch notes" className="flex flex-col gap-3">
         <h2 className="text-section">Patch notes</h2>
         <ol className="flex flex-col gap-3">
@@ -253,5 +258,87 @@ export default function SpecPage() {
         </ol>
       </section>
     </main>
+  );
+}
+
+// ADR-0053: the providers and channels a player may pick on an external provider, at
+// their list prices by region, each with its source and the day it was read. A figure a
+// provider doesn't publish is never shown as its claim: the simulator's estimate stands
+// in, and says so.
+function Providers() {
+  const table = LATEST_SPEC.features.providers;
+  const provider = LATEST_SPEC.components.external_api;
+  if (table === undefined || provider === undefined) return null;
+  const estimate = "a simulated estimate, not published by the provider";
+  return (
+    <section
+      id="providers"
+      aria-label="Providers you can pick"
+      className="flex flex-col gap-3"
+    >
+      <h2 className="text-section">Providers you can pick</h2>
+      <p className="text-sm text-ink-soft">
+        Where a problem offers it, you pick the external provider&apos;s
+        provider and channel, priced for where the problem&apos;s users are.
+        These are list prices in US dollars, seen {day(table.seen)} at that
+        day&apos;s exchange rates. They change, so they&apos;re provisional. A
+        payment&apos;s fee is its percentage of the problem&apos;s average
+        ticket plus its fixed fee, paid apart from the infrastructure budget and
+        held to the problem&apos;s target for fees per payment. No provider
+        publishes its latency: every call takes {String(provider.latencyMs)} ms,{" "}
+        {estimate}. Where a provider publishes no SLA, its availability is{" "}
+        {percent(provider.availability)}, {estimate}. Published rate limits are
+        per number or default quotas a provider raises on request, so each
+        problem sets the rate limit its provider is held to.
+      </p>
+      <Card className="lg:rounded-[22px] lg:shadow-none">
+        <ul aria-label="Provider prices" className="tabular-nums">
+          {table.prices.map((p) => (
+            <li
+              key={`${p.provider}/${p.channel}/${p.region}`}
+              className="border-t border-hairline px-5 py-4 first:border-t-0 lg:grid lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,1.2fr)] lg:gap-4 lg:px-[18px] lg:py-3.5"
+            >
+              <p className="font-semibold">
+                {PROVIDER_NAMES[p.provider]} · {CHANNEL_NAMES[p.channel]}
+                <span className="block text-sm font-normal text-ink-muted">
+                  {REGION_NAMES[p.region].replace(/^the /, "The ")}
+                </span>
+              </p>
+              <p className="mt-1 text-sm lg:mt-0">
+                {priceLabel(p) ?? "Not offered or not published"}
+                {p.note === undefined ? null : (
+                  <span className="block text-ink-muted">{p.note}</span>
+                )}
+              </p>
+              <dl className="mt-1 text-sm lg:mt-0">
+                <dt className="text-[13px] text-ink-muted">Rate limit</dt>
+                <dd>{p.rateLimit ?? "Not published"}</dd>
+                <dt className="mt-1 text-[13px] text-ink-muted">SLA</dt>
+                <dd>
+                  {p.availability === null
+                    ? `Not published: ${percent(provider.availability)}, ${estimate}`
+                    : percent(p.availability)}
+                </dd>
+              </dl>
+              <p className="mt-1 text-sm lg:mt-0">
+                <a
+                  href={p.source}
+                  className="break-all underline underline-offset-2 hover:text-ink"
+                >
+                  {new URL(p.source).hostname}
+                </a>
+                <span className="block text-ink-muted">
+                  Seen {day(table.seen)}
+                  {/* List prices change: always provisional, whatever the
+                  sheet's own status (docs/hld-provider-prices.md). */}
+                  {" · Provisional"}
+                  {p.secondary === true ? " · Secondary source" : ""}
+                </span>
+              </p>
+            </li>
+          ))}
+        </ul>
+      </Card>
+    </section>
   );
 }

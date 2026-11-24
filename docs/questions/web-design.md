@@ -418,3 +418,7 @@ Conflicts with earlier decisions come first: they need a ruling, and some need a
   - Twilio, MSG91, Amazon (SNS/SES) and Vonage, over SMS, WhatsApp, email and voice, priced by the problem's region.
   - Stripe, Razorpay and PayPal for payments.
   - Real list prices from docs/hld-provider-prices.md (PROVISIONAL, seen 2026-11-24).
+- **Provider follow-ups (owner, 2026-11-24, ADR-0053 accepted):**
+  - Card processing fees sit outside the infrastructure budget, with their own target: the cheapest suitable processor's fee per payment. Messaging fees stay inside the budget.
+  - Push providers are selectable for notification-service: FCM, APNs, Amazon SNS mobile push and OneSignal.
+  - otp-login offers email OTP. Amazon India SMS uses the local DLT route.

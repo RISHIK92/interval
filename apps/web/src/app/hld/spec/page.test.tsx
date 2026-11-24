@@ -1,5 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test } from "vitest";
+import { LATEST_SPEC } from "@interval/hld";
 import SpecPage from "./page";
 
 // P6-W36 (CANVAS-4): the public spec sheet shows every component's numbers and the
@@ -47,7 +48,9 @@ test("the sheet shows 2.0: the provider marked new, the engine's bytes and backl
   expect(html).toContain("External provider");
   expect(html.match(/New in 2\.0/g)).toHaveLength(1);
   expect(html).toContain("Set by each problem: calls/s");
-  expect(html).toContain("Per call, set by each problem");
+  expect(html).toContain(
+    "Per call: each problem&#x27;s price, or the picked provider&#x27;s",
+  );
   expect(html).toContain(
     "$0.02 a GB from a CDN, $0.09 a GB from anything else",
   );
@@ -82,4 +85,35 @@ test("the sheet shows 2.1: its kinds marked new, their numbers, the engine's rul
   expect(html).toMatch(/2\.1 <span[^>]*>· 1 Jan 2027/);
   expect(html).toContain("New component: the geo index");
   expect(html).toContain("Every version 1.0 and 2.0 number is unchanged");
+});
+
+// ADR-0053: the providers a player may pick, at their list prices by region, each
+// with its source and the day it was seen; what a provider doesn't publish is never
+// shown as its claim.
+test("the sheet lists the pickable providers, their sources, and what's an estimate", () => {
+  const html = renderToStaticMarkup(<SpecPage />);
+  expect(html).toContain('id="providers"');
+  expect(html).toContain("Providers you can pick");
+  expect(html).toContain("$0.0832 per SMS");
+  expect(html).toContain("$0.0018 per SMS");
+  expect(html).toContain("$0.0012 per message + $5.38 a month");
+  expect(html).toContain("2.9% + $0.30 per payment");
+  expect(html).toContain("2.36% per payment");
+  expect(html).toContain('href="https://www.twilio.com/en-us/sms/pricing/in"');
+  expect(html).toContain("Seen 24 Nov 2026");
+  expect(html).toContain("Provisional");
+  // List prices change: the table is provisional whatever the sheet's own status.
+  expect(html.match(/· Provisional/g)?.length).toBe(
+    LATEST_SPEC.features.providers?.prices.length,
+  );
+  // Razorpay in the US: listed, never pickable.
+  expect(html).toMatch(/Razorpay[\s\S]*?Not offered or not published/);
+  expect(html).toContain("99.95%");
+  expect(html).toContain("simulated estimate, not published by the provider");
+  expect(html).toContain("Secondary source");
+  // Push (owner, 2026-11-24), and card fees apart from the budget.
+  expect(html).toContain("OneSignal · Push");
+  expect(html).toContain("$19 a month + $0.012 per monthly user");
+  expect(html).toContain("$0.000001 per notification");
+  expect(html).toContain("paid apart from the infrastructure budget");
 });

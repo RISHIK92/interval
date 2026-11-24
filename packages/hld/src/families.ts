@@ -76,11 +76,16 @@ const cdn = (id: string, ttlSeconds: number, note: string): DesignNode => ({
   config: { ttlSeconds },
   note,
 });
-// Spec 2.0: a third party, at its problem's rate limit and price.
-const provider = (id: string, note: string): DesignNode => ({
+// Spec 2.0: a third party, at its problem's rate limit and price; ADR-0053: or the
+// provider and channel picked from the problem's offer.
+const provider = (
+  id: string,
+  note: string,
+  pick: Extract<DesignNode, { kind: "external_api" }>["config"] = {},
+): DesignNode => ({
   id,
   kind: "external_api",
-  config: {},
+  config: pick,
   note,
 });
 // Spec 2.1 (ADR-0050 stage 2): a batch size on every app service and worker (1: none),
@@ -1250,14 +1255,14 @@ export const FAMILIES: readonly Family[] = [
         true,
       ),
       served(
-        "Send a one-time code by SMS, delivered within 15 minutes.",
+        "Send a one-time code by SMS, WhatsApp, a voice call or email, delivered within 15 minutes.",
         "request_code",
         ["external_api"],
         true,
       ),
       served("Check a code someone typed, fast.", "verify", ["kv_store"], true),
       {
-        text: "Keep signing people in while the SMS provider is down for 10 minutes.",
+        text: "Keep signing people in while the messaging provider is down for 10 minutes.",
         covers: { rule: "scenario", scenario: "provider_down" },
       },
     ],
@@ -1293,7 +1298,11 @@ export const FAMILIES: readonly Family[] = [
       },
       { type: "verify", kind: "write", cacheable: false, share: 0.08 },
     ],
-    providerCostPerCall: 0.0005,
+    // ADR-0053: its users are in India, reached by phone; MSG91's SMS is about 46
+    // times cheaper there than Twilio's.
+    // Owner, 2026-11-24: email too, the cheapest; no provider publishes delivery
+    // times, so its slowness stays the rubric's.
+    provider: { region: "in", channels: ["sms", "whatsapp", "voice", "email"] },
     ranges: {
       human: {
         rps: [2_000, 4_000],
@@ -1327,11 +1336,12 @@ export const FAMILIES: readonly Family[] = [
         ),
         workers(
           "senders",
-          "Send each code through the SMS provider, retrying.",
+          "Send each code through the messaging provider, retrying.",
         ),
         provider(
           "sms",
-          "The SMS provider: its rate limit, its price, its outages.",
+          "MSG91's SMS: the cheapest SMS in India, at its rate limit; its outages wait in the queue.",
+          { provider: "msg91", channel: "sms" },
         ),
       ],
       edges: [
@@ -1346,7 +1356,7 @@ export const FAMILIES: readonly Family[] = [
     scenarios: [
       {
         id: "provider_down",
-        name: "The SMS provider is down for 10 minutes",
+        name: "The messaging provider is down for 10 minutes",
         weight: 2,
         load: 1,
         minutes: 10,
@@ -1364,6 +1374,13 @@ export const FAMILIES: readonly Family[] = [
       },
       // No provider: codes are stored and queued, and never sent.
       { id: "no-provider", targets: "baseline", without: "sms" },
+      // ADR-0053: Twilio's SMS in India costs about 46 times MSG91's.
+      {
+        id: "twilio-sms",
+        targets: "budget",
+        node: "sms",
+        configure: () => ({ provider: "twilio", channel: "sms" }),
+      },
     ],
     practiceSeeds: [1],
   },
@@ -1886,7 +1903,7 @@ export const FAMILIES: readonly Family[] = [
     title: "Payment processing",
     requirements: [
       served(
-        "Authorize a card payment with the card network, fast.",
+        "Authorize a card payment with the payment provider, fast.",
         "authorize",
         ["external_api"],
         true,
@@ -1904,7 +1921,7 @@ export const FAMILIES: readonly Family[] = [
         true,
       ),
       {
-        text: "When the card network is down for 5 minutes, fail authorizations honestly and capture later.",
+        text: "When the payment provider is down for 5 minutes, fail authorizations honestly and capture later.",
         covers: { rule: "scenario", scenario: "network_down" },
       },
     ],
@@ -1912,7 +1929,7 @@ export const FAMILIES: readonly Family[] = [
     rubric: rubric(
       [
         "idempotency",
-        "Explains what happens when the network times out after charging: idempotency keys and reconciliation.",
+        "Explains what happens when the payment provider times out after charging: idempotency keys and reconciliation.",
       ],
       [
         "two_step",
@@ -1936,6 +1953,8 @@ export const FAMILIES: readonly Family[] = [
         cacheable: false,
         share: 0.08,
         requires: ["external_api"],
+        // ADR-0053: a payment's fee is charged once, at its capture.
+        billed: false,
       },
       {
         type: "capture",
@@ -1946,7 +1965,10 @@ export const FAMILIES: readonly Family[] = [
         requires: ["external_api"],
       },
     ],
-    providerCostPerCall: 0.0002,
+    // ADR-0053: card payments in the US, at a $40 average ticket (PROVISIONAL);
+    // Razorpay lists no US price, and PayPal's fixed fee makes it dearer. Fees are
+    // paid apart from the budget, against the cheapest processor's (owner, 2026-11-24).
+    provider: { region: "us", channels: ["card"], ticketUsd: 40 },
     ranges: {
       human: {
         rps: [1_000, 2_000],
@@ -1977,7 +1999,11 @@ export const FAMILIES: readonly Family[] = [
           "Stateless: authorizes in the request, queues every capture, with an idempotency key.",
         ),
         sql("payments", "Payments and idempotency keys, written once."),
-        provider("network", "The card network: authorizes and captures."),
+        provider(
+          "network",
+          "Stripe: authorizes and captures, its fee charged at capture; the cheapest at this ticket.",
+          { provider: "stripe", channel: "card" },
+        ),
         queue("captures", "Captures waiting: an outage only delays them."),
         workers("capturers", "Capture each payment, retrying, and record it."),
       ],
@@ -1995,7 +2021,7 @@ export const FAMILIES: readonly Family[] = [
     scenarios: [
       {
         id: "network_down",
-        name: "The card network is down for 5 minutes",
+        name: "The payment provider is down for 5 minutes",
         weight: 2,
         load: 1,
         minutes: 5,
@@ -2012,8 +2038,15 @@ export const FAMILIES: readonly Family[] = [
         targets: "network_down",
         bypass: ["captures", "capturers"],
       },
-      // No card network: payments are recorded and never authorized or captured.
+      // No payment provider: payments are recorded and never authorized or captured.
       { id: "no-provider", targets: "baseline", without: "network" },
+      // ADR-0053: PayPal's fixed $0.49 makes each $40 payment about 15% dearer.
+      {
+        id: "paypal-fees",
+        targets: "fees",
+        node: "network",
+        configure: () => ({ provider: "paypal", channel: "card" }),
+      },
     ],
   },
   {
@@ -2737,7 +2770,9 @@ export const FAMILIES: readonly Family[] = [
       },
       { type: "prefs_write", kind: "write", cacheable: false, share: 0.059 },
     ],
-    providerCostPerCall: 0.000001,
+    // Owner, 2026-11-24: the push provider is picked too. 10 million monthly users
+    // (PROVISIONAL) is what OneSignal's per-user price is charged on.
+    provider: { region: "us", channels: ["push"], monthlyUsers: 10_000_000 },
     ranges: {
       human: {
         rps: [2_000, 6_000],
@@ -2770,7 +2805,11 @@ export const FAMILIES: readonly Family[] = [
         workers("senders", "Send each notification, retrying."),
         queue("campaigns", "Campaigns waiting to be expanded."),
         workers("expanders", "Expand a campaign to its segment, in batches."),
-        provider("push", "The push provider: its rate limit and its outages."),
+        provider(
+          "push",
+          "FCM: no cost per notification, to Android and, through APNs, Apple devices; its rate limit and its outages.",
+          { provider: "fcm", channel: "push" },
+        ),
       ],
       edges: [
         e("users", "lb", "prefs_read", "notify", "campaign", "prefs_write"),
@@ -2810,6 +2849,14 @@ export const FAMILIES: readonly Family[] = [
         id: "campaign-inline",
         targets: "baseline",
         bypass: ["campaigns", "expanders"],
+      },
+      // Owner, 2026-11-24: OneSignal's $0.012 per monthly user, at 10 million users,
+      // where FCM charges nothing.
+      {
+        id: "onesignal-per-user",
+        targets: "budget",
+        node: "push",
+        configure: () => ({ provider: "onesignal", channel: "push" }),
       },
     ],
   },

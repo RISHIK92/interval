@@ -9715,12 +9715,12 @@
       "title": "One-time code sign-in",
       "requirements": [
         "Check a signed-in session, fast.",
-        "Send a one-time code by SMS, delivered within 15 minutes.",
+        "Send a one-time code by SMS, WhatsApp, a voice call or email, delivered within 15 minutes.",
         "Check a code someone typed, fast.",
-        "Keep signing people in while the SMS provider is down for 10 minutes.",
-        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second, at $0.0005 a call.",
+        "Keep signing people in while the messaging provider is down for 10 minutes.",
+        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second. Its users are in India: pick its provider and channel.",
         "0 GB kept today, growing 0 GB a day: 0 GB within 30 days.",
-        "A budget of $225,400 a month."
+        "A budget of $534,400 a month."
       ],
       "rubric": [
         {
@@ -9784,13 +9784,16 @@
             "zones": 3,
             "regions": 1
           },
-          "note": "Send each code through the SMS provider, retrying."
+          "note": "Send each code through the messaging provider, retrying."
         },
         {
           "id": "sms",
           "kind": "external_api",
-          "config": {},
-          "note": "The SMS provider: its rate limit, its price, its outages."
+          "config": {
+            "provider": "msg91",
+            "channel": "sms"
+          },
+          "note": "MSG91's SMS: the cheapest SMS in India, at its rate limit; its outages wait in the queue."
         }
       ],
       "connections": [
@@ -9828,8 +9831,8 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 150215.75,
-        "budgetPerMonth": 225400,
+        "costPerMonth": 532852.55,
+        "budgetPerMonth": 534400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -9850,7 +9853,7 @@
             "served": 1
           },
           {
-            "name": "The SMS provider is down for 10 minutes",
+            "name": "The messaging provider is down for 10 minutes",
             "targetsMet": true,
             "p99Ms": 29,
             "served": 1
@@ -9867,12 +9870,12 @@
       "title": "One-time code sign-in",
       "requirements": [
         "Check a signed-in session, fast.",
-        "Send a one-time code by SMS, delivered within 15 minutes.",
+        "Send a one-time code by SMS, WhatsApp, a voice call or email, delivered within 15 minutes.",
         "Check a code someone typed, fast.",
-        "Keep signing people in while the SMS provider is down for 10 minutes.",
-        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second, at $0.0005 a call.",
+        "Keep signing people in while the messaging provider is down for 10 minutes.",
+        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second. Its users are in India: pick its provider and channel.",
         "0 GB kept today, growing 0 GB a day: 0 GB within 30 days.",
-        "A budget of $225,400 a month."
+        "A budget of $534,400 a month."
       ],
       "rubric": [
         {
@@ -9941,7 +9944,10 @@
         {
           "id": "sms",
           "kind": "external_api",
-          "config": {},
+          "config": {
+            "provider": "msg91",
+            "channel": "sms"
+          },
           "note": ""
         }
       ],
@@ -9980,8 +9986,8 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 150215.75,
-        "budgetPerMonth": 225400,
+        "costPerMonth": 532852.55,
+        "budgetPerMonth": 534400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -10002,7 +10008,7 @@
             "served": 1
           },
           {
-            "name": "The SMS provider is down for 10 minutes",
+            "name": "The messaging provider is down for 10 minutes",
             "targetsMet": true,
             "p99Ms": 29,
             "served": 1
@@ -10019,12 +10025,12 @@
       "title": "One-time code sign-in",
       "requirements": [
         "Check a signed-in session, fast.",
-        "Send a one-time code by SMS, delivered within 15 minutes.",
+        "Send a one-time code by SMS, WhatsApp, a voice call or email, delivered within 15 minutes.",
         "Check a code someone typed, fast.",
-        "Keep signing people in while the SMS provider is down for 10 minutes.",
-        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second, at $0.0005 a call.",
+        "Keep signing people in while the messaging provider is down for 10 minutes.",
+        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second. Its users are in India: pick its provider and channel.",
         "0 GB kept today, growing 0 GB a day: 0 GB within 30 days.",
-        "A budget of $225,400 a month."
+        "A budget of $534,400 a month."
       ],
       "rubric": [
         {
@@ -10077,7 +10083,7 @@
         "points": 23.3,
         "baselinePassed": false,
         "costPerMonth": 474.5,
-        "budgetPerMonth": 225400,
+        "budgetPerMonth": 534400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -10098,7 +10104,7 @@
             "served": 0
           },
           {
-            "name": "The SMS provider is down for 10 minutes",
+            "name": "The messaging provider is down for 10 minutes",
             "targetsMet": false,
             "p99Ms": null,
             "served": 0.959
@@ -10115,12 +10121,12 @@
       "title": "One-time code sign-in",
       "requirements": [
         "Check a signed-in session, fast.",
-        "Send a one-time code by SMS, delivered within 15 minutes.",
+        "Send a one-time code by SMS, WhatsApp, a voice call or email, delivered within 15 minutes.",
         "Check a code someone typed, fast.",
-        "Keep signing people in while the SMS provider is down for 10 minutes.",
-        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second, at $0.0005 a call.",
+        "Keep signing people in while the messaging provider is down for 10 minutes.",
+        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second. Its users are in India: pick its provider and channel.",
         "0 GB kept today, growing 0 GB a day: 0 GB within 30 days.",
-        "A budget of $225,400 a month."
+        "A budget of $534,400 a month."
       ],
       "rubric": [
         {
@@ -10168,8 +10174,11 @@
         {
           "id": "sms",
           "kind": "external_api",
-          "config": {},
-          "note": "The SMS provider: its rate limit, its price, its outages."
+          "config": {
+            "provider": "msg91",
+            "channel": "sms"
+          },
+          "note": "MSG91's SMS: the cheapest SMS in India, at its rate limit; its outages wait in the queue."
         }
       ],
       "connections": [
@@ -10197,8 +10206,8 @@
       "simulation": {
         "points": 56.7,
         "baselinePassed": true,
-        "costPerMonth": 149887.25,
-        "budgetPerMonth": 225400,
+        "costPerMonth": 532524.05,
+        "budgetPerMonth": 534400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -10219,7 +10228,7 @@
             "served": 0.9998
           },
           {
-            "name": "The SMS provider is down for 10 minutes",
+            "name": "The messaging provider is down for 10 minutes",
             "targetsMet": false,
             "p99Ms": 24,
             "served": 0.96
@@ -10236,12 +10245,12 @@
       "title": "One-time code sign-in",
       "requirements": [
         "Check a signed-in session, fast.",
-        "Send a one-time code by SMS, delivered within 15 minutes.",
+        "Send a one-time code by SMS, WhatsApp, a voice call or email, delivered within 15 minutes.",
         "Check a code someone typed, fast.",
-        "Keep signing people in while the SMS provider is down for 10 minutes.",
-        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second, at $0.0005 a call.",
+        "Keep signing people in while the messaging provider is down for 10 minutes.",
+        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second. Its users are in India: pick its provider and channel.",
         "0 GB kept today, growing 0 GB a day: 0 GB within 30 days.",
-        "A budget of $225,400 a month."
+        "A budget of $534,400 a month."
       ],
       "rubric": [
         {
@@ -10310,7 +10319,10 @@
         {
           "id": "sms",
           "kind": "external_api",
-          "config": {},
+          "config": {
+            "provider": "msg91",
+            "channel": "sms"
+          },
           "note": "Chosen because it's the one I know best."
         }
       ],
@@ -10349,8 +10361,8 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 150215.75,
-        "budgetPerMonth": 225400,
+        "costPerMonth": 532852.55,
+        "budgetPerMonth": 534400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -10371,7 +10383,7 @@
             "served": 1
           },
           {
-            "name": "The SMS provider is down for 10 minutes",
+            "name": "The messaging provider is down for 10 minutes",
             "targetsMet": true,
             "p99Ms": 29,
             "served": 1
@@ -10388,12 +10400,12 @@
       "title": "One-time code sign-in",
       "requirements": [
         "Check a signed-in session, fast.",
-        "Send a one-time code by SMS, delivered within 15 minutes.",
+        "Send a one-time code by SMS, WhatsApp, a voice call or email, delivered within 15 minutes.",
         "Check a code someone typed, fast.",
-        "Keep signing people in while the SMS provider is down for 10 minutes.",
-        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second, at $0.0005 a call.",
+        "Keep signing people in while the messaging provider is down for 10 minutes.",
+        "About 2,464 session, 112 request code, 224 verify requests a second on a normal day. The external provider takes at most 560 calls a second. Its users are in India: pick its provider and channel.",
         "0 GB kept today, growing 0 GB a day: 0 GB within 30 days.",
-        "A budget of $225,400 a month."
+        "A budget of $534,400 a month."
       ],
       "rubric": [
         {
@@ -10462,7 +10474,10 @@
         {
           "id": "sms",
           "kind": "external_api",
-          "config": {},
+          "config": {
+            "provider": "msg91",
+            "channel": "sms"
+          },
           "note": ""
         }
       ],
@@ -10501,8 +10516,8 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 150215.75,
-        "budgetPerMonth": 225400,
+        "costPerMonth": 532852.55,
+        "budgetPerMonth": 534400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -10523,7 +10538,7 @@
             "served": 1
           },
           {
-            "name": "The SMS provider is down for 10 minutes",
+            "name": "The messaging provider is down for 10 minutes",
             "targetsMet": true,
             "p99Ms": 29,
             "served": 1
@@ -14069,18 +14084,19 @@
     "input": {
       "title": "Payment processing",
       "requirements": [
-        "Authorize a card payment with the card network, fast.",
+        "Authorize a card payment with the payment provider, fast.",
         "Capture an authorized payment within an hour.",
         "Show a payment's status, fast.",
-        "When the card network is down for 5 minutes, fail authorizations honestly and capture later.",
-        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second, at $0.0002 a call.",
+        "When the payment provider is down for 5 minutes, fail authorizations honestly and capture later.",
+        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second. Its users are in the US, paying $40 on average: pick its provider.",
         "420 GB kept today, growing 2.5 GB a day: 1,333 GB within 365 days.",
-        "A budget of $167,300 a month."
+        "A budget of $3,300 a month.",
+        "Processing fees of at most $1.46 a payment, paid apart from the budget."
       ],
       "rubric": [
         {
           "id": "idempotency",
-          "criterion": "Explains what happens when the network times out after charging: idempotency keys and reconciliation.",
+          "criterion": "Explains what happens when the payment provider times out after charging: idempotency keys and reconciliation.",
           "weight": 1
         },
         {
@@ -14123,8 +14139,11 @@
         {
           "id": "network",
           "kind": "external_api",
-          "config": {},
-          "note": "The card network: authorizes and captures."
+          "config": {
+            "provider": "stripe",
+            "channel": "card"
+          },
+          "note": "Stripe: authorizes and captures, its fee charged at capture; the cheapest at this ticket."
         },
         {
           "id": "captures",
@@ -14193,8 +14212,10 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 111513.35,
-        "budgetPerMonth": 167300,
+        "costPerMonth": 2188.55,
+        "budgetPerMonth": 3300,
+        "feePerPayment": 1.46,
+        "feeTargetPerPayment": 1.46,
         "scenarios": [
           {
             "name": "A normal day",
@@ -14215,7 +14236,7 @@
             "served": 0.9996
           },
           {
-            "name": "The card network is down for 5 minutes",
+            "name": "The payment provider is down for 5 minutes",
             "targetsMet": true,
             "p99Ms": 26,
             "served": 0.92
@@ -14231,18 +14252,19 @@
     "input": {
       "title": "Payment processing",
       "requirements": [
-        "Authorize a card payment with the card network, fast.",
+        "Authorize a card payment with the payment provider, fast.",
         "Capture an authorized payment within an hour.",
         "Show a payment's status, fast.",
-        "When the card network is down for 5 minutes, fail authorizations honestly and capture later.",
-        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second, at $0.0002 a call.",
+        "When the payment provider is down for 5 minutes, fail authorizations honestly and capture later.",
+        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second. Its users are in the US, paying $40 on average: pick its provider.",
         "420 GB kept today, growing 2.5 GB a day: 1,333 GB within 365 days.",
-        "A budget of $167,300 a month."
+        "A budget of $3,300 a month.",
+        "Processing fees of at most $1.46 a payment, paid apart from the budget."
       ],
       "rubric": [
         {
           "id": "idempotency",
-          "criterion": "Explains what happens when the network times out after charging: idempotency keys and reconciliation.",
+          "criterion": "Explains what happens when the payment provider times out after charging: idempotency keys and reconciliation.",
           "weight": 1
         },
         {
@@ -14285,7 +14307,10 @@
         {
           "id": "network",
           "kind": "external_api",
-          "config": {},
+          "config": {
+            "provider": "stripe",
+            "channel": "card"
+          },
           "note": ""
         },
         {
@@ -14355,8 +14380,10 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 111513.35,
-        "budgetPerMonth": 167300,
+        "costPerMonth": 2188.55,
+        "budgetPerMonth": 3300,
+        "feePerPayment": 1.46,
+        "feeTargetPerPayment": 1.46,
         "scenarios": [
           {
             "name": "A normal day",
@@ -14377,7 +14404,7 @@
             "served": 0.9996
           },
           {
-            "name": "The card network is down for 5 minutes",
+            "name": "The payment provider is down for 5 minutes",
             "targetsMet": true,
             "p99Ms": 26,
             "served": 0.92
@@ -14393,18 +14420,19 @@
     "input": {
       "title": "Payment processing",
       "requirements": [
-        "Authorize a card payment with the card network, fast.",
+        "Authorize a card payment with the payment provider, fast.",
         "Capture an authorized payment within an hour.",
         "Show a payment's status, fast.",
-        "When the card network is down for 5 minutes, fail authorizations honestly and capture later.",
-        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second, at $0.0002 a call.",
+        "When the payment provider is down for 5 minutes, fail authorizations honestly and capture later.",
+        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second. Its users are in the US, paying $40 on average: pick its provider.",
         "420 GB kept today, growing 2.5 GB a day: 1,333 GB within 365 days.",
-        "A budget of $167,300 a month."
+        "A budget of $3,300 a month.",
+        "Processing fees of at most $1.46 a payment, paid apart from the budget."
       ],
       "rubric": [
         {
           "id": "idempotency",
-          "criterion": "Explains what happens when the network times out after charging: idempotency keys and reconciliation.",
+          "criterion": "Explains what happens when the payment provider times out after charging: idempotency keys and reconciliation.",
           "weight": 1
         },
         {
@@ -14449,10 +14477,12 @@
         }
       ],
       "simulation": {
-        "points": 13,
+        "points": 19.7,
         "baselinePassed": false,
         "costPerMonth": 658.15,
-        "budgetPerMonth": 167300,
+        "budgetPerMonth": 3300,
+        "feePerPayment": null,
+        "feeTargetPerPayment": 1.46,
         "scenarios": [
           {
             "name": "A normal day",
@@ -14473,7 +14503,7 @@
             "served": 0
           },
           {
-            "name": "The card network is down for 5 minutes",
+            "name": "The payment provider is down for 5 minutes",
             "targetsMet": false,
             "p99Ms": null,
             "served": 0.8392
@@ -14489,18 +14519,19 @@
     "input": {
       "title": "Payment processing",
       "requirements": [
-        "Authorize a card payment with the card network, fast.",
+        "Authorize a card payment with the payment provider, fast.",
         "Capture an authorized payment within an hour.",
         "Show a payment's status, fast.",
-        "When the card network is down for 5 minutes, fail authorizations honestly and capture later.",
-        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second, at $0.0002 a call.",
+        "When the payment provider is down for 5 minutes, fail authorizations honestly and capture later.",
+        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second. Its users are in the US, paying $40 on average: pick its provider.",
         "420 GB kept today, growing 2.5 GB a day: 1,333 GB within 365 days.",
-        "A budget of $167,300 a month."
+        "A budget of $3,300 a month.",
+        "Processing fees of at most $1.46 a payment, paid apart from the budget."
       ],
       "rubric": [
         {
           "id": "idempotency",
-          "criterion": "Explains what happens when the network times out after charging: idempotency keys and reconciliation.",
+          "criterion": "Explains what happens when the payment provider times out after charging: idempotency keys and reconciliation.",
           "weight": 1
         },
         {
@@ -14543,8 +14574,11 @@
         {
           "id": "network",
           "kind": "external_api",
-          "config": {},
-          "note": "The card network: authorizes and captures."
+          "config": {
+            "provider": "stripe",
+            "channel": "card"
+          },
+          "note": "Stripe: authorizes and captures, its fee charged at capture; the cheapest at this ticket."
         }
       ],
       "connections": [
@@ -14570,10 +14604,12 @@
         }
       ],
       "simulation": {
-        "points": 58,
+        "points": 58.4,
         "baselinePassed": true,
-        "costPerMonth": 111184.85,
-        "budgetPerMonth": 167300,
+        "costPerMonth": 1860.05,
+        "budgetPerMonth": 3300,
+        "feePerPayment": 1.46,
+        "feeTargetPerPayment": 1.46,
         "scenarios": [
           {
             "name": "A normal day",
@@ -14594,7 +14630,7 @@
             "served": 0.9992
           },
           {
-            "name": "The card network is down for 5 minutes",
+            "name": "The payment provider is down for 5 minutes",
             "targetsMet": false,
             "p99Ms": 26,
             "served": 0.84
@@ -14610,18 +14646,19 @@
     "input": {
       "title": "Payment processing",
       "requirements": [
-        "Authorize a card payment with the card network, fast.",
+        "Authorize a card payment with the payment provider, fast.",
         "Capture an authorized payment within an hour.",
         "Show a payment's status, fast.",
-        "When the card network is down for 5 minutes, fail authorizations honestly and capture later.",
-        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second, at $0.0002 a call.",
+        "When the payment provider is down for 5 minutes, fail authorizations honestly and capture later.",
+        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second. Its users are in the US, paying $40 on average: pick its provider.",
         "420 GB kept today, growing 2.5 GB a day: 1,333 GB within 365 days.",
-        "A budget of $167,300 a month."
+        "A budget of $3,300 a month.",
+        "Processing fees of at most $1.46 a payment, paid apart from the budget."
       ],
       "rubric": [
         {
           "id": "idempotency",
-          "criterion": "Explains what happens when the network times out after charging: idempotency keys and reconciliation.",
+          "criterion": "Explains what happens when the payment provider times out after charging: idempotency keys and reconciliation.",
           "weight": 1
         },
         {
@@ -14664,7 +14701,10 @@
         {
           "id": "network",
           "kind": "external_api",
-          "config": {},
+          "config": {
+            "provider": "stripe",
+            "channel": "card"
+          },
           "note": "Chosen because it's the one I know best."
         },
         {
@@ -14734,8 +14774,10 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 111513.35,
-        "budgetPerMonth": 167300,
+        "costPerMonth": 2188.55,
+        "budgetPerMonth": 3300,
+        "feePerPayment": 1.46,
+        "feeTargetPerPayment": 1.46,
         "scenarios": [
           {
             "name": "A normal day",
@@ -14756,7 +14798,7 @@
             "served": 0.9996
           },
           {
-            "name": "The card network is down for 5 minutes",
+            "name": "The payment provider is down for 5 minutes",
             "targetsMet": true,
             "p99Ms": 26,
             "served": 0.92
@@ -14772,18 +14814,19 @@
     "input": {
       "title": "Payment processing",
       "requirements": [
-        "Authorize a card payment with the card network, fast.",
+        "Authorize a card payment with the payment provider, fast.",
         "Capture an authorized payment within an hour.",
         "Show a payment's status, fast.",
-        "When the card network is down for 5 minutes, fail authorizations honestly and capture later.",
-        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second, at $0.0002 a call.",
+        "When the payment provider is down for 5 minutes, fail authorizations honestly and capture later.",
+        "About 1,092 payment status, 104 authorize, 104 capture requests a second on a normal day. The external provider takes at most 1,235 calls a second. Its users are in the US, paying $40 on average: pick its provider.",
         "420 GB kept today, growing 2.5 GB a day: 1,333 GB within 365 days.",
-        "A budget of $167,300 a month."
+        "A budget of $3,300 a month.",
+        "Processing fees of at most $1.46 a payment, paid apart from the budget."
       ],
       "rubric": [
         {
           "id": "idempotency",
-          "criterion": "Explains what happens when the network times out after charging: idempotency keys and reconciliation.",
+          "criterion": "Explains what happens when the payment provider times out after charging: idempotency keys and reconciliation.",
           "weight": 1
         },
         {
@@ -14826,7 +14869,10 @@
         {
           "id": "network",
           "kind": "external_api",
-          "config": {},
+          "config": {
+            "provider": "stripe",
+            "channel": "card"
+          },
           "note": ""
         },
         {
@@ -14896,8 +14942,10 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 111513.35,
-        "budgetPerMonth": 167300,
+        "costPerMonth": 2188.55,
+        "budgetPerMonth": 3300,
+        "feePerPayment": 1.46,
+        "feeTargetPerPayment": 1.46,
         "scenarios": [
           {
             "name": "A normal day",
@@ -14918,7 +14966,7 @@
             "served": 0.9996
           },
           {
-            "name": "The card network is down for 5 minutes",
+            "name": "The payment provider is down for 5 minutes",
             "targetsMet": true,
             "p99Ms": 26,
             "served": 0.92
@@ -19731,9 +19779,9 @@
         "Read a user's notification preferences, fast.",
         "Change a user's preferences.",
         "Keep notifications flowing when the push provider is down for 5 minutes.",
-        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second, at $0.000001 a call.",
+        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second. Its users are in the US: pick its provider and channel.",
         "400 GB kept today, growing 3.5 GB a day: 715 GB within 90 days.",
-        "A budget of $9,800 a month."
+        "A budget of $6,400 a month."
       ],
       "rubric": [
         {
@@ -19837,8 +19885,11 @@
         {
           "id": "push",
           "kind": "external_api",
-          "config": {},
-          "note": "The push provider: its rate limit and its outages."
+          "config": {
+            "provider": "fcm",
+            "channel": "push"
+          },
+          "note": "FCM: no cost per notification, to Android and, through APNs, Apple devices; its rate limit and its outages."
         }
       ],
       "connections": [
@@ -19896,8 +19947,8 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 6482.4,
-        "budgetPerMonth": 9800,
+        "costPerMonth": 4248.6,
+        "budgetPerMonth": 6400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -19939,9 +19990,9 @@
         "Read a user's notification preferences, fast.",
         "Change a user's preferences.",
         "Keep notifications flowing when the push provider is down for 5 minutes.",
-        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second, at $0.000001 a call.",
+        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second. Its users are in the US: pick its provider and channel.",
         "400 GB kept today, growing 3.5 GB a day: 715 GB within 90 days.",
-        "A budget of $9,800 a month."
+        "A budget of $6,400 a month."
       ],
       "rubric": [
         {
@@ -20045,7 +20096,10 @@
         {
           "id": "push",
           "kind": "external_api",
-          "config": {},
+          "config": {
+            "provider": "fcm",
+            "channel": "push"
+          },
           "note": ""
         }
       ],
@@ -20104,8 +20158,8 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 6482.4,
-        "budgetPerMonth": 9800,
+        "costPerMonth": 4248.6,
+        "budgetPerMonth": 6400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -20147,9 +20201,9 @@
         "Read a user's notification preferences, fast.",
         "Change a user's preferences.",
         "Keep notifications flowing when the push provider is down for 5 minutes.",
-        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second, at $0.000001 a call.",
+        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second. Its users are in the US: pick its provider and channel.",
         "400 GB kept today, growing 3.5 GB a day: 715 GB within 90 days.",
-        "A budget of $9,800 a month."
+        "A budget of $6,400 a month."
       ],
       "rubric": [
         {
@@ -20202,7 +20256,7 @@
         "points": 23.3,
         "baselinePassed": false,
         "costPerMonth": 474.5,
-        "budgetPerMonth": 9800,
+        "budgetPerMonth": 6400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -20244,9 +20298,9 @@
         "Read a user's notification preferences, fast.",
         "Change a user's preferences.",
         "Keep notifications flowing when the push provider is down for 5 minutes.",
-        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second, at $0.000001 a call.",
+        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second. Its users are in the US: pick its provider and channel.",
         "400 GB kept today, growing 3.5 GB a day: 715 GB within 90 days.",
-        "A budget of $9,800 a month."
+        "A budget of $6,400 a month."
       ],
       "rubric": [
         {
@@ -20328,8 +20382,11 @@
         {
           "id": "push",
           "kind": "external_api",
-          "config": {},
-          "note": "The push provider: its rate limit and its outages."
+          "config": {
+            "provider": "fcm",
+            "channel": "push"
+          },
+          "note": "FCM: no cost per notification, to Android and, through APNs, Apple devices; its rate limit and its outages."
         }
       ],
       "connections": [
@@ -20377,8 +20434,8 @@
       "simulation": {
         "points": 56.7,
         "baselinePassed": true,
-        "costPerMonth": 5861.9,
-        "budgetPerMonth": 9800,
+        "costPerMonth": 3628.1,
+        "budgetPerMonth": 6400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -20420,9 +20477,9 @@
         "Read a user's notification preferences, fast.",
         "Change a user's preferences.",
         "Keep notifications flowing when the push provider is down for 5 minutes.",
-        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second, at $0.000001 a call.",
+        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second. Its users are in the US: pick its provider and channel.",
         "400 GB kept today, growing 3.5 GB a day: 715 GB within 90 days.",
-        "A budget of $9,800 a month."
+        "A budget of $6,400 a month."
       ],
       "rubric": [
         {
@@ -20526,7 +20583,10 @@
         {
           "id": "push",
           "kind": "external_api",
-          "config": {},
+          "config": {
+            "provider": "fcm",
+            "channel": "push"
+          },
           "note": "Chosen because it's the one I know best."
         }
       ],
@@ -20585,8 +20645,8 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 6482.4,
-        "budgetPerMonth": 9800,
+        "costPerMonth": 4248.6,
+        "budgetPerMonth": 6400,
         "scenarios": [
           {
             "name": "A normal day",
@@ -20628,9 +20688,9 @@
         "Read a user's notification preferences, fast.",
         "Change a user's preferences.",
         "Keep notifications flowing when the push provider is down for 5 minutes.",
-        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second, at $0.000001 a call.",
+        "About 2,100 prefs read, 250 notify, 3 campaign, 148 prefs write requests a second on a normal day. The external provider takes at most 3,875 calls a second. Its users are in the US: pick its provider and channel.",
         "400 GB kept today, growing 3.5 GB a day: 715 GB within 90 days.",
-        "A budget of $9,800 a month."
+        "A budget of $6,400 a month."
       ],
       "rubric": [
         {
@@ -20734,7 +20794,10 @@
         {
           "id": "push",
           "kind": "external_api",
-          "config": {},
+          "config": {
+            "provider": "fcm",
+            "channel": "push"
+          },
           "note": ""
         }
       ],
@@ -20793,8 +20856,8 @@
       "simulation": {
         "points": 60,
         "baselinePassed": true,
-        "costPerMonth": 6482.4,
-        "budgetPerMonth": 9800,
+        "costPerMonth": 4248.6,
+        "budgetPerMonth": 6400,
         "scenarios": [
           {
             "name": "A normal day",

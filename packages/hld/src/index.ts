@@ -14,3 +14,4 @@ export * from "./family";
 export * from "./tournament";
 export * from "./coverage";
 export * from "./pool";
+export * from "./providers";

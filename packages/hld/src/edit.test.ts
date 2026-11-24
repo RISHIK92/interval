@@ -117,7 +117,9 @@ test("every catalog field has a label for the form", () => {
 });
 
 test("every catalog field is an int or a choice, so the form shows real bounds", () => {
-  for (const kind of COMPONENT_KINDS)
+  // ADR-0053: the provider's pick is the problem's offer (providers.test.ts), not a
+  // form field.
+  for (const kind of COMPONENT_KINDS.filter((k) => k !== "external_api"))
     for (const [name, field_] of Object.entries(
       CONFIG[kind].shape as Record<string, z.ZodType>,
     )) {

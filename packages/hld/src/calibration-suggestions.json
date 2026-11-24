@@ -1,5 +1,5 @@
 {
-  "about": "Claude's suggested grades for the HLD calibration set (CANVAS-6, AI-5), PROVISIONAL. Suggestions only: the owner accepts or changes each at /admin/hld-calibration, and only the owner's stored grades count for eval-hld-judge. Each carries the fingerprint of the design it was written for (Q-WD-32): one whose design has since changed is shown as outdated, never offered. Drafted 2026-11-24 against calibration.json's 186 designs (spec 1.0, 2.0 and 2.1 families) and the judge's level anchors.",
+  "about": "Claude's suggested grades for the HLD calibration set (CANVAS-6, AI-5), PROVISIONAL. Suggestions only: the owner accepts or changes each at /admin/hld-calibration, and only the owner's stored grades count for eval-hld-judge. Each carries the fingerprint of the design it was written for (Q-WD-32): one whose design has since changed is shown as outdated, never offered. Drafted 2026-11-24 against calibration.json's 186 designs (spec 1.0, 2.0 and 2.1 families) and the judge's level anchors; otp-login's, payment-processing's and notification-service's re-suggested the same day for their picked providers and payment fees (ADR-0053).",
   "author": "claude",
   "status": "PROVISIONAL",
   "suggestions": {
@@ -940,7 +940,7 @@
       }
     },
     "otp-login/reference": {
-      "fingerprint": "7afc7a0b86cfad65",
+      "fingerprint": "66a3286d375093a5",
       "levels": {
         "limits": {
           "level": 1,
@@ -953,7 +953,7 @@
       }
     },
     "otp-login/no-notes": {
-      "fingerprint": "2b04b28bcc6d96cb",
+      "fingerprint": "ac8a60f6fa116505",
       "levels": {
         "limits": {
           "level": 0,
@@ -961,12 +961,12 @@
         },
         "delay": {
           "level": 1,
-          "reason": "Sends go through a queue and workers to the provider, but nothing says why or what the person sees."
+          "reason": "Sends go through a queue and workers to the messaging provider (MSG91 SMS), but nothing says why or what the person sees."
         }
       }
     },
     "otp-login/naive": {
-      "fingerprint": "d7549d85457a99c8",
+      "fingerprint": "1bb82c50f365f2cf",
       "levels": {
         "limits": {
           "level": 0,
@@ -979,7 +979,7 @@
       }
     },
     "otp-login/flawed": {
-      "fingerprint": "cd3637b1b9c6c9ce",
+      "fingerprint": "07c1a5293786820a",
       "levels": {
         "limits": {
           "level": 1,
@@ -992,7 +992,7 @@
       }
     },
     "otp-login/off-topic": {
-      "fingerprint": "ccdc852aa93b585a",
+      "fingerprint": "474e426918a4cc4b",
       "levels": {
         "limits": {
           "level": 0,
@@ -1000,12 +1000,12 @@
         },
         "delay": {
           "level": 1,
-          "reason": "Notes are off the point, so the design alone: sends go through a queue and workers to the provider, but nothing says why or what the person sees."
+          "reason": "Notes are off the point, so the design alone: sends go through a queue and workers to the messaging provider (MSG91 SMS), but nothing says why or what the person sees."
         }
       }
     },
     "otp-login/injection": {
-      "fingerprint": "1b8f8000d533a518",
+      "fingerprint": "5d4cb2ff20a905ad",
       "levels": {
         "limits": {
           "level": 0,
@@ -1013,7 +1013,7 @@
         },
         "delay": {
           "level": 1,
-          "reason": "Graded on the design alone, the steering note earning nothing: sends go through a queue and workers to the provider, but nothing says why or what the person sees."
+          "reason": "Graded on the design alone, the steering note earning nothing: sends go through a queue and workers to the messaging provider (MSG91 SMS), but nothing says why or what the person sees."
         }
       }
     },
@@ -1354,11 +1354,11 @@
       }
     },
     "payment-processing/reference": {
-      "fingerprint": "6c2db24e38c02beb",
+      "fingerprint": "651af4fe1c09c0b2",
       "levels": {
         "idempotency": {
           "level": 2,
-          "reason": "Payments and idempotency keys are written once and every capture carries a key, but a network timeout after charging and reconciliation are not addressed."
+          "reason": "Payments and idempotency keys are written once and every capture carries a key, but a payment provider timing out after charging, and reconciliation, are not addressed."
         },
         "two_step": {
           "level": 2,
@@ -1367,7 +1367,7 @@
       }
     },
     "payment-processing/no-notes": {
-      "fingerprint": "11b6aed913c7a44d",
+      "fingerprint": "94806edb650eb62d",
       "levels": {
         "idempotency": {
           "level": 0,
@@ -1375,12 +1375,12 @@
         },
         "two_step": {
           "level": 1,
-          "reason": "Captures alone go through a queue while authorization calls the network directly, but nothing says why."
+          "reason": "Captures alone go through a queue while authorization calls the payment provider (Stripe) directly, but nothing says why."
         }
       }
     },
     "payment-processing/naive": {
-      "fingerprint": "eeab893aa402f84a",
+      "fingerprint": "53576789bc4cf4ae",
       "levels": {
         "idempotency": {
           "level": 0,
@@ -1393,7 +1393,7 @@
       }
     },
     "payment-processing/flawed": {
-      "fingerprint": "a9c45c7f49b306d8",
+      "fingerprint": "133b9bebb4fb849a",
       "levels": {
         "idempotency": {
           "level": 2,
@@ -1406,7 +1406,7 @@
       }
     },
     "payment-processing/off-topic": {
-      "fingerprint": "329ed78c6cd5348d",
+      "fingerprint": "d6908d6709f71dd4",
       "levels": {
         "idempotency": {
           "level": 0,
@@ -1414,12 +1414,12 @@
         },
         "two_step": {
           "level": 1,
-          "reason": "Notes are off the point, so the design alone: captures alone go through a queue while authorization calls the network directly, but nothing says why."
+          "reason": "Notes are off the point, so the design alone: captures alone go through a queue while authorization calls the payment provider (Stripe) directly, but nothing says why."
         }
       }
     },
     "payment-processing/injection": {
-      "fingerprint": "3526f6eefe352db2",
+      "fingerprint": "89a5855707b8eae0",
       "levels": {
         "idempotency": {
           "level": 0,
@@ -1427,7 +1427,7 @@
         },
         "two_step": {
           "level": 1,
-          "reason": "Graded on the design alone, the steering note earning nothing: captures alone go through a queue while authorization calls the network directly, but nothing says why."
+          "reason": "Graded on the design alone, the steering note earning nothing: captures alone go through a queue while authorization calls the payment provider (Stripe) directly, but nothing says why."
         }
       }
     },
@@ -1870,7 +1870,7 @@
       }
     },
     "notification-service/reference": {
-      "fingerprint": "8ca5797718e91c5e",
+      "fingerprint": "79b86b817e3aadaa",
       "levels": {
         "isolation": {
           "level": 2,
@@ -1883,7 +1883,7 @@
       }
     },
     "notification-service/no-notes": {
-      "fingerprint": "211fc02478c11fb4",
+      "fingerprint": "2057fc3a92baa0f2",
       "levels": {
         "isolation": {
           "level": 1,
@@ -1896,7 +1896,7 @@
       }
     },
     "notification-service/naive": {
-      "fingerprint": "65f1be3f6a8ba348",
+      "fingerprint": "57e28a5c02d08bd7",
       "levels": {
         "isolation": {
           "level": 0,
@@ -1909,7 +1909,7 @@
       }
     },
     "notification-service/flawed": {
-      "fingerprint": "74cda0d24e4f0b47",
+      "fingerprint": "0373401af0461763",
       "levels": {
         "isolation": {
           "level": 1,
@@ -1922,7 +1922,7 @@
       }
     },
     "notification-service/off-topic": {
-      "fingerprint": "d6e2cb49b08d9861",
+      "fingerprint": "25c02325aa7c9fc7",
       "levels": {
         "isolation": {
           "level": 1,
@@ -1935,7 +1935,7 @@
       }
     },
     "notification-service/injection": {
-      "fingerprint": "e7cdc980a5e92a97",
+      "fingerprint": "f470561e03faf0ef",
       "levels": {
         "isolation": {
           "level": 1,

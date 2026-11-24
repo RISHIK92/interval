@@ -1,7 +1,8 @@
 import type { Design, DesignNode } from "./design";
 import type { Cover, HldProblem } from "./problem";
-import type { SimulationResult } from "./simulate";
+import { simulate, type SimulationResult } from "./simulate";
 import { COMPONENT_NAMES } from "./catalog";
+import { pickName } from "./providers";
 import { specVersion } from "./spec";
 
 // Q-WD-15: which of a problem's requirements a design covers, by the rules the problem
@@ -61,8 +62,12 @@ function describe(node: DesignNode, design: Design): string {
         return count(node.config.shards, "shard");
       case "coordination":
         return count(node.config.members, "member");
-      case "external_api":
-        return null;
+      // ADR-0053: who it is, once picked ("MSG91 SMS", "Stripe").
+      case "external_api": {
+        const { provider, channel } = node.config;
+        if (provider === undefined || channel === undefined) return null;
+        return pickName(provider, channel);
+      }
       default:
         return count(node.config.nodes, "node");
     }
@@ -144,6 +149,16 @@ function check(
       return simulation.storageGb >= simulation.storageNeededGb
         ? `Room for ${fmt(simulation.storageGb)} GB of the ${fmt(simulation.storageNeededGb)} GB needed`
         : null;
+    // Card fees per payment within their target (owner, 2026-11-24).
+    case "fees": {
+      const fees = simulation.fees;
+      return baseline.targetsMet &&
+        fees?.perPayment !== null &&
+        fees !== undefined &&
+        fees.perPayment <= fees.target + 1e-9
+        ? `$${fees.perPayment.toFixed(2)} a payment`
+        : null;
+    }
     // A design that can't carry a normal day is cheap for nothing.
     case "budget":
       return baseline.targetsMet &&
@@ -159,10 +174,42 @@ export function coverage(
   design: Design,
   simulation: SimulationResult,
 ): Coverage {
+  // ADR-0053 (owner, 2026-11-24): card fees are paid apart from the budget, so the
+  // fee cover reads the design as if its budget were unlimited, and every other cover
+  // as if its fee target were: neither uncovers the other.
+  const offer = problem.traffic.provider;
+  const overFees =
+    simulation.fees?.perPayment != null &&
+    simulation.fees.perPayment > simulation.fees.target + 1e-9;
+  const apartFromFees =
+    overFees && offer !== undefined
+      ? simulate(
+          {
+            ...problem,
+            traffic: {
+              ...problem.traffic,
+              provider: { ...offer, feeTargetUsd: Infinity },
+            },
+          },
+          design,
+        )
+      : simulation;
+  const apartFromBudget =
+    simulation.fees !== undefined &&
+    simulation.costPerMonth > problem.budgetPerMonth
+      ? simulate({ ...problem, budgetPerMonth: Infinity }, design)
+      : simulation;
   const items = problem.requirements.map((text, i) => {
     const cover = problem.covers?.[i];
     const by =
-      cover === undefined ? null : check(cover, problem, design, simulation);
+      cover === undefined
+        ? null
+        : check(
+            cover,
+            problem,
+            design,
+            cover.rule === "fees" ? apartFromBudget : apartFromFees,
+          );
     return { text, covered: by !== null, by };
   });
   return {

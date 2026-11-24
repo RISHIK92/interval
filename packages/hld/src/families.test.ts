@@ -516,6 +516,135 @@ describe("spec versions and the season boundary", () => {
     },
   );
 
+  // ADR-0053: the player picks the provider and channel where the family offers it,
+  // priced for its users' region; the rest keep the price their family sets.
+  describe("selectable providers", () => {
+    const of = (slug: string) => {
+      const family = FAMILIES.find((f) => f.slug === slug);
+      if (family === undefined) throw new Error(`no ${slug}`);
+      return family;
+    };
+    const first = (slug: string, battleMode: "human" | "ai") =>
+      variant(of(slug), battleMode, POOL[slug]?.[battleMode][0] ?? 1);
+    const pickOf = (v: ReturnType<typeof variant>) =>
+      v.reference.nodes.find((n) => n.kind === "external_api")?.config;
+
+    test("codes go to phones or inboxes in India; payments are cards in the US; notifications are pushed", () => {
+      const otp = first("otp-login", "human");
+      expect(otp.problem.traffic.provider).toEqual({
+        region: "in",
+        channels: ["sms", "whatsapp", "voice", "email"],
+      });
+      expect(otp.problem.traffic.providerCostPerCall).toBeUndefined();
+      expect(pickOf(otp)).toEqual({ provider: "msg91", channel: "sms" });
+      const pay = first("payment-processing", "human");
+      // The fee target is the cheapest processor's in the region: Stripe's $1.46.
+      expect(pay.problem.traffic.provider).toEqual({
+        region: "us",
+        channels: ["card"],
+        ticketUsd: 40,
+        feeTargetUsd: 1.46,
+      });
+      expect(pickOf(pay)).toEqual({ provider: "stripe", channel: "card" });
+      // The fee is charged at capture; the authorization is free.
+      expect(
+        pay.problem.traffic.requests.find((r) => r.type === "authorize")
+          ?.billed,
+      ).toBe(false);
+      expect(otp.problem.requirements.at(-3)).toMatch(
+        /Its users are in India: pick its provider and channel\.$/,
+      );
+      expect(pay.problem.requirements.at(-4)).toMatch(
+        /Its users are in the US, paying \$40 on average: pick its provider\.$/,
+      );
+      expect(pay.problem.requirements.at(-1)).toBe(
+        "Processing fees of at most $1.46 a payment, paid apart from the budget.",
+      );
+      expect(pay.problem.covers?.at(-1)).toEqual({ rule: "fees" });
+      const push = first("notification-service", "human");
+      expect(push.problem.traffic.provider).toEqual({
+        region: "us",
+        channels: ["push"],
+        monthlyUsers: 10_000_000,
+      });
+      expect(pickOf(push)).toEqual({ provider: "fcm", channel: "push" });
+      // Not messaging, payments or push: customers' endpoints, the open web.
+      for (const slug of ["webhook-delivery", "web-crawler"]) {
+        const v = first(slug, "human");
+        expect(v.problem.traffic.provider).toBeUndefined();
+        expect(v.problem.traffic.providerCostPerCall).toBeDefined();
+      }
+    });
+
+    test.each(["human", "ai"] as const)(
+      "%s: messaging fees are budgeted at the reference's pick, payment fees not at all",
+      (battleMode) => {
+        const headroom = battleMode === "ai" ? 1.2 : 1.5;
+        for (const slug of ["otp-login", "notification-service"]) {
+          const v = first(slug, battleMode);
+          const r = simulate(v.problem, v.reference);
+          const fees = r.providerCostPerMonth ?? 0;
+          expect(v.problem.budgetPerMonth).toBe(
+            Math.ceil(((r.costPerMonth - fees) * headroom + fees) / 100) * 100,
+          );
+        }
+        const otp = simulate(
+          first("otp-login", battleMode).problem,
+          first("otp-login", battleMode).reference,
+        );
+        expect(otp.providerCostPerMonth ?? 0).toBeGreaterThan(
+          otp.costPerMonth / 2,
+        );
+        // Payment processing's budget is its infrastructure's alone.
+        const pay = first("payment-processing", battleMode);
+        const r = simulate(pay.problem, pay.reference);
+        expect(r.providerCostPerMonth).toBe(0);
+        expect(r.fees?.perPayment).toBeCloseTo(1.46, 10);
+        expect(pay.problem.budgetPerMonth).toBe(
+          Math.ceil((r.costPerMonth * headroom) / 100) * 100,
+        );
+        expect(pay.problem.budgetPerMonth).toBeLessThan(10_000);
+      },
+    );
+
+    // The lessons a wrong pick teaches: its fees blow the budget, or the fee target,
+    // and nothing else.
+    test.each([
+      ["otp-login", "twilio-sms", "budget"],
+      ["notification-service", "onesignal-per-user", "budget"],
+      ["payment-processing", "paypal-fees", "fees"],
+    ] as const)("%s/%s fails on its fees alone", (slug, lesson, target) => {
+      for (const battleMode of ["human", "ai"] as const) {
+        const v = first(slug, battleMode);
+        const flaw = v.flawed.find((f) => f.id === lesson);
+        expect(flaw?.targets).toBe(target);
+        expect(
+          validate({ ...v, flawed: flaw === undefined ? [] : [flaw] }),
+        ).toEqual([]);
+        const flawed = simulate(v.problem, flaw?.design ?? v.reference);
+        if (target === "budget")
+          expect(flawed.costPerMonth).toBeGreaterThan(v.problem.budgetPerMonth);
+        else {
+          expect(flawed.costPerMonth).toBeLessThanOrEqual(
+            v.problem.budgetPerMonth,
+          );
+          expect(flawed.fees?.perPayment ?? 0).toBeGreaterThan(
+            flawed.fees?.target ?? Infinity,
+          );
+        }
+      }
+    });
+    test("Twilio's SMS in India costs about 46 times MSG91's", () => {
+      const v = first("otp-login", "human");
+      const flaw = v.flawed.find((f) => f.id === "twilio-sms");
+      const ratio =
+        (simulate(v.problem, flaw?.design ?? v.reference)
+          .providerCostPerMonth ?? 0) /
+        (simulate(v.problem, v.reference).providerCostPerMonth ?? 1);
+      expect(Math.round(ratio)).toBe(46);
+    });
+  });
+
   test("video without a CDN fails on its cost alone: origin bytes cost four times a CDN's", () => {
     const family = V2.find((f) => f.slug === "video-on-demand");
     if (family === undefined) throw new Error("no video-on-demand");

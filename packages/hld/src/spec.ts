@@ -1,4 +1,4 @@
-import type { ComponentKind } from "./catalog";
+import type { ChannelId, ComponentKind, ProviderId } from "./catalog";
 
 // P6-W36 (CANVAS-4; Q-P6-01): the public spec sheet, versioned. Every simulation is
 // run against one version; numbers change only at season boundaries, with patch notes,
@@ -82,7 +82,498 @@ export type Features = {
   // [batch]: a worker's or app service's onward writes in batches; a worker waits at
   // most this long to fill one.
   batch?: { maxWaitSeconds: number };
+  // ADR-0053: a problem may offer the external provider's provider and channel for the
+  // player to pick, priced from this table for the problem's region; `seen` is the day
+  // its list prices were read.
+  providers?: { seen: string; prices: readonly ProviderPrice[] };
 };
+
+// ADR-0053: where a problem's users are, which sets what each provider charges.
+export type RegionId = "us" | "in";
+export const REGION_NAMES: Record<RegionId, string> = {
+  us: "the US",
+  in: "India",
+};
+
+// One provider's list price for one channel in one region (docs/hld-provider-prices.md,
+// PROVISIONAL). Only what the provider publishes: a figure it doesn't publish is null,
+// and the simulator's own estimate (the external provider's latency and availability
+// on the sheet) stands in, labelled as an estimate wherever it's shown.
+export type ProviderPrice = {
+  provider: ProviderId;
+  channel: ChannelId;
+  region: RegionId;
+  // USD per unit; for a payment, the fixed part of its fee. Null: not offered or not
+  // published there, so it can't be picked.
+  perUnit: number | null;
+  percent?: number; // a payment's fee, as a share of the ticket
+  monthly?: number; // USD a month while it's picked (a WhatsApp number's subscription)
+  perUser?: number; // USD a month per monthly active user (OneSignal's push)
+  unit: string; // what one unit is: "SMS", "message", "email", "call", "payment"
+  rateLimit: string | null; // as published; null: not published
+  availability: number | null; // the published SLA; null: not published
+  source: string;
+  secondary?: true; // read from a search snippet of the provider's page
+  note?: string;
+};
+
+const TWILIO_SLA = 0.9995; // twilio.com/en-us/legal/service-level-agreement/twilio-apis
+const AWS_SLA = 0.999; // aws.amazon.com/pinpoint/sla (SES, End User Messaging), /messaging/sla (SNS)
+const TWILIO_SMS = "https://www.twilio.com/en-us/sms/pricing/";
+const TWILIO_VOICE = "https://www.twilio.com/en-us/voice/pricing/";
+const TWILIO_WHATSAPP = "https://www.twilio.com/en-us/whatsapp/pricing";
+const TWILIO_EMAIL = "https://www.twilio.com/en-us/products/email-api/pricing";
+const AWS_SMS_CSV =
+  "https://d1.awsstatic.com/onedam/marketing-channels/website/aws/en_US/business-applications/approved/documents/End-User-Messaging-SMS-Prices.ebc340b4d416d90832dd59629c4792b0deb6f8bc.csv";
+const AWS_EUM = "https://aws.amazon.com/end-user-messaging/pricing/";
+const AWS_SES = "https://aws.amazon.com/ses/pricing/";
+const VONAGE = "https://dashboard.nexmo.com/download_pricing";
+const STRIPE_LIMITS = "100 requests/s global, 25 per endpoint, 50 concurrent";
+const AWS_VOICE_LIMITS = "20 calls a minute; 1 a second per number";
+
+// docs/hld-provider-prices.md's summary table, US and India, seen 2026-11-24 at the FX
+// there (1 USD = 92.92 INR = 0.91416 EUR). Voice is one billed minute a call.
+const PROVIDER_PRICES: readonly ProviderPrice[] = [
+  // Twilio (SendGrid for email).
+  {
+    provider: "twilio",
+    channel: "sms",
+    region: "us",
+    perUnit: 0.0126,
+    unit: "SMS",
+    rateLimit: "short code 100 a second; toll-free 3 a second (secondary)",
+    availability: TWILIO_SLA,
+    source: `${TWILIO_SMS}us`,
+    note: "$0.0083 plus the mean AT&T, T-Mobile and Verizon carrier fee.",
+  },
+  {
+    provider: "twilio",
+    channel: "sms",
+    region: "in",
+    perUnit: 0.0832,
+    unit: "SMS",
+    rateLimit: null,
+    availability: TWILIO_SLA,
+    source: `${TWILIO_SMS}in`,
+    note: "₹7.73; no separate domestic rate is listed.",
+  },
+  {
+    provider: "twilio",
+    channel: "whatsapp",
+    region: "us",
+    perUnit: 0.0076,
+    unit: "message",
+    rateLimit: null,
+    availability: TWILIO_SLA,
+    source: TWILIO_WHATSAPP,
+    note: "$0.005 plus Meta's $0.002563 authentication rate.",
+  },
+  {
+    provider: "twilio",
+    channel: "whatsapp",
+    region: "in",
+    perUnit: 0.0062,
+    unit: "message",
+    rateLimit: null,
+    availability: TWILIO_SLA,
+    source: TWILIO_WHATSAPP,
+    note: "$0.005 plus Meta's $0.001183 authentication rate.",
+  },
+  ...(["us", "in"] as const).map((region): ProviderPrice => ({
+    provider: "twilio",
+    channel: "email",
+    region,
+    perUnit: 0.0004,
+    unit: "email",
+    rateLimit: null,
+    availability: TWILIO_SLA,
+    source: TWILIO_EMAIL,
+    secondary: true,
+    note: "SendGrid Essentials, $19.95 a month for 50,000 emails, averaged; any region.",
+  })),
+  {
+    provider: "twilio",
+    channel: "voice",
+    region: "us",
+    perUnit: 0.014,
+    unit: "call",
+    rateLimit: "1 call a second per account (5 self-serve, secondary)",
+    availability: TWILIO_SLA,
+    source: `${TWILIO_VOICE}us`,
+  },
+  {
+    provider: "twilio",
+    channel: "voice",
+    region: "in",
+    perUnit: 0.0496,
+    unit: "call",
+    rateLimit: "1 call a second per account (5 self-serve, secondary)",
+    availability: TWILIO_SLA,
+    source: `${TWILIO_VOICE}in`,
+    note: "₹4.61 a minute to a mobile.",
+  },
+  // MSG91.
+  {
+    provider: "msg91",
+    channel: "sms",
+    region: "us",
+    perUnit: 0.0078,
+    unit: "SMS",
+    rateLimit: null,
+    availability: null,
+    source: "https://msg91.com/us/pricing/sms",
+  },
+  {
+    provider: "msg91",
+    channel: "sms",
+    region: "in",
+    perUnit: 0.0018,
+    unit: "SMS",
+    rateLimit: null,
+    availability: null,
+    source: "https://msg91.com/in/pricing/sms",
+    note: "₹0.17, the 60,000 slab, before 18% GST.",
+  },
+  {
+    provider: "msg91",
+    channel: "whatsapp",
+    region: "us",
+    perUnit: 0.0026,
+    monthly: 7,
+    unit: "message",
+    rateLimit: null,
+    availability: null,
+    source: "https://msg91.com/us/pricing/whatsapp",
+    note: "Meta's rate, assumed passed through unchanged, plus $7 a month a number.",
+  },
+  {
+    provider: "msg91",
+    channel: "whatsapp",
+    region: "in",
+    perUnit: 0.0012,
+    monthly: 5.38,
+    unit: "message",
+    rateLimit: null,
+    availability: null,
+    source: "https://msg91.com/in/pricing/whatsapp",
+    note: "Meta's ₹0.110, assumed passed through unchanged, plus ₹500 a month a number.",
+  },
+  {
+    provider: "msg91",
+    channel: "email",
+    region: "us",
+    perUnit: null,
+    unit: "email",
+    rateLimit: null,
+    availability: null,
+    source: "https://msg91.com/us/pricing/sms",
+    note: "No US email price is listed.",
+  },
+  {
+    provider: "msg91",
+    channel: "email",
+    region: "in",
+    perUnit: 0.00022,
+    unit: "email",
+    rateLimit: null,
+    availability: null,
+    source: "https://msg91.com/in/pricing/email",
+    note: "₹2,000 a month for 100,000 (Starter), averaged.",
+  },
+  {
+    provider: "msg91",
+    channel: "voice",
+    region: "us",
+    perUnit: null,
+    unit: "call",
+    rateLimit: null,
+    availability: null,
+    source: "https://msg91.com/in/pricing/voice",
+    note: "No US voice price is listed.",
+  },
+  {
+    provider: "msg91",
+    channel: "voice",
+    region: "in",
+    perUnit: 0.0054,
+    unit: "call",
+    rateLimit: null,
+    availability: null,
+    source: "https://msg91.com/in/pricing/voice",
+    note: "₹0.50 a minute, the landline rate: a mobile rate isn't listed.",
+  },
+  // Amazon: End User Messaging (SMS, voice, WhatsApp) and SES (email).
+  {
+    provider: "amazon",
+    channel: "sms",
+    region: "us",
+    perUnit: 0.01195,
+    unit: "SMS",
+    rateLimit:
+      "short code 100 a second, toll-free 3, 10DLC per campaign; $1 a month of SMS by default",
+    availability: AWS_SLA,
+    source: AWS_SMS_CSV,
+    note: "$0.00774 plus a $0.00421 carrier fee.",
+  },
+  {
+    provider: "amazon",
+    channel: "sms",
+    region: "in",
+    perUnit: 0.004,
+    unit: "SMS",
+    rateLimit: "sender ID 10 a second",
+    availability: AWS_SLA,
+    source: AWS_SMS_CSV,
+    note: "₹0.37, the local route, which needs India DLT registration; the default international route is $0.071.",
+  },
+  {
+    provider: "amazon",
+    channel: "whatsapp",
+    region: "us",
+    perUnit: 0.0076,
+    unit: "message",
+    rateLimit: null,
+    availability: null,
+    source: AWS_EUM,
+    note: "$0.005 plus Meta's $0.002563.",
+  },
+  {
+    provider: "amazon",
+    channel: "whatsapp",
+    region: "in",
+    perUnit: 0.0032,
+    unit: "message",
+    rateLimit: null,
+    availability: null,
+    source: AWS_EUM,
+    note: "$0.002 plus Meta's $0.001183.",
+  },
+  ...(["us", "in"] as const).map((region): ProviderPrice => ({
+    provider: "amazon",
+    channel: "email",
+    region,
+    perUnit: 0.0001,
+    unit: "email",
+    rateLimit: "sandbox 1 a second and 200 a day; production set per account",
+    availability: AWS_SLA,
+    source: AWS_SES,
+    note: "SES, $0.10 per 1,000, pay as you go; any region.",
+  })),
+  {
+    provider: "amazon",
+    channel: "voice",
+    region: "us",
+    perUnit: 0.013,
+    unit: "call",
+    rateLimit: AWS_VOICE_LIMITS,
+    availability: AWS_SLA,
+    source: AWS_EUM,
+  },
+  {
+    provider: "amazon",
+    channel: "voice",
+    region: "in",
+    perUnit: 0.038,
+    unit: "call",
+    rateLimit: AWS_VOICE_LIMITS,
+    availability: AWS_SLA,
+    source: AWS_EUM,
+    note: "₹3.53 a minute.",
+  },
+  // Vonage: its downloadable price sheet, in EUR.
+  {
+    provider: "vonage",
+    channel: "sms",
+    region: "us",
+    perUnit: 0.0112,
+    unit: "SMS",
+    rateLimit: null,
+    availability: null,
+    source: VONAGE,
+    note: "€0.0102; US carrier fees come on top, and their amounts aren't published.",
+  },
+  {
+    provider: "vonage",
+    channel: "sms",
+    region: "in",
+    perUnit: 0.086,
+    unit: "SMS",
+    rateLimit: null,
+    availability: null,
+    source: VONAGE,
+    note: "€0.0786.",
+  },
+  ...(["us", "in"] as const).flatMap((region): ProviderPrice[] => [
+    {
+      provider: "vonage",
+      channel: "whatsapp",
+      region,
+      perUnit: null,
+      unit: "message",
+      rateLimit: null,
+      availability: null,
+      source: VONAGE,
+      note: "Its WhatsApp prices couldn't be read (the page refused an automated read).",
+    },
+    {
+      provider: "vonage",
+      channel: "email",
+      region,
+      perUnit: null,
+      unit: "email",
+      rateLimit: null,
+      availability: null,
+      source: VONAGE,
+      note: "No email API is offered.",
+    },
+  ]),
+  {
+    provider: "vonage",
+    channel: "voice",
+    region: "us",
+    perUnit: 0.0144,
+    unit: "call",
+    rateLimit: null,
+    availability: null,
+    source: VONAGE,
+    note: "€0.01314 a minute.",
+  },
+  {
+    provider: "vonage",
+    channel: "voice",
+    region: "in",
+    perUnit: 0.0748,
+    unit: "call",
+    rateLimit: null,
+    availability: null,
+    source: VONAGE,
+    note: "€0.06839 a minute.",
+  },
+  // Push (owner, 2026-11-24): the same price wherever the users are.
+  ...(["us", "in"] as const).flatMap((region): ProviderPrice[] => [
+    {
+      provider: "fcm",
+      channel: "push",
+      region,
+      perUnit: 0,
+      unit: "notification",
+      rateLimit: "600,000 messages a minute per project (default)",
+      availability: null,
+      source: "https://firebase.google.com/pricing",
+      note: "No cost. Reaches Android, and Apple devices through APNs.",
+    },
+    {
+      provider: "apns",
+      channel: "push",
+      region,
+      perUnit: 0,
+      unit: "notification",
+      rateLimit: null,
+      availability: null,
+      source: "https://developer.apple.com/programs/",
+      note: "No charge per notification; Apple devices only. The $99 a year developer membership isn't counted.",
+    },
+    {
+      provider: "amazon",
+      channel: "push",
+      region,
+      perUnit: 0.000001,
+      unit: "notification",
+      rateLimit: null,
+      availability: AWS_SLA,
+      source: "https://aws.amazon.com/sns/pricing/",
+      secondary: true,
+      note: "SNS mobile push: $0.50 per million publishes and $0.50 per million deliveries; the first million free a month isn't counted.",
+    },
+    {
+      provider: "onesignal",
+      channel: "push",
+      region,
+      perUnit: 0,
+      monthly: 19,
+      perUser: 0.012,
+      unit: "notification",
+      rateLimit: null,
+      availability: null,
+      source: "https://onesignal.com/pricing",
+      note: "Growth plan: from $19 a month, plus $0.012 per monthly active user, sends unlimited.",
+    },
+  ]),
+  // Payments: a percentage of the ticket plus a fixed fee, for a domestic card.
+  {
+    provider: "stripe",
+    channel: "card",
+    region: "us",
+    perUnit: 0.3,
+    percent: 0.029,
+    unit: "payment",
+    rateLimit: STRIPE_LIMITS,
+    availability: null,
+    source: "https://stripe.com/us/pricing",
+    secondary: true,
+    note: "International cards 1.5% more, and 1% more with currency conversion.",
+  },
+  {
+    provider: "stripe",
+    channel: "card",
+    region: "in",
+    perUnit: 0,
+    percent: 0.02,
+    unit: "payment",
+    rateLimit: STRIPE_LIMITS,
+    availability: null,
+    source: "https://stripe.com/in/pricing",
+    note: "No fixed fee; international cards 3%.",
+  },
+  {
+    provider: "razorpay",
+    channel: "card",
+    region: "us",
+    perUnit: null,
+    unit: "payment",
+    rateLimit: null,
+    availability: null,
+    source: "https://razorpay.com/pricing/",
+    note: "Razorpay lists prices for Indian businesses only.",
+  },
+  {
+    provider: "razorpay",
+    channel: "card",
+    region: "in",
+    perUnit: 0,
+    percent: 0.0236,
+    unit: "payment",
+    rateLimit: null,
+    availability: null,
+    source: "https://razorpay.com/pricing/",
+    note: "2%, plus 18% GST on the fee; international cards up to 3%.",
+  },
+  {
+    provider: "paypal",
+    channel: "card",
+    region: "us",
+    perUnit: 0.49,
+    percent: 0.0299,
+    unit: "payment",
+    rateLimit: null,
+    availability: null,
+    source: "https://www.paypal.com/us/webapps/mpp/merchant-fees",
+    secondary: true,
+    note: "The standard card rate; international cards 1.5% more.",
+  },
+  {
+    provider: "paypal",
+    channel: "card",
+    region: "in",
+    perUnit: null,
+    unit: "payment",
+    rateLimit: null,
+    availability: null,
+    source: "https://www.paypal.com/in/webapps/mpp/merchant-fees",
+    secondary: true,
+    note: "Only its international rate is published, 4.40% plus a fixed fee by currency that couldn't be read.",
+  },
+];
 
 export type SpecVersion = {
   version: string;
@@ -254,6 +745,7 @@ const V2_0: SpecVersion = {
     bytes: { cdnEgressPerGb: 0.02, originEgressPerGb: 0.09 },
     failFast: true,
     requires: true,
+    providers: { seen: "2026-11-24", prices: PROVIDER_PRICES },
   },
   notes: [
     "New component: the external provider, a third party (card network, SMS, customers' endpoints, the open web) at the problem's rate limit and price per call. It can't be scaled, and it can go down. Used by one-time code sign-in, webhook delivery, payment processing and the web crawler.",
@@ -262,6 +754,7 @@ const V2_0: SpecVersion = {
     "Bytes: requests carry a payload. App services (1,000 Mbps a node) and load balancers (10,000 Mbps) fill on bytes as well as requests, and bytes served are billed: $0.02 a GB from a CDN, $0.09 from anything else. Used by image resizing, video streaming and file sync.",
     "A request type an outage cuts off (the provider is down) now fails at once: it counts against what's served, not as an unbounded p99.",
     "A request type says what must do its work: a code isn't sent until it reaches the SMS provider, and an upload isn't transcoded until it reaches a worker. A design that leaves that out serves none of it, however cheap.",
+    "Pick your provider (amended on 24 Nov 2026, before 2.0 took effect): where a problem offers it, you pick the external provider's provider and channel. Twilio, MSG91, Amazon or Vonage, by SMS, WhatsApp, email or a voice call; Stripe, Razorpay or PayPal for card payments. Each is priced at its real list price in the problem's region (seen 24 Nov 2026, provisional), and one not offered there can't be picked. A payment's fee is its percentage of the problem's average ticket plus its fixed fee, paid apart from the infrastructure budget and held to the problem's target for fees per payment. Used by one-time code sign-in and payment processing. The sheet also prices push (FCM, APNs, Amazon, OneSignal), which only 2.1's notification service offers.",
     "Every version 1.0 number is unchanged, and so is every 1.0 family's result: they stay on 1.0.",
   ],
   engine: V1_0.engine,
@@ -278,7 +771,8 @@ const V2_0: SpecVersion = {
       latencyMs: 250,
       availability: 0.995,
       costPerNodeHour: 0,
-      setByProblem: "each problem's rate limit and price per call",
+      setByProblem:
+        "each problem's rate limit, and its price per call or the picked provider's",
     },
   },
 };

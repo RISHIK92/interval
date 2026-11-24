@@ -14,6 +14,37 @@ const placement = {
   regions: z.int().min(1).max(2).describe("Regions"),
 };
 
+// ADR-0053: who an external provider is and how it reaches people, picked by the player
+// where the problem offers a choice. Their prices, by region, are the spec sheet's.
+export const PROVIDER_NAMES = {
+  twilio: "Twilio",
+  msg91: "MSG91",
+  amazon: "Amazon",
+  vonage: "Vonage",
+  stripe: "Stripe",
+  razorpay: "Razorpay",
+  paypal: "PayPal",
+  fcm: "FCM",
+  apns: "APNs",
+  onesignal: "OneSignal",
+} as const;
+export type ProviderId = keyof typeof PROVIDER_NAMES;
+export const CHANNEL_NAMES = {
+  sms: "SMS",
+  whatsapp: "WhatsApp",
+  email: "Email",
+  voice: "Voice call",
+  card: "Card payment",
+  push: "Push",
+} as const;
+export type ChannelId = keyof typeof CHANNEL_NAMES;
+export const ChannelId = z.enum(
+  Object.keys(CHANNEL_NAMES) as [ChannelId, ...ChannelId[]],
+);
+const ProviderId = z.enum(
+  Object.keys(PROVIDER_NAMES) as [ProviderId, ...ProviderId[]],
+);
+
 // Each kind's configuration. A design names one per node.
 export const CONFIG = {
   // Where traffic comes from: the problem's users. Exactly one per design.
@@ -78,9 +109,13 @@ export const CONFIG = {
       .describe("Retention (hours)"),
     ...placement,
   }),
-  // ADR-0050 §2, spec 2.0: a third party at the problem's rate limit and price; nothing
-  // about it is the player's to set.
-  external_api: z.strictObject({}),
+  // ADR-0050 §2, spec 2.0: a third party at the problem's rate limit. Its price is the
+  // problem's, or (ADR-0053) the provider and channel the player picks from the
+  // problem's offer; either may be unset while the player picks.
+  external_api: z.strictObject({
+    provider: ProviderId.optional(),
+    channel: ChannelId.optional(),
+  }),
   // ADR-0050 §2, spec 2.1.
   geo_index: z.strictObject({
     shards: z.int().min(1).max(64).describe("Shards"),

@@ -1,6 +1,7 @@
 import { COMPONENT_NAMES, type ComponentKind } from "./catalog";
 import type { Design, DesignNode } from "./design";
 import type { HldProblem, Scenario } from "./problem";
+import { picked, pickLabel } from "./providers";
 import { type SpecVersion, specVersion, statsOf } from "./spec";
 
 // P6-W37 (CANVAS-3, CANVAS-5; Q-P6-02): the analytical simulator. The same code runs in
@@ -37,6 +38,11 @@ import { type SpecVersion, specVersion, statsOf } from "./spec";
 // delivery, a reconnect storm when its servers are lost), the coordination service (a
 // quorum, a leader's write ceiling, a cap on what it holds), [fanout], [hot] and
 // [batch].
+//
+// ADR-0053 (spec 2.0's amendment): where the problem offers it, the player picks the
+// external provider's provider and channel. The pick sets its price, from the sheet's
+// table for the problem's region, and its availability where the provider publishes an
+// SLA. A provider with no usable pick does no work.
 
 export const SIMULATION_POINTS = 60; // §6.4
 
@@ -76,6 +82,9 @@ export type NodeResult = {
   p99Ms: number | null;
   // [hot], spec 2.1: its busiest partition, not its size, sets its utilization.
   hot?: true;
+  // ADR-0053: an external provider's pick ("MSG91 SMS"), where the problem offers one;
+  // null when it has none it can use.
+  provider?: string | null;
 };
 export type TypeResult = {
   type: string;
@@ -109,6 +118,12 @@ export type SimulationResult = {
   points: number; // of SIMULATION_POINTS
   baselinePassed: boolean; // §6.4's gate for the rubric points
   explanations: string[]; // what applies to every scenario
+  // ADR-0053: the picked providers' charges a month inside the cost, where the problem
+  // offers a pick.
+  providerCostPerMonth?: number;
+  // Card payments (owner, 2026-11-24): the fee per payment (null: no usable pick),
+  // its target, and the month's fees, all paid apart from the infrastructure budget.
+  fees?: { perPayment: number | null; target: number; perMonth: number };
 };
 
 // One component in a scenario: its servers (c), what failures left of it, and the load
@@ -673,17 +688,50 @@ export function simulate(
       new Set([...ids].map((id) => kindOf.get(id) ?? "client")),
     ]),
   );
-  // ADR-0051: what each request type requires and its routes never reach.
+  // ADR-0053: each external provider's pick, where the problem offers one.
+  const picks = new Map(
+    design.nodes.map((n) => [n.id, picked(problem, spec, n)] as const),
+  );
+  for (const p of picks.values()) if (p?.ok === false) explanations.push(p.why);
+  const usable = (id: string) => picks.get(id)?.ok !== false;
+  // Card payments: the dearest usable processor's fee per payment, against the
+  // problem's target; it scores in every scenario, as the budget does.
+  const feeTarget = problem.traffic.provider?.feeTargetUsd;
+  const feeList = [...picks.values()].flatMap((p) =>
+    p?.ok === true && p.card ? [p.perCall] : [],
+  );
+  const feePerPayment = feeList.length === 0 ? null : Math.max(...feeList);
+  const feeScore =
+    feeTarget === undefined ||
+    feePerPayment === null ||
+    feePerPayment <= feeTarget + EPS
+      ? 1
+      : targetScore(feePerPayment / feeTarget);
+  // ADR-0051: what each request type requires and its routes never reach (an external
+  // provider with no usable pick counts as not reached: it does no work).
   const missing = new Map(
     requests.map((r) => [
       r.type,
       requires === undefined
         ? []
         : (r.requires ?? []).filter(
-            (k) => reachedKinds.get(r.type)?.has(k) !== true,
+            (k) =>
+              ![...(reachedIds.get(r.type) ?? [])].some(
+                (id) => kindOf.get(id) === k && usable(id),
+              ),
           ),
     ]),
   );
+  // The providers a type reaches that have no usable pick.
+  const unpicked = (type: string) =>
+    [...(reachedIds.get(type) ?? [])].filter((id) => !usable(id));
+  // A node result's pick, only where the problem offers one.
+  const providerOf = (id: string) => {
+    const p = picks.get(id);
+    return p === null || p === undefined
+      ? {}
+      : { provider: p.ok ? p.name : null };
+  };
   // Spec 2.1: the gateways the client's requests reach hold its connections, shared
   // evenly (ADR-0052).
   const holders =
@@ -909,13 +957,25 @@ export function simulate(
       const arriving = (type: string, id: string) =>
         arrivals.get(type)?.get(id) ?? 0;
       let provider = 0;
-      for (const n of design.nodes)
-        if (n.kind === "external_api")
-          for (const r of requests)
-            provider +=
-              arriving(r.type, n.id) *
-              secondsPerMonth *
-              (problem.traffic.providerCostPerCall ?? 0);
+      let fees = 0;
+      for (const n of design.nodes) {
+        if (n.kind !== "external_api") continue;
+        // ADR-0053: the pick's price, and nothing for a provider that does no work.
+        const p = picks.get(n.id);
+        const perCall =
+          p === null || p === undefined
+            ? (problem.traffic.providerCostPerCall ?? 0)
+            : p.ok
+              ? p.perCall
+              : 0;
+        if (p?.ok === true) provider += p.monthly;
+        let calls = 0;
+        for (const r of requests)
+          if (r.billed !== false) calls += arriving(r.type, n.id);
+        // A card fee is paid apart from the infrastructure budget.
+        if (p?.ok === true && p.card) fees += calls * secondsPerMonth * perCall;
+        else provider += calls * secondsPerMonth * perCall;
+      }
       let egress = 0;
       if (bytes !== undefined && client !== undefined)
         for (const r of requests) {
@@ -931,7 +991,7 @@ export function simulate(
             (viaCdn * bytes.cdnEgressPerGb +
               (1 - viaCdn) * bytes.originEgressPerGb);
         }
-      return { provider, egress };
+      return { provider, egress, fees };
     };
 
     // A component's own p50, p99, availability and utilization for one class of
@@ -1020,15 +1080,15 @@ export function simulate(
         lat = { ...lat, p50: lat.p50 + wait / 2, p99: lat.p99 + wait };
       }
       const copies = primary ? st.writeRedundancy : st.redundancy;
+      // ADR-0053: a picked provider's published SLA, else the sheet's estimate.
+      const pick = picks.get(node.id);
+      const availability =
+        (pick?.ok === true ? pick.availability : null) ?? stats.availability;
       // A coordinator is up while a majority of all its members is.
       const up =
         node.kind === "coordination"
-          ? quorumUp(
-              st.servers,
-              majority(node.config.members),
-              stats.availability,
-            )
-          : (1 - (1 - stats.availability) ** copies) **
+          ? quorumUp(st.servers, majority(node.config.members), availability)
+          : (1 - (1 - availability) ** copies) **
             (primary && node.kind === "geo_index" ? 1 : st.shards);
       return {
         ...lat,
@@ -1286,6 +1346,10 @@ export function simulate(
           notes.push(
             `"${r.type}" requests never reach a datastore (or, for a write, a worker behind a queue), so none is served.`,
           );
+        else if (left.includes("external_api") && unpicked(r.type).length > 0)
+          notes.push(
+            `"${r.type}" requests reach ${unpicked(r.type).join(", ")}, but it has no provider it can use, so none is served.`,
+          );
         else if (left.length > 0)
           notes.push(
             `"${r.type}" requests never reach ${left.map(aKind).join(" or ")}, which does their work, so none is served.`,
@@ -1369,6 +1433,7 @@ export function simulate(
             p50Ms: finite(Math.max(reads.p50, stopped ? 0 : writes.p50)),
             p99Ms: finite(Math.max(reads.p99, stopped ? 0 : writes.p99)),
             ...(reads.hot || writes.hot ? { hot: true as const } : {}),
+            ...providerOf(n.id),
           };
         });
 
@@ -1409,6 +1474,7 @@ export function simulate(
         ),
         targetScore(cost / problem.budgetPerMonth),
         storageScore,
+        ...(feeTarget === undefined ? [] : [feeScore]),
       ];
       for (const x of types)
         notes.push(
@@ -1442,7 +1508,11 @@ export function simulate(
   // other scenario's backlog at the spare capacity it shows.
   const prepared = problem.scenarios.map(prepare);
   const baselineAt = problem.scenarios.findIndex((s) => s.id === "baseline");
-  const usage = prepared[baselineAt]?.usage() ?? { provider: 0, egress: 0 };
+  const usage = prepared[baselineAt]?.usage() ?? {
+    provider: 0,
+    egress: 0,
+    fees: 0,
+  };
   const cost = fixedCost + usage.provider + usage.egress;
   explanations.push(
     `Cost: $${fmt(cost)} a month, against a budget of $${fmt(problem.budgetPerMonth)}.`,
@@ -1450,6 +1520,18 @@ export function simulate(
   if (usage.provider > 0 || usage.egress > 0)
     explanations.push(
       `Of which $${fmt(usage.provider)} is the provider's calls and $${fmt(usage.egress)} is bytes served.`,
+    );
+  // ADR-0053: each pick named, with what it charges.
+  for (const n of design.nodes) {
+    const label = pickLabel(problem, spec, n);
+    if (label !== null) explanations.push(`${n.id}: ${label}.`);
+  }
+  const payer = [...picks.values()].find(
+    (p) => p?.ok === true && p.card && p.perCall === feePerPayment,
+  );
+  if (feeTarget !== undefined && feePerPayment !== null && payer?.ok === true)
+    explanations.push(
+      `Fees per payment: $${feePerPayment.toFixed(2)} at ${payer.name}, ${feePerPayment > feeTarget + EPS ? "over the target" : "against a target"} of $${feeTarget.toFixed(2)}. $${fmt(usage.fees)} a month, paid apart from the infrastructure budget.`,
     );
   explanations.push(...storageNotes);
   const normal = prepared[baselineAt]?.result(cost, null);
@@ -1476,5 +1558,17 @@ export function simulate(
     baselinePassed:
       scenarios.find((s) => s.id === "baseline")?.targetsMet === true,
     explanations,
+    ...(problem.traffic.provider === undefined
+      ? {}
+      : { providerCostPerMonth: Math.round(usage.provider * 100) / 100 }),
+    ...(feeTarget === undefined
+      ? {}
+      : {
+          fees: {
+            perPayment: feePerPayment,
+            target: feeTarget,
+            perMonth: Math.round(usage.fees * 100) / 100,
+          },
+        }),
   };
 }

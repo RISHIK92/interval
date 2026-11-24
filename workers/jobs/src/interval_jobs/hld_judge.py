@@ -59,6 +59,10 @@ class Simulation(_Strict):
     baselinePassed: bool
     costPerMonth: float
     budgetPerMonth: float
+    # ADR-0053 (owner, 2026-11-24): card fees per payment and their target, paid apart
+    # from the budget; absent where the problem has none.
+    feePerPayment: float | None = None
+    feeTargetPerPayment: float | None = None
     scenarios: list[Scenario]
 
 
@@ -120,7 +124,13 @@ KINDS = {
         "external_api: a third party the design calls but can't scale or keep up (a "
         "card network, an SMS provider, customers' webhook endpoints, the open web), "
         "with a rate limit and a price per call; work handed to it through a queue can "
-        "wait out its outages, a call inside the request fails with it."
+        "wait out its outages, a call inside the request fails with it. Where config "
+        'has "provider" and "channel", the player picked who it is and how it reaches '
+        "users (sms, whatsapp, email, voice, push, card), priced at that provider's "
+        "list price in the problem's region (ADR-0053): per message or notification, "
+        "some with a monthly fee or a price per monthly active user (OneSignal's push, "
+        "where FCM and APNs charge nothing), and a card payment's fee as a share of "
+        "the ticket plus a fixed fee, paid apart from the budget."
     ),
     # Spec 2.1 (ADR-0050 stage 2): config "batch" on app_service and worker is a batch
     # size (an app service's is an ID block), "members" a coordinator's quorum size.
@@ -173,6 +183,12 @@ def describe(design: JudgeInput) -> str:
         f"{'passed' if s.baselinePassed else 'not passed'}; "
         f"${s.costPerMonth:,.0f} a month of a ${s.budgetPerMonth:,.0f} budget."
     )
+    if s.feeTargetPerPayment is not None:
+        fee = "no usable pick" if s.feePerPayment is None else f"${s.feePerPayment:.2f}"
+        parts.append(
+            f"Fees per payment: {fee} against a target of "
+            f"${s.feeTargetPerPayment:.2f}, paid apart from the budget."
+        )
     parts.extend(
         f"- {x.name}: {'met' if x.targetsMet else 'missed'}, p99 "
         f"{'unbounded' if x.p99Ms is None else f'{x.p99Ms} ms'}, "

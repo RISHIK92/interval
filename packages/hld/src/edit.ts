@@ -24,6 +24,10 @@ export function configFields(
   kind: ComponentKind,
   spec: SpecVersion,
 ): ConfigField[] {
+  // ADR-0053: an external provider's pick (provider and channel) comes from the
+  // problem's offer (providerOffer), so it isn't a form field; a new one starts
+  // unpicked.
+  if (kind === "external_api") return [];
   const brought = FIELD_FEATURES[kind] ?? {};
   // The provider's empty shape types its fields as `never`: read every kind's alike.
   return Object.entries(CONFIG[kind].shape as Record<string, z.ZodType>)

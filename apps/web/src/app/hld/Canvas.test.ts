@@ -2,10 +2,16 @@ import {
   addComponent,
   allPracticeProblems,
   connect,
+  FAMILIES,
+  pickProvider,
+  POOL,
   practiceProblems,
   type ScenarioResult,
+  setRoutes,
   simulate,
   starterDesign,
+  updateNode,
+  variant,
 } from "@interval/hld";
 import { expect, test } from "vitest";
 import { risksOf, scenarioLine } from "./Canvas";
@@ -92,12 +98,92 @@ test("an external provider that's down and fails its callers says to queue the w
   d = connect(d, otp, users, lb);
   d = connect(d, otp, lb, app);
   d = connect(d, otp, app, sms);
+  // ADR-0053: MSG91's SMS, the cheapest in India, sent only the codes.
+  d = setRoutes(d, app, sms, ["request_code"]);
+  d = pickProvider(d, otp, sms, { provider: "msg91", channel: "sms" });
   const node = d.nodes.find((n) => n.id === sms);
   if (node === undefined) throw new Error("no provider");
   const risk = risksOf(otp, simulate(otp, d), node);
   expect(risk.fields.size).toBe(0);
   expect(risk.said).toContain(
-    'Down in "The SMS provider is down for 10 minutes", and what calls it fails: hand that work to a queue so it waits.',
+    'Down in "The messaging provider is down for 10 minutes", and what calls it fails: hand that work to a queue so it waits.',
+  );
+});
+
+// ADR-0053: the provider's own warnings: nothing picked, and fees over the budget.
+test("an external provider says when nothing is picked, and when its fees blow the budget", () => {
+  const otp = allPracticeProblems().find((x) => x.slug === "otp-login");
+  if (otp === undefined) throw new Error("no otp-login practice problem");
+  let d = starterDesign(otp.spec);
+  for (const k of ["load_balancer", "app_service", "external_api"] as const)
+    d = addComponent(d, k, { x: 0, y: 0 });
+  const [users, lb, app, sms] = d.nodes.map((n) => n.id);
+  if (
+    users === undefined ||
+    lb === undefined ||
+    app === undefined ||
+    sms === undefined
+  )
+    throw new Error("nodes missing");
+  d = connect(d, otp, users, lb);
+  d = connect(d, otp, lb, app);
+  d = connect(d, otp, app, sms);
+  const risk = (design: typeof d) => {
+    const node = design.nodes.find((n) => n.id === sms);
+    if (node === undefined) throw new Error("no provider");
+    return risksOf(otp, simulate(otp, design), node);
+  };
+  const unpicked = risk(d);
+  expect([...unpicked.fields].sort()).toEqual(["channel", "provider"]);
+  expect(unpicked.said[0]).toBe(
+    "Nothing picked that it can use: pick a provider and channel offered in India. Until then it does no work.",
+  );
+  const twilio = risk(
+    pickProvider(d, otp, sms, { provider: "twilio", channel: "sms" }),
+  );
+  expect([...twilio.fields].sort()).toEqual(["channel", "provider"]);
+  expect(twilio.said).toContainEqual(
+    expect.stringMatching(
+      /^The providers' fees take the design over budget: \$[\d,]+ a month, against a budget of \$[\d,]+\. Send this one \(Twilio SMS\) only what it delivers, or pick a cheaper provider or channel\.$/,
+    ),
+  );
+});
+
+// Owner, 2026-11-24: card fees answer to their own target, not the budget.
+test("a payment provider says when its fees per payment are over their target", () => {
+  const family = FAMILIES.find((f) => f.slug === "payment-processing");
+  if (family === undefined) throw new Error("no payment-processing family");
+  const pay = variant(
+    family,
+    "human",
+    POOL["payment-processing"]?.human[0] ?? 1,
+  ).problem;
+  let d = starterDesign(pay.spec);
+  for (const k of ["load_balancer", "app_service", "external_api"] as const)
+    d = addComponent(d, k, { x: 0, y: 0 });
+  const [users, lb, app, net] = d.nodes.map((n) => n.id);
+  if (
+    users === undefined ||
+    lb === undefined ||
+    app === undefined ||
+    net === undefined
+  )
+    throw new Error("nodes missing");
+  d = connect(d, pay, users, lb);
+  d = connect(d, pay, lb, app);
+  d = connect(d, pay, app, net);
+  d = setRoutes(d, app, net, ["authorize", "capture"]);
+  const risk = (provider: "stripe" | "paypal") => {
+    const design = pickProvider(d, pay, net, { provider, channel: "card" });
+    const node = design.nodes.find((n) => n.id === net);
+    if (node === undefined) throw new Error("no provider");
+    return risksOf(pay, simulate(pay, design), node);
+  };
+  expect(risk("stripe").said.join(" ")).not.toMatch(/fees per payment/i);
+  const paypal = risk("paypal");
+  expect([...paypal.fields].sort()).toEqual(["channel", "provider"]);
+  expect(paypal.said[0]).toBe(
+    "Its fees per payment are over their target: PayPal charges $1.69 a payment, against $1.46. A cheaper processor would meet it.",
   );
 });
 
@@ -127,6 +213,15 @@ test("a coordination service that loses its quorum points at its zones and membe
   expect(risk.said).toContain(
     'Loses its quorum in "A zone goes down": no one zone or region may hold a majority of its members.',
   );
+});
+
+test("an external provider's face says who it is, once picked", () => {
+  let d = addComponent(starterDesign("2.0"), "external_api", { x: 0, y: 0 });
+  const node = d.nodes[1];
+  if (node === undefined) throw new Error("no provider");
+  expect(nodeRole(node)).toBe("third party");
+  d = updateNode(d, node.id, { config: { provider: "msg91", channel: "sms" } });
+  expect(nodeRole(d.nodes[1] ?? node)).toBe("MSG91 SMS");
 });
 
 test("2.1's kinds and a batch read as their size on a node's face", () => {

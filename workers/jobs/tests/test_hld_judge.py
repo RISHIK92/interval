@@ -213,6 +213,31 @@ def test_a_new_kind_is_explained_in_one_line_and_only_where_it_is_used() -> None
     assert "external_api" not in without
 
 
+def test_a_picked_provider_reaches_the_model_as_structured_fields() -> None:
+    """ADR-0053: the provider and channel the player picked are config fields, ids
+    from a fixed list, and the kind's line says what they mean."""
+    prompt = describe(JudgeInput.model_validate(PROVIDER["input"]))
+    assert '- sms (external_api) {"channel": "sms", "provider": "msg91"}' in prompt
+    assert '"provider" and "channel"' in KINDS["external_api"]
+    # Push, and a price per monthly user, so FCM's $0 compares with OneSignal's.
+    assert "push" in KINDS["external_api"]
+    assert "per monthly active user" in KINDS["external_api"]
+
+
+def test_fees_per_payment_are_read_apart_from_the_budget() -> None:
+    """ADR-0053 (owner, 2026-11-24): card fees per payment against their target, paid
+    apart from the infrastructure budget; a problem without them reads as before."""
+    pay = next(c for c in CALIBRATION if c["id"] == "payment-processing/reference")
+    prompt = describe(JudgeInput.model_validate(pay["input"]))
+    assert (
+        "Fees per payment: $1.46 against a target of $1.46, paid apart from the "
+        "budget." in prompt
+    )
+    assert "Fees per payment" not in describe(
+        JudgeInput.model_validate(PROVIDER["input"])
+    )
+
+
 def test_spec_2_1_kinds_are_explained_where_used() -> None:
     """ADR-0050 §7, stage 2: a design with spec 2.1's kinds names each once."""
     ids = next(c for c in CALIBRATION if c["id"] == "id-generator/reference")

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  ChannelId,
   COMPONENT_KINDS,
   COMPONENT_NAMES,
   type ComponentKind,
@@ -52,6 +53,9 @@ export const RequestType = z
       .refine((f) => f.p99 >= f.mean, "the p99 is below the mean")
       .optional(),
     hotShare: z.number().gt(0).lt(1).optional(),
+    // ADR-0053: a call the picked provider doesn't charge for. A payment's fee is
+    // charged once, at its capture, so its authorization is free.
+    billed: z.literal(false).optional(),
   })
   .refine((r) => r.kind === "read" || !r.cacheable, {
     message: "a write is never cacheable",
@@ -105,6 +109,8 @@ export const Cover = z.discriminatedUnion("rule", [
   z.strictObject({ rule: z.literal("scenario"), scenario: Name }),
   z.strictObject({ rule: z.literal("storage") }),
   z.strictObject({ rule: z.literal("budget") }),
+  // ADR-0053 (owner, 2026-11-24): card fees per payment within their own target.
+  z.strictObject({ rule: z.literal("fees") }),
 ]);
 export type Cover = z.infer<typeof Cover>;
 
@@ -117,6 +123,7 @@ const REQUEST_FEATURES = {
   push: "gateway",
   fanout: "fanout",
   hotShare: "hot",
+  billed: "providers",
 } satisfies Partial<Record<keyof RequestType, keyof Features>>;
 const SCENARIO_FEATURES = {
   minutes: "lag",
@@ -153,6 +160,24 @@ export const HldProblem = z
       // price per call (USD), set by each problem that allows one.
       providerRps: z.number().positive().optional(),
       providerCostPerCall: z.number().min(0).optional(),
+      // ADR-0053: or, in place of a price, the player picks the provider and channel:
+      // where the users are (which sets the prices), the channels that reach them, and
+      // for card payments the average ticket a fee's percentage is of and the fee per
+      // payment it must stay within (owner, 2026-11-24: fees are paid apart from the
+      // infrastructure budget); for push, the monthly active users a per-user price
+      // is charged on.
+      provider: z
+        .strictObject({
+          region: z.enum(["us", "in"]),
+          channels: z
+            .array(ChannelId)
+            .min(1)
+            .refine((c) => new Set(c).size === c.length, "a channel twice"),
+          ticketUsd: z.number().positive().optional(),
+          feeTargetUsd: z.number().positive().optional(),
+          monthlyUsers: z.int().positive().optional(),
+        })
+        .optional(),
       // ADR-0050 §2, spec 2.1: clients connected at once on a normal day, held by the
       // connection gateway and scaled by each scenario's load.
       connections: z.number().positive().optional(),
@@ -206,6 +231,8 @@ export const HldProblem = z
             );
       if (p.traffic.connections !== undefined && !has("gateway"))
         lacks(["traffic", "connections"], '"connections"');
+      if (p.traffic.provider !== undefined && !has("providers"))
+        lacks(["traffic", "provider"], "provider to pick");
       for (const [i, sc] of p.scenarios.entries())
         for (const [field, feature] of Object.entries(SCENARIO_FEATURES))
           if (sc[field as keyof Scenario] !== undefined && !has(feature))
@@ -240,16 +267,48 @@ export const HldProblem = z
         path: ["traffic"],
         message: "a request type used twice",
       });
+    const offer = p.traffic.provider;
     if (
       p.allowedComponents.includes("external_api") &&
       (p.traffic.providerRps === undefined ||
-        p.traffic.providerCostPerCall === undefined)
+        (p.traffic.providerCostPerCall === undefined && offer === undefined))
     )
       ctx.addIssue({
         code: "custom",
         path: ["traffic"],
         message: "an external provider without its rate limit and price",
       });
+    if (offer !== undefined) {
+      const issue = (message: string) => {
+        ctx.addIssue({
+          code: "custom",
+          path: ["traffic", "provider"],
+          message,
+        });
+      };
+      if (p.traffic.providerCostPerCall !== undefined)
+        issue("a price per call and a provider to pick");
+      if (!p.allowedComponents.includes("external_api"))
+        issue("a provider to pick, but no external provider allowed");
+      // A card payment's fee is a share of its ticket; a message has neither.
+      const card = offer.channels.includes("card");
+      if (card && offer.channels.length > 1)
+        issue("card payments offered with messaging channels");
+      const ticket =
+        offer.ticketUsd !== undefined || offer.feeTargetUsd !== undefined;
+      if (
+        card &&
+        (offer.ticketUsd === undefined || offer.feeTargetUsd === undefined)
+      )
+        issue("card payments without an average ticket and a fee target");
+      if (!card && ticket)
+        issue("an average ticket or a fee target without card payments");
+      const push = offer.channels.includes("push");
+      if (push && offer.monthlyUsers === undefined)
+        issue("push without its monthly active users");
+      if (!push && offer.monthlyUsers !== undefined)
+        issue("monthly active users without push");
+    }
     for (const [i, s] of p.scenarios.entries())
       for (const t of Object.keys(s.loads ?? {}))
         if (!types.includes(t))
