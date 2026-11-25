@@ -1,0 +1,1372 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 5,
+        "value": 9680
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 8,
+        "value": 4825
+      },
+      {
+        "call": 9,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 10,
+        "value": 4825
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": 6680
+      },
+      {
+        "call": 14,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 15,
+        "value": 8592
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "captured:ach"
+      },
+      {
+        "call": 5,
+        "value": 999500
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "failed"
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": "failed"
+      },
+      {
+        "call": 11,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 12,
+        "value": 97
+      },
+      {
+        "call": 13,
+        "value": 999500
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 0
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": "captured:a"
+      },
+      {
+        "call": 8,
+        "value": "captured:b"
+      },
+      {
+        "call": 9,
+        "value": "captured:c"
+      },
+      {
+        "call": 10,
+        "value": 9970
+      },
+      {
+        "call": 11,
+        "value": 9000
+      },
+      {
+        "call": 12,
+        "value": 10000
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a new provider of a known kind"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a new provider of a known kind"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a fee is 0 to 1000 basis points"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a fee is 0 to 1000 basis points"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a new provider of a known kind"
+      },
+      {
+        "call": 8,
+        "value": "captured:a"
+      },
+      {
+        "call": 9,
+        "value": 9870
+      },
+      {
+        "call": 10,
+        "error": "KeyError: 'an unknown provider'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 5,
+        "value": -29
+      },
+      {
+        "call": 6,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 7,
+        "value": 3290
+      },
+      {
+        "call": 8,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 9,
+        "value": 3217
+      },
+      {
+        "call": 10,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 11,
+        "value": 3245
+      },
+      {
+        "call": 12,
+        "value": "captured:ach"
+      },
+      {
+        "call": 13,
+        "value": 62000
+      },
+      {
+        "call": 14,
+        "value": "captured:ach"
+      },
+      {
+        "call": 15,
+        "value": 124000
+      },
+      {
+        "call": 16,
+        "value": "captured:ach"
+      },
+      {
+        "call": 17,
+        "value": 186001
+      },
+      {
+        "call": 18,
+        "value": "captured:ach"
+      },
+      {
+        "call": 19,
+        "value": 10185501
+      },
+      {
+        "call": 20,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 21,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 22,
+        "value": 9713260
+      },
+      {
+        "call": 23,
+        "value": 9653245
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "failed"
+      },
+      {
+        "call": 7,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": "failed"
+      },
+      {
+        "call": 13,
+        "value": 136
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: times is 0 to 1000"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: times is 0 to 1000"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'an unknown provider'"
+      },
+      {
+        "call": 8,
+        "error": "KeyError: 'an unknown provider'"
+      },
+      {
+        "call": 9,
+        "value": "failed"
+      },
+      {
+        "call": 10,
+        "value": "captured:stripe"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "failed"
+      },
+      {
+        "call": 8,
+        "value": "captured:ach"
+      },
+      {
+        "call": 9,
+        "value": "captured:ach"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 13,
+        "value": "failed"
+      },
+      {
+        "call": 14,
+        "value": "captured:ach"
+      },
+      {
+        "call": 15,
+        "value": 941
+      },
+      {
+        "call": 16,
+        "value": 0
+      },
+      {
+        "call": 17,
+        "value": 2976
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: cents are 1 to 10^7"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: cents are 1 to 10^7"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: one or more distinct providers"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: one or more distinct providers"
+      },
+      {
+        "call": 11,
+        "error": "KeyError: 'an unknown provider'"
+      },
+      {
+        "call": 12,
+        "error": "KeyError: 'an unknown provider'"
+      },
+      {
+        "call": 13,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 14,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 15,
+        "value": 0
+      },
+      {
+        "call": 16,
+        "value": 9650097
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "KeyError: 'an unknown key'"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'an unknown provider'"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'an unknown key'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "failed"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "failed"
+      },
+      {
+        "call": 9,
+        "value": "failed"
+      },
+      {
+        "call": 10,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 11,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 14,
+        "value": "failed"
+      },
+      {
+        "call": 15,
+        "value": 650
+      },
+      {
+        "call": 16,
+        "value": 0
+      },
+      {
+        "call": 17,
+        "value": 0
+      },
+      {
+        "call": 18,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 19,
+        "value": false
+      },
+      {
+        "call": 20,
+        "value": true
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: one or more distinct providers"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 5,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": false
+      },
+      {
+        "call": 13,
+        "value": -35
+      },
+      {
+        "call": 14,
+        "value": -88
+      },
+      {
+        "call": 15,
+        "error": "KeyError: 'an unknown key'"
+      },
+      {
+        "call": 16,
+        "value": "captured:ach"
+      },
+      {
+        "call": 17,
+        "value": true
+      },
+      {
+        "call": 18,
+        "value": false
+      },
+      {
+        "call": 19,
+        "value": -500
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: cents are 1 to 10^7"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: cents are 1 to 10^7"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 8,
+        "error": "KeyError: 'an unknown provider'"
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'an unknown provider'"
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": -35
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 6,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'an unknown key'"
+      },
+      {
+        "call": 8,
+        "value": "captured:ach"
+      },
+      {
+        "call": 9,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "captured:ach"
+      },
+      {
+        "call": 12,
+        "error": "KeyError: 'an unknown key'"
+      },
+      {
+        "call": 13,
+        "value": "captured:ach"
+      },
+      {
+        "call": 14,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 15,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 16,
+        "value": true
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 19,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 20,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 21,
+        "value": true
+      },
+      {
+        "call": 22,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 23,
+        "value": null
+      },
+      {
+        "call": 24,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 25,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 26,
+        "error": "KeyError: 'an unknown key'"
+      },
+      {
+        "call": 27,
+        "value": "captured:ach"
+      },
+      {
+        "call": 28,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 29,
+        "value": null
+      },
+      {
+        "call": 30,
+        "value": "captured:ach"
+      },
+      {
+        "call": 31,
+        "error": "KeyError: 'an unknown key'"
+      },
+      {
+        "call": 32,
+        "value": "captured:ach"
+      },
+      {
+        "call": 33,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 34,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 35,
+        "value": true
+      },
+      {
+        "call": 36,
+        "value": null
+      },
+      {
+        "call": 37,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 38,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 39,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 40,
+        "value": true
+      },
+      {
+        "call": 41,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 42,
+        "value": null
+      },
+      {
+        "call": 43,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 44,
+        "value": "captured:ach"
+      },
+      {
+        "call": 45,
+        "value": true
+      },
+      {
+        "call": 46,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 47,
+        "value": "captured:ach"
+      },
+      {
+        "call": 48,
+        "value": null
+      },
+      {
+        "call": 49,
+        "value": "captured:ach"
+      },
+      {
+        "call": 50,
+        "value": true
+      },
+      {
+        "call": 51,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 52,
+        "value": 119266
+      },
+      {
+        "call": 53,
+        "value": 69673
+      },
+      {
+        "call": 54,
+        "value": 57551
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 6,
+        "value": "captured:ach"
+      },
+      {
+        "call": 7,
+        "value": "captured:ach"
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 10,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 11,
+        "value": 10621
+      },
+      {
+        "call": 12,
+        "value": 0
+      },
+      {
+        "call": 13,
+        "value": 13888
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "captured:ach"
+      },
+      {
+        "call": 7,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 8,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 9,
+        "value": 9710911
+      },
+      {
+        "call": 10,
+        "value": 496
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "captured:paypal"
+      },
+      {
+        "call": 7,
+        "value": "captured:stripe"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": -30
+      },
+      {
+        "call": 10,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: cents are 1 to 10^7"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: cents are 1 to 10^7"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "KeyError: 'an unknown provider'"
+      },
+      {
+        "call": 5,
+        "value": "captured:paypal"
+      }
+    ]
+  }
+]

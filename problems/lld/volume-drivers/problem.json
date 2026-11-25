@@ -1,0 +1,863 @@
+{
+  "slug": "volume-drivers",
+  "title": "Volume drivers",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "solid",
+  "concepts": [
+    "interface-segregation-principle",
+    "dependency-inversion-principle"
+  ],
+  "interface": {
+    "class": "VolumeManager",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "driver",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "ops",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "create",
+        "params": [
+          {
+            "name": "volume",
+            "type": "string"
+          },
+          {
+            "name": "driver",
+            "type": "string"
+          },
+          {
+            "name": "sizeGb",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "snapshot",
+        "params": [
+          {
+            "name": "volume",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "resize",
+        "params": [
+          {
+            "name": "volume",
+            "type": "string"
+          },
+          {
+            "name": "sizeGb",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "snapshots",
+        "params": [
+          {
+            "name": "volume",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["ebs", ["snapshot", "resize", "encrypt"]]
+          },
+          {
+            "method": "driver",
+            "args": ["local", []]
+          },
+          {
+            "method": "create",
+            "args": ["db", "ebs", 100]
+          },
+          {
+            "method": "create",
+            "args": ["scratch", "local", 50]
+          },
+          {
+            "method": "snapshot",
+            "args": ["db"]
+          },
+          {
+            "method": "resize",
+            "args": ["db", 200]
+          },
+          {
+            "method": "resize",
+            "args": ["db", 150]
+          },
+          {
+            "method": "snapshot",
+            "args": ["db"]
+          },
+          {
+            "method": "snapshots",
+            "args": ["db"]
+          },
+          {
+            "method": "create",
+            "args": ["db", "local", 10]
+          },
+          {
+            "method": "resize",
+            "args": ["scratch", 60]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["nfs", ["resize"]]
+          },
+          {
+            "method": "create",
+            "args": ["home", "nfs", 10]
+          },
+          {
+            "method": "resize",
+            "args": ["home", 10]
+          },
+          {
+            "method": "resize",
+            "args": ["home", 11]
+          },
+          {
+            "method": "resize",
+            "args": ["home", 5]
+          },
+          {
+            "method": "resize",
+            "args": ["home", 20]
+          },
+          {
+            "method": "snapshot",
+            "args": ["home"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["a", ["snapshot"]]
+          },
+          {
+            "method": "driver",
+            "args": ["b", ["resize", "snapshot"]]
+          },
+          {
+            "method": "driver",
+            "args": ["c", ["encrypt"]]
+          },
+          {
+            "method": "driver",
+            "args": ["d", []]
+          },
+          {
+            "method": "create",
+            "args": ["v1", "a", 1]
+          },
+          {
+            "method": "create",
+            "args": ["v2", "b", 1]
+          },
+          {
+            "method": "create",
+            "args": ["v3", "c", 1]
+          },
+          {
+            "method": "create",
+            "args": ["v4", "d", 1]
+          },
+          {
+            "method": "snapshot",
+            "args": ["v1"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["v2"]
+          },
+          {
+            "method": "resize",
+            "args": ["v2", 2]
+          },
+          {
+            "method": "snapshots",
+            "args": ["v1"]
+          },
+          {
+            "method": "snapshots",
+            "args": ["v2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["a", ["Snapshot"]]
+          },
+          {
+            "method": "driver",
+            "args": ["a", ["snapshot", "snapshot"]]
+          },
+          {
+            "method": "driver",
+            "args": ["a", ["shrink"]]
+          },
+          {
+            "method": "driver",
+            "args": ["a", [""]]
+          },
+          {
+            "method": "driver",
+            "args": ["", ["resize"]]
+          },
+          {
+            "method": "driver",
+            "args": ["a", ["resize"]]
+          },
+          {
+            "method": "driver",
+            "args": ["a", ["snapshot"]]
+          },
+          {
+            "method": "create",
+            "args": ["v", "a", 5]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 6]
+          },
+          {
+            "method": "snapshot",
+            "args": ["v"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["x", ["resize", "bogus"]]
+          },
+          {
+            "method": "driver",
+            "args": ["x", ["snapshot"]]
+          },
+          {
+            "method": "create",
+            "args": ["v", "x", 5]
+          },
+          {
+            "method": "snapshot",
+            "args": ["v"]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 6]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["d", ["resize"]]
+          },
+          {
+            "method": "create",
+            "args": ["min", "d", 1]
+          },
+          {
+            "method": "create",
+            "args": ["max", "d", 65536]
+          },
+          {
+            "method": "resize",
+            "args": ["max", 65536]
+          },
+          {
+            "method": "create",
+            "args": ["min", "d", 3]
+          },
+          {
+            "method": "create",
+            "args": ["Min", "d", 3]
+          },
+          {
+            "method": "create",
+            "args": ["min", "D", 3]
+          },
+          {
+            "method": "resize",
+            "args": ["min", 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["d", ["snapshot"]]
+          },
+          {
+            "method": "create",
+            "args": ["v", "d", 0]
+          },
+          {
+            "method": "create",
+            "args": ["v", "d", 65537]
+          },
+          {
+            "method": "create",
+            "args": ["", "d", 5]
+          },
+          {
+            "method": "create",
+            "args": ["v", "nope", 5]
+          },
+          {
+            "method": "create",
+            "args": ["v", "", 5]
+          },
+          {
+            "method": "snapshot",
+            "args": ["v"]
+          },
+          {
+            "method": "create",
+            "args": ["v", "d", 5]
+          },
+          {
+            "method": "create",
+            "args": ["v", "nope", 5]
+          },
+          {
+            "method": "create",
+            "args": ["v", "d", 0]
+          },
+          {
+            "method": "snapshot",
+            "args": ["v"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["d", ["resize"]]
+          },
+          {
+            "method": "create",
+            "args": ["v", "d", 5]
+          },
+          {
+            "method": "create",
+            "args": ["v", "d", 99]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 6]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["s", ["snapshot", "resize"]]
+          },
+          {
+            "method": "create",
+            "args": ["a", "s", 8]
+          },
+          {
+            "method": "create",
+            "args": ["b", "s", 8]
+          },
+          {
+            "method": "snapshots",
+            "args": ["a"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["b"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "resize",
+            "args": ["a", 9]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "snapshots",
+            "args": ["a"]
+          },
+          {
+            "method": "snapshots",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["s", ["snapshot"]]
+          },
+          {
+            "method": "driver",
+            "args": ["r", ["resize", "encrypt"]]
+          },
+          {
+            "method": "snapshots",
+            "args": ["ghost"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["ghost"]
+          },
+          {
+            "method": "snapshot",
+            "args": [""]
+          },
+          {
+            "method": "snapshots",
+            "args": [""]
+          },
+          {
+            "method": "create",
+            "args": ["v", "r", 4]
+          },
+          {
+            "method": "snapshot",
+            "args": ["v"]
+          },
+          {
+            "method": "snapshots",
+            "args": ["v"]
+          },
+          {
+            "method": "create",
+            "args": ["w", "s", 4]
+          },
+          {
+            "method": "snapshot",
+            "args": ["w"]
+          },
+          {
+            "method": "snapshots",
+            "args": ["w"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["r", ["resize"]]
+          },
+          {
+            "method": "create",
+            "args": ["v", "r", 100]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 101]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 101]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 100]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 65536]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 65536]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["r", ["resize"]]
+          },
+          {
+            "method": "driver",
+            "args": ["s", ["snapshot", "encrypt"]]
+          },
+          {
+            "method": "create",
+            "args": ["v", "r", 100]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 0]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 65537]
+          },
+          {
+            "method": "resize",
+            "args": ["ghost", 5]
+          },
+          {
+            "method": "resize",
+            "args": ["", 5]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 101]
+          },
+          {
+            "method": "create",
+            "args": ["w", "s", 100]
+          },
+          {
+            "method": "resize",
+            "args": ["w", 200]
+          },
+          {
+            "method": "resize",
+            "args": ["w", 50]
+          },
+          {
+            "method": "snapshot",
+            "args": ["w"]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 102]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "restore",
+        "params": [
+          {
+            "name": "volume",
+            "type": "string"
+          },
+          {
+            "name": "snapshot",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["ebs", ["snapshot", "resize"]]
+          },
+          {
+            "method": "create",
+            "args": ["db", "ebs", 10]
+          },
+          {
+            "method": "snapshot",
+            "args": ["db"]
+          },
+          {
+            "method": "resize",
+            "args": ["db", 40]
+          },
+          {
+            "method": "snapshot",
+            "args": ["db"]
+          },
+          {
+            "method": "restore",
+            "args": ["db", "db@1"]
+          },
+          {
+            "method": "resize",
+            "args": ["db", 20]
+          },
+          {
+            "method": "restore",
+            "args": ["db", "db@2"]
+          },
+          {
+            "method": "resize",
+            "args": ["db", 30]
+          },
+          {
+            "method": "resize",
+            "args": ["db", 41]
+          },
+          {
+            "method": "snapshots",
+            "args": ["db"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["ebs", ["snapshot", "resize"]]
+          },
+          {
+            "method": "create",
+            "args": ["a", "ebs", 10]
+          },
+          {
+            "method": "create",
+            "args": ["b", "ebs", 10]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "restore",
+            "args": ["b", "a@1"]
+          },
+          {
+            "method": "restore",
+            "args": ["a", "a@2"]
+          },
+          {
+            "method": "restore",
+            "args": ["a", "A@1"]
+          },
+          {
+            "method": "restore",
+            "args": ["a", "a@1"]
+          },
+          {
+            "method": "snapshot",
+            "args": ["a"]
+          },
+          {
+            "method": "snapshots",
+            "args": ["a"]
+          },
+          {
+            "method": "resize",
+            "args": ["a", 11]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["r", ["resize"]]
+          },
+          {
+            "method": "create",
+            "args": ["v", "r", 10]
+          },
+          {
+            "method": "restore",
+            "args": ["v", "v@1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["s", ["snapshot"]]
+          },
+          {
+            "method": "create",
+            "args": ["v", "s", 10]
+          },
+          {
+            "method": "restore",
+            "args": ["v", ""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["s", ["snapshot"]]
+          },
+          {
+            "method": "restore",
+            "args": ["ghost", "ghost@1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "driver",
+            "args": ["s", ["snapshot", "resize"]]
+          },
+          {
+            "method": "create",
+            "args": ["v", "s", 10]
+          },
+          {
+            "method": "snapshot",
+            "args": ["v"]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 20]
+          },
+          {
+            "method": "restore",
+            "args": ["v", ""]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 15]
+          },
+          {
+            "method": "restore",
+            "args": ["v", "v@1"]
+          },
+          {
+            "method": "resize",
+            "args": ["v", 15]
+          }
+        ]
+      }
+    ]
+  }
+}

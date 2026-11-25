@@ -1,0 +1,2530 @@
+{
+  "slug": "job-queue-kinds",
+  "title": "Interchangeable job queues",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "solid",
+  "concepts": ["liskov-substitution-principle", "message-queues"],
+  "interface": {
+    "class": "JobQueue",
+    "constructor": {
+      "params": [
+        {
+          "name": "kind",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "push",
+        "params": [
+          {
+            "name": "job",
+            "type": "string"
+          },
+          {
+            "name": "priority",
+            "type": "int"
+          },
+          {
+            "name": "notBeforeMs",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "poll",
+        "params": [
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "peekAt",
+        "params": [
+          {
+            "name": "nowMs",
+            "type": "int"
+          }
+        ],
+        "returns": "optional<string>"
+      },
+      {
+        "name": "size",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["priority"]
+          },
+          {
+            "method": "push",
+            "args": ["build", 1, 0]
+          },
+          {
+            "method": "push",
+            "args": ["deploy", 5, 0]
+          },
+          {
+            "method": "push",
+            "args": ["report", 9, 1000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [999]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000]
+          },
+          {
+            "method": "poll",
+            "args": [1000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "poll",
+            "args": [5000]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["delayed"]
+          },
+          {
+            "method": "push",
+            "args": ["retry", 0, 300]
+          },
+          {
+            "method": "push",
+            "args": ["email", 0, 100]
+          },
+          {
+            "method": "push",
+            "args": ["cleanup", 0, 200]
+          },
+          {
+            "method": "poll",
+            "args": [50]
+          },
+          {
+            "method": "peekAt",
+            "args": [250]
+          },
+          {
+            "method": "poll",
+            "args": [250]
+          },
+          {
+            "method": "poll",
+            "args": [250]
+          },
+          {
+            "method": "poll",
+            "args": [250]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["email", 0, 0]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fifo"]
+          },
+          {
+            "method": "push",
+            "args": ["a", 1, 0]
+          },
+          {
+            "method": "push",
+            "args": ["b", 5, 0]
+          },
+          {
+            "method": "push",
+            "args": ["c", 5, 0]
+          },
+          {
+            "method": "push",
+            "args": ["d", 9, 50]
+          },
+          {
+            "method": "push",
+            "args": ["e", 0, 20]
+          },
+          {
+            "method": "push",
+            "args": ["f", 7, 10]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "peekAt",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "peekAt",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "peekAt",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["priority"]
+          },
+          {
+            "method": "push",
+            "args": ["a", 1, 0]
+          },
+          {
+            "method": "push",
+            "args": ["b", 5, 0]
+          },
+          {
+            "method": "push",
+            "args": ["c", 5, 0]
+          },
+          {
+            "method": "push",
+            "args": ["d", 9, 50]
+          },
+          {
+            "method": "push",
+            "args": ["e", 0, 20]
+          },
+          {
+            "method": "push",
+            "args": ["f", 7, 10]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "peekAt",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "peekAt",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "peekAt",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["delayed"]
+          },
+          {
+            "method": "push",
+            "args": ["a", 1, 0]
+          },
+          {
+            "method": "push",
+            "args": ["b", 5, 0]
+          },
+          {
+            "method": "push",
+            "args": ["c", 5, 0]
+          },
+          {
+            "method": "push",
+            "args": ["d", 9, 50]
+          },
+          {
+            "method": "push",
+            "args": ["e", 0, 20]
+          },
+          {
+            "method": "push",
+            "args": ["f", 7, 10]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "peekAt",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "peekAt",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "peekAt",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fifo"]
+          },
+          {
+            "method": "push",
+            "args": ["x", 1, 100]
+          },
+          {
+            "method": "poll",
+            "args": [99]
+          },
+          {
+            "method": "peekAt",
+            "args": [99]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [100]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["y", 0, 0]
+          },
+          {
+            "method": "push",
+            "args": ["z", 3, 1000000000000]
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [999999999999]
+          },
+          {
+            "method": "peekAt",
+            "args": [999999999999]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["priority"]
+          },
+          {
+            "method": "push",
+            "args": ["x", 1, 100]
+          },
+          {
+            "method": "poll",
+            "args": [99]
+          },
+          {
+            "method": "peekAt",
+            "args": [99]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [100]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["y", 0, 0]
+          },
+          {
+            "method": "push",
+            "args": ["z", 3, 1000000000000]
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [999999999999]
+          },
+          {
+            "method": "peekAt",
+            "args": [999999999999]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["delayed"]
+          },
+          {
+            "method": "push",
+            "args": ["x", 1, 100]
+          },
+          {
+            "method": "poll",
+            "args": [99]
+          },
+          {
+            "method": "peekAt",
+            "args": [99]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [100]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "poll",
+            "args": [100]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["y", 0, 0]
+          },
+          {
+            "method": "push",
+            "args": ["z", 3, 1000000000000]
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [999999999999]
+          },
+          {
+            "method": "peekAt",
+            "args": [999999999999]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fifo"]
+          },
+          {
+            "method": "push",
+            "args": ["late", 9, 50]
+          },
+          {
+            "method": "push",
+            "args": ["early", 1, 10]
+          },
+          {
+            "method": "push",
+            "args": ["mid", 5, 30]
+          },
+          {
+            "method": "peekAt",
+            "args": [40]
+          },
+          {
+            "method": "poll",
+            "args": [40]
+          },
+          {
+            "method": "peekAt",
+            "args": [5]
+          },
+          {
+            "method": "poll",
+            "args": [5]
+          },
+          {
+            "method": "peekAt",
+            "args": [60]
+          },
+          {
+            "method": "poll",
+            "args": [20]
+          },
+          {
+            "method": "peekAt",
+            "args": [60]
+          },
+          {
+            "method": "poll",
+            "args": [60]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["again", 2, 0]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["priority"]
+          },
+          {
+            "method": "push",
+            "args": ["late", 9, 50]
+          },
+          {
+            "method": "push",
+            "args": ["early", 1, 10]
+          },
+          {
+            "method": "push",
+            "args": ["mid", 5, 30]
+          },
+          {
+            "method": "peekAt",
+            "args": [40]
+          },
+          {
+            "method": "poll",
+            "args": [40]
+          },
+          {
+            "method": "peekAt",
+            "args": [5]
+          },
+          {
+            "method": "poll",
+            "args": [5]
+          },
+          {
+            "method": "peekAt",
+            "args": [60]
+          },
+          {
+            "method": "poll",
+            "args": [20]
+          },
+          {
+            "method": "peekAt",
+            "args": [60]
+          },
+          {
+            "method": "poll",
+            "args": [60]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["again", 2, 0]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["delayed"]
+          },
+          {
+            "method": "push",
+            "args": ["late", 9, 50]
+          },
+          {
+            "method": "push",
+            "args": ["early", 1, 10]
+          },
+          {
+            "method": "push",
+            "args": ["mid", 5, 30]
+          },
+          {
+            "method": "peekAt",
+            "args": [40]
+          },
+          {
+            "method": "poll",
+            "args": [40]
+          },
+          {
+            "method": "peekAt",
+            "args": [5]
+          },
+          {
+            "method": "poll",
+            "args": [5]
+          },
+          {
+            "method": "peekAt",
+            "args": [60]
+          },
+          {
+            "method": "poll",
+            "args": [20]
+          },
+          {
+            "method": "peekAt",
+            "args": [60]
+          },
+          {
+            "method": "poll",
+            "args": [60]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["again", 2, 0]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fifo"]
+          },
+          {
+            "method": "push",
+            "args": ["a", 1, 0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "push",
+            "args": ["a", 1, 0]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "push",
+            "args": ["b", 2, 5]
+          },
+          {
+            "method": "push",
+            "args": ["b", 2, 5]
+          },
+          {
+            "method": "push",
+            "args": ["p", 0, 0]
+          },
+          {
+            "method": "push",
+            "args": ["q", 1000000, 0]
+          },
+          {
+            "method": "push",
+            "args": ["r", 3, 1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "push",
+            "args": ["", 1, 0]
+          },
+          {
+            "method": "push",
+            "args": ["k", -1, 0]
+          },
+          {
+            "method": "push",
+            "args": ["k", 1000001, 0]
+          },
+          {
+            "method": "push",
+            "args": ["k", 1, -1]
+          },
+          {
+            "method": "push",
+            "args": ["k", 1, 1000000000001]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["k", 1, 0]
+          },
+          {
+            "method": "poll",
+            "args": [-1]
+          },
+          {
+            "method": "peekAt",
+            "args": [-1]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000001]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000001]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["priority"]
+          },
+          {
+            "method": "push",
+            "args": ["a", 1, 0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "push",
+            "args": ["a", 1, 0]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "push",
+            "args": ["b", 2, 5]
+          },
+          {
+            "method": "push",
+            "args": ["b", 2, 5]
+          },
+          {
+            "method": "push",
+            "args": ["p", 0, 0]
+          },
+          {
+            "method": "push",
+            "args": ["q", 1000000, 0]
+          },
+          {
+            "method": "push",
+            "args": ["r", 3, 1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "push",
+            "args": ["", 1, 0]
+          },
+          {
+            "method": "push",
+            "args": ["k", -1, 0]
+          },
+          {
+            "method": "push",
+            "args": ["k", 1000001, 0]
+          },
+          {
+            "method": "push",
+            "args": ["k", 1, -1]
+          },
+          {
+            "method": "push",
+            "args": ["k", 1, 1000000000001]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["k", 1, 0]
+          },
+          {
+            "method": "poll",
+            "args": [-1]
+          },
+          {
+            "method": "peekAt",
+            "args": [-1]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000001]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000001]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["delayed"]
+          },
+          {
+            "method": "push",
+            "args": ["a", 1, 0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "push",
+            "args": ["a", 1, 0]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "push",
+            "args": ["b", 2, 5]
+          },
+          {
+            "method": "push",
+            "args": ["b", 2, 5]
+          },
+          {
+            "method": "push",
+            "args": ["p", 0, 0]
+          },
+          {
+            "method": "push",
+            "args": ["q", 1000000, 0]
+          },
+          {
+            "method": "push",
+            "args": ["r", 3, 1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "push",
+            "args": ["", 1, 0]
+          },
+          {
+            "method": "push",
+            "args": ["k", -1, 0]
+          },
+          {
+            "method": "push",
+            "args": ["k", 1000001, 0]
+          },
+          {
+            "method": "push",
+            "args": ["k", 1, -1]
+          },
+          {
+            "method": "push",
+            "args": ["k", 1, 1000000000001]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["k", 1, 0]
+          },
+          {
+            "method": "poll",
+            "args": [-1]
+          },
+          {
+            "method": "peekAt",
+            "args": [-1]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000001]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000001]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fifo"]
+          },
+          {
+            "method": "push",
+            "args": ["j0", 0, 0]
+          },
+          {
+            "method": "push",
+            "args": ["j1", 4, 13]
+          },
+          {
+            "method": "push",
+            "args": ["j2", 8, 26]
+          },
+          {
+            "method": "push",
+            "args": ["j3", 1, 39]
+          },
+          {
+            "method": "push",
+            "args": ["j4", 5, 12]
+          },
+          {
+            "method": "push",
+            "args": ["j5", 9, 25]
+          },
+          {
+            "method": "push",
+            "args": ["j6", 2, 38]
+          },
+          {
+            "method": "push",
+            "args": ["j7", 6, 11]
+          },
+          {
+            "method": "push",
+            "args": ["j8", 10, 24]
+          },
+          {
+            "method": "push",
+            "args": ["j9", 3, 37]
+          },
+          {
+            "method": "push",
+            "args": ["j10", 7, 10]
+          },
+          {
+            "method": "push",
+            "args": ["j11", 0, 23]
+          },
+          {
+            "method": "push",
+            "args": ["j12", 4, 36]
+          },
+          {
+            "method": "push",
+            "args": ["j13", 8, 9]
+          },
+          {
+            "method": "push",
+            "args": ["j14", 1, 22]
+          },
+          {
+            "method": "push",
+            "args": ["j15", 5, 35]
+          },
+          {
+            "method": "push",
+            "args": ["j16", 9, 8]
+          },
+          {
+            "method": "push",
+            "args": ["j17", 2, 21]
+          },
+          {
+            "method": "push",
+            "args": ["j18", 6, 34]
+          },
+          {
+            "method": "push",
+            "args": ["j19", 10, 7]
+          },
+          {
+            "method": "push",
+            "args": ["j20", 3, 20]
+          },
+          {
+            "method": "push",
+            "args": ["j21", 7, 33]
+          },
+          {
+            "method": "push",
+            "args": ["j22", 0, 6]
+          },
+          {
+            "method": "push",
+            "args": ["j23", 4, 19]
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "peekAt",
+            "args": [3]
+          },
+          {
+            "method": "poll",
+            "args": [3]
+          },
+          {
+            "method": "peekAt",
+            "args": [6]
+          },
+          {
+            "method": "poll",
+            "args": [6]
+          },
+          {
+            "method": "peekAt",
+            "args": [9]
+          },
+          {
+            "method": "poll",
+            "args": [9]
+          },
+          {
+            "method": "peekAt",
+            "args": [12]
+          },
+          {
+            "method": "poll",
+            "args": [12]
+          },
+          {
+            "method": "peekAt",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "peekAt",
+            "args": [18]
+          },
+          {
+            "method": "poll",
+            "args": [18]
+          },
+          {
+            "method": "peekAt",
+            "args": [21]
+          },
+          {
+            "method": "poll",
+            "args": [21]
+          },
+          {
+            "method": "peekAt",
+            "args": [24]
+          },
+          {
+            "method": "poll",
+            "args": [24]
+          },
+          {
+            "method": "peekAt",
+            "args": [27]
+          },
+          {
+            "method": "poll",
+            "args": [27]
+          },
+          {
+            "method": "peekAt",
+            "args": [30]
+          },
+          {
+            "method": "poll",
+            "args": [30]
+          },
+          {
+            "method": "peekAt",
+            "args": [33]
+          },
+          {
+            "method": "poll",
+            "args": [33]
+          },
+          {
+            "method": "peekAt",
+            "args": [36]
+          },
+          {
+            "method": "poll",
+            "args": [36]
+          },
+          {
+            "method": "peekAt",
+            "args": [39]
+          },
+          {
+            "method": "poll",
+            "args": [39]
+          },
+          {
+            "method": "peekAt",
+            "args": [42]
+          },
+          {
+            "method": "poll",
+            "args": [42]
+          },
+          {
+            "method": "peekAt",
+            "args": [45]
+          },
+          {
+            "method": "poll",
+            "args": [45]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["j30", 4, 0]
+          },
+          {
+            "method": "push",
+            "args": ["j31", 4, 0]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["priority"]
+          },
+          {
+            "method": "push",
+            "args": ["j0", 0, 0]
+          },
+          {
+            "method": "push",
+            "args": ["j1", 4, 13]
+          },
+          {
+            "method": "push",
+            "args": ["j2", 8, 26]
+          },
+          {
+            "method": "push",
+            "args": ["j3", 1, 39]
+          },
+          {
+            "method": "push",
+            "args": ["j4", 5, 12]
+          },
+          {
+            "method": "push",
+            "args": ["j5", 9, 25]
+          },
+          {
+            "method": "push",
+            "args": ["j6", 2, 38]
+          },
+          {
+            "method": "push",
+            "args": ["j7", 6, 11]
+          },
+          {
+            "method": "push",
+            "args": ["j8", 10, 24]
+          },
+          {
+            "method": "push",
+            "args": ["j9", 3, 37]
+          },
+          {
+            "method": "push",
+            "args": ["j10", 7, 10]
+          },
+          {
+            "method": "push",
+            "args": ["j11", 0, 23]
+          },
+          {
+            "method": "push",
+            "args": ["j12", 4, 36]
+          },
+          {
+            "method": "push",
+            "args": ["j13", 8, 9]
+          },
+          {
+            "method": "push",
+            "args": ["j14", 1, 22]
+          },
+          {
+            "method": "push",
+            "args": ["j15", 5, 35]
+          },
+          {
+            "method": "push",
+            "args": ["j16", 9, 8]
+          },
+          {
+            "method": "push",
+            "args": ["j17", 2, 21]
+          },
+          {
+            "method": "push",
+            "args": ["j18", 6, 34]
+          },
+          {
+            "method": "push",
+            "args": ["j19", 10, 7]
+          },
+          {
+            "method": "push",
+            "args": ["j20", 3, 20]
+          },
+          {
+            "method": "push",
+            "args": ["j21", 7, 33]
+          },
+          {
+            "method": "push",
+            "args": ["j22", 0, 6]
+          },
+          {
+            "method": "push",
+            "args": ["j23", 4, 19]
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "peekAt",
+            "args": [3]
+          },
+          {
+            "method": "poll",
+            "args": [3]
+          },
+          {
+            "method": "peekAt",
+            "args": [6]
+          },
+          {
+            "method": "poll",
+            "args": [6]
+          },
+          {
+            "method": "peekAt",
+            "args": [9]
+          },
+          {
+            "method": "poll",
+            "args": [9]
+          },
+          {
+            "method": "peekAt",
+            "args": [12]
+          },
+          {
+            "method": "poll",
+            "args": [12]
+          },
+          {
+            "method": "peekAt",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "peekAt",
+            "args": [18]
+          },
+          {
+            "method": "poll",
+            "args": [18]
+          },
+          {
+            "method": "peekAt",
+            "args": [21]
+          },
+          {
+            "method": "poll",
+            "args": [21]
+          },
+          {
+            "method": "peekAt",
+            "args": [24]
+          },
+          {
+            "method": "poll",
+            "args": [24]
+          },
+          {
+            "method": "peekAt",
+            "args": [27]
+          },
+          {
+            "method": "poll",
+            "args": [27]
+          },
+          {
+            "method": "peekAt",
+            "args": [30]
+          },
+          {
+            "method": "poll",
+            "args": [30]
+          },
+          {
+            "method": "peekAt",
+            "args": [33]
+          },
+          {
+            "method": "poll",
+            "args": [33]
+          },
+          {
+            "method": "peekAt",
+            "args": [36]
+          },
+          {
+            "method": "poll",
+            "args": [36]
+          },
+          {
+            "method": "peekAt",
+            "args": [39]
+          },
+          {
+            "method": "poll",
+            "args": [39]
+          },
+          {
+            "method": "peekAt",
+            "args": [42]
+          },
+          {
+            "method": "poll",
+            "args": [42]
+          },
+          {
+            "method": "peekAt",
+            "args": [45]
+          },
+          {
+            "method": "poll",
+            "args": [45]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["j30", 4, 0]
+          },
+          {
+            "method": "push",
+            "args": ["j31", 4, 0]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["delayed"]
+          },
+          {
+            "method": "push",
+            "args": ["j0", 0, 0]
+          },
+          {
+            "method": "push",
+            "args": ["j1", 4, 13]
+          },
+          {
+            "method": "push",
+            "args": ["j2", 8, 26]
+          },
+          {
+            "method": "push",
+            "args": ["j3", 1, 39]
+          },
+          {
+            "method": "push",
+            "args": ["j4", 5, 12]
+          },
+          {
+            "method": "push",
+            "args": ["j5", 9, 25]
+          },
+          {
+            "method": "push",
+            "args": ["j6", 2, 38]
+          },
+          {
+            "method": "push",
+            "args": ["j7", 6, 11]
+          },
+          {
+            "method": "push",
+            "args": ["j8", 10, 24]
+          },
+          {
+            "method": "push",
+            "args": ["j9", 3, 37]
+          },
+          {
+            "method": "push",
+            "args": ["j10", 7, 10]
+          },
+          {
+            "method": "push",
+            "args": ["j11", 0, 23]
+          },
+          {
+            "method": "push",
+            "args": ["j12", 4, 36]
+          },
+          {
+            "method": "push",
+            "args": ["j13", 8, 9]
+          },
+          {
+            "method": "push",
+            "args": ["j14", 1, 22]
+          },
+          {
+            "method": "push",
+            "args": ["j15", 5, 35]
+          },
+          {
+            "method": "push",
+            "args": ["j16", 9, 8]
+          },
+          {
+            "method": "push",
+            "args": ["j17", 2, 21]
+          },
+          {
+            "method": "push",
+            "args": ["j18", 6, 34]
+          },
+          {
+            "method": "push",
+            "args": ["j19", 10, 7]
+          },
+          {
+            "method": "push",
+            "args": ["j20", 3, 20]
+          },
+          {
+            "method": "push",
+            "args": ["j21", 7, 33]
+          },
+          {
+            "method": "push",
+            "args": ["j22", 0, 6]
+          },
+          {
+            "method": "push",
+            "args": ["j23", 4, 19]
+          },
+          {
+            "method": "peekAt",
+            "args": [0]
+          },
+          {
+            "method": "poll",
+            "args": [0]
+          },
+          {
+            "method": "peekAt",
+            "args": [3]
+          },
+          {
+            "method": "poll",
+            "args": [3]
+          },
+          {
+            "method": "peekAt",
+            "args": [6]
+          },
+          {
+            "method": "poll",
+            "args": [6]
+          },
+          {
+            "method": "peekAt",
+            "args": [9]
+          },
+          {
+            "method": "poll",
+            "args": [9]
+          },
+          {
+            "method": "peekAt",
+            "args": [12]
+          },
+          {
+            "method": "poll",
+            "args": [12]
+          },
+          {
+            "method": "peekAt",
+            "args": [15]
+          },
+          {
+            "method": "poll",
+            "args": [15]
+          },
+          {
+            "method": "peekAt",
+            "args": [18]
+          },
+          {
+            "method": "poll",
+            "args": [18]
+          },
+          {
+            "method": "peekAt",
+            "args": [21]
+          },
+          {
+            "method": "poll",
+            "args": [21]
+          },
+          {
+            "method": "peekAt",
+            "args": [24]
+          },
+          {
+            "method": "poll",
+            "args": [24]
+          },
+          {
+            "method": "peekAt",
+            "args": [27]
+          },
+          {
+            "method": "poll",
+            "args": [27]
+          },
+          {
+            "method": "peekAt",
+            "args": [30]
+          },
+          {
+            "method": "poll",
+            "args": [30]
+          },
+          {
+            "method": "peekAt",
+            "args": [33]
+          },
+          {
+            "method": "poll",
+            "args": [33]
+          },
+          {
+            "method": "peekAt",
+            "args": [36]
+          },
+          {
+            "method": "poll",
+            "args": [36]
+          },
+          {
+            "method": "peekAt",
+            "args": [39]
+          },
+          {
+            "method": "poll",
+            "args": [39]
+          },
+          {
+            "method": "peekAt",
+            "args": [42]
+          },
+          {
+            "method": "poll",
+            "args": [42]
+          },
+          {
+            "method": "peekAt",
+            "args": [45]
+          },
+          {
+            "method": "poll",
+            "args": [45]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["j30", 4, 0]
+          },
+          {
+            "method": "push",
+            "args": ["j31", 4, 0]
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["FIFO"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["lifo"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "cancel",
+        "params": [
+          {
+            "name": "job",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fifo"]
+          },
+          {
+            "method": "push",
+            "args": ["a", 3, 0]
+          },
+          {
+            "method": "push",
+            "args": ["b", 2, 10]
+          },
+          {
+            "method": "push",
+            "args": ["c", 1, 20]
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "peekAt",
+            "args": [30]
+          },
+          {
+            "method": "poll",
+            "args": [30]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "cancel",
+            "args": ["c"]
+          },
+          {
+            "method": "cancel",
+            "args": ["zzz"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["b", 1, 0]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "poll",
+            "args": [30]
+          },
+          {
+            "method": "peekAt",
+            "args": [30]
+          },
+          {
+            "method": "cancel",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["priority"]
+          },
+          {
+            "method": "push",
+            "args": ["a", 3, 0]
+          },
+          {
+            "method": "push",
+            "args": ["b", 2, 10]
+          },
+          {
+            "method": "push",
+            "args": ["c", 1, 20]
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "peekAt",
+            "args": [30]
+          },
+          {
+            "method": "poll",
+            "args": [30]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "cancel",
+            "args": ["c"]
+          },
+          {
+            "method": "cancel",
+            "args": ["zzz"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["b", 1, 0]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "poll",
+            "args": [30]
+          },
+          {
+            "method": "peekAt",
+            "args": [30]
+          },
+          {
+            "method": "cancel",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["delayed"]
+          },
+          {
+            "method": "push",
+            "args": ["a", 3, 0]
+          },
+          {
+            "method": "push",
+            "args": ["b", 2, 10]
+          },
+          {
+            "method": "push",
+            "args": ["c", 1, 20]
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "cancel",
+            "args": ["b"]
+          },
+          {
+            "method": "peekAt",
+            "args": [30]
+          },
+          {
+            "method": "poll",
+            "args": [30]
+          },
+          {
+            "method": "cancel",
+            "args": ["a"]
+          },
+          {
+            "method": "cancel",
+            "args": ["c"]
+          },
+          {
+            "method": "cancel",
+            "args": ["zzz"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["b", 1, 0]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "poll",
+            "args": [30]
+          },
+          {
+            "method": "peekAt",
+            "args": [30]
+          },
+          {
+            "method": "cancel",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["fifo"]
+          },
+          {
+            "method": "push",
+            "args": ["x", 5, 100]
+          },
+          {
+            "method": "push",
+            "args": ["y", 1, 0]
+          },
+          {
+            "method": "cancel",
+            "args": ["x"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["x", 5, 0]
+          },
+          {
+            "method": "cancel",
+            "args": ["y"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["priority"]
+          },
+          {
+            "method": "push",
+            "args": ["x", 5, 100]
+          },
+          {
+            "method": "push",
+            "args": ["y", 1, 0]
+          },
+          {
+            "method": "cancel",
+            "args": ["x"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["x", 5, 0]
+          },
+          {
+            "method": "cancel",
+            "args": ["y"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["delayed"]
+          },
+          {
+            "method": "push",
+            "args": ["x", 5, 100]
+          },
+          {
+            "method": "push",
+            "args": ["y", 1, 0]
+          },
+          {
+            "method": "cancel",
+            "args": ["x"]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "peekAt",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "poll",
+            "args": [1000000000000]
+          },
+          {
+            "method": "size",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["x", 5, 0]
+          },
+          {
+            "method": "cancel",
+            "args": ["y"]
+          }
+        ]
+      }
+    ]
+  }
+}

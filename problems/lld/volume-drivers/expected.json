@@ -1,0 +1,786 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "db@1"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": "db@2"
+      },
+      {
+        "call": 9,
+        "value": ["db@1", "db@2"]
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "error": "ValueError: the driver can't resize"
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "error": "ValueError: the driver can't snapshot"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": "v1@1"
+      },
+      {
+        "call": 10,
+        "value": "v2@1"
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": ["v1@1"]
+      },
+      {
+        "call": 13,
+        "value": ["v2@1"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: ops are distinct, from snapshot, resize and encrypt"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: ops are distinct, from snapshot, resize and encrypt"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: ops are distinct, from snapshot, resize and encrypt"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: ops are distinct, from snapshot, resize and encrypt"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a driver is registered once"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "error": "ValueError: the driver can't snapshot"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: ops are distinct, from snapshot, resize and encrypt"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "v@1"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: the driver can't resize"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'an unknown driver'"
+      },
+      {
+        "call": 8,
+        "value": true
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a size is 1 to 65536 GB"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a size is 1 to 65536 GB"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'an unknown driver'"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'an unknown driver'"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'an unknown volume'"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "error": "KeyError: 'an unknown driver'"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: a size is 1 to 65536 GB"
+      },
+      {
+        "call": 11,
+        "value": "v@1"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": []
+      },
+      {
+        "call": 5,
+        "value": "a@1"
+      },
+      {
+        "call": 6,
+        "value": "b@1"
+      },
+      {
+        "call": 7,
+        "value": "a@2"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": "a@3"
+      },
+      {
+        "call": 10,
+        "value": ["a@1", "a@2", "a@3"]
+      },
+      {
+        "call": 11,
+        "value": ["b@1"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "KeyError: 'an unknown volume'"
+      },
+      {
+        "call": 4,
+        "error": "KeyError: 'an unknown volume'"
+      },
+      {
+        "call": 5,
+        "error": "KeyError: 'an unknown volume'"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'an unknown volume'"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "error": "ValueError: the driver can't snapshot"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: the driver can't snapshot"
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": "w@1"
+      },
+      {
+        "call": 12,
+        "value": ["w@1"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a size is 1 to 65536 GB"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a size is 1 to 65536 GB"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'an unknown volume'"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'an unknown volume'"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "error": "ValueError: the driver can't resize"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: the driver can't resize"
+      },
+      {
+        "call": 12,
+        "value": "w@1"
+      },
+      {
+        "call": 13,
+        "value": true
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "db@1"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "db@2"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": false
+      },
+      {
+        "call": 10,
+        "value": true
+      },
+      {
+        "call": 11,
+        "value": ["db@1", "db@2"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "a@1"
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": "a@2"
+      },
+      {
+        "call": 10,
+        "value": ["a@1", "a@2"]
+      },
+      {
+        "call": 11,
+        "value": true
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "error": "ValueError: the driver can't snapshot"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an empty name"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'an unknown volume'"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": "v@1"
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "error": "ValueError: an empty name"
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      }
+    ]
+  }
+]

@@ -1,0 +1,1024 @@
+{
+  "slug": "webhook-router",
+  "title": "Webhook event router",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "solid",
+  "concepts": ["open-closed-principle", "webhooks"],
+  "interface": {
+    "class": "WebhookRouter",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "route",
+        "params": [
+          {
+            "name": "pattern",
+            "type": "string"
+          },
+          {
+            "name": "handler",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "deliver",
+        "params": [
+          {
+            "name": "event",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "unroute",
+        "params": [
+          {
+            "name": "handler",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["issue.opened", "triage"]
+          },
+          {
+            "method": "route",
+            "args": ["issue.*", "audit"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "archive"]
+          },
+          {
+            "method": "route",
+            "args": ["pull_request.*", "ci"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue.opened"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue.closed"]
+          },
+          {
+            "method": "deliver",
+            "args": ["pull_request.opened"]
+          },
+          {
+            "method": "deliver",
+            "args": ["push"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issues"]
+          },
+          {
+            "method": "unroute",
+            "args": ["audit"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue.closed"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["push", "ci"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "log"]
+          },
+          {
+            "method": "route",
+            "args": ["push", "ci"]
+          },
+          {
+            "method": "route",
+            "args": ["deploy.*", "ci"]
+          },
+          {
+            "method": "deliver",
+            "args": ["push"]
+          },
+          {
+            "method": "deliver",
+            "args": ["deploy.done"]
+          },
+          {
+            "method": "unroute",
+            "args": ["ci"]
+          },
+          {
+            "method": "unroute",
+            "args": ["ci"]
+          },
+          {
+            "method": "deliver",
+            "args": ["push"]
+          },
+          {
+            "method": "deliver",
+            "args": ["deploy.done"]
+          },
+          {
+            "method": "route",
+            "args": ["push", "ci"]
+          },
+          {
+            "method": "deliver",
+            "args": ["push"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["a", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["a.*", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["a.b.*", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a"]
+          },
+          {
+            "method": "unroute",
+            "args": ["h"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": [".*", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["*.a", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["a*", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["a*.*", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["**", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["a.**", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["a.*.b", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["a", ""]
+          },
+          {
+            "method": "deliver",
+            "args": ["a"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.b"]
+          },
+          {
+            "method": "deliver",
+            "args": ["x.a"]
+          },
+          {
+            "method": "unroute",
+            "args": ["h"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["x", "one"]
+          },
+          {
+            "method": "route",
+            "args": ["x*", "two"]
+          },
+          {
+            "method": "route",
+            "args": ["x", ""]
+          },
+          {
+            "method": "deliver",
+            "args": ["x"]
+          },
+          {
+            "method": "unroute",
+            "args": ["two"]
+          },
+          {
+            "method": "unroute",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["issue.*", "p"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue.opened"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue.comment.created"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue."]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issues"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue_opened"]
+          },
+          {
+            "method": "deliver",
+            "args": ["Issue.opened"]
+          },
+          {
+            "method": "deliver",
+            "args": ["xissue.opened"]
+          },
+          {
+            "method": "route",
+            "args": ["a.b.*", "q"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.b.c"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.bc"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.b"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.c.d"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.b.c.d"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["deploy", "e"]
+          },
+          {
+            "method": "deliver",
+            "args": ["deploy"]
+          },
+          {
+            "method": "deliver",
+            "args": ["Deploy"]
+          },
+          {
+            "method": "deliver",
+            "args": ["deploy.done"]
+          },
+          {
+            "method": "deliver",
+            "args": ["deploy "]
+          },
+          {
+            "method": "deliver",
+            "args": ["predeploy"]
+          },
+          {
+            "method": "deliver",
+            "args": ["deplo"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["*", "h"]
+          },
+          {
+            "method": "deliver",
+            "args": ["*"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.*"]
+          },
+          {
+            "method": "deliver",
+            "args": [""]
+          },
+          {
+            "method": "unroute",
+            "args": [""]
+          },
+          {
+            "method": "deliver",
+            "args": ["a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["x", "a"]
+          },
+          {
+            "method": "route",
+            "args": ["y.*", "b"]
+          },
+          {
+            "method": "route",
+            "args": ["y.z", "a"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "c"]
+          },
+          {
+            "method": "route",
+            "args": ["y.z", "b"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "a"]
+          },
+          {
+            "method": "deliver",
+            "args": ["y.z"]
+          },
+          {
+            "method": "deliver",
+            "args": ["x"]
+          },
+          {
+            "method": "deliver",
+            "args": ["y.q"]
+          },
+          {
+            "method": "deliver",
+            "args": ["other"]
+          },
+          {
+            "method": "unroute",
+            "args": ["b"]
+          },
+          {
+            "method": "deliver",
+            "args": ["y.z"]
+          },
+          {
+            "method": "route",
+            "args": ["y.*", "b"]
+          },
+          {
+            "method": "deliver",
+            "args": ["y.z"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "unroute",
+            "args": ["nobody"]
+          },
+          {
+            "method": "route",
+            "args": ["a", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["b", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["c.*", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["a", "g"]
+          },
+          {
+            "method": "route",
+            "args": ["a", "h"]
+          },
+          {
+            "method": "unroute",
+            "args": ["h"]
+          },
+          {
+            "method": "unroute",
+            "args": ["h"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a"]
+          },
+          {
+            "method": "deliver",
+            "args": ["b"]
+          },
+          {
+            "method": "unroute",
+            "args": ["g"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a"]
+          },
+          {
+            "method": "unroute",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["e", "H"]
+          },
+          {
+            "method": "route",
+            "args": ["e", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["e", "h "]
+          },
+          {
+            "method": "deliver",
+            "args": ["e"]
+          },
+          {
+            "method": "unroute",
+            "args": ["H"]
+          },
+          {
+            "method": "deliver",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["ev.*", "h0"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.k", "h7"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h3"]
+          },
+          {
+            "method": "route",
+            "args": ["other", "h10"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.*", "h6"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.k", "h2"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h9"]
+          },
+          {
+            "method": "route",
+            "args": ["other", "h5"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.*", "h1"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.k", "h8"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h4"]
+          },
+          {
+            "method": "route",
+            "args": ["other", "h0"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.*", "h7"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.k", "h3"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h10"]
+          },
+          {
+            "method": "route",
+            "args": ["other", "h6"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.*", "h2"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.k", "h9"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h5"]
+          },
+          {
+            "method": "route",
+            "args": ["other", "h1"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.*", "h8"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.k", "h4"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h0"]
+          },
+          {
+            "method": "route",
+            "args": ["other", "h7"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.*", "h3"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.k", "h10"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h6"]
+          },
+          {
+            "method": "route",
+            "args": ["other", "h2"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.*", "h9"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.k", "h5"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h1"]
+          },
+          {
+            "method": "route",
+            "args": ["other", "h8"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.*", "h4"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.k", "h0"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h7"]
+          },
+          {
+            "method": "route",
+            "args": ["other", "h3"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.*", "h10"]
+          },
+          {
+            "method": "route",
+            "args": ["ev.k", "h6"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "h2"]
+          },
+          {
+            "method": "route",
+            "args": ["other", "h9"]
+          },
+          {
+            "method": "deliver",
+            "args": ["ev.k"]
+          },
+          {
+            "method": "deliver",
+            "args": ["ev.j"]
+          },
+          {
+            "method": "deliver",
+            "args": ["zzz"]
+          },
+          {
+            "method": "deliver",
+            "args": ["other"]
+          },
+          {
+            "method": "unroute",
+            "args": ["h3"]
+          },
+          {
+            "method": "deliver",
+            "args": ["ev.k"]
+          },
+          {
+            "method": "unroute",
+            "args": ["h0"]
+          },
+          {
+            "method": "deliver",
+            "args": ["other"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "exclude",
+        "params": [
+          {
+            "name": "handler",
+            "type": "string"
+          },
+          {
+            "name": "pattern",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["*", "audit"]
+          },
+          {
+            "method": "route",
+            "args": ["issue.*", "triage"]
+          },
+          {
+            "method": "exclude",
+            "args": ["audit", "ci.*"]
+          },
+          {
+            "method": "deliver",
+            "args": ["ci.started"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue.x"]
+          },
+          {
+            "method": "exclude",
+            "args": ["triage", "issue.closed"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue.closed"]
+          },
+          {
+            "method": "deliver",
+            "args": ["issue.opened"]
+          },
+          {
+            "method": "deliver",
+            "args": ["ci"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["a.*", "h"]
+          },
+          {
+            "method": "exclude",
+            "args": ["h", "*"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.b"]
+          },
+          {
+            "method": "exclude",
+            "args": ["g", "a.b"]
+          },
+          {
+            "method": "route",
+            "args": ["a.b", "g"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.b"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.c"]
+          },
+          {
+            "method": "unroute",
+            "args": ["g"]
+          },
+          {
+            "method": "route",
+            "args": ["a.b", "g"]
+          },
+          {
+            "method": "deliver",
+            "args": ["a.b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["e", "h"]
+          },
+          {
+            "method": "exclude",
+            "args": ["h", "e"]
+          },
+          {
+            "method": "exclude",
+            "args": ["h", "e"]
+          },
+          {
+            "method": "deliver",
+            "args": ["e"]
+          },
+          {
+            "method": "unroute",
+            "args": ["h"]
+          },
+          {
+            "method": "unroute",
+            "args": ["h"]
+          },
+          {
+            "method": "route",
+            "args": ["e", "h"]
+          },
+          {
+            "method": "deliver",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["e", "h"]
+          },
+          {
+            "method": "exclude",
+            "args": ["h", "e*"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["e", "h"]
+          },
+          {
+            "method": "exclude",
+            "args": ["", "e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "route",
+            "args": ["e", "h"]
+          },
+          {
+            "method": "exclude",
+            "args": ["h", ""]
+          },
+          {
+            "method": "deliver",
+            "args": ["e"]
+          },
+          {
+            "method": "exclude",
+            "args": ["h", ".*"]
+          },
+          {
+            "method": "deliver",
+            "args": ["e"]
+          },
+          {
+            "method": "exclude",
+            "args": ["h", "f"]
+          },
+          {
+            "method": "deliver",
+            "args": ["e"]
+          },
+          {
+            "method": "exclude",
+            "args": ["h", "e.*"]
+          },
+          {
+            "method": "deliver",
+            "args": ["e"]
+          },
+          {
+            "method": "route",
+            "args": ["e.x", "h"]
+          },
+          {
+            "method": "route",
+            "args": ["*", "k"]
+          },
+          {
+            "method": "deliver",
+            "args": ["e.x"]
+          }
+        ]
+      }
+    ]
+  }
+}

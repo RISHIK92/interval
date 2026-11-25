@@ -1,0 +1,1458 @@
+{
+  "slug": "payment-orchestrator",
+  "title": "Payment orchestration",
+  "difficulty": "hard",
+  "pool": "practice",
+  "topic": "solid",
+  "concepts": [
+    "single-responsibility-principle",
+    "open-closed-principle",
+    "dependency-inversion-principle",
+    "liskov-substitution-principle",
+    "idempotency-keys"
+  ],
+  "interface": {
+    "class": "PaymentOrchestrator",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "provider",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "kind",
+            "type": "string"
+          },
+          {
+            "name": "feeBps",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "failProvider",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "times",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "charge",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "customer",
+            "type": "string"
+          },
+          {
+            "name": "cents",
+            "type": "int"
+          },
+          {
+            "name": "providers",
+            "type": "list<string>"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "refund",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "cents",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "settled",
+        "params": [
+          {
+            "name": "provider",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "charge",
+            "args": ["k1", "ann", 10000, ["stripe", "paypal"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["k2", "bob", 5000, ["stripe", "paypal"]]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          },
+          {
+            "method": "charge",
+            "args": ["k2", "bob", 5000, ["stripe", "paypal"]]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          },
+          {
+            "method": "refund",
+            "args": ["k1", 3000]
+          },
+          {
+            "method": "refund",
+            "args": ["k1", 8000]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "charge",
+            "args": ["k3", "ann", 2000, ["stripe"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "charge",
+            "args": ["big", "co", 1000000, ["ach"]]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          },
+          {
+            "method": "failProvider",
+            "args": ["ach", 2]
+          },
+          {
+            "method": "failProvider",
+            "args": ["paypal", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "co", 100, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "co", 100, ["paypal", "ach"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k2", "co", 100, ["ach", "paypal"]]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["a", "card", 0]
+          },
+          {
+            "method": "provider",
+            "args": ["b", "wallet", 1000]
+          },
+          {
+            "method": "provider",
+            "args": ["c", "bank", 0]
+          },
+          {
+            "method": "settled",
+            "args": ["a"]
+          },
+          {
+            "method": "settled",
+            "args": ["b"]
+          },
+          {
+            "method": "settled",
+            "args": ["c"]
+          },
+          {
+            "method": "charge",
+            "args": ["x", "u", 10000, ["a"]]
+          },
+          {
+            "method": "charge",
+            "args": ["y", "u", 10000, ["b"]]
+          },
+          {
+            "method": "charge",
+            "args": ["z", "u", 10000, ["c"]]
+          },
+          {
+            "method": "settled",
+            "args": ["a"]
+          },
+          {
+            "method": "settled",
+            "args": ["b"]
+          },
+          {
+            "method": "settled",
+            "args": ["c"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["a", "Card", 100]
+          },
+          {
+            "method": "provider",
+            "args": ["a", "crypto", 100]
+          },
+          {
+            "method": "provider",
+            "args": ["a", "card", -1]
+          },
+          {
+            "method": "provider",
+            "args": ["a", "card", 1001]
+          },
+          {
+            "method": "provider",
+            "args": ["", "card", 100]
+          },
+          {
+            "method": "provider",
+            "args": ["a", "card", 100]
+          },
+          {
+            "method": "provider",
+            "args": ["a", "wallet", 100]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 10000, ["a"]]
+          },
+          {
+            "method": "settled",
+            "args": ["a"]
+          },
+          {
+            "method": "settled",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "charge",
+            "args": ["c1", "u", 1, ["stripe"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "charge",
+            "args": ["c2", "u", 3449, ["stripe"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "charge",
+            "args": ["w1", "u", 3333, ["paypal"]]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          },
+          {
+            "method": "charge",
+            "args": ["w2", "u", 28, ["paypal"]]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          },
+          {
+            "method": "charge",
+            "args": ["b1", "u", 62499, ["ach"]]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          },
+          {
+            "method": "charge",
+            "args": ["b2", "u", 62500, ["ach"]]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          },
+          {
+            "method": "charge",
+            "args": ["b3", "u", 62501, ["ach"]]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          },
+          {
+            "method": "charge",
+            "args": ["b4", "u", 10000000, ["ach"]]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          },
+          {
+            "method": "charge",
+            "args": ["c3", "u", 10000000, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["w3", "u", 10000000, ["paypal"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 3]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["a", "u", 100, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["b", "u", 100, ["stripe"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 2]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 0]
+          },
+          {
+            "method": "charge",
+            "args": ["c", "u", 100, ["stripe"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 1000]
+          },
+          {
+            "method": "charge",
+            "args": ["d", "u", 100, ["stripe"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 1]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", -1]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 1001]
+          },
+          {
+            "method": "failProvider",
+            "args": ["nobody", 1]
+          },
+          {
+            "method": "failProvider",
+            "args": ["", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["a", "u", 100, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["b", "u", 100, ["stripe"]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 1]
+          },
+          {
+            "method": "failProvider",
+            "args": ["paypal", 1]
+          },
+          {
+            "method": "failProvider",
+            "args": ["ach", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["a", "u", 1000, ["stripe", "paypal", "ach"]]
+          },
+          {
+            "method": "charge",
+            "args": ["b", "u", 1000, ["ach", "paypal", "stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["c", "u", 1000, ["ach", "paypal", "stripe"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["ach", 2]
+          },
+          {
+            "method": "failProvider",
+            "args": ["paypal", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["d", "u", 1000, ["paypal", "ach", "stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["e", "u", 1000, ["ach"]]
+          },
+          {
+            "method": "charge",
+            "args": ["f", "u", 1000, ["ach"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["", "u", 100, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "", 100, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 0, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 10000001, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 100, []]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 100, ["stripe", "stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 100, ["stripe", "nope"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 100, ["Stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 100, ["paypal", "stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k2", "u", 10000000, ["stripe", "paypal"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "refund",
+            "args": ["k", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 100, ["stripe", "nope"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k", 1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 1]
+          },
+          {
+            "method": "failProvider",
+            "args": ["paypal", 5]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 500, ["stripe", "paypal"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["paypal", 0]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 500, ["stripe", "paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "v", 900, ["ach"]]
+          },
+          {
+            "method": "charge",
+            "args": ["j", "u", 700, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["j", "w", 9, ["paypal", "ach"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["ach", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["j", "u", 700, ["ach"]]
+          },
+          {
+            "method": "charge",
+            "args": ["i", "u", 700, ["ach"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          },
+          {
+            "method": "charge",
+            "args": ["J", "u", 700, ["paypal"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k", 1]
+          },
+          {
+            "method": "refund",
+            "args": ["j", 700]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 500, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k", "u", 500, ["stripe", "stripe"]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "charge",
+            "args": ["a", "u", 1000, ["paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["b", "u", 2000, ["stripe"]]
+          },
+          {
+            "method": "refund",
+            "args": ["a", 400]
+          },
+          {
+            "method": "refund",
+            "args": ["a", 600]
+          },
+          {
+            "method": "refund",
+            "args": ["a", 1]
+          },
+          {
+            "method": "refund",
+            "args": ["b", 2001]
+          },
+          {
+            "method": "refund",
+            "args": ["b", 1999]
+          },
+          {
+            "method": "refund",
+            "args": ["b", 1]
+          },
+          {
+            "method": "refund",
+            "args": ["b", 1]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "refund",
+            "args": ["nobody", 5]
+          },
+          {
+            "method": "charge",
+            "args": ["big", "u", 10000000, ["ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["big", 10000000]
+          },
+          {
+            "method": "refund",
+            "args": ["big", 1]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "charge",
+            "args": ["a", "u", 1000, ["paypal"]]
+          },
+          {
+            "method": "refund",
+            "args": ["a", 0]
+          },
+          {
+            "method": "refund",
+            "args": ["a", 10000001]
+          },
+          {
+            "method": "refund",
+            "args": ["", 5]
+          },
+          {
+            "method": "settled",
+            "args": ["nobody"]
+          },
+          {
+            "method": "settled",
+            "args": [""]
+          },
+          {
+            "method": "refund",
+            "args": ["a", 1000]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 0]
+          },
+          {
+            "method": "charge",
+            "args": ["k0", "c0", 100, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k1", "c1", 1097, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k7", 63]
+          },
+          {
+            "method": "charge",
+            "args": ["k2", "c2", 2094, ["ach", "stripe", "paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k3", "c3", 3091, ["stripe"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["paypal", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["k4", "c4", 4088, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k5", 102]
+          },
+          {
+            "method": "charge",
+            "args": ["k5", "c0", 5085, ["ach", "stripe", "paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k6", "c1", 6082, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k7", "c2", 7079, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k3", 141]
+          },
+          {
+            "method": "failProvider",
+            "args": ["ach", 2]
+          },
+          {
+            "method": "charge",
+            "args": ["k8", "c3", 8076, ["ach", "stripe", "paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k9", "c4", 9073, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k10", "c0", 10070, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k1", 180]
+          },
+          {
+            "method": "charge",
+            "args": ["k11", "c1", 11067, ["ach", "stripe", "paypal"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 0]
+          },
+          {
+            "method": "charge",
+            "args": ["k12", "c2", 12064, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k13", "c3", 13061, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k22", 219]
+          },
+          {
+            "method": "charge",
+            "args": ["k14", "c4", 14058, ["ach", "stripe", "paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k15", "c0", 15055, ["stripe"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["paypal", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["k16", "c1", 16052, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k20", 258]
+          },
+          {
+            "method": "charge",
+            "args": ["k17", "c2", 17049, ["ach", "stripe", "paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k18", "c3", 18046, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k19", "c4", 19043, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k18", 297]
+          },
+          {
+            "method": "failProvider",
+            "args": ["ach", 2]
+          },
+          {
+            "method": "charge",
+            "args": ["k20", "c0", 20040, ["ach", "stripe", "paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k21", "c1", 21037, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k22", "c2", 22034, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k16", 336]
+          },
+          {
+            "method": "charge",
+            "args": ["k0", "c3", 23031, ["ach", "stripe", "paypal"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 0]
+          },
+          {
+            "method": "charge",
+            "args": ["k1", "c4", 24028, ["stripe"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k2", "c0", 25025, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k14", 75]
+          },
+          {
+            "method": "charge",
+            "args": ["k3", "c1", 26022, ["ach", "stripe", "paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["k4", "c2", 27019, ["stripe"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["paypal", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["k5", "c3", 28016, ["paypal", "ach"]]
+          },
+          {
+            "method": "refund",
+            "args": ["k12", 114]
+          },
+          {
+            "method": "charge",
+            "args": ["k6", "c4", 29013, ["ach", "stripe", "paypal"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "routeByAmount",
+        "params": [
+          {
+            "name": "thresholdCents",
+            "type": "int"
+          },
+          {
+            "name": "provider",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "routeByAmount",
+            "args": [5000, "ach"]
+          },
+          {
+            "method": "charge",
+            "args": ["a", "u", 4999, ["stripe", "paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["b", "u", 5000, ["stripe", "paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["c", "u", 9000, ["paypal", "ach"]]
+          },
+          {
+            "method": "failProvider",
+            "args": ["ach", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["d", "u", 6000, ["stripe", "ach"]]
+          },
+          {
+            "method": "charge",
+            "args": ["a", "u", 9999, ["paypal"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "routeByAmount",
+            "args": [100, "paypal"]
+          },
+          {
+            "method": "routeByAmount",
+            "args": [1000, "stripe"]
+          },
+          {
+            "method": "charge",
+            "args": ["a", "u", 500, ["ach"]]
+          },
+          {
+            "method": "charge",
+            "args": ["b", "u", 1000, ["ach"]]
+          },
+          {
+            "method": "charge",
+            "args": ["c", "u", 10000000, ["ach", "stripe"]]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "settled",
+            "args": ["ach"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "routeByAmount",
+            "args": [1, "stripe"]
+          },
+          {
+            "method": "failProvider",
+            "args": ["stripe", 1]
+          },
+          {
+            "method": "charge",
+            "args": ["a", "u", 1, ["paypal"]]
+          },
+          {
+            "method": "charge",
+            "args": ["b", "u", 1, ["paypal"]]
+          },
+          {
+            "method": "refund",
+            "args": ["b", 1]
+          },
+          {
+            "method": "settled",
+            "args": ["stripe"]
+          },
+          {
+            "method": "settled",
+            "args": ["paypal"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "routeByAmount",
+            "args": [0, "stripe"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "routeByAmount",
+            "args": [10000001, "stripe"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "provider",
+            "args": ["stripe", "card", 290]
+          },
+          {
+            "method": "provider",
+            "args": ["paypal", "wallet", 350]
+          },
+          {
+            "method": "provider",
+            "args": ["ach", "bank", 80]
+          },
+          {
+            "method": "routeByAmount",
+            "args": [100, "nobody"]
+          },
+          {
+            "method": "charge",
+            "args": ["a", "u", 500, ["paypal"]]
+          }
+        ]
+      }
+    ]
+  }
+}
