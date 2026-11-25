@@ -1,0 +1,1014 @@
+{
+  "slug": "admin-proxy",
+  "title": "Protected admin API",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["proxy-pattern", "rbac", "authentication-vs-authorization"],
+  "interface": {
+    "class": "AdminProxy",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "grant",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          },
+          {
+            "name": "role",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "invoke",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          },
+          {
+            "name": "action",
+            "type": "string"
+          },
+          {
+            "name": "target",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "audit",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "realCalls",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["ana", "operator"]
+          },
+          {
+            "method": "grant",
+            "args": ["raj", "viewer"]
+          },
+          {
+            "method": "invoke",
+            "args": ["ana", "suspend", "bob"]
+          },
+          {
+            "method": "invoke",
+            "args": ["raj", "suspend", "bob"]
+          },
+          {
+            "method": "invoke",
+            "args": ["raj", "read", "bob"]
+          },
+          {
+            "method": "invoke",
+            "args": ["eve", "read", "bob"]
+          },
+          {
+            "method": "invoke",
+            "args": ["ana", "suspend", "bob"]
+          },
+          {
+            "method": "invoke",
+            "args": ["ana", "delete", "bob"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["root", "admin"]
+          },
+          {
+            "method": "invoke",
+            "args": ["root", "delete", "old"]
+          },
+          {
+            "method": "invoke",
+            "args": ["root", "read", "old"]
+          },
+          {
+            "method": "grant",
+            "args": ["sam", "viewer"]
+          },
+          {
+            "method": "invoke",
+            "args": ["sam", "restore", "x"]
+          },
+          {
+            "method": "grant",
+            "args": ["sam", "operator"]
+          },
+          {
+            "method": "invoke",
+            "args": ["sam", "restore", "x"]
+          },
+          {
+            "method": "invoke",
+            "args": ["sam", "suspend", "x"]
+          },
+          {
+            "method": "invoke",
+            "args": ["sam", "restore", "x"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["v", "viewer"]
+          },
+          {
+            "method": "grant",
+            "args": ["o", "operator"]
+          },
+          {
+            "method": "grant",
+            "args": ["a", "admin"]
+          },
+          {
+            "method": "invoke",
+            "args": ["v", "read", "v-read"]
+          },
+          {
+            "method": "invoke",
+            "args": ["v", "suspend", "v-suspend"]
+          },
+          {
+            "method": "invoke",
+            "args": ["v", "restore", "v-restore"]
+          },
+          {
+            "method": "invoke",
+            "args": ["v", "delete", "v-delete"]
+          },
+          {
+            "method": "invoke",
+            "args": ["o", "read", "o-read"]
+          },
+          {
+            "method": "invoke",
+            "args": ["o", "suspend", "o-suspend"]
+          },
+          {
+            "method": "invoke",
+            "args": ["o", "restore", "o-restore"]
+          },
+          {
+            "method": "invoke",
+            "args": ["o", "delete", "o-delete"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a", "read", "a-read"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a", "suspend", "a-suspend"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a", "restore", "a-restore"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a", "delete", "a-delete"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["", "admin"]
+          },
+          {
+            "method": "grant",
+            "args": ["u", "Admin"]
+          },
+          {
+            "method": "grant",
+            "args": ["u", "root"]
+          },
+          {
+            "method": "grant",
+            "args": ["u", ""]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "read", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["", "read", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["nobody", "drop", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["nobody", "Read", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["nobody", "read", ""]
+          },
+          {
+            "method": "invoke",
+            "args": ["nobody", "", "t"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["u", "viewer"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "read", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "READ", "t"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["Ana", "admin"]
+          },
+          {
+            "method": "invoke",
+            "args": ["ana", "delete", "x"]
+          },
+          {
+            "method": "invoke",
+            "args": ["ANA", "read", "x"]
+          },
+          {
+            "method": "invoke",
+            "args": ["Ana", "delete", "x"]
+          },
+          {
+            "method": "invoke",
+            "args": ["Ana", "delete", "x"]
+          },
+          {
+            "method": "invoke",
+            "args": ["Ana", "read", "x"]
+          },
+          {
+            "method": "invoke",
+            "args": ["Ana", "suspend", "X"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["op", "operator"]
+          },
+          {
+            "method": "grant",
+            "args": ["ad", "admin"]
+          },
+          {
+            "method": "invoke",
+            "args": ["op", "restore", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["op", "suspend", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["op", "suspend", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["op", "restore", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["op", "restore", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["op", "suspend", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["ad", "delete", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["ad", "delete", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["op", "read", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["op", "restore", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["op", "suspend", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["ad", "read", "t2"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["u", "viewer"]
+          },
+          {
+            "method": "grant",
+            "args": ["u", "viewer"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "delete", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "suspend", "t"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["u", "operator"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "delete", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "suspend", "t"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["u", "admin"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "delete", "t"]
+          },
+          {
+            "method": "grant",
+            "args": ["u", "viewer"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "delete", "t2"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["boss", "admin"]
+          },
+          {
+            "method": "grant",
+            "args": ["bob", "viewer"]
+          },
+          {
+            "method": "invoke",
+            "args": ["boss", "delete", "bob"]
+          },
+          {
+            "method": "invoke",
+            "args": ["bob", "read", "boss"]
+          },
+          {
+            "method": "invoke",
+            "args": ["bob", "read", "bob"]
+          },
+          {
+            "method": "invoke",
+            "args": ["boss", "suspend", "boss"]
+          },
+          {
+            "method": "invoke",
+            "args": ["boss", "read", "boss"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["a b", "operator"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a b", "suspend", "c d"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a b", "read", "c d"]
+          },
+          {
+            "method": "grant",
+            "args": ["~", "viewer"]
+          },
+          {
+            "method": "invoke",
+            "args": ["~", "suspend", "!"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a b", "restore", "c d"]
+          },
+          {
+            "method": "audit",
+            "args": []
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["u0", "viewer"]
+          },
+          {
+            "method": "grant",
+            "args": ["u1", "operator"]
+          },
+          {
+            "method": "grant",
+            "args": ["u2", "admin"]
+          },
+          {
+            "method": "grant",
+            "args": ["u3", "viewer"]
+          },
+          {
+            "method": "grant",
+            "args": ["u4", "operator"]
+          },
+          {
+            "method": "grant",
+            "args": ["u5", "admin"]
+          },
+          {
+            "method": "grant",
+            "args": ["u6", "viewer"]
+          },
+          {
+            "method": "grant",
+            "args": ["u7", "operator"]
+          },
+          {
+            "method": "grant",
+            "args": ["u8", "admin"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u0", "read", "t0"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u1", "delete", "t1"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u2", "restore", "t2"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u3", "suspend", "t3"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u4", "read", "t0"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u5", "delete", "t1"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u6", "restore", "t2"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u7", "suspend", "t3"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u8", "read", "t0"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u9", "delete", "t1"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u10", "restore", "t2"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u11", "suspend", "t3"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u12", "read", "t0"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u13", "delete", "t1"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u14", "restore", "t2"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u15", "suspend", "t3"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u16", "read", "t0"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u17", "delete", "t1"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u18", "restore", "t2"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u19", "suspend", "t3"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u20", "read", "t0"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u21", "delete", "t1"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u22", "restore", "t2"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u23", "suspend", "t3"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u24", "read", "t0"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u25", "delete", "t1"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u26", "restore", "t2"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u27", "suspend", "t3"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u28", "read", "t0"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u29", "delete", "t1"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "breakGlass",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "endBreakGlass",
+        "params": [
+          {
+            "name": "user",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["oncall", "viewer"]
+          },
+          {
+            "method": "invoke",
+            "args": ["oncall", "suspend", "db"]
+          },
+          {
+            "method": "breakGlass",
+            "args": ["oncall"]
+          },
+          {
+            "method": "invoke",
+            "args": ["oncall", "suspend", "db"]
+          },
+          {
+            "method": "invoke",
+            "args": ["oncall", "delete", "cache"]
+          },
+          {
+            "method": "breakGlass",
+            "args": ["oncall"]
+          },
+          {
+            "method": "endBreakGlass",
+            "args": ["oncall"]
+          },
+          {
+            "method": "invoke",
+            "args": ["oncall", "restore", "db"]
+          },
+          {
+            "method": "invoke",
+            "args": ["oncall", "read", "db"]
+          },
+          {
+            "method": "endBreakGlass",
+            "args": ["oncall"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "breakGlass",
+            "args": ["ghost"]
+          },
+          {
+            "method": "endBreakGlass",
+            "args": ["ghost"]
+          },
+          {
+            "method": "breakGlass",
+            "args": [""]
+          },
+          {
+            "method": "endBreakGlass",
+            "args": [""]
+          },
+          {
+            "method": "grant",
+            "args": ["u", "admin"]
+          },
+          {
+            "method": "endBreakGlass",
+            "args": ["u"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "read", "t"]
+          },
+          {
+            "method": "breakGlass",
+            "args": ["u"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "read", "t"]
+          },
+          {
+            "method": "invoke",
+            "args": ["ghost", "read", "t"]
+          },
+          {
+            "method": "endBreakGlass",
+            "args": ["u"]
+          },
+          {
+            "method": "invoke",
+            "args": ["u", "read", "t"]
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["a", "viewer"]
+          },
+          {
+            "method": "grant",
+            "args": ["b", "viewer"]
+          },
+          {
+            "method": "breakGlass",
+            "args": ["a"]
+          },
+          {
+            "method": "invoke",
+            "args": ["b", "delete", "x"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a", "delete", "x"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a", "delete", "x"]
+          },
+          {
+            "method": "endBreakGlass",
+            "args": ["a"]
+          },
+          {
+            "method": "breakGlass",
+            "args": ["a"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a", "read", "y"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a", "drop", "y"]
+          },
+          {
+            "method": "realCalls",
+            "args": []
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "grant",
+            "args": ["a", "operator"]
+          },
+          {
+            "method": "breakGlass",
+            "args": ["a"]
+          },
+          {
+            "method": "grant",
+            "args": ["a", "admin"]
+          },
+          {
+            "method": "endBreakGlass",
+            "args": ["a"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a", "delete", "z"]
+          },
+          {
+            "method": "breakGlass",
+            "args": ["a"]
+          },
+          {
+            "method": "breakGlass",
+            "args": ["a"]
+          },
+          {
+            "method": "invoke",
+            "args": ["a", "suspend", "z"]
+          },
+          {
+            "method": "audit",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

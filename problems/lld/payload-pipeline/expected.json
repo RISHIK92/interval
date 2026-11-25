@@ -1,0 +1,1132 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "hi"
+      },
+      {
+        "call": 2,
+        "value": "hi"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "6869"
+      },
+      {
+        "call": 5,
+        "value": "hi"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "4:6869"
+      },
+      {
+        "call": 8,
+        "value": "hi"
+      },
+      {
+        "call": 9,
+        "value": ["hex", "frame"]
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: non-hexadecimal number found in fromhex() arg at position 1"
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "Mjpvaw=="
+      },
+      {
+        "call": 4,
+        "value": "ok"
+      },
+      {
+        "call": 5,
+        "value": "NDphIGJ+"
+      },
+      {
+        "call": 6,
+        "value": "a b~"
+      },
+      {
+        "call": 7,
+        "value": ["frame", "base64"]
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 9,
+        "error": "Error: Incorrect padding"
+      },
+      {
+        "call": 10,
+        "error": "Error: Incorrect padding"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "YQ=="
+      },
+      {
+        "call": 3,
+        "value": "YWI="
+      },
+      {
+        "call": 4,
+        "value": "YWJj"
+      },
+      {
+        "call": 5,
+        "value": "YWJjZA=="
+      },
+      {
+        "call": 6,
+        "value": "IH4="
+      },
+      {
+        "call": 7,
+        "value": "SGVsbG8sIFdvcmxkIQ=="
+      },
+      {
+        "call": 8,
+        "value": "a"
+      },
+      {
+        "call": 9,
+        "value": "ab"
+      },
+      {
+        "call": 10,
+        "value": "abc"
+      },
+      {
+        "call": 11,
+        "value": "abcd"
+      },
+      {
+        "call": 12,
+        "value": " ~"
+      },
+      {
+        "call": 13,
+        "value": "Hello, World!"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "20"
+      },
+      {
+        "call": 3,
+        "value": "7e"
+      },
+      {
+        "call": 4,
+        "value": "417a3039"
+      },
+      {
+        "call": 5,
+        "value": " "
+      },
+      {
+        "call": 6,
+        "value": "~"
+      },
+      {
+        "call": 7,
+        "value": "Az09"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: non-hexadecimal number found in fromhex() arg at position 3"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: non-hexadecimal number found in fromhex() arg at position 4"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: non-hexadecimal number found in fromhex() arg at position 1"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: non-hexadecimal number found in fromhex() arg at position 0"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "1:x"
+      },
+      {
+        "call": 3,
+        "value": "3:a:b"
+      },
+      {
+        "call": 4,
+        "value": "10:0123456789"
+      },
+      {
+        "call": 5,
+        "value": "x"
+      },
+      {
+        "call": 6,
+        "value": "a:b"
+      },
+      {
+        "call": 7,
+        "value": "0123456789"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 17,
+        "value": " "
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "Error: Incorrect padding"
+      },
+      {
+        "call": 3,
+        "error": "Error: Incorrect padding"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 9,
+        "error": "Error: Incorrect padding"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 13,
+        "value": "~~~"
+      },
+      {
+        "call": 14,
+        "error": "Error: Incorrect padding"
+      },
+      {
+        "call": 15,
+        "error": "Error: Incorrect padding"
+      },
+      {
+        "call": 16,
+        "value": "fn5+"
+      },
+      {
+        "call": 17,
+        "value": "Pj4/"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown layer"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown layer"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown layer"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown layer"
+      },
+      {
+        "call": 5,
+        "value": []
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not a payload"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not a payload"
+      },
+      {
+        "call": 8,
+        "value": "x"
+      },
+      {
+        "call": 9,
+        "value": "x"
+      },
+      {
+        "call": 10,
+        "value": "~"
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": null
+      },
+      {
+        "call": 15,
+        "value": null
+      },
+      {
+        "call": 16,
+        "value": null
+      },
+      {
+        "call": 17,
+        "value": null
+      },
+      {
+        "call": 18,
+        "value": null
+      },
+      {
+        "call": 19,
+        "error": "ValueError: too many layers"
+      },
+      {
+        "call": 20,
+        "value": [
+          "hex",
+          "frame",
+          "base64",
+          "hex",
+          "frame",
+          "base64",
+          "hex",
+          "frame"
+        ]
+      },
+      {
+        "call": 21,
+        "value": "56:4d5459364e47513259545a6d4d7a4d305a6a51784d32517a5a413d3d"
+      },
+      {
+        "call": 22,
+        "error": "ValueError: not a payload"
+      },
+      {
+        "call": 23,
+        "error": "ValueError: not a payload"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "Njg2OQ=="
+      },
+      {
+        "call": 4,
+        "value": "hi"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: non-hexadecimal number found in fromhex() arg at position 0"
+      },
+      {
+        "call": 6,
+        "value": ["hex", "base64"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "61476b3d"
+      },
+      {
+        "call": 4,
+        "value": "hh"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: non-hexadecimal number found in fromhex() arg at position 0"
+      },
+      {
+        "call": 6,
+        "value": ["base64", "hex"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "6:4:2:ab"
+      },
+      {
+        "call": 5,
+        "value": "ab"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 9,
+        "value": ["frame", "frame", "frame"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 6,
+        "value": " "
+      },
+      {
+        "call": 7,
+        "value": "~"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: non-hexadecimal number found in fromhex() arg at position 3"
+      },
+      {
+        "call": 9,
+        "value": "~~"
+      },
+      {
+        "call": 10,
+        "value": "4:7e7e"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 5,
+        "value": "x"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 7,
+        "value": "xx"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not something this layer produced"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "ZUE9PQ=="
+      },
+      {
+        "call": 4,
+        "value": "x"
+      },
+      {
+        "call": 5,
+        "error": "Error: Invalid base64-encoded string: number of data characters (1) cannot be 1 more than a multiple of 4"
+      },
+      {
+        "call": 6,
+        "error": "Error: Incorrect padding"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 8,
+        "error": "Error: Invalid base64-encoded string: number of data characters (1) cannot be 1 more than a multiple of 4"
+      },
+      {
+        "call": 9,
+        "error": "Error: Invalid base64-encoded string: number of data characters (1) cannot be 1 more than a multiple of 4"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not something this layer produced"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": "3136303a34653534353933363534353837303436363536623339343535343664363834663635366234353739353435363532366134653535333537343534353434613631363136633663333435343664373035323635366336633535353335383634346634643662366333353534353737303561346535353335373135353538366334653631366233353666353435373730343236353662333533363561343737333364"
+      },
+      {
+        "call": 10,
+        "value": [
+          "frame",
+          "hex",
+          "base64",
+          "frame",
+          "base64",
+          "hex",
+          "frame",
+          "hex"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "hi9"
+      },
+      {
+        "call": 3,
+        "value": "hi"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 8,
+        "value": ["checksum"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "2:ab3"
+      },
+      {
+        "call": 4,
+        "value": "ab"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": "2:ab34"
+      },
+      {
+        "call": 11,
+        "value": ["frame", "checksum", "checksum"]
+      },
+      {
+        "call": 12,
+        "value": "ab"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: not something this layer produced"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "fjY="
+      },
+      {
+        "call": 4,
+        "value": "~"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 7,
+        "value": "IDI="
+      },
+      {
+        "call": 8,
+        "value": "QTU="
+      },
+      {
+        "call": 9,
+        "value": "eno0"
+      },
+      {
+        "call": 10,
+        "value": "z"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: not something this layer produced"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": [
+          "frame",
+          "frame",
+          "frame",
+          "frame",
+          "frame",
+          "frame",
+          "frame",
+          "checksum"
+        ]
+      },
+      {
+        "call": 10,
+        "error": "ValueError: too many layers"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: too many layers"
+      },
+      {
+        "call": 12,
+        "value": "14:11:9:7:5:3:1:x0"
+      },
+      {
+        "call": 13,
+        "value": [
+          "frame",
+          "frame",
+          "frame",
+          "frame",
+          "frame",
+          "frame",
+          "frame",
+          "checksum"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "084"
+      },
+      {
+        "call": 4,
+        "value": "1296"
+      },
+      {
+        "call": 5,
+        "value": "0"
+      },
+      {
+        "call": 6,
+        "value": "12"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: not something this layer produced"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: not something this layer produced"
+      }
+    ]
+  }
+]

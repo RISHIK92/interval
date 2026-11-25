@@ -1,0 +1,1173 @@
+{
+  "slug": "cost-tree",
+  "title": "Cost allocation tree",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["composite-pattern"],
+  "interface": {
+    "class": "CostTree",
+    "constructor": {
+      "params": [
+        {
+          "name": "root",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "unit",
+        "params": [
+          {
+            "name": "parent",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "service",
+        "params": [
+          {
+            "name": "parent",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "cents",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "total",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "move",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "parent",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "top",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "n",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["acme"]
+          },
+          {
+            "method": "unit",
+            "args": ["acme", "eng"]
+          },
+          {
+            "method": "unit",
+            "args": ["acme", "sales"]
+          },
+          {
+            "method": "unit",
+            "args": ["eng", "payments"]
+          },
+          {
+            "method": "unit",
+            "args": ["eng", "search"]
+          },
+          {
+            "method": "service",
+            "args": ["payments", "ledger-db", 120000]
+          },
+          {
+            "method": "service",
+            "args": ["payments", "api", 45000]
+          },
+          {
+            "method": "service",
+            "args": ["search", "indexer", 80000]
+          },
+          {
+            "method": "service",
+            "args": ["sales", "crm", 30000]
+          },
+          {
+            "method": "total",
+            "args": ["eng"]
+          },
+          {
+            "method": "total",
+            "args": ["acme"]
+          },
+          {
+            "method": "top",
+            "args": ["acme", 5]
+          },
+          {
+            "method": "top",
+            "args": ["eng", 1]
+          },
+          {
+            "method": "move",
+            "args": ["search", "sales"]
+          },
+          {
+            "method": "total",
+            "args": ["eng"]
+          },
+          {
+            "method": "total",
+            "args": ["sales"]
+          },
+          {
+            "method": "top",
+            "args": ["acme", 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["org"]
+          },
+          {
+            "method": "unit",
+            "args": ["org", "a"]
+          },
+          {
+            "method": "unit",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "service",
+            "args": ["b", "svc", 500]
+          },
+          {
+            "method": "unit",
+            "args": ["org", "a"]
+          },
+          {
+            "method": "service",
+            "args": ["org", "svc", 1]
+          },
+          {
+            "method": "service",
+            "args": ["svc", "x", 1]
+          },
+          {
+            "method": "move",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "move",
+            "args": ["b", "a"]
+          },
+          {
+            "method": "move",
+            "args": ["org", "a"]
+          },
+          {
+            "method": "move",
+            "args": ["b", "org"]
+          },
+          {
+            "method": "total",
+            "args": ["org"]
+          },
+          {
+            "method": "top",
+            "args": ["org", 9]
+          },
+          {
+            "method": "top",
+            "args": ["svc", 3]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["r"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", ""]
+          },
+          {
+            "method": "unit",
+            "args": ["", "x"]
+          },
+          {
+            "method": "unit",
+            "args": ["zz", "x"]
+          },
+          {
+            "method": "service",
+            "args": ["r", "", 1]
+          },
+          {
+            "method": "service",
+            "args": ["r", "s", -1]
+          },
+          {
+            "method": "service",
+            "args": ["zz", "s", 1]
+          },
+          {
+            "method": "service",
+            "args": ["r", "s", 0]
+          },
+          {
+            "method": "unit",
+            "args": ["s", "x"]
+          },
+          {
+            "method": "service",
+            "args": ["s", "x", 1]
+          },
+          {
+            "method": "service",
+            "args": ["r", "s", 5]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "s"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "r"]
+          },
+          {
+            "method": "service",
+            "args": ["r", "r", 1]
+          },
+          {
+            "method": "total",
+            "args": ["s"]
+          },
+          {
+            "method": "total",
+            "args": ["r"]
+          },
+          {
+            "method": "total",
+            "args": [""]
+          },
+          {
+            "method": "total",
+            "args": ["R"]
+          },
+          {
+            "method": "top",
+            "args": ["r", -1]
+          },
+          {
+            "method": "top",
+            "args": ["zz", 1]
+          },
+          {
+            "method": "top",
+            "args": ["r", 0]
+          },
+          {
+            "method": "top",
+            "args": ["r", 1]
+          },
+          {
+            "method": "move",
+            "args": ["", "r"]
+          },
+          {
+            "method": "move",
+            "args": ["s", "zz"]
+          },
+          {
+            "method": "move",
+            "args": ["zz", "r"]
+          },
+          {
+            "method": "move",
+            "args": ["r", "r"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["Root"]
+          },
+          {
+            "method": "unit",
+            "args": ["Root", "a"]
+          },
+          {
+            "method": "unit",
+            "args": ["Root", "A"]
+          },
+          {
+            "method": "unit",
+            "args": ["a", "A"]
+          },
+          {
+            "method": "service",
+            "args": ["A", "a", 1]
+          },
+          {
+            "method": "service",
+            "args": ["A", "b", 2]
+          },
+          {
+            "method": "unit",
+            "args": ["a", "b"]
+          },
+          {
+            "method": "total",
+            "args": ["A"]
+          },
+          {
+            "method": "total",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": ["Root"]
+          },
+          {
+            "method": "top",
+            "args": ["Root", 2]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["r"]
+          },
+          {
+            "method": "service",
+            "args": ["r", "b", 10]
+          },
+          {
+            "method": "service",
+            "args": ["r", "a", 10]
+          },
+          {
+            "method": "service",
+            "args": ["r", "B", 10]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "u"]
+          },
+          {
+            "method": "service",
+            "args": ["u", "x", 10]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "empty"]
+          },
+          {
+            "method": "service",
+            "args": ["r", "_", 10]
+          },
+          {
+            "method": "service",
+            "args": ["r", "z", 11]
+          },
+          {
+            "method": "top",
+            "args": ["r", 10]
+          },
+          {
+            "method": "top",
+            "args": ["r", 3]
+          },
+          {
+            "method": "top",
+            "args": ["u", 5]
+          },
+          {
+            "method": "top",
+            "args": ["empty", 5]
+          },
+          {
+            "method": "top",
+            "args": ["x", 1]
+          },
+          {
+            "method": "total",
+            "args": ["empty"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["co"]
+          },
+          {
+            "method": "unit",
+            "args": ["co", "a"]
+          },
+          {
+            "method": "unit",
+            "args": ["co", "b"]
+          },
+          {
+            "method": "unit",
+            "args": ["a", "a1"]
+          },
+          {
+            "method": "unit",
+            "args": ["a1", "a2"]
+          },
+          {
+            "method": "service",
+            "args": ["a2", "s", 7]
+          },
+          {
+            "method": "service",
+            "args": ["a1", "t", 3]
+          },
+          {
+            "method": "service",
+            "args": ["b", "u", 100]
+          },
+          {
+            "method": "move",
+            "args": ["a1", "b"]
+          },
+          {
+            "method": "total",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": ["a1"]
+          },
+          {
+            "method": "move",
+            "args": ["s", "co"]
+          },
+          {
+            "method": "total",
+            "args": ["a2"]
+          },
+          {
+            "method": "total",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": ["co"]
+          },
+          {
+            "method": "move",
+            "args": ["a", "a"]
+          },
+          {
+            "method": "move",
+            "args": ["a", "a2"]
+          },
+          {
+            "method": "move",
+            "args": ["b", "a2"]
+          },
+          {
+            "method": "move",
+            "args": ["a1", "a2"]
+          },
+          {
+            "method": "move",
+            "args": ["u", "a2"]
+          },
+          {
+            "method": "total",
+            "args": ["a2"]
+          },
+          {
+            "method": "total",
+            "args": ["b"]
+          },
+          {
+            "method": "move",
+            "args": ["u", "b"]
+          },
+          {
+            "method": "move",
+            "args": ["a2", "a1"]
+          },
+          {
+            "method": "move",
+            "args": ["a2", "co"]
+          },
+          {
+            "method": "move",
+            "args": ["a2", "co"]
+          },
+          {
+            "method": "total",
+            "args": ["co"]
+          },
+          {
+            "method": "top",
+            "args": ["co", 10]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["r"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "l1"]
+          },
+          {
+            "method": "unit",
+            "args": ["l1", "l2"]
+          },
+          {
+            "method": "unit",
+            "args": ["l2", "l3"]
+          },
+          {
+            "method": "unit",
+            "args": ["l3", "l4"]
+          },
+          {
+            "method": "unit",
+            "args": ["l4", "l5"]
+          },
+          {
+            "method": "unit",
+            "args": ["l5", "l6"]
+          },
+          {
+            "method": "service",
+            "args": ["l6", "s", 9]
+          },
+          {
+            "method": "move",
+            "args": ["l2", "l5"]
+          },
+          {
+            "method": "move",
+            "args": ["l2", "l2"]
+          },
+          {
+            "method": "move",
+            "args": ["l5", "l2"]
+          },
+          {
+            "method": "move",
+            "args": ["l6", "l1"]
+          },
+          {
+            "method": "move",
+            "args": ["l3", "r"]
+          },
+          {
+            "method": "total",
+            "args": ["l1"]
+          },
+          {
+            "method": "total",
+            "args": ["l3"]
+          },
+          {
+            "method": "total",
+            "args": ["r"]
+          },
+          {
+            "method": "move",
+            "args": ["l1", "l6"]
+          },
+          {
+            "method": "total",
+            "args": ["l3"]
+          },
+          {
+            "method": "top",
+            "args": ["l3", 3]
+          },
+          {
+            "method": "top",
+            "args": ["r", 3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["r"]
+          },
+          {
+            "method": "service",
+            "args": ["r", "s0", 1000000000]
+          },
+          {
+            "method": "service",
+            "args": ["r", "s1", 1000000000]
+          },
+          {
+            "method": "service",
+            "args": ["r", "s2", 1000000000]
+          },
+          {
+            "method": "service",
+            "args": ["r", "s3", 1000000000]
+          },
+          {
+            "method": "service",
+            "args": ["r", "s4", 1000000000]
+          },
+          {
+            "method": "service",
+            "args": ["r", "one", 1]
+          },
+          {
+            "method": "total",
+            "args": ["r"]
+          },
+          {
+            "method": "top",
+            "args": ["r", 2]
+          },
+          {
+            "method": "top",
+            "args": ["r", 6]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["r"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "u"]
+          },
+          {
+            "method": "unit",
+            "args": ["u", "v"]
+          },
+          {
+            "method": "total",
+            "args": ["u"]
+          },
+          {
+            "method": "total",
+            "args": ["v"]
+          },
+          {
+            "method": "top",
+            "args": ["u", 1]
+          },
+          {
+            "method": "service",
+            "args": ["v", "s", 0]
+          },
+          {
+            "method": "top",
+            "args": ["r", 1]
+          },
+          {
+            "method": "total",
+            "args": ["r"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["the org"]
+          },
+          {
+            "method": "unit",
+            "args": ["the org", "team a"]
+          },
+          {
+            "method": "service",
+            "args": ["team a", "svc:1", 25]
+          },
+          {
+            "method": "service",
+            "args": ["the org", "~x", 25]
+          },
+          {
+            "method": "top",
+            "args": ["the org", 5]
+          },
+          {
+            "method": "move",
+            "args": ["svc:1", "the org"]
+          },
+          {
+            "method": "top",
+            "args": ["the org", 5]
+          },
+          {
+            "method": "total",
+            "args": ["team a"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["r"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "u0"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "u1"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "u2"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "u3"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "u4"]
+          },
+          {
+            "method": "service",
+            "args": ["u0", "s0", 0]
+          },
+          {
+            "method": "service",
+            "args": ["u1", "s1", 37]
+          },
+          {
+            "method": "service",
+            "args": ["u2", "s2", 74]
+          },
+          {
+            "method": "service",
+            "args": ["u3", "s3", 11]
+          },
+          {
+            "method": "service",
+            "args": ["u4", "s4", 48]
+          },
+          {
+            "method": "service",
+            "args": ["u0", "s5", 85]
+          },
+          {
+            "method": "service",
+            "args": ["u1", "s6", 22]
+          },
+          {
+            "method": "service",
+            "args": ["u2", "s7", 59]
+          },
+          {
+            "method": "service",
+            "args": ["u3", "s8", 96]
+          },
+          {
+            "method": "service",
+            "args": ["u4", "s9", 33]
+          },
+          {
+            "method": "service",
+            "args": ["u0", "s10", 70]
+          },
+          {
+            "method": "service",
+            "args": ["u1", "s11", 7]
+          },
+          {
+            "method": "service",
+            "args": ["u2", "s12", 44]
+          },
+          {
+            "method": "service",
+            "args": ["u3", "s13", 81]
+          },
+          {
+            "method": "service",
+            "args": ["u4", "s14", 18]
+          },
+          {
+            "method": "service",
+            "args": ["u0", "s15", 55]
+          },
+          {
+            "method": "service",
+            "args": ["u1", "s16", 92]
+          },
+          {
+            "method": "service",
+            "args": ["u2", "s17", 29]
+          },
+          {
+            "method": "service",
+            "args": ["u3", "s18", 66]
+          },
+          {
+            "method": "service",
+            "args": ["u4", "s19", 3]
+          },
+          {
+            "method": "top",
+            "args": ["r", 5]
+          },
+          {
+            "method": "move",
+            "args": ["u1", "u0"]
+          },
+          {
+            "method": "move",
+            "args": ["u3", "u0"]
+          },
+          {
+            "method": "top",
+            "args": ["r", 5]
+          },
+          {
+            "method": "top",
+            "args": ["u0", 5]
+          },
+          {
+            "method": "total",
+            "args": ["u0"]
+          },
+          {
+            "method": "total",
+            "args": ["r"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "sharedCost",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "cents",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["r"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "a"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "b"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "c"]
+          },
+          {
+            "method": "service",
+            "args": ["a", "s", 100]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["r", 10]
+          },
+          {
+            "method": "total",
+            "args": ["a"]
+          },
+          {
+            "method": "total",
+            "args": ["b"]
+          },
+          {
+            "method": "total",
+            "args": ["c"]
+          },
+          {
+            "method": "total",
+            "args": ["r"]
+          },
+          {
+            "method": "top",
+            "args": ["r", 3]
+          },
+          {
+            "method": "total",
+            "args": ["s"]
+          },
+          {
+            "method": "move",
+            "args": ["c", "a"]
+          },
+          {
+            "method": "total",
+            "args": ["a"]
+          },
+          {
+            "method": "top",
+            "args": ["r", 3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["r"]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["r", 5]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "u"]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["u", 5]
+          },
+          {
+            "method": "service",
+            "args": ["u", "s", 1]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["s", 5]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["zz", 5]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["u", -1]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["u", 0]
+          },
+          {
+            "method": "total",
+            "args": ["u"]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["u", 4]
+          },
+          {
+            "method": "total",
+            "args": ["s"]
+          },
+          {
+            "method": "total",
+            "args": ["r"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["r"]
+          },
+          {
+            "method": "service",
+            "args": ["r", "z", 0]
+          },
+          {
+            "method": "service",
+            "args": ["r", "a", 0]
+          },
+          {
+            "method": "service",
+            "args": ["r", "M", 0]
+          },
+          {
+            "method": "service",
+            "args": ["r", "b", 0]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["r", 7]
+          },
+          {
+            "method": "top",
+            "args": ["r", 4]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["r", 2]
+          },
+          {
+            "method": "top",
+            "args": ["r", 4]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["r", 1]
+          },
+          {
+            "method": "top",
+            "args": ["r", 4]
+          },
+          {
+            "method": "total",
+            "args": ["r"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["r"]
+          },
+          {
+            "method": "unit",
+            "args": ["r", "x"]
+          },
+          {
+            "method": "unit",
+            "args": ["x", "y"]
+          },
+          {
+            "method": "service",
+            "args": ["y", "s", 3]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["x", 9]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["r", 3]
+          },
+          {
+            "method": "total",
+            "args": ["y"]
+          },
+          {
+            "method": "total",
+            "args": ["x"]
+          },
+          {
+            "method": "move",
+            "args": ["y", "r"]
+          },
+          {
+            "method": "total",
+            "args": ["x"]
+          },
+          {
+            "method": "total",
+            "args": ["y"]
+          },
+          {
+            "method": "top",
+            "args": ["r", 2]
+          },
+          {
+            "method": "sharedCost",
+            "args": ["y", 1000000000]
+          },
+          {
+            "method": "total",
+            "args": ["r"]
+          }
+        ]
+      }
+    ]
+  }
+}

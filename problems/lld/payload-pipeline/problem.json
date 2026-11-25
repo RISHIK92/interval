@@ -1,0 +1,1128 @@
+{
+  "slug": "payload-pipeline",
+  "title": "Payload encoders",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["decorator-pattern", "serialization-formats"],
+  "interface": {
+    "class": "PayloadPipeline",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "push",
+        "params": [
+          {
+            "name": "layer",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "encode",
+        "params": [
+          {
+            "name": "text",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "decode",
+        "params": [
+          {
+            "name": "text",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "layers",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "encode",
+            "args": ["hi"]
+          },
+          {
+            "method": "decode",
+            "args": ["hi"]
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "encode",
+            "args": ["hi"]
+          },
+          {
+            "method": "decode",
+            "args": ["6869"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "encode",
+            "args": ["hi"]
+          },
+          {
+            "method": "decode",
+            "args": ["4:6869"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "decode",
+            "args": ["4:686"]
+          },
+          {
+            "method": "decode",
+            "args": ["5:6869"]
+          },
+          {
+            "method": "decode",
+            "args": ["4:6G69"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "encode",
+            "args": ["ok"]
+          },
+          {
+            "method": "decode",
+            "args": ["Mjpvaw=="]
+          },
+          {
+            "method": "encode",
+            "args": ["a b~"]
+          },
+          {
+            "method": "decode",
+            "args": ["NDphIGJ+"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "decode",
+            "args": ["MjpvaW=="]
+          },
+          {
+            "method": "decode",
+            "args": ["Mjpvaw="]
+          },
+          {
+            "method": "decode",
+            "args": ["Mjpvaw"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "encode",
+            "args": ["a"]
+          },
+          {
+            "method": "encode",
+            "args": ["ab"]
+          },
+          {
+            "method": "encode",
+            "args": ["abc"]
+          },
+          {
+            "method": "encode",
+            "args": ["abcd"]
+          },
+          {
+            "method": "encode",
+            "args": [" ~"]
+          },
+          {
+            "method": "encode",
+            "args": ["Hello, World!"]
+          },
+          {
+            "method": "decode",
+            "args": ["YQ=="]
+          },
+          {
+            "method": "decode",
+            "args": ["YWI="]
+          },
+          {
+            "method": "decode",
+            "args": ["YWJj"]
+          },
+          {
+            "method": "decode",
+            "args": ["YWJjZA=="]
+          },
+          {
+            "method": "decode",
+            "args": ["IH4="]
+          },
+          {
+            "method": "decode",
+            "args": ["SGVsbG8sIFdvcmxkIQ=="]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "encode",
+            "args": [" "]
+          },
+          {
+            "method": "encode",
+            "args": ["~"]
+          },
+          {
+            "method": "encode",
+            "args": ["Az09"]
+          },
+          {
+            "method": "decode",
+            "args": ["20"]
+          },
+          {
+            "method": "decode",
+            "args": ["7e"]
+          },
+          {
+            "method": "decode",
+            "args": ["417a3039"]
+          },
+          {
+            "method": "decode",
+            "args": ["7f"]
+          },
+          {
+            "method": "decode",
+            "args": ["1f"]
+          },
+          {
+            "method": "decode",
+            "args": ["ff"]
+          },
+          {
+            "method": "decode",
+            "args": ["00"]
+          },
+          {
+            "method": "decode",
+            "args": ["417A3039"]
+          },
+          {
+            "method": "decode",
+            "args": ["417"]
+          },
+          {
+            "method": "decode",
+            "args": ["41 7"]
+          },
+          {
+            "method": "decode",
+            "args": ["4g"]
+          },
+          {
+            "method": "decode",
+            "args": ["zz"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "encode",
+            "args": ["x"]
+          },
+          {
+            "method": "encode",
+            "args": ["a:b"]
+          },
+          {
+            "method": "encode",
+            "args": ["0123456789"]
+          },
+          {
+            "method": "decode",
+            "args": ["1:x"]
+          },
+          {
+            "method": "decode",
+            "args": ["3:a:b"]
+          },
+          {
+            "method": "decode",
+            "args": ["10:0123456789"]
+          },
+          {
+            "method": "decode",
+            "args": ["01:x"]
+          },
+          {
+            "method": "decode",
+            "args": ["1:xy"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:x"]
+          },
+          {
+            "method": "decode",
+            "args": ["x"]
+          },
+          {
+            "method": "decode",
+            "args": ["1x"]
+          },
+          {
+            "method": "decode",
+            "args": [":x"]
+          },
+          {
+            "method": "decode",
+            "args": ["0:"]
+          },
+          {
+            "method": "decode",
+            "args": ["+1:x"]
+          },
+          {
+            "method": "decode",
+            "args": ["1 :x"]
+          },
+          {
+            "method": "decode",
+            "args": ["1: "]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "decode",
+            "args": ["YQ"]
+          },
+          {
+            "method": "decode",
+            "args": ["YQ="]
+          },
+          {
+            "method": "decode",
+            "args": ["YQ==="]
+          },
+          {
+            "method": "decode",
+            "args": ["YR=="]
+          },
+          {
+            "method": "decode",
+            "args": ["YWJ="]
+          },
+          {
+            "method": "decode",
+            "args": ["Y Q=="]
+          },
+          {
+            "method": "decode",
+            "args": ["YQ==YQ=="]
+          },
+          {
+            "method": "decode",
+            "args": ["Y-Q="]
+          },
+          {
+            "method": "decode",
+            "args": ["////"]
+          },
+          {
+            "method": "decode",
+            "args": ["+/+/"]
+          },
+          {
+            "method": "decode",
+            "args": ["AAAA"]
+          },
+          {
+            "method": "decode",
+            "args": ["fn5+"]
+          },
+          {
+            "method": "decode",
+            "args": ["fn5-"]
+          },
+          {
+            "method": "decode",
+            "args": ["=YQ="]
+          },
+          {
+            "method": "encode",
+            "args": ["~~~"]
+          },
+          {
+            "method": "encode",
+            "args": [">>?"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["Hex"]
+          },
+          {
+            "method": "push",
+            "args": ["base32"]
+          },
+          {
+            "method": "push",
+            "args": [""]
+          },
+          {
+            "method": "push",
+            "args": ["checksum"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "encode",
+            "args": [""]
+          },
+          {
+            "method": "decode",
+            "args": [""]
+          },
+          {
+            "method": "encode",
+            "args": ["x"]
+          },
+          {
+            "method": "decode",
+            "args": ["x"]
+          },
+          {
+            "method": "decode",
+            "args": ["~"]
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "encode",
+            "args": ["x"]
+          },
+          {
+            "method": "decode",
+            "args": [""]
+          },
+          {
+            "method": "encode",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "encode",
+            "args": ["hi"]
+          },
+          {
+            "method": "decode",
+            "args": ["Njg2OQ=="]
+          },
+          {
+            "method": "decode",
+            "args": ["aGk="]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "encode",
+            "args": ["hi"]
+          },
+          {
+            "method": "decode",
+            "args": ["6147673d"]
+          },
+          {
+            "method": "decode",
+            "args": ["Njg2OQ=="]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "encode",
+            "args": ["ab"]
+          },
+          {
+            "method": "decode",
+            "args": ["6:4:2:ab"]
+          },
+          {
+            "method": "decode",
+            "args": ["6:4:2:abc"]
+          },
+          {
+            "method": "decode",
+            "args": ["7:4:2:ab"]
+          },
+          {
+            "method": "decode",
+            "args": ["4:2:ab"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "decode",
+            "args": ["0:"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:7f"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:00"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:20"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:7e"]
+          },
+          {
+            "method": "decode",
+            "args": ["3:7e7"]
+          },
+          {
+            "method": "decode",
+            "args": ["4:7e7e"]
+          },
+          {
+            "method": "encode",
+            "args": ["~~"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "decode",
+            "args": ["303a"]
+          },
+          {
+            "method": "decode",
+            "args": ["313a"]
+          },
+          {
+            "method": "decode",
+            "args": ["313a78"]
+          },
+          {
+            "method": "decode",
+            "args": ["313a7f"]
+          },
+          {
+            "method": "decode",
+            "args": ["323a7878"]
+          },
+          {
+            "method": "decode",
+            "args": ["313a2078"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "encode",
+            "args": ["x"]
+          },
+          {
+            "method": "decode",
+            "args": ["ZUE9PQ=="]
+          },
+          {
+            "method": "decode",
+            "args": ["eA=="]
+          },
+          {
+            "method": "decode",
+            "args": ["ZUE9"]
+          },
+          {
+            "method": "decode",
+            "args": ["/w=="]
+          },
+          {
+            "method": "decode",
+            "args": ["Lw=="]
+          },
+          {
+            "method": "decode",
+            "args": ["Lz09"]
+          },
+          {
+            "method": "decode",
+            "args": ["ZUQ9PQ=="]
+          },
+          {
+            "method": "decode",
+            "args": ["ZUI9PQ=="]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "encode",
+            "args": ["payload: {\"id\": 7}"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "checksum",
+        "params": [],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checksum",
+            "args": []
+          },
+          {
+            "method": "encode",
+            "args": ["hi"]
+          },
+          {
+            "method": "decode",
+            "args": ["hi9"]
+          },
+          {
+            "method": "decode",
+            "args": ["hi0"]
+          },
+          {
+            "method": "decode",
+            "args": ["hi"]
+          },
+          {
+            "method": "decode",
+            "args": ["h"]
+          },
+          {
+            "method": "decode",
+            "args": ["9"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "checksum",
+            "args": []
+          },
+          {
+            "method": "encode",
+            "args": ["ab"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:ab3"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:ab8"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:ab7"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:ab"]
+          },
+          {
+            "method": "decode",
+            "args": ["3:ab8"]
+          },
+          {
+            "method": "checksum",
+            "args": []
+          },
+          {
+            "method": "encode",
+            "args": ["ab"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "decode",
+            "args": ["2:ab34"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:ab35"]
+          },
+          {
+            "method": "decode",
+            "args": ["2:ab3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checksum",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["base64"]
+          },
+          {
+            "method": "encode",
+            "args": ["~"]
+          },
+          {
+            "method": "decode",
+            "args": ["fjY="]
+          },
+          {
+            "method": "decode",
+            "args": ["fjU="]
+          },
+          {
+            "method": "decode",
+            "args": ["fg=="]
+          },
+          {
+            "method": "encode",
+            "args": [" "]
+          },
+          {
+            "method": "encode",
+            "args": ["A"]
+          },
+          {
+            "method": "encode",
+            "args": ["zz"]
+          },
+          {
+            "method": "decode",
+            "args": ["ejI="]
+          },
+          {
+            "method": "decode",
+            "args": ["enoy"]
+          },
+          {
+            "method": "decode",
+            "args": ["enox"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "push",
+            "args": ["frame"]
+          },
+          {
+            "method": "checksum",
+            "args": []
+          },
+          {
+            "method": "layers",
+            "args": []
+          },
+          {
+            "method": "checksum",
+            "args": []
+          },
+          {
+            "method": "push",
+            "args": ["hex"]
+          },
+          {
+            "method": "encode",
+            "args": ["x"]
+          },
+          {
+            "method": "layers",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "checksum",
+            "args": []
+          },
+          {
+            "method": "checksum",
+            "args": []
+          },
+          {
+            "method": "encode",
+            "args": ["0"]
+          },
+          {
+            "method": "encode",
+            "args": ["12"]
+          },
+          {
+            "method": "decode",
+            "args": ["084"]
+          },
+          {
+            "method": "decode",
+            "args": ["1296"]
+          },
+          {
+            "method": "decode",
+            "args": ["088"]
+          },
+          {
+            "method": "decode",
+            "args": ["0"]
+          },
+          {
+            "method": "decode",
+            "args": ["1230"]
+          },
+          {
+            "method": "decode",
+            "args": ["12300"]
+          },
+          {
+            "method": "decode",
+            "args": ["12333"]
+          }
+        ]
+      }
+    ]
+  }
+}

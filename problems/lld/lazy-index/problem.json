@@ -1,0 +1,1116 @@
+{
+  "slug": "lazy-index",
+  "title": "Lazy search index",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["proxy-pattern", "lazy-initialization", "inverted-index"],
+  "interface": {
+    "class": "LazyIndex",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "addDoc",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          },
+          {
+            "name": "text",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "search",
+        "params": [
+          {
+            "name": "term",
+            "type": "string"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "builds",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "indexed",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["d1", "Disk full on db-1"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["d2", "DB failover finished"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "search",
+            "args": ["db"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["d3", "db-2 disk at 90%"]
+          },
+          {
+            "method": "search",
+            "args": ["disk"]
+          },
+          {
+            "method": "search",
+            "args": ["DISK"]
+          },
+          {
+            "method": "search",
+            "args": ["full"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["a", "cpu high"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["a", "memory high"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["b", "cpu ok"]
+          },
+          {
+            "method": "search",
+            "args": ["cpu"]
+          },
+          {
+            "method": "search",
+            "args": ["memory"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["b", "all quiet"]
+          },
+          {
+            "method": "search",
+            "args": ["cpu"]
+          },
+          {
+            "method": "search",
+            "args": ["high"]
+          },
+          {
+            "method": "search",
+            "args": ["nothing"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc0", "word0 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc1", "word1 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc2", "word2 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc3", "word0 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc4", "word1 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc5", "word2 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc6", "word0 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc7", "word1 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc8", "word2 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc9", "word0 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc10", "word1 shared"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc11", "word2 shared"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "search",
+            "args": ["shared"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "search",
+            "args": ["word1"]
+          },
+          {
+            "method": "search",
+            "args": ["word2"]
+          },
+          {
+            "method": "search",
+            "args": ["word0"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["x", "alpha"]
+          },
+          {
+            "method": "search",
+            "args": [""]
+          },
+          {
+            "method": "search",
+            "args": ["al pha"]
+          },
+          {
+            "method": "search",
+            "args": ["al-pha"]
+          },
+          {
+            "method": "search",
+            "args": ["a.b"]
+          },
+          {
+            "method": "search",
+            "args": ["a_b"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["", "t"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["y", ""]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "search",
+            "args": ["ALPHA"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["", "t"]
+          },
+          {
+            "method": "search",
+            "args": ["x"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "search",
+            "args": ["anything"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["late", "anything at all"]
+          },
+          {
+            "method": "search",
+            "args": ["anything"]
+          },
+          {
+            "method": "search",
+            "args": ["at"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["t1", "Foo-bar_baz42 qux.Quux"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["t2", "FOO!!foo  ...bar"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["t3", "!!! ---"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["t4", "a1b2 c3"]
+          },
+          {
+            "method": "search",
+            "args": ["foo"]
+          },
+          {
+            "method": "search",
+            "args": ["bar"]
+          },
+          {
+            "method": "search",
+            "args": ["baz42"]
+          },
+          {
+            "method": "search",
+            "args": ["baz"]
+          },
+          {
+            "method": "search",
+            "args": ["qux"]
+          },
+          {
+            "method": "search",
+            "args": ["quux"]
+          },
+          {
+            "method": "search",
+            "args": ["a1b2"]
+          },
+          {
+            "method": "search",
+            "args": ["c3"]
+          },
+          {
+            "method": "search",
+            "args": ["Foo"]
+          },
+          {
+            "method": "search",
+            "args": ["fOO"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["k", "red green"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["k", "blue"]
+          },
+          {
+            "method": "search",
+            "args": ["red"]
+          },
+          {
+            "method": "search",
+            "args": ["blue"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["k", "red"]
+          },
+          {
+            "method": "search",
+            "args": ["red"]
+          },
+          {
+            "method": "search",
+            "args": ["blue"]
+          },
+          {
+            "method": "search",
+            "args": ["green"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["j", "blue"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["k", "blue green"]
+          },
+          {
+            "method": "search",
+            "args": ["blue"]
+          },
+          {
+            "method": "search",
+            "args": ["green"]
+          },
+          {
+            "method": "search",
+            "args": ["red"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["b", "hit"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["B", "hit"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["a", "hit"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["_", "hit"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["10", "hit"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["9", "hit"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["a b", "hit"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["~", "hit"]
+          },
+          {
+            "method": "search",
+            "args": ["hit"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["Z", "hit"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["0", "miss"]
+          },
+          {
+            "method": "search",
+            "args": ["hit"]
+          },
+          {
+            "method": "search",
+            "args": ["miss"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["Doc", "one"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["doc", "two"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["DOC", "one two"]
+          },
+          {
+            "method": "search",
+            "args": ["one"]
+          },
+          {
+            "method": "search",
+            "args": ["two"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["p", "..."]
+          },
+          {
+            "method": "addDoc",
+            "args": ["q", "--"]
+          },
+          {
+            "method": "search",
+            "args": ["p"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["r", "?!"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["p", "now words"]
+          },
+          {
+            "method": "search",
+            "args": ["words"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "builds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["n0", "t0"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n1", "t0 t1"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n2", "t0 t1 t2"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n3", "t0 t1 t2 t3"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n4", "t0 t1 t2 t3 t4"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n5", "t0"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n6", "t0 t1"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n7", "t0 t1 t2"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n8", "t0 t1 t2 t3"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n9", "t0 t1 t2 t3 t4"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n10", "t0"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n11", "t0 t1"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n12", "t0 t1 t2"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n13", "t0 t1 t2 t3"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n14", "t0 t1 t2 t3 t4"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n15", "t0"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n16", "t0 t1"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n17", "t0 t1 t2"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n18", "t0 t1 t2 t3"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n19", "t0 t1 t2 t3 t4"]
+          },
+          {
+            "method": "search",
+            "args": ["t0"]
+          },
+          {
+            "method": "search",
+            "args": ["t1"]
+          },
+          {
+            "method": "search",
+            "args": ["t2"]
+          },
+          {
+            "method": "search",
+            "args": ["t3"]
+          },
+          {
+            "method": "search",
+            "args": ["t4"]
+          },
+          {
+            "method": "search",
+            "args": ["t5"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n0", "t0"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n1", "t1"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n2", "t0"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n3", "t1"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n4", "t0"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n5", "t1"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n6", "t0"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n7", "t1"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n8", "t0"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["n9", "t1"]
+          },
+          {
+            "method": "search",
+            "args": ["T0"]
+          },
+          {
+            "method": "search",
+            "args": ["T1"]
+          },
+          {
+            "method": "search",
+            "args": ["T2"]
+          },
+          {
+            "method": "search",
+            "args": ["T3"]
+          },
+          {
+            "method": "search",
+            "args": ["T4"]
+          },
+          {
+            "method": "search",
+            "args": ["T5"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "removeDoc",
+        "params": [
+          {
+            "name": "id",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["a", "x y"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["b", "y"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["a"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["a"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["zz"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "search",
+            "args": ["y"]
+          },
+          {
+            "method": "search",
+            "args": ["x"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["b"]
+          },
+          {
+            "method": "search",
+            "args": ["y"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["b"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "removeDoc",
+            "args": ["none"]
+          },
+          {
+            "method": "removeDoc",
+            "args": [""]
+          },
+          {
+            "method": "addDoc",
+            "args": ["a", "one"]
+          },
+          {
+            "method": "search",
+            "args": ["one"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["A"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["a"]
+          },
+          {
+            "method": "search",
+            "args": ["one"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["a", "two"]
+          },
+          {
+            "method": "search",
+            "args": ["one"]
+          },
+          {
+            "method": "search",
+            "args": ["two"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "builds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["a", "p q"]
+          },
+          {
+            "method": "search",
+            "args": ["p"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["a", "q r"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["a"]
+          },
+          {
+            "method": "search",
+            "args": ["q"]
+          },
+          {
+            "method": "search",
+            "args": ["r"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["a", "p"]
+          },
+          {
+            "method": "search",
+            "args": ["p"]
+          },
+          {
+            "method": "search",
+            "args": ["q"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          },
+          {
+            "method": "indexed",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addDoc",
+            "args": ["d0", "w"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["d1", "w"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["d2", "w"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["d3", "w"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["d4", "w"]
+          },
+          {
+            "method": "addDoc",
+            "args": ["d5", "w"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["d2"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["d4"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "search",
+            "args": ["w"]
+          },
+          {
+            "method": "removeDoc",
+            "args": ["d0"]
+          },
+          {
+            "method": "indexed",
+            "args": []
+          },
+          {
+            "method": "search",
+            "args": ["w"]
+          },
+          {
+            "method": "builds",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,948 @@
+{
+  "slug": "notifier-bridge",
+  "title": "Notification bridge",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["bridge-pattern"],
+  "interface": {
+    "class": "Notifier",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "send",
+        "params": [
+          {
+            "name": "kind",
+            "type": "string"
+          },
+          {
+            "name": "channel",
+            "type": "string"
+          },
+          {
+            "name": "subject",
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "sent",
+        "params": [
+          {
+            "name": "channel",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "channelLimit",
+        "params": [
+          {
+            "name": "channel",
+            "type": "string"
+          },
+          {
+            "name": "maxChars",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": ["alert", "email", "db-1 down", "Primary is not answering."]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "chat", "db-1 down", "Primary is not answering."]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "sms", "db-1 down", "Primary is not answering."]
+          },
+          {
+            "method": "send",
+            "args": [
+              "digest",
+              "chat",
+              "Monday",
+              "3 deploys; 1 incident ;; 0 pages"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "digest",
+              "sms",
+              "Monday",
+              "3 deploys; 1 incident ;; 0 pages"
+            ]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "email", "Invoice 42", "Paid 19.99 USD"]
+          },
+          {
+            "method": "sent",
+            "args": ["email"]
+          },
+          {
+            "method": "sent",
+            "args": ["chat"]
+          },
+          {
+            "method": "sent",
+            "args": ["sms"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "channelLimit",
+            "args": ["sms", 30]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "sms", "disk", "disk at 97% on db-2"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "sms", "week", "a;b;c;d;e;f"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "sms", "Invoice 7", "Paid"]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["sms", 60]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "sms", "Invoice 7", "Paid"]
+          },
+          {
+            "method": "sent",
+            "args": ["sms"]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["sms", 9]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["fax", 50]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "fax", "x", "y"]
+          },
+          {
+            "method": "send",
+            "args": ["page", "sms", "x", "y"]
+          },
+          {
+            "method": "sent",
+            "args": ["sms"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": ["alert", "email", "S", "a; b"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "chat", "S", "a; b"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "sms", "S", "a; b"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "email", "S", "a; b"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "chat", "S", "a; b"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "sms", "S", "a; b"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "email", "S", "a; b"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "chat", "S", "a; b"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "sms", "S", "a; b"]
+          },
+          {
+            "method": "sent",
+            "args": ["email"]
+          },
+          {
+            "method": "sent",
+            "args": ["chat"]
+          },
+          {
+            "method": "sent",
+            "args": ["sms"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": ["Alert", "email", "s", "b"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "Email", "s", "b"]
+          },
+          {
+            "method": "send",
+            "args": ["", "email", "s", "b"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "", "s", "b"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "email", "", "b"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "email", "s", ""]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "push", "s", "b"]
+          },
+          {
+            "method": "sent",
+            "args": ["push"]
+          },
+          {
+            "method": "sent",
+            "args": [""]
+          },
+          {
+            "method": "sent",
+            "args": ["SMS"]
+          },
+          {
+            "method": "sent",
+            "args": ["email"]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["push", 50]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["", 50]
+          },
+          {
+            "method": "send",
+            "args": [
+              "receipt",
+              "sms",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ip"
+            ]
+          },
+          {
+            "method": "sent",
+            "args": ["sms"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "sms",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "sms",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem "
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "chat",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ips"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "chat",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsu"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "email",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lo"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "email",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lor"
+            ]
+          },
+          {
+            "method": "sent",
+            "args": ["sms"]
+          },
+          {
+            "method": "sent",
+            "args": ["chat"]
+          },
+          {
+            "method": "sent",
+            "args": ["email"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": [
+              "receipt",
+              "sms",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ips"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "receipt",
+              "sms",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsu"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "receipt",
+              "chat",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lor"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "receipt",
+              "chat",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lore"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "receipt",
+              "email",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ip"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "receipt",
+              "email",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ips"
+            ]
+          },
+          {
+            "method": "sent",
+            "args": ["sms"]
+          },
+          {
+            "method": "sent",
+            "args": ["chat"]
+          },
+          {
+            "method": "sent",
+            "args": ["email"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "channelLimit",
+            "args": ["chat", 10]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "chat", "x", "y"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "chat", "x", "yz"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "chat", "x", "y"]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["chat", 10000]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "chat",
+              "x",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "chat",
+              "x",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem "
+            ]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["chat", 10001]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["chat", 0]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["chat", -5]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["email", 11]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "email", "a", "b"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "email", "a", "b"]
+          },
+          {
+            "method": "sent",
+            "args": ["chat"]
+          },
+          {
+            "method": "sent",
+            "args": ["email"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": ["digest", "email", "d", ";"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "email", "d", " ; ;  "]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "email", "d", "  one  "]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "sms", "d", "a;;b; c ;d "]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "chat", "d", "x,y; z.w"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "sms", "d", "no separators here"]
+          },
+          {
+            "method": "sent",
+            "args": ["sms"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": ["alert", "chat", "  spaced  ", "  body  "]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "sms", "*", "| |"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "email", "Subject: x", "*a*;\\n"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "channelLimit",
+            "args": ["sms", 20]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "email",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lore"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "chat",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lore"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "sms",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lore"
+            ]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["sms", 160]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "sms",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lore"
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": ["alert", "email", "n0", "item 0; item 1"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "chat", "n1", "item 1; item 2"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "sms", "n2", "item 2; item 3"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "email", "n3", "item 3; item 4"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "email", "n4", "item 4; item 5"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "chat", "n5", "item 5; item 6"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "sms", "n6", "item 6; item 7"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "email", "n7", "item 7; item 8"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "email", "n8", "item 8; item 9"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "chat", "n9", "item 9; item 10"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "sms", "n10", "item 10; item 11"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "email", "n11", "item 11; item 12"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "email", "n12", "item 12; item 13"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "chat", "n13", "item 13; item 14"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "sms", "n14", "item 14; item 15"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "email", "n15", "item 15; item 16"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "email", "n16", "item 16; item 17"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "chat", "n17", "item 17; item 18"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "sms", "n18", "item 18; item 19"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "email", "n19", "item 19; item 20"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "email", "n20", "item 20; item 21"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "chat", "n21", "item 21; item 22"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "sms", "n22", "item 22; item 23"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "email", "n23", "item 23; item 24"]
+          },
+          {
+            "method": "sent",
+            "args": ["email"]
+          },
+          {
+            "method": "sent",
+            "args": ["chat"]
+          },
+          {
+            "method": "sent",
+            "args": ["sms"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "addPush",
+        "params": [],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": ["alert", "push", "s", "b"]
+          },
+          {
+            "method": "sent",
+            "args": ["push"]
+          },
+          {
+            "method": "addPush",
+            "args": []
+          },
+          {
+            "method": "addPush",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": ["alert", "push", "db down", "now"]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "push", "day", "a; b"]
+          },
+          {
+            "method": "send",
+            "args": ["receipt", "push", "Invoice 1", "Paid"]
+          },
+          {
+            "method": "sent",
+            "args": ["push"]
+          },
+          {
+            "method": "sent",
+            "args": ["sms"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPush",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "push",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "alert",
+              "push",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem "
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "receipt",
+              "push",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ips"
+            ]
+          },
+          {
+            "method": "send",
+            "args": [
+              "receipt",
+              "push",
+              "s",
+              "lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsum.lorem ipsu"
+            ]
+          },
+          {
+            "method": "sent",
+            "args": ["push"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "channelLimit",
+            "args": ["push", 20]
+          },
+          {
+            "method": "addPush",
+            "args": []
+          },
+          {
+            "method": "channelLimit",
+            "args": ["push", 20]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "push", "abc", "defghijklmnop"]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["push", 9]
+          },
+          {
+            "method": "channelLimit",
+            "args": ["push", 10001]
+          },
+          {
+            "method": "send",
+            "args": ["digest", "push", "x", ";;"]
+          },
+          {
+            "method": "sent",
+            "args": ["push"]
+          },
+          {
+            "method": "sent",
+            "args": ["email"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addPush",
+            "args": []
+          },
+          {
+            "method": "send",
+            "args": ["Alert", "push", "s", "b"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "Push", "s", "b"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "push", "", "b"]
+          },
+          {
+            "method": "send",
+            "args": ["alert", "push", "s", ""]
+          },
+          {
+            "method": "sent",
+            "args": ["push"]
+          },
+          {
+            "method": "sent",
+            "args": ["Push"]
+          }
+        ]
+      }
+    ]
+  }
+}

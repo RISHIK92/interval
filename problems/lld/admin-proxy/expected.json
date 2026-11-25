@@ -1,0 +1,1051 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "200 suspend bob"
+      },
+      {
+        "call": 4,
+        "value": "403 suspend bob"
+      },
+      {
+        "call": 5,
+        "value": "200 read bob"
+      },
+      {
+        "call": 6,
+        "value": "401 read bob"
+      },
+      {
+        "call": 7,
+        "value": "409 suspend bob"
+      },
+      {
+        "call": 8,
+        "value": "403 delete bob"
+      },
+      {
+        "call": 9,
+        "value": 3
+      },
+      {
+        "call": 10,
+        "value": [
+          "ana suspend bob 200",
+          "raj suspend bob 403",
+          "raj read bob 200",
+          "eve read bob 401",
+          "ana suspend bob 409",
+          "ana delete bob 403"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "200 delete old"
+      },
+      {
+        "call": 3,
+        "value": "404 read old"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "403 restore x"
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "409 restore x"
+      },
+      {
+        "call": 8,
+        "value": "200 suspend x"
+      },
+      {
+        "call": 9,
+        "value": "200 restore x"
+      },
+      {
+        "call": 10,
+        "value": 5
+      },
+      {
+        "call": 11,
+        "value": [
+          "root delete old 200",
+          "root read old 404",
+          "sam restore x 403",
+          "sam restore x 409",
+          "sam suspend x 200",
+          "sam restore x 200"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "200 read v-read"
+      },
+      {
+        "call": 5,
+        "value": "403 suspend v-suspend"
+      },
+      {
+        "call": 6,
+        "value": "403 restore v-restore"
+      },
+      {
+        "call": 7,
+        "value": "403 delete v-delete"
+      },
+      {
+        "call": 8,
+        "value": "200 read o-read"
+      },
+      {
+        "call": 9,
+        "value": "200 suspend o-suspend"
+      },
+      {
+        "call": 10,
+        "value": "409 restore o-restore"
+      },
+      {
+        "call": 11,
+        "value": "403 delete o-delete"
+      },
+      {
+        "call": 12,
+        "value": "200 read a-read"
+      },
+      {
+        "call": 13,
+        "value": "200 suspend a-suspend"
+      },
+      {
+        "call": 14,
+        "value": "409 restore a-restore"
+      },
+      {
+        "call": 15,
+        "value": "200 delete a-delete"
+      },
+      {
+        "call": 16,
+        "value": 8
+      },
+      {
+        "call": 17,
+        "value": [
+          "v read v-read 200",
+          "v suspend v-suspend 403",
+          "v restore v-restore 403",
+          "v delete v-delete 403",
+          "o read o-read 200",
+          "o suspend o-suspend 200",
+          "o restore o-restore 409",
+          "o delete o-delete 403",
+          "a read a-read 200",
+          "a suspend a-suspend 200",
+          "a restore a-restore 409",
+          "a delete a-delete 200"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: unknown role"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: unknown role"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: unknown role"
+      },
+      {
+        "call": 5,
+        "value": "401 read t"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: unknown action"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown action"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: empty"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown action"
+      },
+      {
+        "call": 11,
+        "value": 0
+      },
+      {
+        "call": 12,
+        "value": ["u read t 401"]
+      },
+      {
+        "call": 13,
+        "value": null
+      },
+      {
+        "call": 14,
+        "value": "200 read t"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: unknown action"
+      },
+      {
+        "call": 16,
+        "value": 1
+      },
+      {
+        "call": 17,
+        "value": ["u read t 401", "u read t 200"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "401 delete x"
+      },
+      {
+        "call": 3,
+        "value": "401 read x"
+      },
+      {
+        "call": 4,
+        "value": "200 delete x"
+      },
+      {
+        "call": 5,
+        "value": "404 delete x"
+      },
+      {
+        "call": 6,
+        "value": "404 read x"
+      },
+      {
+        "call": 7,
+        "value": "200 suspend X"
+      },
+      {
+        "call": 8,
+        "value": 4
+      },
+      {
+        "call": 9,
+        "value": [
+          "ana delete x 401",
+          "ANA read x 401",
+          "Ana delete x 200",
+          "Ana delete x 404",
+          "Ana read x 404",
+          "Ana suspend X 200"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "409 restore t"
+      },
+      {
+        "call": 4,
+        "value": "200 suspend t"
+      },
+      {
+        "call": 5,
+        "value": "409 suspend t"
+      },
+      {
+        "call": 6,
+        "value": "200 restore t"
+      },
+      {
+        "call": 7,
+        "value": "409 restore t"
+      },
+      {
+        "call": 8,
+        "value": "200 suspend t"
+      },
+      {
+        "call": 9,
+        "value": "200 delete t"
+      },
+      {
+        "call": 10,
+        "value": "404 delete t"
+      },
+      {
+        "call": 11,
+        "value": "404 read t"
+      },
+      {
+        "call": 12,
+        "value": "404 restore t"
+      },
+      {
+        "call": 13,
+        "value": "404 suspend t"
+      },
+      {
+        "call": 14,
+        "value": "200 read t2"
+      },
+      {
+        "call": 15,
+        "value": 12
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "403 delete t"
+      },
+      {
+        "call": 4,
+        "value": "403 suspend t"
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": "403 delete t"
+      },
+      {
+        "call": 8,
+        "value": "200 suspend t"
+      },
+      {
+        "call": 9,
+        "value": 1
+      },
+      {
+        "call": 10,
+        "value": null
+      },
+      {
+        "call": 11,
+        "value": "200 delete t"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": "200 delete t2"
+      },
+      {
+        "call": 14,
+        "value": 3
+      },
+      {
+        "call": 15,
+        "value": [
+          "u delete t 403",
+          "u suspend t 403",
+          "u delete t 403",
+          "u suspend t 200",
+          "u delete t 200",
+          "u delete t2 200"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "200 delete bob"
+      },
+      {
+        "call": 4,
+        "value": "200 read boss"
+      },
+      {
+        "call": 5,
+        "value": "404 read bob"
+      },
+      {
+        "call": 6,
+        "value": "200 suspend boss"
+      },
+      {
+        "call": 7,
+        "value": "200 read boss"
+      },
+      {
+        "call": 8,
+        "value": 5
+      },
+      {
+        "call": 9,
+        "value": [
+          "boss delete bob 200",
+          "bob read boss 200",
+          "bob read bob 404",
+          "boss suspend boss 200",
+          "boss read boss 200"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "200 suspend c d"
+      },
+      {
+        "call": 3,
+        "value": "200 read c d"
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": "403 suspend !"
+      },
+      {
+        "call": 6,
+        "value": "200 restore c d"
+      },
+      {
+        "call": 7,
+        "value": [
+          "a b suspend c d 200",
+          "a b read c d 200",
+          "~ suspend ! 403",
+          "a b restore c d 200"
+        ]
+      },
+      {
+        "call": 8,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": []
+      },
+      {
+        "call": 2,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": null
+      },
+      {
+        "call": 9,
+        "value": null
+      },
+      {
+        "call": 10,
+        "value": "200 read t0"
+      },
+      {
+        "call": 11,
+        "value": "403 delete t1"
+      },
+      {
+        "call": 12,
+        "value": "409 restore t2"
+      },
+      {
+        "call": 13,
+        "value": "403 suspend t3"
+      },
+      {
+        "call": 14,
+        "value": "200 read t0"
+      },
+      {
+        "call": 15,
+        "value": "200 delete t1"
+      },
+      {
+        "call": 16,
+        "value": "403 restore t2"
+      },
+      {
+        "call": 17,
+        "value": "200 suspend t3"
+      },
+      {
+        "call": 18,
+        "value": "200 read t0"
+      },
+      {
+        "call": 19,
+        "value": "401 delete t1"
+      },
+      {
+        "call": 20,
+        "value": "401 restore t2"
+      },
+      {
+        "call": 21,
+        "value": "401 suspend t3"
+      },
+      {
+        "call": 22,
+        "value": "401 read t0"
+      },
+      {
+        "call": 23,
+        "value": "401 delete t1"
+      },
+      {
+        "call": 24,
+        "value": "401 restore t2"
+      },
+      {
+        "call": 25,
+        "value": "401 suspend t3"
+      },
+      {
+        "call": 26,
+        "value": "401 read t0"
+      },
+      {
+        "call": 27,
+        "value": "401 delete t1"
+      },
+      {
+        "call": 28,
+        "value": "401 restore t2"
+      },
+      {
+        "call": 29,
+        "value": "401 suspend t3"
+      },
+      {
+        "call": 30,
+        "value": "401 read t0"
+      },
+      {
+        "call": 31,
+        "value": "401 delete t1"
+      },
+      {
+        "call": 32,
+        "value": "401 restore t2"
+      },
+      {
+        "call": 33,
+        "value": "401 suspend t3"
+      },
+      {
+        "call": 34,
+        "value": "401 read t0"
+      },
+      {
+        "call": 35,
+        "value": "401 delete t1"
+      },
+      {
+        "call": 36,
+        "value": "401 restore t2"
+      },
+      {
+        "call": 37,
+        "value": "401 suspend t3"
+      },
+      {
+        "call": 38,
+        "value": "401 read t0"
+      },
+      {
+        "call": 39,
+        "value": "401 delete t1"
+      },
+      {
+        "call": 40,
+        "value": 6
+      },
+      {
+        "call": 41,
+        "value": [
+          "u0 read t0 200",
+          "u1 delete t1 403",
+          "u2 restore t2 409",
+          "u3 suspend t3 403",
+          "u4 read t0 200",
+          "u5 delete t1 200",
+          "u6 restore t2 403",
+          "u7 suspend t3 200",
+          "u8 read t0 200",
+          "u9 delete t1 401",
+          "u10 restore t2 401",
+          "u11 suspend t3 401",
+          "u12 read t0 401",
+          "u13 delete t1 401",
+          "u14 restore t2 401",
+          "u15 suspend t3 401",
+          "u16 read t0 401",
+          "u17 delete t1 401",
+          "u18 restore t2 401",
+          "u19 suspend t3 401",
+          "u20 read t0 401",
+          "u21 delete t1 401",
+          "u22 restore t2 401",
+          "u23 suspend t3 401",
+          "u24 read t0 401",
+          "u25 delete t1 401",
+          "u26 restore t2 401",
+          "u27 suspend t3 401",
+          "u28 read t0 401",
+          "u29 delete t1 401"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "403 suspend db"
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "200 suspend db"
+      },
+      {
+        "call": 5,
+        "value": "200 delete cache"
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "403 restore db"
+      },
+      {
+        "call": 9,
+        "value": "200 read db"
+      },
+      {
+        "call": 10,
+        "value": false
+      },
+      {
+        "call": 11,
+        "value": 3
+      },
+      {
+        "call": 12,
+        "value": [
+          "oncall suspend db 403",
+          "oncall suspend db 200 break-glass",
+          "oncall delete cache 200 break-glass",
+          "oncall restore db 403",
+          "oncall read db 200"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: break-glass is for users with a grant"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: break-glass is for users with a grant"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: break-glass is for users with a grant"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: break-glass is for users with a grant"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": false
+      },
+      {
+        "call": 7,
+        "value": "200 read t"
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": "200 read t"
+      },
+      {
+        "call": 10,
+        "value": "401 read t"
+      },
+      {
+        "call": 11,
+        "value": true
+      },
+      {
+        "call": 12,
+        "value": "200 read t"
+      },
+      {
+        "call": 13,
+        "value": [
+          "u read t 200",
+          "u read t 200 break-glass",
+          "ghost read t 401",
+          "u read t 200"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": "403 delete x"
+      },
+      {
+        "call": 5,
+        "value": "200 delete x"
+      },
+      {
+        "call": 6,
+        "value": "404 delete x"
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": "200 read y"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown action"
+      },
+      {
+        "call": 11,
+        "value": 3
+      },
+      {
+        "call": 12,
+        "value": [
+          "b delete x 403",
+          "a delete x 200 break-glass",
+          "a delete x 404 break-glass",
+          "a read y 200 break-glass"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": "200 delete z"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": "404 suspend z"
+      },
+      {
+        "call": 9,
+        "value": ["a delete z 200", "a suspend z 404 break-glass"]
+      }
+    ]
+  }
+]

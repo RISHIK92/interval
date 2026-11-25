@@ -1,0 +1,1320 @@
+{
+  "slug": "alert-tree",
+  "title": "Alert rule groups",
+  "difficulty": "medium",
+  "pool": "practice",
+  "topic": "structural",
+  "concepts": ["composite-pattern"],
+  "interface": {
+    "class": "AlertTree",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "group",
+        "params": [
+          {
+            "name": "parent",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "rule",
+        "params": [
+          {
+            "name": "parent",
+            "type": "string"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "metric",
+            "type": "string"
+          },
+          {
+            "name": "threshold",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "mute",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "on",
+            "type": "bool"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "firing",
+        "params": [
+          {
+            "name": "metrics",
+            "type": "map<string,int>"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "count",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "infra"]
+          },
+          {
+            "method": "group",
+            "args": ["/infra", "db"]
+          },
+          {
+            "method": "rule",
+            "args": ["/infra/db", "cpu-high", "db.cpu", 90]
+          },
+          {
+            "method": "rule",
+            "args": ["/infra/db", "disk-full", "db.disk", 95]
+          },
+          {
+            "method": "rule",
+            "args": ["/infra", "net-errors", "net.err", 10]
+          },
+          {
+            "method": "rule",
+            "args": ["/", "error-rate", "http.5xx", 5]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "db.cpu": 97,
+                "db.disk": 50,
+                "net.err": 11,
+                "http.5xx": 5
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/infra/db", true]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "db.cpu": 97,
+                "db.disk": 99,
+                "net.err": 11
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/infra"]
+          },
+          {
+            "method": "count",
+            "args": ["/"]
+          },
+          {
+            "method": "mute",
+            "args": ["/infra/db", true]
+          },
+          {
+            "method": "mute",
+            "args": ["/infra/db", false]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "db.cpu": 97,
+                "db.disk": 99
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "web"]
+          },
+          {
+            "method": "group",
+            "args": ["/web", "web"]
+          },
+          {
+            "method": "rule",
+            "args": ["/web/web", "slow", "p99", 300]
+          },
+          {
+            "method": "group",
+            "args": ["/web", "web"]
+          },
+          {
+            "method": "rule",
+            "args": ["/web", "web", "x", 1]
+          },
+          {
+            "method": "group",
+            "args": ["/web/web/slow", "x"]
+          },
+          {
+            "method": "group",
+            "args": ["/nope", "x"]
+          },
+          {
+            "method": "mute",
+            "args": ["/web", true]
+          },
+          {
+            "method": "mute",
+            "args": ["/web/web/slow", false]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "p99": 301
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/web", false]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "p99": 301
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/web/web/slow"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["/", "a", "m", 10]
+          },
+          {
+            "method": "rule",
+            "args": ["/", "b", "m", 9]
+          },
+          {
+            "method": "rule",
+            "args": ["/", "c", "m", 11]
+          },
+          {
+            "method": "rule",
+            "args": ["/", "d", "n", -5]
+          },
+          {
+            "method": "rule",
+            "args": ["/", "e", "other", 0]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 10,
+                "n": -5
+              }
+            ]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 11,
+                "n": -4
+              }
+            ]
+          },
+          {
+            "method": "firing",
+            "args": [{}]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "x": 100
+              }
+            ]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "other": 1,
+                "m": -100
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/a"]
+          },
+          {
+            "method": "count",
+            "args": ["/"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "a"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "A"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "a"]
+          },
+          {
+            "method": "rule",
+            "args": ["/", "a", "m", 1]
+          },
+          {
+            "method": "group",
+            "args": ["/", ""]
+          },
+          {
+            "method": "group",
+            "args": ["/", "a/b"]
+          },
+          {
+            "method": "group",
+            "args": ["", "x"]
+          },
+          {
+            "method": "group",
+            "args": ["a", "x"]
+          },
+          {
+            "method": "group",
+            "args": ["/a/", "x"]
+          },
+          {
+            "method": "group",
+            "args": ["//a", "x"]
+          },
+          {
+            "method": "group",
+            "args": ["/b", "x"]
+          },
+          {
+            "method": "rule",
+            "args": ["/a", "r", "", 1]
+          },
+          {
+            "method": "rule",
+            "args": ["/a", "", "m", 1]
+          },
+          {
+            "method": "rule",
+            "args": ["/a", "x/y", "m", 1]
+          },
+          {
+            "method": "rule",
+            "args": ["/a", "r", "m", 1]
+          },
+          {
+            "method": "rule",
+            "args": ["/a", "r", "m", 2]
+          },
+          {
+            "method": "group",
+            "args": ["/a/r", "z"]
+          },
+          {
+            "method": "rule",
+            "args": ["/a/r", "z", "m", 1]
+          },
+          {
+            "method": "group",
+            "args": ["/a", "r"]
+          },
+          {
+            "method": "rule",
+            "args": ["/a", "r", "", 1]
+          },
+          {
+            "method": "group",
+            "args": ["/x", "a/"]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 5
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/a"]
+          },
+          {
+            "method": "count",
+            "args": ["/A"]
+          },
+          {
+            "method": "count",
+            "args": ["/a/r"]
+          },
+          {
+            "method": "count",
+            "args": ["/a/x"]
+          },
+          {
+            "method": "count",
+            "args": [""]
+          },
+          {
+            "method": "count",
+            "args": ["a"]
+          },
+          {
+            "method": "count",
+            "args": ["/a/r/"]
+          },
+          {
+            "method": "count",
+            "args": ["//"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "g"]
+          },
+          {
+            "method": "group",
+            "args": ["/g", "h"]
+          },
+          {
+            "method": "rule",
+            "args": ["/g/h", "r1", "m", 0]
+          },
+          {
+            "method": "rule",
+            "args": ["/g", "r2", "m", 0]
+          },
+          {
+            "method": "rule",
+            "args": ["/", "r3", "m", 0]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/g/h/r1", true]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/g", true]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/g/h/r1", false]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/", true]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/g", false]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/", false]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/", false]
+          },
+          {
+            "method": "mute",
+            "args": ["/zz", true]
+          },
+          {
+            "method": "mute",
+            "args": ["", true]
+          },
+          {
+            "method": "mute",
+            "args": ["/g/h/r1", false]
+          },
+          {
+            "method": "count",
+            "args": ["/g"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "a"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "a-b"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "B"]
+          },
+          {
+            "method": "rule",
+            "args": ["/a", "x", "m", 0]
+          },
+          {
+            "method": "rule",
+            "args": ["/a-b", "x", "m", 0]
+          },
+          {
+            "method": "rule",
+            "args": ["/B", "x", "m", 0]
+          },
+          {
+            "method": "rule",
+            "args": ["/", "a.c", "m", 0]
+          },
+          {
+            "method": "rule",
+            "args": ["/", "_", "m", 0]
+          },
+          {
+            "method": "rule",
+            "args": ["/a", "Z", "m", 0]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "count",
+            "args": ["/"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "e"]
+          },
+          {
+            "method": "count",
+            "args": ["/e"]
+          },
+          {
+            "method": "group",
+            "args": ["/e", "f"]
+          },
+          {
+            "method": "count",
+            "args": ["/e"]
+          },
+          {
+            "method": "rule",
+            "args": ["/e/f", "r", "m", 1]
+          },
+          {
+            "method": "count",
+            "args": ["/e"]
+          },
+          {
+            "method": "mute",
+            "args": ["/e", true]
+          },
+          {
+            "method": "count",
+            "args": ["/e"]
+          },
+          {
+            "method": "count",
+            "args": ["/e/f/r"]
+          },
+          {
+            "method": "rule",
+            "args": ["/e", "s", "m", 1]
+          },
+          {
+            "method": "count",
+            "args": ["/"]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 2
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "l 1"]
+          },
+          {
+            "method": "group",
+            "args": ["/l 1", "l~2"]
+          },
+          {
+            "method": "group",
+            "args": ["/l 1/l~2", "l.3"]
+          },
+          {
+            "method": "group",
+            "args": ["/l 1/l~2/l.3", "l-4"]
+          },
+          {
+            "method": "rule",
+            "args": ["/l 1/l~2/l.3/l-4", "deep", "q", 0]
+          },
+          {
+            "method": "rule",
+            "args": ["/l 1/l~2", "mid", "q", 1]
+          },
+          {
+            "method": "rule",
+            "args": ["/l 1", "top", "q", 2]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "q": 3
+              }
+            ]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "q": 2
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/l 1/l~2/l.3", true]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "q": 3
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/l 1"]
+          },
+          {
+            "method": "count",
+            "args": ["/l 1/l~2/l.3/l-4"]
+          },
+          {
+            "method": "count",
+            "args": ["/l 1/l~2/l.3/l-4/deep"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "s0"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "s1"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "s2"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "s3"]
+          },
+          {
+            "method": "rule",
+            "args": ["/s0", "r0", "cpu", 0]
+          },
+          {
+            "method": "rule",
+            "args": ["/s0", "r1", "mem", 1]
+          },
+          {
+            "method": "rule",
+            "args": ["/s0", "r2", "cpu", 2]
+          },
+          {
+            "method": "rule",
+            "args": ["/s1", "r0", "cpu", 10]
+          },
+          {
+            "method": "rule",
+            "args": ["/s1", "r1", "mem", 11]
+          },
+          {
+            "method": "rule",
+            "args": ["/s1", "r2", "cpu", 12]
+          },
+          {
+            "method": "rule",
+            "args": ["/s2", "r0", "cpu", 20]
+          },
+          {
+            "method": "rule",
+            "args": ["/s2", "r1", "mem", 21]
+          },
+          {
+            "method": "rule",
+            "args": ["/s2", "r2", "cpu", 22]
+          },
+          {
+            "method": "rule",
+            "args": ["/s3", "r0", "cpu", 30]
+          },
+          {
+            "method": "rule",
+            "args": ["/s3", "r1", "mem", 31]
+          },
+          {
+            "method": "rule",
+            "args": ["/s3", "r2", "cpu", 32]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "cpu": 21,
+                "mem": 25
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/s1", true]
+          },
+          {
+            "method": "mute",
+            "args": ["/s2/r0", true]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "cpu": 21,
+                "mem": 25
+              }
+            ]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "cpu": 100,
+                "mem": 100
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/"]
+          },
+          {
+            "method": "count",
+            "args": ["/s3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "x"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "y"]
+          },
+          {
+            "method": "rule",
+            "args": ["/x", "dup", "m", 0]
+          },
+          {
+            "method": "rule",
+            "args": ["/y", "dup", "m", 0]
+          },
+          {
+            "method": "group",
+            "args": ["/x", "y"]
+          },
+          {
+            "method": "rule",
+            "args": ["/x/y", "dup", "m", 0]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/x/y", true]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "rule",
+            "args": ["/", "big", "m", 9007199254740990]
+          },
+          {
+            "method": "rule",
+            "args": ["/", "low", "m", -9007199254740990]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 9007199254740991
+              }
+            ]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 9007199254740990
+              }
+            ]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": -9007199254740990
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "moveNode",
+        "params": [
+          {
+            "name": "node",
+            "type": "string"
+          },
+          {
+            "name": "parent",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "a"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "b"]
+          },
+          {
+            "method": "group",
+            "args": ["/a", "c"]
+          },
+          {
+            "method": "rule",
+            "args": ["/a/c", "r", "m", 0]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/a/c", "/b"]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/a"]
+          },
+          {
+            "method": "count",
+            "args": ["/b"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/b/c/r", "/"]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/b/c"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/a", "/a"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/b", "/b/c"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/b/c", "/b"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/", "/a"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/zz", "/a"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/a", "/zz"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/r", "/r"]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "g"]
+          },
+          {
+            "method": "rule",
+            "args": ["/g", "r", "m", 0]
+          },
+          {
+            "method": "group",
+            "args": ["/", "h"]
+          },
+          {
+            "method": "rule",
+            "args": ["/h", "r", "m", 0]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/g/r", "/h"]
+          },
+          {
+            "method": "mute",
+            "args": ["/g", true]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/h/r", "/g"]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 5
+              }
+            ]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/g", "/h"]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 5
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/h", true]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 5
+              }
+            ]
+          },
+          {
+            "method": "mute",
+            "args": ["/h", false]
+          },
+          {
+            "method": "mute",
+            "args": ["/h/g", false]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 5
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/h"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "p"]
+          },
+          {
+            "method": "group",
+            "args": ["/p", "q"]
+          },
+          {
+            "method": "group",
+            "args": ["/p/q", "s"]
+          },
+          {
+            "method": "rule",
+            "args": ["/p/q/s", "r", "m", 0]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/p/q", "/"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/p", "/q/s"]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "count",
+            "args": ["/p"]
+          },
+          {
+            "method": "count",
+            "args": ["/q"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/q/s", "/p"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/p", "/q"]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/q/s", "/q"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/q", "/q/s"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/q/p/s", "/q"]
+          },
+          {
+            "method": "firing",
+            "args": [
+              {
+                "m": 1
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "group",
+            "args": ["/", "ab"]
+          },
+          {
+            "method": "group",
+            "args": ["/", "a"]
+          },
+          {
+            "method": "group",
+            "args": ["/a", "x"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/a", "/ab"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/a/x", "/ab"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/ab", "/ab/a/x"]
+          },
+          {
+            "method": "moveNode",
+            "args": ["/", "/ab"]
+          },
+          {
+            "method": "firing",
+            "args": [{}]
+          },
+          {
+            "method": "count",
+            "args": ["/ab"]
+          }
+        ]
+      }
+    ]
+  }
+}
