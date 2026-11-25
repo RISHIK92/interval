@@ -1,0 +1,762 @@
+{
+  "slug": "semver",
+  "title": "Semantic version",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["value-objects", "immutability", "api-versioning"],
+  "interface": {
+    "class": "SemVer",
+    "constructor": {
+      "params": [
+        {
+          "name": "text",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "bump",
+        "params": [
+          {
+            "name": "part",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "compareTo",
+        "params": [
+          {
+            "name": "other",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "isCompatible",
+        "params": [
+          {
+            "name": "other",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "text",
+        "params": [],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1.4.2"]
+          },
+          {
+            "method": "text",
+            "args": []
+          },
+          {
+            "method": "bump",
+            "args": ["patch"]
+          },
+          {
+            "method": "bump",
+            "args": ["minor"]
+          },
+          {
+            "method": "bump",
+            "args": ["major"]
+          },
+          {
+            "method": "text",
+            "args": []
+          },
+          {
+            "method": "compareTo",
+            "args": ["1.10.0"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["1.4.2"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["0.9.9"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["1.9.0"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["2.0.0"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["0.3.1"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.3.9"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.4.0"]
+          },
+          {
+            "method": "bump",
+            "args": ["minor"]
+          },
+          {
+            "method": "text",
+            "args": []
+          },
+          {
+            "method": "bump",
+            "args": ["build"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1.2"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1.2.3.4"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["v1.2.3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["01.2.3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1.02.3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1.2.3"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["1.2.03"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["1..3"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["1.2.3 "]
+          },
+          {
+            "method": "compareTo",
+            "args": [" 1.2.3"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["1.2.-3"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["1.2.+3"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["a.b.c"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["1.2.3-beta"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["1000000000.0.0"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["1.2.3."]
+          },
+          {
+            "method": "isCompatible",
+            "args": [""]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["1.2"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["1.2.3.4"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["v1.2.3"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["01.2.3"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["1.02.3"]
+          },
+          {
+            "method": "text",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["0.0.0"]
+          },
+          {
+            "method": "text",
+            "args": []
+          },
+          {
+            "method": "bump",
+            "args": ["patch"]
+          },
+          {
+            "method": "bump",
+            "args": ["minor"]
+          },
+          {
+            "method": "bump",
+            "args": ["major"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["0.0.0"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["0.0.1"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.0.7"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.1.0"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["1.0.0"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["999999999.999999999.999999999"]
+          },
+          {
+            "method": "text",
+            "args": []
+          },
+          {
+            "method": "bump",
+            "args": ["patch"]
+          },
+          {
+            "method": "bump",
+            "args": ["minor"]
+          },
+          {
+            "method": "bump",
+            "args": ["major"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["999999999.999999999.999999998"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["999999999.999999999.999999999"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["999999999.0.0"]
+          },
+          {
+            "method": "text",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["10.20.30"]
+          },
+          {
+            "method": "text",
+            "args": []
+          },
+          {
+            "method": "compareTo",
+            "args": ["9.99.99"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["10.3.40"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["10.20.4"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["10.20.31"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["10.21.0"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["11.0.0"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["10.19.99"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["10.20.29"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["2.5.0"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["2.0.0"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["2.99.99"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["1.5.0"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["3.5.0"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.5.0"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["2.5.0"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["0.7.3"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.7.0"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.7.99"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.6.3"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.8.3"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["1.7.3"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.0.3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1.0.0"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["0.9.9"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["1.0.1"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["1.9.0"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["0.99.99"]
+          },
+          {
+            "method": "bump",
+            "args": ["minor"]
+          },
+          {
+            "method": "bump",
+            "args": ["Major"]
+          },
+          {
+            "method": "bump",
+            "args": [""]
+          },
+          {
+            "method": "bump",
+            "args": ["patch"]
+          },
+          {
+            "method": "text",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["3.9.9"]
+          },
+          {
+            "method": "bump",
+            "args": ["patch"]
+          },
+          {
+            "method": "bump",
+            "args": ["patch"]
+          },
+          {
+            "method": "bump",
+            "args": ["minor"]
+          },
+          {
+            "method": "bump",
+            "args": ["major"]
+          },
+          {
+            "method": "text",
+            "args": []
+          },
+          {
+            "method": "compareTo",
+            "args": ["3.9.9"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["3.9.10"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["5.0.0"]
+          },
+          {
+            "method": "compareTo",
+            "args": ["5"]
+          },
+          {
+            "method": "isCompatible",
+            "args": ["5.0"]
+          },
+          {
+            "method": "bump",
+            "args": ["minor"]
+          },
+          {
+            "method": "text",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "satisfies",
+        "params": [
+          {
+            "name": "constraint",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1.4.2"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^1.2.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^1.4.2"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^1.4.3"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^2.0.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^0.4.2"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~1.4.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~1.3.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~1.4.2"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~1.4.3"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["0.3.5"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^0.3.1"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^0.2.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^0.3.6"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~0.3.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~0.3.5"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^0.0.1"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["2.0.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["1.2.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^1.2"]
+          },
+          {
+            "method": "satisfies",
+            "args": [">=1.0.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~01.0.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^2.0.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": [""]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^^2.0.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": [" ^2.0.0"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1.9.9"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^1.10.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~1.9.10"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^1.0.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~1.8.9"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~2.9.9"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^1.9.9"]
+          },
+          {
+            "method": "text",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["0.0.4"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^0.0.3"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^0.0.5"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~0.0.4"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["~0.1.0"]
+          },
+          {
+            "method": "satisfies",
+            "args": ["^0.1.0"]
+          }
+        ]
+      }
+    ]
+  }
+}

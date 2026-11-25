@@ -1,0 +1,703 @@
+{
+  "slug": "alert-channels",
+  "title": "Alert channels",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["polymorphism", "inheritance"],
+  "interface": {
+    "class": "AlertDispatcher",
+    "constructor": {
+      "params": []
+    },
+    "methods": [
+      {
+        "name": "addChannel",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "kind",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "send",
+        "params": [
+          {
+            "name": "channel",
+            "type": "string"
+          },
+          {
+            "name": "message",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "cost",
+        "params": [
+          {
+            "name": "channel",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["ops-mail", "email"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["ops-sms", "sms"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["oncall", "pager"]
+          },
+          {
+            "method": "send",
+            "args": ["ops-mail", "db-1 is down"]
+          },
+          {
+            "method": "send",
+            "args": ["ops-sms", "db-1 is down since 09:14 UTC"]
+          },
+          {
+            "method": "send",
+            "args": ["oncall", "db-1 is down"]
+          },
+          {
+            "method": "cost",
+            "args": ["ops-mail"]
+          },
+          {
+            "method": "cost",
+            "args": ["ops-sms"]
+          },
+          {
+            "method": "cost",
+            "args": ["oncall"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["team", "slack"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["team", "email"]
+          },
+          {
+            "method": "send",
+            "args": ["team", "hi"]
+          },
+          {
+            "method": "send",
+            "args": ["team", "hi"]
+          },
+          {
+            "method": "cost",
+            "args": ["team"]
+          },
+          {
+            "method": "send",
+            "args": ["nobody", "hi"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["s", "sms"]
+          },
+          {
+            "method": "send",
+            "args": ["s", "disk 91% on db-1 now"]
+          },
+          {
+            "method": "send",
+            "args": ["s", "disk 91% on db-1 now!"]
+          },
+          {
+            "method": "send",
+            "args": ["s", ""]
+          },
+          {
+            "method": "send",
+            "args": ["s", "xxxxxxxxxxxxxxxxx"]
+          },
+          {
+            "method": "send",
+            "args": ["s", "yyyyyyyyyyyyyyyyyy"]
+          },
+          {
+            "method": "send",
+            "args": ["s", "abcdefghijklmnopqrstuvwxyz"]
+          },
+          {
+            "method": "cost",
+            "args": ["s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["p", "pager"]
+          },
+          {
+            "method": "send",
+            "args": ["p", "cpu at 99% on web-3"]
+          },
+          {
+            "method": "send",
+            "args": ["p", "ALREADY LOUD"]
+          },
+          {
+            "method": "send",
+            "args": ["p", ""]
+          },
+          {
+            "method": "send",
+            "args": ["p", "mixed Case-and_digits 42"]
+          },
+          {
+            "method": "cost",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["e", "email"]
+          },
+          {
+            "method": "send",
+            "args": ["e", "backup finished"]
+          },
+          {
+            "method": "send",
+            "args": ["e", ""]
+          },
+          {
+            "method": "send",
+            "args": [
+              "e",
+              "a much longer message that no sms would ever carry whole"
+            ]
+          },
+          {
+            "method": "cost",
+            "args": ["e"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["a", "email"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["a", "sms"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["a", "email"]
+          },
+          {
+            "method": "send",
+            "args": ["a", "still email"]
+          },
+          {
+            "method": "cost",
+            "args": ["a"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["", "sms"]
+          },
+          {
+            "method": "send",
+            "args": ["", "x"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["b", "Email"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["b", "SMS"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["b", ""]
+          },
+          {
+            "method": "cost",
+            "args": ["b"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["b", "pager"]
+          },
+          {
+            "method": "send",
+            "args": ["b", "now pager"]
+          },
+          {
+            "method": "cost",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["m1", "email"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["m2", "email"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["t", "sms"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["p", "pager"]
+          },
+          {
+            "method": "cost",
+            "args": ["m1"]
+          },
+          {
+            "method": "cost",
+            "args": ["t"]
+          },
+          {
+            "method": "cost",
+            "args": ["p"]
+          },
+          {
+            "method": "send",
+            "args": ["m1", "x"]
+          },
+          {
+            "method": "send",
+            "args": ["m1", "y"]
+          },
+          {
+            "method": "send",
+            "args": ["m1", "z"]
+          },
+          {
+            "method": "send",
+            "args": ["t", "x"]
+          },
+          {
+            "method": "send",
+            "args": ["t", "y"]
+          },
+          {
+            "method": "send",
+            "args": ["p", "x"]
+          },
+          {
+            "method": "cost",
+            "args": ["m1"]
+          },
+          {
+            "method": "cost",
+            "args": ["m2"]
+          },
+          {
+            "method": "cost",
+            "args": ["t"]
+          },
+          {
+            "method": "cost",
+            "args": ["p"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "cost",
+            "args": ["missing"]
+          },
+          {
+            "method": "send",
+            "args": ["missing", "x"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["missing", "sms"]
+          },
+          {
+            "method": "cost",
+            "args": ["missing"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["x", "pager"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["y", "sms"]
+          },
+          {
+            "method": "send",
+            "args": ["x", "disk 91% on db-1 now!"]
+          },
+          {
+            "method": "send",
+            "args": ["y", "short"]
+          },
+          {
+            "method": "send",
+            "args": ["y", "this one is far too long for one text"]
+          },
+          {
+            "method": "cost",
+            "args": ["x"]
+          },
+          {
+            "method": "cost",
+            "args": ["y"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["e", "email"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["s", "sms"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["p", "pager"]
+          },
+          {
+            "method": "send",
+            "args": ["e", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["e", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["e", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["e", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["s", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["s", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["s", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["s", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["p", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["p", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["p", "tick"]
+          },
+          {
+            "method": "send",
+            "args": ["p", "tick"]
+          },
+          {
+            "method": "cost",
+            "args": ["e"]
+          },
+          {
+            "method": "cost",
+            "args": ["s"]
+          },
+          {
+            "method": "cost",
+            "args": ["p"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "addWebhook",
+        "params": [
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "url",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addWebhook",
+            "args": ["hook", "https://hooks.example.com/alerts"]
+          },
+          {
+            "method": "send",
+            "args": ["hook", "db-1 is down"]
+          },
+          {
+            "method": "send",
+            "args": ["hook", "recovered"]
+          },
+          {
+            "method": "cost",
+            "args": ["hook"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["mail", "email"]
+          },
+          {
+            "method": "send",
+            "args": ["mail", "x"]
+          },
+          {
+            "method": "cost",
+            "args": ["mail"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addWebhook",
+            "args": ["h", "http://insecure.example.com"]
+          },
+          {
+            "method": "addWebhook",
+            "args": ["h", "https://"]
+          },
+          {
+            "method": "addWebhook",
+            "args": ["h", "ftp://x"]
+          },
+          {
+            "method": "addWebhook",
+            "args": ["h", ""]
+          },
+          {
+            "method": "addWebhook",
+            "args": ["h", " https://x"]
+          },
+          {
+            "method": "send",
+            "args": ["h", "x"]
+          },
+          {
+            "method": "addWebhook",
+            "args": ["h", "https://x"]
+          },
+          {
+            "method": "send",
+            "args": ["h", "x"]
+          },
+          {
+            "method": "cost",
+            "args": ["h"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["dup", "sms"]
+          },
+          {
+            "method": "addWebhook",
+            "args": ["dup", "https://x.example"]
+          },
+          {
+            "method": "send",
+            "args": ["dup", "still an sms channel"]
+          },
+          {
+            "method": "addWebhook",
+            "args": ["", "https://x.example"]
+          },
+          {
+            "method": "addWebhook",
+            "args": ["w", "https://x.example"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["w", "email"]
+          },
+          {
+            "method": "addWebhook",
+            "args": ["w", "https://y"]
+          },
+          {
+            "method": "send",
+            "args": ["w", "first url"]
+          },
+          {
+            "method": "cost",
+            "args": ["w"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": []
+          },
+          {
+            "method": "addChannel",
+            "args": ["w", "webhook"]
+          },
+          {
+            "method": "send",
+            "args": ["w", "x"]
+          },
+          {
+            "method": "addWebhook",
+            "args": ["w", "https://a.b/c"]
+          },
+          {
+            "method": "send",
+            "args": ["w", "A message longer than twenty characters stays whole"]
+          },
+          {
+            "method": "cost",
+            "args": ["w"]
+          },
+          {
+            "method": "addChannel",
+            "args": ["v", "webhook"]
+          },
+          {
+            "method": "cost",
+            "args": ["v"]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,726 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "1.4.2"
+      },
+      {
+        "call": 2,
+        "value": "1.4.3"
+      },
+      {
+        "call": 3,
+        "value": "1.5.0"
+      },
+      {
+        "call": 4,
+        "value": "2.0.0"
+      },
+      {
+        "call": 5,
+        "value": "1.4.2"
+      },
+      {
+        "call": 6,
+        "value": -1
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": true
+      },
+      {
+        "call": 10,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": "0.4.0"
+      },
+      {
+        "call": 4,
+        "value": "0.3.1"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: part is major, minor or patch"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: a version is major.minor.patch"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: a version is major.minor.patch"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: a version is major.minor.patch"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: each part is 1 to 9 digits"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: no leading zeros"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: no leading zeros"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: no leading zeros"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: each part is 1 to 9 digits"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: each part is 1 to 9 digits"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: each part is 1 to 9 digits"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: each part is 1 to 9 digits"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: each part is 1 to 9 digits"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: each part is 1 to 9 digits"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: each part is 1 to 9 digits"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: each part is 1 to 9 digits"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: a version is major.minor.patch"
+      },
+      {
+        "call": 11,
+        "error": "ValueError: a version is major.minor.patch"
+      },
+      {
+        "call": 12,
+        "error": "ValueError: a version is major.minor.patch"
+      },
+      {
+        "call": 13,
+        "error": "ValueError: a version is major.minor.patch"
+      },
+      {
+        "call": 14,
+        "error": "ValueError: each part is 1 to 9 digits"
+      },
+      {
+        "call": 15,
+        "error": "ValueError: no leading zeros"
+      },
+      {
+        "call": 16,
+        "error": "ValueError: no leading zeros"
+      },
+      {
+        "call": 17,
+        "value": "1.2.3"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "0.0.0"
+      },
+      {
+        "call": 2,
+        "value": "0.0.1"
+      },
+      {
+        "call": 3,
+        "value": "0.1.0"
+      },
+      {
+        "call": 4,
+        "value": "1.0.0"
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": -1
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": false
+      },
+      {
+        "call": 9,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "999999999.999999999.999999999"
+      },
+      {
+        "call": 2,
+        "value": "999999999.999999999.1000000000"
+      },
+      {
+        "call": 3,
+        "value": "999999999.1000000000.0"
+      },
+      {
+        "call": 4,
+        "value": "1000000000.0.0"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": true
+      },
+      {
+        "call": 8,
+        "value": "999999999.999999999.999999999"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 9,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "10.20.30"
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": -1
+      },
+      {
+        "call": 6,
+        "value": -1
+      },
+      {
+        "call": 7,
+        "value": -1
+      },
+      {
+        "call": 8,
+        "value": 1
+      },
+      {
+        "call": 9,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 10,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 11,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 12,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": "1.1.0"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: part is major, minor or patch"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: part is major, minor or patch"
+      },
+      {
+        "call": 8,
+        "value": "1.0.1"
+      },
+      {
+        "call": 9,
+        "value": "1.0.0"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 13,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": "3.9.10"
+      },
+      {
+        "call": 2,
+        "value": "3.9.10"
+      },
+      {
+        "call": 3,
+        "value": "3.10.0"
+      },
+      {
+        "call": 4,
+        "value": "4.0.0"
+      },
+      {
+        "call": 5,
+        "value": "3.9.9"
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": -1
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 14,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a version is major.minor.patch"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a version is major.minor.patch"
+      },
+      {
+        "call": 3,
+        "value": "5.1.0"
+      },
+      {
+        "call": 4,
+        "value": "5.0.0"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": true
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": false
+      },
+      {
+        "call": 8,
+        "value": true
+      },
+      {
+        "call": 9,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": false
+      },
+      {
+        "call": 4,
+        "value": true
+      },
+      {
+        "call": 5,
+        "value": true
+      },
+      {
+        "call": 6,
+        "value": false
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a constraint is ^ or ~ and a version"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a version is major.minor.patch"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a version is major.minor.patch"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a constraint is ^ or ~ and a version"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: no leading zeros"
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a constraint is ^ or ~ and a version"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: each part is 1 to 9 digits"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: a constraint is ^ or ~ and a version"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": false
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      },
+      {
+        "call": 6,
+        "value": true
+      },
+      {
+        "call": 7,
+        "value": "1.9.9"
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": true
+      },
+      {
+        "call": 2,
+        "value": false
+      },
+      {
+        "call": 3,
+        "value": true
+      },
+      {
+        "call": 4,
+        "value": false
+      },
+      {
+        "call": 5,
+        "value": false
+      }
+    ]
+  }
+]

@@ -1,0 +1,561 @@
+{
+  "slug": "job-spec",
+  "title": "CI job spec",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["abstraction", "encapsulation"],
+  "interface": {
+    "class": "JobSpec",
+    "constructor": {
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "addStep",
+        "params": [
+          {
+            "name": "command",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "setEnv",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "render",
+        "params": [],
+        "returns": "list<string>"
+      },
+      {
+        "name": "stepCount",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["build"]
+          },
+          {
+            "method": "addStep",
+            "args": ["npm ci"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["NODE_ENV", "production"]
+          },
+          {
+            "method": "addStep",
+            "args": ["npm test"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["CI", "true"]
+          },
+          {
+            "method": "render",
+            "args": []
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["lint"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["node_env", "x"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["1ST", "x"]
+          },
+          {
+            "method": "addStep",
+            "args": [""]
+          },
+          {
+            "method": "render",
+            "args": []
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["deploy"]
+          },
+          {
+            "method": "render",
+            "args": []
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["keys"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["A", "1"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["A1_B2", "2"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["Z_", "3"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["_A", "x"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["A-B", "x"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["", "x"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["aB", "x"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["A B", "x"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["Ab", "x"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["9", "x"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["A__B", "4"]
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["env"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["ZED", "z"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["ALPHA", "a"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["MID", "m"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["ALPHA", "a2"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["A_LONGER", ""]
+          },
+          {
+            "method": "setEnv",
+            "args": ["A", "first"]
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["steps"]
+          },
+          {
+            "method": "addStep",
+            "args": ["make"]
+          },
+          {
+            "method": "addStep",
+            "args": ["make"]
+          },
+          {
+            "method": "addStep",
+            "args": ["make install"]
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          },
+          {
+            "method": "addStep",
+            "args": [""]
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          },
+          {
+            "method": "addStep",
+            "args": ["echo done"]
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["sorting"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["B", "1"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["A_", "2"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["AB", "3"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["A1", "4"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["A", "5"]
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["values"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["URL", "https://x.example/?a=b"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["EMPTY", ""]
+          },
+          {
+            "method": "setEnv",
+            "args": ["SPACES", " two  spaces "]
+          },
+          {
+            "method": "addStep",
+            "args": ["  indented command  "]
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["ci job"]
+          },
+          {
+            "method": "addStep",
+            "args": ["a"]
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          },
+          {
+            "method": "setEnv",
+            "args": ["X", "1"]
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          },
+          {
+            "method": "addStep",
+            "args": ["b"]
+          },
+          {
+            "method": "render",
+            "args": []
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["x"]
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          },
+          {
+            "method": "addStep",
+            "args": ["one"]
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          },
+          {
+            "method": "addStep",
+            "args": ["two"]
+          },
+          {
+            "method": "addStep",
+            "args": ["three"]
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "secret",
+        "params": [
+          {
+            "name": "key",
+            "type": "string"
+          },
+          {
+            "name": "value",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["release"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["REGION", "eu-west-1"]
+          },
+          {
+            "method": "secret",
+            "args": ["NPM_TOKEN", "npm_abc123"]
+          },
+          {
+            "method": "addStep",
+            "args": ["npm publish"]
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["release"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["TOKEN", "plain"]
+          },
+          {
+            "method": "secret",
+            "args": ["TOKEN", "hidden"]
+          },
+          {
+            "method": "render",
+            "args": []
+          },
+          {
+            "method": "setEnv",
+            "args": ["TOKEN", "plain again"]
+          },
+          {
+            "method": "render",
+            "args": []
+          },
+          {
+            "method": "secret",
+            "args": ["TOKEN", "x"]
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["release"]
+          },
+          {
+            "method": "secret",
+            "args": ["lower", "x"]
+          },
+          {
+            "method": "secret",
+            "args": ["", "x"]
+          },
+          {
+            "method": "secret",
+            "args": ["_X", "x"]
+          },
+          {
+            "method": "render",
+            "args": []
+          },
+          {
+            "method": "secret",
+            "args": ["B_KEY", ""]
+          },
+          {
+            "method": "secret",
+            "args": ["A_KEY", "s"]
+          },
+          {
+            "method": "setEnv",
+            "args": ["C", "c"]
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["release"]
+          },
+          {
+            "method": "secret",
+            "args": ["K", "1"]
+          },
+          {
+            "method": "secret",
+            "args": ["K", "2"]
+          },
+          {
+            "method": "stepCount",
+            "args": []
+          },
+          {
+            "method": "addStep",
+            "args": ["deploy"]
+          },
+          {
+            "method": "render",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

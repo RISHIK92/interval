@@ -1,0 +1,604 @@
+{
+  "slug": "connection-lifecycle",
+  "title": "Connection lifecycle",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["enumerations", "encapsulation", "class-invariants"],
+  "interface": {
+    "class": "Connection",
+    "constructor": {
+      "params": [
+        {
+          "name": "host",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "connect",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "disconnect",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "fail",
+        "params": [
+          {
+            "name": "reason",
+            "type": "string"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "state",
+        "params": [],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["db.internal:5432"]
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["cache:6379"]
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["connection reset"]
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "fail",
+            "args": ["dns lookup failed"]
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "fail",
+            "args": [""]
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": [""]
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["x"]
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["late error"]
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["a"]
+          },
+          {
+            "method": "fail",
+            "args": ["b"]
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["timeout"]
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [" "]
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["h"]
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": [""]
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["z"]
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "reconnect",
+        "params": [],
+        "returns": "bool"
+      },
+      {
+        "name": "attempts",
+        "params": [],
+        "returns": "int"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["db"]
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["reset"]
+          },
+          {
+            "method": "attempts",
+            "args": []
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "attempts",
+            "args": []
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["reset again"]
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "attempts",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["db"]
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "attempts",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["db"]
+          },
+          {
+            "method": "fail",
+            "args": ["refused"]
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "disconnect",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "attempts",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["db"]
+          },
+          {
+            "method": "attempts",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["x"]
+          },
+          {
+            "method": "connect",
+            "args": []
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "fail",
+            "args": ["y"]
+          },
+          {
+            "method": "fail",
+            "args": ["y"]
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "reconnect",
+            "args": []
+          },
+          {
+            "method": "attempts",
+            "args": []
+          },
+          {
+            "method": "state",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

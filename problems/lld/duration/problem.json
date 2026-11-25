@@ -1,0 +1,717 @@
+{
+  "slug": "duration",
+  "title": "Duration value",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["value-objects", "immutability"],
+  "interface": {
+    "class": "Duration",
+    "constructor": {
+      "params": [
+        {
+          "name": "text",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "totalSeconds",
+        "params": [],
+        "returns": "int"
+      },
+      {
+        "name": "canonical",
+        "params": [],
+        "returns": "string"
+      },
+      {
+        "name": "plus",
+        "params": [
+          {
+            "name": "other",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "isLonger",
+        "params": [
+          {
+            "name": "other",
+            "type": "string"
+          }
+        ],
+        "returns": "bool"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1h30m15s"]
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "plus",
+            "args": ["45s"]
+          },
+          {
+            "method": "plus",
+            "args": ["29m45s"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["90m"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["5415s"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["1h30m14s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["90m"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          },
+          {
+            "method": "isLonger",
+            "args": ["1h29m"]
+          },
+          {
+            "method": "plus",
+            "args": ["0s"]
+          },
+          {
+            "method": "plus",
+            "args": ["1h30"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1x"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["30m1h"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1h1h"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1H"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1s"]
+          },
+          {
+            "method": "plus",
+            "args": ["1h 30m"]
+          },
+          {
+            "method": "plus",
+            "args": [" 1h"]
+          },
+          {
+            "method": "plus",
+            "args": ["1h30m15"]
+          },
+          {
+            "method": "plus",
+            "args": ["h"]
+          },
+          {
+            "method": "plus",
+            "args": ["-5s"]
+          },
+          {
+            "method": "plus",
+            "args": ["+5s"]
+          },
+          {
+            "method": "plus",
+            "args": ["1.5h"]
+          },
+          {
+            "method": "plus",
+            "args": ["1000000000s"]
+          },
+          {
+            "method": "plus",
+            "args": ["1s1m"]
+          },
+          {
+            "method": "plus",
+            "args": ["5"]
+          },
+          {
+            "method": "plus",
+            "args": ["m30s"]
+          },
+          {
+            "method": "plus",
+            "args": ["0x10s"]
+          },
+          {
+            "method": "isLonger",
+            "args": [""]
+          },
+          {
+            "method": "isLonger",
+            "args": ["1x"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["30m1h"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["1h1h"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["0s"]
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "plus",
+            "args": ["0h0m0s"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["0m"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["1s"]
+          },
+          {
+            "method": "plus",
+            "args": ["000s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["0h"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["59s"]
+          },
+          {
+            "method": "plus",
+            "args": ["1s"]
+          },
+          {
+            "method": "plus",
+            "args": ["59m1s"]
+          },
+          {
+            "method": "plus",
+            "args": ["59m"]
+          },
+          {
+            "method": "plus",
+            "args": ["3540s"]
+          },
+          {
+            "method": "plus",
+            "args": ["61s"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["3661s"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          },
+          {
+            "method": "plus",
+            "args": ["3599s"]
+          },
+          {
+            "method": "plus",
+            "args": ["1h"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["1h1m"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["1h1m1s"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["1h1m2s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["2h"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          },
+          {
+            "method": "plus",
+            "args": ["60m"]
+          },
+          {
+            "method": "plus",
+            "args": ["1s"]
+          },
+          {
+            "method": "plus",
+            "args": ["1m"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["119m59s"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["7200s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1h1s"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          },
+          {
+            "method": "plus",
+            "args": ["59s"]
+          },
+          {
+            "method": "plus",
+            "args": ["58m59s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["100m"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          },
+          {
+            "method": "plus",
+            "args": ["20m"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["1h40m"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["1h39m59s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["07m05s"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          },
+          {
+            "method": "plus",
+            "args": ["0005s"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["7m4s"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["999999999h999999999m999999999s"]
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "plus",
+            "args": ["999999999h999999999m999999999s"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["999999999h"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["25h"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "plus",
+            "args": ["23h"]
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1m"]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          },
+          {
+            "method": "isLonger",
+            "args": ["59s"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["60s"]
+          },
+          {
+            "method": "isLonger",
+            "args": ["61s"]
+          },
+          {
+            "method": "plus",
+            "args": ["1m"]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "scaled",
+        "params": [
+          {
+            "name": "factor",
+            "type": "float"
+          }
+        ],
+        "returns": "string"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1h"]
+          },
+          {
+            "method": "scaled",
+            "args": [1.5]
+          },
+          {
+            "method": "scaled",
+            "args": [0.5]
+          },
+          {
+            "method": "scaled",
+            "args": [0.0]
+          },
+          {
+            "method": "scaled",
+            "args": [2.0]
+          },
+          {
+            "method": "canonical",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["10s"]
+          },
+          {
+            "method": "scaled",
+            "args": [0.25]
+          },
+          {
+            "method": "scaled",
+            "args": [0.15]
+          },
+          {
+            "method": "scaled",
+            "args": [0.1]
+          },
+          {
+            "method": "scaled",
+            "args": [0.09]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["100s"]
+          },
+          {
+            "method": "scaled",
+            "args": [0.29]
+          },
+          {
+            "method": "scaled",
+            "args": [0.57]
+          },
+          {
+            "method": "scaled",
+            "args": [1000.0]
+          },
+          {
+            "method": "scaled",
+            "args": [1000.5]
+          },
+          {
+            "method": "scaled",
+            "args": [-0.5]
+          },
+          {
+            "method": "scaled",
+            "args": [1e-9]
+          },
+          {
+            "method": "totalSeconds",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["999999999h999999999m999999999s"]
+          },
+          {
+            "method": "scaled",
+            "args": [1000.0]
+          },
+          {
+            "method": "scaled",
+            "args": [0.001]
+          },
+          {
+            "method": "scaled",
+            "args": [999.999]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["0s"]
+          },
+          {
+            "method": "scaled",
+            "args": [3.5]
+          },
+          {
+            "method": "scaled",
+            "args": [1.0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["1m1s"]
+          },
+          {
+            "method": "scaled",
+            "args": [3.0]
+          },
+          {
+            "method": "scaled",
+            "args": [0.999]
+          },
+          {
+            "method": "scaled",
+            "args": [59.1]
+          },
+          {
+            "method": "plus",
+            "args": ["1s"]
+          },
+          {
+            "method": "scaled",
+            "args": [1.0]
+          }
+        ]
+      }
+    ]
+  }
+}

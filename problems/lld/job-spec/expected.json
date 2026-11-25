@@ -1,0 +1,551 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 2
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": [
+          "job build",
+          "env CI=true",
+          "env NODE_ENV=production",
+          "step 1: npm ci",
+          "step 2: npm test"
+        ]
+      },
+      {
+        "call": 6,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a step needs a command"
+      },
+      {
+        "call": 4,
+        "value": ["job lint"]
+      },
+      {
+        "call": 5,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "error": "ValueError: a job needs a name"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": ["job deploy"]
+      },
+      {
+        "call": 2,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 6,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 11,
+        "value": null
+      },
+      {
+        "call": 12,
+        "value": [
+          "job keys",
+          "env A=1",
+          "env A1_B2=2",
+          "env A__B=4",
+          "env Z_=3"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": [
+          "job env",
+          "env A=first",
+          "env ALPHA=a2",
+          "env A_LONGER=",
+          "env MID=m",
+          "env ZED=z"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 2
+      },
+      {
+        "call": 3,
+        "value": 3
+      },
+      {
+        "call": 4,
+        "value": 3
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a step needs a command"
+      },
+      {
+        "call": 6,
+        "value": 3
+      },
+      {
+        "call": 7,
+        "value": 4
+      },
+      {
+        "call": 8,
+        "value": [
+          "job steps",
+          "step 1: make",
+          "step 2: make",
+          "step 3: make install",
+          "step 4: echo done"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": [
+          "job sorting",
+          "env A=5",
+          "env A1=4",
+          "env AB=3",
+          "env A_=2",
+          "env B=1"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": [
+          "job values",
+          "env EMPTY=",
+          "env SPACES= two  spaces ",
+          "env URL=https://x.example/?a=b",
+          "step 1:   indented command  "
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 1
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "value": ["job ci job", "env X=1", "step 1: a", "step 2: b"]
+      },
+      {
+        "call": 7,
+        "value": ["job ci job", "env X=1", "step 1: a", "step 2: b"]
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 8,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": 0
+      },
+      {
+        "call": 2,
+        "value": 1
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": 2
+      },
+      {
+        "call": 5,
+        "value": 3
+      },
+      {
+        "call": 6,
+        "value": 3
+      },
+      {
+        "call": 7,
+        "value": ["job x", "step 1: one", "step 2: two", "step 3: three"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 1
+      },
+      {
+        "call": 4,
+        "value": [
+          "job release",
+          "env NPM_TOKEN=***",
+          "env REGION=eu-west-1",
+          "step 1: npm publish"
+        ]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": ["job release", "env TOKEN=***"]
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": ["job release", "env TOKEN=plain again"]
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": ["job release", "env TOKEN=***"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: an env key is upper snake case"
+      },
+      {
+        "call": 4,
+        "value": ["job release"]
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": null
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": ["job release", "env A_KEY=***", "env B_KEY=***", "env C=c"]
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": 0
+      },
+      {
+        "call": 4,
+        "value": 1
+      },
+      {
+        "call": 5,
+        "value": ["job release", "env K=***", "step 1: deploy"]
+      }
+    ]
+  }
+]

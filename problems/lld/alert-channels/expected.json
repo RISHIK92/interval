@@ -1,0 +1,646 @@
+[
+  {
+    "layer": "visible",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "Subject: db-1 is down"
+      },
+      {
+        "call": 5,
+        "value": "db-1 is down sinc..."
+      },
+      {
+        "call": 6,
+        "value": "DB-1 IS DOWN!"
+      },
+      {
+        "call": 7,
+        "value": 1
+      },
+      {
+        "call": 8,
+        "value": 5
+      },
+      {
+        "call": 9,
+        "value": 25
+      }
+    ]
+  },
+  {
+    "layer": "visible",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "Subject: hi"
+      },
+      {
+        "call": 4,
+        "value": "Subject: hi"
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'no such channel'"
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "disk 91% on db-1 now"
+      },
+      {
+        "call": 3,
+        "value": "disk 91% on db-1 ..."
+      },
+      {
+        "call": 4,
+        "value": ""
+      },
+      {
+        "call": 5,
+        "value": "xxxxxxxxxxxxxxxxx"
+      },
+      {
+        "call": 6,
+        "value": "yyyyyyyyyyyyyyyyyy"
+      },
+      {
+        "call": 7,
+        "value": "abcdefghijklmnopq..."
+      },
+      {
+        "call": 8,
+        "value": 30
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "CPU AT 99% ON WEB-3!"
+      },
+      {
+        "call": 3,
+        "value": "ALREADY LOUD!"
+      },
+      {
+        "call": 4,
+        "value": "!"
+      },
+      {
+        "call": 5,
+        "value": "MIXED CASE-AND_DIGITS 42!"
+      },
+      {
+        "call": 6,
+        "value": 100
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "Subject: backup finished"
+      },
+      {
+        "call": 3,
+        "value": "Subject: "
+      },
+      {
+        "call": 4,
+        "value": "Subject: a much longer message that no sms would ever carry whole"
+      },
+      {
+        "call": 5,
+        "value": 3
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a channel needs a new, non-empty name"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a channel needs a new, non-empty name"
+      },
+      {
+        "call": 4,
+        "value": "Subject: still email"
+      },
+      {
+        "call": 5,
+        "value": 1
+      },
+      {
+        "call": 6,
+        "error": "ValueError: a channel needs a new, non-empty name"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'no such channel'"
+      },
+      {
+        "call": 8,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 9,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 10,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 11,
+        "error": "KeyError: 'no such channel'"
+      },
+      {
+        "call": 12,
+        "value": null
+      },
+      {
+        "call": 13,
+        "value": "NOW PAGER!"
+      },
+      {
+        "call": 14,
+        "value": 25
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 4,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": null
+      },
+      {
+        "call": 5,
+        "value": 0
+      },
+      {
+        "call": 6,
+        "value": 0
+      },
+      {
+        "call": 7,
+        "value": 0
+      },
+      {
+        "call": 8,
+        "value": "Subject: x"
+      },
+      {
+        "call": 9,
+        "value": "Subject: y"
+      },
+      {
+        "call": 10,
+        "value": "Subject: z"
+      },
+      {
+        "call": 11,
+        "value": "x"
+      },
+      {
+        "call": 12,
+        "value": "y"
+      },
+      {
+        "call": 13,
+        "value": "X!"
+      },
+      {
+        "call": 14,
+        "value": 3
+      },
+      {
+        "call": 15,
+        "value": 0
+      },
+      {
+        "call": 16,
+        "value": 10
+      },
+      {
+        "call": 17,
+        "value": 25
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 5,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "KeyError: 'no such channel'"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'no such channel'"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": 0
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 6,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": "DISK 91% ON DB-1 NOW!!"
+      },
+      {
+        "call": 4,
+        "value": "short"
+      },
+      {
+        "call": 5,
+        "value": "this one is far t..."
+      },
+      {
+        "call": 6,
+        "value": 25
+      },
+      {
+        "call": 7,
+        "value": 10
+      }
+    ]
+  },
+  {
+    "layer": "hidden",
+    "index": 7,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": null
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "Subject: tick"
+      },
+      {
+        "call": 5,
+        "value": "Subject: tick"
+      },
+      {
+        "call": 6,
+        "value": "Subject: tick"
+      },
+      {
+        "call": 7,
+        "value": "Subject: tick"
+      },
+      {
+        "call": 8,
+        "value": "tick"
+      },
+      {
+        "call": 9,
+        "value": "tick"
+      },
+      {
+        "call": 10,
+        "value": "tick"
+      },
+      {
+        "call": 11,
+        "value": "tick"
+      },
+      {
+        "call": 12,
+        "value": "TICK!"
+      },
+      {
+        "call": 13,
+        "value": "TICK!"
+      },
+      {
+        "call": 14,
+        "value": "TICK!"
+      },
+      {
+        "call": 15,
+        "value": "TICK!"
+      },
+      {
+        "call": 16,
+        "value": 4
+      },
+      {
+        "call": 17,
+        "value": 20
+      },
+      {
+        "call": 18,
+        "value": 100
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 0,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "value": "POST https://hooks.example.com/alerts db-1 is down"
+      },
+      {
+        "call": 3,
+        "value": "POST https://hooks.example.com/alerts recovered"
+      },
+      {
+        "call": 4,
+        "value": 4
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "value": "Subject: x"
+      },
+      {
+        "call": 7,
+        "value": 1
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 1,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: a webhook needs an https:// url"
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a webhook needs an https:// url"
+      },
+      {
+        "call": 3,
+        "error": "ValueError: a webhook needs an https:// url"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a webhook needs an https:// url"
+      },
+      {
+        "call": 5,
+        "error": "ValueError: a webhook needs an https:// url"
+      },
+      {
+        "call": 6,
+        "error": "KeyError: 'no such channel'"
+      },
+      {
+        "call": 7,
+        "value": null
+      },
+      {
+        "call": 8,
+        "value": "POST https://x x"
+      },
+      {
+        "call": 9,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 2,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "value": null
+      },
+      {
+        "call": 2,
+        "error": "ValueError: a channel needs a new, non-empty name"
+      },
+      {
+        "call": 3,
+        "value": "still an sms channel"
+      },
+      {
+        "call": 4,
+        "error": "ValueError: a channel needs a new, non-empty name"
+      },
+      {
+        "call": 5,
+        "value": null
+      },
+      {
+        "call": 6,
+        "error": "ValueError: a channel needs a new, non-empty name"
+      },
+      {
+        "call": 7,
+        "error": "ValueError: a channel needs a new, non-empty name"
+      },
+      {
+        "call": 8,
+        "value": "POST https://x.example first url"
+      },
+      {
+        "call": 9,
+        "value": 2
+      }
+    ]
+  },
+  {
+    "layer": "extension",
+    "index": 3,
+    "results": [
+      {
+        "call": 0,
+        "value": null
+      },
+      {
+        "call": 1,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 2,
+        "error": "KeyError: 'no such channel'"
+      },
+      {
+        "call": 3,
+        "value": null
+      },
+      {
+        "call": 4,
+        "value": "POST https://a.b/c A message longer than twenty characters stays whole"
+      },
+      {
+        "call": 5,
+        "value": 2
+      },
+      {
+        "call": 6,
+        "error": "ValueError: unknown kind"
+      },
+      {
+        "call": 7,
+        "error": "KeyError: 'no such channel'"
+      }
+    ]
+  }
+]

@@ -1,0 +1,775 @@
+{
+  "slug": "disk-quota",
+  "title": "Disk quota",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["encapsulation", "class-invariants"],
+  "interface": {
+    "class": "DiskQuota",
+    "constructor": {
+      "params": [
+        {
+          "name": "limitBytes",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "reserve",
+        "params": [
+          {
+            "name": "owner",
+            "type": "string"
+          },
+          {
+            "name": "bytes",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "release",
+        "params": [
+          {
+            "name": "owner",
+            "type": "string"
+          },
+          {
+            "name": "bytes",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "used",
+        "params": [
+          {
+            "name": "owner",
+            "type": "string"
+          }
+        ],
+        "returns": "int"
+      },
+      {
+        "name": "free",
+        "params": [],
+        "returns": "int"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "reserve",
+            "args": ["ci", 60]
+          },
+          {
+            "method": "reserve",
+            "args": ["docs", 30]
+          },
+          {
+            "method": "reserve",
+            "args": ["docs", 20]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "used",
+            "args": ["docs"]
+          },
+          {
+            "method": "release",
+            "args": ["ci", 50]
+          },
+          {
+            "method": "reserve",
+            "args": ["docs", 20]
+          },
+          {
+            "method": "used",
+            "args": ["ci"]
+          },
+          {
+            "method": "used",
+            "args": ["docs"]
+          },
+          {
+            "method": "free",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [10]
+          },
+          {
+            "method": "reserve",
+            "args": ["build", 10]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["build", 11]
+          },
+          {
+            "method": "used",
+            "args": ["build"]
+          },
+          {
+            "method": "release",
+            "args": ["nobody", 1]
+          },
+          {
+            "method": "used",
+            "args": ["nobody"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 1]
+          },
+          {
+            "method": "used",
+            "args": ["a"]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 0]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", -5]
+          },
+          {
+            "method": "free",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [50]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 25]
+          },
+          {
+            "method": "reserve",
+            "args": ["b", 25]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "reserve",
+            "args": ["c", 1]
+          },
+          {
+            "method": "used",
+            "args": ["c"]
+          },
+          {
+            "method": "release",
+            "args": ["a", 1]
+          },
+          {
+            "method": "reserve",
+            "args": ["c", 2]
+          },
+          {
+            "method": "reserve",
+            "args": ["c", 1]
+          },
+          {
+            "method": "used",
+            "args": ["c"]
+          },
+          {
+            "method": "free",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 40]
+          },
+          {
+            "method": "release",
+            "args": ["a", 0]
+          },
+          {
+            "method": "release",
+            "args": ["a", -1]
+          },
+          {
+            "method": "release",
+            "args": ["a", 41]
+          },
+          {
+            "method": "used",
+            "args": ["a"]
+          },
+          {
+            "method": "release",
+            "args": ["a", 40]
+          },
+          {
+            "method": "used",
+            "args": ["a"]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["a", 1]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 100]
+          },
+          {
+            "method": "free",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [30]
+          },
+          {
+            "method": "reserve",
+            "args": ["x", 10]
+          },
+          {
+            "method": "reserve",
+            "args": ["x", 10]
+          },
+          {
+            "method": "reserve",
+            "args": ["y", 10]
+          },
+          {
+            "method": "reserve",
+            "args": ["x", 1]
+          },
+          {
+            "method": "used",
+            "args": ["x"]
+          },
+          {
+            "method": "used",
+            "args": ["y"]
+          },
+          {
+            "method": "release",
+            "args": ["y", 10]
+          },
+          {
+            "method": "reserve",
+            "args": ["x", 10]
+          },
+          {
+            "method": "used",
+            "args": ["x"]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["x", 15]
+          },
+          {
+            "method": "used",
+            "args": ["x"]
+          },
+          {
+            "method": "free",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [20]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 15]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 6]
+          },
+          {
+            "method": "used",
+            "args": ["a"]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "reserve",
+            "args": ["b", 6]
+          },
+          {
+            "method": "used",
+            "args": ["b"]
+          },
+          {
+            "method": "reserve",
+            "args": ["b", 5]
+          },
+          {
+            "method": "used",
+            "args": ["b"]
+          },
+          {
+            "method": "free",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "reserve",
+            "args": ["alice", 30]
+          },
+          {
+            "method": "release",
+            "args": ["bob", 10]
+          },
+          {
+            "method": "used",
+            "args": ["alice"]
+          },
+          {
+            "method": "used",
+            "args": ["bob"]
+          },
+          {
+            "method": "reserve",
+            "args": ["bob", 70]
+          },
+          {
+            "method": "release",
+            "args": ["alice", 31]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["alice", 30]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "used",
+            "args": ["alice"]
+          },
+          {
+            "method": "used",
+            "args": [""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [9007199254740991]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 9007199254740990]
+          },
+          {
+            "method": "reserve",
+            "args": ["b", 2]
+          },
+          {
+            "method": "reserve",
+            "args": ["b", 1]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "used",
+            "args": ["a"]
+          },
+          {
+            "method": "release",
+            "args": ["a", 9007199254740990]
+          },
+          {
+            "method": "reserve",
+            "args": ["b", 9007199254740990]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "used",
+            "args": ["b"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [9007199254740991]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 9007199254740991]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 1]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["a", 9007199254740991]
+          },
+          {
+            "method": "reserve",
+            "args": ["b", 1]
+          },
+          {
+            "method": "reserve",
+            "args": ["c", 9007199254740991]
+          },
+          {
+            "method": "reserve",
+            "args": ["c", 9007199254740990]
+          },
+          {
+            "method": "used",
+            "args": ["c"]
+          },
+          {
+            "method": "free",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5]
+          },
+          {
+            "method": "reserve",
+            "args": ["", 5]
+          },
+          {
+            "method": "used",
+            "args": [""]
+          },
+          {
+            "method": "release",
+            "args": ["", 2]
+          },
+          {
+            "method": "free",
+            "args": []
+          },
+          {
+            "method": "reserve",
+            "args": ["q", 3]
+          },
+          {
+            "method": "reserve",
+            "args": ["q", 1]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "softLimit",
+        "params": [
+          {
+            "name": "bytes",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "warnings",
+        "params": [],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "reserve",
+            "args": ["web", 40]
+          },
+          {
+            "method": "reserve",
+            "args": ["api", 30]
+          },
+          {
+            "method": "reserve",
+            "args": ["db", 10]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          },
+          {
+            "method": "softLimit",
+            "args": [25]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["web", 15]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["web", 1]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100]
+          },
+          {
+            "method": "softLimit",
+            "args": [10]
+          },
+          {
+            "method": "reserve",
+            "args": ["b", 11]
+          },
+          {
+            "method": "reserve",
+            "args": ["a", 10]
+          },
+          {
+            "method": "reserve",
+            "args": ["c", 50]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          },
+          {
+            "method": "softLimit",
+            "args": [0]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          },
+          {
+            "method": "softLimit",
+            "args": [50]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          },
+          {
+            "method": "softLimit",
+            "args": [49]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [10]
+          },
+          {
+            "method": "softLimit",
+            "args": [-1]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          },
+          {
+            "method": "softLimit",
+            "args": [3]
+          },
+          {
+            "method": "reserve",
+            "args": ["z", 4]
+          },
+          {
+            "method": "softLimit",
+            "args": [-2]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          },
+          {
+            "method": "reserve",
+            "args": ["z", 7]
+          },
+          {
+            "method": "used",
+            "args": ["z"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [60]
+          },
+          {
+            "method": "reserve",
+            "args": ["Zed", 20]
+          },
+          {
+            "method": "reserve",
+            "args": ["amy", 20]
+          },
+          {
+            "method": "reserve",
+            "args": ["Bob", 20]
+          },
+          {
+            "method": "softLimit",
+            "args": [5]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          },
+          {
+            "method": "release",
+            "args": ["amy", 20]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          },
+          {
+            "method": "reserve",
+            "args": ["amy", 1]
+          },
+          {
+            "method": "warnings",
+            "args": []
+          }
+        ]
+      }
+    ]
+  }
+}

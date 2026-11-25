@@ -1,0 +1,584 @@
+{
+  "slug": "money",
+  "title": "Money",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["value-objects", "immutability", "class-invariants"],
+  "interface": {
+    "class": "Money",
+    "constructor": {
+      "params": [
+        {
+          "name": "cents",
+          "type": "int"
+        },
+        {
+          "name": "currency",
+          "type": "string"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "add",
+        "params": [
+          {
+            "name": "cents",
+            "type": "int"
+          },
+          {
+            "name": "currency",
+            "type": "string"
+          }
+        ],
+        "returns": "string"
+      },
+      {
+        "name": "split",
+        "params": [
+          {
+            "name": "parts",
+            "type": "int"
+          }
+        ],
+        "returns": "list<string>"
+      },
+      {
+        "name": "display",
+        "params": [],
+        "returns": "string"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000, "USD"]
+          },
+          {
+            "method": "display",
+            "args": []
+          },
+          {
+            "method": "split",
+            "args": [3]
+          },
+          {
+            "method": "add",
+            "args": [205, "USD"]
+          },
+          {
+            "method": "display",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [1, "EUR"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [7, "EUR"]
+          },
+          {
+            "method": "display",
+            "args": []
+          },
+          {
+            "method": "split",
+            "args": [2]
+          },
+          {
+            "method": "split",
+            "args": [10]
+          },
+          {
+            "method": "add",
+            "args": [93, "EUR"]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [-1, "USD"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000000000001, "USD"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, "usd"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, "US"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, "USDT"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, ""]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, "U5D"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0, "JPY"]
+          },
+          {
+            "method": "display",
+            "args": []
+          },
+          {
+            "method": "split",
+            "args": [1]
+          },
+          {
+            "method": "split",
+            "args": [3]
+          },
+          {
+            "method": "add",
+            "args": [0, "JPY"]
+          },
+          {
+            "method": "add",
+            "args": [99, "JPY"]
+          },
+          {
+            "method": "add",
+            "args": [100, "JPY"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000000000000, "GBP"]
+          },
+          {
+            "method": "display",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [1000000000000, "GBP"]
+          },
+          {
+            "method": "split",
+            "args": [7]
+          },
+          {
+            "method": "add",
+            "args": [1000000000001, "GBP"]
+          },
+          {
+            "method": "add",
+            "args": [-1, "GBP"]
+          },
+          {
+            "method": "add",
+            "args": [1, "gbp"]
+          },
+          {
+            "method": "add",
+            "args": [1, "GB"]
+          },
+          {
+            "method": "display",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100, "USD"]
+          },
+          {
+            "method": "split",
+            "args": [0]
+          },
+          {
+            "method": "split",
+            "args": [-2]
+          },
+          {
+            "method": "split",
+            "args": [101]
+          },
+          {
+            "method": "split",
+            "args": [100]
+          },
+          {
+            "method": "display",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [101, "USD"]
+          },
+          {
+            "method": "split",
+            "args": [2]
+          },
+          {
+            "method": "split",
+            "args": [4]
+          },
+          {
+            "method": "split",
+            "args": [6]
+          },
+          {
+            "method": "split",
+            "args": [101]
+          },
+          {
+            "method": "display",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1999, "CAD"]
+          },
+          {
+            "method": "split",
+            "args": [3]
+          },
+          {
+            "method": "split",
+            "args": [7]
+          },
+          {
+            "method": "split",
+            "args": [1]
+          },
+          {
+            "method": "display",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, "AUD"]
+          },
+          {
+            "method": "split",
+            "args": [7]
+          },
+          {
+            "method": "display",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [5, "AUD"]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [12345, "INR"]
+          },
+          {
+            "method": "display",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [55, "INR"]
+          },
+          {
+            "method": "add",
+            "args": [100000, "INR"]
+          },
+          {
+            "method": "split",
+            "args": [5]
+          },
+          {
+            "method": "add",
+            "args": [1, "USD"]
+          },
+          {
+            "method": "display",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [10, "CHF"]
+          },
+          {
+            "method": "display",
+            "args": []
+          },
+          {
+            "method": "add",
+            "args": [9, "CHF"]
+          },
+          {
+            "method": "add",
+            "args": [90, "CHF"]
+          },
+          {
+            "method": "split",
+            "args": [3]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "allocate",
+        "params": [
+          {
+            "name": "weights",
+            "type": "list<int>"
+          }
+        ],
+        "returns": "list<string>"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000, "USD"]
+          },
+          {
+            "method": "allocate",
+            "args": [[1, 1, 1]]
+          },
+          {
+            "method": "allocate",
+            "args": [[70, 30]]
+          },
+          {
+            "method": "allocate",
+            "args": [[1, 2]]
+          },
+          {
+            "method": "allocate",
+            "args": [[3]]
+          },
+          {
+            "method": "display",
+            "args": []
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [5, "EUR"]
+          },
+          {
+            "method": "allocate",
+            "args": [[0, 1, 1]]
+          },
+          {
+            "method": "allocate",
+            "args": [[1, 0, 1, 0, 1]]
+          },
+          {
+            "method": "allocate",
+            "args": [[3, 7]]
+          },
+          {
+            "method": "allocate",
+            "args": [[0, 0, 5]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [100, "USD"]
+          },
+          {
+            "method": "allocate",
+            "args": [[]]
+          },
+          {
+            "method": "allocate",
+            "args": [[0, 0]]
+          },
+          {
+            "method": "allocate",
+            "args": [[-1, 2]]
+          },
+          {
+            "method": "allocate",
+            "args": [[1001, 1]]
+          },
+          {
+            "method": "allocate",
+            "args": [[1000, 1]]
+          },
+          {
+            "method": "allocate",
+            "args": [
+              [
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+              ]
+            ]
+          },
+          {
+            "method": "allocate",
+            "args": [
+              [
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+              ]
+            ]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [1000000000000, "GBP"]
+          },
+          {
+            "method": "allocate",
+            "args": [[1000, 999, 1]]
+          },
+          {
+            "method": "allocate",
+            "args": [[333, 333, 334]]
+          },
+          {
+            "method": "split",
+            "args": [3]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [0, "JPY"]
+          },
+          {
+            "method": "allocate",
+            "args": [[1, 2, 3]]
+          },
+          {
+            "method": "allocate",
+            "args": [[0, 4]]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": [7, "CAD"]
+          },
+          {
+            "method": "allocate",
+            "args": [[2, 2, 2]]
+          },
+          {
+            "method": "allocate",
+            "args": [[5, 1, 1]]
+          },
+          {
+            "method": "allocate",
+            "args": [[1, 1, 5]]
+          },
+          {
+            "method": "allocate",
+            "args": [[1]]
+          },
+          {
+            "method": "allocate",
+            "args": [[0, 1]]
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,613 @@
+{
+  "slug": "feature-flag",
+  "title": "Feature flag",
+  "difficulty": "easy",
+  "pool": "practice",
+  "topic": "oop-basics",
+  "concepts": ["classes-and-objects", "encapsulation", "feature-flags"],
+  "interface": {
+    "class": "FeatureFlag",
+    "constructor": {
+      "params": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "rolloutPercent",
+          "type": "int"
+        }
+      ]
+    },
+    "methods": [
+      {
+        "name": "enabledFor",
+        "params": [
+          {
+            "name": "userBucket",
+            "type": "int"
+          }
+        ],
+        "returns": "bool"
+      },
+      {
+        "name": "setRollout",
+        "params": [
+          {
+            "name": "percent",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      },
+      {
+        "name": "kill",
+        "params": [],
+        "returns": "void"
+      },
+      {
+        "name": "revive",
+        "params": [],
+        "returns": "void"
+      }
+    ]
+  },
+  "limits": {
+    "seconds": 5,
+    "memoryMB": 128
+  },
+  "layers": {
+    "visible": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["new-checkout", 30]
+          },
+          {
+            "method": "enabledFor",
+            "args": [0]
+          },
+          {
+            "method": "enabledFor",
+            "args": [29]
+          },
+          {
+            "method": "enabledFor",
+            "args": [30]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "setRollout",
+            "args": [50]
+          },
+          {
+            "method": "enabledFor",
+            "args": [30]
+          },
+          {
+            "method": "enabledFor",
+            "args": [50]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["dark-mode", 100]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "kill",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [0]
+          },
+          {
+            "method": "setRollout",
+            "args": [10]
+          },
+          {
+            "method": "enabledFor",
+            "args": [5]
+          },
+          {
+            "method": "revive",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [5]
+          },
+          {
+            "method": "enabledFor",
+            "args": [10]
+          }
+        ]
+      }
+    ],
+    "hidden": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["f", -1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["f", 101]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["", 50]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["f", 0]
+          },
+          {
+            "method": "enabledFor",
+            "args": [0]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "setRollout",
+            "args": [1]
+          },
+          {
+            "method": "enabledFor",
+            "args": [0]
+          },
+          {
+            "method": "enabledFor",
+            "args": [1]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["f", 100]
+          },
+          {
+            "method": "enabledFor",
+            "args": [0]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "enabledFor",
+            "args": [100]
+          },
+          {
+            "method": "enabledFor",
+            "args": [-1]
+          },
+          {
+            "method": "enabledFor",
+            "args": [50]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["f", 40]
+          },
+          {
+            "method": "setRollout",
+            "args": [101]
+          },
+          {
+            "method": "enabledFor",
+            "args": [39]
+          },
+          {
+            "method": "enabledFor",
+            "args": [40]
+          },
+          {
+            "method": "setRollout",
+            "args": [-1]
+          },
+          {
+            "method": "enabledFor",
+            "args": [39]
+          },
+          {
+            "method": "setRollout",
+            "args": [100]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "setRollout",
+            "args": [0]
+          },
+          {
+            "method": "enabledFor",
+            "args": [0]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["f", 100]
+          },
+          {
+            "method": "kill",
+            "args": []
+          },
+          {
+            "method": "kill",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [0]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "setRollout",
+            "args": [100]
+          },
+          {
+            "method": "enabledFor",
+            "args": [50]
+          },
+          {
+            "method": "revive",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [50]
+          },
+          {
+            "method": "revive",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "kill",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["f", 25]
+          },
+          {
+            "method": "revive",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [24]
+          },
+          {
+            "method": "enabledFor",
+            "args": [25]
+          },
+          {
+            "method": "kill",
+            "args": []
+          },
+          {
+            "method": "setRollout",
+            "args": [75]
+          },
+          {
+            "method": "revive",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [74]
+          },
+          {
+            "method": "enabledFor",
+            "args": [75]
+          },
+          {
+            "method": "setRollout",
+            "args": [120]
+          },
+          {
+            "method": "enabledFor",
+            "args": [74]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["f", 50]
+          },
+          {
+            "method": "kill",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [100]
+          },
+          {
+            "method": "enabledFor",
+            "args": [-1]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "revive",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [49]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["f", 1]
+          },
+          {
+            "method": "enabledFor",
+            "args": [0]
+          },
+          {
+            "method": "enabledFor",
+            "args": [1]
+          },
+          {
+            "method": "setRollout",
+            "args": [99]
+          },
+          {
+            "method": "enabledFor",
+            "args": [98]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "setRollout",
+            "args": [98]
+          },
+          {
+            "method": "enabledFor",
+            "args": [97]
+          },
+          {
+            "method": "enabledFor",
+            "args": [98]
+          }
+        ]
+      }
+    ]
+  },
+  "extension": {
+    "methods": [
+      {
+        "name": "allow",
+        "params": [
+          {
+            "name": "userBucket",
+            "type": "int"
+          }
+        ],
+        "returns": "void"
+      }
+    ],
+    "scenarios": [
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["beta", 10]
+          },
+          {
+            "method": "allow",
+            "args": [42]
+          },
+          {
+            "method": "enabledFor",
+            "args": [42]
+          },
+          {
+            "method": "enabledFor",
+            "args": [43]
+          },
+          {
+            "method": "enabledFor",
+            "args": [9]
+          },
+          {
+            "method": "kill",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [42]
+          },
+          {
+            "method": "revive",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [42]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["beta", 0]
+          },
+          {
+            "method": "allow",
+            "args": [0]
+          },
+          {
+            "method": "allow",
+            "args": [99]
+          },
+          {
+            "method": "allow",
+            "args": [99]
+          },
+          {
+            "method": "enabledFor",
+            "args": [0]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "enabledFor",
+            "args": [50]
+          },
+          {
+            "method": "setRollout",
+            "args": [100]
+          },
+          {
+            "method": "enabledFor",
+            "args": [50]
+          },
+          {
+            "method": "setRollout",
+            "args": [0]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["beta", 20]
+          },
+          {
+            "method": "allow",
+            "args": [100]
+          },
+          {
+            "method": "allow",
+            "args": [-1]
+          },
+          {
+            "method": "enabledFor",
+            "args": [99]
+          },
+          {
+            "method": "allow",
+            "args": [50]
+          },
+          {
+            "method": "enabledFor",
+            "args": [50]
+          },
+          {
+            "method": "enabledFor",
+            "args": [51]
+          }
+        ]
+      },
+      {
+        "calls": [
+          {
+            "method": "new",
+            "args": ["beta", 50]
+          },
+          {
+            "method": "kill",
+            "args": []
+          },
+          {
+            "method": "allow",
+            "args": [70]
+          },
+          {
+            "method": "enabledFor",
+            "args": [70]
+          },
+          {
+            "method": "enabledFor",
+            "args": [10]
+          },
+          {
+            "method": "revive",
+            "args": []
+          },
+          {
+            "method": "enabledFor",
+            "args": [70]
+          },
+          {
+            "method": "enabledFor",
+            "args": [60]
+          }
+        ]
+      }
+    ]
+  }
+}
